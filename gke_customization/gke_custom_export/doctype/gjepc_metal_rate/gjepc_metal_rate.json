@@ -1,0 +1,85 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-07-12 16:33:47.399603",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "gold_rate_as_per",
+  "file_name",
+  "column_break_qncjj",
+  "date",
+  "rate_in_ounce",
+  "section_break_pohck",
+  "gjepc_metal_rate_details"
+ ],
+ "fields": [
+  {
+   "default": "GJEPC",
+   "description": "\u200e ",
+   "fieldname": "gold_rate_as_per",
+   "fieldtype": "Read Only",
+   "label": "Gold Rate As Per"
+  },
+  {
+   "description": "Name of PDF File ",
+   "fieldname": "file_name",
+   "fieldtype": "Data",
+   "label": "File Name"
+  },
+  {
+   "fieldname": "column_break_qncjj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Datetime",
+   "label": "Date"
+  },
+  {
+   "description": "Rate for 1 Ounce",
+   "fieldname": "rate_in_ounce",
+   "fieldtype": "Data",
+   "label": "Rate (in USD)"
+  },
+  {
+   "fieldname": "section_break_pohck",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "gjepc_metal_rate_details",
+   "fieldtype": "Table",
+   "label": "GJEPC Metal Rate Details",
+   "options": "GJEPC Metal Rate Details"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2023-12-13 12:38:40.801280",
+ "modified_by": "Administrator",
+ "module": "GKE Custom Export",
+ "name": "GJEPC Metal Rate",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}

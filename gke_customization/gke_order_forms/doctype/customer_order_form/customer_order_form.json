@@ -1,0 +1,398 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:ORD/T/{#####}",
+ "creation": "2023-10-27 09:24:02.490579",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "workflow_state",
+  "customer_code",
+  "column_break_riio8",
+  "titan_code",
+  "section_break_fkzec",
+  "design_code",
+  "bom",
+  "column_break_vdz8n",
+  "serial_no",
+  "serial_no_bom",
+  "section_break_oortm",
+  "item_category",
+  "productivity",
+  "column_break_tipf2",
+  "titan_category",
+  "item_subcategory",
+  "setting_type",
+  "section_break_iadlw",
+  "metal_type",
+  "metal_touch",
+  "diamond_quality",
+  "column_break_1cdrv",
+  "metal_colour",
+  "metal_purity",
+  "finding",
+  "section_break_gavzd",
+  "request_no",
+  "line_no",
+  "uom",
+  "column_break_pjwys",
+  "target_date",
+  "indent_type",
+  "vendor_site",
+  "section_break_k41c3",
+  "product_size",
+  "stone",
+  "chain",
+  "column_break_4cta1",
+  "enamal",
+  "qty",
+  "rhodium",
+  "cust_modi",
+  "gemstone_quality",
+  "gemstone_type",
+  "section_break_0qvw9",
+  "titan_order_form_details",
+  "tab_break_ee8gu",
+  "image",
+  "image_preview",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Workflow State",
+   "options": "Workflow State"
+  },
+  {
+   "fieldname": "customer_code",
+   "fieldtype": "Link",
+   "label": "Customer Code",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "column_break_riio8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "titan_code",
+   "fieldtype": "Data",
+   "label": "Titan Code"
+  },
+  {
+   "fieldname": "section_break_fkzec",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "design_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Design Code",
+   "options": "Item"
+  },
+  {
+   "fetch_from": "design_code.master_bom",
+   "fetch_if_empty": 1,
+   "fieldname": "bom",
+   "fieldtype": "Link",
+   "label": "Design Code BOM",
+   "options": "BOM"
+  },
+  {
+   "fieldname": "column_break_vdz8n",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "design_code.tag_no",
+   "fetch_if_empty": 1,
+   "fieldname": "serial_no",
+   "fieldtype": "Link",
+   "label": "Serial No",
+   "options": "Serial No"
+  },
+  {
+   "fetch_if_empty": 1,
+   "fieldname": "serial_no_bom",
+   "fieldtype": "Link",
+   "label": "Serial No BOM",
+   "options": "BOM"
+  },
+  {
+   "fieldname": "section_break_oortm",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "design_code.item_category",
+   "fieldname": "item_category",
+   "fieldtype": "Link",
+   "label": "Item Category",
+   "options": "Attribute Value"
+  },
+  {
+   "default": "Studded",
+   "fieldname": "productivity",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Productivity",
+   "options": "\nPlain\nStudded",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_tipf2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "titan_category",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Titan Category",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "design_code.item_subcategory",
+   "fieldname": "item_subcategory",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Subcategory",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "design_code.setting_type",
+   "fetch_if_empty": 1,
+   "fieldname": "setting_type",
+   "fieldtype": "Link",
+   "label": "Setting Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "section_break_iadlw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "bom.metal_type_",
+   "fetch_if_empty": 1,
+   "fieldname": "metal_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Metal Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "metal_touch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Metal Touch",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "diamond_quality",
+   "fieldtype": "Link",
+   "label": "Diamond Quality",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "column_break_1cdrv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bom.metal_colour",
+   "fetch_if_empty": 1,
+   "fieldname": "metal_colour",
+   "fieldtype": "Link",
+   "label": "Metal Colour",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "bom.metal_purity",
+   "fetch_if_empty": 1,
+   "fieldname": "metal_purity",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Metal Purity",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "finding",
+   "fieldtype": "Link",
+   "label": "Finding",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "section_break_gavzd",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "request_no",
+   "fieldtype": "Data",
+   "label": "Request No"
+  },
+  {
+   "fieldname": "line_no",
+   "fieldtype": "Data",
+   "label": "Line No"
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Select",
+   "label": "UOM",
+   "options": "\nSET\nNOS\nPR"
+  },
+  {
+   "fieldname": "column_break_pjwys",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "target_date",
+   "fieldtype": "Date",
+   "label": "Target Date"
+  },
+  {
+   "fieldname": "indent_type",
+   "fieldtype": "Select",
+   "label": "Indent Type",
+   "options": "\nMTO\nPROTO\nFILLER\nMTBI\nMTR\nNEW\nJWO"
+  },
+  {
+   "fieldname": "vendor_site",
+   "fieldtype": "Select",
+   "label": "Vendor Site",
+   "options": "\n2B-SS-SUR\n2B-SM-SUR"
+  },
+  {
+   "fieldname": "section_break_k41c3",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "bom.product_size",
+   "fetch_if_empty": 1,
+   "fieldname": "product_size",
+   "fieldtype": "Data",
+   "label": "Product Size"
+  },
+  {
+   "fieldname": "stone",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Stone",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "chain",
+   "fieldtype": "Select",
+   "label": "Chain",
+   "options": "No\nYes"
+  },
+  {
+   "fieldname": "column_break_4cta1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bom.enamal",
+   "fieldname": "enamal",
+   "fieldtype": "Link",
+   "label": "Enamal",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "No. of Pcs"
+  },
+  {
+   "fetch_from": "bom.rhodium",
+   "fieldname": "rhodium",
+   "fieldtype": "Select",
+   "label": "Rhodium",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "cust_modi",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Cust_Modi",
+   "options": "No\nYes"
+  },
+  {
+   "fieldname": "gemstone_quality",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Gemstone Quality",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "gemstone_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Gemstone Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "section_break_0qvw9",
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "label": "Titan Order Form Details"
+  },
+  {
+   "fieldname": "titan_order_form_details",
+   "fieldtype": "Table",
+   "label": "Titan Order Form Details",
+   "options": "Titan Order Form Details"
+  },
+  {
+   "fieldname": "tab_break_ee8gu",
+   "fieldtype": "Tab Break",
+   "label": "Image"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image"
+  },
+  {
+   "fieldname": "image_preview",
+   "fieldtype": "Image",
+   "label": "Image Preview",
+   "options": "image"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Customer Order Form",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2023-12-13 13:10:04.021394",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Customer Order Form",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

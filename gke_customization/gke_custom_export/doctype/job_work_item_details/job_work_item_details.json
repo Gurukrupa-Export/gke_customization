@@ -1,0 +1,91 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-12-04 17:50:37.790223",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "inovice_number",
+  "boe_number",
+  "boe_date",
+  "value_in_dollar",
+  "loan_basis_import_value_in_dollar",
+  "net_recivable_value",
+  "total",
+  "diamond_pcs",
+  "diamond_weight_in_carat",
+  "diamond_weight_in_gram"
+ ],
+ "fields": [
+  {
+   "fieldname": "inovice_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Item"
+  },
+  {
+   "fieldname": "boe_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Gold Net-Wt (in Gram)"
+  },
+  {
+   "fieldname": "boe_date",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Gold Wasteage (in gram)"
+  },
+  {
+   "fieldname": "value_in_dollar",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Total (Net_Wt + Gold_Wastage)"
+  },
+  {
+   "fieldname": "loan_basis_import_value_in_dollar",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Fine - 999 Net-Wt (In Gram)"
+  },
+  {
+   "fieldname": "net_recivable_value",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Fine - 999 Wasteage (in gram)"
+  },
+  {
+   "fieldname": "total",
+   "fieldtype": "Data",
+   "label": "Total - (Fine 999 net_wt + 999 wastage)"
+  },
+  {
+   "fieldname": "diamond_pcs",
+   "fieldtype": "Data",
+   "label": "Diamond PCS"
+  },
+  {
+   "fieldname": "diamond_weight_in_carat",
+   "fieldtype": "Data",
+   "label": "Diamond Weight (in Carat)"
+  },
+  {
+   "fieldname": "diamond_weight_in_gram",
+   "fieldtype": "Data",
+   "label": "Diamond Weight (in Gram)"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2023-12-13 12:42:13.036488",
+ "modified_by": "Administrator",
+ "module": "GKE Custom Export",
+ "name": "Job Work Item Details",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

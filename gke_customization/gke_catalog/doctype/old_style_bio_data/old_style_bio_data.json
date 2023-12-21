@@ -1,0 +1,303 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2023-12-07 11:52:46.529887",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "attach",
+  "workflow_state",
+  "image",
+  "section_break_qxftw",
+  "section_break_bje2s",
+  "category",
+  "old_style_bio",
+  "setting_type",
+  "column_break_oo53s",
+  "sub_category",
+  "old_tag_number",
+  "attributes_section",
+  "relationship",
+  "zodiac",
+  "birthstone",
+  "color_tone",
+  "finish_type",
+  "initial",
+  "shape",
+  "setting_style",
+  "birds",
+  "animals",
+  "relationship_column",
+  "design_style",
+  "collection",
+  "gender",
+  "religion",
+  "temple",
+  "occasion",
+  "age_group",
+  "cartoon",
+  "no_of_prongs",
+  "no_of_solitaries",
+  "section_break_wgzby",
+  "approval_table",
+  "final_approval_table",
+  "amended_from",
+  "naming_series"
+ ],
+ "fields": [
+  {
+   "fieldname": "attach",
+   "fieldtype": "Attach Image",
+   "label": "Attach Image",
+   "options": "image"
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Workflow State",
+   "no_copy": 1,
+   "options": "Workflow State"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Image",
+   "label": "Image",
+   "options": "attach"
+  },
+  {
+   "fieldname": "section_break_qxftw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_bje2s",
+   "fieldtype": "Section Break",
+   "label": "Style Bio Details"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "label": "Item Category",
+   "options": "\nRings\nEarring\nPendant\nBracelets\nBangle\nNecklace\nMangalsutra\nMugappu\nNose Pin\nOddiyanam\nAccessories\nArmlate"
+  },
+  {
+   "fieldname": "old_style_bio",
+   "fieldtype": "Data",
+   "label": "Old Style Bio"
+  },
+  {
+   "fieldname": "setting_type",
+   "fieldtype": "Link",
+   "label": "Setting Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "column_break_oo53s",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sub_category",
+   "fieldtype": "Select",
+   "label": "Item Sub Category",
+   "options": "\nEngagement Rings\nDaily wear Rings\nCouple Rings\nCocktail Rings\nSolitaire Rings\nBand Rings\nAdjustable/Bolo Rings\nVanki Rings\nSpiral Rings\nEternity Rings\nMangalsutra Rings\nFancy Rings\nNakshi Rings\nKid's Rings\nGod Rings\nCocktail Studs\nJhumki Earrings\nEarcuff Earrings\nChand bali\nDrop Earrings\nHoops & Huggies/Bali\nDaily wear Studs\nChandelier\nMismatch Earrings\nDanglers\nSuidhaga Earrings\nFront Back Earrings\nKadi Jumkhi\nSolitaire Earrings\nFancy Earrings\nKuppu Earrings\nNakshi Earring\nNakshi Jumkhi\nNakshi Chandbali\nKid's Earrings\nGod Earrings\nDaily wear Pendant\nMagdi Pendant\nChain Pendant\nCocktail Pendant\nSlider Pendant\nCocktail Chain Pendant\nSolitaire Pendant\nPendant Set\nTrio Pendant Set\nFancy Pendant\nLocket Pendant\nNakshi Pendant\nKid's Pendant\nGod Pendant\nChain Bracelet\nFlexible Bracelet\nOval Bracelet\nTennis Bracelet\nHalf chain Bracelet\nCharm Bracelet\nCuban Bracelet\nFancy Bracelet\nMangalsutra Bracelet\nKid's Bracelet\nGod Bracelet\nKada\nRound Bangle\nGolusu bangle\nOpenable Bangle\nPacheli Bangle\nEternity Bangle\nFancy Bangle\nNakshi Bangle\nKid's Bangle\nGod Bangle\nCollar Necklace\nChoker Necklace\nChar Necklace\nShort Necklace\nLayered Necklace\nStation Necklace\nNakshi Necklace\nPadhakam\nAddigai Necklace\nCuban Chain\nTennis Necklace\nY Necklace\nFancy Necklace\nLariat\nKantha - Hasli\nHaram\nChik Chokar\nMala\nNakshi Choker\nNakshi Haram\nKid's Necklace\nGod Necklace\nMangalsutra Pendant\nMangalsutra Chains\nSolitaire Mangalsutra\nThali Tanmaniya\nFancy Mangalsutra\nGod Mangalsutra\nSpiral Mugappu\nMugappu Chain\nCocktail Mugappu\nGod Mugappu\nAnt\nFancy Mugappu\nDaily wear Mugappu\nNakshi Mugappu\nStud Nose Pin\nO Ring Nose Pin\nJ type Nose Pin\nFancy Nose Pin\nGod Oddiyanam\nGod Nakshi Oddiyanam\nFancy Oddiyanam\nNakshi Oddiyanam\nKid's Oddiyanam\nBrooch\nCrown\nCufflinks\nGoggles\nPen\nSculpture\nBelt\nTie Clip\nWatches\nMoney clip\nCharms\nWatch Charms\nButton\nMaang Tikka\nMatha Patti\nJada Billa\nJada\nKids Hair Pin\nMatal-Sahara\nPassa\nNakshi Jada\nTube Shape Armlate\nChain Armlate\nV/U-Shape Vanki\nFancy Armlate\nNakshi Vanki\nKid's Armlate\nGod Armlate"
+  },
+  {
+   "fieldname": "old_tag_number",
+   "fieldtype": "Data",
+   "label": "Old Tag Number"
+  },
+  {
+   "fieldname": "attributes_section",
+   "fieldtype": "Section Break",
+   "label": "Attributes"
+  },
+  {
+   "fieldname": "section_break_wgzby",
+   "fieldtype": "Section Break",
+   "label": "---"
+  },
+  {
+   "depends_on": "eval: ((doc.workflow_state == 'Send For Approval') || (doc.workflow_state == 'Approved'))",
+   "fieldname": "approval_table",
+   "fieldtype": "Table",
+   "label": "Approval Table",
+   "options": "Old Style Bio Approval"
+  },
+  {
+   "depends_on": "eval:doc.workflow_state == 'Approved'",
+   "fieldname": "final_approval_table",
+   "fieldtype": "Table",
+   "label": "Final Approval Table",
+   "options": "Old Style Bio Approval"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "naming_series",
+   "options": "OLD-"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Old Style Bio Data",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "relationship_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "relationship",
+   "fieldtype": "Select",
+   "label": "Relationship",
+   "options": "\nBrother\nDad\nGranddad\nGrandma\nHusband\nMom\nSister\nWife"
+  },
+  {
+   "fieldname": "zodiac",
+   "fieldtype": "Select",
+   "label": "Zodiac",
+   "options": "\nAries\nTaurus\nGemini\nCancer\nLeo\nVirgo\nLibra\nScorpio\nSagittarius\nCapricorn\nAquarius\nPisces"
+  },
+  {
+   "fieldname": "birthstone",
+   "fieldtype": "Select",
+   "label": "Birthstone",
+   "options": "\nGarnet\nAmethyst\nAquamarine\nEmerald\nPearl\nRuby\nPeridot\nTopaz\nTanzanite\nCitrine\nTourmaline"
+  },
+  {
+   "fieldname": "color_tone",
+   "fieldtype": "Select",
+   "label": "Color Tone",
+   "options": "\nYellow\nWhite\nPink\nBaby Pink"
+  },
+  {
+   "fieldname": "finish_type",
+   "fieldtype": "Select",
+   "label": "Finish Type",
+   "options": "\nMatte\nGlossy"
+  },
+  {
+   "fieldname": "initial",
+   "fieldtype": "Select",
+   "label": "Initial",
+   "options": "\nA\nB\nC\nD\nE\nF\nG\nH\nI\nJ\nK\nL\nM\nN\nO\nP\nQ\nR\nS\nT\nU\nV\nW\nX\nY\nZ"
+  },
+  {
+   "fieldname": "shape",
+   "fieldtype": "Select",
+   "label": "Shape",
+   "options": "\nFeather\nHeart\nBow\nInfinity\nAbstract\nSqaure\nRectangle\nRhoumbus\nTriangle\nMango\nOval\nRound\nCircle"
+  },
+  {
+   "fieldname": "setting_style",
+   "fieldtype": "Select",
+   "label": "Setting Style",
+   "options": "\nCup\nBezel\nHalf Bezel\nProng\nPlat Prong\nU Cat\nCollet\nBabu Collet\nPressure\nCluster\nWall Prong\nChannel\nBar Channel\nPave\nInvisible\nTension\nFlush / Gypsy\nIllusion"
+  },
+  {
+   "fieldname": "birds",
+   "fieldtype": "Select",
+   "label": "Birds"
+  },
+  {
+   "fieldname": "animals",
+   "fieldtype": "Select",
+   "label": "Animals",
+   "options": "\nLion\nTiger\nElephant\nSnake\nDeer\nMouse\nPanther\nLeopard\nJaguar\nSquirrel\nHorse\nRabbit\nCat\nButterfly"
+  },
+  {
+   "fieldname": "design_style",
+   "fieldtype": "Select",
+   "label": "Design Style",
+   "options": "\nKakinada Style\nBombay Style\nSouth Style\nBands\nFor Couple\nPromise\nCocktail\nDaily Wear\nAdjustable\nFlexible\nChain\nCharms\nHalo\nStackable\nDangle"
+  },
+  {
+   "fieldname": "collection",
+   "fieldtype": "Select",
+   "label": "Collection",
+   "options": "\nCoin Collection\nDhaga Collection\nBaby Collection\nTrendy Collection\nBridal Collection\nParty Collection\nOffice Wear Collection\nFeather Lite Collection\nDivine Collection\nKadaksha\nDesert Queen\nMile Stone\nAntara\nBlossom\nElva\nGlaze\nVega\nAkshayam\nClassic Charm\nIra\nMangal\nRunic\nValli Vanaai"
+  },
+  {
+   "fieldname": "gender",
+   "fieldtype": "Select",
+   "label": "Gender",
+   "options": "\nBoys\nGirls\nMen\nWomen\nUnisex"
+  },
+  {
+   "fieldname": "religion",
+   "fieldtype": "Select",
+   "label": "Religion",
+   "options": "\nLakshmi\nGanesha\nJesus\nSai baba\nHanuman"
+  },
+  {
+   "fieldname": "temple",
+   "fieldtype": "Select",
+   "label": "Temple",
+   "options": "\nGuruvayur\nMeenakshi\nSomnath"
+  },
+  {
+   "fieldname": "occasion",
+   "fieldtype": "Select",
+   "label": "Occasion",
+   "options": "\nAnniversary\nBirthday\nChristmas\nDiwali\nDussehra\nGanesh Chathurthi\nOnam\nPongal\nRamzan\nUgadi\nValentine's\nThanksgiving\n4th Of July\nHalloween\nFestive Gift\nMother's Day\nWedding\nEngagement\nWomen's Day\nAkshaya Tritiya"
+  },
+  {
+   "fieldname": "age_group",
+   "fieldtype": "Select",
+   "label": "Age Group",
+   "options": "\n1 - 5\n6 - 10\n11 - 18\n19 - 22\n23 - 30\n31 - 45\n46 - 60\n61 - 80\n81 - 100"
+  },
+  {
+   "fieldname": "cartoon",
+   "fieldtype": "Select",
+   "label": "Cartoon",
+   "options": "\nTom & Jerry\nRick & Morty\nPower Puff Girls"
+  },
+  {
+   "fieldname": "no_of_prongs",
+   "fieldtype": "Select",
+   "label": "No. of Prongs",
+   "options": "\n4\n6\n8"
+  },
+  {
+   "fieldname": "no_of_solitaries",
+   "fieldtype": "Select",
+   "label": "No. of Solitaries",
+   "options": "\n1\n2\n3\n4"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2023-12-19 16:18:10.835063",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "Old Style Bio Data",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

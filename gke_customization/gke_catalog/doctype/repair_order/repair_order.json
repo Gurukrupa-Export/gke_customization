@@ -1,0 +1,1118 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{serial_and_design_code_order_form}-{index}",
+ "creation": "2023-07-29 23:02:26.538752",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "department",
+  "column_break_gpues",
+  "branch",
+  "salesman_name",
+  "section_break_cnij8",
+  "customer_code",
+  "order_date",
+  "delivery_date",
+  "estimated_duedate",
+  "project",
+  "repair_type",
+  "parcel_place",
+  "column_break_2",
+  "po_no",
+  "order_type",
+  "due_days",
+  "est_due_days",
+  "diamond_quality",
+  "repair_what",
+  "service_type",
+  "section_break_17",
+  "scan_serial_no",
+  "column_break_19",
+  "section_break_kwlis",
+  "serial_and_design_code_order_form",
+  "design_by",
+  "column_break_7qegf",
+  "serial_and_design_code_order_form_detail",
+  "index",
+  "section_break_21",
+  "item",
+  "bom",
+  "column_break_5wjbg",
+  "tag_no",
+  "modification",
+  "section_break_41",
+  "category",
+  "subcategory",
+  "setting_type",
+  "sub_setting_type1",
+  "sub_setting_type2",
+  "column_break_45",
+  "qty",
+  "metal_type",
+  "metal_touch",
+  "metal_purity",
+  "metal_colour",
+  "section_break_49",
+  "section_break_59",
+  "gold_target",
+  "diamond_target",
+  "column_break_ls4by",
+  "product_size",
+  "sizer_type",
+  "column_break_cuuad",
+  "length",
+  "width",
+  "height",
+  "breadth",
+  "section_break_crhvg",
+  "stone_changeable",
+  "changeable",
+  "column_break_ggacs",
+  "enamal",
+  "rhodium",
+  "column_break_n35mg",
+  "gemstone_type1",
+  "gemstone_quality",
+  "section_break_wmgqk",
+  "hinges",
+  "kadi_type",
+  "column_break_32",
+  "vanki_type",
+  "screw_type",
+  "column_break_vhivp",
+  "hook_type",
+  "lock_type",
+  "section_break_qocmn",
+  "black_beed",
+  "black_beed_line",
+  "column_break_xvbl7",
+  "back_belt_patti",
+  "2_in_1",
+  "column_break_askui",
+  "chain",
+  "chain_type",
+  "section_break_tnktn",
+  "customer_chain",
+  "back_chain",
+  "column_break_cfczl",
+  "chain_length",
+  "chain_weight",
+  "column_break_56",
+  "total_length",
+  "detachable",
+  "section_break_pvdx5",
+  "back_chain_size",
+  "back_side_size",
+  "column_break_asvhf",
+  "total_mugappu",
+  "kadi_to_mugappu",
+  "back_belt_length",
+  "column_break_p4qnn",
+  "space_between_mugappu",
+  "nakshi_from",
+  "section_break_b1en7",
+  "back_belt",
+  "customer_sample",
+  "column_break_lz2d7",
+  "customer_sample_voucher_no",
+  "column_break_bhssg",
+  "customer_gold",
+  "column_break_myelb",
+  "customer_diamond",
+  "column_break_ba8xk",
+  "customer_stone",
+  "section_break_7mtqn",
+  "certificate_place",
+  "column_break_29",
+  "item_image",
+  "image_preview",
+  "section_break_32",
+  "design_image1",
+  "image_preview1",
+  "column_break_35",
+  "design_image2",
+  "image_preview2",
+  "column_break_38",
+  "design_image3",
+  "image_preview3",
+  "column_break_41",
+  "design_image4",
+  "image_preview4",
+  "section_break_fgvjt",
+  "form_remarks",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fetch_from": "serial_and_design_code_order_form.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "column_break_gpues",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form.branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form.salesman_name",
+   "fieldname": "salesman_name",
+   "fieldtype": "Link",
+   "label": "Salesman Name",
+   "options": "Sales Person"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_cnij8",
+   "fieldtype": "Section Break",
+   "label": "Order Detail"
+  },
+  {
+   "fieldname": "customer_code",
+   "fieldtype": "Link",
+   "label": "Customer Code",
+   "options": "Customer"
+  },
+  {
+   "default": "Today",
+   "fetch_from": "serial_and_design_id_order_form.order_date",
+   "fieldname": "order_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Order Date"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.delivery_date",
+   "fieldname": "delivery_date",
+   "fieldtype": "Date",
+   "label": "Delivery Date"
+  },
+  {
+   "fieldname": "estimated_duedate",
+   "fieldtype": "Date",
+   "label": "Estimated Due Date"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form.project",
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.repair_type",
+   "fieldname": "repair_type",
+   "fieldtype": "Link",
+   "label": "Repair Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form.parcel_place",
+   "fieldname": "parcel_place",
+   "fieldtype": "Table MultiSelect",
+   "label": "Shipping Territory",
+   "options": "Territory Multi Select"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form.po_no",
+   "fieldname": "po_no",
+   "fieldtype": "Data",
+   "label": "Customer PO No"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form.stock_type",
+   "fieldname": "order_type",
+   "fieldtype": "Select",
+   "label": "Order Type",
+   "options": "Sales\nStock Order"
+  },
+  {
+   "fieldname": "due_days",
+   "fieldtype": "Int",
+   "label": "Due Days"
+  },
+  {
+   "fieldname": "est_due_days",
+   "fieldtype": "Int",
+   "label": "Est Due Days"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.diamond_quality",
+   "fieldname": "diamond_quality",
+   "fieldtype": "Link",
+   "label": "Diamond Quality",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.repair_what",
+   "fieldname": "repair_what",
+   "fieldtype": "Select",
+   "label": "Repair What",
+   "options": "\nFG\nFG Billed with Cust. Goods\nFG Billed With Out Cust. Goods\nFG-Cust. Product"
+  },
+  {
+   "fieldname": "service_type",
+   "fieldtype": "Table MultiSelect",
+   "label": "Service Type",
+   "options": "Service Type 2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_17",
+   "fieldtype": "Section Break",
+   "hidden": 1
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form.scan_serial_no",
+   "fieldname": "scan_serial_no",
+   "fieldtype": "Data",
+   "label": "Scan Tag No"
+  },
+  {
+   "fieldname": "column_break_19",
+   "fieldtype": "Column Break"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_kwlis",
+   "fieldtype": "Section Break",
+   "label": "Order Form No Detail"
+  },
+  {
+   "fieldname": "serial_and_design_code_order_form",
+   "fieldtype": "Link",
+   "label": "Serial No and Design Code Order Form",
+   "options": "Repair Order Form"
+  },
+  {
+   "fieldname": "design_by",
+   "fieldtype": "Select",
+   "label": "Design By",
+   "options": "\nConcept by Design\nCustomer Design"
+  },
+  {
+   "fieldname": "column_break_7qegf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "serial_and_design_code_order_form_detail",
+   "fieldtype": "Link",
+   "label": "Serial No and Design Code Order Form Detail",
+   "options": "Repair Order Form Detail",
+   "read_only": 1
+  },
+  {
+   "fieldname": "index",
+   "fieldtype": "Int",
+   "label": "Index",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_21",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form.delivery_date",
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Design Code",
+   "options": "Item"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.bom",
+   "fieldname": "bom",
+   "fieldtype": "Link",
+   "label": "BOM",
+   "options": "BOM"
+  },
+  {
+   "fieldname": "column_break_5wjbg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.tag_no",
+   "fieldname": "tag_no",
+   "fieldtype": "Link",
+   "label": "Serial No",
+   "options": "Serial No"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.modification",
+   "fieldname": "modification",
+   "fieldtype": "Select",
+   "label": "Modification",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "section_break_41",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.category",
+   "fieldname": "category",
+   "fieldtype": "Link",
+   "label": "Category",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.subcategory",
+   "fieldname": "subcategory",
+   "fieldtype": "Link",
+   "label": "Subcategory",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.setting_type",
+   "fieldname": "setting_type",
+   "fieldtype": "Link",
+   "label": "Setting Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.sub_setting_type1",
+   "fieldname": "sub_setting_type1",
+   "fieldtype": "Link",
+   "label": "Sub Setting Type1",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.sub_setting_type2",
+   "fieldname": "sub_setting_type2",
+   "fieldtype": "Link",
+   "label": "Sub Setting Type2",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "column_break_45",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.qty",
+   "fieldname": "qty",
+   "fieldtype": "Int",
+   "label": "No of Pcs"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.metal_type",
+   "fieldname": "metal_type",
+   "fieldtype": "Link",
+   "label": "Metal Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.metal_touch",
+   "fieldname": "metal_touch",
+   "fieldtype": "Link",
+   "label": "Metal Touch",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.purity",
+   "fieldname": "metal_purity",
+   "fieldtype": "Link",
+   "label": "Metal Purity",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.metal_colour",
+   "fieldname": "metal_colour",
+   "fieldtype": "Link",
+   "label": "Metal Colour ",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "section_break_49",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_59",
+   "fieldtype": "Section Break",
+   "label": "Product Detail"
+  },
+  {
+   "fetch_from": "bom.gold_target",
+   "fetch_if_empty": 1,
+   "fieldname": "gold_target",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Gold Target",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.diamond_target",
+   "fetch_if_empty": 1,
+   "fieldname": "diamond_target",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Diamond Target",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_ls4by",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bom.product_size",
+   "fetch_if_empty": 1,
+   "fieldname": "product_size",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Product Size",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "item.sizer_type",
+   "fetch_if_empty": 1,
+   "fieldname": "sizer_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Sizer Type",
+   "options": "Attribute Value",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_cuuad",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bom.length",
+   "fetch_if_empty": 1,
+   "fieldname": "length",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Length",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.width",
+   "fetch_if_empty": 1,
+   "fieldname": "width",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Width",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.height",
+   "fetch_if_empty": 1,
+   "fieldname": "height",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Height",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.breadth",
+   "fetch_if_empty": 1,
+   "fieldname": "breadth",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Breadth",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "section_break_crhvg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_if_empty": 1,
+   "fieldname": "stone_changeable",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Stone Changeable",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.changeable",
+   "fetch_if_empty": 1,
+   "fieldname": "changeable",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Changeable",
+   "options": "\nYes\nNo",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_ggacs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bom.enamal",
+   "fetch_if_empty": 1,
+   "fieldname": "enamal",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Enamal",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.rhodium",
+   "fetch_if_empty": 1,
+   "fieldname": "rhodium",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Rhodium",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_n35mg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.gemstone_type1",
+   "fieldname": "gemstone_type1",
+   "fieldtype": "Link",
+   "label": "Gemstone Type1",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "bom.gemstone_quality",
+   "fetch_if_empty": 1,
+   "fieldname": "gemstone_quality",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Gemstone Quality",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "section_break_wmgqk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "bom.hinges",
+   "fetch_if_empty": 1,
+   "fieldname": "hinges",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Hinges ",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.kadi_type",
+   "fetch_if_empty": 1,
+   "fieldname": "kadi_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Kadi Type",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_32",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vanki_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Vanki Type",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.screw_type",
+   "fetch_if_empty": 1,
+   "fieldname": "screw_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Screw Type",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_vhivp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bom.hook_type",
+   "fetch_if_empty": 1,
+   "fieldname": "hook_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Hook Type",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.lock_type",
+   "fetch_if_empty": 1,
+   "fieldname": "lock_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Lock Type",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "section_break_qocmn",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "bom.black_beed",
+   "fetch_if_empty": 1,
+   "fieldname": "black_beed",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Black Beed",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.black_beed_line",
+   "fetch_if_empty": 1,
+   "fieldname": "black_beed_line",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Black Beed Line",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_xvbl7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bom.back_belt_patti",
+   "fetch_if_empty": 1,
+   "fieldname": "back_belt_patti",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Back Belt Patti",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.2_in_1",
+   "fetch_if_empty": 1,
+   "fieldname": "2_in_1",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "2 in 1",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_askui",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bom.chain",
+   "fetch_if_empty": 1,
+   "fieldname": "chain",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Chain",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.chain_type",
+   "fetch_if_empty": 1,
+   "fieldname": "chain_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Chain Type",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "section_break_tnktn",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "bom.customer_chain",
+   "fetch_if_empty": 1,
+   "fieldname": "customer_chain",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Customer Chain",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.back_chain",
+   "fetch_if_empty": 1,
+   "fieldname": "back_chain",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Back Chain",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_cfczl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bom.chain_length",
+   "fetch_if_empty": 1,
+   "fieldname": "chain_length",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Chain Length",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.chain_weight",
+   "fetch_if_empty": 1,
+   "fieldname": "chain_weight",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Chain Weight",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_56",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bom.total_length",
+   "fetch_if_empty": 1,
+   "fieldname": "total_length",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Total Length",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.detachable",
+   "fetch_if_empty": 1,
+   "fieldname": "detachable",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Detachable",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "section_break_pvdx5",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "bom.back_chain_size",
+   "fetch_if_empty": 1,
+   "fieldname": "back_chain_size",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Back Chain Size",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.back_side_size",
+   "fetch_if_empty": 1,
+   "fieldname": "back_side_size",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Back Side Size",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_asvhf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_if_empty": 1,
+   "fieldname": "total_mugappu",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Total Mugappu",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.kadi_to_mugappu",
+   "fetch_if_empty": 1,
+   "fieldname": "kadi_to_mugappu",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Kadi to Mugappu",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.back_belt_length",
+   "fetch_if_empty": 1,
+   "fieldname": "back_belt_length",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Back Belt Length",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_p4qnn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bom.space_between_mugappu",
+   "fetch_if_empty": 1,
+   "fieldname": "space_between_mugappu",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Space Between Mugappu",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "bom.nakshi_from",
+   "fetch_if_empty": 1,
+   "fieldname": "nakshi_from",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Nakshi From",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "section_break_b1en7",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "bom.back_belt",
+   "fetch_if_empty": 1,
+   "fieldname": "back_belt",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Back Belt",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_if_empty": 1,
+   "fieldname": "customer_sample",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Customer Sample",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_lz2d7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.customer_sample_voucher_no",
+   "fieldname": "customer_sample_voucher_no",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Customer Sample Voucher No",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_bhssg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.customer_gold",
+   "fieldname": "customer_gold",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Customer Gold",
+   "options": "\nYes\nNo",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_myelb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.customer_diamond",
+   "fieldname": "customer_diamond",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Customer Diamond ",
+   "options": "\nYes\nNo",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_ba8xk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.customer_stone",
+   "fieldname": "customer_stone",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Customer Stone",
+   "options": "\nYes\nNo",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "section_break_7mtqn",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "bom.certificate_place",
+   "fetch_if_empty": 1,
+   "fieldname": "certificate_place",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Certificate Place",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fieldname": "column_break_29",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.item_image",
+   "fieldname": "item_image",
+   "fieldtype": "Attach Image",
+   "label": "Item Image"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.item_image",
+   "fieldname": "image_preview",
+   "fieldtype": "Image",
+   "label": "Image Preview",
+   "options": "item_image"
+  },
+  {
+   "fieldname": "section_break_32",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.design_image1",
+   "fieldname": "design_image1",
+   "fieldtype": "Attach Image",
+   "label": "Design Image1"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.design_image1",
+   "fieldname": "image_preview1",
+   "fieldtype": "Image",
+   "label": "Image Preview1",
+   "options": "design_image1"
+  },
+  {
+   "fieldname": "column_break_35",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.design_image2",
+   "fieldname": "design_image2",
+   "fieldtype": "Attach Image",
+   "label": "Design Image2"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.design_image2",
+   "fieldname": "image_preview2",
+   "fieldtype": "Image",
+   "label": "Image Preview2",
+   "options": "design_image2"
+  },
+  {
+   "fieldname": "column_break_38",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.design_image3",
+   "fieldname": "design_image3",
+   "fieldtype": "Attach Image",
+   "label": "Design Image3"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.design_image3",
+   "fieldname": "image_preview3",
+   "fieldtype": "Image",
+   "label": "Image Preview3",
+   "options": "design_image3"
+  },
+  {
+   "fieldname": "column_break_41",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.design_image4",
+   "fieldname": "design_image4",
+   "fieldtype": "Attach Image",
+   "label": "Design Image4"
+  },
+  {
+   "fetch_from": "serial_and_design_id_order_form_detail.design_image4",
+   "fieldname": "image_preview4",
+   "fieldtype": "Image",
+   "label": "Image Preview4",
+   "options": "design_image4"
+  },
+  {
+   "fieldname": "section_break_fgvjt",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form.remarks",
+   "fieldname": "form_remarks",
+   "fieldtype": "Text",
+   "label": "Order Form Remarks",
+   "read_only": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Text",
+   "label": "Order Remarks",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Repair Order",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2023-12-13 12:47:00.284293",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "Repair Order",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

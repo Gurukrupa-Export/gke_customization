@@ -1,0 +1,149 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-07-12 15:15:54.093498",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "column_break_33ned",
+  "item_name",
+  "section_break_uebkr",
+  "bom",
+  "quantity",
+  "column_break_wjcml",
+  "metal_touch",
+  "hsn_code",
+  "section_break_mrqol",
+  "gross_weight",
+  "metal_weight",
+  "column_break_dzdr3",
+  "diamond_weight",
+  "gemstone_weight",
+  "section_break_r6tjr",
+  "per_piece_rate",
+  "column_break_ovm9g",
+  "total_value",
+  "section_break_otli5",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item Code",
+   "options": "Item"
+  },
+  {
+   "fieldname": "column_break_33ned",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "item_code.item_name",
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name"
+  },
+  {
+   "fieldname": "section_break_uebkr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "item_code.master_bom",
+   "fieldname": "bom",
+   "fieldtype": "Link",
+   "label": "BOM",
+   "options": "BOM"
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Int",
+   "label": "Quantity"
+  },
+  {
+   "fieldname": "column_break_wjcml",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bom.metal_touch",
+   "fieldname": "metal_touch",
+   "fieldtype": "Data",
+   "label": "Metal Touch"
+  },
+  {
+   "fetch_from": "item_code.gst_hsn_code",
+   "fieldname": "hsn_code",
+   "fieldtype": "Data",
+   "label": "HSN Code"
+  },
+  {
+   "fieldname": "section_break_mrqol",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "gross_weight",
+   "fieldtype": "Float",
+   "label": "Gross Weight (In Gram)"
+  },
+  {
+   "fieldname": "metal_weight",
+   "fieldtype": "Float",
+   "label": "Gold Weight (In Gram)"
+  },
+  {
+   "fieldname": "column_break_dzdr3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "diamond_weight",
+   "fieldtype": "Float",
+   "label": "Diamond Weight"
+  },
+  {
+   "fieldname": "gemstone_weight",
+   "fieldtype": "Float",
+   "label": "Stone Weight"
+  },
+  {
+   "fieldname": "section_break_r6tjr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "per_piece_rate",
+   "fieldtype": "Currency",
+   "label": "Per Piece Rate"
+  },
+  {
+   "fieldname": "column_break_ovm9g",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_value",
+   "fieldtype": "Float",
+   "label": "Total Value"
+  },
+  {
+   "fieldname": "section_break_otli5",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2023-12-13 12:36:13.888252",
+ "modified_by": "Administrator",
+ "module": "GKE Custom Export",
+ "name": "Description of Goods",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -1,0 +1,202 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:SC-{year}-{sequence}",
+ "creation": "2023-12-05 11:41:39.514575",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "gia_report_no",
+  "order",
+  "column_break_t64qr",
+  "date",
+  "usd_to_inr",
+  "section_break_2dedo",
+  "diamond_shape",
+  "diamond_quality",
+  "column_break_olbyh",
+  "diamond_color",
+  "carat",
+  "section_break_e6ec6",
+  "rate",
+  "rap",
+  "rate_rap",
+  "rate_carat",
+  "column_break_4ldmm",
+  "rate_per_peice_in_inr",
+  "margin",
+  "selling_rate_per_piecein_inr",
+  "selling_rate_per_caratin_inr",
+  "amended_from",
+  "year",
+  "sequence"
+ ],
+ "fields": [
+  {
+   "default": "Sadguru Diamonds",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gia_report_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "GIA Report No",
+   "reqd": 1
+  },
+  {
+   "fieldname": "order",
+   "fieldtype": "Data",
+   "label": "Order",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_t64qr",
+   "fieldtype": "Column Break",
+   "read_only": 1
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Datetime",
+   "label": "Date"
+  },
+  {
+   "fieldname": "usd_to_inr",
+   "fieldtype": "Data",
+   "label": "1 USD to INR"
+  },
+  {
+   "fieldname": "section_break_2dedo",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "diamond_shape",
+   "fieldtype": "Data",
+   "label": "Diamond Shape"
+  },
+  {
+   "fieldname": "diamond_quality",
+   "fieldtype": "Data",
+   "label": "Diamond Quality"
+  },
+  {
+   "fieldname": "column_break_olbyh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "diamond_color",
+   "fieldtype": "Data",
+   "label": "Diamond Color"
+  },
+  {
+   "fieldname": "carat",
+   "fieldtype": "Data",
+   "label": "Carat",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_e6ec6",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "label": "A = Rate per carat(in USD)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "rap",
+   "fieldtype": "Percent",
+   "label": "B = Rap %",
+   "reqd": 1
+  },
+  {
+   "fieldname": "rate_rap",
+   "fieldtype": "Currency",
+   "label": "Discount Rate = A - B"
+  },
+  {
+   "fieldname": "rate_carat",
+   "fieldtype": "Currency",
+   "label": "Discount Rate * Carat(in USD)"
+  },
+  {
+   "fieldname": "column_break_4ldmm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rate_per_peice_in_inr",
+   "fieldtype": "Currency",
+   "label": "Purchase rate per piece(in INR)"
+  },
+  {
+   "fieldname": "margin",
+   "fieldtype": "Percent",
+   "label": "Margin(in %)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "selling_rate_per_piecein_inr",
+   "fieldtype": "Currency",
+   "label": "Selling rate per piece(in INR)"
+  },
+  {
+   "fieldname": "selling_rate_per_caratin_inr",
+   "fieldtype": "Currency",
+   "label": "Selling rate per carat(in INR)"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Solitaire Calculator",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "year",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Year"
+  },
+  {
+   "fieldname": "sequence",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "sequence"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2023-12-13 13:00:38.251534",
+ "modified_by": "Administrator",
+ "module": "GKE Custom Export",
+ "name": "Solitaire Calculator",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

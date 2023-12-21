@@ -1,0 +1,90 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "format:{category_abbr}-{product_size}",
+ "creation": "2023-11-07 11:44:11.883416",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_category",
+  "inner_dia",
+  "in_cm",
+  "in_inches",
+  "category_abbr",
+  "product_size",
+  "code"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_category",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Category",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "inner_dia",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Inner Dia"
+  },
+  {
+   "fieldname": "in_cm",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "In CM"
+  },
+  {
+   "fieldname": "in_inches",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "In Inches"
+  },
+  {
+   "fetch_from": "item_category.category_code",
+   "fieldname": "category_abbr",
+   "fieldtype": "Data",
+   "label": "Category Abbr"
+  },
+  {
+   "fieldname": "product_size",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Product Size"
+  },
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Code"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2023-12-13 12:46:24.047336",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "Reliance Size Master",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

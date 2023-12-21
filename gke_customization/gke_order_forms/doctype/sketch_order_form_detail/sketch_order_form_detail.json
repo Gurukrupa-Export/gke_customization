@@ -1,0 +1,380 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2022-05-06 15:13:33.595294",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "design_type",
+  "tag__design_id",
+  "item_code",
+  "tag_id",
+  "master_bom_no",
+  "column_break_8",
+  "delivery_date",
+  "category",
+  "subcategory",
+  "estimated_duedate",
+  "section_break_21",
+  "reference_design_code_1",
+  "reference_serial_no_1",
+  "column_break_2ffuz",
+  "reference_design_code_2",
+  "reference_serial_no_2",
+  "column_break_nof5b",
+  "reference_design_code_3",
+  "reference_serial_no_3",
+  "section_break_sbwbp",
+  "qty",
+  "setting_type",
+  "subsetting_type",
+  "sub_setting_type2",
+  "column_break_15",
+  "gold_target",
+  "diamond_target",
+  "product_size",
+  "budget",
+  "section_break_33",
+  "gemstone_type1",
+  "section_break_13",
+  "design_image",
+  "image_preview",
+  "sketch_image_column_column",
+  "sketch_image",
+  "sketch_image_preview",
+  "section_break_8",
+  "design_image1",
+  "image_preview1",
+  "column_break_11",
+  "design_image2",
+  "image_preview2",
+  "column_break_17",
+  "design_image3",
+  "image_preview3",
+  "column_break_14",
+  "design_image4",
+  "image_preview4",
+  "section_break_49",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "design_type",
+   "fieldtype": "Select",
+   "label": "Design Type",
+   "options": "\nNew Design\nMod\nFusion\nSimilar"
+  },
+  {
+   "depends_on": "eval: ((doc.design_type==\"Mod\")||(doc.design_type==\"Similar\"))",
+   "fieldname": "tag__design_id",
+   "fieldtype": "Link",
+   "label": "Design Code",
+   "options": "Item"
+  },
+  {
+   "depends_on": "eval:(doc.design_type==\"Mod\")",
+   "fetch_from": "tag__design_id.item_code",
+   "fieldname": "item_code",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Item Code"
+  },
+  {
+   "depends_on": "eval: ((doc.design_type==\"Mod\")||(doc.design_type==\"Similar\"))\r\n",
+   "fetch_from": "tag__design_id.tag_no",
+   "fieldname": "tag_id",
+   "fieldtype": "Link",
+   "label": "Master Serial No",
+   "options": "Serial No"
+  },
+  {
+   "depends_on": "eval:((doc.design_type==\"Mod\"))",
+   "fetch_from": "tag__design_id.master_bom",
+   "fieldname": "master_bom_no",
+   "fieldtype": "Link",
+   "label": "Master BOM No",
+   "options": "BOM"
+  },
+  {
+   "fieldname": "column_break_8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "delivery_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Delivery Date"
+  },
+  {
+   "fetch_from": "tag__design_id.item_category",
+   "fetch_if_empty": 1,
+   "fieldname": "category",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Category",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "tag__design_id.item_subcategory",
+   "fetch_if_empty": 1,
+   "fieldname": "subcategory",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sub Category",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "estimated_duedate",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Estimated Due Date"
+  },
+  {
+   "depends_on": "eval: doc.design_type == 'Fusion'",
+   "fieldname": "section_break_21",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval: doc.design_type == 'Fusion'",
+   "fieldname": "reference_design_code_1",
+   "fieldtype": "Link",
+   "label": "Reference Design Code 1",
+   "options": "Item"
+  },
+  {
+   "depends_on": "eval: doc.design_type == 'Fusion'",
+   "fieldname": "reference_serial_no_1",
+   "fieldtype": "Link",
+   "label": "Reference Serial No 1",
+   "options": "Serial No"
+  },
+  {
+   "depends_on": "eval: doc.design_type == 'Fusion'",
+   "fieldname": "column_break_2ffuz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.design_type == 'Fusion'",
+   "fieldname": "reference_design_code_2",
+   "fieldtype": "Link",
+   "label": "Reference Design Code 2",
+   "options": "Item"
+  },
+  {
+   "depends_on": "eval: doc.design_type == 'Fusion'",
+   "fieldname": "reference_serial_no_2",
+   "fieldtype": "Link",
+   "label": "Reference Serial No 2",
+   "options": "Serial No"
+  },
+  {
+   "fieldname": "column_break_nof5b",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.design_type == 'Fusion'",
+   "fieldname": "reference_design_code_3",
+   "fieldtype": "Link",
+   "label": "Reference Design Code 3",
+   "options": "Item"
+  },
+  {
+   "depends_on": "eval: doc.design_type == 'Fusion'",
+   "fieldname": "reference_serial_no_3",
+   "fieldtype": "Link",
+   "label": "Reference Serial No 3",
+   "options": "Serial No"
+  },
+  {
+   "fieldname": "section_break_sbwbp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "qty",
+   "fieldtype": "Int",
+   "label": "No of Designs"
+  },
+  {
+   "fetch_from": "tag__design_id.setting_type",
+   "fetch_if_empty": 1,
+   "fieldname": "setting_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Setting Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "subsetting_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sub Setting Type1",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "sub_setting_type2",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sub Setting type2",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "column_break_15",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gold_target",
+   "fieldtype": "Float",
+   "label": "Gold Target"
+  },
+  {
+   "fieldname": "diamond_target",
+   "fieldtype": "Float",
+   "label": "Diamond Target"
+  },
+  {
+   "fieldname": "product_size",
+   "fieldtype": "Data",
+   "label": "Product Size"
+  },
+  {
+   "fieldname": "budget",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Budget"
+  },
+  {
+   "fieldname": "section_break_33",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "gemstone_type1",
+   "fieldtype": "Link",
+   "label": "Gemstone Type1",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "section_break_13",
+   "fieldtype": "Section Break",
+   "label": "Design Image"
+  },
+  {
+   "depends_on": "eval:((doc.design_type==\"Similar\")||(doc.design_type==\"New Design\"))",
+   "fetch_from": "tag__design_id.image",
+   "fetch_if_empty": 1,
+   "fieldname": "design_image",
+   "fieldtype": "Attach Image",
+   "label": "Design Image"
+  },
+  {
+   "fieldname": "image_preview",
+   "fieldtype": "Image",
+   "label": "Image Preview",
+   "options": "design_image"
+  },
+  {
+   "fieldname": "sketch_image_column_column",
+   "fieldtype": "Column Break",
+   "label": "Sketch Image"
+  },
+  {
+   "fetch_from": "tag__design_id.sketch_image",
+   "fieldname": "sketch_image",
+   "fieldtype": "Attach Image",
+   "hidden": 1,
+   "label": "Sketch Image"
+  },
+  {
+   "fieldname": "sketch_image_preview",
+   "fieldtype": "Image",
+   "label": "Sketch Image Preview",
+   "options": "sketch_image"
+  },
+  {
+   "fieldname": "section_break_8",
+   "fieldtype": "Section Break",
+   "label": "Design Image"
+  },
+  {
+   "fieldname": "design_image1",
+   "fieldtype": "Attach Image",
+   "label": "Design Image1"
+  },
+  {
+   "fieldname": "image_preview1",
+   "fieldtype": "Image",
+   "label": "Image Preview1",
+   "options": "design_image1"
+  },
+  {
+   "fieldname": "column_break_11",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "design_image2",
+   "fieldtype": "Attach Image",
+   "label": "Design Image2"
+  },
+  {
+   "fieldname": "image_preview2",
+   "fieldtype": "Image",
+   "label": "Image Preview2",
+   "options": "design_image2"
+  },
+  {
+   "fieldname": "column_break_17",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "design_image3",
+   "fieldtype": "Attach Image",
+   "label": "Design Image3"
+  },
+  {
+   "fieldname": "image_preview3",
+   "fieldtype": "Image",
+   "label": "Image Preview3",
+   "options": "design_image3"
+  },
+  {
+   "fieldname": "column_break_14",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "design_image4",
+   "fieldtype": "Attach Image",
+   "label": "Design Image4"
+  },
+  {
+   "fieldname": "image_preview4",
+   "fieldtype": "Image",
+   "label": "Image Preview4",
+   "options": "design_image4"
+  },
+  {
+   "fieldname": "section_break_49",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Text",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Order Remarks"
+  }
+ ],
+ "hide_toolbar": 1,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2023-12-13 13:08:00.122886",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Sketch Order Form Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

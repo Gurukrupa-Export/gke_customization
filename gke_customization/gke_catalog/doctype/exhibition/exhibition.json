@@ -1,0 +1,206 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "format:{no}",
+ "creation": "2023-11-07 16:11:45.566831",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "no",
+  "user",
+  "salesman",
+  "selection_person_name",
+  "selection_customer",
+  "image",
+  "img",
+  "type",
+  "serial_number",
+  "design_id",
+  "category",
+  "sub_category",
+  "metal_color",
+  "column_break_wdhd5",
+  "touch",
+  "setting",
+  "gross_weight",
+  "gold_weight",
+  "gold_pure_weight",
+  "chain_weight",
+  "diamond_pcs",
+  "diamond_weight",
+  "gemstone_pcs",
+  "other_weight",
+  "size",
+  "remark"
+ ],
+ "fields": [
+  {
+   "fieldname": "no",
+   "fieldtype": "Int",
+   "label": "No."
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User ",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "salesman",
+   "fieldtype": "Data",
+   "label": "Salesman"
+  },
+  {
+   "fieldname": "selection_person_name",
+   "fieldtype": "Data",
+   "label": "Selection Person Name"
+  },
+  {
+   "fieldname": "selection_customer",
+   "fieldtype": "Link",
+   "label": "Selection Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach",
+   "label": "Image"
+  },
+  {
+   "fieldname": "img",
+   "fieldtype": "Image",
+   "label": "Img"
+  },
+  {
+   "default": "Stock",
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "Stock"
+  },
+  {
+   "fieldname": "serial_number",
+   "fieldtype": "Data",
+   "label": "Serial Number"
+  },
+  {
+   "fieldname": "design_id",
+   "fieldtype": "Data",
+   "label": "Design Id"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Link",
+   "label": "Category",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "sub_category",
+   "fieldtype": "Link",
+   "label": "Sub Category",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "metal_color",
+   "fieldtype": "Link",
+   "label": "Metal Color",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "column_break_wdhd5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "touch",
+   "fieldtype": "Link",
+   "label": "Touch",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "setting",
+   "fieldtype": "Data",
+   "label": "Setting"
+  },
+  {
+   "fieldname": "gross_weight",
+   "fieldtype": "Data",
+   "label": "Gross Weight"
+  },
+  {
+   "fieldname": "gold_weight",
+   "fieldtype": "Data",
+   "label": "Gold Weight"
+  },
+  {
+   "fieldname": "gold_pure_weight",
+   "fieldtype": "Data",
+   "label": "Gold Pure Weight"
+  },
+  {
+   "fieldname": "chain_weight",
+   "fieldtype": "Data",
+   "label": "Chain Weight"
+  },
+  {
+   "fieldname": "diamond_pcs",
+   "fieldtype": "Data",
+   "label": "Diamond Pcs"
+  },
+  {
+   "fieldname": "diamond_weight",
+   "fieldtype": "Data",
+   "label": "Diamond Weight"
+  },
+  {
+   "fieldname": "gemstone_pcs",
+   "fieldtype": "Data",
+   "label": "Gemstone Pcs"
+  },
+  {
+   "fieldname": "other_weight",
+   "fieldtype": "Data",
+   "label": "Other Weight"
+  },
+  {
+   "fieldname": "size",
+   "fieldtype": "Data",
+   "label": "Size"
+  },
+  {
+   "fieldname": "remark",
+   "fieldtype": "Long Text",
+   "label": "Remark"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2023-12-13 12:47:43.655677",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "Exhibition",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}

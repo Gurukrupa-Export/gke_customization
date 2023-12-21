@@ -1,0 +1,183 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2023-09-06 17:16:04.593670",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "date",
+  "candidate_photo",
+  "column_break_z5exq",
+  "exited_employee",
+  "candidate_name",
+  "show_candidate_photo",
+  "section_break_rmvwy",
+  "date_of_theft",
+  "theft_from_which_company",
+  "department",
+  "designation",
+  "column_break_ntovo",
+  "theft_description",
+  "section_break_clovu",
+  "column_break_hpn9h",
+  "section_break_bo0mv",
+  "aadhar_number",
+  "aadhar_photo",
+  "show_aadhar_photo",
+  "column_break_8nats",
+  "information_source"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "BL-EMP-"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "candidate_photo",
+   "fieldtype": "Attach Image",
+   "label": "Candidate Photo"
+  },
+  {
+   "fieldname": "column_break_z5exq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "exited_employee",
+   "fieldtype": "Link",
+   "label": "Exited Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "candidate_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "label": "Candidate Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "show_candidate_photo",
+   "fieldtype": "Image",
+   "label": "Show Candidate Photo",
+   "options": "candidate_photo"
+  },
+  {
+   "fieldname": "section_break_rmvwy",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "date_of_theft",
+   "fieldtype": "Date",
+   "label": "Date of Theft ",
+   "reqd": 1
+  },
+  {
+   "fieldname": "theft_from_which_company",
+   "fieldtype": "Data",
+   "label": "Theft from Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "label": "Department"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation"
+  },
+  {
+   "fieldname": "column_break_ntovo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "theft_description",
+   "fieldtype": "Long Text",
+   "label": "Theft Description",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_clovu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_hpn9h",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_bo0mv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "aadhar_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Aadhar Number",
+   "length": 12,
+   "reqd": 1
+  },
+  {
+   "fieldname": "aadhar_photo",
+   "fieldtype": "Attach Image",
+   "label": "Aadhar Photo"
+  },
+  {
+   "fieldname": "show_aadhar_photo",
+   "fieldtype": "Image",
+   "label": "Show Aadhar Photo",
+   "options": "aadhar_photo"
+  },
+  {
+   "fieldname": "column_break_8nats",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "information_source",
+   "fieldtype": "Long Text",
+   "label": "Source of Information "
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2023-12-13 12:36:10.061596",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "BLACK LISTED EMPLOYEE",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}

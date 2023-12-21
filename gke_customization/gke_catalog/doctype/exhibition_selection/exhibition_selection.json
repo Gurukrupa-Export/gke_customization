@@ -1,0 +1,180 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2023-11-09 11:31:39.810296",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "branch",
+  "date",
+  "column_break_bfnp3",
+  "salesman",
+  "salesman_name",
+  "selectionperson",
+  "section_break_reipi",
+  "customer_",
+  "column_break_zxp5g",
+  "lead_",
+  "section_break_qnf3h",
+  "lead",
+  "lead_name",
+  "customer",
+  "customer_name",
+  "amended_from",
+  "section_break_eyncj",
+  "item_selection",
+  "naming_series"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Datetime",
+   "label": "Date"
+  },
+  {
+   "fieldname": "column_break_bfnp3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "salesman",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Salesman",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "salesman.employee_name",
+   "fieldname": "salesman_name",
+   "fieldtype": "Data",
+   "label": "Salesman Name"
+  },
+  {
+   "fieldname": "selectionperson",
+   "fieldtype": "Data",
+   "label": "Selection Person Name"
+  },
+  {
+   "fieldname": "section_break_reipi",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_",
+   "fieldtype": "Check",
+   "label": "Customer "
+  },
+  {
+   "fieldname": "column_break_zxp5g",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "lead_",
+   "fieldtype": "Check",
+   "label": "Lead "
+  },
+  {
+   "fieldname": "section_break_qnf3h",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:doc.lead_==1",
+   "fieldname": "lead",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Lead",
+   "options": "Lead"
+  },
+  {
+   "depends_on": "eval:doc.lead_==1",
+   "fetch_from": "lead.title",
+   "fieldname": "lead_name",
+   "fieldtype": "Data",
+   "label": "Lead Name"
+  },
+  {
+   "depends_on": "eval:doc.customer_==1",
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "depends_on": "eval:doc.customer_==1",
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Exhibition Selection",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_eyncj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "item_selection",
+   "fieldtype": "Table",
+   "label": "Item Selection",
+   "options": "Selection Exhibition"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Series",
+   "options": "EX-",
+   "set_only_once": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2023-12-13 12:47:54.361739",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "Exhibition Selection",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

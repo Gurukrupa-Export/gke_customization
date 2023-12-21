@@ -1,0 +1,66 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-12-04 17:39:40.110465",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "inovice_number",
+  "boe_number",
+  "boe_date",
+  "value_in_dollar",
+  "loan_basis_import_value_in_dollar",
+  "net_recivable_value"
+ ],
+ "fields": [
+  {
+   "fieldname": "inovice_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Inovice Number"
+  },
+  {
+   "fieldname": "boe_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "BOE Number"
+  },
+  {
+   "fieldname": "boe_date",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "BOE Date"
+  },
+  {
+   "fieldname": "value_in_dollar",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Value (in $)"
+  },
+  {
+   "fieldname": "loan_basis_import_value_in_dollar",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Loan Basis Import Value (in $)"
+  },
+  {
+   "fieldname": "net_recivable_value",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Net Recivable Value"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2023-12-13 12:42:21.186274",
+ "modified_by": "Administrator",
+ "module": "GKE Custom Export",
+ "name": "Job Work Import Details",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

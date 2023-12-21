@@ -1,0 +1,77 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "format:{abbr}-{product_size}",
+ "creation": "2023-11-08 11:02:38.435463",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_category",
+  "abbr",
+  "product_size",
+  "code",
+  "country"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_category",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Category",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "item_category.category_code",
+   "fieldname": "abbr",
+   "fieldtype": "Data",
+   "label": "Abbr"
+  },
+  {
+   "fieldname": "product_size",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Product Size"
+  },
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Code"
+  },
+  {
+   "depends_on": "eval:doc.item_category == 'Ring'",
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2023-12-13 12:59:41.593366",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "Titan Size Master",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

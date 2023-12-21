@@ -1,0 +1,210 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-12-04 17:15:19.506623",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "column_break_wafuk",
+  "item_category",
+  "diamond_details_section",
+  "diamond_quality",
+  "diamond_weight",
+  "diamond_pcs",
+  "section_break_29ynp",
+  "diamond_rate",
+  "diamond_amount",
+  "section_break_b4art",
+  "gross_weight",
+  "other_weight",
+  "stone_weight",
+  "column_break_fixgw",
+  "net_weight",
+  "chain_weight",
+  "amount_details_section",
+  "gold_amount",
+  "stone_amount",
+  "chain_amount",
+  "column_break_nopxg",
+  "metal_touch",
+  "chain_metal_touch",
+  "section_break_jlzx4",
+  "chain_making_charge",
+  "certificate_charge",
+  "column_break_b3mio",
+  "jewellery_making_charge",
+  "total_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item Code",
+   "options": "Item"
+  },
+  {
+   "fieldname": "column_break_wafuk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "item_code.item_category",
+   "fieldname": "item_category",
+   "fieldtype": "Link",
+   "label": "Item Category",
+   "options": "Attribute Value"
+  },
+  {
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:true",
+   "fieldname": "diamond_details_section",
+   "fieldtype": "Section Break",
+   "label": "Diamond Details"
+  },
+  {
+   "fieldname": "diamond_quality",
+   "fieldtype": "Link",
+   "label": "Diamond Quality",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "diamond_weight",
+   "fieldtype": "Float",
+   "label": "Diamond Weight"
+  },
+  {
+   "fieldname": "diamond_pcs",
+   "fieldtype": "Int",
+   "label": "Diamond Pcs"
+  },
+  {
+   "fieldname": "section_break_29ynp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "diamond_rate",
+   "fieldtype": "Float",
+   "label": "Diamond Rate"
+  },
+  {
+   "fieldname": "diamond_amount",
+   "fieldtype": "Float",
+   "label": "Diamond Amount"
+  },
+  {
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:true",
+   "fieldname": "section_break_b4art",
+   "fieldtype": "Section Break",
+   "label": "Weight Details"
+  },
+  {
+   "fieldname": "gross_weight",
+   "fieldtype": "Float",
+   "label": "Gross Weight"
+  },
+  {
+   "fieldname": "other_weight",
+   "fieldtype": "Float",
+   "label": "Other Weight"
+  },
+  {
+   "fieldname": "stone_weight",
+   "fieldtype": "Float",
+   "label": "Stone Weight"
+  },
+  {
+   "fieldname": "column_break_fixgw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "net_weight",
+   "fieldtype": "Float",
+   "label": "Net Weight"
+  },
+  {
+   "fieldname": "chain_weight",
+   "fieldtype": "Float",
+   "label": "Chain Weight"
+  },
+  {
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:true",
+   "fieldname": "amount_details_section",
+   "fieldtype": "Section Break",
+   "label": "Amount Details"
+  },
+  {
+   "fieldname": "gold_amount",
+   "fieldtype": "Float",
+   "label": "Gold Amount"
+  },
+  {
+   "fieldname": "stone_amount",
+   "fieldtype": "Float",
+   "label": "Stone Amount"
+  },
+  {
+   "fieldname": "chain_amount",
+   "fieldtype": "Float",
+   "label": "Chain Amount"
+  },
+  {
+   "fieldname": "column_break_nopxg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "metal_touch",
+   "fieldtype": "Link",
+   "label": "Metal Touch",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "chain_metal_touch",
+   "fieldtype": "Link",
+   "label": "Chain Metal Touch",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "section_break_jlzx4",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "chain_making_charge",
+   "fieldtype": "Float",
+   "label": "Chain Making Charge"
+  },
+  {
+   "fieldname": "certificate_charge",
+   "fieldtype": "Float",
+   "label": "Certificate Charge"
+  },
+  {
+   "fieldname": "column_break_b3mio",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "jewellery_making_charge",
+   "fieldtype": "Float",
+   "label": "Jewellery Making Charge"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Float",
+   "label": "Total Amount"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2023-12-13 12:32:24.387024",
+ "modified_by": "Administrator",
+ "module": "GKE Custom Export",
+ "name": "Packing List Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

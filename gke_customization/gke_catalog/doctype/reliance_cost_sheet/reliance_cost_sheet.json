@@ -1,0 +1,328 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-11-06 10:17:31.592500",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "design_id",
+  "design_image",
+  "column_break_zbdoz",
+  "customer_name",
+  "customer_code",
+  "section_break_raaik",
+  "metal_",
+  "metal_purity",
+  "column_break_dz8uf",
+  "metal_colour",
+  "section_break_sxocu",
+  "product_category",
+  "product_subcategory",
+  "column_break_sn4ea",
+  "article_code",
+  "rj_ref_size_code",
+  "section_break_rmvjf",
+  "finding_type",
+  "avg_wt",
+  "setting_type",
+  "manufacturing_code",
+  "complexity_code",
+  "column_break_ywwej",
+  "uom",
+  "stone_wt",
+  "stone_rate",
+  "wastage",
+  "production_route",
+  "section_break_8wemk",
+  "gross_wt",
+  "color_stone_pcs",
+  "diamond_pcs",
+  "column_break_kkgut",
+  "net_wt",
+  "color_stone_wt",
+  "diamond_wt",
+  "section_break_pw16l",
+  "stone_name",
+  "stone_shape",
+  "stone_pcs",
+  "column_break_6ojqy",
+  "sieve_size",
+  "item_as_per_ax",
+  "code_as_per_ax",
+  "section_break_knjnh",
+  "uom_cts",
+  "plating_type",
+  "column_break_n74vh",
+  "making_charge",
+  "ecores_catg"
+ ],
+ "fields": [
+  {
+   "fieldname": "design_id",
+   "fieldtype": "Link",
+   "label": "Customer Design Code",
+   "options": "Item"
+  },
+  {
+   "fieldname": "design_image",
+   "fieldtype": "Attach Image",
+   "label": "Design Image"
+  },
+  {
+   "fieldname": "column_break_zbdoz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Gurukrupa Exports",
+   "fieldname": "customer_name",
+   "fieldtype": "Read Only",
+   "label": "Customer Name"
+  },
+  {
+   "default": "3006233",
+   "fieldname": "customer_code",
+   "fieldtype": "Read Only",
+   "label": "Customer Code"
+  },
+  {
+   "fieldname": "section_break_raaik",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "metal_",
+   "fieldtype": "Data",
+   "label": "Metal"
+  },
+  {
+   "fieldname": "metal_purity",
+   "fieldtype": "Data",
+   "label": "Metal Purity "
+  },
+  {
+   "fieldname": "column_break_dz8uf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "metal_colour",
+   "fieldtype": "Data",
+   "label": "Metal Color"
+  },
+  {
+   "fieldname": "section_break_sxocu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "product_category",
+   "fieldtype": "Data",
+   "label": "Product Category"
+  },
+  {
+   "fieldname": "product_subcategory",
+   "fieldtype": "Data",
+   "label": "Product Subcategory"
+  },
+  {
+   "fieldname": "column_break_sn4ea",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "article_code",
+   "fieldtype": "Data",
+   "label": "Article code"
+  },
+  {
+   "fieldname": "rj_ref_size_code",
+   "fieldtype": "Data",
+   "label": "RJ ref size code"
+  },
+  {
+   "fieldname": "section_break_rmvjf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "finding_type",
+   "fieldtype": "Data",
+   "label": "Finding type"
+  },
+  {
+   "fieldname": "avg_wt",
+   "fieldtype": "Data",
+   "label": "Avg Wt"
+  },
+  {
+   "fieldname": "setting_type",
+   "fieldtype": "Data",
+   "label": "Setting Type"
+  },
+  {
+   "fieldname": "manufacturing_code",
+   "fieldtype": "Data",
+   "label": "Manufacturing code"
+  },
+  {
+   "fieldname": "complexity_code",
+   "fieldtype": "Data",
+   "label": "COMPLEXITY CODE"
+  },
+  {
+   "fieldname": "column_break_ywwej",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Data",
+   "label": "UOM"
+  },
+  {
+   "fieldname": "stone_wt",
+   "fieldtype": "Data",
+   "label": "Stone Wt"
+  },
+  {
+   "fieldname": "stone_rate",
+   "fieldtype": "Data",
+   "label": "Stone Rate(Cts)"
+  },
+  {
+   "fieldname": "wastage",
+   "fieldtype": "Data",
+   "label": "Wastage(in %)"
+  },
+  {
+   "fieldname": "production_route",
+   "fieldtype": "Data",
+   "label": "Production route "
+  },
+  {
+   "fieldname": "section_break_8wemk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "gross_wt",
+   "fieldtype": "Data",
+   "label": "Gross Wt"
+  },
+  {
+   "fieldname": "color_stone_pcs",
+   "fieldtype": "Data",
+   "label": "Color Stone pcs"
+  },
+  {
+   "fieldname": "diamond_pcs",
+   "fieldtype": "Data",
+   "label": "Diamond Pcs"
+  },
+  {
+   "fieldname": "column_break_kkgut",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "net_wt",
+   "fieldtype": "Data",
+   "label": "Net Wt"
+  },
+  {
+   "fieldname": "color_stone_wt",
+   "fieldtype": "Data",
+   "label": "Color Stone Wt"
+  },
+  {
+   "fieldname": "diamond_wt",
+   "fieldtype": "Data",
+   "label": "Diamond Wt"
+  },
+  {
+   "fieldname": "section_break_pw16l",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "stone_name",
+   "fieldtype": "Data",
+   "label": "Stone Name"
+  },
+  {
+   "fieldname": "stone_shape",
+   "fieldtype": "Data",
+   "label": "Stone Shape"
+  },
+  {
+   "fieldname": "stone_pcs",
+   "fieldtype": "Data",
+   "label": "Stone Pcs"
+  },
+  {
+   "fieldname": "column_break_6ojqy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sieve_size",
+   "fieldtype": "Data",
+   "label": "Sieve Size "
+  },
+  {
+   "fieldname": "item_as_per_ax",
+   "fieldtype": "Data",
+   "label": "Item as per Ax"
+  },
+  {
+   "fieldname": "code_as_per_ax",
+   "fieldtype": "Data",
+   "label": "Code as per AX"
+  },
+  {
+   "fieldname": "section_break_knjnh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "uom_cts",
+   "fieldtype": "Data",
+   "label": "UOM (Cts/Gms)"
+  },
+  {
+   "fieldname": "plating_type",
+   "fieldtype": "Data",
+   "label": "Plating Type"
+  },
+  {
+   "fieldname": "column_break_n74vh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "making_charge",
+   "fieldtype": "Data",
+   "label": "Making Charge"
+  },
+  {
+   "fieldname": "ecores_catg",
+   "fieldtype": "Data",
+   "label": "EcoRes Catg"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2023-12-13 12:46:36.938406",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "Reliance Cost Sheet",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

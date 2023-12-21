@@ -1,0 +1,260 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:IGP-{year}-{sequence}",
+ "creation": "2023-12-12 11:01:34.436139",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "dispatch_slip",
+  "item_group",
+  "status",
+  "column_break_ggnd2",
+  "gate_pass_date",
+  "dispatch_type",
+  "section_break_d0pur",
+  "visitor_type",
+  "mobile_no",
+  "employee_mobile_no",
+  "employee_department",
+  "company_name",
+  "employee_company_name",
+  "column_break_cwfi1",
+  "employee",
+  "employee_name",
+  "visitor_name",
+  "visitor_aadhar_number",
+  "employee_designation",
+  "employee_aadhar_number",
+  "company_address",
+  "section_break_wftxq",
+  "img",
+  "photo",
+  "image",
+  "emp_img",
+  "column_break_7uhpq",
+  "reason_for_gate_pass",
+  "year",
+  "sequence",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "dispatch_slip",
+   "fieldtype": "Link",
+   "label": "Dispatch Slip ",
+   "options": "Dispatch Slip"
+  },
+  {
+   "fetch_from": "dispatch_slip.item_group",
+   "fieldname": "item_group",
+   "fieldtype": "Data",
+   "label": "Item Group"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nRe Open\nCompleted\nCancelled\nClosed"
+  },
+  {
+   "fieldname": "column_break_ggnd2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gate_pass_date",
+   "fieldtype": "Datetime",
+   "label": "Gate Pass Date"
+  },
+  {
+   "fetch_from": "dispatch_slip.dispatch_type",
+   "fieldname": "dispatch_type",
+   "fieldtype": "Select",
+   "label": "Dispatch Type",
+   "options": "Returnable\nNon Returnable"
+  },
+  {
+   "fieldname": "section_break_d0pur",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "Courier",
+   "fieldname": "visitor_type",
+   "fieldtype": "Select",
+   "label": "Visitor Type",
+   "options": "Employee\nCourier"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type!='Employee'",
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "label": "Visitor Mobile No"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type=='Employee'",
+   "fetch_from": "employee.cell_number",
+   "fieldname": "employee_mobile_no",
+   "fieldtype": "Data",
+   "label": "Employee Mobile No"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type=='Employee'",
+   "fetch_from": "employee.department",
+   "fieldname": "employee_department",
+   "fieldtype": "Data",
+   "label": "Employee Department"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type!='Employee'",
+   "fieldname": "company_name",
+   "fieldtype": "Data",
+   "label": "Visitor Company Name"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type=='Employee'",
+   "fetch_from": "employee.company",
+   "fieldname": "employee_company_name",
+   "fieldtype": "Data",
+   "label": "Employee Company Name"
+  },
+  {
+   "fieldname": "column_break_cwfi1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type=='Employee'",
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type=='Employee'",
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type!='Employee'",
+   "fieldname": "visitor_name",
+   "fieldtype": "Data",
+   "label": "Visitor Name"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type!='Employee'",
+   "fieldname": "visitor_aadhar_number",
+   "fieldtype": "Data",
+   "label": "Visitor Aadhar Number"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type=='Employee'",
+   "fetch_from": "employee.designation",
+   "fieldname": "employee_designation",
+   "fieldtype": "Data",
+   "label": "Employee Designation"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type=='Employee'",
+   "fieldname": "employee_aadhar_number",
+   "fieldtype": "Data",
+   "label": "Employee Aadhar Number"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type!='Employee'",
+   "fieldname": "company_address",
+   "fieldtype": "Data",
+   "label": "Company Address"
+  },
+  {
+   "fieldname": "section_break_wftxq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type=='Employee'",
+   "fetch_from": "employee.image",
+   "fieldname": "img",
+   "fieldtype": "Attach",
+   "label": "Employee Photo",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.visitor_type!='Employee'",
+   "fieldname": "photo",
+   "fieldtype": "Attach",
+   "label": "Photo"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type!='Employee'",
+   "fieldname": "image",
+   "fieldtype": "Image",
+   "options": "photo"
+  },
+  {
+   "depends_on": "eval:doc.visitor_type=='Employee'",
+   "fieldname": "emp_img",
+   "fieldtype": "Image",
+   "options": "img"
+  },
+  {
+   "fieldname": "column_break_7uhpq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reason_for_gate_pass",
+   "fieldtype": "Long Text",
+   "label": "Reason for Gate Pass"
+  },
+  {
+   "fieldname": "year",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Year"
+  },
+  {
+   "fieldname": "sequence",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "sequence"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Item Gatepass",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2023-12-14 15:24:20.681469",
+ "modified_by": "Administrator",
+ "module": "GKE Custom Export",
+ "name": "Item Gatepass",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

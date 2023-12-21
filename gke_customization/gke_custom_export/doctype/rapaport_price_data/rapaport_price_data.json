@@ -1,0 +1,72 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-12-04 17:58:27.479269",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "date",
+  "shape",
+  "color",
+  "clarity",
+  "low_size",
+  "high_size",
+  "carat_price_in_usd",
+  "carat_price_in_inr"
+ ],
+ "fields": [
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "fieldname": "shape",
+   "fieldtype": "Data",
+   "label": "Shape"
+  },
+  {
+   "fieldname": "color",
+   "fieldtype": "Data",
+   "label": "Color"
+  },
+  {
+   "fieldname": "clarity",
+   "fieldtype": "Data",
+   "label": "Clarity"
+  },
+  {
+   "fieldname": "low_size",
+   "fieldtype": "Data",
+   "label": "Low Size"
+  },
+  {
+   "fieldname": "high_size",
+   "fieldtype": "Data",
+   "label": "High Size"
+  },
+  {
+   "fieldname": "carat_price_in_usd",
+   "fieldtype": "Float",
+   "label": "Carat Price In USD"
+  },
+  {
+   "fieldname": "carat_price_in_inr",
+   "fieldtype": "Currency",
+   "label": "Carat Price In INR"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2023-12-13 13:03:37.572907",
+ "modified_by": "Administrator",
+ "module": "GKE Custom Export",
+ "name": "Rapaport Price Data",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

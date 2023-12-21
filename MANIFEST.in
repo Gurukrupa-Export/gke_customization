@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include gke_customization *.css
+recursive-include gke_customization *.csv
+recursive-include gke_customization *.html
+recursive-include gke_customization *.ico
+recursive-include gke_customization *.js
+recursive-include gke_customization *.json
+recursive-include gke_customization *.md
+recursive-include gke_customization *.png
+recursive-include gke_customization *.py
+recursive-include gke_customization *.svg
+recursive-include gke_customization *.txt
+recursive-exclude gke_customization *.pyc

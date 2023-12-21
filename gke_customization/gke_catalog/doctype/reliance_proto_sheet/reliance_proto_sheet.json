@@ -1,0 +1,205 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-11-06 09:33:49.661550",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "collection_name",
+  "customer_code",
+  "column_break_t831w",
+  "design_id",
+  "article",
+  "section_break_anvp4",
+  "proto_image",
+  "section_break_3cyfm",
+  "metal_colour",
+  "metal_purity",
+  "column_break_6hk7t",
+  "stone_quality",
+  "section_break_ettln",
+  "approx_net_wt_gms",
+  "approx_dia_wt_cts",
+  "column_break_6uwwu",
+  "approx_color_stone_wt_cts",
+  "section_break_tmtok",
+  "size",
+  "design_approved_by",
+  "catrgory_approved_by",
+  "column_break_jbrfp",
+  "findings",
+  "sourcing_approved_by",
+  "qc_approved_by",
+  "section_break_dwn1z",
+  "qc_remarks",
+  "column_break_udzxq",
+  "remark"
+ ],
+ "fields": [
+  {
+   "fieldname": "collection_name",
+   "fieldtype": "Data",
+   "label": "Collection Name"
+  },
+  {
+   "fieldname": "customer_code",
+   "fieldtype": "Link",
+   "label": "Customer Name",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "column_break_t831w",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "design_id",
+   "fieldtype": "Link",
+   "label": "Customer Design Code",
+   "options": "Item"
+  },
+  {
+   "fieldname": "article",
+   "fieldtype": "Data",
+   "label": "Article"
+  },
+  {
+   "fieldname": "section_break_anvp4",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "proto_image",
+   "fieldtype": "Attach Image",
+   "label": "Proto Image"
+  },
+  {
+   "fieldname": "section_break_3cyfm",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "metal_colour",
+   "fieldtype": "Link",
+   "label": "Metal Colour ",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "metal_purity",
+   "fieldtype": "Data",
+   "label": "Metal Purity"
+  },
+  {
+   "fieldname": "column_break_6hk7t",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "stone_quality",
+   "fieldtype": "Data",
+   "label": "Stone Clarity"
+  },
+  {
+   "fieldname": "section_break_ettln",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "approx_net_wt_gms",
+   "fieldtype": "Data",
+   "label": "Approx Net Wt (gms)"
+  },
+  {
+   "fieldname": "approx_dia_wt_cts",
+   "fieldtype": "Data",
+   "label": "Approx Dia Wt (cts)"
+  },
+  {
+   "fieldname": "column_break_6uwwu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "approx_color_stone_wt_cts",
+   "fieldtype": "Data",
+   "label": "Approx Color Stone Wt (cts)"
+  },
+  {
+   "fieldname": "section_break_tmtok",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "size",
+   "fieldtype": "Data",
+   "label": "Size"
+  },
+  {
+   "fieldname": "design_approved_by",
+   "fieldtype": "Data",
+   "label": "Design Approved By"
+  },
+  {
+   "fieldname": "catrgory_approved_by",
+   "fieldtype": "Data",
+   "label": "Catrgory Approved By"
+  },
+  {
+   "fieldname": "column_break_jbrfp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "findings",
+   "fieldtype": "Data",
+   "label": "Findings"
+  },
+  {
+   "fieldname": "sourcing_approved_by",
+   "fieldtype": "Data",
+   "label": "Sourcing Approved By"
+  },
+  {
+   "fieldname": "qc_approved_by",
+   "fieldtype": "Data",
+   "label": "QC Approved By"
+  },
+  {
+   "fieldname": "section_break_dwn1z",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "qc_remarks",
+   "fieldtype": "Data",
+   "label": "QC Remarks"
+  },
+  {
+   "fieldname": "column_break_udzxq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "remark",
+   "fieldtype": "Data",
+   "label": "Remark"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2023-12-13 12:46:09.980815",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "Reliance Proto Sheet",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
