@@ -118,11 +118,11 @@ app_license = "MIT"
 # ---------------
 # Hook on document methods and events
 
-doc_events = {
-	"Batch": {
-		"validate": "gke_customization.gke_catalog.doc_events.qr_code.validate",
-	}
-}
+# doc_events = {
+# 	"Batch": {
+# 		"validate": "gke_customization.gke_catalog.doc_events.qr_code.validate",
+# 	}
+# }
 
 # Scheduled Tasks
 # ---------------

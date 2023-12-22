@@ -2,7 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
-from gke_customization.gke_catalog.doc_events.qr_code import get_qr_code
+# from gke_customization.gke_catalog.doc_events.qr_code import get_qr_code
 from frappe.model.document import Document
 
 class QRCodeDemo(Document):
