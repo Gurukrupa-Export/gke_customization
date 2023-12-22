@@ -2,22 +2,9 @@
 # For license information, please see license.txt
 
 import frappe
-import pandas as pd
-# import easyocr
 import requests,json
-# from bs4 import BeautifulSoup
-from urllib.parse import urljoin
-# from pdf2image import convert_from_path
-import numpy as np
-from frappe.model.document import Document
-import torch
+from frappe.model.document import Document,json
 import datetime
-from PyPDF2 import PdfReader
-from fnmatch import fnmatch
-import subprocess,os
-
-# to clear Cuda Cache memory 
-# torch.cuda.empty_cache()
 
 
 class GJEPCMetalRate(Document):

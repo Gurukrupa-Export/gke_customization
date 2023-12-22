@@ -8,8 +8,8 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "attach",
   "workflow_state",
+  "attach",
   "image",
   "section_break_qxftw",
   "section_break_bje2s",
@@ -20,27 +20,27 @@
   "sub_category",
   "old_tag_number",
   "attributes_section",
-  "relationship",
-  "zodiac",
-  "birthstone",
-  "color_tone",
-  "finish_type",
-  "initial",
-  "shape",
-  "setting_style",
-  "birds",
-  "animals",
-  "relationship_column",
-  "design_style",
-  "collection",
-  "gender",
-  "religion",
-  "temple",
-  "occasion",
   "age_group",
+  "animals",
+  "birds",
+  "birthstone",
+  "collection",
+  "color_tone",
   "cartoon",
+  "design_style",
+  "finish_type",
+  "gender",
+  "relationship_column",
+  "initial",
   "no_of_prongs",
   "no_of_solitaries",
+  "occasion",
+  "relationship",
+  "religion",
+  "setting_style",
+  "shape",
+  "temple",
+  "zodiac",
   "section_break_wgzby",
   "approval_table",
   "final_approval_table",
@@ -79,9 +79,9 @@
   },
   {
    "fieldname": "category",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Item Category",
-   "options": "\nRings\nEarring\nPendant\nBracelets\nBangle\nNecklace\nMangalsutra\nMugappu\nNose Pin\nOddiyanam\nAccessories\nArmlate"
+   "options": "Attribute Value"
   },
   {
    "fieldname": "old_style_bio",
@@ -100,9 +100,9 @@
   },
   {
    "fieldname": "sub_category",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Item Sub Category",
-   "options": "\nEngagement Rings\nDaily wear Rings\nCouple Rings\nCocktail Rings\nSolitaire Rings\nBand Rings\nAdjustable/Bolo Rings\nVanki Rings\nSpiral Rings\nEternity Rings\nMangalsutra Rings\nFancy Rings\nNakshi Rings\nKid's Rings\nGod Rings\nCocktail Studs\nJhumki Earrings\nEarcuff Earrings\nChand bali\nDrop Earrings\nHoops & Huggies/Bali\nDaily wear Studs\nChandelier\nMismatch Earrings\nDanglers\nSuidhaga Earrings\nFront Back Earrings\nKadi Jumkhi\nSolitaire Earrings\nFancy Earrings\nKuppu Earrings\nNakshi Earring\nNakshi Jumkhi\nNakshi Chandbali\nKid's Earrings\nGod Earrings\nDaily wear Pendant\nMagdi Pendant\nChain Pendant\nCocktail Pendant\nSlider Pendant\nCocktail Chain Pendant\nSolitaire Pendant\nPendant Set\nTrio Pendant Set\nFancy Pendant\nLocket Pendant\nNakshi Pendant\nKid's Pendant\nGod Pendant\nChain Bracelet\nFlexible Bracelet\nOval Bracelet\nTennis Bracelet\nHalf chain Bracelet\nCharm Bracelet\nCuban Bracelet\nFancy Bracelet\nMangalsutra Bracelet\nKid's Bracelet\nGod Bracelet\nKada\nRound Bangle\nGolusu bangle\nOpenable Bangle\nPacheli Bangle\nEternity Bangle\nFancy Bangle\nNakshi Bangle\nKid's Bangle\nGod Bangle\nCollar Necklace\nChoker Necklace\nChar Necklace\nShort Necklace\nLayered Necklace\nStation Necklace\nNakshi Necklace\nPadhakam\nAddigai Necklace\nCuban Chain\nTennis Necklace\nY Necklace\nFancy Necklace\nLariat\nKantha - Hasli\nHaram\nChik Chokar\nMala\nNakshi Choker\nNakshi Haram\nKid's Necklace\nGod Necklace\nMangalsutra Pendant\nMangalsutra Chains\nSolitaire Mangalsutra\nThali Tanmaniya\nFancy Mangalsutra\nGod Mangalsutra\nSpiral Mugappu\nMugappu Chain\nCocktail Mugappu\nGod Mugappu\nAnt\nFancy Mugappu\nDaily wear Mugappu\nNakshi Mugappu\nStud Nose Pin\nO Ring Nose Pin\nJ type Nose Pin\nFancy Nose Pin\nGod Oddiyanam\nGod Nakshi Oddiyanam\nFancy Oddiyanam\nNakshi Oddiyanam\nKid's Oddiyanam\nBrooch\nCrown\nCufflinks\nGoggles\nPen\nSculpture\nBelt\nTie Clip\nWatches\nMoney clip\nCharms\nWatch Charms\nButton\nMaang Tikka\nMatha Patti\nJada Billa\nJada\nKids Hair Pin\nMatal-Sahara\nPassa\nNakshi Jada\nTube Shape Armlate\nChain Armlate\nV/U-Shape Vanki\nFancy Armlate\nNakshi Vanki\nKid's Armlate\nGod Armlate"
+   "options": "Attribute Value"
   },
   {
    "fieldname": "old_tag_number",
@@ -116,8 +116,7 @@
   },
   {
    "fieldname": "section_break_wgzby",
-   "fieldtype": "Section Break",
-   "label": "---"
+   "fieldtype": "Section Break"
   },
   {
    "depends_on": "eval: ((doc.workflow_state == 'Send For Approval') || (doc.workflow_state == 'Approved'))",
@@ -155,128 +154,129 @@
   },
   {
    "fieldname": "relationship",
-   "fieldtype": "Select",
-   "label": "Relationship",
-   "options": "\nBrother\nDad\nGranddad\nGrandma\nHusband\nMom\nSister\nWife"
+   "fieldtype": "Table MultiSelect",
+   "label": "Relationship ",
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "zodiac",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Zodiac",
-   "options": "\nAries\nTaurus\nGemini\nCancer\nLeo\nVirgo\nLibra\nScorpio\nSagittarius\nCapricorn\nAquarius\nPisces"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "birthstone",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Birthstone",
-   "options": "\nGarnet\nAmethyst\nAquamarine\nEmerald\nPearl\nRuby\nPeridot\nTopaz\nTanzanite\nCitrine\nTourmaline"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "color_tone",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Color Tone",
-   "options": "\nYellow\nWhite\nPink\nBaby Pink"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "finish_type",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Finish Type",
-   "options": "\nMatte\nGlossy"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "initial",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Initial",
-   "options": "\nA\nB\nC\nD\nE\nF\nG\nH\nI\nJ\nK\nL\nM\nN\nO\nP\nQ\nR\nS\nT\nU\nV\nW\nX\nY\nZ"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "shape",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Shape",
-   "options": "\nFeather\nHeart\nBow\nInfinity\nAbstract\nSqaure\nRectangle\nRhoumbus\nTriangle\nMango\nOval\nRound\nCircle"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "setting_style",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Setting Style",
-   "options": "\nCup\nBezel\nHalf Bezel\nProng\nPlat Prong\nU Cat\nCollet\nBabu Collet\nPressure\nCluster\nWall Prong\nChannel\nBar Channel\nPave\nInvisible\nTension\nFlush / Gypsy\nIllusion"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "birds",
-   "fieldtype": "Select",
-   "label": "Birds"
+   "fieldtype": "Table MultiSelect",
+   "label": "Birds",
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "animals",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Animals",
-   "options": "\nLion\nTiger\nElephant\nSnake\nDeer\nMouse\nPanther\nLeopard\nJaguar\nSquirrel\nHorse\nRabbit\nCat\nButterfly"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "design_style",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Design Style",
-   "options": "\nKakinada Style\nBombay Style\nSouth Style\nBands\nFor Couple\nPromise\nCocktail\nDaily Wear\nAdjustable\nFlexible\nChain\nCharms\nHalo\nStackable\nDangle"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "collection",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Collection",
-   "options": "\nCoin Collection\nDhaga Collection\nBaby Collection\nTrendy Collection\nBridal Collection\nParty Collection\nOffice Wear Collection\nFeather Lite Collection\nDivine Collection\nKadaksha\nDesert Queen\nMile Stone\nAntara\nBlossom\nElva\nGlaze\nVega\nAkshayam\nClassic Charm\nIra\nMangal\nRunic\nValli Vanaai"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "gender",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Gender",
-   "options": "\nBoys\nGirls\nMen\nWomen\nUnisex"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "religion",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Religion",
-   "options": "\nLakshmi\nGanesha\nJesus\nSai baba\nHanuman"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "temple",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Temple",
-   "options": "\nGuruvayur\nMeenakshi\nSomnath"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "occasion",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Occasion",
-   "options": "\nAnniversary\nBirthday\nChristmas\nDiwali\nDussehra\nGanesh Chathurthi\nOnam\nPongal\nRamzan\nUgadi\nValentine's\nThanksgiving\n4th Of July\nHalloween\nFestive Gift\nMother's Day\nWedding\nEngagement\nWomen's Day\nAkshaya Tritiya"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "age_group",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Age Group",
-   "options": "\n1 - 5\n6 - 10\n11 - 18\n19 - 22\n23 - 30\n31 - 45\n46 - 60\n61 - 80\n81 - 100"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "cartoon",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "Cartoon",
-   "options": "\nTom & Jerry\nRick & Morty\nPower Puff Girls"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "no_of_prongs",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "No. of Prongs",
-   "options": "\n4\n6\n8"
+   "options": "Design Attributes Multi Select"
   },
   {
    "fieldname": "no_of_solitaries",
-   "fieldtype": "Select",
+   "fieldtype": "Table MultiSelect",
    "label": "No. of Solitaries",
-   "options": "\n1\n2\n3\n4"
+   "options": "Design Attributes Multi Select"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-12-19 16:18:10.835063",
+ "modified": "2023-12-22 10:55:12.106328",
  "modified_by": "Administrator",
  "module": "GKE Catalog",
  "name": "Old Style Bio Data",

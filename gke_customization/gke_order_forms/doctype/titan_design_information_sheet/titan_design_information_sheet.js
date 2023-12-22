@@ -52,31 +52,38 @@ frappe.ui.form.on('Titan Design Information Sheet', {
 					'parent_attribute_value':cur_frm.doc.item_category
 				}
 			};
-		});
+		});		
 
-		// frm.fields_dict['design_image'].get_query = function(doc, cdt, cdn) {
-        //     return {
-        //         filters: [
-        //             ['is_private', '=', 0]  // Set the filter to exclude private attachments
-        //         ]
-        //     };
-        // };
-		
-
-	},
-	design_image:function(frm){
-		frm.fields_dict['design_image'].$wrapper.find('.frappe-checkbox').hide();
 	},
 	design_code:function(frm) {
 		const arr = []
+
 		frappe.db.get_value("Titan Design Information Sheet", {"design_code": frm.doc.design_code}, "design_code", (r)=> {
 			if (r.design_code){
 				arr.push(r.design_code)
-				frm.set_value('design_code','')
+				// frm.set_value('design_code','')
 				frappe.throw(`<b>${arr[0]}</b> already available`)
 			}   
+		});
+		frm.set_value('serial_no','');
+		frappe.db.get_value("Item", frm.doc.design_code, "master_bom", (r)=> {
+			if (r.master_bom){
+				frappe.db.get_list('BOM Finding Detail', {filters: {'parent': r.master_bom},fields: ['finding_category','finding_type'],}).then(function(response) {
+					if(response[0].finding_category=="Chains"){
+						frm.set_value('chain_type',response[0].finding_type)
+						frm.set_value('back_chain','Yes')
+					}
+					else{
+						frm.set_value('finding_type',response[0].finding_type)
+					}
+				});
+			}
+			else{
+				frm.set_value('chain_type','')
+				frm.set_value('back_chain','No')
+				frm.set_value('finding_type','')
+			} 
 		})
-		frm.set_value('serial_no','')
 	},
 	is_set:function(frm){
 		frm.set_value('design_code_2','')
@@ -88,8 +95,7 @@ frappe.ui.form.on('Titan Design Information Sheet', {
 			}   
 		})
 	},
-	design_code:function(frm){
-		frm.set_value('serial_no','')
+	// design_code:function(frm){
 	// 	frappe.call({
 	// 		method: 'gke_customization.gke_order_forms.doctype.titan_design_information_sheet.titan_design_information_sheet.get_table_details',
 	// 		args: {
@@ -135,7 +141,7 @@ frappe.ui.form.on('Titan Design Information Sheet', {
 	// 			}
 	// 		}
 	// 	});
-	}
+	// }
 });
 
 function set_filters_on_parent_table_fields(frm, fields) {

@@ -1,0 +1,32 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-12-21 11:39:12.111733",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "att"
+ ],
+ "fields": [
+  {
+   "fieldname": "att",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Attribute Value",
+   "options": "Attribute Value"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2023-12-21 16:41:43.706307",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "Design Attributes Multi Select",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

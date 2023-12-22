@@ -234,9 +234,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Design Code",
-   "no_copy": 1,
    "options": "Item",
-   "set_only_once": 1,
    "unique": 1
   },
   {
@@ -714,7 +712,7 @@
  "index_web_pages_for_search": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2023-12-20 12:37:14.657081",
+ "modified": "2023-12-21 09:26:57.251261",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Titan Design Information Sheet",
