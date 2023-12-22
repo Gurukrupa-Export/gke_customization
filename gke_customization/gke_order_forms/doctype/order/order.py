@@ -5,11 +5,11 @@ from __future__ import unicode_literals
 import frappe
 from frappe.utils.data import now_datetime
 from frappe import _
-from frappe.model.document import Document
+from frappe.model.document import Document,json
 from frappe.model.mapper import get_mapped_doc
 from frappe.utils import get_link_to_form
 from erpnext.setup.utils import get_exchange_rate
-import json
+# import json
 
 
 class Order(Document):

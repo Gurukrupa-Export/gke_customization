@@ -2,8 +2,8 @@
 # For license information, please see license.txt
 
 import frappe
-import json
-from frappe.model.document import Document
+# import json
+from frappe.model.document import Document,json
 from erpnext.setup.utils import get_exchange_rate
 
 class RepairOrder(Document):

@@ -3,7 +3,7 @@
 
 import frappe,json
 from frappe.model.document import Document
-from frappe.desk.notifications import clear_doctype_notifications
+# from frappe.desk.notifications import clear_doctype_notifications
 
 class DispatchSlip(Document):
 	pass
