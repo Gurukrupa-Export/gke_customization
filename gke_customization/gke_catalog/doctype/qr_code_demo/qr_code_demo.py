@@ -6,5 +6,6 @@ from gke_customization.gke_catalog.doc_events.qr_code import get_qr_code
 from frappe.model.document import Document
 
 class QRCodeDemo(Document):
-	def validate(self):
-		self.qr_code = get_qr_code(self.title)
+	pass
+	# def validate(self):
+	# 	self.qr_code = get_qr_code(self.title)
