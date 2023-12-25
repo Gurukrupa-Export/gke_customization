@@ -572,35 +572,51 @@ def get_employee():
     employee_data = frappe.get_all("Employee", filters={}, fields=["employee_name", "user_id", "company"])
     return employee_data
 
-@frappe.whitelist()
-def get_employee_permission():
-        # Fetch specific fields from the User Permission doctype
-    user_permission_data = frappe.get_all("User Permission", filters={"allow":"Company"}, fields=["user", "for_value"])
+# @frappe.whitelist()
+# def get_employee_permission():
+#         # Fetch specific fields from the User Permission doctype
+#     user_permission_data = frappe.get_all("User Permission", filters={"allow":"Company"}, fields=["user", "for_value"])
     
-    formatted_data = []
-    for permission in user_permission_data:
-        formatted_permission = {
-            "user_id": permission["user"],
-            "company": permission["for_value"]
-        }
-        formatted_data.append(formatted_permission)
+#     formatted_data = []
+#     for permission in user_permission_data:
+#         formatted_permission = {
+#             "user_id": permission["user"],
+#             "company": permission["for_value"]
+#         }
+#         formatted_data.append(formatted_permission)
     
-    return formatted_data
+#     return formatted_data
 
-@frappe.whitelist()
+# @frappe.whitelist()
+# def get_employee_permission():
+#         # Fetch specific fields from the User Permission doctype
+#     user_permission_data = frappe.get_all("User Permission", filters={"allow":"Company"}, fields=["user", "for_value"])
+    
+#     formatted_data = []
+#     for permission in user_permission_data:
+#         formatted_permission = {
+#             "user_id": permission["user"],
+#             "company": permission["for_value"]
+#         }
+#         formatted_data.append(formatted_permission)
+    
+#     return formatted_data
+
+@frappe.whitelist(allow_guest=True)
 def get_employee_permission():
-        # Fetch specific fields from the User Permission doctype
-    user_permission_data = frappe.get_all("User Permission", filters={"allow":"Company"}, fields=["user", "for_value"])
-    
-    formatted_data = []
-    for permission in user_permission_data:
-        formatted_permission = {
-            "user_id": permission["user"],
-            "company": permission["for_value"]
-        }
-        formatted_data.append(formatted_permission)
-    
-    return formatted_data
+    try:
+        sql_query = """
+            SELECT `user` as user_id, GROUP_CONCAT(`for_value`) AS company
+            FROM `tabUser Permission`
+            WHERE `allow` = 'Company'
+            GROUP BY `user`; """
+        
+        result = frappe.db.sql(sql_query, as_dict=True)
+        
+        return result
+
+    except Exception as e:
+        return {"error": str(e)}
 
 @frappe.whitelist(allow_guest=True)
 def cat_count():

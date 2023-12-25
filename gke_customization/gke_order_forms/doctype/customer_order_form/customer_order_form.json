@@ -279,8 +279,6 @@
    "fieldtype": "Section Break"
   },
   {
-   "fetch_from": "bom.product_size",
-   "fetch_if_empty": 1,
    "fieldname": "product_size",
    "fieldtype": "Data",
    "label": "Product Size"
@@ -434,7 +432,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-12-25 10:46:50.071506",
+ "modified": "2023-12-25 11:11:18.527536",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Customer Order Form",

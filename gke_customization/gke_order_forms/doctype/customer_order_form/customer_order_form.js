@@ -12,7 +12,7 @@ frappe.ui.form.on('Customer Order Form', {
 				},
 				callback: function(r) {
 					if (!r.exc) {
-						console.log(r.message)
+						console.log(r.message['size_data'])
 						frm.set_value('metal_type',r.message['metal_type'])
 						frm.set_value('metal_colour',r.message['metal_colour'])
 						frm.set_value('metal_touch',r.message['metal_touch'])
@@ -25,7 +25,7 @@ frappe.ui.form.on('Customer Order Form', {
 						frm.set_value('enamal',r.message['enamal'])
 						frm.set_value('rhodium',r.message['rhodium'])
 						frm.set_value('diamond_quality',r.message['diamond_quality'])
-						frm.set_value('product_size',r.message['size'])
+						// frm.set_value('product_size',r.message['size'])
 						frm.set_value('qty',r.message['qty'])
 						// frm.set_value('gemstone_type',r.message['stone_type'])stone
 						// frm.set_value('gemstone_quality',r.message['stone_quality'])

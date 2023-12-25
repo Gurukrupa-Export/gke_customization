@@ -42,7 +42,7 @@ def set_titan_code(customer_code,titan_code):
 		data_json['metal_colour'] = frappe.db.get_value('Titan Design Information Sheet',{'design_code':design_code},'metal_colour')
 
 		if len(titan_code) > 9:
-			size_data = get_size(customer_code,titan_code)
+			size_data = get_size(customer_code,titan_code,design_code)
 			data_json['size_data'] = size_data
 
 		if len(titan_code) > 10:
@@ -58,8 +58,9 @@ def set_titan_code(customer_code,titan_code):
 			# data_json['stone_quality'] = stone_quality
 	return data_json
 
-def get_size(customer,titan_code):
-	size_data = frappe.db.get_value('Titan Size Master',{'customer':customer,'code':titan_code[9]})
+def get_size(customer,titan_code,design_code):
+	item_category = frappe.db.get_value('Item',design_code,'item_category')
+	size_data = frappe.db.get_value('Titan Size Master',{'customer':customer,'code':titan_code[9],'item_category':item_category},'product_size')
 
 	# size_data = frappe.db.sql(f"""SELECT name, inner_dia ,circumference  from  `tabTitan Size by Category` ttsbc  where gk_category ='{bom_data.item_category}' and name like '{titan_code[9]}%'""",as_dict=1)
 	return size_data

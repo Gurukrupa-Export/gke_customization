@@ -10,11 +10,14 @@
  "engine": "InnoDB",
  "field_order": [
   "customer",
+  "column_break_rskuf",
+  "country",
+  "section_break_dwllo",
   "item_category",
   "abbr",
+  "column_break_1gtdf",
   "product_size",
-  "code",
-  "country"
+  "code"
  ],
  "fields": [
   {
@@ -54,11 +57,23 @@
    "fieldtype": "Link",
    "label": "Customer",
    "options": "Customer"
+  },
+  {
+   "fieldname": "section_break_dwllo",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_1gtdf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_rskuf",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-12-25 10:54:43.820599",
+ "modified": "2023-12-25 11:57:55.988278",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Titan Size Master",
