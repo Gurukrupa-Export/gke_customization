@@ -9,6 +9,7 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "customer",
   "item_category",
   "abbr",
   "product_size",
@@ -47,11 +48,17 @@
    "fieldtype": "Link",
    "label": "Country",
    "options": "Country"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-12-15 12:19:16.553756",
+ "modified": "2023-12-25 10:54:43.820599",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Titan Size Master",

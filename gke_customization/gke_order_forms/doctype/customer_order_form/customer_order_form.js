@@ -5,7 +5,7 @@ frappe.ui.form.on('Customer Order Form', {
 	titan_code(frm){
 		if (cur_frm.doc.titan_code){
 			frappe.call({
-				method: 'catalog.catalog.doctype.customer_order_form.customer_order_form.set_customer_code_logic',
+				method: 'gke_customization.gke_order_forms.doctype.customer_order_form.customer_order_form.set_customer_code_logic',
 				args: {
 					'titan_code': cur_frm.doc.titan_code,
 					'customer_code': cur_frm.doc.customer_code,
@@ -33,6 +33,13 @@ frappe.ui.form.on('Customer Order Form', {
 					}
 				}
 			});
+			if (cur_frm.doc.titan_code.length >= 3 && cur_frm.doc.titan_code.charAt(2) === '2') {
+                // Hide the second field
+				frm.toggle_display('section_break_oortm', true);
+            }
+			else{
+				frm.toggle_display('section_break_oortm', false);
+			}
 		}
 		else{
 			frm.set_value('metal_type','')
@@ -46,5 +53,9 @@ frappe.ui.form.on('Customer Order Form', {
 			// frm.set_value('gemstone_type','')
 			// frm.set_value('gemstone_quality','')
 		}	
+	},
+	design_code(frm){
+
 	}
+
 });

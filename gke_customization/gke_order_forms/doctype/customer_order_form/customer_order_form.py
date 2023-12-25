@@ -8,15 +8,14 @@ class CustomerOrderForm(Document):
 	def on_cancel(self):
 		frappe.db.set_value('Titan Order Form',self.name,'workflow_state','Cancelled')
 
+
 @frappe.whitelist()
 def set_customer_code_logic(customer_code,titan_code):
 	if customer_code == 'CU0010':
 		data_json = set_titan_code(customer_code,titan_code)
-	elif customer_code == 'CU0122':
-		data_json = set_reliance_code(customer_code,titan_code)
+	# elif customer_code == 'CU0122':
+	# 	data_json = set_reliance_code(customer_code,titan_code)
 	return data_json
-
-
 
 def set_titan_code(customer_code,titan_code):
 	data_json = {}
@@ -40,10 +39,11 @@ def set_titan_code(customer_code,titan_code):
 		# data_json['metal_type_'] = bom_data.metal_type_
 		# data_json['metal_colour'] = bom_data.metal_colour
 		# data_json['metal_purity'] = bom_data.metal_purity
+		data_json['metal_colour'] = frappe.db.get_value('Titan Design Information Sheet',{'design_code':design_code},'metal_colour')
 
-		# if len(titan_code) > 9:
-		# # 	size_data = get_size(titan_code,bom_data)
-		# 	data_json['size_data'] = product_size
+		if len(titan_code) > 9:
+			size_data = get_size(customer_code,titan_code)
+			data_json['size_data'] = size_data
 
 		if len(titan_code) > 10:
 			finding_data = get_finding(titan_code)
@@ -58,8 +58,10 @@ def set_titan_code(customer_code,titan_code):
 			# data_json['stone_quality'] = stone_quality
 	return data_json
 
-def get_size(titan_code,bom_data):
-	size_data = frappe.db.sql(f"""SELECT name, inner_dia ,circumference  from  `tabTitan Size by Category` ttsbc  where gk_category ='{bom_data.item_category}' and name like '{titan_code[9]}%'""",as_dict=1)
+def get_size(customer,titan_code):
+	size_data = frappe.db.get_value('Titan Size Master',{'customer':customer,'code':titan_code[9]})
+
+	# size_data = frappe.db.sql(f"""SELECT name, inner_dia ,circumference  from  `tabTitan Size by Category` ttsbc  where gk_category ='{bom_data.item_category}' and name like '{titan_code[9]}%'""",as_dict=1)
 	return size_data
 
 def get_stone(titan_code):
@@ -82,43 +84,43 @@ def get_finding(titan_code):
 		if j in titan_finding_category:
 			return j
 		
-def set_reliance_code(customer_code,titan_code):
-	data_json = {}
-	if len(titan_code) >= 1:
-		metal_touch = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[:1],'customer':customer_code,'description':'Metal Touch'},'parent')
-		data_json['metal_touch'] = metal_touch
-	if len(titan_code) > 1:
-		if titan_code[1:2] == 'D':
-			data_json['productivity'] = 'Studded'
-		else:
-			data_json['productivity'] = 'Plain'
-		# metal_type = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[1:2],'customer':customer_code,'description':'Metal Type'},'parent')
-		# data_json['metal_type'] = metal_type
-	if len(titan_code) > 2:
-		if titan_code[2:5].upper() == 'MSR' or titan_code[2:5].upper() == 'PDC' or titan_code[2:5].upper() == 'ECN':
-			data_json['chain'] = 'Yes'
-		else:
-			data_json['chain'] = 'No'
-		design_code = frappe.db.get_value('Customer Theme Code',{'theme_code':titan_code[2:11],'customer_code':customer_code},'parent')
-		data_json['design_code'] = design_code
-	if len(titan_code) > 11:
-		category = frappe.db.get_value('Item',{'name':data_json['design_code']},'item_category')
-		size = frappe.db.get_value('Reliance Size Master',{'item_category':category,'code':titan_code[11:13]},'product_size')
-		data_json['size'] = size
-	if len(titan_code) > 13:
-		if titan_code[13:15] == 'B2':
-			data_json['qty'] = 2
-		else:
-			data_json['qty'] = 1
-		finding_data = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[13:15],'customer':customer_code,'description':'Finding Type'},'parent')
-		data_json['finding_data'] = finding_data
+# def set_reliance_code(customer_code,titan_code):
+# 	data_json = {}
+# 	if len(titan_code) >= 1:
+# 		metal_touch = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[:1],'customer':customer_code,'description':'Metal Touch'},'parent')
+# 		data_json['metal_touch'] = metal_touch
+# 	if len(titan_code) > 1:
+# 		if titan_code[1:2] == 'D':
+# 			data_json['productivity'] = 'Studded'
+# 		else:
+# 			data_json['productivity'] = 'Plain'
+# 		# metal_type = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[1:2],'customer':customer_code,'description':'Metal Type'},'parent')
+# 		# data_json['metal_type'] = metal_type
+# 	if len(titan_code) > 2:
+# 		if titan_code[2:5].upper() == 'MSR' or titan_code[2:5].upper() == 'PDC' or titan_code[2:5].upper() == 'ECN':
+# 			data_json['chain'] = 'Yes'
+# 		else:
+# 			data_json['chain'] = 'No'
+# 		design_code = frappe.db.get_value('Customer Theme Code',{'theme_code':titan_code[2:11],'customer_code':customer_code},'parent')
+# 		data_json['design_code'] = design_code
+# 	if len(titan_code) > 11:
+# 		category = frappe.db.get_value('Item',{'name':data_json['design_code']},'item_category')
+# 		size = frappe.db.get_value('Reliance Size Master',{'item_category':category,'code':titan_code[11:13]},'product_size')
+# 		data_json['size'] = size
+# 	if len(titan_code) > 13:
+# 		if titan_code[13:15] == 'B2':
+# 			data_json['qty'] = 2
+# 		else:
+# 			data_json['qty'] = 1
+# 		finding_data = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[13:15],'customer':customer_code,'description':'Finding Type'},'parent')
+# 		data_json['finding_data'] = finding_data
 
-	if len(titan_code) > 15:
-		metal_colour = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[15],'customer':customer_code,'description':'Metal Colour'},'parent')
-		data_json['metal_colour'] = metal_colour
-	if len(titan_code) > 16:
-		diamond_quality = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[16:18],'customer':customer_code,'description':'Diamond Quality'},'parent')
-		data_json['diamond_quality'] = diamond_quality
+# 	if len(titan_code) > 15:
+# 		metal_colour = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[15],'customer':customer_code,'description':'Metal Colour'},'parent')
+# 		data_json['metal_colour'] = metal_colour
+# 	if len(titan_code) > 16:
+# 		diamond_quality = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[16:18],'customer':customer_code,'description':'Diamond Quality'},'parent')
+# 		data_json['diamond_quality'] = diamond_quality
 
-	return data_json
+# 	return data_json
 

@@ -72,8 +72,11 @@ frappe.ui.form.on('Titan Design Information Sheet', {
 					if(response[0].finding_category=="Chains"){
 						frm.set_value('chain_type',response[0].finding_type)
 						frm.set_value('back_chain','Yes')
+						frm.set_value('finding_type','')
 					}
 					else{
+						frm.set_value('chain_type','')
+						frm.set_value('back_chain','No')
 						frm.set_value('finding_type',response[0].finding_type)
 					}
 				});

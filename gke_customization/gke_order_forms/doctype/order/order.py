@@ -17,7 +17,7 @@ class Order(Document):
 		create_line_items(self)
 
 	def validate(self):
-			cerate_timesheet(self)
+		cerate_timesheet(self)
 
 def cerate_timesheet(self):
 	if self.workflow_state == "Designing":
@@ -106,6 +106,7 @@ def cerate_timesheet(self):
 		
 		frappe.msgprint("Timesheets created for Designing - On-Hold for each designer assignment")
 	elif self.workflow_state == "Assigned":
+		
 		for assignment in self.designer_assignment:
 				designer_value = assignment.designer
 
@@ -113,10 +114,11 @@ def cerate_timesheet(self):
 				timesheet = frappe.get_all(
 					"Timesheet", filters={"employee": designer_value,}, fields=["name"],
 				)
+				
 				if timesheet:
 					timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
 
-					time_log = timesheet_doc.time_logs[-1]					
+					time_log = timesheet_doc.time_logs[-1]
 					time_log.to_time = now_datetime()
 					time_log.completed = 1
 					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600

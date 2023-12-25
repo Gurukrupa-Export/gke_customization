@@ -15,16 +15,25 @@
   "section_break_fkzec",
   "design_code",
   "bom",
+  "item_category",
+  "setting_type",
   "column_break_vdz8n",
   "serial_no",
   "serial_no_bom",
+  "item_subcategory",
   "section_break_oortm",
-  "item_category",
+  "design_code_2",
+  "design_code_2_bom",
+  "item_category_2",
+  "setting_type_2",
+  "column_break_qhc4d",
+  "serial_no_2",
+  "serial_no_2_bom",
+  "item_subcategory_2",
+  "section_break_msyr7",
   "productivity",
   "column_break_tipf2",
   "titan_category",
-  "item_subcategory",
-  "setting_type",
   "section_break_iadlw",
   "metal_type",
   "metal_touch",
@@ -84,7 +93,8 @@
   },
   {
    "fieldname": "section_break_fkzec",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Design Code"
   },
   {
    "fieldname": "design_code",
@@ -123,7 +133,9 @@
   },
   {
    "fieldname": "section_break_oortm",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "label": "Design Code 2"
   },
   {
    "fetch_from": "design_code.item_category",
@@ -260,7 +272,7 @@
    "fieldname": "vendor_site",
    "fieldtype": "Select",
    "label": "Vendor Site",
-   "options": "\n2B-SS-SUR\n2B-SM-SUR"
+   "options": "\n2J-SS-SUR\n2J-SM-SUR\n2J-SH-SUR\n2B-SS-SUR\n2B-SM-SUR\n2B-SH-SUR"
   },
   {
    "fieldname": "section_break_k41c3",
@@ -367,12 +379,62 @@
    "options": "Customer Order Form",
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "design_code_2",
+   "fieldtype": "Link",
+   "label": "Design Code 2",
+   "options": "Item"
+  },
+  {
+   "fieldname": "design_code_2_bom",
+   "fieldtype": "Link",
+   "label": "Design Code 2 BOM",
+   "options": "BOM"
+  },
+  {
+   "fieldname": "column_break_qhc4d",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "serial_no_2",
+   "fieldtype": "Link",
+   "label": "Serial No 2",
+   "options": "Serial No"
+  },
+  {
+   "fieldname": "serial_no_2_bom",
+   "fieldtype": "Link",
+   "label": "Serial No 2 BOM",
+   "options": "BOM"
+  },
+  {
+   "fieldname": "section_break_msyr7",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "item_category_2",
+   "fieldtype": "Link",
+   "label": "Item Category 2",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "setting_type_2",
+   "fieldtype": "Link",
+   "label": "Setting Type 2",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "item_subcategory_2",
+   "fieldtype": "Link",
+   "label": "Item Subcategory 2",
+   "options": "Attribute Value"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-12-13 13:10:04.021394",
+ "modified": "2023-12-25 10:46:50.071506",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Customer Order Form",

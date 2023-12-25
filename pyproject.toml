@@ -1,0 +1,27 @@
+[project]
+name = "gke_customization"
+authors = [
+    { name = "Gurukrupa Export", email = "vishal@gurukrupaexport.in" }
+]
+description = "ERPNext app to simplify compliance with Indian Rules and Regulations"
+readme = "README.md"
+dynamic = ["version"]
+dependencies = [
+    "qrcode~= 7.4.2",
+    "forex-python~= 1.8",
+]
+
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.isort]
+profile = "black"
+known_frappe = "frappe"
+known_erpnext = "erpnext"
+no_lines_before = ["ERPNEXT"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FRAPPE", "ERPNEXT", "FIRSTPARTY", "LOCALFOLDER"]
+
+[tool.bench.dev-dependencies]
+parameterized = "~=0.8.1"
+time-machine = "~=2.10.0"

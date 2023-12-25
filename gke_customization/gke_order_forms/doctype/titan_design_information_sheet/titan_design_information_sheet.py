@@ -8,7 +8,11 @@ class TitanDesignInformationSheet(Document):
     # pass
 	def before_save(self):
             if self.design_code:
-                bom = frappe.get_doc("BOM", {"item": self.design_code})
+                # bom = frappe.get_doc("BOM", {"item": self.design_code})
+                master_bom = frappe.db.get_value("BOM",{"item":self.design_code,"bom_type":"Finish Goods"},"name")
+                if not master_bom:
+                    master_bom = frappe.db.get_value("Item",self.design_code,'master_bom')
+                bom = frappe.get_doc('BOM',master_bom)
                 if bom:
                     if len(self.diamond_detail) == len(bom.get("diamond_detail")):
                         return

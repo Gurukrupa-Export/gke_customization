@@ -213,3 +213,23 @@ app_license = "MIT"
 # auth_hooks = [
 #	"gke_customization.auth.validate"
 # ]
+
+app_include_js = "gke_customization.gke_catalog.api.item_list.get_item_list"
+app_include_js = "gke_customization.gke_catalog.api.item_list.get_bom_list"
+
+
+app_include_js = "gke_customization.gke_catalog.api.item_catalog.merge_data"
+
+app_include_js = "gke_customization.gke_catalog.api.item_catalog.get_attribute_values()"
+app_include_js = "gke_customization.gke_catalog.api.item_catalog.update_xyz"
+
+app_include_js = "gke_customization.gke_catalog.api.reposne.get_submited_data"
+
+doc_events = {
+"SolitaireCalculator": {
+    "validate": "gke_customization.gke_cudtom_export.doctype.solitaire_calculator.solitaire_calculator.calculate_rate"
+}
+}
+app_include_js = [
+    '/assets/gke_customization/js/solitaire_calculator.js'
+] 

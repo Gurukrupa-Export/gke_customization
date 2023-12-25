@@ -30,7 +30,7 @@ def create_cad_orders(self):
 	doclist = []
 	for row in self.order_details:
 		docname = make_cad_order(row.name, parent_doc = self)
-		frappe.db.set_value('Order Form Detail',row.name,'cad_order_id',docname)
+		# frappe.db.set_value('Order Form Detail',row.name,'cad_order_id',docname)
 		doclist.append(get_link_to_form("Order", docname))
 
 	if doclist:
