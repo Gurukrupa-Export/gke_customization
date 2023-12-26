@@ -1,7 +1,7 @@
 frappe.ready(function() {
 	frappe.web_form.on('employee', (field,value) => {
 		frappe.call({
-			method: 'catalog.catalog.web_form.employee_exit_questionnaire.employee_exit_questionnaire.get_context',
+			method: 'gke_customization.gke_catalog.web_form.employee_exit_questionnaire.employee_exit_questionnaire.get_context',
 			args: {
 				'employee':value
 			},
