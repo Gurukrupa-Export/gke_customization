@@ -227,7 +227,7 @@ app_include_js = "gke_customization.gke_catalog.api.reposne.get_submited_data"
 
 doc_events = {
 "SolitaireCalculator": {
-    "validate": "gke_customization.gke_cudtom_export.doctype.solitaire_calculator.solitaire_calculator.calculate_rate"
+    "validate": "gke_customization.gke_custom_export.doctype.solitaire_calculator.solitaire_calculator.calculate_rate"
 }
 }
 app_include_js = [

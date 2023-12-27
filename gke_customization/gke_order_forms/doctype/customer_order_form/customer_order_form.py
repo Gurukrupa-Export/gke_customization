@@ -49,9 +49,9 @@ def set_titan_code(customer_code,titan_code):
 			finding_data = get_finding(titan_code)
 			data_json['finding_data'] = finding_data
 			
-		if len(titan_code) >11:
+		if len(titan_code) >12:
 			stone_data = get_stone(titan_code)
-			# stone_data = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[12:14],'customer':customer_code},'parent')
+		# 	# stone_data = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[12:14],'customer':customer_code},'parent')
 			data_json['stone_data'] = stone_data
 			# data_json['stone_type'] = stone_data.parent
 			# stone_quality = frappe.db.get_value('Customer Attributes Table',{'code':stone_data.description,'customer':customer_code},'parent')
@@ -66,24 +66,26 @@ def get_size(customer,titan_code,design_code):
 	return size_data
 
 def get_stone(titan_code):
-	titan_prolif = []
-	for i in frappe.get_doc('Item Attribute','Titan Prolif').item_attribute_values:
-		titan_prolif.append(i.attribute_value)
+	# titan_prolif = []
+	# for i in frappe.get_doc('Item Attribute','Titan Prolif').item_attribute_values:
+	# 	titan_prolif.append(i.attribute_value)
+	stonre_data = frappe.db.sql(f"""select parent from `tabAttribute Value For  Customer Theme Code` tavfctc where customer = 'CU0010' and details = 'PROLIF' and code='{titan_code[12:14]}'""",as_dict=1)
 
-	for j in frappe.db.sql(f'''select code,customer from `tabCustomer Attributes Table` tcat WHERE code = "{titan_code[12:14]}" and customer = "CU0010"'''):
-	# frappe.db.get_list('Customer Attributes Table',filters={'code':titan_code[12:14],'customer':'CU0010'},pluck='parent'):
-		if j in titan_prolif:
-			return j
+	# for j in frappe.db.sql(f'''select code,customer from `tabCustomer Attributes Table` tcat WHERE code = "{titan_code[12:14]}" and customer = "CU0010"'''):
+	# # frappe.db.get_list('Customer Attributes Table',filters={'code':titan_code[12:14],'customer':'CU0010'},pluck='parent'):
+	# 	if j in titan_prolif:
+	return stonre_data[0]['parent']
 
 def get_finding(titan_code):
-	titan_finding_category = []
-	for i in frappe.get_doc('Item Attribute','Titan Finding').item_attribute_values:
-		titan_finding_category.append(i.attribute_value)
-	
-	for j in frappe.db.sql(f'''select code,customer from `tabCustomer Attributes Table` tcat WHERE code = "{titan_code[10]}" and customer = "CU0010"'''):
-	# frappe.db.get_list('Customer Attributes Table',filters={'code':titan_code[10],'customer':'CU0010'},pluck='parent'):
-		if j in titan_finding_category:
-			return j
+	# titan_finding_category = []
+	# for i in frappe.get_doc('Item Attribute','Titan Finding').item_attribute_values:
+	# 	titan_finding_category.append(i.attribute_value)
+	finding_data = frappe.db.sql(f"""select parent from `tabAttribute Value For  Customer Theme Code` tavfctc where customer = 'CU0010' and details = 'FINDING' and code='{titan_code[10]}'""",as_dict=1)
+	# for j in frappe.db.sql(f'''select code,customer from `tabCustomer Attributes Table` tcat WHERE code = "{titan_code[10]}" and customer = "CU0010"'''):
+	# # frappe.db.get_list('Customer Attributes Table',filters={'code':titan_code[10],'customer':'CU0010'},pluck='parent'):
+	# 	if j in titan_finding_category:
+	# 		return j
+	return finding_data[0]['parent']
 		
 # def set_reliance_code(customer_code,titan_code):
 # 	data_json = {}

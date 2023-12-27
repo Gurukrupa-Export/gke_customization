@@ -286,7 +286,6 @@
   {
    "fieldname": "stone",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Stone",
    "options": "Attribute Value"
   },
@@ -432,7 +431,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-12-25 11:11:18.527536",
+ "modified": "2023-12-26 15:08:39.361012",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Customer Order Form",

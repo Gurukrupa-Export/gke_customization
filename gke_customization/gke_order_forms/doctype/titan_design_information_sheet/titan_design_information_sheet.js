@@ -89,7 +89,9 @@ frappe.ui.form.on('Titan Design Information Sheet', {
 		})
 	},
 	is_set:function(frm){
-		frm.set_value('design_code_2','')
+		console.log(frm.doc.design_code_2)
+		// frm.set_value('design_code_2','')
+		// frm.set_value('fourteen_digit_set_code','')
 	},
 	serial_no:function(frm){
 		frappe.db.get_value("Serial No", frm.doc.serial_no, "item_code", (r)=> {
