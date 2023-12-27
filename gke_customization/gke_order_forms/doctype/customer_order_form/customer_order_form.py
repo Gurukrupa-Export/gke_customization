@@ -33,43 +33,60 @@ def set_titan_code(customer_code,titan_code):
 		data_json['design_code'] = design_code
 
 	# titan_category = get_cateogry(titan_code)
+	
+	if len(titan_code)>6:
+		design_code = frappe.db.sql(f"""select design_code, design_code_2 from `tabTitan Design Information Sheet` ttdis where fourteen_digit_set_code like '{titan_code[:6]}%'""",as_dict=1)[0]['design_code']
+		design_code_2 = frappe.db.sql(f"""select design_code, design_code_2 from `tabTitan Design Information Sheet` ttdis where fourteen_digit_set_code like '{titan_code[:6]}%'""",as_dict=1)[0]['design_code_2']
+		data_json['design_code'] = design_code
+		data_json['design_code_2'] = design_code_2
 
 	if design_code:
-		# bom_data = frappe.db.get_value('BOM',{'item':design_code,'is_active':1,'is_default':1},['metal_colour','metal_type_','metal_purity','item_category'],as_dict=1)
-		# data_json['metal_type_'] = bom_data.metal_type_
-		# data_json['metal_colour'] = bom_data.metal_colour
-		# data_json['metal_purity'] = bom_data.metal_purity
 		data_json['metal_colour'] = frappe.db.get_value('Titan Design Information Sheet',{'design_code':design_code},'metal_colour')
+
+		
 
 		if len(titan_code) > 9:
 			size_data = get_size(customer_code,titan_code,design_code)
 			data_json['size_data'] = size_data
 
-		if len(titan_code) > 10:
-			finding_data = get_finding(titan_code)
-			data_json['finding_data'] = finding_data
+		if frappe.db.get_value('Item',design_code,'item_category') in ['Nose Pin','Earrings']:
+			if len(titan_code) > 10:
+				finding_data = get_finding(titan_code)
+				data_json['finding_data'] = finding_data
+		else:
+			data_json['finding_data'] = ''
 			
 		if len(titan_code) >12:
-			stone_data = get_stone(titan_code)
+			stone_data = get_stone(customer_code,titan_code)
 		# 	# stone_data = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[12:14],'customer':customer_code},'parent')
 			data_json['stone_data'] = stone_data
 			# data_json['stone_type'] = stone_data.parent
 			# stone_quality = frappe.db.get_value('Customer Attributes Table',{'code':stone_data.description,'customer':customer_code},'parent')
 			# data_json['stone_quality'] = stone_quality
+
+			
+			design_code = frappe.db.get_value('Titan Design Information Sheet',{'fourteen_digit_set_code':titan_code},'design_code')
+			if design_code:
+				data_json['design_code_2'] = frappe.db.get_value('Titan Design Information Sheet',{'fourteen_digit_set_code':titan_code},'design_code_2')
+	
 	return data_json
 
 def get_size(customer,titan_code,design_code):
 	item_category = frappe.db.get_value('Item',design_code,'item_category')
-	size_data = frappe.db.get_value('Titan Size Master',{'customer':customer,'code':titan_code[9],'item_category':item_category},'product_size')
+	
+	if titan_code[0] == 'U':
+		size_data = frappe.db.get_value('Titan Size Master',{'customer':customer,'code':titan_code[9],'item_category':item_category,'country':'United States'},'product_size')
+	else:
+		size_data = frappe.db.get_value('Titan Size Master',{'customer':customer,'code':titan_code[9],'item_category':item_category,'country':'India'},'product_size')
 
 	# size_data = frappe.db.sql(f"""SELECT name, inner_dia ,circumference  from  `tabTitan Size by Category` ttsbc  where gk_category ='{bom_data.item_category}' and name like '{titan_code[9]}%'""",as_dict=1)
 	return size_data
 
-def get_stone(titan_code):
+def get_stone(customer_code,titan_code):
 	# titan_prolif = []
 	# for i in frappe.get_doc('Item Attribute','Titan Prolif').item_attribute_values:
 	# 	titan_prolif.append(i.attribute_value)
-	stonre_data = frappe.db.sql(f"""select parent from `tabAttribute Value For  Customer Theme Code` tavfctc where customer = 'CU0010' and details = 'PROLIF' and code='{titan_code[12:14]}'""",as_dict=1)
+	stonre_data = frappe.db.sql(f"""select parent from `tabAttribute Value For  Customer Theme Code` tavfctc where customer = '{customer_code}' and details = 'PROLIF' and code='{titan_code[12:14]}'""",as_dict=1)
 
 	# for j in frappe.db.sql(f'''select code,customer from `tabCustomer Attributes Table` tcat WHERE code = "{titan_code[12:14]}" and customer = "CU0010"'''):
 	# # frappe.db.get_list('Customer Attributes Table',filters={'code':titan_code[12:14],'customer':'CU0010'},pluck='parent'):

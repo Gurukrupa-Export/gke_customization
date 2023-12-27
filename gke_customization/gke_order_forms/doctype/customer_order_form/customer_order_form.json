@@ -307,9 +307,9 @@
    "options": "Attribute Value"
   },
   {
+   "default": "1",
    "fieldname": "qty",
    "fieldtype": "Int",
-   "hidden": 1,
    "label": "No. of Pcs"
   },
   {
@@ -384,6 +384,7 @@
    "options": "Item"
   },
   {
+   "fetch_from": "design_code_2.master_bom",
    "fieldname": "design_code_2_bom",
    "fieldtype": "Link",
    "label": "Design Code 2 BOM",
@@ -410,18 +411,21 @@
    "fieldtype": "Section Break"
   },
   {
+   "fetch_from": "design_code_2.item_category",
    "fieldname": "item_category_2",
    "fieldtype": "Link",
    "label": "Item Category 2",
    "options": "Attribute Value"
   },
   {
+   "fetch_from": "design_code_2.setting_type",
    "fieldname": "setting_type_2",
    "fieldtype": "Link",
    "label": "Setting Type 2",
    "options": "Attribute Value"
   },
   {
+   "fetch_from": "design_code_2.item_subcategory",
    "fieldname": "item_subcategory_2",
    "fieldtype": "Link",
    "label": "Item Subcategory 2",
@@ -431,7 +435,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-12-26 15:08:39.361012",
+ "modified": "2023-12-27 12:49:44.281071",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Customer Order Form",

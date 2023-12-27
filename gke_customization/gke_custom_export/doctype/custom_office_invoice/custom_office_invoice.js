@@ -10,9 +10,30 @@ frappe.ui.form.on('Custom Office Invoice', {
 			},
 			callback: function(r) {
 				if (!r.exc) {
+					console.log(r.message);
 					frm.set_value('address',r.message[0])
 					frm.set_value('place_of_receipt_by_pre_carrier',r.message[1])
 					frm.set_value('port_of_loading',r.message[1])
+					frm.set_value('gstn',r.message[2])
+					frm.set_value('pan_no',r.message[3])
+					frm.set_value('iec_code',r.message[4])
+				}
+			}
+		});
+
+		frappe.call({
+			method: 'gke_customization.gke_custom_export.doctype.custom_office_invoice.custom_office_invoice.get_exporter_bank',
+			args: {
+				'exporter': frm.doc.exporter,
+			},
+			callback: function(r) {
+				if (!r.exc) {
+					console.log(r.message);
+					frm.set_value('bank',r.message[0][0])
+					frm.set_value('account_no',r.message[0][1])
+					frm.set_value('ifsc_code',r.message[0][2])
+					frm.set_value('ad_code',r.message[0][3])
+					frm.set_value('bank_address',r.message[1])
 				}
 			}
 		});
@@ -25,7 +46,7 @@ frappe.ui.form.on('Custom Office Invoice', {
 			},
 			callback: function(r) {
 				if (!r.exc) {
-					
+					console.log(r.message);
 					frm.set_value('consignee_address',r.message[0])
 					frm.set_value('port_of_destination',r.message[1])
 					frm.set_value('country_of_final_destination',r.message[2])

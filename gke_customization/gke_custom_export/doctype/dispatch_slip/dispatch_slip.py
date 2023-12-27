@@ -15,10 +15,11 @@ def get_company_address(company):
 	for add in adress_name:
 		if 'Shipping' in add['parent']:
 			city = frappe.db.get_value('Address',{'name':add['parent']},'city')
+			gstin = frappe.db.get_value('Address',{'name':add['parent']},'gstin')
 			address_list = frappe.db.get_value('Address',{'name':add['parent']},['address_line1','address_line2','city','county','state','pincode','country'])
 			new_address_list = [str(0) if element is None else element for element in address_list]
 			address = ', '.join(new_address_list).replace(' 0,','')
-			return address,city
+			return address,city,gstin
 
 @frappe.whitelist()
 def get_customer_address(customer):

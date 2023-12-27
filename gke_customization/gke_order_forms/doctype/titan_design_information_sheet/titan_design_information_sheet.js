@@ -88,11 +88,24 @@ frappe.ui.form.on('Titan Design Information Sheet', {
 			} 
 		})
 	},
-	is_set:function(frm){
-		console.log(frm.doc.design_code_2)
-		// frm.set_value('design_code_2','')
-		// frm.set_value('fourteen_digit_set_code','')
-	},
+	// is_set:function(frm){
+	// 	// if (frm.doc.is_set==0){
+
+	// 		// frappe.call({
+	// 		// 	method: 'gke_customization.gke_order_forms.doctype.titan_design_information_sheet.titan_design_information_sheet.get_value',
+	// 		// 	args: {
+	// 		// 		'doc': frm.doc,
+	// 		// 	},
+	// 		// 	callback: function(r) {
+	// 		// 		if (!r.exc) {
+	// 		// 			console.log(r.message)
+	// 		// 		}
+	// 		// 	}
+	// 		// });
+	// 	// } 
+	// // 	// frm.set_value('design_code_2','')
+	// // 	// frm.set_value('fourteen_digit_set_code','')
+	// },
 	serial_no:function(frm){
 		frappe.db.get_value("Serial No", frm.doc.serial_no, "item_code", (r)=> {
 			if (r.item_code){
@@ -100,6 +113,20 @@ frappe.ui.form.on('Titan Design Information Sheet', {
 			}   
 		})
 	},
+	// design_code_2:function(frm){
+
+	// 	frappe.call({
+	// 			method: 'gke_customization.gke_order_forms.doctype.titan_design_information_sheet.titan_design_information_sheet.get_value',
+	// 			args: {
+	// 				'doc': frm.doc,
+	// 			},
+	// 			callback: function(r) {
+	// 				if (!r.exc) {
+	// 					console.log(r.message)
+	// 				}
+	// 			}
+	// 		});
+	// }
 	// design_code:function(frm){
 	// 	frappe.call({
 	// 		method: 'gke_customization.gke_order_forms.doctype.titan_design_information_sheet.titan_design_information_sheet.get_table_details',

@@ -11,6 +11,7 @@ frappe.ui.form.on('Dispatch Slip', {
 			callback: function(r) {
 				if (!r.exc) {
 					frm.set_value('company_address',r.message[0])
+					frm.set_value('gst_no',r.message[2])
 				}
 			}
 		});

@@ -55,10 +55,41 @@ def get_exporter_address(exporter):
 	for add in adress_name:
 		if 'Shipping' in add['parent']:
 			city = frappe.db.get_value('Address',{'name':add['parent']},'city')
-			address_list = frappe.db.get_value('Address',{'name':add['parent']},['address_line1','address_line2','city','county','state','pincode','country'])
+			gstin = frappe.db.get_value('Address',{'name':add['parent']},'gstin')
+			pan = frappe.db.get_value('Address',{'name':add['parent']},'custom_pan')
+			iec_no = frappe.db.get_value('Address',{'name':add['parent']},'custom_iec_no')
+			address_list = frappe.db.get_value('Address',{'name':add['parent']},['address_line1','address_line2','city','state','pincode','country'])
 			new_address_list = [str(0) if element is None else element for element in address_list]
 			address = ', '.join(new_address_list).replace(' 0,','')
-			return address,city
+			return address,city,gstin,pan,iec_no
+		
+@frappe.whitelist()		
+def get_exporter_bank(exporter):
+	exporter_bank = frappe.db.sql(f"""select name from `tabBank Account` tba where company = '{exporter}' and is_company_account = '1'""",as_dict=1)
+	# bankName = exporter_bank[0]['name']
+	if exporter_bank:
+		bankName = exporter_bank[0]['name']
+	else:
+		return [], ""
+	
+	adress_name = frappe.db.sql(f"""select parent from `tabDynamic Link` tdl where parenttype = 'Address' and link_doctype = 'Bank Account' and link_name = '{bankName}'""",as_dict=1)
+	bank_details = []
+
+	for bank in exporter_bank:
+		bankname = frappe.db.get_value('Bank Account',{'name':bank['name']},'bank')	
+		bankAccountno = frappe.db.get_value('Bank Account',{'name':bank['name']},'bank_account_no')	
+		bankIFSC = frappe.db.get_value('Bank Account',{'name':bank['name']},'custom_ifsc_code')	
+		bankAD = frappe.db.get_value('Bank Account',{'name':bank['name']},'custom_ad_code')	
+		
+		bank_details.extend([bankname, bankAccountno, bankIFSC, bankAD])
+
+	for add in adress_name:
+		# if 'Billing' in add['parent']:
+		address_list = frappe.db.get_value('Address',{'name':add['parent']},['address_line1','address_line2','city','state','pincode','country'])
+		new_address_list = [str(0) if element is None else element for element in address_list]
+		address = ', '.join(new_address_list).replace(' 0,','')
+	
+	return bank_details, address
 
 @frappe.whitelist()
 def get_customer_address(consignee):

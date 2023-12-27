@@ -2,7 +2,7 @@
  "actions": [],
  "allow_import": 1,
  "allow_rename": 1,
- "autoname": "format:{abbr}-{product_size}",
+ "autoname": "format:{abbr}-{product_size}-{##}",
  "creation": "2023-11-08 11:02:38.435463",
  "default_view": "List",
  "doctype": "DocType",
@@ -12,7 +12,6 @@
   "customer",
   "column_break_rskuf",
   "country",
-  "country_table",
   "section_break_dwllo",
   "item_category",
   "abbr",
@@ -70,17 +69,11 @@
   {
    "fieldname": "column_break_rskuf",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "country_table",
-   "fieldtype": "Table MultiSelect",
-   "label": "Country Table",
-   "options": "Country Table"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-12-26 12:19:17.041533",
+ "modified": "2023-12-27 14:32:52.681676",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Titan Size Master",

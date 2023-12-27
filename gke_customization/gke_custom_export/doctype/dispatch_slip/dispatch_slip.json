@@ -65,7 +65,6 @@
    "label": "Date"
   },
   {
-   "fetch_from": "company.custom_gstin",
    "fieldname": "gst_no",
    "fieldtype": "Data",
    "label": "Company GST No."
@@ -157,7 +156,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-12-14 12:16:55.544388",
+ "modified": "2023-12-27 11:32:15.439970",
  "modified_by": "Administrator",
  "module": "GKE Custom Export",
  "name": "Dispatch Slip",
