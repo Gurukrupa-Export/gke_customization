@@ -99,8 +99,7 @@
   "india_states",
   "column_break_zasix",
   "usa",
-  "usa_states",
-  "delivery_days"
+  "usa_states"
  ],
  "fields": [
   {
@@ -665,19 +664,12 @@
    "fieldtype": "Select",
    "label": "States",
    "options": "\nUSA"
-  },
-  {
-   "fetch_from": "sketch_order_form.delivery_days",
-   "fieldname": "delivery_days",
-   "fieldtype": "Data",
-   "label": "Delivery Days",
-   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-12-13 12:52:21.367286",
+ "modified": "2024-01-02 11:15:59.251748",
  "modified_by": "Administrator",
  "module": "GKE Catalog",
  "name": "Sketch Order",

@@ -225,6 +225,9 @@ def create_item_template_from_order(source_name, target_doc=None):
 			}
 		},target_doc, post_process
 	)
+	max_sequence = frappe.db.get_value("Item", {"item_category_code": "RI"}, ["Max(sequence)"])
+	print(max_sequence)
+	
 	doc.save()
 	return doc.name
 
@@ -536,3 +539,5 @@ def make_quotation(source_name, target_doc=None):
 	set_missing_values(order, target_doc)
 
 	return target_doc
+
+

@@ -47,7 +47,6 @@ class CustomOfficeInvoice(Document):
 			self.freight_charge_in_usd = 0.0
 		self.total_rate = float(self.freight_charge_in_usd) + float(total_rate)
 
-
 @frappe.whitelist()
 def get_exporter_address(exporter):
 	adress_name = frappe.db.sql(f"""select parent  from `tabDynamic Link` tdl where parenttype = 'Address' and link_doctype = 'Company' and link_name = '{exporter}'""",as_dict=1)
@@ -58,9 +57,11 @@ def get_exporter_address(exporter):
 			gstin = frappe.db.get_value('Address',{'name':add['parent']},'gstin')
 			pan = frappe.db.get_value('Address',{'name':add['parent']},'custom_pan')
 			iec_no = frappe.db.get_value('Address',{'name':add['parent']},'custom_iec_no')
+			
 			address_list = frappe.db.get_value('Address',{'name':add['parent']},['address_line1','address_line2','city','state','pincode','country'])
 			new_address_list = [str(0) if element is None else element for element in address_list]
 			address = ', '.join(new_address_list).replace(' 0,','')
+			
 			return address,city,gstin,pan,iec_no
 		
 @frappe.whitelist()		
