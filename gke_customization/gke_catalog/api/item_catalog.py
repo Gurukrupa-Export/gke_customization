@@ -309,7 +309,7 @@ def get_design_attributs():
 @frappe.whitelist()
 def get_age_group():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Age Group"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Age Group"})
     
     # Modify the structure of the list
     modified_data = [{"age_group": item["name"]} for item in design_attributs]
@@ -322,7 +322,7 @@ def get_age_group():
 @frappe.whitelist()
 def get_animals():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Animals"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Animals"})
     
     # Modify the structure of the list
     modified_data = [{"animals": item["name"]} for item in design_attributs]
@@ -335,7 +335,7 @@ def get_animals():
 @frappe.whitelist()
 def get_birds():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Birds"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Birds"})
     
     # Modify the structure of the list
     modified_data = [{"birds": item["name"]} for item in design_attributs]
@@ -348,7 +348,7 @@ def get_birds():
 @frappe.whitelist()
 def get_birthstone():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Birthstone"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Birthstone"})
     
     # Modify the structure of the list
     modified_data = [{"birthstone": item["name"]} for item in design_attributs]
@@ -361,7 +361,7 @@ def get_birthstone():
 @frappe.whitelist()
 def get_collection():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Collection"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Collection"})
     
     # Modify the structure of the list
     modified_data = [{"collection": item["name"]} for item in design_attributs]
@@ -374,7 +374,7 @@ def get_collection():
 @frappe.whitelist()
 def get_color_tone():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Color Tone"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Color Tone"})
     
     # Modify the structure of the list
     modified_data = [{"color_tone": item["name"]} for item in design_attributs]
@@ -387,7 +387,7 @@ def get_color_tone():
 @frappe.whitelist()
 def get_close_chilan():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Close Chilan"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Close Chilan"})
     
     # Modify the structure of the list
     modified_data = [{"close_chilan": item["name"]} for item in design_attributs]
@@ -400,7 +400,7 @@ def get_close_chilan():
 @frappe.whitelist()
 def get_design_style():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Design Style"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Design Style"})
     
     # Modify the structure of the list
     modified_data = [{"design_style": item["name"]} for item in design_attributs]
@@ -413,7 +413,7 @@ def get_design_style():
 @frappe.whitelist()
 def get_finish_type():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Finish Type"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Finish Type"})
     
     # Modify the structure of the list
     modified_data = [{"finish_type": item["name"]} for item in design_attributs]
@@ -426,7 +426,7 @@ def get_finish_type():
 @frappe.whitelist()
 def get_gender():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Gender"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Gender"})
     
     # Modify the structure of the list
     modified_data = [{"gender": item["name"]} for item in design_attributs]
@@ -439,7 +439,7 @@ def get_gender():
 @frappe.whitelist()
 def get_god():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "God"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "God"})
     
     # Modify the structure of the list
     modified_data = [{"god": item["name"]} for item in design_attributs]
@@ -452,7 +452,7 @@ def get_god():
 @frappe.whitelist()
 def get_initial():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Initial"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Initial"})
     
     # Modify the structure of the list
     modified_data = [{"initial": item["name"]} for item in design_attributs]
@@ -463,9 +463,9 @@ def get_initial():
     return modified_data
 
 @frappe.whitelist()
-def get_no_of_prong_design_attributs():
+def get_no_of_prong():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "No of Prong"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "No of Prong"})
     
     # Modify the structure of the list
     modified_data = [{"design_attributes_1": item["name"]} for item in design_attributs]
@@ -478,7 +478,7 @@ def get_no_of_prong_design_attributs():
 @frappe.whitelist()
 def get_occasion():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Occasion"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Occasion"})
     
     # Modify the structure of the list
     modified_data = [{"occasion": item["name"]} for item in design_attributs]
@@ -491,7 +491,7 @@ def get_occasion():
 @frappe.whitelist()
 def get_relationship():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Relationship"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Relationship"})
     
     # Modify the structure of the list
     modified_data = [{"relationship": item["name"]} for item in design_attributs]
@@ -504,7 +504,7 @@ def get_relationship():
 @frappe.whitelist()
 def get_setting_style():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Setting Style"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Setting Style"})
     
     # Modify the structure of the list
     modified_data = [{"setting_style": item["name"]} for item in design_attributs]
@@ -517,7 +517,7 @@ def get_setting_style():
 @frappe.whitelist()
 def get_shape():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Shape"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Shape"})
     
     # Modify the structure of the list
     modified_data = [{"shape": item["name"]} for item in design_attributs]
@@ -530,7 +530,7 @@ def get_shape():
 @frappe.whitelist()
 def get_temple():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Temple"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Temple"})
     
     # Modify the structure of the list
     modified_data = [{"temple": item["name"]} for item in design_attributs]
@@ -543,7 +543,7 @@ def get_temple():
 @frappe.whitelist()
 def get_zodiac():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Zodiac"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Zodiac"})
     
     # Modify the structure of the list
     modified_data = [{"zodiac": item["name"]} for item in design_attributs]
@@ -556,7 +556,7 @@ def get_zodiac():
 @frappe.whitelist()
 def get_creativity():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1, "parent_attribute_value": "Creativity"})
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Creativity"})
     
     # Modify the structure of the list
     modified_data = [{"creativity": item["name"]} for item in design_attributs]
