@@ -232,4 +232,11 @@ doc_events = {
 }
 app_include_js = [
     '/assets/gke_customization/js/solitaire_calculator.js'
-] 
+]
+
+fixtures = [
+    {
+		"dt": "Custom Field", 
+		"filters": [["module", "=", "GKE Order Forms"]]
+	},
+]
