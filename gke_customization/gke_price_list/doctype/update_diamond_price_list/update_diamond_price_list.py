@@ -5,7 +5,7 @@ import frappe
 from frappe.model.document import Document
 
 class UpdateDiamondPriceList(Document):
-    def validate(self):
+    def before_save(self):
         filters = {
 				"price_list": self.price_list,
 				"diamond_type": self.diamond_type,
@@ -19,14 +19,25 @@ class UpdateDiamondPriceList(Document):
             if len(self.update_diamond_price_list_details_sieve_size_range) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["sieve_size_range"])):
                 if self.update_diamond_price_list_details_sieve_size_range==[]:
                     self.set("update_diamond_price_list_details_sieve_size_range", [])
-                    print(self.update_diamond_price_list_details_sieve_size_range)
                     diamond_price_list = frappe.db.get_list("Diamond Price List",filters=filters,fields=["sieve_size_range"])
                     output_list = remove_duplicate_data(diamond_price_list)
                     sorted_data = sort_data(self,output_list)
                     set_data_in_child_table(self,sorted_data)
-                # else:
-                #     self.
+                else:
+                    old_diamond_price_list = [d.diamond_price_list for d in self.update_diamond_price_list_details_sieve_size_range]
+                    for j in frappe.db.get_list("Diamond Price List",filters=filters,pluck="name"):
+                        if j not in old_diamond_price_list:
+                            sorted_data = frappe.db.get_list("Diamond Price List",filters={"name":j},fields=["sieve_size_range"])
+                            set_data_in_child_table(self,sorted_data)
+                    
 
+
+    def validate(self):
+        doc = frappe.get_doc('Update Diamond Price List',self.name).update_diamond_price_list_details_sieve_size_range
+        sort_d = sort_data(self,doc)
+        
+
+        return
         # elif self.price_list_type == 'Size (in mm)':
         #     if len(self.update_diamond_price_list_details_size_in_mm) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["size_in_mm"])):
         #         self.set("update_diamond_price_list_details_size_in_mm", [])
@@ -71,7 +82,8 @@ class UpdateDiamondPriceList(Document):
 
 
 def custom_sort(item):
-    start, end = map(float, item['sieve_size_range'][1:].split('-'))
+    print(item.sieve_size_range)
+    start, end = map(float, item.sieve_size_range[1:].split('-'))
     return (start, end)
 
 def custom_sort1(item):
@@ -112,7 +124,7 @@ def set_data_in_child_table(self,sorted_data):
             for_weight_in_cts(self,i)
 
 def for_sieve_size_range(self,i):
-    rate_filters = filters = {
+    rate_filters =  {
                 "price_list": self.price_list,
                 "diamond_type": self.diamond_type,
                 "stone_shape": self.stone_shape,
@@ -168,3 +180,6 @@ def for_weight_in_cts(self,i):
     rate_details.revised_rate = rate
     rate_details.weight = i['weight_range']
     return
+
+
+# kanchankulkarni@gk.com

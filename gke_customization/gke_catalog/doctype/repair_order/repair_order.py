@@ -10,7 +10,7 @@ class RepairOrder(Document):
 	pass
 
 
-
+# new code start(add customer fileds in dict)
 @frappe.whitelist()
 def make_quotation(source_name, target_doc=None):
 	
@@ -75,13 +75,15 @@ def make_quotation(source_name, target_doc=None):
 		"order_form_id": snd_order.get("name"),
 		"salesman_name": snd_order.get("salesman_name"),
 		"order_form_date": snd_order.get("order_date"),
-		"po_no": snd_order.get("customer_sample"),
-		"po_no": snd_order.get("customer_sample_voucher_no"),
-		"po_no": snd_order.get("customer_gold"),
-		"po_no": snd_order.get("customer_diamond"),
-		"po_no": snd_order.get("customer_stone"),
+		"custom_customer_sample": snd_order.get("customer_sample"),
+		"custom_customer_voucher_no": snd_order.get("customer_sample_voucher_no"),
+		"custom_customer_gold": snd_order.get("customer_gold"),
+		"custom_customer_diamond": snd_order.get("customer_diamond"),
+		"custom_customer_stone": snd_order.get("customer_stone"),
+		"custom_customer_good": snd_order.get("customer_good"),
 		"po_no": snd_order.get("po_no"),
 	})
 	set_missing_values(snd_order, target_doc)
 
 	return target_doc
+# new code end(add customer fileds in dict)

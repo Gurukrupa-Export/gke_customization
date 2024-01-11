@@ -4,7 +4,7 @@ import frappe
 def merge_data():
     try:
         sql_query = """
-             SELECT
+            SELECT
                 item.name,
                 bom.name,
                 idf.company,
