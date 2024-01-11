@@ -32,12 +32,12 @@ class UpdateDiamondPriceList(Document):
                     
 
 
-    def validate(self):
-        doc = frappe.get_doc('Update Diamond Price List',self.name).update_diamond_price_list_details_sieve_size_range
-        sort_d = sort_data(self,doc)
-        
+    # def after_save(self):
+    #     doc = frappe.get_doc('Update Diamond Price List',self.name).update_diamond_price_list_details_sieve_size_range
+    #     sorted_data = sort_data(self,doc)
+    #     set_data_in_child_table(self,sorted_data)
+        # print(sort_d)
 
-        return
         # elif self.price_list_type == 'Size (in mm)':
         #     if len(self.update_diamond_price_list_details_size_in_mm) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["size_in_mm"])):
         #         self.set("update_diamond_price_list_details_size_in_mm", [])
@@ -82,7 +82,6 @@ class UpdateDiamondPriceList(Document):
 
 
 def custom_sort(item):
-    print(item.sieve_size_range)
     start, end = map(float, item.sieve_size_range[1:].split('-'))
     return (start, end)
 
@@ -93,6 +92,7 @@ def custom_sort1(item):
 def sort_data(self,output_list):
     if self.price_list_type == 'Sieve Size Range':
         sorted_data = sorted(output_list, key=custom_sort)
+
 
     elif self.price_list_type == 'Size (in mm)':
         sorted_data = sorted(output_list, key=lambda x: x['size_in_mm'])
@@ -115,13 +115,14 @@ def remove_duplicate_data(diamond_price_list):
 def set_data_in_child_table(self,sorted_data):
     for i in sorted_data:
         if self.price_list_type == 'Sieve Size Range':
-            for_sieve_size_range(self,i)
+            rate_details = for_sieve_size_range(self,i)
 
         elif self.price_list_type == 'Size (in mm)':
             for_size_in_mm(self,i)
 
         else:
             for_weight_in_cts(self,i)
+    # sort_data(self,rate_details)
 
 def for_sieve_size_range(self,i):
     rate_filters =  {
@@ -131,7 +132,7 @@ def for_sieve_size_range(self,i):
                 "diamond_quality": self.diamond_quality,
                 "price_list_type": self.price_list_type,
                 "customer": self.customer,
-                "sieve_size_range": i['sieve_size_range'],
+                "sieve_size_range": i.sieve_size_range,
             }
     rate = frappe.db.get_value("Diamond Price List",rate_filters,"rate")
     name = frappe.db.get_value("Diamond Price List",rate_filters,"name")
@@ -139,8 +140,9 @@ def for_sieve_size_range(self,i):
     rate_details.rate_per_carat = rate
     rate_details.diamond_price_list = name
     rate_details.revised_rate = rate
-    rate_details.sieve_size_range = i['sieve_size_range']
-    return
+    rate_details.sieve_size_range = i.sieve_size_range
+    print(rate_details)
+    return rate_details
 
 def for_size_in_mm(self,i):
     rate_filters = {
