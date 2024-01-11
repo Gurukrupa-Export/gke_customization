@@ -554,8 +554,9 @@ def get_zodiac_design_attributs():
     
     # Modify the structure of the list
     modified_data = [{"design_attribute_value_1": item["name"]} for item in design_attributs]
+    new_modified_data = encrypt_json(modified_data)
     
-    return modified_data
+    return new_modified_data
 
 
 # Common function to fetch and sort data
@@ -569,4 +570,69 @@ def fetch_and_sort_data(filter_key, attribute_name):
 @frappe.whitelist()
 def get_category_attribute_values():
     return fetch_and_sort_data("is_category", "item_category")
+
+crypt = {
+    "a": "100",
+    "b": "101",
+    "c": "102",
+    "d": "103",
+    "e": "104",
+    "f": "105",
+    "g": "106",
+    "h": "107",
+    "i": "108",
+    "j": "109",
+    "k": "110",
+    "l": "111",
+    "m": "112",
+    "n": "113",
+    "o": "114",
+    "p": "115",
+    "q": "116",
+    "r": "117",
+    "s": "118",
+    "t": "119",
+    "u": "120",
+    "v": "121",
+    "w": "122",
+    "x": "123",
+    "y": "124",
+    "z": "125",
+    "1": "a",
+    "2": "b",
+    "3": "c",
+    "4": "d",
+    "5": "e",
+    "6": "f",
+    "7": "g",
+    "8": "h",
+    "9": "i",
+}
+
+import json
+# @frappe.whitelist()
+# def encrypt_json(modified_data):
+#     encrypted_data = {"message": []}
+#     for item in modified_data:
+#         encrypted_item = {}
+#         for key, value in item.items():
+#             encrypted_value = "".join(crypt.get(char, char) for char in str(value).lower())
+#             encrypted_item[key] = encrypted_value
+#         encrypted_data["message"].append(encrypted_item)
+#     return encrypted_data["message"]
+
+# Common function to encrypt data
+@frappe.whitelist()
+def encrypt_json(modified_data):
+    encrypted_data = {"message": []}
+
+    for item in modified_data:
+        encrypted_item = {}
+        for key, value in item.items():
+            encrypted_value = "".join(crypt.get(char, char) for char in str(value).lower())
+            encrypted_item[key] = encrypted_value
+
+        encrypted_data["message"].append(encrypted_item)
+    print(encrypted_data["message"])
+    return encrypted_data["message"]
 

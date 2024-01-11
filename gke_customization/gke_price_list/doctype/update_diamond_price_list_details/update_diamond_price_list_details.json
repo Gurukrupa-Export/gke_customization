@@ -1,0 +1,60 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-01-08 13:10:35.505772",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "weight",
+  "rate_per_carat",
+  "revised_rate",
+  "difference",
+  "diamond_price_list"
+ ],
+ "fields": [
+  {
+   "fieldname": "weight",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Weight"
+  },
+  {
+   "fieldname": "rate_per_carat",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Current Rate Per Carat"
+  },
+  {
+   "fieldname": "revised_rate",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "New Rate Per Carat Rate"
+  },
+  {
+   "fieldname": "difference",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Difference(New Rate-Current Rate)"
+  },
+  {
+   "fieldname": "diamond_price_list",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Diamond Price List",
+   "options": "Diamond Price List"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-01-10 12:09:31.417755",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Update Diamond Price List Details",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

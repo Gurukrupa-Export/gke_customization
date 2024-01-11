@@ -225,8 +225,10 @@ def create_item_template_from_order(source_name, target_doc=None):
 			}
 		},target_doc, post_process
 	)
-	max_sequence = frappe.db.get_value("Item", {"item_category_code": "RI"}, ["Max(sequence)"])
-	print(max_sequence)
+	# max_sequence = frappe.db.get_value("Item", {"item_category_code": "MT"}, ["Max(sequence)"])
+	# max_sequence = frappe.db.sql(f"select MAX(CAST(`sequence` as INTEGER)) from tabItem ti where item_category_code = '{doc.item_category_code}' ",as_dict=1)[0]['MAX(CAST(`sequence` as INTEGER))']
+	# print(max_sequence)
+	# frappe.throw('HOLD')
 	
 	doc.save()
 	return doc.name
@@ -469,6 +471,8 @@ def update_item_variant(item_variant,item_template):
 # 	doc.save()
 # 	return doc.name
 
+
+# new code start(add customer fileds in dict)
 @frappe.whitelist()
 def make_quotation(source_name, target_doc=None):
 	
@@ -502,7 +506,6 @@ def make_quotation(source_name, target_doc=None):
 		}
 		for target_field, source_field in field_map.items():
 			quotation.set(target_field,source.get(source_field))
-
 		service_types = frappe.db.get_values("Service Type 2", {"parent": source.name},"service_type1")
 		for service_type in service_types:
 			quotation.append("service_type",{"service_type1": service_type[0]})
@@ -534,10 +537,16 @@ def make_quotation(source_name, target_doc=None):
 		"order_form_id": order.get("name"),
 		"salesman_name": order.get("salesman_name"),
 		"order_form_date": order.get("order_date"),
-		"po_no": order.get("po_no")
+		"custom_customer_sample": order.get("customer_sample"),
+		"custom_customer_voucher_no": order.get("customer_voucher_no"),
+		"custom_customer_gold": order.get("customer_gold"),
+		"custom_customer_diamond": order.get("customer_diamond"),
+		"custom_customer_stone": order.get("customer_stone"),
+		"custom_customer_good": order.get("customer_good"),
+		"po_no": order.get("po_no"),
 	})
 	set_missing_values(order, target_doc)
 
 	return target_doc
-
+# new code end(add customer fileds in dict)
 

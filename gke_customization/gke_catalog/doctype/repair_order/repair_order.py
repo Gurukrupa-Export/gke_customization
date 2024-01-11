@@ -46,7 +46,7 @@ def make_quotation(source_name, target_doc=None):
 			quotation.set(target_field,source.get(source_field))
 		service_types = frappe.db.get_values("Service Type 2", {"parent": source.name},"service_type1")
 		for service_type in service_types:
-			quotation.append("service_type",{"service_type1": service_type})
+			quotation.append("service_type",{"service_type1": service_type[0]})
 
 	if isinstance(target_doc, str):
 		target_doc = json.loads(target_doc)
@@ -71,7 +71,7 @@ def make_quotation(source_name, target_doc=None):
 		"item_subcategory": snd_order.get("subcategory"),
 		"setting_type": snd_order.get("setting_type"),
 		"delivery_date": snd_order.get("delivery_date"),
-		"order_form_type": "Serial No and Design Code Order",
+		"order_form_type": "Repair Order",
 		"order_form_id": snd_order.get("name"),
 		"salesman_name": snd_order.get("salesman_name"),
 		"order_form_date": snd_order.get("order_date"),
