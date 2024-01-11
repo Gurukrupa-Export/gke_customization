@@ -75,7 +75,12 @@ def make_quotation(source_name, target_doc=None):
 		"order_form_id": snd_order.get("name"),
 		"salesman_name": snd_order.get("salesman_name"),
 		"order_form_date": snd_order.get("order_date"),
-		"po_no": snd_order.get("po_no")
+		"po_no": snd_order.get("customer_sample"),
+		"po_no": snd_order.get("customer_sample_voucher_no"),
+		"po_no": snd_order.get("customer_gold"),
+		"po_no": snd_order.get("customer_diamond"),
+		"po_no": snd_order.get("customer_stone"),
+		"po_no": snd_order.get("po_no"),
 	})
 	set_missing_values(snd_order, target_doc)
 
