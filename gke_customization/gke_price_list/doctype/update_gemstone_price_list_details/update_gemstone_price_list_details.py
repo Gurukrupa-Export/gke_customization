@@ -4,5 +4,5 @@
 # import frappe
 from frappe.model.document import Document
 
-class UpdateDiamondPriceListDetails(Document):
+class UpdateGemstonePriceListDetails(Document):
 	pass

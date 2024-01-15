@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestUpdateDiamondPriceList(FrappeTestCase):
+class TestUpdateMakingChargePrice(FrappeTestCase):
 	pass

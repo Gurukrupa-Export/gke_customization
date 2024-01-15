@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "format:UDP/{####}",
- "creation": "2024-01-08 12:39:30.928388",
+ "creation": "2024-01-13 17:07:13.880828",
  "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
@@ -21,7 +21,8 @@
   "section_break_e8pkr",
   "update_diamond_price_list_details_sieve_size_range",
   "section_break_8rxm5",
-  "update_diamond_price_list_details_size_in_mm"
+  "update_diamond_price_list_details_size_in_mm",
+  "amended_from"
  ],
  "fields": [
   {
@@ -82,15 +83,15 @@
    "options": "Update Diamond Price List Details"
   },
   {
+   "depends_on": "eval:doc.price_list_type=='Sieve Size Range'",
+   "fieldname": "section_break_e8pkr",
+   "fieldtype": "Section Break"
+  },
+  {
    "fieldname": "update_diamond_price_list_details_sieve_size_range",
    "fieldtype": "Table",
    "label": "Update Diamond Price List Details Sieve Size Range",
    "options": "Update Diamond Price List Details Sieve Size Range"
-  },
-  {
-   "depends_on": "eval:doc.price_list_type=='Sieve Size Range'",
-   "fieldname": "section_break_e8pkr",
-   "fieldtype": "Section Break"
   },
   {
    "depends_on": "eval:doc.price_list_type=='Size (in mm)'",
@@ -102,14 +103,25 @@
    "fieldtype": "Table",
    "label": "Update Diamond Price List Details Size in MM",
    "options": "Update Diamond Price List Details Size in MM"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Update Diamond Price  List",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2024-01-10 11:18:13.459453",
+ "modified": "2024-01-13 17:07:13.880828",
  "modified_by": "Administrator",
  "module": "Gke Price List",
- "name": "Update Diamond Price List",
+ "name": "Update Diamond Price  List",
  "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
