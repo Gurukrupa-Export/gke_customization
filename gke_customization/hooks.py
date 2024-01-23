@@ -239,6 +239,6 @@ app_include_js = [
 fixtures = [
     {
 		"dt": "Custom Field", 
-		"filters": [["module", "=", "GKE Order Forms"]]
+		"filters": [["module", "in", ["GKE Order Forms", "GKE Catalog"]]]
 	},
 ]
