@@ -674,7 +674,6 @@
   },
   {
    "default": "No",
-   "fetch_from": "bom.customer_sample",
    "fetch_if_empty": 1,
    "fieldname": "customer_sample",
    "fieldtype": "Link",
@@ -698,7 +697,7 @@
    "fieldname": "customer_gold",
    "fieldtype": "Select",
    "label": "Customer Gold",
-   "options": "\nNo\nYes"
+   "options": "Yes"
   },
   {
    "fieldname": "column_break_orxpd",
@@ -708,7 +707,7 @@
    "fieldname": "customer_diamond",
    "fieldtype": "Select",
    "label": "Customer Diamond ",
-   "options": "\nNo\nYes"
+   "options": "\nYes\nNo"
   },
   {
    "fieldname": "column_break_l45o3",
@@ -718,7 +717,7 @@
    "fieldname": "customer_stone",
    "fieldtype": "Select",
    "label": "Customer Stone",
-   "options": "\nNo\nYes"
+   "options": "\nYes\nNo"
   },
   {
    "fieldname": "section_break_ydvby",
@@ -835,7 +834,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2023-12-13 16:33:50.583331",
+ "modified": "2024-01-24 10:22:14.950833",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form Detail",
