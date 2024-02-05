@@ -1,0 +1,144 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:UDP/{####}",
+ "creation": "2024-01-13 17:07:13.880828",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "date",
+  "customer",
+  "price_list",
+  "price_list_type",
+  "column_break_ha7fp",
+  "diamond_type",
+  "stone_shape",
+  "diamond_quality",
+  "section_break_sey1h",
+  "update_diamond_price_list_details",
+  "section_break_e8pkr",
+  "update_diamond_price_list_details_sieve_size_range",
+  "section_break_8rxm5",
+  "update_diamond_price_list_details_size_in_mm",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "price_list",
+   "fieldtype": "Link",
+   "label": "Price List",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "price_list_type",
+   "fieldtype": "Select",
+   "label": "Price List Type",
+   "options": "Sieve Size Range\nWeight (in cts)\nSize (in mm)"
+  },
+  {
+   "fieldname": "column_break_ha7fp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "diamond_type",
+   "fieldtype": "Link",
+   "label": "Diamond Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "stone_shape",
+   "fieldtype": "Link",
+   "label": "Stone Shape",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "diamond_quality",
+   "fieldtype": "Link",
+   "label": "Diamond Quality",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.price_list_type=='Weight (in cts)'",
+   "fieldname": "section_break_sey1h",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "update_diamond_price_list_details",
+   "fieldtype": "Table",
+   "label": "Update Diamond Price List Details",
+   "options": "Update Diamond Price List Details"
+  },
+  {
+   "depends_on": "eval:doc.price_list_type=='Sieve Size Range'",
+   "fieldname": "section_break_e8pkr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "update_diamond_price_list_details_sieve_size_range",
+   "fieldtype": "Table",
+   "label": "Update Diamond Price List Details Sieve Size Range",
+   "options": "Update Diamond Price List Details Sieve Size Range"
+  },
+  {
+   "depends_on": "eval:doc.price_list_type=='Size (in mm)'",
+   "fieldname": "section_break_8rxm5",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "update_diamond_price_list_details_size_in_mm",
+   "fieldtype": "Table",
+   "label": "Update Diamond Price List Details Size in MM",
+   "options": "Update Diamond Price List Details Size in MM"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Update Diamond Price  List",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2024-01-13 17:07:13.880828",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Update Diamond Price  List",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

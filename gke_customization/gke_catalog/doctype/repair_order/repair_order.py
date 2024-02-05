@@ -10,7 +10,7 @@ class RepairOrder(Document):
 	pass
 
 
-
+# new code start(add customer fileds in dict)
 @frappe.whitelist()
 def make_quotation(source_name, target_doc=None):
 	
@@ -46,7 +46,7 @@ def make_quotation(source_name, target_doc=None):
 			quotation.set(target_field,source.get(source_field))
 		service_types = frappe.db.get_values("Service Type 2", {"parent": source.name},"service_type1")
 		for service_type in service_types:
-			quotation.append("service_type",{"service_type1": service_type})
+			quotation.append("service_type",{"service_type1": service_type[0]})
 
 	if isinstance(target_doc, str):
 		target_doc = json.loads(target_doc)
@@ -71,12 +71,19 @@ def make_quotation(source_name, target_doc=None):
 		"item_subcategory": snd_order.get("subcategory"),
 		"setting_type": snd_order.get("setting_type"),
 		"delivery_date": snd_order.get("delivery_date"),
-		"order_form_type": "Serial No and Design Code Order",
+		"order_form_type": "Repair Order",
 		"order_form_id": snd_order.get("name"),
 		"salesman_name": snd_order.get("salesman_name"),
 		"order_form_date": snd_order.get("order_date"),
-		"po_no": snd_order.get("po_no")
+		"custom_customer_sample": snd_order.get("customer_sample"),
+		"custom_customer_voucher_no": snd_order.get("customer_sample_voucher_no"),
+		"custom_customer_gold": snd_order.get("customer_gold"),
+		"custom_customer_diamond": snd_order.get("customer_diamond"),
+		"custom_customer_stone": snd_order.get("customer_stone"),
+		"custom_customer_good": snd_order.get("customer_good"),
+		"po_no": snd_order.get("po_no"),
 	})
 	set_missing_values(snd_order, target_doc)
 
 	return target_doc
+# new code end(add customer fileds in dict)

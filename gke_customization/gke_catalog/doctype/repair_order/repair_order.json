@@ -125,6 +125,8 @@
   "customer_diamond",
   "column_break_ba8xk",
   "customer_stone",
+  "column_break_pasns",
+  "customer_good",
   "section_break_7mtqn",
   "certificate_place",
   "column_break_29",
@@ -920,7 +922,6 @@
    "fetch_from": "serial_and_design_code_order_form_detail.customer_sample_voucher_no",
    "fieldname": "customer_sample_voucher_no",
    "fieldtype": "Data",
-   "hidden": 1,
    "label": "Customer Sample Voucher No",
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
@@ -1087,13 +1088,24 @@
    "options": "Repair Order",
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "column_break_pasns",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.customer_good",
+   "fieldname": "customer_good",
+   "fieldtype": "Link",
+   "label": "Customer Good",
+   "options": "Attribute Value"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2023-12-28 17:56:46.291044",
+ "modified": "2024-01-11 11:20:08.950661",
  "modified_by": "Administrator",
  "module": "GKE Catalog",
  "name": "Repair Order",

@@ -43,10 +43,6 @@ def create_exhibition(user_data, selected_items):
             item_selection = exhibition.append('item_selection', {
                 'item_no': item.get('no'),
                 # 'category': item.get('category'),
-                # 'diamond_weight': item.get('diamond_weight'),
-                # 'gold_pure_weight': item.get('gold_pure_weight'),
-                # 'gross_weight': item.get('gross_weight'),
-                # 'other_weight': item.get('other_weight'),
             })
 
         exhibition.save()

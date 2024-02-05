@@ -54,15 +54,12 @@ def get_exporter_address(exporter):
 	for add in adress_name:
 		if 'Shipping' in add['parent']:
 			city = frappe.db.get_value('Address',{'name':add['parent']},'city')
-			gstin = frappe.db.get_value('Address',{'name':add['parent']},'gstin')
-			pan = frappe.db.get_value('Address',{'name':add['parent']},'custom_pan')
-			iec_no = frappe.db.get_value('Address',{'name':add['parent']},'custom_iec_no')
 			
 			address_list = frappe.db.get_value('Address',{'name':add['parent']},['address_line1','address_line2','city','state','pincode','country'])
 			new_address_list = [str(0) if element is None else element for element in address_list]
 			address = ', '.join(new_address_list).replace(' 0,','')
 			
-			return address,city,gstin,pan,iec_no
+			return address,city
 		
 @frappe.whitelist()		
 def get_exporter_bank(exporter):
