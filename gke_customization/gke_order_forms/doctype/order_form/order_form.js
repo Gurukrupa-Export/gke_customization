@@ -26,7 +26,7 @@ frappe.ui.form.on('Order Form', {
 		var parent_fields = [['diamond_quality', 'Diamond Quality']];
 		set_filters_on_parent_table_fields(frm, parent_fields);
 
-		var fields = [['category', 'Item Category'],
+		var fields = [['category', 'new Item subcategory1'],
 		['subcategory', 'Item Subcategory'],
 		['setting_type', 'Setting Type'],
 		['metal_type', 'Metal Type'],

@@ -85,6 +85,8 @@
   "customer_diamond",
   "column_break_wpayv",
   "customer_stone",
+  "column_break_8n7ah",
+  "customer_good",
   "section_break_egepx",
   "gemstone_type1",
   "section_break_u1a6w",
@@ -805,12 +807,22 @@
    "fieldname": "remarks",
    "fieldtype": "Text",
    "label": "Order Remarks"
+  },
+  {
+   "fieldname": "column_break_8n7ah",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer_good",
+   "fieldtype": "Link",
+   "label": "Customer Good",
+   "options": "Attribute Value"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2023-12-13 13:08:18.686000",
+ "modified": "2024-01-11 11:19:00.737804",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order Form Detail",

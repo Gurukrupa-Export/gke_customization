@@ -14,9 +14,6 @@ frappe.ui.form.on('Custom Office Invoice', {
 					frm.set_value('address',r.message[0])
 					frm.set_value('place_of_receipt_by_pre_carrier',r.message[1])
 					frm.set_value('port_of_loading',r.message[1])
-					frm.set_value('gstn',r.message[2])
-					frm.set_value('pan_no',r.message[3])
-					frm.set_value('iec_code',r.message[4])
 				}
 			}
 		});
