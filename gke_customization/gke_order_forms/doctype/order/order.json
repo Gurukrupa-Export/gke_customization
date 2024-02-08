@@ -123,23 +123,15 @@
   "column_break_k6wnf",
   "customer_good",
   "section_break_vfurz",
-  "navratna",
   "section_break_oykzd",
   "gemstone_type1",
   "column_break_gnclg",
-  "gemstone_type2",
   "column_break_bnncs",
-  "gemstone_type3",
   "column_break_rd84a",
-  "gemstone_type4",
   "section_break_j5lf7",
-  "gemstone_type5",
   "column_break_uoaks",
-  "gemstone_type6",
   "column_break_zzgem",
-  "gemstone_type7",
   "column_break_pxowt",
-  "gemstone_type8",
   "section_break_xbmnv",
   "design_image_1",
   "image_preview_1",
@@ -167,7 +159,20 @@
   "column_break_ggjel",
   "new_bom",
   "design_attribute_tab",
-  "design_attributes",
+  "age_group",
+  "alphabetnumber",
+  "animalbirds",
+  "collection",
+  "design_style",
+  "gender",
+  "lines_rows",
+  "column_break_gwtw",
+  "language",
+  "occasion",
+  "design_rhodium",
+  "shapes",
+  "religious",
+  "zodiac",
   "territories_tab",
   "india",
   "india_states",
@@ -369,7 +374,7 @@
    "fieldname": "design_type",
    "fieldtype": "Select",
    "label": "Design Type",
-   "options": "New Design\nMod\nFusion\nSimilar\nSketch Design",
+   "options": "Sketch Design\nMod\nNew Design",
    "read_only": 1
   },
   {
@@ -963,7 +968,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "cad_order_form_detail.stock_entry",
    "fieldname": "customer_good",
    "fieldtype": "Link",
    "label": "Customer Good",
@@ -973,13 +977,6 @@
   {
    "fieldname": "section_break_vfurz",
    "fieldtype": "Section Break"
-  },
-  {
-   "default": "0",
-   "fetch_from": "cad_order_form_detail.navratna",
-   "fieldname": "navratna",
-   "fieldtype": "Check",
-   "label": "Navratna"
   },
   {
    "fieldname": "section_break_oykzd",
@@ -997,78 +994,28 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "cad_order_form_detail.gemstone_type2",
-   "fieldname": "gemstone_type2",
-   "fieldtype": "Link",
-   "label": "Gemstone Type2",
-   "options": "Attribute Value",
-   "read_only": 1
-  },
-  {
    "fieldname": "column_break_bnncs",
    "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "cad_order_form_detail.gemstone_type3",
-   "fieldname": "gemstone_type3",
-   "fieldtype": "Link",
-   "label": "Gemstone Type3",
-   "options": "Attribute Value"
   },
   {
    "fieldname": "column_break_rd84a",
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "cad_order_form_detail.gemstone_type4",
-   "fieldname": "gemstone_type4",
-   "fieldtype": "Link",
-   "label": "Gemstone Type4",
-   "options": "Attribute Value"
-  },
-  {
    "fieldname": "section_break_j5lf7",
    "fieldtype": "Section Break"
-  },
-  {
-   "fetch_from": "cad_order_form_detail.gemstone_type5",
-   "fieldname": "gemstone_type5",
-   "fieldtype": "Link",
-   "label": "Gemstone Type5",
-   "options": "Attribute Value"
   },
   {
    "fieldname": "column_break_uoaks",
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "cad_order_form_detail.gemstone_type6",
-   "fieldname": "gemstone_type6",
-   "fieldtype": "Link",
-   "label": "Gemstone Type6",
-   "options": "Attribute Value"
-  },
-  {
    "fieldname": "column_break_zzgem",
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "cad_order_form_detail.gemstone_type7",
-   "fieldname": "gemstone_type7",
-   "fieldtype": "Link",
-   "label": "Gemstone Type7",
-   "options": "Attribute Value"
-  },
-  {
    "fieldname": "column_break_pxowt",
    "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "cad_order_form_detail.gemstone_type8",
-   "fieldname": "gemstone_type8",
-   "fieldtype": "Link",
-   "label": "Gemstone Type8",
-   "options": "Attribute Value"
   },
   {
    "fieldname": "section_break_xbmnv",
@@ -1226,12 +1173,6 @@
    "label": "Design Attribute"
   },
   {
-   "fieldname": "design_attributes",
-   "fieldtype": "Table",
-   "label": "Design Attributes",
-   "options": "Design Attributes"
-  },
-  {
    "fieldname": "territories_tab",
    "fieldtype": "Tab Break",
    "label": "Territories"
@@ -1253,6 +1194,88 @@
    "fieldname": "usa",
    "fieldtype": "Check",
    "label": "USA"
+  },
+  {
+   "fieldname": "age_group",
+   "fieldtype": "Table MultiSelect",
+   "label": "Age Group",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "alphabetnumber",
+   "fieldtype": "Table MultiSelect",
+   "label": "Alphabet/Number",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "animalbirds",
+   "fieldtype": "Table MultiSelect",
+   "label": "Animal/Birds",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "collection",
+   "fieldtype": "Table MultiSelect",
+   "label": "Collection",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "design_style",
+   "fieldtype": "Table MultiSelect",
+   "label": "Design Style",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "gender",
+   "fieldtype": "Table MultiSelect",
+   "label": "Gender",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "lines_rows",
+   "fieldtype": "Table MultiSelect",
+   "label": "Lines & Rows",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "column_break_gwtw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "language",
+   "fieldtype": "Table MultiSelect",
+   "label": "Language",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "occasion",
+   "fieldtype": "Table MultiSelect",
+   "label": "Occasion",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "design_rhodium",
+   "fieldtype": "Table MultiSelect",
+   "label": "Rhodium",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "shapes",
+   "fieldtype": "Table MultiSelect",
+   "label": "Shapes",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "religious",
+   "fieldtype": "Table MultiSelect",
+   "label": "Religious",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "zodiac",
+   "fieldtype": "Table MultiSelect",
+   "label": "Zodiac",
+   "options": "Design Attribute - Multiselect"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1263,7 +1286,7 @@
    "link_fieldname": "custom_cad_order_id"
   }
  ],
- "modified": "2023-12-21 11:34:58.862391",
+ "modified": "2024-02-08 17:27:45.418034",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",

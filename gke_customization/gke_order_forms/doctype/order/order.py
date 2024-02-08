@@ -206,6 +206,8 @@ def create_item_template_from_order(source_name, target_doc=None):
 		target.has_variants = 1
 		if source.designer_assignment:
 			target.designer = source.designer_assignment[0].designer
+		target.item_group = source.subcategory + " - T",
+
 	doc = get_mapped_doc(
 		"Order",
 		source_name.name,
@@ -236,6 +238,7 @@ def create_item_template_from_order(source_name, target_doc=None):
 def create_variant_of_template_from_order(item_template,source_name, target_doc=None):
 	def post_process(source, target):
 		target.order_form_type = 'Order'
+		target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V",
 		target.custom_cad_order_id = source_name
 		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
 		target.item_code = f'{item_template}-001'
@@ -266,6 +269,7 @@ def create_variant_of_template_from_order(item_template,source_name, target_doc=
 				"field_map": {
 					"category": "item_category",
 					"subcategory": "item_subcategory",
+					# "item_group": source_name.subcategory + " - V",
 					"setting_type": "setting_type",
 					"design_attributes":"design_attribute",
 					"india":"india",
