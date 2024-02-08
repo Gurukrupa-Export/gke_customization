@@ -164,7 +164,7 @@
    "fieldname": "design_type",
    "fieldtype": "Select",
    "label": "Design Type",
-   "options": "\nSketch Design\nMod\nNew Design"
+   "options": "\nNew Design\nMod\nFusion\nSimilar\nSketch Design"
   },
   {
    "depends_on": "eval:((doc.design_type==\"Mod\"))",
@@ -208,8 +208,7 @@
   },
   {
    "fieldname": "section_break_8",
-   "fieldtype": "Section Break",
-   "hidden": 1
+   "fieldtype": "Section Break"
   },
   {
    "depends_on": "eval:((doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
@@ -675,6 +674,7 @@
   },
   {
    "default": "No",
+   "fetch_from": "bom.customer_sample",
    "fetch_if_empty": 1,
    "fieldname": "customer_sample",
    "fieldtype": "Link",
@@ -698,7 +698,7 @@
    "fieldname": "customer_gold",
    "fieldtype": "Select",
    "label": "Customer Gold",
-   "options": "\nYes\nNo"
+   "options": "\nNo\nYes"
   },
   {
    "fieldname": "column_break_orxpd",
@@ -708,7 +708,7 @@
    "fieldname": "customer_diamond",
    "fieldtype": "Select",
    "label": "Customer Diamond ",
-   "options": "\nYes\nNo"
+   "options": "\nNo\nYes"
   },
   {
    "fieldname": "column_break_l45o3",
@@ -718,7 +718,7 @@
    "fieldname": "customer_stone",
    "fieldtype": "Select",
    "label": "Customer Stone",
-   "options": "\nYes\nNo"
+   "options": "\nNo\nYes"
   },
   {
    "fieldname": "section_break_ydvby",
@@ -835,7 +835,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-02-08 17:07:42.257610",
+ "modified": "2024-02-05 17:03:12.101318",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form Detail",
