@@ -241,4 +241,8 @@ fixtures = [
 		"dt": "Custom Field", 
 		"filters": [["module", "in", ["GKE Order Forms", "GKE Catalog"]]]
 	},
+    {
+		"dt": "DocType", 
+		"filters": [["module", "in", ["GKE Order Forms", "GKE Catalog"]], ['custom', "=", 1]]
+	},
 ]

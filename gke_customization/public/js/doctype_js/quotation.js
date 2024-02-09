@@ -4,7 +4,7 @@ frappe.ui.form.on('Quotation', {
             erpnext.utils.map_current_doc({
               method: "gke_customization.gke_order_forms.doctype.order.order.make_quotation",
               source_doctype: "Order",
-              target: me.frm,
+              target: frm,
               setters: [
                 {
                   label: "Order Form",
@@ -42,7 +42,7 @@ frappe.ui.form.on('Quotation', {
             erpnext.utils.map_current_doc({
               method: "gke_customization.gke_catalog.doctype.repair_order.repair_order.make_quotation",
               source_doctype: "Repair Order",
-              target: me.frm,
+              target: frm,
               setters: [
                 {
                   label: "Repair Order Form",
