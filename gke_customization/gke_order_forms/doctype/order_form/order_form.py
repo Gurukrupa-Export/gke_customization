@@ -86,7 +86,21 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	doc.india = parent_doc.india
 	doc.usa = parent_doc.usa
 	doc.india_states = parent_doc.india_states
-	doc.design_attributes = parent_doc.design_attributes
+
+	doc.age_group = parent_doc.age_group
+	doc.alphabetnumber = parent_doc.alphabetnumber
+	doc.animalbirds = parent_doc.animalbirds
+	doc.collection = parent_doc.collection
+	doc.design_style = parent_doc.design_style
+	doc.gender = parent_doc.gender
+	doc.lines_rows = parent_doc.lines_rows
+	doc.language = parent_doc.language
+	doc.occasion = parent_doc.occasion
+	doc.religious = parent_doc.religious
+	doc.shapes = parent_doc.shapes
+	doc.zodiac = parent_doc.zodiac
+	doc.rhodium = parent_doc.rhodium
+
 	doc.item_type = item_type
 	doc.bom_or_cad = bom_or_cad
 	

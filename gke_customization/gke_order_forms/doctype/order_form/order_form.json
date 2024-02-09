@@ -31,7 +31,20 @@
   "section_break_24",
   "remarks",
   "design_attribute_tab",
-  "design_attributes",
+  "age_group",
+  "alphabetnumber",
+  "animalbirds",
+  "collection",
+  "design_style",
+  "gender",
+  "lines_rows",
+  "column_break_yqvk",
+  "language",
+  "occasion",
+  "rhodium",
+  "religious",
+  "shapes",
+  "zodiac",
   "territories_tab",
   "india",
   "india_states",
@@ -194,13 +207,6 @@
    "label": "Design Attribute"
   },
   {
-   "fieldname": "design_attributes",
-   "fieldtype": "Table",
-   "label": "Design Attributes",
-   "options": "Design Attributes",
-   "reqd": 1
-  },
-  {
    "fieldname": "territories_tab",
    "fieldtype": "Tab Break",
    "label": "Territories"
@@ -232,6 +238,93 @@
    "fieldtype": "Select",
    "label": "States",
    "options": "\nUSA"
+  },
+  {
+   "fieldname": "column_break_yqvk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gender",
+   "fieldtype": "Table MultiSelect",
+   "label": "Gender",
+   "options": "Design Attribute - Multiselect",
+   "reqd": 1
+  },
+  {
+   "fieldname": "alphabetnumber",
+   "fieldtype": "Table MultiSelect",
+   "label": "Alphabet/Number",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "animalbirds",
+   "fieldtype": "Table MultiSelect",
+   "label": "Animal/Birds",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "collection",
+   "fieldtype": "Table MultiSelect",
+   "label": "Collection",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "design_style",
+   "fieldtype": "Table MultiSelect",
+   "label": "Design Style",
+   "options": "Design Attribute - Multiselect",
+   "reqd": 1
+  },
+  {
+   "fieldname": "lines_rows",
+   "fieldtype": "Table MultiSelect",
+   "label": "Lines & Rows",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "language",
+   "fieldtype": "Table MultiSelect",
+   "label": "Language",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "occasion",
+   "fieldtype": "Table MultiSelect",
+   "label": "Occasion",
+   "options": "Design Attribute - Multiselect",
+   "reqd": 1
+  },
+  {
+   "fieldname": "rhodium",
+   "fieldtype": "Table MultiSelect",
+   "label": "Rhodium",
+   "options": "Design Attribute - Multiselect",
+   "reqd": 1
+  },
+  {
+   "fieldname": "shapes",
+   "fieldtype": "Table MultiSelect",
+   "label": "Shapes",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "religious",
+   "fieldtype": "Table MultiSelect",
+   "label": "Religious",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "zodiac",
+   "fieldtype": "Table MultiSelect",
+   "label": "Zodiac",
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "age_group",
+   "fieldtype": "Table MultiSelect",
+   "label": "Age Group",
+   "options": "Design Attribute - Multiselect",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -250,7 +343,7 @@
    "link_fieldname": "custom_cad_order_form_id"
   }
  ],
- "modified": "2024-01-03 12:50:02.452651",
+ "modified": "2024-02-09 10:21:21.768220",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form",
