@@ -631,7 +631,6 @@
             "read_only": 1
         },
         {
-            "fetch_from": "sketch_order_form.delivery_days",
             "fieldname": "due_days",
             "fieldtype": "Int",
             "label": "Due Days",
@@ -643,7 +642,6 @@
             "label": "Territories"
         },
         {
-            "fetch_from": "sketch_order_form.delivery_days",
             "fieldname": "delivery_days",
             "fieldtype": "Data",
             "label": "Delivery Days",
