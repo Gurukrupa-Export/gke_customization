@@ -272,8 +272,7 @@
    "fieldname": "design_style",
    "fieldtype": "Table MultiSelect",
    "label": "Design Style",
-   "options": "Design Attribute - Multiselect",
-   "reqd": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "lines_rows",
@@ -291,15 +290,13 @@
    "fieldname": "occasion",
    "fieldtype": "Table MultiSelect",
    "label": "Occasion",
-   "options": "Design Attribute - Multiselect",
-   "reqd": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "rhodium",
    "fieldtype": "Table MultiSelect",
    "label": "Rhodium",
-   "options": "Design Attribute - Multiselect",
-   "reqd": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "shapes",
@@ -343,7 +340,7 @@
    "link_fieldname": "custom_cad_order_form_id"
   }
  ],
- "modified": "2024-02-09 10:21:21.768220",
+ "modified": "2024-02-08 17:33:03.857792",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form",

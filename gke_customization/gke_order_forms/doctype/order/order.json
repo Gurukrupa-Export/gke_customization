@@ -73,9 +73,11 @@
   "section_break_45",
   "stone_changeable",
   "column_break_37",
-  "feature",
+  "screw_type",
+  "hook_type",
   "column_break_40",
   "lock_type",
+  "kadi_type",
   "section_break_43",
   "back_chain",
   "back_chain_size",
@@ -89,7 +91,7 @@
   "back_belt_patti",
   "vanki_type",
   "total_length",
-  "rhodium_",
+  "rhodium",
   "gemstone_quality",
   "column_break_56",
   "chain",
@@ -109,7 +111,27 @@
   "nakshi_from",
   "nakshi_weight",
   "section_break_6pxwc",
+  "customer_sample",
+  "column_break_hzu6j",
+  "customer_voucher_no",
+  "column_break_8fcyf",
+  "customer_gold",
+  "column_break_g9i4z",
+  "customer_diamond",
+  "column_break_rhjnl",
+  "customer_stone",
+  "column_break_k6wnf",
+  "customer_good",
+  "section_break_vfurz",
+  "section_break_oykzd",
   "gemstone_type1",
+  "column_break_gnclg",
+  "column_break_bnncs",
+  "column_break_rd84a",
+  "section_break_j5lf7",
+  "column_break_uoaks",
+  "column_break_zzgem",
+  "column_break_pxowt",
   "section_break_xbmnv",
   "design_image_1",
   "image_preview_1",
@@ -147,15 +169,14 @@
   "column_break_gwtw",
   "language",
   "occasion",
-  "rhodium",
+  "design_rhodium",
   "shapes",
   "religious",
   "zodiac",
   "territories_tab",
   "india",
   "india_states",
-  "usa",
-  "usa_states"
+  "usa"
  ],
  "fields": [
   {
@@ -170,23 +191,20 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "BOM or CAD",
-   "options": "\nBOM\nCAD",
-   "read_only": 1
+   "options": "\nBOM\nCAD"
   },
   {
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
-   "options": "Company",
-   "read_only": 1
+   "options": "Company"
   },
   {
    "fetch_from": "cad_order_form.department",
    "fieldname": "department",
    "fieldtype": "Link",
    "label": "Department",
-   "options": "Department",
-   "read_only": 1
+   "options": "Department"
   },
   {
    "fieldname": "column_break_etz53",
@@ -386,8 +404,7 @@
    "fieldname": "design_id",
    "fieldtype": "Link",
    "label": "Design ID",
-   "options": "Item",
-   "read_only": 1
+   "options": "Item"
   },
   {
    "depends_on": "eval:doc.design_type == \"Mod\"",
@@ -627,12 +644,27 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Stone Changeable",
-   "options": "Attribute Value",
-   "read_only": 1
+   "options": "Attribute Value"
   },
   {
    "fieldname": "column_break_37",
    "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.screw_type",
+   "fieldname": "screw_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Screw Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.hook_type",
+   "fieldname": "hook_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Hook Type",
+   "options": "Attribute Value"
   },
   {
    "fieldname": "column_break_40",
@@ -644,8 +676,14 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Lock Type",
-   "options": "Attribute Value",
-   "read_only": 1
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.kadi_type",
+   "fieldname": "kadi_type",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Kadi Type"
   },
   {
    "fieldname": "section_break_43",
@@ -657,16 +695,14 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Back Chain",
-   "options": "Attribute Value",
-   "read_only": 1
+   "options": "Attribute Value"
   },
   {
    "fetch_from": "cad_order_form_detail.back_chain_size",
    "fieldname": "back_chain_size",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Back Chain Size",
-   "read_only": 1
+   "label": "Back Chain Size"
   },
   {
    "fetch_from": "cad_order_form_detail.back_belt",
@@ -674,40 +710,35 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Back Belt",
-   "options": "Attribute Value",
-   "read_only": 1
+   "options": "Attribute Value"
   },
   {
    "fetch_from": "cad_order_form_detail.back_belt_length",
    "fieldname": "back_belt_length",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Back Belt Length",
-   "read_only": 1
+   "label": "Back Belt Length"
   },
   {
    "fetch_from": "cad_order_form_detail.black_beed",
    "fieldname": "black_beed",
    "fieldtype": "Data",
    "hidden": 1,
-   "label": "Black Beed",
-   "read_only": 1
+   "label": "Black Beed"
   },
   {
    "fetch_from": "cad_order_form_detail.black_beed_line",
    "fieldname": "black_beed_line",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Black Beed Line",
-   "read_only": 1
+   "label": "Black Beed Line"
   },
   {
    "fetch_from": "cad_order_form_detail.back_side_size",
    "fieldname": "back_side_size",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Back Side Size",
-   "read_only": 1
+   "label": "Back Side Size"
   },
   {
    "fieldname": "column_break_49",
@@ -725,16 +756,14 @@
    "fieldname": "back_belt_patti",
    "fieldtype": "Data",
    "hidden": 1,
-   "label": "Back Belt Patti",
-   "read_only": 1
+   "label": "Back Belt Patti"
   },
   {
    "fetch_from": "cad_order_form_detail.vanki_type",
    "fieldname": "vanki_type",
    "fieldtype": "Data",
    "hidden": 1,
-   "label": "Vanki Type",
-   "read_only": 1
+   "label": "Vanki Type"
   },
   {
    "fetch_from": "cad_order_form_detail.total_length",
@@ -744,12 +773,12 @@
    "label": "Total Length"
   },
   {
+   "fetch_from": "amended_from.rhodium",
    "fieldname": "rhodium",
-   "fieldtype": "Table MultiSelect",
+   "fieldtype": "Select",
+   "hidden": 1,
    "label": "Rhodium",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1,
-   "reqd": 1
+   "options": "\nYes\nNo"
   },
   {
    "fetch_from": "cad_order_form_detail.gemstone_quality",
@@ -769,8 +798,7 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Chain",
-   "options": "Attribute Value",
-   "read_only": 1
+   "options": "Attribute Value"
   },
   {
    "fetch_from": "cad_order_form_detail.chain_type",
@@ -778,8 +806,7 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Chain Type",
-   "options": "Attribute Value",
-   "read_only": 1
+   "options": "Attribute Value"
   },
   {
    "fetch_from": "cad_order_form_detail.customer_chain",
@@ -787,31 +814,27 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Chain From",
-   "options": "Attribute Value",
-   "read_only": 1
+   "options": "Attribute Value"
   },
   {
    "fetch_from": "cad_order_form_detail.chain_weight",
    "fieldname": "chain_weight",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Chain Weight",
-   "read_only": 1
+   "label": "Chain Weight"
   },
   {
    "fieldname": "chain_thickness",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Chain Thickness",
-   "read_only": 1
+   "label": "Chain Thickness"
   },
   {
    "fetch_from": "cad_order_form_detail.chain_length",
    "fieldname": "chain_length",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Chain Length",
-   "read_only": 1
+   "label": "Chain Length"
   },
   {
    "fieldname": "section_break_63",
@@ -822,32 +845,28 @@
    "fieldname": "total_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Number Of Ant",
-   "read_only": 1
+   "label": "Number Of Ant"
   },
   {
    "fetch_from": "cad_order_form_detail.kadi_to_mugappu",
    "fieldname": "kadi_to_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Kadi to Mugappu",
-   "read_only": 1
+   "label": "Kadi to Mugappu"
   },
   {
    "fetch_from": "cad_order_form_detail.space_between_mugappu",
    "fieldname": "space_between_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Space between Mugappu",
-   "read_only": 1
+   "label": "Space between Mugappu"
   },
   {
    "fieldname": "detachable",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Detachable",
-   "options": "Attribute Value",
-   "read_only": 1
+   "options": "Attribute Value"
   },
   {
    "fetch_from": "cad_order_form_detail.2_in_1",
@@ -855,8 +874,7 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "2 in 1",
-   "options": "Attribute Value",
-   "read_only": 1
+   "options": "Attribute Value"
   },
   {
    "fetch_from": "cad_order_form_detail.enamal",
@@ -877,8 +895,7 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Nakshi From",
-   "options": "Attribute Value",
-   "read_only": 1
+   "options": "Attribute Value"
   },
   {
    "fetch_from": "cad_order_form_detail.nakshi_weight",
@@ -886,11 +903,83 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Nakshi Weight",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "section_break_6pxwc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.customer_sample",
+   "fieldname": "customer_sample",
+   "fieldtype": "Link",
+   "label": "Customer Sample",
    "options": "Attribute Value",
    "read_only": 1
   },
   {
-   "fieldname": "section_break_6pxwc",
+   "fieldname": "column_break_hzu6j",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.customer_sample_voucher_no",
+   "fieldname": "customer_voucher_no",
+   "fieldtype": "Data",
+   "label": "Customer Voucher No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_8fcyf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.customer_gold",
+   "fieldname": "customer_gold",
+   "fieldtype": "Select",
+   "label": "Customer Gold",
+   "options": "No\nYes",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_g9i4z",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.customer_diamond",
+   "fieldname": "customer_diamond",
+   "fieldtype": "Select",
+   "label": "Customer Diamond",
+   "options": "No\nYes",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_rhjnl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.customer_stone",
+   "fieldname": "customer_stone",
+   "fieldtype": "Select",
+   "label": "Customer Stone",
+   "options": "No\nYes"
+  },
+  {
+   "fieldname": "column_break_k6wnf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer_good",
+   "fieldtype": "Link",
+   "label": "Customer Good",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_vfurz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_oykzd",
    "fieldtype": "Section Break"
   },
   {
@@ -898,8 +987,35 @@
    "fieldname": "gemstone_type1",
    "fieldtype": "Link",
    "label": "Gemstone Type1",
-   "options": "Attribute Value",
-   "read_only": 1
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "column_break_gnclg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_bnncs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_rd84a",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_j5lf7",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_uoaks",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_zzgem",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_pxowt",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "section_break_xbmnv",
@@ -1049,8 +1165,7 @@
    "fieldname": "new_bom",
    "fieldtype": "Link",
    "label": "New BOM",
-   "options": "BOM",
-   "read_only": 1
+   "options": "BOM"
   },
   {
    "fieldname": "design_attribute_tab",
@@ -1066,74 +1181,61 @@
    "default": "0",
    "fieldname": "india",
    "fieldtype": "Check",
-   "label": "INDIA",
-   "read_only": 1
+   "label": "INDIA"
   },
   {
    "fieldname": "india_states",
    "fieldtype": "Table MultiSelect",
    "label": "States",
-   "options": "Territory Multi Select",
-   "read_only": 1
+   "options": "Territory Multi Select"
   },
   {
    "default": "0",
    "fieldname": "usa",
    "fieldtype": "Check",
-   "label": "USA",
-   "read_only": 1
+   "label": "USA"
   },
   {
    "fieldname": "age_group",
    "fieldtype": "Table MultiSelect",
    "label": "Age Group",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1,
-   "reqd": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "alphabetnumber",
    "fieldtype": "Table MultiSelect",
    "label": "Alphabet/Number",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "animalbirds",
    "fieldtype": "Table MultiSelect",
    "label": "Animal/Birds",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "collection",
    "fieldtype": "Table MultiSelect",
    "label": "Collection",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "design_style",
    "fieldtype": "Table MultiSelect",
    "label": "Design Style",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1,
-   "reqd": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "gender",
    "fieldtype": "Table MultiSelect",
    "label": "Gender",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1,
-   "reqd": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "lines_rows",
    "fieldtype": "Table MultiSelect",
    "label": "Lines & Rows",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "column_break_gwtw",
@@ -1143,59 +1245,37 @@
    "fieldname": "language",
    "fieldtype": "Table MultiSelect",
    "label": "Language",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "occasion",
    "fieldtype": "Table MultiSelect",
    "label": "Occasion",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1,
-   "reqd": 1
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "design_rhodium",
+   "fieldtype": "Table MultiSelect",
+   "label": "Rhodium",
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "shapes",
    "fieldtype": "Table MultiSelect",
    "label": "Shapes",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "religious",
    "fieldtype": "Table MultiSelect",
    "label": "Religious",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "zodiac",
    "fieldtype": "Table MultiSelect",
    "label": "Zodiac",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
-  },
-  {
-   "fieldname": "feature",
-   "fieldtype": "Link",
-   "label": "Feature",
-   "options": "Attribute Value",
-   "read_only": 1
-  },
-  {
-   "fieldname": "usa_states",
-   "fieldtype": "Select",
-   "label": "USA States",
-   "options": "\nUSA",
-   "read_only": 1
-  },
-  {
-   "fieldname": "rhodium_",
-   "fieldtype": "Select",
-   "hidden": 1,
-   "label": "Rhodium",
-   "options": "\nYes\nNo",
-   "read_only": 1
+   "options": "Design Attribute - Multiselect"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1206,7 +1286,7 @@
    "link_fieldname": "custom_cad_order_id"
   }
  ],
- "modified": "2024-02-09 11:34:42.737300",
+ "modified": "2024-02-08 17:27:45.418034",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",

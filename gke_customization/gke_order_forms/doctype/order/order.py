@@ -268,6 +268,7 @@ def create_variant_of_template_from_order(item_template,source_name, target_doc=
 				"field_map": {
 					"category": "item_category",
 					"subcategory": "item_subcategory",
+					# "item_group": source_name.subcategory + " - V",
 					"setting_type": "setting_type",
 					"india":"india",
 					"india_states":"india_states",
