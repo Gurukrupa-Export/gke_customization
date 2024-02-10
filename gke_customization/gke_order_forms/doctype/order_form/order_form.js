@@ -37,9 +37,9 @@ frappe.ui.form.on('Order Form', {
 		['sizer_type', 'Sizer Type'],
 		['enamal', 'Enamal'],
 		['rhodium', 'Rhodium'],
-		['gemstone_type', 'Gemstone Type'],
+		// ['gemstone_type', 'Gemstone Type'],
 		['gemstone_quality', 'Gemstone Quality'],
-		['stone_changeable', 'Stone Changeable'],
+		// ['stone_changeable', 'Stone Changeable'],
 		['hinges', 'Hinges'],
 		['back_belt_patti', 'Back Belt'],
 		['vanki_type', 'Vanki Type'],
@@ -52,7 +52,7 @@ frappe.ui.form.on('Order Form', {
 		['chain', 'Chain'],
 		['chain_type', 'Chain Type'],
 		['customer_chain', 'Customer Chain'],
-		['detachable', 'Detachable'],
+		// ['detachable', 'Detachable'],
 		['back_chain', 'Back Chain'],
 		['nakshi_from', 'Nakshi From'],
 		['nakshi', 'Nakshi'],
@@ -63,17 +63,11 @@ frappe.ui.form.on('Order Form', {
 		['back_belt', 'Back Belt'],
 		['back_belt_length', 'Back Belt Length'],
 		['gemstone_type1', 'Gemstone Type1'],
-		['gemstone_type2', 'Gemstone Type2'],
-		['gemstone_type3', 'Gemstone Type3'],
-		['gemstone_type4', 'Gemstone Type4'],
-		['gemstone_type5', 'Gemstone Type5'],
-		['gemstone_type6', 'Gemstone Type6'],
-		['gemstone_type7', 'Gemstone Type7'],
-		['gemstone_type8', 'Gemstone Type8'],
 		['sub_setting_type1', 'Sub Setting Type'],
 		['sub_setting_type2', 'Sub Setting Type'],
 		['gemstone_quality', 'Gemstone Quality'],
 		['changeable_type', 'Changeable Type'],
+		['feature', 'Feature'],
 		];
 
 		set_filters_on_child_table_fields(frm, fields);
@@ -456,8 +450,8 @@ function show_attribute_fields_for_subcategory(frm, cdt, cdn, order_detail) {
 //private function to hide all subcategory related fields in order details
 function hide_all_subcategory_attribute_fields(frm, cdt, cdn) {
 	var subcategory_attribute_fields = ['Length', 'Height', 'Sizer Type', 'Hinges', 'Back Belt', 'Vanki Type',
-	'Black Beed', 'Black Beed Line', 'Screw Type', 'Hook Type', 'Lock Type',
-	'2 in 1', 'Kadi Type', 'Chain', 'Chain Type', 'Customer Chain', 'Chain Length',
+	'Black Beed', 'Black Beed Line', 'Lock Type',
+	'2 in 1', 'Chain', 'Chain Type', 'Customer Chain', 'Chain Length',
 	'Total Length', 'Chain Weight', 'Back Chain', 'Back Chain Size',
 	'Back Side Size', 'Chain Thickness', 'Total Mugappu', 'Kadi to Mugappu',
 	'Space between Mugappu', 'Nakshi', 'Nakshi From', 'Breadth', 'Width', 'Back Belt', 'Back Belt Length'];
