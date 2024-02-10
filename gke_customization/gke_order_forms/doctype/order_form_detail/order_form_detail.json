@@ -53,10 +53,12 @@
   "breadth",
   "section_break_45",
   "changeable_type",
-  "column_break_dyrs",
-  "feature",
+  "column_break_26",
+  "screw_type",
+  "hook_type",
   "column_break_27",
   "lock_type",
+  "kadi_type",
   "section_break_73",
   "back_chain",
   "back_chain_size",
@@ -87,10 +89,15 @@
   "nakshi_from",
   "nakshi_weight",
   "column_break_98",
+  "customer_sample",
   "column_break_y84ka",
+  "customer_sample_voucher_no",
   "column_break_ypta1",
+  "customer_gold",
   "column_break_orxpd",
+  "customer_diamond",
   "column_break_l45o3",
+  "customer_stone",
   "section_break_ydvby",
   "gemstone_type1",
   "column_break_fyooh",
@@ -157,7 +164,7 @@
    "fieldname": "design_type",
    "fieldtype": "Select",
    "label": "Design Type",
-   "options": "\nSketch Design\nMod\nNew Design"
+   "options": "\nNew Design\nMod\nFusion\nSimilar\nSketch Design"
   },
   {
    "depends_on": "eval:((doc.design_type==\"Mod\"))",
@@ -201,8 +208,7 @@
   },
   {
    "fieldname": "section_break_8",
-   "fieldtype": "Section Break",
-   "hidden": 1
+   "fieldtype": "Section Break"
   },
   {
    "depends_on": "eval:((doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
@@ -411,6 +417,28 @@
    "options": "Attribute Value"
   },
   {
+   "fieldname": "column_break_26",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bom.screw_type",
+   "fetch_if_empty": 1,
+   "fieldname": "screw_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Screw Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "bom.hook_type",
+   "fetch_if_empty": 1,
+   "fieldname": "hook_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Hook Type",
+   "options": "Attribute Value"
+  },
+  {
    "fieldname": "column_break_27",
    "fieldtype": "Column Break"
   },
@@ -421,6 +449,15 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Lock Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "bom.kadi_type",
+   "fetch_if_empty": 1,
+   "fieldname": "kadi_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Kadi Type",
    "options": "Attribute Value"
   },
   {
@@ -636,20 +673,52 @@
    "fieldtype": "Section Break"
   },
   {
+   "default": "No",
+   "fetch_from": "bom.customer_sample",
+   "fetch_if_empty": 1,
+   "fieldname": "customer_sample",
+   "fieldtype": "Link",
+   "label": "Customer Sample",
+   "options": "Attribute Value"
+  },
+  {
    "fieldname": "column_break_y84ka",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer_sample_voucher_no",
+   "fieldtype": "Data",
+   "label": "Customer Voucher No"
   },
   {
    "fieldname": "column_break_ypta1",
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "customer_gold",
+   "fieldtype": "Select",
+   "label": "Customer Gold",
+   "options": "\nNo\nYes"
+  },
+  {
    "fieldname": "column_break_orxpd",
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "customer_diamond",
+   "fieldtype": "Select",
+   "label": "Customer Diamond ",
+   "options": "\nNo\nYes"
+  },
+  {
    "fieldname": "column_break_l45o3",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer_stone",
+   "fieldtype": "Select",
+   "label": "Customer Stone",
+   "options": "\nNo\nYes"
   },
   {
    "fieldname": "section_break_ydvby",
@@ -761,22 +830,12 @@
    "hidden": 1,
    "in_list_view": 1,
    "label": "Order Remarks"
-  },
-  {
-   "fieldname": "column_break_dyrs",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "feature",
-   "fieldtype": "Link",
-   "label": "Feature",
-   "options": "Attribute Value"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-02-09 10:36:20.432580",
+ "modified": "2024-02-05 17:03:12.101318",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form Detail",
