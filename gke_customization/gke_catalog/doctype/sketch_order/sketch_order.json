@@ -283,7 +283,6 @@
         },
         {
             "depends_on": "eval:((doc.design_type==\"Similar\"))",
-            "fetch_from": "sketch_order_form_detail.reference_designid",
             "fieldname": "reference_designid",
             "fieldtype": "Link",
             "label": "Reference Design ID",
@@ -292,7 +291,6 @@
         },
         {
             "depends_on": "eval:((doc.design_type==\"Similar\"))",
-            "fetch_from": "sketch_order_form_detail.reference_tagid",
             "fieldname": "reference_tagid",
             "fieldtype": "Link",
             "label": "Reference Tag ID",

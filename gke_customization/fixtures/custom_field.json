@@ -120,7 +120,6 @@
   "docstatus": 0,
   "doctype": "Custom Field",
   "dt": "Sketch Order",
-  "fetch_from": "sketch_order_form_detail.custom_nakshi_from",
   "fetch_if_empty": 0,
   "fieldname": "custom_nakshi_from",
   "fieldtype": "Link",
