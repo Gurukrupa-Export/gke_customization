@@ -80,14 +80,6 @@ frappe.ui.form.on('Repair Order Form', {
 		['back_belt', 'Back Belt'],
 		['back_belt_length', 'Back Belt Length'],
 		['gemstone_type1', 'Gemstone Type'],
-		['gemstone_type2', 'Gemstone Type'],
-		['gemstone_type3', 'Gemstone Type'],
-		['gemstone_type4', 'Gemstone Type'],
-		['gemstone_type5', 'Gemstone Type'],
-		['gemstone_type6', 'Gemstone Type'],
-		['gemstone_type7', 'Gemstone Type'],
-		['gemstone_type8', 'Gemstone Type'],
-		['repair_type', 'Repairing Type'],
 		];
 		set_filters_on_child_table_fields(frm, fields);
 
@@ -189,6 +181,10 @@ frappe.ui.form.on('Repair Order Form Detail', {
 		if (d.tag_no) {
 			frappe.db.get_value("BOM",{"tag_no": d.tag_no},'name', (r)=>{
 				frappe.model.set_value(cdt, cdn, 'bom', r.name)
+			})
+			frappe.db.get_value("BOM",{"tag_no": d.tag_no},'gross_weight', (r)=>{
+				console.log(r.gross_weight)
+				frappe.model.set_value(cdt, cdn, 'bom_weight', r.gross_weight)
 			})
 		}
 	},
