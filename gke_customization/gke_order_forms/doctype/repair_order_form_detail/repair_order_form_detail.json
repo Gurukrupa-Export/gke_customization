@@ -1,4 +1,5 @@
 {
+ "_liked_by": "[\"Administrator\"]",
  "actions": [],
  "allow_rename": 1,
  "autoname": "hash",
@@ -18,7 +19,7 @@
   "section_break_zxnmq",
   "repair_type",
   "column_break_aeaoz",
-  "repair_what",
+  "product_type",
   "column_break_4",
   "category",
   "subcategory",
@@ -76,6 +77,10 @@
   "back_belt",
   "back_belt_length",
   "section_break_efe6y",
+  "bom_weight",
+  "column_break_w7jh",
+  "customer_weight",
+  "section_break_xslh",
   "customer_sample",
   "column_break_hdd4i",
   "customer_sample_voucher_no",
@@ -174,12 +179,6 @@
   {
    "fieldname": "column_break_aeaoz",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "repair_what",
-   "fieldtype": "Select",
-   "label": "Repair What",
-   "options": "\nFG\nFG Billed with Cust. Goods\nFG Billed With Out Cust. Goods\nFG-Cust. Product"
   },
   {
    "fieldname": "column_break_4",
@@ -610,11 +609,8 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.certificate_place",
-   "fetch_if_empty": 1,
    "fieldname": "certificate_place",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Certificate Place",
    "options": "Attribute Value",
    "read_only_depends_on": "eval:doc.modification =='No'"
@@ -817,12 +813,37 @@
    "fieldtype": "Link",
    "label": "Customer Good",
    "options": "Attribute Value"
+  },
+  {
+   "fieldname": "product_type",
+   "fieldtype": "Link",
+   "label": "Product Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "bom.metal_and_finding_weight",
+   "fieldname": "bom_weight",
+   "fieldtype": "Float",
+   "label": "BOM Weight"
+  },
+  {
+   "fieldname": "column_break_w7jh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer_weight",
+   "fieldtype": "Float",
+   "label": "Customer Weight"
+  },
+  {
+   "fieldname": "section_break_xslh",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-01-11 11:19:00.737804",
+ "modified": "2024-02-13 11:55:34.825223",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order Form Detail",
