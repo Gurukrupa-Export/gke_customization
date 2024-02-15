@@ -40,7 +40,7 @@ frappe.ui.form.on('Quotation', {
       
           frm.add_custom_button(__("Repair Order"), function () {
             erpnext.utils.map_current_doc({
-              method: "gke_customization.gke_catalog.doctype.repair_order.repair_order.make_quotation",
+              method: "gke_customization.gke_order_forms.doctype.repair_order.repair_order.make_quotation",
               source_doctype: "Repair Order",
               target: frm,
               setters: [
