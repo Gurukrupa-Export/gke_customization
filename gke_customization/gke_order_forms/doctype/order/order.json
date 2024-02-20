@@ -1,4 +1,5 @@
 {
+<<<<<<< Updated upstream
     "actions": [],
     "allow_rename": 1,
     "autoname": "format:{cad_order_form}-{index}",
@@ -1232,4 +1233,1247 @@
     "track_changes": 1,
     "track_seen": 1,
     "track_views": 1
+=======
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{cad_order_form}-{index}",
+ "creation": "2022-05-24 18:28:04.571441",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "index",
+  "bom_or_cad",
+  "company",
+  "department",
+  "column_break_etz53",
+  "branch",
+  "salesman_name",
+  "section_break_oi3uq",
+  "customer_code",
+  "order_date",
+  "delivery_date",
+  "est_delivery_date",
+  "project",
+  "parcel_place",
+  "system_due_date",
+  "data_5",
+  "po_no",
+  "order_type",
+  "diamond_quality",
+  "due_days",
+  "est_due_days",
+  "service_type",
+  "section_break_10",
+  "cad_order_form",
+  "design_by",
+  "item_type",
+  "column_break_2",
+  "cad_order_form_detail",
+  "design_type",
+  "amended_from",
+  "section_break_9",
+  "tag_no",
+  "design_id",
+  "bom",
+  "reference_designid",
+  "reference_serial_no_1",
+  "reference_design_id_2",
+  "reference_serial_no_2",
+  "reference_design_id_3",
+  "reference_serial_no_3",
+  "section_break_19",
+  "category",
+  "subcategory",
+  "setting_type",
+  "sub_setting_type1",
+  "sub_setting_type2",
+  "column_break_ubbqi",
+  "qty",
+  "metal_type",
+  "metal_touch",
+  "metal_purity",
+  "metal_colour",
+  "section_break_25",
+  "gold_target",
+  "diamond_target",
+  "column_break_28",
+  "product_size",
+  "sizer_type",
+  "column_break_31",
+  "length",
+  "width",
+  "height",
+  "breadth",
+  "section_break_45",
+  "stone_changeable",
+  "changeable_type",
+  "column_break_37",
+  "feature",
+  "column_break_40",
+  "lock_type",
+  "section_break_43",
+  "back_chain",
+  "back_chain_size",
+  "back_belt",
+  "back_belt_length",
+  "black_beed",
+  "black_beed_line",
+  "back_side_size",
+  "column_break_49",
+  "hinges",
+  "back_belt_patti",
+  "vanki_type",
+  "total_length",
+  "rhodium_",
+  "gemstone_quality",
+  "column_break_56",
+  "chain",
+  "chain_type",
+  "customer_chain",
+  "chain_weight",
+  "chain_thickness",
+  "chain_length",
+  "section_break_63",
+  "total_mugappu",
+  "distance_between_kadi_to_mugappu",
+  "space_between_mugappu",
+  "detachable",
+  "2_in_1",
+  "enamal",
+  "column_break_69",
+  "nakshi_from",
+  "nakshi_weight",
+  "section_break_6pxwc",
+  "gemstone_type1",
+  "section_break_xbmnv",
+  "design_image_1",
+  "image_preview_1",
+  "column_break_phme6",
+  "design_image_2",
+  "image_preview_2",
+  "column_break_lvxgh",
+  "design_image_3",
+  "image_preview_3",
+  "column_break_uxuj0",
+  "design_image_4",
+  "image_preview_4",
+  "column_break_qz2qa",
+  "design_image_5",
+  "image_preview_5",
+  "section_break_72",
+  "form_remarks",
+  "remarks",
+  "section_break_74",
+  "designer_assignment",
+  "section_break_77",
+  "update_reason",
+  "section_break_tcrzb",
+  "item",
+  "column_break_ggjel",
+  "new_bom",
+  "design_attribute_tab",
+  "age_group",
+  "alphabetnumber",
+  "animalbirds",
+  "collection",
+  "design_style",
+  "gender",
+  "lines_rows",
+  "column_break_gwtw",
+  "language",
+  "occasion",
+  "rhodium",
+  "shapes",
+  "religious",
+  "zodiac",
+  "territories_tab",
+  "india",
+  "india_states",
+  "usa",
+  "usa_states"
+ ],
+ "fields": [
+  {
+   "fieldname": "index",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Index",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bom_or_cad",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "BOM or CAD",
+   "options": "\nBOM\nCAD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_etz53",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form.branch",
+   "fetch_if_empty": 1,
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form.salesman_name",
+   "fieldname": "salesman_name",
+   "fieldtype": "Link",
+   "label": "Sales Person",
+   "options": "Sales Person",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_oi3uq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "cad_order_form.customer_code",
+   "fieldname": "customer_code",
+   "fieldtype": "Link",
+   "label": "Customer Code",
+   "options": "Customer",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form.order_date",
+   "fieldname": "order_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Order Date",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.delivery_date",
+   "fetch_if_empty": 1,
+   "fieldname": "delivery_date",
+   "fieldtype": "Date",
+   "label": "Delivery Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "est_delivery_date",
+   "fieldtype": "Date",
+   "label": "Est. Delivery Date",
+   "mandatory_depends_on": "eval:!doc.__islocal"
+  },
+  {
+   "fetch_from": "cad_order_form.project",
+   "fetch_if_empty": 1,
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "read_only": 1
+  },
+  {
+   "fieldname": "parcel_place",
+   "fieldtype": "Table MultiSelect",
+   "label": "Shipping Territory",
+   "options": "Territory Multi Select",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form.system_due_date",
+   "fieldname": "system_due_date",
+   "fieldtype": "Date",
+   "label": "System Due Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "data_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form.po_no",
+   "fieldname": "po_no",
+   "fieldtype": "Data",
+   "label": "Customer PO Number",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form.order_type",
+   "fieldname": "order_type",
+   "fieldtype": "Select",
+   "label": "Order Type",
+   "options": "Sales\nStock Order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "diamond_quality",
+   "fieldtype": "Link",
+   "label": "Diamond Quality",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form.due_days",
+   "fieldname": "due_days",
+   "fieldtype": "Int",
+   "label": "Due Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "est_due_days",
+   "fieldtype": "Int",
+   "label": "Est. Due Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "service_type",
+   "fieldtype": "Table MultiSelect",
+   "label": "Service Type",
+   "options": "Service Type 2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_10",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "cad_order_form",
+   "fieldtype": "Link",
+   "label": "CAD Order Form",
+   "options": "Order Form",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.design_by",
+   "fieldname": "design_by",
+   "fieldtype": "Select",
+   "label": "Design By",
+   "options": "Customer Design\nOur  Design",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item_type",
+   "fieldtype": "Select",
+   "label": "Item Type",
+   "options": "\nTemplate and Variant\nSuffix Of Variant\nOnly Variant\nNo Variant No Suffix",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cad_order_form_detail",
+   "fieldtype": "Link",
+   "label": "CAD Order Form Detail",
+   "options": "Order Form Detail",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.design_type",
+   "fetch_if_empty": 1,
+   "fieldname": "design_type",
+   "fieldtype": "Select",
+   "label": "Design Type",
+   "options": "Sketch Design\nMod\nNew Design",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Order",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_9",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:((doc.design_type==\"Mod\"))",
+   "fetch_from": "cad_order_form_detail.tag_no",
+   "fieldname": "tag_no",
+   "fieldtype": "Link",
+   "label": "Serial No",
+   "options": "Serial No",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.design_id",
+   "fieldname": "design_id",
+   "fieldtype": "Link",
+   "label": "Design ID",
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.design_type == \"Mod\"",
+   "fetch_from": "cad_order_form_detail.bom",
+   "fieldname": "bom",
+   "fieldtype": "Link",
+   "label": "BOM",
+   "options": "BOM",
+   "read_only": 1
+  },
+  {
+   "depends_on": "((doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
+   "fetch_from": "cad_order_form_detail.reference_designid",
+   "fieldname": "reference_designid",
+   "fieldtype": "Link",
+   "label": "Reference Design ID 1",
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:((doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
+   "fetch_from": "cad_order_form_detail.reference_serial_no_2",
+   "fieldname": "reference_serial_no_1",
+   "fieldtype": "Link",
+   "label": "Reference Serial No 1",
+   "options": "Serial No",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: in_list(['Fusion'], doc.design_type)",
+   "fetch_from": "cad_order_form_detail.reference_design_id_2",
+   "fieldname": "reference_design_id_2",
+   "fieldtype": "Link",
+   "label": "Reference Design ID 2",
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: in_list(['Fusion'], doc.design_type)",
+   "fetch_from": "cad_order_form_detail.reference_serial_no_2",
+   "fieldname": "reference_serial_no_2",
+   "fieldtype": "Link",
+   "label": "Reference Serial No 2",
+   "options": "Serial No",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: in_list(['Fusion'], doc.design_type)",
+   "fetch_from": "cad_order_form_detail.reference_design_id_3",
+   "fieldname": "reference_design_id_3",
+   "fieldtype": "Link",
+   "label": "Reference Design ID 3",
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: in_list(['Fusion'], doc.design_type)",
+   "fetch_from": "cad_order_form_detail.reference_serial_no_3",
+   "fieldname": "reference_serial_no_3",
+   "fieldtype": "Link",
+   "label": "Reference Serial No 3",
+   "options": "Serial No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_19",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.category",
+   "fieldname": "category",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Category",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.subcategory",
+   "fetch_if_empty": 1,
+   "fieldname": "subcategory",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Subcategory",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.setting_type",
+   "fieldname": "setting_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Setting Type",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.sub_setting_type1",
+   "fieldname": "sub_setting_type1",
+   "fieldtype": "Link",
+   "label": "Sub Setting Type1",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.sub_setting_type2",
+   "fieldname": "sub_setting_type2",
+   "fieldtype": "Link",
+   "label": "Sub Setting Type2",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ubbqi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.qty",
+   "fieldname": "qty",
+   "fieldtype": "Int",
+   "label": "No. of Pcs",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.metal_type",
+   "fieldname": "metal_type",
+   "fieldtype": "Link",
+   "label": "Metal Type",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "metal_touch",
+   "fieldtype": "Link",
+   "label": "Metal Touch",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.metal_purity",
+   "fieldname": "metal_purity",
+   "fieldtype": "Link",
+   "label": "Metal Purity",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.metal_colour",
+   "fieldname": "metal_colour",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Metal Colour ",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_25",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.gold_target",
+   "fieldname": "gold_target",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Gold Target",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.diamond_target",
+   "fieldname": "diamond_target",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Diamond Target",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_28",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.product_size",
+   "fieldname": "product_size",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Product Size",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.sizer_type",
+   "fieldname": "sizer_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Sizer Type",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_31",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.length",
+   "fieldname": "length",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Length",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.width",
+   "fieldname": "width",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Width",
+   "read_only": 1
+  },
+  {
+   "fieldname": "height",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Height",
+   "read_only": 1
+  },
+  {
+   "fieldname": "breadth",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Breadth",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_45",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "stone_changeable",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Stone Changeable",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_37",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_40",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.lock_type",
+   "fieldname": "lock_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Lock Type",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_43",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.back_chain",
+   "fieldname": "back_chain",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Back Chain",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.back_chain_size",
+   "fieldname": "back_chain_size",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Back Chain Size",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.back_belt",
+   "fieldname": "back_belt",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Back Belt",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.back_belt_length",
+   "fieldname": "back_belt_length",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Back Belt Length",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.black_beed",
+   "fieldname": "black_beed",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Black Beed",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.black_beed_line",
+   "fieldname": "black_beed_line",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Black Beed Line",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.back_side_size",
+   "fieldname": "back_side_size",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Back Side Size",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_49",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.hinges",
+   "fieldname": "hinges",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Hinges"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.back_belt_patti",
+   "fieldname": "back_belt_patti",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Back Belt Patti",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.vanki_type",
+   "fieldname": "vanki_type",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Vanki Type",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.total_length",
+   "fieldname": "total_length",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Total Length"
+  },
+  {
+   "fieldname": "rhodium",
+   "fieldtype": "Table MultiSelect",
+   "label": "Rhodium",
+   "options": "Design Attribute - Multiselect",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.gemstone_quality",
+   "fieldname": "gemstone_quality",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Gemstone Quality",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "column_break_56",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.chain",
+   "fieldname": "chain",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Chain",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.chain_type",
+   "fieldname": "chain_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Chain Type",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.customer_chain",
+   "fieldname": "customer_chain",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Chain From",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.chain_weight",
+   "fieldname": "chain_weight",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Chain Weight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "chain_thickness",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Chain Thickness",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.chain_length",
+   "fieldname": "chain_length",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Chain Length",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_63",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.total_mugappu",
+   "fieldname": "total_mugappu",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Number Of Ant",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.space_between_mugappu",
+   "fieldname": "space_between_mugappu",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Space between Mugappu",
+   "read_only": 1
+  },
+  {
+   "fieldname": "detachable",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Detachable",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.2_in_1",
+   "fieldname": "2_in_1",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "2 in 1",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.enamal",
+   "fieldname": "enamal",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Enamal",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_69",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.nakshi_from",
+   "fieldname": "nakshi_from",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Nakshi From",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.nakshi_weight",
+   "fieldname": "nakshi_weight",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Nakshi Weight",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_6pxwc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.gemstone_type1",
+   "fieldname": "gemstone_type1",
+   "fieldtype": "Link",
+   "label": "Gemstone Type1",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_xbmnv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:((doc.design_type==\"New Design\")||(doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
+   "fetch_from": "cad_order_form_detail.design_image_1",
+   "fieldname": "design_image_1",
+   "fieldtype": "Attach Image",
+   "label": "Design Image 1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "image_preview_1",
+   "fieldtype": "Image",
+   "label": "Image Preview 1",
+   "options": "design_image_1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_phme6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.design_image2",
+   "fieldname": "design_image_2",
+   "fieldtype": "Attach Image",
+   "label": "Design Image 2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "image_preview_2",
+   "fieldtype": "Image",
+   "label": "Image Preview 2",
+   "options": "design_image_2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_lvxgh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.design_image3",
+   "fieldname": "design_image_3",
+   "fieldtype": "Attach Image",
+   "label": "Design Image 3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "image_preview_3",
+   "fieldtype": "Image",
+   "label": "Image Preview 3",
+   "options": "design_image_3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_uxuj0",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.design_image4",
+   "fieldname": "design_image_4",
+   "fieldtype": "Attach Image",
+   "label": "Design Image 4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "image_preview_4",
+   "fieldtype": "Image",
+   "label": "Image Preview 4",
+   "options": "design_image_4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_qz2qa",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.design_image_5",
+   "fieldname": "design_image_5",
+   "fieldtype": "Attach Image",
+   "label": "Design Image 5",
+   "read_only": 1
+  },
+  {
+   "fieldname": "image_preview_5",
+   "fieldtype": "Image",
+   "label": "Image Preview 5",
+   "options": "design_image_5",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_72",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "form_remarks",
+   "fieldtype": "Text",
+   "label": "Order Form Remarks",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.remarks",
+   "fieldname": "remarks",
+   "fieldtype": "Text",
+   "label": "Order Remarks"
+  },
+  {
+   "fieldname": "section_break_74",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "designer_assignment",
+   "fieldtype": "Table",
+   "label": "Designer Assignment",
+   "options": "Designer Assignment - CAD"
+  },
+  {
+   "fieldname": "section_break_77",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "update_reason",
+   "fieldtype": "Small Text",
+   "label": "Update Reason",
+   "mandatory_depends_on": "eval:(doc.workflow_state == 'Update Requested')",
+   "permlevel": 1
+  },
+  {
+   "fieldname": "section_break_tcrzb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Design Code",
+   "no_copy": 1,
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ggjel",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "new_bom",
+   "fieldtype": "Link",
+   "label": "New BOM",
+   "options": "BOM",
+   "read_only": 1
+  },
+  {
+   "fieldname": "design_attribute_tab",
+   "fieldtype": "Tab Break",
+   "label": "Design Attribute"
+  },
+  {
+   "fieldname": "territories_tab",
+   "fieldtype": "Tab Break",
+   "label": "Territories"
+  },
+  {
+   "default": "0",
+   "fieldname": "india",
+   "fieldtype": "Check",
+   "label": "INDIA",
+   "read_only": 1
+  },
+  {
+   "fieldname": "india_states",
+   "fieldtype": "Table MultiSelect",
+   "label": "States",
+   "options": "Territory Multi Select",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "usa",
+   "fieldtype": "Check",
+   "label": "USA",
+   "read_only": 1
+  },
+  {
+   "fieldname": "age_group",
+   "fieldtype": "Table MultiSelect",
+   "label": "Age Group",
+   "options": "Design Attribute - Multiselect",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "alphabetnumber",
+   "fieldtype": "Table MultiSelect",
+   "label": "Alphabet/Number",
+   "options": "Design Attribute - Multiselect",
+   "read_only": 1
+  },
+  {
+   "fieldname": "animalbirds",
+   "fieldtype": "Table MultiSelect",
+   "label": "Animal/Birds",
+   "options": "Design Attribute - Multiselect",
+   "read_only": 1
+  },
+  {
+   "fieldname": "collection",
+   "fieldtype": "Table MultiSelect",
+   "label": "Collection",
+   "options": "Design Attribute - Multiselect",
+   "read_only": 1
+  },
+  {
+   "fieldname": "design_style",
+   "fieldtype": "Table MultiSelect",
+   "label": "Design Style",
+   "options": "Design Attribute - Multiselect",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "gender",
+   "fieldtype": "Table MultiSelect",
+   "label": "Gender",
+   "options": "Design Attribute - Multiselect",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "lines_rows",
+   "fieldtype": "Table MultiSelect",
+   "label": "Lines & Rows",
+   "options": "Design Attribute - Multiselect",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_gwtw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "language",
+   "fieldtype": "Table MultiSelect",
+   "label": "Language",
+   "options": "Design Attribute - Multiselect",
+   "read_only": 1
+  },
+  {
+   "fieldname": "occasion",
+   "fieldtype": "Table MultiSelect",
+   "label": "Occasion",
+   "options": "Design Attribute - Multiselect",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "shapes",
+   "fieldtype": "Table MultiSelect",
+   "label": "Shapes",
+   "options": "Design Attribute - Multiselect",
+   "read_only": 1
+  },
+  {
+   "fieldname": "religious",
+   "fieldtype": "Table MultiSelect",
+   "label": "Religious",
+   "options": "Design Attribute - Multiselect",
+   "read_only": 1
+  },
+  {
+   "fieldname": "zodiac",
+   "fieldtype": "Table MultiSelect",
+   "label": "Zodiac",
+   "options": "Design Attribute - Multiselect",
+   "read_only": 1
+  },
+  {
+   "fieldname": "feature",
+   "fieldtype": "Link",
+   "label": "Feature",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "usa_states",
+   "fieldtype": "Select",
+   "label": "USA States",
+   "options": "\nUSA",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rhodium_",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Rhodium",
+   "options": "\nYes\nNo",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.changeable_type",
+   "fieldname": "changeable_type",
+   "fieldtype": "Link",
+   "label": "changeable_type",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.distance_between_kadi_to_mugappu",
+   "fieldname": "distance_between_kadi_to_mugappu",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "distance_between_kadi_to_mugappu",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [
+  {
+   "link_doctype": "Item",
+   "link_fieldname": "custom_cad_order_id"
+  }
+ ],
+ "modified": "2024-02-16 18:22:44.081273",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Order",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+>>>>>>> Stashed changes
 }

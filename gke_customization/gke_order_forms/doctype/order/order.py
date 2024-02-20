@@ -76,6 +76,35 @@ def cerate_timesheet(self):
 					frappe.throw("Timesheets is not created for each designer assignment")		
 		
 		frappe.msgprint("Timesheets created for QC for each designer assignment")
+	# elif self.workflow_state == "Sent to QC - On-Hold":
+	# 	for assignment in self.designer_assignment:
+	# 			designer_value = assignment.designer
+
+	# 			# Check if a timesheet document already exists for the employee
+	# 			timesheet = frappe.get_all(
+	# 				"Timesheet", filters={"employee": designer_value,}, fields=["name"],
+	# 			)
+	# 			if timesheet:
+	# 				timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+	# 				if timesheet_doc.time_logs:	
+	# 					time_log = timesheet_doc.time_logs[-1]					
+	# 					time_log.to_time = now_datetime()
+	# 					time_log.completed = 1
+	# 					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+
+	# 				qc_time_log = timesheet_doc.append("time_logs", {})
+	# 				qc_time_log.activity_type = "QC Activity - On-Hold"
+	# 				qc_time_log.from_time = now_datetime()
+	# 				qc_time_log.custom_cad_order_id = self.name
+									
+	# 				timesheet_doc.save()
+					
+	# 				# timesheet_doc.reload()
+	# 			else:
+	# 				frappe.throw("Timesheets is not created for each designer assignment")		
+		
+	# 	frappe.msgprint("Timesheets created for Sent to QC - On-Hold for each designer assignment")
 	elif self.workflow_state == "Designing - On-Hold":
 		for assignment in self.designer_assignment:
 				designer_value = assignment.designer
@@ -131,7 +160,7 @@ def cerate_timesheet(self):
 					# frappe.throw("Timesheets is not created for each designer assignment")		
 		
 		frappe.msgprint("Timesheets Re-assigned for each designer assignment")
-	elif self.workflow_state == "Customer Approval":
+	elif self.workflow_state == "Update Item": 
 		for assignment in self.designer_assignment:
 				designer_value = assignment.designer
 
@@ -151,9 +180,31 @@ def cerate_timesheet(self):
 					
 					# timesheet_doc.reload()
 				else:
-					frappe.throw("Timesheets is not created for each designer assignment")		
+					frappe.throw("Timesheets is not created for each designer assignment")
+		frappe.msgprint("Timesheets Completed for each designer assignment")		
+	elif self.workflow_state == "Cancelled": 
+		for assignment in self.designer_assignment:
+				designer_value = assignment.designer
+
+				# Check if a timesheet document already exists for the employee
+				timesheet = frappe.get_all(
+					"Timesheet", filters={"employee": designer_value,}, fields=["name"],
+				)
+				if timesheet:
+					timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+					time_log = timesheet_doc.time_logs[-1]					
+					time_log.to_time = now_datetime()
+					time_log.completed = 1
+					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+									
+					timesheet_doc.save()
+					
+					# timesheet_doc.reload()
+				else:
+					frappe.throw("Timesheets is cancelled for each designer assignment")		
 		
-		frappe.msgprint("Timesheets Completed for each designer assignment")
+		# frappe.msgprint("Timesheets Completed for each designer assignment")
 
 def create_line_items(self):
 	# if self.workflow_state == 'Approved' and not self.item:
@@ -306,11 +357,15 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 		target.order_form_type = 'Order'
 		target.custom_cad_order_id = source_name
 		target.item_code = item_code
+		target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V",
 		# target.variant_based_on = "Item Attribute"
 		
 		
 		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': self.subcategory,'in_item_variant':1},'item_attribute',order_by='idx asc'):
 			attribute_with = i.item_attribute.lower().replace(' ', '_')	
+			# if attribute_with == 'changeable_type':
+			# 	frappe.db.get_value('Order',source_name,attribute_with)
+			# 	frappe.throw(attribute_with)
 			target.append('attributes',{
 				'attribute':i.item_attribute,
 				'variant_of':db_data['variant_of'],

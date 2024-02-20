@@ -126,8 +126,8 @@ def set_item_type(source_name):
 		item_attribute = variant_attribut['item_attribute'].lower().replace(' ','_')
 		all_attribute_list.append(item_attribute)
 	
-	# frappe.msgprint(doc.design_id)
 	# bom_detail = frappe.db.get_value('BOM',{'is_active':1,'item':doc.design_id},all_attribute_list,as_dict=1)
+
 	bom_detail = frappe.db.get_value('BOM',doc.bom,all_attribute_list,as_dict=1)
 	if bom_detail==None:
 		frappe.throw(f'BOM is not available for {doc.design_id}')
@@ -252,7 +252,10 @@ def check_varinat(source_name):
 		variant_attrbute_value_list = []
 		for j in all_attribute:
 			attribute_value = frappe.db.sql(f"""SELECT attribute_value  from `tabItem Variant Attribute` tiva where parent ='{i}' and `attribute`= '{j['item_attribute']}'""",as_dict=1)
-			variant_attrbute_value_list.append(attribute_value[0]['attribute_value'])
+			if attribute_value:
+				variant_attrbute_value_list.append(attribute_value[0]['attribute_value'])
+			else:
+				variant_attrbute_value_list.append('')
 		a.append([i,variant_attrbute_value_list])
 	
 	current_data = []
