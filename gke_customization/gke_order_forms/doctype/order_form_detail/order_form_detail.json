@@ -765,25 +765,18 @@
    "fieldtype": "Link",
    "label": "Feature",
    "options": "Attribute Value"
-<<<<<<< Updated upstream
-=======
   },
   {
    "fieldname": "distance_between_kadi_to_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Distance Between Kadi To Mugappu"
->>>>>>> Stashed changes
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
-<<<<<<< Updated upstream
- "modified": "2024-02-09 10:36:20.432580",
-=======
  "modified": "2024-02-16 15:52:10.051455",
->>>>>>> Stashed changes
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form Detail",
