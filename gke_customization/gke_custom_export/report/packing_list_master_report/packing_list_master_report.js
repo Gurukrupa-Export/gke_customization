@@ -14,10 +14,10 @@ frappe.query_reports["Packing List Master Report"] = {
 				return frappe.db.get_link_options('Sales Order', txt, filters);
 			},
 			"on_change": function(query_report){
-				var saleorder_list = query_report.get_filter_value('salesOrder')
-				query_report.current_sales = 0
-				query_report.sales_count = saleorder_list.length
-				set_salesOrder(query_report, query_report.current_sales)
+				var emp_list = query_report.get_filter_value('salesOrder')
+				query_report.current_emp = 0
+				query_report.emp_count = emp_list.length
+				set_salesOrder(query_report, query_report.current_emp)
 			},
 		},
 		{
@@ -33,11 +33,11 @@ frappe.query_reports["Packing List Master Report"] = {
 				}
 			},
 			"on_change": function(query_report){
-				let sales =  frappe.query_report.get_filter_value('cur_sales_order');
-				let sale_order = query_report.get_filter_value('salesOrder')
-				var idx = sale_order.indexOf(sales)
+				let emp =  frappe.query_report.get_filter_value('cur_sales_order');
+				let employees = query_report.get_filter_value('salesOrder')
+				var idx = employees.indexOf(emp)
 				if (idx>0) {
-					query_report.current_sales = idx
+					query_report.current_emp = idx
 				}
 				set_salesOrder_details(query_report)
 			},
@@ -87,12 +87,12 @@ frappe.query_reports["Packing List Master Report"] = {
 			"label": __("Prev"),
 			"fieldtype": "Button",
 			"fieldname": "prev",
-			"depends_on": "eval:(frappe.query_report.sales_count>1 && frappe.query_report.current_sales != 0)",
+			"depends_on": "eval:(frappe.query_report.emp_count>1 && frappe.query_report.current_emp != 0)",
 			"onclick": function() {
-				var prev_sales = (frappe.query_report.current_sales - 1)
-				set_salesOrder(frappe.query_report, prev_sales, true)
-				if (prev_sales < 0) prev_sales = 0
-				frappe.query_report.current_sales = prev_sales
+				var prev_emp = (frappe.query_report.current_emp - 1)
+				set_salesOrder(frappe.query_report, prev_emp, true)
+				if (prev_emp < 0) prev_emp = 0
+				frappe.query_report.current_emp = prev_emp
 			}
 		},
 		{
@@ -100,12 +100,12 @@ frappe.query_reports["Packing List Master Report"] = {
 			"fieldtype": "Button",
 			"fieldname": "next",
 			"width": "80",
-			"depends_on": "eval:(frappe.query_report.sales_count>1 && frappe.query_report.sales_count - 1 > frappe.query_report.current_sales)",
+			"depends_on": "eval:(frappe.query_report.emp_count>1 && frappe.query_report.emp_count - 1 > frappe.query_report.current_emp)",
 			"onclick": function() {
-				var next_sales = (frappe.query_report.current_sales + 1)
-				set_salesOrder(frappe.query_report, next_sales, true)
-				if (next_sales > frappe.query_report.sales_count) next_sales = frappe.query_report.sales_count - 1
-				frappe.query_report.current_sales = next_sales
+				var next_emp = (frappe.query_report.current_emp + 1)
+				set_salesOrder(frappe.query_report, next_emp, true)
+				if (next_emp > frappe.query_report.emp_count) next_emp = frappe.query_report.emp_count - 1
+				frappe.query_report.current_emp = next_emp
 			}
 		},
 
@@ -116,15 +116,16 @@ frappe.query_reports["Packing List Master Report"] = {
 			window.open("/app/query-report/Packing%20List%20Master%20Report", "_self")
 		}).addClass("btn-info")
 		report.page.add_button("Generate", function() {
-			var sales = frappe.query_report.get_filter_value('cur_sales_order');
+			var emp = frappe.query_report.get_filter_value('cur_sales_order');
 			var date = frappe.query_report.get_filter_value('date');
 			// var customer_name = frappe.query_report.get_filter_value('customer_name');
-
 			frappe.query_report.set_filter_value({
-				"sales_order": sales,
+				"sales_order": emp,
 				"date":date,
 				// "customer_name":customer_name
 			});
+			// else {
+			// }
 		}).addClass("btn-primary")
 		fetch_salesOrder(report)
 	}
@@ -136,7 +137,7 @@ function set_salesOrder(query_report, index, preset = false) {
 		"cur_sales_order": salesOrder[index] || null,
 		"sales_order": preset ? salesOrder[index] : null
 	});
-	// console.log(salesOrder)
+	console.log(salesOrder)
 }
 
 function set_salesOrder_details(query_report) {
@@ -147,19 +148,19 @@ function set_salesOrder_details(query_report) {
 			"customer_address": r.customer_address,
 		});
 	})
-	// console.log(sales_order_detail);
+	console.log(sales_order_detail);
 }
 
 function fetch_salesOrder(query_report){
 	var filters = get_filter_dict(query_report)
-	// console.log(filters)
+	console.log(filters)
 	if (filters){
 		frappe.db.get_list("Sales Order",{"filters" : filters, "pluck":"name", "order_by":"creation DESC"}).then((r)=>{
 			query_report.set_filter_value("salesOrder",r)
 			if (r.length != 0) {
-				query_report.current_sales = 0
-				query_report.sales_count = r.length
-				set_salesOrder(query_report, query_report.current_sales)
+				query_report.current_emp = 0
+				query_report.emp_count = r.length
+				set_salesOrder(query_report, query_report.current_emp)
 			}
 			else {
 				query_report.set_filter_value({
@@ -169,7 +170,7 @@ function fetch_salesOrder(query_report){
 		})
 	}
 	else {
-		query_report.sales_count = 0
+		query_report.emp_count = 0
 		query_report.set_filter_value({
 			"sales_order": null,
 			"salesOrder":[],

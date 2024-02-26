@@ -35,5 +35,43 @@ frappe.ui.form.on('Packing List', {
 				}
 			}
 		});
+	},
+	sales_invoice: function(frm) {
+		frappe.call({
+			method: 'gke_customization.gke_custom_export.doctype.packing_list.packing_list.get_salesInvoice_item',
+			args: {
+				'sales_invoice': frm.doc.sales_invoice,
+			},
+			callback: function(r) {
+				if (!r.exc) {
+					console.log(r.message)
+
+					frm.set_value('customer_name',r.message[0].customer_name)
+					frm.set_value('customer_address',r.message[0].customer_address)
+
+					cur_frm.clear_table('packing_list_detail');
+					var arrayLength = r.message.length;
+					for (var i = 0; i < arrayLength; i++) {
+						let row = frm.add_child('packing_list_detail', {
+							item_code:r.message[i].item,
+							item_category:r.message[i].item_category,							
+							quality:r.message[i].quality,
+							diamond_pcs:r.message[i].total_diamond_pcs,
+							diamond_weight:r.message[i].total_diamond_weight,
+							diamond_rate:r.message[i].diamond_bom_rate,							
+							gross_weight:r.message[i].gross_weight,
+							other_weight:r.message[i].other_weight,
+							net_weight:r.message[i].metal_and_finding_weight,	
+							stone_weight:r.message[i].gemstone_weight,	
+							diamond_amount:r.message[i].diamond_bom_amount,
+							gold_amount:r.message[i].gold_bom_amount,
+							stone_amount:r.message[i].gemstone_bom_amount,
+							total_amount:r.message[i].total_bom_amount,
+						});
+					}
+					frm.refresh_field('packing_list_detail');
+				}
+			}
+		});
 	}
 });

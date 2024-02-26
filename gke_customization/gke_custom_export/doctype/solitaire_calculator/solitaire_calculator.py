@@ -12,6 +12,7 @@ from frappe.utils import now,getdate
 from frappe.model.document import Document
 from forex_python.converter import CurrencyRates
 
+
 class SolitaireCalculator(Document):
     def before_insert(self):
         current_date = getdate()
@@ -61,8 +62,8 @@ class SolitaireCalculator(Document):
 
 @frappe.whitelist()
 def get_usd_inr():
+
     c = CurrencyRates()
     exchange_rate = c.get_rate('USD', 'INR')
     return round(exchange_rate,2)
-    # return 83.20
 

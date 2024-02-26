@@ -4,6 +4,7 @@
 import frappe
 from frappe import _
 
+
 def execute(filters=None):
 	columns = get_columns(filters)
 	data = get_data(filters)
@@ -13,29 +14,25 @@ def get_data(filters=None):
 	conditions = get_conditions(filters)
 	
 	if conditions:	
-		data = frappe.db.sql(f"""select tcpld.serial_number, tcpld.product_category, 
-						tcpld.quantity , tcpld.metal_touch , tcpld.gross_weight, tcpld.gold_weight , tcpld.wastage , tcpld.gold_wastage,
-						tcpld.total_weight, tcpld.gold_rate_in_usd, tcpld.gold_value_in_usd , 
-					   	tcpld.diamond_shape, tcpld.diamond_quality, tcpld.total_diamond_pcs,  tcpld.total_diamond_in_carat, 
-					   	tcpld.diamond_rate_in_usd, tcpld.total_diamond_value_in_usd,
-						tcpld.total_cubic_zirconia_in_carat , tcpld.cubic_zirconia_rate_in_usd , tcpld.total_amount_in_usd , 
-					   	tcpld.value_addition, tcpld.total_value_addition_in_usd, tcpld.fob_value ,					   
-						tcpl.sales_order,tcpl.customer_name, tcpl.customer_address, tcpl.date
-						from `tabCustom Packing List` tcpl 
-						RIGHT JOIN `tabCustom Packing List Detail` tcpld 
-						ON tcpl.name = tcpld.parent  {conditions}""",as_dict=1)
+		data = frappe.db.sql(f"""select tpld.item_code, tpld.item_category, 
+						tpld.diamond_pcs, tpld.diamond_quality, tpld.diamond_weight, tpld.diamond_rate, tpld.diamond_amount,
+						tpld.gross_weight, tpld.other_weight, tpld.stone_weight , tpld.net_weight , tpld.chain_weight, 
+						tpld.gold_amount , tpld.stone_amount , tpld.chain_amount , tpld.metal_touch , tpld.chain_metal_touch,
+						tpld.chain_making_charge , tpld.certificate_charge , tpld.jewellery_making_charge , tpld.total_amount, 
+						tpl.sales_order,tpl.customer_name, tpl.customer_address, tpl.date
+						from `tabPacking List` tpl 
+						RIGHT JOIN `tabPacking List Detail` tpld 
+						ON tpl.name = tpld.parent  {conditions}""",as_dict=1)
 	else:
-		data = frappe.db.sql(f"""select tcpld.serial_number, tcpld.product_category, 
-						tcpld.quantity , tcpld.metal_touch ,tcpld.gross_weight, tcpld.gold_weight , tcpld.wastage , tcpld.gold_wastage,
-						tcpld.total_weight, tcpld.gold_rate_in_usd, tcpld.gold_value_in_usd , 
-					   	tcpld.diamond_shape, tcpld.diamond_quality, tcpld.total_diamond_pcs, tcpld.total_diamond_in_carat, 
-					   	tcpld.diamond_rate_in_usd, tcpld.total_diamond_value_in_usd,
-						tcpld.total_cubic_zirconia_in_carat , tcpld.cubic_zirconia_rate_in_usd , tcpld.total_amount_in_usd , 
-					   	tcpld.value_addition, tcpld.total_value_addition_in_usd, tcpld.fob_value ,					   
-						tcpl.sales_order,tcpl.customer_name, tcpl.customer_address, tcpl.date
-						from `tabCustom Packing List` tcpl 
-						RIGHT JOIN `tabCustom Packing List Detail` tcpld 
-						ON tcpl.name = tcpld.parent""",as_dict=1)
+		data = frappe.db.sql(f"""select tpld.item_code, tpld.item_category, 
+						tpld.diamond_pcs, tpld.diamond_quality, tpld.diamond_weight, tpld.diamond_rate, tpld.diamond_amount,
+						tpld.gross_weight, tpld.other_weight, tpld.stone_weight , tpld.net_weight , tpld.chain_weight, 
+						tpld.gold_amount , tpld.stone_amount , tpld.chain_amount , tpld.metal_touch , tpld.chain_metal_touch,
+						tpld.chain_making_charge , tpld.certificate_charge , tpld.jewellery_making_charge , tpld.total_amount, 
+						tpl.sales_order,tpl.customer_name, tpl.customer_address, tpl.date
+						from `tabPacking List` tpl 
+						RIGHT JOIN `tabPacking List Detail` tpld 
+						ON tpl.name = tpld.parent""",as_dict=1)
 		
 	if not data:
 
@@ -50,17 +47,15 @@ def get_data(filters=None):
 def get_totals(data):	
 	
 	totals = {
-		"serial_number": "",
+		"item_code": "",
 	}
 	
 	keys_to_total = [
-		"quantity", "gross_weight", "gold_weight",
-		"wastage", "gold_wastage", "total_weight",
-		"gold_rate_in_usd", "gold_value_in_usd", 
-		"total_diamond_pcs", "total_diamond_in_carat", "diamond_rate_in_usd",
-		"total_diamond_value_in_usd", "total_cubic_zirconia_in_carat", 
-		"cubic_zirconia_rate_in_usd", "total_amount_in_usd", "value_addition",
-		"total_value_addition_in_usd", "fob_value"
+		"diamond_pcs", "diamond_rate", "diamond_amount",
+		"gross_weight", "other_weight", "stone_weight",
+		"net_weight", "chain_weight", "gold_amount",
+		"stone_amount", "chain_amount", "chain_making_charge",
+		"jewellery_making_charge", "total_amount"
 	]
 	
 	total_days = {key: 0 for key in keys_to_total}
@@ -69,7 +64,7 @@ def get_totals(data):
 			if row.get(key):
 				total_days[key] += float(row[key].replace(',',''))
 
-	total_days["serial_number"] = "Total"
+	total_days["item_code"] = "Total"
 	
 	for j in keys_to_total:
 		total_days[j] = '{:,}'.format(total_days[j])
@@ -84,64 +79,14 @@ def get_columns(filters=None):
 			"fieldtype": "Data"
 		},
 		{
-			"label": _("Item Category"),
-			"fieldname": "serial_number",
+			"label": _("Item Code"),
+			"fieldname": "item_code",
 			"fieldtype": "Data"
 		},
 		{
 			"label": _("Item Category"),
-			"fieldname": "product_category",
+			"fieldname": "item_category",
 			"fieldtype": "Data",
-		},
-		{
-			"label": _("Quantity"),
-			"fieldname": "quantity",
-			"fieldtype": "Data"
-		},		
-		{
-			"label": _("Metal Touch"),
-			"fieldname": "metal_touch",
-			"fieldtype": "Data"
-		},		
-		{
-			"label": _("Gross Weight"),
-			"fieldname": "gross_weight",
-			"fieldtype": "Data"
-		},		
-		{
-			"label": _("Gold Weight"),
-			"fieldname": "gold_weight",
-			"fieldtype": "Data"
-		},
-		{
-			"label": _("Wastage %"),
-			"fieldname": "wastage",
-			"fieldtype": "Data"
-		},
-		{
-			"label": _("Gold Wastage"),
-			"fieldname": "gold_wastage",
-			"fieldtype": "Data"
-		},
-		{
-			"label": _("Total Weight"),
-			"fieldname": "total_weight",
-			"fieldtype": "Data"
-		},		
-		{
-			"label": _("Gold Rate (in USD)"),
-			"fieldname": "gold_rate_in_usd",
-			"fieldtype": "Data"
-		},
-		{
-			"label": _("Total Gold Value (in USD)"),
-			"fieldname": "gold_value_in_usd",
-			"fieldtype": "Data"
-		},
-		{
-			"label": _("Diamond Shape"),
-			"fieldname": "diamond_shape",
-			"fieldtype": "Data"
 		},
 		{
 			"label": _("Diamond Quality"),
@@ -149,55 +94,90 @@ def get_columns(filters=None):
 			"fieldtype": "Data"
 		},
 		{
-			"label": _("Total Diamond Pcs"),
-			"fieldname": "total_diamond_pcs",
+			"label": _("Diamond Pcs"),
+			"fieldname": "diamond_pcs",
 			"fieldtype": "Data"
 		},
 		{
-			"label": _("Total Diamond (in Carat)"),
-			"fieldname": "total_diamond_in_carat",
+			"label": _("Diamond Rate"),
+			"fieldname": "diamond_rate",
 			"fieldtype": "Data"
 		},
 		{
-			"label": _("Diamond Rate (in USD)"),
-			"fieldname": "diamond_rate_in_usd",
+			"label": _("Diamond Amount"),
+			"fieldname": "diamond_amount",
 			"fieldtype": "Data"
 		},
 		{
-			"label": _("Total Diamond Value (in USD)"),
-			"fieldname": "total_diamond_value_in_usd",
-			"fieldtype": "Data"
-		},				
-		{
-			"label": _("Total Cubic Zirconia (in Carat)"),
-			"fieldname": "total_cubic_zirconia_in_carat",
+			"label": _("Gross Weight"),
+			"fieldname": "gross_weight",
 			"fieldtype": "Data"
 		},
 		{
-			"label": _("Cubic Zirconia Rate (in USD)"),
-			"fieldname": "cubic_zirconia_rate_in_usd",
+			"label": _("Other Weight"),
+			"fieldname": "other_weight",
 			"fieldtype": "Data"
 		},
 		{
-			"label": _("Total Amount (in USD)"),
-			"fieldname": "total_amount_in_usd",
+			"label": _("Stone Weight"),
+			"fieldname": "stone_weight",
 			"fieldtype": "Data"
 		},
 		{
-			"label": _("Value Addition (%)"),
-			"fieldname": "value_addition",
+			"label": _("Net Weight"),
+			"fieldname": "net_weight",
 			"fieldtype": "Data"
 		},
 		{
-			"label": _("Total Value Addition (in USD)"),
-			"fieldname": "total_value_addition_in_usd",
+			"label": _("Chain Weight"),
+			"fieldname": "chain_weight",
 			"fieldtype": "Data"
 		},
 		{
-			"label": _("FOB Value (in USD)"),
-			"fieldname": "fob_value",
+			"label": _("Gold Amount"),
+			"fieldname": "gold_amount",
 			"fieldtype": "Data"
-		}, 
+		},
+		{
+			"label": _("Stone Amount"),
+			"fieldname": "stone_amount",
+			"fieldtype": "Data"
+		},
+		{
+			"label": _("Chain Amount"),
+			"fieldname": "chain_amount",
+			"fieldtype": "Data"
+		},
+		{
+			"label": _("Metal Touch"),
+			"fieldname": "metal_touch",
+			"fieldtype": "Data"
+		},
+		{
+			"label": _("Chain Metal Touch"),
+			"fieldname": "chain_metal_touch",
+			"fieldtype": "Data"
+		},
+		{
+			"label": _("Chain Making Charge"),
+			"fieldname": "chain_making_charge",
+			"fieldtype": "Data"
+		},
+		{
+			"label": _("Certificate Charge"),
+			"fieldname": "certificate_charge",
+			"fieldtype": "Data"
+		},
+		{
+			"label": _("Jewellery Making Charge"),
+			"fieldname": "jewellery_making_charge",
+			"fieldtype": "Data"
+		},
+		{
+			"label": _("Total Amount"),
+			"fieldname": "total_amount",
+			"fieldtype": "Data"
+		},
 	]
 
 	return columns
@@ -207,10 +187,10 @@ def get_conditions(filters):
 	filter_list = []
 
 	if filters.get("cur_sales_order"):
-		filter_list.append(f'tcpl.sales_order = "{filters.get("cur_sales_order")}"')
+		filter_list.append(f'tpl.sales_order = "{filters.get("cur_sales_order")}"')
 
 	if filters.get("date"):
-		filter_list.append(f'''tcpl.date = "{filters.get("date")}"''')
+		filter_list.append(f'''tpl.date = "{filters.get("date")}"''')
 	
 	# if filters.get("customer_name"):
 	# 	filter_list.append(f'''tpl.customer_name = "{filters.get("customer")}"''')
@@ -223,28 +203,21 @@ def get_conditions(filters):
 def indian_format(data):
 	new_data = []
 
-	keys_to_total = ["sales_order","serial_number","product_category",
-		"quantity", "gross_weight", "gold_weight",
-		"wastage", "gold_wastage", "total_weight",
-		"gold_rate_in_usd", "gold_value_in_usd", 
-		"total_diamond_pcs", "total_diamond_in_carat", "diamond_rate_in_usd",
-		"total_diamond_value_in_usd", "total_cubic_zirconia_in_carat", 
-		"cubic_zirconia_rate_in_usd", "total_amount_in_usd", "value_addition",
-		"total_value_addition_in_usd", "fob_value",
+	keys_to_total = ["sales_order","item_code","item_category","diamond_quality",
+		"diamond_pcs", "diamond_rate", "diamond_amount",
+		"gross_weight", "other_weight", "stone_weight",
+		"net_weight", "chain_weight", "gold_amount",
+		"stone_amount", "chain_amount", "chain_making_charge",
+		"jewellery_making_charge", "total_amount"
 	]	
 	
 	for i in data:
 		new_dict = {}
 		for j in keys_to_total:
-			if j in ["sales_order","serial_number","product_category"]:
+			if j in ["sales_order","item_code","item_category","diamond_quality"]:
 				new_dict[j] = i[j]
 			else:	
-				# new_dict[j] = '{:,}'.format(i[j])
-				if isinstance(i[j], (int, float)):
-					new_dict[j] = '{:,}'.format(i[j])
-				else:
-					new_dict[j] = i[j]
-		
+				new_dict[j] = '{:,}'.format(i[j])
 		new_data.append(new_dict)
 
 	return new_data
