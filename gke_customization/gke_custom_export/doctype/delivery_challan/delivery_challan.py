@@ -13,7 +13,7 @@ def get_company_address(company):
 	adress_name = frappe.db.sql(f"""select parent  from `tabDynamic Link` tdl where parenttype = 'Address' and link_doctype = 'Company' and link_name = '{company}'""",as_dict=1)
 
 	for add in adress_name:
-		if 'Shubh' in add['parent']:
+		if 'Billing' in add['parent']:
 			gstin = frappe.db.get_value('Address',{'name':add['parent']},'gstin')
 			address_list = frappe.db.get_value('Address',{'name':add['parent']},['address_line1','address_line2','state','pincode','country'])
 			new_address_list = [str(0) if element is None else element for element in address_list]

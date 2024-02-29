@@ -12,7 +12,7 @@ frappe.ui.form.on('Delivery Challan', {
 				if (!r.exc) {
                     console.log(r.message);
 					frm.set_value('company_address',r.message[0])
-					frm.set_value('gst_no',r.message[2])
+					frm.set_value('gst_no',r.message[1])
 				}
 			}
 		});
@@ -67,7 +67,7 @@ frappe.ui.form.on('Delivery Challan', {
 
         frm.add_custom_button(__("Sales Invoice"), function(){
             erpnext.utils.map_current_doc({
-                method: "jewellery_erpnext.jewellery_erpnext.doc_events.sales_invoice.get_delivery_challan",
+                method: "gke_customization.gke_customization.doc_events.sales_invoice.get_delivery_challan",
                 source_doctype: "Sales Invoice",
                 target: frm,
                 setters: [
@@ -108,7 +108,7 @@ frappe.ui.form.on('Delivery Challan', {
         }, __("Get Items From"))
         frm.add_custom_button(__("Stock Entry"), function(){
             erpnext.utils.map_current_doc({
-                method: "jewellery_erpnext.jewellery_erpnext.doc_events.stock_entry.get_delivery_challan",
+                method: "gke_customization.gke_customization.doc_events.stock_entry.get_delivery_challan",
                 source_doctype: "Stock Entry",
                 target: frm,
                 setters: [
