@@ -1,0 +1,60 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-03-01 12:12:05.941619",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_od8z",
+  "penalty_type",
+  "penalty_group",
+  "penalty_amount",
+  "penalty_amount_in_",
+  "date"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_od8z",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "penalty_type",
+   "fieldtype": "Data",
+   "label": "Penalty Type"
+  },
+  {
+   "fieldname": "penalty_group",
+   "fieldtype": "Data",
+   "label": "Penalty Group"
+  },
+  {
+   "fieldname": "penalty_amount",
+   "fieldtype": "Float",
+   "label": "Penalty Amount "
+  },
+  {
+   "fieldname": "penalty_amount_in_",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Penalty Amount in %"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-03-01 12:39:34.908162",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Employee Penalty Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

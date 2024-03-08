@@ -9,17 +9,28 @@ class DeliveryChallan(Document):
 	pass
 
 @frappe.whitelist()
-def get_company_address(company):
+def get_company_address(company, company_branch):
 	adress_name = frappe.db.sql(f"""select parent  from `tabDynamic Link` tdl where parenttype = 'Address' and link_doctype = 'Company' and link_name = '{company}'""",as_dict=1)
+	# branch = frappe.db.get_value('Branch',{'name': company_branch },'branch')
+	branch = frappe.db.get_value('Branch',{'name': company_branch },'branch_address')
 
 	for add in adress_name:
-		if 'Billing' in add['parent']:
+		if  branch in add['parent']:
+			# frappe.throw("IF")
 			gstin = frappe.db.get_value('Address',{'name':add['parent']},'gstin')
 			address_list = frappe.db.get_value('Address',{'name':add['parent']},['address_line1','address_line2','state','pincode','country'])
 			new_address_list = [str(0) if element is None else element for element in address_list]
 			address = ', '.join(new_address_list).replace(' 0,','')
 			# city = frappe.db.get_value('Address',{'name':add['parent']},'city')
-			return address,gstin 
+			return address,gstin
+		# elif company in add['parent']:
+		# 	frappe.throw("ELSE")
+		# 	gstin = frappe.db.get_value('Address',{'name':add['parent']},'gstin')
+		# 	address_list = frappe.db.get_value('Address',{'name':add['parent']},['address_line1','address_line2','state','pincode','country'])
+		# 	new_address_list = [str(0) if element is None else element for element in address_list]
+		# 	address = ', '.join(new_address_list).replace(' 0,','')
+		# 	return address,gstin 
+	
 
 @frappe.whitelist()
 def get_customer_address(customer):

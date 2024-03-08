@@ -2,11 +2,12 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Delivery Challan', {
-	company: function(frm) {
+	company_branch: function(frm) {
 		frappe.call({
 			method: 'gke_customization.gke_custom_export.doctype.delivery_challan.delivery_challan.get_company_address',
 			args: {
 				'company': frm.doc.company,
+                'company_branch': frm.doc.company_branch
 			},
 			callback: function(r) {
 				if (!r.exc) {
@@ -34,6 +35,13 @@ frappe.ui.form.on('Delivery Challan', {
 		});
 	},
 	refresh(frm) {
+        frm.set_query('company_branch',function () {
+			return {
+				filters: {
+                    company: frm.doc.company
+                }
+			};
+		});
 		//status
 		// var currentStatus = frm.doc.status;
         // frm.clear_custom_buttons('Status');

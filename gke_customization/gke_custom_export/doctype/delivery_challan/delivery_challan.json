@@ -11,6 +11,7 @@
   "status",
   "company_details_section",
   "company",
+  "company_branch",
   "company_address",
   "section_break_gb046",
   "date",
@@ -158,11 +159,17 @@
   {
    "fieldname": "section_break_0rsh",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "company_branch",
+   "fieldtype": "Link",
+   "label": "Company Branch",
+   "options": "Branch"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-02-22 13:15:14.849820",
+ "modified": "2024-02-29 14:35:42.639116",
  "modified_by": "Administrator",
  "module": "GKE Custom Export",
  "name": "Delivery Challan",
