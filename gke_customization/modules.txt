@@ -2,4 +2,5 @@ Gke Customization
 GKE Catalog
 GKE Custom Export
 GKE Order Forms
+GKE HRMS
 Gke Price List
