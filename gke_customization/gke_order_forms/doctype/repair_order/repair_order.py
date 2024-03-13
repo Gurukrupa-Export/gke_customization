@@ -5,10 +5,119 @@ import frappe
 # import json
 from frappe.model.document import Document,json
 from erpnext.setup.utils import get_exchange_rate
+from frappe.utils import get_link_to_form
 
 class RepairOrder(Document):
-	pass
+	def on_submit(self):
+		create_line_items(self)
+	# pass
 
+def create_line_items(self):
+	if self.required_design == 'CAD':
+		create_cad_order_form(self)
+		
+	elif self.required_design == 'Manual':
+		create_sketch_order_form(self)
+		# frappe.throw('Manual')
+
+# 	frappe.msgprint(("New Item Created: {0}".format(get_link_to_form("Order Form",order_form_doc.name))))
+	# pass
+
+def create_cad_order_form(self):
+	order_form_doc = frappe.new_doc("Order Form")
+	order_form_doc.company = self.company
+	order_form_doc.department = self.department
+	order_form_doc.customer_code = self.customer_code
+	order_form_doc.delivery_date = self.delivery_date
+	order_form_doc.parcel_place = self.parcel_place
+	order_form_doc.branch = self.branch
+	order_form_doc.salesman_name = self.salesman_name
+	order_form_doc.order_type = self.order_type
+	order_form_doc.due_days = self.due_days
+	order_form_doc.diamond_quality = self.diamond_quality
+	order_form_doc.service_type  = self.service_type
+
+	order_details = order_form_doc.append("order_details", {})
+
+	order_details.tag_no = self.tag_no
+	order_details.design_id = self.item
+	order_details.design_type = 'Mod'
+
+	order_details.design_by = self.design_by
+
+	order_details.category = self.category
+	order_details.subcategory = self.subcategory
+
+	order_details.setting_type = self.setting_type
+	order_details.sub_setting_type1 = self.sub_setting_type1
+	order_details.sub_setting_type2 = self.sub_setting_type2
+
+	order_details.qty = self.qty
+
+	order_details.metal_type = self.metal_type
+	order_details.metal_touch = self.metal_touch
+	order_details.metal_purity = self.metal_purity
+	order_details.metal_colour = self.metal_colour
+
+	order_details.gold_target = self.gold_target
+	order_details.diamond_target = self.diamond_target
+
+	order_details.product_size = self.product_size
+	order_details.sizer_type = self.sizer_type
+
+	item_doc = frappe.db.get_list('Design Attribute - Multiselect',filters={'parent':self.item})
+	# # frappe.throw(self.item)
+	# frappe.throw(str(item_doc.custom_design_style))
+	# order_details = order_form_doc.append("age_group", {})
+
+	order_form_doc.save()
+
+def create_sketch_order_form(self):
+	order_form_doc = frappe.new_doc("Sketch Order Form")
+	order_form_doc.company = self.company
+	order_form_doc.department = self.department
+	order_form_doc.customer_code = self.customer_code
+	order_form_doc.delivery_date = self.delivery_date
+	order_form_doc.branch = self.branch
+	order_form_doc.salesman_name = self.salesman_name
+	order_form_doc.order_type = self.order_type
+	order_form_doc.due_days = self.due_days
+
+
+	order_details = order_form_doc.append("order_details", {})
+
+	order_details.tag_id = self.tag_no
+	order_details.tag__design_id = self.item
+	order_details.design_type = 'Mod'
+
+	order_details.delivery_date = self.delivery_date
+
+	order_details.design_by = self.design_by
+
+	order_details.category = self.category
+	order_details.subcategory = self.subcategory
+
+	order_details.setting_type = self.setting_type
+	order_details.sub_setting_type1 = self.sub_setting_type1
+	order_details.sub_setting_type2 = self.sub_setting_type2
+
+	order_details.qty = self.qty
+
+	order_details.metal_type = self.metal_type
+	order_details.metal_touch = self.metal_touch
+	order_details.metal_purity = self.metal_purity
+	order_details.metal_colour = self.metal_colour
+
+	order_details.gold_target = self.gold_target
+	order_details.diamond_target = self.diamond_target
+
+	order_details.product_size = self.product_size
+	order_details.sizer_type = self.sizer_type
+
+	order_details = order_form_doc.append("age_group", {})
+
+	order_form_doc.save()
+	pass
 
 # new code start(add customer fileds in dict)
 @frappe.whitelist()
@@ -87,6 +196,7 @@ def make_quotation(source_name, target_doc=None):
 		"custom_serial_id_bom": snd_order.get("bom"),
 		"custom_bom_weight": snd_order.get("bom_weight"),
 		"custom_customer_weight": snd_order.get("customer_weight"),
+		"custom_required_design":snd_order.get("required_design"),
 
 	})
 	set_missing_values(snd_order, target_doc)

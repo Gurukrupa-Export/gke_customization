@@ -36,7 +36,6 @@
  ],
  "fields": [
   {
-   "default": "Sadguru Diamonds",
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
@@ -62,13 +61,15 @@
    "read_only": 1
   },
   {
+   "default": "Now",
    "fieldname": "date",
    "fieldtype": "Datetime",
    "label": "Date"
   },
   {
+   "default": "0",
    "fieldname": "usd_to_inr",
-   "fieldtype": "Data",
+   "fieldtype": "Float",
    "label": "1 USD to INR"
   },
   {
@@ -96,7 +97,7 @@
   },
   {
    "fieldname": "carat",
-   "fieldtype": "Data",
+   "fieldtype": "Float",
    "label": "Carat",
    "reqd": 1
   },
@@ -176,7 +177,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-12-13 13:00:38.251534",
+ "modified": "2024-02-20 12:09:56.074568",
  "modified_by": "Administrator",
  "module": "GKE Custom Export",
  "name": "Solitaire Calculator",

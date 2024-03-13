@@ -1,0 +1,166 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-02-15 11:05:24.033831",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_qk6z",
+  "product_category",
+  "quantity",
+  "metal_touch",
+  "gross_weight",
+  "gold_weight",
+  "gold_wastage",
+  "total_weight",
+  "gold_rate_in_usd",
+  "total_gold_value_in_usd",
+  "diamond_shape",
+  "diamond_quality",
+  "total_diamond_pcs",
+  "total_diamond_in_carat",
+  "diamond_rate_in_usd",
+  "total_diamond_value_in_usd",
+  "total_cubic_zirconia_in_carat",
+  "cubic_zirconia_rate_in_usd",
+  "column_break_g0by",
+  "total_amount_in_usd",
+  "total_value_addition_in_usd",
+  "fob_value_in_usd",
+  "wastage",
+  "value_addition"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_qk6z",
+   "fieldtype": "Section Break",
+   "label": "Serial Number"
+  },
+  {
+   "fieldname": "product_category",
+   "fieldtype": "Data",
+   "label": "Product Category"
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Data",
+   "label": "Quantity"
+  },
+  {
+   "fieldname": "metal_touch",
+   "fieldtype": "Data",
+   "label": "Metal Touch"
+  },
+  {
+   "fieldname": "gross_weight",
+   "fieldtype": "Float",
+   "label": "Gross Weight"
+  },
+  {
+   "fieldname": "gold_weight",
+   "fieldtype": "Float",
+   "label": "Gold Weight"
+  },
+  {
+   "fieldname": "gold_wastage",
+   "fieldtype": "Float",
+   "label": "Gold Wastage"
+  },
+  {
+   "fieldname": "total_weight",
+   "fieldtype": "Float",
+   "label": "Total Weight"
+  },
+  {
+   "fieldname": "gold_rate_in_usd",
+   "fieldtype": "Float",
+   "label": "Gold Rate (in USD)"
+  },
+  {
+   "fieldname": "total_gold_value_in_usd",
+   "fieldtype": "Float",
+   "label": "Total Gold Value (in USD)"
+  },
+  {
+   "fieldname": "diamond_shape",
+   "fieldtype": "Data",
+   "label": "Diamond Shape"
+  },
+  {
+   "fieldname": "diamond_quality",
+   "fieldtype": "Data",
+   "label": "Diamond Quality"
+  },
+  {
+   "fieldname": "total_diamond_pcs",
+   "fieldtype": "Int",
+   "label": "Total Diamond Pcs"
+  },
+  {
+   "fieldname": "total_diamond_in_carat",
+   "fieldtype": "Float",
+   "label": "Total Diamond (in Carat)"
+  },
+  {
+   "fieldname": "diamond_rate_in_usd",
+   "fieldtype": "Float",
+   "label": "Diamond Rate (in USD)"
+  },
+  {
+   "fieldname": "total_diamond_value_in_usd",
+   "fieldtype": "Float",
+   "label": "Total Diamond Value (in USD)"
+  },
+  {
+   "fieldname": "total_cubic_zirconia_in_carat",
+   "fieldtype": "Float",
+   "label": "Total Cubic Zirconia (in Carat)"
+  },
+  {
+   "fieldname": "cubic_zirconia_rate_in_usd",
+   "fieldtype": "Float",
+   "label": "Cubic Zirconia Rate (in USD)"
+  },
+  {
+   "fieldname": "column_break_g0by",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_amount_in_usd",
+   "fieldtype": "Float",
+   "label": "Total Amount (in USD)"
+  },
+  {
+   "fieldname": "total_value_addition_in_usd",
+   "fieldtype": "Float",
+   "label": "Total Value Addition (in USD)"
+  },
+  {
+   "fieldname": "fob_value_in_usd",
+   "fieldtype": "Float",
+   "label": "FOB Value (in USD)"
+  },
+  {
+   "fieldname": "wastage",
+   "fieldtype": "Float",
+   "label": "Wastage %"
+  },
+  {
+   "fieldname": "value_addition",
+   "fieldtype": "Float",
+   "label": "Value Addition (%)"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-02-15 11:38:40.146352",
+ "modified_by": "Administrator",
+ "module": "GKE Custom Export",
+ "name": "Custom Packing List Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

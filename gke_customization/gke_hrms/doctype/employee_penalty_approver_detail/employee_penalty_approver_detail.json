@@ -1,0 +1,43 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-03-01 12:10:54.535565",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_w66b",
+  "approver_name",
+  "status"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_w66b",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "approver_name",
+   "fieldtype": "Link",
+   "label": "Approver Name",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "\nApproved\nReject\nHold"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-03-01 12:34:10.860062",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Employee Penalty Approver Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

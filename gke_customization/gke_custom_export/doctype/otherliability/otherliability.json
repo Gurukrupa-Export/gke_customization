@@ -1,0 +1,208 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2024-02-26 16:59:09.774925",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "otherliability_name",
+  "column_break_yhv8",
+  "tax_withholding_category",
+  "section_break_dxiz",
+  "bank_account",
+  "bank_account_no",
+  "column_break_dxnw",
+  "branch_code",
+  "panit_no",
+  "aadhar_card_details_section",
+  "aadhar_card_number",
+  "contact_address",
+  "address_and_contacts_section",
+  "address_title",
+  "address",
+  "address_type",
+  "column_break_y9ky",
+  "state",
+  "country",
+  "postal_code",
+  "section_break_rsmh",
+  "phone",
+  "column_break_lge3",
+  "email_address",
+  "accounting_tab",
+  "item_default",
+  "naming_series"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_dxiz",
+   "fieldtype": "Section Break",
+   "label": "Bank Account Details"
+  },
+  {
+   "fieldname": "otherliability_name",
+   "fieldtype": "Data",
+   "label": "Party name",
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_yhv8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tax_withholding_category",
+   "fieldtype": "Link",
+   "label": "Tax Withholding Category",
+   "options": "Tax Withholding Category"
+  },
+  {
+   "fieldname": "bank_account",
+   "fieldtype": "Link",
+   "label": "Bank Account",
+   "options": "Bank Account"
+  },
+  {
+   "fetch_from": "bank_account.bank_account_no",
+   "fieldname": "bank_account_no",
+   "fieldtype": "Data",
+   "label": "Bank Account No"
+  },
+  {
+   "fieldname": "column_break_dxnw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bank_account.branch_code",
+   "fieldname": "branch_code",
+   "fieldtype": "Data",
+   "label": "Branch Code"
+  },
+  {
+   "fieldname": "panit_no",
+   "fieldtype": "Data",
+   "label": "PAN/IT No."
+  },
+  {
+   "fieldname": "aadhar_card_details_section",
+   "fieldtype": "Section Break",
+   "label": "Aadhar Card Details"
+  },
+  {
+   "fieldname": "aadhar_card_number",
+   "fieldtype": "Data",
+   "label": "Aadhar Card Number"
+  },
+  {
+   "fieldname": "contact_address",
+   "fieldtype": "Tab Break",
+   "label": "Contact & Address"
+  },
+  {
+   "fieldname": "address_and_contacts_section",
+   "fieldtype": "Section Break",
+   "label": "Address and Contacts"
+  },
+  {
+   "fieldname": "address_title",
+   "fieldtype": "Link",
+   "label": "Address Title",
+   "options": "Address"
+  },
+  {
+   "fetch_from": "address_title.address_line1",
+   "fieldname": "address",
+   "fieldtype": "Data",
+   "label": "Address"
+  },
+  {
+   "fetch_from": "address_title.address_type",
+   "fieldname": "address_type",
+   "fieldtype": "Data",
+   "label": "Address Type"
+  },
+  {
+   "fieldname": "column_break_y9ky",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "address_title.state",
+   "fieldname": "state",
+   "fieldtype": "Data",
+   "label": "State"
+  },
+  {
+   "fetch_from": "address_title.country",
+   "fieldname": "country",
+   "fieldtype": "Data",
+   "label": "Country"
+  },
+  {
+   "fetch_from": "address_title.pincode",
+   "fieldname": "postal_code",
+   "fieldtype": "Data",
+   "label": "Postal Code"
+  },
+  {
+   "fieldname": "section_break_rsmh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone "
+  },
+  {
+   "fieldname": "column_break_lge3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "email_address",
+   "fieldtype": "Data",
+   "label": "Email Address"
+  },
+  {
+   "fieldname": "accounting_tab",
+   "fieldtype": "Tab Break",
+   "label": "Accounting"
+  },
+  {
+   "fieldname": "item_default",
+   "fieldtype": "Link",
+   "label": "Item Default",
+   "options": "Item Default"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "naming_series",
+   "options": "OLIA-"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-02-27 10:17:59.179355",
+ "modified_by": "Administrator",
+ "module": "GKE Custom Export",
+ "name": "OtherLiability",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

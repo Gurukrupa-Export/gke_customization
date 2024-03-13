@@ -1,21 +1,24 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:PAC-{####}",
- "creation": "2023-12-04 16:44:58.763775",
- "default_view": "List",
+ "autoname": "naming_series:",
+ "creation": "2024-02-15 11:02:01.394112",
  "doctype": "DocType",
- "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
   "sales_order",
   "customer_name",
   "customer_address",
-  "column_break_sz6e2",
-  "sales_invoice",
+  "column_break_ajpc",
   "date",
-  "section_break_sfvsr",
-  "packing_list_detail"
+  "delivery_note",
+  "section_break_pskq",
+  "custom_packing_list_detail",
+  "section_break_fame",
+  "naming_series",
+  "wastage",
+  "column_break_ncm0",
+  "value_addition"
  ],
  "fields": [
   {
@@ -28,7 +31,6 @@
    "fetch_from": "sales_order.customer",
    "fieldname": "customer_name",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "label": "Customer Name",
    "options": "Customer"
   },
@@ -39,39 +41,63 @@
    "label": "Customer Address"
   },
   {
-   "fieldname": "column_break_sz6e2",
+   "fieldname": "column_break_ajpc",
    "fieldtype": "Column Break"
   },
   {
-   "default": "Today",
    "fieldname": "date",
    "fieldtype": "Date",
    "label": "Date"
   },
   {
-   "fieldname": "section_break_sfvsr",
+   "fieldname": "section_break_pskq",
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "packing_list_detail",
+   "fieldname": "custom_packing_list_detail",
    "fieldtype": "Table",
-   "label": "Packing List Detail",
-   "options": "Packing List Detail"
+   "label": "Custom Packing List Detail",
+   "options": "Custom Packing List Detail"
   },
   {
-   "fieldname": "sales_invoice",
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "naming_series",
+   "options": "CPAC-"
+  },
+  {
+   "fieldname": "wastage",
+   "fieldtype": "Float",
+   "label": "Wastage"
+  },
+  {
+   "fieldname": "value_addition",
+   "fieldtype": "Data",
+   "label": "Value Addition"
+  },
+  {
+   "fieldname": "column_break_ncm0",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "delivery_note",
    "fieldtype": "Link",
-   "label": "Sales Invoice",
-   "options": "Sales Invoice"
+   "label": "Delivery Note",
+   "options": "Delivery Note"
+  },
+  {
+   "fieldname": "section_break_fame",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-02-15 15:19:38.843659",
+ "modified": "2024-02-15 11:09:20.270623",
  "modified_by": "Administrator",
  "module": "GKE Custom Export",
- "name": "Packing List",
- "naming_rule": "Expression",
+ "name": "Custom Packing List",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {
@@ -89,6 +115,5 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": [],
- "track_changes": 1
+ "states": []
 }

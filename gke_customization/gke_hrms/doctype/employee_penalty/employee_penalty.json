@@ -1,0 +1,145 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2024-03-01 12:08:26.477101",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_mlaj",
+  "employee",
+  "employee_name",
+  "column_break_et2a",
+  "cost_to_company_ctc",
+  "date",
+  "section_break_qlo2",
+  "penalty_type",
+  "section_break_cmqr",
+  "total_penalty_amount",
+  "column_break_mfl1",
+  "advanced_cash",
+  "section_break_2tft",
+  "employee_penalty_approval",
+  "amended_from",
+  "naming_series"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_mlaj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "column_break_et2a",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.ctc",
+   "fieldname": "cost_to_company_ctc",
+   "fieldtype": "Currency",
+   "label": "Cost to Company (CTC)"
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "fieldname": "section_break_qlo2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "penalty_type",
+   "fieldtype": "Table",
+   "label": "Penalty Type ",
+   "options": "Employee Penalty Detail"
+  },
+  {
+   "fieldname": "section_break_cmqr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_penalty_amount",
+   "fieldtype": "Currency",
+   "label": "Total Penalty Amount"
+  },
+  {
+   "fieldname": "column_break_mfl1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "advanced_cash",
+   "fieldtype": "Currency",
+   "label": "Advanced Cash"
+  },
+  {
+   "fieldname": "section_break_2tft",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee_penalty_approval",
+   "fieldtype": "Table",
+   "label": "Employee Penalty Approval",
+   "options": "Employee Penalty Approver Detail"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Employee Penalty",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "naming_series",
+   "options": "EMP/PE-"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2024-03-01 12:37:06.911482",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Employee Penalty",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}
