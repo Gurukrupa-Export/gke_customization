@@ -1,7 +1,6 @@
 import frappe 
 import json
 
-
 @frappe.whitelist()
 def get_delivery_challan(source_name, target_doc=None):
 	if isinstance(target_doc, str):
