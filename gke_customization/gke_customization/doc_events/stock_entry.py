@@ -13,7 +13,7 @@ def get_delivery_challan(source_name, target_doc=None):
 	# sales_invoice_items = frappe.db.get_list("Stock Entry Detail",filters={"parent":f"{source_name}"},fields=["*"])
 	stock_entry_items = frappe.db.sql(f"""select * from `tabStock Entry Detail` tsed where parent = '{source_name}' """,as_dict=1)
 	stock_entry = frappe.db.sql(f"""select * from `tabStock Entry` tse where name = '{source_name}'""",as_dict=1)
-	
+	# frappe.throw(str(stock_entry))	
 	# frappe.throw(str(stock_entry_items))
 	
 	for i in stock_entry:
@@ -34,18 +34,21 @@ def get_delivery_challan(source_name, target_doc=None):
 					if "JEWELLERY STUDDED WITH GEMS" in k[1]:
 						target_doc.append("delivery_challan_detail", {
 							"stock_entry": i.get("name"),
+							"stock_entry_type": i.get("stock_entry_type"),
 							"amount": i.get("total_amount"),
 							"description": "JEWELLERY STUDDED WITH GEMS",
 						})
 					else:
 						target_doc.append("delivery_challan_detail", {
 							"stock_entry": i.get("name"),
+							"stock_entry_type": i.get("stock_entry_type"),
 							"amount": i.get("total_amount"),
 							"description": k[1],
 						})
 			else:
 				target_doc.append("delivery_challan_detail", {
 							"stock_entry": i.get("name"),
+							"stock_entry_type": i.get("stock_entry_type"),
 							"amount": i.get("total_amount"),
 							"description": ' ',
 						})

@@ -9,7 +9,6 @@ def execute(filters=None):
 	data = get_data(filters)
 	return columns, data
 
-
 def get_data(filters=None):
 	conditions = get_conditions(filters)
 
