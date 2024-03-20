@@ -7,10 +7,13 @@
 
 from __future__ import unicode_literals
 import frappe
+from frappe import json
 from frappe.utils import flt
 from frappe.utils import now,getdate
 from frappe.model.document import Document
 from forex_python.converter import CurrencyRates
+import requests
+from bs4 import BeautifulSoup
 
 
 class SolitaireCalculator(Document):
@@ -62,8 +65,10 @@ class SolitaireCalculator(Document):
 
 @frappe.whitelist()
 def get_usd_inr():
-
-    c = CurrencyRates()
-    exchange_rate = c.get_rate('USD', 'INR')
-    return round(exchange_rate,2)
-
+    session = requests.Session()
+    
+    # base_url = "http://3.7.85.163:5010/usd-to-inr"
+    base_url = "http://" + frappe.db.get_value('Solitaire Calculator Settings','Solitaire Calculator Settings','url')
+    response = session.get(base_url)
+    usd_rate = response.json()['usd_to_inr']
+    return usd_rate

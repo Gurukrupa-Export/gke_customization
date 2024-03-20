@@ -45,7 +45,7 @@ def get_columns(filters=None):
 		{
 			"label": _("Punch Date"),
 			"fieldname": "date",
-			"fieldtype": "Data"
+			"fieldtype": "Date"
 		},
 		# {
 		# 	"label": _("Punch Times"),
@@ -74,8 +74,3 @@ def get_conditions(filters):
 	conditions = "where " + " and ".join(filter_list)
 	if conditions!='where ':
 		return conditions
-	
-@frappe.whitelist()
-def get_manual_data():
-	
-	return

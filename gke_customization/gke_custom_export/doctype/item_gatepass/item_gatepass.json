@@ -44,8 +44,8 @@
   {
    "fieldname": "dispatch_slip",
    "fieldtype": "Link",
-   "label": "Dispatch Slip ",
-   "options": "Dispatch Slip"
+   "label": "Delivery Challan",
+   "options": "Delivery Challan"
   },
   {
    "fetch_from": "dispatch_slip.item_group",
@@ -233,7 +233,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-12-14 15:24:20.681469",
+ "modified": "2024-03-20 12:38:47.243372",
  "modified_by": "Administrator",
  "module": "GKE Custom Export",
  "name": "Item Gatepass",

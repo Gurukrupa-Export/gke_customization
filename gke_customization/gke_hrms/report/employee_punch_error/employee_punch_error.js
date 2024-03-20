@@ -61,6 +61,7 @@ frappe.query_reports["Employee Punch Error"] = {
 					if(checkedRow == 1){
 						let employeeId = frappe.query_report.data[idx]['employee']
 						let date = frappe.query_report.data[idx]['date']
+
 						selected_rows.push({
 							employeeId: employeeId,
 							date: date
@@ -80,7 +81,7 @@ frappe.query_reports["Employee Punch Error"] = {
 			let selectedRow = selected_rows[0];
 			frappe.new_doc("Manual Punch", {
 				doctype: "Manual Punch",
-				date: selectedRow.date,
+				error_date: selectedRow.date,
 				employee: selectedRow.employeeId
 			});
 		}).addClass("btn-second");		
