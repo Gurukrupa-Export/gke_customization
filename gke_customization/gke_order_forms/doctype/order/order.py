@@ -385,6 +385,8 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 					"category": "item_category",
 					"subcategory": "item_subcategory",
 					"setting_type": "setting_type",
+					"sub_setting_type1":"sub_setting_type",
+					"sub_setting_type2":"sub_setting_type2",
 					"india":"india",
 					"india_states":"india_states",
 					"usa":"usa",

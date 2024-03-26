@@ -11,8 +11,8 @@ class OrderForm(Document):
 	def on_submit(self):
 		create_cad_orders(self)
 
-	def on_cancel(self):
-		delete_auto_created_cad_order(self)
+	# def on_cancel(self):
+	# 	delete_auto_created_cad_order(self)
 
 	def validate(self):
 		
@@ -51,18 +51,39 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	
 	
 	design_type = frappe.get_doc('Order Form Detail',source_name).design_type
-	
+	item_type = frappe.get_doc('Order Form Detail',source_name).item_type
+	as_per_serial_no = frappe.get_doc('Order Form Detail',source_name).as_per_serial_no
+	mod_reason = frappe.get_doc('Order Form Detail',source_name).mod_reason
+	design_id = frappe.get_doc('Order Form Detail',source_name).design_id
 	if design_type == 'Mod':
-		new_design_id = check_varinat(source_name)
-		if new_design_id:
-			doc = frappe.get_doc('Order Form Detail',source_name)
-			doc.design_id = new_design_id
-			doc.save()
+		if as_per_serial_no == 1:
 			item_type = "No Variant No Suffix"
 			bom_or_cad = 'BOM'
 		else:
-			item_type = set_item_type(source_name)
-			bom_or_cad = workflow_state_maker(source_name)		
+			bom = frappe.db.get_value('Item',design_id,'master_bom')
+			if bom==None:
+				frappe.throw(f'BOM is not available for {doc.design_id}')
+			if mod_reason == 'No Design Change':
+				item_type = "Only Variant"
+				bom_or_cad = 'CAD'
+			else:
+				item_type = "Suffix Of Variant"
+				bom_or_cad = 'CAD'
+
+		# if item_type != 'Variant From Repair Order':
+		# new_design_id = check_varinat(source_name)
+		# if new_design_id:
+		# 	doc = frappe.get_doc('Order Form Detail',source_name)
+		# 	doc.design_id = new_design_id
+		# 	doc.save()
+		# 	item_type = "No Variant No Suffix"
+		# 	bom_or_cad = 'BOM'
+		# else:
+		# 	item_type = set_item_type(source_name)
+		# 	bom_or_cad = workflow_state_maker(source_name)
+		# else:
+			
+		# 	bom_or_cad = 'BOM'	
 	else:
 		item_type = 'Template and Variant'
 		bom_or_cad = 'CAD'
@@ -127,10 +148,10 @@ def set_item_type(source_name):
 		all_attribute_list.append(item_attribute)
 	
 	# bom_detail = frappe.db.get_value('BOM',{'is_active':1,'item':doc.design_id},all_attribute_list,as_dict=1)
-
-	bom_detail = frappe.db.get_value('BOM',doc.bom,all_attribute_list,as_dict=1)
-	if bom_detail==None:
+	bom = frappe.db.get_value('Item',doc.design_id,'master_bom')
+	if bom==None:
 		frappe.throw(f'BOM is not available for {doc.design_id}')
+	bom_detail = frappe.db.get_value('BOM',doc.bom,all_attribute_list,as_dict=1)
 	
 	all_item_type = []
 	for attribute in suffix_attribute:

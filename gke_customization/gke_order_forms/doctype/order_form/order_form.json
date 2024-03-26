@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "ORD/C/.#####",
  "creation": "2022-05-11 22:26:19.574092",
@@ -16,8 +17,6 @@
   "customer_code",
   "order_date",
   "delivery_date",
-  "estimated_duedate",
-  "system_due_date",
   "project",
   "parcel_place",
   "column_break_4",
@@ -51,7 +50,9 @@
   "column_break_anxf6",
   "usa",
   "usa_states",
-  "amended_from"
+  "amended_from",
+  "tab_break_kio0",
+  "repair_order"
  ],
  "fields": [
   {
@@ -113,17 +114,6 @@
    "reqd": 1
   },
   {
-   "fieldname": "estimated_duedate",
-   "fieldtype": "Date",
-   "hidden": 1,
-   "label": "Estimated Due Date"
-  },
-  {
-   "fieldname": "system_due_date",
-   "fieldtype": "Date",
-   "label": "System Due Date"
-  },
-  {
    "fieldname": "project",
    "fieldtype": "Link",
    "label": "Project",
@@ -180,8 +170,7 @@
    "fieldname": "order_details",
    "fieldtype": "Table",
    "label": "Order Details",
-   "options": "Order Form Detail",
-   "reqd": 1
+   "options": "Order Form Detail"
   },
   {
    "fieldname": "section_break_24",
@@ -248,8 +237,7 @@
    "fieldname": "gender",
    "fieldtype": "Table MultiSelect",
    "label": "Gender",
-   "options": "Design Attribute - Multiselect",
-   "reqd": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "alphabetnumber",
@@ -273,8 +261,7 @@
    "fieldname": "design_style",
    "fieldtype": "Table MultiSelect",
    "label": "Design Style",
-   "options": "Design Attribute - Multiselect",
-   "reqd": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "lines_rows",
@@ -292,15 +279,13 @@
    "fieldname": "occasion",
    "fieldtype": "Table MultiSelect",
    "label": "Occasion",
-   "options": "Design Attribute - Multiselect",
-   "reqd": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "rhodium",
    "fieldtype": "Table MultiSelect",
    "label": "Rhodium",
-   "options": "Design Attribute - Multiselect",
-   "reqd": 1
+   "options": "Design Attribute - Multiselect"
   },
   {
    "fieldname": "shapes",
@@ -324,8 +309,20 @@
    "fieldname": "age_group",
    "fieldtype": "Table MultiSelect",
    "label": "Age Group",
-   "options": "Design Attribute - Multiselect",
-   "reqd": 1
+   "options": "Design Attribute - Multiselect"
+  },
+  {
+   "fieldname": "repair_order",
+   "fieldtype": "Link",
+   "label": "Repair Order",
+   "options": "Repair Order",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.repair_order",
+   "fieldname": "tab_break_kio0",
+   "fieldtype": "Tab Break",
+   "label": "Repair Order"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -344,7 +341,7 @@
    "link_fieldname": "custom_cad_order_form_id"
   }
  ],
- "modified": "2024-02-09 12:25:32.691134",
+ "modified": "2024-03-14 11:15:27.646228",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form",

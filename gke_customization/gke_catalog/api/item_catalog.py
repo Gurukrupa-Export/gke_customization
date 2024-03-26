@@ -1,5 +1,6 @@
 import frappe
 
+
 @frappe.whitelist(allow_guest=True)
 def merge_data():
     try:
@@ -55,7 +56,6 @@ def merge_data():
                 GROUP_CONCAT(DISTINCT mt.metal_purity) AS metal_purities,
                 GROUP_CONCAT(DISTINCT mt.metal_touch) AS metal_touch,
                 GROUP_CONCAT(DISTINCT gd.stone_shape) AS gemstone_shape,
-                GROUP_CONCAT(DISTINCT gd.setting_type) AS sub_setting_type,
                 GROUP_CONCAT(DISTINCT gd.cut_or_cab) AS cut_or_cab,
                 GROUP_CONCAT(DISTINCT dd.stone_shape) AS diamond_stone_shape,
                 GROUP_CONCAT(DISTINCT dd.sub_setting_type) AS diamond_setting_type,
@@ -95,7 +95,7 @@ def merge_data():
             ON
                 item.item_name = idf.parent
             WHERE
-                bom.bom_type = "Finish Goods" AND bom.is_active = 1 
+                bom.is_active = 1
             GROUP BY
                 item.name, item.creation, item.item_code, item.item_category, item.image, item.item_subcategory, bom.tag_no,
                 bom.gross_weight, bom.metal_and_finding_weight, bom.total_diamond_weight_in_gms, bom.other_weight,
@@ -103,463 +103,536 @@ def merge_data():
             ORDER BY
                 item.name DESC;
         """
-        
+       
         result = frappe.db.sql(sql_query, as_dict=True)
-        
+       
         return result
+
 
     except Exception as e:
         return {"error": str(e)}
+
 
 @frappe.whitelist()
 def get_item_category():
     # Your code to fetch attribute values where is_category is checked
     itm_category = frappe.get_all("Attribute Value", filters={"is_category": 1})
-    
+   
     # Modify the structure of the list
     modified_data = [{"item_category": item["name"]} for item in itm_category]
 
+
     # Sort the modified_data list in ascending order by the "item_category" attribute
     modified_data = sorted(modified_data, key=lambda x: x["item_category"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_item_subcategory():
     # Your code to fetch attribute values where is_category is checked
     itm_subcategory = frappe.get_all("Attribute Value", filters={"is_subcategory": 1})
-    
+   
     # Modify the structure of the list
     modified_data = [{"item_subcategory": item["name"]} for item in itm_subcategory]
 
+
     # Sort the modified_data list in ascending order by the "item_subcategory" attribute
     modified_data = sorted(modified_data, key=lambda x: x["item_subcategory"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_setting_type():
     # Your code to fetch attribute values where is_setting_type is checked
     setting_type = frappe.get_all("Attribute Value", filters={"is_setting_type": 1})
-    
+   
     # Modify the structure of the list
     modified_data = [{"setting_type": item["name"]} for item in setting_type]
 
+
     # Sort the modified_data list in ascending order by the "setting_type" attribute
     modified_data = sorted(modified_data, key=lambda x: x["setting_type"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_finding_subcategory():
     # Your code to fetch attribute values where is_setting_type is checked
     finding_sub_category = frappe.get_all("Attribute Value", filters={"is_finding_type": 1})
-    
+   
     # Modify the structure of the list
     modified_data = [{"finding_subcategory": item["name"]} for item in finding_sub_category]
 
+
     # Sort the modified_data list in ascending order by the "finding_sub_category" attribute
     modified_data = sorted(modified_data, key=lambda x: x["finding_subcategory"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_metal_type():
     # Your code to fetch attribute values where is_setting_type is checked
     metal_type = frappe.get_all("Attribute Value", filters={"is_metal_type": 1})
-    
+   
     excluded_values = ["Genia-221","Lux-101","Lux-142","Lux-142 ProGold","Lux-160","Lux-173","Lux-189","Refined Gold"]
     # Modify the structure of the list
     modified_data = [{"metal_type": item["name"]} for item in metal_type if item["name"] not in excluded_values]
 
+
     # Sort the modified_data list in ascending order by the "metal_type" attribute
     modified_data = sorted(modified_data, key=lambda x: x["metal_type"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_metal_touch():
     # Your code to fetch attribute values where is_setting_type is checked
     metal_touch = frappe.get_all("Attribute Value", filters={"is_metal_touch": 1})
-    
+   
     # Modify the structure of the list
     # modified_data = [{"metal_touch": item["name"]} for item in metal_touch]
     excluded_values = ["24KT"]
     modified_data = [{"metal_touch": item["name"]} for item in metal_touch if item["name"] not in excluded_values]
 
-
     # Sort the modified_data list in ascending order by the "metal_touch" attribute
     modified_data = sorted(modified_data, key=lambda x: x["metal_touch"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_metal_color():
     # Your code to fetch attribute values where is_setting_type is checked
     metal_colour = frappe.get_all("Attribute Value", filters={"is_metal_colour": 1})
-    
+   
     # Modify the structure of the list
     modified_data = [{"metal_color": item["name"]} for item in metal_colour]
 
+
     # Sort the modified_data list in ascending order by the "metal_colour" attribute
     modified_data = sorted(modified_data, key=lambda x: x["metal_color"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_stone_shape():
     # Your code to fetch attribute values where is_setting_type is checked
     stone_shape = frappe.get_all("Attribute Value", filters={"is_stone_shape": 1})
-    
+   
     # Modify the structure of the list
     # modified_data = [{"stone_shape": item["name"]} for item in stone_shape]
+
 
     # Modify the structure of the list and exclude specific values
     excluded_values = ["1 Mukhi","2 Mukhi","3 Mukhi","4 Mukhi","5 Mukhi","6 Mukhi","7 Mukhi","8 Mukhi","9 Mukhi","10 Mukhi", "Beeds", "Trillion"]
     modified_data = [{"stone_shape": item["name"]} for item in stone_shape if item["name"] not in excluded_values]
 
+
     # Sort the modified_data list in ascending order by the "stone_shape" attribute
     modified_data = sorted(modified_data, key=lambda x: x["stone_shape"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_gemstone_stone():
     # Your code to fetch attribute values where is_setting_type is checked
     stone_shape = frappe.get_all("Attribute Value", filters={"is_stone_shape": 1})
-    
+   
     # Modify the structure of the list
     modified_data = [{"gemstone_stone": item["name"]} for item in stone_shape]
 
+
     # Sort the modified_data list in ascending order by the "gemstone_shape" attribute
     modified_data = sorted(modified_data, key=lambda x: x["gemstone_stone"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_finding_size():
     # Your code to fetch attribute values where is_setting_type is checked
     finding_size = frappe.get_all("Attribute Value", filters={"is_finding_size": 1})
-    
+   
     # Modify the structure of the list
     modified_data = [{"finding_size": item["name"]} for item in finding_size]
 
+
     # Sort the modified_data list in ascending order by the "finding_size" attribute
     modified_data = sorted(modified_data, key=lambda x: x["finding_size"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_size_range():
     # Your code to fetch attribute values where is_setting_type is checked
     diamond_sieve_size_range = frappe.get_all("Attribute Value", filters={"is_diamond_sieve_size_range": 1})
-    
+   
     # Modify the structure of the list
     modified_data = [{"size_range": item["name"]} for item in diamond_sieve_size_range]
 
+
     # Sort the modified_data list in ascending order by the "sieve_size_range" attribute
     modified_data = sorted(modified_data, key=lambda x: x["size_range"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_sieve_size():
     # Your code to fetch attribute values where is_setting_type is checked
     diamond_sieve_size = frappe.get_all("Attribute Value", filters={"is_diamond_sieve_size": 1})
-    
+   
     # Modify the structure of the list
     modified_data = [{"sieve_size": item["name"]} for item in diamond_sieve_size]
 
+
     # Sort the modified_data list in ascending order by the "diamond_sieve_size" attribute
     modified_data = sorted(modified_data, key=lambda x: x["sieve_size"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_diamond_size_in_mm():
     # Your code to fetch attribute values where is_setting_type is checked
     diamond_size_in_mm = frappe.get_all("Attribute Value", filters={"is_diamond_size_in_mm": 1})
-    
+   
     # Modify the structure of the list
     modified_data = [{"diamond_size_in_mm": item["name"]} for item in diamond_size_in_mm]
 
+
     # Sort the modified_data list in ascending order by the "diamond_size_in_mm" attribute
     modified_data = sorted(modified_data, key=lambda x: x["diamond_size_in_mm"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_design_attributs():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"is_design_attribute": 1})
-    
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1})
+   
     # Modify the structure of the list
     modified_data = [{"design_attributs": item["name"]} for item in design_attributs]
 
+
     # Sort the modified_data list in ascending order by the "design_attributs" attribute
     modified_data = sorted(modified_data, key=lambda x: x["design_attributs"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_age_group():
     # Your code to fetch attribute values where is_setting_type is checked
     design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Age Group"})
-    
+   
     # Modify the structure of the list
     modified_data = [{"age_group": item["name"]} for item in design_attributs]
 
+
     # Sort the modified_data list in ascending order by the "age_group" attribute
     modified_data = sorted(modified_data, key=lambda x: x["age_group"])
-    
+   
     return modified_data
 
+
 @frappe.whitelist()
-def get_animals():
+def get_animal_bird():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Animals"})
-    
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Animal/Birds"})
+   
     # Modify the structure of the list
-    modified_data = [{"animals": item["name"]} for item in design_attributs]
+    modified_data = [{"animal_bird": item["name"]} for item in design_attributs]
+
 
     # Sort the modified_data list in ascending order by the "animals" attribute
-    modified_data = sorted(modified_data, key=lambda x: x["animals"])
-    
+    modified_data = sorted(modified_data, key=lambda x: x["animal_bird"])
+   
     return modified_data
 
+
 @frappe.whitelist()
-def get_birds():
+def get_alphabet_number():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Birds"})
-    
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Alphabet/Number"})
+   
     # Modify the structure of the list
-    modified_data = [{"birds": item["name"]} for item in design_attributs]
+    modified_data = [{"alphabet_number": item["name"]} for item in design_attributs]
+
 
     # Sort the modified_data list in ascending order by the "birds" attribute
-    modified_data = sorted(modified_data, key=lambda x: x["birds"])
-    
+    modified_data = sorted(modified_data, key=lambda x: x["alphabet_number"])
+   
     return modified_data
 
-@frappe.whitelist()
-def get_birthstone():
-    # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Birthstone"})
-    
-    # Modify the structure of the list
-    modified_data = [{"birthstone": item["name"]} for item in design_attributs]
 
-    # Sort the modified_data list in ascending order by the "birthstone" attribute
-    modified_data = sorted(modified_data, key=lambda x: x["birthstone"])
-    
-    return modified_data
+# @frappe.whitelist()
+# def get_birthstone():
+#     # Your code to fetch attribute values where is_setting_type is checked
+#     design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Birthstone"})
+   
+#     # Modify the structure of the list
+#     modified_data = [{"birthstone": item["name"]} for item in design_attributs]
+
+
+#     # Sort the modified_data list in ascending order by the "birthstone" attribute
+#     modified_data = sorted(modified_data, key=lambda x: x["birthstone"])
+   
+#     return modified_data
+
 
 @frappe.whitelist()
 def get_collection():
     # Your code to fetch attribute values where is_setting_type is checked
     design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Collection"})
-    
+   
     # Modify the structure of the list
     modified_data = [{"collection": item["name"]} for item in design_attributs]
 
+
     # Sort the modified_data list in ascending order by the "collection" attribute
     modified_data = sorted(modified_data, key=lambda x: x["collection"])
-    
+   
     return modified_data
 
-@frappe.whitelist()
-def get_color_tone():
-    # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Color Tone"})
-    
-    # Modify the structure of the list
-    modified_data = [{"color_tone": item["name"]} for item in design_attributs]
-
-    # Sort the modified_data list in ascending order by the "color_tone" attribute
-    modified_data = sorted(modified_data, key=lambda x: x["color_tone"])
-    
-    return modified_data
-
-@frappe.whitelist()
-def get_close_chilan():
-    # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Close Chilan"})
-    
-    # Modify the structure of the list
-    modified_data = [{"close_chilan": item["name"]} for item in design_attributs]
-
-    # Sort the modified_data list in ascending order by the "close_chilan" attribute
-    modified_data = sorted(modified_data, key=lambda x: x["close_chilan"])
-    
-    return modified_data
 
 @frappe.whitelist()
 def get_design_style():
     # Your code to fetch attribute values where is_setting_type is checked
     design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Design Style"})
-    
+   
     # Modify the structure of the list
     modified_data = [{"design_style": item["name"]} for item in design_attributs]
 
+
     # Sort the modified_data list in ascending order by the "design_style" attribute
     modified_data = sorted(modified_data, key=lambda x: x["design_style"])
-    
+   
     return modified_data
 
-@frappe.whitelist()
-def get_finish_type():
-    # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Finish Type"})
-    
-    # Modify the structure of the list
-    modified_data = [{"finish_type": item["name"]} for item in design_attributs]
-
-    # Sort the modified_data list in ascending order by the "finish_type" attribute
-    modified_data = sorted(modified_data, key=lambda x: x["finish_type"])
-    
-    return modified_data
 
 @frappe.whitelist()
 def get_gender():
     # Your code to fetch attribute values where is_setting_type is checked
     design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Gender"})
-    
+   
     # Modify the structure of the list
     modified_data = [{"gender": item["name"]} for item in design_attributs]
 
+
     # Sort the modified_data list in ascending order by the "gender" attribute
     modified_data = sorted(modified_data, key=lambda x: x["gender"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
-def get_god():
+def get_lines_rows():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "God"})
-    
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Lines & Rows"})
+   
     # Modify the structure of the list
-    modified_data = [{"god": item["name"]} for item in design_attributs]
+    modified_data = [{"lines_rows": item["name"]} for item in design_attributs]
 
-    # Sort the modified_data list in ascending order by the "god" attribute
-    modified_data = sorted(modified_data, key=lambda x: x["god"])
-    
+
+    # Sort the modified_data list in ascending order by the "color_tone" attribute
+    modified_data = sorted(modified_data, key=lambda x: x["lines_rows"])
+   
     return modified_data
+
 
 @frappe.whitelist()
-def get_initial():
+def get_language():
     # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Initial"})
-    
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Language"})
+   
     # Modify the structure of the list
-    modified_data = [{"initial": item["name"]} for item in design_attributs]
+    modified_data = [{"language": item["name"]} for item in design_attributs]
 
-    # Sort the modified_data list in ascending order by the "initial" attribute
-    modified_data = sorted(modified_data, key=lambda x: x["initial"])
-    
+
+    # Sort the modified_data list in ascending order by the "close_chilan" attribute
+    modified_data = sorted(modified_data, key=lambda x: x["language"])
+   
     return modified_data
 
-@frappe.whitelist()
-def get_no_of_prong():
-    # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "No of Prong"})
-    
-    # Modify the structure of the list
-    modified_data = [{"design_attributes_1": item["name"]} for item in design_attributs]
-
-    # Sort the modified_data list in ascending order by the "design_attributes_1" attribute
-    modified_data = sorted(modified_data, key=lambda x: x["design_attributes_1"])
-    
-    return modified_data
 
 @frappe.whitelist()
 def get_occasion():
     # Your code to fetch attribute values where is_setting_type is checked
     design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Occasion"})
-    
+   
     # Modify the structure of the list
     modified_data = [{"occasion": item["name"]} for item in design_attributs]
 
+
     # Sort the modified_data list in ascending order by the "occasion" attribute
     modified_data = sorted(modified_data, key=lambda x: x["occasion"])
-    
+   
     return modified_data
+
+
+@frappe.whitelist()
+def get_rhodium():
+    # Your code to fetch attribute values where is_setting_type is checked
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Rhodium"})
+   
+    # Modify the structure of the list
+    modified_data = [{"rhodium": item["name"]} for item in design_attributs]
+
+
+    # Sort the modified_data list in ascending order by the "finish_type" attribute
+    modified_data = sorted(modified_data, key=lambda x: x["rhodium"])
+   
+    return modified_data
+
+
+@frappe.whitelist()
+def get_religious():
+    # Your code to fetch attribute values where is_setting_type is checked
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Religious"})
+   
+    # Modify the structure of the list
+    modified_data = [{"religious": item["name"]} for item in design_attributs]
+
+
+    # Sort the modified_data list in ascending order by the "god" attribute
+    modified_data = sorted(modified_data, key=lambda x: x["religious"])
+   
+    return modified_data
+
+
+@frappe.whitelist()
+def get_shape():
+    # Your code to fetch attribute values where is_setting_type is checked
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Shapes"})
+   
+    # Modify the structure of the list
+    modified_data = [{"shape": item["name"]} for item in design_attributs]
+
+
+    # Sort the modified_data list in ascending order by the "shape" attribute
+    modified_data = sorted(modified_data, key=lambda x: x["shape"])
+   
+    return modified_data
+
+
+@frappe.whitelist()
+def get_initial():
+    # Your code to fetch attribute values where is_setting_type is checked
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Initial"})
+   
+    # Modify the structure of the list
+    modified_data = [{"initial": item["name"]} for item in design_attributs]
+
+
+    # Sort the modified_data list in ascending order by the "initial" attribute
+    modified_data = sorted(modified_data, key=lambda x: x["initial"])
+   
+    return modified_data
+
+
+@frappe.whitelist()
+def get_no_of_prong():
+    # Your code to fetch attribute values where is_setting_type is checked
+    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "No of Prong"})
+   
+    # Modify the structure of the list
+    modified_data = [{"design_attributes_1": item["name"]} for item in design_attributs]
+
+
+    # Sort the modified_data list in ascending order by the "design_attributes_1" attribute
+    modified_data = sorted(modified_data, key=lambda x: x["design_attributes_1"])
+   
+    return modified_data
+
+
+
 
 @frappe.whitelist()
 def get_relationship():
     # Your code to fetch attribute values where is_setting_type is checked
     design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Relationship"})
-    
+   
     # Modify the structure of the list
     modified_data = [{"relationship": item["name"]} for item in design_attributs]
 
+
     # Sort the modified_data list in ascending order by the "relationship" attribute
     modified_data = sorted(modified_data, key=lambda x: x["relationship"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_setting_style():
     # Your code to fetch attribute values where is_setting_type is checked
     design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Setting Style"})
-    
+   
     # Modify the structure of the list
     modified_data = [{"setting_style": item["name"]} for item in design_attributs]
 
+
     # Sort the modified_data list in ascending order by the "setting_style" attribute
     modified_data = sorted(modified_data, key=lambda x: x["setting_style"])
-    
+   
     return modified_data
 
-@frappe.whitelist()
-def get_shape():
-    # Your code to fetch attribute values where is_setting_type is checked
-    design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Shape"})
-    
-    # Modify the structure of the list
-    modified_data = [{"shape": item["name"]} for item in design_attributs]
 
-    # Sort the modified_data list in ascending order by the "shape" attribute
-    modified_data = sorted(modified_data, key=lambda x: x["shape"])
-    
-    return modified_data
+
 
 @frappe.whitelist()
 def get_temple():
     # Your code to fetch attribute values where is_setting_type is checked
     design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Temple"})
-    
+   
     # Modify the structure of the list
     modified_data = [{"temple": item["name"]} for item in design_attributs]
 
+
     # Sort the modified_data list in ascending order by the "temple" attribute
     modified_data = sorted(modified_data, key=lambda x: x["temple"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_zodiac():
     # Your code to fetch attribute values where is_setting_type is checked
     design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Zodiac"})
-    
+   
     # Modify the structure of the list
     modified_data = [{"zodiac": item["name"]} for item in design_attributs]
 
+
     # Sort the modified_data list in ascending order by the "zodiac" attribute
     modified_data = sorted(modified_data, key=lambda x: x["zodiac"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_creativity():
     # Your code to fetch attribute values where is_setting_type is checked
     design_attributs = frappe.get_all("Attribute Value", filters={"custom_is_design_attribute": 1, "parent_attribute_value": "Creativity"})
-    
+   
     # Modify the structure of the list
     modified_data = [{"creativity": item["name"]} for item in design_attributs]
 
+
     # Sort the modified_data list in ascending order by the "design_attributes_1" attribute
     modified_data = sorted(modified_data, key=lambda x: x["creativity"])
-    
+   
     return modified_data
+
 
 @frappe.whitelist()
 def get_employee():
@@ -567,26 +640,12 @@ def get_employee():
     employee_data = frappe.get_all("Employee", filters={}, fields=["employee_name", "user_id", "company"])
     return employee_data
 
-# @frappe.whitelist()
-# def get_employee_permission():
-#         # Fetch specific fields from the User Permission doctype
-#     user_permission_data = frappe.get_all("User Permission", filters={"allow":"Company"}, fields=["user", "for_value"])
-    
-#     formatted_data = []
-#     for permission in user_permission_data:
-#         formatted_permission = {
-#             "user_id": permission["user"],
-#             "company": permission["for_value"]
-#         }
-#         formatted_data.append(formatted_permission)
-    
-#     return formatted_data
 
 # @frappe.whitelist()
 # def get_employee_permission():
 #         # Fetch specific fields from the User Permission doctype
 #     user_permission_data = frappe.get_all("User Permission", filters={"allow":"Company"}, fields=["user", "for_value"])
-    
+   
 #     formatted_data = []
 #     for permission in user_permission_data:
 #         formatted_permission = {
@@ -594,8 +653,25 @@ def get_employee():
 #             "company": permission["for_value"]
 #         }
 #         formatted_data.append(formatted_permission)
-    
+   
 #     return formatted_data
+
+
+# @frappe.whitelist()
+# def get_employee_permission():
+#         # Fetch specific fields from the User Permission doctype
+#     user_permission_data = frappe.get_all("User Permission", filters={"allow":"Company"}, fields=["user", "for_value"])
+   
+#     formatted_data = []
+#     for permission in user_permission_data:
+#         formatted_permission = {
+#             "user_id": permission["user"],
+#             "company": permission["for_value"]
+#         }
+#         formatted_data.append(formatted_permission)
+   
+#     return formatted_data
+
 
 @frappe.whitelist(allow_guest=True)
 def get_employee_permission():
@@ -605,13 +681,15 @@ def get_employee_permission():
             FROM `tabUser Permission`
             WHERE `allow` = 'Company'
             GROUP BY `user`; """
-        
+       
         result = frappe.db.sql(sql_query, as_dict=True)
-        
+       
         return result
+
 
     except Exception as e:
         return {"error": str(e)}
+
 
 @frappe.whitelist(allow_guest=True)
 def cat_count():
@@ -635,36 +713,40 @@ def cat_count():
             OR (bom.bom_type = "Finish Goods" AND bom.is_active = 1)
             GROUP BY item.item_subcategory;
         """
-        
+       
         result = frappe.db.sql(sql_query, as_dict=True)
-        
+       
         return result
+
 
     except Exception as e:
         return {"error": str(e)}
-    
+   
+
 
 @frappe.whitelist(allow_guest=True)
 def var_count():
     try:
         sql_query = """
                 select item.variant_of as variant_of, count(item.name) as var_count ,
-                GROUP_CONCAT(distinct(item.name)) as item from tabItem item 
+                GROUP_CONCAT(distinct(item.name)) as item from tabItem item
                 where variant_of is not null group by item.variant_of;
             """
-        
+       
         result = frappe.db.sql(sql_query, as_dict=True)
-        
+       
         return result
+
 
     except Exception as e:
         return {"error": str(e)}
-    
-    #---------------------------------------------------------------------------------------------------------------------------
-    #---------------------------------------------------------------------------------------------------------------------------
+   
+#---------------------------------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------------------------------
+
 
 # exhibition
-    
+   
 #employee
 @frappe.whitelist(allow_guest=True)
 def employee_data():
@@ -672,50 +754,54 @@ def employee_data():
         sql_query = """
              select employee as employee_code ,employee_name ,designation ,company,branch,user_id  from tabEmployee te ;
         """
-        
+       
         result = frappe.db.sql(sql_query, as_dict=True)
-        
+    
         # return result
         result_data = encrypt_data(result)
         return result_data
 
+
     except Exception as e:
         return {"error": str(e)}
-    
+   
 #Branch
 @frappe.whitelist(allow_guest=True)
 def branch_data():
     try:
         sql_query = """
-             select DISTINCT (name) as branch_name from tabBranch tb  ;
+             select branch_name from tabBranch tb  ;
         """
-        
+       
         result = frappe.db.sql(sql_query, as_dict=True)
-        
+       
         # return result
         result_data = encrypt_data(result)
         return result_data
 
+
     except Exception as e:
         return {"error": str(e)}
+
 
 #Salesman    
 @frappe.whitelist(allow_guest=True)
 def salesman_data():
     try:
         sql_query = """
-             select employee as salesman_code ,employee_name as salesman_name,designation ,branch  from tabEmployee te where designation ='Sales Person' ;
+             select employee as salesman_code ,employee_name as salesman_name,designation ,branch  from tabEmployee te where designation ='Sales Representative' ;
         """
-        
+       
         result = frappe.db.sql(sql_query, as_dict=True)
-        
+       
         # return result
         result_data = encrypt_data(result)
         return result_data
 
+
     except Exception as e:
         return {"error": str(e)}
-    
+   
 #customer    
 @frappe.whitelist(allow_guest=True)
 def customer_data():
@@ -723,16 +809,17 @@ def customer_data():
         sql_query = """
              select name as customer_id,customer_name,territory from tabCustomer tc  ;
         """
-        
+       
         result = frappe.db.sql(sql_query, as_dict=True)
-        
+       
         # return result
         result_data = encrypt_data(result)
         return result_data
 
+
     except Exception as e:
         return {"error": str(e)}
-    
+   
 #Lead
 @frappe.whitelist(allow_guest=True)
 def lead_data():
@@ -745,7 +832,7 @@ def lead_data():
         # return result
         result_data = encrypt_data(result)
         return result_data
-    
+   
     except Exception as e:
         return{"error": str(e)}
 
@@ -761,9 +848,10 @@ def item_no_data():
         # return result
         result_data = encrypt_data(result)
         return result_data
-    
+   
     except Exception as e:
         return{"error": str(e)}
+
 
 #summary
 @frappe.whitelist(allow_guest=True)
@@ -773,20 +861,21 @@ def summary_data():
             select date(tes.creation),tes.customer_name,tes.lead_name,tes.selectionperson,tes.branch,tes.salesman_name,tes.user,count(tse.item_no),sum(ex.gold_pure_weight),
             sum(ex.diamond_weight),sum(ex.gross_weight)   from `tabExhibition Selection` as tes
             join `tabSelection Exhibition` as tse on tes.name = tse.parent
-            join 
+            join
             tabExhibition as ex on tse.item_no = ex.name
             group by date(tes.creation),tes.customer_name,tes.lead_name,tes.user ;
         """
-        
+       
         result = frappe.db.sql(sql_query, as_dict=True)
         result_data = encrypt_data(result)
         return result_data
         return result
 
+
     except Exception as e:
         return {"error": str(e)}
-  
-# encrypt 
+ 
+# encrypt
 crypt = {
     "a": "100",
     "b": "101",
@@ -855,7 +944,9 @@ crypt = {
     ",": "153",  
     "@": "154",  
     ".": "155",    
+    "_": "156",
 }
+
 
 import json
 # Common function to encrypt data
@@ -863,11 +954,13 @@ import json
 def encrypt_data(modified_data):
     encrypted_data = {"message": []}
 
+
     for item in modified_data:
         encrypted_item = {}
         for key, value in item.items():
             encrypted_value = "".join(crypt.get(char, char) for char in str(value))
             encrypted_item[key] = encrypted_value
+
 
         encrypted_data["message"].append(encrypted_item)
     print(encrypted_data["message"])

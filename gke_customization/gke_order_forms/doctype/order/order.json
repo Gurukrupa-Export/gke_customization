@@ -336,7 +336,7 @@
    "fieldname": "item_type",
    "fieldtype": "Select",
    "label": "Item Type",
-   "options": "\nTemplate and Variant\nSuffix Of Variant\nOnly Variant\nNo Variant No Suffix",
+   "options": "\nTemplate and Variant\nSuffix Of Variant\nOnly Variant\nNo Variant No Suffix\nVariant From Repair Order",
    "read_only": 1
   },
   {
@@ -539,7 +539,6 @@
    "fetch_from": "cad_order_form_detail.metal_colour",
    "fieldname": "metal_colour",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Metal Colour ",
    "options": "Attribute Value",
    "read_only": 1
@@ -552,7 +551,6 @@
    "fetch_from": "cad_order_form_detail.gold_target",
    "fieldname": "gold_target",
    "fieldtype": "Float",
-   "hidden": 1,
    "label": "Gold Target",
    "read_only": 1
   },
@@ -560,7 +558,6 @@
    "fetch_from": "cad_order_form_detail.diamond_target",
    "fieldname": "diamond_target",
    "fieldtype": "Float",
-   "hidden": 1,
    "label": "Diamond Target",
    "read_only": 1
   },
@@ -572,7 +569,6 @@
    "fetch_from": "cad_order_form_detail.product_size",
    "fieldname": "product_size",
    "fieldtype": "Data",
-   "hidden": 1,
    "label": "Product Size",
    "read_only": 1
   },
@@ -580,7 +576,6 @@
    "fetch_from": "cad_order_form_detail.sizer_type",
    "fieldname": "sizer_type",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Sizer Type",
    "options": "Attribute Value",
    "read_only": 1
@@ -855,7 +850,6 @@
    "fetch_from": "cad_order_form_detail.enamal",
    "fieldname": "enamal",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Enamal",
    "options": "Attribute Value",
    "read_only": 1
@@ -1185,7 +1179,6 @@
   {
    "fieldname": "rhodium_",
    "fieldtype": "Select",
-   "hidden": 1,
    "label": "Rhodium",
    "options": "\nYes\nNo",
    "read_only": 1
@@ -1214,7 +1207,7 @@
    "link_fieldname": "custom_cad_order_id"
   }
  ],
- "modified": "2024-02-16 18:22:44.081273",
+ "modified": "2024-03-12 12:16:43.642374",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",

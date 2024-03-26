@@ -7,8 +7,46 @@ frappe.ui.form.on('Repair Order', {
 	subcategory(frm) {
 		hide_all_subcategory_attribute_fields(frm)
 		show_attribute_fields_for_subcategory(frm)
+	},
+	order_form(frm){
+		if(frm.doc.order_form){
+			console.log('HERE')
+			frm.set_df_property('cad', 'hidden', 1)
+		}
+		else{
+			frm.set_df_property('cad', 'hidden', 0)
+		}
 	}
 });
+
+
+frappe.ui.form.on("Rough Sketch Approval", {
+	approved(frm,cdt,cdn) {
+		update_approved_qty_in_prev_table(frm, cdt, cdn, "designer_assignment_sketch", "rs_count")
+	},
+	reject(frm,cdt,cdn) {
+		update_approved_qty_in_prev_table(frm, cdt, cdn, "designer_assignment_sketch", "rs_count")
+	}
+})
+
+frappe.ui.form.on("Final Sketch Approval HOD", {
+	approved(frm,cdt,cdn) {
+		update_approved_qty_in_prev_table(frm, cdt, cdn, "rough_sketch_approval", "fs_count")
+	},
+	reject(frm,cdt,cdn) {
+		update_approved_qty_in_prev_table(frm, cdt, cdn, "rough_sketch_approval", "fs_count")
+	}
+})
+
+function update_approved_qty_in_prev_table(frm,cdt,cdn, table, fieldname) {
+	var d = locals[cdt][cdn]
+	let row = frm.doc[table].find(r => r.designer == d.designer)
+	if (!row) {
+		frappe.throw(__("Designer not found in {0}", [table]))
+	}
+	row[fieldname] = flt(d.approved) + flt(d.reject)
+	frm.refresh_field(table)
+}
 
 function show_attribute_fields_for_subcategory(frm) {
 	if (frm.doc.subcategory) {

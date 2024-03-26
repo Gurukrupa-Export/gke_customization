@@ -39,9 +39,8 @@
   },
   {
    "fieldname": "branch",
-   "fieldtype": "Link",
-   "label": "Branch",
-   "options": "Branch"
+   "fieldtype": "Data",
+   "label": "Branch"
   },
   {
    "fieldname": "date",
@@ -154,7 +153,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-12-13 12:47:54.361739",
+ "modified": "2024-03-12 15:27:16.377794",
  "modified_by": "Administrator",
  "module": "GKE Catalog",
  "name": "Exhibition Selection",
