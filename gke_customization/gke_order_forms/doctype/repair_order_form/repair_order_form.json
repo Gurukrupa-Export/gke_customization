@@ -1,4 +1,5 @@
 {
+ "_liked_by": "[\"Administrator\"]",
  "actions": [],
  "allow_import": 1,
  "allow_rename": 1,
@@ -115,10 +116,12 @@
    "label": "Customer PO No"
   },
   {
+   "default": "Repair",
    "fieldname": "stock_type",
    "fieldtype": "Select",
    "label": "Order Type",
-   "options": "\nSales\nStock Order",
+   "options": "\nSales\nStock Order\nRepair",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -131,8 +134,7 @@
    "fieldname": "diamond_quality",
    "fieldtype": "Link",
    "label": "Diamond Quality",
-   "options": "Attribute Value",
-   "reqd": 1
+   "options": "Attribute Value"
   },
   {
    "fieldname": "service_type",
@@ -194,7 +196,7 @@
    "link_fieldname": "custom_repair_order_form"
   }
  ],
- "modified": "2024-03-12 16:58:10.192038",
+ "modified": "2024-03-26 12:19:59.451876",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order Form",

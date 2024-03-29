@@ -8,9 +8,10 @@ from frappe.utils import get_link_to_form
 from frappe.model.mapper import get_mapped_doc
 
 class RepairOrder(Document):
-	# def on_submit(self):
-		# if self.required_design == 'CAD':
-		# 	order_form_id = create_cad(self)
+	def on_submit(self):
+		if self.required_design == 'No':
+			bom = create_bom(self)
+			# order_form_id = create_cad(self)
 		# 	frappe.msgprint("New Order Form Created: {0}".format(get_link_to_form("Order Form",order_form_id)))
 		# if self.required_design == 'Manual':
 		# 	order_form_id = create_sketch(self)
@@ -602,4 +603,6 @@ def make_quotation(source_name, target_doc=None):
 	return target_doc
 
 
-
+def create_bom(self):
+	# if 
+	return

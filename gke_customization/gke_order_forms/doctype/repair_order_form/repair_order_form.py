@@ -52,6 +52,7 @@ def make_serial_and_design_order(source_name, target_doc=None, parent_doc = None
 	doc.customer_code = parent_doc.customer_code
 	doc.po_no = parent_doc.po_no
 	doc.parcel_place = parent_doc.parcel_place
+	# doc.diamond_quality = parent_doc.diamond_quality
 	# doc.project = parent_doc.project
 	# doc.due_days = parent_doc.due_days
 	# doc.form_remarks = parent_doc.remarks

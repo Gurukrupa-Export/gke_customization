@@ -303,7 +303,7 @@
    "label": "Est Due Days"
   },
   {
-   "fetch_from": "serial_and_design_id_order_form_detail.diamond_quality",
+   "fetch_from": "serial_and_design_code_order_form.diamond_quality",
    "fieldname": "diamond_quality",
    "fieldtype": "Link",
    "label": "Diamond Quality",
@@ -1352,7 +1352,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2024-03-13 16:43:40.459677",
+ "modified": "2024-03-26 12:46:01.054960",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order",
