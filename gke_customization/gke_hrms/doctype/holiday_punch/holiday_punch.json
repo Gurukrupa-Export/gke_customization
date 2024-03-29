@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "format:HOP-{####}",
  "creation": "2024-03-20 12:52:12.569215",
  "default_view": "List",
  "doctype": "DocType",
@@ -15,14 +16,12 @@
   "start_time",
   "end_time",
   "section_break_buh6b",
-  "new_punch",
-  "column_break_2sjup",
   "add_new_punch",
   "for_od",
   "section_break_dn8t7",
   "details",
   "to_be_deleted",
-  "test"
+  "amended_from"
  ],
  "fields": [
   {
@@ -53,15 +52,6 @@
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "new_punch",
-   "fieldtype": "Datetime",
-   "label": "New punch"
-  },
-  {
-   "fieldname": "column_break_2sjup",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "add_new_punch",
    "fieldtype": "Button",
    "label": "Add New Punch"
@@ -70,6 +60,7 @@
    "default": "0",
    "fieldname": "for_od",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "For OD"
   },
   {
@@ -80,7 +71,7 @@
    "fieldname": "details",
    "fieldtype": "Table",
    "label": "Details",
-   "options": "Manual Punch Details"
+   "options": "Holiday Punch Details"
   },
   {
    "description": "To temporary store check-in names",
@@ -88,11 +79,6 @@
    "fieldtype": "Small Text",
    "hidden": 1,
    "label": "To Be Deleted"
-  },
-  {
-   "fieldname": "test",
-   "fieldtype": "Date",
-   "label": "Test"
   },
   {
    "fieldname": "column_break_xgkf",
@@ -109,14 +95,26 @@
    "fieldname": "end_time",
    "fieldtype": "Time",
    "label": "End Time"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Holiday Punch",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2024-03-20 14:35:23.604556",
+ "modified": "2024-03-28 15:46:58.483861",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Holiday Punch",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
