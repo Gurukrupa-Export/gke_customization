@@ -62,7 +62,7 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 		else:
 			bom = frappe.db.get_value('Item',design_id,'master_bom')
 			if bom==None:
-				frappe.throw(f'BOM is not available for {doc.design_id}')
+				frappe.throw(f'BOM is not available for {design_id}')
 			if mod_reason == 'No Design Change':
 				item_type = "Only Variant"
 				bom_or_cad = 'CAD'
