@@ -13,19 +13,25 @@ from operator import itemgetter
 
 class HolidayPunch(Document):
 	def on_submit(self):
-		# frappe.throw("ON SUBMIT")
+		
+		self.update_emp_checkin()
+		self.delete_checkin()
+		# self.details = []
+  
+		emp_list = []
 		for i in self.details:
 			if i.employee:
 				if not self.shift_name:
 					frappe.throw((f"Shift type missing for Employee: {self.employee}"))
-				process_attendance(i.employee, self.shift_name, self.date)
-				cancel_linked_records(date=self.date, employee=i.employee)
-				create_prsnl_out_logs(from_date=self.date, to_date=self.date, employee=i.employee)
-				frappe.msgprint("Attendance Updated")
-				
-		self.update_emp_checkin()
-		self.delete_checkin()
-		self.details = []
+				emp_list.append(i.employee)
+
+		for j in list(set(emp_list)):
+			process_attendance(j, self.shift_name, self.date)
+			cancel_linked_records(date=self.date, employee=j)
+			create_prsnl_out_logs(from_date=self.date, to_date=self.date, employee=j)
+			frappe.msgprint("Attendance Updated")
+
+			
 	# def validate(self):
 	# 	# self.validate_od_punch()
 	# 	self.update_emp_checkin()
@@ -45,7 +51,9 @@ class HolidayPunch(Document):
 		for punch in self.details:
 			if punch.employee_checkin:
 				doc = frappe.get_doc("Employee Checkin", punch.employee_checkin)
+				# frappe.throw("IF")
 			else:
+				# frappe.throw("ELSE")
 				doc = frappe.new_doc("Employee Checkin")
 				doc.time = punch.time
 				doc.employee = punch.employee
