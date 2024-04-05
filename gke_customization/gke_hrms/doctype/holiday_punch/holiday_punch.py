@@ -211,7 +211,7 @@ def add_checkins(details,date,start_time,end_time):
 	return merged_data
 
 def check_employee_punch(employee_details,date,length,start_time,end_time):
-	if length == 2:
+	if length%2 == 0:
 		last_punch_time = datetime.strptime(employee_details[-1]['time'], "%Y-%m-%d %H:%M:%S").time()
 		if last_punch_time < datetime.strptime(end_time, "%H:%M:%S").time():
 			employee_details = make_in(employee_details)
