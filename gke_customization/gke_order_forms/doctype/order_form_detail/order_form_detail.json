@@ -57,10 +57,9 @@
   "section_break_45",
   "stone_changeable",
   "detachable",
-  "changeable",
+  "lock_type",
   "column_break_dyrs",
   "feature",
-  "lock_type",
   "section_break_73",
   "back_chain",
   "back_chain_size",
@@ -70,10 +69,8 @@
   "black_beed_line",
   "back_side_size",
   "column_break_28",
-  "hinges",
   "back_belt_patti",
   "vanki_type",
-  "total_length",
   "rhodium",
   "column_break_29",
   "chain",
@@ -124,7 +121,8 @@
    "fieldname": "design_by",
    "fieldtype": "Select",
    "label": "Design By",
-   "options": "\nCustomer Design\nOur  Design"
+   "options": "\nCustomer Design\nOur  Design",
+   "reqd": 1
   },
   {
    "allow_on_submit": 1,
@@ -146,7 +144,8 @@
    "fieldname": "delivery_date",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Delivery Date"
+   "label": "Delivery Date",
+   "reqd": 1
   },
   {
    "fieldname": "section_break_10",
@@ -156,7 +155,8 @@
    "fieldname": "design_type",
    "fieldtype": "Select",
    "label": "Design Type",
-   "options": "\nSketch Design\nMod\nNew Design"
+   "options": "\nSketch Design\nMod\nNew Design",
+   "reqd": 1
   },
   {
    "depends_on": "eval:((doc.design_type==\"Mod\"))",
@@ -191,9 +191,9 @@
    "fieldtype": "Section Break"
   },
   {
-   "depends_on": "eval: doc.design_type == 'Mod'",
    "fieldname": "item_type",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Item Type",
    "options": "\nSuffix Of Variant\nOnly Variant\nNo Variant No Suffix\nVariant From Repair Order"
   },
@@ -263,32 +263,38 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Item Category",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "reqd": 1
   },
   {
    "fieldname": "subcategory",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Item Subcategory",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "reqd": 1
   },
   {
    "fieldname": "setting_type",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Setting Type",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "reqd": 1
   },
   {
    "fieldname": "sub_setting_type1",
    "fieldtype": "Link",
    "label": "Sub Setting Type1",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "reqd": 1
   },
   {
+   "depends_on": "eval:doc.setting_type == \"Open\"",
    "fieldname": "sub_setting_type2",
    "fieldtype": "Link",
    "label": "Sub Setting Type2",
+   "mandatory_depends_on": "eval:doc.setting_type == \"Open\"",
    "options": "Attribute Value"
   },
   {
@@ -298,28 +304,32 @@
   {
    "fieldname": "qty",
    "fieldtype": "Int",
-   "label": "No. of Pcs"
+   "label": "No. of Pcs",
+   "reqd": 1
   },
   {
    "fetch_from": "bom.metal_type",
    "fieldname": "metal_type",
    "fieldtype": "Link",
    "label": "Metal Type",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "reqd": 1
   },
   {
    "fetch_from": "bom.metal_touch",
    "fieldname": "metal_touch",
    "fieldtype": "Link",
    "label": "Metal Touch",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "reqd": 1
   },
   {
    "fetch_from": "bom.metal_purity",
    "fieldname": "metal_purity",
    "fieldtype": "Link",
    "label": "Metal Purity",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "reqd": 1
   },
   {
    "fetch_from": "bom.metal_colour",
@@ -327,7 +337,8 @@
    "fieldtype": "Link",
    "label": "Metal Colour ",
    "options": "Attribute Value",
-   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1",
+   "reqd": 1
   },
   {
    "fieldname": "section_break_78",
@@ -338,7 +349,8 @@
    "fetch_if_empty": 1,
    "fieldname": "gold_target",
    "fieldtype": "Float",
-   "label": "Gold Target"
+   "label": "Metal Target",
+   "reqd": 1
   },
   {
    "fetch_from": "bom.diamond_target",
@@ -354,14 +366,13 @@
    "fieldname": "product_size",
    "fieldtype": "Data",
    "label": "Product Size",
-   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1",
+   "reqd": 1
   },
   {
    "fetch_from": "item.sizer_type",
-   "fetch_if_empty": 1,
    "fieldname": "sizer_type",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Sizer Type",
    "options": "Attribute Value"
   },
@@ -371,30 +382,24 @@
   },
   {
    "fetch_from": "item.item_length",
-   "fetch_if_empty": 1,
    "fieldname": "length",
    "fieldtype": "Float",
-   "hidden": 1,
    "label": "Length"
   },
   {
    "fetch_from": "bom.width",
-   "fetch_if_empty": 1,
    "fieldname": "width",
    "fieldtype": "Float",
-   "hidden": 1,
    "label": "Width"
   },
   {
    "fieldname": "height",
    "fieldtype": "Float",
-   "hidden": 1,
    "label": "Height"
   },
   {
    "fieldname": "breadth",
    "fieldtype": "Float",
-   "hidden": 1,
    "label": "Breadth"
   },
   {
@@ -403,7 +408,6 @@
   },
   {
    "fetch_from": "bom.lock_type",
-   "fetch_if_empty": 1,
    "fieldname": "lock_type",
    "fieldtype": "Link",
    "hidden": 1,
@@ -416,7 +420,6 @@
   },
   {
    "fetch_from": "bom.back_chain",
-   "fetch_if_empty": 1,
    "fieldname": "back_chain",
    "fieldtype": "Link",
    "hidden": 1,
@@ -426,7 +429,6 @@
   },
   {
    "fetch_from": "bom.back_chain_size",
-   "fetch_if_empty": 1,
    "fieldname": "back_chain_size",
    "fieldtype": "Float",
    "hidden": 1,
@@ -434,7 +436,6 @@
   },
   {
    "fetch_from": "bom.back_belt",
-   "fetch_if_empty": 1,
    "fieldname": "back_belt",
    "fieldtype": "Link",
    "hidden": 1,
@@ -444,7 +445,6 @@
   },
   {
    "fetch_from": "bom.back_belt_length",
-   "fetch_if_empty": 1,
    "fieldname": "back_belt_length",
    "fieldtype": "Float",
    "hidden": 1,
@@ -453,7 +453,6 @@
   },
   {
    "fetch_from": "bom.black_beed",
-   "fetch_if_empty": 1,
    "fieldname": "black_beed",
    "fieldtype": "Link",
    "hidden": 1,
@@ -463,7 +462,6 @@
   },
   {
    "fetch_from": "bom.black_beed_line",
-   "fetch_if_empty": 1,
    "fieldname": "black_beed_line",
    "fieldtype": "Float",
    "hidden": 1,
@@ -471,7 +469,6 @@
   },
   {
    "fetch_from": "bom.back_side_size",
-   "fetch_if_empty": 1,
    "fieldname": "back_side_size",
    "fieldtype": "Float",
    "hidden": 1,
@@ -480,12 +477,6 @@
   {
    "fieldname": "column_break_28",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "hinges",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Hinges"
   },
   {
    "fieldname": "back_belt_patti",
@@ -500,12 +491,6 @@
    "label": "Vanki Type"
   },
   {
-   "fieldname": "total_length",
-   "fieldtype": "Float",
-   "hidden": 1,
-   "label": "Total Length"
-  },
-  {
    "fieldname": "rhodium",
    "fieldtype": "Select",
    "label": "Rhodium",
@@ -518,7 +503,6 @@
   },
   {
    "fetch_from": "bom.chain",
-   "fetch_if_empty": 1,
    "fieldname": "chain",
    "fieldtype": "Link",
    "hidden": 1,
@@ -527,7 +511,6 @@
   },
   {
    "fetch_from": "bom.chain_type",
-   "fetch_if_empty": 1,
    "fieldname": "chain_type",
    "fieldtype": "Link",
    "hidden": 1,
@@ -537,7 +520,6 @@
   },
   {
    "fetch_from": "bom.customer_chain",
-   "fetch_if_empty": 1,
    "fieldname": "customer_chain",
    "fieldtype": "Link",
    "hidden": 1,
@@ -546,7 +528,6 @@
   },
   {
    "fetch_from": "bom.chain_weight",
-   "fetch_if_empty": 1,
    "fieldname": "chain_weight",
    "fieldtype": "Float",
    "hidden": 1,
@@ -554,7 +535,6 @@
   },
   {
    "fetch_from": "bom.chain_length",
-   "fetch_if_empty": 1,
    "fieldname": "chain_length",
    "fieldtype": "Float",
    "hidden": 1,
@@ -567,7 +547,6 @@
   },
   {
    "fetch_from": "item.item_total_mugappu",
-   "fetch_if_empty": 1,
    "fieldname": "total_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
@@ -583,7 +562,6 @@
   },
   {
    "fetch_from": "bom.2_in_1",
-   "fetch_if_empty": 1,
    "fieldname": "2_in_1",
    "fieldtype": "Link",
    "hidden": 1,
@@ -593,10 +571,8 @@
   },
   {
    "fetch_from": "bom.enamal",
-   "fetch_if_empty": 1,
    "fieldname": "enamal",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Enamal",
    "options": "Attribute Value",
    "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
@@ -607,7 +583,6 @@
   },
   {
    "fetch_from": "bom.nakshi_from",
-   "fetch_if_empty": 1,
    "fieldname": "nakshi_from",
    "fieldtype": "Link",
    "hidden": 1,
@@ -616,7 +591,6 @@
   },
   {
    "fetch_from": "item.vanki_type",
-   "fetch_if_empty": 1,
    "fieldname": "nakshi_weight",
    "fieldtype": "Link",
    "hidden": 1,
@@ -731,7 +705,6 @@
   {
    "fieldname": "remarks",
    "fieldtype": "Text",
-   "hidden": 1,
    "in_list_view": 1,
    "label": "Order Remarks"
   },
@@ -787,13 +760,8 @@
    "options": "Attribute Value"
   },
   {
-   "fieldname": "changeable",
-   "fieldtype": "Select",
-   "label": "Changeable",
-   "options": "\nYes\nNo"
-  },
-  {
    "default": "0",
+   "depends_on": "eval:doc.is_repairing == 1",
    "fieldname": "is_repairing",
    "fieldtype": "Check",
    "label": "Is Repairing",
@@ -803,7 +771,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-03-14 11:15:01.753907",
+ "modified": "2024-04-06 16:41:45.312855",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form Detail",

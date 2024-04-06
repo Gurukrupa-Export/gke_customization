@@ -39,7 +39,7 @@ frappe.ui.form.on('Order Form', {
 		['rhodium', 'Rhodium'],
 		// ['gemstone_type', 'Gemstone Type'],
 		['gemstone_quality', 'Gemstone Quality'],
-		// ['stone_changeable', 'Stone Changeable'],
+		['stone_changeable', 'Stone Changeable'],
 		['hinges', 'Hinges'],
 		['back_belt_patti', 'Back Belt'],
 		['vanki_type', 'Vanki Type'],
@@ -52,7 +52,7 @@ frappe.ui.form.on('Order Form', {
 		['chain', 'Chain'],
 		['chain_type', 'Chain Type'],
 		['customer_chain', 'Customer Chain'],
-		// ['detachable', 'Detachable'],
+		['detachable', 'Detachable'],
 		['back_chain', 'Back Chain'],
 		['nakshi_from', 'Nakshi From'],
 		['nakshi', 'Nakshi'],
@@ -449,12 +449,17 @@ function show_attribute_fields_for_subcategory(frm, cdt, cdn, order_detail) {
 
 //private function to hide all subcategory related fields in order details
 function hide_all_subcategory_attribute_fields(frm, cdt, cdn) {
-	var subcategory_attribute_fields = ['Length', 'Height', 'Sizer Type', 'Hinges', 'Back Belt', 'Vanki Type',
-	'Black Beed', 'Black Beed Line', 'Lock Type',
-	'2 in 1', 'Chain', 'Chain Type', 'Customer Chain', 'Chain Length',
-	'Total Length', 'Chain Weight', 'Back Chain', 'Back Chain Size',
-	'Back Side Size', 'Chain Thickness', 'Total Mugappu', 'Kadi to Mugappu',
-	'Space between Mugappu', 'Nakshi', 'Nakshi From', 'Breadth', 'Width', 'Back Belt', 'Back Belt Length'];
+	// var subcategory_attribute_fields = ['Hinges', 'Back Belt', 'Vanki Type',
+	// 'Black Beed', 'Black Beed Line', 'Lock Type',
+	// '2 in 1', 'Chain', 'Chain Type', 'Customer Chain', 'Chain Length',
+	// 'Total Length', 'Chain Weight', 'Back Chain', 'Back Chain Size',
+	// 'Back Side Size', 'Chain Thickness', 'Total Mugappu', 'Kadi to Mugappu',
+	// 'Space between Mugappu', 'Nakshi', 'Nakshi From', 'Breadth', 'Width', 'Back Belt', 'Back Belt Length'];
+	
+	var subcategory_attribute_fields = ['Lock Type','Back Chain','Back Chain Size','Back Belt','Back Belt Length','Black Beed','Black Beed Line',
+	'Back Side Size','Hinges','Back Belt Patti','Vanki Type','Total Length','Chain','Chain Type','Chain From','Chain Weight',
+	'Chain Length','Number of Ant','Distance Between Kadi To Mugappu','Space between Mugappu','2 in 1']
+
 	show_hide_fields(frm, cdt, cdn, subcategory_attribute_fields, 1);
 }
 
@@ -519,7 +524,8 @@ function set_filter_for_design_n_serial(frm, fields) {
 		frm.set_query(field[0], "order_details", function (doc, cdt, cdn) {
 			return {
 				filters: {
-					"is_design_code": 1
+					"is_design_code": 1,
+					"is_stock_item":1
 				}
 			}
 		});
