@@ -65,25 +65,15 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 				frappe.throw(f'BOM is not available for {design_id}')
 			if mod_reason == 'No Design Change':
 				item_type = "Only Variant"
-				bom_or_cad = 'CAD'
+				# bom_or_cad = 'CAD'
+				bom_or_cad = workflow_state_maker(source_name)
 			else:
 				item_type = "Suffix Of Variant"
-				bom_or_cad = 'CAD'
-
-		# if item_type != 'Variant From Repair Order':
-		# new_design_id = check_varinat(source_name)
-		# if new_design_id:
-		# 	doc = frappe.get_doc('Order Form Detail',source_name)
-		# 	doc.design_id = new_design_id
-		# 	doc.save()
-		# 	item_type = "No Variant No Suffix"
-		# 	bom_or_cad = 'BOM'
-		# else:
-		# 	item_type = set_item_type(source_name)
-		# 	bom_or_cad = workflow_state_maker(source_name)
-		# else:
-			
-		# 	bom_or_cad = 'BOM'	
+				# bom_or_cad = 'CAD'
+				bom_or_cad = workflow_state_maker(source_name)
+	elif design_type == 'Sketch Design':
+		item_type = "No Variant No Suffix"
+		bom_or_cad = 'CAD'
 	else:
 		item_type = 'Template and Variant'
 		bom_or_cad = 'CAD'
@@ -129,45 +119,45 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	
 	return doc.name
 
-def set_item_type(source_name):
-	doc = frappe.get_doc('Order Form Detail',source_name)
+# def set_item_type(source_name):
+# 	doc = frappe.get_doc('Order Form Detail',source_name)
 	
-	# all_variant_attribute = frappe.db.get_list('Attribute Value Item Attribute Detail',filters={'parent':doc.subcategory,'in_item_variant':1},fields=['item_attribute'])
-	all_variant_attribute = frappe.db.sql(
-		f"""select item_attribute from `tabAttribute Value Item Attribute Detail` where parent = '{doc.subcategory}' and in_item_variant=1""",as_dict=1
-	)
-	# suffix_attribute = frappe.db.get_list('Attribute Value Item Attribute Detail',filters={'parent':doc.subcategory,'suffix':1},fields=['item_attribute'])
-	suffix_attribute = frappe.db.sql(
-		f"""select item_attribute from `tabAttribute Value Item Attribute Detail` where parent = '{doc.subcategory}' and suffix=1""",as_dict=1
-	)
-	# print(suffix_attribute)
+# 	# all_variant_attribute = frappe.db.get_list('Attribute Value Item Attribute Detail',filters={'parent':doc.subcategory,'in_item_variant':1},fields=['item_attribute'])
+# 	all_variant_attribute = frappe.db.sql(
+# 		f"""select item_attribute from `tabAttribute Value Item Attribute Detail` where parent = '{doc.subcategory}' and in_item_variant=1""",as_dict=1
+# 	)
+# 	# suffix_attribute = frappe.db.get_list('Attribute Value Item Attribute Detail',filters={'parent':doc.subcategory,'suffix':1},fields=['item_attribute'])
+# 	suffix_attribute = frappe.db.sql(
+# 		f"""select item_attribute from `tabAttribute Value Item Attribute Detail` where parent = '{doc.subcategory}' and suffix=1""",as_dict=1
+# 	)
+# 	# print(suffix_attribute)
 
-	all_attribute_list = []
-	for variant_attribut in all_variant_attribute:
-		item_attribute = variant_attribut['item_attribute'].lower().replace(' ','_')
-		all_attribute_list.append(item_attribute)
+# 	all_attribute_list = []
+# 	for variant_attribut in all_variant_attribute:
+# 		item_attribute = variant_attribut['item_attribute'].lower().replace(' ','_')
+# 		all_attribute_list.append(item_attribute)
 	
-	# bom_detail = frappe.db.get_value('BOM',{'is_active':1,'item':doc.design_id},all_attribute_list,as_dict=1)
-	bom = frappe.db.get_value('Item',doc.design_id,'master_bom')
-	if bom==None:
-		frappe.throw(f'BOM is not available for {doc.design_id}')
-	bom_detail = frappe.db.get_value('BOM',doc.bom,all_attribute_list,as_dict=1)
+# 	# bom_detail = frappe.db.get_value('BOM',{'is_active':1,'item':doc.design_id},all_attribute_list,as_dict=1)
+# 	bom = frappe.db.get_value('Item',doc.design_id,'master_bom')
+# 	if bom==None:
+# 		frappe.throw(f'BOM is not available for {doc.design_id}')
+# 	bom_detail = frappe.db.get_value('BOM',doc.bom,all_attribute_list,as_dict=1)
 	
-	all_item_type = []
-	for attribute in suffix_attribute:
-		item_attribute = attribute['item_attribute'].lower().replace(' ','_')
-		if bom_detail[item_attribute] != frappe.db.get_value('Order Form Detail',source_name,item_attribute):
-			item_type = 'Suffix Of Variant'
-		else:
-			item_type = 'Only Variant'
-		all_item_type.append(item_type)
+# 	all_item_type = []
+# 	for attribute in suffix_attribute:
+# 		item_attribute = attribute['item_attribute'].lower().replace(' ','_')
+# 		if bom_detail[item_attribute] != frappe.db.get_value('Order Form Detail',source_name,item_attribute):
+# 			item_type = 'Suffix Of Variant'
+# 		else:
+# 			item_type = 'Only Variant'
+# 		all_item_type.append(item_type)
 	
-	if 'Suffix Of Variant' in all_item_type:
-		item_type = 'Suffix Of Variant'
-	else:
-		item_type = 'Only Variant'
+# 	if 'Suffix Of Variant' in all_item_type:
+# 		item_type = 'Suffix Of Variant'
+# 	else:
+# 		item_type = 'Only Variant'
 
-	return item_type
+# 	return item_type
 
 
 def workflow_state_maker(source_name):
@@ -184,26 +174,30 @@ def workflow_state_maker(source_name):
 		item_attribute = variant_attribut['item_attribute'].lower().replace(' ','_')
 		all_attribute_list.append(item_attribute)
 	
+	
 	# bom_detail = frappe.db.get_value('BOM',{'is_active':1,'is_default':1,'item':doc.design_id},all_attribute_list,as_dict=1)
 	bom_detail = frappe.db.get_value('BOM',doc.bom,all_attribute_list,as_dict=1)
 	# cad_attribute_list = frappe.db.get_list('Attribute Value Item Attribute Detail',filters={'parent':doc.subcategory,'in_cad_flow':1},fields=['item_attribute'])
 	cad_attribute_list = frappe.db.sql(
 		f"""select item_attribute from `tabAttribute Value Item Attribute Detail` where parent = '{doc.subcategory}' and in_cad_flow=1""",as_dict=1
 	)
+	
 
 	all_bom_or_cad = []
+
 	for i in cad_attribute_list:
 		item_attribute = i['item_attribute'].lower().replace(' ','_')
-		if bom_detail[item_attribute] != frappe.db.get_value('Order Form Detail',source_name,item_attribute):
+		if str(bom_detail[item_attribute]) != str(frappe.db.get_value('Order Form Detail',source_name,item_attribute)):
 			bom_or_cad = 'CAD'
 		else:
 			bom_or_cad = 'BOM'
 		all_bom_or_cad.append(bom_or_cad)
 	
+	
 	if 'CAD' in all_bom_or_cad:
 		bom_or_cad = 'CAD'
 	else:
-		bom_or_cad = 'CAD'
+		bom_or_cad = 'BOM'
 
 	return bom_or_cad
 
@@ -296,5 +290,17 @@ def check_varinat(source_name):
 	# else:
 	# 	return row.design_id
 
+@frappe.whitelist()
+def get_bom_details(design_id):
+	item_subcategory = frappe.db.get_value("Item",design_id,"item_subcategory")
+	master_bom = frappe.db.get_value("Item",design_id,"master_bom")
+	if not master_bom:
+		frappe.throw(f"Master BOM for Item <b>{get_link_to_form('Item',design_id)}</b> is not set")
+	all_item_attributes = []
 
-
+	for i in frappe.get_doc("Attribute Value",item_subcategory).item_attributes:
+		all_item_attributes.append(i.item_attribute.replace(' ','_').lower())
+	
+	with_value = frappe.db.get_value("BOM",master_bom,all_item_attributes,as_dict=1)
+	with_value['master_bom'] = master_bom
+	return with_value
