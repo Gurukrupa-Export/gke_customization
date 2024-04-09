@@ -60,7 +60,7 @@
   "metal_purity",
   "metal_colour",
   "section_break_25",
-  "gold_target",
+  "metal_target",
   "diamond_target",
   "column_break_28",
   "product_size",
@@ -72,7 +72,6 @@
   "breadth",
   "section_break_45",
   "stone_changeable",
-  "changeable_type",
   "column_break_37",
   "feature",
   "column_break_40",
@@ -86,12 +85,9 @@
   "black_beed_line",
   "back_side_size",
   "column_break_49",
-  "hinges",
   "back_belt_patti",
   "vanki_type",
-  "total_length",
   "rhodium_",
-  "gemstone_quality",
   "column_break_56",
   "chain",
   "chain_type",
@@ -100,17 +96,19 @@
   "chain_thickness",
   "chain_length",
   "section_break_63",
-  "total_mugappu",
+  "number_of_ant",
   "distance_between_kadi_to_mugappu",
   "space_between_mugappu",
   "detachable",
-  "2_in_1",
-  "enamal",
+  "two_in_one",
   "column_break_69",
+  "enamal",
   "nakshi_from",
   "nakshi_weight",
   "section_break_6pxwc",
   "gemstone_type1",
+  "column_break_a8vd",
+  "gemstone_quality",
   "section_break_xbmnv",
   "design_image_1",
   "image_preview_1",
@@ -155,6 +153,7 @@
   "territories_tab",
   "india",
   "india_states",
+  "column_break_chfe",
   "usa",
   "usa_states"
  ],
@@ -169,7 +168,6 @@
   {
    "fieldname": "bom_or_cad",
    "fieldtype": "Select",
-   "hidden": 1,
    "label": "BOM or CAD",
    "options": "\nBOM\nCAD",
    "read_only": 1
@@ -462,7 +460,7 @@
    "fieldname": "category",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Category",
+   "label": "Item Category",
    "options": "Attribute Value",
    "read_only": 1
   },
@@ -472,7 +470,7 @@
    "fieldname": "subcategory",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Subcategory",
+   "label": "Item Subcategory",
    "options": "Attribute Value",
    "read_only": 1
   },
@@ -548,13 +546,6 @@
    "fieldtype": "Section Break"
   },
   {
-   "fetch_from": "cad_order_form_detail.gold_target",
-   "fieldname": "gold_target",
-   "fieldtype": "Float",
-   "label": "Gold Target",
-   "read_only": 1
-  },
-  {
    "fetch_from": "cad_order_form_detail.diamond_target",
    "fieldname": "diamond_target",
    "fieldtype": "Float",
@@ -588,7 +579,6 @@
    "fetch_from": "cad_order_form_detail.length",
    "fieldname": "length",
    "fieldtype": "Float",
-   "hidden": 1,
    "label": "Length",
    "read_only": 1
   },
@@ -596,21 +586,18 @@
    "fetch_from": "cad_order_form_detail.width",
    "fieldname": "width",
    "fieldtype": "Float",
-   "hidden": 1,
    "label": "Width",
    "read_only": 1
   },
   {
    "fieldname": "height",
    "fieldtype": "Float",
-   "hidden": 1,
    "label": "Height",
    "read_only": 1
   },
   {
    "fieldname": "breadth",
    "fieldtype": "Float",
-   "hidden": 1,
    "label": "Breadth",
    "read_only": 1
   },
@@ -710,13 +697,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "cad_order_form_detail.hinges",
-   "fieldname": "hinges",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Hinges"
-  },
-  {
    "fetch_from": "cad_order_form_detail.back_belt_patti",
    "fieldname": "back_belt_patti",
    "fieldtype": "Data",
@@ -733,13 +713,6 @@
    "read_only": 1
   },
   {
-   "fetch_from": "cad_order_form_detail.total_length",
-   "fieldname": "total_length",
-   "fieldtype": "Float",
-   "hidden": 1,
-   "label": "Total Length"
-  },
-  {
    "fieldname": "rhodium",
    "fieldtype": "Table MultiSelect",
    "label": "Rhodium",
@@ -751,7 +724,6 @@
    "fetch_from": "cad_order_form_detail.gemstone_quality",
    "fieldname": "gemstone_quality",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Gemstone Quality",
    "options": "Attribute Value"
   },
@@ -814,14 +786,6 @@
    "fieldtype": "Section Break"
   },
   {
-   "fetch_from": "cad_order_form_detail.total_mugappu",
-   "fieldname": "total_mugappu",
-   "fieldtype": "Float",
-   "hidden": 1,
-   "label": "Number Of Ant",
-   "read_only": 1
-  },
-  {
    "fetch_from": "cad_order_form_detail.space_between_mugappu",
    "fieldname": "space_between_mugappu",
    "fieldtype": "Float",
@@ -830,19 +794,10 @@
    "read_only": 1
   },
   {
+   "fetch_from": "cad_order_form_detail.detachable",
    "fieldname": "detachable",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Detachable",
-   "options": "Attribute Value",
-   "read_only": 1
-  },
-  {
-   "fetch_from": "cad_order_form_detail.2_in_1",
-   "fieldname": "2_in_1",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "2 in 1",
    "options": "Attribute Value",
    "read_only": 1
   },
@@ -1000,6 +955,7 @@
    "fieldtype": "Section Break"
   },
   {
+   "depends_on": "eval:doc.bom_or_cad == 'CAD'",
    "fieldname": "designer_assignment",
    "fieldtype": "Table",
    "label": "Designer Assignment",
@@ -1177,6 +1133,7 @@
    "read_only": 1
   },
   {
+   "fetch_from": "cad_order_form_detail.rhodium",
    "fieldname": "rhodium_",
    "fieldtype": "Select",
    "label": "Rhodium",
@@ -1184,18 +1141,43 @@
    "read_only": 1
   },
   {
-   "fetch_from": "cad_order_form_detail.changeable_type",
-   "fieldname": "changeable_type",
-   "fieldtype": "Link",
-   "label": "changeable_type",
-   "options": "Attribute Value"
-  },
-  {
    "fetch_from": "cad_order_form_detail.distance_between_kadi_to_mugappu",
    "fieldname": "distance_between_kadi_to_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "distance_between_kadi_to_mugappu",
+   "label": "Distance Between Kadi To Mugappu",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_a8vd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_chfe",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.total_mugappu",
+   "fieldname": "number_of_ant",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Number Of Ant",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.2_in_1",
+   "fieldname": "two_in_one",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "2 in 1",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.gold_target",
+   "fieldname": "metal_target",
+   "fieldtype": "Float",
+   "label": "Metal Target",
    "read_only": 1
   }
  ],
@@ -1207,7 +1189,7 @@
    "link_fieldname": "custom_cad_order_id"
   }
  ],
- "modified": "2024-03-12 12:16:43.642374",
+ "modified": "2024-04-09 16:01:03.233848",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",
