@@ -1,0 +1,203 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "format:{date}-{supplier_name}-{#}",
+ "creation": "2024-02-29 12:39:54.997482",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company_name",
+  "date",
+  "column_break_axlv",
+  "branch_name",
+  "section_break_qtozq",
+  "in_date",
+  "column_break_xcu5c",
+  "out_date",
+  "supplier_detail_section",
+  "supplier_name",
+  "packet_details_section",
+  "total_wt",
+  "packet_no",
+  "packet_wt",
+  "cvd_wt",
+  "column_break_xxv0",
+  "size",
+  "pcs",
+  "cvd_pcs",
+  "missing_wt",
+  "section_break_6ryv",
+  "final_total_wt"
+ ],
+ "fields": [
+  {
+   "default": "Sadguru Diamonds",
+   "fieldname": "company_name",
+   "fieldtype": "Read Only",
+   "label": "Company Name"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_axlv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Sadguru Diamonds H.O.",
+   "fieldname": "branch_name",
+   "fieldtype": "Read Only",
+   "label": "Branch Name"
+  },
+  {
+   "fieldname": "section_break_qtozq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "in_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "In Date"
+  },
+  {
+   "fieldname": "column_break_xcu5c",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "out_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Out Date"
+  },
+  {
+   "fieldname": "supplier_detail_section",
+   "fieldtype": "Section Break",
+   "label": "Supplier Detail"
+  },
+  {
+   "fieldname": "supplier_name",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Supplier Name",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "packet_details_section",
+   "fieldtype": "Section Break",
+   "label": "Packet Details"
+  },
+  {
+   "default": "0.00",
+   "fieldname": "total_wt",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Total wt",
+   "precision": "2"
+  },
+  {
+   "fieldname": "packet_no",
+   "fieldtype": "Data",
+   "label": "Packet No"
+  },
+  {
+   "default": "0",
+   "fieldname": "packet_wt",
+   "fieldtype": "Float",
+   "label": "Packet Wt ",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "cvd_wt",
+   "fieldtype": "Float",
+   "label": "C.V.D Wt",
+   "length": 2,
+   "precision": "2"
+  },
+  {
+   "fieldname": "column_break_xxv0",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "size",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Size",
+   "options": "Attribute Value",
+   "reqd": 1
+  },
+  {
+   "fieldname": "pcs",
+   "fieldtype": "Data",
+   "label": "Pcs"
+  },
+  {
+   "fieldname": "cvd_pcs",
+   "fieldtype": "Data",
+   "label": "C.V.D (Pcs)"
+  },
+  {
+   "fieldname": "section_break_6ryv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0.00",
+   "fieldname": "final_total_wt",
+   "fieldtype": "Float",
+   "label": "Final Total Wt",
+   "precision": "2"
+  },
+  {
+   "fieldname": "missing_wt",
+   "fieldtype": "Float",
+   "label": "Missing Wt"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-04-15 09:37:29.560648",
+ "modified_by": "Administrator",
+ "module": "Sadguru",
+ "name": "Buying CVD Report",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}
