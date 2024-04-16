@@ -1,0 +1,36 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-04-16 17:21:44.128606",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_huob",
+  "tag_no"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_huob",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "tag_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tag No"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-04-16 17:22:15.800754",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Old Stylebio Master Table",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

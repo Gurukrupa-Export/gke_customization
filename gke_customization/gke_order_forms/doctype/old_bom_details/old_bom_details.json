@@ -1,0 +1,103 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-04-10 12:13:05.306745",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_layi",
+  "old_stylebio",
+  "column_break_gwwx",
+  "tag_no",
+  "section_break_amkp",
+  "metal_type",
+  "metal_colour",
+  "column_break_y8zv",
+  "metal_touch",
+  "metal_purity",
+  "column_break_3q28",
+  "metal_weight"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_layi",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "old_stylebio",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Old Stylebio"
+  },
+  {
+   "fieldname": "column_break_gwwx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tag_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tag No"
+  },
+  {
+   "fieldname": "section_break_amkp",
+   "fieldtype": "Section Break",
+   "label": "Metal Details"
+  },
+  {
+   "default": "Gold",
+   "fieldname": "metal_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Metal Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "metal_touch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Metal Touch",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "metal_purity",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Metal Purity",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "metal_colour",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Metal Colour",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "metal_weight",
+   "fieldtype": "Float",
+   "label": "Metal Weight"
+  },
+  {
+   "fieldname": "column_break_y8zv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_3q28",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-04-15 18:14:34.573668",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Old BOM Details",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

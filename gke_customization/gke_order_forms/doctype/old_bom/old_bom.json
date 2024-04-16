@@ -1,0 +1,97 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "format:{old_stylebio}",
+ "creation": "2024-04-10 12:10:29.939812",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_lw0g",
+  "old_stylebio",
+  "section_break_rptx",
+  "old_bom_metal_details",
+  "section_break_cchb",
+  "old_bom_diamond_details",
+  "section_break_aof8",
+  "old_bom_gemstone_details",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_lw0g",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "old_stylebio",
+   "fieldtype": "Data",
+   "label": "Old Stylebio"
+  },
+  {
+   "fieldname": "section_break_rptx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_cchb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "old_bom_diamond_details",
+   "fieldtype": "Table",
+   "label": "Old BOM Diamond Details",
+   "options": "Old BOM Diamond Details"
+  },
+  {
+   "fieldname": "section_break_aof8",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "old_bom_gemstone_details",
+   "fieldtype": "Table",
+   "label": "Old BOM Gemstone Details",
+   "options": "Old BOM Gemstone Details"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Old BOM",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "old_bom_metal_details",
+   "fieldtype": "Table",
+   "label": "Old BOM Metal Details",
+   "options": "Old BOM Details"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2024-04-16 16:38:42.954341",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Old BOM",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
