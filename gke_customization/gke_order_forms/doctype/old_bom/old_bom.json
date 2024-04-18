@@ -2,13 +2,14 @@
  "actions": [],
  "allow_import": 1,
  "allow_rename": 1,
- "autoname": "format:{old_stylebio}",
+ "autoname": "format:{old_stylebio}-{####}",
  "creation": "2024-04-10 12:10:29.939812",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "section_break_lw0g",
   "old_stylebio",
+  "validation",
   "section_break_rptx",
   "old_bom_metal_details",
   "section_break_cchb",
@@ -66,12 +67,19 @@
    "fieldtype": "Table",
    "label": "Old BOM Metal Details",
    "options": "Old BOM Details"
+  },
+  {
+   "fieldname": "validation",
+   "fieldtype": "Select",
+   "label": "Validation",
+   "options": "Metal with Chain with diamond mm size and gemstone with brackets\nMetal with Chain without diamond mm size and gemstone without brackets\nMetal with Chain with diamond mm size and gemstone without brackets\nMetal with Chain without diamond mm size and gemstone with brackets\nMetal without Chain with diamond mm size and gemstone with brackets\nMetal without Chain without diamond mm  size and gemstone without brackets\nMetal without Chain with diamond mm size and gemstone without brackets\nMetal without Chain without diamond mm size and gemstone with brackets"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-04-16 16:38:42.954341",
+ "make_attachments_public": 1,
+ "modified": "2024-04-17 18:08:34.192194",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Old BOM",

@@ -19,6 +19,7 @@ metal_colour_dict = {
 	"PINK GOLD":"Pink",
 	"PINK + WHITE":"Pink+White",
 }
+
 cut_or_cab_dict = {
 	"Ruby":"Cut",
 	"White Water Pearl":"Cab",
@@ -31,15 +32,25 @@ cut_or_cab_dict = {
 	}
 
 class OldBOM(Document):
+	def before_insert(self):
+		created = frappe.db.get_value("Old Stylebio Master",{"old_stylebio":self.old_stylebio},"created")
+		if created == 1:
+			frappe.throw("Already created")
+	
+
 	def after_insert(self):
 		if not self.old_bom_metal_details:
+			name = frappe.db.get_value("Old Stylebio Master",{"old_stylebio":self.old_stylebio},"name")
+			all_tagno_against_stylebio = frappe.db.get_list('Old Stylebio Master Table',filters={"parent":name},pluck='tag_no')
 			session = requests.Session()
 			response = session.get(f"http://3.6.177.5:5000/api/stylebio/{self.old_stylebio}")
 			json_data = response.json()['data']
-			old_bom_doc = frappe.get_doc("Old BOM",self.old_stylebio)
+			old_bom_doc = frappe.get_doc("Old BOM",{"old_stylebio":self.old_stylebio})
 			# old_bom_doc.old_stylebio = self.old_stylebio
 			
 			for m in json_data.keys():
+				if m not in all_tagno_against_stylebio:
+					continue
 				if json_data[m]['metal_data']:
 					metal_dict = old_bom_doc.append("old_bom_metal_details", {})
 					metal_dict.tag_no = m
@@ -88,7 +99,7 @@ class OldBOM(Document):
 							gemstone_dict.per_pcs_per_carat = "see design tag/cad"
 
 			old_bom_doc.save()
-
+			frappe.db.set_value('Old Stylebio Master',{'old_stylebio':self.old_stylebio},'created',1)
 	def on_submit(self):
 		old_bom_metal_details = []
 		for i in self.old_bom_metal_details:
@@ -310,64 +321,66 @@ class OldBOM(Document):
 	# @frappe.whitelist()
 	# def get_details(old_stylebio):
 		
-		# session = requests.Session()
-		# response = session.get(f"http://3.6.177.5:5000/api/stylebio/{old_stylebio}")
+	# 	session = requests.Session()
+	# 	response = session.get(f"http://3.6.177.5:5000/api/stylebio/{old_stylebio}")
 
-		# if response.status_code == 200:
-		# 	json_data = response.json()['data']
-		# 	old_style_bio = old_stylebio
+	# 	if response.status_code == 200:
+	# 		json_data = response.json()['data']
+	# 		old_style_bio = old_stylebio
 
-		# 	metal_data = []
-		# 	diamond_data = []
-		# 	gemstone_data = []
-		# 	for m in json_data.keys():
-		# 		if json_data[m]['metal_data']:
-		# 			metal_dict = {}
-		# 			metal_dict['tagno'] = m
-		# 			metal_dict['stylebio'] = old_style_bio
-		# 			metal_dict['metal_type'] = 'Gold'
-		# 			metal_dict['metal_touch'] = metal_touch_dict[json_data[m]['metal_data']['Metal_Ratio']]
-		# 			metal_dict['metal_purity'] = float(json_data[m]['metal_data']['Metal_Ratio'])
-		# 			try:
-		# 				metal_dict['metal_colour'] = metal_colour_dict[json_data[m]['metal_data']['Metal_Color']]
-		# 			except:
-		# 				metal_dict['metal_colour'] = "see design tag/cad"
-		# 			metal_dict['metal_weight'] = json_data[m]['metal_data']['G_Weight']
-		# 			metal_data.append(metal_dict)
+	# 		metal_data = []
+	# 		diamond_data = []
+	# 		gemstone_data = []
+	# 		for m in json_data.keys():
+	# 			if json_data[m]['metal_data']:
+	# 				metal_dict = {}
+	# 				metal_dict['tagno'] = m
+	# 				metal_dict['stylebio'] = old_style_bio
+	# 				metal_dict['metal_type'] = 'Gold'
+	# 				metal_dict['metal_touch'] = metal_touch_dict[json_data[m]['metal_data']['Metal_Ratio']]
+	# 				metal_dict['metal_purity'] = float(json_data[m]['metal_data']['Metal_Ratio'])
+	# 				try:
+	# 					metal_dict['metal_colour'] = metal_colour_dict[json_data[m]['metal_data']['Metal_Color']]
+	# 				except:
+	# 					metal_dict['metal_colour'] = "see design tag/cad"
+	# 				metal_dict['metal_weight'] = json_data[m]['metal_data']['G_Weight']
+	# 				metal_data.append(metal_dict)
 
-		# 		if json_data[m]['diamond_data']:
-		# 			diamond_dict = {}
-		# 			diamond_dict['tagno'] = m
-		# 			diamond_dict['stylebio'] = old_style_bio
-		# 			diamond_dict['diamond_shape'] = str(json_data[m]['diamond_data']['Shape_Name']).capitalize()
-		# 			diamond_dict['diamond_sieve_size'] = json_data[m]['diamond_data']['Type']
-		# 			diamond_dict['diamond_pcs'] = json_data[m]['diamond_data']['Pcs']
-		# 			diamond_dict['diamond_weight'] = json_data[m]['diamond_data']['Dia_Wt']
-		# 			diamond_data.append(diamond_dict)
+	# 			if json_data[m]['diamond_data']:
+	# 				diamond_dict = {}
+	# 				diamond_dict['tagno'] = m
+	# 				diamond_dict['stylebio'] = old_style_bio
+	# 				diamond_dict['diamond_shape'] = str(json_data[m]['diamond_data']['Shape_Name']).capitalize()
+	# 				diamond_dict['diamond_sieve_size'] = json_data[m]['diamond_data']['Type']
+	# 				diamond_dict['diamond_pcs'] = json_data[m]['diamond_data']['Pcs']
+	# 				diamond_dict['diamond_weight'] = json_data[m]['diamond_data']['Dia_Wt']
+	# 				diamond_data.append(diamond_dict)
 
-		# 		if json_data[m]['gemstone_data']:
-		# 			for gt in json_data[m]['gemstone_data']['ERP_Name'].split(','):
-		# 				gemstone_dict = {}
-		# 				gemstone_dict['tagno'] = m
-		# 				gemstone_dict['stylebio'] = old_style_bio
+	# 			if json_data[m]['gemstone_data']:
+	# 				for gt in json_data[m]['gemstone_data']['ERP_Name'].split(','):
+	# 					gemstone_dict = {}
+	# 					gemstone_dict['tagno'] = m
+	# 					gemstone_dict['stylebio'] = old_style_bio
 						
-		# 				gemstone_dict['gemstone_type'] = gt.lstrip().title()
-		# 				if len(json_data[m]['gemstone_data']['ERP_Name'].split(',')) == 1:
-		# 					gemstone_dict['cut_or_cab'] = json_data[m]['gemstone_data']['Cut_or_Cab'].lower().replace("cut","Faceted").replace("cab","Cabochon")
-		# 				else:
-		# 					gemstone_dict['cut_or_cab'] = cut_or_cab_dict[gt.lstrip().title()].lower().replace("cut","Faceted").replace("cab","Cabochon")
-		# 				gemstone_dict['gemstone_shape'] = json_data[m]['gemstone_data']['Shape']
+	# 					gemstone_dict['gemstone_type'] = gt.lstrip().title()
+	# 					if len(json_data[m]['gemstone_data']['ERP_Name'].split(',')) == 1:
+	# 						gemstone_dict['cut_or_cab'] = json_data[m]['gemstone_data']['Cut_or_Cab'].lower().replace("cut","Faceted").replace("cab","Cabochon")
+	# 					else:
+	# 						gemstone_dict['cut_or_cab'] = cut_or_cab_dict[gt.lstrip().title()].lower().replace("cut","Faceted").replace("cab","Cabochon")
+	# 					gemstone_dict['gemstone_shape'] = json_data[m]['gemstone_data']['Shape']
 
-		# 				gemstone_dict['gemstone_quality'] = json_data[m]['gemstone_data']['Quality'].replace("Semi Precious","Semi-Precious")
-		# 				gemstone_dict['gemstone_grade'] = json_data[m]['gemstone_data']['Grade']
-		# 				gemstone_dict['total_gemstone_rate'] = json_data[m]['gemstone_data']['Amount']
+	# 					gemstone_dict['gemstone_quality'] = json_data[m]['gemstone_data']['Quality'].replace("Semi Precious","Semi-Precious")
+	# 					gemstone_dict['gemstone_grade'] = json_data[m]['gemstone_data']['Grade']
+	# 					gemstone_dict['total_gemstone_rate'] = json_data[m]['gemstone_data']['Amount']
 
-		# 				gemstone_dict['gemstone_size'] = (json_data[m]['gemstone_data']['Size_Name'].replace(" X ","*") + " MM").replace("MM MM","MM")
-		# 				gemstone_dict['gemstone_pcs'] = json_data[m]['gemstone_data']['Pcs']
-		# 				gemstone_dict['gemstone_weight'] = json_data[m]['gemstone_data']['Weight']
-		# 				gemstone_dict['per_pcs_per_carat'] = json_data[m]['gemstone_data']['UOM'].replace('Per Piece','Per Pc').replace('Per Pcarat','Per Pc')
-		# 				if gemstone_dict['per_pcs_per_carat'] == '':
-		# 					gemstone_dict['per_pcs_per_carat'] = "see design tag/cad"
-		# 				gemstone_data.append(gemstone_dict)
+	# 					gemstone_dict['gemstone_size'] = (json_data[m]['gemstone_data']['Size_Name'].replace(" X ","*") + " MM").replace("MM MM","MM")
+	# 					gemstone_dict['gemstone_pcs'] = json_data[m]['gemstone_data']['Pcs']
+	# 					gemstone_dict['gemstone_weight'] = json_data[m]['gemstone_data']['Weight']
+	# 					gemstone_dict['per_pcs_per_carat'] = json_data[m]['gemstone_data']['UOM'].replace('Per Piece','Per Pc').replace('Per Pcarat','Per Pc')
+	# 					if gemstone_dict['per_pcs_per_carat'] == '':
+	# 						gemstone_dict['per_pcs_per_carat'] = "see design tag/cad"
+	# 					gemstone_data.append(gemstone_dict)
 
-		# 	return metal_data,diamond_data,gemstone_data
+	# 		return metal_data,diamond_data,gemstone_data
+		
+

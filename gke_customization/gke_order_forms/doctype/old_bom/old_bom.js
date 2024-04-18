@@ -85,8 +85,22 @@ frappe.ui.form.on("Old BOM", {
     //         frm.refresh_field('old_bom_gemstone_details');
     //     }
 	// },
-});
 
-
-
+    setup: function(frm) {
+        frappe.call({
+            method: "frappe.client.get",
+            args: {
+                doctype: "User",
+                filters: { "name": frappe.session.user }
+            },
+            callback: function(response) {
+                if (response && response.message) {
+                    if (response.message.module_profile != 'Admin') {
+                        $('button.icon-btn').hide();
+                    }
+                }
+            }
+        });
+    }
     
+});
