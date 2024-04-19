@@ -156,6 +156,50 @@ frappe.ui.form.on('Delivery Challan', {
                 // }
             })
         }, __("Get Items From"))
+        frm.add_custom_button(__("Material Transfer to Branch"), function(){
+            erpnext.utils.map_current_doc({
+                method: "gke_customization.gke_customization.doc_events.stock_entry.get_delivery_challan",
+                source_doctype: "Stock Entry",
+                target: frm,
+                setters: [
+					// {
+                    //     label: "Amended From",
+                    //     fieldname: "amended_from",
+                    //     fieldtype: "Link",
+                    //     options: "Stock Entry"
+                    // },
+                    {
+                        label: "Stock Entry Type",
+                        fieldname: "stock_entry_type",
+                        fieldtype: "Data",
+                        // options: "Stock Entry Type",
+                        default: "Material Transfer to Branch"
+                    },
+                    {
+                        label: "Customer",
+                        fieldname: "customer",
+                        fieldtype: "Link",
+                        options: "Customer",
+                        // reqd: 1,
+                        // default: frm.doc.party_name || undefined
+                    },
+                    {
+                        label: "Inventory Type",
+                        fieldname: "inventory_type",
+                        fieldtype: "Link",
+                        options: "Inventory Type",
+                        // reqd: 1,
+                        default: frm.doc.order_type || undefined
+                    }
+                ],
+                size: "extra-large",
+                get_query_filters: {
+                    // item: ['is', 'set'],
+                    docstatus: 1,
+                    stock_entry_type : "Material Transfer to Branch"
+                }
+            })
+        }, __("Get Items From"))
         // console.log(frm);		        
     }    
 });

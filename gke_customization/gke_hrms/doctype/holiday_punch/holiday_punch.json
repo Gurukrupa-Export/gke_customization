@@ -1,0 +1,134 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:HOP-{####}",
+ "creation": "2024-03-20 12:52:12.569215",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "date",
+  "search",
+  "column_break_xgkf",
+  "shift_name",
+  "start_time",
+  "end_time",
+  "section_break_buh6b",
+  "add_new_punch",
+  "for_od",
+  "section_break_dn8t7",
+  "details",
+  "to_be_deleted",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Attendance Date"
+  },
+  {
+   "fieldname": "shift_name",
+   "fieldtype": "Link",
+   "label": "Shift Name",
+   "options": "Shift Type"
+  },
+  {
+   "fieldname": "search",
+   "fieldtype": "Button",
+   "label": "Search"
+  },
+  {
+   "fieldname": "section_break_buh6b",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "add_new_punch",
+   "fieldtype": "Button",
+   "label": "Add New Punch"
+  },
+  {
+   "default": "0",
+   "fieldname": "for_od",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "For OD"
+  },
+  {
+   "fieldname": "section_break_dn8t7",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "details",
+   "fieldtype": "Table",
+   "label": "Details",
+   "options": "Holiday Punch Details"
+  },
+  {
+   "description": "To temporary store check-in names",
+   "fieldname": "to_be_deleted",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "To Be Deleted"
+  },
+  {
+   "fieldname": "column_break_xgkf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "shift_name.start_time",
+   "fieldname": "start_time",
+   "fieldtype": "Time",
+   "label": "Start Time"
+  },
+  {
+   "fetch_from": "shift_name.end_time",
+   "fieldname": "end_time",
+   "fieldtype": "Time",
+   "label": "End Time"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Holiday Punch",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2024-03-28 15:46:58.483861",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Holiday Punch",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

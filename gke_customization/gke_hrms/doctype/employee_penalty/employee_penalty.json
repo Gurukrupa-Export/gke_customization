@@ -15,9 +15,9 @@
   "section_break_qlo2",
   "penalty_type",
   "section_break_cmqr",
-  "total_penalty_amount",
+  "salary_component",
   "column_break_mfl1",
-  "advanced_cash",
+  "total_penalty_amount",
   "section_break_2tft",
   "employee_penalty_approval",
   "amended_from",
@@ -80,11 +80,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "advanced_cash",
-   "fieldtype": "Currency",
-   "label": "Advanced Cash"
-  },
-  {
    "fieldname": "section_break_2tft",
    "fieldtype": "Section Break"
   },
@@ -110,12 +105,18 @@
    "hidden": 1,
    "label": "naming_series",
    "options": "EMP/PE-"
+  },
+  {
+   "fieldname": "salary_component",
+   "fieldtype": "Link",
+   "label": "Salary Component",
+   "options": "Salary Component"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-03-01 12:37:06.911482",
+ "modified": "2024-03-26 16:13:16.827844",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Employee Penalty",

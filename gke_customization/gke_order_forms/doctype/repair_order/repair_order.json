@@ -1,4 +1,5 @@
 {
+ "_liked_by": "[\"Administrator\"]",
  "actions": [],
  "allow_rename": 1,
  "autoname": "format:{serial_and_design_code_order_form}-{index}",
@@ -19,16 +20,13 @@
   "delivery_date",
   "estimated_duedate",
   "project",
-  "repair_type",
   "parcel_place",
-  "required_design",
   "column_break_2",
   "po_no",
   "order_type",
   "due_days",
   "est_due_days",
   "diamond_quality",
-  "product_type",
   "service_type",
   "section_break_17",
   "scan_serial_no",
@@ -36,14 +34,19 @@
   "section_break_kwlis",
   "serial_and_design_code_order_form",
   "design_by",
+  "repair_type",
+  "required_design",
   "column_break_7qegf",
   "serial_and_design_code_order_form_detail",
   "index",
+  "product_type",
   "section_break_21",
   "item",
   "bom",
-  "column_break_5wjbg",
   "tag_no",
+  "column_break_5wjbg",
+  "new_item_code",
+  "new_bom",
   "modification",
   "section_break_41",
   "category",
@@ -62,7 +65,7 @@
   "column_break_nsgg",
   "customer_weight",
   "section_break_59",
-  "gold_target",
+  "metal_target",
   "diamond_target",
   "column_break_ls4by",
   "product_size",
@@ -74,6 +77,7 @@
   "breadth",
   "section_break_crhvg",
   "stone_changeable",
+  "changeable_type",
   "changeable",
   "column_break_ggacs",
   "enamal",
@@ -84,8 +88,10 @@
   "section_break_wmgqk",
   "hinges",
   "kadi_type",
+  "distance_between_kadi_to_mugappu",
   "column_break_32",
   "vanki_type",
+  "feature",
   "screw_type",
   "column_break_vhivp",
   "hook_type",
@@ -95,7 +101,7 @@
   "black_beed_line",
   "column_break_xvbl7",
   "back_belt_patti",
-  "2_in_1",
+  "two_in_one",
   "column_break_askui",
   "chain",
   "chain_type",
@@ -151,7 +157,24 @@
   "section_break_fgvjt",
   "form_remarks",
   "remarks",
-  "amended_from"
+  "amended_from",
+  "section_break_lfz1",
+  "section_break_udht",
+  "designer_assignment_cad",
+  "section_break_upyz",
+  "designer_assignment_sketch",
+  "section_break_5bpb",
+  "rough_sketch_approval",
+  "section_break_bgme",
+  "final_sketch_approval",
+  "section_break_ag92",
+  "final_sketch_approval_cmo",
+  "tab_break_ztm2",
+  "sketch",
+  "sketch_order_form",
+  "column_break_5jnz",
+  "cad",
+  "order_form"
  ],
  "fields": [
   {
@@ -167,7 +190,8 @@
    "fieldname": "department",
    "fieldtype": "Link",
    "label": "Department",
-   "options": "Department"
+   "options": "Department",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_gpues",
@@ -186,7 +210,8 @@
    "fieldname": "salesman_name",
    "fieldtype": "Link",
    "label": "Salesman Name",
-   "options": "Sales Person"
+   "options": "Sales Person",
+   "read_only": 1
   },
   {
    "collapsible": 1,
@@ -198,7 +223,8 @@
    "fieldname": "customer_code",
    "fieldtype": "Link",
    "label": "Customer Code",
-   "options": "Customer"
+   "options": "Customer",
+   "read_only": 1
   },
   {
    "default": "Today",
@@ -206,13 +232,15 @@
    "fieldname": "order_date",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Order Date"
+   "label": "Order Date",
+   "read_only": 1
   },
   {
    "fetch_from": "serial_and_design_id_order_form_detail.delivery_date",
    "fieldname": "delivery_date",
    "fieldtype": "Date",
-   "label": "Delivery Date"
+   "label": "Delivery Date",
+   "read_only": 1
   },
   {
    "fieldname": "estimated_duedate",
@@ -224,21 +252,24 @@
    "fieldname": "project",
    "fieldtype": "Link",
    "label": "Project",
-   "options": "Project"
+   "options": "Project",
+   "read_only": 1
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.repair_type",
    "fieldname": "repair_type",
    "fieldtype": "Link",
    "label": "Repair Type",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
    "fetch_from": "serial_and_design_id_order_form.parcel_place",
    "fieldname": "parcel_place",
    "fieldtype": "Table MultiSelect",
    "label": "Shipping Territory",
-   "options": "Territory Multi Select"
+   "options": "Territory Multi Select",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_2",
@@ -248,19 +279,22 @@
    "fetch_from": "serial_and_design_id_order_form.po_no",
    "fieldname": "po_no",
    "fieldtype": "Data",
-   "label": "Customer PO No"
+   "label": "Customer PO No",
+   "read_only": 1
   },
   {
    "fetch_from": "serial_and_design_id_order_form.stock_type",
    "fieldname": "order_type",
    "fieldtype": "Select",
    "label": "Order Type",
-   "options": "Sales\nStock Order"
+   "options": "Sales\nStock Order",
+   "read_only": 1
   },
   {
    "fieldname": "due_days",
    "fieldtype": "Int",
-   "label": "Due Days"
+   "label": "Due Days",
+   "read_only": 1
   },
   {
    "fieldname": "est_due_days",
@@ -268,11 +302,12 @@
    "label": "Est Due Days"
   },
   {
-   "fetch_from": "serial_and_design_id_order_form_detail.diamond_quality",
+   "fetch_from": "serial_and_design_code_order_form.diamond_quality",
    "fieldname": "diamond_quality",
    "fieldtype": "Link",
    "label": "Diamond Quality",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
    "fieldname": "service_type",
@@ -298,6 +333,7 @@
   },
   {
    "collapsible": 1,
+   "collapsible_depends_on": "eval:true",
    "fieldname": "section_break_kwlis",
    "fieldtype": "Section Break",
    "label": "Order Form No Detail"
@@ -305,14 +341,16 @@
   {
    "fieldname": "serial_and_design_code_order_form",
    "fieldtype": "Link",
-   "label": "Serial No and Design Code Order Form",
-   "options": "Repair Order Form"
+   "label": "Repair Order Form",
+   "options": "Repair Order Form",
+   "read_only": 1
   },
   {
    "fieldname": "design_by",
    "fieldtype": "Select",
    "label": "Design By",
-   "options": "\nConcept by Design\nCustomer Design"
+   "options": "\nConcept by Design\nCustomer Design",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_7qegf",
@@ -321,7 +359,7 @@
   {
    "fieldname": "serial_and_design_code_order_form_detail",
    "fieldtype": "Link",
-   "label": "Serial No and Design Code Order Form Detail",
+   "label": "Repair Order Form Detail",
    "options": "Repair Order Form Detail",
    "read_only": 1
   },
@@ -340,14 +378,16 @@
    "fieldname": "item",
    "fieldtype": "Link",
    "label": "Design Code",
-   "options": "Item"
+   "options": "Item",
+   "read_only": 1
   },
   {
    "fetch_from": "serial_and_design_id_order_form_detail.bom",
    "fieldname": "bom",
    "fieldtype": "Link",
    "label": "BOM",
-   "options": "BOM"
+   "options": "BOM",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_5wjbg",
@@ -358,14 +398,16 @@
    "fieldname": "tag_no",
    "fieldtype": "Link",
    "label": "Serial No",
-   "options": "Serial No"
+   "options": "Serial No",
+   "read_only": 1
   },
   {
    "fetch_from": "serial_and_design_id_order_form_detail.modification",
    "fieldname": "modification",
    "fieldtype": "Select",
    "label": "Modification",
-   "options": "Yes\nNo"
+   "options": "Yes\nNo",
+   "read_only": 1
   },
   {
    "fieldname": "section_break_41",
@@ -390,21 +432,24 @@
    "fieldname": "setting_type",
    "fieldtype": "Link",
    "label": "Setting Type",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.sub_setting_type1",
    "fieldname": "sub_setting_type1",
    "fieldtype": "Link",
    "label": "Sub Setting Type1",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.sub_setting_type2",
    "fieldname": "sub_setting_type2",
    "fieldtype": "Link",
    "label": "Sub Setting Type2",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_45",
@@ -421,28 +466,32 @@
    "fieldname": "metal_type",
    "fieldtype": "Link",
    "label": "Metal Type",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.metal_touch",
    "fieldname": "metal_touch",
    "fieldtype": "Link",
    "label": "Metal Touch",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
-   "fetch_from": "serial_and_design_id_order_form_detail.purity",
+   "fetch_from": "serial_and_design_code_order_form_detail.metal_purity",
    "fieldname": "metal_purity",
    "fieldtype": "Link",
    "label": "Metal Purity",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
-   "fetch_from": "serial_and_design_id_order_form_detail.metal_colour",
+   "fetch_from": "serial_and_design_code_order_form_detail.metal_colour",
    "fieldname": "metal_colour",
    "fieldtype": "Link",
    "label": "Metal Colour ",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
    "fieldname": "section_break_49",
@@ -454,21 +503,13 @@
    "label": "Product Detail"
   },
   {
-   "fetch_from": "bom.gold_target",
-   "fetch_if_empty": 1,
-   "fieldname": "gold_target",
-   "fieldtype": "Float",
-   "hidden": 1,
-   "label": "Gold Target",
-   "read_only_depends_on": "eval:doc.modification =='No'"
-  },
-  {
    "fetch_from": "bom.diamond_target",
    "fetch_if_empty": 1,
    "fieldname": "diamond_target",
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Diamond Target",
+   "read_only": 1,
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
@@ -482,6 +523,7 @@
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Product Size",
+   "read_only": 1,
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
@@ -506,6 +548,7 @@
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Length",
+   "read_only": 1,
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
@@ -515,6 +558,7 @@
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Width",
+   "read_only": 1,
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
@@ -524,6 +568,7 @@
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Height",
+   "read_only": 1,
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
@@ -533,6 +578,7 @@
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Breadth",
+   "read_only": 1,
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
@@ -546,6 +592,7 @@
    "hidden": 1,
    "label": "Stone Changeable",
    "options": "Attribute Value",
+   "read_only": 1,
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
@@ -556,6 +603,7 @@
    "hidden": 1,
    "label": "Changeable",
    "options": "\nYes\nNo",
+   "read_only": 1,
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
@@ -570,6 +618,7 @@
    "hidden": 1,
    "label": "Enamal",
    "options": "Attribute Value",
+   "read_only": 1,
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
@@ -580,6 +629,7 @@
    "hidden": 1,
    "label": "Rhodium",
    "options": "Attribute Value",
+   "read_only": 1,
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
@@ -591,7 +641,8 @@
    "fieldname": "gemstone_type1",
    "fieldtype": "Link",
    "label": "Gemstone Type1",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
    "fetch_from": "bom.gemstone_quality",
@@ -601,6 +652,7 @@
    "hidden": 1,
    "label": "Gemstone Quality",
    "options": "Attribute Value",
+   "read_only": 1,
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
@@ -707,16 +759,6 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Back Belt Patti",
-   "options": "Attribute Value",
-   "read_only_depends_on": "eval:doc.modification =='No'"
-  },
-  {
-   "fetch_from": "bom.2_in_1",
-   "fetch_if_empty": 1,
-   "fieldname": "2_in_1",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "2 in 1",
    "options": "Attribute Value",
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
@@ -1101,13 +1143,15 @@
    "fieldname": "product_type",
    "fieldtype": "Link",
    "label": "Product Type",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.bom_weight",
    "fieldname": "bom_weight",
    "fieldtype": "Float",
-   "label": "BOM Weight"
+   "label": "BOM Weight",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_nsgg",
@@ -1124,14 +1168,187 @@
    "fieldname": "required_design",
    "fieldtype": "Select",
    "label": "Required Design",
-   "options": "No\nCAD\nManual"
+   "options": "No\nCAD\nManual",
+   "read_only": 1
+  },
+  {
+   "fieldname": "changeable_type",
+   "fieldtype": "Link",
+   "label": "Changeable Type",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "feature",
+   "fieldtype": "Link",
+   "label": "feature",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "distance_between_kadi_to_mugappu",
+   "fieldtype": "Float",
+   "label": "Distance Between Kadi to Mugappu"
+  },
+  {
+   "fieldname": "section_break_lfz1",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:doc.required_design == 'CAD'",
+   "fieldname": "section_break_udht",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "designer_assignment_cad",
+   "fieldtype": "Table",
+   "label": "Designer Assignment",
+   "options": "Designer Assignment - CAD"
+  },
+  {
+   "depends_on": "eval:doc.required_design == 'Manual'",
+   "fieldname": "section_break_upyz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:(!in_list(['Draft','On Hold','Assigned','On Hold - Assigned','Designing'], doc.workflow_state)) && doc.required_design == 'Manual'",
+   "fieldname": "section_break_5bpb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:(!in_list(['Draft','Assigned','On Hold', 'On Hold - Assigned','Designing','Rough Sketch Approval (HOD)','On Hold - Rough Sketch Approval'], doc.workflow_state)) && doc.required_design == 'Manual'",
+   "fieldname": "section_break_bgme",
+   "fieldtype": "Section Break",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:(!in_list(['Draft','Assigned','Rough Sketch Approval (HOD)','Final Sketch Approval (HOD)'], doc.workflow_state)) && doc.required_design == 'Manual'",
+   "fieldname": "section_break_ag92",
+   "fieldtype": "Section Break",
+   "read_only": 1
+  },
+  {
+   "fieldname": "designer_assignment_sketch",
+   "fieldtype": "Table",
+   "label": "Designer Assignment",
+   "options": "Designer Assignment"
+  },
+  {
+   "fieldname": "rough_sketch_approval",
+   "fieldtype": "Table",
+   "label": "Rough Sketch Approval (HOD)",
+   "options": "Rough Sketch Approval"
+  },
+  {
+   "fieldname": "final_sketch_approval",
+   "fieldtype": "Table",
+   "label": "Final Sketch Approval (HOD)",
+   "options": "Final Sketch Approval HOD"
+  },
+  {
+   "fieldname": "final_sketch_approval_cmo",
+   "fieldtype": "Table",
+   "label": "Final Sketch Approval (CMO / CPO)",
+   "options": "Final Sketch Approval CMO"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.new_bom",
+   "fieldname": "new_bom",
+   "fieldtype": "Link",
+   "label": "New BOM",
+   "options": "BOM"
+  },
+  {
+   "depends_on": "eval:doc.required_design != 'No'",
+   "fieldname": "tab_break_ztm2",
+   "fieldtype": "Tab Break",
+   "label": "Sketch or CAD"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "depends_on": "eval:doc.required_design != 'CAD'",
+   "fieldname": "sketch",
+   "fieldtype": "Check",
+   "label": "Sketch",
+   "read_only_depends_on": "eval:doc.sketch_order_form"
+  },
+  {
+   "allow_on_submit": 1,
+   "depends_on": "eval:doc.required_design != 'CAD'",
+   "fieldname": "sketch_order_form",
+   "fieldtype": "Link",
+   "label": "Sketch Order Form",
+   "options": "Sketch Order Form",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.sketch_order_form"
+  },
+  {
+   "fieldname": "column_break_5jnz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "depends_on": "eval:doc.sketch_order_form",
+   "fieldname": "cad",
+   "fieldtype": "Check",
+   "label": "CAD",
+   "read_only_depends_on": "eval:doc.order_form"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "order_form",
+   "fieldtype": "Link",
+   "label": "Order Form",
+   "options": "Order Form",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.metal_target",
+   "fetch_if_empty": 1,
+   "fieldname": "metal_target",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Metal Target",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_if_empty": 1,
+   "fieldname": "two_in_one",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "2 in 1",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.new_item_code",
+   "fieldname": "new_item_code",
+   "fieldtype": "Link",
+   "label": "New Item Code",
+   "options": "Item",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
- "links": [],
+ "links": [
+  {
+   "link_doctype": "Item",
+   "link_fieldname": "custom_repair_order"
+  },
+  {
+   "link_doctype": "Order Form",
+   "link_fieldname": "repair_order"
+  },
+  {
+   "link_doctype": "Sketch Order Form",
+   "link_fieldname": "repair_order"
+  }
+ ],
  "make_attachments_public": 1,
- "modified": "2024-02-26 12:13:32.600897",
+ "modified": "2024-04-19 14:54:08.824147",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order",

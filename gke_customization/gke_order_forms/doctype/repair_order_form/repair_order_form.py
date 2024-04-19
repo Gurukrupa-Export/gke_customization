@@ -48,18 +48,13 @@ def make_serial_and_design_order(source_name, target_doc=None, parent_doc = None
 
 	for entity in parent_doc.get("service_type", []):
 		doc.append("service_type", {"service_type1": entity.service_type1})
-	# doc.company = parent_doc.company
-	# doc.salesman_name = parent_doc.salesman_name
-	# doc.parcel_place = parent_doc.parcel_place
-	# doc.branch = parent_doc.branch
+	
 	doc.customer_code = parent_doc.customer_code
 	doc.po_no = parent_doc.po_no
 	doc.parcel_place = parent_doc.parcel_place
-	doc.due_days = parent_doc.due_days
-	# doc.po_no = parent_doc.po_no
-	# doc.po_no = parent_doc.po_no
-	# doc.po_no = parent_doc.po_no
-	# doc.po_no = parent_doc.po_no
-	doc.form_remarks = parent_doc.remarks
+	# doc.diamond_quality = parent_doc.diamond_quality
+	# doc.project = parent_doc.project
+	# doc.due_days = parent_doc.due_days
+	# doc.form_remarks = parent_doc.remarks
 	doc.save()
 	return doc.name

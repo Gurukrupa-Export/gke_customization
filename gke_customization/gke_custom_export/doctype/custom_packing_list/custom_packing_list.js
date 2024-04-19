@@ -24,7 +24,7 @@ frappe.ui.form.on('Custom Packing List', {
 							// gold weight
 							// gold_weight:(r.message[i].gross_weight-((r.message[i].total_diamond_weight+r.message[i].total_cubic_zirconia_in_carat)/5)),
 							gold_weight : (r.message[i].gross_weight-((r.message[i].total_diamond_weight)/5)),				
-							// gold rate - gjepc
+							// gold rate - gjepc 
 							// gold val 
 							total_diamond_pcs : r.message[i].total_diamond_pcs,
 							total_diamond_in_carat : r.message[i].total_diamond_weight,

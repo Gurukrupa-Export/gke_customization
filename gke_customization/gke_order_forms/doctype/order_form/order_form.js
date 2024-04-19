@@ -39,7 +39,7 @@ frappe.ui.form.on('Order Form', {
 		['rhodium', 'Rhodium'],
 		// ['gemstone_type', 'Gemstone Type'],
 		['gemstone_quality', 'Gemstone Quality'],
-		// ['stone_changeable', 'Stone Changeable'],
+		['stone_changeable', 'Stone Changeable'],
 		['hinges', 'Hinges'],
 		['back_belt_patti', 'Back Belt'],
 		['vanki_type', 'Vanki Type'],
@@ -47,12 +47,12 @@ frappe.ui.form.on('Order Form', {
 		['screw_type', 'Screw Type'],
 		['hook_type', 'Hook Type'],
 		['lock_type', 'Lock Type'],
-		['2_in_1', '2 in 1'],
+		['two_in_one', 'Two in One'],
 		['kadi_type', 'Kadi Type'],
 		['chain', 'Chain'],
 		['chain_type', 'Chain Type'],
 		['customer_chain', 'Customer Chain'],
-		// ['detachable', 'Detachable'],
+		['detachable', 'Detachable'],
 		['back_chain', 'Back Chain'],
 		['nakshi_from', 'Nakshi From'],
 		['nakshi', 'Nakshi'],
@@ -68,6 +68,7 @@ frappe.ui.form.on('Order Form', {
 		['gemstone_quality', 'Gemstone Quality'],
 		['changeable_type', 'Changeable Type'],
 		['feature', 'Feature'],
+		['mod_reason', 'Mod Reason'],
 		];
 
 		set_filters_on_child_table_fields(frm, fields);
@@ -261,15 +262,76 @@ frappe.ui.form.on('Order Form Detail', {
 	design_id: function (frm, cdt, cdn) {
 		var d = locals[cdt][cdn];
 		if (d.design_id) {
-			frappe.db.get_value("Item", { "name": d.design_id }, ["image", "item_category", "item_subcategory", "setting_type", "master_bom"], function (value) {
-				d.design_image = value.image;
-				d.image = value.image;
-				d.category = value.item_category;
-				d.subcategory = value.item_subcategory;
-				d.setting_type = value.setting_type;
-				d.bom = value.master_bom;
-				set_field_visibility(frm, cdt, cdn)
-				refresh_field('order_details');
+			let list_of_attributes = [];
+			frappe.call({
+				method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_bom_details",
+				args: {
+					"design_id": d.design_id,
+				},
+				callback(r) {
+					if(r.message) {
+
+						d.category = r.message.item_category;
+						d.subcategory = r.message.item_subcategory;
+						d.setting_type = r.message.setting_type;
+						d.sub_setting_type1 = r.message.sub_setting_type1
+						d.sub_setting_type2 = r.message.sub_setting_type2
+						d.bom = r.message.master_bom;
+
+						d.qty = r.message.qty
+						d.metal_type = r.message.metal_type
+						d.metal_touch = r.message.metal_touch
+						d.metal_purity = r.message.metal_purity
+						d.metal_colour = r.message.metal_colour
+		
+						d.metal_target = r.message.metal_target
+						d.diamond_target = r.message.diamond_target
+						d.product_size = r.message.product_size
+						d.sizer_type = r.message.sizer_type
+		
+						d.length = r.message.length
+						d.height = r.message.height
+						d.width = r.message.width
+						
+						d.stone_changeable = r.message.stone_changeable
+						d.detachable = r.message.detachable
+
+						d.lock_type = r.message.lock_type
+						d.feature = r.message.feature
+						
+						d.back_chain = r.message.back_chain
+						d.back_chain_size = r.message.back_chain_size
+						d.back_belt = r.message.back_belt
+						d.back_belt_length = r.message.back_belt_length
+						d.black_beed = r.message.black_beed
+						d.black_beed_line = r.message.black_beed_line
+						d.back_side_size = r.message.back_side_size
+						
+						d.back_belt_patti = r.message.back_belt_patti
+						d.vanki_type = r.message.vanki_type
+						d.rhodium = r.message.rhodium
+
+						d.chain = r.message.chain
+						d.chain_type = r.message.chain_type
+						d.customer_chain = r.message.customer_chain
+						d.chain_weight = r.message.chain_weight
+						d.chain_length = r.message.chain_length
+
+						d.number_of_ant = r.message.number_of_ant
+						d.distance_between_kadi_to_mugappu = r.message.distance_between_kadi_to_mugappu
+						d.space_between_mugappu = r.message.space_between_mugappu
+						d.two_in_one = r.message.two_in_one
+
+						d.rhodium = r.message.rhodium
+						d.enamal = r.message.enamal
+
+						d.gemstone_type1 = r.message.gemstone_type1
+						d.gemstone_quality = r.message.gemstone_quality
+				
+						refresh_field('order_details');
+						set_field_visibility(frm, cdt, cdn)
+					}
+				}
 			});
 		} else {
 			d.design_image = "";
@@ -368,7 +430,6 @@ function set_metal_properties_from_bom(frm, cdt, cdn) {
 	let row = locals[cdt][cdn]
 	if (row.design_type == "Mod" && (row.serial_no_bom || row.bom)) {
 		frappe.db.get_value("BOM", row.serial_no_bom || row.bom, ["metal_touch","metal_type","metal_colour","metal_purity"], (r)=> {
-			console.log(r)
 			frappe.model.set_value(cdt, cdn, r)
 		})
 	}
@@ -449,12 +510,17 @@ function show_attribute_fields_for_subcategory(frm, cdt, cdn, order_detail) {
 
 //private function to hide all subcategory related fields in order details
 function hide_all_subcategory_attribute_fields(frm, cdt, cdn) {
-	var subcategory_attribute_fields = ['Length', 'Height', 'Sizer Type', 'Hinges', 'Back Belt', 'Vanki Type',
-	'Black Beed', 'Black Beed Line', 'Lock Type',
-	'2 in 1', 'Chain', 'Chain Type', 'Customer Chain', 'Chain Length',
-	'Total Length', 'Chain Weight', 'Back Chain', 'Back Chain Size',
-	'Back Side Size', 'Chain Thickness', 'Total Mugappu', 'Kadi to Mugappu',
-	'Space between Mugappu', 'Nakshi', 'Nakshi From', 'Breadth', 'Width', 'Back Belt', 'Back Belt Length'];
+	// var subcategory_attribute_fields = ['Hinges', 'Back Belt', 'Vanki Type',
+	// 'Black Beed', 'Black Beed Line', 'Lock Type',
+	// '2 in 1', 'Chain', 'Chain Type', 'Customer Chain', 'Chain Length',
+	// 'Total Length', 'Chain Weight', 'Back Chain', 'Back Chain Size',
+	// 'Back Side Size', 'Chain Thickness', 'Total Mugappu', 'Kadi to Mugappu',
+	// 'Space between Mugappu', 'Nakshi', 'Nakshi From', 'Breadth', 'Width', 'Back Belt', 'Back Belt Length'];
+	
+	var subcategory_attribute_fields = ['Lock Type','Back Chain','Back Chain Size','Back Belt','Back Belt Length','Black Beed','Black Beed Line',
+	'Back Side Size','Hinges','Back Belt Patti','Vanki Type','Total Length','Chain','Chain Type','Chain From','Chain Weight',
+	'Chain Length','Number of Ant','Distance Between Kadi To Mugappu','Space between Mugappu','Two in One']
+
 	show_hide_fields(frm, cdt, cdn, subcategory_attribute_fields, 1);
 }
 
@@ -519,7 +585,8 @@ function set_filter_for_design_n_serial(frm, fields) {
 		frm.set_query(field[0], "order_details", function (doc, cdt, cdn) {
 			return {
 				filters: {
-					"is_design_code": 1
+					"is_design_code": 1,
+					"is_stock_item":1
 				}
 			}
 		});

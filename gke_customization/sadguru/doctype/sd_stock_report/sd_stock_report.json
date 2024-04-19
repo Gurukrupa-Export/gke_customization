@@ -1,0 +1,138 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "format:{in_date}/{size}/{####}",
+ "creation": "2024-02-29 12:39:56.089520",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company_name",
+  "branch_name",
+  "column_break_f4jo",
+  "in_date",
+  "out_date",
+  "stock_detail_section",
+  "size",
+  "cut_wt",
+  "column_break_qk17",
+  "total_wt",
+  "cut_no",
+  "remark_section",
+  "remark"
+ ],
+ "fields": [
+  {
+   "default": "Sadguru Diamonds",
+   "fieldname": "company_name",
+   "fieldtype": "Read Only",
+   "label": "Company Name"
+  },
+  {
+   "default": "Sadguru Diamonds H.O.",
+   "fieldname": "branch_name",
+   "fieldtype": "Read Only",
+   "label": "Branch Name"
+  },
+  {
+   "fieldname": "column_break_f4jo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "in_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "In Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "out_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Out Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "stock_detail_section",
+   "fieldtype": "Section Break",
+   "label": "Stock Detail"
+  },
+  {
+   "fieldname": "size",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sieve Size",
+   "options": "Attribute Value",
+   "reqd": 1
+  },
+  {
+   "fieldname": "cut_wt",
+   "fieldtype": "Data",
+   "label": "Cut Weight"
+  },
+  {
+   "fieldname": "column_break_qk17",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_wt",
+   "fieldtype": "Data",
+   "label": "Total Weight"
+  },
+  {
+   "fieldname": "cut_no",
+   "fieldtype": "Data",
+   "label": "Cut No "
+  },
+  {
+   "fieldname": "remark_section",
+   "fieldtype": "Section Break",
+   "label": "Remark"
+  },
+  {
+   "fieldname": "remark",
+   "fieldtype": "Long Text"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-04-15 09:40:13.658950",
+ "modified_by": "Administrator",
+ "module": "Sadguru",
+ "name": "SD Stock Report",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}

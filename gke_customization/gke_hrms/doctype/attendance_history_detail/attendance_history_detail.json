@@ -1,0 +1,52 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-03-11 11:07:33.515804",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_kyoj",
+  "from_date",
+  "to_date",
+  "total_working_days",
+  "actual_working_days"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_kyoj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date"
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date"
+  },
+  {
+   "fieldname": "total_working_days",
+   "fieldtype": "Data",
+   "label": "Total Working Days"
+  },
+  {
+   "fieldname": "actual_working_days",
+   "fieldtype": "Data",
+   "label": "Actual Working Days"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-03-14 16:28:24.498079",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Attendance History Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

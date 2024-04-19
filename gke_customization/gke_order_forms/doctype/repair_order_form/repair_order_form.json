@@ -1,7 +1,9 @@
 {
+ "_liked_by": "[\"Administrator\"]",
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
- "autoname": "ORD/D/.#####",
+ "autoname": "ORD/RO/.#####",
  "creation": "2022-05-11 22:26:43.199785",
  "doctype": "DocType",
  "editable_grid": 1,
@@ -26,7 +28,6 @@
   "service_type",
   "section_break_16",
   "scan_serial_no",
-  "column_break_19",
   "section_break_5",
   "order_details",
   "section_break_24",
@@ -115,10 +116,12 @@
    "label": "Customer PO No"
   },
   {
+   "default": "Repair",
    "fieldname": "stock_type",
    "fieldtype": "Select",
    "label": "Order Type",
-   "options": "\nSales\nStock Order",
+   "options": "\nSales\nStock Order\nRepair",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -131,8 +134,7 @@
    "fieldname": "diamond_quality",
    "fieldtype": "Link",
    "label": "Diamond Quality",
-   "options": "Attribute Value",
-   "reqd": 1
+   "options": "Attribute Value"
   },
   {
    "fieldname": "service_type",
@@ -150,10 +152,6 @@
    "fieldtype": "Data",
    "label": "Scan Serial No",
    "options": "Barcode"
-  },
-  {
-   "fieldname": "column_break_19",
-   "fieldtype": "Column Break"
   },
   {
    "depends_on": "eval:doc.order_type!='Repair'",
@@ -188,8 +186,17 @@
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
- "links": [],
- "modified": "2023-12-13 13:08:45.892806",
+ "links": [
+  {
+   "link_doctype": "Repair Order",
+   "link_fieldname": "serial_and_design_code_order_form"
+  },
+  {
+   "link_doctype": "Item",
+   "link_fieldname": "custom_repair_order_form"
+  }
+ ],
+ "modified": "2024-03-26 12:19:59.451876",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order Form",

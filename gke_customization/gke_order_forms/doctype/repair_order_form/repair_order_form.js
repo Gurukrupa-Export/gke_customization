@@ -187,8 +187,19 @@ frappe.ui.form.on('Repair Order Form Detail', {
 			frappe.db.get_value("BOM",{"tag_no": d.tag_no},'name', (r)=>{
 				frappe.model.set_value(cdt, cdn, 'bom', r.name)
 			})
+			// frappe.call({
+			// 	method: 'frappe.client.get_value',
+			// 	args: {
+			// 		'doctype': 'Item',
+			// 	},
+			// 	callback: function(r) {
+			// 		if (!r.exc) {
+			// 			// code snippet
+			// 		}
+			// 	}
+			// });
+
 			frappe.db.get_value("BOM",{"tag_no": d.tag_no},'gross_weight', (r)=>{
-				console.log(r.gross_weight)
 				frappe.model.set_value(cdt, cdn, 'bom_weight', r.gross_weight)
 			})
 		}

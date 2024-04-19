@@ -12,6 +12,9 @@
   "design_id",
   "bom",
   "delivery_date",
+  "as_per_serial_no",
+  "mod_reason",
+  "is_repairing",
   "section_break_10",
   "design_type",
   "tag_no",
@@ -20,6 +23,7 @@
   "titan_code",
   "section_break_hdjhs",
   "item_type",
+  "bom_or_cad",
   "section_break_8",
   "reference_designid",
   "reference_design_id_2",
@@ -41,9 +45,8 @@
   "metal_purity",
   "metal_colour",
   "section_break_78",
-  "gold_target",
+  "metal_target",
   "diamond_target",
-  "column_break_17",
   "product_size",
   "sizer_type",
   "column_break_119",
@@ -52,11 +55,11 @@
   "height",
   "breadth",
   "section_break_45",
-  "changeable_type",
+  "stone_changeable",
+  "detachable",
+  "lock_type",
   "column_break_dyrs",
   "feature",
-  "column_break_27",
-  "lock_type",
   "section_break_73",
   "back_chain",
   "back_chain_size",
@@ -66,10 +69,8 @@
   "black_beed_line",
   "back_side_size",
   "column_break_28",
-  "hinges",
   "back_belt_patti",
   "vanki_type",
-  "total_length",
   "rhodium",
   "column_break_29",
   "chain",
@@ -77,21 +78,17 @@
   "customer_chain",
   "chain_weight",
   "chain_length",
+  "chain_thickness",
   "section_break_75",
-  "total_mugappu",
+  "number_of_ant",
   "distance_between_kadi_to_mugappu",
   "space_between_mugappu",
-  "2_in_1",
-  "enamal",
+  "two_in_one",
   "column_break_21",
+  "enamal",
   "nakshi_from",
   "nakshi_weight",
   "column_break_98",
-  "column_break_y84ka",
-  "column_break_ypta1",
-  "column_break_orxpd",
-  "column_break_l45o3",
-  "section_break_ydvby",
   "gemstone_type1",
   "column_break_fyooh",
   "gemstone_quality",
@@ -125,7 +122,8 @@
    "fieldname": "design_by",
    "fieldtype": "Select",
    "label": "Design By",
-   "options": "\nCustomer Design\nOur  Design"
+   "options": "\nCustomer Design\nOur  Design",
+   "reqd": 1
   },
   {
    "allow_on_submit": 1,
@@ -133,11 +131,12 @@
    "fieldname": "design_id",
    "fieldtype": "Link",
    "label": "Design Code",
+   "mandatory_depends_on": "eval: in_list(['Mod','Sketch Design' ], doc.design_type)",
    "options": "Item",
    "read_only_depends_on": "eval:doc.workflow_state == 'Approved'"
   },
   {
-   "depends_on": "eval:doc.design_type == \"Mod\"",
+   "depends_on": "eval: in_list(['Mod','Sketch Design' ], doc.design_type)",
    "fieldname": "bom",
    "fieldtype": "Link",
    "label": "Design Code BOM",
@@ -147,7 +146,8 @@
    "fieldname": "delivery_date",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Delivery Date"
+   "label": "Delivery Date",
+   "reqd": 1
   },
   {
    "fieldname": "section_break_10",
@@ -157,10 +157,11 @@
    "fieldname": "design_type",
    "fieldtype": "Select",
    "label": "Design Type",
-   "options": "\nSketch Design\nMod\nNew Design"
+   "options": "\nSketch Design\nMod\nNew Design",
+   "reqd": 1
   },
   {
-   "depends_on": "eval:((doc.design_type==\"Mod\"))",
+   "depends_on": "eval: in_list(['Mod','Sketch Design' ], doc.design_type)",
    "fetch_from": "design_id.tag_no",
    "fetch_if_empty": 1,
    "fieldname": "tag_no",
@@ -169,7 +170,7 @@
    "options": "Serial No"
   },
   {
-   "depends_on": "eval:((doc.design_type==\"Mod\"))",
+   "depends_on": "eval: in_list(['Mod','Sketch Design' ], doc.design_type)",
    "fieldname": "serial_no_bom",
    "fieldtype": "Link",
    "label": "Serial No BOM",
@@ -192,12 +193,11 @@
    "fieldtype": "Section Break"
   },
   {
-   "depends_on": "eval: doc.design_type == 'Mod'",
    "fieldname": "item_type",
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Item Type",
-   "options": "\nSuffix Of Variant\nOnly Variant\nNo Variant No Suffix"
+   "options": "\nSuffix Of Variant\nOnly Variant\nNo Variant No Suffix\nVariant From Repair Order"
   },
   {
    "fieldname": "section_break_8",
@@ -264,34 +264,45 @@
    "fieldname": "category",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Category",
-   "options": "Attribute Value"
+   "label": "Item Category",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1",
+   "reqd": 1
   },
   {
    "fieldname": "subcategory",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Subcategory",
-   "options": "Attribute Value"
+   "label": "Item Subcategory",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1",
+   "reqd": 1
   },
   {
    "fieldname": "setting_type",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Setting Type",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1",
+   "reqd": 1
   },
   {
    "fieldname": "sub_setting_type1",
    "fieldtype": "Link",
    "label": "Sub Setting Type1",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1",
+   "reqd": 1
   },
   {
+   "depends_on": "eval:doc.setting_type == \"Open\"",
    "fieldname": "sub_setting_type2",
    "fieldtype": "Link",
    "label": "Sub Setting Type2",
-   "options": "Attribute Value"
+   "mandatory_depends_on": "eval:doc.setting_type == \"Open\"",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "column_break_wofco",
@@ -300,360 +311,282 @@
   {
    "fieldname": "qty",
    "fieldtype": "Int",
-   "label": "No. of Pcs"
+   "label": "No. of Pcs",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1",
+   "reqd": 1
   },
   {
-   "fetch_from": "bom.metal_type",
    "fieldname": "metal_type",
    "fieldtype": "Link",
    "label": "Metal Type",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1",
+   "reqd": 1
   },
   {
-   "fetch_from": "bom.metal_touch",
    "fieldname": "metal_touch",
    "fieldtype": "Link",
    "label": "Metal Touch",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1",
+   "reqd": 1
   },
   {
-   "fetch_from": "bom.metal_purity",
    "fieldname": "metal_purity",
    "fieldtype": "Link",
    "label": "Metal Purity",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1",
+   "reqd": 1
   },
   {
-   "fetch_from": "bom.metal_colour",
    "fieldname": "metal_colour",
    "fieldtype": "Link",
    "label": "Metal Colour ",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1",
+   "reqd": 1
   },
   {
    "fieldname": "section_break_78",
    "fieldtype": "Section Break"
   },
   {
-   "fetch_from": "bom.gold_target",
-   "fetch_if_empty": 1,
-   "fieldname": "gold_target",
-   "fieldtype": "Float",
-   "label": "Gold Target"
-  },
-  {
-   "fetch_from": "bom.diamond_target",
-   "fetch_if_empty": 1,
    "fieldname": "diamond_target",
    "fieldtype": "Float",
-   "label": "Diamond Target"
+   "label": "Diamond Target",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
-   "fieldname": "column_break_17",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "item.item_product_size",
-   "fetch_if_empty": 1,
    "fieldname": "product_size",
    "fieldtype": "Data",
-   "label": "Product Size"
+   "label": "Product Size",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1",
+   "reqd": 1
   },
   {
-   "fetch_from": "item.sizer_type",
-   "fetch_if_empty": 1,
    "fieldname": "sizer_type",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Sizer Type",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "column_break_119",
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "item.item_length",
-   "fetch_if_empty": 1,
    "fieldname": "length",
    "fieldtype": "Float",
-   "hidden": 1,
-   "label": "Length"
+   "label": "Length",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
-   "fetch_from": "bom.width",
-   "fetch_if_empty": 1,
    "fieldname": "width",
    "fieldtype": "Float",
-   "hidden": 1,
-   "label": "Width"
+   "label": "Width",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "height",
    "fieldtype": "Float",
-   "hidden": 1,
-   "label": "Height"
+   "label": "Height",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "breadth",
    "fieldtype": "Float",
-   "hidden": 1,
-   "label": "Breadth"
+   "label": "Breadth",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "section_break_45",
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "changeable_type",
-   "fieldtype": "Link",
-   "label": "Changeable Type",
-   "options": "Attribute Value"
-  },
-  {
-   "fieldname": "column_break_27",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "bom.lock_type",
-   "fetch_if_empty": 1,
    "fieldname": "lock_type",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Lock Type",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "section_break_73",
    "fieldtype": "Section Break"
   },
   {
-   "fetch_from": "bom.back_chain",
-   "fetch_if_empty": 1,
    "fieldname": "back_chain",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Back Chain",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
-   "fetch_from": "bom.back_chain_size",
-   "fetch_if_empty": 1,
+   "depends_on": "eval:doc.back_chain == \"Yes\"",
    "fieldname": "back_chain_size",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Back Chain Size"
+   "label": "Back Chain Size",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
-   "fetch_from": "bom.back_belt",
-   "fetch_if_empty": 1,
    "fieldname": "back_belt",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Back Belt",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
-   "fetch_from": "bom.back_belt_length",
-   "fetch_if_empty": 1,
    "fieldname": "back_belt_length",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Back Belt Length"
+   "label": "Back Belt Length",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
-   "fetch_from": "bom.black_beed",
-   "fetch_if_empty": 1,
    "fieldname": "black_beed",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Black Beed",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
-   "fetch_from": "bom.black_beed_line",
-   "fetch_if_empty": 1,
    "fieldname": "black_beed_line",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Black Beed Line"
+   "label": "Black Beed Line",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
-   "fetch_from": "bom.back_side_size",
-   "fetch_if_empty": 1,
    "fieldname": "back_side_size",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Back Side Size"
+   "label": "Back Side Size",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "column_break_28",
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "hinges",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Hinges"
-  },
-  {
    "fieldname": "back_belt_patti",
    "fieldtype": "Data",
    "hidden": 1,
-   "label": "Back Belt Patti"
+   "label": "Back Belt Patti",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "vanki_type",
    "fieldtype": "Data",
    "hidden": 1,
-   "label": "Vanki Type"
-  },
-  {
-   "fieldname": "total_length",
-   "fieldtype": "Float",
-   "hidden": 1,
-   "label": "Total Length"
+   "label": "Vanki Type",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "rhodium",
    "fieldtype": "Select",
    "label": "Rhodium",
-   "options": "\nYes\nNo"
+   "options": "\nYes\nNo",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "column_break_29",
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "bom.chain",
-   "fetch_if_empty": 1,
    "fieldname": "chain",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Chain",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
-   "fetch_from": "bom.chain_type",
-   "fetch_if_empty": 1,
+   "depends_on": "eval:doc.chain == \"Yes\"",
    "fieldname": "chain_type",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Chain Type",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
-   "fetch_from": "bom.customer_chain",
-   "fetch_if_empty": 1,
+   "depends_on": "eval:doc.chain == \"Yes\"",
    "fieldname": "customer_chain",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Chain From",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
-   "fetch_from": "bom.chain_weight",
-   "fetch_if_empty": 1,
+   "depends_on": "eval:doc.chain == \"Yes\"",
    "fieldname": "chain_weight",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Chain Weight"
+   "label": "Chain Weight",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
-   "fetch_from": "bom.chain_length",
-   "fetch_if_empty": 1,
+   "depends_on": "eval:doc.chain == \"Yes\"",
    "fieldname": "chain_length",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Chain Length"
+   "label": "Chain Length",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "section_break_75",
    "fieldtype": "Section Break"
   },
   {
-   "fetch_from": "item.item_total_mugappu",
-   "fetch_if_empty": 1,
-   "fieldname": "total_mugappu",
-   "fieldtype": "Float",
-   "hidden": 1,
-   "label": "Number Of Ant"
-  },
-  {
    "fieldname": "space_between_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Space between Mugappu"
+   "label": "Space between Mugappu",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
-   "fetch_from": "bom.2_in_1",
-   "fetch_if_empty": 1,
-   "fieldname": "2_in_1",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "2 in 1",
-   "options": "Attribute Value"
-  },
-  {
-   "fetch_from": "bom.enamal",
-   "fetch_if_empty": 1,
    "fieldname": "enamal",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Enamal",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "column_break_21",
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "bom.nakshi_from",
-   "fetch_if_empty": 1,
    "fieldname": "nakshi_from",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Nakshi From",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
-   "fetch_from": "item.vanki_type",
-   "fetch_if_empty": 1,
    "fieldname": "nakshi_weight",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Nakshi Weight",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "column_break_98",
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "column_break_y84ka",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "column_break_ypta1",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "column_break_orxpd",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "column_break_l45o3",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "section_break_ydvby",
-   "fieldtype": "Section Break"
-  },
-  {
    "fieldname": "gemstone_type1",
    "fieldtype": "Link",
    "label": "Gemstone Type1",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "column_break_fyooh",
@@ -663,7 +596,8 @@
    "fieldname": "gemstone_quality",
    "fieldtype": "Link",
    "label": "Gemstone Quality",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "column_break_13",
@@ -671,14 +605,12 @@
   },
   {
    "depends_on": "eval:((doc.design_type==\"New Design\")||(doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
-   "fetch_from": "bom.front_view_finish",
    "fetch_if_empty": 1,
    "fieldname": "design_image_1",
    "fieldtype": "Attach Image",
    "label": "Design Image 1"
   },
   {
-   "fetch_from": "design_id.image",
    "fieldname": "image_preview_1",
    "fieldtype": "Image",
    "in_preview": 1,
@@ -752,7 +684,6 @@
   {
    "fieldname": "remarks",
    "fieldtype": "Text",
-   "hidden": 1,
    "in_list_view": 1,
    "label": "Order Remarks"
   },
@@ -764,19 +695,94 @@
    "fieldname": "feature",
    "fieldtype": "Link",
    "label": "Feature",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
    "fieldname": "distance_between_kadi_to_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
-   "label": "Distance Between Kadi To Mugappu"
+   "label": "Distance Between Kadi To Mugappu",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
+  },
+  {
+   "fieldname": "bom_or_cad",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "BOM Or CAD",
+   "options": "\nBOM\nCAD"
+  },
+  {
+   "default": "No Design Change",
+   "depends_on": "eval:doc.as_per_serial_no == 0 && doc.design_type == 'Mod'",
+   "fieldname": "mod_reason",
+   "fieldtype": "Link",
+   "label": "Mod Reason",
+   "options": "Attribute Value"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.design_type == 'Mod'",
+   "fieldname": "as_per_serial_no",
+   "fieldtype": "Check",
+   "label": "As per Serial No"
+  },
+  {
+   "fieldname": "stone_changeable",
+   "fieldtype": "Link",
+   "label": "Stone Changeable",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
+  },
+  {
+   "fieldname": "detachable",
+   "fieldtype": "Link",
+   "label": "Detachable",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.is_repairing == 1",
+   "fieldname": "is_repairing",
+   "fieldtype": "Check",
+   "label": "Is Repairing",
+   "read_only": 1
+  },
+  {
+   "fieldname": "two_in_one",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "2 in 1",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
+  },
+  {
+   "fieldname": "number_of_ant",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Number of Ant",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
+  },
+  {
+   "depends_on": "eval:doc.chain == \"Yes\"",
+   "fieldname": "chain_thickness",
+   "fieldtype": "Float",
+   "label": "Chain Thickness",
+   "read_only": 1
+  },
+  {
+   "fieldname": "metal_target",
+   "fieldtype": "Float",
+   "label": "Metal Target",
+   "read_only_depends_on": "eval:doc.as_per_serial_no == 1",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-02-16 15:52:10.051455",
+ "modified": "2024-04-09 17:42:56.120091",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form Detail",

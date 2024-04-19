@@ -24,9 +24,9 @@ def cerate_timesheet(self):
 		for assignment in self.designer_assignment:
 			designer_value = assignment.designer
 
-			# Check if a timesheet document already exists for the employee
+			# # Check if a timesheet document already exists for the employee
 			timesheet = frappe.get_all(
-				"Timesheet", filters={"employee": designer_value,}, fields=["name"],
+				"Timesheet", filters={"employee": designer_value,"order":self.name}, fields=["name"],
 			)
 
 			if timesheet:
@@ -43,17 +43,18 @@ def cerate_timesheet(self):
 			time_log = timesheet_doc.append("time_logs", {})
 			time_log.activity_type = "CAD Designing"
 			time_log.from_time = now_datetime()
-			time_log.custom_cad_order_id = self.name			
+			timesheet_doc.order = self.name			
 			timesheet_doc.save()			
 
 		frappe.msgprint("Timesheets created for CAD for each designer assignment") 
+
 	elif self.workflow_state == "Sent to QC":
 		for assignment in self.designer_assignment:
 				designer_value = assignment.designer
 
 				# Check if a timesheet document already exists for the employee
 				timesheet = frappe.get_all(
-					"Timesheet", filters={"employee": designer_value,}, fields=["name"],
+					"Timesheet", filters={"employee": designer_value,"order":self.name}, fields=["name"],
 				)
 				if timesheet:
 					timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
@@ -67,51 +68,21 @@ def cerate_timesheet(self):
 					qc_time_log = timesheet_doc.append("time_logs", {})
 					qc_time_log.activity_type = "QC Activity"
 					qc_time_log.from_time = now_datetime()
-					qc_time_log.custom_cad_order_id = self.name
-									
+					qc_time_log.custom_cad_order_id = self.name				
 					timesheet_doc.save()
-					
-					# timesheet_doc.reload()
 				else:
 					frappe.throw("Timesheets is not created for each designer assignment")		
 		
 		frappe.msgprint("Timesheets created for QC for each designer assignment")
-	# elif self.workflow_state == "Sent to QC - On-Hold":
-	# 	for assignment in self.designer_assignment:
-	# 			designer_value = assignment.designer
-
-	# 			# Check if a timesheet document already exists for the employee
-	# 			timesheet = frappe.get_all(
-	# 				"Timesheet", filters={"employee": designer_value,}, fields=["name"],
-	# 			)
-	# 			if timesheet:
-	# 				timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
-
-	# 				if timesheet_doc.time_logs:	
-	# 					time_log = timesheet_doc.time_logs[-1]					
-	# 					time_log.to_time = now_datetime()
-	# 					time_log.completed = 1
-	# 					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
-
-	# 				qc_time_log = timesheet_doc.append("time_logs", {})
-	# 				qc_time_log.activity_type = "QC Activity - On-Hold"
-	# 				qc_time_log.from_time = now_datetime()
-	# 				qc_time_log.custom_cad_order_id = self.name
-									
-	# 				timesheet_doc.save()
-					
-	# 				# timesheet_doc.reload()
-	# 			else:
-	# 				frappe.throw("Timesheets is not created for each designer assignment")		
-		
-	# 	frappe.msgprint("Timesheets created for Sent to QC - On-Hold for each designer assignment")
+	
 	elif self.workflow_state == "Designing - On-Hold":
 		for assignment in self.designer_assignment:
 				designer_value = assignment.designer
 
 				# Check if a timesheet document already exists for the employee
+				# timesheet = frappe.db.get_list("Timesheet",filters={"employee":designer_value,"order":self.name},fields=["name"])
 				timesheet = frappe.get_all(
-					"Timesheet", filters={"employee": designer_value,}, fields=["name"],
+					"Timesheet", filters={"employee": designer_value,"order":self.name}, fields=["name"],
 				)
 				if timesheet:
 					timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
@@ -128,60 +99,33 @@ def cerate_timesheet(self):
 					qc_time_log.custom_cad_order_id = self.name
 									
 					timesheet_doc.save()
-					
-					# timesheet_doc.reload()
 				else:
 					frappe.throw("Timesheets is not created for each designer assignment")		
 		
 		frappe.msgprint("Timesheets created for Designing - On-Hold for each designer assignment")
-	elif self.workflow_state == "Assigned":
-		
-		for assignment in self.designer_assignment:
-				designer_value = assignment.designer
+	
+	elif self.workflow_state == "Update Item":
+		if self.bom_or_cad == 'CAD':
+			for assignment in self.designer_assignment:
+					designer_value = assignment.designer
 
-				# Check if a timesheet document already exists for the employee
-				timesheet = frappe.get_all(
-					"Timesheet", filters={"employee": designer_value,}, fields=["name"],
-				)
-				
-				if timesheet:
-					timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+					# Check if a timesheet document already exists for the employee
+					timesheet = frappe.get_all(
+						"Timesheet", filters={"employee": designer_value,"order":self.name}, fields=["name"],
+					)
+					if timesheet:
+						timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
 
-					time_log = timesheet_doc.time_logs[-1]
-					time_log.to_time = now_datetime()
-					time_log.completed = 1
-					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
-									
-					timesheet_doc.save()
-					
-					# timesheet_doc.reload()
-				else:
-					pass
-					# frappe.throw("Timesheets is not created for each designer assignment")		
-		
-		frappe.msgprint("Timesheets Re-assigned for each designer assignment")
-	elif self.workflow_state == "Update Item": 
-		for assignment in self.designer_assignment:
-				designer_value = assignment.designer
+						time_log = timesheet_doc.time_logs[-1]					
+						time_log.to_time = now_datetime()
+						time_log.completed = 1
+						time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+										
+						timesheet_doc.save()
+					else:
+						frappe.throw("Timesheets is not created for each designer assignment")
+			frappe.msgprint("Timesheets Completed for each designer assignment")		
 
-				# Check if a timesheet document already exists for the employee
-				timesheet = frappe.get_all(
-					"Timesheet", filters={"employee": designer_value,}, fields=["name"],
-				)
-				if timesheet:
-					timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
-
-					time_log = timesheet_doc.time_logs[-1]					
-					time_log.to_time = now_datetime()
-					time_log.completed = 1
-					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
-									
-					timesheet_doc.save()
-					
-					# timesheet_doc.reload()
-				else:
-					frappe.throw("Timesheets is not created for each designer assignment")
-		frappe.msgprint("Timesheets Completed for each designer assignment")		
 	elif self.workflow_state == "Cancelled": 
 		for assignment in self.designer_assignment:
 				designer_value = assignment.designer
@@ -199,18 +143,13 @@ def cerate_timesheet(self):
 					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
 									
 					timesheet_doc.save()
-					
-					# timesheet_doc.reload()
 				else:
 					frappe.throw("Timesheets is cancelled for each designer assignment")		
 		
-		# frappe.msgprint("Timesheets Completed for each designer assignment")
+		frappe.msgprint("Timesheets Completed for each designer assignment")
 
 def create_line_items(self):
-	# if self.workflow_state == 'Approved' and not self.item:
-	# item = create_item_from_order(self.name)
-	# frappe.db.set_value(self.doctype, self.name, "item", item)
-	# frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item))))
+	
 	
 	if self.item_type == 'Template and Variant':
 		if self.design_type != 'Sketch Design':
@@ -223,9 +162,8 @@ def create_line_items(self):
 		else:
 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 
-
 	elif self.item_type == 'Only Variant':
-		if self.design_type != 'Sketch Design':
+		if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD':
 			item_variant = create_only_variant_from_order(self,self.name)
 			frappe.db.set_value('Item',item_variant[0],{
 				"is_design_code":1,
@@ -236,9 +174,10 @@ def create_line_items(self):
 		else:
 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 		
-
-	else:
-		if self.design_type != 'Sketch Design' and self.item_type != 'No Variant No Suffix':
+	# else:
+	elif self.item_type == 'Suffix Of Variant':
+		if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD':
+		# if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD'self.item_type != 'No Variant No Suffix':
 			item_template = create_sufix_of_variant_template_from_order(self)
 			frappe.db.set_value('Item',item_template,'modified_from','')
 			updatet_item_template(item_template)
@@ -248,9 +187,12 @@ def create_line_items(self):
 			frappe.db.set_value(self.doctype, self.name, "item", item_variant)
 		else:
 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
-			frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
+			# frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
+	elif self.item_type == 'No Variant No Suffix':
+		frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 		
 	# create_reference_doc(self,item)
+
 def create_item_template_from_order(source_name, target_doc=None):
 	def post_process(source, target):
 		target.is_design_code = 1
@@ -296,6 +238,8 @@ def create_variant_of_template_from_order(item_template,source_name, target_doc=
 		subcateogy = frappe.db.get_value('Item',item_template,'item_subcategory')
 		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': subcateogy,'in_item_variant':1},'item_attribute',order_by='idx asc'):
 			attribute_with = i.item_attribute.lower().replace(' ', '_')
+			if i.item_attribute == 'Rhodium':
+				attribute_with = 'rhodium_'
 			try:
 				attribute_value = frappe.db.get_value('Order',source_name,attribute_with)
 			except:
@@ -356,16 +300,12 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 		
 		target.order_form_type = 'Order'
 		target.custom_cad_order_id = source_name
+		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
 		target.item_code = item_code
-		target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V",
-		# target.variant_based_on = "Item Attribute"
-		
+		target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V",		
 		
 		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': self.subcategory,'in_item_variant':1},'item_attribute',order_by='idx asc'):
 			attribute_with = i.item_attribute.lower().replace(' ', '_')	
-			# if attribute_with == 'changeable_type':
-			# 	frappe.db.get_value('Order',source_name,attribute_with)
-			# 	frappe.throw(attribute_with)
 			target.append('attributes',{
 				'attribute':i.item_attribute,
 				'variant_of':db_data['variant_of'],
@@ -385,6 +325,8 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 					"category": "item_category",
 					"subcategory": "item_subcategory",
 					"setting_type": "setting_type",
+					"sub_setting_type1":"sub_setting_type",
+					"sub_setting_type2":"sub_setting_type2",
 					"india":"india",
 					"india_states":"india_states",
 					"usa":"usa",
@@ -414,10 +356,11 @@ def create_sufix_of_variant_template_from_order(source_name, target_doc=None):
 	variant_of = frappe.db.get_value("Item",source_name.design_id,'variant_of')
 	if variant_of == None:
 		frappe.throw(f'Template of {variant_of} is not available')
+
 	def post_process(source, target):
-		# target.is_design_code = 1
+		target.is_design_code = 1
 		target.has_variants = 1
-		
+		target.item_group = source.subcategory + " - T",
 		query = """
 		SELECT name, modified_sequence, `sequence`
 		FROM `tabItem` ti
@@ -433,8 +376,11 @@ def create_sufix_of_variant_template_from_order(source_name, target_doc=None):
 			modified_sequence = '01'
 		
 		target.item_code = variant_of + '/' + modified_sequence
+		# frappe.throw(target.item_code)
 		target.modified_sequence = modified_sequence
-		
+		target.order_form_type = 'Order'
+		target.custom_cad_order_id = source_name
+		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
 
 		if source.designer_assignment:
 			target.designer = source.designer_assignment[0].designer
@@ -463,10 +409,12 @@ def create_sufix_of_variant_template_from_order(source_name, target_doc=None):
 def create_variant_of_sufix_of_variant_from_order(self,item_template,source_name, target_doc=None):
 	def post_process(source, target):
 		target.order_form_type = 'Order'
+		target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V",
 		target.custom_cad_order_id = source_name
 		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
 		target.item_code = item_template[:10] + '-001'
 		target.sequence = item_template[2:7]
+		
 
 		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': self.subcategory,'in_item_variant':1},'item_attribute',order_by='idx asc'):
 			attribute_with = i.item_attribute.lower().replace(' ', '_')	

@@ -2,7 +2,7 @@ import frappe
 import json
 
 @frappe.whitelist()
-def get_dispatch_slip(source_name, target_doc=None):
+def get_delivery_challan(source_name, target_doc=None):
 	if isinstance(target_doc, str):
 		target_doc = json.loads(target_doc)
 	if not target_doc:
