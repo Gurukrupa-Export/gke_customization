@@ -596,6 +596,8 @@ def make_quotation(source_name, target_doc=None):
 		"custom_bom_weight": snd_order.get("bom_weight"),
 		"custom_customer_weight": snd_order.get("customer_weight"),
 		"custom_required_design":snd_order.get("required_design"),
+		"custom_new_item_code":snd_order.get("new_item_code"),
+		"custom_new_bom":snd_order.get("new_bom"),
 
 	})
 	set_missing_values(snd_order, target_doc)
