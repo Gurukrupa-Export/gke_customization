@@ -43,8 +43,10 @@
   "section_break_21",
   "item",
   "bom",
-  "column_break_5wjbg",
   "tag_no",
+  "column_break_5wjbg",
+  "new_item_code",
+  "new_bom",
   "modification",
   "section_break_41",
   "category",
@@ -63,7 +65,7 @@
   "column_break_nsgg",
   "customer_weight",
   "section_break_59",
-  "gold_target",
+  "metal_target",
   "diamond_target",
   "column_break_ls4by",
   "product_size",
@@ -99,7 +101,7 @@
   "black_beed_line",
   "column_break_xvbl7",
   "back_belt_patti",
-  "2_in_1",
+  "two_in_one",
   "column_break_askui",
   "chain",
   "chain_type",
@@ -157,9 +159,6 @@
   "remarks",
   "amended_from",
   "section_break_lfz1",
-  "new_design_code",
-  "column_break_fevv",
-  "new_bom",
   "section_break_udht",
   "designer_assignment_cad",
   "section_break_upyz",
@@ -504,16 +503,6 @@
    "label": "Product Detail"
   },
   {
-   "fetch_from": "bom.gold_target",
-   "fetch_if_empty": 1,
-   "fieldname": "gold_target",
-   "fieldtype": "Float",
-   "hidden": 1,
-   "label": "Gold Target",
-   "read_only": 1,
-   "read_only_depends_on": "eval:doc.modification =='No'"
-  },
-  {
    "fetch_from": "bom.diamond_target",
    "fetch_if_empty": 1,
    "fieldname": "diamond_target",
@@ -770,16 +759,6 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Back Belt Patti",
-   "options": "Attribute Value",
-   "read_only_depends_on": "eval:doc.modification =='No'"
-  },
-  {
-   "fetch_from": "bom.2_in_1",
-   "fetch_if_empty": 1,
-   "fieldname": "2_in_1",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "2 in 1",
    "options": "Attribute Value",
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
@@ -1208,7 +1187,7 @@
   {
    "fieldname": "distance_between_kadi_to_mugappu",
    "fieldtype": "Float",
-   "label": "distance_between_kadi_to_mugappu"
+   "label": "Distance Between Kadi to Mugappu"
   },
   {
    "fieldname": "section_break_lfz1",
@@ -1272,21 +1251,11 @@
    "options": "Final Sketch Approval CMO"
   },
   {
-   "fieldname": "column_break_fevv",
-   "fieldtype": "Column Break"
-  },
-  {
+   "fetch_from": "serial_and_design_code_order_form_detail.new_bom",
    "fieldname": "new_bom",
    "fieldtype": "Link",
-   "label": "BOM",
+   "label": "New BOM",
    "options": "BOM"
-  },
-  {
-   "fieldname": "new_design_code",
-   "fieldtype": "Link",
-   "label": "Design Code",
-   "options": "Item",
-   "read_only": 1
   },
   {
    "depends_on": "eval:doc.required_design != 'No'",
@@ -1333,6 +1302,33 @@
    "label": "Order Form",
    "options": "Order Form",
    "read_only": 1
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.metal_target",
+   "fetch_if_empty": 1,
+   "fieldname": "metal_target",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Metal Target",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_if_empty": 1,
+   "fieldname": "two_in_one",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "2 in 1",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.modification =='No'"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.new_item_code",
+   "fieldname": "new_item_code",
+   "fieldtype": "Link",
+   "label": "New Item Code",
+   "options": "Item",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1352,7 +1348,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2024-03-26 12:46:01.054960",
+ "modified": "2024-04-19 14:54:08.824147",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order",
