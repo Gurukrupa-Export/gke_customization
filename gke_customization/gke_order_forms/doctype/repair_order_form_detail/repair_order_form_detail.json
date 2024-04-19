@@ -16,6 +16,10 @@
   "tag_no",
   "serial_no_bom",
   "diamond_quality",
+  "section_break_pa4d",
+  "new_item_code",
+  "column_break_fl2j",
+  "new_bom",
   "section_break_zxnmq",
   "repair_type",
   "required_design",
@@ -34,7 +38,7 @@
   "metal_purity",
   "metal_colour",
   "section_break_4",
-  "gold_target",
+  "metal_target",
   "diamond_target",
   "product_size",
   "sizer_type",
@@ -58,7 +62,7 @@
   "black_beed_line",
   "column_break_56",
   "lock_type",
-  "2_in_1",
+  "two_in_one",
   "section_break_zbdk",
   "chain",
   "chain_type",
@@ -272,13 +276,6 @@
    "fieldtype": "Section Break"
   },
   {
-   "fetch_from": "bom.gold_target",
-   "fetch_if_empty": 1,
-   "fieldname": "gold_target",
-   "fieldtype": "Float",
-   "label": "Metal Target"
-  },
-  {
    "fetch_from": "bom.diamond_target",
    "fetch_if_empty": 1,
    "fieldname": "diamond_target",
@@ -412,15 +409,6 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Lock Type",
-   "options": "Attribute Value"
-  },
-  {
-   "fetch_from": "bom.2_in_1",
-   "fetch_if_empty": 1,
-   "fieldname": "2_in_1",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "2 in 1",
    "options": "Attribute Value"
   },
   {
@@ -813,12 +801,48 @@
   {
    "fieldname": "column_break_wnfg",
    "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "bom.etal_target",
+   "fetch_if_empty": 1,
+   "fieldname": "metal_target",
+   "fieldtype": "Float",
+   "label": "Metal Target"
+  },
+  {
+   "fetch_from": "bom.custom_2_in_1",
+   "fetch_if_empty": 1,
+   "fieldname": "two_in_one",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "2 in 1",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "section_break_pa4d",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "new_item_code",
+   "fieldtype": "Link",
+   "label": "New Item Code",
+   "options": "Item"
+  },
+  {
+   "fieldname": "new_bom",
+   "fieldtype": "Link",
+   "label": "New BOM",
+   "options": "BOM"
+  },
+  {
+   "fieldname": "column_break_fl2j",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-03-20 15:14:59.823652",
+ "modified": "2024-04-19 12:35:47.162205",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order Form Detail",
