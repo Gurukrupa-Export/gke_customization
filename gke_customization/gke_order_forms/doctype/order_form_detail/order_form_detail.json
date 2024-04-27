@@ -488,9 +488,9 @@
   },
   {
    "fieldname": "rhodium",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Rhodium",
-   "options": "\nYes\nNo",
+   "options": "Attribute Value",
    "read_only_depends_on": "eval:doc.as_per_serial_no == 1"
   },
   {
@@ -782,7 +782,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-04-09 17:42:56.120091",
+ "modified": "2024-04-12 11:52:11.010765",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form Detail",
