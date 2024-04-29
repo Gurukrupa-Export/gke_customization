@@ -30,7 +30,7 @@ frappe.ui.form.on('Order Form', {
 		['subcategory', 'Item Subcategory'],
 		['setting_type', 'Setting Type'],
 		['metal_type', 'Metal Type'],
-		['metal_purity', 'Metal Purity'],
+		// ['metal_purity', 'Metal Purity'],
 		['diamond_quality', 'Diamond Quality'],
 		['metal_touch', 'Metal Touch'],
 		['metal_colour', 'Metal Colour'],
@@ -160,11 +160,11 @@ frappe.ui.form.on('Order Form', {
 				filters: { 'item_attribute': "Diamond Quality", "customer_code": doc.customer_code }
 			};
 		});
-		if (frm.doc.order_details) {
-			frm.doc.order_details.forEach(function (d) {
-				show_attribute_fields_for_subcategory(frm, d.doctype, d.name, d);
-			})
-		}
+		// if (frm.doc.order_details) {
+		// 	frm.doc.order_details.forEach(function (d) {
+		// 		show_attribute_fields_for_subcategory(frm, d.doctype, d.name, d);
+		// 	})
+		// }
 		// if(frm.doc.customer_code=='CU0010'){
 		// 	frm.fields_dict['order_details'].grid.get_field('screw_type').get_query = function(doc, cdt, cdn) {
 		// 		console.log('HERE')
@@ -400,6 +400,28 @@ frappe.ui.form.on('Order Form Detail', {
 	bom(frm, cdt, cdn) {
 		set_metal_properties_from_bom(frm, cdt, cdn)
 	},
+	metal_touch(frm,cdt,cdn){
+		// frappe.call({
+			
+		// 	method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.get_metal_purity',
+		// 	args: {
+		// 		'metal_type': row.metal_type,
+		// 		'metal_touch': row.metal_touch,
+		// 		'customer':frm.doc.customer_code,
+		// 	},
+		// 	callback: function(r) {
+		// 		if (!r.exc) {
+		// 			console.log(r.message)
+					
+		// 			frappe.model.set_value(cdt, cdn, 'metal_purity', r.message)
+		// 		}
+		// 	}
+		// });
+		var row = locals[cdt][cdn];
+		frappe.db.get_value("Metal Criteria",{"parent": frm.doc.customer_code,'metal_type':r.metal_type,'metal_touch':r.metal_touch},'metal_purity', (r)=>{
+			frappe.model.set_value(cdt, cdn, 'metal_purity', r.metal_purity)
+		})
+	}
 	// metal_colour(frm,cdt,cdn){
 	// 	var row = locals[cdt][cdn];
 	// 	if (row.design_type=='Mod'){
@@ -538,19 +560,12 @@ function show_hide_fields(frm, cdt, cdn, fields, hidden) {
 
 //private function to show or hide single child table fields
 function show_hide_field(frm, cdt, cdn, field, hidden) {
-	// var df = frappe.meta.get_docfield(cdt, field.toLowerCase().replace(/\s+/g, '_'), cdn);
-	// if (df) {
-	//     //console.log(field.toLowerCase().replace(/\s+/g, '_'));
-	//     //console.log(df.hidden);
-	//     df.hidden = hidden;
-	//    // console.log(df.hidden);
-	//     if (df.hidden===0) df.reqd = 0;
-	// }
+
 	var field_name = field.toLowerCase().replace(/\s+/g, '_')
 	var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": field_name })[0];
 	if (df) {
 		df.hidden = hidden;
-		if (df.hidden == 0) df.reqd = 0;
+		if (df.hidden == 0) df.reqd = 1;
 	}
 	frm.refresh_field("order_details");
 }

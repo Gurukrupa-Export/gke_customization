@@ -36,7 +36,7 @@ def cerate_timesheet(self):
 				timesheet_doc.employee = designer_value
 			
 			
-			if (timesheet_doc.time_logs and timesheet_doc.time_logs[-1].activity_type == 'CAD Designing - On-Hold'):
+			if (timesheet_doc.time_logs and timesheet_doc.time_logs[-1].activity_type in ['CAD Designing - On-Hold','QC Activity - On-Hold']) :
 				timesheet_doc.time_logs[-1].to_time = now_datetime()
 				timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
 
@@ -104,6 +104,35 @@ def cerate_timesheet(self):
 		
 		frappe.msgprint("Timesheets created for Designing - On-Hold for each designer assignment")
 	
+	elif self.workflow_state == "Sent to QC - On-Hold":
+		for assignment in self.designer_assignment:
+				designer_value = assignment.designer
+
+				# Check if a timesheet document already exists for the employee
+				# timesheet = frappe.db.get_list("Timesheet",filters={"employee":designer_value,"order":self.name},fields=["name"])
+				timesheet = frappe.get_all(
+					"Timesheet", filters={"employee": designer_value,"order":self.name}, fields=["name"],
+				)
+				if timesheet:
+					timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+					if timesheet_doc.time_logs:	
+						time_log = timesheet_doc.time_logs[-1]					
+						time_log.to_time = now_datetime()
+						time_log.completed = 1
+						time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+
+					qc_time_log = timesheet_doc.append("time_logs", {})
+					qc_time_log.activity_type = "QC Activity - On-Hold"
+					qc_time_log.from_time = now_datetime()
+					qc_time_log.custom_cad_order_id = self.name
+									
+					timesheet_doc.save()
+				else:
+					frappe.throw("Timesheets is not created for each designer assignment")		
+		
+		frappe.msgprint("Timesheets created for QC - On-Hold for each designer assignment")
+	
 	elif self.workflow_state == "Update Item":
 		if self.bom_or_cad == 'CAD':
 			for assignment in self.designer_assignment:
@@ -120,8 +149,8 @@ def cerate_timesheet(self):
 						time_log.to_time = now_datetime()
 						time_log.completed = 1
 						time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
-										
 						timesheet_doc.save()
+						timesheet_doc.run_method('submit')
 					else:
 						frappe.throw("Timesheets is not created for each designer assignment")
 			frappe.msgprint("Timesheets Completed for each designer assignment")		
@@ -143,6 +172,7 @@ def cerate_timesheet(self):
 					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
 									
 					timesheet_doc.save()
+					timesheet_doc.run_method('submit')
 				else:
 					frappe.throw("Timesheets is cancelled for each designer assignment")		
 		
@@ -190,6 +220,7 @@ def create_line_items(self):
 			# frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
 	elif self.item_type == 'No Variant No Suffix':
 		frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
+		frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
 		
 	# create_reference_doc(self,item)
 

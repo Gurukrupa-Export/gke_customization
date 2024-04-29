@@ -11,8 +11,8 @@ class RepairOrderForm(Document):
 	def on_submit(self):
 		create_serial_and_design_order(self)
 
-	def on_cancel(self):
-		delete_auto_created_serial_and_design_order(self)
+	# def on_cancel(self):
+	# 	delete_auto_created_serial_and_design_order(self)
 
 def create_serial_and_design_order(self):
 	doclist = []
@@ -56,10 +56,6 @@ def make_serial_and_design_order(source_name, target_doc=None, parent_doc = None
 	doc.po_no = parent_doc.po_no
 	doc.parcel_place = parent_doc.parcel_place
 	doc.due_days = parent_doc.due_days
-	# doc.po_no = parent_doc.po_no
-	# doc.po_no = parent_doc.po_no
-	# doc.po_no = parent_doc.po_no
-	# doc.po_no = parent_doc.po_no
 	doc.form_remarks = parent_doc.remarks
 	doc.save()
 	return doc.name
