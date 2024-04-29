@@ -1,0 +1,291 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "format:{item}-{####}",
+ "creation": "2024-04-23 14:54:15.892993",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "item",
+  "category",
+  "subcategory",
+  "section_break_cnwd",
+  "metal_colour",
+  "product_size",
+  "gemstone_type1",
+  "enamal",
+  "diamond_target",
+  "sizer_type",
+  "rhodium",
+  "amended_from",
+  "section_break_mwel",
+  "stone_changeable",
+  "lock_type",
+  "chain_type",
+  "chain_length",
+  "two_in_one",
+  "detachable",
+  "feature",
+  "chain",
+  "number_of_ant",
+  "back_chain",
+  "back_belt",
+  "back_belt_length",
+  "back_side_size",
+  "chain_thickness",
+  "distance_between_kadi_to_mugappu",
+  "space_between_mugappu",
+  "count_of_spiral_turns",
+  "black_bead",
+  "black_beed_line"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_cnwd",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "metal_colour",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Metal Colour",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "diamond_target",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Diamond Target"
+  },
+  {
+   "fieldname": "product_size",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Product Size",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "sizer_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Sizer Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "enamal",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Enamal",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "rhodium",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Rhodium",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "gemstone_type1",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Gemstone Type1",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Update Item Variant",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "stone_changeable",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Stone Changeable",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "lock_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Lock Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "chain_type",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Chain Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "chain_length",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Chain Length",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "two_in_one",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Two in One",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "detachable",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Detachable",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "feature",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Feature",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "chain",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Chain",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "number_of_ant",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Number of Ant",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "back_chain",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Back Chain",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "back_belt",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Back Belt",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "back_belt_length",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Back Belt Length",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "back_side_size",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Back Side Size",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "chain_thickness",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Chain Thickness",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "distance_between_kadi_to_mugappu",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Distance Between Kadi To Mugappu",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "space_between_mugappu",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Space between Mugappu",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "count_of_spiral_turns",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Count of Spiral Turns"
+  },
+  {
+   "fieldname": "black_bead",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Black Bead",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "black_beed_line",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Black Beed Line"
+  },
+  {
+   "fieldname": "section_break_mwel",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "item.item_category",
+   "fieldname": "category",
+   "fieldtype": "Link",
+   "label": "Item Category",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "item.item_subcategory",
+   "fieldname": "subcategory",
+   "fieldtype": "Link",
+   "label": "Item Subcategory",
+   "options": "Attribute Value"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2024-04-24 15:48:09.961407",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Update Item Variant",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

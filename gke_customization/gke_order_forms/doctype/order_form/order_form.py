@@ -6,6 +6,26 @@ from frappe import _
 from frappe.utils import get_link_to_form
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
+from erpnext.controllers.item_variant import (
+	ItemVariantExistsError,
+	copy_attributes_to_variant,
+	get_variant,
+	make_variant_item_code,
+	validate_item_variant_attributes,
+)
+from frappe.utils import (
+	cint,
+	cstr,
+	flt,
+	formatdate,
+	get_link_to_form,
+	getdate,
+	now_datetime,
+	nowtime,
+	strip,
+	strip_html,
+)
+
 
 class OrderForm(Document):
 	def on_submit(self):
@@ -60,6 +80,9 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 			item_type = "No Variant No Suffix"
 			bom_or_cad = 'BOM'
 		else:
+			variant_of = frappe.db.get_value("Item",design_id,"variant_of")
+			attribute_list = make_atribute_list(source_name)
+			validate_variant_attributes(variant_of,attribute_list)
 			bom = frappe.db.get_value('Item',design_id,'master_bom')
 			if bom==None:
 				frappe.throw(f'BOM is not available for {design_id}')
@@ -119,6 +142,18 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	
 	return doc.name
 
+def make_atribute_list(source_name):
+	order_form_details = frappe.get_doc('Order Form Detail',source_name)
+	all_variant_attribute = frappe.db.sql(
+		f"""select item_attribute from `tabAttribute Value Item Attribute Detail` where parent = '{order_form_details.subcategory}' and in_item_variant=1""",as_list=1
+	)
+
+	final_list = {}
+	for i in all_variant_attribute:
+		new_i = i[0].replace(' ','_').lower()
+		final_list[i[0]] = order_form_details.get_value(new_i)
+		
+	return final_list
 # def set_item_type(source_name):
 # 	doc = frappe.get_doc('Order Form Detail',source_name)
 	
@@ -202,14 +237,6 @@ def workflow_state_maker(source_name):
 	return bom_or_cad
 
 
-# @frappe.whitelist()
-# def set_titan_code(customer_code,titan_code):
-# 	metal_touch = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[:2],'customer':customer_code},'parent')
-# 	# category = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[6],'customer':customer_code},'parent')
-	
-# 	data_json = {"metal_touch":metal_touch,}
-# 	return data_json
-
 @frappe.whitelist()
 def make_order_form(source_name,target_doc=None):
 	if isinstance(target_doc, str):
@@ -251,42 +278,42 @@ def make_order_form(source_name,target_doc=None):
 # 	variant_of = frappe.db.get_value('Item',{'name':design_id},'variant_of')
 # 	all_variant = frappe.db.get_all('Item',filters={'variant_of':variant_of},pluck='name')
 # 	for i in all_variant:
-# 		print(i)
 # 		print(frappe.db.sql(f"""SELECT attribute_value  from `tabItem Variant Attribute` tiva where parent ='{i}' and `attribute`= 'Metal Colour'""",as_dict=1))
 # 		if metal_colour == frappe.db.sql(f"""SELECT attribute_value  from `tabItem Variant Attribute` tiva where parent ='{i}' and `attribute`= 'Metal Colour'""",as_dict=1)[0]['attribute_value']:
 # 			return i
 		
-def check_varinat(source_name):
-	row = frappe.get_doc('Order Form Detail',source_name)
-	variant_of,item_subcategory = frappe.db.get_value('Item',{'name':row.design_id},['variant_of','item_subcategory'])
-	all_variant = frappe.db.get_all('Item',filters={'variant_of':variant_of},pluck='name')
+# def check_varinat(source_name):
+# 	row = frappe.get_doc('Order Form Detail',source_name)
+# 	# variant_of,item_subcategory = frappe.db.get_value('Item',{'name':row.design_id},['variant_of','item_subcategory'])
+# 	# all_variant = frappe.db.get_all('Item',filters={'variant_of':variant_of},pluck='name')
 
-	all_attribute = frappe.db.sql(f"""select item_attribute  from `tabAttribute Value Item Attribute Detail` taviad  where parent = '{item_subcategory}' and in_item_variant =1""",as_dict=1)
-	a = []
-	for i in all_variant:
-		variant_attrbute_value_list = []
-		for j in all_attribute:
-			attribute_value = frappe.db.sql(f"""SELECT attribute_value  from `tabItem Variant Attribute` tiva where parent ='{i}' and `attribute`= '{j['item_attribute']}'""",as_dict=1)
-			if attribute_value:
-				variant_attrbute_value_list.append(attribute_value[0]['attribute_value'])
-			else:
-				variant_attrbute_value_list.append('')
-		a.append([i,variant_attrbute_value_list])
+# 	item_subcategory = row.subcategory
+# 	all_attribute = frappe.db.sql(f"""select item_attribute  from `tabAttribute Value Item Attribute Detail` taviad  where parent = '{item_subcategory}' and in_item_variant =1""",as_dict=1)
+# 	a = []
+# 	for i in all_variant:
+# 		variant_attrbute_value_list = []
+# 		for j in all_attribute:
+# 			attribute_value = frappe.db.sql(f"""SELECT attribute_value  from `tabItem Variant Attribute` tiva where parent ='{i}' and `attribute`= '{j['item_attribute']}'""",as_dict=1)
+# 			if attribute_value:
+# 				variant_attrbute_value_list.append(attribute_value[0]['attribute_value'])
+# 			else:
+# 				variant_attrbute_value_list.append('')
+# 		a.append([i,variant_attrbute_value_list])
 	
-	current_data = []
-	for k in all_attribute:
-		av = frappe.db.get_value('Order Form Detail',row.name,k['item_attribute'].replace(' ','_').lower())
-		if type(av) == float:
-			av = "{:g}".format(av)
-		current_data.append(av)
+# 	current_data = []
+# 	for k in all_attribute:
+# 		av = frappe.db.get_value('Order Form Detail',row.name,k['item_attribute'].replace(' ','_').lower())
+# 		if type(av) == float:
+# 			av = "{:g}".format(av)
+# 		current_data.append(av)
 
 
-	is_present = any(current_data == sublist[1] for sublist in a)
+# 	is_present = any(current_data == sublist[1] for sublist in a)
 	
-	if is_present:
-		matching_sublist = next(sublist for sublist in a if current_data == sublist[1])
-		first_element = matching_sublist[0]
-		return first_element
+# 	if is_present:
+# 		matching_sublist = next(sublist for sublist in a if current_data == sublist[1])
+# 		first_element = matching_sublist[0]
+# 		return first_element
 	# else:
 	# 	return row.design_id
 
@@ -304,3 +331,17 @@ def get_bom_details(design_id):
 	with_value = frappe.db.get_value("BOM",master_bom,all_item_attributes,as_dict=1)
 	with_value['master_bom'] = master_bom
 	return with_value
+
+
+def validate_variant_attributes(variant_of,attribute_list):
+	args = attribute_list
+	variant = get_variant(variant_of, args)
+	if variant:
+		frappe.throw(
+			_("Item variant <b>{0}</b> exists with same attributes").format(get_link_to_form("Item",variant)), ItemVariantExistsError
+		)
+
+@frappe.whitelist()
+def get_metal_purity(metal_type,metal_touch,customer):
+	metal_purity = frappe.db.sql(f"""select metal_purity from `tabMetal Criteria` where parent = '{customer}' and metal_type = '{metal_type}' and metal_touch = '{metal_touch}'""",as_dict=1)
+	return metal_purity[0]['metal_purity']

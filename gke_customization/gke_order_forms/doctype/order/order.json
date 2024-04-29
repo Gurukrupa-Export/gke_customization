@@ -992,8 +992,7 @@
    "fieldname": "new_bom",
    "fieldtype": "Link",
    "label": "New BOM",
-   "options": "BOM",
-   "read_only": 1
+   "options": "BOM"
   },
   {
    "fieldname": "design_attribute_tab",
@@ -1135,9 +1134,9 @@
   {
    "fetch_from": "cad_order_form_detail.rhodium",
    "fieldname": "rhodium_",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Rhodium",
-   "options": "\nYes\nNo",
+   "options": "Attribute Value",
    "read_only": 1
   },
   {
@@ -1174,7 +1173,7 @@
    "read_only": 1
   },
   {
-   "fetch_from": "cad_order_form_detail.gold_target",
+   "fetch_from": "cad_order_form_detail.metal_target",
    "fieldname": "metal_target",
    "fieldtype": "Float",
    "label": "Metal Target",
@@ -1189,7 +1188,7 @@
    "link_fieldname": "custom_cad_order_id"
   }
  ],
- "modified": "2024-04-09 16:01:03.233848",
+ "modified": "2024-04-15 18:23:51.621150",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",
