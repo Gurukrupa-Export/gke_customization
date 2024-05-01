@@ -46,8 +46,7 @@
    "fieldname": "gia_report_no",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "GIA Report No",
-   "reqd": 1
+   "label": "GIA Report No"
   },
   {
    "fieldname": "order",
@@ -177,7 +176,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-02-20 12:09:56.074568",
+ "modified": "2024-04-30 17:25:14.613852",
  "modified_by": "Administrator",
  "module": "GKE Custom Export",
  "name": "Solitaire Calculator",
