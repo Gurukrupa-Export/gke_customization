@@ -17,14 +17,23 @@
   "date",
   "gst_no",
   "details_section",
+  "customer_supplier",
   "customer",
+  "supplier",
   "address",
-  "statecode",
-  "item_group",
+  "supplier_address",
   "column_break_4fek2",
   "customer_name",
+  "supplier_name",
   "gst_number",
+  "supplier_gst",
+  "statecode",
+  "supplier_statecode",
+  "section_break_59m2",
+  "item_group",
+  "column_break_lgys",
   "reference_no",
+  "column_break_hjkv",
   "dispatch_type",
   "section_break_3trha",
   "delivery_challan_detail",
@@ -62,6 +71,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "Today",
    "fieldname": "date",
    "fieldtype": "Date",
    "label": "Date"
@@ -77,6 +87,7 @@
    "label": "Customer Details"
   },
   {
+   "depends_on": "eval: in_list(['Customer' ], doc.customer_supplier)",
    "fieldname": "customer",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -84,14 +95,16 @@
    "options": "Customer"
   },
   {
+   "depends_on": "eval: in_list(['Customer' ], doc.customer_supplier)",
    "fieldname": "address",
    "fieldtype": "Data",
-   "label": "Address"
+   "label": "Customer Address"
   },
   {
+   "depends_on": "eval: in_list(['Customer' ], doc.customer_supplier)",
    "fieldname": "statecode",
    "fieldtype": "Data",
-   "label": "State/Code"
+   "label": "Customer State/Code"
   },
   {
    "fieldname": "item_group",
@@ -104,15 +117,17 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval: in_list(['Customer' ], doc.customer_supplier)",
    "fetch_from": "customer.customer_name",
    "fieldname": "customer_name",
    "fieldtype": "Data",
    "label": "Customer Name"
   },
   {
+   "depends_on": "eval: in_list(['Customer' ], doc.customer_supplier)",
    "fieldname": "gst_number",
    "fieldtype": "Data",
-   "label": "GST"
+   "label": "Customer GST"
   },
   {
    "fieldname": "reference_no",
@@ -123,7 +138,7 @@
    "fieldname": "dispatch_type",
    "fieldtype": "Select",
    "label": "Dispatch Type",
-   "options": "Returnable\nNon Returnable"
+   "options": "\nReturnable\nNon Returnable"
   },
   {
    "fieldname": "section_break_3trha",
@@ -165,11 +180,61 @@
    "fieldtype": "Link",
    "label": "Company Branch",
    "options": "Branch"
+  },
+  {
+   "fieldname": "section_break_59m2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_lgys",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_hjkv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: in_list(['Supplier' ], doc.customer_supplier)",
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier"
+  },
+  {
+   "depends_on": "eval: in_list(['Supplier' ], doc.customer_supplier)",
+   "fieldname": "supplier_address",
+   "fieldtype": "Data",
+   "label": "Supplier Address"
+  },
+  {
+   "depends_on": "eval: in_list(['Supplier' ], doc.customer_supplier)",
+   "fieldname": "supplier_gst",
+   "fieldtype": "Data",
+   "label": "Supplier GST"
+  },
+  {
+   "depends_on": "eval: in_list(['Supplier' ], doc.customer_supplier)",
+   "fieldname": "supplier_statecode",
+   "fieldtype": "Data",
+   "label": "Supplier State/Code"
+  },
+  {
+   "fieldname": "customer_supplier",
+   "fieldtype": "Select",
+   "label": "Customer/Supplier",
+   "options": "\nCustomer\nSupplier"
+  },
+  {
+   "depends_on": "eval: in_list(['Supplier' ], doc.customer_supplier)",
+   "fetch_from": "supplier.supplier_name",
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "label": "Supplier Name"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-02-29 14:35:42.639116",
+ "modified": "2024-05-08 14:38:59.649223",
  "modified_by": "Administrator",
  "module": "GKE Custom Export",
  "name": "Delivery Challan",

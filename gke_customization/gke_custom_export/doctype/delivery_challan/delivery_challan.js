@@ -11,7 +11,7 @@ frappe.ui.form.on('Delivery Challan', {
 			},
 			callback: function(r) {
 				if (!r.exc) {
-                    console.log(r.message);
+                    // console.log(r.message);
 					frm.set_value('company_address',r.message[0])
 					frm.set_value('gst_no',r.message[1])
 				}
@@ -26,7 +26,7 @@ frappe.ui.form.on('Delivery Challan', {
 			},
 			callback: function(r) {
 				if (!r.exc) {
-                    console.log(r.message);
+                    // console.log(r.message);
 					frm.set_value('address',r.message[0])
 					frm.set_value('gst_number',r.message[3])
 					frm.set_value('statecode',r.message[4])
@@ -34,6 +34,23 @@ frappe.ui.form.on('Delivery Challan', {
 			}
 		});
 	},
+    supplier:function(frm){
+		frappe.call({
+			method: 'gke_customization.gke_custom_export.doctype.delivery_challan.delivery_challan.get_supplier_address',
+			args: {
+				'supplier': frm.doc.supplier,
+			},
+			callback: function(r) {
+				if (!r.exc) {
+                    // console.log(r.message);
+                    frm.set_value('supplier_address',r.message[0])
+                    frm.set_value('supplier_gst',r.message[1])
+                    frm.set_value('supplier_statecode',r.message[2]) 
+				}
+			}
+		});
+	},   
+	
 	refresh(frm) {
         frm.set_query('company_branch',function () {
 			return {
