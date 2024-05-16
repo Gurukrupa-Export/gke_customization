@@ -355,7 +355,7 @@
    "fieldname": "design_type",
    "fieldtype": "Select",
    "label": "Design Type",
-   "options": "Sketch Design\nMod\nNew Design",
+   "options": "Sketch Design\nMod\nNew Design\nAs Per Serial No",
    "read_only": 1
   },
   {
@@ -1186,9 +1186,17 @@
   {
    "link_doctype": "Item",
    "link_fieldname": "custom_cad_order_id"
+  },
+  {
+   "link_doctype": "BOM",
+   "link_fieldname": "custom_order_id"
+  },
+  {
+   "link_doctype": "Timesheet",
+   "link_fieldname": "order"
   }
  ],
- "modified": "2024-04-15 18:23:51.621150",
+ "modified": "2024-05-11 17:06:34.909079",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",

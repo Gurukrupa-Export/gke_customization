@@ -193,7 +193,8 @@ def create_line_items(self):
 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 
 	elif self.item_type == 'Only Variant':
-		if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD':
+		# if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD':
+		if self.design_type != 'Sketch Design':
 			item_variant = create_only_variant_from_order(self,self.name)
 			frappe.db.set_value('Item',item_variant[0],{
 				"is_design_code":1,
@@ -204,7 +205,7 @@ def create_line_items(self):
 		else:
 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 		
-	# else:
+	# else:0i
 	elif self.item_type == 'Suffix Of Variant':
 		if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD':
 		# if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD'self.item_type != 'No Variant No Suffix':
@@ -219,6 +220,7 @@ def create_line_items(self):
 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 			# frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
 	elif self.item_type == 'No Variant No Suffix':
+		update_variant(self)
 		frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 		frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
 		
@@ -266,6 +268,8 @@ def create_variant_of_template_from_order(item_template,source_name, target_doc=
 		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
 		target.item_code = f'{item_template}-001'
 		target.sequence = item_template[2:7]
+		target.has_serial_no = 1
+
 		subcateogy = frappe.db.get_value('Item',item_template,'item_subcategory')
 		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': subcateogy,'in_item_variant':1},'item_attribute',order_by='idx asc'):
 			attribute_with = i.item_attribute.lower().replace(' ', '_')
@@ -324,28 +328,43 @@ def create_variant_of_template_from_order(item_template,source_name, target_doc=
 def create_only_variant_from_order(self,source_name, target_doc=None):
 	db_data = frappe.db.get_list('Item',filters={'name':self.design_id},fields=['variant_of'],order_by='creation desc')[0]
 	db_data1 = frappe.db.get_list('Item',filters={'variant_of':db_data['variant_of']},fields=['name'],order_by='creation desc')[0]
-	index = int(db_data1['name'].split('-')[1]) + 1
-	suffix = "%.3i" % index
-	item_code = db_data['variant_of'] + '-' + suffix
 	def post_process(source, target):
+		index = int(db_data1['name'].split('-')[1]) + 1
+		suffix = "%.3i" % index
+		item_code = db_data['variant_of'] + '-' + suffix
 		
 		target.order_form_type = 'Order'
+		target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V",		
 		target.custom_cad_order_id = source_name
 		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
 		target.item_code = item_code
-		target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V",		
+		target.sequence = item_code[2:7]
+		target.has_serial_no = 1
 		
 		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': self.subcategory,'in_item_variant':1},'item_attribute',order_by='idx asc'):
-			attribute_with = i.item_attribute.lower().replace(' ', '_')	
+			attribute_with = i.item_attribute.lower().replace(' ', '_')
+			if i.item_attribute == 'Rhodium':
+				attribute_with = 'rhodium_'
+			try:
+				attribute_value = frappe.db.get_value('Order',source_name,attribute_with)
+			except:
+				attribute_value = ' '
+			
+			# target.append('attributes',{
+			# 	'attribute':i.item_attribute,
+			# 	'variant_of':item_template,
+			# 	'attribute_value':attribute_value
+			# })
 			target.append('attributes',{
 				'attribute':i.item_attribute,
 				'variant_of':db_data['variant_of'],
-				'attribute_value':frappe.db.get_value('Order',source_name,attribute_with)
+				'attribute_value':attribute_value
 			})
-		target.sequence = item_code[2:7]
+
 		if source.designer_assignment:
 			target.designer = source.designer_assignment[0].designer
-
+		else:
+			target.designer = frappe.db.get_value('Item',db_data1['name'],'designer')
 	doc = get_mapped_doc(
 		"Order",
 		source_name,
@@ -379,7 +398,7 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 			}
 		},target_doc, post_process
 	)
-	
+	# frappe.throw(f"{doc.item_code}")
 	doc.save()
 	return doc.name,db_data['variant_of']
 
@@ -445,7 +464,7 @@ def create_variant_of_sufix_of_variant_from_order(self,item_template,source_name
 		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
 		target.item_code = item_template[:10] + '-001'
 		target.sequence = item_template[2:7]
-		
+		target.has_serial_no = 1
 
 		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': self.subcategory,'in_item_variant':1},'item_attribute',order_by='idx asc'):
 			attribute_with = i.item_attribute.lower().replace(' ', '_')	
@@ -506,6 +525,20 @@ def update_item_variant(item_variant,item_template):
 		"variant_of" : item_template
 	})
 
+def update_variant(self):
+	db_data = frappe.db.sql(f"select name, attribute, attribute_value from `tabItem Variant Attribute` where parent = '{self.design_id}'",as_dict=1)
+	for i in db_data:
+		attribute = i['attribute'].replace(' ','_').lower()
+		if attribute == 'rhodium':
+			attribute = 'rhodium_'
+		attribute_value = self.get(attribute)
+		if attribute_value == None:
+			attribute_value == "No"
+		frappe.db.set_value('Item Variant Attribute',i['name'],'attribute_value',attribute_value)
+
+	frappe.db.set_value("Item",self.design_id,"custom_cad_order_id",self.name)
+	frappe.db.set_value("Item",self.design_id,"custom_cad_order_form_id",self.cad_order_form)
+	
 # def create_item_from_order(source_name, target_doc=None):
 # 	def post_process(source, target):
 # 		target.disabled = 1

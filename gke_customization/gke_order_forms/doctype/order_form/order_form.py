@@ -72,31 +72,34 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	
 	design_type = frappe.get_doc('Order Form Detail',source_name).design_type
 	item_type = frappe.get_doc('Order Form Detail',source_name).item_type
-	as_per_serial_no = frappe.get_doc('Order Form Detail',source_name).as_per_serial_no
+	# as_per_serial_no = frappe.get_doc('Order Form Detail',source_name).as_per_serial_no
 	mod_reason = frappe.get_doc('Order Form Detail',source_name).mod_reason
 	design_id = frappe.get_doc('Order Form Detail',source_name).design_id
 	if design_type == 'Mod':
-		if as_per_serial_no == 1:
-			item_type = "No Variant No Suffix"
-			bom_or_cad = 'BOM'
+		# if as_per_serial_no == 1:
+		# 	item_type = "No Variant No Suffix"
+		# 	bom_or_cad = 'BOM'
+		# else:
+		variant_of = frappe.db.get_value("Item",design_id,"variant_of")
+		attribute_list = make_atribute_list(source_name)
+		validate_variant_attributes(variant_of,attribute_list)
+		bom = frappe.db.get_value('Item',design_id,'master_bom')
+		if bom==None:
+			frappe.throw(f'BOM is not available for {design_id}')
+		if mod_reason == 'No Design Change':
+			item_type = "Only Variant"
+			# bom_or_cad = 'CAD'
+			bom_or_cad = workflow_state_maker(source_name)
 		else:
-			variant_of = frappe.db.get_value("Item",design_id,"variant_of")
-			attribute_list = make_atribute_list(source_name)
-			validate_variant_attributes(variant_of,attribute_list)
-			bom = frappe.db.get_value('Item',design_id,'master_bom')
-			if bom==None:
-				frappe.throw(f'BOM is not available for {design_id}')
-			if mod_reason == 'No Design Change':
-				item_type = "Only Variant"
-				# bom_or_cad = 'CAD'
-				bom_or_cad = workflow_state_maker(source_name)
-			else:
-				item_type = "Suffix Of Variant"
-				# bom_or_cad = 'CAD'
-				bom_or_cad = workflow_state_maker(source_name)
+			item_type = "Suffix Of Variant"
+			# bom_or_cad = 'CAD'
+			bom_or_cad = workflow_state_maker(source_name)
 	elif design_type == 'Sketch Design':
 		item_type = "No Variant No Suffix"
 		bom_or_cad = 'CAD'
+	elif design_type == 'As Per Serial No':
+		item_type = "No Variant No Suffix"
+		bom_or_cad = 'BOM'
 	else:
 		item_type = 'Template and Variant'
 		bom_or_cad = 'CAD'
@@ -345,3 +348,20 @@ def validate_variant_attributes(variant_of,attribute_list):
 def get_metal_purity(metal_type,metal_touch,customer):
 	metal_purity = frappe.db.sql(f"""select metal_purity from `tabMetal Criteria` where parent = '{customer}' and metal_type = '{metal_type}' and metal_touch = '{metal_touch}'""",as_dict=1)
 	return metal_purity[0]['metal_purity']
+
+
+@frappe.whitelist()
+def get_sketh_details(design_id):
+	db_data = frappe.db.sql(f"select name,attribute, attribute_value from `tabItem Variant Attribute` where parent = '{design_id}'",as_dict=1)
+	final_data = {}
+	
+	final_data['item_category'] = frappe.db.get_value("Item",design_id,"item_category")
+	final_data['item_subcategory'] = frappe.db.get_value("Item",design_id,"item_subcategory")
+	final_data['setting_type'] = frappe.db.get_value("Item",design_id,"setting_type")
+	final_data['metal_target'] = frappe.db.get_value("Item",design_id,"approx_gold")
+	final_data['diamond_target'] = frappe.db.get_value("Item",design_id,"approx_diamond")
+	for i in db_data:
+		if i.attribute_value in [None,'']:
+			continue
+		final_data[i.attribute.lower().replace(' ','_')]=i.attribute_value
+	return final_data

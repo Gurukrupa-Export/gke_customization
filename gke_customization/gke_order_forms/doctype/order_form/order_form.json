@@ -63,6 +63,7 @@
    "reqd": 1
   },
   {
+   "default": "IT",
    "fieldname": "department",
    "fieldtype": "Link",
    "label": "Department",
@@ -74,6 +75,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "GE-BR-00001",
    "fieldname": "branch",
    "fieldtype": "Link",
    "label": "Branch",
@@ -81,6 +83,7 @@
    "reqd": 1
   },
   {
+   "default": "Arun Lakhani",
    "fieldname": "salesman_name",
    "fieldtype": "Link",
    "label": "Sales Person",
@@ -92,6 +95,7 @@
    "fieldtype": "Section Break"
   },
   {
+   "default": "AACU0004",
    "fieldname": "customer_code",
    "fieldtype": "Link",
    "label": "Customer Name",
@@ -108,12 +112,14 @@
    "reqd": 1
   },
   {
+   "default": "Today",
    "fieldname": "delivery_date",
    "fieldtype": "Date",
    "label": "Delivery Date",
    "reqd": 1
   },
   {
+   "default": "PROJ-0001",
    "fieldname": "project",
    "fieldtype": "Link",
    "label": "Project",
@@ -136,6 +142,7 @@
    "label": "Customer PO No"
   },
   {
+   "default": "Sales",
    "fieldname": "order_type",
    "fieldtype": "Select",
    "label": "Order Type",
@@ -143,12 +150,14 @@
    "reqd": 1
   },
   {
+   "default": "0",
    "fieldname": "due_days",
    "fieldtype": "Int",
    "label": "Due Days",
    "reqd": 1
   },
   {
+   "default": "EF-VVS",
    "fieldname": "diamond_quality",
    "fieldtype": "Link",
    "label": "Diamond Quality",
@@ -346,7 +355,7 @@
    "link_fieldname": "custom_cad_order_form_id"
   }
  ],
- "modified": "2024-04-06 15:49:44.030193",
+ "modified": "2024-05-12 12:04:42.140760",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form",
