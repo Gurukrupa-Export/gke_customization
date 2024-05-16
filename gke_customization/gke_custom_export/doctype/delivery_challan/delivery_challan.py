@@ -11,25 +11,30 @@ class DeliveryChallan(Document):
 @frappe.whitelist()
 def get_company_address(company, company_branch):
 	adress_name = frappe.db.sql(f"""select parent  from `tabDynamic Link` tdl where parenttype = 'Address' and link_doctype = 'Company' and link_name = '{company}'""",as_dict=1)
-	# branch = frappe.db.get_value('Branch',{'name': company_branch },'branch')
 	branch = frappe.db.get_value('Branch',{'name': company_branch },'branch_address')
-
+	
 	for add in adress_name:
-		if  branch in add['parent']:
-			# frappe.throw("IF")
+		if  branch in add['parent']:			
 			gstin = frappe.db.get_value('Address',{'name':add['parent']},'gstin')
 			address_list = frappe.db.get_value('Address',{'name':add['parent']},['address_line1','address_line2','state','pincode','country'])
 			new_address_list = [str(0) if element is None else element for element in address_list]
 			address = ', '.join(new_address_list).replace(' 0,','')
 			# city = frappe.db.get_value('Address',{'name':add['parent']},'city')
 			return address,gstin
-		# elif company in add['parent']:
-		# 	frappe.throw("ELSE")
-		# 	gstin = frappe.db.get_value('Address',{'name':add['parent']},'gstin')
-		# 	address_list = frappe.db.get_value('Address',{'name':add['parent']},['address_line1','address_line2','state','pincode','country'])
-		# 	new_address_list = [str(0) if element is None else element for element in address_list]
-		# 	address = ', '.join(new_address_list).replace(' 0,','')
-		# 	return address,gstin 
+
+@frappe.whitelist()
+def get_sd_company_address(company):
+	adress_name = frappe.db.sql(f"""select parent  from `tabDynamic Link` tdl where parenttype = 'Address' and link_doctype = 'Company' and link_name = '{company}'""",as_dict=1)
+		
+	for add in adress_name:
+		# if  branch in add['parent']:			
+		gstin = frappe.db.get_value('Address',{'name':add['parent']},'gstin')
+		address_list = frappe.db.get_value('Address',{'name':add['parent']},['address_line1','address_line2','city','pincode','state','country'])
+		# city = frappe.db.get_value('Address',{'name':add['parent']},'city')
+		new_address_list = [str(0) if element is None else element for element in address_list]
+		address = ', '.join(new_address_list).replace(' 0,','')
+		return address,gstin
+		
 	
 
 @frappe.whitelist()

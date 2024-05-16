@@ -11,13 +11,32 @@ frappe.ui.form.on('Delivery Challan', {
 			},
 			callback: function(r) {
 				if (!r.exc) {
-                    // console.log(r.message);
+                    console.log(r.message);
 					frm.set_value('company_address',r.message[0])
 					frm.set_value('gst_no',r.message[1])
 				}
 			}
 		});
 	},
+    company: function(frm){
+        if(frm.doc.company == 'Sadguru Diamond'){
+            frappe.call({
+                method: 'gke_customization.gke_custom_export.doctype.delivery_challan.delivery_challan.get_sd_company_address',
+                args: {
+                    'company': frm.doc.company, 
+                },
+                callback: function(r) {
+                    if (!r.exc) {
+                        console.log(r.message);
+                        frm.set_df_property('company_branch', 'hidden',1)
+                        frm.set_value('company_address',r.message[0])
+                        frm.set_value('gst_no',r.message[1])
+                    }
+                }
+            });
+        }
+
+    },
 	customer:function(frm){
 		frappe.call({
 			method: 'gke_customization.gke_custom_export.doctype.delivery_challan.delivery_challan.get_customer_address',
