@@ -41,7 +41,13 @@ class OldBOM(Document):
 	def after_insert(self):
 		if not self.old_bom_metal_details:
 			name = frappe.db.get_value("Old Stylebio Master",{"old_stylebio":self.old_stylebio},"name")
-			all_tagno_against_stylebio = frappe.db.get_list('Old Stylebio Master Table',filters={"parent":name},pluck='tag_no')
+
+			all_tagno_against_stylebio = frappe.db.sql(f"""select tag_no from `tabOld Stylebio Master Table` where parent = '{name}'""",as_list=1)
+			final_all_tagno_against_stylebio = []
+			if all_tagno_against_stylebio:
+				for a in all_tagno_against_stylebio:
+					final_all_tagno_against_stylebio.append(a[0])
+
 			session = requests.Session()
 			response = session.get(f"http://3.6.177.5:5000/api/stylebio/{self.old_stylebio}")
 			json_data = response.json()['data']
@@ -49,7 +55,7 @@ class OldBOM(Document):
 			# old_bom_doc.old_stylebio = self.old_stylebio
 			
 			for m in json_data.keys():
-				if m not in all_tagno_against_stylebio:
+				if m not in final_all_tagno_against_stylebio:
 					continue
 				if json_data[m]['metal_data']:
 					metal_dict = old_bom_doc.append("old_bom_metal_details", {})
@@ -100,6 +106,8 @@ class OldBOM(Document):
 
 			old_bom_doc.save()
 			frappe.db.set_value('Old Stylebio Master',{'old_stylebio':self.old_stylebio},'created',1)
+
+			
 	def on_submit(self):
 		old_bom_metal_details = []
 		for i in self.old_bom_metal_details:

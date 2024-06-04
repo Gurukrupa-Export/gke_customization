@@ -217,6 +217,7 @@ doctype_js = {"Quotation" : "public/js/doctype_js/quotation.js"}
 app_include_js = "gke_customization.gke_catalog.api.item_list.get_item_list"
 app_include_js = "gke_customization.gke_catalog.api.item_list.get_bom_list"
 
+app_include_js = "gke_customization.gke_catalog.api.attendance.attendance" 
 
 app_include_js = "gke_customization.gke_catalog.api.item_catalog.merge_data"
 
@@ -230,7 +231,16 @@ app_include_js = "gke_customization.gke_catalog.api.price_list.diamond_price_lis
 doc_events = {
 "SolitaireCalculator": {
     "validate": "gke_customization.gke_custom_export.doctype.solitaire_calculator.solitaire_calculator.calculate_rate"
-}
+},
+# "Shareholder": {
+#     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
+# },
+"Payment Entry": {
+    "on_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_submit"
+},
+"Journal Entry": {
+    "on_submit": "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit"
+},
 }
 app_include_js = [
     '/assets/gke_customization/js/solitaire_calculator.js'

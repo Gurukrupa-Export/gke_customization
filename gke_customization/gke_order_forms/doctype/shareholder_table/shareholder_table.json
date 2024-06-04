@@ -1,0 +1,108 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-05-27 17:27:06.554161",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "date",
+  "section_break_ryqi",
+  "amount",
+  "column_break_frrv",
+  "interest_rate",
+  "column_break_jm9q",
+  "duration",
+  "section_break_4lgu",
+  "minus_amount",
+  "plus_amount",
+  "section_break_kbae",
+  "interest"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_ryqi",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "interest_rate",
+   "fieldtype": "Percent",
+   "hidden": 1,
+   "label": "Interest Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "duration",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Duration",
+   "read_only": 1
+  },
+  {
+   "fieldname": "interest",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Final Amount",
+   "read_only": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.minus_amount",
+   "fieldname": "minus_amount",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Minus Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_frrv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_jm9q",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_kbae",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:doc.plus_amount",
+   "fieldname": "plus_amount",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Plus Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_4lgu",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-06-03 19:58:27.589517",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Shareholder Table",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
