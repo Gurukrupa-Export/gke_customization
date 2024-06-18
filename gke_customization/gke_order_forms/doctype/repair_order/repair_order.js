@@ -16,6 +16,10 @@ frappe.ui.form.on('Repair Order', {
 		else{
 			frm.set_df_property('cad', 'hidden', 0)
 		}
+	},
+	est_delivery_date(frm) {
+		validate_dates(frm, frm.doc, "est_delivery_date")
+		frm.set_value('est_due_days', frappe.datetime.get_day_diff(frm.doc.est_delivery_date, frm.doc.order_date));
 	}
 });
 
@@ -65,11 +69,11 @@ function show_attribute_fields_for_subcategory(frm) {
 
 function hide_all_subcategory_attribute_fields(frm) {
 	var fields = [
-		"gold_target", "diamond_target", "metal_colour", "product_size",
+		"metal_target", "diamond_target", "metal_colour", "product_size",
 		"length", "height", "sizer_type", "enamal", "rhodium", "stone_type",
 		"gemstone_type", "gemstone_quality", "stone_changeable",
 		"changeable", "hinges", "back_belt", "vanki_type", "black_beed",
-		"black_beed_line", "screw_type", "hook_type", "lock_type", "2_in_1",
+		"black_beed_line", "screw_type", "hook_type", "lock_type", "two_in_one",
 		"kadi_type", "chain", "chain_type", "customer_chain", "chain_length",
 		"total_length", "chain_weight", "detachable", "back_chain", "back_chain_size",
 		"back_side_size", "chain_thickness", "total_mugappu", "kadi_to_mugappu",
@@ -77,4 +81,11 @@ function hide_all_subcategory_attribute_fields(frm) {
 		"certificate_place", "breadth", "width", "back_belt", "back_belt_length" ];
 		frm.toggle_display(fields, 0)
 		frm.refresh_fields()
+}
+
+function validate_dates(frm, doc, dateField) {
+    let order_date = frm.doc.order_date
+    if (doc[dateField] < order_date) {
+        frappe.model.set_value(doc.doctype, doc.name, dateField, frappe.datetime.add_days(order_date,1))
+    }
 }

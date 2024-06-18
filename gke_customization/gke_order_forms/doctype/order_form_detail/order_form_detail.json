@@ -70,10 +70,9 @@
   "back_side_size",
   "column_break_28",
   "back_belt_patti",
-  "vanki_type",
+  "vanki",
   "rhodium",
   "column_break_29",
-  "chain",
   "chain_type",
   "customer_chain",
   "chain_weight",
@@ -122,7 +121,7 @@
    "fieldname": "design_by",
    "fieldtype": "Select",
    "label": "Design By",
-   "options": "\nCustomer Design\nOur  Design",
+   "options": "\nCustomer Design\nOur Design",
    "reqd": 1
   },
   {
@@ -157,7 +156,7 @@
    "fieldname": "design_type",
    "fieldtype": "Select",
    "label": "Design Type",
-   "options": "\nSketch Design\nMod\nNew Design\nAs Per Serial No",
+   "options": "\nNew Design\nSketch Design\nMod\nAs Per Serial No",
    "reqd": 1
   },
   {
@@ -197,7 +196,7 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Item Type",
-   "options": "\nSuffix Of Variant\nOnly Variant\nNo Variant No Suffix\nVariant From Repair Order"
+   "options": "\nSuffix Of Variant\nOnly Variant\nNo Variant No Suffix\nVariant From Repair Order\nTemplate and Variant"
   },
   {
    "fieldname": "section_break_8",
@@ -483,13 +482,6 @@
    "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
   },
   {
-   "fieldname": "vanki_type",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Vanki Type",
-   "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
-  },
-  {
    "fieldname": "rhodium",
    "fieldtype": "Link",
    "label": "Rhodium",
@@ -501,45 +493,36 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "chain",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "Chain",
-   "options": "Attribute Value",
-   "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
-  },
-  {
    "fieldname": "chain_type",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Chain Type",
-   "mandatory_depends_on": "eval:doc.chain == \"Yes\"",
    "options": "Attribute Value",
    "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
   },
   {
-   "depends_on": "eval:doc.chain_type != \"No\"",
+   "depends_on": "eval:in_list([\"Kodi Chain\", \"Snake Chain\", \"Runway\", \"Box Chain (Big)\", \"Box Chain (Small)\", \"Anchor Chain\", \"Black Bead Chain\", \"Shiva Chain\", \"Sadak Chain\", \"Highway Chain\", \"Mesh Chain\", \"Milan Chain\", \"Flat Ghop Chain\", \"Round Ghop Chain\", \"Nakshi Chain\", \"Fancy Chain\"], doc.chain_type)",
    "fieldname": "customer_chain",
    "fieldtype": "Link",
    "label": "Chain From",
-   "mandatory_depends_on": "eval:doc.chain_type != \"No\"",
+   "mandatory_depends_on": "eval:in_list([\"Kodi Chain\", \"Snake Chain\", \"Runway\", \"Box Chain (Big)\", \"Box Chain (Small)\", \"Anchor Chain\", \"Black Bead Chain\", \"Shiva Chain\", \"Sadak Chain\", \"Highway Chain\", \"Mesh Chain\", \"Milan Chain\", \"Flat Ghop Chain\", \"Round Ghop Chain\", \"Nakshi Chain\", \"Fancy Chain\"], doc.chain_type)",
    "options": "Attribute Value",
    "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
   },
   {
-   "depends_on": "eval:doc.chain_type != \"No\"",
+   "depends_on": "eval:in_list([\"Kodi Chain\", \"Snake Chain\", \"Runway\", \"Box Chain (Big)\", \"Box Chain (Small)\", \"Anchor Chain\", \"Black Bead Chain\", \"Shiva Chain\", \"Sadak Chain\", \"Highway Chain\", \"Mesh Chain\", \"Milan Chain\", \"Flat Ghop Chain\", \"Round Ghop Chain\", \"Nakshi Chain\", \"Fancy Chain\"], doc.chain_type)",
    "fieldname": "chain_weight",
    "fieldtype": "Float",
    "label": "Chain Weight",
-   "mandatory_depends_on": "eval:doc.chain_type != \"No\"",
+   "mandatory_depends_on": "eval:in_list([\"Kodi Chain\", \"Snake Chain\", \"Runway\", \"Box Chain (Big)\", \"Box Chain (Small)\", \"Anchor Chain\", \"Black Bead Chain\", \"Shiva Chain\", \"Sadak Chain\", \"Highway Chain\", \"Mesh Chain\", \"Milan Chain\", \"Flat Ghop Chain\", \"Round Ghop Chain\", \"Nakshi Chain\", \"Fancy Chain\"], doc.chain_type)",
    "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
   },
   {
-   "depends_on": "eval:doc.chain_type != \"No\"",
+   "depends_on": "eval:in_list([\"Kodi Chain\", \"Snake Chain\", \"Runway\", \"Box Chain (Big)\", \"Box Chain (Small)\", \"Anchor Chain\", \"Black Bead Chain\", \"Shiva Chain\", \"Sadak Chain\", \"Highway Chain\", \"Mesh Chain\", \"Milan Chain\", \"Flat Ghop Chain\", \"Round Ghop Chain\", \"Nakshi Chain\", \"Fancy Chain\"], doc.chain_type)",
    "fieldname": "chain_length",
    "fieldtype": "Float",
    "label": "Chain Length",
-   "mandatory_depends_on": "eval:doc.chain_type != \"No\"",
+   "mandatory_depends_on": "eval:in_list([\"Kodi Chain\", \"Snake Chain\", \"Runway\", \"Box Chain (Big)\", \"Box Chain (Small)\", \"Anchor Chain\", \"Black Bead Chain\", \"Shiva Chain\", \"Sadak Chain\", \"Highway Chain\", \"Mesh Chain\", \"Milan Chain\", \"Flat Ghop Chain\", \"Round Ghop Chain\", \"Nakshi Chain\", \"Fancy Chain\"], doc.chain_type)",
    "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
   },
   {
@@ -713,7 +696,7 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "BOM Or CAD",
-   "options": "\nBOM\nCAD"
+   "options": "\nNew BOM\nCAD\nDuplicate BOM"
   },
   {
    "default": "No Design Change",
@@ -768,23 +751,31 @@
    "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
   },
   {
-   "depends_on": "eval:doc.chain_type != \"No\"",
+   "depends_on": "eval:in_list([\"Kodi Chain\", \"Snake Chain\", \"Runway\", \"Box Chain (Big)\", \"Box Chain (Small)\", \"Anchor Chain\", \"Black Bead Chain\", \"Shiva Chain\", \"Sadak Chain\", \"Highway Chain\", \"Mesh Chain\", \"Milan Chain\", \"Flat Ghop Chain\", \"Round Ghop Chain\", \"Nakshi Chain\", \"Fancy Chain\"], doc.chain_type)",
    "fieldname": "chain_thickness",
    "fieldtype": "Float",
    "label": "Chain Thickness",
-   "mandatory_depends_on": "eval:doc.chain_type != \"No\""
+   "mandatory_depends_on": "eval:in_list([\"Kodi Chain\", \"Snake Chain\", \"Runway\", \"Box Chain (Big)\", \"Box Chain (Small)\", \"Anchor Chain\", \"Black Bead Chain\", \"Shiva Chain\", \"Sadak Chain\", \"Highway Chain\", \"Mesh Chain\", \"Milan Chain\", \"Flat Ghop Chain\", \"Round Ghop Chain\", \"Nakshi Chain\", \"Fancy Chain\"], doc.chain_type)"
   },
   {
    "fieldname": "metal_target",
    "fieldtype": "Float",
    "label": "Metal Target",
+   "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'",
    "reqd": 1
+  },
+  {
+   "fieldname": "vanki",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Vanki Type",
+   "options": "Attribute Value"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-05-14 11:19:10.120082",
+ "modified": "2024-06-17 15:44:03.457620",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form Detail",

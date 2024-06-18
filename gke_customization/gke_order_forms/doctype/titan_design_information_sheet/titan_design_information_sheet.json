@@ -9,12 +9,14 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "customer_code",
+  "column_break_gawu",
+  "customer_name",
   "section_break_10dzs",
   "company",
   "department",
   "column_break_5icy6",
   "branch",
-  "customer_code",
   "salesman_name",
   "section_break_ucdko",
   "designer",
@@ -23,7 +25,6 @@
   "section_break_zif1a",
   "order_date",
   "column_break_xpw75",
-  "launch_month",
   "section_break_iqjvd",
   "is_set",
   "section_break_1vgct",
@@ -32,13 +33,11 @@
   "design_code_2",
   "bom",
   "item_category",
-  "item_subcategory",
   "column_break_yl4oe",
   "theme_code",
-  "fourteen_digit_code",
-  "fourteen_digit_set_code",
-  "design_details",
-  "product_type",
+  "product_code",
+  "set_product_code",
+  "item_subcategory",
   "section_break_bkres",
   "complexity",
   "productivity",
@@ -49,18 +48,13 @@
   "section_break_76nr3",
   "metal_type",
   "metal_touch",
-  "back_chain",
-  "chain_type",
-  "column_break_9ksbz",
   "metal_colour",
+  "column_break_9ksbz",
   "gross_weight",
   "metal_purity",
-  "finding_type",
-  "setting_type",
   "section_break_yexsu",
   "rpt_cad_approval",
-  "category_manager",
-  "job_worker",
+  "supplier",
   "column_break_5mhdj",
   "npd",
   "cfa",
@@ -109,7 +103,16 @@
   "bom_diamond_details",
   "diamond_detail",
   "section_break_w1pn5",
-  "gemstone_detail"
+  "gemstone_detail",
+  "tab_break_mw8g",
+  "launch_month",
+  "category_manager",
+  "design_details",
+  "product_type",
+  "back_chain",
+  "chain_type",
+  "finding_type",
+  "setting_type"
  ],
  "fields": [
   {
@@ -149,12 +152,10 @@
    "read_only": 1
   },
   {
-   "default": "CU0010",
    "fieldname": "customer_code",
    "fieldtype": "Link",
    "label": "Customer Code",
-   "options": "Customer",
-   "read_only": 1
+   "options": "Customer"
   },
   {
    "fieldname": "salesman_name",
@@ -278,17 +279,6 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Theme Code"
-  },
-  {
-   "fieldname": "fourteen_digit_code",
-   "fieldtype": "Data",
-   "label": "14 Digit Code"
-  },
-  {
-   "depends_on": "eval:doc.is_set",
-   "fieldname": "fourteen_digit_set_code",
-   "fieldtype": "Data",
-   "label": "14 Digit Set Code"
   },
   {
    "fieldname": "design_details",
@@ -441,14 +431,9 @@
   {
    "fieldname": "category_manager",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Category Manager",
    "options": "Titan Category Manager"
-  },
-  {
-   "fieldname": "job_worker",
-   "fieldtype": "Data",
-   "label": "Job Worker",
-   "options": "Supplier"
   },
   {
    "fieldname": "column_break_5mhdj",
@@ -474,6 +459,7 @@
   {
    "fieldname": "section_break_ciwuk",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Neckwear Size"
   },
   {
@@ -525,6 +511,7 @@
   {
    "fieldname": "section_break_0a8r0",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Finger Ring Size"
   },
   {
@@ -556,6 +543,7 @@
   {
    "fieldname": "bangles_size_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Bangles Size"
   },
   {
@@ -587,6 +575,7 @@
   {
    "fieldname": "bracelet_size_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Bracelet Size"
   },
   {
@@ -707,12 +696,45 @@
    "fieldtype": "Table",
    "label": "Gemstone Detail",
    "options": "BOM Gemstone Detail"
+  },
+  {
+   "fieldname": "column_break_gawu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "customer_code.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name"
+  },
+  {
+   "fieldname": "tab_break_mw8g",
+   "fieldtype": "Tab Break",
+   "hidden": 1,
+   "label": "Extra"
+  },
+  {
+   "fieldname": "product_code",
+   "fieldtype": "Data",
+   "label": "Product Code"
+  },
+  {
+   "depends_on": "eval:doc.is_set",
+   "fieldname": "set_product_code",
+   "fieldtype": "Data",
+   "label": "Set Product Code"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2023-12-21 09:26:57.251261",
+ "modified": "2024-06-14 12:09:37.247765",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Titan Design Information Sheet",

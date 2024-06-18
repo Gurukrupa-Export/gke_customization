@@ -9,10 +9,14 @@ from frappe.model.document import Document
 
 class RepairOrderForm(Document):
 	def on_submit(self):
+		if not self.order_details:
+			frappe.throw("Add atleast One Row in table")
 		create_serial_and_design_order(self)
 
 	def on_cancel(self):
 		delete_auto_created_serial_and_design_order(self)
+
+
 
 def create_serial_and_design_order(self):
 	doclist = []
@@ -58,3 +62,19 @@ def make_serial_and_design_order(source_name, target_doc=None, parent_doc = None
 	# doc.form_remarks = parent_doc.remarks
 	doc.save()
 	return doc.name
+
+@frappe.whitelist()
+def get_bom_details(design_id):
+	item_subcategory = frappe.db.get_value("Item",design_id,"item_subcategory")
+	master_bom = frappe.db.get_value("Item",design_id,"master_bom")
+	if not master_bom:
+		frappe.throw(f"Master BOM for Item <b>{get_link_to_form('Item',design_id)}</b> is not set")
+	all_item_attributes = []
+
+	for i in frappe.get_doc("Attribute Value",item_subcategory).item_attributes:
+		all_item_attributes.append(i.item_attribute.replace(' ','_').lower())
+	
+	with_value = frappe.db.get_value("BOM",master_bom,all_item_attributes,as_dict=1)
+	with_value['master_bom'] = master_bom
+	with_value['gross_weight'] = frappe.db.get_value("BOM",master_bom,"gross_weight")
+	return with_value

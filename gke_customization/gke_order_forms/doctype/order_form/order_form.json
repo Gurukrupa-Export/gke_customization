@@ -19,6 +19,7 @@
   "delivery_date",
   "project",
   "parcel_place",
+  "flow_type",
   "column_break_4",
   "po_no",
   "order_type",
@@ -63,7 +64,6 @@
    "reqd": 1
   },
   {
-   "default": "IT",
    "fieldname": "department",
    "fieldtype": "Link",
    "label": "Department",
@@ -75,7 +75,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "GE-BR-00001",
    "fieldname": "branch",
    "fieldtype": "Link",
    "label": "Branch",
@@ -83,7 +82,6 @@
    "reqd": 1
   },
   {
-   "default": "Arun Lakhani",
    "fieldname": "salesman_name",
    "fieldtype": "Link",
    "label": "Sales Person",
@@ -95,7 +93,6 @@
    "fieldtype": "Section Break"
   },
   {
-   "default": "AACU0004",
    "fieldname": "customer_code",
    "fieldtype": "Link",
    "label": "Customer Name",
@@ -112,14 +109,12 @@
    "reqd": 1
   },
   {
-   "default": "Today",
    "fieldname": "delivery_date",
    "fieldtype": "Date",
    "label": "Delivery Date",
    "reqd": 1
   },
   {
-   "default": "PROJ-0001",
    "fieldname": "project",
    "fieldtype": "Link",
    "label": "Project",
@@ -157,7 +152,6 @@
    "reqd": 1
   },
   {
-   "default": "EF-VVS",
    "fieldname": "diamond_quality",
    "fieldtype": "Link",
    "label": "Diamond Quality",
@@ -337,6 +331,12 @@
    "fieldname": "tab_break_kio0",
    "fieldtype": "Tab Break",
    "label": "Repair Order"
+  },
+  {
+   "fieldname": "flow_type",
+   "fieldtype": "Select",
+   "label": "Flow Type",
+   "options": "MTO\nMTBI\nFILLER\nGCC\nUS\nJWO"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -355,7 +355,7 @@
    "link_fieldname": "custom_cad_order_form_id"
   }
  ],
- "modified": "2024-05-12 12:04:42.140760",
+ "modified": "2024-06-18 10:23:05.358406",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form",

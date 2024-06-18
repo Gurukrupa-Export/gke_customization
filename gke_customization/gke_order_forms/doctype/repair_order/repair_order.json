@@ -1,5 +1,4 @@
 {
- "_liked_by": "[\"Administrator\"]",
  "actions": [],
  "allow_rename": 1,
  "autoname": "format:{serial_and_design_code_order_form}-{index}",
@@ -18,9 +17,10 @@
   "customer_code",
   "order_date",
   "delivery_date",
-  "estimated_duedate",
+  "est_delivery_date",
   "project",
   "parcel_place",
+  "flow_type",
   "column_break_2",
   "po_no",
   "order_type",
@@ -76,8 +76,8 @@
   "height",
   "breadth",
   "section_break_crhvg",
+  "chain_from",
   "stone_changeable",
-  "changeable_type",
   "changeable",
   "column_break_ggacs",
   "enamal",
@@ -105,6 +105,7 @@
   "column_break_askui",
   "chain",
   "chain_type",
+  "chain_thickness",
   "section_break_tnktn",
   "customer_chain",
   "back_chain",
@@ -158,17 +159,6 @@
   "form_remarks",
   "remarks",
   "amended_from",
-  "section_break_lfz1",
-  "section_break_udht",
-  "designer_assignment_cad",
-  "section_break_upyz",
-  "designer_assignment_sketch",
-  "section_break_5bpb",
-  "rough_sketch_approval",
-  "section_break_bgme",
-  "final_sketch_approval",
-  "section_break_ag92",
-  "final_sketch_approval_cmo",
   "tab_break_ztm2",
   "sketch",
   "sketch_order_form",
@@ -220,6 +210,7 @@
    "label": "Order Detail"
   },
   {
+   "fetch_from": "serial_and_design_code_order_form.customer_code",
    "fieldname": "customer_code",
    "fieldtype": "Link",
    "label": "Customer Code",
@@ -241,11 +232,6 @@
    "fieldtype": "Date",
    "label": "Delivery Date",
    "read_only": 1
-  },
-  {
-   "fieldname": "estimated_duedate",
-   "fieldtype": "Date",
-   "label": "Estimated Due Date"
   },
   {
    "fetch_from": "serial_and_design_code_order_form.project",
@@ -291,6 +277,7 @@
    "read_only": 1
   },
   {
+   "fetch_from": "serial_and_design_code_order_form.due_days",
    "fieldname": "due_days",
    "fieldtype": "Int",
    "label": "Due Days",
@@ -428,7 +415,6 @@
    "options": "Attribute Value"
   },
   {
-   "fetch_from": "serial_and_design_id_order_form_detail.setting_type",
    "fieldname": "setting_type",
    "fieldtype": "Link",
    "label": "Setting Type",
@@ -503,8 +489,7 @@
    "label": "Product Detail"
   },
   {
-   "fetch_from": "bom.diamond_target",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.diamond_target",
    "fieldname": "diamond_target",
    "fieldtype": "Float",
    "hidden": 1,
@@ -517,8 +502,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "bom.product_size",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.product_size",
    "fieldname": "product_size",
    "fieldtype": "Float",
    "hidden": 1,
@@ -527,8 +511,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "item.sizer_type",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.sizer_type",
    "fieldname": "sizer_type",
    "fieldtype": "Link",
    "hidden": 1,
@@ -542,8 +525,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "bom.length",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.length",
    "fieldname": "length",
    "fieldtype": "Float",
    "hidden": 1,
@@ -552,8 +534,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.width",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.width",
    "fieldname": "width",
    "fieldtype": "Float",
    "hidden": 1,
@@ -562,8 +543,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.height",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.height",
    "fieldname": "height",
    "fieldtype": "Float",
    "hidden": 1,
@@ -572,8 +552,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.breadth",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.breadth",
    "fieldname": "breadth",
    "fieldtype": "Float",
    "hidden": 1,
@@ -586,7 +565,7 @@
    "fieldtype": "Section Break"
   },
   {
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.stone_changeable",
    "fieldname": "stone_changeable",
    "fieldtype": "Link",
    "hidden": 1,
@@ -596,8 +575,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.changeable",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.changeable",
    "fieldname": "changeable",
    "fieldtype": "Select",
    "hidden": 1,
@@ -611,8 +589,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "bom.enamal",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.enamal",
    "fieldname": "enamal",
    "fieldtype": "Link",
    "hidden": 1,
@@ -622,8 +599,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.rhodium",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.rhodium",
    "fieldname": "rhodium",
    "fieldtype": "Link",
    "hidden": 1,
@@ -645,8 +621,7 @@
    "read_only": 1
   },
   {
-   "fetch_from": "bom.gemstone_quality",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.gemstone_quality",
    "fieldname": "gemstone_quality",
    "fieldtype": "Link",
    "hidden": 1,
@@ -660,8 +635,7 @@
    "fieldtype": "Section Break"
   },
   {
-   "fetch_from": "bom.hinges",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.hinges",
    "fieldname": "hinges",
    "fieldtype": "Link",
    "hidden": 1,
@@ -670,8 +644,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.kadi_type",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.kadi_type",
    "fieldname": "kadi_type",
    "fieldtype": "Link",
    "hidden": 1,
@@ -684,6 +657,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "fetch_from": "serial_and_design_code_order_form_detail.vanki_type",
    "fieldname": "vanki_type",
    "fieldtype": "Link",
    "hidden": 1,
@@ -692,8 +666,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.screw_type",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.screw_type",
    "fieldname": "screw_type",
    "fieldtype": "Link",
    "hidden": 1,
@@ -706,8 +679,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "bom.hook_type",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.hook_type",
    "fieldname": "hook_type",
    "fieldtype": "Link",
    "hidden": 1,
@@ -716,8 +688,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.lock_type",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.lock_type",
    "fieldname": "lock_type",
    "fieldtype": "Link",
    "hidden": 1,
@@ -730,8 +701,7 @@
    "fieldtype": "Section Break"
   },
   {
-   "fetch_from": "bom.black_beed",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.black_beed",
    "fieldname": "black_beed",
    "fieldtype": "Link",
    "hidden": 1,
@@ -740,8 +710,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.black_beed_line",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.black_beed_line",
    "fieldname": "black_beed_line",
    "fieldtype": "Float",
    "hidden": 1,
@@ -753,8 +722,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "bom.back_belt_patti",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.back_belt_patti",
    "fieldname": "back_belt_patti",
    "fieldtype": "Link",
    "hidden": 1,
@@ -767,8 +735,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "bom.chain",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.chain",
    "fieldname": "chain",
    "fieldtype": "Link",
    "hidden": 1,
@@ -777,8 +744,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.chain_type",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.chain_type",
    "fieldname": "chain_type",
    "fieldtype": "Link",
    "hidden": 1,
@@ -791,8 +757,7 @@
    "fieldtype": "Section Break"
   },
   {
-   "fetch_from": "bom.customer_chain",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.customer_chain",
    "fieldname": "customer_chain",
    "fieldtype": "Link",
    "hidden": 1,
@@ -801,8 +766,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.back_chain",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.back_chain",
    "fieldname": "back_chain",
    "fieldtype": "Link",
    "hidden": 1,
@@ -815,8 +779,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "bom.chain_length",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.chain_length",
    "fieldname": "chain_length",
    "fieldtype": "Float",
    "hidden": 1,
@@ -824,8 +787,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.chain_weight",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.chain_weight",
    "fieldname": "chain_weight",
    "fieldtype": "Float",
    "hidden": 1,
@@ -837,8 +799,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "bom.total_length",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.total_length",
    "fieldname": "total_length",
    "fieldtype": "Float",
    "hidden": 1,
@@ -846,8 +807,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.detachable",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.detachable",
    "fieldname": "detachable",
    "fieldtype": "Link",
    "hidden": 1,
@@ -860,8 +820,7 @@
    "fieldtype": "Section Break"
   },
   {
-   "fetch_from": "bom.back_chain_size",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.back_chain_size",
    "fieldname": "back_chain_size",
    "fieldtype": "Float",
    "hidden": 1,
@@ -869,8 +828,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.back_side_size",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.back_side_size",
    "fieldname": "back_side_size",
    "fieldtype": "Float",
    "hidden": 1,
@@ -882,7 +840,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.total_mugappu",
    "fieldname": "total_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
@@ -890,8 +848,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.kadi_to_mugappu",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.kadi_to_mugappu",
    "fieldname": "kadi_to_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
@@ -899,8 +856,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.back_belt_length",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.back_belt_length",
    "fieldname": "back_belt_length",
    "fieldtype": "Float",
    "hidden": 1,
@@ -912,8 +868,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "bom.space_between_mugappu",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.space_between_mugappu",
    "fieldname": "space_between_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
@@ -921,8 +876,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.nakshi_from",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.nakshi_from",
    "fieldname": "nakshi_from",
    "fieldtype": "Link",
    "hidden": 1,
@@ -935,8 +889,7 @@
    "fieldtype": "Section Break"
   },
   {
-   "fetch_from": "bom.back_belt",
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.back_belt",
    "fieldname": "back_belt",
    "fieldtype": "Link",
    "hidden": 1,
@@ -945,7 +898,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.customer_sample",
    "fieldname": "customer_sample",
    "fieldtype": "Link",
    "hidden": 1,
@@ -1019,7 +972,7 @@
    "fieldtype": "Section Break"
   },
   {
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.certificate_place",
    "fieldname": "certificate_place",
    "fieldtype": "Link",
    "hidden": 1,
@@ -1172,86 +1125,20 @@
    "read_only": 1
   },
   {
-   "fieldname": "changeable_type",
-   "fieldtype": "Link",
-   "label": "Changeable Type",
-   "options": "Attribute Value",
-   "read_only": 1
-  },
-  {
+   "fetch_from": "serial_and_design_code_order_form_detail.feature",
    "fieldname": "feature",
    "fieldtype": "Link",
-   "label": "feature",
+   "label": "Feature",
    "options": "Attribute Value"
   },
   {
+   "fetch_from": "serial_and_design_code_order_form_detail.distance_between_kadi_to_mugappu",
    "fieldname": "distance_between_kadi_to_mugappu",
    "fieldtype": "Float",
    "label": "Distance Between Kadi to Mugappu"
   },
   {
-   "fieldname": "section_break_lfz1",
-   "fieldtype": "Section Break"
-  },
-  {
-   "depends_on": "eval:doc.required_design == 'CAD'",
-   "fieldname": "section_break_udht",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "designer_assignment_cad",
-   "fieldtype": "Table",
-   "label": "Designer Assignment",
-   "options": "Designer Assignment - CAD"
-  },
-  {
-   "depends_on": "eval:doc.required_design == 'Manual'",
-   "fieldname": "section_break_upyz",
-   "fieldtype": "Section Break"
-  },
-  {
-   "depends_on": "eval:(!in_list(['Draft','On Hold','Assigned','On Hold - Assigned','Designing'], doc.workflow_state)) && doc.required_design == 'Manual'",
-   "fieldname": "section_break_5bpb",
-   "fieldtype": "Section Break"
-  },
-  {
-   "depends_on": "eval:(!in_list(['Draft','Assigned','On Hold', 'On Hold - Assigned','Designing','Rough Sketch Approval (HOD)','On Hold - Rough Sketch Approval'], doc.workflow_state)) && doc.required_design == 'Manual'",
-   "fieldname": "section_break_bgme",
-   "fieldtype": "Section Break",
-   "read_only": 1
-  },
-  {
-   "depends_on": "eval:(!in_list(['Draft','Assigned','Rough Sketch Approval (HOD)','Final Sketch Approval (HOD)'], doc.workflow_state)) && doc.required_design == 'Manual'",
-   "fieldname": "section_break_ag92",
-   "fieldtype": "Section Break",
-   "read_only": 1
-  },
-  {
-   "fieldname": "designer_assignment_sketch",
-   "fieldtype": "Table",
-   "label": "Designer Assignment",
-   "options": "Designer Assignment"
-  },
-  {
-   "fieldname": "rough_sketch_approval",
-   "fieldtype": "Table",
-   "label": "Rough Sketch Approval (HOD)",
-   "options": "Rough Sketch Approval"
-  },
-  {
-   "fieldname": "final_sketch_approval",
-   "fieldtype": "Table",
-   "label": "Final Sketch Approval (HOD)",
-   "options": "Final Sketch Approval HOD"
-  },
-  {
-   "fieldname": "final_sketch_approval_cmo",
-   "fieldtype": "Table",
-   "label": "Final Sketch Approval (CMO / CPO)",
-   "options": "Final Sketch Approval CMO"
-  },
-  {
-   "fetch_from": "serial_and_design_code_order_form_detail.new_bom",
+   "allow_on_submit": 1,
    "fieldname": "new_bom",
    "fieldtype": "Link",
    "label": "New BOM",
@@ -1305,7 +1192,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.metal_target",
-   "fetch_if_empty": 1,
    "fieldname": "metal_target",
    "fieldtype": "Float",
    "hidden": 1,
@@ -1314,7 +1200,7 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_if_empty": 1,
+   "fetch_from": "serial_and_design_code_order_form_detail.two_in_one",
    "fieldname": "two_in_one",
    "fieldtype": "Link",
    "hidden": 1,
@@ -1323,12 +1209,33 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "serial_and_design_code_order_form_detail.new_item_code",
+   "allow_on_submit": 1,
    "fieldname": "new_item_code",
    "fieldtype": "Link",
    "label": "New Item Code",
-   "options": "Item",
-   "read_only": 1
+   "options": "Item"
+  },
+  {
+   "fieldname": "chain_from",
+   "fieldtype": "Link",
+   "label": "Chain From",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "chain_thickness",
+   "fieldtype": "Float",
+   "label": "Chain Thickness"
+  },
+  {
+   "fieldname": "est_delivery_date",
+   "fieldtype": "Date",
+   "label": "Estimated Due Date"
+  },
+  {
+   "fieldname": "flow_type",
+   "fieldtype": "Select",
+   "label": "Flow Type",
+   "options": "MTO\nMTBI\nFILLER\nGCC\nUS\nJWO"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1348,7 +1255,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2024-04-19 14:54:08.824147",
+ "modified": "2024-06-18 10:34:06.515479",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order",

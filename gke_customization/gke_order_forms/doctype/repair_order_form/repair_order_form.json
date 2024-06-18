@@ -1,5 +1,4 @@
 {
- "_liked_by": "[\"Administrator\"]",
  "actions": [],
  "allow_import": 1,
  "allow_rename": 1,
@@ -20,6 +19,7 @@
   "delivery_date",
   "project",
   "parcel_place",
+  "flow_type",
   "column_break_4",
   "po_no",
   "stock_type",
@@ -134,7 +134,8 @@
    "fieldname": "diamond_quality",
    "fieldtype": "Link",
    "label": "Diamond Quality",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "reqd": 1
   },
   {
    "fieldname": "service_type",
@@ -182,6 +183,12 @@
    "options": "Repair Order Form",
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "flow_type",
+   "fieldtype": "Select",
+   "label": "Flow Type",
+   "options": "MTO\nMTBI\nFILLER\nGCC\nUS\nJWO"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -196,7 +203,7 @@
    "link_fieldname": "custom_repair_order_form"
   }
  ],
- "modified": "2024-03-26 12:19:59.451876",
+ "modified": "2024-06-18 10:33:44.724161",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order Form",

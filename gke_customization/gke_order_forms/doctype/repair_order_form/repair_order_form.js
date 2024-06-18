@@ -34,6 +34,20 @@ frappe.ui.form.on('Repair Order Form', {
 		}
 	},
 	setup: function (frm) {
+		frm.set_query("department", function(){
+			return {
+				"filters": [
+					["Department", "company", "=", frm.doc.company],
+				]
+			}
+		});
+		frm.set_query("branch", function(){
+			return {
+				"filters": [
+					["Branch", "company", "=", frm.doc.company],
+				]
+			}
+		});
 		frm.set_query("diamond_quality", function (doc) {
 			if (!doc.customer_code) {
 				frappe.throw("Please select customer code.")
@@ -44,53 +58,7 @@ frappe.ui.form.on('Repair Order Form', {
 					"customer": doc.customer_code
 				}
 			}
-		})
-		var fields = [['category', 'Item Category'],
-		['subcategory', 'Item Subcategory'],
-		['diamond_quality', 'Diamond Quality'],
-		['metal_touch', 'Metal Touch'],
-		['metal_type', 'Metal Type'],
-		['metal_purity', 'Metal Purity'],
-		['metal_colour', 'Metal Colour'],
-		['setting_type', 'Setting Type'],
-		['sub_setting_type1', 'Sub Setting Type'],
-		['sub_setting_type2', 'Sub Setting Type'],
-		['sizer_type', 'Sizer Type'],
-		['enamal', 'Enamal'],
-		['rhodium', 'Rhodium'],
-		['gemstone_type', 'Gemstone Type'],
-		['gemstone_quality', 'Gemstone Quality'],
-		['stone_changeable', 'Stone Changeable'],
-		['hinges', 'Hinges'],
-		['back_belt_patti', 'Back Belt (Patti)'],
-		['vanki_type', 'Vanki Type'],
-		['black_beed', 'Black Beed'],
-		// ['screw_type', 'Screw Type'],
-		// ['hook_type', 'Hook Type'],
-		['lock_type', 'Lock Type'],
-		['2_in_1', '2 in 1'],
-		['kadi_type', 'Kadi Type'],
-		['chain', 'Chain'],
-		['chain_type', 'Chain Type'],
-		['customer_chain', 'Customer Chain'],
-		['detachable', 'Detachable'],
-		['back_chain', 'Back Chain'],
-		['nakshi_from', 'Nakshi From'],
-		['customer_sample', 'Customer Sample'],
-		['certificate_place', 'Certificate Place'],
-		['breadth', 'Breadth'],
-		['width', 'Width'],
-		['back_belt', 'Back Belt'],
-		['back_belt_length', 'Back Belt Length'],
-		['gemstone_type1', 'Gemstone Type1'],
-		['repair_type', 'Repair Type'],
-		['product_type','Product Type'],
-		];
-		set_filters_on_child_table_fields(frm, fields);
-
-		let design_fields = [["item", "tag_no"]]
-		set_filter_for_design_n_serial(frm, design_fields)
-
+		});
 		frm.set_query('subcategory', 'order_details', function (doc, cdt, cdn) {
 			let d = locals[cdt][cdn];
 			return {
@@ -112,32 +80,69 @@ frappe.ui.form.on('Repair Order Form', {
 					'item': d.item
 				}
 			};
-		})
+		});
 		if (frm.doc.order_details) {
 			frm.doc.order_details.forEach(function (d) {
 				show_attribute_fields_for_subcategory(frm, d.doctype, d.name, d);
 			})
-		}
+		};
+
+		var fields = [['category', 'Item Category'],
+		['subcategory', 'Item Subcategory'],
+		['diamond_quality', 'Diamond Quality'],
+		['metal_touch', 'Metal Touch'],
+		['metal_type', 'Metal Type'],
+		['metal_purity', 'Metal Purity'],
+		['metal_colour', 'Metal Colour'],
+		['setting_type', 'Setting Type'],
+		['sub_setting_type1', 'Sub Setting Type'],
+		['sub_setting_type2', 'Sub Setting Type'],
+		['sizer_type', 'Sizer Type'],
+		['enamal', 'Enamal'],
+		['rhodium', 'Rhodium'],
+		['gemstone_type1', 'Gemstone Type1'],
+		['gemstone_quality', 'Gemstone Quality'],
+		['stone_changeable', 'Stone Changeable'],
+		['back_belt_patti', 'Back Belt Patti'],
+		['vanki_type', 'Vanki Type'],
+		['black_beed', 'Black Beed'],
+		['lock_type', 'Lock Type'],
+		['2_in_1', '2 in 1'],
+		['chain', 'Chain'],
+		['chain_type', 'Chain Type'],
+		['customer_chain', 'Customer Chain'],
+		['detachable', 'Detachable'],
+		['back_chain', 'Back Chain'],
+		['nakshi_from', 'Nakshi From'],
+		['customer_sample', 'Customer Sample'],
+		['customer_sample', 'Customer Good'],
+		['certificate_place', 'Certificate Place'],
+		['back_belt', 'Back Belt'],
+		['repair_type', 'Repair Type'],
+		['product_type','Product Type'],
+		];
+		set_filters_on_child_table_fields(frm, fields);
+
+		let design_fields = [["item", "tag_no"]]
+		set_filter_for_design_n_serial(frm, design_fields)
+		
+		
 	},
 	due_days: function (frm) {
 		delivery_date(frm);
 	},
-
 	validate: function (frm) {
 		if (frm.doc.delivery_date < frm.doc.order_date) {
 			frappe.msgprint(__("You can not select past date in Delivery Date"));
 			frappe.validated = false;
 		}
 	},
-	concept_image: function (frm) {
-		refresh_field('image_preview');
-	},
-
-
-	design_by: function (frm) {
-		set_order_type_from_design_by(frm);
-
-	},
+	// concept_image: function (frm) {
+	// 	refresh_field('image_preview');
+	// },
+	// design_by: function (frm) {
+	// 	set_order_type_from_design_by(frm);
+	// },
 	scan_serial_no: function (frm) {
 		if (frm.doc.scan_serial_no) {
 			frappe.call({
@@ -208,38 +213,156 @@ frappe.ui.form.on('Repair Order Form Detail', {
 	item: function (frm, cdt, cdn) {
 		var d = locals[cdt][cdn];
 		if (d.item) {
-			frappe.db.get_value("Item", { "name": d.item }, ["item_category","item_subcategory","setting_type"], function (value) {
-				d.category = value.item_category;
-				d.subcategory = value.item_subcategory;
-				d.setting_type = value.setting_type;
-				set_field_visibility(frm, cdt, cdn)
-				refresh_field('order_details');
+			frappe.call({
+				method: "gke_customization.gke_order_forms.doctype.repair_order_form.repair_order_form.get_bom_details",
+				args: {
+					"design_id": d.item,
+				},
+				callback(r) {
+					if(r.message) {
+						d.bom_weight = r.message.gross_weight
+						d.category = r.message.item_category;
+						d.subcategory = r.message.item_subcategory;
+						d.setting_type = r.message.setting_type;
+						d.sub_setting_type1 = r.message.sub_setting_type1
+						d.sub_setting_type2 = r.message.sub_setting_type2
+						d.bom = r.message.master_bom;
+
+						d.qty = r.message.qty
+						d.metal_type = r.message.metal_type
+						d.metal_touch = r.message.metal_touch
+						d.metal_purity = r.message.metal_purity
+						d.metal_colour = r.message.metal_colour
+						
+						
+						// d.metal_target = r.message.metal_target
+						d.metal_target = r.message.custom_metal_target
+						d.diamond_target = r.message.diamond_target
+						d.product_size = r.message.product_size
+						d.sizer_type = r.message.sizer_type
+		
+						d.length = r.message.length
+						d.height = r.message.height
+						d.width = r.message.width
+						
+						d.stone_changeable = r.message.stone_changeable
+						d.detachable = r.message.detachable
+
+						d.lock_type = r.message.lock_type
+						d.feature = r.message.feature
+						
+						d.back_chain = r.message.back_chain
+						d.back_chain_size = r.message.back_chain_size
+						d.back_belt = r.message.back_belt
+						d.back_belt_length = r.message.back_belt_length
+						d.black_beed = r.message.black_beed
+						d.black_beed_line = r.message.black_beed_line
+						d.back_side_size = r.message.back_side_size
+						
+						d.back_belt_patti = r.message.back_belt_patti
+						d.vanki_type = r.message.vanki_type
+						d.rhodium = r.message.rhodium
+
+						d.chain = r.message.chain
+						d.chain_type = r.message.chain_type
+						d.customer_chain = r.message.customer_chain
+						d.chain_weight = r.message.chain_weight
+						d.chain_length = r.message.chain_length
+
+						d.number_of_ant = r.message.number_of_ant
+						d.distance_between_kadi_to_mugappu = r.message.distance_between_kadi_to_mugappu
+						d.space_between_mugappu = r.message.space_between_mugappu
+						d.two_in_one = r.message.two_in_one
+
+						d.rhodium = r.message.rhodium
+						d.enamal = r.message.enamal
+
+						d.gemstone_type1 = r.message.gemstone_type1
+						d.gemstone_quality = r.message.gemstone_quality
+				
+						refresh_field('order_details');
+						set_field_visibility(frm, cdt, cdn)
+					}
+				}
 			});
 		}
 		else {
-			d.category = "";
-			d.subcategory = "";
-			d.setting_type = "";
+			d.bom_weight = ""
+			d.category = ""
+			d.subcategory = ""
+			d.setting_type = ""
+			d.sub_setting_type1 = ""
+			d.sub_setting_type2 = ""
 			d.bom = ""
+
+			d.qty = ""
+			d.metal_type = ""
+			d.metal_touch = ""
+			d.metal_purity = ""
+			d.metal_colour = ""
+
+			// d.metal_target = ""
+			d.metal_target = ""
+			d.diamond_target = ""
+			d.product_size = ""
+			d.sizer_type = ""
+
+			d.length = ""
+			d.height = ""
+			d.width = ""
+			
+			d.stone_changeable = ""
+			d.detachable = ""
+
+			d.lock_type = ""
+			d.feature = ""
+			
+			d.back_chain = ""
+			d.back_chain_size = ""
+			d.back_belt = ""
+			d.back_belt_length = ""
+			d.black_beed = ""
+			d.black_beed_line = ""
+			d.back_side_size = ""
+			
+			d.back_belt_patti = ""
+			d.vanki_type = ""
+			d.rhodium = ""
+
+			d.chain = ""
+			d.chain_type = ""
+			d.customer_chain = ""
+			d.chain_weight = ""
+			d.chain_length = ""
+
+			d.number_of_ant = ""
+			d.distance_between_kadi_to_mugappu = ""
+			d.space_between_mugappu = ""
+			d.two_in_one = ""
+
+			d.rhodium = ""
+			d.enamal = ""
+			d.gemstone_type1 = ""
+			d.gemstone_quality = ""
 			refresh_field('order_details');
 		}
 	},
-	bom: function (frm, cdt, cdn) {
-		var d = locals[cdt][cdn];
+	// bom: function (frm, cdt, cdn) {
+	// 	var d = locals[cdt][cdn];
 
-		if (d.bom) {
-			frappe.db.get_value("BOM", { "name": d.bom }, "metal_purity", function (value) {
-				d.purity = value.metal_purity;
-				refresh_field('order_details');
+	// 	if (d.bom) {
+	// 		frappe.db.get_value("BOM", { "name": d.bom }, "metal_purity", function (value) {
+	// 			d.purity = value.metal_purity;
+	// 			refresh_field('order_details');
 
-			});
-		}
-		else {
-			d.purity = "";
-			refresh_field('order_details');
+	// 		});
+	// 	}
+	// 	else {
+	// 		d.purity = "";
+	// 		refresh_field('order_details');
 
-		}
-	},
+	// 	}
+	// },
 	subcategory: function (frm, cdt, cdn) {
 		set_field_visibility(frm, cdt, cdn)
 	},
@@ -247,29 +370,29 @@ frappe.ui.form.on('Repair Order Form Detail', {
 		var row = locals[cdt][cdn];
 		row.delivery_date = frm.doc.delivery_date;
 		row.diamond_quality = frm.doc.diamond_quality;
-		row.estimated_duedate = frm.doc.estimated_duedate;
-		row.branch = frm.doc.branch
-		row.project = frm.doc.project
+		// row.estimated_duedate = frm.doc.estimated_duedate;
+		// row.branch = frm.doc.branch
+		// row.project = frm.doc.project
 		refresh_field("order_details");
 	},
-	design_image: function (frm, cdt, cdn) {
-		refresh_field("order_details");
-	},
+	// design_image: function (frm, cdt, cdn) {
+	// 	refresh_field("order_details");
+	// },
 
-	design_type: function (frm, cdt, cdn) {
-		var row = locals[cdt][cdn];
-		frappe.model.set_value(row.doctype, row.name, 'category', '');
-		frappe.model.set_value(row.doctype, row.name, 'subcategory', '');
-		frappe.model.set_value(row.doctype, row.name, 'setting_type', '');
-		frappe.model.set_value(row.doctype, row.name, 'purity', '');
-		frappe.model.set_value(row.doctype, row.name, 'gemstone_price', '');
-		frappe.model.set_value(row.doctype, row.name, 'design_image', '');
-		frappe.model.set_value(row.doctype, row.name, 'image', '');
-		frappe.model.set_value(row.doctype, row.name, 'tag_no', '');
-		frappe.model.set_value(row.doctype, row.name, 'item', '');
-		frappe.model.set_value(row.doctype, row.name, 'bom', '');
-		frappe.model.set_value(row.doctype, row.name, 'design_id', '');
-	},
+	// design_type: function (frm, cdt, cdn) {
+	// 	var row = locals[cdt][cdn];
+	// 	frappe.model.set_value(row.doctype, row.name, 'category', '');
+	// 	frappe.model.set_value(row.doctype, row.name, 'subcategory', '');
+	// 	frappe.model.set_value(row.doctype, row.name, 'setting_type', '');
+	// 	frappe.model.set_value(row.doctype, row.name, 'purity', '');
+	// 	frappe.model.set_value(row.doctype, row.name, 'gemstone_price', '');
+	// 	frappe.model.set_value(row.doctype, row.name, 'design_image', '');
+	// 	frappe.model.set_value(row.doctype, row.name, 'image', '');
+	// 	frappe.model.set_value(row.doctype, row.name, 'tag_no', '');
+	// 	frappe.model.set_value(row.doctype, row.name, 'item', '');
+	// 	frappe.model.set_value(row.doctype, row.name, 'bom', '');
+	// 	frappe.model.set_value(row.doctype, row.name, 'design_id', '');
+	// },
 
 	category: function (frm, cdt, cdn) {
 		var row = locals[cdt][cdn];
@@ -332,7 +455,9 @@ function show_attribute_fields_for_subcategory(frm, cdt, cdn, order_detail) {
 
 //private function to hide all subcategory related fields in order details
 function hide_all_subcategory_attribute_fields(frm, cdt, cdn) {
-	var subcategory_attribute_fields = ['Gold Target', 'Diamond Target', 'Metal Colour', 'Product Size', 'Length', 'Height', 'Sizer Type', 'Enamal', 'Rhodium', 'Stone Type', 'Gemstone Type', 'Gemstone Quality', 'Stone Changeable', 'Changeable', 'Hinges', 'Back Belt', 'Vanki Type', 'Black Beed', 'Black Beed Line', 'Screw Type', 'Hook Type', 'Lock Type', '2 in 1', 'Kadi Type', 'Chain', 'Chain Type', 'Customer Chain', 'Chain Length', 'Total Length', 'Chain Weight', 'Detachable', 'Back Chain', 'Back Chain Size', 'Back Side Size', 'Chain Thickness', 'Total Mugappu', 'Kadi to Mugappu', 'Space between Mugappu', 'Nakshi', 'Nakshi From', 'Customer Sample', 'Certificate Place', 'Breadth', 'Width', 'Back Belt', 'Back Belt Length'];
+
+	var subcategory_attribute_fields = ['Lock Type','Back Chain','Back Belt','Black Beed','Back Side Size','Hinges','Back Belt Patti','Chain Type',
+		'Vanki','Total Length','Number of Ant','Distance Between Kadi To Mugappu','Space between Mugappu','Two in One']
 	show_hide_fields(frm, cdt, cdn, subcategory_attribute_fields, 1);
 }
 

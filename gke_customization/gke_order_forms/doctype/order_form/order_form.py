@@ -75,31 +75,46 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	# as_per_serial_no = frappe.get_doc('Order Form Detail',source_name).as_per_serial_no
 	mod_reason = frappe.get_doc('Order Form Detail',source_name).mod_reason
 	design_id = frappe.get_doc('Order Form Detail',source_name).design_id
+	is_repairing = frappe.get_doc('Order Form Detail',source_name).is_repairing
 	if design_type == 'Mod':
 		# if as_per_serial_no == 1:
 		# 	item_type = "No Variant No Suffix"
-		# 	bom_or_cad = 'BOM'
-		# else:
-		variant_of = frappe.db.get_value("Item",design_id,"variant_of")
-		attribute_list = make_atribute_list(source_name)
-		validate_variant_attributes(variant_of,attribute_list)
-		bom = frappe.db.get_value('Item',design_id,'master_bom')
-		if bom==None:
-			frappe.throw(f'BOM is not available for {design_id}')
-		if mod_reason == 'No Design Change':
-			item_type = "Only Variant"
-			# bom_or_cad = 'CAD'
-			bom_or_cad = workflow_state_maker(source_name)
+		# 	bom_or_cad = 'New BOM'
+		if is_repairing == 1:
+			bom_or_cad = frappe.get_doc('Order Form Detail',source_name).bom_or_cad
+			item_type = frappe.get_doc('Order Form Detail',source_name).item_type
 		else:
-			item_type = "Suffix Of Variant"
-			# bom_or_cad = 'CAD'
-			bom_or_cad = workflow_state_maker(source_name)
+			# if is_repairing == 1:
+			# 	bom_or_cad = frappe.get_doc('Order Form Detail',source_name).bom_or_cad
+			# 	if frappe.get_doc('Order Form Detail',source_name).item_type == 'New Template & Variant':
+			# 		item_type = 'New Template & Variant'
+			# 	else:
+			# 		if mod_reason == 'No Design Change':
+			# 			item_type = "Only Variant"
+			# 		else:
+			# 			item_type = "Suffix Of Variant"
+			# else:
+			variant_of = frappe.db.get_value("Item",design_id,"variant_of")
+			attribute_list = make_atribute_list(source_name)
+			validate_variant_attributes(variant_of,attribute_list)
+			bom = frappe.db.get_value('Item',design_id,'master_bom')
+			if bom==None:
+				frappe.throw(f'BOM is not available for {design_id}')
+			if mod_reason == 'No Design Change':
+				item_type = "Only Variant"
+				# bom_or_cad = 'CAD'
+				# if not is_repairing:
+				bom_or_cad = workflow_state_maker(source_name)
+			else:
+				item_type = "Suffix Of Variant"
+				bom_or_cad = 'CAD'
+					# bom_or_cad = workflow_state_maker(source_name)
 	elif design_type == 'Sketch Design':
 		item_type = "No Variant No Suffix"
 		bom_or_cad = 'CAD'
 	elif design_type == 'As Per Serial No':
 		item_type = "No Variant No Suffix"
-		bom_or_cad = 'BOM'
+		bom_or_cad = 'New BOM'
 	else:
 		item_type = 'Template and Variant'
 		bom_or_cad = 'CAD'
@@ -228,15 +243,16 @@ def workflow_state_maker(source_name):
 		if str(bom_detail[item_attribute]) != str(frappe.db.get_value('Order Form Detail',source_name,item_attribute)):
 			bom_or_cad = 'CAD'
 		else:
-			bom_or_cad = 'BOM'
+			bom_or_cad = 'New BOM'
 		all_bom_or_cad.append(bom_or_cad)
 	
 	
 	if 'CAD' in all_bom_or_cad:
 		bom_or_cad = 'CAD'
 	else:
-		bom_or_cad = 'BOM'
+		bom_or_cad = 'New BOM'
 
+	frappe.throw(f"{bom_or_cad}")
 	return bom_or_cad
 
 
@@ -321,9 +337,16 @@ def make_order_form(source_name,target_doc=None):
 	# 	return row.design_id
 
 @frappe.whitelist()
-def get_bom_details(design_id):
+def get_bom_details(design_id,doc):
+	doc = json.loads(doc)
 	item_subcategory = frappe.db.get_value("Item",design_id,"item_subcategory")
-	master_bom = frappe.db.get_value("Item",design_id,"master_bom")
+
+	fg_bom = frappe.db.get_value("BOM",{"tag_no":doc["tag_no"],"item":design_id},"name")
+	master_bom = fg_bom
+	if not fg_bom:
+		temp_bom = frappe.db.get_value("Item",design_id,"master_bom")
+		master_bom = temp_bom
+	
 	if not master_bom:
 		frappe.throw(f"Master BOM for Item <b>{get_link_to_form('Item',design_id)}</b> is not set")
 	all_item_attributes = []
@@ -331,6 +354,7 @@ def get_bom_details(design_id):
 	for i in frappe.get_doc("Attribute Value",item_subcategory).item_attributes:
 		all_item_attributes.append(i.item_attribute.replace(' ','_').lower())
 	
+	# frappe.throw(f"{all_item_attributes}")
 	with_value = frappe.db.get_value("BOM",master_bom,all_item_attributes,as_dict=1)
 	with_value['master_bom'] = master_bom
 	return with_value
@@ -347,19 +371,31 @@ def validate_variant_attributes(variant_of,attribute_list):
 @frappe.whitelist()
 def get_metal_purity(metal_type,metal_touch,customer):
 	metal_purity = frappe.db.sql(f"""select metal_purity from `tabMetal Criteria` where parent = '{customer}' and metal_type = '{metal_type}' and metal_touch = '{metal_touch}'""",as_dict=1)
-	return metal_purity[0]['metal_purity']
+	return metal_purity
 
 
 @frappe.whitelist()
 def get_sketh_details(design_id):
+	
 	db_data = frappe.db.sql(f"select name,attribute, attribute_value from `tabItem Variant Attribute` where parent = '{design_id}'",as_dict=1)
 	final_data = {}
-	
+	sketch_order_id = frappe.db.get_value("Item",design_id,"custom_sketch_order_id")
 	final_data['item_category'] = frappe.db.get_value("Item",design_id,"item_category")
 	final_data['item_subcategory'] = frappe.db.get_value("Item",design_id,"item_subcategory")
 	final_data['setting_type'] = frappe.db.get_value("Item",design_id,"setting_type")
+	final_data['sub_setting_type1'] = frappe.db.get_value("Sketch Order",sketch_order_id,"sub_setting_type1")
+	final_data['sub_setting_type2'] = frappe.db.get_value("Sketch Order",sketch_order_id,"sub_setting_type2")
+	final_data['qty'] = frappe.db.get_value("Sketch Order",sketch_order_id,"qty")
+	final_data['metal_type'] = frappe.db.get_value("Sketch Order",sketch_order_id,"metal_type")
+	final_data['metal_touch'] = frappe.db.get_value("Sketch Order",sketch_order_id,"metal_touch")
+	final_data['metal_colour'] = frappe.db.get_value("Sketch Order",sketch_order_id,"metal_colour")
 	final_data['metal_target'] = frappe.db.get_value("Item",design_id,"approx_gold")
 	final_data['diamond_target'] = frappe.db.get_value("Item",design_id,"approx_diamond")
+	final_data['product_size'] = frappe.db.get_value("Sketch Order",sketch_order_id,"product_size")
+	final_data['sizer_type'] = frappe.db.get_value("Sketch Order",sketch_order_id,"sizer_type")
+	final_data['length'] = frappe.db.get_value("Sketch Order",sketch_order_id,"length")
+	final_data['width'] = frappe.db.get_value("Sketch Order",sketch_order_id,"width")
+	final_data['height'] = frappe.db.get_value("Sketch Order",sketch_order_id,"height")
 	for i in db_data:
 		if i.attribute_value in [None,'']:
 			continue
