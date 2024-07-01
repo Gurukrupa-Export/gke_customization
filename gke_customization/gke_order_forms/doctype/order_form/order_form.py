@@ -105,6 +105,9 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 				# bom_or_cad = 'CAD'
 				# if not is_repairing:
 				bom_or_cad = workflow_state_maker(source_name)
+			elif mod_reason == 'Attribute Change':
+				item_type = "Only Variant"
+				bom_or_cad = 'Check'
 			else:
 				item_type = "Suffix Of Variant"
 				bom_or_cad = 'CAD'

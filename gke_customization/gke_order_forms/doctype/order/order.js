@@ -6,7 +6,6 @@ frappe.ui.form.on('Order', {
 		show_attribute_fields_for_subcategory(frm)
 	},
 	subcategory(frm) {
-		// hide_all_subcategory_attribute_fields(frm)
 		show_attribute_fields_for_subcategory(frm)
 	},
 	est_delivery_date(frm) {
@@ -51,30 +50,3 @@ function validate_dates(frm, doc, dateField) {
         frappe.model.set_value(doc.doctype, doc.name, dateField, frappe.datetime.add_days(order_date,1))
     }
 }
-
-// frappe.ui.form.on('Order', {
-//     refresh: function(frm) {
-//         frm.fields_dict['status'].$input.on('change', function() {
-//             if (frm.doc.status === 'Start Designing') {
-//                 // Assuming 'designer_assignment' is the child table
-//                 var designerAssignments = frm.doc.designer_assignment;
-
-//                 // Assuming you have a link field 'employee' in the Timesheet
-//                 frappe.call({
-//                     method: 'jewellery_erpnext.gurukrupa_exports.doctype.cad_order.cad_order.update_timesheet_employee',
-//                     args: {
-//                         timesheet_name: frm.doc.timesheet,  // Replace with the actual fieldname
-//                         designer_assignments: designerAssignments
-//                     },
-//                     callback: function(response) {
-//                         if (response.message) {
-//                             frappe.msgprint('Employee data updated in Timesheet.');
-//                         } else {
-//                             frappe.msgprint('Failed to update employee data in Timesheet.');
-//                         }
-//                     }
-//                 });
-//             }
-//         });
-//     }
-// });

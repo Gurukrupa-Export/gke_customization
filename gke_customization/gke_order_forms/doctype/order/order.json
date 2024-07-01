@@ -7,8 +7,10 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "workflow_state",
   "index",
   "bom_or_cad",
+  "workflow_type",
   "company",
   "department",
   "column_break_etz53",
@@ -29,6 +31,7 @@
   "due_days",
   "est_due_days",
   "service_type",
+  "flow_type",
   "section_break_10",
   "cad_order_form",
   "design_by",
@@ -36,6 +39,8 @@
   "column_break_2",
   "cad_order_form_detail",
   "design_type",
+  "is_repairing",
+  "mod_reason",
   "amended_from",
   "section_break_9",
   "tag_no",
@@ -86,7 +91,9 @@
   "back_side_size",
   "column_break_49",
   "back_belt_patti",
-  "vanki_type",
+  "vanki",
+  "charm",
+  "capganthan",
   "rhodium_",
   "column_break_56",
   "chain",
@@ -101,8 +108,8 @@
   "space_between_mugappu",
   "detachable",
   "two_in_one",
-  "column_break_69",
   "enamal",
+  "column_break_69",
   "nakshi_from",
   "nakshi_weight",
   "section_break_6pxwc",
@@ -125,8 +132,6 @@
   "design_image_5",
   "image_preview_5",
   "section_break_72",
-  "form_remarks",
-  "remarks",
   "section_break_74",
   "designer_assignment",
   "section_break_77",
@@ -155,6 +160,8 @@
   "india_states",
   "column_break_chfe",
   "usa",
+  "inventory_dimension",
+  "inventory_type",
   "usa_states"
  ],
  "fields": [
@@ -169,7 +176,7 @@
    "fieldname": "bom_or_cad",
    "fieldtype": "Select",
    "label": "BOM or CAD",
-   "options": "\nBOM\nCAD",
+   "options": "\nNew BOM\nDuplicate BOM\nCAD\nCheck",
    "read_only": 1
   },
   {
@@ -287,7 +294,7 @@
   {
    "fieldname": "diamond_quality",
    "fieldtype": "Link",
-   "label": "Diamond Quality",
+   "label": "Customer Diamond Quality",
    "options": "Attribute Value",
    "read_only": 1
   },
@@ -327,7 +334,7 @@
    "fieldname": "design_by",
    "fieldtype": "Select",
    "label": "Design By",
-   "options": "Customer Design\nOur  Design",
+   "options": "Customer Design\nOur Design",
    "read_only": 1
   },
   {
@@ -351,12 +358,10 @@
   },
   {
    "fetch_from": "cad_order_form_detail.design_type",
-   "fetch_if_empty": 1,
    "fieldname": "design_type",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Design Type",
-   "options": "Sketch Design\nMod\nNew Design\nAs Per Serial No",
-   "read_only": 1
+   "options": "Attribute Value"
   },
   {
    "fieldname": "amended_from",
@@ -393,7 +398,7 @@
    "fetch_from": "cad_order_form_detail.bom",
    "fieldname": "bom",
    "fieldtype": "Link",
-   "label": "BOM",
+   "label": "Master BOM",
    "options": "BOM",
    "read_only": 1
   },
@@ -492,12 +497,10 @@
    "read_only": 1
   },
   {
-   "fetch_from": "cad_order_form_detail.sub_setting_type2",
    "fieldname": "sub_setting_type2",
    "fieldtype": "Link",
    "label": "Sub Setting Type2",
-   "options": "Attribute Value",
-   "read_only": 1
+   "options": "Attribute Value"
   },
   {
    "fieldname": "column_break_ubbqi",
@@ -596,6 +599,7 @@
    "read_only": 1
   },
   {
+   "fetch_from": "cad_order_form_detail.breadth",
    "fieldname": "breadth",
    "fieldtype": "Float",
    "label": "Breadth",
@@ -606,6 +610,7 @@
    "fieldtype": "Section Break"
   },
   {
+   "fetch_from": "cad_order_form_detail.stone_changeable",
    "fieldname": "stone_changeable",
    "fieldtype": "Link",
    "hidden": 1,
@@ -702,14 +707,6 @@
    "fieldtype": "Data",
    "hidden": 1,
    "label": "Back Belt Patti",
-   "read_only": 1
-  },
-  {
-   "fetch_from": "cad_order_form_detail.vanki_type",
-   "fieldname": "vanki_type",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Vanki Type",
    "read_only": 1
   },
   {
@@ -939,23 +936,11 @@
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "form_remarks",
-   "fieldtype": "Text",
-   "label": "Order Form Remarks",
-   "read_only": 1
-  },
-  {
-   "fetch_from": "cad_order_form_detail.remarks",
-   "fieldname": "remarks",
-   "fieldtype": "Text",
-   "label": "Order Remarks"
-  },
-  {
    "fieldname": "section_break_74",
    "fieldtype": "Section Break"
   },
   {
-   "depends_on": "eval:doc.bom_or_cad == 'CAD'",
+   "depends_on": "eval:doc.bom_or_cad == 'CAD' || doc.bom_or_cad == 'Duplicate BOM' || (doc.bom_or_cad == 'Check' && doc.workflow_type=='CAD')",
    "fieldname": "designer_assignment",
    "fieldtype": "Table",
    "label": "Designer Assignment",
@@ -977,6 +962,7 @@
    "fieldtype": "Section Break"
   },
   {
+   "depends_on": "eval:(in_list(['Update Item','Update BOM','Customer Approval', 'Customer Approved', 'Customer Design Rejected', 'Reupdate BOM', 'Approved'], doc.workflow_state))",
    "fieldname": "item",
    "fieldtype": "Link",
    "label": "Design Code",
@@ -989,6 +975,8 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
+   "depends_on": "eval:(in_list(['Update Item','Update BOM','Customer Approval', 'Customer Approved', 'Customer Design Rejected', 'Reupdate BOM', 'Approved'], doc.workflow_state))",
    "fieldname": "new_bom",
    "fieldtype": "Link",
    "label": "New BOM",
@@ -1118,6 +1106,7 @@
    "read_only": 1
   },
   {
+   "fetch_from": "cad_order_form_detail.feature",
    "fieldname": "feature",
    "fieldtype": "Link",
    "label": "Feature",
@@ -1178,6 +1167,78 @@
    "fieldtype": "Float",
    "label": "Metal Target",
    "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.vanki",
+   "fieldname": "vanki",
+   "fieldtype": "Link",
+   "label": "Vanki",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "label": "Workflow State",
+   "no_copy": 1,
+   "options": "Workflow State"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "inventory_dimension",
+   "fieldtype": "Section Break",
+   "label": "Inventory Dimension"
+  },
+  {
+   "fieldname": "inventory_type",
+   "fieldtype": "Link",
+   "label": "Inventory Type",
+   "options": "Inventory Type",
+   "search_index": 1
+  },
+  {
+   "fetch_from": "cad_order_form.flow_type",
+   "fieldname": "flow_type",
+   "fieldtype": "Select",
+   "label": "Flow Type",
+   "options": "MTO\nMTBI\nFILLER\nGCC\nUS\nJWO",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fetch_from": "cad_order_form_detail.is_repairing",
+   "fieldname": "is_repairing",
+   "fieldtype": "Check",
+   "label": "Is Repairing"
+  },
+  {
+   "fieldname": "workflow_type",
+   "fieldtype": "Select",
+   "label": "Workflow Type",
+   "options": "\nCAD\nBOM"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.mod_reason",
+   "fieldname": "mod_reason",
+   "fieldtype": "Link",
+   "label": "Mod Reason",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.charm",
+   "fieldname": "charm",
+   "fieldtype": "Link",
+   "label": "Charm",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.capganthan",
+   "fieldname": "capganthan",
+   "fieldtype": "Link",
+   "label": "Cap/Ganthan",
+   "options": "Attribute Value"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1196,26 +1257,13 @@
    "link_fieldname": "order"
   }
  ],
- "modified": "2024-05-11 17:06:34.909079",
+ "modified": "2024-06-29 16:15:27.455632",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",
  "naming_rule": "Expression",
  "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
+ "permissions": [],
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
