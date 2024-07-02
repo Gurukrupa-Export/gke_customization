@@ -255,7 +255,6 @@ def workflow_state_maker(source_name):
 	else:
 		bom_or_cad = 'New BOM'
 
-	frappe.throw(f"{bom_or_cad}")
 	return bom_or_cad
 
 
