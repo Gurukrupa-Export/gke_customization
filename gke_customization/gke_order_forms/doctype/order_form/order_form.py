@@ -171,7 +171,7 @@ def make_atribute_list(source_name):
 
 	final_list = {}
 	for i in all_variant_attribute:
-		new_i = i[0].replace(' ','_').lower()
+		new_i = i[0].replace(' ','_').replace('/','').lower()
 		final_list[i[0]] = order_form_details.get_value(new_i)
 		
 	return final_list
@@ -227,7 +227,7 @@ def workflow_state_maker(source_name):
 
 	all_attribute_list = []
 	for variant_attribut in all_variant_attribute:
-		item_attribute = variant_attribut['item_attribute'].lower().replace(' ','_')
+		item_attribute = variant_attribut['item_attribute'].lower().replace(' ','_').replace('/','')
 		all_attribute_list.append(item_attribute)
 	
 	
@@ -354,11 +354,11 @@ def get_bom_details(design_id,doc):
 	all_item_attributes = []
 
 	for i in frappe.get_doc("Attribute Value",item_subcategory).item_attributes:
-		all_item_attributes.append(i.item_attribute.replace(' ','_').lower())
+		all_item_attributes.append(i.item_attribute.replace(' ','_').replace('/','').lower())
 	
-	# frappe.throw(f"{all_item_attributes}")
 	with_value = frappe.db.get_value("BOM",master_bom,all_item_attributes,as_dict=1)
 	with_value['master_bom'] = master_bom
+	# frappe.throw(f"{all_item_attributes} ||| {with_value} ")
 	return with_value
 
 
@@ -403,3 +403,14 @@ def get_sketh_details(design_id):
 			continue
 		final_data[i.attribute.lower().replace(' ','_')]=i.attribute_value
 	return final_data
+
+@frappe.whitelist()
+def get_item_details(item_code):
+	# item_attributes = []
+	# for i in frappe.get_doc("Item",item_code).attributes:
+	# 	item_attributes.append(i.attribute.replace(' ','_').lower())
+	
+	# frappe.throw(f"{item_attributes} ||| ")
+
+	item_code = frappe.db.sql(f"""select attribute,attribute_value from `tabItem Variant Attribute` where parent = '{item_code}'""")
+	return item_code

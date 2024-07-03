@@ -347,7 +347,7 @@ def create_variant_of_template_from_order(item_template,source_name, target_doc=
 		target.sequence = item_template[2:7]
 		subcateogy = frappe.db.get_value('Item',item_template,'item_subcategory')
 		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': subcateogy,'in_item_variant':1},'item_attribute',order_by='idx asc'):
-			attribute_with = i.item_attribute.lower().replace(' ', '_')
+			attribute_with = i.item_attribute.lower().replace(' ', '_').replace('/', '')
 			if i.item_attribute == 'Rhodium':
 				attribute_with = 'rhodium_'
 			try:
@@ -426,7 +426,7 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 		target.has_serial_no = 1
 		
 		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': self.subcategory,'in_item_variant':1},'item_attribute',order_by='idx asc'):
-			attribute_with = i.item_attribute.lower().replace(' ', '_')
+			attribute_with = i.item_attribute.lower().replace(' ', '_').replace('/', '')
 			if i.item_attribute == 'Rhodium':
 				attribute_with = 'rhodium_'
 			try:
@@ -563,7 +563,7 @@ def create_variant_of_sufix_of_variant_from_order(self,item_template,source_name
 		
 
 		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': self.subcategory,'in_item_variant':1},'item_attribute',order_by='idx asc'):
-			attribute_with = i.item_attribute.lower().replace(' ', '_')	
+			attribute_with = i.item_attribute.lower().replace(' ', '_').replace('/', '')	
 			target.append('attributes',{
 				'attribute':i.item_attribute,
 				'variant_of':item_template,

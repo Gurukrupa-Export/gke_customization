@@ -131,7 +131,6 @@
   "column_break_qz2qa",
   "design_image_5",
   "image_preview_5",
-  "section_break_72",
   "section_break_74",
   "designer_assignment",
   "section_break_77",
@@ -500,7 +499,8 @@
    "fieldname": "sub_setting_type2",
    "fieldtype": "Link",
    "label": "Sub Setting Type2",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_ubbqi",
@@ -932,10 +932,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "section_break_72",
-   "fieldtype": "Section Break"
-  },
-  {
    "fieldname": "section_break_74",
    "fieldtype": "Section Break"
   },
@@ -1213,6 +1209,7 @@
    "label": "Is Repairing"
   },
   {
+   "depends_on": "eval:doc.design_type == 'Mod' && doc.mod_reason == 'Attribute Change'",
    "fieldname": "workflow_type",
    "fieldtype": "Select",
    "label": "Workflow Type",
@@ -1257,7 +1254,7 @@
    "link_fieldname": "order"
   }
  ],
- "modified": "2024-06-29 16:15:27.455632",
+ "modified": "2024-07-03 12:53:54.129952",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",
