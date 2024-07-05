@@ -71,10 +71,6 @@
   "product_size",
   "sizer_type",
   "column_break_31",
-  "length",
-  "width",
-  "height",
-  "breadth",
   "section_break_45",
   "stone_changeable",
   "column_break_37",
@@ -86,12 +82,10 @@
   "back_chain_size",
   "back_belt",
   "back_belt_length",
-  "black_beed",
   "black_beed_line",
   "back_side_size",
   "column_break_49",
   "back_belt_patti",
-  "vanki",
   "charm",
   "capganthan",
   "rhodium_",
@@ -118,19 +112,14 @@
   "gemstone_quality",
   "section_break_xbmnv",
   "design_image_1",
-  "image_preview_1",
   "column_break_phme6",
   "design_image_2",
-  "image_preview_2",
-  "column_break_lvxgh",
+  "column_break_tgrl",
   "design_image_3",
-  "image_preview_3",
-  "column_break_uxuj0",
+  "column_break_oxpw",
   "design_image_4",
-  "image_preview_4",
-  "column_break_qz2qa",
+  "column_break_dmyy",
   "design_image_5",
-  "image_preview_5",
   "section_break_74",
   "designer_assignment",
   "section_break_77",
@@ -579,33 +568,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "cad_order_form_detail.length",
-   "fieldname": "length",
-   "fieldtype": "Float",
-   "label": "Length",
-   "read_only": 1
-  },
-  {
-   "fetch_from": "cad_order_form_detail.width",
-   "fieldname": "width",
-   "fieldtype": "Float",
-   "label": "Width",
-   "read_only": 1
-  },
-  {
-   "fieldname": "height",
-   "fieldtype": "Float",
-   "label": "Height",
-   "read_only": 1
-  },
-  {
-   "fetch_from": "cad_order_form_detail.breadth",
-   "fieldname": "breadth",
-   "fieldtype": "Float",
-   "label": "Breadth",
-   "read_only": 1
-  },
-  {
    "fieldname": "section_break_45",
    "fieldtype": "Section Break"
   },
@@ -671,14 +633,6 @@
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Back Belt Length",
-   "read_only": 1
-  },
-  {
-   "fetch_from": "cad_order_form_detail.black_beed",
-   "fieldname": "black_beed",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Black Beed",
    "read_only": 1
   },
   {
@@ -853,13 +807,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "image_preview_1",
-   "fieldtype": "Image",
-   "label": "Image Preview 1",
-   "options": "design_image_1",
-   "read_only": 1
-  },
-  {
    "fieldname": "column_break_phme6",
    "fieldtype": "Column Break"
   },
@@ -868,67 +815,6 @@
    "fieldname": "design_image_2",
    "fieldtype": "Attach Image",
    "label": "Design Image 2",
-   "read_only": 1
-  },
-  {
-   "fieldname": "image_preview_2",
-   "fieldtype": "Image",
-   "label": "Image Preview 2",
-   "options": "design_image_2",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_lvxgh",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "cad_order_form_detail.design_image3",
-   "fieldname": "design_image_3",
-   "fieldtype": "Attach Image",
-   "label": "Design Image 3",
-   "read_only": 1
-  },
-  {
-   "fieldname": "image_preview_3",
-   "fieldtype": "Image",
-   "label": "Image Preview 3",
-   "options": "design_image_3",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_uxuj0",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "cad_order_form_detail.design_image4",
-   "fieldname": "design_image_4",
-   "fieldtype": "Attach Image",
-   "label": "Design Image 4",
-   "read_only": 1
-  },
-  {
-   "fieldname": "image_preview_4",
-   "fieldtype": "Image",
-   "label": "Image Preview 4",
-   "options": "design_image_4",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_qz2qa",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "cad_order_form_detail.design_image_5",
-   "fieldname": "design_image_5",
-   "fieldtype": "Attach Image",
-   "label": "Design Image 5",
-   "read_only": 1
-  },
-  {
-   "fieldname": "image_preview_5",
-   "fieldtype": "Image",
-   "label": "Image Preview 5",
-   "options": "design_image_5",
    "read_only": 1
   },
   {
@@ -1165,14 +1051,6 @@
    "read_only": 1
   },
   {
-   "fetch_from": "cad_order_form_detail.vanki",
-   "fieldname": "vanki",
-   "fieldtype": "Link",
-   "label": "Vanki",
-   "options": "Attribute Value",
-   "read_only": 1
-  },
-  {
    "allow_on_submit": 1,
    "fieldname": "workflow_state",
    "fieldtype": "Link",
@@ -1236,6 +1114,39 @@
    "fieldtype": "Link",
    "label": "Cap/Ganthan",
    "options": "Attribute Value"
+  },
+  {
+   "fieldname": "column_break_tgrl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.design_image_3",
+   "fieldname": "design_image_3",
+   "fieldtype": "Attach Image",
+   "label": "Design Image 3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_oxpw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.design_image_4",
+   "fieldname": "design_image_4",
+   "fieldtype": "Attach Image",
+   "label": "Design Image 4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_dmyy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.design_image_5",
+   "fieldname": "design_image_5",
+   "fieldtype": "Attach Image",
+   "label": "Design Image 5",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1254,7 +1165,7 @@
    "link_fieldname": "order"
   }
  ],
- "modified": "2024-07-03 12:53:54.129952",
+ "modified": "2024-07-05 10:26:02.822042",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",

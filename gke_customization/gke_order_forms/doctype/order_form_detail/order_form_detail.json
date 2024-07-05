@@ -7,7 +7,6 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "update_item",
   "customer_code",
   "design_by",
   "design_id",
@@ -17,6 +16,7 @@
   "is_repairing",
   "section_break_10",
   "design_type",
+  "update_item",
   "tag_no",
   "serial_no_bom",
   "diamond_quality",
@@ -49,16 +49,12 @@
   "diamond_target",
   "product_size",
   "sizer_type",
-  "column_break_119",
-  "length",
-  "width",
-  "height",
   "section_break_45",
   "stone_changeable",
   "detachable",
   "column_break_dyrs",
-  "lock_type",
   "feature",
+  "lock_type",
   "section_break_g90y",
   "capganthan",
   "column_break_he6q",
@@ -68,12 +64,10 @@
   "back_chain_size",
   "back_belt",
   "back_belt_length",
-  "black_beed",
   "black_beed_line",
   "back_side_size",
   "column_break_28",
   "back_belt_patti",
-  "vanki",
   "rhodium",
   "column_break_29",
   "chain_type",
@@ -86,8 +80,8 @@
   "distance_between_kadi_to_mugappu",
   "space_between_mugappu",
   "two_in_one",
-  "column_break_21",
   "enamal",
+  "column_break_21",
   "nakshi_from",
   "nakshi_weight",
   "column_break_98",
@@ -96,19 +90,15 @@
   "gemstone_quality",
   "column_break_13",
   "design_image_1",
-  "image_preview_1",
   "column_break_qtvgq",
   "design_image2",
-  "image_preview2",
-  "column_break_16",
-  "design_image3",
-  "image_preview3",
-  "column_break_19",
-  "design_image4",
-  "image_preview4",
-  "column_break_24",
+  "column_break_cy7b",
+  "design_image_3",
+  "column_break_kowz",
+  "design_image_4",
+  "column_break_on6m",
   "design_image_5",
-  "image_preview_5"
+  "section_break_vxcw"
  ],
  "fields": [
   {
@@ -374,28 +364,6 @@
    "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
   },
   {
-   "fieldname": "column_break_119",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "length",
-   "fieldtype": "Float",
-   "label": "Length",
-   "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
-  },
-  {
-   "fieldname": "width",
-   "fieldtype": "Float",
-   "label": "Width",
-   "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
-  },
-  {
-   "fieldname": "height",
-   "fieldtype": "Float",
-   "label": "Height",
-   "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
-  },
-  {
    "fieldname": "section_break_45",
    "fieldtype": "Section Break"
   },
@@ -440,15 +408,6 @@
    "fieldtype": "Float",
    "label": "Back Belt Length",
    "mandatory_depends_on": "eval:doc.back_belt == 'Yes'",
-   "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
-  },
-  {
-   "depends_on": "eval: in_list([\r\n    \"Mangalsutra Bracelet\", \"Mangalsutra Ring\", \"Fancy Mangalsutra\", \r\n    \"God Mangalsutra\", \"Mangalsutra Chains\", \"Mangalsutra Pendant\", \r\n    \"Nakshi Thali/Tanmaniya\", \"Solitaire Mangalsutra\", \"Thali/Tanmaniya\"\r\n], doc.subcategory)",
-   "fieldname": "black_beed",
-   "fieldtype": "Link",
-   "label": "Black Beed",
-   "mandatory_depends_on": "eval: in_list([\r\n    \"Mangalsutra Bracelet\", \"Mangalsutra Ring\", \"Fancy Mangalsutra\", \r\n    \"God Mangalsutra\", \"Mangalsutra Chains\", \"Mangalsutra Pendant\", \r\n    \"Nakshi Thali/Tanmaniya\", \"Solitaire Mangalsutra\", \"Thali/Tanmaniya\"\r\n], doc.subcategory)",
-   "options": "Attribute Value",
    "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
   },
   {
@@ -601,13 +560,6 @@
    "label": "Design Image 1"
   },
   {
-   "fieldname": "image_preview_1",
-   "fieldtype": "Image",
-   "in_preview": 1,
-   "label": "Image Preview 1",
-   "options": "design_image_1"
-  },
-  {
    "fieldname": "column_break_qtvgq",
    "fieldtype": "Column Break"
   },
@@ -615,57 +567,6 @@
    "fieldname": "design_image2",
    "fieldtype": "Attach Image",
    "label": "Design Image 2"
-  },
-  {
-   "fieldname": "image_preview2",
-   "fieldtype": "Image",
-   "label": "Image Preview 2",
-   "options": "design_image2"
-  },
-  {
-   "fieldname": "column_break_16",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "design_image3",
-   "fieldtype": "Attach Image",
-   "label": "Design Image 3"
-  },
-  {
-   "fieldname": "image_preview3",
-   "fieldtype": "Image",
-   "label": "Image Preview 3",
-   "options": "design_image3"
-  },
-  {
-   "fieldname": "column_break_19",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "design_image4",
-   "fieldtype": "Attach Image",
-   "label": "Design Image 4"
-  },
-  {
-   "fieldname": "image_preview4",
-   "fieldtype": "Image",
-   "label": "image Preview 4",
-   "options": "design_image4"
-  },
-  {
-   "fieldname": "column_break_24",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "design_image_5",
-   "fieldtype": "Attach Image",
-   "label": "Design Image 5"
-  },
-  {
-   "fieldname": "image_preview_5",
-   "fieldtype": "Image",
-   "label": "Image Preview 5",
-   "options": "design_image_5"
   },
   {
    "fieldname": "column_break_dyrs",
@@ -760,17 +661,11 @@
    "reqd": 1
   },
   {
-   "fieldname": "vanki",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "Vanki Type",
-   "options": "Attribute Value"
-  },
-  {
+   "depends_on": "eval:doc.design_type == 'Mod'",
    "fieldname": "update_item",
    "fieldtype": "Button",
    "in_list_view": 1,
-   "label": "Update Item"
+   "label": "View Item"
   },
   {
    "fieldname": "section_break_oo4r",
@@ -796,12 +691,43 @@
   {
    "fieldname": "column_break_he6q",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_cy7b",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "design_image_3",
+   "fieldtype": "Attach Image",
+   "label": "Design Image 3"
+  },
+  {
+   "fieldname": "column_break_kowz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "design_image_4",
+   "fieldtype": "Attach Image",
+   "label": "Design Image 4"
+  },
+  {
+   "fieldname": "column_break_on6m",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "design_image_5",
+   "fieldtype": "Attach Image",
+   "label": "Design Image 5"
+  },
+  {
+   "fieldname": "section_break_vxcw",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-07-03 13:23:38.146927",
+ "modified": "2024-07-05 10:16:04.461014",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form Detail",

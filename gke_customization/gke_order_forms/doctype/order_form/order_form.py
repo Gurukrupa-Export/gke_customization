@@ -414,3 +414,22 @@ def get_item_details(item_code):
 
 	item_code = frappe.db.sql(f"""select attribute,attribute_value from `tabItem Variant Attribute` where parent = '{item_code}'""")
 	return item_code
+
+@frappe.whitelist()
+def item_attribute_query(doctype, txt, searchfield, start, page_len, filters):
+	args = {
+		'item_attribute': filters.get("item_attribute"),
+		"txt": "%{0}%".format(txt),
+	}
+	condition = ''
+	if filters.get("customer_code"):		
+		if filters.get("item_attribute") == "Metal Touch":
+			args["customer_code"] = filters.get("customer_code")
+			condition += "and attribute_value in (select metal_touch from `tabMetal Criteria`  where parent = %(customer_code)s)"
+
+	item_attribute = frappe.db.sql(f"""select attribute_value
+			from `tabItem Attribute Value`
+				where parent = %(item_attribute)s 
+				and attribute_value like %(txt)s {condition}
+			""",args)
+	return item_attribute if item_attribute else []
