@@ -1,0 +1,191 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2024-06-04 11:14:58.635012",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "from_date",
+  "column_break_8dhq",
+  "to_date",
+  "section_break_csem",
+  "invoice_type",
+  "get_invoice",
+  "column_break_ej5b",
+  "company",
+  "section_break_2rlu",
+  "gst_reconciliation",
+  "section_break_c3us",
+  "total_cgst",
+  "column_break_xsap",
+  "total_sgst",
+  "column_break_vssh",
+  "total_igst",
+  "section_break_yzbb",
+  "total_sales",
+  "column_break_phvm",
+  "total_amount",
+  "section_break_g7ef",
+  "naming_series",
+  "section_break_mxrx",
+  "gst_payment_table",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_csem",
+   "fieldtype": "Section Break",
+   "label": "Sales Invoice"
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date"
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date"
+  },
+  {
+   "fieldname": "column_break_8dhq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gst_reconciliation",
+   "fieldtype": "Table",
+   "label": "Sales Invoice GST Reconciliation Table",
+   "options": "Sales Invoice GST Reconciliation Table"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "naming_series",
+   "options": "GST-RE"
+  },
+  {
+   "fieldname": "section_break_g7ef",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_sales",
+   "fieldtype": "Currency",
+   "label": "Total Taxes and Charges (INR)"
+  },
+  {
+   "fieldname": "total_cgst",
+   "fieldtype": "Currency",
+   "label": "Total CGST"
+  },
+  {
+   "fieldname": "total_sgst",
+   "fieldtype": "Currency",
+   "label": "Total SGST"
+  },
+  {
+   "fieldname": "section_break_c3us",
+   "fieldtype": "Section Break",
+   "hide_border": 1
+  },
+  {
+   "fieldname": "column_break_xsap",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_vssh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_igst",
+   "fieldtype": "Currency",
+   "label": "Total IGST"
+  },
+  {
+   "fieldname": "section_break_mxrx",
+   "fieldtype": "Section Break",
+   "hidden": 1
+  },
+  {
+   "fieldname": "gst_payment_table",
+   "fieldtype": "Table",
+   "label": "GST Payment Table",
+   "options": "GST Payment Table"
+  },
+  {
+   "fieldname": "invoice_type",
+   "fieldtype": "Select",
+   "label": "Invoice Type",
+   "options": "\nSales Invoice\nPurchase Invoice"
+  },
+  {
+   "fieldname": "get_invoice",
+   "fieldtype": "Button",
+   "label": "Get Invoice"
+  },
+  {
+   "fieldname": "section_break_2rlu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_yzbb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_phvm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Total Amount"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "GST Reconciliation",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_ej5b",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2024-07-02 15:05:49.642547",
+ "modified_by": "Administrator",
+ "module": "GKE Custom Export",
+ "name": "GST Reconciliation",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

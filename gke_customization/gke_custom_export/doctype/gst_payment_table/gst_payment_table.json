@@ -1,0 +1,45 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-06-21 11:13:44.263518",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_u9na",
+  "debit_account",
+  "credit_account"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_u9na",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "debit_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Debit Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "credit_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Credit Account",
+   "options": "Account"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-06-21 11:14:34.528406",
+ "modified_by": "Administrator",
+ "module": "GKE Custom Export",
+ "name": "GST Payment Table",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
