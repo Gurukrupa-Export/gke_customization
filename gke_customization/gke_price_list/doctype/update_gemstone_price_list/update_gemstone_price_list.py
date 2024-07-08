@@ -28,7 +28,6 @@ class UpdateGemstonePriceList(Document):
 
                     output_list = remove_duplicate_data(gemstone_price_list)
                     sorted_data = sort_data(self,output_list)
-                    print(sorted_data)
                     set_data_in_child_table(self,sorted_data)
                 else:
                     old_gemstone_price_list = [d.gemstone_price_list for d in self.update_gemstone_price_list_details]
@@ -47,11 +46,35 @@ class UpdateGemstonePriceList(Document):
     def on_submit(self):
         if self.price_list_type == 'Weight (in cts)':
             for i in self.update_gemstone_price_list_details:
-                if i.difference!=0:
-                    frappe.db.set_value('Gemstone Price List',i.gemstone_price_list,{'rate':i.revised_rate,'effective_from':self.date})
+                # if i.difference!=0:
+                frappe.db.set_value('Gemstone Price List',i.gemstone_price_list,{'rate':i.revised_rate,'effective_from':self.date})
         else:
             frappe.db.set_value('Gemstone Price List',self.gemstone_price_list,{'rate':self.revised_rate,'effective_from':self.date})
+        if not i.gemstone_price_list:
+            crate_price_list(self,i)
+        frappe.msgprint("Price List Updated")
             
+def crate_price_list(self,row):
+    gemstone_price_list_doc = frappe.new_doc("Gemstone Price List")
+    gemstone_price_list_doc.customer = self.customer
+    gemstone_price_list_doc.price_list = self.price_list
+    gemstone_price_list_doc.price_list_type = self.price_list_type
+    gemstone_price_list_doc.gemstone_type = self.stone_type
+    gemstone_price_list_doc.cut_or_cab = self.cut_or_cab
+    gemstone_price_list_doc.stone_shape = self.stone_shape
+    gemstone_price_list_doc.gemstone_quality = self.stone_quality
+    gemstone_price_list_doc.gemstone_size = self.stone_size
+    if self.price_list_type == 'Weight (in cts)':
+        from_weight = float(row.weight.split('-')[0])
+        to_weight = float(row.weight.split('-')[1])
+        gemstone_price_list_doc.from_weight = from_weight
+        gemstone_price_list_doc.to_weight = to_weight
+
+    gemstone_price_list_doc.effective_from = frappe.utils.now()
+    gemstone_price_list_doc.rate = row.revised_rate
+    gemstone_price_list_doc.save()
+
+
 
 def custom_sort(item):
     start, end = map(float, item['weight_range'][1:].split('-'))
@@ -63,10 +86,10 @@ def sort_data(self,output_list):
 
     return sorted_data
 
-def remove_duplicate_data(diamond_price_list):
+def remove_duplicate_data(gemstone_price_list):
     seen = set()
     output_list = []
-    for d in diamond_price_list:
+    for d in gemstone_price_list:
         frozen_dict = frozenset(d.items())
         if frozen_dict not in seen:
             seen.add(frozen_dict)

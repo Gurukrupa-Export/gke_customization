@@ -7,6 +7,8 @@
  "engine": "InnoDB",
  "field_order": [
   "weight",
+  "from_weight",
+  "to_weight",
   "rate_per_carat",
   "revised_rate",
   "difference",
@@ -43,12 +45,24 @@
    "in_list_view": 1,
    "label": "Diamond Price List",
    "options": "Diamond Price List"
+  },
+  {
+   "fieldname": "from_weight",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "From Weight"
+  },
+  {
+   "fieldname": "to_weight",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "To Weight"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-01-10 12:09:31.417755",
+ "modified": "2024-07-08 12:08:44.886937",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Update Diamond Price List Details",
