@@ -77,4 +77,5 @@ def get_bom_details(design_id):
 	with_value = frappe.db.get_value("BOM",master_bom,all_item_attributes,as_dict=1)
 	with_value['master_bom'] = master_bom
 	with_value['gross_weight'] = frappe.db.get_value("BOM",master_bom,"gross_weight")
+	
 	return with_value

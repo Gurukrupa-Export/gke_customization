@@ -120,6 +120,7 @@
   "back_side_size",
   "column_break_asvhf",
   "total_mugappu",
+  "number_of_ant",
   "kadi_to_mugappu",
   "back_belt_length",
   "column_break_p4qnn",
@@ -142,19 +143,14 @@
   "certificate_place",
   "column_break_29",
   "item_image",
-  "image_preview",
   "section_break_32",
   "design_image1",
-  "image_preview1",
   "column_break_35",
   "design_image2",
-  "image_preview2",
   "column_break_38",
   "design_image3",
-  "image_preview3",
   "column_break_41",
   "design_image4",
-  "image_preview4",
   "section_break_fgvjt",
   "form_remarks",
   "remarks",
@@ -292,7 +288,7 @@
    "fetch_from": "serial_and_design_code_order_form.diamond_quality",
    "fieldname": "diamond_quality",
    "fieldtype": "Link",
-   "label": "Diamond Quality",
+   "label": "Customer Diamond Quality",
    "options": "Attribute Value",
    "read_only": 1
   },
@@ -991,13 +987,6 @@
    "label": "Item Image"
   },
   {
-   "fetch_from": "serial_and_design_id_order_form_detail.item_image",
-   "fieldname": "image_preview",
-   "fieldtype": "Image",
-   "label": "Image Preview",
-   "options": "item_image"
-  },
-  {
    "fieldname": "section_break_32",
    "fieldtype": "Section Break"
   },
@@ -1006,13 +995,6 @@
    "fieldname": "design_image1",
    "fieldtype": "Attach Image",
    "label": "Design Image1"
-  },
-  {
-   "fetch_from": "serial_and_design_id_order_form_detail.design_image1",
-   "fieldname": "image_preview1",
-   "fieldtype": "Image",
-   "label": "Image Preview1",
-   "options": "design_image1"
   },
   {
    "fieldname": "column_break_35",
@@ -1025,13 +1007,6 @@
    "label": "Design Image2"
   },
   {
-   "fetch_from": "serial_and_design_id_order_form_detail.design_image2",
-   "fieldname": "image_preview2",
-   "fieldtype": "Image",
-   "label": "Image Preview2",
-   "options": "design_image2"
-  },
-  {
    "fieldname": "column_break_38",
    "fieldtype": "Column Break"
   },
@@ -1042,13 +1017,6 @@
    "label": "Design Image3"
   },
   {
-   "fetch_from": "serial_and_design_id_order_form_detail.design_image3",
-   "fieldname": "image_preview3",
-   "fieldtype": "Image",
-   "label": "Image Preview3",
-   "options": "design_image3"
-  },
-  {
    "fieldname": "column_break_41",
    "fieldtype": "Column Break"
   },
@@ -1057,13 +1025,6 @@
    "fieldname": "design_image4",
    "fieldtype": "Attach Image",
    "label": "Design Image4"
-  },
-  {
-   "fetch_from": "serial_and_design_id_order_form_detail.design_image4",
-   "fieldname": "image_preview4",
-   "fieldtype": "Image",
-   "label": "Image Preview4",
-   "options": "design_image4"
   },
   {
    "fieldname": "section_break_fgvjt",
@@ -1236,6 +1197,11 @@
    "fieldtype": "Select",
    "label": "Flow Type",
    "options": "MTO\nMTBI\nFILLER\nGCC\nUS\nJWO"
+  },
+  {
+   "fieldname": "number_of_ant",
+   "fieldtype": "Float",
+   "label": "Number Of Ant"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1255,7 +1221,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2024-06-18 10:34:06.515479",
+ "modified": "2024-07-05 10:39:52.433534",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order",

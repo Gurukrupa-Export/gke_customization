@@ -162,45 +162,84 @@ def set_design_attributes_in_order_forms(order_form_doc,self):
 	item_doc = frappe.db.sql(f"""select parentfield,design_attribute from `tabDesign Attribute - Multiselect` where parent='{self.item}'""",as_dict=1)
 	
 	age_group = order_form_doc.append("age_group", {})
-	rhodium = order_form_doc.append("rhodium", {})
+	alphabetnumber = order_form_doc.append("alphabetnumber", {})
+	animalbirds = order_form_doc.append("animalbirds", {})
+	collection = order_form_doc.append("collection", {})
 	design_style = order_form_doc.append("design_style", {})
-	occasion = order_form_doc.append("occasion", {})
 	gender = order_form_doc.append("gender", {})
-
+	lines_rows = order_form_doc.append("lines_rows", {})
+	language = order_form_doc.append("language", {})
+	occasion = order_form_doc.append("occasion", {})
+	rhodium = order_form_doc.append("rhodium", {})
+	religious = order_form_doc.append("religious", {})
+	shapes = order_form_doc.append("shapes", {})
+	zodiac = order_form_doc.append("zodiac", {})
+	
 	for i in item_doc:
 		if i['parentfield'] == 'custom_age_group':
 			if i['design_attribute']:
 				age_group.design_attribute = i['design_attribute']
 
-		elif i['parentfield'] == 'custom_rhodium':
+		elif i['parentfield'] == 'custom_alphabetnumber':
 			if i['design_attribute']:
-				rhodium.design_attribute = i['design_attribute']
+				alphabetnumber.design_attribute = i['design_attribute']		
+
+		elif i['parentfield'] == 'custom_animalbirds':
+			if i['design_attribute']:
+				animalbirds.design_attribute = i['design_attribute']		
+
+		elif i['parentfield'] == 'custom_collection':
+			if i['design_attribute']:
+				collection.design_attribute = i['design_attribute']		
 
 		elif i['parentfield'] == 'custom_design_style':
 			if i['design_attribute']:
 				design_style.design_attribute = i['design_attribute']
 
-		elif i['parentfield'] == 'custom_occasion':
-			if i['design_attribute']:
-				occasion.design_attribute = i['design_attribute']
-
 		elif i['parentfield'] == 'custom_gender':
 			if i['design_attribute']:
 				gender.design_attribute = i['design_attribute']
 
+		elif i['parentfield'] == 'custom_lines__rows':
+			if i['design_attribute']:
+				lines_rows.design_attribute = i['design_attribute']
+
+		elif i['parentfield'] == 'custom_language':
+			if i['design_attribute']:
+				language.design_attribute = i['design_attribute']
+
+		elif i['parentfield'] == 'custom_occasion':
+			if i['design_attribute']:
+				occasion.design_attribute = i['design_attribute']
+
+		elif i['parentfield'] == 'custom_rhodium':
+			if i['design_attribute']:
+				rhodium.design_attribute = i['design_attribute']
+
+		elif i['parentfield'] == 'custom_religious':
+			if i['design_attribute']:
+				religious.design_attribute = i['design_attribute']
+
+		elif i['parentfield'] == 'custom_shapes':
+			if i['design_attribute']:
+				shapes.design_attribute = i['design_attribute']
+				
+		elif i['parentfield'] == 'custom_zodiac':
+			if i['design_attribute']:
+				zodiac.design_attribute = i['design_attribute']
 	
 	# if order_form_doc.rhodium == []:
 	# 	frappe.throw("IF")
 	# else:
 	# 	# frappe.throw("ELSE")
 	# 	frappe.throw(str((order_form_doc.rhodium[0])))
-	return "YES"
+	# return "YES"
 
 def workflow_state_maker(self):
 	if self.product_type in ['Company Goods','Customer Goods (Company Manufactured)']:
 		bom_or_cad = 'Duplicate BOM'
 	else:
-		bom_or_cad = 'New BOM'
+		bom_or_cad = 'CAD'
 	return bom_or_cad
 
 def set_item_type(self):
