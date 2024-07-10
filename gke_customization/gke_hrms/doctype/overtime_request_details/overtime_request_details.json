@@ -29,7 +29,7 @@
   },
   {
    "fieldname": "ot_hours",
-   "fieldtype": "Float",
+   "fieldtype": "Time",
    "in_list_view": 1,
    "label": "OT Hours"
   },
@@ -43,7 +43,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-07-01 17:41:31.849429",
+ "modified": "2024-07-04 11:37:57.873134",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Overtime Request Details",
