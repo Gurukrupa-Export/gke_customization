@@ -1,7 +1,7 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
- "autoname": "format:UGP/{####}",
  "creation": "2024-01-12 11:03:41.669766",
  "default_view": "List",
  "doctype": "DocType",
@@ -145,11 +145,10 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-01-12 12:03:11.774915",
+ "modified": "2024-07-09 11:30:43.448784",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Update Gemstone Price List",
- "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

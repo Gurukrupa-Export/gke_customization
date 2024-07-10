@@ -1,7 +1,7 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
- "autoname": "format:UMP/{####}",
  "creation": "2024-01-12 12:20:16.739182",
  "default_view": "List",
  "doctype": "DocType",
@@ -102,11 +102,10 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-01-12 18:28:25.252882",
+ "modified": "2024-07-09 11:30:40.707723",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Update Making Charge Price",
- "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

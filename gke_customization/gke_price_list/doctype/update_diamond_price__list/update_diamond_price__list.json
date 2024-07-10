@@ -1,7 +1,7 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
- "autoname": "format:UDP/{####}",
  "creation": "2024-01-13 17:07:13.880828",
  "default_view": "List",
  "doctype": "DocType",
@@ -118,11 +118,10 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-01-13 17:07:13.880828",
+ "modified": "2024-07-09 11:30:37.838242",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Update Diamond Price  List",
- "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

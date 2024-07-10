@@ -63,7 +63,7 @@ class OldBOM(Document):
 					metal_dict.old_stylebio = self.old_stylebio
 					metal_dict.metal_type = 'Gold'
 					metal_dict.metal_touch = metal_touch_dict[json_data[m]['metal_data']['Metal_Ratio']]
-					metal_dict.metal_purity = str(float(json_data[m]['metal_data']['Metal_Ratio']))
+					metal_dict.metal_purity = str(float(json_data[m]['metal_data']['Metal_Ratio'])).replace('92.0','91.6')
 					try:
 						metal_dict.metal_colour = metal_colour_dict[json_data[m]['metal_data']['Metal_Color']]
 					except:
