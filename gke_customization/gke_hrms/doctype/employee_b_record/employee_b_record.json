@@ -1,0 +1,180 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2024-07-11 11:10:07.051716",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_ypfq",
+  "employee",
+  "employee_name",
+  "department",
+  "column_break_abbi",
+  "date",
+  "company",
+  "designation",
+  "section_break_eez8",
+  "bond_end_date",
+  "duration",
+  "bond_amount",
+  "column_break_a8sd",
+  "date_of_joining",
+  "ctc",
+  "section_break_ngha",
+  "employee_b_record_details",
+  "section_break_4kcu",
+  "summary_amount",
+  "naming_series",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_ypfq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "label": "Department",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_abbi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Data",
+   "label": "Company",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_eez8",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "bond_amount",
+   "fieldtype": "Data",
+   "label": "Bond Amount Per Month"
+  },
+  {
+   "fieldname": "bond_end_date",
+   "fieldtype": "Date",
+   "label": "Bond Start Date"
+  },
+  {
+   "fieldname": "column_break_a8sd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.ctc",
+   "fieldname": "ctc",
+   "fieldtype": "Currency",
+   "label": "CTC",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.date_of_joining",
+   "fieldname": "date_of_joining",
+   "fieldtype": "Date",
+   "label": "Date of Joining",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_ngha",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee_b_record_details",
+   "fieldtype": "Table",
+   "label": "Salary Slip Details",
+   "options": "Employee B Record Details"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "naming_series",
+   "options": "EMP-B-"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Employee B Record",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "duration",
+   "fieldtype": "Data",
+   "label": "Duration"
+  },
+  {
+   "fieldname": "section_break_4kcu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "summary_amount",
+   "fieldtype": "Currency",
+   "label": "Summary Amount"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-07-11 16:15:37.344458",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Employee B Record",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
