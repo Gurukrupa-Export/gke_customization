@@ -45,6 +45,18 @@ class OrderForm(Document):
 				if row.category != parent:
 					frappe.throw(_(f"Category & Sub Category mismatched in row #{row.idx}"))
 
+	# def validate(self):
+	# 	# Files = frappe.qb.Doctype("File")
+	# 	# a = (frappe.qb.from_(Files)
+	#    	# 	.select(Files.file_url)
+	# 	# 	.where(
+	# 	# 		(Files.attached_to_doctype=='Order Form' and Files.attached_to_name == 'ORD/C/00394')
+	# 	# 		)
+	# 		# )
+	# 	a = frappe.db.get_list('File',filters={'attached_to_doctype': 'Order Form','attached_to_name':'ORD/C/00394'},fields=['file_url'],order_by='creation')
+	# 	frappe.throw(f"{a}")
+	# 	return
+
 
 def create_cad_orders(self):
 	doclist = []
@@ -433,3 +445,11 @@ def item_attribute_query(doctype, txt, searchfield, start, page_len, filters):
 				and attribute_value like %(txt)s {condition}
 			""",args)
 	return item_attribute if item_attribute else []
+
+@frappe.whitelist()
+def get_customer_orderType(customer_code):
+	order_type = frappe.db.sql(
+		f""" select order_type from `tabOrder Type` where parent= '{customer_code}' """, as_dict=1
+	)
+
+	return order_type

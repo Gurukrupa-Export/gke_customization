@@ -71,8 +71,8 @@ frappe.ui.form.on('Order Form', {
 		['changeable_type', 'Changeable Type'],
 		['feature', 'Feature'],
 		['mod_reason', 'Mod Reason'],
-		['cap_ganthan', 'Cap/Ganthan'],
-		['charm1', 'Charm'],
+		['capganthan', 'Cap/Ganthan'],
+		['charm', 'Charm'],
 		];
 
 		set_filters_on_child_table_fields(frm, fields);
@@ -146,14 +146,14 @@ frappe.ui.form.on('Order Form', {
 	customer_code: function(frm){
 		frm.doc.service_type = [];
         if(frm.doc.customer_code){
-         frappe.model.with_doc("Customer", frm.doc.customer_code, function() {
-          let customer_doc = frappe.model.get_doc("Customer", frm.doc.customer_code);
-          $.each(customer_doc.service_type, function(index, row){
-            let d = frm.add_child("service_type");
-            d.service_type1 = row.service_type1;
-          });
-		  refresh_field("service_type");
-         });
+			frappe.model.with_doc("Customer", frm.doc.customer_code, function() {
+				let customer_doc = frappe.model.get_doc("Customer", frm.doc.customer_code);
+				$.each(customer_doc.service_type, function(index, row){
+					let d = frm.add_child("service_type");
+					d.service_type1 = row.service_type1;
+				});
+				refresh_field("service_type");
+			});
         }
 		frm.set_query('subcategory', 'order_details', function (doc, cdt, cdn) {
 			let d = locals[cdt][cdn];
@@ -175,6 +175,27 @@ frappe.ui.form.on('Order Form', {
 				filters: { 'item_attribute': "Metal Touch", "customer_code": doc.customer_code }
 			};
 		});
+
+		frappe.call({
+			method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_customer_orderType",
+			args: {
+				customer_code: frm.doc.customer_code,
+			},
+			callback: function (r) {
+				if (!r.exc) {
+					// console.log(r.message);
+					var arrayLength = r.message.length;
+					if (arrayLength === 1) {
+						frm.set_value("order_type", r.message[0].order_type);
+						frm.set_df_property("order_type", "read_only", 1);
+					} else {
+						frm.set_value("order_type", "");
+						frm.set_df_property("order_type", "read_only", 0);
+					}
+				}
+			},
+		});
+		
 		// if (frm.doc.order_details) {
 		// 	frm.doc.order_details.forEach(function (d) {
 		// 		show_attribute_fields_for_subcategory(frm, d.doctype, d.name, d);
@@ -586,7 +607,7 @@ frappe.ui.form.on('Order Form Detail', {
 		var row = locals[cdt][cdn];
 
 		if (frm.doc.__islocal) {
-			frappe.throw("Please save document to edit the BOM.");
+			frappe.throw("Please save document to edit the View Item.");
 		}
 
 		let item_data = [];
@@ -704,7 +725,7 @@ frappe.ui.form.on('Order Form Detail', {
 					read_only: 1, 
 					in_list_view: 1,
 					default: row.sub_setting_type2,
-					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "feature" })[0].depends_on
+					depends_on: ' eval:doc.setting_type == "Open" '
 				},
 				{
 					fieldtype: "Column Break",
@@ -718,26 +739,8 @@ frappe.ui.form.on('Order Form Detail', {
 					default: row.metal_type,
 					// depends_on: ' eval: in_list(["Addigai Necklace", "Anklet", "Ball Mugappu", "Band Bracelet", "Belt", "Buttons", "Chain Armlet", "Chain Bracelet", "Chandbali", "Chandeliers", "Charm Bracelet", "Charm Necklace", "Charms", "Chik Chokar", "Choker Necklace", "Cocktail Chain", "Cocktail Chain Haram", "Cocktail Mugappu", "Cocktail Studs", "Collar Necklace", "Crown", "Cuban Bracelet", "Cuban Chain", "Cufflinks", "Dangler Earrings", "Drop Earrings", "Drop Nose Pin", "Earcuff Earrings", "Eternity Bangles", "Fancy Accessory", "Fancy Armlet", "Fancy Bangles", "Fancy Box", "Fancy Bracelet", "Fancy Earrings", "Fancy Mangalsutra", "Fancy Mugappu", "Fancy Necklace", "Fancy Nose Pin", "Fancy Oddiyanam", "Fancy Ring", "Flexible Bracelet", "Front Back Earrings", "God Bangles", "God Bracelet", "God Earrings", "God Mangalsutra", "God Mugappu", "God Oddiyanam", "God Pendant", "God Vanki", "God Vanki/Armlet", "Goggles", "Golusu Bangles", "Hair Pin", "Haram Necklace", "Hoops & Huggies Earrings", "J Nose Pin", "Jada", "Jada Billa", "Jumkhi", "Jumpring Earrings", "Kada Bangles", "Kantha/Hasli Necklace", "Kid Pendant", "Kids Bangles", "Kids Bracelet", "Kids Earrings", "Kids Hair Pin", "Kids Necklace", "Kids Oddiyanam", "Kids Ring", "Kids Vanki", "Kids Vanki/Armlet", "Kuppu Earrings", "Lariat Necklace", "Layered Necklace", "Locket Pendant", "Maang Tikka", "Magdi Necklace", "Mala Necklace", "Mangalsutra Bracelet", "Mangalsutra Chains", "Mangalsutra Pendant", "Mangalsutra Ring", "Matal-Sahara", "Matha Patti", "Mismatch Earrings", "Money Accessory", "Nakshi Armlet", "Nakshi Bangles", "Nakshi Bracelet", "Nakshi Chain", "Nakshi Chandbalis", "Nakshi Choker", "Nakshi Earrings", "Nakshi Haram", "Nakshi Jada", "Nakshi Jada Billa", "Nakshi Jumkhi", "Nakshi Maang Tikka", "Nakshi Mugappu", "Nakshi Necklace", "Nakshi Oddiyanam", "Nakshi Pendant", "Nakshi Ring", "Nakshi Thali/Tanmaniya", "O Nose Pin", "Oddiyanam", "Oval Bracelet", "Pacheli Bangles", "Padhakam Necklace", "Passa", "Pen", "Round Bangles", "Sculpture", "Short Necklace", "Slider Pendant", "Solitaire Bangles", "Solitaire Bracelet", "Solitaire Earrings", "Solitaire Mangalsutra", "Solitaire Mugappu", "Solitaire Necklace", "Solitaire Pendant", "Spiral Mugappu", "Spiral Ring", "Station Necklace", "Stud Nose Pin", "Tennis Bracelet", "Tennis Necklace", "Thali/Tanmaniya", "Threaders", "Tie Clip", "Tube Armlet", "V/U Vanki", "Vanki", "Watch Charms", "Watches"], doc.subcategory) '
 					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "lock_type" })[0].depends_on
-				},
-				{
-					label: "Metal Touch",
-					fieldname: "metal_touch",
-					fieldtype: "Data",
-					read_only: 1, 
-					in_list_view: 1,
-					default: row.metal_touch,
-					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "chain" })[0].depends_on
 				},				
-				{
-					label: "Metal Purity",
-					fieldname: "metal_purity",
-					read_only: 1,
-					fieldtype: "Data", 
-					in_list_view: 1,
-					default: row.metal_purity,
-					// depends_on: ' eval:in_list(["Ant Mugappu", "Ball Mugappu", "Cocktail Mugappu", "Daily Wear Mugappu", "Fancy Mugappu", "God Mugappu", "Nakshi Mugappu", "Solitaire Mugappu", "Spiral Mugappu"], doc.subcategory) '
-					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "distance_between_kadi_to_mugappu" })[0].depends_on
-				},
+				
 				{
 					fieldtype: "Column Break",
 				},
@@ -1003,10 +1006,10 @@ frappe.ui.form.on('Order Form Detail', {
 				},
 				{
 					label: "Cap/Ganthan",
-					fieldname: "cap_ganthan",
+					fieldname: "capganthan",
 					read_only: 1,
 					fieldtype: "Data",
-					default: row.cap_ganthan,					
+					default: row.capganthan,					
 					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "cap_ganthan" })[0].depends_on
 				},
 				{
@@ -1114,7 +1117,7 @@ let set_edit_item_details = (row,doc,dialog) => {
 
 	$.each(doc.attributes, function (index, d) {
 		var field_name = d.attribute.toLowerCase().replace(/\s+/g, '_');
-		// console.log(field_name);
+		console.log(field_name);
 		dialog.set_df_property(field_name, "hidden", 1);
 	});
 };
@@ -1230,7 +1233,7 @@ function show_hide_field(frm, cdt, cdn, field, hidden) {
 		
 	if (df) {
 		df.hidden = hidden;
-		console.log(df);
+		// console.log(df);
 		if (df.hidden == 0) df.reqd = 1;
 	}
 	frm.refresh_field("order_details");

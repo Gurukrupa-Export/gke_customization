@@ -404,7 +404,7 @@ frappe.ui.form.on('Repair Order Form Detail', {
 		var row = locals[cdt][cdn];
 
 		if (frm.doc.__islocal) {
-			frappe.throw("Please save document to edit the BOM.");
+			frappe.throw("Please save document to edit the View Item.");
 		}
 
 		let item_data = [];
@@ -522,7 +522,7 @@ frappe.ui.form.on('Repair Order Form Detail', {
 					read_only: 1, 
 					in_list_view: 1,
 					default: row.sub_setting_type2,
-					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "feature" })[0].depends_on
+					depends_on: ' eval:doc.setting_type == "Open" '
 				},
 				{
 					fieldtype: "Column Break",
@@ -821,10 +821,10 @@ frappe.ui.form.on('Repair Order Form Detail', {
 				},
 				{
 					label: "Cap/Ganthan",
-					fieldname: "cap_ganthan",
+					fieldname: "capganthan",
 					read_only: 1,
 					fieldtype: "Data",
-					default: row.cap_ganthan,					
+					default: row.capganthan,					
 					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "cap_ganthan" })[0].depends_on
 				},
 				{

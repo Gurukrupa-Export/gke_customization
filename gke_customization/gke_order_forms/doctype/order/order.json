@@ -62,7 +62,6 @@
   "qty",
   "metal_type",
   "metal_touch",
-  "metal_purity",
   "metal_colour",
   "section_break_25",
   "metal_target",
@@ -121,6 +120,7 @@
   "column_break_dmyy",
   "design_image_5",
   "section_break_74",
+  "designer",
   "designer_assignment",
   "section_break_77",
   "update_reason",
@@ -275,6 +275,7 @@
    "fetch_from": "cad_order_form.order_type",
    "fieldname": "order_type",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Order Type",
    "options": "Sales\nStock Order",
    "read_only": 1
@@ -313,7 +314,7 @@
   {
    "fieldname": "cad_order_form",
    "fieldtype": "Link",
-   "label": "CAD Order Form",
+   "label": "Order Form",
    "options": "Order Form",
    "read_only": 1
   },
@@ -340,7 +341,7 @@
   {
    "fieldname": "cad_order_form_detail",
    "fieldtype": "Link",
-   "label": "CAD Order Form Detail",
+   "label": "Order Form Detail",
    "options": "Order Form Detail",
    "read_only": 1
   },
@@ -514,14 +515,6 @@
    "fieldname": "metal_touch",
    "fieldtype": "Link",
    "label": "Metal Touch",
-   "options": "Attribute Value",
-   "read_only": 1
-  },
-  {
-   "fetch_from": "cad_order_form_detail.metal_purity",
-   "fieldname": "metal_purity",
-   "fieldtype": "Link",
-   "label": "Metal Purity",
    "options": "Attribute Value",
    "read_only": 1
   },
@@ -1081,6 +1074,7 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:doc.is_repairing",
    "fetch_from": "cad_order_form_detail.is_repairing",
    "fieldname": "is_repairing",
    "fieldtype": "Check",
@@ -1106,14 +1100,16 @@
    "fieldname": "charm",
    "fieldtype": "Link",
    "label": "Charm",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
    "fetch_from": "cad_order_form_detail.capganthan",
    "fieldname": "capganthan",
    "fieldtype": "Link",
    "label": "Cap/Ganthan",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_tgrl",
@@ -1147,6 +1143,12 @@
    "fieldtype": "Attach Image",
    "label": "Design Image 5",
    "read_only": 1
+  },
+  {
+   "depends_on": "eval: in_list(['Draft','Assigned','Assigned - On-Hold','Update Designer'],doc.workflow_state)",
+   "fieldname": "designer",
+   "fieldtype": "Button",
+   "label": "Designer"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1165,7 +1167,7 @@
    "link_fieldname": "order"
   }
  ],
- "modified": "2024-07-05 10:26:02.822042",
+ "modified": "2024-07-17 12:12:57.703837",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",

@@ -67,6 +67,8 @@
   "section_break_59",
   "metal_target",
   "diamond_target",
+  "charm",
+  "capganthan",
   "column_break_ls4by",
   "product_size",
   "sizer_type",
@@ -74,7 +76,6 @@
   "length",
   "width",
   "height",
-  "breadth",
   "section_break_crhvg",
   "chain_from",
   "stone_changeable",
@@ -268,6 +269,7 @@
    "fetch_from": "serial_and_design_id_order_form.stock_type",
    "fieldname": "order_type",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Order Type",
    "options": "Sales\nStock Order",
    "read_only": 1
@@ -544,15 +546,6 @@
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Height",
-   "read_only": 1,
-   "read_only_depends_on": "eval:doc.modification =='No'"
-  },
-  {
-   "fetch_from": "serial_and_design_code_order_form_detail.breadth",
-   "fieldname": "breadth",
-   "fieldtype": "Float",
-   "hidden": 1,
-   "label": "Breadth",
    "read_only": 1,
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
@@ -1202,6 +1195,20 @@
    "fieldname": "number_of_ant",
    "fieldtype": "Float",
    "label": "Number Of Ant"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.charm",
+   "fieldname": "charm",
+   "fieldtype": "Link",
+   "label": "Charm",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "serial_and_design_code_order_form_detail.capganthan",
+   "fieldname": "capganthan",
+   "fieldtype": "Link",
+   "label": "Cap/Ganthan",
+   "options": "Attribute Value"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1221,7 +1228,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2024-07-05 10:39:52.433534",
+ "modified": "2024-07-17 09:47:18.976738",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order",

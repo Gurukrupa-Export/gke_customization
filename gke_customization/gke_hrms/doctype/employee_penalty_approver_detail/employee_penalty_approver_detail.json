@@ -18,20 +18,22 @@
   {
    "fieldname": "approver_name",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Approver Name",
    "options": "Employee"
   },
   {
    "fieldname": "status",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Status",
-   "options": "\nApproved\nReject\nHold"
+   "options": "\nApproved\nRejected\nSend For Approval\nOn Hold"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-03-01 12:34:10.860062",
+ "modified": "2024-07-04 11:33:09.537836",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Employee Penalty Approver Detail",

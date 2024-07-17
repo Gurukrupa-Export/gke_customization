@@ -4,6 +4,7 @@
 frappe.ui.form.on('Order', {
 	onload(frm) {
 		show_attribute_fields_for_subcategory(frm)
+		frm.get_field('designer_assignment').grid.cannot_add_rows = true;
 	},
 	subcategory(frm) {
 		show_attribute_fields_for_subcategory(frm)
@@ -11,8 +12,84 @@ frappe.ui.form.on('Order', {
 	est_delivery_date(frm) {
 		validate_dates(frm, frm.doc, "est_delivery_date")
 		frm.set_value('est_due_days', frappe.datetime.get_day_diff(frm.doc.est_delivery_date, frm.doc.order_date));
-	}
+	},
+	designer(frm){
+		show_designer_dialog(frm);
+	},
+	// onload(frm) {
+	// 	console.log(frm.doc.workflow_state);
+    //     if (frm.doc.workflow_state === 'Designing') { 
+	// 		frappe.prompt([
+	// 			{
+	// 				label: 'Designer',
+	// 				fieldname: 'designer',
+	// 				fieldtype: 'Link',
+	// 				options: 'Employee',
+	// 				get_query(){
+	// 					return {
+	// 						"filters": [                                    
+	// 							["Employee", "designation", "=", "Designer"],    
+	// 						]
+	// 					}
+	// 				}
+	// 			},
+	// 		], (values) => {
+	// 			let v = {designer: values.designer,};		
+	// 			let new_row = frm.add_child("designer_assignment");
+	// 			$.extend(new_row, v);
+	// 			frm.refresh_field("designer_assignment");
+	// 			if (frm.doc.designer_assignment.length >1) {
+	// 				frm.set_value("workflow_state","Assigned")
+	// 				frm.save()
+	// 			}
+	// 		});	
+    //     }
+    // },
+	
 });
+
+function show_designer_dialog(frm){
+	frappe.prompt([
+		{
+			label: 'Designer',
+			fieldname: 'designer',
+			fieldtype: 'Link',
+			options: 'Employee',
+			get_query(){
+				return {
+					"filters": [                                    
+						["Employee", "designation", "=", "Designer"],    
+					]
+				}
+			}
+		},
+	], (values) => {
+		let designer_exists = frm.doc.designer_assignment.some(row => row.designer === values.designer);
+		
+		if (designer_exists) {
+            frappe.msgprint(__('Designer already assigned.'));
+		}
+		else{
+			let v = {designer: values.designer,};		
+			let new_row = frm.add_child("designer_assignment");
+			$.extend(new_row, v);
+			frm.refresh_field("designer_assignment");
+
+			if (frm.doc.designer_assignment.length >1) {
+				frm.set_value("workflow_state","Assigned")
+				frm.save()
+			}
+		}
+
+	});
+}
+
+function update_fields_in_child_table(designer) {
+	$.each(frm.doc.designer_assignment || [], function (i, d) {
+		d["designer"] = designer;
+	});
+	refresh_field("designer_assignment");
+};
 
 function show_attribute_fields_for_subcategory(frm) {
 	if (frm.doc.subcategory) {

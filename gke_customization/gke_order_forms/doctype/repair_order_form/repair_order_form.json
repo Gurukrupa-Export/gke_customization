@@ -19,10 +19,10 @@
   "delivery_date",
   "project",
   "parcel_place",
-  "flow_type",
   "column_break_4",
   "po_no",
   "stock_type",
+  "flow_type",
   "due_days",
   "diamond_quality",
   "service_type",
@@ -119,10 +119,10 @@
    "default": "Repair",
    "fieldname": "stock_type",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Order Type",
    "options": "\nSales\nStock Order\nRepair",
-   "read_only": 1,
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "due_days",
@@ -203,7 +203,7 @@
    "link_fieldname": "custom_repair_order_form"
   }
  ],
- "modified": "2024-06-26 10:57:14.548135",
+ "modified": "2024-07-17 09:47:47.831946",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order Form",

@@ -19,10 +19,10 @@
   "delivery_date",
   "project",
   "parcel_place",
-  "flow_type",
   "column_break_4",
   "po_no",
   "order_type",
+  "flow_type",
   "due_days",
   "diamond_quality",
   "service_type",
@@ -137,12 +137,11 @@
    "label": "Customer PO No"
   },
   {
-   "default": "Sales",
    "fieldname": "order_type",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Order Type",
-   "options": "\nSales\nStock Order",
-   "reqd": 1
+   "options": "\nSales\nStock Order"
   },
   {
    "default": "0",
@@ -336,7 +335,8 @@
    "fieldname": "flow_type",
    "fieldtype": "Select",
    "label": "Flow Type",
-   "options": "MTO\nMTBI\nFILLER\nGCC\nUS\nJWO"
+   "options": "MTO\nMTBI\nFILLER\nGCC\nUS\nJWO",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -355,7 +355,7 @@
    "link_fieldname": "custom_cad_order_form_id"
   }
  ],
- "modified": "2024-06-26 10:49:57.952000",
+ "modified": "2024-07-17 09:30:58.433191",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form",
