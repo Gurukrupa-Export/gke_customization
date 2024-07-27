@@ -11,9 +11,9 @@
   "index",
   "bom_or_cad",
   "workflow_type",
+  "column_break_etz53",
   "company",
   "department",
-  "column_break_etz53",
   "branch",
   "salesman_name",
   "section_break_oi3uq",
@@ -44,11 +44,14 @@
   "amended_from",
   "section_break_9",
   "tag_no",
-  "design_id",
   "bom",
+  "column_break_vmtb",
+  "design_id",
+  "section_break_6l07",
   "reference_designid",
   "reference_serial_no_1",
   "reference_design_id_2",
+  "column_break_ihwh",
   "reference_serial_no_2",
   "reference_design_id_3",
   "reference_serial_no_3",
@@ -70,13 +73,10 @@
   "product_size",
   "sizer_type",
   "column_break_31",
-  "section_break_45",
   "stone_changeable",
-  "column_break_37",
   "feature",
-  "column_break_40",
   "lock_type",
-  "section_break_43",
+  "section_break_45",
   "back_chain",
   "back_chain_size",
   "back_belt",
@@ -99,12 +99,12 @@
   "number_of_ant",
   "distance_between_kadi_to_mugappu",
   "space_between_mugappu",
-  "detachable",
   "two_in_one",
-  "enamal",
   "column_break_69",
   "nakshi_from",
   "nakshi_weight",
+  "detachable",
+  "enamal",
   "section_break_6pxwc",
   "gemstone_type1",
   "column_break_a8vd",
@@ -122,27 +122,14 @@
   "section_break_74",
   "designer",
   "designer_assignment",
+  "section_break_znhs",
+  "bom_assignment",
   "section_break_77",
   "update_reason",
   "section_break_tcrzb",
   "item",
   "column_break_ggjel",
   "new_bom",
-  "design_attribute_tab",
-  "age_group",
-  "alphabetnumber",
-  "animalbirds",
-  "collection",
-  "design_style",
-  "gender",
-  "lines_rows",
-  "column_break_gwtw",
-  "language",
-  "occasion",
-  "rhodium",
-  "shapes",
-  "religious",
-  "zodiac",
   "territories_tab",
   "india",
   "india_states",
@@ -150,7 +137,66 @@
   "usa",
   "inventory_dimension",
   "inventory_type",
-  "usa_states"
+  "usa_states",
+  "images_tab",
+  "design_code_files_section",
+  "cad_file",
+  "column_break_wodq",
+  "rpt_file",
+  "section_break_ysw4",
+  "bom_tab",
+  "bom_metal_detail_section",
+  "metal_detail",
+  "total_metal_weight",
+  "bom_finding_detail_section",
+  "finding_detail",
+  "section_break_xkjh",
+  "total_finding_pcs",
+  "column_break_8hfq",
+  "finding_weight",
+  "column_break_jjs3",
+  "total_finding_weightin_gms",
+  "bom_diamond_detail_section",
+  "diamond_grade",
+  "diamond_detail",
+  "section_break_svqn",
+  "total_diamond_pcs",
+  "column_break_li5m",
+  "total_diamond_weight",
+  "column_break_el7h",
+  "total_diamond_weightin_gms",
+  "bom_gemstone_detail_section",
+  "gemstone_detail",
+  "section_break_xf1o",
+  "total_gemstone_pcs",
+  "column_break_kgi7",
+  "total_gemstone_weight",
+  "column_break_unhz",
+  "total_gemstone_weightin_gms",
+  "bom_other_detail_section",
+  "other_detail",
+  "section_break_st13",
+  "total_other_pcs",
+  "column_break_p94k",
+  "total_other_weight",
+  "product_weight_section",
+  "metal_weight",
+  "gross_weight",
+  "metal_and_finding_weight",
+  "net_wt_add_on",
+  "column_break_u3bb",
+  "diamond_weight",
+  "gemstone_weight",
+  "other_weight",
+  "column_break_zzly",
+  "finding_weight_",
+  "total_diamond_weight_in_gms",
+  "total_gemstone_weight_in_gms",
+  "product_ratio_section",
+  "gold_to_diamond_ratio",
+  "metal_to_diamond_ratio_excl_of_finding",
+  "column_break_5bib",
+  "diamond_ratio"
  ],
  "fields": [
   {
@@ -574,14 +620,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "column_break_37",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "column_break_40",
-   "fieldtype": "Column Break"
-  },
-  {
    "fetch_from": "cad_order_form_detail.lock_type",
    "fieldname": "lock_type",
    "fieldtype": "Link",
@@ -589,10 +627,6 @@
    "label": "Lock Type",
    "options": "Attribute Value",
    "read_only": 1
-  },
-  {
-   "fieldname": "section_break_43",
-   "fieldtype": "Section Break"
   },
   {
    "fetch_from": "cad_order_form_detail.back_chain",
@@ -655,14 +689,6 @@
    "hidden": 1,
    "label": "Back Belt Patti",
    "read_only": 1
-  },
-  {
-   "fieldname": "rhodium",
-   "fieldtype": "Table MultiSelect",
-   "label": "Rhodium",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1,
-   "reqd": 1
   },
   {
    "fetch_from": "cad_order_form_detail.gemstone_quality",
@@ -826,18 +852,18 @@
    "fieldtype": "Section Break"
   },
   {
+   "allow_on_submit": 1,
+   "depends_on": "eval: in_list(['Assigned - On-Hold','Designing - On-Hold','Sent to QC - On-Hold','Creating BOM - On-Hold','Updating BOM - On-Hold','BOM QC - On-Hold'],doc.workflow_state)",
    "fieldname": "update_reason",
    "fieldtype": "Small Text",
-   "label": "Update Reason",
-   "mandatory_depends_on": "eval:(doc.workflow_state == 'Update Requested')",
-   "permlevel": 1
+   "label": "Update Reason"
   },
   {
    "fieldname": "section_break_tcrzb",
    "fieldtype": "Section Break"
   },
   {
-   "depends_on": "eval:(in_list(['Update Item','Update BOM','Customer Approval', 'Customer Approved', 'Customer Design Rejected', 'Reupdate BOM', 'Approved'], doc.workflow_state))",
+   "depends_on": "eval:(in_list(['Update Item','Update BOM','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))",
    "fieldname": "item",
    "fieldtype": "Link",
    "label": "Design Code",
@@ -851,16 +877,12 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:(in_list(['Update Item','Update BOM','Customer Approval', 'Customer Approved', 'Customer Design Rejected', 'Reupdate BOM', 'Approved'], doc.workflow_state))",
+   "depends_on": "eval:(in_list(['Creating BOM','Creating BOM - On-Hold','Updating BOM','Updating BOM - On-Hold','BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))",
    "fieldname": "new_bom",
    "fieldtype": "Link",
    "label": "New BOM",
+   "mandatory_depends_on": "eval: doc.workflow_state == 'Creating BOM'",
    "options": "BOM"
-  },
-  {
-   "fieldname": "design_attribute_tab",
-   "fieldtype": "Tab Break",
-   "label": "Design Attribute"
   },
   {
    "fieldname": "territories_tab",
@@ -886,98 +908,6 @@
    "fieldname": "usa",
    "fieldtype": "Check",
    "label": "USA",
-   "read_only": 1
-  },
-  {
-   "fieldname": "age_group",
-   "fieldtype": "Table MultiSelect",
-   "label": "Age Group",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1,
-   "reqd": 1
-  },
-  {
-   "fieldname": "alphabetnumber",
-   "fieldtype": "Table MultiSelect",
-   "label": "Alphabet/Number",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
-  },
-  {
-   "fieldname": "animalbirds",
-   "fieldtype": "Table MultiSelect",
-   "label": "Animal/Birds",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
-  },
-  {
-   "fieldname": "collection",
-   "fieldtype": "Table MultiSelect",
-   "label": "Collection",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
-  },
-  {
-   "fieldname": "design_style",
-   "fieldtype": "Table MultiSelect",
-   "label": "Design Style",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1,
-   "reqd": 1
-  },
-  {
-   "fieldname": "gender",
-   "fieldtype": "Table MultiSelect",
-   "label": "Gender",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1,
-   "reqd": 1
-  },
-  {
-   "fieldname": "lines_rows",
-   "fieldtype": "Table MultiSelect",
-   "label": "Lines & Rows",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_gwtw",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "language",
-   "fieldtype": "Table MultiSelect",
-   "label": "Language",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
-  },
-  {
-   "fieldname": "occasion",
-   "fieldtype": "Table MultiSelect",
-   "label": "Occasion",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1,
-   "reqd": 1
-  },
-  {
-   "fieldname": "shapes",
-   "fieldtype": "Table MultiSelect",
-   "label": "Shapes",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
-  },
-  {
-   "fieldname": "religious",
-   "fieldtype": "Table MultiSelect",
-   "label": "Religious",
-   "options": "Design Attribute - Multiselect",
-   "read_only": 1
-  },
-  {
-   "fieldname": "zodiac",
-   "fieldtype": "Table MultiSelect",
-   "label": "Zodiac",
-   "options": "Design Attribute - Multiselect",
    "read_only": 1
   },
   {
@@ -1149,6 +1079,367 @@
    "fieldname": "designer",
    "fieldtype": "Button",
    "label": "Designer"
+  },
+  {
+   "fieldname": "images_tab",
+   "fieldtype": "Tab Break",
+   "label": "Images"
+  },
+  {
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:false",
+   "fieldname": "design_code_files_section",
+   "fieldtype": "Section Break",
+   "label": "Design Code Files "
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "cad_file",
+   "fieldtype": "Attach",
+   "label": "CAD File",
+   "mandatory_depends_on": "eval:(in_list(['BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "rpt_file",
+   "fieldtype": "Attach",
+   "label": "RPT File",
+   "mandatory_depends_on": "eval:(in_list(['BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))"
+  },
+  {
+   "fieldname": "column_break_wodq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_ysw4",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "depends_on": "eval:(in_list(['Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))",
+   "fieldname": "bom_assignment",
+   "fieldtype": "Table",
+   "label": "BOM Assignment",
+   "mandatory_depends_on": "eval: doc.workflow_state == 'Update BOM'",
+   "options": "Designer Assignment - CAD"
+  },
+  {
+   "fieldname": "bom_tab",
+   "fieldtype": "Tab Break",
+   "label": "BOM "
+  },
+  {
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:true",
+   "fieldname": "bom_metal_detail_section",
+   "fieldtype": "Section Break",
+   "label": "BOM Metal Detail"
+  },
+  {
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:true",
+   "fieldname": "bom_diamond_detail_section",
+   "fieldtype": "Section Break",
+   "label": "BOM Diamond Detail"
+  },
+  {
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:true",
+   "fieldname": "bom_gemstone_detail_section",
+   "fieldtype": "Section Break",
+   "label": "BOM Gemstone Detail"
+  },
+  {
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:true",
+   "fieldname": "bom_finding_detail_section",
+   "fieldtype": "Section Break",
+   "label": "BOM Finding Detail"
+  },
+  {
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:true",
+   "fieldname": "bom_other_detail_section",
+   "fieldtype": "Section Break",
+   "label": "BOM Other Detail"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_metal_weight",
+   "fieldtype": "Float",
+   "label": "Total Metal Weight"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_finding_pcs",
+   "fieldtype": "Float",
+   "label": "Total Finding Pcs"
+  },
+  {
+   "fieldname": "column_break_8hfq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "finding_weight",
+   "fieldtype": "Float",
+   "label": "Finding Weight"
+  },
+  {
+   "fieldname": "column_break_jjs3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_finding_weightin_gms",
+   "fieldtype": "Float",
+   "label": "Total Finding Weight(In gms)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "diamond_grade",
+   "fieldtype": "Link",
+   "label": "Diamond Grade",
+   "options": "Attribute Value"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_diamond_pcs",
+   "fieldtype": "Int",
+   "label": "Total Diamond Pcs"
+  },
+  {
+   "fieldname": "column_break_li5m",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_diamond_weight",
+   "fieldtype": "Float",
+   "label": "Total Diamond Weight"
+  },
+  {
+   "fieldname": "column_break_el7h",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_diamond_weightin_gms",
+   "fieldtype": "Data",
+   "label": "Total Diamond Weight(In gms)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_gemstone_pcs",
+   "fieldtype": "Int",
+   "label": "Total Gemstone Pcs"
+  },
+  {
+   "fieldname": "column_break_kgi7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_gemstone_weight",
+   "fieldtype": "Float",
+   "label": "Total Gemstone Weight"
+  },
+  {
+   "fieldname": "column_break_unhz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_gemstone_weightin_gms",
+   "fieldtype": "Float",
+   "label": "Total Gemstone Weight(In gms)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_other_pcs",
+   "fieldtype": "Int",
+   "label": "Total Other Pcs"
+  },
+  {
+   "fieldname": "column_break_p94k",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_other_weight",
+   "fieldtype": "Float",
+   "label": "Total Other Weight"
+  },
+  {
+   "fieldname": "section_break_xkjh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_svqn",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_xf1o",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_st13",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "product_weight_section",
+   "fieldtype": "Section Break",
+   "label": "Product Weight"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "metal_weight",
+   "fieldtype": "Float",
+   "label": "Metal Weight (In Gram)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "gross_weight",
+   "fieldtype": "Float",
+   "label": "Gross Weight (In Gram)"
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "(Metal and Finding Weight)",
+   "fieldname": "metal_and_finding_weight",
+   "fieldtype": "Float",
+   "label": "Net Weight (In Gram)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "net_wt_add_on",
+   "fieldtype": "Float",
+   "label": "Net Wt add on"
+  },
+  {
+   "fieldname": "column_break_u3bb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "diamond_weight",
+   "fieldtype": "Float",
+   "label": "Diamond Weight (In Carat)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "gemstone_weight",
+   "fieldtype": "Float",
+   "label": "Gemstone Weight (In Carat)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "other_weight",
+   "fieldtype": "Float",
+   "label": "Other Weight (In Gram)"
+  },
+  {
+   "fieldname": "column_break_zzly",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "finding_weight_",
+   "fieldtype": "Float",
+   "label": "Finding Weight (In Gram)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_diamond_weight_in_gms",
+   "fieldtype": "Float",
+   "label": "Total Diamond Weight (In Gram)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_gemstone_weight_in_gms",
+   "fieldtype": "Float",
+   "label": "Total Gemstone Weight (In Gram)"
+  },
+  {
+   "fieldname": "product_ratio_section",
+   "fieldtype": "Section Break",
+   "label": "Product Ratio"
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Comparison: 10grams = 1 Carat",
+   "fieldname": "gold_to_diamond_ratio",
+   "fieldtype": "Float",
+   "label": "Metal to Diamond Ratio(Incl. of Finding)"
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Comparison: 10grams = 1 Carat",
+   "fieldname": "metal_to_diamond_ratio_excl_of_finding",
+   "fieldtype": "Float",
+   "label": "Metal to Diamond Ratio(Excl. of Finding)"
+  },
+  {
+   "fieldname": "column_break_5bib",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Avg. Diamond Weight = Total Diamond Weight / Total No. of Pcs",
+   "fieldname": "diamond_ratio",
+   "fieldtype": "Float",
+   "label": "Avg. Diamond Weight(In Carat)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "metal_detail",
+   "fieldtype": "Table",
+   "label": "Metal Detail",
+   "options": "Order BOM Metal Detail"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "finding_detail",
+   "fieldtype": "Table",
+   "label": "Finding Detail",
+   "options": "Order BOM Finding Detail"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "diamond_detail",
+   "fieldtype": "Table",
+   "label": "Diamond Detail",
+   "options": "Order BOM Diamond Detail"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "gemstone_detail",
+   "fieldtype": "Table",
+   "label": "Gemstone Detail",
+   "options": "Order BOM Gemstone Detail"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "other_detail",
+   "fieldtype": "Table",
+   "label": "Other Detail",
+   "options": "Order BOM Other Detail"
+  },
+  {
+   "fieldname": "section_break_znhs",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_vmtb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_6l07",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_ihwh",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1167,7 +1458,7 @@
    "link_fieldname": "order"
   }
  ],
- "modified": "2024-07-17 12:12:57.703837",
+ "modified": "2024-07-27 11:28:30.336931",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",

@@ -1,0 +1,172 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-07-22 15:21:59.787474",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item",
+  "price_list_type",
+  "gemstone_type",
+  "cut_or_cab",
+  "stone_shape",
+  "gemstone_quality",
+  "gemstone_grade",
+  "is_customer_item",
+  "column_break_8",
+  "gemstone_size",
+  "gemstone_code",
+  "sub_setting_type",
+  "pcs",
+  "quantity",
+  "weight_in_gms",
+  "difference",
+  "stock_uom",
+  "item_variant"
+ ],
+ "fields": [
+  {
+   "default": "G",
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Item ",
+   "options": "Item"
+  },
+  {
+   "fetch_if_empty": 1,
+   "fieldname": "price_list_type",
+   "fieldtype": "Select",
+   "label": "Price List Type",
+   "options": "Weight (in cts)\nFixed"
+  },
+  {
+   "fieldname": "gemstone_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": " Type",
+   "options": "Attribute Value",
+   "reqd": 1
+  },
+  {
+   "fetch_if_empty": 1,
+   "fieldname": "cut_or_cab",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Cut and Cab",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "stone_shape",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": " Shape",
+   "options": "Attribute Value",
+   "reqd": 1
+  },
+  {
+   "default": "Precious",
+   "fieldname": "gemstone_quality",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": " Quality",
+   "options": "Attribute Value"
+  },
+  {
+   "default": "Real",
+   "fieldname": "gemstone_grade",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": " Grade",
+   "options": "Attribute Value"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_customer_item",
+   "fieldtype": "Check",
+   "label": "Is Customer Item"
+  },
+  {
+   "fieldname": "column_break_8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gemstone_size",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": " Size",
+   "options": "Attribute Value",
+   "reqd": 1
+  },
+  {
+   "fieldname": "gemstone_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Stone Code",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "sub_setting_type",
+   "fieldtype": "Link",
+   "label": "Sub Setting Type",
+   "options": "Attribute Value"
+  },
+  {
+   "default": "1",
+   "fieldname": "pcs",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Pcs"
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Weight in cts",
+   "reqd": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "weight_in_gms",
+   "fieldtype": "Float",
+   "label": "Weight in Gms",
+   "read_only": 1
+  },
+  {
+   "fieldname": "difference",
+   "fieldtype": "Float",
+   "label": "Difference",
+   "read_only": 1
+  },
+  {
+   "default": "Carat",
+   "fieldname": "stock_uom",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Stock UOM",
+   "options": "UOM",
+   "reqd": 1
+  },
+  {
+   "fieldname": "item_variant",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Item Variant"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-07-25 13:17:02.037219",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Order BOM Gemstone Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,194 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-07-22 15:24:40.535062",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item",
+  "metal_type",
+  "metal_touch",
+  "metal_purity",
+  "metal_colour",
+  "cad_weight",
+  "purity_percentage",
+  "column_break_7",
+  "cad_finish_ratio",
+  "cad_to_finish_ratio",
+  "quantity",
+  "additional_net_weight",
+  "is_customer_item",
+  "difference",
+  "stock_uom",
+  "item_variant",
+  "section_break_13",
+  "cam_weight",
+  "wax_weight",
+  "casting_weight",
+  "column_break_17",
+  "finish_product_weight",
+  "finish_loss_percentage",
+  "finish_loss_grams"
+ ],
+ "fields": [
+  {
+   "default": "M",
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "metal_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "Attribute Value",
+   "reqd": 1
+  },
+  {
+   "fieldname": "metal_touch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Metal Touch",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "metal_purity",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Metal Purity",
+   "options": "Attribute Value",
+   "reqd": 1
+  },
+  {
+   "fieldname": "metal_colour",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Colour",
+   "options": "Attribute Value",
+   "reqd": 1
+  },
+  {
+   "fieldname": "cad_weight",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "CAD Weight"
+  },
+  {
+   "fetch_from": "metal_purity.purity_percentage",
+   "fieldname": "purity_percentage",
+   "fieldtype": "Float",
+   "label": "Purity Percentage",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cad_finish_ratio",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "CAD Finish Ratio"
+  },
+  {
+   "fieldname": "cad_to_finish_ratio",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Less %"
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Weight (in gms)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "additional_net_weight",
+   "fieldtype": "Float",
+   "label": "Additional Net Weight",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_customer_item",
+   "fieldtype": "Check",
+   "label": "Is Customer Item"
+  },
+  {
+   "fieldname": "difference",
+   "fieldtype": "Currency",
+   "label": "Difference",
+   "read_only": 1
+  },
+  {
+   "default": "Gram",
+   "fieldname": "stock_uom",
+   "fieldtype": "Link",
+   "label": "Stock UOM",
+   "options": "UOM",
+   "reqd": 1
+  },
+  {
+   "fieldname": "item_variant",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Item Variant"
+  },
+  {
+   "fieldname": "section_break_13",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "cam_weight",
+   "fieldtype": "Float",
+   "label": "CAM Weight"
+  },
+  {
+   "fieldname": "wax_weight",
+   "fieldtype": "Float",
+   "label": "Wax Weight"
+  },
+  {
+   "fieldname": "casting_weight",
+   "fieldtype": "Float",
+   "label": "Casting Weight"
+  },
+  {
+   "fieldname": "column_break_17",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "finish_product_weight",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Finish Product Weight"
+  },
+  {
+   "fieldname": "finish_loss_percentage",
+   "fieldtype": "Float",
+   "label": "Finish Loss (Percentage)"
+  },
+  {
+   "fieldname": "finish_loss_grams",
+   "fieldtype": "Float",
+   "label": "Finish Loss (Grams)"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-07-22 15:26:18.273648",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Order BOM Metal Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
