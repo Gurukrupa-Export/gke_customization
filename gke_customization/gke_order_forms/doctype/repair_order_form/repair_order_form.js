@@ -234,10 +234,12 @@ frappe.ui.form.on('Repair Order Form Detail', {
 						d.metal_touch = r.message.metal_touch
 						d.metal_purity = r.message.metal_purity
 						d.metal_colour = r.message.metal_colour
-						
-						
-						// d.metal_target = r.message.metal_target
+		
+						d.metal_target = r.message.metal_target
+						// check this line
 						d.metal_target = r.message.custom_metal_target
+						// check this line
+
 						d.diamond_target = r.message.diamond_target
 						d.product_size = r.message.product_size
 						d.sizer_type = r.message.sizer_type
@@ -264,22 +266,40 @@ frappe.ui.form.on('Repair Order Form Detail', {
 						d.vanki_type = r.message.vanki_type
 						d.rhodium = r.message.rhodium
 
-						d.chain = r.message.chain
+						// d.chain = r.message.chain
 						d.chain_type = r.message.chain_type
 						d.customer_chain = r.message.customer_chain
 						d.chain_weight = r.message.chain_weight
 						d.chain_length = r.message.chain_length
+						d.chain_thickness = r.message.chain_thickness
+						d.chain_from = r.message.chain_from
 
-						d.number_of_ant = r.message.number_of_ant
+						if(r.message.number_of_ant){
+							d.number_of_ant = r.message.number_of_ant
+						}
+						else{
+							// check this line
+							d.number_of_ant = r.message.custom_number_of_ant
+							// check this line
+						}
+
 						d.distance_between_kadi_to_mugappu = r.message.distance_between_kadi_to_mugappu
 						d.space_between_mugappu = r.message.space_between_mugappu
-						d.two_in_one = r.message.two_in_one
+						if(r.message.two_in_one){
+							d.two_in_one = r.message.two_in_one
+						}
+						else{
+							d.two_in_one = r.message.custom_two_in_one
+						}
 
 						d.rhodium = r.message.rhodium
 						d.enamal = r.message.enamal
 
 						d.gemstone_type1 = r.message.gemstone_type1
 						d.gemstone_quality = r.message.gemstone_quality
+
+						d.charm = r.message.charm
+						d.capganthan = r.message.capganthan
 				
 						refresh_field('order_details');
 						// set_field_visibility(frm, cdt, cdn)
