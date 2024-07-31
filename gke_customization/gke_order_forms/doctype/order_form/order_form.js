@@ -342,15 +342,15 @@ frappe.ui.form.on('Order Form Detail', {
 		}
 	},
 
-	tag_no(frm, cdt, cdn) {
-		var d = locals[cdt][cdn];
-		fetch_item_from_serial(d, "tag_no", "design_id")
-		if (d.tag_no) {
-			frappe.db.get_value("BOM",{"tag_no": d.tag_no},'name', (r)=>{
-				frappe.model.set_value(cdt, cdn, 'bom', r.name)
-			})
-		}
-	},
+	// tag_no(frm, cdt, cdn) {
+	// 	var d = locals[cdt][cdn];
+	// 	fetch_item_from_serial(d, "tag_no", "design_id")
+	// 	if (d.tag_no) {
+	// 		frappe.db.get_value("BOM",{"tag_no": d.tag_no},'name', (r)=>{
+	// 			frappe.model.set_value(cdt, cdn, 'bom', r.name)
+	// 		})
+	// 	}
+	// },
 
 	// reference_serial_no_1(frm, cdt, cdn) {
 	// 	var d = locals[cdt][cdn];
