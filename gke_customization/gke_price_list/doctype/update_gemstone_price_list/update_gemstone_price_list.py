@@ -64,6 +64,16 @@ def crate_price_list(self,row):
     gemstone_price_list_doc.stone_shape = self.stone_shape
     gemstone_price_list_doc.gemstone_quality = self.stone_quality
     gemstone_price_list_doc.gemstone_size = self.stone_size
+
+    if self.handling_charges_for_outright:
+        gemstone_price_list_doc.outright_handling_charges_in_percentage = self.custom_outright_handling_charges_in_percentage
+        gemstone_price_list_doc.outright_handling_charges_rate = self.custom_outright_handling_charges_rate
+
+    if self.handling_charges_for_outwork_handling_rate:
+        gemstone_price_list_doc.outwork_handling_charges_in_percentage = self.custom_outwork_handling_charges_in_percentage
+        gemstone_price_list_doc.outwork_handling_charges_rate = self.custom_outwork_handling_charges_rate
+
+
     if self.price_list_type == 'Weight (in cts)':
         from_weight = float(row.weight.split('-')[0])
         to_weight = float(row.weight.split('-')[1])

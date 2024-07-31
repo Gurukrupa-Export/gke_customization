@@ -16,12 +16,18 @@
   "supplier_fg_purchase_rate",
   "gemstone_pr",
   "per_pc_or_per_carat",
+  "handling_charges_for_outright",
+  "outright_handling_charges_in_percentage",
+  "outright_handling_charges_rate",
   "column_break_ha7fp",
   "stone_type",
   "cut_or_cab",
   "stone_shape",
   "stone_quality",
   "stone_size",
+  "handling_charges_for_outwork",
+  "outwork_handling_charges_in_percentage",
+  "outwork_handling_charges_rate",
   "amended_from",
   "section_break_8njhb",
   "update_gemstone_price_list_details",
@@ -168,12 +174,48 @@
    "fieldtype": "Link",
    "label": "Per Pc or Per Carat",
    "options": "Attribute Value"
+  },
+  {
+   "default": "0",
+   "fieldname": "handling_charges_for_outright",
+   "fieldtype": "Check",
+   "label": "Handling Charges For Outright"
+  },
+  {
+   "depends_on": "eval:doc.handling_charges_for_outright",
+   "fieldname": "outright_handling_charges_in_percentage",
+   "fieldtype": "Percent",
+   "label": "Outright Handling Charges (In %)"
+  },
+  {
+   "depends_on": "eval:doc.handling_charges_for_outright",
+   "fieldname": "outright_handling_charges_rate",
+   "fieldtype": "Currency",
+   "label": "Outright Handling Charges Rate"
+  },
+  {
+   "depends_on": "eval:doc.handling_charges_for_outwork",
+   "fieldname": "outwork_handling_charges_in_percentage",
+   "fieldtype": "Percent",
+   "label": "Outwork Handling Charges (In %)"
+  },
+  {
+   "depends_on": "eval:doc.handling_charges_for_outwork",
+   "fieldname": "outwork_handling_charges_rate",
+   "fieldtype": "Currency",
+   "label": "Outwork Handling Charges Rate"
+  },
+  {
+   "default": "0",
+   "fieldname": "handling_charges_for_outwork",
+   "fieldtype": "Check",
+   "label": "Handling Charges For Outwork (Handling Rate)"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-07-31 10:04:11.781610",
+ "modified": "2024-07-31 18:10:00.037958",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Update Gemstone Price List",

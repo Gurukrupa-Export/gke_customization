@@ -21,7 +21,7 @@
   "stone_shape",
   "diamond_quality",
   "stone_code",
-  "handling_charges_for_outwork_handling_rate",
+  "handling_charges_for_outwork",
   "outwork_handling_charges_in_percentage",
   "outwork_handling_charges_rate",
   "section_break_sey1h",
@@ -153,12 +153,6 @@
    "label": "Stone Code"
   },
   {
-   "default": "0",
-   "fieldname": "handling_charges_for_outwork_handling_rate",
-   "fieldtype": "Check",
-   "label": "Handling Charges For Outwork (Handling Rate)"
-  },
-  {
    "depends_on": "eval:doc.handling_charges_for_outwork_handling_rate",
    "fieldname": "outwork_handling_charges_in_percentage",
    "fieldtype": "Percent",
@@ -169,12 +163,18 @@
    "fieldname": "outwork_handling_charges_rate",
    "fieldtype": "Currency",
    "label": "Outwork Handling Charges Rate"
+  },
+  {
+   "default": "0",
+   "fieldname": "handling_charges_for_outwork",
+   "fieldtype": "Check",
+   "label": "Handling Charges For Outwork (Handling Rate)"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-07-30 17:30:34.649969",
+ "modified": "2024-07-31 18:10:20.435505",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Update Diamond Price  List",

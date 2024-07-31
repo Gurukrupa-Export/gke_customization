@@ -87,12 +87,13 @@ def crate_price_list(self,row):
     diamond_price_list_doc.diamond_type = self.diamond_type
     diamond_price_list_doc.diamond_quality = self.diamond_quality
     diamond_price_list_doc.stone_shape = self.stone_shape
+
     if self.handling_charges_for_outright:
-        diamond_price_list_doc.outright_handling_charges_in_percentage = self.outright_handling_charges_rate
-        diamond_price_list_doc.custom_handling_charges_rate = self.outright_handling_charges_rate
-    if self.handling_charges_for_outwork_handling_rate:
-        diamond_price_list_doc.outright_handling_charges_in_percentage = self.outwork_handling_charges_in_percentage
-        diamond_price_list_doc.custom_handling_charges_rate = self.outwork_handling_charges_rate
+        diamond_price_list_doc.custom_outright_handling_charges_in_percentage = self.outright_handling_charges_in_percentage
+        diamond_price_list_doc.custom_outright_handling_charges_rate = self.outright_handling_charges_rate
+    if self.handling_charges_for_outwork:
+        diamond_price_list_doc.custom_outwork_handling_charges_in_percentage = self.outwork_handling_charges_in_percentage
+        diamond_price_list_doc.custom_outwork_handling_charges_rate = self.outwork_handling_charges_rate
 
     if self.price_list_type == 'Sieve Size Range':
         diamond_price_list_doc.sieve_size_range = row.sieve_size_range
