@@ -776,7 +776,6 @@ def create_line_items(self):
 					"is_design_code":1,
 					"variant_of" : item_variant[1]
 				})
-				frappe.throw(f"{self.name}")
 				frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant[0]))))
 				frappe.db.set_value(self.doctype, self.name, "item", item_variant[0])
 				self.reload()
