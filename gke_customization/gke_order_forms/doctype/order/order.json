@@ -7,13 +7,12 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "workflow_state",
   "index",
   "bom_or_cad",
   "workflow_type",
-  "column_break_etz53",
   "company",
   "department",
+  "column_break_etz53",
   "branch",
   "salesman_name",
   "section_break_oi3uq",
@@ -44,10 +43,11 @@
   "amended_from",
   "section_break_9",
   "tag_no",
+  "design_id",
+  "customer_order_form",
+  "section_break_6l07",
   "bom",
   "column_break_vmtb",
-  "design_id",
-  "section_break_6l07",
   "reference_designid",
   "reference_serial_no_1",
   "reference_design_id_2",
@@ -73,10 +73,10 @@
   "product_size",
   "sizer_type",
   "column_break_31",
+  "section_break_45",
   "stone_changeable",
   "feature",
   "lock_type",
-  "section_break_45",
   "back_chain",
   "back_chain_size",
   "back_belt",
@@ -99,12 +99,12 @@
   "number_of_ant",
   "distance_between_kadi_to_mugappu",
   "space_between_mugappu",
+  "detachable",
   "two_in_one",
+  "enamal",
   "column_break_69",
   "nakshi_from",
   "nakshi_weight",
-  "detachable",
-  "enamal",
   "section_break_6pxwc",
   "gemstone_type1",
   "column_break_a8vd",
@@ -135,8 +135,6 @@
   "india_states",
   "column_break_chfe",
   "usa",
-  "inventory_dimension",
-  "inventory_type",
   "usa_states",
   "images_tab",
   "design_code_files_section",
@@ -565,42 +563,50 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.metal_colour",
+   "fetch_if_empty": 1,
    "fieldname": "metal_colour",
    "fieldtype": "Link",
    "label": "Metal Colour ",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
    "fieldname": "section_break_25",
    "fieldtype": "Section Break"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.diamond_target",
+   "fetch_if_empty": 1,
    "fieldname": "diamond_target",
    "fieldtype": "Float",
    "label": "Diamond Target",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
    "fieldname": "column_break_28",
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.product_size",
+   "fetch_if_empty": 1,
    "fieldname": "product_size",
    "fieldtype": "Data",
    "label": "Product Size",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.sizer_type",
+   "fetch_if_empty": 1,
    "fieldname": "sizer_type",
    "fieldtype": "Link",
    "label": "Sizer Type",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
    "fieldname": "column_break_31",
@@ -611,31 +617,37 @@
    "fieldtype": "Section Break"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.stone_changeable",
+   "fetch_if_empty": 1,
    "fieldname": "stone_changeable",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Stone Changeable",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.lock_type",
+   "fetch_if_empty": 1,
    "fieldname": "lock_type",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Lock Type",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.back_chain",
+   "fetch_if_empty": 1,
    "fieldname": "back_chain",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Back Chain",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
    "fetch_from": "cad_order_form_detail.back_chain_size",
@@ -646,37 +658,45 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.back_belt",
+   "fetch_if_empty": 1,
    "fieldname": "back_belt",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Back Belt",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.back_belt_length",
+   "fetch_if_empty": 1,
    "fieldname": "back_belt_length",
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Back Belt Length",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.black_beed_line",
+   "fetch_if_empty": 1,
    "fieldname": "black_beed_line",
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Black Beed Line",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.back_side_size",
+   "fetch_if_empty": 1,
    "fieldname": "back_side_size",
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Back Side Size",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
    "fieldname": "column_break_49",
@@ -702,22 +722,26 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.chain",
+   "fetch_if_empty": 1,
    "fieldname": "chain",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Chain",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.chain_type",
+   "fetch_if_empty": 1,
    "fieldname": "chain_type",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Chain Type",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
    "fetch_from": "cad_order_form_detail.customer_chain",
@@ -737,47 +761,57 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
+   "fetch_if_empty": 1,
    "fieldname": "chain_thickness",
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Chain Thickness",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.chain_length",
+   "fetch_if_empty": 1,
    "fieldname": "chain_length",
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Chain Length",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
    "fieldname": "section_break_63",
    "fieldtype": "Section Break"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.space_between_mugappu",
+   "fetch_if_empty": 1,
    "fieldname": "space_between_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Space between Mugappu",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.detachable",
+   "fetch_if_empty": 1,
    "fieldname": "detachable",
    "fieldtype": "Link",
    "label": "Detachable",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.enamal",
+   "fetch_if_empty": 1,
    "fieldname": "enamal",
    "fieldtype": "Link",
    "label": "Enamal",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
    "fieldname": "column_break_69",
@@ -806,12 +840,15 @@
    "fieldtype": "Section Break"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.gemstone_type1",
+   "fetch_if_empty": 1,
    "fieldname": "gemstone_type1",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Gemstone Type1",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
    "fieldname": "section_break_xbmnv",
@@ -841,7 +878,7 @@
    "fieldtype": "Section Break"
   },
   {
-   "depends_on": "eval:doc.bom_or_cad == 'CAD' || doc.bom_or_cad == 'Duplicate BOM' || (doc.bom_or_cad == 'Check' && doc.workflow_type=='CAD')",
+   "depends_on": "eval:doc.bom_or_cad == 'CAD' || doc.bom_or_cad == 'Duplicate BOM' || (doc.bom_or_cad == 'Check' && doc.workflow_type=='CAD') || (doc.design_type == 'New Design' && doc.bom_or_cad == 'CAD' && doc.customer_order_form)",
    "fieldname": "designer_assignment",
    "fieldtype": "Table",
    "label": "Designer Assignment",
@@ -877,7 +914,7 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:(in_list(['Creating BOM','Creating BOM - On-Hold','Updating BOM','Updating BOM - On-Hold','BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))",
+   "depends_on": "eval:(in_list(['Update BOM','Creating BOM','Creating BOM - On-Hold','Updating BOM','Updating BOM - On-Hold','BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))",
    "fieldname": "new_bom",
    "fieldtype": "Link",
    "label": "New BOM",
@@ -911,12 +948,14 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.feature",
+   "fetch_if_empty": 1,
    "fieldname": "feature",
    "fieldtype": "Link",
    "label": "Feature",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
    "fieldname": "usa_states",
@@ -926,20 +965,25 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.rhodium",
+   "fetch_if_empty": 1,
    "fieldname": "rhodium_",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Rhodium",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.distance_between_kadi_to_mugappu",
+   "fetch_if_empty": 1,
    "fieldname": "distance_between_kadi_to_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Distance Between Kadi To Mugappu",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
    "fieldname": "column_break_a8vd",
@@ -950,21 +994,25 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.total_mugappu",
+   "fetch_if_empty": 1,
    "fieldname": "number_of_ant",
    "fieldtype": "Float",
    "hidden": 1,
    "label": "Number Of Ant",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.2_in_1",
+   "fetch_if_empty": 1,
    "fieldname": "two_in_one",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "2 in 1",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
    "fetch_from": "cad_order_form_detail.metal_target",
@@ -974,32 +1022,11 @@
    "read_only": 1
   },
   {
-   "allow_on_submit": 1,
-   "fieldname": "workflow_state",
-   "fieldtype": "Link",
-   "label": "Workflow State",
-   "no_copy": 1,
-   "options": "Workflow State"
-  },
-  {
-   "collapsible": 1,
-   "fieldname": "inventory_dimension",
-   "fieldtype": "Section Break",
-   "label": "Inventory Dimension"
-  },
-  {
-   "fieldname": "inventory_type",
-   "fieldtype": "Link",
-   "label": "Inventory Type",
-   "options": "Inventory Type",
-   "search_index": 1
-  },
-  {
    "fetch_from": "cad_order_form.flow_type",
    "fieldname": "flow_type",
    "fieldtype": "Select",
    "label": "Flow Type",
-   "options": "MTO\nMTBI\nFILLER\nGCC\nUS\nJWO",
+   "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO",
    "read_only": 1
   },
   {
@@ -1019,27 +1046,34 @@
   },
   {
    "fetch_from": "cad_order_form_detail.mod_reason",
+   "fetch_if_empty": 1,
    "fieldname": "mod_reason",
    "fieldtype": "Link",
    "label": "Mod Reason",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.charm",
+   "fetch_if_empty": 1,
    "fieldname": "charm",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Charm",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
+   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.capganthan",
+   "fetch_if_empty": 1,
    "fieldname": "capganthan",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Cap/Ganthan",
    "options": "Attribute Value",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
    "fieldname": "column_break_tgrl",
@@ -1116,11 +1150,11 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:(in_list(['Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))",
+   "depends_on": "eval: (in_list(['Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state) && doc.design_type != 'As Per Serial No')",
    "fieldname": "bom_assignment",
    "fieldtype": "Table",
    "label": "BOM Assignment",
-   "mandatory_depends_on": "eval: doc.workflow_state == 'Update BOM'",
+   "mandatory_depends_on": "eval: (doc.workflow_state == 'Update BOM' && doc.design_type != 'As Per Serial No') || (doc.design_type != 'New Design' && doc.bom_or_cad != 'CAD' && doc.customer_order_form)",
    "options": "Designer Assignment - CAD"
   },
   {
@@ -1440,6 +1474,13 @@
   {
    "fieldname": "column_break_ihwh",
    "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.customer_order_form",
+   "fieldname": "customer_order_form",
+   "fieldtype": "Link",
+   "label": "Customer Order Form",
+   "options": "Customer Order Form"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1458,7 +1499,7 @@
    "link_fieldname": "order"
   }
  ],
- "modified": "2024-07-27 11:28:30.336931",
+ "modified": "2024-07-31 10:06:10.186180",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",

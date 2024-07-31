@@ -10,12 +10,20 @@
  "field_order": [
   "date",
   "customer",
+  "customer_name",
   "price_list",
   "price_list_type",
+  "handling_charges_for_outright",
+  "outright_handling_charges_in_percentage",
+  "outright_handling_charges_rate",
   "column_break_ha7fp",
   "diamond_type",
   "stone_shape",
   "diamond_quality",
+  "stone_code",
+  "handling_charges_for_outwork_handling_rate",
+  "outwork_handling_charges_in_percentage",
+  "outwork_handling_charges_rate",
   "section_break_sey1h",
   "update_diamond_price_list_details",
   "section_break_e8pkr",
@@ -68,7 +76,7 @@
   {
    "fieldname": "diamond_quality",
    "fieldtype": "Link",
-   "label": "Diamond Quality",
+   "label": "Customer Diamond Quality",
    "options": "Attribute Value"
   },
   {
@@ -113,12 +121,60 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "handling_charges_for_outright",
+   "fieldtype": "Check",
+   "label": "Handling Charges For Outright"
+  },
+  {
+   "depends_on": "eval:doc.handling_charges_for_outright",
+   "fieldname": "outright_handling_charges_in_percentage",
+   "fieldtype": "Percent",
+   "label": "Outright Handling Charges (In %)"
+  },
+  {
+   "depends_on": "eval:doc.handling_charges_for_outright",
+   "fieldname": "outright_handling_charges_rate",
+   "fieldtype": "Currency",
+   "label": "Outright Handling Charges Rate"
+  },
+  {
+   "fieldname": "stone_code",
+   "fieldtype": "Date",
+   "label": "Stone Code"
+  },
+  {
+   "default": "0",
+   "fieldname": "handling_charges_for_outwork_handling_rate",
+   "fieldtype": "Check",
+   "label": "Handling Charges For Outwork (Handling Rate)"
+  },
+  {
+   "depends_on": "eval:doc.handling_charges_for_outwork_handling_rate",
+   "fieldname": "outwork_handling_charges_in_percentage",
+   "fieldtype": "Percent",
+   "label": "Outwork Handling Charges (In %)"
+  },
+  {
+   "depends_on": "eval:doc.handling_charges_for_outwork_handling_rate",
+   "fieldname": "outwork_handling_charges_rate",
+   "fieldtype": "Currency",
+   "label": "Outwork Handling Charges Rate"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-07-09 11:30:37.838242",
+ "modified": "2024-07-30 17:30:34.649969",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Update Diamond Price  List",

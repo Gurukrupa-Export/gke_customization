@@ -10,8 +10,12 @@
  "field_order": [
   "date",
   "customer",
+  "customer_name",
   "price_list",
   "price_list_type",
+  "supplier_fg_purchase_rate",
+  "gemstone_pr",
+  "per_pc_or_per_carat",
   "column_break_ha7fp",
   "stone_type",
   "cut_or_cab",
@@ -66,7 +70,7 @@
   {
    "fieldname": "cut_or_cab",
    "fieldtype": "Link",
-   "label": "Cut Or Cab",
+   "label": "Faceted/Cabochon",
    "options": "Attribute Value"
   },
   {
@@ -140,12 +144,36 @@
    "label": "Gemstone Price List",
    "options": "Gemstone Price List",
    "read_only": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "supplier_fg_purchase_rate",
+   "fieldtype": "Currency",
+   "label": "Supplier FG Purchase Rate"
+  },
+  {
+   "fieldname": "gemstone_pr",
+   "fieldtype": "Link",
+   "label": "Gemstone PR",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "per_pc_or_per_carat",
+   "fieldtype": "Link",
+   "label": "Per Pc or Per Carat",
+   "options": "Attribute Value"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-07-09 11:30:43.448784",
+ "modified": "2024-07-31 10:04:11.781610",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Update Gemstone Price List",

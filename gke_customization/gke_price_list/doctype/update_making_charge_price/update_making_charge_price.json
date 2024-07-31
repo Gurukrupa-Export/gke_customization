@@ -10,12 +10,13 @@
  "field_order": [
   "date",
   "customer",
+  "customer_name",
   "setting_type",
-  "metal_type",
+  "subcontracting_rate",
   "column_break_qywjr",
-  "making_charge_type",
+  "metal_type",
   "metal_touch",
-  "metal_purity",
+  "subcontracting_wastage",
   "amended_from",
   "section_break_okj7w",
   "update_making_charge_price_item_subcategory",
@@ -46,21 +47,9 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "making_charge_type",
-   "fieldtype": "Link",
-   "label": "Making Charge Type",
-   "options": "Attribute Value"
-  },
-  {
    "fieldname": "metal_touch",
    "fieldtype": "Link",
    "label": "Metal Touch",
-   "options": "Attribute Value"
-  },
-  {
-   "fieldname": "metal_purity",
-   "fieldtype": "Link",
-   "label": "Metal Purity",
    "options": "Attribute Value"
   },
   {
@@ -97,12 +86,29 @@
    "fieldtype": "Table",
    "label": "Update Making Charge Price Finding Subcategory",
    "options": "Update Making Charge Price Finding Subcategory"
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "subcontracting_rate",
+   "fieldtype": "Currency",
+   "label": "Subcontracting Rate"
+  },
+  {
+   "fieldname": "subcontracting_wastage",
+   "fieldtype": "Percent",
+   "label": "Subcontracting Wastage"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-07-09 11:30:40.707723",
+ "modified": "2024-07-30 17:40:48.342070",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Update Making Charge Price",

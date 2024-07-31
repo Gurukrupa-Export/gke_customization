@@ -1,7 +1,7 @@
 # Copyright (c) 2023, Nirali and contributors
 # For license information, please see license.txt
 
-import frappe
+import frappe,json
 from frappe.model.document import Document
 
 class CustomerOrderForm(Document):
@@ -146,3 +146,76 @@ def get_finding(titan_code):
 
 def demo():
 	return
+
+@frappe.whitelist()
+def get_order_form_detail(design_code):		
+	order_design_code = frappe.db.sql(f"""select ti.name, ti.custom_cad_order_id, tod.name,
+		tod.metal_type,tod.metal_touch,tod.metal_colour,tod.metal_target,tod.diamond_target,
+		tod.product_size,tod.feature,tod.rhodium_,tod.enamal,tod.gemstone_type1,tod.gemstone_quality,
+		tod.qty,tod.diamond_quality
+		from `tabItem` as ti 
+		left join `tabOrder` as tod on tod.name = ti.custom_cad_order_id and ti.name = tod.item
+		where tod.item = '{design_code}'
+	""", as_dict=1)
+
+	# frappe.throw(f"{order_design_code}")
+
+	return order_design_code
+
+@frappe.whitelist()
+def get_quotation(source_name, target_doc=None):
+	if isinstance(target_doc, str):
+		target_doc = json.loads(target_doc)
+	if not target_doc:
+		target_doc = frappe.new_doc("Quotation")
+	else:
+		target_doc = frappe.get_doc(target_doc)
+
+	if source_name:
+		quotation_data = frappe.db.sql(f"""
+			select tqi.item_code,ti.custom_cad_order_id,tqi.parent,tqi.order_form_id,
+			tod.metal_type,tod.metal_touch,tod.metal_colour,tod.metal_target,tod.diamond_target,
+			tod.product_size,tod.feature,tod.rhodium_,tod.enamal,tod.gemstone_type1,tod.gemstone_quality,
+			tod.qty,tod.diamond_quality
+			from `tabQuotation Item` as tqi 
+			left join `tabItem` as ti
+			on ti.name = tqi.item_code
+			left join `tabOrder` as tod on tod.name = tqi.order_form_id and ti.name = tod.item
+			where tqi.parent = '{source_name}'
+		""", as_dict=1)
+
+		# quotation_data = frappe.db.sql(f"""
+		# 	select tqi.item_code,ti.custom_cad_order_id,tqi.parent,
+		# 	tod.metal_type,tod.metal_touch,tod.metal_colour,tod.metal_target,tod.diamond_target,
+		# 	tod.product_size,tod.feature,tod.rhodium_,tod.enamal,tod.gemstone_type1,tod.gemstone_quality,
+		# 	tod.qty,tod.diamond_quality
+		# 	from `tabQuotation Item` as tqi 
+		# 	left join `tabItem` as ti
+		# 	on ti.name = tqi.item_code
+		# 	left join `tabOrder` as tod on tod.name = tqi.order_form_id
+		# 	where tqi.parent = '{source_name}'
+		# """, as_dict=1)
+
+		# frappe.throw(f"{quotation_data}")
+	
+	for i in quotation_data:
+		target_doc.append("customer_order_form_detail",{
+			"design_code": i.get("item_code"),
+			"quotation": i.get("parent"),
+			"order_id": i.get("order_form_id"),
+			"metal_type": i.get("metal_type"),
+			"metal_touch": i.get("metal_touch"),
+			"metal_target": i.get("metal_target"),
+			"metal_colour": i.get("metal_colour"),
+			"feature": i.get("feature"),
+			"diamond_target": i.get("diamond_target"),
+			"diamond_quality": i.get("diamond_quality"),
+			"gemstone_type": i.get("gemstone_type1"),
+			"gemstone_quality": i.get("gemstone_quality"),
+			"product_size": i.get("product_size"),
+			"enamal": i.get("enamal"),
+			"no_of_pcs": i.get("qty"),
+			"rhodium": i.get("rhodium_"),
+		})
+
+	return target_doc

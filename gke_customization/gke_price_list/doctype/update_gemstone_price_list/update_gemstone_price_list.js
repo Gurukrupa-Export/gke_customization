@@ -28,5 +28,10 @@ frappe.ui.form.on('Update Gemstone Price List Details', {
 		var d = locals[cdt][cdn];
 		d.difference = d.revised_rate - d.rate_per_carat
 		refresh_field('update_gemstone_price_list_details')
-	}
+	},
+	revised_gemstone_handling_rate:function(frm,cdt,cdn) {
+		var d = locals[cdt][cdn];
+		d.difference_gemstone_handling_rate = d.revised_gemstone_handling_rate - d.gemstone_handling_rate
+		refresh_field('update_gemstone_price_list_details')
+	},
 })

@@ -208,6 +208,53 @@ frappe.ui.form.on('Order Form', {
 		// 	};
 		// }
    	},
+
+	refresh(frm){
+		frm.add_custom_button(__("Get Customer Order Form"), function(){
+            erpnext.utils.map_current_doc({
+                method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_customer_order_form",			
+				source_doctype: "Customer Order Form",
+                target: frm,
+                setters: [
+					// {
+                    //     label: "Amended From",
+                    //     fieldname: "amended_from",
+                    //     fieldtype: "Link",
+                    //     options: "Sales Invoice"
+                    // },
+                    {
+                        label: "Customer Order Form",
+                        fieldname: "customer_order_form",
+                        fieldtype: "Link",
+                        options: "Customer Order Form"
+                    },
+                    {
+                        label: "Customer",
+                        fieldname: "customer_code",
+                        fieldtype: "Link",
+                        options: "Customer",
+                        // reqd: 1,
+                        // default: frm.doc.design_code || undefined
+                    },
+                    // {
+                    //     label: "Project",
+                    //     fieldname: "project",
+                    //     fieldtype: "Link",
+                    //     options: "Project",
+                    //     // reqd: 1,
+                    //     // default: frm.doc.order_type || undefined
+                    // }
+                ],
+                // get_query_filters: {
+                    // docstatus: 1,
+					// cad_order_form: frappe.db.get_list('Order Form')
+                // }
+            })
+        }, __("Get Order"))
+	}
+
+
+
     // refresh:function(frm) {
 	// 	// frm.add_custom_button(__("Customer Order"), function(){
 	// 	// 		erpnext.utils.map_current_doc({

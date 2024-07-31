@@ -70,9 +70,84 @@ frappe.ui.form.on('Customer Order Form', {
 				frm.set_value('design_code_2',r.design_code_2)
 			}
 		})
+	},
+	refresh(frm){
+		frm.add_custom_button(__("Get Quotation"), function(){
+            erpnext.utils.map_current_doc({
+                method: "gke_customization.gke_order_forms.doctype.customer_order_form.customer_order_form.get_quotation",			
+				source_doctype: "Quotation",
+                target: frm,
+                setters: [
+					// {
+                    //     label: "Amended From",
+                    //     fieldname: "amended_from",
+                    //     fieldtype: "Link",
+                    //     options: "Sales Invoice"
+                    // },
+                    // {
+                    //     label: "Quotation",
+                    //     fieldname: "quotation",
+                    //     fieldtype: "Link",
+                    //     options: "Quotation"
+                    // },
+                    {
+                        label: "Customer",
+                        fieldname: "customer_code",
+                        fieldtype: "Link",
+                        options: "Customer",
+                        // reqd: 1,
+                        // default: frm.doc.customer_code || undefined
+                    },
+                    // {
+                    //     label: "Project",
+                    //     fieldname: "project",
+                    //     fieldtype: "Link",
+                    //     options: "Project",
+                    //     // reqd: 1,
+                    //     // default: frm.doc.order_type || undefined
+                    // }
+                ],
+                // get_query_filters: {
+                    // docstatus: 1,
+					// cad_order_form: frappe.db.get_list('Order Form')
+                // }
+            })
+        }, __("Get Quotation"))
 	}
 
 });
+
+
+// frappe.ui.form.on('Customer Order Form Detail', {
+// 	design_code: function(frm, cdt, cdn){
+// 		var d = locals[cdt][cdn];
+// 		frappe.call({
+// 			method: "gke_customization.gke_order_forms.doctype.customer_order_form.customer_order_form.get_order_form_detail",
+// 			args: {
+// 				"design_code": d.design_code,
+// 				// "doc":d
+// 			},
+// 			callback(r) {
+// 				// console.log(r.message[0].metal_type);
+// 				d.metal_type = r.message[0].metal_type ;
+// 				d.metal_touch = r.message[0].metal_touch ;
+// 				d.metal_target = r.message[0].metal_target ;
+// 				d.metal_colour = r.message[0].metal_colour ;
+// 				d.feature = r.message[0].feature;
+// 				d.diamond_target = r.message[0].diamond_target ;
+// 				d.diamond_quality = r.message[0].diamond_quality ;
+// 				d.gemstone_type = r.message[0].gemstone_type1;
+// 				d.gemstone_quality = r.message[0].gemstone_quality;
+// 				d.product_size = r.message[0].product_size;
+// 				d.enamal = r.message[0].enamal;
+// 				d.no_of_pcs = r.message[0].qty;
+// 				d.rhodium = r.message[0].rhodium_ ;
+
+// 				refresh_field('customer_order_form_detail');
+// 			}
+// 		})
+// 	}
+// });
 
 
 // 5027612QYABA08

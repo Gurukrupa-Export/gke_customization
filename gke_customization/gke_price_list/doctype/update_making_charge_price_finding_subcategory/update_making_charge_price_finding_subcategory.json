@@ -7,6 +7,7 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "category",
   "subcategory",
   "rate_per_gm",
   "rate_per_pc",
@@ -109,14 +110,22 @@
   {
    "fieldname": "making_charge_price_finding_subcategory",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Making Charge Price Item Subcategory",
    "options": "Making Charge Price Finding Subcategory"
+  },
+  {
+   "fetch_from": "subcategory.parent_attribute_value",
+   "fieldname": "category",
+   "fieldtype": "Link",
+   "label": "Category",
+   "options": "Attribute Value"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-01-12 18:32:28.244823",
+ "modified": "2024-07-29 19:16:55.584155",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Update Making Charge Price Finding Subcategory",

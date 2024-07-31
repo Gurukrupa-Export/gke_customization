@@ -185,7 +185,6 @@ def make_atribute_list(source_name):
 	for i in all_variant_attribute:
 		new_i = i[0].replace(' ','_').replace('/','').lower()
 		final_list[i[0]] = order_form_details.get_value(new_i)
-		
 	return final_list
 # def set_item_type(source_name):
 # 	doc = frappe.get_doc('Order Form Detail',source_name)
@@ -453,3 +452,85 @@ def get_customer_orderType(customer_code):
 	)
 
 	return order_type
+
+@frappe.whitelist()
+def get_customer_order_form(source_name, target_doc=None):
+	if isinstance(target_doc, str):
+		target_doc = json.loads(target_doc)
+	if not target_doc:
+		target_doc = frappe.new_doc("Order Form")
+	else:
+		target_doc = frappe.get_doc(target_doc)
+
+	if source_name:
+		customer_order_form	= frappe.db.sql(f"""select * from `tabCustomer Order Form Detail` where parent = '{source_name}' """, as_dict=1)
+		# frappe.throw(f"{customer_order_form}")
+
+	for i in customer_order_form:		
+		item = i.get("design_code")
+		# quotation_id = i.get("quotation")
+		order_id = i.get("order_id")
+
+		order_data = frappe.db.sql(f"""select * from `tabOrder` where name = '{order_id}' """,as_dict=1)		
+
+		item_serial = frappe.db.get_value("Serial No",{'item_code': item}, 'name')
+		# Serial No
+
+		for j in order_data:
+			target_doc.append("order_details", {
+				"delivery_date": target_doc.delivery_date,
+				"design_type": j.get("design_type"),
+				"design_id": j.get("item"),
+				"bom": j.get("new_bom"),
+				"mod_reason": j.get("mod_reason"),
+				"tag_no": item_serial,
+
+
+				"diamond_quality": i.get("diamond_quality"),
+				"customer_order_form": i.get("parent"),
+				"category": i.get("category"),
+				"subcategory": i.get("subcategory"),
+				"setting_type": i.get("setting_type"),
+				"theme_code" : i.get("theme_code"),
+				"metal_type": i.get("metal_type"),
+				"metal_touch": i.get("metal_touch"),
+				"metal_colour": i.get("metal_colour"),
+				"metal_target": i.get("metal_target"),
+				"diamond_target": i.get("diamond_target"),
+				"gemstone_quality": i.get("gemstone_quality"),
+				"gemstone_type1": i.get("gemstone_type"),
+				"feature": i.get("feature"),
+				"product_size": i.get("product_size"),
+				"rhodium": i.get("rhodium"),
+				"enamal": i.get("enamal"),
+				"sub_setting_type1" : j.get("sub_setting_type1"),
+				"sub_setting_type2" : j.get("sub_setting_type2"),
+				"sizer_type" : j.get("sizer_type"),
+				"stone_changeable" : j.get("stone_changeable"),
+				"detachable" : j.get("detachable"),
+				"lock_type" : j.get("lock_type"),
+				"capganthan" : j.get("capganthan"),
+				"charm" : j.get("charm"),
+				"back_chain" : j.get("back_chain"),
+				"back_chain_size" : j.get("back_chain_size"),
+				"back_belt" : j.get("back_belt"),
+				"back_belt_length" : j.get("back_belt_length"),
+				"black_beed_line" : j.get("black_beed_line"),
+				"back_side_size" : j.get("back_side_size"),
+				"back_belt_patti" : j.get("back_belt_patti"),
+				"two_in_one" : j.get("two_in_one"),
+				"number_of_ant" : j.get("number_of_ant"),
+				"distance_between_kadi_to_mugappu" : j.get("distance_between_kadi_to_mugappu"),
+				"space_between_mugappu" : j.get("space_between_mugappu"),
+				"chain_type" : j.get("chain_type"),
+				"customer_ichain" : j.get("customer_chain"), #chain from
+				"nakshi_weght" : j.get("nakshi_weght"),
+				
+				# "" : j.get(""),
+				# "" : j.get(""),
+				# "" : j.get(""),
+				# "" : j.get(""),
+			})
+
+	return target_doc
+	

@@ -1,0 +1,348 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-07-29 17:14:52.882996",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "design_code_section",
+  "design_code",
+  "design_code_bom",
+  "serial_no",
+  "column_break_uqoj",
+  "theme_code",
+  "quotation",
+  "order_id",
+  "serial_no_bom",
+  "section_break_am2j",
+  "category",
+  "subcategory",
+  "column_break_zvwy",
+  "setting_type",
+  "section_break_12o6",
+  "customer_item_category",
+  "column_break_hkuv",
+  "customer_item_sub_category",
+  "section_break_foje",
+  "metal_type",
+  "metal_touch",
+  "metal_target",
+  "column_break_yuck",
+  "metal_colour",
+  "feature",
+  "diamond_target",
+  "section_break_6tpy",
+  "diamond_quality",
+  "gemstone_type",
+  "column_break_ssxn",
+  "finding",
+  "gemstone_quality",
+  "section_break_uy8n",
+  "request_no",
+  "line_no",
+  "uom",
+  "column_break_mhsm",
+  "target_date",
+  "indent_type",
+  "vendor_site",
+  "section_break_xkmt",
+  "product_size",
+  "chain",
+  "enamal",
+  "column_break_kknv",
+  "no_of_pcs",
+  "rhodium",
+  "cust_modi",
+  "image_section",
+  "image",
+  "column_break_el1i"
+ ],
+ "fields": [
+  {
+   "fieldname": "design_code_section",
+   "fieldtype": "Section Break",
+   "label": "Design Code"
+  },
+  {
+   "fieldname": "design_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Design Code",
+   "options": "Item"
+  },
+  {
+   "fetch_from": "design_code.master_bom",
+   "fieldname": "design_code_bom",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Design Code BOM"
+  },
+  {
+   "fetch_from": "design_code.setting_type",
+   "fieldname": "setting_type",
+   "fieldtype": "Data",
+   "label": "Setting Type"
+  },
+  {
+   "fieldname": "column_break_uqoj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "theme_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Theme Code"
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Link",
+   "label": "Serial No",
+   "options": "Serial No"
+  },
+  {
+   "fieldname": "serial_no_bom",
+   "fieldtype": "Link",
+   "label": "Serial No BOM",
+   "options": "BOM"
+  },
+  {
+   "fieldname": "section_break_12o6",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "customer_item_category",
+   "fieldtype": "Data",
+   "label": "Customer Item Category"
+  },
+  {
+   "fieldname": "column_break_hkuv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer_item_sub_category",
+   "fieldtype": "Data",
+   "label": "Customer Item Sub Category"
+  },
+  {
+   "fieldname": "section_break_foje",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "metal_type",
+   "fieldtype": "Link",
+   "label": "Metal Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "metal_touch",
+   "fieldtype": "Link",
+   "label": "Metal Touch",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "metal_target",
+   "fieldtype": "Float",
+   "label": "Metal Target"
+  },
+  {
+   "fieldname": "column_break_yuck",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "metal_colour",
+   "fieldtype": "Link",
+   "label": "Metal Colour",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "feature",
+   "fieldtype": "Link",
+   "label": "Feature",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "diamond_target",
+   "fieldtype": "Float",
+   "label": "Diamond Target"
+  },
+  {
+   "fieldname": "section_break_6tpy",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "diamond_quality",
+   "fieldtype": "Link",
+   "label": "Diamond Quality",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "gemstone_type",
+   "fieldtype": "Link",
+   "label": "Gemstone Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "column_break_ssxn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "finding",
+   "fieldtype": "Link",
+   "label": "Finding",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "gemstone_quality",
+   "fieldtype": "Link",
+   "label": "Gemstone Quality",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "section_break_uy8n",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "request_no",
+   "fieldtype": "Data",
+   "label": "Request No"
+  },
+  {
+   "fieldname": "line_no",
+   "fieldtype": "Data",
+   "label": "Line No"
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Select",
+   "label": "UOM",
+   "options": "\nSET\nNOS\nPR"
+  },
+  {
+   "fieldname": "column_break_mhsm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "target_date",
+   "fieldtype": "Date",
+   "label": "Target Date"
+  },
+  {
+   "fieldname": "indent_type",
+   "fieldtype": "Select",
+   "label": "Indent Type",
+   "options": "\nMTO\nPROTO\nFILLER\nMTBI\nMTR\nNEW\nJWO"
+  },
+  {
+   "fieldname": "vendor_site",
+   "fieldtype": "Select",
+   "label": "Vendor Site",
+   "options": "\n2J-SS-SUR\n2J-SM-SUR\n2J-SH-SUR\n2B-SS-SUR\n2B-SM-SUR\n2B-SH-SUR"
+  },
+  {
+   "fieldname": "section_break_xkmt",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "product_size",
+   "fieldtype": "Data",
+   "label": "Product Size"
+  },
+  {
+   "fieldname": "chain",
+   "fieldtype": "Select",
+   "label": "Chain",
+   "options": "\nNo\nYes"
+  },
+  {
+   "fieldname": "enamal",
+   "fieldtype": "Link",
+   "label": "Enamal",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "no_of_pcs",
+   "fieldtype": "Int",
+   "label": "No. of Pcs"
+  },
+  {
+   "fieldname": "rhodium",
+   "fieldtype": "Select",
+   "label": "Rhodium",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "image_section",
+   "fieldtype": "Section Break",
+   "label": "Image"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image"
+  },
+  {
+   "fieldname": "column_break_kknv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cust_modi",
+   "fieldtype": "Select",
+   "label": "Cust_Modi",
+   "options": "\nNo\nYes"
+  },
+  {
+   "fetch_from": "design_code.item_category",
+   "fieldname": "category",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Item Category"
+  },
+  {
+   "fetch_from": "design_code.item_subcategory",
+   "fieldname": "subcategory",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Item Subcategory"
+  },
+  {
+   "fieldname": "quotation",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Quotation",
+   "options": "Quotation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_am2j",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_zvwy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_el1i",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "order_id",
+   "fieldtype": "Link",
+   "label": "Order ID",
+   "options": "Order",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-07-31 10:06:47.295303",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Customer Order Form Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

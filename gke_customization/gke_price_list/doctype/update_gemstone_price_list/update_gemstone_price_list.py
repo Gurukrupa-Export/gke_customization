@@ -115,9 +115,11 @@ def for_weight_in_cts(self,i):
 			}
     rate = frappe.db.get_value("Gemstone Price List",rate_filters,"rate")
     name = frappe.db.get_value("Gemstone Price List",rate_filters,"name")
+    handling_rate = frappe.db.get_value("Gemstone Price List",rate_filters,"handling_rate")
     rate_details = self.append("update_gemstone_price_list_details", {})
     rate_details.rate_per_carat = rate
     rate_details.gemstone_price_list = name
+    rate_details.gemstone_price_list = handling_rate
     rate_details.revised_rate = rate
     rate_details.weight = i['weight_range']
     

@@ -87,10 +87,18 @@ def crate_price_list(self,row):
     diamond_price_list_doc.diamond_type = self.diamond_type
     diamond_price_list_doc.diamond_quality = self.diamond_quality
     diamond_price_list_doc.stone_shape = self.stone_shape
+    if self.handling_charges_for_outright:
+        diamond_price_list_doc.outright_handling_charges_in_percentage = self.outright_handling_charges_rate
+        diamond_price_list_doc.custom_handling_charges_rate = self.outright_handling_charges_rate
+    if self.handling_charges_for_outwork_handling_rate:
+        diamond_price_list_doc.outright_handling_charges_in_percentage = self.outwork_handling_charges_in_percentage
+        diamond_price_list_doc.custom_handling_charges_rate = self.outwork_handling_charges_rate
+
     if self.price_list_type == 'Sieve Size Range':
         diamond_price_list_doc.sieve_size_range = row.sieve_size_range
     elif self.price_list_type == 'Size (in mm)':
         diamond_price_list_doc.size_in_mm = row.size_in_mm
+        diamond_price_list_doc.diamond_size_in_mm = row.diamond_size_in_mm
     else:
         from_weight = float(row.weight.split('-')[0])
         to_weight = float(row.weight.split('-')[1])
@@ -98,6 +106,7 @@ def crate_price_list(self,row):
         diamond_price_list_doc.to_weight = to_weight
     diamond_price_list_doc.effective_from = frappe.utils.now()
     diamond_price_list_doc.rate = row.revised_rate
+    diamond_price_list_doc.handling_rate = row.revised_diamond_handling_rate
     diamond_price_list_doc.save()
 
 
@@ -157,9 +166,11 @@ def for_sieve_size_range(self,i):
             }
     rate = frappe.db.get_value("Diamond Price List",rate_filters,"rate")
     name = frappe.db.get_value("Diamond Price List",rate_filters,"name")
+    handling_rate = frappe.db.get_value("Diamond Price List",rate_filters,"handling_rate")
     rate_details = self.append("update_diamond_price_list_details_sieve_size_range", {})
     rate_details.rate_per_carat = rate
     rate_details.diamond_price_list = name
+    rate_details.diamond_handling_rate = handling_rate
     rate_details.revised_rate = rate
     rate_details.sieve_size_range = i.sieve_size_range
     
@@ -176,9 +187,11 @@ def for_size_in_mm(self,i):
             }
     rate = frappe.db.get_value("Diamond Price List",rate_filters,"rate")
     name = frappe.db.get_value("Diamond Price List",rate_filters,"name")
+    handling_rate = frappe.db.get_value("Diamond Price List",rate_filters,"handling_rate")
     rate_details = self.append("update_diamond_price_list_details_size_in_mm", {})
     rate_details.rate_per_carat = rate
     rate_details.diamond_price_list = name
+    rate_details.diamond_handling_rate = handling_rate
     rate_details.revised_rate = rate
     rate_details.size_in_mm = i['size_in_mm']
     
@@ -196,9 +209,11 @@ def for_weight_in_cts(self,i):
             }
     rate = frappe.db.get_value("Diamond Price List",rate_filters,"rate")
     name = frappe.db.get_value("Diamond Price List",rate_filters,"name")
+    handling_rate = frappe.db.get_value("Diamond Price List",rate_filters,"handling_rate")
     rate_details = self.append("update_diamond_price_list_details", {})
     rate_details.rate_per_carat = rate
     rate_details.diamond_price_list = name
+    rate_details.diamond_handling_rate = handling_rate
     rate_details.revised_rate = rate
     rate_details.weight = i['weight_range']
 

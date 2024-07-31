@@ -7,9 +7,16 @@
  "engine": "InnoDB",
  "field_order": [
   "weight",
+  "section_break_5cz9",
   "rate_per_carat",
-  "revised_rate",
+  "gemstone_handling_rate",
   "difference",
+  "column_break_tmq4",
+  "revised_rate",
+  "revised_gemstone_handling_rate",
+  "difference_gemstone_handling_rate",
+  "section_break_aedf",
+  "column_break_he2g",
   "gemstone_price_list"
  ],
  "fields": [
@@ -43,12 +50,43 @@
    "in_list_view": 1,
    "label": "Gemstone Price List",
    "options": "Gemstone Price List"
+  },
+  {
+   "fieldname": "section_break_5cz9",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_tmq4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_aedf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "gemstone_handling_rate",
+   "fieldtype": "Currency",
+   "label": "Gemstone Handling Rate"
+  },
+  {
+   "fieldname": "column_break_he2g",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "revised_gemstone_handling_rate",
+   "fieldtype": "Currency",
+   "label": "New Gemstone Handling Rate"
+  },
+  {
+   "fieldname": "difference_gemstone_handling_rate",
+   "fieldtype": "Currency",
+   "label": "Difference(New Gemstone Handling Rate-Gemstone Handling Rate)"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-01-12 11:29:56.838145",
+ "modified": "2024-07-22 20:00:38.752766",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Update Gemstone Price List Details",
