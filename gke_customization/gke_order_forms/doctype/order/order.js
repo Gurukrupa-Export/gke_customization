@@ -94,9 +94,9 @@ frappe.ui.form.on('Order', {
 		validate_dates(frm, frm.doc, "est_delivery_date")
 		frm.set_value('est_due_days', frappe.datetime.get_day_diff(frm.doc.est_delivery_date, frm.doc.order_date));
 	},
-	designer(frm){
-		show_designer_dialog(frm);
-	},
+	// designer(frm){
+	// 	show_designer_dialog(frm);
+	// },
 	// onload(frm) {
 	// 	console.log(frm.doc.workflow_state);
     //     if (frm.doc.workflow_state === 'Designing') { 
