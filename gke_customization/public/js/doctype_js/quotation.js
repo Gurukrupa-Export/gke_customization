@@ -20,18 +20,19 @@ frappe.ui.form.on('Quotation', {
                   reqd: 1,
                   default: frm.doc.party_name || undefined
                 },
-                {
-                  label: "Order Type",
-                  fieldname: "order_type",
-                  fieldtype: "Select",
-                  options: ["Sales", "Stock Order"],
-                  reqd: 1,
-                  default: frm.doc.order_type || undefined
-                }
+                // {
+                //   label: "Order Type",
+                //   fieldname: "order_type",
+                //   fieldtype: "Select",
+                //   options: ["Sales", "Stock Order"],
+                //   reqd: 1,
+                //   default: frm.doc.order_type || undefined
+                // }
               ],
       
               get_query_filters: {
                 item: ['is', 'set'],
+                workflow_state:['=','Approved'],
                 docstatus: 1
               }
             })
