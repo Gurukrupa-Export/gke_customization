@@ -172,6 +172,11 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	doc.bom_or_cad = bom_or_cad
 	
 	doc.save()
+
+	# new code
+	if design_type == 'As Per Serial No' and item_type == "No Variant No Suffix" and bom_or_cad == 'New BOM':
+		doc.submit()
+		frappe.db.set_value("Order",doc.name,"workflow_state","Approved")
 	
 	return doc.name
 
