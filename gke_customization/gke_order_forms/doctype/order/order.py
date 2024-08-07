@@ -802,7 +802,7 @@ def create_line_items(self):
 
 		elif self.item_type == 'No Variant No Suffix':
 			item_variant = self.design_id
-			update_variant_attributes(self)
+			# update_variant_attributes(self)
 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 			self.reload()
 			if self.bom_or_cad in ['New BOM','CAD'] and self.is_repairing == 1 :
