@@ -35,8 +35,9 @@
   "cad_order_form",
   "design_by",
   "item_type",
-  "column_break_2",
   "cad_order_form_detail",
+  "column_break_2",
+  "view_item",
   "design_type",
   "is_repairing",
   "mod_reason",
@@ -107,6 +108,7 @@
   "nakshi_weight",
   "section_break_6pxwc",
   "gemstone_type1",
+  "gemstone_type",
   "column_break_a8vd",
   "gemstone_quality",
   "section_break_xbmnv",
@@ -353,7 +355,8 @@
   },
   {
    "fieldname": "section_break_10",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Order Form Detail"
   },
   {
    "fieldname": "cad_order_form",
@@ -840,15 +843,13 @@
    "fieldtype": "Section Break"
   },
   {
-   "allow_on_submit": 1,
    "fetch_from": "cad_order_form_detail.gemstone_type1",
    "fetch_if_empty": 1,
    "fieldname": "gemstone_type1",
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Gemstone Type1",
-   "options": "Attribute Value",
-   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+   "options": "Attribute Value"
   },
   {
    "fieldname": "section_break_xbmnv",
@@ -1480,7 +1481,24 @@
    "fieldname": "customer_order_form",
    "fieldtype": "Link",
    "label": "Customer Order Form",
-   "options": "Customer Order Form"
+   "options": "Customer Order Form",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: (in_list([\"New Design\",\"Sketch Design\",\"Mod\"],doc.design_type) && in_list(['Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold','Approved'], doc.workflow_state))",
+   "fieldname": "view_item",
+   "fieldtype": "Button",
+   "label": "View Item"
+  },
+  {
+   "allow_on_submit": 1,
+   "fetch_from": "cad_order_form_detail.gemstone_type",
+   "fetch_if_empty": 1,
+   "fieldname": "gemstone_type",
+   "fieldtype": "Link",
+   "label": "Gemstone Type",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1499,7 +1517,7 @@
    "link_fieldname": "order"
   }
  ],
- "modified": "2024-07-31 10:06:10.186180",
+ "modified": "2024-08-08 11:07:18.316439",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",

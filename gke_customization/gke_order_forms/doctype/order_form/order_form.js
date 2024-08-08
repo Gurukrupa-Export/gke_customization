@@ -23,7 +23,8 @@ frappe.ui.form.on('Order Form', {
 		update_fields_in_child_table(frm, "project")
 	},
 	setup: function (frm, cdt, cdn) {
-		var parent_fields = [['diamond_quality', 'Diamond Quality']];
+		var parent_fields = [
+			['diamond_quality', 'Diamond Quality']];
 		set_filters_on_parent_table_fields(frm, parent_fields);
 
 		var fields = [
@@ -64,7 +65,7 @@ frappe.ui.form.on('Order Form', {
 		['width', 'Width'],
 		['back_belt', 'Back Belt'],
 		['back_belt_length', 'Back Belt Length'],
-		['gemstone_type1', 'Gemstone Type1'],
+		['gemstone_type', 'Gemstone Type'],
 		['sub_setting_type1', 'Sub Setting Type'],
 		['sub_setting_type2', 'Sub Setting Type'],
 		['gemstone_quality', 'Gemstone Quality'],
@@ -342,15 +343,15 @@ frappe.ui.form.on('Order Form Detail', {
 		}
 	},
 
-	// tag_no(frm, cdt, cdn) {
-	// 	var d = locals[cdt][cdn];
-	// 	fetch_item_from_serial(d, "tag_no", "design_id")
-	// 	if (d.tag_no) {
-	// 		frappe.db.get_value("BOM",{"tag_no": d.tag_no},'name', (r)=>{
-	// 			frappe.model.set_value(cdt, cdn, 'bom', r.name)
-	// 		})
-	// 	}
-	// },
+	tag_no(frm, cdt, cdn) {
+		var d = locals[cdt][cdn];
+		fetch_item_from_serial(d, "tag_no", "design_id")
+		if (d.tag_no) {
+			frappe.db.get_value("BOM",{"tag_no": d.tag_no},'name', (r)=>{
+				frappe.model.set_value(cdt, cdn, 'bom', r.name)
+			})
+		}
+	},
 
 	// reference_serial_no_1(frm, cdt, cdn) {
 	// 	var d = locals[cdt][cdn];
@@ -446,7 +447,7 @@ frappe.ui.form.on('Order Form Detail', {
 						d.rhodium = r.message.rhodium
 						d.enamal = r.message.enamal
 
-						d.gemstone_type1 = r.message.gemstone_type1
+						d.gemstone_type = r.message.gemstone_type1
 						d.gemstone_quality = r.message.gemstone_quality
 
 						d.charm = r.message.charm
@@ -532,7 +533,7 @@ frappe.ui.form.on('Order Form Detail', {
 						d.rhodium = r.message.rhodium
 						d.enamal = r.message.enamal
 
-						d.gemstone_type1 = r.message.gemstone_type1
+						d.gemstone_type = r.message.gemstone_type1
 						d.gemstone_quality = r.message.gemstone_quality
 				
 						refresh_field('order_details');
@@ -754,7 +755,6 @@ frappe.ui.form.on('Order Form Detail', {
 					read_only: 1, 
 					in_list_view: 1,
 					default: row.setting_type,
-					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "gemstone_type1" })[0].depends_on
 				},
 				{
 					label: "Sub Setting Type1",
@@ -826,7 +826,16 @@ frappe.ui.form.on('Order Form Detail', {
 					fieldname: "gemstone_type1",
 					fieldtype: "Data",
 					read_only: 1,
+					hidden: 1,
 					default: row.gemstone_type1,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "gemstone_type1" })[0].depends_on
+				},
+				{
+					label: "Gemstone Type",
+					fieldname: "gemstone_type",
+					fieldtype: "Data",
+					read_only: 1,
+					default: row.gemstone_type,
 					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "gemstone_type1" })[0].depends_on
 				},
 				{
@@ -1118,6 +1127,7 @@ frappe.ui.form.on('Order Form Detail', {
 
 let edit_item_documents = (row,dialog,item_code,item_data) => {
 	var doc = frappe.model.get_doc("Item", item_code);
+	console.log(doc);
 	if (!doc) {
 		frappe.call({
 			method: "frappe.client.get",
@@ -1137,7 +1147,7 @@ let edit_item_documents = (row,dialog,item_code,item_data) => {
 			},
 		});
 	} else {
-		set_edit_bom_details(row,doc,dialog,item_data);
+		set_edit_item_details(row,doc,dialog,item_data);
 	}
 };
 
@@ -1164,7 +1174,7 @@ let set_edit_item_details = (row,doc,dialog) => {
 
 	$.each(doc.attributes, function (index, d) {
 		var field_name = d.attribute.toLowerCase().replace(/\s+/g, '_');
-		console.log(field_name);
+		// console.log(field_name);
 		dialog.set_df_property(field_name, "hidden", 1);
 	});
 };
@@ -1281,7 +1291,7 @@ function show_hide_field(frm, cdt, cdn, field, hidden) {
 	if (df) {
 		df.hidden = hidden;
 		// console.log(df);
-		if (df.hidden == 0) df.reqd = 1;
+		// if (df.hidden == 0) df.reqd = 1;
 	}
 	frm.refresh_field("order_details");
 };

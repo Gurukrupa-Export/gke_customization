@@ -94,43 +94,547 @@ frappe.ui.form.on('Order', {
 		validate_dates(frm, frm.doc, "est_delivery_date")
 		frm.set_value('est_due_days', frappe.datetime.get_day_diff(frm.doc.est_delivery_date, frm.doc.order_date));
 	},
-	// designer(frm){
-	// 	show_designer_dialog(frm);
-	// },
-	// onload(frm) {
-	// 	console.log(frm.doc.workflow_state);
-    //     if (frm.doc.workflow_state === 'Designing') { 
-	// 		frappe.prompt([
-	// 			{
-	// 				label: 'Designer',
-	// 				fieldname: 'designer',
-	// 				fieldtype: 'Link',
-	// 				options: 'Employee',
-	// 				get_query(){
-	// 					return {
-	// 						"filters": [                                    
-	// 							["Employee", "designation", "=", "Designer"],    
-	// 						]
-	// 					}
-	// 				}
-	// 			},
-	// 		], (values) => {
-	// 			let v = {designer: values.designer,};		
-	// 			let new_row = frm.add_child("designer_assignment");
-	// 			$.extend(new_row, v);
-	// 			frm.refresh_field("designer_assignment");
-	// 			if (frm.doc.designer_assignment.length >1) {
-	// 				frm.set_value("workflow_state","Assigned")
-	// 				frm.save()
-	// 			}
-	// 		});	
-    //     }
-    // },
-	// validate: function(frm){
-	// 	calculate_total(frm)
-	// }
+	designer(frm){
+		// show_designer_dialog(frm);
+	},
+	view_item(frm){
+		if (frm.doc.__islocal) {
+			frappe.throw("Please save document to edit the View Item.");
+		}
+
+		let order_form_data = [];
+
+		const order_form_fields = [				
+			{ fieldtype: "Data", fieldname: "docname", read_only: 1, hidden:1 },			
+			
+				{
+					label: "Item Category",
+					fieldname: "item_category",
+					fieldtype: "Data",
+					fieldtype: "Link",
+					options: "Attribute Value",
+					in_list_view: 1,
+					read_only: 1,
+					columns: 1,
+				},
+				{
+					label: "Setting Type",
+					fieldname: "setting_type",
+					fieldtype: "Data",
+					read_only: 1, 
+					in_list_view: 1,
+					columns: 1,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "gemstone_type1" })[0].depends_on
+				},
+				{
+					label: "Metal Type",
+					fieldname: "metal_type",
+					fieldtype: "Data",
+					read_only: 1, 
+					in_list_view: 1,
+					columns: 1,					
+					// depends_on: ' eval: in_list(["Addigai Necklace", "Anklet", "Ball Mugappu", "Band Bracelet", "Belt", "Buttons", "Chain Armlet", "Chain Bracelet", "Chandbali", "Chandeliers", "Charm Bracelet", "Charm Necklace", "Charms", "Chik Chokar", "Choker Necklace", "Cocktail Chain", "Cocktail Chain Haram", "Cocktail Mugappu", "Cocktail Studs", "Collar Necklace", "Crown", "Cuban Bracelet", "Cuban Chain", "Cufflinks", "Dangler Earrings", "Drop Earrings", "Drop Nose Pin", "Earcuff Earrings", "Eternity Bangles", "Fancy Accessory", "Fancy Armlet", "Fancy Bangles", "Fancy Box", "Fancy Bracelet", "Fancy Earrings", "Fancy Mangalsutra", "Fancy Mugappu", "Fancy Necklace", "Fancy Nose Pin", "Fancy Oddiyanam", "Fancy Ring", "Flexible Bracelet", "Front Back Earrings", "God Bangles", "God Bracelet", "God Earrings", "God Mangalsutra", "God Mugappu", "God Oddiyanam", "God Pendant", "God Vanki", "God Vanki/Armlet", "Goggles", "Golusu Bangles", "Hair Pin", "Haram Necklace", "Hoops & Huggies Earrings", "J Nose Pin", "Jada", "Jada Billa", "Jumkhi", "Jumpring Earrings", "Kada Bangles", "Kantha/Hasli Necklace", "Kid Pendant", "Kids Bangles", "Kids Bracelet", "Kids Earrings", "Kids Hair Pin", "Kids Necklace", "Kids Oddiyanam", "Kids Ring", "Kids Vanki", "Kids Vanki/Armlet", "Kuppu Earrings", "Lariat Necklace", "Layered Necklace", "Locket Pendant", "Maang Tikka", "Magdi Necklace", "Mala Necklace", "Mangalsutra Bracelet", "Mangalsutra Chains", "Mangalsutra Pendant", "Mangalsutra Ring", "Matal-Sahara", "Matha Patti", "Mismatch Earrings", "Money Accessory", "Nakshi Armlet", "Nakshi Bangles", "Nakshi Bracelet", "Nakshi Chain", "Nakshi Chandbalis", "Nakshi Choker", "Nakshi Earrings", "Nakshi Haram", "Nakshi Jada", "Nakshi Jada Billa", "Nakshi Jumkhi", "Nakshi Maang Tikka", "Nakshi Mugappu", "Nakshi Necklace", "Nakshi Oddiyanam", "Nakshi Pendant", "Nakshi Ring", "Nakshi Thali/Tanmaniya", "O Nose Pin", "Oddiyanam", "Oval Bracelet", "Pacheli Bangles", "Padhakam Necklace", "Passa", "Pen", "Round Bangles", "Sculpture", "Short Necklace", "Slider Pendant", "Solitaire Bangles", "Solitaire Bracelet", "Solitaire Earrings", "Solitaire Mangalsutra", "Solitaire Mugappu", "Solitaire Necklace", "Solitaire Pendant", "Spiral Mugappu", "Spiral Ring", "Station Necklace", "Stud Nose Pin", "Tennis Bracelet", "Tennis Necklace", "Thali/Tanmaniya", "Threaders", "Tie Clip", "Tube Armlet", "V/U Vanki", "Vanki", "Watch Charms", "Watches"], doc.subcategory) '
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "lock_type" })[0].depends_on
+				},
+				{
+					label: "Diamond Target",
+					fieldname: "diamond_target",
+					fieldtype: "Data",
+					read_only: 1,
+					in_list_view: 1,
+					columns: 1,
+					// default: row.diamond_target,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "diamond_target" })[0].depends_on					
+				},
+				{
+					label: "Gemstone Type",
+					fieldname: "gemstone_type",
+					fieldtype: "Data",
+					read_only: 1,
+					in_list_view: 1,
+					columns: 1,
+					// default: row.gemstone_type1,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "gemstone_type1" })[0].depends_on
+				},
+				{
+					label: "Rhodium",
+					fieldname: "rhodium",
+					fieldtype: "Data",
+					read_only: 1,
+					// default: row.rhodium,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "rhodium" })[0].depends_on
+				},	
+				{
+					label: "Detachable",
+					fieldname: "detachable",
+					fieldtype: "Data",
+					read_only: 1,
+					// default: row.detachable,
+					depends_on: ' eval:in_list(["Addigai Necklace", "Ant Mugappu", "Ball Mugappu", "Chain Armlet", "Chain Pendant", "Chandbali", "Chandeliers", "Charm Necklace", "Charms", "Chik Chokar", "Choker Necklace", "Cocktail Chain", "Cocktail Chain Haram", "Cocktail Mugappu", "Cocktail Pendant", "Cocktail Studs", "Collar Necklace", "Cuban Chain", "Casual Earrings", "Casual Mugappu", "Casual Pendant", "Dangler Earrings", "Drop Earrings", "Earcuff Earrings", "Eternity Bangles", "Fancy Accessory", "Fancy Armlet", "Fancy Box", "Fancy Bracelet", "Fancy Earrings", "Fancy Mangalsutra", "Fancy Mugappu", "Fancy Necklace", "Fancy Oddiyanam", "Fancy Pendant", "Front Back Earrings", "God Earrings", "God Mangalsutra", "God Mugappu", "God Oddiyanam", "God Pendant", "God Vanki/Armlet", "Hair Pin", "Haram Necklace", "Hoops & Huggies Earrings", "Jada", "Jada Billa", "Jumkhi", "Jumpring Earrings", "Kantha/Hasli Necklace", "Kid Pendant", "Kids Earrings", "Kids Hair Pin", "Kids Necklace", "Kids Oddiyanam", "Kids Vanki/Armlet", "Lariat Necklace", "Layered Necklace", "Locket Pendant", "Maang Tikka", "Magdi Necklace", "Mala Necklace", "Mangalsutra Chains", "Mangalsutra Pendant", "Matal-Sahara", "Matha Patti", "Mismatch Earrings", "Nakshi Armlet", "Nakshi Chain", "Nakshi Chandbalis", "Nakshi Choker", "Nakshi Earrings", "Nakshi Haram", "Nakshi Jada", "Nakshi Jada Billa", "Nakshi Jumkhi", "Nakshi Maang Tikka", "Nakshi Mugappu", "Nakshi Necklace", "Nakshi Oddiyanam", "Nakshi Pendant", "Nakshi Thali/Tanmaniya", "Oddiyanam", "Padhakam Necklace", "Passa", "Sculpture", "Short Necklace", "Slider Pendant", "Spiral Mugappu", "Station Necklace", "Tennis Necklace", "Thali/Tanmaniya", "Threaders", "Tube Armlet", "Vanki"], doc.subcategory) '
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "detachable" })[0].depends_on
+				},
+				{
+					label: "Chain Type",
+					fieldname: "chain_type",
+					fieldtype: "Data",
+					read_only: 1,
+					// default: row.chain_type,
+					depends_on: ' eval: in_list(["Nakshi Bracelet", "Chain Pendant", "Round Bangles", "Kada Bangles", "God Bangles", "Fancy Bangles", "Hair Pin", "Jada", "Maang Tikka", "Nakshi Jada", "Nakshi Jada Billa", "Nakshi Maang Tikka", "Passa", "Matha Patti", "Matal-Sahara", "Kids Hair Pin", "Jada Billa", "Belt", "Brooch", "Cufflinks", "Goggles", "Pen", "Sculpture", "Tie Clip", "Watches", "Buttons", "Money Accessory", "Fancy Accessory", "Fancy Box", "Anklet", "Charms", "Nakshi Armlet", "Vanki", "Tube Armlet", "Kids Vanki/Armlet", "God Vanki/Armlet", "Fancy Armlet", "Chain Armlet", "God Oddiyanam", "Oddiyanam", "Kids Oddiyanam", "Fancy Oddiyanam", "Nakshi Oddiyanam", "God Mugappu", "Spiral Mugappu", "Nakshi Mugappu", "Fancy Mugappu", "Casual Mugappu", "Cocktail Mugappu", "Ball Mugappu", "Ant Mugappu", "Nakshi Thali/Tanmaniya", "Thali/Tanmaniya", "Mangalsutra Pendant", "Mangalsutra Chains", "God Mangalsutra", "Fancy Mangalsutra", "Cuban Chain", "Nakshi Choker", "Nakshi Haram", "Nakshi Necklace", "Fancy Necklace", "Collar Necklace", "Choker Necklace", "Addigai Necklace", "Cocktail Chain", "Cocktail Chain Haram", "Charm Necklace", "Chik Chokar", "Haram Necklace", "Kantha/Hasli Necklace", "Kids Necklace", "Lariat Necklace", "Layered Necklace", "Magdi Necklace", "Mala Necklace", "Padhakam Necklace", "Short Necklace", "Station Necklace", "Tennis Necklace", "Nakshi Chain", "Cuban Bracelet", "Tennis Bracelet", "Casual Bracelet", "Mangalsutra Bracelet", "Kids Bracelet", "God Bracelet", "Flexible Bracelet", "Fancy Bracelet", "Charm Bracelet", "Chain Bracelet", "Band Bracelet", "Crown", "God Pendant", "Slider Pendant", "Nakshi Pendant", "Locket Pendant", "Kid Pendant", "Fancy Pendant", "Casual Pendant", "Cocktail Pendant", "Threaders", "Jumkhi", "Chandbali", "Mismatch Earrings", "Jumpring Earrings", "Hoops & Huggies Earrings", "God Earrings", "Front Back Earrings", "Fancy Earrings", "Earcuff Earrings", "Dangler Earrings", "Chandeliers", "Adjustable/Bolo Ring", "Mangalsutra Ring", "Fancy Ring", "Casual Ring", "Cocktail Ring", "Band Ring"], doc.subcategory) '
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "chain_type" })[0].depends_on
+				},
+				{
+					label: "Distance Between Kadi To Mugappu",
+					fieldname: "distance_between_kadi_to_mugappu",
+					read_only: 1,
+					fieldtype: "Data",
+					// default: row.distance_between_kadi_to_mugappu,
+					depends_on: ' eval:in_list(["Ant Mugappu", "Ball Mugappu", "Cocktail Mugappu", "Casual Mugappu", "Fancy Mugappu", "God Mugappu", "Nakshi Mugappu", "Spiral Mugappu"], doc.subcategory) '
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "distance_between_kadi_to_mugappu" })[0].depends_on
+				},
+				{
+					label: "Number of Ant",
+					fieldname: "number_of_ant",
+					read_only: 1,
+					fieldtype: "Data",
+					// default: row.number_of_ant,
+					depends_on: ' eval: in_list(["Ant Mugappu", "Ball Mugappu", "Cocktail Mugappu", "Casual Mugappu", "Eternity Bangles", "Fancy Mugappu", "God Mugappu", "Nakshi Mugappu", "Spiral Mugappu"], doc.subcategory) '
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "number_of_ant" })[0].depends_on
+				},
+				{
+					label: "Back Belt",
+					fieldname: "back_belt",
+					read_only: 1,
+					fieldtype: "Data",
+					// default: row.back_belt,
+					// 	depends_on: 'eval:in_list(["Fancy Oddiyanam","God Oddiyanam","Kids Oddiyanam","Nakshi Oddiyanam","Oddiyanam"], doc.subcategory)'
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "back_belt" })[0].depends_on
+				},
+				{
+					label: "Back Chain",
+					fieldname: "back_chain",
+					fieldtype: "Data",
+					read_only: 1,
+					// default: row.back_chain,
+					depends_on: 'eval: in_list(["Addigai Necklace", "Chain Armlet", "Chain Pendant", "Charm Necklace", "Chik Chokar", "Choker Necklace", "Cocktail Chain", "Cocktail Chain Haram", "Cocktail Pendant", "Collar Necklace", "Casual Pendant", "Fancy Armlet", "Fancy Necklace", "Fancy Pendant", "God Pendant", "God Vanki", "God Vanki/Armlet", "Haram Necklace", "Kantha/Hasli Necklace", "Kid Pendant", "Kids Necklace", "Kids Vanki", "Kids Vanki/Armlet", "Lariat Necklace", "Layered Necklace", "Locket Pendant", "Magdi Necklace", "Mala Necklace", "Nakshi Armlet", "Nakshi Chain", "Nakshi Choker", "Nakshi Haram", "Nakshi Necklace", "Nakshi Pendant", "Padhakam Necklace", "Short Necklace", "Slider Pendant", "Station Necklace", "Tennis Necklace", "Tube Armlet", "V/U Vanki", "Vanki"], doc.subcategory) '
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "back_chain" })[0].depends_on
+				},
+				{
+					label: "two_in_one",
+					fieldname: "two_in_one",
+					read_only: 1,
+					fieldtype: "Data",
+					// default: row.two_in_one,					
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "cap_ganthan" })[0].depends_on
+				},
+
+				{
+					fieldtype: "Column Break",
+				},
+				
+				{
+					label: "Item Subcategory",
+					fieldname: "item_subcategory",
+					fieldtype: "Link",
+					options: "Attribute Value",
+					read_only: 1,
+					in_list_view: 1,
+					columns: 1,
+				},
+				{
+					label: "Sub Setting Type1",
+					fieldname: "sub_setting_type1",
+					fieldtype: "Data",
+					read_only: 1, 
+					in_list_view: 1,
+					columns: 1,
+					// default: row.sub_setting_type1,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "rhodium" })[0].depends_on
+				},
+				{
+					label: "Metal Colour",
+					fieldname: "metal_colour",
+					read_only: 1,
+					fieldtype: "Data",
+					// in_list_view: 1,
+					// default: row.metal_colour,
+					// depends_on: ' eval: in_list(["Ant Mugappu", "Ball Mugappu", "Cocktail Mugappu", "Casual Mugappu", "Eternity Bangles", "Fancy Mugappu", "God Mugappu", "Nakshi Mugappu", "Solitaire Mugappu", "Spiral Mugappu"], doc.subcategory) '
+				},
+				{
+					label: "Metal Target",
+					fieldname: "metal_target",
+					fieldtype: "Data",
+					read_only: 1,
+					in_list_view: 1,
+					columns: 1,
+					// default: row.metal_target,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "metal_target" })[0].depends_on					
+				},
+				{
+					label: "Gemstone Quality",
+					fieldname: "gemstone_quality",
+					fieldtype: "Data",
+					read_only: 1,
+					in_list_view: 1,
+					columns: 1,
+					// default: row.gemstone_quality,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "rhodium" })[0].depends_on
+				},
+				{
+					label: "Enamal",
+					fieldname: "enamal",
+					fieldtype: "Data",
+					read_only: 1,
+					// default: row.enamal,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "enamal" })[0].depends_on
+				},
+				{
+					label: "Lock Type",
+					fieldname: "lock_type",
+					fieldtype: "Data",
+					read_only: 1,
+					// default: row.lock_type,
+					depends_on: ' eval: in_list(["Addigai Necklace", "Anklet", "Ball Mugappu", "Band Bracelet", "Belt", "Buttons", "Chain Armlet", "Chain Bracelet", "Chandbali", "Chandeliers", "Charm Bracelet", "Charm Necklace", "Charms", "Chik Chokar", "Choker Necklace", "Cocktail Chain", "Cocktail Chain Haram", "Cocktail Mugappu", "Cocktail Studs", "Collar Necklace", "Crown", "Cuban Bracelet", "Cuban Chain", "Cufflinks", "Dangler Earrings", "Drop Earrings", "Drop Nose Pin", "Earcuff Earrings", "Eternity Bangles", "Fancy Accessory", "Fancy Armlet", "Fancy Bangles", "Fancy Box", "Fancy Bracelet", "Fancy Earrings", "Fancy Mangalsutra", "Fancy Mugappu", "Fancy Necklace", "Fancy Nose Pin", "Fancy Oddiyanam", "Fancy Ring", "Flexible Bracelet", "Front Back Earrings", "God Bangles", "God Bracelet", "God Earrings", "God Mangalsutra", "God Mugappu", "God Oddiyanam", "God Pendant", "God Vanki", "God Vanki/Armlet", "Goggles", "Golusu Bangles", "Hair Pin", "Haram Necklace", "Hoops & Huggies Earrings", "J Nose Pin", "Jada", "Jada Billa", "Jumkhi", "Jumpring Earrings", "Kada Bangles", "Kantha/Hasli Necklace", "Kid Pendant", "Kids Bangles", "Kids Bracelet", "Kids Earrings", "Kids Hair Pin", "Kids Necklace", "Kids Oddiyanam", "Kids Ring", "Kids Vanki", "Kids Vanki/Armlet", "Kuppu Earrings", "Lariat Necklace", "Layered Necklace", "Locket Pendant", "Maang Tikka", "Magdi Necklace", "Mala Necklace", "Mangalsutra Bracelet", "Mangalsutra Chains", "Mangalsutra Pendant", "Mangalsutra Ring", "Matal-Sahara", "Matha Patti", "Mismatch Earrings", "Money Accessory", "Nakshi Armlet", "Nakshi Bangles", "Nakshi Bracelet", "Nakshi Chain", "Nakshi Chandbalis", "Nakshi Choker", "Nakshi Earrings", "Nakshi Haram", "Nakshi Jada", "Nakshi Jada Billa", "Nakshi Jumkhi", "Nakshi Maang Tikka", "Nakshi Mugappu", "Nakshi Necklace", "Nakshi Oddiyanam", "Nakshi Pendant", "Nakshi Ring", "Nakshi Thali/Tanmaniya", "O Nose Pin", "Oddiyanam", "Casual Bracelet", "Pacheli Bangles", "Padhakam Necklace", "Passa", "Pen", "Round Bangles", "Sculpture", "Short Necklace", "Slider Pendant",  "Spiral Mugappu", "Spiral Ring", "Station Necklace", "Stud Nose Pin", "Tennis Bracelet", "Tennis Necklace", "Thali/Tanmaniya", "Threaders", "Tie Clip", "Tube Armlet", "V/U Vanki", "Vanki", "Watch Charms", "Watches"], doc.subcategory) '
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "lock_type" })[0].depends_on
+				},
+				{
+					label: "Chain Length",
+					fieldname: "chain_length",
+					fieldtype: "Data",
+					read_only: 1,
+					// default: row.chain_length,
+					// depends_on: ' eval:in_list(["Kodi Chain", "Snake Chain", "Runway", "Box Chain (Big)", "Box Chain (Small)", "Anchor Chain", "Black Bead Chain", "Shiva Chain", "Sadak Chain", "Highway Chain", "Mesh Chain", "Milan Chain", "Flat Ghop Chain", "Round Ghop Chain", "Nakshi Chain", "Fancy Chain"], doc.chain_type) '
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "chain_length" })[0].depends_on
+				},
+				{
+					label: "Space between Mugappu",
+					fieldname: "space_between_mugappu",
+					read_only: 1,
+					fieldtype: "Data",
+					// default: row.space_between_mugappu,
+					depends_on: ' eval: in_list(["Ant Mugappu", "Ball Mugappu", "Cocktail Mugappu", "Casual Mugappu", "Fancy Mugappu", "God Mugappu", "Nakshi Mugappu", "Spiral Mugappu"], doc.subcategory) '
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "space_between_mugappu" })[0].depends_on
+				},	
+				// {
+				// 	label: "Charm",
+				// 	fieldname: "charm",
+				// 	read_only: 1,
+				// 	fieldtype: "Data",
+				// 	// default: row.charm,					
+				// 	// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "cap_ganthan" })[0].depends_on
+				// },
+				{
+					label: "Back Belt Length",
+					fieldname: "back_belt_length",
+					read_only: 1,
+					fieldtype: "Data",
+					// default: row.back_belt_length,
+					depends_on: " eval:doc.back_belt == 'Yes' "
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "back_belt_length" })[0].depends_on
+				},
+				{
+					label: "Black Bead",
+					fieldname: "black_bead",
+					read_only: 1,
+					fieldtype: "Data",
+					// default: row.black_beed,
+					depends_on: ' eval: in_list(["Mangalsutra Bracelet", "Mangalsutra Ring", "Fancy Mangalsutra", "God Mangalsutra", "Mangalsutra Chains", "Mangalsutra Pendant", "Nakshi Thali/Tanmaniya", "Thali/Tanmaniya"], doc.subcategory) '
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "black_bead" })[0].depends_on
+				},
+				{
+					label: "Chain Thickness",
+					fieldname: "chain_thickness",
+					read_only: 1,
+					fieldtype: "Data",
+					// default: row.chain_thickness,
+					depends_on: ' eval:in_list(["Kodi Chain", "Snake Chain", "Runway", "Box Chain (Big)", "Box Chain (Small)", "Anchor Chain", "Black Bead Chain", "Shiva Chain", "Sadak Chain", "Highway Chain", "Mesh Chain", "Milan Chain", "Flat Ghop Chain", "Round Ghop Chain", "Nakshi Chain", "Fancy Chain"], doc.chain_type) '
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "chain_thickness" })[0].depends_on
+				},
+
+				{
+					fieldtype: "Column Break",
+				},
+				
+				{
+					label: "No. of Pcs",
+					fieldname: "qty",
+					fieldtype: "Data",
+					read_only: 1, 
+					in_list_view: 1,
+					columns: 1,
+					// default: row.qty,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "diamond_target" })[0].depends_on					
+				},	
+				{
+					label: "Sub Setting Type2",
+					fieldname: "sub_setting_type2",
+					fieldtype: "Data",
+					read_only: 1, 
+					// in_list_view: 1,
+					// default: row.sub_setting_type2,
+					depends_on: ' eval:doc.setting_type == "Open" '
+				},
+				{
+					label: "Metal Touch",
+					fieldname: "metal_touch",
+					read_only: 1,
+					fieldtype: "Data",
+					in_list_view: 1,
+					columns: 1,
+					// default: row.metal_colour,
+					// depends_on: ' eval: in_list(["Ant Mugappu", "Ball Mugappu", "Cocktail Mugappu", "Casual Mugappu", "Eternity Bangles", "Fancy Mugappu", "God Mugappu", "Nakshi Mugappu", "Solitaire Mugappu", "Spiral Mugappu"], doc.subcategory) '
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "number_of_ant" })[0].depends_on
+				},
+				{
+					label: "Feature",
+					fieldname: "feature",
+					fieldtype: "Data",
+					read_only: 1,
+					// default: row.feature,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "feature" })[0].depends_on
+				},		
+				{
+					label: "Product Size",
+					fieldname: "product_size",
+					read_only: 1,
+					fieldtype: "Data",
+					// default: row.product_size,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "product_size" })[0].depends_on
+				},	
+				{
+					label: "Stone Changeable",
+					fieldname: "stone_changeable",
+					fieldtype: "Data",
+					read_only: 1,
+					// default: row.stone_changeable,
+					depends_on: ' eval: in_list(["Addigai Necklace", "Anklet", "Ant Mugappu", "Ball Mugappu", "Band Bracelet", "Chain Armlet", "Chain Bracelet", "Chain Pendant", "Chandbali", "Chandeliers", "Charm Bracelet", "Charm Necklace", "Chik Chokar", "Choker Necklace", "Cocktail Chain", "Cocktail Chain Haram", "Cocktail Mugappu", "Cocktail Pendant", "Cocktail Ring", "Cocktail Studs", "Collar Necklace", "Crown", "Cuban Bracelet", "Cuban Chain", "Cufflinks", "Casual Earrings", "Casual Mugappu", "Casual Pendant", "Dangler Earrings", "Drop Earrings", "Earcuff Earrings", "Engagement Ring", "Eternity Bangles", "Fancy Accessory", "Fancy Armlet", "Fancy Bangles", "Fancy Box", "Fancy Bracelet", "Fancy Earrings", "Fancy Mangalsutra", "Fancy Mugappu", "Fancy Necklace", "Fancy Oddiyanam", "Fancy Pendant", "Fancy Ring", "Flexible Bracelet", "Front Back Earrings", "God Bangles", "God Bracelet", "God Earrings", "God Mangalsutra", "God Mugappu", "God Oddiyanam", "God Pendant", "God Vanki/Armlet", "Goggles", "Golusu Bangles", "Hair Pin", "Haram Necklace", "Hoops & Huggies Earrings", "Jada", "Jada Billa", "Jumkhi", "Jumpring Earrings", "Kada Bangles", "Kantha/Hasli Necklace", "Kid Pendant", "Kids Bangles", "Kids Bracelet", "Kids Earrings", "Kids Hair Pin", "Kids Necklace", "Kids Oddiyanam", "Kids Vanki/Armlet", "Lariat Necklace", "Layered Necklace", "Locket Pendant", "Maang Tikka", "Magdi Necklace", "Mala Necklace", "Mangalsutra Bracelet", "Mangalsutra Chains", "Mangalsutra Pendant", "Matal-Sahara", "Matha Patti", "Mismatch Earrings", "Nakshi Armlet", "Nakshi Bangles", "Nakshi Bracelet", "Nakshi Chain", "Nakshi Chandbalis", "Nakshi Choker", "Nakshi Earrings", "Nakshi Haram", "Nakshi Jada", "Nakshi Jada Billa", "Nakshi Jumkhi", "Nakshi Maang Tikka", "Nakshi Mugappu", "Nakshi Necklace", "Nakshi Oddiyanam", "Nakshi Pendant", "Nakshi Thali/Tanmaniya", "Oddiyanam", "Casual Bracelet", "Pacheli Bangles", "Padhakam Necklace", "Passa", "Round Bangles", "Sculpture", "Short Necklace", "Slider Pendant","Spiral Mugappu", "Station Necklace", "Tennis Necklace", "Thali/Tanmaniya", "Threaders", "Tube Armlet", "Vanki"], doc.subcategory) '
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "stone_changeable" })[0].depends_on
+				},
+				{
+					label: "Sizer Type",
+					fieldname: "sizer_type",
+					fieldtype: "Data",
+					read_only: 1,
+					// default: row.sizer_type,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "sizer_type" })[0].depends_on
+					
+				},
+				{
+					label: "Chain",
+					fieldname: "chain",
+					fieldtype: "Data",
+					read_only: 1,
+					// default: row.chain,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "chain" })[0].depends_on
+				},
+				{
+					label: "Count of Spiral Turns",
+					fieldname: "count_of_spiral_turns",
+					read_only: 1,
+					fieldtype: "Data",
+					// default: row.count_of_spiral_turns,
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "count_of_spiral_turns" })[0].depends_on
+				},
+				{
+					label: "Cap/Ganthan",
+					fieldname: "capganthan",
+					read_only: 1,
+					fieldtype: "Data",
+					// default: row.capganthan,					
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "cap_ganthan" })[0].depends_on
+				},
+				{
+					label: "Back Side Size",
+					fieldname: "back_side_size",
+					read_only: 1,
+					fieldtype: "Data",
+					// default: row.back_side_size,
+					depends_on: ' eval: in_list(["Ant Mugappu", "Ball Mugappu", "Cocktail Mugappu", "Casual Mugappu", "Fancy Mugappu", "Fancy Oddiyanam", "God Mugappu", "God Oddiyanam", "Kids Oddiyanam", "Nakshi Mugappu", "Nakshi Oddiyanam", "Oddiyanam", "Spiral Mugappu"], doc.subcategory) '
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "back_side_size" })[0].depends_on
+				},
+				{
+					label: "Black Beed Line",
+					fieldname: "black_beed_line",
+					read_only: 1,
+					fieldtype: "Data",
+					// default: row.black_beed_line,
+					depends_on: " eval:doc.black_beed == 'Yes' "
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "black_beed_line" })[0].depends_on
+				},	
+			]
+
+		const dialog = new frappe.ui.Dialog({
+			title: __("Order View"),
+			fields: [
+				{
+					label: "Order Form ID",
+					fieldname: "cad_order_form",
+					fieldtype: "Link",
+					options: "Order Form",
+					read_only: 1,
+					default: frm.doc.cad_order_form,
+				},
+				{
+					fieldtype: "Column Break",
+				},
+				{
+					label: "Item Code",
+					fieldname: "item",
+					// fieldtype: "Data",
+					fieldtype: "Link",
+					options: "Item",
+					default: frm.doc.item,
+					read_only: 1,
+				},
+				{
+					fieldtype: "Column Break",
+				},
+				{
+					label: "BOM",
+					fieldname: "new_bom",
+					fieldtype: "Link",
+					options: "BOM",
+					read_only: 1,
+					default: frm.doc.new_bom,
+				},				
+				{
+					fieldtype: "Section Break",
+					// label: "Variants",
+				},
+				{
+					label: "Order Form Detail",
+					fieldname: "order_form_detail",
+					fieldtype: "Table",
+					cannot_add_rows: true,
+					cannot_delete_rows: true,
+					// in_place_edit: true,
+					data: order_form_data,
+					get_data: () => {
+						return order_form_data;
+					},
+					fields: order_form_fields,
+				},
+							
+			],
+			// primary_action: function () {				
+			// 	refresh_field("order_details");
+			// },
+			primary_action_label: (""),
+			
+		});
+				
+		if(dialog.get_value("cad_order_form")) {
+			// set item_code variants value in the given dialog box
+			edit_item_documents(
+				frm,
+				dialog,
+				dialog.get_value("cad_order_form"),
+				order_form_data 
+			);
+		};
+
+		dialog.show();
+
+		dialog.$wrapper.find(".modal-dialog").css("max-width", "90%");
+		dialog.$wrapper.find('.modal-footer .btn-primary').hide();
+
+		// hide update button
+		if (cur_frm.doc.docstatus == 1) {
+			dialog.$wrapper.find(".btn-modal-primary").remove();
+		} 
+	}
 	
 });
+
+
+let edit_item_documents = (frm,dialog,cad_order_form,order_form_data) => {
+	var doc = frappe.get_doc("Order Form", cad_order_form);
+	console.log(doc);
+	if (!doc) {
+		frappe.call({
+			method: "frappe.client.get",
+			freeze: true,
+			args: {
+				doctype: "Order Form",
+				name: cad_order_form,
+			},
+			callback(r) {
+				if (r.message) {
+					console.log(r.message);
+					set_edit_order_form_detail(
+						frm,
+						r.message,
+						dialog,
+						order_form_data
+					);
+				}
+			},
+		});
+	} else {
+		set_edit_order_form_detail(frm,doc,dialog,order_form_data);
+	}
+};
+
+
+let set_edit_order_form_detail = (frm,doc,dialog) => {
+	// clearing all tables
+	dialog.fields_dict.order_form_detail.df.data = [];
+	dialog.fields_dict.order_form_detail.grid.refresh();
+	
+	$.each(doc.order_details, function (index, d) {
+				
+		if(d.name == frm.doc.cad_order_form_detail){
+			dialog.fields_dict.order_form_detail.df.data.push({
+				docname: d.name,
+				item_category: d.category,
+				item_subcategory: d.subcategory ,
+				setting_type: d.setting_type ,
+				sub_setting_type1: d.sub_setting_type1 ,
+				sub_setting_type2: d.sub_setting_type2 ,
+				metal_type: d.metal_type ,
+				metal_colour: d.metal_colour ,
+				qty: d.qty ,
+				diamond_target: d.diamond_target ,
+				gemstone_type: d.gemstone_type ,
+				rhodium: d.rhodium ,
+				gemstone_quality: d.gemstone_quality ,
+				feature: d.feature ,
+				lock_type: d.lock_type ,
+				chain: d.chain ,
+				distance_between_kadi_to_mugappu: d.distance_between_kadi_to_mugappu ,
+				number_of_ant: d.number_of_ant ,
+				back_belt: d.back_belt ,
+				metal_target: d.metal_target ,
+				sizer_type: d.sizer_type ,
+				detachable: d.detachable ,
+				chain_type: d.chain_type ,
+				back_chain: d.back_chain ,
+				space_between_mugappu: d.space_between_mugappu ,
+				black_bead: d.black_bead ,
+				black_beed_line: d.black_beed_line ,
+				back_belt_length: d.back_belt_length ,
+				enamal: d.enamal ,
+				stone_changeable: d.stone_changeable ,
+				chain_length: d.chain_length ,
+				product_size: d.product_size ,
+				count_of_spiral_turns: d.count_of_spiral_turns ,
+				charm: d.charm ,
+				two_in_one: d.two_in_one ,
+				capganthan: d.capganthan ,
+				chain_thickness: d.chain_thickness ,
+				back_side_size: d.back_side_size 
+				
+			});
+		}
+		order_form_data = dialog.fields_dict.order_form_detail.df.data;
+		dialog.fields_dict.order_form_detail.grid.refresh();
+	});
+
+	// $.each(doc.attributes, function (index, d) {
+	// 	var field_name = d.attribute.toLowerCase().replace(/\s+/g, '_');
+	// 	console.log(field_name);
+	// 	dialog.set_df_property(field_name, "hidden", 1);
+	// });
+};
 
 function show_designer_dialog(frm){
 	frappe.prompt([
@@ -142,7 +646,8 @@ function show_designer_dialog(frm){
 			get_query(){
 				return {
 					"filters": [                                    
-						["Employee", "designation", "=", "Designer"],    
+						["Employee", "designation", "=", "Computer Aided Designing - GEPL"],    
+						["Employee", "designation", "=", "Executive"],
 					]
 				}
 			}
@@ -213,6 +718,7 @@ function validate_dates(frm, doc, dateField) {
     }
 }
 
+// bom table calculation
 frappe.ui.form.on("BOM Metal Detail", {
 	cad_weight: function (frm, cdt, cdn) {
 		let d = locals[cdt][cdn];

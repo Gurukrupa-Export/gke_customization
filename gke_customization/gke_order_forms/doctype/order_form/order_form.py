@@ -35,8 +35,9 @@ class OrderForm(Document):
 	# 	delete_auto_created_cad_order(self)
 
 	def validate(self):
-		
 		self.validate_category_subcaegory()
+		set_data(self)
+			# return
 
 	def validate_category_subcaegory(self):
 		for row in self.get("order_details"):
@@ -172,11 +173,11 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	doc.bom_or_cad = bom_or_cad
 	
 	doc.save()
-
 	# new code
 	if design_type == 'As Per Serial No' and item_type == "No Variant No Suffix" and bom_or_cad == 'New BOM':
 		doc.submit()
 		frappe.db.set_value("Order",doc.name,"workflow_state","Approved")
+
 	
 	return doc.name
 
@@ -490,7 +491,6 @@ def get_customer_order_form(source_name, target_doc=None):
 				"mod_reason": j.get("mod_reason"),
 				"tag_no": item_serial,
 
-
 				"diamond_quality": i.get("diamond_quality"),
 				"customer_order_form": i.get("parent"),
 				"category": i.get("category"),
@@ -503,7 +503,7 @@ def get_customer_order_form(source_name, target_doc=None):
 				"metal_target": i.get("metal_target"),
 				"diamond_target": i.get("diamond_target"),
 				"gemstone_quality": i.get("gemstone_quality"),
-				"gemstone_type1": i.get("gemstone_type"),
+				"gemstone_type": i.get("gemstone_type"),
 				"feature": i.get("feature"),
 				"product_size": i.get("product_size"),
 				"rhodium": i.get("rhodium"),
@@ -539,3 +539,26 @@ def get_customer_order_form(source_name, target_doc=None):
 
 	return target_doc
 	
+def set_data(self):
+    if self.order_details:
+        for i in self.order_details:
+            if i.design_type in ['As Per Serial No','Mod'] and i.design_id:
+                design_id = i.design_id
+                item_subcategory = frappe.db.get_value("Item", design_id, "item_subcategory")
+                master_bom = i.bom
+
+                # Prepare a list to hold the item attribute names formatted as per your requirements
+                all_item_attributes = []
+                
+                # Retrieve all item attributes for the given item subcategory
+                for item_attr in frappe.get_doc("Attribute Value", item_subcategory).item_attributes:
+                    # Format the item attribute names by replacing spaces with underscores, removing '/', and converting to lower case
+                    formatted_attr = item_attr.item_attribute.replace(' ', '_').replace('/', '').lower()
+                    all_item_attributes.append(formatted_attr)
+                
+                # Retrieve the values for the specified attributes from the BOM
+                attribute_values = frappe.db.get_value("BOM", master_bom, all_item_attributes, as_dict=1)
+                
+                # Dynamically set the attributes on self with the retrieved values
+                for key, value in attribute_values.items():
+                    setattr(i, key, value)

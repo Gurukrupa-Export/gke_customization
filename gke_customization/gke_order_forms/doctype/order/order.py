@@ -776,6 +776,7 @@ def create_line_items(self):
 					"is_design_code":1,
 					"variant_of" : item_variant[1]
 				})
+				# frappe.throw(f"{self.name}")
 				frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant[0]))))
 				frappe.db.set_value(self.doctype, self.name, "item", item_variant[0])
 				self.reload()
@@ -809,6 +810,7 @@ def create_line_items(self):
 				new_bom = create_bom(self,item_variant)
 				frappe.db.set_value("Order",self.name,"new_bom",new_bom)
 			elif self.design_type == 'Sketch Design':
+				update_variant_attributes(self)
 				frappe.db.set_value("Item",self.design_id,"custom_cad_order_id",self.name)
 				frappe.db.set_value("Item",self.design_id,"custom_cad_order_form_id",self.cad_order_form)
 			else:
@@ -824,7 +826,7 @@ def create_item_template_from_order(source_name, target_doc=None):
 		if source.designer_assignment:
 			target.designer = source.designer_assignment[0].designer
 		target.item_group = source.subcategory + " - T",
-
+		
 	doc = get_mapped_doc(
 		"Order",
 		source_name.name,
