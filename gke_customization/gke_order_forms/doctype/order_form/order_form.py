@@ -540,25 +540,29 @@ def get_customer_order_form(source_name, target_doc=None):
 	return target_doc
 	
 def set_data(self):
-    if self.order_details:
-        for i in self.order_details:
-            if i.design_type in ['As Per Serial No','Mod'] and i.design_id:
-                design_id = i.design_id
-                item_subcategory = frappe.db.get_value("Item", design_id, "item_subcategory")
-                master_bom = i.bom
+	if self.order_details:
+		for i in self.order_details:
+			if i.design_type in ['As Per Serial No','Mod'] and i.design_id:
+				design_id = i.design_id
+				item_subcategory = frappe.db.get_value("Item", design_id, "item_subcategory")
+				master_bom = i.bom
 
-                # Prepare a list to hold the item attribute names formatted as per your requirements
-                all_item_attributes = []
-                
-                # Retrieve all item attributes for the given item subcategory
-                for item_attr in frappe.get_doc("Attribute Value", item_subcategory).item_attributes:
-                    # Format the item attribute names by replacing spaces with underscores, removing '/', and converting to lower case
-                    formatted_attr = item_attr.item_attribute.replace(' ', '_').replace('/', '').lower()
-                    all_item_attributes.append(formatted_attr)
-                
-                # Retrieve the values for the specified attributes from the BOM
-                attribute_values = frappe.db.get_value("BOM", master_bom, all_item_attributes, as_dict=1)
-                
-                # Dynamically set the attributes on self with the retrieved values
-                for key, value in attribute_values.items():
-                    setattr(i, key, value)
+				# Prepare a list to hold the item attribute names formatted as per your requirements
+				all_item_attributes = []
+				
+				# Retrieve all item attributes for the given item subcategory
+				for item_attr in frappe.get_doc("Attribute Value", item_subcategory).item_attributes:
+					# Format the item attribute names by replacing spaces with underscores, removing '/', and converting to lower case
+					formatted_attr = item_attr.item_attribute.replace(' ', '_').replace('/', '').lower()
+					all_item_attributes.append(formatted_attr)
+				
+				# Retrieve the values for the specified attributes from the BOM
+				attribute_values = frappe.db.get_value("BOM", master_bom, all_item_attributes, as_dict=1)
+				
+				# Dynamically set the attributes on self with the retrieved values
+				for key, value in attribute_values.items():
+					a = getattr(i, key, value)
+					if a:
+						continue
+					else:
+						setattr(i, key, value)
