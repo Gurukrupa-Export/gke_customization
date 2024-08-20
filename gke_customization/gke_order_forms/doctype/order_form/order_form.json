@@ -15,6 +15,7 @@
   "salesman_name",
   "section_break_aofbu",
   "customer_code",
+  "customer_name",
   "order_date",
   "delivery_date",
   "project",
@@ -22,6 +23,7 @@
   "column_break_4",
   "po_no",
   "order_type",
+  "flow_type",
   "due_days",
   "diamond_quality",
   "service_type",
@@ -29,21 +31,6 @@
   "order_details",
   "section_break_24",
   "remarks",
-  "design_attribute_tab",
-  "age_group",
-  "alphabetnumber",
-  "animalbirds",
-  "collection",
-  "design_style",
-  "gender",
-  "lines_rows",
-  "column_break_yqvk",
-  "language",
-  "occasion",
-  "rhodium",
-  "religious",
-  "shapes",
-  "zodiac",
   "territories_tab",
   "india",
   "india_states",
@@ -63,7 +50,6 @@
    "reqd": 1
   },
   {
-   "default": "IT",
    "fieldname": "department",
    "fieldtype": "Link",
    "label": "Department",
@@ -75,7 +61,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "GE-BR-00001",
    "fieldname": "branch",
    "fieldtype": "Link",
    "label": "Branch",
@@ -83,7 +68,6 @@
    "reqd": 1
   },
   {
-   "default": "Arun Lakhani",
    "fieldname": "salesman_name",
    "fieldtype": "Link",
    "label": "Sales Person",
@@ -95,7 +79,6 @@
    "fieldtype": "Section Break"
   },
   {
-   "default": "AACU0004",
    "fieldname": "customer_code",
    "fieldtype": "Link",
    "label": "Customer Name",
@@ -112,14 +95,12 @@
    "reqd": 1
   },
   {
-   "default": "Today",
    "fieldname": "delivery_date",
    "fieldtype": "Date",
    "label": "Delivery Date",
    "reqd": 1
   },
   {
-   "default": "PROJ-0001",
    "fieldname": "project",
    "fieldtype": "Link",
    "label": "Project",
@@ -142,12 +123,11 @@
    "label": "Customer PO No"
   },
   {
-   "default": "Sales",
    "fieldname": "order_type",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Order Type",
-   "options": "\nSales\nStock Order",
-   "reqd": 1
+   "options": "\nSales\nStock Order"
   },
   {
    "default": "0",
@@ -157,10 +137,9 @@
    "reqd": 1
   },
   {
-   "default": "EF-VVS",
    "fieldname": "diamond_quality",
    "fieldtype": "Link",
-   "label": "Diamond Quality",
+   "label": "Customer Diamond Quality",
    "options": "Attribute Value",
    "reqd": 1
   },
@@ -201,11 +180,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "design_attribute_tab",
-   "fieldtype": "Tab Break",
-   "label": "Design Attribute"
-  },
-  {
    "fieldname": "territories_tab",
    "fieldtype": "Tab Break",
    "label": "Territories"
@@ -239,93 +213,6 @@
    "options": "\nUSA"
   },
   {
-   "fieldname": "column_break_yqvk",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "gender",
-   "fieldtype": "Table MultiSelect",
-   "label": "Gender",
-   "options": "Design Attribute - Multiselect",
-   "reqd": 1
-  },
-  {
-   "fieldname": "alphabetnumber",
-   "fieldtype": "Table MultiSelect",
-   "label": "Alphabet/Number",
-   "options": "Design Attribute - Multiselect"
-  },
-  {
-   "fieldname": "animalbirds",
-   "fieldtype": "Table MultiSelect",
-   "label": "Animal/Birds",
-   "options": "Design Attribute - Multiselect"
-  },
-  {
-   "fieldname": "collection",
-   "fieldtype": "Table MultiSelect",
-   "label": "Collection",
-   "options": "Design Attribute - Multiselect"
-  },
-  {
-   "fieldname": "design_style",
-   "fieldtype": "Table MultiSelect",
-   "label": "Design Style",
-   "options": "Design Attribute - Multiselect",
-   "reqd": 1
-  },
-  {
-   "fieldname": "lines_rows",
-   "fieldtype": "Table MultiSelect",
-   "label": "Lines & Rows",
-   "options": "Design Attribute - Multiselect"
-  },
-  {
-   "fieldname": "language",
-   "fieldtype": "Table MultiSelect",
-   "label": "Language",
-   "options": "Design Attribute - Multiselect"
-  },
-  {
-   "fieldname": "occasion",
-   "fieldtype": "Table MultiSelect",
-   "label": "Occasion",
-   "options": "Design Attribute - Multiselect",
-   "reqd": 1
-  },
-  {
-   "fieldname": "rhodium",
-   "fieldtype": "Table MultiSelect",
-   "label": "Rhodium",
-   "options": "Design Attribute - Multiselect",
-   "reqd": 1
-  },
-  {
-   "fieldname": "shapes",
-   "fieldtype": "Table MultiSelect",
-   "label": "Shapes",
-   "options": "Design Attribute - Multiselect"
-  },
-  {
-   "fieldname": "religious",
-   "fieldtype": "Table MultiSelect",
-   "label": "Religious",
-   "options": "Design Attribute - Multiselect"
-  },
-  {
-   "fieldname": "zodiac",
-   "fieldtype": "Table MultiSelect",
-   "label": "Zodiac",
-   "options": "Design Attribute - Multiselect"
-  },
-  {
-   "fieldname": "age_group",
-   "fieldtype": "Table MultiSelect",
-   "label": "Age Group",
-   "options": "Design Attribute - Multiselect",
-   "reqd": 1
-  },
-  {
    "fieldname": "repair_order",
    "fieldtype": "Link",
    "label": "Repair Order",
@@ -337,6 +224,19 @@
    "fieldname": "tab_break_kio0",
    "fieldtype": "Tab Break",
    "label": "Repair Order"
+  },
+  {
+   "fieldname": "flow_type",
+   "fieldtype": "Select",
+   "label": "Flow Type",
+   "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer_code.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "customerName"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -355,7 +255,7 @@
    "link_fieldname": "custom_cad_order_form_id"
   }
  ],
- "modified": "2024-05-12 12:04:42.140760",
+ "modified": "2024-07-25 10:45:03.526235",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form",
