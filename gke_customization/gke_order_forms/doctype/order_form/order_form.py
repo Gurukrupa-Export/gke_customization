@@ -113,6 +113,7 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 			bom = frappe.db.get_value('Item',design_id,'master_bom')
 			if bom==None:
 				frappe.throw(f'BOM is not available for {design_id}')
+			# if 
 			if mod_reason == 'No Design Change':
 				item_type = "Only Variant"
 				# bom_or_cad = 'CAD'
@@ -125,6 +126,8 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 				item_type = "Suffix Of Variant"
 				bom_or_cad = 'CAD'
 					# bom_or_cad = workflow_state_maker(source_name)
+			if frappe.db.get_value("Item",design_id,"Item_group") == 'Design DNU':
+				item_type = "Only Variant"
 	elif design_type == 'Sketch Design':
 		item_type = "No Variant No Suffix"
 		bom_or_cad = 'CAD'
@@ -191,6 +194,7 @@ def make_atribute_list(source_name):
 	for i in all_variant_attribute:
 		new_i = i[0].replace(' ','_').replace('/','').lower()
 		final_list[i[0]] = order_form_details.get_value(new_i)
+	
 	return final_list
 # def set_item_type(source_name):
 # 	doc = frappe.get_doc('Order Form Detail',source_name)
@@ -564,5 +568,6 @@ def set_data(self):
 					a = getattr(i, key, value)
 					if a:
 						continue
+					# frappe.throw(f"{a}")
 					else:
 						setattr(i, key, value)

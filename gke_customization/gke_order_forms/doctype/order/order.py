@@ -923,19 +923,30 @@ def create_variant_of_template_from_order(item_template,source_name, target_doc=
 	return doc.name
 
 def create_only_variant_from_order(self,source_name, target_doc=None):
-	db_data = frappe.db.get_list('Item',filters={'name':self.design_id},fields=['variant_of'],order_by='creation desc')[0]
+	db_data = frappe.db.get_list('Item',filters={'name':self.design_id},fields=['variant_of','item_group'],order_by='creation desc')[0]
 	db_data1 = frappe.db.get_list('Item',filters={'variant_of':db_data['variant_of']},fields=['name'],order_by='creation desc')[0]
 	def post_process(source, target):
+		# if db_data['item_group'] == 'Design DNU':
+		# 	index = int(self.design_id.split('-')[1]) + 1
+		# 	suffix = "%.3i" % index
+		# 	item_code = self.design_id.split('-')[0] + '-' + suffix
+		# 	# frappe.throw(f"{item_code}")
+		# else:
 		index = int(db_data1['name'].split('-')[1]) + 1
 		suffix = "%.3i" % index
 		item_code = db_data['variant_of'] + '-' + suffix
+		# frappe.throw(f"{item_code}")
 		
 		target.order_form_type = 'Order'
-		target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V",		
+		if db_data['item_group'] == 'Design DNU':
+			target.item_group = "Design DNU",
+			target.sequence = suffix
+		else:
+			target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V",		
+			target.sequence = item_code[2:7]
+		target.item_code = item_code
 		target.custom_cad_order_id = source_name
 		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
-		target.item_code = item_code
-		target.sequence = item_code[2:7]
 		target.has_serial_no = 1
 		
 		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': self.subcategory,'in_item_variant':1},'item_attribute',order_by='idx asc'):

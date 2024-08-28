@@ -1082,9 +1082,7 @@ frappe.ui.form.on('Order Form Detail', {
 					fieldname: "back_side_size",
 					read_only: 1,
 					fieldtype: "Data",
-					default: row.back_side_size,
-					// depends_on: ' eval: in_list(["Ant Mugappu", "Ball Mugappu", "Cocktail Mugappu", "Daily Wear Mugappu", "Fancy Mugappu", "Fancy Oddiyanam", "God Mugappu", "God Oddiyanam", "Kids Oddiyanam", "Nakshi Mugappu", "Nakshi Oddiyanam", "Oddiyanam", "Solitaire Mugappu", "Spiral Mugappu"], doc.subcategory) '
-					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "back_side_size" })[0].depends_on
+					default: '0.0',
 				},
 								
 				{

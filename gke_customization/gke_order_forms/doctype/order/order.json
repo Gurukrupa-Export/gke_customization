@@ -67,6 +67,7 @@
   "metal_type",
   "metal_touch",
   "metal_colour",
+  "diamond_type",
   "section_break_25",
   "metal_target",
   "diamond_target",
@@ -106,6 +107,7 @@
   "column_break_69",
   "nakshi_from",
   "nakshi_weight",
+  "count_of_spiral_turns",
   "section_break_6pxwc",
   "gemstone_type1",
   "gemstone_type",
@@ -1499,6 +1501,21 @@
    "label": "Gemstone Type",
    "options": "Attribute Value",
    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+  },
+  {
+   "fetch_from": "cad_order_form_detail.count_of_spiral_turns",
+   "fieldname": "count_of_spiral_turns",
+   "fieldtype": "Int",
+   "label": "Count of Spiral Turns",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "cad_order_form_detail.diamond_type",
+   "fieldname": "diamond_type",
+   "fieldtype": "Link",
+   "label": "Diamond Type",
+   "options": "Attribute Value",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1517,7 +1534,7 @@
    "link_fieldname": "order"
   }
  ],
- "modified": "2024-08-08 11:07:18.316439",
+ "modified": "2024-08-15 09:31:18.090782",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",
