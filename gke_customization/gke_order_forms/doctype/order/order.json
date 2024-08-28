@@ -70,11 +70,15 @@
   "diamond_type",
   "section_break_25",
   "metal_target",
+  "is_metal_target_range",
+  "metal_target_from_range",
+  "column_break_31",
   "diamond_target",
+  "is_diamond_target_range",
+  "diamond_target_from_range",
   "column_break_28",
   "product_size",
   "sizer_type",
-  "column_break_31",
   "section_break_45",
   "stone_changeable",
   "feature",
@@ -198,7 +202,10 @@
   "gold_to_diamond_ratio",
   "metal_to_diamond_ratio_excl_of_finding",
   "column_break_5bib",
-  "diamond_ratio"
+  "diamond_ratio",
+  "tab_break_7mp1",
+  "cad_weight",
+  "loss_weight"
  ],
  "fields": [
   {
@@ -851,7 +858,8 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Gemstone Type1",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
   },
   {
    "fieldname": "section_break_xbmnv",
@@ -1516,6 +1524,55 @@
    "label": "Diamond Type",
    "options": "Attribute Value",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fetch_from": "cad_order_form_detail.is_metal_target_range",
+   "fieldname": "is_metal_target_range",
+   "fieldtype": "Check",
+   "label": "Is Metal Target Range",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: doc.is_metal_target_range == 1",
+   "fetch_from": "cad_order_form_detail.metal_target_from_range",
+   "fieldname": "metal_target_from_range",
+   "fieldtype": "Link",
+   "label": "Metal Target Range",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fetch_from": "cad_order_form_detail.is_diamond_target_range",
+   "fieldname": "is_diamond_target_range",
+   "fieldtype": "Check",
+   "label": "Is Diamond Target Range",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: doc.is_diamond_target_range == 1",
+   "fetch_from": "cad_order_form_detail.diamond_target_from_range",
+   "fieldname": "diamond_target_from_range",
+   "fieldtype": "Link",
+   "label": "Diamond Target Range",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tab_break_7mp1",
+   "fieldtype": "Tab Break",
+   "label": "CAD Details"
+  },
+  {
+   "fieldname": "cad_weight",
+   "fieldtype": "Float",
+   "label": "CAD Weight"
+  },
+  {
+   "fieldname": "loss_weight",
+   "fieldtype": "Float",
+   "label": "Loss Weight"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1534,7 +1591,7 @@
    "link_fieldname": "order"
   }
  ],
- "modified": "2024-08-15 09:31:18.090782",
+ "modified": "2024-08-28 10:45:58.677762",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order",
