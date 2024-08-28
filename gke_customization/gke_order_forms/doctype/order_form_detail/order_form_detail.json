@@ -51,9 +51,13 @@
   "section_break_78",
   "metal_target",
   "diamond_target",
+  "is_metal_target_range",
+  "metal_target_from_range",
   "column_break_sbg0",
   "product_size",
   "sizer_type",
+  "is_diamond_target_range",
+  "diamond_target_from_range",
   "section_break_45",
   "stone_changeable",
   "detachable",
@@ -718,12 +722,38 @@
    "fieldtype": "Link",
    "label": "Black Beed",
    "options": "Attribute Value"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_metal_target_range",
+   "fieldtype": "Check",
+   "label": "Is Metal Target Range"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_diamond_target_range",
+   "fieldtype": "Check",
+   "label": "Is Diamond Target Range"
+  },
+  {
+   "depends_on": "eval: doc.is_metal_target_range == 1",
+   "fieldname": "metal_target_from_range",
+   "fieldtype": "Link",
+   "label": "Metal Target Range",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval: doc.is_diamond_target_range == 1",
+   "fieldname": "diamond_target_from_range",
+   "fieldtype": "Link",
+   "label": "Diamond Target Range",
+   "options": "Attribute Value"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-08-16 13:27:42.037526",
+ "modified": "2024-08-26 10:46:39.741543",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order Form Detail",
