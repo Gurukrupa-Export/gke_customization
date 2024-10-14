@@ -7,7 +7,8 @@
  "engine": "InnoDB",
  "field_order": [
   "section_break_1mtk",
-  "item_code"
+  "item_code",
+  "reason"
  ],
  "fields": [
   {
@@ -20,12 +21,18 @@
    "in_list_view": 1,
    "label": "Item Code",
    "options": "Item"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Reason"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-09-14 11:34:51.510185",
+ "modified": "2024-10-14 09:31:46.654101",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Similar Item Table",

@@ -29,7 +29,10 @@ app_license = "MIT"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-doctype_js = {"Quotation" : "public/js/doctype_js/quotation.js"}
+doctype_js = {
+    "Quotation" : "public/js/doctype_js/quotation.js",
+    "Payment Entry" : "public/js/doctype_js/payment_entry.js"
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -127,23 +130,12 @@ doctype_js = {"Quotation" : "public/js/doctype_js/quotation.js"}
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-#	"all": [
-#		"gke_customization.tasks.all"
-#	],
-#	"daily": [
-#		"gke_customization.tasks.daily"
-#	],
-#	"hourly": [
-#		"gke_customization.tasks.hourly"
-#	],
-#	"weekly": [
-#		"gke_customization.tasks.weekly"
-#	],
-#	"monthly": [
-#		"gke_customization.tasks.monthly"
-#	],
-# }
+scheduler_events = {
+
+	"all": [
+		"gke_customization.gke_customization.gke_hrms.doc_events.user.test_uesr"
+	],
+}
 
 # Testing
 # -------
@@ -241,6 +233,9 @@ doc_events = {
 "Journal Entry": {
     "on_submit": "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit"
 },
+# "Item": {
+#     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
+# },
 }
 app_include_js = [
     '/assets/gke_customization/js/solitaire_calculator.js'
