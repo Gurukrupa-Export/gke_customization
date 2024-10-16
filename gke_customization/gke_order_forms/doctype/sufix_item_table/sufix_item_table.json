@@ -24,15 +24,16 @@
   },
   {
    "fieldname": "reason",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Reason"
+   "label": "Reason",
+   "options": "Attribute Value"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-10-14 09:31:34.975603",
+ "modified": "2024-10-16 17:19:47.841915",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Sufix Item Table",
