@@ -227,9 +227,9 @@ doc_events = {
 # "Shareholder": {
 #     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
 # },
-"Payment Entry": {
-    "on_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_submit"
-},
+# "Payment Entry": {
+#     "on_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_submit"
+# },
 "Journal Entry": {
     "on_submit": "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit"
 },
