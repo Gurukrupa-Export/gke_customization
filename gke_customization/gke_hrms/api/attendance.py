@@ -22,51 +22,60 @@ def attendance(from_date = None,to_date = None,employee = None):
 	conditions = get_conditions(from_date,to_date,employee) 
 	if conditions:
 		data = frappe.db.sql(f"""
-            select at.employee,
-                at.employee_name, at.company, at.department,
+            SELECT 
+				at.employee,
+                at.employee_name, at.company, at.department,at.working_hours,
                 emp.allowed_personal_hours, emp.designation, emp.old_punch_id,
                 emp.middle_name, emp.gender, emp.date_of_birth, emp.date_of_joining, emp.holiday_list,
-                at.attendance_date,
-                concat(TIME_FORMAT(st.start_time,"%H:%i:%s"), " TO ", TIME_FORMAT(st.end_time,"%H:%i:%s")) as shift,
-                time(at.in_time) as in_time, 
-                time(at.out_time) as out_time, 
-                TIMEDIFF(at.out_time, at.in_time) as spent_hours, 
-                at.late_entry, 
-                if(at.late_entry, timediff(time(at.in_time), st.start_time), Null) as late_hrs,
-                if(at.early_exit, timediff(st.end_time, time(at.out_time)), Null) as early_hrs, 
-                pol.hrs as p_out_hrs, 
-                sec_to_time(
-                    if((at.attendance_request is not null or (at.status = "On Leave" and at.leave_type in (select name from `tabLeave Type` where is_lwp = 0))),
-                        st.shift_hours,
-                    IF(at.out_time, time_to_sec(TIMEDIFF(at.out_time, at.in_time)), at.working_hours * 3600))
-                    + if(at.late_entry=0 and time(at.in_time) > time(st.start_time),
-                        time_to_sec(timediff(time(at.in_time), st.start_time)), 0)
-                    - if(time(at.in_time) < time(st.start_time),
-                        time_to_sec(timediff(st.start_time, time(at.in_time))), 0)
-                    - if(at.out_time > timestamp(date(at.in_time), st.end_time),
-                        time_to_sec(timediff(at.out_time, timestamp(date(at.in_time), st.end_time))), 0)
-                    - ifnull(time_to_sec(pol.hrs),0)
-                    + (select ifnull(sum(time_to_sec(pl.total_hours)),0) from `tabPersonal Out Log` pl 
-                        where pl.is_cancelled = 0 and pl.employee = at.employee and pl.date = at.attendance_date and pl.out_time >= st.end_time)
-                    ) as net_wrk_hrs,
-                st.shift_hours, 
-                if(st.working_hours_threshold_for_half_day > at.working_hours and at.working_hours > 0, 1, 0) as lh,
-                ot.allowed_ot as ot_hours,
-                ifnull(at.leave_type, at.status) as status, at.attendance_request
-            from 
-                `tabAttendance` at 
-            left join `tabEmployee` emp on at.employee = emp.name 
-            left join `tabShift Type` st on emp.default_shift = st.name 
-            left join (select employee, date, sec_to_time(sum(time_to_sec(total_hours))) as hrs 
-                        from `tabPersonal Out Log` where is_cancelled = 0 group by employee, date) pol 
-                        on at.attendance_date = pol.date and at.employee = pol.employee 
-            left join (select * from `tabOT Log` where is_cancelled = 0) ot 
-                        on at.attendance_date = ot.attendance_date and at.employee = ot.employee
-            where 
-                at.docstatus = 1 {conditions}                 
-            order by 
-                at.employee,
-                at.attendance_date asc
+			at.attendance_date,
+			CONCAT(TIME_FORMAT(st.start_time, "%H:%i:%s"), " TO ", TIME_FORMAT(st.end_time, "%H:%i:%s")) AS shift, 
+			TIME(at.in_time) AS in_time, 
+			TIME(at.out_time) AS out_time, 
+			TIMEDIFF(at.out_time, at.in_time) AS spent_hours, 
+			at.late_entry, 
+			IF(at.late_entry, TIMEDIFF(TIME(at.in_time), st.start_time), NULL) AS late_hrs,
+			IF(at.early_exit, TIMEDIFF(st.end_time, TIME(at.out_time)), NULL) AS early_hrs, 
+			pol.hrs AS p_out_hrs, 
+			SEC_TO_TIME(
+				IF((at.attendance_request IS NOT NULL OR (at.status = "On Leave" AND at.leave_type IN (SELECT name FROM `tabLeave Type` WHERE is_lwp = 0))),
+					st.shift_hours,
+					IF(at.out_time, TIME_TO_SEC(TIMEDIFF(at.out_time, at.in_time)), at.working_hours * 3600))
+					+ IF(at.late_entry = 0 AND TIME(at.in_time) > TIME(st.start_time),
+							TIME_TO_SEC(TIMEDIFF(TIME(at.in_time), st.start_time)), 0)
+					- IF(TIME(at.in_time) < TIME(st.start_time),
+							TIME_TO_SEC(TIMEDIFF(st.start_time, TIME(at.in_time))), 0)
+					- IF(at.out_time > TIMESTAMP(DATE(at.in_time), st.end_time),
+							TIME_TO_SEC(TIMEDIFF(at.out_time, TIMESTAMP(DATE(at.in_time), st.end_time))), 0)
+					- IFNULL(TIME_TO_SEC(pol.hrs), 0)
+					+ (SELECT IFNULL(SUM(TIME_TO_SEC(pl.total_hours)), 0) FROM `tabPersonal Out Log` pl 
+						WHERE pl.is_cancelled = 0 AND pl.employee = at.employee AND pl.date = at.attendance_date AND pl.out_time >= st.end_time)
+				) AS net_wrk_hrs,
+			st.shift_hours, 
+			IF(st.working_hours_threshold_for_half_day > at.working_hours AND at.working_hours > 0, 1, 0) AS lh,
+			ot.ot_hours AS ot_hours, 
+			IFNULL(at.leave_type, at.status) AS status, 
+			at.attendance_request
+		FROM 
+			`tabAttendance` at 
+		LEFT JOIN 
+			`tabEmployee` emp ON at.employee = emp.name 
+		LEFT JOIN 
+			`tabShift Type` st ON emp.default_shift = st.name 
+		LEFT JOIN 
+			(SELECT employee, date, SEC_TO_TIME(SUM(TIME_TO_SEC(total_hours))) AS hrs 
+			FROM `tabPersonal Out Log` 
+			WHERE is_cancelled = 0 
+			GROUP BY employee, date) pol ON at.attendance_date = pol.date AND at.employee = pol.employee 
+		LEFT JOIN 
+			(SELECT employee, attendance_date, SEC_TO_TIME(SUM(TIME_TO_SEC(allowed_ot))) AS ot_hours 
+			FROM `tabOT Log` 
+			WHERE is_cancelled = 0 
+			GROUP BY employee, attendance_date) ot ON at.attendance_date = ot.attendance_date AND at.employee = ot.employee
+		WHERE 
+			at.docstatus = 1 
+					  {conditions}
+		ORDER BY 
+			at.attendance_date ASC;
             """, as_dict=True)
 		data = process_data(data,from_date,to_date,employee)
 	
@@ -88,7 +97,7 @@ def process_data(data,from_date,to_date, employee):
 	holidays = []
 	wo = []
 	emp_det = frappe.db.get_value("Employee", employee, 
-		["default_shift","holiday_list","date_of_joining","employee_name","company","department",
+		["default_shift","holiday_list","date_of_joining","employee_name","company","department","allowed_personal_hours",
     "designation","old_punch_id","middle_name","gender","date_of_birth"], as_dict=1)
 	shift = emp_det.get("default_shift")
 	shift_det = frappe.db.get_value("Shift Type", shift, ['shift_hours','holiday_list','start_time', 'end_time'], as_dict=1)
@@ -106,7 +115,7 @@ def process_data(data,from_date,to_date, employee):
 					"holiday_date":["between",[from_date, to_date]]}, ["holiday_date","weekly_off"], ignore_permissions=1)
 		wo = [row.holiday_date for row in holidays if row.weekly_off]
 		holidays = [row.holiday_date for row in holidays if not row.weekly_off]
-	
+	# frappe.throw(f"{}")
 
 	for row in data:
 		if row.lh:
@@ -158,7 +167,9 @@ def process_data(data,from_date,to_date, employee):
             "gender": emp_det.get("gender"),
             "date_of_birth": emp_det.get("date_of_birth"),
             "date_of_joining": emp_det.get("date_of_joining"),
-            "attendance_date": date
+            "allowed_personal_hours": emp_det.get("allowed_personal_hours"),
+            "attendance_date": date,
+            "shift_hours": flt(shift_det.get("shift_hours"))
 		}
 		if not row.get("spent_hours"):
 			row["spent_hours"] = None
@@ -180,3 +191,17 @@ def get_date_range(start_date, end_date):
 		current_date += delta
 
 	return range
+
+@frappe.whitelist(allow_guest=True)
+def employee_details(company = None,department = None):
+	company = frappe.form_dict["company"]
+	department = frappe.form_dict["department"]
+
+	data = frappe.db.sql(f"""
+		select name as employee, employee_name, company, department,
+			default_shift as shift, designation, old_punch_id
+		from `tabEmployee` 
+		where company ='{company}' and department = '{department}'
+	""", as_dict=1)
+
+	return data

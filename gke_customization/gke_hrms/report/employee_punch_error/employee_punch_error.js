@@ -4,10 +4,16 @@
 frappe.query_reports["Employee Punch Error"] = {
 	"filters": [
 		{
-			"label": __("Employee"),
-			"fieldname": "employee",
+			"label": __("Company"),
+			"fieldname": "company",
 			"fieldtype": "Link",
-			"options": 'Employee'
+			"options": 'Company'
+		},
+		{
+			"label": __("Department"),
+			"fieldname": "department",
+			"fieldtype": "Link",
+			"options": 'Department'
 		},
 		{
 			"label": __("Date"),
@@ -15,6 +21,13 @@ frappe.query_reports["Employee Punch Error"] = {
 			"fieldtype": "Date",
 			// "default": frappe.datetime.get_today(),
 		},
+		{
+			"label": __("Employee"),
+			"fieldname": "employee",
+			"fieldtype": "Link",
+			"options": 'Employee'
+		},	
+		
 
 	],
 	onload: (report) => {
