@@ -130,12 +130,12 @@ doctype_js = {
 # Scheduled Tasks
 # ---------------
 
-scheduler_events = {
+# scheduler_events = {
 
-	"all": [
-		"gke_customization.gke_customization.gke_hrms.doc_events.user.test_uesr"
-	],
-}
+# 	"all": [
+# 		"gke_customization.gke_customization.gke_hrms.doc_events.user.test_uesr"
+# 	],
+# }
 
 # Testing
 # -------
