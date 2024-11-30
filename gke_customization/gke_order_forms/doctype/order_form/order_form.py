@@ -364,7 +364,8 @@ def get_bom_details(design_id,doc):
 	doc = json.loads(doc)
 	item_subcategory = frappe.db.get_value("Item",design_id,"item_subcategory")
 
-	fg_bom = frappe.db.get_value("BOM",{"tag_no":doc["tag_no"],"item":design_id},"name")
+	# fg_bom = frappe.db.get_value("BOM",{"tag_no":doc["tag_no"],"item":design_id},"name")
+	fg_bom = frappe.db.get_value("BOM",{"bom_type":"Finished Goods","item":design_id},"name",order_by="creation DESC")
 	master_bom = fg_bom
 	if not fg_bom:
 		temp_bom = frappe.db.get_value("Item",design_id,"master_bom")
