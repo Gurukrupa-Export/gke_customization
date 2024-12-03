@@ -58,8 +58,8 @@ class EmployeeUpdate(Document):
 			})
 			
 			for field in filed_list:
-				if i in e_diff_filed:
-					i = e_json[i]
+				if field in e_diff_filed:
+					field = e_json[field]
 				value = frappe.db.get_value("Employee Update", self.name, field)
 				emp_doc.set(field, value)
 			
