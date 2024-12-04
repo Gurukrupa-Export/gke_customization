@@ -11,7 +11,7 @@ def execute(filters=None):
 
 def get_data(filters=None):
 	conditions = get_conditions(filters)
-
+	
 	if conditions:
 		data = frappe.db.sql(f"""SELECT 
 				ec.employee,ec.employee_name,
@@ -86,17 +86,18 @@ def get_conditions(filters):
 
 	filter_list = []
 
-	if filters.get("employee"):
-		filter_list.append(f'''ec.employee = "{filters.get("employee")}"''')
-
-	if filters.get("date"):
-		filter_list.append(f'''DATE(ec.time) = "{filters.get("date")}"''')
+	if filters.get("company"):
+		filter_list.append(f'''e.company = "{filters.get("company")}"''')
+	
+	if filters.get("from_date") and filters.get("to_date"):
+		filter_list.append(f'''DATE(ec.time) Between "{filters.get("from_date")}" and "{filters.get("to_date")}" ''')
 
 	if filters.get("department"):
 		filter_list.append(f'''e.department = "{filters.get("department")}"''')
+
+	if filters.get("employee"):
+		filter_list.append(f'''ec.employee = "{filters.get("employee")}"''')
 	
-	if filters.get("company"):
-		filter_list.append(f'''e.company = "{filters.get("company")}"''')
 
 	conditions = "where " + " and ".join(filter_list)
 	if conditions!='where ':
