@@ -566,6 +566,10 @@ def set_data(self):
 				
 				# Dynamically set the attributes on self with the retrieved values
 				for key, value in attribute_values.items():
+					if str(key) == "item_category":
+						key = "category"
+					if str(key) == "item_subcategory":
+						key = "subcategory"
 					a = getattr(i, key, value)
 					if a:
 						continue
