@@ -15,24 +15,42 @@ def get_data(filters=None):
 	if conditions:
 		data = frappe.db.sql(f"""SELECT 
 				ec.employee,ec.employee_name,
-				DATE(ec.time) AS date,
-				COUNT(*) AS punch_count,
-				e.department,e.company
-			FROM `tabEmployee Checkin` as ec
-			left join `tabEmployee` as e on e.name = ec.employee
+				e.company ,e.department, 
+				DATE(ec.time) as date, 
+				COUNT(*) AS punch_count
+			FROM 
+				`tabEmployee Checkin` AS ec
+			LEFT JOIN 
+				`tabEmployee` AS e 
+			ON 
+				e.name = ec.employee
 					   {conditions}
-			GROUP BY employee HAVING COUNT(*) % 2 != 0 AND (COUNT(*) = 1 OR COUNT(*) = 3 OR COUNT(*) = 5 OR COUNT(*) = 7)""", as_dict=1)
+			GROUP BY 
+				ec.employee, DATE(ec.time)
+			HAVING 
+				MOD(COUNT(*), 2) != 0
+			ORDER BY 
+				COUNT(*) DESC""", as_dict=1)
 	else:
 		data = frappe.db.sql(f"""
 			SELECT 
 				ec.employee,ec.employee_name,
-				DATE(ec.time) AS date,
-				COUNT(*) AS punch_count,
-				e.department,e.company
-			FROM `tabEmployee Checkin` as ec
-			left join `tabEmployee` as e on e.name = ec.employee 
-			WHERE DATE(ec.time) = CURDATE()
-			GROUP BY ec.employee HAVING COUNT(*) % 2 != 0 AND (COUNT(*) = 1 OR COUNT(*) = 3 OR COUNT(*) = 5 OR COUNT(*) = 7)""", as_dict=1)
+				e.company ,e.department, 
+				DATE(ec.time) as date, 
+				COUNT(*) AS punch_count
+			FROM 
+				`tabEmployee Checkin` AS ec
+			LEFT JOIN 
+				`tabEmployee` AS e 
+			ON 
+				e.name = ec.employee
+			WHERE  DATE(ec.time) = CURDATE()
+			GROUP BY 
+				ec.employee, DATE(ec.time)
+			HAVING 
+				MOD(COUNT(*), 2) != 0
+			ORDER BY 
+				COUNT(*) DESC""", as_dict=1)
 	
 	# frappe.throw(str(data))
 	return data
@@ -72,6 +90,7 @@ def get_columns(filters=None):
 		# 	"label": _("Punch Times"),
 		# 	"fieldname": "time",
 		# 	"fieldtype": "Data",
+		# 	"hidden":1
 		# },
 		{
 			"label": _("Punch Count"),
