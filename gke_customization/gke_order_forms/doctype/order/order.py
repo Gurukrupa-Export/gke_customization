@@ -37,6 +37,9 @@ class Order(Document):
 		calculate_gemstone_weights(self)
 		calculate_other_weights(self)
 		calculate_total(self)
+		if self.workflow_state == 'Approved':
+			timesheet = frappe.get_doc("Timesheet",{"order":self.name},"name")
+			timesheet.run_method('submit')
 
 def calculate_metal_weights(self):
 	total_metal_weight = 0
