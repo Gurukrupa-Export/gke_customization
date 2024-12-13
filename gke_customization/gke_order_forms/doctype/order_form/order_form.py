@@ -553,30 +553,6 @@ def set_data(self):
 					item_subcategory = frappe.db.get_value("Item", design_id, "item_subcategory")
 					master_bom = i.bom
 
-				# Prepare a list to hold the item attribute names formatted as per your requirements
-				all_item_attributes = []
-				
-				# Retrieve all item attributes for the given item subcategory
-				for item_attr in frappe.get_doc("Attribute Value", item_subcategory).item_attributes:
-					# Format the item attribute names by replacing spaces with underscores, removing '/', and converting to lower case
-					formatted_attr = item_attr.item_attribute.replace(' ', '_').replace('/', '').lower()
-					all_item_attributes.append(formatted_attr)
-				
-				# Retrieve the values for the specified attributes from the BOM
-				attribute_values = frappe.db.get_value("BOM", master_bom, all_item_attributes, as_dict=1)
-				
-				# Dynamically set the attributes on self with the retrieved values
-				for key, value in attribute_values.items():
-					if str(key) == "item_category":
-						key = "category"
-					if str(key) == "item_subcategory":
-						key = "subcategory"
-					a = getattr(i, key, value)
-					if a:
-						continue
-					# frappe.throw(f"{a}")
-					else:
-						setattr(i, key, value)
 					# Prepare a list to hold the item attribute names formatted as per your requirements
 					all_item_attributes = []
 					
@@ -584,12 +560,11 @@ def set_data(self):
 					for item_attr in frappe.get_doc("Attribute Value", item_subcategory).item_attributes:
 						# Format the item attribute names by replacing spaces with underscores, removing '/', and converting to lower case
 						formatted_attr = item_attr.item_attribute.replace(' ', '_').replace('/', '').lower()
-						
 						all_item_attributes.append(formatted_attr)
 					
 					# Retrieve the values for the specified attributes from the BOM
 					attribute_values = frappe.db.get_value("BOM", master_bom, all_item_attributes, as_dict=1)
-					# frappe.throw(f"{attribute_values}")
+					
 					# Dynamically set the attributes on self with the retrieved values
 					for key, value in attribute_values.items():
 						if str(key) == "item_category":
@@ -599,8 +574,33 @@ def set_data(self):
 						a = getattr(i, key, value)
 						if a:
 							continue
+						# frappe.throw(f"{a}")
 						else:
 							setattr(i, key, value)
+						# Prepare a list to hold the item attribute names formatted as per your requirements
+						all_item_attributes = []
+						
+						# Retrieve all item attributes for the given item subcategory
+						for item_attr in frappe.get_doc("Attribute Value", item_subcategory).item_attributes:
+							# Format the item attribute names by replacing spaces with underscores, removing '/', and converting to lower case
+							formatted_attr = item_attr.item_attribute.replace(' ', '_').replace('/', '').lower()
+							
+							all_item_attributes.append(formatted_attr)
+						
+						# Retrieve the values for the specified attributes from the BOM
+						attribute_values = frappe.db.get_value("BOM", master_bom, all_item_attributes, as_dict=1)
+						# frappe.throw(f"{attribute_values}")
+						# Dynamically set the attributes on self with the retrieved values
+						for key, value in attribute_values.items():
+							if str(key) == "item_category":
+								key = "category"
+							if str(key) == "item_subcategory":
+								key = "subcategory"
+							a = getattr(i, key, value)
+							if a:
+								continue
+							else:
+								setattr(i, key, value)
 				except:
 					frappe.throw(f"Row {i.idx} has Issue.Check BOM first.")
 
