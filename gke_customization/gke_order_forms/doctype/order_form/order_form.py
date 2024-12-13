@@ -553,7 +553,6 @@ def set_data(self):
 					item_subcategory = frappe.db.get_value("Item", design_id, "item_subcategory")
 					master_bom = i.bom
 
-<<<<<<< Updated upstream
 				# Prepare a list to hold the item attribute names formatted as per your requirements
 				all_item_attributes = []
 				
@@ -578,7 +577,6 @@ def set_data(self):
 					# frappe.throw(f"{a}")
 					else:
 						setattr(i, key, value)
-=======
 					# Prepare a list to hold the item attribute names formatted as per your requirements
 					all_item_attributes = []
 					
@@ -676,4 +674,3 @@ def create_po(self):
 	
 	frappe.msgprint(msg)
 	# return
->>>>>>> Stashed changes
