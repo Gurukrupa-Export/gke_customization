@@ -93,7 +93,8 @@
      "back_chain_size",
      "back_belt",
      "back_belt_length",
-     "black_beed_line",
+     "black_bead",
+     "black_bead_line",
      "back_side_size",
      "column_break_49",
      "back_belt_patti",
@@ -695,12 +696,12 @@
      },
      {
       "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.black_beed_line",
+      "fetch_from": "cad_order_form_detail.black_bead_line",
       "fetch_if_empty": 1,
-      "fieldname": "black_beed_line",
+      "fieldname": "black_bead_line",
       "fieldtype": "Float",
       "hidden": 1,
-      "label": "Black Beed Line",
+      "label": "Black Bead Line",
       "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
      },
      {
