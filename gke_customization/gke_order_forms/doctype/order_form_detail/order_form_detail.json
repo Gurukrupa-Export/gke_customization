@@ -71,8 +71,8 @@
   "back_chain_size",
   "back_belt",
   "back_belt_length",
-  "black_beed",
-  "black_beed_line",
+  "black_bead",
+  "black_bead_line",
   "back_side_size",
   "back_belt_patti",
   "column_break_28",
@@ -396,11 +396,11 @@
    "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
   },
   {
-   "depends_on": "eval:doc.black_beed == 'Yes'",
-   "fieldname": "black_beed_line",
+   "depends_on": "eval:doc.black_bead == 'Yes'",
+   "fieldname": "black_bead_line",
    "fieldtype": "Float",
-   "label": "Black Beed Line",
-   "mandatory_depends_on": "eval:doc.black_beed == 'Yes'",
+   "label": "Black Bead Line",
+   "mandatory_depends_on": "eval:doc.black_bead == 'Yes'",
    "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
   },
   {
@@ -718,9 +718,9 @@
   },
   {
    "depends_on": "eval: in_list([\"Mangalsutra Ring\",\"Mangalsutra Bracelet\"],doc.subcategory)",
-   "fieldname": "black_beed",
+   "fieldname": "black_bead",
    "fieldtype": "Link",
-   "label": "Black Beed",
+   "label": "Black Bead",
    "options": "Attribute Value"
   },
   {
