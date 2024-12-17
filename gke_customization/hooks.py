@@ -31,7 +31,7 @@ app_license = "MIT"
 # include js in doctype views
 doctype_js = {
     "Quotation" : "public/js/doctype_js/quotation.js",
-    "Payment Entry" : "public/js/doctype_js/payment_entry.js"
+    # "Payment Entry" : "public/js/doctype_js/payment_entry.js"
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -230,9 +230,9 @@ doc_events = {
 # "Shareholder": {
 #     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
 # },
-# "Payment Entry": {
-#     "on_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_submit"
-# },
+"Payment Entry": {
+    "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_update_after_submit"
+},
 "Journal Entry": {
     "on_submit": "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit"
 },
