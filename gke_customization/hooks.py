@@ -224,6 +224,9 @@ doc_events = {
 "SolitaireCalculator": {
     "validate": "gke_customization.gke_custom_export.doctype.solitaire_calculator.solitaire_calculator.calculate_rate"
 },
+"Employee Advance": {
+	"validate": "gke_customization.gke_hrms.doc_events.employee_advance.calculate_working_days"
+},
 # "Shareholder": {
 #     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
 # },
