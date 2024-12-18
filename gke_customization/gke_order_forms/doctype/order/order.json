@@ -1,1629 +1,1632 @@
 {
-    "actions": [],
-    "allow_rename": 1,
-    "autoname": "format:{cad_order_form}-{index}",
-    "creation": "2022-05-24 18:28:04.571441",
-    "doctype": "DocType",
-    "editable_grid": 1,
-    "engine": "InnoDB",
-    "field_order": [
-     "index",
-     "bom_or_cad",
-     "workflow_type",
-     "company",
-     "department",
-     "column_break_etz53",
-     "branch",
-     "salesman_name",
-     "section_break_oi3uq",
-     "customer_code",
-     "order_date",
-     "delivery_date",
-     "est_delivery_date",
-     "project",
-     "parcel_place",
-     "system_due_date",
-     "data_5",
-     "po_no",
-     "order_type",
-     "diamond_quality",
-     "due_days",
-     "est_due_days",
-     "service_type",
-     "flow_type",
-     "section_break_vely",
-     "supplier",
-     "supplier_name",
-     "column_break_opqr",
-     "purchase_type",
-     "total_weight",
-     "section_break_10",
-     "cad_order_form",
-     "design_by",
-     "item_type",
-     "cad_order_form_detail",
-     "column_break_2",
-     "view_item",
-     "design_type",
-     "is_repairing",
-     "mod_reason",
-     "amended_from",
-     "section_break_9",
-     "tag_no",
-     "design_id",
-     "customer_order_form",
-     "section_break_6l07",
-     "bom",
-     "column_break_vmtb",
-     "reference_designid",
-     "reference_serial_no_1",
-     "reference_design_id_2",
-     "column_break_ihwh",
-     "reference_serial_no_2",
-     "reference_design_id_3",
-     "reference_serial_no_3",
-     "section_break_19",
-     "category",
-     "subcategory",
-     "setting_type",
-     "sub_setting_type1",
-     "sub_setting_type2",
-     "column_break_ubbqi",
-     "qty",
-     "metal_type",
-     "metal_touch",
-     "metal_colour",
-     "diamond_type",
-     "section_break_25",
-     "metal_target",
-     "is_metal_target_range",
-     "metal_target_from_range",
-     "column_break_31",
-     "diamond_target",
-     "is_diamond_target_range",
-     "diamond_target_from_range",
-     "column_break_28",
-     "product_size",
-     "sizer_type",
-     "section_break_45",
-     "stone_changeable",
-     "feature",
-     "lock_type",
-     "back_chain",
-     "back_chain_size",
-     "back_belt",
-     "back_belt_length",
-     "black_bead",
-     "black_bead_line",
-     "back_side_size",
-     "column_break_49",
-     "back_belt_patti",
-     "charm",
-     "capganthan",
-     "rhodium",
-     "column_break_56",
-     "chain",
-     "chain_type",
-     "customer_chain",
-     "chain_weight",
-     "chain_thickness",
-     "chain_length",
-     "section_break_63",
-     "number_of_ant",
-     "distance_between_kadi_to_mugappu",
-     "space_between_mugappu",
-     "detachable",
-     "two_in_one",
-     "enamal",
-     "column_break_69",
-     "nakshi_from",
-     "nakshi_weight",
-     "count_of_spiral_turns",
-     "section_break_6pxwc",
-     "gemstone_type",
-     "column_break_a8vd",
-     "gemstone_quality",
-     "section_break_xbmnv",
-     "design_image_1",
-     "column_break_phme6",
-     "design_image_2",
-     "column_break_tgrl",
-     "design_image_3",
-     "column_break_oxpw",
-     "design_image_4",
-     "column_break_dmyy",
-     "design_image_5",
-     "section_break_74",
-     "designer",
-     "designer_assignment",
-     "section_break_znhs",
-     "bom_assignment",
-     "section_break_77",
-     "update_reason",
-     "section_break_tcrzb",
-     "item",
-     "column_break_ggjel",
-     "new_bom",
-     "territories_tab",
-     "india",
-     "india_states",
-     "column_break_chfe",
-     "usa",
-     "usa_states",
-     "images_tab",
-     "design_code_files_section",
-     "cad_file",
-     "column_break_wodq",
-     "rpt_file",
-     "bom_tab",
-     "bom_metal_detail_section",
-     "metal_detail",
-     "total_metal_weight",
-     "bom_finding_detail_section",
-     "finding_detail",
-     "section_break_xkjh",
-     "total_finding_pcs",
-     "column_break_8hfq",
-     "finding_weight",
-     "column_break_jjs3",
-     "total_finding_weightin_gms",
-     "bom_diamond_detail_section",
-     "diamond_grade",
-     "diamond_detail",
-     "section_break_svqn",
-     "total_diamond_pcs",
-     "column_break_li5m",
-     "total_diamond_weight",
-     "column_break_el7h",
-     "total_diamond_weightin_gms",
-     "bom_gemstone_detail_section",
-     "gemstone_detail",
-     "section_break_xf1o",
-     "total_gemstone_pcs",
-     "column_break_kgi7",
-     "total_gemstone_weight",
-     "column_break_unhz",
-     "total_gemstone_weightin_gms",
-     "bom_other_detail_section",
-     "other_detail",
-     "section_break_st13",
-     "total_other_pcs",
-     "column_break_p94k",
-     "total_other_weight",
-     "product_weight_section",
-     "metal_weight",
-     "gross_weight",
-     "metal_and_finding_weight",
-     "net_wt_add_on",
-     "column_break_u3bb",
-     "diamond_weight",
-     "gemstone_weight",
-     "other_weight",
-     "column_break_zzly",
-     "finding_weight_",
-     "total_diamond_weight_in_gms",
-     "total_gemstone_weight_in_gms",
-     "product_ratio_section",
-     "gold_to_diamond_ratio",
-     "metal_to_diamond_ratio_excl_of_finding",
-     "column_break_5bib",
-     "diamond_ratio",
-     "tab_break_7mp1",
-     "cad_weight",
-     "loss_weight"
-    ],
-    "fields": [
-     {
-      "fieldname": "index",
-      "fieldtype": "Data",
-      "hidden": 1,
-      "label": "Index",
-      "read_only": 1
-     },
-     {
-      "fieldname": "bom_or_cad",
-      "fieldtype": "Select",
-      "label": "BOM or CAD",
-      "options": "\nNew BOM\nDuplicate BOM\nCAD\nCheck",
-      "read_only": 1
-     },
-     {
-      "fieldname": "company",
-      "fieldtype": "Link",
-      "label": "Company",
-      "options": "Company",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form.department",
-      "fieldname": "department",
-      "fieldtype": "Link",
-      "label": "Department",
-      "options": "Department",
-      "read_only": 1
-     },
-     {
-      "fieldname": "column_break_etz53",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fetch_from": "cad_order_form.branch",
-      "fetch_if_empty": 1,
-      "fieldname": "branch",
-      "fieldtype": "Link",
-      "label": "Branch",
-      "options": "Branch",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form.salesman_name",
-      "fieldname": "salesman_name",
-      "fieldtype": "Link",
-      "label": "Sales Person",
-      "options": "Sales Person",
-      "read_only": 1
-     },
-     {
-      "fieldname": "section_break_oi3uq",
-      "fieldtype": "Section Break"
-     },
-     {
-      "fetch_from": "cad_order_form.customer_code",
-      "fieldname": "customer_code",
-      "fieldtype": "Link",
-      "label": "Customer Code",
-      "options": "Customer",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form.order_date",
-      "fieldname": "order_date",
-      "fieldtype": "Date",
-      "in_list_view": 1,
-      "label": "Order Date",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form_detail.delivery_date",
-      "fetch_if_empty": 1,
-      "fieldname": "delivery_date",
-      "fieldtype": "Date",
-      "label": "Delivery Date",
-      "read_only": 1
-     },
-     {
-      "depends_on": "eval:doc.order_type != 'Purchase'",
-      "fieldname": "est_delivery_date",
-      "fieldtype": "Date",
-      "label": "Est. Delivery Date",
-      "mandatory_depends_on": "eval:doc.order_type != 'Purchase'"
-     },
-     {
-      "fetch_from": "cad_order_form.project",
-      "fetch_if_empty": 1,
-      "fieldname": "project",
-      "fieldtype": "Link",
-      "label": "Project",
-      "options": "Project",
-      "read_only": 1
-     },
-     {
-      "fieldname": "parcel_place",
-      "fieldtype": "Table MultiSelect",
-      "label": "Shipping Territory",
-      "options": "Territory Multi Select",
-      "read_only": 1
-     },
-     {
-      "fieldname": "system_due_date",
-      "fieldtype": "Date",
-      "label": "System Due Date",
-      "read_only": 1
-     },
-     {
-      "fieldname": "data_5",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fetch_from": "cad_order_form.po_no",
-      "fieldname": "po_no",
-      "fieldtype": "Data",
-      "label": "Customer PO Number",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form.order_type",
-      "fieldname": "order_type",
-      "fieldtype": "Select",
-      "label": "Order Type",
-      "options": "Sales\nStock Order\nPurchase",
-      "read_only": 1
-     },
-     {
-      "fieldname": "diamond_quality",
-      "fieldtype": "Link",
-      "label": "Customer Diamond Quality",
-      "options": "Attribute Value",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form.due_days",
-      "fieldname": "due_days",
-      "fieldtype": "Int",
-      "label": "Due Days",
-      "read_only": 1
-     },
-     {
-      "fieldname": "est_due_days",
-      "fieldtype": "Int",
-      "label": "Est. Due Days",
-      "read_only": 1
-     },
-     {
-      "fieldname": "service_type",
-      "fieldtype": "Table MultiSelect",
-      "label": "Service Type",
-      "options": "Service Type 2",
-      "read_only": 1
-     },
-     {
-      "fieldname": "section_break_10",
-      "fieldtype": "Section Break",
-      "label": "Order Form Detail"
-     },
-     {
-      "fieldname": "cad_order_form",
-      "fieldtype": "Link",
-      "label": "Order Form",
-      "options": "Order Form",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form_detail.design_by",
-      "fieldname": "design_by",
-      "fieldtype": "Select",
-      "label": "Design By",
-      "options": "Customer Design\nOur Design\nPurchase",
-      "read_only": 1
-     },
-     {
-      "fieldname": "item_type",
-      "fieldtype": "Select",
-      "label": "Item Type",
-      "options": "\nTemplate and Variant\nSuffix Of Variant\nOnly Variant\nNo Variant No Suffix\nVariant From Repair Order",
-      "read_only": 1
-     },
-     {
-      "fieldname": "column_break_2",
-      "fieldtype": "Column Break",
-      "read_only": 1
-     },
-     {
-      "fieldname": "cad_order_form_detail",
-      "fieldtype": "Link",
-      "label": "Order Form Detail",
-      "options": "Order Form Detail",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form_detail.design_type",
-      "fieldname": "design_type",
-      "fieldtype": "Link",
-      "label": "Design Type",
-      "options": "Attribute Value"
-     },
-     {
-      "fieldname": "amended_from",
-      "fieldtype": "Link",
-      "label": "Amended From",
-      "no_copy": 1,
-      "options": "Order",
-      "print_hide": 1,
-      "read_only": 1
-     },
-     {
-      "fieldname": "section_break_9",
-      "fieldtype": "Section Break"
-     },
-     {
-      "depends_on": "eval:((doc.design_type==\"Mod\"))",
-      "fetch_from": "cad_order_form_detail.tag_no",
-      "fieldname": "tag_no",
-      "fieldtype": "Link",
-      "label": "Serial No",
-      "options": "Serial No",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form_detail.design_id",
-      "fieldname": "design_id",
-      "fieldtype": "Link",
-      "label": "Design ID",
-      "options": "Item",
-      "read_only": 1
-     },
-     {
-      "depends_on": "eval:doc.design_type == \"Mod\"",
-      "fetch_from": "cad_order_form_detail.bom",
-      "fieldname": "bom",
-      "fieldtype": "Link",
-      "label": "Master BOM",
-      "options": "BOM",
-      "read_only": 1
-     },
-     {
-      "depends_on": "((doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
-      "fetch_from": "cad_order_form_detail.reference_designid",
-      "fieldname": "reference_designid",
-      "fieldtype": "Link",
-      "label": "Reference Design ID 1",
-      "options": "Item",
-      "read_only": 1
-     },
-     {
-      "depends_on": "eval:((doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
-      "fetch_from": "cad_order_form_detail.reference_serial_no_2",
-      "fieldname": "reference_serial_no_1",
-      "fieldtype": "Link",
-      "label": "Reference Serial No 1",
-      "options": "Serial No",
-      "read_only": 1
-     },
-     {
-      "depends_on": "eval: in_list(['Fusion'], doc.design_type)",
-      "fetch_from": "cad_order_form_detail.reference_design_id_2",
-      "fieldname": "reference_design_id_2",
-      "fieldtype": "Link",
-      "label": "Reference Design ID 2",
-      "options": "Item",
-      "read_only": 1
-     },
-     {
-      "depends_on": "eval: in_list(['Fusion'], doc.design_type)",
-      "fetch_from": "cad_order_form_detail.reference_serial_no_2",
-      "fieldname": "reference_serial_no_2",
-      "fieldtype": "Link",
-      "label": "Reference Serial No 2",
-      "options": "Serial No",
-      "read_only": 1
-     },
-     {
-      "depends_on": "eval: in_list(['Fusion'], doc.design_type)",
-      "fetch_from": "cad_order_form_detail.reference_design_id_3",
-      "fieldname": "reference_design_id_3",
-      "fieldtype": "Link",
-      "label": "Reference Design ID 3",
-      "options": "Item",
-      "read_only": 1
-     },
-     {
-      "depends_on": "eval: in_list(['Fusion'], doc.design_type)",
-      "fetch_from": "cad_order_form_detail.reference_serial_no_3",
-      "fieldname": "reference_serial_no_3",
-      "fieldtype": "Link",
-      "label": "Reference Serial No 3",
-      "options": "Serial No",
-      "read_only": 1
-     },
-     {
-      "fieldname": "section_break_19",
-      "fieldtype": "Section Break"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.category",
-      "fieldname": "category",
-      "fieldtype": "Link",
-      "in_list_view": 1,
-      "label": "Item Category",
-      "options": "Attribute Value",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form_detail.subcategory",
-      "fetch_if_empty": 1,
-      "fieldname": "subcategory",
-      "fieldtype": "Link",
-      "in_list_view": 1,
-      "label": "Item Subcategory",
-      "options": "Attribute Value",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form_detail.setting_type",
-      "fieldname": "setting_type",
-      "fieldtype": "Link",
-      "in_list_view": 1,
-      "label": "Setting Type",
-      "options": "Attribute Value",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form_detail.sub_setting_type1",
-      "fieldname": "sub_setting_type1",
-      "fieldtype": "Link",
-      "label": "Sub Setting Type1",
-      "options": "Attribute Value",
-      "read_only": 1
-     },
-     {
-      "fieldname": "sub_setting_type2",
-      "fieldtype": "Link",
-      "label": "Sub Setting Type2",
-      "options": "Attribute Value",
-      "read_only": 1
-     },
-     {
-      "fieldname": "column_break_ubbqi",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.qty",
-      "fieldname": "qty",
-      "fieldtype": "Int",
-      "label": "No. of Pcs",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form_detail.metal_type",
-      "fieldname": "metal_type",
-      "fieldtype": "Link",
-      "label": "Metal Type",
-      "options": "Attribute Value",
-      "read_only": 1
-     },
-     {
-      "fieldname": "metal_touch",
-      "fieldtype": "Link",
-      "label": "Metal Touch",
-      "options": "Attribute Value",
-      "read_only": 1
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.metal_colour",
-      "fetch_if_empty": 1,
-      "fieldname": "metal_colour",
-      "fieldtype": "Link",
-      "label": "Metal Colour ",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "fieldname": "section_break_25",
-      "fieldtype": "Section Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.diamond_target",
-      "fetch_if_empty": 1,
-      "fieldname": "diamond_target",
-      "fieldtype": "Float",
-      "label": "Diamond Target",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "fieldname": "column_break_28",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.product_size",
-      "fetch_if_empty": 1,
-      "fieldname": "product_size",
-      "fieldtype": "Data",
-      "label": "Product Size",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.sizer_type",
-      "fetch_if_empty": 1,
-      "fieldname": "sizer_type",
-      "fieldtype": "Link",
-      "label": "Sizer Type",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "fieldname": "column_break_31",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fieldname": "section_break_45",
-      "fieldtype": "Section Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.stone_changeable",
-      "fetch_if_empty": 1,
-      "fieldname": "stone_changeable",
-      "fieldtype": "Link",
-      "hidden": 1,
-      "label": "Stone Changeable",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.lock_type",
-      "fetch_if_empty": 1,
-      "fieldname": "lock_type",
-      "fieldtype": "Link",
-      "hidden": 1,
-      "label": "Lock Type",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.back_chain",
-      "fetch_if_empty": 1,
-      "fieldname": "back_chain",
-      "fieldtype": "Link",
-      "hidden": 1,
-      "label": "Back Chain",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.back_chain_size",
-      "fieldname": "back_chain_size",
-      "fieldtype": "Float",
-      "hidden": 1,
-      "label": "Back Chain Size",
-      "read_only": 1
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.back_belt",
-      "fetch_if_empty": 1,
-      "fieldname": "back_belt",
-      "fieldtype": "Link",
-      "hidden": 1,
-      "label": "Back Belt",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.back_belt_length",
-      "fetch_if_empty": 1,
-      "fieldname": "back_belt_length",
-      "fieldtype": "Float",
-      "hidden": 1,
-      "label": "Back Belt Length",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.black_bead_line",
-      "fetch_if_empty": 1,
-      "fieldname": "black_bead_line",
-      "fieldtype": "Float",
-      "hidden": 1,
-      "label": "Black Bead Line",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.back_side_size",
-      "fetch_if_empty": 1,
-      "fieldname": "back_side_size",
-      "fieldtype": "Float",
-      "hidden": 1,
-      "label": "Back Side Size",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "fieldname": "column_break_49",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.back_belt_patti",
-      "fieldname": "back_belt_patti",
-      "fieldtype": "Data",
-      "hidden": 1,
-      "label": "Back Belt Patti",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form_detail.gemstone_quality",
-      "fieldname": "gemstone_quality",
-      "fieldtype": "Link",
-      "label": "Gemstone Quality",
-      "options": "Attribute Value"
-     },
-     {
-      "fieldname": "column_break_56",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_if_empty": 1,
-      "fieldname": "chain",
-      "fieldtype": "Link",
-      "hidden": 1,
-      "label": "Chain",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.chain_type",
-      "fetch_if_empty": 1,
-      "fieldname": "chain_type",
-      "fieldtype": "Link",
-      "hidden": 1,
-      "label": "Chain Type",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.customer_chain",
-      "fieldname": "customer_chain",
-      "fieldtype": "Link",
-      "hidden": 1,
-      "label": "Chain From",
-      "options": "Attribute Value",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form_detail.chain_weight",
-      "fieldname": "chain_weight",
-      "fieldtype": "Float",
-      "hidden": 1,
-      "label": "Chain Weight",
-      "read_only": 1
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_if_empty": 1,
-      "fieldname": "chain_thickness",
-      "fieldtype": "Float",
-      "hidden": 1,
-      "label": "Chain Thickness",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.chain_length",
-      "fetch_if_empty": 1,
-      "fieldname": "chain_length",
-      "fieldtype": "Float",
-      "hidden": 1,
-      "label": "Chain Length",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "fieldname": "section_break_63",
-      "fieldtype": "Section Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.space_between_mugappu",
-      "fetch_if_empty": 1,
-      "fieldname": "space_between_mugappu",
-      "fieldtype": "Float",
-      "hidden": 1,
-      "label": "Space between Mugappu",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.detachable",
-      "fetch_if_empty": 1,
-      "fieldname": "detachable",
-      "fieldtype": "Link",
-      "label": "Detachable",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.enamal",
-      "fetch_if_empty": 1,
-      "fieldname": "enamal",
-      "fieldtype": "Link",
-      "label": "Enamal",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "fieldname": "column_break_69",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.nakshi_from",
-      "fieldname": "nakshi_from",
-      "fieldtype": "Link",
-      "hidden": 1,
-      "label": "Nakshi From",
-      "options": "Attribute Value",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form_detail.nakshi_weight",
-      "fieldname": "nakshi_weight",
-      "fieldtype": "Link",
-      "hidden": 1,
-      "label": "Nakshi Weight",
-      "options": "Attribute Value",
-      "read_only": 1
-     },
-     {
-      "fieldname": "section_break_6pxwc",
-      "fieldtype": "Section Break"
-     },
-     {
-      "fieldname": "section_break_xbmnv",
-      "fieldtype": "Section Break"
-     },
-     {
-      "depends_on": "eval:((doc.design_type==\"New Design\")||(doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
-      "fetch_from": "cad_order_form_detail.design_image_1",
-      "fieldname": "design_image_1",
-      "fieldtype": "Attach Image",
-      "label": "Design Image 1",
-      "read_only": 1
-     },
-     {
-      "fieldname": "column_break_phme6",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.design_image2",
-      "fieldname": "design_image_2",
-      "fieldtype": "Attach Image",
-      "label": "Design Image 2",
-      "read_only": 1
-     },
-     {
-      "fieldname": "section_break_74",
-      "fieldtype": "Section Break"
-     },
-     {
-      "depends_on": "eval:(doc.bom_or_cad == 'CAD' || doc.bom_or_cad == 'Duplicate BOM' || (doc.bom_or_cad == 'Check' && doc.workflow_type=='CAD') || (doc.design_type == 'New Design' && doc.bom_or_cad == 'CAD' && doc.customer_order_form)) || doc.order_type != 'Purchase'",
-      "fieldname": "designer_assignment",
-      "fieldtype": "Table",
-      "label": "Designer Assignment",
-      "options": "Designer Assignment - CAD"
-     },
-     {
-      "fieldname": "section_break_77",
-      "fieldtype": "Section Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "depends_on": "eval: in_list(['Assigned - On-Hold','Designing - On-Hold','Sent to QC - On-Hold','Creating BOM - On-Hold','Updating BOM - On-Hold','BOM QC - On-Hold'],doc.workflow_state)",
-      "fieldname": "update_reason",
-      "fieldtype": "Small Text",
-      "label": "Update Reason"
-     },
-     {
-      "fieldname": "section_break_tcrzb",
-      "fieldtype": "Section Break"
-     },
-     {
-      "depends_on": "eval:(in_list(['Update Item','Update BOM','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))",
-      "fieldname": "item",
-      "fieldtype": "Link",
-      "label": "Design Code",
-      "no_copy": 1,
-      "options": "Item",
-      "read_only": 1
-     },
-     {
-      "fieldname": "column_break_ggjel",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "depends_on": "eval:(in_list(['Update BOM','Creating BOM','Creating BOM - On-Hold','Updating BOM','Updating BOM - On-Hold','BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))",
-      "fieldname": "new_bom",
-      "fieldtype": "Link",
-      "label": "New BOM",
-      "mandatory_depends_on": "eval: doc.workflow_state == 'Creating BOM'",
-      "options": "BOM"
-     },
-     {
-      "fieldname": "territories_tab",
-      "fieldtype": "Tab Break",
-      "label": "Territories"
-     },
-     {
-      "default": "0",
-      "fieldname": "india",
-      "fieldtype": "Check",
-      "label": "INDIA",
-      "read_only": 1
-     },
-     {
-      "fieldname": "india_states",
-      "fieldtype": "Table MultiSelect",
-      "label": "States",
-      "options": "Territory Multi Select",
-      "read_only": 1
-     },
-     {
-      "default": "0",
-      "fieldname": "usa",
-      "fieldtype": "Check",
-      "label": "USA",
-      "read_only": 1
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.feature",
-      "fetch_if_empty": 1,
-      "fieldname": "feature",
-      "fieldtype": "Link",
-      "label": "Feature",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "fieldname": "usa_states",
-      "fieldtype": "Select",
-      "label": "USA States",
-      "options": "\nUSA",
-      "read_only": 1
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.distance_between_kadi_to_mugappu",
-      "fetch_if_empty": 1,
-      "fieldname": "distance_between_kadi_to_mugappu",
-      "fieldtype": "Float",
-      "hidden": 1,
-      "label": "Distance Between Kadi To Mugappu",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "fieldname": "column_break_a8vd",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fieldname": "column_break_chfe",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.number_of_ant",
-      "fetch_if_empty": 1,
-      "fieldname": "number_of_ant",
-      "fieldtype": "Float",
-      "hidden": 1,
-      "label": "Number Of Ant",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.two_in_one",
-      "fetch_if_empty": 1,
-      "fieldname": "two_in_one",
-      "fieldtype": "Link",
-      "hidden": 1,
-      "label": "2 in 1",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.metal_target",
-      "fieldname": "metal_target",
-      "fieldtype": "Float",
-      "label": "Metal Target",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form.flow_type",
-      "fieldname": "flow_type",
-      "fieldtype": "Select",
-      "label": "Flow Type",
-      "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO",
-      "read_only": 1
-     },
-     {
-      "default": "0",
-      "depends_on": "eval:doc.is_repairing",
-      "fetch_from": "cad_order_form_detail.is_repairing",
-      "fieldname": "is_repairing",
-      "fieldtype": "Check",
-      "label": "Is Repairing"
-     },
-     {
-      "depends_on": "eval:doc.design_type == 'Mod' && doc.mod_reason == 'Attribute Change'",
-      "fieldname": "workflow_type",
-      "fieldtype": "Select",
-      "label": "Workflow Type",
-      "options": "\nCAD\nBOM"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.mod_reason",
-      "fetch_if_empty": 1,
-      "fieldname": "mod_reason",
-      "fieldtype": "Link",
-      "label": "Mod Reason",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.charm",
-      "fetch_if_empty": 1,
-      "fieldname": "charm",
-      "fieldtype": "Link",
-      "hidden": 1,
-      "label": "Charm",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.capganthan",
-      "fetch_if_empty": 1,
-      "fieldname": "capganthan",
-      "fieldtype": "Link",
-      "hidden": 1,
-      "label": "Cap/Ganthan",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "fieldname": "column_break_tgrl",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.design_image_3",
-      "fieldname": "design_image_3",
-      "fieldtype": "Attach Image",
-      "label": "Design Image 3",
-      "read_only": 1
-     },
-     {
-      "fieldname": "column_break_oxpw",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.design_image_4",
-      "fieldname": "design_image_4",
-      "fieldtype": "Attach Image",
-      "label": "Design Image 4",
-      "read_only": 1
-     },
-     {
-      "fieldname": "column_break_dmyy",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.design_image_5",
-      "fieldname": "design_image_5",
-      "fieldtype": "Attach Image",
-      "label": "Design Image 5",
-      "read_only": 1
-     },
-     {
-      "depends_on": "eval: (in_list(['Draft','Assigned','Assigned - On-Hold','Update Designer','In Bagging','In CAD'],doc.workflow_state)) || doc.order_type != 'Purchase' ",
-      "fieldname": "designer",
-      "fieldtype": "Button",
-      "label": "Designer"
-     },
-     {
-      "fieldname": "images_tab",
-      "fieldtype": "Tab Break",
-      "label": "Images"
-     },
-     {
-      "collapsible": 1,
-      "collapsible_depends_on": "eval:false",
-      "fieldname": "design_code_files_section",
-      "fieldtype": "Section Break",
-      "label": "Design Code Files "
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "cad_file",
-      "fieldtype": "Attach",
-      "label": "CAD File",
-      "mandatory_depends_on": "eval:(in_list(['BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "rpt_file",
-      "fieldtype": "Attach",
-      "label": "RPT File",
-      "mandatory_depends_on": "eval:(in_list(['BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))"
-     },
-     {
-      "fieldname": "column_break_wodq",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "depends_on": "eval: (in_list(['Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state) && doc.design_type != 'As Per Serial No')",
-      "fieldname": "bom_assignment",
-      "fieldtype": "Table",
-      "label": "BOM Assignment",
-      "mandatory_depends_on": "eval: (doc.workflow_state == 'Update BOM' && doc.design_type != 'As Per Serial No') || (doc.design_type != 'New Design' && doc.bom_or_cad != 'CAD' && doc.customer_order_form)",
-      "options": "Designer Assignment - CAD"
-     },
-     {
-      "fieldname": "bom_tab",
-      "fieldtype": "Tab Break",
-      "label": "BOM "
-     },
-     {
-      "collapsible": 1,
-      "collapsible_depends_on": "eval:true",
-      "fieldname": "bom_metal_detail_section",
-      "fieldtype": "Section Break",
-      "label": "BOM Metal Detail"
-     },
-     {
-      "collapsible": 1,
-      "collapsible_depends_on": "eval:true",
-      "fieldname": "bom_diamond_detail_section",
-      "fieldtype": "Section Break",
-      "label": "BOM Diamond Detail"
-     },
-     {
-      "collapsible": 1,
-      "collapsible_depends_on": "eval:true",
-      "fieldname": "bom_gemstone_detail_section",
-      "fieldtype": "Section Break",
-      "label": "BOM Gemstone Detail"
-     },
-     {
-      "collapsible": 1,
-      "collapsible_depends_on": "eval:true",
-      "fieldname": "bom_finding_detail_section",
-      "fieldtype": "Section Break",
-      "label": "BOM Finding Detail"
-     },
-     {
-      "collapsible": 1,
-      "collapsible_depends_on": "eval:true",
-      "fieldname": "bom_other_detail_section",
-      "fieldtype": "Section Break",
-      "label": "BOM Other Detail"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "total_metal_weight",
-      "fieldtype": "Float",
-      "label": "Total Metal Weight"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "total_finding_pcs",
-      "fieldtype": "Float",
-      "label": "Total Finding Pcs"
-     },
-     {
-      "fieldname": "column_break_8hfq",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "finding_weight",
-      "fieldtype": "Float",
-      "label": "Finding Weight"
-     },
-     {
-      "fieldname": "column_break_jjs3",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "total_finding_weightin_gms",
-      "fieldtype": "Float",
-      "label": "Total Finding Weight(In gms)"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "diamond_grade",
-      "fieldtype": "Link",
-      "label": "Diamond Grade",
-      "options": "Attribute Value"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "total_diamond_pcs",
-      "fieldtype": "Int",
-      "label": "Total Diamond Pcs"
-     },
-     {
-      "fieldname": "column_break_li5m",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "total_diamond_weight",
-      "fieldtype": "Float",
-      "label": "Total Diamond Weight"
-     },
-     {
-      "fieldname": "column_break_el7h",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "total_diamond_weightin_gms",
-      "fieldtype": "Data",
-      "label": "Total Diamond Weight(In gms)"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "total_gemstone_pcs",
-      "fieldtype": "Int",
-      "label": "Total Gemstone Pcs"
-     },
-     {
-      "fieldname": "column_break_kgi7",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "total_gemstone_weight",
-      "fieldtype": "Float",
-      "label": "Total Gemstone Weight"
-     },
-     {
-      "fieldname": "column_break_unhz",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "total_gemstone_weightin_gms",
-      "fieldtype": "Float",
-      "label": "Total Gemstone Weight(In gms)"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "total_other_pcs",
-      "fieldtype": "Int",
-      "label": "Total Other Pcs"
-     },
-     {
-      "fieldname": "column_break_p94k",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "total_other_weight",
-      "fieldtype": "Float",
-      "label": "Total Other Weight"
-     },
-     {
-      "fieldname": "section_break_xkjh",
-      "fieldtype": "Section Break"
-     },
-     {
-      "fieldname": "section_break_svqn",
-      "fieldtype": "Section Break"
-     },
-     {
-      "fieldname": "section_break_xf1o",
-      "fieldtype": "Section Break"
-     },
-     {
-      "fieldname": "section_break_st13",
-      "fieldtype": "Section Break"
-     },
-     {
-      "fieldname": "product_weight_section",
-      "fieldtype": "Section Break",
-      "label": "Product Weight"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "metal_weight",
-      "fieldtype": "Float",
-      "label": "Metal Weight (In Gram)"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "gross_weight",
-      "fieldtype": "Float",
-      "label": "Gross Weight (In Gram)"
-     },
-     {
-      "allow_on_submit": 1,
-      "description": "(Metal and Finding Weight)",
-      "fieldname": "metal_and_finding_weight",
-      "fieldtype": "Float",
-      "label": "Net Weight (In Gram)"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "net_wt_add_on",
-      "fieldtype": "Float",
-      "label": "Net Wt add on"
-     },
-     {
-      "fieldname": "column_break_u3bb",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "diamond_weight",
-      "fieldtype": "Float",
-      "label": "Diamond Weight (In Carat)"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "gemstone_weight",
-      "fieldtype": "Float",
-      "label": "Gemstone Weight (In Carat)"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "other_weight",
-      "fieldtype": "Float",
-      "label": "Other Weight (In Gram)"
-     },
-     {
-      "fieldname": "column_break_zzly",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "finding_weight_",
-      "fieldtype": "Float",
-      "label": "Finding Weight (In Gram)"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "total_diamond_weight_in_gms",
-      "fieldtype": "Float",
-      "label": "Total Diamond Weight (In Gram)"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "total_gemstone_weight_in_gms",
-      "fieldtype": "Float",
-      "label": "Total Gemstone Weight (In Gram)"
-     },
-     {
-      "fieldname": "product_ratio_section",
-      "fieldtype": "Section Break",
-      "label": "Product Ratio"
-     },
-     {
-      "allow_on_submit": 1,
-      "description": "Comparison: 10grams = 1 Carat",
-      "fieldname": "gold_to_diamond_ratio",
-      "fieldtype": "Float",
-      "label": "Metal to Diamond Ratio(Incl. of Finding)"
-     },
-     {
-      "allow_on_submit": 1,
-      "description": "Comparison: 10grams = 1 Carat",
-      "fieldname": "metal_to_diamond_ratio_excl_of_finding",
-      "fieldtype": "Float",
-      "label": "Metal to Diamond Ratio(Excl. of Finding)"
-     },
-     {
-      "fieldname": "column_break_5bib",
-      "fieldtype": "Column Break"
-     },
-     {
-      "allow_on_submit": 1,
-      "description": "Avg. Diamond Weight = Total Diamond Weight / Total No. of Pcs",
-      "fieldname": "diamond_ratio",
-      "fieldtype": "Float",
-      "label": "Avg. Diamond Weight(In Carat)"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "metal_detail",
-      "fieldtype": "Table",
-      "label": "Metal Detail",
-      "options": "Order BOM Metal Detail"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "finding_detail",
-      "fieldtype": "Table",
-      "label": "Finding Detail",
-      "options": "Order BOM Finding Detail"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "diamond_detail",
-      "fieldtype": "Table",
-      "label": "Diamond Detail",
-      "options": "Order BOM Diamond Detail"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "gemstone_detail",
-      "fieldtype": "Table",
-      "label": "Gemstone Detail",
-      "options": "Order BOM Gemstone Detail"
-     },
-     {
-      "allow_on_submit": 1,
-      "fieldname": "other_detail",
-      "fieldtype": "Table",
-      "label": "Other Detail",
-      "options": "Order BOM Other Detail"
-     },
-     {
-      "fieldname": "section_break_znhs",
-      "fieldtype": "Section Break"
-     },
-     {
-      "fieldname": "column_break_vmtb",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fieldname": "section_break_6l07",
-      "fieldtype": "Section Break"
-     },
-     {
-      "fieldname": "column_break_ihwh",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.customer_order_form",
-      "fieldname": "customer_order_form",
-      "fieldtype": "Link",
-      "label": "Customer Order Form",
-      "options": "Customer Order Form",
-      "read_only": 1
-     },
-     {
-      "depends_on": "eval: (in_list([\"New Design\",\"Sketch Design\",\"Mod\"],doc.design_type) && in_list(['Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold','Approved','In Bagging'], doc.workflow_state))",
-      "fieldname": "view_item",
-      "fieldtype": "Button",
-      "label": "View Item"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.gemstone_type",
-      "fetch_if_empty": 1,
-      "fieldname": "gemstone_type",
-      "fieldtype": "Link",
-      "label": "Gemstone Type",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.count_of_spiral_turns",
-      "fieldname": "count_of_spiral_turns",
-      "fieldtype": "Int",
-      "label": "Count of Spiral Turns",
-      "read_only": 1
-     },
-     {
-      "fetch_from": "cad_order_form_detail.diamond_type",
-      "fieldname": "diamond_type",
-      "fieldtype": "Link",
-      "label": "Diamond Type",
-      "options": "Attribute Value",
-      "read_only": 1
-     },
-     {
-      "default": "0",
-      "fetch_from": "cad_order_form_detail.is_metal_target_range",
-      "fieldname": "is_metal_target_range",
-      "fieldtype": "Check",
-      "label": "Is Metal Target Range",
-      "read_only": 1
-     },
-     {
-      "depends_on": "eval: doc.is_metal_target_range == 1",
-      "fetch_from": "cad_order_form_detail.metal_target_from_range",
-      "fieldname": "metal_target_from_range",
-      "fieldtype": "Link",
-      "label": "Metal Target Range",
-      "options": "Attribute Value",
-      "read_only": 1
-     },
-     {
-      "default": "0",
-      "fetch_from": "cad_order_form_detail.is_diamond_target_range",
-      "fieldname": "is_diamond_target_range",
-      "fieldtype": "Check",
-      "label": "Is Diamond Target Range",
-      "read_only": 1
-     },
-     {
-      "depends_on": "eval: doc.is_diamond_target_range == 1",
-      "fetch_from": "cad_order_form_detail.diamond_target_from_range",
-      "fieldname": "diamond_target_from_range",
-      "fieldtype": "Link",
-      "label": "Diamond Target Range",
-      "options": "Attribute Value",
-      "read_only": 1
-     },
-     {
-      "fieldname": "tab_break_7mp1",
-      "fieldtype": "Tab Break",
-      "label": "CAD Details"
-     },
-     {
-      "fieldname": "cad_weight",
-      "fieldtype": "Float",
-      "label": "CAD Weight"
-     },
-     {
-      "fieldname": "loss_weight",
-      "fieldtype": "Float",
-      "label": "Loss Weight"
-     },
-     {
-      "allow_on_submit": 1,
-      "fetch_from": "cad_order_form_detail.rhodium",
-      "fieldname": "rhodium",
-      "fieldtype": "Link",
-      "label": "Rhodium",
-      "options": "Attribute Value",
-      "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
-     },
-     {
-      "fieldname": "section_break_vely",
-      "fieldtype": "Section Break"
-     },
-     {
-      "fetch_from": "cad_order_form.supplier",
-      "fetch_if_empty": 1,
-      "fieldname": "supplier",
-      "fieldtype": "Link",
-      "label": "Supplier",
-      "options": "Supplier"
-     },
-     {
-      "fetch_from": "supplier.supplier_name",
-      "fieldname": "supplier_name",
-      "fieldtype": "Data",
-      "label": "Supplier Name"
-     },
-     {
-      "fetch_from": "cad_order_form.purchase_type",
-      "fieldname": "purchase_type",
-      "fieldtype": "Select",
-      "label": "Purchase Type",
-      "options": "Design\nMould\nRPT\nModel"
-     },
-     {
-      "fieldname": "column_break_opqr",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fetch_from": "cad_order_form_detail.total_weight",
-      "fieldname": "total_weight",
-      "fieldtype": "Float",
-      "label": "Total Weight"
-     }
-    ],
-    "index_web_pages_for_search": 1,
-    "is_submittable": 1,
-    "links": [
-     {
-      "link_doctype": "Item",
-      "link_fieldname": "custom_cad_order_id"
-     },
-     {
-      "link_doctype": "BOM",
-      "link_fieldname": "custom_order_id"
-     },
-     {
-      "link_doctype": "Timesheet",
-      "link_fieldname": "order"
-     }
-    ],
-    "modified": "2024-12-11 16:35:52.442841",
-    "modified_by": "Administrator",
-    "module": "GKE Order Forms",
-    "name": "Order",
-    "naming_rule": "Expression",
-    "owner": "Administrator",
-    "permissions": [],
-    "sort_field": "modified",
-    "sort_order": "DESC",
-    "states": [],
-    "track_changes": 1,
-    "track_seen": 1,
-    "track_views": 1
-   }
+"actions": [],
+"allow_rename": 1,
+"autoname": "format:{cad_order_form}-{index}",
+"creation": "2022-05-24 18:28:04.571441",
+"doctype": "DocType",
+"editable_grid": 1,
+"engine": "InnoDB",
+"field_order": [
+    "index",
+    "bom_or_cad",
+    "workflow_type",
+    "company",
+    "department",
+    "column_break_etz53",
+    "branch",
+    "salesman_name",
+    "section_break_oi3uq",
+    "customer_code",
+    "order_date",
+    "delivery_date",
+    "est_delivery_date",
+    "updated_delivery_date",
+    "project",
+    "parcel_place",
+    "system_due_date",
+    "data_5",
+    "po_no",
+    "order_type",
+    "diamond_quality",
+    "due_days",
+    "est_due_days",
+    "service_type",
+    "flow_type",
+    "section_break_10",
+    "cad_order_form",
+    "design_by",
+    "item_type",
+    "jewelex_batch_no",
+    "cad_order_form_detail",
+    "column_break_2",
+    "view_item",
+    "design_type",
+    "is_repairing",
+    "mod_reason",
+    "amended_from",
+    "section_break_9",
+    "tag_no",
+    "design_id",
+    "customer_order_form",
+    "section_break_6l07",
+    "bom",
+    "column_break_vmtb",
+    "reference_designid",
+    "reference_serial_no_1",
+    "reference_design_id_2",
+    "column_break_ihwh",
+    "reference_serial_no_2",
+    "reference_design_id_3",
+    "reference_serial_no_3",
+    "section_break_19",
+    "category",
+    "subcategory",
+    "setting_type",
+    "sub_setting_type1",
+    "sub_setting_type2",
+    "column_break_ubbqi",
+    "qty",
+    "metal_type",
+    "metal_touch",
+    "metal_colour",
+    "diamond_type",
+    "section_break_25",
+    "metal_target",
+    "is_metal_target_range",
+    "metal_target_from_range",
+    "column_break_31",
+    "diamond_target",
+    "is_diamond_target_range",
+    "diamond_target_from_range",
+    "column_break_28",
+    "product_size",
+    "sizer_type",
+    "section_break_45",
+    "stone_changeable",
+    "feature",
+    "lock_type",
+    "back_chain",
+    "back_chain_size",
+    "back_belt",
+    "back_belt_length",
+    "black_bead",
+    "black_bead_line",
+    "back_side_size",
+    "column_break_49",
+    "back_belt_patti",
+    "charm",
+    "capganthan",
+    "rhodium_",
+    "column_break_56",
+    "chain",
+    "chain_type",
+    "customer_chain",
+    "chain_weight",
+    "chain_thickness",
+    "chain_length",
+    "section_break_63",
+    "number_of_ant",
+    "distance_between_kadi_to_mugappu",
+    "space_between_mugappu",
+    "detachable",
+    "two_in_one",
+    "enamal",
+    "column_break_69",
+    "nakshi_from",
+    "nakshi_weight",
+    "count_of_spiral_turns",
+    "section_break_6pxwc",
+    "gemstone_type1",
+    "gemstone_type",
+    "column_break_a8vd",
+    "gemstone_quality",
+    "section_break_xbmnv",
+    "design_image_1",
+    "column_break_phme6",
+    "design_image_2",
+    "column_break_tgrl",
+    "design_image_3",
+    "column_break_oxpw",
+    "design_image_4",
+    "column_break_dmyy",
+    "design_image_5",
+    "section_break_74",
+    "designer",
+    "designer_assignment",
+    "section_break_znhs",
+    "bom_assignment",
+    "section_break_77",
+    "update_reason",
+    "section_break_tcrzb",
+    "item",
+    "column_break_ggjel",
+    "new_bom",
+    "territories_tab",
+    "india",
+    "india_states",
+    "column_break_chfe",
+    "usa",
+    "usa_states",
+    "images_tab",
+    "design_code_files_section",
+    "cad_file",
+    "column_break_wodq",
+    "rpt_file",
+    "section_break_ysw4",
+    "bom_tab",
+    "bom_metal_detail_section",
+    "metal_detail",
+    "total_metal_weight",
+    "bom_finding_detail_section",
+    "finding_detail",
+    "section_break_xkjh",
+    "total_finding_pcs",
+    "column_break_8hfq",
+    "finding_weight",
+    "column_break_jjs3",
+    "total_finding_weightin_gms",
+    "bom_diamond_detail_section",
+    "diamond_grade",
+    "diamond_detail",
+    "section_break_svqn",
+    "total_diamond_pcs",
+    "column_break_li5m",
+    "total_diamond_weight",
+    "column_break_el7h",
+    "total_diamond_weightin_gms",
+    "bom_gemstone_detail_section",
+    "gemstone_detail",
+    "section_break_xf1o",
+    "total_gemstone_pcs",
+    "column_break_kgi7",
+    "total_gemstone_weight",
+    "column_break_unhz",
+    "total_gemstone_weightin_gms",
+    "bom_other_detail_section",
+    "other_detail",
+    "section_break_st13",
+    "total_other_pcs",
+    "column_break_p94k",
+    "total_other_weight",
+    "product_weight_section",
+    "metal_weight",
+    "gross_weight",
+    "metal_and_finding_weight",
+    "net_wt_add_on",
+    "column_break_u3bb",
+    "diamond_weight",
+    "gemstone_weight",
+    "other_weight",
+    "column_break_zzly",
+    "finding_weight_",
+    "total_diamond_weight_in_gms",
+    "total_gemstone_weight_in_gms",
+    "product_ratio_section",
+    "gold_to_diamond_ratio",
+    "metal_to_diamond_ratio_excl_of_finding",
+    "column_break_5bib",
+    "diamond_ratio",
+    "tab_break_7mp1",
+    "cad_weight",
+    "loss_weight"
+],
+"fields": [
+    {
+    "fieldname": "index",
+    "fieldtype": "Data",
+    "hidden": 1,
+    "label": "Index",
+    "read_only": 1
+    },
+    {
+    "fieldname": "bom_or_cad",
+    "fieldtype": "Select",
+    "label": "BOM or CAD",
+    "options": "\nNew BOM\nDuplicate BOM\nCAD\nCheck",
+    "read_only": 1
+    },
+    {
+    "fieldname": "company",
+    "fieldtype": "Link",
+    "label": "Company",
+    "options": "Company",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form.department",
+    "fieldname": "department",
+    "fieldtype": "Link",
+    "label": "Department",
+    "options": "Department",
+    "read_only": 1
+    },
+    {
+    "fieldname": "column_break_etz53",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fetch_from": "cad_order_form.branch",
+    "fetch_if_empty": 1,
+    "fieldname": "branch",
+    "fieldtype": "Link",
+    "label": "Branch",
+    "options": "Branch",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form.salesman_name",
+    "fieldname": "salesman_name",
+    "fieldtype": "Link",
+    "label": "Sales Person",
+    "options": "Sales Person",
+    "read_only": 1
+    },
+    {
+    "fieldname": "section_break_oi3uq",
+    "fieldtype": "Section Break"
+    },
+    {
+    "fetch_from": "cad_order_form.customer_code",
+    "fieldname": "customer_code",
+    "fieldtype": "Link",
+    "label": "Customer Code",
+    "options": "Customer",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form.order_date",
+    "fieldname": "order_date",
+    "fieldtype": "Date",
+    "in_list_view": 1,
+    "label": "Order Date",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form_detail.delivery_date",
+    "fetch_if_empty": 1,
+    "fieldname": "delivery_date",
+    "fieldtype": "Date",
+    "label": "Delivery Date",
+    "read_only": 1
+    },
+    {
+    "fieldname": "est_delivery_date",
+    "fieldtype": "Date",
+    "label": "Est. Delivery Date",
+    "mandatory_depends_on": "eval:!doc.__islocal"
+    },
+    {
+    "fetch_from": "cad_order_form.project",
+    "fetch_if_empty": 1,
+    "fieldname": "project",
+    "fieldtype": "Link",
+    "label": "Project",
+    "options": "Project",
+    "read_only": 1
+    },
+    {
+    "fieldname": "parcel_place",
+    "fieldtype": "Table MultiSelect",
+    "label": "Shipping Territory",
+    "options": "Territory Multi Select",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form.system_due_date",
+    "fieldname": "system_due_date",
+    "fieldtype": "Date",
+    "label": "System Due Date",
+    "read_only": 1
+    },
+    {
+    "fieldname": "data_5",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fetch_from": "cad_order_form.po_no",
+    "fieldname": "po_no",
+    "fieldtype": "Data",
+    "label": "Customer PO Number",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form.order_type",
+    "fieldname": "order_type",
+    "fieldtype": "Select",
+    "hidden": 1,
+    "label": "Order Type",
+    "options": "Sales\nStock Order",
+    "read_only": 1
+    },
+    {
+    "fieldname": "diamond_quality",
+    "fieldtype": "Link",
+    "label": "Customer Diamond Quality",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form.due_days",
+    "fieldname": "due_days",
+    "fieldtype": "Int",
+    "label": "Due Days",
+    "read_only": 1
+    },
+    {
+    "fieldname": "est_due_days",
+    "fieldtype": "Int",
+    "label": "Est. Due Days",
+    "read_only": 1
+    },
+    {
+    "fieldname": "service_type",
+    "fieldtype": "Table MultiSelect",
+    "label": "Service Type",
+    "options": "Service Type 2",
+    "read_only": 1
+    },
+    {
+    "fieldname": "section_break_10",
+    "fieldtype": "Section Break",
+    "label": "Order Form Detail"
+    },
+    {
+    "fieldname": "cad_order_form",
+    "fieldtype": "Link",
+    "label": "Order Form",
+    "options": "Order Form",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form_detail.design_by",
+    "fieldname": "design_by",
+    "fieldtype": "Select",
+    "label": "Design By",
+    "options": "Customer Design\nOur Design",
+    "read_only": 1
+    },
+    {
+    "fieldname": "item_type",
+    "fieldtype": "Select",
+    "label": "Item Type",
+    "options": "\nTemplate and Variant\nSuffix Of Variant\nOnly Variant\nNo Variant No Suffix\nVariant From Repair Order",
+    "read_only": 1
+    },
+    {
+    "fieldname": "column_break_2",
+    "fieldtype": "Column Break",
+    "read_only": 1
+    },
+    {
+    "fieldname": "cad_order_form_detail",
+    "fieldtype": "Link",
+    "label": "Order Form Detail",
+    "options": "Order Form Detail",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form_detail.design_type",
+    "fieldname": "design_type",
+    "fieldtype": "Link",
+    "label": "Design Type",
+    "options": "Attribute Value"
+    },
+    {
+    "fieldname": "amended_from",
+    "fieldtype": "Link",
+    "label": "Amended From",
+    "no_copy": 1,
+    "options": "Order",
+    "print_hide": 1,
+    "read_only": 1
+    },
+    {
+    "fieldname": "section_break_9",
+    "fieldtype": "Section Break"
+    },
+    {
+    "depends_on": "eval:((doc.design_type==\"Mod\"))",
+    "fetch_from": "cad_order_form_detail.tag_no",
+    "fieldname": "tag_no",
+    "fieldtype": "Link",
+    "label": "Serial No",
+    "options": "Serial No",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form_detail.design_id",
+    "fieldname": "design_id",
+    "fieldtype": "Link",
+    "label": "Design ID",
+    "options": "Item",
+    "read_only": 1
+    },
+    {
+    "depends_on": "eval:doc.design_type == \"Mod\"",
+    "fetch_from": "cad_order_form_detail.bom",
+    "fieldname": "bom",
+    "fieldtype": "Link",
+    "label": "Master BOM",
+    "options": "BOM",
+    "read_only": 1
+    },
+    {
+    "depends_on": "((doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
+    "fetch_from": "cad_order_form_detail.reference_designid",
+    "fieldname": "reference_designid",
+    "fieldtype": "Link",
+    "label": "Reference Design ID 1",
+    "options": "Item",
+    "read_only": 1
+    },
+    {
+    "depends_on": "eval:((doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
+    "fetch_from": "cad_order_form_detail.reference_serial_no_2",
+    "fieldname": "reference_serial_no_1",
+    "fieldtype": "Link",
+    "label": "Reference Serial No 1",
+    "options": "Serial No",
+    "read_only": 1
+    },
+    {
+    "depends_on": "eval: in_list(['Fusion'], doc.design_type)",
+    "fetch_from": "cad_order_form_detail.reference_design_id_2",
+    "fieldname": "reference_design_id_2",
+    "fieldtype": "Link",
+    "label": "Reference Design ID 2",
+    "options": "Item",
+    "read_only": 1
+    },
+    {
+    "depends_on": "eval: in_list(['Fusion'], doc.design_type)",
+    "fetch_from": "cad_order_form_detail.reference_serial_no_2",
+    "fieldname": "reference_serial_no_2",
+    "fieldtype": "Link",
+    "label": "Reference Serial No 2",
+    "options": "Serial No",
+    "read_only": 1
+    },
+    {
+    "depends_on": "eval: in_list(['Fusion'], doc.design_type)",
+    "fetch_from": "cad_order_form_detail.reference_design_id_3",
+    "fieldname": "reference_design_id_3",
+    "fieldtype": "Link",
+    "label": "Reference Design ID 3",
+    "options": "Item",
+    "read_only": 1
+    },
+    {
+    "depends_on": "eval: in_list(['Fusion'], doc.design_type)",
+    "fetch_from": "cad_order_form_detail.reference_serial_no_3",
+    "fieldname": "reference_serial_no_3",
+    "fieldtype": "Link",
+    "label": "Reference Serial No 3",
+    "options": "Serial No",
+    "read_only": 1
+    },
+    {
+    "fieldname": "section_break_19",
+    "fieldtype": "Section Break"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.category",
+    "fieldname": "category",
+    "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": "Item Category",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form_detail.subcategory",
+    "fetch_if_empty": 1,
+    "fieldname": "subcategory",
+    "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": "Item Subcategory",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form_detail.setting_type",
+    "fieldname": "setting_type",
+    "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": "Setting Type",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form_detail.sub_setting_type1",
+    "fieldname": "sub_setting_type1",
+    "fieldtype": "Link",
+    "label": "Sub Setting Type1",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "fieldname": "sub_setting_type2",
+    "fieldtype": "Link",
+    "label": "Sub Setting Type2",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "fieldname": "column_break_ubbqi",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.qty",
+    "fieldname": "qty",
+    "fieldtype": "Int",
+    "label": "No. of Pcs",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form_detail.metal_type",
+    "fieldname": "metal_type",
+    "fieldtype": "Link",
+    "label": "Metal Type",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "fieldname": "metal_touch",
+    "fieldtype": "Link",
+    "label": "Metal Touch",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.metal_colour",
+    "fetch_if_empty": 1,
+    "fieldname": "metal_colour",
+    "fieldtype": "Link",
+    "label": "Metal Colour ",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fieldname": "section_break_25",
+    "fieldtype": "Section Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.diamond_target",
+    "fetch_if_empty": 1,
+    "fieldname": "diamond_target",
+    "fieldtype": "Float",
+    "label": "Diamond Target",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fieldname": "column_break_28",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.product_size",
+    "fetch_if_empty": 1,
+    "fieldname": "product_size",
+    "fieldtype": "Data",
+    "label": "Product Size",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.sizer_type",
+    "fetch_if_empty": 1,
+    "fieldname": "sizer_type",
+    "fieldtype": "Link",
+    "label": "Sizer Type",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fieldname": "column_break_31",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fieldname": "section_break_45",
+    "fieldtype": "Section Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.stone_changeable",
+    "fetch_if_empty": 1,
+    "fieldname": "stone_changeable",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "Stone Changeable",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.lock_type",
+    "fetch_if_empty": 1,
+    "fieldname": "lock_type",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "Lock Type",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.back_chain",
+    "fetch_if_empty": 1,
+    "fieldname": "back_chain",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "Back Chain",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.back_chain_size",
+    "fieldname": "back_chain_size",
+    "fieldtype": "Float",
+    "hidden": 1,
+    "label": "Back Chain Size",
+    "read_only": 1
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.back_belt",
+    "fetch_if_empty": 1,
+    "fieldname": "back_belt",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "Back Belt",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.back_belt_length",
+    "fetch_if_empty": 1,
+    "fieldname": "back_belt_length",
+    "fieldtype": "Float",
+    "hidden": 1,
+    "label": "Back Belt Length",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.black_bead",
+    "fetch_if_empty": 1,
+    "fieldname": "black_bead",
+    "fieldtype": "Link",
+    "label": "Black Bead",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.back_side_size",
+    "fetch_if_empty": 1,
+    "fieldname": "back_side_size",
+    "fieldtype": "Float",
+    "hidden": 1,
+    "label": "Back Side Size",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fieldname": "column_break_49",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.back_belt_patti",
+    "fieldname": "back_belt_patti",
+    "fieldtype": "Data",
+    "hidden": 1,
+    "label": "Back Belt Patti",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form_detail.gemstone_quality",
+    "fieldname": "gemstone_quality",
+    "fieldtype": "Link",
+    "label": "Gemstone Quality",
+    "options": "Attribute Value"
+    },
+    {
+    "fieldname": "column_break_56",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.chain",
+    "fetch_if_empty": 1,
+    "fieldname": "chain",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "Chain",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.chain_type",
+    "fetch_if_empty": 1,
+    "fieldname": "chain_type",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "Chain Type",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.customer_chain",
+    "fieldname": "customer_chain",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "Chain From",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form_detail.chain_weight",
+    "fieldname": "chain_weight",
+    "fieldtype": "Float",
+    "hidden": 1,
+    "label": "Chain Weight",
+    "read_only": 1
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_if_empty": 1,
+    "fieldname": "chain_thickness",
+    "fieldtype": "Float",
+    "hidden": 1,
+    "label": "Chain Thickness",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.chain_length",
+    "fetch_if_empty": 1,
+    "fieldname": "chain_length",
+    "fieldtype": "Float",
+    "hidden": 1,
+    "label": "Chain Length",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fieldname": "section_break_63",
+    "fieldtype": "Section Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.space_between_mugappu",
+    "fetch_if_empty": 1,
+    "fieldname": "space_between_mugappu",
+    "fieldtype": "Float",
+    "hidden": 1,
+    "label": "Space between Mugappu",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.detachable",
+    "fetch_if_empty": 1,
+    "fieldname": "detachable",
+    "fieldtype": "Link",
+    "label": "Detachable",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.enamal",
+    "fetch_if_empty": 1,
+    "fieldname": "enamal",
+    "fieldtype": "Link",
+    "label": "Enamal",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fieldname": "column_break_69",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.nakshi_from",
+    "fieldname": "nakshi_from",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "Nakshi From",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form_detail.nakshi_weight",
+    "fieldname": "nakshi_weight",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "Nakshi Weight",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "fieldname": "section_break_6pxwc",
+    "fieldtype": "Section Break"
+    },
+    {
+    "fieldname": "section_break_xbmnv",
+    "fieldtype": "Section Break"
+    },
+    {
+    "depends_on": "eval:((doc.design_type==\"New Design\")||(doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
+    "fetch_from": "cad_order_form_detail.design_image_1",
+    "fieldname": "design_image_1",
+    "fieldtype": "Attach Image",
+    "label": "Design Image 1",
+    "read_only": 1
+    },
+    {
+    "fieldname": "column_break_phme6",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.design_image2",
+    "fieldname": "design_image_2",
+    "fieldtype": "Attach Image",
+    "label": "Design Image 2",
+    "read_only": 1
+    },
+    {
+    "fieldname": "section_break_74",
+    "fieldtype": "Section Break"
+    },
+    {
+    "depends_on": "eval:doc.bom_or_cad == 'CAD' || doc.bom_or_cad == 'Duplicate BOM' || (doc.bom_or_cad == 'Check' && doc.workflow_type=='CAD') || (doc.design_type == 'New Design' && doc.bom_or_cad == 'CAD' && doc.customer_order_form)",
+    "fieldname": "designer_assignment",
+    "fieldtype": "Table",
+    "label": "Designer Assignment",
+    "options": "Designer Assignment - CAD"
+    },
+    {
+    "fieldname": "section_break_77",
+    "fieldtype": "Section Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "depends_on": "eval: in_list(['Assigned - On-Hold','Designing - On-Hold','Sent to QC - On-Hold','Creating BOM - On-Hold','Updating BOM - On-Hold','BOM QC - On-Hold'],doc.workflow_state)",
+    "fieldname": "update_reason",
+    "fieldtype": "Small Text",
+    "label": "Update Reason"
+    },
+    {
+    "fieldname": "section_break_tcrzb",
+    "fieldtype": "Section Break"
+    },
+    {
+    "depends_on": "eval:(in_list(['Update Item','Update BOM','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))",
+    "fieldname": "item",
+    "fieldtype": "Link",
+    "label": "Design Code",
+    "no_copy": 1,
+    "options": "Item",
+    "read_only": 1
+    },
+    {
+    "fieldname": "column_break_ggjel",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "depends_on": "eval:(in_list(['Update BOM','Creating BOM','Creating BOM - On-Hold','Updating BOM','Updating BOM - On-Hold','BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))",
+    "fieldname": "new_bom",
+    "fieldtype": "Link",
+    "label": "New BOM",
+    "mandatory_depends_on": "eval: doc.workflow_state == 'Creating BOM'",
+    "options": "BOM"
+    },
+    {
+    "fieldname": "territories_tab",
+    "fieldtype": "Tab Break",
+    "label": "Territories"
+    },
+    {
+    "default": "0",
+    "fieldname": "india",
+    "fieldtype": "Check",
+    "label": "INDIA",
+    "read_only": 1
+    },
+    {
+    "fieldname": "india_states",
+    "fieldtype": "Table MultiSelect",
+    "label": "States",
+    "options": "Territory Multi Select",
+    "read_only": 1
+    },
+    {
+    "default": "0",
+    "fieldname": "usa",
+    "fieldtype": "Check",
+    "label": "USA",
+    "read_only": 1
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.feature",
+    "fetch_if_empty": 1,
+    "fieldname": "feature",
+    "fieldtype": "Link",
+    "label": "Feature",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fieldname": "usa_states",
+    "fieldtype": "Select",
+    "label": "USA States",
+    "options": "\nUSA",
+    "read_only": 1
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.distance_between_kadi_to_mugappu",
+    "fetch_if_empty": 1,
+    "fieldname": "distance_between_kadi_to_mugappu",
+    "fieldtype": "Float",
+    "hidden": 1,
+    "label": "Distance Between Kadi To Mugappu",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fieldname": "column_break_a8vd",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fieldname": "column_break_chfe",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.total_mugappu",
+    "fetch_if_empty": 1,
+    "fieldname": "number_of_ant",
+    "fieldtype": "Float",
+    "hidden": 1,
+    "label": "Number Of Ant",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.2_in_1",
+    "fetch_if_empty": 1,
+    "fieldname": "two_in_one",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "2 in 1",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.metal_target",
+    "fieldname": "metal_target",
+    "fieldtype": "Float",
+    "label": "Metal Target",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form.flow_type",
+    "fieldname": "flow_type",
+    "fieldtype": "Select",
+    "label": "Flow Type",
+    "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO",
+    "read_only": 1
+    },
+    {
+    "default": "0",
+    "depends_on": "eval:doc.is_repairing",
+    "fetch_from": "cad_order_form_detail.is_repairing",
+    "fieldname": "is_repairing",
+    "fieldtype": "Check",
+    "label": "Is Repairing"
+    },
+    {
+    "depends_on": "eval:doc.design_type == 'Mod' && doc.mod_reason == 'Attribute Change'",
+    "fieldname": "workflow_type",
+    "fieldtype": "Select",
+    "label": "Workflow Type",
+    "options": "\nCAD\nBOM"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.mod_reason",
+    "fetch_if_empty": 1,
+    "fieldname": "mod_reason",
+    "fieldtype": "Link",
+    "label": "Mod Reason",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.charm",
+    "fetch_if_empty": 1,
+    "fieldname": "charm",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "Charm",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.capganthan",
+    "fetch_if_empty": 1,
+    "fieldname": "capganthan",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "Cap/Ganthan",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fieldname": "column_break_tgrl",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.design_image_3",
+    "fieldname": "design_image_3",
+    "fieldtype": "Attach Image",
+    "label": "Design Image 3",
+    "read_only": 1
+    },
+    {
+    "fieldname": "column_break_oxpw",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.design_image_4",
+    "fieldname": "design_image_4",
+    "fieldtype": "Attach Image",
+    "label": "Design Image 4",
+    "read_only": 1
+    },
+    {
+    "fieldname": "column_break_dmyy",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.design_image_5",
+    "fieldname": "design_image_5",
+    "fieldtype": "Attach Image",
+    "label": "Design Image 5",
+    "read_only": 1
+    },
+    {
+    "depends_on": "eval: in_list(['Draft','Assigned','Assigned - On-Hold','Update Designer'],doc.workflow_state)",
+    "fieldname": "designer",
+    "fieldtype": "Button",
+    "label": "Designer"
+    },
+    {
+    "fieldname": "images_tab",
+    "fieldtype": "Tab Break",
+    "label": "Images"
+    },
+    {
+    "collapsible": 1,
+    "collapsible_depends_on": "eval:false",
+    "fieldname": "design_code_files_section",
+    "fieldtype": "Section Break",
+    "label": "Design Code Files "
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "cad_file",
+    "fieldtype": "Attach",
+    "label": "CAD File",
+    "mandatory_depends_on": "eval:(in_list(['BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "rpt_file",
+    "fieldtype": "Attach",
+    "label": "RPT File",
+    "mandatory_depends_on": "eval:(in_list(['BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))"
+    },
+    {
+    "fieldname": "column_break_wodq",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "depends_on": "eval: (in_list(['Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state) && doc.design_type != 'As Per Serial No')",
+    "fieldname": "bom_assignment",
+    "fieldtype": "Table",
+    "label": "BOM Assignment",
+    "mandatory_depends_on": "eval: (doc.workflow_state == 'Update BOM' && doc.design_type != 'As Per Serial No') || (doc.design_type != 'New Design' && doc.bom_or_cad != 'CAD' && doc.customer_order_form)",
+    "options": "Designer Assignment - CAD"
+    },
+    {
+    "fieldname": "bom_tab",
+    "fieldtype": "Tab Break",
+    "label": "BOM "
+    },
+    {
+    "collapsible": 1,
+    "collapsible_depends_on": "eval:true",
+    "fieldname": "bom_metal_detail_section",
+    "fieldtype": "Section Break",
+    "label": "BOM Metal Detail"
+    },
+    {
+    "collapsible": 1,
+    "collapsible_depends_on": "eval:true",
+    "fieldname": "bom_diamond_detail_section",
+    "fieldtype": "Section Break",
+    "label": "BOM Diamond Detail"
+    },
+    {
+    "collapsible": 1,
+    "collapsible_depends_on": "eval:true",
+    "fieldname": "bom_gemstone_detail_section",
+    "fieldtype": "Section Break",
+    "label": "BOM Gemstone Detail"
+    },
+    {
+    "collapsible": 1,
+    "collapsible_depends_on": "eval:true",
+    "fieldname": "bom_finding_detail_section",
+    "fieldtype": "Section Break",
+    "label": "BOM Finding Detail"
+    },
+    {
+    "collapsible": 1,
+    "collapsible_depends_on": "eval:true",
+    "fieldname": "bom_other_detail_section",
+    "fieldtype": "Section Break",
+    "label": "BOM Other Detail"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "total_metal_weight",
+    "fieldtype": "Float",
+    "label": "Total Metal Weight"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "total_finding_pcs",
+    "fieldtype": "Float",
+    "label": "Total Finding Pcs"
+    },
+    {
+    "fieldname": "column_break_8hfq",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "finding_weight",
+    "fieldtype": "Float",
+    "label": "Finding Weight"
+    },
+    {
+    "fieldname": "column_break_jjs3",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "total_finding_weightin_gms",
+    "fieldtype": "Float",
+    "label": "Total Finding Weight(In gms)"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "diamond_grade",
+    "fieldtype": "Link",
+    "label": "Diamond Grade",
+    "options": "Attribute Value"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "total_diamond_pcs",
+    "fieldtype": "Int",
+    "label": "Total Diamond Pcs"
+    },
+    {
+    "fieldname": "column_break_li5m",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "total_diamond_weight",
+    "fieldtype": "Float",
+    "label": "Total Diamond Weight"
+    },
+    {
+    "fieldname": "column_break_el7h",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "total_diamond_weightin_gms",
+    "fieldtype": "Data",
+    "label": "Total Diamond Weight(In gms)"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "total_gemstone_pcs",
+    "fieldtype": "Int",
+    "label": "Total Gemstone Pcs"
+    },
+    {
+    "fieldname": "column_break_kgi7",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "total_gemstone_weight",
+    "fieldtype": "Float",
+    "label": "Total Gemstone Weight"
+    },
+    {
+    "fieldname": "column_break_unhz",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "total_gemstone_weightin_gms",
+    "fieldtype": "Float",
+    "label": "Total Gemstone Weight(In gms)"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "total_other_pcs",
+    "fieldtype": "Int",
+    "label": "Total Other Pcs"
+    },
+    {
+    "fieldname": "column_break_p94k",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "total_other_weight",
+    "fieldtype": "Float",
+    "label": "Total Other Weight"
+    },
+    {
+    "fieldname": "section_break_xkjh",
+    "fieldtype": "Section Break"
+    },
+    {
+    "fieldname": "section_break_svqn",
+    "fieldtype": "Section Break"
+    },
+    {
+    "fieldname": "section_break_xf1o",
+    "fieldtype": "Section Break"
+    },
+    {
+    "fieldname": "section_break_st13",
+    "fieldtype": "Section Break"
+    },
+    {
+    "fieldname": "product_weight_section",
+    "fieldtype": "Section Break",
+    "label": "Product Weight"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "metal_weight",
+    "fieldtype": "Float",
+    "label": "Metal Weight (In Gram)"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "gross_weight",
+    "fieldtype": "Float",
+    "label": "Gross Weight (In Gram)"
+    },
+    {
+    "allow_on_submit": 1,
+    "description": "(Metal and Finding Weight)",
+    "fieldname": "metal_and_finding_weight",
+    "fieldtype": "Float",
+    "label": "Net Weight (In Gram)"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "net_wt_add_on",
+    "fieldtype": "Float",
+    "label": "Net Wt add on"
+    },
+    {
+    "fieldname": "column_break_u3bb",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "diamond_weight",
+    "fieldtype": "Float",
+    "label": "Diamond Weight (In Carat)"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "gemstone_weight",
+    "fieldtype": "Float",
+    "label": "Gemstone Weight (In Carat)"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "other_weight",
+    "fieldtype": "Float",
+    "label": "Other Weight (In Gram)"
+    },
+    {
+    "fieldname": "column_break_zzly",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "finding_weight_",
+    "fieldtype": "Float",
+    "label": "Finding Weight (In Gram)"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "total_diamond_weight_in_gms",
+    "fieldtype": "Float",
+    "label": "Total Diamond Weight (In Gram)"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "total_gemstone_weight_in_gms",
+    "fieldtype": "Float",
+    "label": "Total Gemstone Weight (In Gram)"
+    },
+    {
+    "fieldname": "product_ratio_section",
+    "fieldtype": "Section Break",
+    "label": "Product Ratio"
+    },
+    {
+    "allow_on_submit": 1,
+    "description": "Comparison: 10grams = 1 Carat",
+    "fieldname": "gold_to_diamond_ratio",
+    "fieldtype": "Float",
+    "label": "Metal to Diamond Ratio(Incl. of Finding)"
+    },
+    {
+    "allow_on_submit": 1,
+    "description": "Comparison: 10grams = 1 Carat",
+    "fieldname": "metal_to_diamond_ratio_excl_of_finding",
+    "fieldtype": "Float",
+    "label": "Metal to Diamond Ratio(Excl. of Finding)"
+    },
+    {
+    "fieldname": "column_break_5bib",
+    "fieldtype": "Column Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "description": "Avg. Diamond Weight = Total Diamond Weight / Total No. of Pcs",
+    "fieldname": "diamond_ratio",
+    "fieldtype": "Float",
+    "label": "Avg. Diamond Weight(In Carat)"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "metal_detail",
+    "fieldtype": "Table",
+    "label": "Metal Detail",
+    "options": "Order BOM Metal Detail"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "finding_detail",
+    "fieldtype": "Table",
+    "label": "Finding Detail",
+    "options": "Order BOM Finding Detail"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "diamond_detail",
+    "fieldtype": "Table",
+    "label": "Diamond Detail",
+    "options": "Order BOM Diamond Detail"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "gemstone_detail",
+    "fieldtype": "Table",
+    "label": "Gemstone Detail",
+    "options": "Order BOM Gemstone Detail"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "other_detail",
+    "fieldtype": "Table",
+    "label": "Other Detail",
+    "options": "Order BOM Other Detail"
+    },
+    {
+    "fieldname": "section_break_znhs",
+    "fieldtype": "Section Break"
+    },
+    {
+    "fieldname": "column_break_vmtb",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fieldname": "section_break_6l07",
+    "fieldtype": "Section Break"
+    },
+    {
+    "fieldname": "column_break_ihwh",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.customer_order_form",
+    "fieldname": "customer_order_form",
+    "fieldtype": "Link",
+    "label": "Customer Order Form",
+    "options": "Customer Order Form",
+    "read_only": 1
+    },
+    {
+    "depends_on": "eval: (in_list([\"New Design\",\"Sketch Design\",\"Mod\"],doc.design_type) && in_list(['Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold','Approved'], doc.workflow_state))",
+    "fieldname": "view_item",
+    "fieldtype": "Button",
+    "label": "View Item"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.gemstone_type",
+    "fetch_if_empty": 1,
+    "fieldname": "gemstone_type",
+    "fieldtype": "Link",
+    "label": "Gemstone Type",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.count_of_spiral_turns",
+    "fieldname": "count_of_spiral_turns",
+    "fieldtype": "Int",
+    "label": "Count of Spiral Turns",
+    "read_only": 1
+    },
+    {
+    "fetch_from": "cad_order_form_detail.diamond_type",
+    "fieldname": "diamond_type",
+    "fieldtype": "Link",
+    "label": "Diamond Type",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "default": "0",
+    "fetch_from": "cad_order_form_detail.is_metal_target_range",
+    "fieldname": "is_metal_target_range",
+    "fieldtype": "Check",
+    "label": "Is Metal Target Range",
+    "read_only": 1
+    },
+    {
+    "depends_on": "eval: doc.is_metal_target_range == 1",
+    "fetch_from": "cad_order_form_detail.metal_target_from_range",
+    "fieldname": "metal_target_from_range",
+    "fieldtype": "Link",
+    "label": "Metal Target Range",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "default": "0",
+    "fetch_from": "cad_order_form_detail.is_diamond_target_range",
+    "fieldname": "is_diamond_target_range",
+    "fieldtype": "Check",
+    "label": "Is Diamond Target Range",
+    "read_only": 1
+    },
+    {
+    "depends_on": "eval: doc.is_diamond_target_range == 1",
+    "fetch_from": "cad_order_form_detail.diamond_target_from_range",
+    "fieldname": "diamond_target_from_range",
+    "fieldtype": "Link",
+    "label": "Diamond Target Range",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "fieldname": "tab_break_7mp1",
+    "fieldtype": "Tab Break",
+    "label": "CAD Details"
+    },
+    {
+    "fieldname": "cad_weight",
+    "fieldtype": "Float",
+    "label": "CAD Weight"
+    },
+    {
+    "fieldname": "loss_weight",
+    "fieldtype": "Float",
+    "label": "Loss Weight"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.rhodium",
+    "fetch_if_empty": 1,
+    "fieldname": "rhodium_",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "Rhodium",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.gemstone_type1",
+    "fetch_if_empty": 1,
+    "fieldname": "gemstone_type1",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "Gemstone Type1",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "fieldname": "section_break_ysw4",
+    "fieldtype": "Section Break"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form_detail.black_bead_line",
+    "fetch_if_empty": 1,
+    "fieldname": "black_bead_line",
+    "fieldtype": "Float",
+    "hidden": 1,
+    "label": "Black Bead Line",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "cad_order_form.updated_delivery_date",
+    "fieldname": "updated_delivery_date",
+    "fieldtype": "Date",
+    "label": "Updated Delivery Date"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.jewelex_batch_no",
+    "fieldname": "jewelex_batch_no",
+    "fieldtype": "Data",
+    "label": "Jewelex Batch No"
+    }
+],
+"index_web_pages_for_search": 1,
+"is_submittable": 1,
+"links": [
+    {
+    "link_doctype": "Item",
+    "link_fieldname": "custom_cad_order_id"
+    },
+    {
+    "link_doctype": "BOM",
+    "link_fieldname": "custom_order_id"
+    },
+    {
+    "link_doctype": "Timesheet",
+    "link_fieldname": "order"
+    }
+],
+"modified": "2024-12-16 15:26:41.495499",
+"modified_by": "Administrator",
+"module": "GKE Order Forms",
+"name": "Order",
+"naming_rule": "Expression",
+"owner": "Administrator",
+"permissions": [],
+"sort_field": "modified",
+"sort_order": "DESC",
+"states": [],
+"track_changes": 1,
+"track_seen": 1,
+"track_views": 1
+}

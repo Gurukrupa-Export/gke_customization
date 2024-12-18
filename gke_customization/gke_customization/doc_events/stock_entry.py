@@ -68,3 +68,64 @@ def get_delivery_challan(source_name, target_doc=None):
 						})
 
 	return target_doc
+
+
+@frappe.whitelist()
+def show_stock_ledger_preview(company, doctype, docname):
+	filters = frappe._dict(company=company)
+	doc = frappe.get_doc(doctype, docname)
+	doc.run_method("before_sl_preview")
+	sl_columns, sl_data = get_stock_ledger_preview(doc, filters)
+	# frappe.throw(f"{sl_data}")
+
+	frappe.db.rollback()
+
+	return {
+		"sl_columns": sl_columns,
+		"sl_data": sl_data,
+	}
+
+
+from erpnext.controllers.stock_controller import get_columns,get_data,get_sl_entries_for_preview
+from erpnext.stock.report.stock_ledger.stock_ledger import get_columns as get_sl_columns
+
+def get_stock_ledger_preview(doc, filters):
+
+	sl_columns, sl_data = [], []
+	fields = [
+		"item_code",
+		"stock_uom",
+		"actual_qty",
+		"qty_after_transaction",
+		"warehouse",
+		"incoming_rate",
+		"valuation_rate",
+		"stock_value",
+		"stock_value_difference",
+	]
+	columns_fields = [
+		"item_code",
+		"stock_uom",
+		"in_qty",
+		"out_qty",
+		"qty_after_transaction",
+		"warehouse",
+		"incoming_rate",
+		"in_out_rate",
+		"stock_value",
+		"stock_value_difference",
+	]
+
+	if doc.get("update_stock") or doc.doctype in ("Purchase Receipt", "Delivery Note", "Stock Entry"):
+		doc.docstatus = 1
+		doc.update_stock_ledger()
+		columns = get_sl_columns(filters)
+		sl_entries = get_sl_entries_for_preview(doc.doctype, doc.name, fields)
+		sl_columns = get_columns(columns, columns_fields)
+		sl_data = get_data(columns_fields, sl_entries)
+		 
+	return sl_columns, sl_data
+
+
+
+
