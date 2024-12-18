@@ -1,0 +1,113 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "field:customer",
+ "creation": "2024-12-16 09:51:15.113288",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_a1ud",
+  "customer",
+  "customer_name",
+  "section_break_h04s",
+  "customer_metal_touch_detail",
+  "customer_metal_type_detail",
+  "customer_category_detail",
+  "customer_finding_detail",
+  "customer_metal_color_detail",
+  "customer_prolif_detail"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_a1ud",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "unique": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_h04s",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "customer_metal_touch_detail",
+   "fieldtype": "Table",
+   "label": "Customer Metal Touch Detail",
+   "options": "Customer Metal Touch Detail"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "customer_metal_type_detail",
+   "fieldtype": "Table",
+   "label": "Customer Metal Type Detail",
+   "options": "Customer Metal Type Detail"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "customer_category_detail",
+   "fieldtype": "Table",
+   "label": "Customer Category Detail",
+   "options": "Customer Category Detail"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "customer_finding_detail",
+   "fieldtype": "Table",
+   "label": "Customer Finding Detail",
+   "options": "Customer Finding Detail"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "customer_metal_color_detail",
+   "fieldtype": "Table",
+   "label": "Customer Metal Color Detail",
+   "options": "Customer Metal Color Detail"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "customer_prolif_detail",
+   "fieldtype": "Table",
+   "label": "Customer Prolif Detail",
+   "options": "Customer Prolif Detail"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-12-16 14:05:56.302367",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Customer Attributes",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

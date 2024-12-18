@@ -1,0 +1,64 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-12-14 18:26:44.448737",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_ajxr",
+  "code_color",
+  "customer_metal_color",
+  "column_break_jfcf",
+  "gk_metal_color",
+  "country"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_ajxr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "code_color",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Code"
+  },
+  {
+   "fieldname": "customer_metal_color",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer Metal Color"
+  },
+  {
+   "fieldname": "column_break_jfcf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gk_metal_color",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "GK Metal Color",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Country",
+   "options": "\nIndia\nUnited States\nGCC"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-12-16 10:00:28.574111",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Customer Metal Color Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
