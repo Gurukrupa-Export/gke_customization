@@ -40,6 +40,10 @@ class Order(Document):
 		if self.workflow_state == 'Approved':
 			timesheet = frappe.get_doc("Timesheet",{"order":self.name},"name")
 			timesheet.run_method('submit')
+		# for temp
+		if self.workflow_state == 'Update BOM' and self.design_type == 'Sketch Design':
+			update_variant_attributes(self)
+		# for temp
 
 def calculate_metal_weights(self):
 	total_metal_weight = 0
