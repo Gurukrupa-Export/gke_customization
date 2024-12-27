@@ -12,7 +12,10 @@
   "com_contact_no",
   "reference_name",
   "company_name",
-  "company_address"
+  "company_address",
+  "visitor_photo",
+  "visitor_image_preview",
+  "reason_for_visit"
  ],
  "fields": [
   {
@@ -49,11 +52,27 @@
    "fieldname": "company_address",
    "fieldtype": "Data",
    "label": "Company Address"
+  },
+  {
+   "fieldname": "visitor_image_preview",
+   "fieldtype": "Image",
+   "label": "Visitor Image Preview",
+   "options": "visitor_photo"
+  },
+  {
+   "fieldname": "reason_for_visit",
+   "fieldtype": "Small Text",
+   "label": "Reason for Visit"
+  },
+  {
+   "fieldname": "visitor_photo",
+   "fieldtype": "Attach Image",
+   "label": "Visitor Photo"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-09-26 10:37:09.816056",
+ "modified": "2024-10-02 11:45:49.593918",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Gate Pass Contact",

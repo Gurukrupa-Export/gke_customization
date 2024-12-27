@@ -1,0 +1,56 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-09-12 10:05:11.035479",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_tbxu",
+  "customer",
+  "customer_name",
+  "column_break_dpk6",
+  "theme_code"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_tbxu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "column_break_dpk6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "theme_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Theme Code"
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-09-12 10:09:29.792823",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Item Theme Code Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

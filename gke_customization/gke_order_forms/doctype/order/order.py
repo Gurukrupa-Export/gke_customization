@@ -37,6 +37,13 @@ class Order(Document):
 		calculate_gemstone_weights(self)
 		calculate_other_weights(self)
 		calculate_total(self)
+		if self.workflow_state == 'Approved':
+			timesheet = frappe.get_doc("Timesheet",{"order":self.name},"name")
+			timesheet.run_method('submit')
+		# for temp
+		if self.workflow_state == 'Update BOM' and self.design_type == 'Sketch Design':
+			update_variant_attributes(self)
+		# for temp
 
 def calculate_metal_weights(self):
 	total_metal_weight = 0
@@ -1245,6 +1252,7 @@ def make_quotation(source_name, target_doc=None):
 		"custom_customer_stone": order.get("customer_stone"),
 		"custom_customer_good": order.get("customer_good"),
 		"po_no": order.get("po_no"),
+		"custom_jewelex_batch_no":order.get("jewelex_batch_no"),
 	})
 	set_missing_values(order, target_doc)
 

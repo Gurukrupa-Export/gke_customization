@@ -30,6 +30,8 @@ from frappe.utils import (
 class OrderForm(Document):
 	def on_submit(self):
 		create_cad_orders(self)
+		if self.supplier:
+			create_po(self)
 
 	# def on_cancel(self):
 	# 	delete_auto_created_cad_order(self)
@@ -364,12 +366,11 @@ def get_bom_details(design_id,doc):
 	doc = json.loads(doc)
 	item_subcategory = frappe.db.get_value("Item",design_id,"item_subcategory")
 
-	fg_bom = frappe.db.get_value("BOM",{"tag_no":doc["tag_no"],"item":design_id},"name")
+	fg_bom = frappe.db.get_value("BOM",{"bom_type":"Finished Goods","item":design_id},"name",order_by="creation DESC")
 	master_bom = fg_bom
 	if not fg_bom:
 		temp_bom = frappe.db.get_value("Item",design_id,"master_bom")
 		master_bom = temp_bom
-	
 	if not master_bom:
 		frappe.throw(f"Master BOM for Item <b>{get_link_to_form('Item',design_id)}</b> is not set")
 	all_item_attributes = []
@@ -547,27 +548,129 @@ def set_data(self):
 	if self.order_details:
 		for i in self.order_details:
 			if i.design_type in ['As Per Serial No','Mod'] and i.design_id:
-				design_id = i.design_id
-				item_subcategory = frappe.db.get_value("Item", design_id, "item_subcategory")
-				master_bom = i.bom
+				try:
+					design_id = i.design_id
+					item_subcategory = frappe.db.get_value("Item", design_id, "item_subcategory")
+					master_bom = i.bom
 
-				# Prepare a list to hold the item attribute names formatted as per your requirements
-				all_item_attributes = []
-				
-				# Retrieve all item attributes for the given item subcategory
-				for item_attr in frappe.get_doc("Attribute Value", item_subcategory).item_attributes:
-					# Format the item attribute names by replacing spaces with underscores, removing '/', and converting to lower case
-					formatted_attr = item_attr.item_attribute.replace(' ', '_').replace('/', '').lower()
-					all_item_attributes.append(formatted_attr)
-				
-				# Retrieve the values for the specified attributes from the BOM
-				attribute_values = frappe.db.get_value("BOM", master_bom, all_item_attributes, as_dict=1)
-				
-				# Dynamically set the attributes on self with the retrieved values
-				for key, value in attribute_values.items():
-					a = getattr(i, key, value)
-					if a:
-						continue
-					# frappe.throw(f"{a}")
-					else:
-						setattr(i, key, value)
+					# Prepare a list to hold the item attribute names formatted as per your requirements
+					all_item_attributes = []
+					
+					# Retrieve all item attributes for the given item subcategory
+					for item_attr in frappe.get_doc("Attribute Value", item_subcategory).item_attributes:
+						# Format the item attribute names by replacing spaces with underscores, removing '/', and converting to lower case
+						formatted_attr = item_attr.item_attribute.replace(' ', '_').replace('/', '').lower()
+						all_item_attributes.append(formatted_attr)
+					
+					# Retrieve the values for the specified attributes from the BOM
+					attribute_values = frappe.db.get_value("BOM", master_bom, all_item_attributes, as_dict=1)
+					
+					# Dynamically set the attributes on self with the retrieved values
+					for key, value in attribute_values.items():
+						if str(key) == "item_category":
+							key = "category"
+						if str(key) == "item_subcategory":
+							key = "subcategory"
+						a = getattr(i, key, value)
+						if a:
+							continue
+						# frappe.throw(f"{a}")
+						else:
+							setattr(i, key, value)
+						# Prepare a list to hold the item attribute names formatted as per your requirements
+						all_item_attributes = []
+						
+						# Retrieve all item attributes for the given item subcategory
+						for item_attr in frappe.get_doc("Attribute Value", item_subcategory).item_attributes:
+							# Format the item attribute names by replacing spaces with underscores, removing '/', and converting to lower case
+							formatted_attr = item_attr.item_attribute.replace(' ', '_').replace('/', '').lower()
+							
+							all_item_attributes.append(formatted_attr)
+						
+						# Retrieve the values for the specified attributes from the BOM
+						attribute_values = frappe.db.get_value("BOM", master_bom, all_item_attributes, as_dict=1)
+						# frappe.throw(f"{attribute_values}")
+						# Dynamically set the attributes on self with the retrieved values
+						for key, value in attribute_values.items():
+							if str(key) == "item_category":
+								key = "category"
+							if str(key) == "item_subcategory":
+								key = "subcategory"
+							a = getattr(i, key, value)
+							if a:
+								continue
+							else:
+								setattr(i, key, value)
+				except:
+					frappe.throw(f"Row {i.idx} has Issue.Check BOM first.")
+
+
+def create_po(self):
+	qty = 0
+	po_doc = frappe.new_doc("Purchase Order")
+	po_doc.supplier = self.supplier
+	po_doc.transaction_date = self.delivery_date
+	po_doc.company = self.company
+	po_doc.branch = self.branch
+	po_doc.project = self.project
+	po_doc.purchase_type = 'Subcontracting'
+	po_doc.custom_forms = "Order Form"
+	po_doc.custom_form_id = self.name
+	po_doc.schedule_date = self.delivery_date
+
+	po_item_log = po_doc.append("items", {})
+	if self.purchase_type == 'Design':
+		po_item_log.item_code = "Design Expness"
+	elif self.purchase_type == 'RPT':
+		po_item_log.item_code = "RPT Expness"
+	elif self.purchase_type == 'Model':
+		total_weight = 0
+		# qty_18 = 0
+		# qty_22 = 0
+		item_code = ''
+		for i in self.order_details:
+			# total_weight += i.total_weight
+			if i.metal_touch == '18KT':
+				item_code = "Semi Finish Goods 18KT"
+			if i.metal_touch == '22KT':
+				item_code = "Semi Finish Goods 22KT"
+		po_item_log.item_code = item_code
+		# po_item_log.total_weight = total_weight
+		# po_item_log.weight_per_unit = total_weight/qty_22
+	elif self.purchase_type == 'Mould':
+		po_item_log.item_code = "Mould Expness"
+	
+	if self.purchase_type in ['Model']:
+		qty_18 = 0
+		qty_22 = 0
+		for i in self.order_details:
+			if i.metal_touch == '18KT':
+				qty_18 += i.qty
+			if i.metal_touch == '22KT':
+				qty_22 += i.qty
+		if qty_18:
+			qty = qty_18
+		else:
+			qty = qty_22
+	else:
+		for i in self.order_details:
+			qty+=i.qty
+	
+	po_item_log.qty = qty
+	po_item_log.schedule_date = self.delivery_date
+	po_item_log.schedule_date = self.delivery_date
+	po_item_log.qty = len(self.order_details)
+
+	# po_doc.set("payment_schedule", [])
+	# po_trn_log = po_doc.append("payment_schedule", {})
+	# po_trn_log.due_date = self.delivery_date
+	# po_trn_log.invoice_portion = 100.0
+
+	po_doc.save()
+	po_name = po_doc.name
+	msg = _("The following {0} is created: {1}").format(
+			frappe.bold(_("Purchase Order")), "<br>" + get_link_to_form("Purchase Order", po_name)
+		)
+	
+	frappe.msgprint(msg)
+	# return

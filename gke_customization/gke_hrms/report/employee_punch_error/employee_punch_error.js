@@ -4,17 +4,41 @@
 frappe.query_reports["Employee Punch Error"] = {
 	"filters": [
 		{
+			"label": __("Company"),
+			"fieldname": "company",
+			"fieldtype": "Link",
+			"options": 'Company'
+		},
+		{
+			"label": __("From Date"),
+			"fieldname": "from_date",
+			"fieldtype": "Date",
+		},
+		{
+			"label": __("To Date"),
+			"fieldname": "to_date",
+			"fieldtype": "Date",
+		},
+		{
+			"label": __("Department"),
+			"fieldname": "department",
+			"fieldtype": "Link",
+			"options": 'Department',
+			"get_query": function() {
+				var company = frappe.query_report.get_filter_value('company')
+				return {
+					"doctype": "Department",
+					"filters": {"company": company}
+				}
+			},
+		},
+		{
 			"label": __("Employee"),
 			"fieldname": "employee",
 			"fieldtype": "Link",
 			"options": 'Employee'
-		},
-		{
-			"label": __("Date"),
-			"fieldname": "date",
-			"fieldtype": "Date",
-			// "default": frappe.datetime.get_today(),
-		},
+		},	
+		
 
 	],
 	onload: (report) => {

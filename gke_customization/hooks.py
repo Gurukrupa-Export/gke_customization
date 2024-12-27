@@ -29,7 +29,12 @@ app_license = "MIT"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-doctype_js = {"Quotation" : "public/js/doctype_js/quotation.js"}
+doctype_js = {
+    "Quotation" : "public/js/doctype_js/quotation.js",
+    "Employee Onboarding" : "public/js/doctype_js/employee_onboarding.js",
+    "Payment Entry" : "public/js/doctype_js/payment_entry.js",
+    "Stock Entry" : "public/js/doctype_js/stock_entry.js",
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -128,21 +133,10 @@ doctype_js = {"Quotation" : "public/js/doctype_js/quotation.js"}
 # ---------------
 
 # scheduler_events = {
-#	"all": [
-#		"gke_customization.tasks.all"
-#	],
-#	"daily": [
-#		"gke_customization.tasks.daily"
-#	],
-#	"hourly": [
-#		"gke_customization.tasks.hourly"
-#	],
-#	"weekly": [
-#		"gke_customization.tasks.weekly"
-#	],
-#	"monthly": [
-#		"gke_customization.tasks.monthly"
-#	],
+
+# 	"all": [
+# 		"gke_customization.gke_customization.gke_hrms.doc_events.user.test_uesr"
+# 	],
 # }
 
 # Testing
@@ -232,15 +226,21 @@ doc_events = {
 "SolitaireCalculator": {
     "validate": "gke_customization.gke_custom_export.doctype.solitaire_calculator.solitaire_calculator.calculate_rate"
 },
+"Employee Advance": {
+	"validate": "gke_customization.gke_hrms.doc_events.employee_advance.calculate_working_days"
+},
 # "Shareholder": {
 #     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
 # },
 "Payment Entry": {
-    "on_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_submit"
+    "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_update_after_submit"
 },
 "Journal Entry": {
     "on_submit": "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit"
 },
+# "Item": {
+#     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
+# },
 }
 app_include_js = [
     '/assets/gke_customization/js/solitaire_calculator.js'

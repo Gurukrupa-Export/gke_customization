@@ -1,0 +1,64 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-12-16 09:46:58.079266",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_ajxr",
+  "code_touch",
+  "customer_metal_touch",
+  "column_break_jfcf",
+  "gk_metal_touch",
+  "country"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_ajxr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "code_touch",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Code"
+  },
+  {
+   "fieldname": "customer_metal_touch",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer Metal Touch"
+  },
+  {
+   "fieldname": "column_break_jfcf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gk_metal_touch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "GK Metal Touch",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Country",
+   "options": "\nIndia\nUnited States\nGCC"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-12-16 10:00:17.432460",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Customer Metal Touch Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

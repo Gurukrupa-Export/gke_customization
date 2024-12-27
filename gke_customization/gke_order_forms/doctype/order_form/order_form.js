@@ -573,7 +573,18 @@ frappe.ui.form.on('Order Form Detail', {
 		else{
 			set_filter_for_design_n_serial(frm,fields)
 		}
-		
+		if (frm.doc.order_type === 'Purchase') {
+			var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "design_type" })[0];
+			if (df) {
+				df.read_only = 1
+				row.design_type = "New Design"
+			}
+			var df1 = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "design_by" })[0];
+			if (df1) {
+				df1.read_only = 1
+				row.design_by = "Purchase"
+			}
+        }
 		refresh_field("order_details");
 	},
 

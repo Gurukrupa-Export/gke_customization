@@ -1,0 +1,70 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-12-16 09:48:31.809632",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_ajxr",
+  "code_prolif",
+  "customer_prolif",
+  "description_prolif",
+  "column_break_jfcf",
+  "gk_d",
+  "gk_g"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_ajxr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "code_prolif",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Code"
+  },
+  {
+   "fieldname": "customer_prolif",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer PROLIF"
+  },
+  {
+   "fieldname": "description_prolif",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "column_break_jfcf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gk_d",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "GK D",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "gk_g",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "GK G",
+   "options": "Attribute Value"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-12-16 10:00:04.558200",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Customer Prolif Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
