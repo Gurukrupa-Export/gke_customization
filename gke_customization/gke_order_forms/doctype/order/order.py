@@ -1264,6 +1264,8 @@ def update_variant_attributes(self):
 		attribute_lower = attribute['attribute'].replace(' ','_').lower()
 		if attribute_lower == 'rhodium':
 			attribute_lower = 'rhodium_'
+		if attribute_lower == 'cap/ganthan':
+			attribute_lower = 'capganthan'
 
 		# attribute_value = getattr(self, attribute_lower)
 		if self.get(attribute_lower) != attribute['attribute_value']:
