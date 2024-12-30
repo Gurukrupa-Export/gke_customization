@@ -137,12 +137,6 @@ frappe.ui.form.on('Repair Order Form', {
 			frappe.validated = false;
 		}
 	},
-	// concept_image: function (frm) {
-	// 	refresh_field('image_preview');
-	// },
-	// design_by: function (frm) {
-	// 	set_order_type_from_design_by(frm);
-	// },
 	scan_serial_no: function (frm) {
 		if (frm.doc.scan_serial_no) {
 			frappe.call({
@@ -178,13 +172,6 @@ frappe.ui.form.on('Repair Order Form', {
 });
 
 frappe.ui.form.on('Repair Order Form Detail', {
-	form_render: function (frm, cdt, cdn) {
-		let order_detail = locals[cdt][cdn];
-		if (order_detail.subcategory) {
-			// set_field_visibility(frm, cdt, cdn)
-		}
-	},
-
 	tag_no(frm, cdt, cdn) {
 		var d = locals[cdt][cdn];
 		fetch_item_from_serial(d, "tag_no", "item")
@@ -192,24 +179,11 @@ frappe.ui.form.on('Repair Order Form Detail', {
 			frappe.db.get_value("BOM",{"tag_no": d.tag_no},'name', (r)=>{
 				frappe.model.set_value(cdt, cdn, 'bom', r.name)
 			})
-			// frappe.call({
-			// 	method: 'frappe.client.get_value',
-			// 	args: {
-			// 		'doctype': 'Item',
-			// 	},
-			// 	callback: function(r) {
-			// 		if (!r.exc) {
-			// 			// code snippet
-			// 		}
-			// 	}
-			// });
-
 			frappe.db.get_value("BOM",{"tag_no": d.tag_no},'gross_weight', (r)=>{
 				frappe.model.set_value(cdt, cdn, 'bom_weight', r.gross_weight)
 			})
 		}
 	},
-
 	item: function (frm, cdt, cdn) {
 		var d = locals[cdt][cdn];
 		if (d.item) {
@@ -220,7 +194,6 @@ frappe.ui.form.on('Repair Order Form Detail', {
 				},
 				callback(r) {
 					if(r.message) {
-						// console.log(r.message);
 						d.bom_weight = r.message.gross_weight
 						d.category = r.message.item_category;
 						d.subcategory = r.message.item_subcategory;
@@ -228,32 +201,23 @@ frappe.ui.form.on('Repair Order Form Detail', {
 						d.sub_setting_type1 = r.message.sub_setting_type1
 						d.sub_setting_type2 = r.message.sub_setting_type2
 						d.bom = r.message.master_bom;
-
 						d.qty = r.message.qty
 						d.metal_type = r.message.metal_type
 						d.metal_touch = r.message.metal_touch
 						d.metal_purity = r.message.metal_purity
 						d.metal_colour = r.message.metal_colour
-		
 						d.metal_target = r.message.metal_target
-						// check this line
 						d.metal_target = r.message.custom_metal_target
-						// check this line
-
 						d.diamond_target = r.message.diamond_target
 						d.product_size = r.message.product_size
 						d.sizer_type = r.message.sizer_type
-		
 						d.length = r.message.length
 						d.height = r.message.height
 						d.width = r.message.width
-						
 						d.stone_changeable = r.message.stone_changeable
 						d.detachable = r.message.detachable
-
 						d.lock_type = r.message.lock_type
 						d.feature = r.message.feature
-						
 						d.back_chain = r.message.back_chain
 						d.back_chain_size = r.message.back_chain_size
 						d.back_belt = r.message.back_belt
@@ -261,48 +225,31 @@ frappe.ui.form.on('Repair Order Form Detail', {
 						d.black_beed = r.message.black_beed
 						d.black_beed_line = r.message.black_beed_line
 						d.back_side_size = r.message.back_side_size
-						
 						d.back_belt_patti = r.message.back_belt_patti
 						d.vanki_type = r.message.vanki_type
 						d.rhodium = r.message.rhodium
-
-						// d.chain = r.message.chain
 						d.chain_type = r.message.chain_type
 						d.customer_chain = r.message.customer_chain
 						d.chain_weight = r.message.chain_weight
 						d.chain_length = r.message.chain_length
 						d.chain_thickness = r.message.chain_thickness
 						d.chain_from = r.message.chain_from
-
 						if(r.message.number_of_ant){
 							d.number_of_ant = r.message.number_of_ant
 						}
 						else{
-							// check this line
 							d.number_of_ant = r.message.custom_number_of_ant
-							// check this line
 						}
-
 						d.distance_between_kadi_to_mugappu = r.message.distance_between_kadi_to_mugappu
 						d.space_between_mugappu = r.message.space_between_mugappu
-						if(r.message.two_in_one){
-							d.two_in_one = r.message.two_in_one
-						}
-						else{
-							d.two_in_one = r.message.custom_two_in_one
-						}
-
+						d.two_in_one = r.message.two_in_one
 						d.rhodium = r.message.rhodium
 						d.enamal = r.message.enamal
-
 						d.gemstone_type1 = r.message.gemstone_type1
 						d.gemstone_quality = r.message.gemstone_quality
-
 						d.charm = r.message.charm
 						d.capganthan = r.message.capganthan
-				
 						refresh_field('order_details');
-						// set_field_visibility(frm, cdt, cdn)
 					}
 				}
 			});
@@ -315,29 +262,22 @@ frappe.ui.form.on('Repair Order Form Detail', {
 			d.sub_setting_type1 = ""
 			d.sub_setting_type2 = ""
 			d.bom = ""
-
 			d.qty = ""
 			d.metal_type = ""
 			d.metal_touch = ""
 			d.metal_purity = ""
 			d.metal_colour = ""
-
-			// d.metal_target = ""
 			d.metal_target = ""
 			d.diamond_target = ""
 			d.product_size = ""
 			d.sizer_type = ""
-
 			d.length = ""
 			d.height = ""
 			d.width = ""
-			
 			d.stone_changeable = ""
 			d.detachable = ""
-
 			d.lock_type = ""
 			d.feature = ""
-			
 			d.back_chain = ""
 			d.back_chain_size = ""
 			d.back_belt = ""
@@ -345,22 +285,18 @@ frappe.ui.form.on('Repair Order Form Detail', {
 			d.black_beed = ""
 			d.black_beed_line = ""
 			d.back_side_size = ""
-			
 			d.back_belt_patti = ""
 			d.vanki_type = ""
 			d.rhodium = ""
-
 			d.chain = ""
 			d.chain_type = ""
 			d.customer_chain = ""
 			d.chain_weight = ""
 			d.chain_length = ""
-
 			d.number_of_ant = ""
 			d.distance_between_kadi_to_mugappu = ""
 			d.space_between_mugappu = ""
 			d.two_in_one = ""
-
 			d.rhodium = ""
 			d.enamal = ""
 			d.gemstone_type1 = ""
@@ -368,67 +304,22 @@ frappe.ui.form.on('Repair Order Form Detail', {
 			refresh_field('order_details');
 		}
 	},
-	// bom: function (frm, cdt, cdn) {
-	// 	var d = locals[cdt][cdn];
-
-	// 	if (d.bom) {
-	// 		frappe.db.get_value("BOM", { "name": d.bom }, "metal_purity", function (value) {
-	// 			d.purity = value.metal_purity;
-	// 			refresh_field('order_details');
-
-	// 		});
-	// 	}
-	// 	else {
-	// 		d.purity = "";
-	// 		refresh_field('order_details');
-
-	// 	}
-	// },
-	subcategory: function (frm, cdt, cdn) {
-		// set_field_visibility(frm, cdt, cdn)
-	},
 	order_details_add: function (frm, cdt, cdn) {
 		var row = locals[cdt][cdn];
 		row.delivery_date = frm.doc.delivery_date;
 		row.diamond_quality = frm.doc.diamond_quality;
-		// row.estimated_duedate = frm.doc.estimated_duedate;
-		// row.branch = frm.doc.branch
-		// row.project = frm.doc.project
 		refresh_field("order_details");
 	},
-	// design_image: function (frm, cdt, cdn) {
-	// 	refresh_field("order_details");
-	// },
-
-	// design_type: function (frm, cdt, cdn) {
-	// 	var row = locals[cdt][cdn];
-	// 	frappe.model.set_value(row.doctype, row.name, 'category', '');
-	// 	frappe.model.set_value(row.doctype, row.name, 'subcategory', '');
-	// 	frappe.model.set_value(row.doctype, row.name, 'setting_type', '');
-	// 	frappe.model.set_value(row.doctype, row.name, 'purity', '');
-	// 	frappe.model.set_value(row.doctype, row.name, 'gemstone_price', '');
-	// 	frappe.model.set_value(row.doctype, row.name, 'design_image', '');
-	// 	frappe.model.set_value(row.doctype, row.name, 'image', '');
-	// 	frappe.model.set_value(row.doctype, row.name, 'tag_no', '');
-	// 	frappe.model.set_value(row.doctype, row.name, 'item', '');
-	// 	frappe.model.set_value(row.doctype, row.name, 'bom', '');
-	// 	frappe.model.set_value(row.doctype, row.name, 'design_id', '');
-	// },
-
 	category: function (frm, cdt, cdn) {
 		var row = locals[cdt][cdn];
 		frappe.model.set_value(row.doctype, row.name, 'subcategory', '');
 	},
-
 	view_item:function(frm,cdt,cdn){
 		var row = locals[cdt][cdn];
-
 		if (frm.doc.__islocal) {
 			frappe.throw("Please save document to edit the View Item.");
 		}
-
 		let item_data = [];
-
 		const item_fields = [				
 			{ fieldtype: "Data", fieldname: "docname", read_only: 1, columns: 1,hidden:1 },			
 			{
@@ -901,7 +792,6 @@ frappe.ui.form.on('Repair Order Form Detail', {
 			dialog.$wrapper.find(".btn-modal-primary").remove();
 		} 
 	}
-
 });
 
 let edit_item_documents = (row,dialog,item_code,item_data) => {
@@ -928,8 +818,6 @@ let edit_item_documents = (row,dialog,item_code,item_data) => {
 		set_edit_bom_details(row,doc,dialog,item_data);
 	}
 };
-
-
 let set_edit_item_details = (row,doc,dialog) => {
 	// clearing all tables
 	dialog.fields_dict.item_detail.df.data = [];
@@ -955,12 +843,6 @@ let set_edit_item_details = (row,doc,dialog) => {
 		// console.log(field_name);
 		dialog.set_df_property(field_name, "hidden", 1);
 	});
-};
-
-function set_field_visibility(frm, cdt, cdn) {
-	// hide_all_subcategory_attribute_fields(frm, cdt, cdn);
-	// var order_detail = locals[cdt][cdn];
-	// show_attribute_fields_for_subcategory(frm, cdt, cdn, order_detail);
 };
 
 function validate_dates(frm, doc, dateField) {
@@ -1034,12 +916,6 @@ function show_hide_fields(frm, cdt, cdn, fields, hidden) {
 
 //private function to show or hide single child table fields
 function show_hide_field(frm, cdt, cdn, field, hidden) {
-	// var df = frappe.meta.get_docfield(cdt, field.toLowerCase().replace(/\s+/g, '_'), cdn);
-	// if (df) {
-	//     df.hidden = hidden;
-	//     if (df.hidden===0) df.reqd = 0;
-	// }
-
 	var field_name = field.toLowerCase().replace(/\s+/g, '_')
 	var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": field_name })[0];
 	if (df) {
