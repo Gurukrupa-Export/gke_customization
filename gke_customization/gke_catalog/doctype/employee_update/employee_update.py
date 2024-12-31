@@ -8,7 +8,7 @@ from frappe.model.document import Document
 class EmployeeUpdate(Document):
 	def on_submit(self):
 		filed_list = [
-			"first_name","gender", "middle_name", "last_name", "image", "date_of_birth", "salutation","date_of_joining", "contract_end_date", "old_employee_code", "old_punch_id",
+			"first_name","gender", "middle_name", "last_name", "image", "date_of_birth","default_shift", "salutation","date_of_joining", "contract_end_date", "old_employee_code", "old_punch_id",
 			"company", "department", "designation", "cell_number", "personal_email", "company_email", "current_address", "current_accommodation_type", "same_as_current_address", "permanent_address",
 			"permanent_accommodation_type", "salary_mode", "employee_name_as_per_bank_account", "bank_name", "bank_ac_no", "ifsc_code", "micr_code", "iban", "marital_status",
 			"family_background", "blood_group", "health_details", "health_insurance_provider", "health_insurance_no", "passport_number", "valid_upto", "date_of_issue", "place_of_issue",
@@ -146,8 +146,3 @@ class EmployeeUpdate(Document):
 		else:
 			frappe.msgprint("Employee has been created...")
 
-
-
-
-
-			
