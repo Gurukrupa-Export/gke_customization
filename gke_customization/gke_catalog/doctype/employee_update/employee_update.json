@@ -1,7 +1,6 @@
 {
 "actions": [],
 "allow_rename": 1,
-"autoname": "field:employee",
 "creation": "2024-11-08 16:09:00.707162",
 "doctype": "DocType",
 "engine": "InnoDB",
@@ -14,20 +13,26 @@
     "last_name",
     "full_name",
     "image",
-    "salutation",
     "column_break_9",
+    "gender",
+    "salutation",
     "date_of_birth",
+    "custom_notice_dayes",
+    "employment_type",
+    "custom_probation_period_days",
+    "column_break_meng",
     "date_of_joining",
-    "contract_end_date",
     "old_employee_code",
     "old_punch_id",
-    "gender",
+    "contract_end_date",
+    "status",
     "section_break_djxz",
     "company",
     "department",
+    "designation",
     "column_break_hkde",
     "operation",
-    "designation",
+    "branch",
     "contact_details",
     "cell_number",
     "column_break_40",
@@ -44,14 +49,18 @@
     "state",
     "emergency_contact_details",
     "emergency_contact_details_table",
+    "attendance_leaves",
+    "attendance_device_id",
+    "allowed_personal_hours",
+    "product_incentive_applicable",
+    "column_break_p6akj",
+    "default_shift",
+    "holiday_list",
+    "shift_request_approver",
     "salary_information",
     "salary_mode",
     "column_break_zfzs",
     "ctc",
-    "attendance_leaves",
-    "holiday_list",
-    "column_break_p6akj",
-    "default_shift",
     "bank_details_section",
     "employee_name_as_per_bank_account",
     "bank_name",
@@ -171,8 +180,7 @@
     "fieldname": "employee",
     "fieldtype": "Link",
     "label": "Employee",
-    "options": "Employee",
-    "unique": 1
+    "options": "Employee"
     },
     {
     "default": "0",
@@ -225,6 +233,7 @@
     "label": "Date of Birth"
     },
     {
+    "fetch_from": "employee.date_of_joining",
     "fieldname": "date_of_joining",
     "fieldtype": "Date",
     "label": "Date of Joining"
@@ -620,8 +629,9 @@
     },
     {
     "fieldname": "religon",
-    "fieldtype": "Data",
-    "label": "Religon"
+    "fieldtype": "Select",
+    "label": "Religon",
+    "options": "\nBuddhist\nChristian\nJain\nHindu\nMuslim\nSikh"
     },
     {
     "fieldname": "column_break_9oy5o",
@@ -629,8 +639,9 @@
     },
     {
     "fieldname": "employee_cast",
-    "fieldtype": "Data",
-    "label": "Cast"
+    "fieldtype": "Select",
+    "label": "Cast",
+    "options": "\nGeneral\nSC\nST\nSEBC"
     },
     {
     "fieldname": "reference",
@@ -938,12 +949,14 @@
     "search_index": 1
     },
     {
+    "fetch_from": "employee.salutation",
     "fieldname": "salutation",
     "fieldtype": "Link",
     "label": "Salutation",
     "options": "Salutation"
     },
     {
+    "fetch_from": "employee.gender",
     "fieldname": "gender",
     "fieldtype": "Link",
     "label": "Gender",
@@ -951,7 +964,7 @@
     },
     {
     "fieldname": "attendance_leaves",
-    "fieldtype": "Section Break",
+    "fieldtype": "Tab Break",
     "label": "Attendance & Leaves"
     },
     {
@@ -974,16 +987,74 @@
     "fieldname": "ctc",
     "fieldtype": "Currency",
     "label": "Gross Salary"
+    },
+    {
+    "fieldname": "column_break_meng",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fetch_from": "employee.branch",
+    "fieldname": "branch",
+    "fieldtype": "Link",
+    "label": "Branch",
+    "options": "Branch"
+    },
+    {
+    "fieldname": "custom_notice_dayes",
+    "fieldtype": "Select",
+    "label": "Notice (days)",
+    "options": "0\n30\n60\n90"
+    },
+    {
+    "fieldname": "employment_type",
+    "fieldtype": "Link",
+    "label": "Employment Type",
+    "options": "Employment Type"
+    },
+    {
+    "fieldname": "custom_probation_period_days",
+    "fieldtype": "Select",
+    "label": "Probation Period (Days)",
+    "options": "\n0\n30\n60\n90"
+    },
+    {
+    "default": "03:00:00",
+    "fieldname": "allowed_personal_hours",
+    "fieldtype": "Time",
+    "label": "Allowed Personal Hours"
+    },
+    {
+    "default": "0",
+    "fieldname": "product_incentive_applicable",
+    "fieldtype": "Check",
+    "label": "Product Incentive Applicable"
+    },
+    {
+    "fieldname": "shift_request_approver",
+    "fieldtype": "Link",
+    "label": "Shift Request Approver",
+    "options": "User"
+    },
+    {
+    "default": "Active",
+    "fieldname": "status",
+    "fieldtype": "Select",
+    "label": "Status",
+    "options": "Active\nInactive\nSuspended\nLeft"
+    },
+    {
+    "fieldname": "attendance_device_id",
+    "fieldtype": "Data",
+    "label": "Attendance Device ID (Biometric/RF tag ID)"
     }
 ],
 "index_web_pages_for_search": 1,
 "is_submittable": 1,
 "links": [],
-"modified": "2024-12-31 12:05:15.495650",
+"modified": "2025-01-02 17:50:40.258370",
 "modified_by": "Administrator",
 "module": "GKE Catalog",
 "name": "Employee Update",
-"naming_rule": "By fieldname",
 "owner": "Administrator",
 "permissions": [
     {

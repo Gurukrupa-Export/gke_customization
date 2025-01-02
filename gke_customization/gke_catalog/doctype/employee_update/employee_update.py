@@ -6,18 +6,29 @@ from frappe.model.document import Document
 
 
 class EmployeeUpdate(Document):
+	def validate(self):
+		self.full_name = " ".join(
+			filter(lambda x: x, [self.first_name, self.middle_name, self.last_name])
+		)
+
 	def on_submit(self):
 		filed_list = [
-			"first_name","gender", "middle_name", "last_name", "image", "date_of_birth","default_shift", "salutation","date_of_joining", "contract_end_date", "old_employee_code", "old_punch_id",
-			"company", "department", "designation", "cell_number", "personal_email", "company_email", "current_address", "current_accommodation_type", "same_as_current_address", "permanent_address",
-			"permanent_accommodation_type", "salary_mode", "employee_name_as_per_bank_account", "bank_name", "bank_ac_no", "ifsc_code", "micr_code", "iban", "marital_status",
+			"first_name", "middle_name", "last_name", "image", "date_of_birth", 
+			"salutation","gender","custom_notice_dayes", "employment_type","custom_probation_period_days",
+			"date_of_joining","contract_end_date", "old_employee_code", "old_punch_id","status",
+			"company", "department", "designation","operation","branch",
+			"cell_number", "personal_email", "company_email", "current_address", "current_accommodation_type",
+			"same_as_current_address", "permanent_address","permanent_accommodation_type", 
+			"attendance_device_id","allowed_personal_hours","product_incentive_applicable","default_shift",
+			"holiday_list","shift_request_approver","salary_mode","ctc",
+			"employee_name_as_per_bank_account", "bank_name", "bank_ac_no", "ifsc_code", "micr_code", "iban", "marital_status",
 			"family_background", "blood_group", "health_details", "health_insurance_provider", "health_insurance_no", "passport_number", "valid_upto", "date_of_issue", "place_of_issue",
 			"religon", "employee_cast", "reference_type", "reference_employee_code", "reference_employee_name", "reference_contact",
 			"reference_address", "aadhar_number", "name_as_per_aadhar", "driving_licence_no", "name_as_per_driving_license", "driving_license_valid_upto_date", "relative_employee_code", "relative_employee_name",
 			"employee_relative_relation", "resignation_letter_date", "relieving_date", "held_on", "new_workplace", "leave_encashed", "encashment_date", "reason_for_leaving", "feedback", "is_pf_applicable",
 			"pf_joining_date","pan_number", "name_as_pe_pan", "provident_fund_account", "handicap_certificate_date", "handicap_percenatge", "is_physical_handicap", "uan_number"
 		]
-
+		
 		e_json = {
 			"full_name": "employee_name",
 			"operation": "custom_operation",
@@ -48,14 +59,12 @@ class EmployeeUpdate(Document):
 				if i in e_diff_filed:
 					i = e_json[i]
 				emp_value = frappe.db.get_value("Employee",self.employee,i)
-				uemp_value = frappe.db.get_value("Employee Update",self.employee,i)
+				uemp_value = frappe.db.get_value("Employee Update",{'employee':self.employee}, i)
 				if emp_value == uemp_value:
 					continue
 				frappe.db.set_value("Employee",self.employee,i,uemp_value)
 		else:
-			emp_doc = frappe.get_doc({
-				'doctype': 'Employee'
-			})
+			emp_doc = frappe.get_doc({'doctype': 'Employee'})
 			
 			for field in filed_list:
 				if field in e_diff_filed:
@@ -70,17 +79,18 @@ class EmployeeUpdate(Document):
 		else:
 			doc_ = frappe.get_doc('Employee', emp_doc.name)
 
-		doc_.set("employee_languages", [])
-		for lan in self.employee_languages:
-			employee_languages = doc_.append("employee_languages", {})
-			employee_languages.language = lan.language
-			employee_languages.read = lan.read
-			employee_languages.speak = lan.speak
-			employee_languages.write = lan.write
+		doc_.set("custom_employee_languages", [])
+		if self.employee_languages:
+			for lan in self.employee_languages:
+				employee_languages = doc_.append("custom_employee_languages", {})
+				employee_languages.language = lan.language
+				employee_languages.read = lan.read
+				employee_languages.speak = lan.speak
+				employee_languages.write = lan.write
 
-		doc_.set("employees_hobbies", [])
+		doc_.set("custom_employees_hobbies", [])
 		for hobbie in self.employees_hobbies:
-			employees_hobbies = doc_.append("employees_hobbies", {})
+			employees_hobbies = doc_.append("custom_employees_hobbies", {})
 			employees_hobbies.hobbies = hobbie.hobbies
 
 		doc_.set("education", [])
@@ -146,3 +156,8 @@ class EmployeeUpdate(Document):
 		else:
 			frappe.msgprint("Employee has been created...")
 
+
+
+
+
+			
