@@ -107,7 +107,7 @@ frappe.ui.form.on('Repair Order Form', {
 		['vanki_type', 'Vanki Type'],
 		['black_beed', 'Black Beed'],
 		['lock_type', 'Lock Type'],
-		['2_in_1', '2 in 1'],
+		['two_in_one', 'Two in One'],
 		['chain', 'Chain'],
 		['chain_type', 'Chain Type'],
 		['customer_chain', 'Customer Chain'],
@@ -120,6 +120,7 @@ frappe.ui.form.on('Repair Order Form', {
 		['back_belt', 'Back Belt'],
 		['repair_type', 'Repair Type'],
 		['product_type','Product Type'],
+		['required_design','Required Design'],
 		];
 		set_filters_on_child_table_fields(frm, fields);
 
@@ -791,7 +792,8 @@ frappe.ui.form.on('Repair Order Form Detail', {
 		if (cur_frm.doc.docstatus == 1) {
 			dialog.$wrapper.find(".btn-modal-primary").remove();
 		} 
-	}
+	},
+	
 });
 
 let edit_item_documents = (row,dialog,item_code,item_data) => {

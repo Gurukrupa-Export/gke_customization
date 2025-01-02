@@ -8,11 +8,6 @@ frappe.ui.form.on('Order Form', {
 		validate_dates(frm, frm.doc, "estimated_duedate")
 		update_fields_in_child_table(frm, "estimated_duedate")
 	},
-	// custom_cad_finish_date(frm) {
-	// 	validate_dates(frm, frm.doc, "delivery_date")
-	// 	// update_fields_in_child_table(frm, "delivery_date")
-	// 	calculate_due_days(frm);
-	// },
 	system_due_date(frm) {
 		validate_dates(frm, frm.doc, "system_due_date")
 	},
@@ -29,7 +24,7 @@ frappe.ui.form.on('Order Form', {
 
 		var fields = [
 			['design_type', 'Design Type'],
-		['category', 'new Item subcategory1'],
+		['category', 'Item Category'],
 		['subcategory', 'Item Subcategory'],
 		['setting_type', 'Setting Type'],
 		['metal_type', 'Metal Type'],
@@ -74,10 +69,13 @@ frappe.ui.form.on('Order Form', {
 		['mod_reason', 'Mod Reason'],
 		['capganthan', 'Cap/Ganthan'],
 		['charm', 'Charm'],
+		['finding_category', 'Finding Category'],
+		['finding_subcategory', 'Finding Sub-Category'],
+		['finding_size', 'Finding Size'],
 		];
 
 		set_filters_on_child_table_fields(frm, fields);
-		// set_filter_for_salesman_name(frm);
+		set_filter_for_salesman_name(frm);
 
 		// frm.set_query("parcel_place", function (doc) {
 		// 	return {
@@ -111,6 +109,14 @@ frappe.ui.form.on('Order Form', {
 				}
 			};
 		});
+		frm.set_query('finding_subcategory', 'order_details', function (doc, cdt, cdn) {
+			let d = locals[cdt][cdn];
+			return {
+				filters: {
+					'parent_attribute_value': d.finding_category
+				}
+			};
+		});
 		frm.set_query('diamond_quality','order_details', function (doc) {
 			return {
 				query: 'jewellery_erpnext.query.item_attribute_query',
@@ -141,9 +147,6 @@ frappe.ui.form.on('Order Form', {
 	concept_image: function (frm) {
 		refresh_field('image_preview');
 	},
-	// design_by: function (frm) {
-	// 	set_order_type_from_design_by(frm); 
-	// },
 	customer_code: function(frm){
 		frm.doc.service_type = [];
         if(frm.doc.customer_code){
@@ -156,14 +159,14 @@ frappe.ui.form.on('Order Form', {
 				refresh_field("service_type");
 			});
         }
-		frm.set_query('subcategory', 'order_details', function (doc, cdt, cdn) {
-			let d = locals[cdt][cdn];
-			return {
-				filters: {
-					'parent_attribute_value': d.category
-				}
-			};
-		});
+		// frm.set_query('subcategory', 'order_details', function (doc, cdt, cdn) {
+		// 	let d = locals[cdt][cdn];
+		// 	return {
+		// 		filters: {
+		// 			'parent_attribute_value': d.category
+		// 		}
+		// 	};
+		// });
 		frm.set_query('diamond_quality','order_details', function (doc) {
 			return {
 				query: 'jewellery_erpnext.query.item_attribute_query',
@@ -209,7 +212,6 @@ frappe.ui.form.on('Order Form', {
 		// 	};
 		// }
    	},
-
 	refresh(frm){
 		frm.add_custom_button(__("Get Customer Order Form"), function(){
             erpnext.utils.map_current_doc({
@@ -254,85 +256,11 @@ frappe.ui.form.on('Order Form', {
         }, __("Get Order"))
 	}
 
-
-
-    // refresh:function(frm) {
-	// 	// frm.add_custom_button(__("Customer Order"), function(){
-	// 	// 		erpnext.utils.map_current_doc({
-	// 	// 			method: "jewellery_erpnext.gurukrupa_exports.doctype.order_form.order_form.make_order_form",
-	// 	// 			source_doctype: "Customer Order Form",
-	// 	// 			target: me.frm,
-	// 	// 			setters: [
-	// 	// 				{
-	// 	// 					label: "Customer Name",
-	// 	// 					fieldname: "customer_code",
-	// 	// 					fieldtype: "Link",
-	// 	// 					options: "Customer",
-	// 	// 					reqd: 1,
-	// 	// 					read_only:1,
-	// 	// 					default: frm.doc.customer_code || undefined
-							
-	// 	// 				},
-	// 	// 				{
-	// 	// 					label: "Item Category",
-	// 	// 					fieldname: "item_category",
-	// 	// 					fieldtype: "Link",
-	// 	// 					options: "Attribute Value",
-	// 	// 					get_query: function(doc, cdt, cdn) {
-	// 	// 						return {
-	// 	// 							query: 'jewellery_erpnext.query.item_attribute_query',
-	// 	// 							filters: { 'item_attribute': "Item Category"}
-	// 	// 						};
-	// 	// 					}
-							
-	// 	// 				},
-	// 	// 				{
-	// 	// 					label: "Metal Touch",
-	// 	// 					fieldname: "metal_touch",
-	// 	// 					fieldtype: "Link",
-	// 	// 					options: "Attribute Value",
-	// 	// 					get_query: function(doc, cdt, cdn) {
-	// 	// 						return {
-	// 	// 							query: 'jewellery_erpnext.query.item_attribute_query',
-	// 	// 							filters: { 'item_attribute': "Metal Touch"}
-	// 	// 						};
-	// 	// 					}
-							
-	// 	// 				}
-	// 	// 			],
-	// 	// 			get_query_filters: {
-	// 	// 				// customer_code: ['=', cur_frm.doc.customer_code],
-	// 	// 				docstatus: 1
-	// 	// 			}
-	// 	// 		})
-	// 	// 	}, __("Get Order From"))
-	// 	frm.fields_dict['order_details'].grid.get_field('design_by').df.onchange = function() {
-    //         frm.fields_dict['order_details'].grid.grid_rows.forEach(function(row) {
-    //             var child = row.doc;
-    //             if (child.design_by === 'Customer Design') {
-    //                 row.fields_dict.design_type.get_query = function() {
-    //                     return {
-    //                         filters: [
-    //                             ["Attribute Value", "attribute_value", "in", ["New Design", "Sketch Design"]]
-    //                         ]
-    //                     };
-    //                 };
-    //             } else {
-    //                 row.fields_dict.design_type.get_query = function() {
-    //                     return {};
-    //                 };
-    //             }
-    //         });
-    //     };
-	// },
 });
 
 frappe.ui.form.on('Order Form Detail', {
 	form_render(frm, cdt, cdn) {
 		let order_detail = locals[cdt][cdn];
-		if (order_detail.subcategory) {
-			// set_field_visibility(frm, cdt, cdn)
-		}
 
 		var fields = ['design_id'];
 		if (order_detail.design_type == 'Sketch Design'){
@@ -352,21 +280,6 @@ frappe.ui.form.on('Order Form Detail', {
 			})
 		}
 	},
-
-	// reference_serial_no_1(frm, cdt, cdn) {
-	// 	var d = locals[cdt][cdn];
-	// 	fetch_item_from_serial(d, "reference_serial_no_1", "reference_designid")
-	// },
-
-	// reference_serial_no_2(frm, cdt, cdn) {
-	// 	var d = locals[cdt][cdn];
-	// 	fetch_item_from_serial(d, "reference_serial_no_2", "reference_design_id_2")
-	// },
-
-	// reference_serial_no_3(frm, cdt, cdn) {
-	// 	var d = locals[cdt][cdn];
-	// 	fetch_item_from_serial(d, "reference_serial_no_3", "reference_design_id_3")
-	// },
 
 	design_id: function (frm, cdt, cdn) {
 		var d = locals[cdt][cdn];
@@ -553,11 +466,6 @@ frappe.ui.form.on('Order Form Detail', {
 		}
 	},
 
-	subcategory: function (frm, cdt, cdn) {
-		// var d = locals[cdt][cdn];
-		// set_field_visibility(frm, cdt, cdn)
-	},
-
 	order_details_add: function (frm, cdt, cdn) {
 		var row = locals[cdt][cdn];
 		row.delivery_date = frm.doc.delivery_date;
@@ -588,10 +496,6 @@ frappe.ui.form.on('Order Form Detail', {
 		refresh_field("order_details");
 	},
 
-	// design_image: function (frm, cdt, cdn) {
-	// 	refresh_field("order_details");
-	// },
-
 	design_type: function (frm, cdt, cdn) {
 		var row = locals[cdt][cdn];
 		var fields = ['design_id'];
@@ -607,14 +511,6 @@ frappe.ui.form.on('Order Form Detail', {
 		var row = locals[cdt][cdn];
 		frappe.model.set_value(row.doctype, row.name, 'subcategory', '');
 	},
-
-	// serial_no_bom(frm, cdt, cdn) {
-	// 	set_metal_properties_from_bom(frm, cdt, cdn)
-	// },
-
-	// bom(frm, cdt, cdn) {
-	// 	set_metal_properties_from_bom(frm, cdt, cdn)
-	// },
 
 	metal_touch: function(frm,cdt,cdn){
 		var d = locals[cdt][cdn];
@@ -635,32 +531,6 @@ frappe.ui.form.on('Order Form Detail', {
 		});
 	},
 
-	// mod_reason:function(frm,cdt,cdn){
-	// 	var order_detail = locals[cdt][cdn];
-	// 	if(order_detail.mod_reason == 'Attribute Change'){
-	// 		if (order_detail.subcategory) {
-	// 			frappe.model.with_doc("Attribute Value", order_detail.subcategory, function (r) {
-	// 				var subcategory_attribute_value = frappe.model.get_doc("Attribute Value", order_detail.subcategory);
-	// 				if (subcategory_attribute_value.is_subcategory == 1) {
-	// 					if (subcategory_attribute_value.item_attributes) {
-	// 						$.each(subcategory_attribute_value.item_attributes, function (index, row) {
-	// 								if (row.in_item_variant == 0)
-	// 									{
-	// 										var field_name = row.item_attribute.toLowerCase().replace(/\s+/g, '_')
-	// 										var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": field_name })[0].depends_on;
-	// 										console.log(df)
-	// 										if (df) {
-	// 											if (df.read_only == 1);
-	// 										}
-	// 										frm.refresh_field("order_details");
-	// 									}
-	// 						});
-	// 					}
-	// 				}
-	// 			});
-	// 		}
-	// 	}
-	// },
 	// button to view item variants
 	update_item:function(frm,cdt,cdn){
 		var row = locals[cdt][cdn];
@@ -1130,7 +1000,23 @@ frappe.ui.form.on('Order Form Detail', {
 		if (cur_frm.doc.docstatus == 1) {
 			dialog.$wrapper.find(".btn-modal-primary").remove();
 		} 
-	}
+	},
+
+	// is_finding_order:function(frm,cdt,cdn){
+	// 	var row = locals[cdt][cdn];
+	// 	if (row.is_finding_order==1){
+	// 		console.log("HERE");
+			
+	// 		frm.set_query("design_id", "order_details", function (doc, cdt, cdn) {
+	// 			let d = locals[cdt][cdn];
+	// 			return {
+	// 				filters: {
+	// 					"variant_of": "F",
+	// 				}
+	// 			}
+	// 		});
+	// 	}
+	// }
 
 });
 
@@ -1366,7 +1252,7 @@ function delivery_date(frm) {
 function set_filter_for_salesman_name(frm) {
 	frm.set_query("salesman_name", function () {
 		return {
-			"filters": { "designation": "Sales Person" }
+			"filters": { "parent_sales_person": "Sales Team" }
 		};
 	});
 };
@@ -1410,10 +1296,23 @@ function set_filter_for_design_n_serial(frm, fields) {
 		
 		frm.set_query(field, "order_details", function (doc, cdt, cdn) {
 			let d = locals[cdt][cdn];
-			return {
-				filters: {
-					"is_design_code": 1,
-					"is_stock_item":1,
+			console.log(d);
+			
+			if(d.is_finding_order==1){
+				console.log("gere");
+				
+				return {
+					filters: {
+						"variant_of": "F",
+					}
+				}
+			}
+			else{
+				return {
+					filters: {
+						"is_design_code": 1,
+						"is_stock_item":1,
+					}
 				}
 			}
 		});

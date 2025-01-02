@@ -91,6 +91,7 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	mod_reason = frappe.get_doc('Order Form Detail',source_name).mod_reason
 	design_id = frappe.get_doc('Order Form Detail',source_name).design_id
 	is_repairing = frappe.get_doc('Order Form Detail',source_name).is_repairing
+	is_finding_order = frappe.get_doc('Order Form Detail',source_name).is_finding_order
 	if design_type == 'Mod':
 		# if as_per_serial_no == 1:
 		# 	item_type = "No Variant No Suffix"
@@ -110,37 +111,53 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 			# 			item_type = "Suffix Of Variant"
 			# else:
 			variant_of = frappe.db.get_value("Item",design_id,"variant_of")
-			attribute_list = make_atribute_list(source_name)
-			validate_variant_attributes(variant_of,attribute_list)
+			# attribute_list = make_atribute_list(source_name)
+			# validate_variant_attributes(variant_of,attribute_list)
 			bom = frappe.db.get_value('Item',design_id,'master_bom')
 			if bom==None:
 				frappe.throw(f'BOM is not available for {design_id}')
 			# if 
 			if mod_reason == 'No Design Change':
+				attribute_list = make_atribute_list(source_name)
+				validate_variant_attributes(variant_of,attribute_list)
 				item_type = "Only Variant"
 				# bom_or_cad = 'CAD'
 				# if not is_repairing:
 				bom_or_cad = workflow_state_maker(source_name)
 			elif mod_reason == 'Attribute Change':
+				attribute_list = make_atribute_list(source_name)
+				validate_variant_attributes(variant_of,attribute_list)
 				item_type = "Only Variant"
 				bom_or_cad = 'Check'
+			elif mod_reason == 'Change in Metal Touch':
+				item_type = "No Variant No Suffix"
+				bom_or_cad = workflow_state_maker(source_name)
+				# bom_or_cad = 'BOM'
 			else:
+				attribute_list = make_atribute_list(source_name)
+				validate_variant_attributes(variant_of,attribute_list)
 				item_type = "Suffix Of Variant"
 				bom_or_cad = 'CAD'
 					# bom_or_cad = workflow_state_maker(source_name)
 			if frappe.db.get_value("Item",design_id,"Item_group") == 'Design DNU':
 				item_type = "Only Variant"
 	elif design_type == 'Sketch Design':
+		attribute_list = make_atribute_list(source_name)
+		validate_variant_attributes(variant_of,attribute_list)
 		item_type = "No Variant No Suffix"
 		bom_or_cad = 'CAD'
 	elif design_type == 'As Per Serial No':
 		item_type = "No Variant No Suffix"
 		bom_or_cad = 'New BOM'
+	elif is_finding_order:
+		item_type = "No Variant No Suffix"
+		bom_or_cad = 'New BOM'
 	else:
+		# attribute_list = make_atribute_list(source_name)
+		# validate_variant_attributes(variant_of,attribute_list)
 		item_type = 'Template and Variant'
 		bom_or_cad = 'CAD'
 
-		
 	doc = get_mapped_doc(
 		"Order Form Detail",
 		source_name,
@@ -182,8 +199,6 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	if design_type == 'As Per Serial No' and item_type == "No Variant No Suffix" and bom_or_cad == 'New BOM':
 		doc.submit()
 		frappe.db.set_value("Order",doc.name,"workflow_state","Approved")
-
-	
 	return doc.name
 
 def make_atribute_list(source_name):
@@ -247,7 +262,6 @@ def workflow_state_maker(source_name):
 	all_variant_attribute = frappe.db.sql(
 		f"""select item_attribute from `tabAttribute Value Item Attribute Detail` where parent = '{doc.subcategory}' and in_item_variant=1""",as_dict=1
 	)
-
 	all_attribute_list = []
 	for variant_attribut in all_variant_attribute:
 		item_attribute = variant_attribut['item_attribute'].lower().replace(' ','_').replace('/','')
@@ -263,10 +277,9 @@ def workflow_state_maker(source_name):
 	
 
 	all_bom_or_cad = []
-
 	for i in cad_attribute_list:
 		item_attribute = i['item_attribute'].lower().replace(' ','_')
-		if str(bom_detail[item_attribute]) != str(frappe.db.get_value('Order Form Detail',source_name,item_attribute)):
+		if str(bom_detail[item_attribute]).replace(".0","") != str(frappe.db.get_value('Order Form Detail',source_name,item_attribute)):
 			bom_or_cad = 'CAD'
 		else:
 			bom_or_cad = 'New BOM'
@@ -364,6 +377,10 @@ def make_order_form(source_name,target_doc=None):
 @frappe.whitelist()
 def get_bom_details(design_id,doc):
 	doc = json.loads(doc)
+	if doc['is_finding_order']:
+		master_bom = frappe.db.get_value("BOM",{"bom_type":"Template","item":design_id},"name",order_by="creation DESC")
+		frappe.throw(f"{master_bom}//{doc['is_finding_order']}")
+	
 	item_subcategory = frappe.db.get_value("Item",design_id,"item_subcategory")
 
 	fg_bom = frappe.db.get_value("BOM",{"bom_type":"Finished Goods","item":design_id},"name",order_by="creation DESC")
@@ -468,80 +485,71 @@ def get_customer_orderType(customer_code):
 def get_customer_order_form(source_name, target_doc=None):
 	if isinstance(target_doc, str):
 		target_doc = json.loads(target_doc)
-	if not target_doc:
-		target_doc = frappe.new_doc("Order Form")
-	else:
-		target_doc = frappe.get_doc(target_doc)
+	target_doc = frappe.new_doc("Order Form") if not target_doc else frappe.get_doc(target_doc)
 
 	if source_name:
-		customer_order_form	= frappe.db.sql(f"""select * from `tabCustomer Order Form Detail` where parent = '{source_name}' """, as_dict=1)
-		# frappe.throw(f"{customer_order_form}")
+		customer_order_form = frappe.db.sql(f"""SELECT * FROM `tabCustomer Order Form Detail` 
+							WHERE parent = '{source_name}' AND docstatus = 1""", as_dict=1)
+	if not customer_order_form:
+		frappe.msgprint(_("Please submit the Customer Order Form"))
+		return target_doc
 
-	for i in customer_order_form:		
-		item = i.get("design_code")
-		# quotation_id = i.get("quotation")
-		order_id = i.get("order_id")
+	for i in customer_order_form:
+		item, order_id = i.get("design_code"), i.get("order_id")
+		order_data = frappe.db.sql(f"SELECT * FROM `tabOrder` WHERE name = '{order_id}'", as_dict=1)
+		customer_design_code = frappe.db.sql(f"SELECT * FROM `tabBOM` WHERE item = '{item}' AND name = '{i.get('design_code_bom')}'", as_dict=1)
+		item_serial = frappe.db.get_value("Serial No", {'item_code': item}, 'name')
 
-		order_data = frappe.db.sql(f"""select * from `tabOrder` where name = '{order_id}' """,as_dict=1)		
-
-		item_serial = frappe.db.get_value("Serial No",{'item_code': item}, 'name')
-		# Serial No
-
-		for j in order_data:
-			target_doc.append("order_details", {
-				"delivery_date": target_doc.delivery_date,
-				"design_type": j.get("design_type"),
-				"design_id": j.get("item"),
-				"bom": j.get("new_bom"),
-				"mod_reason": j.get("mod_reason"),
-				"tag_no": item_serial,
-
-				"diamond_quality": i.get("diamond_quality"),
-				"customer_order_form": i.get("parent"),
-				"category": i.get("category"),
-				"subcategory": i.get("subcategory"),
-				"setting_type": i.get("setting_type"),
-				"theme_code" : i.get("theme_code"),
-				"metal_type": i.get("metal_type"),
-				"metal_touch": i.get("metal_touch"),
-				"metal_colour": i.get("metal_colour"),
-				"metal_target": i.get("metal_target"),
-				"diamond_target": i.get("diamond_target"),
-				"gemstone_quality": i.get("gemstone_quality"),
-				"gemstone_type": i.get("gemstone_type"),
-				"feature": i.get("feature"),
-				"product_size": i.get("product_size"),
-				"rhodium": i.get("rhodium"),
-				"enamal": i.get("enamal"),
-				"sub_setting_type1" : j.get("sub_setting_type1"),
-				"sub_setting_type2" : j.get("sub_setting_type2"),
-				"sizer_type" : j.get("sizer_type"),
-				"stone_changeable" : j.get("stone_changeable"),
-				"detachable" : j.get("detachable"),
-				"lock_type" : j.get("lock_type"),
-				"capganthan" : j.get("capganthan"),
-				"charm" : j.get("charm"),
-				"back_chain" : j.get("back_chain"),
-				"back_chain_size" : j.get("back_chain_size"),
-				"back_belt" : j.get("back_belt"),
-				"back_belt_length" : j.get("back_belt_length"),
-				"black_beed_line" : j.get("black_beed_line"),
-				"back_side_size" : j.get("back_side_size"),
-				"back_belt_patti" : j.get("back_belt_patti"),
-				"two_in_one" : j.get("two_in_one"),
-				"number_of_ant" : j.get("number_of_ant"),
-				"distance_between_kadi_to_mugappu" : j.get("distance_between_kadi_to_mugappu"),
-				"space_between_mugappu" : j.get("space_between_mugappu"),
-				"chain_type" : j.get("chain_type"),
-				"customer_ichain" : j.get("customer_chain"), #chain from
-				"nakshi_weght" : j.get("nakshi_weght"),
-				
-				# "" : j.get(""),
-				# "" : j.get(""),
-				# "" : j.get(""),
-				# "" : j.get(""),
-			})
-
+		data_source = order_data if order_data else customer_design_code
+		# frappe.throw(f"{data_source}")
+		if data_source:
+			for j in data_source:
+				target_doc.append("order_details", {
+					"delivery_date": target_doc.delivery_date,
+					"design_by": j.get('design_by'),
+					"design_type": j.get('design_type'),
+					"qty": j.get('qty'),
+					"design_id": j.get("item", item),
+					"bom": j.get("new_bom", i.get('design_code_bom')),
+					"tag_no": item_serial or j.get('tag_no'),
+					"diamond_quality": i.get("diamond_quality"),
+					"customer_order_form": i.get("parent"),
+					"category": i.get("category"),
+					"subcategory": i.get("subcategory"),
+					"setting_type": i.get("setting_type"),
+					"theme_code": i.get("theme_code"),
+					"metal_type": i.get("metal_type"),
+					"metal_touch": i.get("metal_touch"),
+					"metal_colour": i.get("metal_colour"),
+					"metal_target": i.get("metal_target"),
+					"diamond_target": i.get("diamond_target"),
+					"feature": i.get("feature"),
+					"product_size": i.get("product_size"),
+					"rhodium": i.get("rhodium"),
+					"enamal": j.get("enamal"),
+					"sub_setting_type1": j.get("sub_setting_type1"),
+					"sub_setting_type2": j.get("sub_setting_type2"),
+					"sizer_type": j.get("sizer_type"),
+					"stone_changeable": j.get("stone_changeable"),
+					"detachable": j.get("detachable"),
+					"lock_type": j.get("lock_type"),
+					"capganthan": j.get("capganthan"),
+					"charm": j.get("charm"),
+					"back_chain": j.get("back_chain"),
+					"back_chain_size": j.get("back_chain_size"),
+					"back_belt": j.get("back_belt"),
+					"back_belt_length": j.get("back_belt_length"),
+					"black_beed_line": j.get("black_beed_line"),
+					"back_side_size": j.get("back_side_size"),
+					"back_belt_patti": j.get("back_belt_patti"),
+					"two_in_one": j.get("two_in_one"),
+					"number_of_ant": j.get("number_of_ant"),
+					"distance_between_kadi_to_mugappu": j.get("distance_between_kadi_to_mugappu"),
+					"space_between_mugappu": j.get("space_between_mugappu"),
+					"chain_type": j.get("chain_type"),
+					"customer_chain": j.get("customer_chain"),
+					"nakshi_weght": j.get("nakshi_weght"),
+				})
 	return target_doc
 	
 def set_data(self):
@@ -614,8 +622,8 @@ def create_po(self):
 	po_doc.branch = self.branch
 	po_doc.project = self.project
 	po_doc.purchase_type = 'Subcontracting'
-	po_doc.custom_forms = "Order Form"
-	po_doc.custom_form_id = self.name
+	# po_doc.custom_form = "Order Form"
+	# po_doc.custom_form_id = self.name
 	po_doc.schedule_date = self.delivery_date
 
 	po_item_log = po_doc.append("items", {})
@@ -666,8 +674,11 @@ def create_po(self):
 	# po_trn_log.due_date = self.delivery_date
 	# po_trn_log.invoice_portion = 100.0
 
+	
 	po_doc.save()
 	po_name = po_doc.name
+	frappe.db.set_value("Purchase Order",po_name,"custom_form","Order Form")
+	frappe.db.set_value("Purchase Order",po_name,"custom_form_id",self.name)
 	msg = _("The following {0} is created: {1}").format(
 			frappe.bold(_("Purchase Order")), "<br>" + get_link_to_form("Purchase Order", po_name)
 		)

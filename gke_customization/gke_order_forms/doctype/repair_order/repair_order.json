@@ -1,4 +1,5 @@
 {
+"_liked_by": "[\"Administrator\"]",
 "actions": [],
 "allow_rename": 1,
 "autoname": "format:{serial_and_design_code_order_form}-{index}",
@@ -45,9 +46,6 @@
     "item",
     "bom",
     "tag_no",
-    "column_break_5wjbg",
-    "new_item_code",
-    "new_bom",
     "modification",
     "section_break_41",
     "category",
@@ -98,6 +96,7 @@
     "column_break_vhivp",
     "hook_type",
     "lock_type",
+    "count_of_spiral_turns",
     "section_break_qocmn",
     "black_bead",
     "black_bead_line",
@@ -154,8 +153,13 @@
     "column_break_41",
     "design_image4",
     "section_break_fgvjt",
+    "bom_assignment",
+    "section_break_5riv",
     "form_remarks",
     "remarks",
+    "new_item_code",
+    "column_break_5wjbg",
+    "new_bom",
     "amended_from",
     "tab_break_ztm2",
     "sketch",
@@ -1212,6 +1216,22 @@
     "label": "Gemstone Type",
     "options": "Attribute Value",
     "read_only": 1
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "bom_assignment",
+    "fieldtype": "Table",
+    "label": "BOM Assignment",
+    "options": "Designer Assignment - CAD"
+    },
+    {
+    "fieldname": "section_break_5riv",
+    "fieldtype": "Section Break"
+    },
+    {
+    "fieldname": "count_of_spiral_turns",
+    "fieldtype": "Int",
+    "label": "Count Of Spiral Turns"
     }
 ],
 "index_web_pages_for_search": 1,
@@ -1231,7 +1251,7 @@
     }
 ],
 "make_attachments_public": 1,
-"modified": "2024-12-30 10:13:26.090281",
+"modified": "2025-01-01 15:17:51.610863",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Repair Order",
