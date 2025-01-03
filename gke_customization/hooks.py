@@ -115,9 +115,9 @@ doctype_js = {
 # ---------------
 # Override standard doctype classes
 
-# override_doctype_class = {
-#	"ToDo": "custom_app.overrides.CustomToDo"
-# }
+override_doctype_class = {
+	"Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive"
+}
 
 # Document Events
 # ---------------
@@ -228,6 +228,9 @@ doc_events = {
 },
 "Employee Advance": {
 	"validate": "gke_customization.gke_hrms.doc_events.employee_advance.calculate_working_days"
+},
+"Attendance Request": {
+	"on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit"
 },
 # "Shareholder": {
 #     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
