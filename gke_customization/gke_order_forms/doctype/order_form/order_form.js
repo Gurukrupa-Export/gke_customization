@@ -4,6 +4,9 @@ frappe.ui.form.on('Order Form', {
 		update_fields_in_child_table(frm, "delivery_date")
 		calculate_due_days(frm);
 	},
+	is_finding_order: function (frm) {
+		update_fields_in_child_table(frm, "is_finding_order")
+	},
 	estimated_duedate(frm) {
 		validate_dates(frm, frm.doc, "estimated_duedate")
 		update_fields_in_child_table(frm, "estimated_duedate")
@@ -474,6 +477,7 @@ frappe.ui.form.on('Order Form Detail', {
 		row.branch = frm.doc.branch
 		row.project = frm.doc.project
 		row.customer_code = frm.doc.customer_code
+		row.is_finding_order = frm.doc.is_finding_order
 		var fields = ['design_id'];
 		if (row.design_type == 'Sketch Design'){
 			set_filter_for_sketch_design_n_serial(frm,fields)

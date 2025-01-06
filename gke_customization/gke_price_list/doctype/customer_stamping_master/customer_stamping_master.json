@@ -1,0 +1,282 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-01-06 10:38:45.705666",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "customer_code",
+  "column_break_xu3e",
+  "customer_name",
+  "section_break_mlsj",
+  "customer_font",
+  "customer_logo",
+  "manufacturer_logo",
+  "city",
+  "customer_code_required",
+  "serial_number",
+  "gross_weight",
+  "column_break_bhya",
+  "metal_touch",
+  "metal_purity",
+  "metal_weight",
+  "finding_weight",
+  "customer_chain_cu",
+  "customer_finding_weight",
+  "diamond_grade",
+  "diamond_pcs",
+  "diamond_weight",
+  "column_break_jdgv",
+  "diamond_weight_with_ct",
+  "diamond_weight_with_cts",
+  "fancy_diamond_pcs",
+  "fancy_diamond_weight",
+  "customer_diamond",
+  "customer_diamond_pcs",
+  "customer_diamond_weight_with_ct",
+  "diamond_quality",
+  "gemstoner_type",
+  "column_break_ffxh",
+  "gemstone_cs",
+  "gemstone_pcs",
+  "gemstone_weight",
+  "other_weight",
+  "bangle_pair_weight"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer Code",
+   "options": "Customer"
+  },
+  {
+   "fetch_from": "customer_code.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Custome Name"
+  },
+  {
+   "default": "0",
+   "fieldname": "metal_weight",
+   "fieldtype": "Check",
+   "label": "Metal Weight"
+  },
+  {
+   "default": "0",
+   "fieldname": "finding_weight",
+   "fieldtype": "Check",
+   "label": "Finding Weight"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_chain_cu",
+   "fieldtype": "Check",
+   "label": "Customer Chain (CU)"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_finding_weight",
+   "fieldtype": "Check",
+   "label": "Customer Finding Weight"
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond_grade",
+   "fieldtype": "Check",
+   "label": "Diamond Grade"
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond_pcs",
+   "fieldtype": "Check",
+   "label": "Diamond Pcs"
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond_weight",
+   "fieldtype": "Check",
+   "label": "Diamond Weight"
+  },
+  {
+   "fieldname": "column_break_jdgv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond_weight_with_ct",
+   "fieldtype": "Check",
+   "label": "Diamond Weight (With CT)"
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond_weight_with_cts",
+   "fieldtype": "Check",
+   "label": "Diamond Weight (With cts)"
+  },
+  {
+   "default": "0",
+   "fieldname": "fancy_diamond_pcs",
+   "fieldtype": "Check",
+   "label": "Fancy Diamond Pcs"
+  },
+  {
+   "default": "0",
+   "fieldname": "fancy_diamond_weight",
+   "fieldtype": "Check",
+   "label": "Fancy Diamond Weight "
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_diamond",
+   "fieldtype": "Check",
+   "label": "Customer Diamond "
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_diamond_pcs",
+   "fieldtype": "Check",
+   "label": "Customer Diamond PCS"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_diamond_weight_with_ct",
+   "fieldtype": "Check",
+   "label": "Customer Diamond Weight (With CT)"
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond_quality",
+   "fieldtype": "Check",
+   "label": "Diamond Quality"
+  },
+  {
+   "default": "0",
+   "fieldname": "gemstoner_type",
+   "fieldtype": "Check",
+   "label": "Gemstoner Type"
+  },
+  {
+   "fieldname": "column_break_ffxh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "gemstone_cs",
+   "fieldtype": "Check",
+   "label": "Gemstone (CS)"
+  },
+  {
+   "default": "0",
+   "fieldname": "gemstone_pcs",
+   "fieldtype": "Check",
+   "label": "Gemstone PCS"
+  },
+  {
+   "default": "0",
+   "fieldname": "gemstone_weight",
+   "fieldtype": "Check",
+   "label": "Gemstone Weight "
+  },
+  {
+   "default": "0",
+   "fieldname": "other_weight",
+   "fieldtype": "Check",
+   "label": "Other Weight "
+  },
+  {
+   "default": "0",
+   "fieldname": "bangle_pair_weight",
+   "fieldtype": "Check",
+   "label": "Bangle Pair Weight "
+  },
+  {
+   "fieldname": "customer_font",
+   "fieldtype": "Data",
+   "label": "Customer Font"
+  },
+  {
+   "fieldname": "customer_logo",
+   "fieldtype": "Attach Image",
+   "label": "Customer Logo"
+  },
+  {
+   "fieldname": "manufacturer_logo",
+   "fieldtype": "Attach Image",
+   "label": "Manufacturer Logo"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "City"
+  },
+  {
+   "default": "0",
+   "fieldname": "serial_number",
+   "fieldtype": "Check",
+   "label": "Serial Number"
+  },
+  {
+   "default": "0",
+   "fieldname": "gross_weight",
+   "fieldtype": "Check",
+   "label": "Gross Weight"
+  },
+  {
+   "default": "0",
+   "fieldname": "metal_touch",
+   "fieldtype": "Check",
+   "label": "Metal Touch"
+  },
+  {
+   "default": "0",
+   "fieldname": "metal_purity",
+   "fieldtype": "Check",
+   "label": "Metal Purity"
+  },
+  {
+   "fieldname": "column_break_bhya",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_code_required",
+   "fieldtype": "Check",
+   "label": "Customer Code Required"
+  },
+  {
+   "fieldname": "section_break_mlsj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_xu3e",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-01-06 17:27:02.823005",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Customer Stamping Master",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
