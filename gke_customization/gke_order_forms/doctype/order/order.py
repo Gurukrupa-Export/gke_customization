@@ -27,7 +27,8 @@ class Order(Document):
 			self.reload()
 
 	def validate(self):
-		cerate_timesheet(self)
+		if self.order_type != 'Purchase':
+			cerate_timesheet(self)
 		calculate_metal_weights(self)
 		calculate_finding_weights(self)
 		calculate_diamond_weights(self)
@@ -40,7 +41,8 @@ class Order(Document):
 		
 	
 	def on_update_after_submit(self):
-		cerate_bom_timesheet(self)
+		if self.is_repairing == 0:
+			cerate_bom_timesheet(self)
 		calculate_metal_weights(self)
 		calculate_finding_weights(self)
 		calculate_diamond_weights(self)
@@ -61,7 +63,6 @@ def calculate_metal_weights(self):
 	for i in self.metal_detail:
 		total_metal_weight += i.quantity
 	self.total_metal_weight = total_metal_weight
-	# frappe.throw(f"{self.total_metal_weight}")
 
 def calculate_finding_weights(self):
 	# total_finding_weightin_gms = 0
@@ -69,8 +70,7 @@ def calculate_finding_weights(self):
 	total_finding_pcs = 0
 	for i in self.finding_detail:
 		total_finding_weight += i.quantity
-		total_finding_pcs = i.qty
-	self.finding_weight = total_finding_weight
+		total_finding_pcs += i.qty
 	self.total_finding_pcs = total_finding_pcs
 	self.total_finding_weightin_gms = total_finding_weight
 
@@ -78,9 +78,9 @@ def calculate_diamond_weights(self):
 	total_diamond_weight = 0
 	total_diamond_pcs = 0
 	for i in self.diamond_detail:
-		total_diamond_weight = i.quantity
+		total_diamond_weight += i.quantity
+		total_diamond_pcs += i.pcs
 		i.weight_in_gms = i.quantity/5
-		total_diamond_pcs = i.pcs
 	self.total_diamond_weight = total_diamond_weight
 	self.total_diamond_pcs = total_diamond_pcs
 	self.total_diamond_weightin_gms = total_diamond_weight/5
@@ -89,8 +89,8 @@ def calculate_gemstone_weights(self):
 	total_gemstone_weight = 0
 	total_gemstone_pcs = 0
 	for i in self.gemstone_detail:
-		total_gemstone_weight = i.quantity
-		total_gemstone_pcs = i.pcs
+		total_gemstone_weight += i.quantity
+		total_gemstone_pcs += i.pcs
 		i.weight_in_gms = i.quantity/5
 	self.total_gemstone_weight = total_gemstone_weight
 	self.total_gemstone_pcs = total_gemstone_pcs
@@ -100,8 +100,8 @@ def calculate_other_weights(self):
 	total_other_pcs = 0
 	total_other_weight = 0
 	for i in self.other_detail:
-		total_other_weight = i.quantity
-		total_other_pcs = i.qty
+		total_other_weight += i.quantity
+		total_other_pcs += i.qty
 	self.total_other_weight = total_other_weight
 	self.total_other_pcs = total_other_pcs
 
@@ -110,27 +110,21 @@ def calculate_total(self):
 	Also calculate the gold to diamond ratio, and the diamond ratio.
 	"""
 	self.metal_weight = self.total_metal_weight
+	self.diamond_weight = sum(row.quantity for row in self.diamond_detail)
+	self.gemstone_weight = sum(row.quantity for row in self.gemstone_detail)
+	self.other_weight = sum(row.quantity for row in self.other_detail)
+	self.finding_weight = sum(row.quantity for row in self.finding_detail)
 	self.metal_and_finding_weight = flt(self.metal_weight) + flt(self.finding_weight)
+
+	self.total_diamond_weight_in_gms = self.total_diamond_weightin_gms
+	self.total_gemstone_weight_in_gms = self.total_gemstone_weightin_gms
+	
 	self.gross_weight = (
 		flt(self.metal_and_finding_weight)
 		+ flt(self.total_diamond_weight_in_gms)
 		+ flt(self.total_gemstone_weight_in_gms)
 		+ flt(self.total_other_weight)
 	)
-	self.diamond_weight = sum(row.quantity for row in self.diamond_detail)
-	self.gemstone_weight = self.total_gemstone_weight
-	self.other_weight = sum(row.quantity for row in self.other_detail)
-	self.finding_weight_ = sum(row.quantity for row in self.finding_detail)
-	self.total_diamond_weight_in_gms = sum(row.weight_in_gms for row in self.diamond_detail)
-	self.total_gemstone_weight_in_gms = sum(row.weight_in_gms for row in self.gemstone_detail)
-
-	self.total_diamond_pcs = sum(flt(row.pcs) for row in self.diamond_detail)
-
-	# self.total_metal_weight = sum(row.quantity for row in self.metal_detail)
-	self.total_gemstone_weight = sum(row.quantity for row in self.gemstone_detail)
-	self.total_gemstone_pcs = sum(flt(row.pcs) for row in self.gemstone_detail)
-	self.total_other_weight = sum(row.quantity for row in self.other_detail)
-
 
 	self.gold_to_diamond_ratio = (
 		flt(self.metal_and_finding_weight) / flt(self.diamond_weight) if self.diamond_weight else 0

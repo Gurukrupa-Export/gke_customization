@@ -157,7 +157,6 @@
     "cad_file",
     "column_break_wodq",
     "rpt_file",
-    "section_break_ysw4",
     "bom_tab",
     "bom_metal_detail_section",
     "metal_detail",
@@ -169,8 +168,6 @@
     "finding_detail",
     "section_break_xkjh",
     "total_finding_pcs",
-    "column_break_8hfq",
-    "finding_weight",
     "column_break_jjs3",
     "total_finding_weightin_gms",
     "bom_diamond_detail_section",
@@ -206,7 +203,7 @@
     "gemstone_weight",
     "other_weight",
     "column_break_zzly",
-    "finding_weight_",
+    "finding_weight",
     "total_diamond_weight_in_gms",
     "total_gemstone_weight_in_gms",
     "product_ratio_section",
@@ -888,6 +885,7 @@
     "read_only": 1
     },
     {
+    "depends_on": "eval:doc.order_type != 'Purchase'",
     "fieldname": "section_break_74",
     "fieldtype": "Section Break"
     },
@@ -1203,18 +1201,14 @@
     {
     "allow_on_submit": 1,
     "fieldname": "total_finding_pcs",
-    "fieldtype": "Float",
+    "fieldtype": "Int",
     "label": "Total Finding Pcs"
-    },
-    {
-    "fieldname": "column_break_8hfq",
-    "fieldtype": "Column Break"
     },
     {
     "allow_on_submit": 1,
     "fieldname": "finding_weight",
     "fieldtype": "Float",
-    "label": "Finding Weight"
+    "label": "Finding Weight (In Gram)"
     },
     {
     "fieldname": "column_break_jjs3",
@@ -1224,7 +1218,7 @@
     "allow_on_submit": 1,
     "fieldname": "total_finding_weightin_gms",
     "fieldtype": "Float",
-    "label": "Total Finding Weight(In gms)"
+    "label": "Total Finding Weight"
     },
     {
     "allow_on_submit": 1,
@@ -1256,8 +1250,9 @@
     {
     "allow_on_submit": 1,
     "fieldname": "total_diamond_weightin_gms",
-    "fieldtype": "Data",
-    "label": "Total Diamond Weight(In gms)"
+    "fieldtype": "Float",
+    "label": "Total Diamond Weight(In gms)",
+    "precision": "4"
     },
     {
     "allow_on_submit": 1,
@@ -1372,12 +1367,6 @@
     {
     "fieldname": "column_break_zzly",
     "fieldtype": "Column Break"
-    },
-    {
-    "allow_on_submit": 1,
-    "fieldname": "finding_weight_",
-    "fieldtype": "Float",
-    "label": "Finding Weight (In Gram)"
     },
     {
     "allow_on_submit": 1,
@@ -1583,10 +1572,6 @@
     "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
     },
     {
-    "fieldname": "section_break_ysw4",
-    "fieldtype": "Section Break"
-    },
-    {
     "allow_on_submit": 1,
     "fetch_from": "cad_order_form_detail.black_bead_line",
     "fetch_if_empty": 1,
@@ -1667,7 +1652,7 @@
     "link_fieldname": "order"
     }
 ],
-"modified": "2025-01-01 15:05:00.495804",
+"modified": "2025-01-13 10:36:14.483573",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Order",
