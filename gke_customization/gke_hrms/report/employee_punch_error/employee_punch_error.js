@@ -7,23 +7,27 @@ frappe.query_reports["Employee Punch Error"] = {
 			"label": __("Company"),
 			"fieldname": "company",
 			"fieldtype": "Link",
-			"options": 'Company'
+			"options": 'Company',
+			"reqd": 1
 		},
 		{
 			"label": __("From Date"),
 			"fieldname": "from_date",
 			"fieldtype": "Date",
+			"reqd": 1
 		},
 		{
 			"label": __("To Date"),
 			"fieldname": "to_date",
 			"fieldtype": "Date",
+			"reqd": 1
 		},
 		{
 			"label": __("Department"),
 			"fieldname": "department",
 			"fieldtype": "Link",
 			"options": 'Department',
+			// "reqd": 1,
 			"get_query": function() {
 				var company = frappe.query_report.get_filter_value('company')
 				return {
@@ -48,7 +52,7 @@ frappe.query_reports["Employee Punch Error"] = {
 		}).addClass("btn-info");
 
 		report.page.add_button("Generate", function() {
-			var date = frappe.query_report.get_filter_value('date');
+			var date = frappe.query_report.get_filter_value('attendance_date');
 			var employeeId = frappe.query_report.get_filter_value('employee');
 			frappe.query_report.set_filter_value({
 				"date": date,
@@ -56,61 +60,56 @@ frappe.query_reports["Employee Punch Error"] = {
 			});
 		}).addClass("btn-primary");
 
-		report.page.add_inner_button(__("Mark as Attendance"), function() {
-			// var filters = report.get_values();
-			// console.log(filters);
-			
-			var selected_rows = [];
-			var checkedRow = 0;
-			// $('.dt-scrollable').find(":input[type=checkbox]").each((idx, row) => {
-			// 	if(row.checked){					
-			// 		checkedRow++;
-			// 		if(checkedRow == 1){
-			// 			let employeeId = frappe.query_report.data[idx]['employee']
-			// 			let date = frappe.query_report.data[idx]['date']
-			// 			// frappe.set_route('Form', 'Manual Punch');
-			// 			frappe.new_doc("Manual Punch", {
-			// 					doctype: "Manual Punch",
-			// 					date: date,
-			// 					employee: employeeId
-			// 				});
-			// 			selected_rows.push(frappe.query_report.data[idx]);
-			// 			console.log(selected_rows);
-			// 		} 
-			// 	}
-			// });
-			$('.dt-scrollable').find(":input[type=checkbox]").each((idx, row) => {
-				if(row.checked){                    
-					checkedRow++;
-					if(checkedRow == 1){
-						let employeeId = frappe.query_report.data[idx]['employee']
-						let date = frappe.query_report.data[idx]['date']
-
-						selected_rows.push({
-							employeeId: employeeId,
-							date: date
-						});
-					} 
-				}
-			});
+		report.page.add_inner_button(__("Mark as Attendance"), function () {
+			// Select the checked checkbox inside the datatable
+			let checkedBox = document.querySelector('.dt-cell input[type="checkbox"]:checked');
 		
-			if(checkedRow === 0){
+			if (!checkedBox) {
 				frappe.msgprint(__("Please select at least one row."));
-				return false; 
-			} else if(checkedRow > 1){
-				frappe.msgprint(__("You can select only one row."));
 				return false;
 			}
 		
-			let selectedRow = selected_rows[0];
+			// Get the data-row-index from the closest dt-cell div
+			let selectedCell = checkedBox.closest('.dt-cell');
+			
+			if (!selectedCell) {
+				frappe.msgprint(__("Unable to identify the selected row."));
+				return false;
+			}
+		
+			// Get the row index from data attribute
+			let selectedRowIndex = selectedCell.getAttribute('data-row-index');
+		
+			if (selectedRowIndex === null) {
+				frappe.msgprint(__("Could not fetch the selected row's index."));
+				return false;
+			}
+		
+			// Fetch the selected row data using the row index
+			let selectedRowData = report.data[selectedRowIndex];P
+		
+			if (!selectedRowData) {
+				frappe.msgprint(__("Unable to fetch data for the selected row."));
+				return false;
+			}
+			
+			console.log(selectedRowIndex, selectedRowData);
+			
+			// Open the Manual Punch form with the selected row's data
 			frappe.new_doc("Manual Punch", {
 				doctype: "Manual Punch",
-				error_date: selectedRow.date,
-				employee: selectedRow.employeeId
+				error_date: selectedRowData.attendance_date,
+				employee: selectedRowData.employee
 			});
-		}).addClass("btn-second");		
+		}).addClass("btn-second");
+		
+		
+		
+			
 	},
 	get_datatable_options(options) {
+		console.log(options);
+		
         return Object.assign(options, {
             checkboxColumn: true
         });

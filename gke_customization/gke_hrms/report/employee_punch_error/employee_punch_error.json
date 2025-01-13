@@ -1,5 +1,4 @@
 {
- "_liked_by": "[]",
  "add_total_row": 0,
  "columns": [],
  "creation": "2024-03-15 17:15:45.589977",
@@ -10,8 +9,8 @@
  "idx": 4,
  "is_standard": "Yes",
  "letterhead": null,
- "modified": "2024-03-27 09:29:25.547666",
- "modified_by": "Administrator",
+ "modified": "2025-01-10 16:45:56.798905",
+ "modified_by": "jenali_d@gkexport.com",
  "module": "GKE HRMS",
  "name": "Employee Punch Error",
  "owner": "Administrator",
@@ -34,6 +33,13 @@
   },
   {
    "role": "Employee Self Service"
+  },
+  {
+   "role": "GK HR"
+  },
+  {
+   "role": "GK HR Hod"
   }
- ]
+ ],
+ "timeout": 0
 }
