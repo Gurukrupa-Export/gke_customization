@@ -86,7 +86,7 @@ frappe.query_reports["Employee Punch Error"] = {
 			}
 		
 			// Fetch the selected row data using the row index
-			let selectedRowData = report.data[selectedRowIndex];P
+			let selectedRowData = report.data[selectedRowIndex];
 		
 			if (!selectedRowData) {
 				frappe.msgprint(__("Unable to fetch data for the selected row."));
@@ -101,11 +101,7 @@ frappe.query_reports["Employee Punch Error"] = {
 				error_date: selectedRowData.attendance_date,
 				employee: selectedRowData.employee
 			});
-		}).addClass("btn-second");
-		
-		
-		
-			
+		}).addClass("btn-second");				
 	},
 	get_datatable_options(options) {
 		console.log(options);
