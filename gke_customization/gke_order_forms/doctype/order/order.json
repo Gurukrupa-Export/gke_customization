@@ -1633,7 +1633,8 @@
     {
     "fieldname": "casting_pcs",
     "fieldtype": "Int",
-    "label": "Casting Pcs"
+    "label": "Casting Pcs",
+    "reqd": 1
     }
 ],
 "index_web_pages_for_search": 1,
