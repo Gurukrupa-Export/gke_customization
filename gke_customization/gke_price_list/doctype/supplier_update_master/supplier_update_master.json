@@ -1,0 +1,474 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-01-13 16:48:36.848035",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_rlt8",
+  "is_new_employee",
+  "supplier_data",
+  "supplier_name",
+  "supplier_group",
+  "consider_purchase_receipt_as_customer",
+  "column_break_ucz3",
+  "supplier_type",
+  "territory",
+  "country",
+  "gst_transporter_id",
+  "export_type",
+  "image",
+  "defaults_section",
+  "default_company_bank_account",
+  "column_break_3zkf",
+  "price_list",
+  "default_payment_terms_template",
+  "certification_charges",
+  "default_accounts_section",
+  "internal_supplier_section",
+  "represents_company",
+  "column_break_nj7k",
+  "allowed_to_transact_with",
+  "more_information_section",
+  "column_break_2bt2",
+  "website",
+  "print_language",
+  "dashboard_tab",
+  "tax_tab",
+  "is_irs_1099_reporting_required_for_supplier",
+  "column_break_lfmg",
+  "tax_withholding_category",
+  "tax_details_section",
+  "pan",
+  "gstin__uin",
+  "column_break_w8vq",
+  "address_contact_tab",
+  "address_contact_section",
+  "address_html",
+  "contact_html",
+  "primary_address_and_contact_section",
+  "supplier_primary_contact",
+  "mobile_no",
+  "email_id",
+  "column_break_kem5",
+  "supplier_primary_address",
+  "primary_address",
+  "column_break_hozt",
+  "accounting_tab",
+  "accounts",
+  "settings_tab",
+  "allow_purchase_invoice_creation_without_purchase_order",
+  "allow_purchase_invoice_creation_without_purchase_receipt",
+  "column_break_nhz8",
+  "is_frozen",
+  "disabled",
+  "warn_rfqs",
+  "warn_pos",
+  "prevent_rfqs",
+  "prevent_pos",
+  "block_supplier_section",
+  "block_supplier",
+  "hold_type",
+  "column_break_kb2x",
+  "release_date",
+  "amended_from",
+  "purchase_type"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_rlt8",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "depends_on": "eval:doc.is_new_employee != 1",
+   "fieldname": "supplier_data",
+   "fieldtype": "Link",
+   "label": "Supplier Data",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Supplier Name"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country"
+  },
+  {
+   "default": "0",
+   "fieldname": "consider_purchase_receipt_as_customer",
+   "fieldtype": "Check",
+   "label": "Consider Purchase Receipt as Customer Goods"
+  },
+  {
+   "fieldname": "column_break_ucz3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "supplier_group",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Supplier Group",
+   "options": "Supplier Group"
+  },
+  {
+   "fieldname": "supplier_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Supplier Type",
+   "options": "Company\nIndividual\nPartnership"
+  },
+  {
+   "fieldname": "territory",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Territory",
+   "options": "Territory"
+  },
+  {
+   "fieldname": "gst_transporter_id",
+   "fieldtype": "Data",
+   "label": "GST Transporter ID"
+  },
+  {
+   "fieldname": "export_type",
+   "fieldtype": "Select",
+   "label": "Export Type",
+   "options": "\nWith Payment of Tax\nWithout Payment of Tax"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image"
+  },
+  {
+   "fieldname": "defaults_section",
+   "fieldtype": "Section Break",
+   "label": "Defaults"
+  },
+  {
+   "fieldname": "default_company_bank_account",
+   "fieldtype": "Link",
+   "label": "Default Company Bank Account",
+   "options": "Bank Account"
+  },
+  {
+   "fieldname": "column_break_3zkf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "price_list",
+   "fieldtype": "Link",
+   "label": "Price List",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "default_payment_terms_template",
+   "fieldtype": "Link",
+   "label": "Default Payment Terms Template",
+   "options": "Payment Terms Template"
+  },
+  {
+   "fieldname": "certification_charges",
+   "fieldtype": "Currency",
+   "label": "Certification Charges"
+  },
+  {
+   "fieldname": "default_accounts_section",
+   "fieldtype": "Section Break",
+   "label": "Default Accounts"
+  },
+  {
+   "fieldname": "internal_supplier_section",
+   "fieldtype": "Section Break",
+   "label": "Internal Supplier"
+  },
+  {
+   "fieldname": "represents_company",
+   "fieldtype": "Link",
+   "label": "Represents Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_nj7k",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "allowed_to_transact_with",
+   "fieldtype": "Table",
+   "label": "Allowed To Transact With",
+   "options": "Allowed To Transact With"
+  },
+  {
+   "fieldname": "more_information_section",
+   "fieldtype": "Section Break",
+   "label": "More Information"
+  },
+  {
+   "fieldname": "column_break_2bt2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "website",
+   "fieldtype": "Data",
+   "label": "Website"
+  },
+  {
+   "fieldname": "print_language",
+   "fieldtype": "Link",
+   "label": "Print Language",
+   "options": "Language"
+  },
+  {
+   "fieldname": "dashboard_tab",
+   "fieldtype": "Tab Break",
+   "label": "Dashboard"
+  },
+  {
+   "fieldname": "tax_tab",
+   "fieldtype": "Tab Break",
+   "label": "Tax"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_irs_1099_reporting_required_for_supplier",
+   "fieldtype": "Check",
+   "label": "Is IRS 1099 reporting required for supplier?"
+  },
+  {
+   "fieldname": "column_break_lfmg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tax_withholding_category",
+   "fieldtype": "Link",
+   "label": "Tax Withholding Category",
+   "options": "Tax Withholding Category"
+  },
+  {
+   "fieldname": "tax_details_section",
+   "fieldtype": "Section Break",
+   "label": "Tax Details"
+  },
+  {
+   "fieldname": "gstin__uin",
+   "fieldtype": "Autocomplete",
+   "label": "GSTIN / UIN"
+  },
+  {
+   "fieldname": "pan",
+   "fieldtype": "Data",
+   "label": "PAN"
+  },
+  {
+   "fieldname": "column_break_w8vq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "address_contact_tab",
+   "fieldtype": "Tab Break",
+   "label": "Address & Contact"
+  },
+  {
+   "fieldname": "address_contact_section",
+   "fieldtype": "Section Break",
+   "label": "Address & Contact"
+  },
+  {
+   "fieldname": "address_html",
+   "fieldtype": "HTML",
+   "label": "Address HTML"
+  },
+  {
+   "fieldname": "contact_html",
+   "fieldtype": "HTML",
+   "label": "Contact HTML"
+  },
+  {
+   "fieldname": "primary_address_and_contact_section",
+   "fieldtype": "Section Break",
+   "label": "Primary Address and Contact"
+  },
+  {
+   "fieldname": "supplier_primary_contact",
+   "fieldtype": "Link",
+   "label": "Supplier Primary Contact",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "mobile_no",
+   "fieldtype": "Read Only",
+   "label": "Mobile No"
+  },
+  {
+   "fieldname": "email_id",
+   "fieldtype": "Read Only",
+   "label": "Email Id"
+  },
+  {
+   "fieldname": "column_break_kem5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "supplier_primary_address",
+   "fieldtype": "Link",
+   "label": "Supplier Primary Address",
+   "options": "Address"
+  },
+  {
+   "fieldname": "primary_address",
+   "fieldtype": "Text",
+   "label": "Primary Address"
+  },
+  {
+   "fieldname": "column_break_hozt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "accounting_tab",
+   "fieldtype": "Tab Break",
+   "label": "Accounting"
+  },
+  {
+   "fieldname": "accounts",
+   "fieldtype": "Table",
+   "label": "Accounts",
+   "options": "Party Account"
+  },
+  {
+   "fieldname": "settings_tab",
+   "fieldtype": "Tab Break",
+   "label": "Settings"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow_purchase_invoice_creation_without_purchase_order",
+   "fieldtype": "Check",
+   "label": "Allow Purchase Invoice Creation Without Purchase Order"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow_purchase_invoice_creation_without_purchase_receipt",
+   "fieldtype": "Check",
+   "label": "Allow Purchase Invoice Creation Without Purchase Receipt"
+  },
+  {
+   "fieldname": "column_break_nhz8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_frozen",
+   "fieldtype": "Check",
+   "label": "Is Frozen"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "default": "0",
+   "fieldname": "warn_rfqs",
+   "fieldtype": "Check",
+   "label": "Warn RFQs"
+  },
+  {
+   "default": "0",
+   "fieldname": "warn_pos",
+   "fieldtype": "Check",
+   "label": "Warn POs"
+  },
+  {
+   "default": "0",
+   "fieldname": "prevent_rfqs",
+   "fieldtype": "Check",
+   "label": "Prevent RFQs"
+  },
+  {
+   "default": "0",
+   "fieldname": "prevent_pos",
+   "fieldtype": "Check",
+   "label": "Prevent POs"
+  },
+  {
+   "fieldname": "block_supplier_section",
+   "fieldtype": "Section Break",
+   "label": "Block Supplier"
+  },
+  {
+   "default": "0",
+   "fieldname": "block_supplier",
+   "fieldtype": "Check",
+   "label": "Block Supplier"
+  },
+  {
+   "fieldname": "hold_type",
+   "fieldtype": "Select",
+   "label": "Hold Type",
+   "options": "\nAll\nInvoices\nPayments"
+  },
+  {
+   "fieldname": "column_break_kb2x",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "release_date",
+   "fieldtype": "Date",
+   "label": "Release Date"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Supplier Update Master",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "purchase_type",
+   "fieldtype": "Table",
+   "label": "Purchase Type",
+   "options": "Purchase Type Multiselect"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_new_employee",
+   "fieldtype": "Check",
+   "label": "Is New Supplier"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-01-27 15:35:33.019512",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Supplier Update Master",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
