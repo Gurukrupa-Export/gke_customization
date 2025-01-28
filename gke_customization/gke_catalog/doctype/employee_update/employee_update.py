@@ -13,7 +13,9 @@ class EmployeeUpdate(Document):
 
 	def on_submit(self):
 		filed_list = [
-			"first_name", "middle_name", "last_name", "image", "date_of_birth", 
+			"first_name", "middle_name", "last_name", "image", "date_of_birth", "city", "state", 
+			"health_insurance_status","sum_assured_","accident_insurance_provider","accident_insurance_status",
+			"sum_assured_accident_insurance_","accident_insurance_no","is_esic_applicable","_esic_number",
 			"salutation","gender","custom_notice_dayes", "employment_type","custom_probation_period_days",
 			"date_of_joining","contract_end_date", "old_employee_code", "old_punch_id","status",
 			"company", "department", "designation","operation","branch",
@@ -41,17 +43,16 @@ class EmployeeUpdate(Document):
 			"sum_assured_accident_insurance_": "custom_sum_assured_accident_insurance_",
 			"accident_insurance_no": "custom_accident_insurance_no",
 			"is_esic_applicable": "custom_is_esic_applicable",
-			"variable_end_date": "custom_contract_end_date",
-			"variable_start_date": "custom_contract_start_date",
-			"variable_in": "custom_variable_in",
-			"esic_number": "_esic_number"
+			# "variable_end_date": "custom_contract_end_date",
+			# "variable_start_date": "custom_contract_start_date",
+			# "variable_in": "custom_variable_in",
 			}
 		
 		e_diff_filed = [
 			"full_name", "operation", "city", "state", "health_insurance_status", "sum_assured_",
 			"accident_insurance_provider", "accident_insurance_status", "sum_assured_accident_insurance_",
 			"accident_insurance_no", "is_esic_applicable", "variable_end_date", "variable_start_date",
-			"variable_in", "esic_number"
+			"variable_in"
 			]
 
 		if not self.is_new_employee:
