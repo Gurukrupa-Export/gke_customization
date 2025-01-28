@@ -56,13 +56,14 @@ class EmployeeUpdate(Document):
 
 		if not self.is_new_employee:
 			for i in filed_list:
+				e_i = i
 				if i in e_diff_filed:
-					i = e_json[i]
-				emp_value = frappe.db.get_value("Employee",self.employee,i)
+					e_i = e_json[i]
+				emp_value = frappe.db.get_value("Employee",self.employee,e_i)
 				uemp_value = frappe.db.get_value("Employee Update",{'employee':self.employee}, i)
 				if emp_value == uemp_value:
 					continue
-				frappe.db.set_value("Employee",self.employee,i,uemp_value)
+				frappe.db.set_value("Employee",self.employee,e_i,uemp_value)
 		else:
 			emp_doc = frappe.get_doc({'doctype': 'Employee'})
 			
