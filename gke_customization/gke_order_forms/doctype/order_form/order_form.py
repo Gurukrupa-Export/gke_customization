@@ -117,14 +117,14 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 			if bom==None:
 				frappe.throw(f'BOM is not available for {design_id}')
 			# if 
-			if mod_reason == 'No Design Change':
+			if mod_reason in ['No Design Change','Change in Metal Colour']:
 				attribute_list = make_atribute_list(source_name)
 				validate_variant_attributes(variant_of,attribute_list)
 				item_type = "Only Variant"
 				# bom_or_cad = 'CAD'
 				# if not is_repairing:
 				bom_or_cad = workflow_state_maker(source_name)
-			elif mod_reason == 'Attribute Change':
+			elif mod_reason in ['Attribute Change']:
 				attribute_list = make_atribute_list(source_name)
 				validate_variant_attributes(variant_of,attribute_list)
 				item_type = "Only Variant"
