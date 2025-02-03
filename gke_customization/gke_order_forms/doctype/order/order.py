@@ -61,7 +61,7 @@ class Order(Document):
 def calculate_metal_weights(self):
 	total_metal_weight = 0
 	for i in self.metal_detail:
-		total_metal_weight += i.quantity
+		total_metal_weight += i.finish_product_weight
 	self.total_metal_weight = total_metal_weight
 
 def calculate_finding_weights(self):
