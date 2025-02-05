@@ -87,24 +87,26 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 			bom = frappe.db.get_value('Item',design_id,'master_bom')
 			if bom==None:
 				frappe.throw(f'BOM is not available for {design_id}')
+			attribute_list = make_atribute_list(source_name)
+			validate_variant_attributes(variant_of,attribute_list)
 			if mod_reason in ['No Design Change','Change in Metal Colour']:
-				attribute_list = make_atribute_list(source_name)
-				validate_variant_attributes(variant_of,attribute_list)
 				item_type = "Only Variant"
-				bom_or_cad = workflow_state_maker(source_name)
+				# bom_or_cad = workflow_state_maker(source_name)
 			elif mod_reason in ['Attribute Change']:
-				attribute_list = make_atribute_list(source_name)
-				validate_variant_attributes(variant_of,attribute_list)
+				# attribute_list = make_atribute_list(source_name)
+				# validate_variant_attributes(variant_of,attribute_list)
 				item_type = "Only Variant"
-				bom_or_cad = 'Check'
+				# bom_or_cad = 'Check'
 			elif mod_reason == 'Change in Metal Touch':
 				item_type = "No Variant No Suffix"
-				bom_or_cad = workflow_state_maker(source_name)
+				# bom_or_cad = workflow_state_maker(source_name)
 			else:
-				attribute_list = make_atribute_list(source_name)
-				validate_variant_attributes(variant_of,attribute_list)
-				item_type = "Suffix Of Variant"
-				bom_or_cad = 'CAD'
+				# attribute_list = make_atribute_list(source_name)
+				# validate_variant_attributes(variant_of,attribute_list)
+				# item_type = "Suffix Of Variant"
+				item_type = "Template and Variant"
+				# bom_or_cad = 'CAD'
+			bom_or_cad = 'Check'
 			if frappe.db.get_value("Item",design_id,"Item_group") == 'Design DNU':
 				item_type = "Only Variant"
 	elif design_type == 'Sketch Design':

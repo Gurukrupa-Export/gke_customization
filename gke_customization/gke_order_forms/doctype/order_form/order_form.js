@@ -1,10 +1,10 @@
 frappe.ui.form.on('Order Form', {
-	delivery_date: function (frm) {
+	delivery_date(frm) {
 		validate_dates(frm, frm.doc, "delivery_date")
 		update_fields_in_child_table(frm, "delivery_date")
 		calculate_due_days(frm);
 	},
-	is_finding_order: function (frm) {
+	is_finding_order(frm) {
 		update_fields_in_child_table(frm, "is_finding_order")
 	},
 	estimated_duedate(frm) {
@@ -20,7 +20,7 @@ frappe.ui.form.on('Order Form', {
 	project(frm) {
 		update_fields_in_child_table(frm, "project")
 	},
-	setup: function (frm, cdt, cdn) {
+	setup(frm, cdt, cdn) {
 		var parent_fields = [
 			['diamond_quality', 'Diamond Quality']];
 		set_filters_on_parent_table_fields(frm, parent_fields);
@@ -80,14 +80,6 @@ frappe.ui.form.on('Order Form', {
 		set_filters_on_child_table_fields(frm, fields);
 		set_filter_for_salesman_name(frm);
 
-		// frm.set_query("parcel_place", function (doc) {
-		// 	return {
-		// 		query: "jewellery_erpnext.query.get_parcel_place",
-		// 		filters: {
-		// 			"customer_code": doc.customer_code
-		// 		}
-		// 	}
-		// })
 		frm.set_query('sub_setting_type1', 'order_details', function (doc, cdt, cdn) {
 			let d = locals[cdt][cdn];
 			return {
@@ -132,25 +124,17 @@ frappe.ui.form.on('Order Form', {
 				filters: { 'item_attribute': "Metal Touch", "customer_code": doc.customer_code }
 			};
 		});
-		if (frm.doc.order_details) {
-			frm.doc.order_details.forEach(function (d) {
-				// show_attribute_fields_for_subcategory(frm, d.doctype, d.name, d);
-			})
-		}
 	},
-	due_days: function (frm) {
+	due_days(frm) {
 		delivery_date(frm);
 	},
-	validate: function (frm) {
+	validate(frm) {
 		if (frm.doc.delivery_date < frm.doc.order_date) {
 			frappe.msgprint(__("You can not select past date in Delivery Date"));
 			frappe.validated = false;
 		}
 	},
-	concept_image: function (frm) {
-		refresh_field('image_preview');
-	},
-	customer_code: function(frm){
+	customer_code(frm){
 		frm.doc.service_type = [];
         if(frm.doc.customer_code){
 			frappe.model.with_doc("Customer", frm.doc.customer_code, function() {
@@ -190,7 +174,6 @@ frappe.ui.form.on('Order Form', {
 			},
 			callback: function (r) {
 				if (!r.exc) {
-					// console.log(r.message);
 					var arrayLength = r.message.length;
 					if (arrayLength === 1) {
 						frm.set_value("order_type", r.message[0].order_type);
@@ -257,6 +240,15 @@ frappe.ui.form.on('Order Form', {
                 // }
             })
         }, __("Get Order"))
+	},
+	order_type(frm){
+		if(frm.doc.order_type=='Purchase'){
+			$.each(frm.doc.order_details || [], function (i, d) {
+				d.design_by = frm.doc.order_type;
+				d.design_type = 'New Design';
+			});
+			refresh_field("order_details");
+		}
 	}
 
 });
@@ -269,9 +261,9 @@ frappe.ui.form.on('Order Form Detail', {
 		if (order_detail.design_type == 'Sketch Design'){
 			set_filter_for_sketch_design_n_serial(frm,fields)
 		}
-		else{
-			set_filter_for_design_n_serial(frm,fields)
-		}
+		// else{
+		// 	set_filter_for_design_n_serial(frm,fields)
+		// }
 	},
 
 	tag_no(frm, cdt, cdn) {
@@ -482,9 +474,9 @@ frappe.ui.form.on('Order Form Detail', {
 		if (row.design_type == 'Sketch Design'){
 			set_filter_for_sketch_design_n_serial(frm,fields)
 		}
-		else{
-			set_filter_for_design_n_serial(frm,fields)
-		}
+		// else{
+		// 	set_filter_for_design_n_serial(frm,fields)
+		// }
 		if (frm.doc.order_type === 'Purchase') {
 			var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "design_type" })[0];
 			if (df) {
@@ -506,33 +498,11 @@ frappe.ui.form.on('Order Form Detail', {
 		if (row.design_type == 'Sketch Design'){
 			set_filter_for_sketch_design_n_serial(frm,fields)
 		}
-		else{
-			set_filter_for_design_n_serial(frm,fields)
-		}
 	},
 
 	category: function (frm, cdt, cdn) {
 		var row = locals[cdt][cdn];
 		frappe.model.set_value(row.doctype, row.name, 'subcategory', '');
-	},
-
-	metal_touch: function(frm,cdt,cdn){
-		var d = locals[cdt][cdn];
-		frappe.call({
-			method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.get_metal_purity',
-			args: {
-				'metal_type': d.metal_type,
-				'metal_touch': d.metal_touch,
-				'customer': frm.doc.customer_code
-			},
-			callback(r) {
-				if (r.message) {
-					frappe.model.set_value(cdt, cdn, "metal_purity", r.message[0].metal_purity);
-					// d.metal_purity = r.message[0].metal_purity
-					refresh_field('order_details');
-				}
-			}
-		});
 	},
 
 	// button to view item variants
@@ -1006,27 +976,10 @@ frappe.ui.form.on('Order Form Detail', {
 		} 
 	},
 
-	// is_finding_order:function(frm,cdt,cdn){
-	// 	var row = locals[cdt][cdn];
-	// 	if (row.is_finding_order==1){
-	// 		console.log("HERE");
-			
-	// 		frm.set_query("design_id", "order_details", function (doc, cdt, cdn) {
-	// 			let d = locals[cdt][cdn];
-	// 			return {
-	// 				filters: {
-	// 					"variant_of": "F",
-	// 				}
-	// 			}
-	// 		});
-	// 	}
-	// }
-
 });
 
 let edit_item_documents = (row,dialog,item_code,item_data) => {
 	var doc = frappe.model.get_doc("Item", item_code);
-	console.log(doc);
 	if (!doc) {
 		frappe.call({
 			method: "frappe.client.get",
@@ -1073,7 +1026,6 @@ let set_edit_item_details = (row,doc,dialog) => {
 
 	$.each(doc.attributes, function (index, d) {
 		var field_name = d.attribute.toLowerCase().replace(/\s+/g, '_');
-		// console.log(field_name);
 		dialog.set_df_property(field_name, "hidden", 1);
 	});
 };
@@ -1189,8 +1141,6 @@ function show_hide_field(frm, cdt, cdn, field, hidden) {
 		
 	if (df) {
 		df.hidden = hidden;
-		// console.log(df);
-		// if (df.hidden == 0) df.reqd = 1;
 	}
 	frm.refresh_field("order_details");
 };
@@ -1209,7 +1159,6 @@ function show_field_attribute(frm, cdt, cdn, field) {
 			var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": field_name })[0];
 			
 			if (df) {
-				console.log(df);
 				df.hidden = 0; 
 			}
 			frm.refresh_field("order_details");
@@ -1221,7 +1170,6 @@ function show_field_attribute(frm, cdt, cdn, field) {
 	if(field_name) {
 		var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": field_name })[0];
 		if (df) {
-			console.log(df);
 			df.reqd = 1;
 		}
 	}
@@ -1235,7 +1183,6 @@ function hide_field_attribute(frm, cdt, cdn, field) {
 	if(field_name) {
 		var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": field_name })[0];
 		if (df) {
-			console.log(df);
 			df.reqd = 1;			
 		}
 	}
@@ -1300,11 +1247,7 @@ function set_filter_for_design_n_serial(frm, fields) {
 		
 		frm.set_query(field, "order_details", function (doc, cdt, cdn) {
 			let d = locals[cdt][cdn];
-			console.log(d);
-			
 			if(d.is_finding_order==1){
-				console.log("gere");
-				
 				return {
 					filters: {
 						"variant_of": "F",

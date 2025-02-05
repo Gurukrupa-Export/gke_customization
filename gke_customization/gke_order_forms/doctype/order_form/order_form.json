@@ -135,7 +135,8 @@
     "fieldname": "order_type",
     "fieldtype": "Select",
     "label": "Order Type",
-    "options": "\nSales\nStock Order\nPurchase"
+    "options": "\nSales\nStock Order\nPurchase",
+    "reqd": 1
     },
     {
     "default": "0",
@@ -148,8 +149,8 @@
     "fieldname": "diamond_quality",
     "fieldtype": "Link",
     "label": "Customer Diamond Quality",
-    "options": "Attribute Value",
-    "reqd": 1
+    "mandatory_depends_on": "eval:(doc.is_finding_order == 0 && doc.order_type == 'Sales') || (doc.is_finding_order == 0 && doc.order_type == 'Stock Order')",
+    "options": "Attribute Value"
     },
     {
     "fieldname": "service_type",
@@ -237,8 +238,8 @@
     "fieldname": "flow_type",
     "fieldtype": "Select",
     "label": "Flow Type",
-    "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO",
-    "reqd": 1
+    "mandatory_depends_on": "eval:doc.order_type != 'Purchase'",
+    "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO"
     },
     {
     "fetch_from": "customer_code.customer_name",
@@ -294,6 +295,7 @@
     },
     {
     "default": "0",
+    "depends_on": "eval:doc.order_type != 'Purchase'",
     "fieldname": "is_finding_order",
     "fieldtype": "Check",
     "label": "Is Finding Order"
@@ -319,7 +321,7 @@
     "link_fieldname": "custom_form_id"
     }
 ],
-"modified": "2025-01-06 14:52:22.573416",
+"modified": "2025-01-11 11:34:46.592466",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Order Form",

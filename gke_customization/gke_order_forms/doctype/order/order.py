@@ -489,7 +489,7 @@ def cerate_timesheet(self):
 def cerate_bom_timesheet(self):
 	if not self.customer_order_form:
 		if self.workflow_state == "Creating BOM":
-			if self.bom_or_cad == 'CAD':
+			if self.bom_or_cad in ['CAD','Check']:
 
 				if len(self.bom_assignment)>1:
 					for i in self.bom_assignment[:-1]:
@@ -529,7 +529,7 @@ def cerate_bom_timesheet(self):
 					frappe.msgprint("Timesheets Created for BOM each designer assignment")
 		
 		elif self.workflow_state == "Creating BOM - On-Hold":
-			if self.bom_or_cad == 'CAD':
+			if self.bom_or_cad in ['CAD','Check']:
 				# for assignment in self.designer_assignment:
 						# designer_value = assignment.designer
 				if len(self.bom_assignment)>1:
@@ -573,7 +573,7 @@ def cerate_bom_timesheet(self):
 				# frappe.msgprint("Timesheets created for Creating BOM - On-Hold for each designer assignment")
 
 		elif self.workflow_state == "BOM QC":
-			if self.bom_or_cad == 'CAD':
+			if self.bom_or_cad in ['CAD','Check']:
 				# for assignment in self.designer_assignment:
 				if len(self.bom_assignment)>1:
 					for i in self.bom_assignment[:-1]:
@@ -613,7 +613,7 @@ def cerate_bom_timesheet(self):
 			frappe.msgprint("Timesheets created for BOM QC for each designer assignment")
 		
 		elif self.workflow_state == "BOM QC - On-Hold":
-			if self.bom_or_cad == 'CAD':
+			if self.bom_or_cad in ['CAD','Check']:
 				if len(self.bom_assignment)>1:
 					for i in self.bom_assignment[:-1]:
 						timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"order":self.name}, ["name","docstatus"])
@@ -652,7 +652,7 @@ def cerate_bom_timesheet(self):
 			# frappe.msgprint("Timesheets created for BOM QC - On-Hold for each designer assignment")
 		
 		elif self.workflow_state == "Updating BOM":
-			if self.bom_or_cad == 'CAD':
+			if self.bom_or_cad in ['CAD','Check']:
 				# for assignment in self.designer_assignment:
 				# 		designer_value = assignment.designer
 				if len(self.bom_assignment)>1:
@@ -692,7 +692,7 @@ def cerate_bom_timesheet(self):
 			frappe.msgprint("Timesheets Updating BOM for each designer assignment")
 		
 		elif self.workflow_state == "Updating BOM - On-Hold":
-			if self.bom_or_cad == 'CAD':
+			if self.bom_or_cad in ['CAD','Check']:
 				# for assignment in self.designer_assignment:
 						# designer_value = assignment.designer
 				if len(self.bom_assignment)>1:
@@ -735,7 +735,7 @@ def cerate_bom_timesheet(self):
 			# frappe.msgprint("Timesheets created for Updating BOM - On-Hold for each designer assignment")
 		
 		elif self.workflow_state == "Approved":		
-			if self.bom_or_cad == 'CAD':
+			if self.bom_or_cad in ['CAD','Check']:
 				if len(self.bom_assignment)>1:				
 					for i in self.bom_assignment[:-1]:
 						timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"order":self.name}, ["name","docstatus"])
