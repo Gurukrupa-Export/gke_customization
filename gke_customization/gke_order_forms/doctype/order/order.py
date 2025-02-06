@@ -15,7 +15,8 @@ from erpnext.controllers.item_variant import create_variant, get_variant
 
 class Order(Document):
 	def on_submit(self):
-		item_variant = create_line_items(self)
+		if self.design_type != 'Mod':
+			item_variant = create_line_items(self)
 		if self.bom_or_cad == 'Duplicate BOM':
 			new_bom = create_bom(self,item_variant)
 			frappe.db.set_value("Order",self.name,"new_bom",new_bom)
