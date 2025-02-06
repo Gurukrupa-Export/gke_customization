@@ -15,8 +15,7 @@ from erpnext.controllers.item_variant import create_variant, get_variant
 
 class Order(Document):
 	def on_submit(self):
-		if self.design_type != 'Mod':
-			item_variant = create_line_items(self)
+		item_variant = create_line_items(self)
 		if self.bom_or_cad == 'Duplicate BOM':
 			new_bom = create_bom(self,item_variant)
 			frappe.db.set_value("Order",self.name,"new_bom",new_bom)
@@ -784,21 +783,21 @@ def create_line_items(self):
 		# 	frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 		# 	self.reload()
 
-	# elif self.item_type == 'Only Variant':
-	# 	# if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD':
-	# 	if self.design_type != 'Sketch Design':
-	# 		item_variant = create_only_variant_from_order(self,self.name)
-	# 		frappe.db.set_value('Item',item_variant[0],{
-	# 			"is_design_code":1,
-	# 			"variant_of" : item_variant[1]
-	# 		})
-	# 		# frappe.throw(f"{self.name}")
-	# 		frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant[0]))))
-	# 		frappe.db.set_value(self.doctype, self.name, "item", item_variant[0])
-	# 		self.reload()
-	# 	else:
-	# 		frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
-	# 		self.reload()
+	elif self.item_type == 'Only Variant':
+		# if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD':
+		if self.design_type != 'Sketch Design':
+			item_variant = create_only_variant_from_order(self,self.name)
+			frappe.db.set_value('Item',item_variant[0],{
+				"is_design_code":1,
+				"variant_of" : item_variant[1]
+			})
+			# frappe.throw(f"{self.name}")
+			frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant[0]))))
+			frappe.db.set_value(self.doctype, self.name, "item", item_variant[0])
+			self.reload()
+		else:
+			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
+			self.reload()
 		
 	# elif self.item_type == 'Suffix Of Variant':
 	# 	# if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD':
