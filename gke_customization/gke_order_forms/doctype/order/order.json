@@ -43,7 +43,6 @@
     "view_item",
     "design_type",
     "is_repairing",
-    "mod_reason",
     "amended_from",
     "section_break_9",
     "tag_no",
@@ -403,6 +402,7 @@
     {
     "fieldname": "cad_order_form_detail",
     "fieldtype": "Link",
+    "hidden": 1,
     "label": "Order Form Detail",
     "options": "Order Form Detail",
     "read_only": 1
@@ -1044,15 +1044,6 @@
     "options": "\nCAD\nBOM"
     },
     {
-    "fetch_from": "cad_order_form_detail.mod_reason",
-    "fetch_if_empty": 1,
-    "fieldname": "mod_reason",
-    "fieldtype": "Link",
-    "label": "Mod Reason",
-    "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
-    },
-    {
     "allow_on_submit": 1,
     "fetch_from": "cad_order_form_detail.charm",
     "fetch_if_empty": 1,
@@ -1143,7 +1134,7 @@
     },
     {
     "allow_on_submit": 1,
-    "depends_on": "eval: (in_list(['Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state) && doc.design_type != 'As Per Serial No' && doc.is_repairing == 0)",
+    "depends_on": "eval: in_list(['Draft','Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state) && ((doc.design_type != 'As Per Serial No' && doc.is_repairing == 0) && doc.item)",
     "fieldname": "bom_assignment",
     "fieldtype": "Table",
     "label": "BOM Assignment",
@@ -1644,7 +1635,7 @@
     "link_fieldname": "order"
     }
 ],
-"modified": "2025-02-05 13:07:54.480271",
+"modified": "2025-02-06 12:08:29.886999",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Order",

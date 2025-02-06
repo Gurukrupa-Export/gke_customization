@@ -37,7 +37,7 @@ class OrderForm(Document):
 	# 	delete_auto_created_cad_order(self)
 
 	def validate(self):
-		self.validate_category_subcaegory()
+		# self.validate_category_subcaegory()
 		set_data(self)
 			# return
 
@@ -83,38 +83,40 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 			bom_or_cad = frappe.get_doc('Order Form Detail',source_name).bom_or_cad
 			item_type = frappe.get_doc('Order Form Detail',source_name).item_type
 		else:
-			variant_of = frappe.db.get_value("Item",design_id,"variant_of")
-			bom = frappe.db.get_value('Item',design_id,'master_bom')
-			if bom==None:
-				frappe.throw(f'BOM is not available for {design_id}')
-			attribute_list = make_atribute_list(source_name)
-			validate_variant_attributes(variant_of,attribute_list)
-			if mod_reason in ['No Design Change','Change in Metal Colour']:
-				item_type = "Only Variant"
-				# bom_or_cad = workflow_state_maker(source_name)
-			elif mod_reason in ['Attribute Change']:
-				# attribute_list = make_atribute_list(source_name)
-				# validate_variant_attributes(variant_of,attribute_list)
-				item_type = "Only Variant"
-				# bom_or_cad = 'Check'
-			elif mod_reason == 'Change in Metal Touch':
-				item_type = "No Variant No Suffix"
-				# bom_or_cad = workflow_state_maker(source_name)
-			else:
-				# attribute_list = make_atribute_list(source_name)
-				# validate_variant_attributes(variant_of,attribute_list)
-				# item_type = "Suffix Of Variant"
-				item_type = "Template and Variant"
-				# bom_or_cad = 'CAD'
+		# 	variant_of = frappe.db.get_value("Item",design_id,"variant_of")
+		# 	bom = frappe.db.get_value('Item',design_id,'master_bom')
+		# 	if bom==None:
+		# 		frappe.throw(f'BOM is not available for {design_id}')
+		# 	attribute_list = make_atribute_list(source_name)
+		# 	validate_variant_attributes(variant_of,attribute_list)
+		# 	if mod_reason in ['No Design Change','Change in Metal Colour']:
+		# 		item_type = "Only Variant"
+		# 		# bom_or_cad = workflow_state_maker(source_name)
+		# 	elif mod_reason in ['Attribute Change']:
+		# 		attribute_list = make_atribute_list(source_name)
+		# 		validate_variant_attributes(variant_of,attribute_list)
+		# 		item_type = "Only Variant"
+		# 		# bom_or_cad = 'Check'
+		# 	elif mod_reason == 'Change in Metal Touch':
+		# 		item_type = "No Variant No Suffix"
+		# 		# bom_or_cad = workflow_state_maker(source_name)
+		# 	else:
+		# 		attribute_list = make_atribute_list(source_name)
+		# 		validate_variant_attributes(variant_of,attribute_list)
+		# 		# item_type = "Suffix Of Variant"
+		# 		item_type = "Template and Variant"
+		# 		# bom_or_cad = 'CAD'
+
 			bom_or_cad = 'Check'
-			if frappe.db.get_value("Item",design_id,"Item_group") == 'Design DNU':
-				item_type = "Only Variant"
+			# if frappe.db.get_value("Item",design_id,"Item_group") == 'Design DNU':
+			# 	item_type = "Only Variant"
 	elif design_type == 'Sketch Design':
-		attribute_list = make_atribute_list(source_name)
 		variant_of = frappe.db.get_value("Item",design_id,"variant_of")
+		attribute_list = make_atribute_list(source_name)
 		validate_variant_attributes(variant_of,attribute_list)
 		item_type = "No Variant No Suffix"
 		bom_or_cad = 'CAD'
+		# bom_or_cad = 'Check'
 	elif design_type == 'As Per Serial No':
 		item_type = "No Variant No Suffix"
 		bom_or_cad = 'New BOM'
@@ -155,14 +157,14 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 def make_atribute_list(source_name):
 	order_form_details = frappe.get_doc('Order Form Detail',source_name)
 	all_variant_attribute = frappe.db.sql(
-		f"""select item_attribute from `tabAttribute Value Item Attribute Detail` where parent = '{order_form_details.subcategory}' and in_item_variant=1""",as_list=1
+		f"""select item_attribute from `tabAttribute Value Item Attribute Detail` 
+		where parent = '{order_form_details.subcategory}' and in_item_variant=1""",as_list=1
 	)
 
 	final_list = {}
 	for i in all_variant_attribute:
 		new_i = i[0].replace(' ','_').replace('/','').lower()
 		final_list[i[0]] = order_form_details.get_value(new_i)
-	
 	return final_list
 # def set_item_type(source_name):
 # 	doc = frappe.get_doc('Order Form Detail',source_name)
@@ -215,7 +217,7 @@ def workflow_state_maker(source_name):
 	for variant_attribut in all_variant_attribute:
 		item_attribute = variant_attribut['item_attribute'].lower().replace(' ','_').replace('/','')
 		all_attribute_list.append(item_attribute)
-
+	
 	bom_detail = frappe.db.get_value('BOM',doc.bom,all_attribute_list,as_dict=1)
 	cad_attribute_list = frappe.db.sql(
 		f"""select item_attribute from `tabAttribute Value Item Attribute Detail` where parent = '{doc.subcategory}' and in_cad_flow=1""",as_dict=1
