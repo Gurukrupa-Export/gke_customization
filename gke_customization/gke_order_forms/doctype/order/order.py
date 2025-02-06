@@ -801,10 +801,10 @@ def create_line_items(self):
 		# if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD':
 		if self.design_type != 'Sketch Design':
 		# if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD'self.item_type != 'No Variant No Suffix':
-			item_template = create_sufix_of_variant_template_from_order(self)
-			frappe.db.set_value('Item',item_template,'modified_from','')
+			item_template = create_item_template_from_order(self)
+			# frappe.db.set_value('Item',item_template,'modified_from','')
 			updatet_item_template(item_template)
-			item_variant = create_variant_of_sufix_of_variant_from_order(self,item_template,self.name)
+			item_variant = create_variant_of_template_from_order(item_template,self.name)
 			update_item_variant(item_variant,item_template)
 			frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant))))
 			frappe.db.set_value(self.doctype, self.name, "item", item_variant)
