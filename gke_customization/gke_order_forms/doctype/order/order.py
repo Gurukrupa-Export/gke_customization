@@ -1283,6 +1283,7 @@ def make_quotation(source_name, target_doc=None):
 		"custom_customer_good": order.get("customer_good"),
 		"po_no": order.get("po_no"),
 		"custom_jewelex_batch_no":order.get("jewelex_batch_no"),
+		"qty":order.get("qty")
 	})
 	set_missing_values(order, target_doc)
 
