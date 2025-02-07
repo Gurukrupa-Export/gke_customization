@@ -882,7 +882,6 @@ def create_variant_of_template_from_order(item_template,source_name, target_doc=
 		target.custom_cad_order_id = source_name
 		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
 		target.item_code = f'{item_template}-001'
-		frappe.throw(f"{item_template}")
 		target.sequence = item_template[2:7]
 		subcateogy = frappe.db.get_value('Item',item_template,'item_subcategory')
 		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': subcateogy,'in_item_variant':1},'item_attribute',order_by='idx asc'):
