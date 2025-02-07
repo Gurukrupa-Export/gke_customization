@@ -19,12 +19,10 @@
     "date_of_birth",
     "custom_notice_dayes",
     "employment_type",
-    "custom_probation_period_days",
     "column_break_meng",
     "date_of_joining",
     "old_employee_code",
     "old_punch_id",
-    "contract_end_date",
     "status",
     "section_break_djxz",
     "company",
@@ -32,12 +30,31 @@
     "designation",
     "column_break_hkde",
     "operation",
+    "manufacturer",
     "branch",
+    "branch_name",
+    "column_break_8x2q",
+    "reports_to",
+    "reporting_employee_name_",
+    "apprentice_contract_no",
+    "apprentice_register_no",
+    "section_break_djfs",
+    "scheduled_confirmation_date",
+    "final_confirmation_date",
+    "column_break_ezth",
+    "contract_end_date",
+    "date_of_retirement",
+    "column_break_z6ek",
+    "custom_probation_period_days",
     "contact_details",
     "cell_number",
     "column_break_40",
     "personal_email",
     "company_email",
+    "column_break_x6cc",
+    "prefered_contact_email",
+    "prefered_email",
+    "unsubscribed",
     "address_section",
     "current_address",
     "current_accommodation_type",
@@ -56,9 +73,14 @@
     "column_break_p6akj",
     "default_shift",
     "holiday_list",
+    "approvers_section",
+    "expense_approver",
+    "leave_approver",
+    "column_break_7jtx",
     "shift_request_approver",
     "salary_information",
     "salary_mode",
+    "salary_currency",
     "column_break_zfzs",
     "ctc",
     "bank_details_section",
@@ -72,7 +94,6 @@
     "iban",
     "personal_details",
     "marital_status",
-    "family_background",
     "column_break6",
     "blood_group",
     "health_details",
@@ -168,6 +189,7 @@
     "column_break_smi2",
     "voter_id",
     "covid_certification",
+    "address_proof",
     "amended_from"
 ],
 "fields": [
@@ -281,6 +303,7 @@
     },
     {
     "fetch_from": "employee.custom_operation",
+    "fetch_if_empty": 1,
     "fieldname": "operation",
     "fieldtype": "Link",
     "label": "Operation",
@@ -394,6 +417,7 @@
     "fieldtype": "Column Break"
     },
     {
+    "depends_on": "eval:doc.salary_mode == 'Bank'",
     "fieldname": "bank_details_section",
     "fieldtype": "Section Break",
     "label": "Bank Details"
@@ -446,11 +470,6 @@
     "fieldtype": "Select",
     "label": "Marital Status",
     "options": "\nSingle\nMarried\nDivorced\nWidowed"
-    },
-    {
-    "fieldname": "family_background",
-    "fieldtype": "Small Text",
-    "label": "Family Background"
     },
     {
     "fieldname": "column_break6",
@@ -735,7 +754,7 @@
     {
     "fieldname": "section_break_qwaae",
     "fieldtype": "Section Break",
-    "label": "Police Verification"
+    "label": "Relative Details"
     },
     {
     "fieldname": "employee_relative_deails",
@@ -1003,7 +1022,7 @@
     "fieldname": "custom_notice_dayes",
     "fieldtype": "Select",
     "label": "Notice (days)",
-    "options": "0\n30\n60\n90"
+    "options": "0\n30\n60\n90\n180"
     },
     {
     "fieldname": "employment_type",
@@ -1015,7 +1034,7 @@
     "fieldname": "custom_probation_period_days",
     "fieldtype": "Select",
     "label": "Probation Period (Days)",
-    "options": "\n0\n30\n60\n90"
+    "options": "\n0\n30\n60\n90\n180"
     },
     {
     "default": "03:00:00",
@@ -1046,12 +1065,132 @@
     "fieldname": "attendance_device_id",
     "fieldtype": "Data",
     "label": "Attendance Device ID (Biometric/RF tag ID)"
+    },
+    {
+    "fieldname": "column_break_8x2q",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fieldname": "reports_to",
+    "fieldtype": "Link",
+    "label": "Reports to",
+    "options": "Employee"
+    },
+    {
+    "fetch_from": "branch.branch_name",
+    "fieldname": "branch_name",
+    "fieldtype": "Data",
+    "label": "Branch Name"
+    },
+    {
+    "depends_on": "eval: doc.employment_type == 'Apprentice'",
+    "fieldname": "apprentice_contract_no",
+    "fieldtype": "Data",
+    "label": "Apprentice Contract No"
+    },
+    {
+    "depends_on": "eval: doc.employment_type == 'Apprentice'",
+    "fieldname": "apprentice_register_no",
+    "fieldtype": "Data",
+    "label": "Apprentice Register No"
+    },
+    {
+    "fieldname": "manufacturer",
+    "fieldtype": "Link",
+    "label": "Manufacturer",
+    "options": "Manufacturer"
+    },
+    {
+    "fieldname": "section_break_djfs",
+    "fieldtype": "Section Break"
+    },
+    {
+    "fieldname": "scheduled_confirmation_date",
+    "fieldtype": "Date",
+    "label": "Offer Date"
+    },
+    {
+    "fieldname": "final_confirmation_date",
+    "fieldtype": "Date",
+    "label": "Confirmation Date"
+    },
+    {
+    "fieldname": "column_break_ezth",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fieldname": "date_of_retirement",
+    "fieldtype": "Date",
+    "label": "Date Of Retirement"
+    },
+    {
+    "fieldname": "column_break_z6ek",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fieldname": "column_break_x6cc",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fieldname": "prefered_contact_email",
+    "fieldtype": "Select",
+    "label": "Prefered Contact Email",
+    "options": "\nCompany Email\nPersonal Email\nUser ID"
+    },
+    {
+    "fieldname": "prefered_email",
+    "fieldtype": "Data",
+    "label": "Prefered Email"
+    },
+    {
+    "default": "0",
+    "fieldname": "unsubscribed",
+    "fieldtype": "Check",
+    "label": "Unsubscribed"
+    },
+    {
+    "fieldname": "approvers_section",
+    "fieldtype": "Section Break",
+    "label": "Approvers"
+    },
+    {
+    "fieldname": "expense_approver",
+    "fieldtype": "Link",
+    "label": "Expense Approver",
+    "options": "User"
+    },
+    {
+    "fieldname": "leave_approver",
+    "fieldtype": "Link",
+    "label": "Leave Approver",
+    "options": "User"
+    },
+    {
+    "fieldname": "column_break_7jtx",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fieldname": "salary_currency",
+    "fieldtype": "Link",
+    "label": "Salary Currency",
+    "options": "Currency"
+    },
+    {
+    "fetch_from": "reports_to.employee_name",
+    "fieldname": "reporting_employee_name_",
+    "fieldtype": "Data",
+    "label": "Reporting Employee Name "
+    },
+    {
+    "fieldname": "address_proof",
+    "fieldtype": "Attach",
+    "label": "Address Proof"
     }
 ],
 "index_web_pages_for_search": 1,
 "is_submittable": 1,
 "links": [],
-"modified": "2025-01-02 17:50:40.258370",
+"modified": "2025-02-07 11:07:22.360982",
 "modified_by": "Administrator",
 "module": "GKE Catalog",
 "name": "Employee Update",
