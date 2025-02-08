@@ -43,8 +43,9 @@
     "view_item",
     "design_type",
     "is_repairing",
-    "mod_reason",
     "amended_from",
+    "mod_reason",
+    "bom_type",
     "section_break_9",
     "tag_no",
     "design_id",
@@ -152,11 +153,6 @@
     "column_break_chfe",
     "usa",
     "usa_states",
-    "images_tab",
-    "design_code_files_section",
-    "cad_file",
-    "column_break_wodq",
-    "rpt_file",
     "bom_tab",
     "bom_metal_detail_section",
     "metal_detail",
@@ -180,6 +176,7 @@
     "column_break_el7h",
     "total_diamond_weightin_gms",
     "bom_gemstone_detail_section",
+    "navratna",
     "gemstone_detail",
     "section_break_xf1o",
     "total_gemstone_pcs",
@@ -211,9 +208,11 @@
     "metal_to_diamond_ratio_excl_of_finding",
     "column_break_5bib",
     "diamond_ratio",
-    "tab_break_7mp1",
-    "cad_weight",
-    "loss_weight"
+    "images_tab",
+    "design_code_files_section",
+    "cad_file",
+    "column_break_wodq",
+    "rpt_file"
 ],
 "fields": [
     {
@@ -394,8 +393,8 @@
     "fieldname": "item_type",
     "fieldtype": "Select",
     "label": "Item Type",
-    "options": "\nTemplate and Variant\nSuffix Of Variant\nOnly Variant\nNo Variant No Suffix\nVariant From Repair Order",
-    "read_only": 1
+    "options": "\nOnly Variant\nNo Variant No Suffix\nTemplate and Variant",
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fieldname": "column_break_2",
@@ -405,6 +404,7 @@
     {
     "fieldname": "cad_order_form_detail",
     "fieldtype": "Link",
+    "hidden": 1,
     "label": "Order Form Detail",
     "options": "Order Form Detail",
     "read_only": 1
@@ -530,7 +530,7 @@
     "in_list_view": 1,
     "label": "Item Subcategory",
     "options": "Attribute Value",
-    "read_only": 1
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fetch_from": "cad_order_form_detail.setting_type",
@@ -590,7 +590,7 @@
     "fieldtype": "Link",
     "label": "Metal Colour ",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fieldname": "section_break_25",
@@ -603,7 +603,7 @@
     "fieldname": "diamond_target",
     "fieldtype": "Float",
     "label": "Diamond Target",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fieldname": "column_break_28",
@@ -616,7 +616,7 @@
     "fieldname": "product_size",
     "fieldtype": "Data",
     "label": "Product Size",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "allow_on_submit": 1,
@@ -626,7 +626,7 @@
     "fieldtype": "Link",
     "label": "Sizer Type",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fieldname": "column_break_31",
@@ -645,7 +645,7 @@
     "hidden": 1,
     "label": "Stone Changeable",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "allow_on_submit": 1,
@@ -656,7 +656,7 @@
     "hidden": 1,
     "label": "Lock Type",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "allow_on_submit": 1,
@@ -667,7 +667,7 @@
     "hidden": 1,
     "label": "Back Chain",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fetch_from": "cad_order_form_detail.back_chain_size",
@@ -676,7 +676,7 @@
     "hidden": 1,
     "label": "Back Chain Size",
     "read_only": 1,
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "allow_on_submit": 1,
@@ -687,7 +687,7 @@
     "hidden": 1,
     "label": "Back Belt",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "allow_on_submit": 1,
@@ -697,7 +697,7 @@
     "fieldtype": "Float",
     "hidden": 1,
     "label": "Back Belt Length",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fetch_from": "cad_order_form_detail.black_bead",
@@ -707,7 +707,7 @@
     "label": "Black Bead",
     "options": "Attribute Value",
     "read_only": 1,
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "allow_on_submit": 1,
@@ -717,12 +717,12 @@
     "fieldtype": "Float",
     "hidden": 1,
     "label": "Back Side Size",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fieldname": "column_break_49",
     "fieldtype": "Column Break",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fetch_from": "cad_order_form_detail.back_belt_patti",
@@ -752,7 +752,7 @@
     "hidden": 1,
     "label": "Chain",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "allow_on_submit": 1,
@@ -763,7 +763,7 @@
     "hidden": 1,
     "label": "Chain Type",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fetch_from": "cad_order_form_detail.customer_chain",
@@ -789,7 +789,7 @@
     "fieldtype": "Float",
     "hidden": 1,
     "label": "Chain Thickness",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "allow_on_submit": 1,
@@ -799,7 +799,7 @@
     "fieldtype": "Float",
     "hidden": 1,
     "label": "Chain Length",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fieldname": "section_break_63",
@@ -813,7 +813,7 @@
     "fieldtype": "Float",
     "hidden": 1,
     "label": "Space between Mugappu",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "allow_on_submit": 1,
@@ -823,7 +823,7 @@
     "fieldtype": "Link",
     "label": "Detachable",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "allow_on_submit": 1,
@@ -833,7 +833,7 @@
     "fieldtype": "Link",
     "label": "Enamal",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fieldname": "column_break_69",
@@ -909,13 +909,14 @@
     },
     {
     "fieldname": "section_break_tcrzb",
-    "fieldtype": "Section Break"
+    "fieldtype": "Section Break",
+    "label": "New Item & BOM"
     },
     {
     "allow_on_submit": 1,
     "fieldname": "item",
     "fieldtype": "Link",
-    "label": "Design Code",
+    "label": "Item",
     "no_copy": 1,
     "options": "Item"
     },
@@ -928,7 +929,7 @@
     "depends_on": "eval:(in_list(['Update BOM','Creating BOM','Creating BOM - On-Hold','Updating BOM','Updating BOM - On-Hold','BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))",
     "fieldname": "new_bom",
     "fieldtype": "Link",
-    "label": "New BOM",
+    "label": "BOM",
     "mandatory_depends_on": "eval: doc.workflow_state == 'Creating BOM'",
     "options": "BOM"
     },
@@ -966,7 +967,7 @@
     "fieldtype": "Link",
     "label": "Feature",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fieldname": "usa_states",
@@ -983,7 +984,7 @@
     "fieldtype": "Float",
     "hidden": 1,
     "label": "Distance Between Kadi To Mugappu",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fieldname": "column_break_a8vd",
@@ -1001,7 +1002,7 @@
     "fieldtype": "Float",
     "hidden": 1,
     "label": "Number Of Ant",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "allow_on_submit": 1,
@@ -1012,7 +1013,7 @@
     "hidden": 1,
     "label": "2 in 1",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update Item'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fetch_from": "cad_order_form_detail.metal_target",
@@ -1038,20 +1039,11 @@
     "label": "Is Repairing"
     },
     {
-    "depends_on": "eval:doc.design_type == 'Mod' && doc.mod_reason == 'Attribute Change'",
+    "depends_on": "eval:doc.design_type == 'Mod'",
     "fieldname": "workflow_type",
     "fieldtype": "Select",
     "label": "Workflow Type",
     "options": "\nCAD\nBOM"
-    },
-    {
-    "fetch_from": "cad_order_form_detail.mod_reason",
-    "fetch_if_empty": 1,
-    "fieldname": "mod_reason",
-    "fieldtype": "Link",
-    "label": "Mod Reason",
-    "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
     },
     {
     "allow_on_submit": 1,
@@ -1062,7 +1054,7 @@
     "hidden": 1,
     "label": "Charm",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "allow_on_submit": 1,
@@ -1072,7 +1064,7 @@
     "fieldtype": "Link",
     "label": "Cap/Ganthan",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fieldname": "column_break_tgrl",
@@ -1108,7 +1100,6 @@
     "read_only": 1
     },
     {
-    "depends_on": "eval: in_list(['Draft','Assigned','Assigned - On-Hold','Update Designer'],doc.workflow_state)",
     "fieldname": "designer",
     "fieldtype": "Button",
     "label": "Designer"
@@ -1116,7 +1107,7 @@
     {
     "fieldname": "images_tab",
     "fieldtype": "Tab Break",
-    "label": "Images"
+    "label": "Design Files"
     },
     {
     "collapsible": 1,
@@ -1145,7 +1136,7 @@
     },
     {
     "allow_on_submit": 1,
-    "depends_on": "eval: (in_list(['Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state) && doc.design_type != 'As Per Serial No' && doc.is_repairing == 0)",
+    "depends_on": "eval: in_list(['Draft','Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state) && ((doc.design_type != 'As Per Serial No' && doc.is_repairing == 0 && doc.bom_type == 'New BOM') && doc.item)",
     "fieldname": "bom_assignment",
     "fieldtype": "Table",
     "label": "BOM Assignment",
@@ -1218,7 +1209,7 @@
     "allow_on_submit": 1,
     "fieldname": "total_finding_weightin_gms",
     "fieldtype": "Float",
-    "label": "Total Finding Weight"
+    "label": "Total Finding Weight(In gms)"
     },
     {
     "allow_on_submit": 1,
@@ -1313,6 +1304,7 @@
     "fieldtype": "Section Break"
     },
     {
+    "collapsible": 1,
     "fieldname": "product_weight_section",
     "fieldtype": "Section Break",
     "label": "Product Weight"
@@ -1381,6 +1373,7 @@
     "label": "Total Gemstone Weight (In Gram)"
     },
     {
+    "collapsible": 1,
     "fieldname": "product_ratio_section",
     "fieldtype": "Section Break",
     "label": "Product Ratio"
@@ -1484,14 +1477,15 @@
     "fieldtype": "Link",
     "label": "Gemstone Type",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fetch_from": "cad_order_form_detail.count_of_spiral_turns",
     "fieldname": "count_of_spiral_turns",
     "fieldtype": "Int",
     "label": "Count of Spiral Turns",
-    "read_only": 1
+    "read_only": 1,
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fetch_from": "cad_order_form_detail.diamond_type",
@@ -1536,21 +1530,6 @@
     "read_only": 1
     },
     {
-    "fieldname": "tab_break_7mp1",
-    "fieldtype": "Tab Break",
-    "label": "CAD Details"
-    },
-    {
-    "fieldname": "cad_weight",
-    "fieldtype": "Float",
-    "label": "CAD Weight"
-    },
-    {
-    "fieldname": "loss_weight",
-    "fieldtype": "Float",
-    "label": "Loss Weight"
-    },
-    {
     "allow_on_submit": 1,
     "fetch_from": "cad_order_form_detail.rhodium",
     "fetch_if_empty": 1,
@@ -1559,7 +1538,7 @@
     "hidden": 1,
     "label": "Rhodium",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "fetch_from": "cad_order_form_detail.gemstone_type1",
@@ -1569,7 +1548,7 @@
     "hidden": 1,
     "label": "Gemstone Type1",
     "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "allow_on_submit": 1,
@@ -1579,7 +1558,7 @@
     "fieldtype": "Float",
     "hidden": 1,
     "label": "Black Bead Line",
-    "read_only_depends_on": "eval:doc.workflow_state != 'Update BOM'"
+    "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
     },
     {
     "allow_on_submit": 1,
@@ -1634,7 +1613,29 @@
     "fieldname": "casting_pcs",
     "fieldtype": "Int",
     "label": "Casting Pcs",
-    "reqd": 1
+    "mandatory_depends_on": "eval:true"
+    },
+    {
+    "default": "0",
+    "fieldname": "navratna",
+    "fieldtype": "Check",
+    "label": "Navratna"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.mod_reason",
+    "fetch_if_empty": 1,
+    "fieldname": "mod_reason",
+    "fieldtype": "Link",
+    "label": "Mod Reason",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "depends_on": "eval:doc.design_type == 'Mod'",
+    "fieldname": "bom_type",
+    "fieldtype": "Select",
+    "label": "BOM Type",
+    "options": "\nNew BOM\nDuplicate BOM"
     }
 ],
 "index_web_pages_for_search": 1,
@@ -1653,7 +1654,7 @@
     "link_fieldname": "order"
     }
 ],
-"modified": "2025-01-13 10:36:14.483573",
+"modified": "2025-02-07 18:07:26.353165",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Order",

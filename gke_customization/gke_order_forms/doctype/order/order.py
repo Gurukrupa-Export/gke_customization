@@ -16,15 +16,17 @@ from erpnext.controllers.item_variant import create_variant, get_variant
 class Order(Document):
 	def on_submit(self):
 		item_variant = create_line_items(self)
-		if self.bom_or_cad == 'Duplicate BOM':
-			new_bom = create_bom(self,item_variant)
-			frappe.db.set_value("Order",self.name,"new_bom",new_bom)
-			frappe.msgprint(_("New BOM Created: {0}".format(get_link_to_form("BOM",new_bom))))
-		if (self.mod_reason == 'Change in Metal Touch'):
-			new_bom = create_bom_for_touch(self,item_variant)
-			frappe.db.set_value("Order",self.name,"new_bom",new_bom)
-			frappe.msgprint(_("New BOM Created: {0}".format(get_link_to_form("BOM",new_bom))))
-			self.reload()
+		if self.bom_or_cad == 'Duplicate BOM' or (self.design_type == 'Mod' and self.bom_type == 'Duplicate BOM'):
+			if (self.mod_reason == 'Change in Metal Touch'):
+				new_bom = create_bom_for_touch(self,item_variant)
+				frappe.db.set_value("Order",self.name,"new_bom",new_bom)
+				frappe.msgprint(_("New BOM Created: {0}".format(get_link_to_form("BOM",new_bom))))
+				self.reload()
+			else:
+				new_bom = create_bom(self,item_variant)
+				frappe.db.set_value("Order",self.name,"new_bom",new_bom)
+				frappe.msgprint(_("New BOM Created: {0}".format(get_link_to_form("BOM",new_bom))))
+				self.reload()
 
 	def validate(self):
 		if self.order_type != 'Purchase':
@@ -37,11 +39,10 @@ class Order(Document):
 		calculate_total(self)
 		if self.is_finding_order and self.workflow_state == 'Update Item':
 			check_finding_code(self)
-			# frappe.throw("HERE")
 		
 	
 	def on_update_after_submit(self):
-		if self.is_repairing == 0:
+		if self.is_repairing == 0 and (self.design_type == 'Mod' and self.bom_type != 'Duplicate BOM'):
 			cerate_bom_timesheet(self)
 		calculate_metal_weights(self)
 		calculate_finding_weights(self)
@@ -49,19 +50,17 @@ class Order(Document):
 		calculate_gemstone_weights(self)
 		calculate_other_weights(self)
 		calculate_total(self)
-		if (self.workflow_state == 'Approved' and self.mod_reason != 'Change in Metal Touch') and (self.is_finding_order==0)and (self.is_repairing==0):
+		if (self.workflow_state == 'Approved' and self.mod_reason not in ['Change in Metal Touch','Change in Metal Colour']) and (self.is_finding_order==0)and (self.is_repairing==0):
 			timesheet = frappe.get_doc("Timesheet",{"order":self.name},"name")
 			timesheet.run_method('submit')
-		# updated in Git
 		if self.workflow_state == 'Update BOM' and self.design_type == 'Sketch Design':
 			update_variant_attributes(self)
-		# updated in Git
 		
 
 def calculate_metal_weights(self):
 	total_metal_weight = 0
 	for i in self.metal_detail:
-		total_metal_weight += i.quantity
+		total_metal_weight += i.finish_product_weight
 	self.total_metal_weight = total_metal_weight
 
 def calculate_finding_weights(self):
@@ -489,7 +488,7 @@ def cerate_timesheet(self):
 def cerate_bom_timesheet(self):
 	if not self.customer_order_form:
 		if self.workflow_state == "Creating BOM":
-			if self.bom_or_cad == 'CAD':
+			if self.bom_or_cad in ['CAD','Check']:
 
 				if len(self.bom_assignment)>1:
 					for i in self.bom_assignment[:-1]:
@@ -529,7 +528,7 @@ def cerate_bom_timesheet(self):
 					frappe.msgprint("Timesheets Created for BOM each designer assignment")
 		
 		elif self.workflow_state == "Creating BOM - On-Hold":
-			if self.bom_or_cad == 'CAD':
+			if self.bom_or_cad in ['CAD','Check']:
 				# for assignment in self.designer_assignment:
 						# designer_value = assignment.designer
 				if len(self.bom_assignment)>1:
@@ -573,7 +572,7 @@ def cerate_bom_timesheet(self):
 				# frappe.msgprint("Timesheets created for Creating BOM - On-Hold for each designer assignment")
 
 		elif self.workflow_state == "BOM QC":
-			if self.bom_or_cad == 'CAD':
+			if self.bom_or_cad in ['CAD','Check']:
 				# for assignment in self.designer_assignment:
 				if len(self.bom_assignment)>1:
 					for i in self.bom_assignment[:-1]:
@@ -613,7 +612,7 @@ def cerate_bom_timesheet(self):
 			frappe.msgprint("Timesheets created for BOM QC for each designer assignment")
 		
 		elif self.workflow_state == "BOM QC - On-Hold":
-			if self.bom_or_cad == 'CAD':
+			if self.bom_or_cad in ['CAD','Check']:
 				if len(self.bom_assignment)>1:
 					for i in self.bom_assignment[:-1]:
 						timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"order":self.name}, ["name","docstatus"])
@@ -652,7 +651,7 @@ def cerate_bom_timesheet(self):
 			# frappe.msgprint("Timesheets created for BOM QC - On-Hold for each designer assignment")
 		
 		elif self.workflow_state == "Updating BOM":
-			if self.bom_or_cad == 'CAD':
+			if self.bom_or_cad in ['CAD','Check']:
 				# for assignment in self.designer_assignment:
 				# 		designer_value = assignment.designer
 				if len(self.bom_assignment)>1:
@@ -692,7 +691,7 @@ def cerate_bom_timesheet(self):
 			frappe.msgprint("Timesheets Updating BOM for each designer assignment")
 		
 		elif self.workflow_state == "Updating BOM - On-Hold":
-			if self.bom_or_cad == 'CAD':
+			if self.bom_or_cad in ['CAD','Check']:
 				# for assignment in self.designer_assignment:
 						# designer_value = assignment.designer
 				if len(self.bom_assignment)>1:
@@ -735,7 +734,7 @@ def cerate_bom_timesheet(self):
 			# frappe.msgprint("Timesheets created for Updating BOM - On-Hold for each designer assignment")
 		
 		elif self.workflow_state == "Approved":		
-			if self.bom_or_cad == 'CAD':
+			if self.bom_or_cad in ['CAD','Check']:
 				if len(self.bom_assignment)>1:				
 					for i in self.bom_assignment[:-1]:
 						timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"order":self.name}, ["name","docstatus"])
@@ -768,6 +767,7 @@ def cerate_bom_timesheet(self):
 
 def create_line_items(self):
 	# if not self.customer_order_form: 
+	item_variant = ''
 	if self.item_type == 'Template and Variant':
 		if self.design_type != 'Sketch Design':
 			item_template = create_item_template_from_order(self)
@@ -777,19 +777,17 @@ def create_line_items(self):
 			frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant))))
 			frappe.db.set_value(self.doctype, self.name, "item", item_variant)
 			self.reload()
-		else:
-			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
-			self.reload()
+		# else:
+		# 	frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
+		# 	self.reload()
 
 	elif self.item_type == 'Only Variant':
-		# if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD':
 		if self.design_type != 'Sketch Design':
 			item_variant = create_only_variant_from_order(self,self.name)
 			frappe.db.set_value('Item',item_variant[0],{
 				"is_design_code":1,
 				"variant_of" : item_variant[1]
 			})
-			# frappe.throw(f"{self.name}")
 			frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant[0]))))
 			frappe.db.set_value(self.doctype, self.name, "item", item_variant[0])
 			self.reload()
@@ -797,27 +795,9 @@ def create_line_items(self):
 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 			self.reload()
 		
-	elif self.item_type == 'Suffix Of Variant':
-		# if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD':
-		if self.design_type != 'Sketch Design':
-		# if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD'self.item_type != 'No Variant No Suffix':
-			item_template = create_sufix_of_variant_template_from_order(self)
-			frappe.db.set_value('Item',item_template,'modified_from','')
-			updatet_item_template(item_template)
-			item_variant = create_variant_of_sufix_of_variant_from_order(self,item_template,self.name)
-			update_item_variant(item_variant,item_template)
-			frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant))))
-			frappe.db.set_value(self.doctype, self.name, "item", item_variant)
-			self.reload()
-		else:
-			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
-			self.reload()
-			# frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
-
 	elif self.item_type == 'No Variant No Suffix':
 		if not self.is_finding_order:
 			item_variant = self.design_id
-			# update_variant_attributes(self)
 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 			self.reload()
 			if self.bom_or_cad in ['New BOM','CAD'] and self.is_repairing == 1 :
@@ -827,20 +807,26 @@ def create_line_items(self):
 				update_variant_attributes(self)
 				frappe.db.set_value("Item",self.design_id,"custom_cad_order_id",self.name)
 				frappe.db.set_value("Item",self.design_id,"custom_cad_order_form_id",self.cad_order_form)
-			else:
-				frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
+			# else:
+			# 	frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
 		else:
 			item_variant = self.item
-	# frappe.throw(f"{item_variant}")
+
 	return	item_variant
-	# create_reference_doc(self,item)
 
 def create_item_template_from_order(source_name, target_doc=None):
 	def post_process(source, target):
 		target.is_design_code = 1
 		target.has_variants = 1
+
 		if source.designer_assignment:
 			target.designer = source.designer_assignment[0].designer
+		else:
+			if frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name'):
+				target.designer = frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name')
+			else:
+				target.designer = frappe.db.get_value('User',frappe.session.user,'full_name')
+
 		target.item_group = source.subcategory + " - T",
 		
 	doc = get_mapped_doc(
@@ -864,6 +850,7 @@ def create_item_template_from_order(source_name, target_doc=None):
 
 	
 	doc.save()
+
 	return doc.name
 
 def create_variant_of_template_from_order(item_template,source_name, target_doc=None):
@@ -879,6 +866,8 @@ def create_variant_of_template_from_order(item_template,source_name, target_doc=
 			attribute_with = i.item_attribute.lower().replace(' ', '_').replace('/', '')
 			if i.item_attribute == 'Rhodium':
 				attribute_with = 'rhodium_'
+			if attribute_with == 'cap/ganthan':
+				attribute_with = 'capganthan'
 			try:
 				attribute_value = frappe.db.get_value('Order',source_name,attribute_with)
 			except:
@@ -916,19 +905,6 @@ def create_variant_of_template_from_order(item_template,source_name, target_doc=
 					"india_states":"india_states",
 					"usa":"usa",
 					"usa_states":"usa_states",
-					"age_group":"custom_age_group",
-					"alphabetnumber":"custom_alphabetnumber",
-					"animalbirds":"custom_animalbirds",
-					"collection":"custom_collection",
-					"design_style":"custom_design_style",
-					"gender":"custom_gender",
-					"lines_rows":"custom_lines__rows",
-					"language":"custom_language",
-					"occasion":"custom_occasion",
-					"rhodium":"custom_rhodium",
-					"shapes":"custom_religious",
-					"religious":"custom_shapes",
-					"zodiac":"custom_zodiac",
 					"has_serial_no":1
 				} 
 			}
@@ -969,6 +945,8 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 			attribute_with = i.item_attribute.lower().replace(' ', '_').replace('/', '')
 			if i.item_attribute == 'Rhodium':
 				attribute_with = 'rhodium_'
+			if attribute_with == 'cap/ganthan':
+				attribute_with = 'capganthan'
 			try:
 				attribute_value = frappe.db.get_value('Order',source_name,attribute_with)
 			except:
@@ -1029,7 +1007,6 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 			}
 		},target_doc, post_process
 	)
-	# frappe.throw(f"{doc.item_code}")
 	doc.save()
 	return doc.name,db_data['variant_of']
 
@@ -1042,26 +1019,26 @@ def create_sufix_of_variant_template_from_order(source_name, target_doc=None):
 		target.is_design_code = 1
 		target.has_variants = 1
 		target.item_group = source.subcategory + " - T",
-		query = """
-		SELECT name, modified_sequence, `sequence`
-		FROM `tabItem` ti
-		WHERE name LIKE %s AND has_variants = 1
-		ORDER BY creation DESC
-		"""
+		# query = """
+		# SELECT name, modified_sequence, `sequence`
+		# FROM `tabItem` ti
+		# WHERE name LIKE %s AND has_variants = 1
+		# ORDER BY creation DESC
+		# """
 
-		results = frappe.db.sql(query, (f"%{variant_of}/%",), as_dict=True)
-		if results:
-			modified_sequence = int(results[0]['modified_sequence']) + 1
-			modified_sequence = f"{modified_sequence:02}"
-		else:
-			modified_sequence = '01'
+		# results = frappe.db.sql(query, (f"%{variant_of}/%",), as_dict=True)
+		# if results:
+		# 	modified_sequence = int(results[0]['modified_sequence']) + 1
+		# 	modified_sequence = f"{modified_sequence:02}"
+		# else:
+		# 	modified_sequence = '01'
 		
-		target.item_code = variant_of + '/' + modified_sequence
-		# frappe.throw(target.item_code)
-		target.modified_sequence = modified_sequence
-		target.order_form_type = 'Order'
-		target.custom_cad_order_id = source_name
-		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
+		# target.item_code = variant_of + '/' + modified_sequence
+		# # frappe.throw(target.item_code)
+		# target.modified_sequence = modified_sequence
+		# target.order_form_type = 'Order'
+		# target.custom_cad_order_id = source_name
+		# target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
 
 		if source.designer_assignment:
 			target.designer = source.designer_assignment[0].designer
@@ -1070,7 +1047,6 @@ def create_sufix_of_variant_template_from_order(source_name, target_doc=None):
 				target.designer = frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name')
 			else:
 				target.designer = frappe.db.get_value('User',frappe.session.user,'full_name')
-		# frappe.throw(f"{target.designer}")
 	
 	doc = get_mapped_doc(
 		"Order",
@@ -1099,12 +1075,20 @@ def create_variant_of_sufix_of_variant_from_order(self,item_template,source_name
 		target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V",
 		target.custom_cad_order_id = source_name
 		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
-		target.item_code = item_template[:10] + '-001'
+		target.item_code = f'{item_template}-001'
 		target.sequence = item_template[2:7]
-		
-
-		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': self.subcategory,'in_item_variant':1},'item_attribute',order_by='idx asc'):
+		subcateogy = frappe.db.get_value('Item',item_template,'item_subcategory')
+		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': subcateogy,'in_item_variant':1},'item_attribute',order_by='idx asc'):
 			attribute_with = i.item_attribute.lower().replace(' ', '_').replace('/', '')	
+			if attribute_with == 'rhodium':
+				attribute_with = 'rhodium_'
+			if attribute_with == 'cap/ganthan':
+				attribute_with = 'capganthan'
+			try:
+				attribute_value = frappe.db.get_value('Order',source_name,attribute_with)
+			except:
+				attribute_value = ' '
+
 			target.append('attributes',{
 				'attribute':i.item_attribute,
 				'variant_of':item_template,
@@ -1118,8 +1102,7 @@ def create_variant_of_sufix_of_variant_from_order(self,item_template,source_name
 				target.designer = frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name')
 			else:
 				target.designer = frappe.db.get_value('User',frappe.session.user,'full_name')
-		# frappe.throw(f"{target.designer}")
-
+	
 	doc = get_mapped_doc(
 		"Order",
 		source_name,
@@ -1138,19 +1121,6 @@ def create_variant_of_sufix_of_variant_from_order(self,item_template,source_name
 					"india_states":"india_states",
 					"usa":"usa",
 					"usa_states":"usa_states",
-					"age_group":"custom_age_group",
-					"alphabetnumber":"custom_alphabetnumber",
-					"animalbirds":"custom_animalbirds",
-					"collection":"custom_collection",
-					"design_style":"custom_design_style",
-					"gender":"custom_gender",
-					"lines_rows":"custom_lines__rows",
-					"language":"custom_language",
-					"occasion":"custom_occasion",
-					"rhodium":"custom_rhodium",
-					"shapes":"custom_religious",
-					"religious":"custom_shapes",
-					"zodiac":"custom_zodiac",
 					"has_serial_no":1
 				} 
 			}
@@ -1262,7 +1232,7 @@ def make_quotation(source_name, target_doc=None):
 		target_doc = frappe.get_doc(target_doc)
 
 	order = frappe.db.get_value("Order", source_name, "*")
-
+	# frappe.throw(f"{order}")
 	target_doc.append("items", {
 		"branch": order.get("branch"),
 		"project": order.get("project"),
@@ -1289,6 +1259,7 @@ def make_quotation(source_name, target_doc=None):
 		"custom_customer_good": order.get("customer_good"),
 		"po_no": order.get("po_no"),
 		"custom_jewelex_batch_no":order.get("jewelex_batch_no"),
+		"qty":order.get("qty")
 	})
 	set_missing_values(order, target_doc)
 
