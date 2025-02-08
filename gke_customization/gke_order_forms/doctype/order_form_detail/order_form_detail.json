@@ -15,6 +15,7 @@
     "bom",
     "delivery_date",
     "is_repairing",
+    "mod_reason",
     "section_break_10",
     "design_type",
     "update_item",
@@ -202,7 +203,7 @@
     "fieldname": "item_type",
     "fieldtype": "Select",
     "label": "Item Type",
-    "options": "\nSuffix Of Variant\nOnly Variant\nNo Variant No Suffix\nVariant From Repair Order\nTemplate and Variant",
+    "options": "\nOnly Variant\nNo Variant No Suffix\nTemplate and Variant",
     "read_only": 1
     },
     {
@@ -538,7 +539,7 @@
     "fieldtype": "Section Break"
     },
     {
-    "depends_on": "eval:((doc.design_type==\"New Design\")||(doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
+    "fetch_from": "design_id.image",
     "fetch_if_empty": 1,
     "fieldname": "design_image_1",
     "fieldtype": "Attach Image",
@@ -794,12 +795,18 @@
     "fieldtype": "Link",
     "label": "Finding Size",
     "options": "Attribute Value"
+    },
+    {
+    "fieldname": "mod_reason",
+    "fieldtype": "Link",
+    "label": "Mod Reason",
+    "options": "Attribute Value"
     }
 ],
 "index_web_pages_for_search": 1,
 "istable": 1,
 "links": [],
-"modified": "2025-02-06 11:13:16.144339",
+"modified": "2025-02-07 16:59:35.709222",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Order Form Detail",

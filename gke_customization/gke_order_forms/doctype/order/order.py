@@ -16,15 +16,17 @@ from erpnext.controllers.item_variant import create_variant, get_variant
 class Order(Document):
 	def on_submit(self):
 		item_variant = create_line_items(self)
-		if self.bom_or_cad == 'Duplicate BOM':
-			new_bom = create_bom(self,item_variant)
-			frappe.db.set_value("Order",self.name,"new_bom",new_bom)
-			frappe.msgprint(_("New BOM Created: {0}".format(get_link_to_form("BOM",new_bom))))
-		# if (self.mod_reason == 'Change in Metal Touch'):
-		# 	new_bom = create_bom_for_touch(self,item_variant)
-		# 	frappe.db.set_value("Order",self.name,"new_bom",new_bom)
-		# 	frappe.msgprint(_("New BOM Created: {0}".format(get_link_to_form("BOM",new_bom))))
-		# 	self.reload()
+		if self.bom_or_cad == 'Duplicate BOM' or (self.design_type == 'Mod' and self.bom_type == 'Duplicate BOM'):
+			if (self.mod_reason == 'Change in Metal Touch'):
+				new_bom = create_bom_for_touch(self,item_variant)
+				frappe.db.set_value("Order",self.name,"new_bom",new_bom)
+				frappe.msgprint(_("New BOM Created: {0}".format(get_link_to_form("BOM",new_bom))))
+				self.reload()
+			else:
+				new_bom = create_bom(self,item_variant)
+				frappe.db.set_value("Order",self.name,"new_bom",new_bom)
+				frappe.msgprint(_("New BOM Created: {0}".format(get_link_to_form("BOM",new_bom))))
+				self.reload()
 
 	def validate(self):
 		if self.order_type != 'Purchase':
@@ -37,11 +39,10 @@ class Order(Document):
 		calculate_total(self)
 		if self.is_finding_order and self.workflow_state == 'Update Item':
 			check_finding_code(self)
-			# frappe.throw("HERE")
 		
 	
 	def on_update_after_submit(self):
-		if self.is_repairing == 0:
+		if self.is_repairing == 0 and (self.design_type == 'Mod' and self.bom_type != 'Duplicate BOM'):
 			cerate_bom_timesheet(self)
 		calculate_metal_weights(self)
 		calculate_finding_weights(self)
@@ -52,10 +53,8 @@ class Order(Document):
 		if (self.workflow_state == 'Approved' and self.mod_reason not in ['Change in Metal Touch','Change in Metal Colour']) and (self.is_finding_order==0)and (self.is_repairing==0):
 			timesheet = frappe.get_doc("Timesheet",{"order":self.name},"name")
 			timesheet.run_method('submit')
-		# updated in Git
 		if self.workflow_state == 'Update BOM' and self.design_type == 'Sketch Design':
 			update_variant_attributes(self)
-		# updated in Git
 		
 
 def calculate_metal_weights(self):
@@ -63,7 +62,6 @@ def calculate_metal_weights(self):
 	for i in self.metal_detail:
 		total_metal_weight += i.finish_product_weight
 	self.total_metal_weight = total_metal_weight
-
 
 def calculate_finding_weights(self):
 	# total_finding_weightin_gms = 0
@@ -784,14 +782,12 @@ def create_line_items(self):
 		# 	self.reload()
 
 	elif self.item_type == 'Only Variant':
-		# if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD':
 		if self.design_type != 'Sketch Design':
 			item_variant = create_only_variant_from_order(self,self.name)
 			frappe.db.set_value('Item',item_variant[0],{
 				"is_design_code":1,
 				"variant_of" : item_variant[1]
 			})
-			# frappe.throw(f"{self.name}")
 			frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant[0]))))
 			frappe.db.set_value(self.doctype, self.name, "item", item_variant[0])
 			self.reload()
@@ -799,27 +795,9 @@ def create_line_items(self):
 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 			self.reload()
 		
-	# elif self.item_type == 'Suffix Of Variant':
-	# 	# if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD':
-	# 	if self.design_type != 'Sketch Design':
-	# 	# if self.design_type != 'Sketch Design' and self.bom_or_cad == 'CAD'self.item_type != 'No Variant No Suffix':
-	# 		item_template = create_sufix_of_variant_template_from_order(self)
-	# 		frappe.db.set_value('Item',item_template,'modified_from','')
-	# 		updatet_item_template(item_template)
-	# 		item_variant = create_variant_of_sufix_of_variant_from_order(self,item_template,self.name)
-	# 		update_item_variant(item_variant,item_template)
-	# 		frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant))))
-	# 		frappe.db.set_value(self.doctype, self.name, "item", item_variant)
-	# 		self.reload()
-	# 	else:
-	# 		frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
-	# 		self.reload()
-	# 		# frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
-
 	elif self.item_type == 'No Variant No Suffix':
 		if not self.is_finding_order:
 			item_variant = self.design_id
-			# update_variant_attributes(self)
 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 			self.reload()
 			if self.bom_or_cad in ['New BOM','CAD'] and self.is_repairing == 1 :
@@ -829,8 +807,8 @@ def create_line_items(self):
 				update_variant_attributes(self)
 				frappe.db.set_value("Item",self.design_id,"custom_cad_order_id",self.name)
 				frappe.db.set_value("Item",self.design_id,"custom_cad_order_form_id",self.cad_order_form)
-			else:
-				frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
+			# else:
+			# 	frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
 		else:
 			item_variant = self.item
 
@@ -1029,7 +1007,6 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 			}
 		},target_doc, post_process
 	)
-	# frappe.throw(f"{doc.item_code}")
 	doc.save()
 	return doc.name,db_data['variant_of']
 
