@@ -464,24 +464,24 @@ def cerate_timesheet(self):
 							timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
 							timesheet_doc.save()
 						timesheet_doc.run_method('submit')
-
-			designer_value = self.designer_assignment[-1].designer
-					# Check if a timesheet document already exists for the employee
-			timesheet = frappe.get_all(
-				"Timesheet", filters={"employee": designer_value,}, fields=["name"],
-			)
-			if timesheet:
-				timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
-
-				time_log = timesheet_doc.time_logs[-1]					
-				time_log.to_time = now_datetime()
-				time_log.completed = 1
-				time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
-								
-				timesheet_doc.save()
-				timesheet_doc.run_method('submit')
-			else:
-				frappe.throw("Timesheets is cancelled for each designer assignment")		
+			if self.designer_assignment[-1].designer:
+				designer_value = self.designer_assignment[-1].designer
+						# Check if a timesheet document already exists for the employee
+				timesheet = frappe.get_all(
+					"Timesheet", filters={"employee": designer_value,}, fields=["name"],
+				)
+				if timesheet:
+					timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+	
+					time_log = timesheet_doc.time_logs[-1]					
+					time_log.to_time = now_datetime()
+					time_log.completed = 1
+					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+									
+					timesheet_doc.save()
+					timesheet_doc.run_method('submit')
+				# else:
+				# 	frappe.throw("Timesheets is cancelled for each designer assignment")		
 			
 			frappe.msgprint("Timesheets Cancelled for each designer assignment")
 
