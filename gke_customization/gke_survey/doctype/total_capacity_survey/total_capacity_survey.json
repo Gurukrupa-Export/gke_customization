@@ -1,158 +1,158 @@
 {
-    "actions": [],
-    "allow_rename": 1,
-    "creation": "2025-02-04 09:45:42.101679",
-    "doctype": "DocType",
-    "engine": "InnoDB",
-    "field_order": [
-     "section_break_a8kj",
-     "company",
-     "branch",
-     "department",
-     "column_break_wvfp",
-     "operation",
-     "designation",
-     "space_metrics_section",
-     "total_space_available",
-     "total_occupied_space",
-     "total_balance_non_occupied_space",
-     "output_metrics_section",
-     "total_output_from_space_available",
-     "total_output_from_occupied_space",
-     "total_output_from_non_occupied_space",
-     "fulfillment_periods_section",
-     "space_fulfillment_period",
-     "output_fulfillment_period",
-     "amended_from"
-    ],
-    "fields": [
-     {
-      "fieldname": "section_break_a8kj",
-      "fieldtype": "Section Break"
-     },
-     {
-      "fieldname": "company",
-      "fieldtype": "Link",
-      "label": "Company",
-      "options": "Company"
-     },
-     {
-      "fieldname": "branch",
-      "fieldtype": "Link",
-      "label": "Branch",
-      "options": "Branch"
-     },
-     {
-      "fieldname": "department",
-      "fieldtype": "Link",
-      "label": "Department",
-      "options": "Department"
-     },
-     {
-      "fieldname": "column_break_wvfp",
-      "fieldtype": "Column Break"
-     },
-     {
-      "fieldname": "operation",
-      "fieldtype": "Link",
-      "label": "Operation",
-      "options": "Department Operation"
-     },
-     {
-      "fieldname": "designation",
-      "fieldtype": "Link",
-      "label": "Designation",
-      "options": "Designation"
-     },
-     {
-      "fieldname": "space_metrics_section",
-      "fieldtype": "Section Break",
-      "label": "Space Metrics"
-     },
-     {
-      "fieldname": "total_space_available",
-      "fieldtype": "Float",
-      "label": "Total Space Available"
-     },
-     {
-      "fieldname": "total_occupied_space",
-      "fieldtype": "Float",
-      "label": "Total Occupied Space"
-     },
-     {
-      "fieldname": "total_balance_non_occupied_space",
-      "fieldtype": "Float",
-      "label": "Total Balance Non-Occupied Space"
-     },
-     {
-      "fieldname": "output_metrics_section",
-      "fieldtype": "Section Break",
-      "label": "Output Metrics"
-     },
-     {
-      "fieldname": "total_output_from_space_available",
-      "fieldtype": "Float",
-      "label": "Total Output from Space Available"
-     },
-     {
-      "fieldname": "total_output_from_occupied_space",
-      "fieldtype": "Float",
-      "label": "Total Output from Occupied Space"
-     },
-     {
-      "fieldname": "total_output_from_non_occupied_space",
-      "fieldtype": "Float",
-      "label": "Total Output from Non-Occupied Space"
-     },
-     {
-      "fieldname": "fulfillment_periods_section",
-      "fieldtype": "Section Break",
-      "label": "Fulfillment Periods"
-     },
-     {
-      "fieldname": "space_fulfillment_period",
-      "fieldtype": "Int",
-      "label": "Space Fulfillment Period"
-     },
-     {
-      "fieldname": "output_fulfillment_period",
-      "fieldtype": "Int",
-      "label": "Output Fulfillment Period"
-     },
-     {
-      "fieldname": "amended_from",
-      "fieldtype": "Link",
-      "label": "Amended From",
-      "no_copy": 1,
-      "options": "Total Capacity Survey",
-      "print_hide": 1,
-      "read_only": 1,
-      "search_index": 1
-     }
-    ],
-    "index_web_pages_for_search": 1,
-    "is_submittable": 1,
-    "links": [],
-    "modified": "2025-02-05 12:24:03.804001",
-    "modified_by": "Administrator",
-    "module": "GKE SURVEY",
-    "name": "Total Capacity Survey",
-    "owner": "Administrator",
-    "permissions": [
-     {
-      "create": 1,
-      "delete": 1,
-      "email": 1,
-      "export": 1,
-      "print": 1,
-      "read": 1,
-      "report": 1,
-      "role": "System Manager",
-      "share": 1,
-      "write": 1
-     }
-    ],
-    "sort_field": "modified",
-    "sort_order": "DESC",
-    "states": []
-   }
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-02-04 09:45:42.101679",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_a8kj",
+  "company",
+  "branch",
+  "department",
+  "column_break_wvfp",
+  "operation",
+  "designation",
+  "space_metrics_section",
+  "total_space_available",
+  "total_occupied_space",
+  "total_balance_non_occupied_space",
+  "output_metrics_section",
+  "total_output_from_space_available",
+  "total_output_from_occupied_space",
+  "total_output_from_non_occupied_space",
+  "fulfillment_periods_section",
+  "space_fulfillment_period",
+  "output_fulfillment_period",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_a8kj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "column_break_wvfp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "operation",
+   "fieldtype": "Link",
+   "label": "Operation",
+   "options": "Department Operation"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "space_metrics_section",
+   "fieldtype": "Section Break",
+   "label": "Space Metrics"
+  },
+  {
+   "fieldname": "total_space_available",
+   "fieldtype": "Float",
+   "label": "Total Space Available"
+  },
+  {
+   "fieldname": "total_occupied_space",
+   "fieldtype": "Float",
+   "label": "Total Occupied Space"
+  },
+  {
+   "fieldname": "total_balance_non_occupied_space",
+   "fieldtype": "Float",
+   "label": "Total Balance Non-Occupied Space"
+  },
+  {
+   "fieldname": "output_metrics_section",
+   "fieldtype": "Section Break",
+   "label": "Output Metrics"
+  },
+  {
+   "fieldname": "total_output_from_space_available",
+   "fieldtype": "Float",
+   "label": "Total Output from Space Available"
+  },
+  {
+   "fieldname": "total_output_from_occupied_space",
+   "fieldtype": "Float",
+   "label": "Total Output from Occupied Space"
+  },
+  {
+   "fieldname": "total_output_from_non_occupied_space",
+   "fieldtype": "Float",
+   "label": "Total Output from Non-Occupied Space"
+  },
+  {
+   "fieldname": "fulfillment_periods_section",
+   "fieldtype": "Section Break",
+   "label": "Fulfillment Periods"
+  },
+  {
+   "fieldname": "space_fulfillment_period",
+   "fieldtype": "Int",
+   "label": "Space Fulfillment Period"
+  },
+  {
+   "fieldname": "output_fulfillment_period",
+   "fieldtype": "Int",
+   "label": "Output Fulfillment Period"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Total Capacity Survey",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-02-05 12:24:03.804001",
+ "modified_by": "Administrator",
+ "module": "GKE SURVEY",
+ "name": "Total Capacity Survey",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

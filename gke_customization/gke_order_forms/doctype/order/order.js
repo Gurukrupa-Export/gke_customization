@@ -94,9 +94,9 @@ frappe.ui.form.on('Order', {
 		validate_dates(frm, frm.doc, "est_delivery_date")
 		frm.set_value('est_due_days', frappe.datetime.get_day_diff(frm.doc.est_delivery_date, frm.doc.order_date));
 	},
-	designer(frm){
-		// show_designer_dialog(frm);
-	},
+	// designer(frm){
+	// 	// show_designer_dialog(frm);
+	// },
 	view_item(frm){
 		if (frm.doc.__islocal) {
 			frappe.throw("Please save document to edit the View Item.");
@@ -550,7 +550,41 @@ frappe.ui.form.on('Order', {
 		if (cur_frm.doc.docstatus == 1) {
 			dialog.$wrapper.find(".btn-modal-primary").remove();
 		} 
-	}
+	},
+	navratna(frm){
+		if (cur_frm.doc.navratna == 1){
+		    frm.get_field('gemstone_detail').grid.cannot_delete_rows = true;
+
+            // Hiding the grid remove icons
+            $('*[data-fieldname="gemstone_detail"] .grid-remove-rows').hide();
+            $('*[data-fieldname="gemstone_detail"] .grid-remove-all-rows').hide();
+            $('*[data-fieldname="gemstone_detail"] .grid-delete-row').hide();
+            
+			const arr = ["Ruby","Pearl","Coral","Emerald","Yellow Shappire","Blue Shappire","Hessonite","Cat's Eye"]
+			var arrayLength = arr.length;
+			for (var i = 0; i < arrayLength; i++) {
+				let row = frm.add_child('gemstone_detail', {
+					gemstone_type: arr[i],
+					navratna:'navratna'
+				});
+			}
+			frm.refresh_field('gemstone_detail');
+		}	
+		if(cur_frm.doc.navratna == 0){
+			const arr = ["Ruby","Pearl","Coral","Emerald","Yellow Shappire","Blue Shappire","Hessonite","Cat's Eye"]
+			var tbl = cur_frm.doc.gemstone_detail || [];
+			var i = tbl.length;
+			while (i--)
+			{	
+				
+				if(tbl[i].navratna == 'navratna')
+				{
+					cur_frm.get_field("gemstone_detail").grid.grid_rows[i].remove();
+				}
+			}
+			cur_frm.refresh();
+		}
+	},
 	
 });
 
@@ -575,7 +609,90 @@ frappe.ui.form.on('Order BOM Metal Detail', {
 	},
 });
 
+// bom table calculation
+frappe.ui.form.on("Order BOM Metal Detail", {
+	cad_weight: function (frm, cdt, cdn) {
+		let d = locals[cdt][cdn];
+		if (d.cad_weight && d.cad_to_finish_ratio) {
+			frappe.model.set_value(
+				d.doctype,
+				d.name,
+				"quantity",
+				flt((d.cad_weight * d.cad_to_finish_ratio) / 100)
+			);
+		}
+		
+		if (!d.cad_weight) return
+		frappe.call({
+			method: "gke_customization.gke_order_forms.doctype.order.order.calculate_item_wt_details",
+			args: {
+				doc: d,
+				bom: frm.doc.master_bom,
+				item: frm.doc.name
+			},
+			callback:function(r) {
+				frappe.model.sync(r.message)
+				frm.refresh()
+			}
+		})
+	},
+	cad_to_finish_ratio: function (frm, cdt, cdn) {
+		let d = locals[cdt][cdn];
+		if (d.cad_weight && d.cad_to_finish_ratio) {
+			frappe.model.set_value(
+				d.doctype,
+				d.name,
+				"quantity",
+				flt((d.cad_weight * d.cad_to_finish_ratio) / 100)
+			);
+		}
+	},
 
+	quantity: function (frm) {
+		calculate_total(frm);
+	},
+	finish_product_weight:function(frm,cdt,cdn){
+		let d = locals[cdt][cdn];
+		d.finish_loss_grams = d.casting_weight - d.finish_product_weight
+		d.finish_loss_percentage = ((d.finish_product_weight - d.casting_weight)/d.casting_weight)*100
+		frm.refresh_field("metal_detail")
+	}
+});
+
+frappe.ui.form.on("Order BOM Diamond Detail", {
+	pcs: function (frm, cdt, cdn) {
+		let d = locals[cdt][cdn];
+		d.quantity = d.pcs*d.weight_per_pcs
+		frm.refresh_field("diamond_detail")
+	},
+	size_in_mm: function (frm, cdt, cdn) {
+		let d = locals[cdt][cdn];
+		if(d.stone_shape=='Round'){
+			let size = d.size_in_mm.replace(" MM","")
+			frappe.db.get_value("Attribute Value", {"diameter":size}, ["name","sieve_size_range","weight_in_cts"]).then((r) => {
+						frappe.model.set_value(d.doctype, d.name, "diamond_sieve_size", r.message.name);
+						frappe.model.set_value(d.doctype, d.name, "sieve_size_range", r.message.sieve_size_range);
+						frappe.model.set_value(d.doctype, d.name, "weight_per_pcs", r.message.weight_in_cts);
+						
+					});
+		}
+	},
+});
+
+frappe.ui.form.on("Order BOM Gemstone Detail", {
+	quantity: function (frm) {
+		calculate_total(frm);
+	},
+	pcs: function (frm) {
+		calculate_total(frm);
+	},
+});
+
+frappe.ui.form.on("Order BOM Finding Detail", {
+	quantity: function (frm) {
+		calculate_total(frm);
+	},
+});
 
 let edit_item_documents = (frm,dialog,cad_order_form,order_form_data) => {
 	var doc = frappe.get_doc("Order Form", cad_order_form);
@@ -749,194 +866,7 @@ function validate_dates(frm, doc, dateField) {
     }
 }
 
-// bom table calculation
-frappe.ui.form.on("Order BOM Metal Detail", {
-	cad_weight: function (frm, cdt, cdn) {
-		let d = locals[cdt][cdn];
-		if (d.cad_weight && d.cad_to_finish_ratio) {
-			frappe.model.set_value(
-				d.doctype,
-				d.name,
-				"quantity",
-				flt((d.cad_weight * d.cad_to_finish_ratio) / 100)
-			);
-		}
-	},
-	cad_to_finish_ratio: function (frm, cdt, cdn) {
-		let d = locals[cdt][cdn];
-		if (d.cad_weight && d.cad_to_finish_ratio) {
-			frappe.model.set_value(
-				d.doctype,
-				d.name,
-				"quantity",
-				flt((d.cad_weight * d.cad_to_finish_ratio) / 100)
-			);
-		}
-	},
 
-	quantity: function (frm) {
-		calculate_total(frm);
-	},
-	finish_product_weight:function(frm,cdt,cdn){
-		let d = locals[cdt][cdn];
-		d.finish_loss_grams = d.casting_weight - d.finish_product_weight
-		d.finish_loss_percentage = ((d.finish_product_weight - d.casting_weight)/d.casting_weight)*100
-		frm.refresh_field("metal_detail")
-	}
-});
-
-frappe.ui.form.on("Order BOM Diamond Detail", {
-	// diamond_sieve_size: function (frm, cdt, cdn) {
-	// 	let d = locals[cdt][cdn];
-	// 	frappe.db.get_value("Attribute Value", d.diamond_sieve_size, "weight_in_cts").then((r) => {
-	// 		frappe.model.set_value(d.doctype, d.name, "weight_per_pcs", r.message.weight_in_cts);
-	// 	});
-	// 	let filter_value = {
-	// 		parent: d.diamond_sieve_size,
-	// 		diamond_shape: d.stone_shape,
-	// 	};
-	// 	frappe.call({
-	// 		method: "jewellery_erpnext.jewellery_erpnext.doc_events.bom.check_diamond_sieve_size_tolerance_value_exist",
-	// 		args: {
-	// 			filters: filter_value,
-	// 		},
-	// 		callback: function (r) {
-	// 			console.log(r.message);
-	// 			if (r.message.length == 0 && d.stone_shape == "Round") {
-	// 				frappe.msgprint(
-	// 					__("Please Insert Diamond Sieve Size Tolerance at Attribute Value")
-	// 				);
-	// 				frappe.validated = false;
-	// 			}
-	// 		},
-	// 	});
-	// },
-	pcs: function (frm, cdt, cdn) {
-		let d = locals[cdt][cdn];
-		d.quantity = d.pcs*d.weight_per_pcs
-		frm.refresh_field("diamond_detail")
-	},
-	// quantity: function (frm, cdt, cdn) {
-	// 	let d = locals[cdt][cdn];
-	// 	if (d.pcs > 0) {
-	// 		var cal_a = flt(d.quantity / d.pcs, 4);
-	// 		console.log(cal_a);
-	// 	} else {
-	// 		frappe.msgprint(__("Please set PCS value"));
-	// 		frappe.validated = false;
-	// 	}
-	// 	if (d.quantity > 0 && d.stone_shape == "Round" && d.quality) {
-	// 		let filter_quality_value = {
-	// 			parent: d.diamond_sieve_size,
-	// 			diamond_shape: d.stone_shape,
-	// 			diamond_quality: d.quality,
-	// 		};
-	// 		frappe.call({
-	// 			method: "jewellery_erpnext.jewellery_erpnext.doc_events.bom.get_quality_diamond_sieve_size_tolerance_value",
-	// 			args: {
-	// 				filters: filter_quality_value,
-	// 			},
-	// 			callback: function (r) {
-	// 				console.log(r.message);
-	// 				let records = r.message;
-	// 				if (records) {
-	// 					for (let i = 0; i < records.length; i++) {
-	// 						let fromWeight = flt(records[i].from_weight);
-	// 						let toWeight = flt(records[i].to_weight);
-	// 						if (cal_a >= fromWeight && cal_a <= toWeight) {
-	// 							// The cal_a value is within the range, do nothing
-	// 							frappe.model.set_value(d.doctype, d.name, "weight_per_pcs", cal_a);
-	// 							return;
-	// 						} else {
-	// 							frappe.msgprint(
-	// 								`Calculated value ${cal_a} is outside the allowed tolerance range ${fromWeight} to ${toWeight}`
-	// 							);
-	// 							frappe.validated = false;
-	// 							frappe.model.set_value(d.doctype, d.name, "quantity", null);
-	// 							return;
-	// 						}
-	// 					}
-	// 				} else {
-	// 					frappe.msgprint(__("Tolerance range record not found"));
-	// 					frappe.validated = false;
-	// 					frappe.model.set_value(d.doctype, d.name, "quantity", null);
-	// 					return;
-	// 				}
-	// 				frappe.model.set_value(d.doctype, d.name, "weight_per_pcs", cal_a);
-	// 			},
-	// 		});
-	// 	}
-	// 	if (d.quantity > 0 && d.stone_shape == "Round" && !d.quality) {
-	// 		let filter_universal_value = {
-	// 			parent: d.diamond_sieve_size,
-	// 			for_universal_value: 1,
-	// 		};
-	// 		// Get records Universal Attribute Value Diamond Sieve Size
-	// 		frappe.call({
-	// 			method: "jewellery_erpnext.jewellery_erpnext.doc_events.bom.get_records_universal_attribute_value",
-	// 			args: {
-	// 				filters: filter_universal_value,
-	// 			},
-	// 			callback: function (r) {
-	// 				console.log(r.message);
-	// 				let records = r.message;
-	// 				if (records) {
-	// 					for (let i = 0; i < records.length; i++) {
-	// 						let fromWeight = flt(records[i].from_weight);
-	// 						let toWeight = flt(records[i].to_weight);
-	// 						if (cal_a >= fromWeight && cal_a <= toWeight) {
-	// 							// The cal_a value is within the range, do nothing
-	// 							frappe.model.set_value(d.doctype, d.name, "weight_per_pcs", cal_a);
-	// 							return;
-	// 						} else {
-	// 							frappe.msgprint(
-	// 								`Calculated value ${cal_a} is outside the allowed tolerance range ${fromWeight} to ${toWeight}`
-	// 							);
-	// 							frappe.validated = false;
-	// 							frappe.model.set_value(d.doctype, d.name, "quantity", null);
-	// 							return;
-	// 						}
-	// 					}
-	// 				} else {
-	// 					// If no range includes cal_a for both specific and universal Diamond Sieve Size, throw an error
-	// 					frappe.msgprint(__("Tolerance range record not found"));
-	// 					frappe.validated = false;
-	// 					frappe.model.set_value(d.doctype, d.name, "quantity", null);
-	// 					return;
-	// 				}
-	// 				frappe.model.set_value(d.doctype, d.name, "weight_per_pcs", cal_a);
-	// 			},
-	// 		});
-	// 	}
-	// },
-	size_in_mm: function (frm, cdt, cdn) {
-		let d = locals[cdt][cdn];
-		if(d.stone_shape=='Round'){
-			let size = d.size_in_mm.replace(" MM","")
-			frappe.db.get_value("Attribute Value", {"diameter":size}, ["name","sieve_size_range","weight_in_cts"]).then((r) => {
-						frappe.model.set_value(d.doctype, d.name, "diamond_sieve_size", r.message.name);
-						frappe.model.set_value(d.doctype, d.name, "sieve_size_range", r.message.sieve_size_range);
-						frappe.model.set_value(d.doctype, d.name, "weight_per_pcs", r.message.weight_in_cts);
-						
-					});
-		}
-	},
-});
-
-frappe.ui.form.on("Order BOM Gemstone Detail", {
-	quantity: function (frm) {
-		calculate_total(frm);
-	},
-	pcs: function (frm) {
-		calculate_total(frm);
-	},
-});
-
-frappe.ui.form.on("Order BOM Finding Detail", {
-	quantity: function (frm) {
-		calculate_total(frm);
-	},
-});
 
 function calculate_total(frm) {
 	let total_metal_weight = 0;

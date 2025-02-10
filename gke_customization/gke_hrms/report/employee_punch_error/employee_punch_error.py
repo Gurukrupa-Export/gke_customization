@@ -26,6 +26,8 @@ def get_data(filters=None):
 			{conditions}
 			GROUP BY 
 				at.employee, at.attendance_date
+			HAVING 
+				COUNT(tec.name) % 2 != 0
 			ORDER BY 
 				at.attendance_date ASC;
 		""", as_dict=1)
@@ -117,6 +119,7 @@ def get_conditions(filters):
 		filter_list.append(f'''at.employee = "{filters.get("employee")}"''')
 	
 
-	conditions = "where (at.in_time IS NOT NULL OR at.out_time IS NOT NULL) AND at.out_time IS NULL and " + " and ".join(filter_list)
+	# conditions = "where (at.in_time IS NOT NULL OR at.out_time IS NOT NULL) AND at.out_time IS NULL and " + " and ".join(filter_list)
+	conditions = "where (at.in_time IS NOT NULL OR at.out_time IS NOT NULL)  and " + " and ".join(filter_list)
 	if conditions!='where ':
 		return conditions
