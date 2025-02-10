@@ -6,6 +6,7 @@ from frappe.model.document import Document
 
 
 class OTRequest(Document):
+	
 	def before_save(self):
 		if self.workflow_state == 'Send For Approval':
 			for row in self.hr_approver:
