@@ -6,5 +6,4 @@ from frappe.tests.utils import FrappeTestCase
 
 
 class TestTotalCapacitySurvey(FrappeTestCase):
-	
 	pass
