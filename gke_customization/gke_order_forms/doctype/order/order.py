@@ -50,7 +50,7 @@ class Order(Document):
 		calculate_gemstone_weights(self)
 		calculate_other_weights(self)
 		calculate_total(self)
-		if (self.workflow_state == 'Approved' and self.mod_reason not in ['Change in Metal Touch','Change in Metal Colour']) and (self.is_finding_order==0)and (self.is_repairing==0):
+		if (self.workflow_state == 'Approved' and self.mod_reason not in ['Change in Metal Touch','Change in Metal Colour']) and (self.is_finding_order==0) and (self.is_repairing==0) and self.bom_type != 'Duplicate BOM':
 			timesheet = frappe.get_doc("Timesheet",{"order":self.name},"name")
 			timesheet.run_method('submit')
 		if self.workflow_state == 'Update BOM' and self.design_type == 'Sketch Design':
