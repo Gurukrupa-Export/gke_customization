@@ -42,6 +42,12 @@ frappe.query_reports["Attendance Punch Error Report"] = {
 			"fieldtype": "Link",
 			"options": 'Employee'
 		},	
+		{
+			"label": __("Branch"),
+			"fieldname": "branch",
+			"fieldtype": "Link",
+			"options": 'Branch'
+		},	
 	],
 	onload: (report) => {
 		

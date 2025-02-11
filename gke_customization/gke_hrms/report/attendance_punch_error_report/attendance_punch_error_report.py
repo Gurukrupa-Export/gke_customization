@@ -18,12 +18,15 @@ def get_data(filters=None):
 			SELECT 
 				at.employee, at.employee_name, 
 				at.company, at.shift,
-				at.department, at.attendance_date, 
+				at.department, at.attendance_date,
+				te.branch,
 				COUNT(tec.name) AS punch_count
 			FROM 
 				`tabAttendance` AS at
 			LEFT JOIN 
 				`tabEmployee Checkin` AS tec ON tec.attendance = at.name
+			LEFT JOIN 
+				`tabEmployee` AS te on te.name = at.employee and at.company = te.company
 			{conditions}
 			GROUP BY 
 				at.employee, at.attendance_date
@@ -53,31 +56,31 @@ def get_columns(filters=None):
 			"label": _("Employee Name"),
 			"fieldname": "employee_name",
 			"fieldtype": "Data",
-			"width": 250
+			"width": 210
 		},
 		{
 			"label": _("Punch Date"),
 			"fieldname": "attendance_date",
 			"fieldtype": "Date",
-			"width": 150
+			"width": 120
 		},
 		{
 			"label": _("Department"),
 			"fieldname": "department",
 			"fieldtype": "Data",
-			"width": 250
-		},		
-		# {
-		# 	"label": _("Punch Times"),
-		# 	"fieldname": "time",
-		# 	"fieldtype": "Data",
-		# 	"hidden":1
-		# },
+			"width": 210
+		},	
+		{
+			"label": _("Branch"),
+			"fieldname": "branch",
+			"fieldtype": "Data",
+			"width": 130
+		},	
 		{
 			"label": _("Punch Count"),
 			"fieldname": "punch_count",
 			"fieldtype": "Data",
-			"width": 100
+			"width": 80
 		},
 	]
 	return columns
@@ -97,6 +100,9 @@ def get_conditions(filters):
 
 	if filters.get("employee"):
 		filter_list.append(f'''at.employee = "{filters.get("employee")}"''')
+	
+	if filters.get("branch"):
+		filter_list.append(f'''te.branch = "{filters.get("branch")}"''')
 	
 
 	conditions = "where (at.in_time IS NOT NULL OR at.out_time IS NOT NULL) AND at.out_time IS NULL  and " + " and ".join(filter_list)
