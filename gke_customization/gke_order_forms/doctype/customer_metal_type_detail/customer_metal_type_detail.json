@@ -1,0 +1,64 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-12-16 09:44:25.518866",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_ajxr",
+  "code_type",
+  "customer_metal_type",
+  "column_break_jfcf",
+  "gk_metal_type",
+  "country"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_ajxr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "code_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Code"
+  },
+  {
+   "fieldname": "customer_metal_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer Metal Type"
+  },
+  {
+   "fieldname": "column_break_jfcf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gk_metal_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "GK Metal Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Country",
+   "options": "\nIndia\nUnited States\nGCC"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-12-16 10:00:23.463343",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Customer Metal Type Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

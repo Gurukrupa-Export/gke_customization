@@ -125,7 +125,6 @@ class CustomerDesignInformationSheet(Document):
                                             'fourteen_digit_set_code':self.fourteen_digit_set_code
                                             })
                     
-   
                     
 
 
@@ -152,11 +151,11 @@ class CustomerDesignInformationSheet(Document):
 @frappe.whitelist()
 def get_table_details(design_code):
     if design_code:
-                bom = frappe.get_doc("BOM", {"item": design_code})
-                if bom:
-                    diamond_detail = bom.get("diamond_detail")
-                    gemstone_detail = bom.get("gemstone_detail")
-                    return diamond_detail,gemstone_detail
+        bom = frappe.get_doc("BOM", {"item": design_code})
+        if bom:
+            diamond_detail = bom.get("diamond_detail")
+            gemstone_detail = bom.get("gemstone_detail")
+            return diamond_detail,gemstone_detail
                 
 
 

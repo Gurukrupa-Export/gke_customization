@@ -39,6 +39,10 @@ def make_serial_and_design_order(source_name, target_doc=None, parent_doc = None
 		target.serial_and_design_id_order_form_detail = source.name
 		target.serial_and_design_code_order_form = source.parent
 		target.index = source.idx
+		if source.repair_type == 'Refresh & Replace Defective Material':
+			frappe.db.set_value("Repair Order Form Detail",source.name,"required_design","No")
+			target.required_design = "No"
+
 
 	doc = get_mapped_doc(
 		"Repair Order Form Detail",
@@ -72,7 +76,7 @@ def get_bom_details(design_id):
 	all_item_attributes = []
 
 	for i in frappe.get_doc("Attribute Value",item_subcategory).item_attributes:
-		all_item_attributes.append(i.item_attribute.replace(' ','_').lower())
+		all_item_attributes.append(i.item_attribute.replace(' ','_').replace('/','').lower())
 	
 	with_value = frappe.db.get_value("BOM",master_bom,all_item_attributes,as_dict=1)
 	with_value['master_bom'] = master_bom

@@ -1,205 +1,150 @@
 {
- "actions": [],
- "allow_rename": 1,
- "creation": "2024-07-22 15:22:59.534283",
- "doctype": "DocType",
- "editable_grid": 1,
- "engine": "InnoDB",
- "field_order": [
-  "item",
-  "diamond_type",
-  "stone_shape",
-  "diamond_cut",
-  "sieve_size_color",
-  "sub_setting_type",
-  "diamond_sieve_size",
-  "sieve_size_range",
-  "size_in_mm",
-  "is_customer_item",
-  "column_break_8",
-  "size_type",
-  "pcs",
-  "weight_per_pcs",
-  "std_wt",
-  "quantity",
-  "weight_in_gms",
-  "difference",
-  "diamond_grade",
-  "stock_uom",
-  "item_variant",
-  "quality"
- ],
- "fields": [
-  {
-   "default": "D",
-   "fieldname": "item",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "Item",
-   "options": "Item"
-  },
-  {
-   "fieldname": "diamond_type",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Diamond Type",
-   "options": "Attribute Value",
-   "reqd": 1
-  },
-  {
-   "fieldname": "stone_shape",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Stone Shape",
-   "options": "Attribute Value",
-   "reqd": 1
-  },
-  {
-   "fetch_from": "stone_shape.diamond_cut",
-   "fieldname": "diamond_cut",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Diamond Cut",
-   "read_only": 1
-  },
-  {
-   "fetch_from": "diamond_sieve_size.sieve_size_color",
-   "fieldname": "sieve_size_color",
-   "fieldtype": "Color",
-   "in_list_view": 1,
-   "label": "Color",
-   "read_only": 1
-  },
-  {
-   "fieldname": "sub_setting_type",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Sub Setting Type",
-   "options": "Attribute Value"
-  },
-  {
-   "fieldname": "diamond_sieve_size",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": " Sieve Size",
-   "options": "Attribute Value",
-   "reqd": 1
-  },
-  {
-   "allow_on_submit": 1,
-   "fetch_from": "diamond_sieve_size.sieve_size_range",
-   "fieldname": "sieve_size_range",
-   "fieldtype": "Link",
-   "label": "Sieve Size Range",
-   "mandatory_depends_on": "eval: doc.diamond_sieve_size",
-   "options": "Attribute Value"
-  },
-  {
-   "fetch_from": "diamond_sieve_size.diameter",
-   "fieldname": "size_in_mm",
-   "fieldtype": "Float",
-   "label": "Size In MM",
-   "mandatory_depends_on": "eval: doc.diamond_sieve_size"
-  },
-  {
-   "default": "0",
-   "fieldname": "is_customer_item",
-   "fieldtype": "Check",
-   "label": "Is Customer Item"
-  },
-  {
-   "fieldname": "column_break_8",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "diamond_sieve_size.size_type",
-   "fieldname": "size_type",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Size Type",
-   "read_only": 1
-  },
-  {
-   "fieldname": "pcs",
-   "fieldtype": "Int",
-   "in_list_view": 1,
-   "label": "Pcs",
-   "reqd": 1
-  },
-  {
-   "fieldname": "weight_per_pcs",
-   "fieldtype": "Float",
-   "label": "Weight per piece",
-   "precision": "4",
-   "read_only": 1
-  },
-  {
-   "fieldname": "std_wt",
-   "fieldtype": "Float",
-   "label": "Standard Weight",
-   "read_only": 1
-  },
-  {
-   "fieldname": "quantity",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Weight in cts",
-   "reqd": 1
-  },
-  {
-   "fieldname": "weight_in_gms",
-   "fieldtype": "Float",
-   "label": "Weight in Gms",
-   "precision": "3",
-   "read_only": 1
-  },
-  {
-   "allow_on_submit": 1,
-   "fieldname": "difference",
-   "fieldtype": "Float",
-   "label": "Difference",
-   "read_only": 1
-  },
-  {
-   "fieldname": "diamond_grade",
-   "fieldtype": "Link",
-   "label": "Diamond Grade",
-   "options": "Attribute Value"
-  },
-  {
-   "default": "Carat",
-   "fieldname": "stock_uom",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "in_list_view": 1,
-   "label": "Stock UOM",
-   "options": "UOM",
-   "reqd": 1
-  },
-  {
-   "fieldname": "item_variant",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Item Variant"
-  },
-  {
-   "allow_on_submit": 1,
-   "fieldname": "quality",
-   "fieldtype": "Link",
-   "label": "Quality",
-   "options": "Attribute Value"
-  }
- ],
- "index_web_pages_for_search": 1,
- "istable": 1,
- "links": [],
- "modified": "2024-08-28 12:20:21.302952",
- "modified_by": "Administrator",
- "module": "GKE Order Forms",
- "name": "Order BOM Diamond Detail",
- "owner": "Administrator",
- "permissions": [],
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+"_liked_by": "[\"Administrator\"]",
+"actions": [],
+"allow_rename": 1,
+"creation": "2024-07-22 15:22:59.534283",
+"doctype": "DocType",
+"editable_grid": 1,
+"engine": "InnoDB",
+"field_order": [
+    "diamond_type",
+    "stone_shape",
+    "sieve_size_color",
+    "sub_setting_type",
+    "size_in_mm",
+    "diamond_sieve_size",
+    "sieve_size_range",
+    "column_break_8",
+    "pcs",
+    "weight_per_pcs",
+    "quantity",
+    "weight_in_gms",
+    "difference",
+    "diamond_grade",
+    "quality"
+],
+"fields": [
+    {
+    "fieldname": "diamond_type",
+    "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": "Diamond Type",
+    "options": "Attribute Value",
+    "reqd": 1
+    },
+    {
+    "fieldname": "stone_shape",
+    "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": "Stone Shape",
+    "options": "Attribute Value",
+    "reqd": 1
+    },
+    {
+    "fetch_from": "diamond_sieve_size.sieve_size_color",
+    "fieldname": "sieve_size_color",
+    "fieldtype": "Color",
+    "in_list_view": 1,
+    "label": "Color",
+    "read_only": 1
+    },
+    {
+    "fieldname": "sub_setting_type",
+    "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": "Sub Setting Type",
+    "options": "Attribute Value",
+    "reqd": 1
+    },
+    {
+    "fetch_from": "size_in_mm.sieve_size_range",
+    "fieldname": "diamond_sieve_size",
+    "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": " Sieve Size",
+    "options": "Attribute Value"
+    },
+    {
+    "allow_on_submit": 1,
+    "fetch_from": "diamond_sieve_size.sieve_size_range",
+    "fieldname": "sieve_size_range",
+    "fieldtype": "Link",
+    "label": "Sieve Size Range",
+    "mandatory_depends_on": "eval: doc.diamond_sieve_size",
+    "options": "Attribute Value"
+    },
+    {
+    "fieldname": "size_in_mm",
+    "fieldtype": "Link",
+    "label": "Size In MM",
+    "mandatory_depends_on": "eval: doc.diamond_sieve_size",
+    "options": "Attribute Value"
+    },
+    {
+    "fieldname": "column_break_8",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fieldname": "pcs",
+    "fieldtype": "Int",
+    "in_list_view": 1,
+    "label": "Pcs",
+    "reqd": 1
+    },
+    {
+    "fieldname": "weight_per_pcs",
+    "fieldtype": "Float",
+    "label": "Weight per piece",
+    "precision": "4"
+    },
+    {
+    "default": "0",
+    "fieldname": "quantity",
+    "fieldtype": "Float",
+    "in_list_view": 1,
+    "label": "Weight (in cts)",
+    "reqd": 1
+    },
+    {
+    "allow_on_submit": 1,
+    "default": "0",
+    "fieldname": "weight_in_gms",
+    "fieldtype": "Float",
+    "label": "Weight (in gms)",
+    "precision": "3",
+    "read_only": 1
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "difference",
+    "fieldtype": "Float",
+    "label": "Difference",
+    "read_only": 1
+    },
+    {
+    "fieldname": "diamond_grade",
+    "fieldtype": "Link",
+    "label": "Diamond Grade",
+    "options": "Attribute Value"
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "quality",
+    "fieldtype": "Link",
+    "label": "Diamond Quality",
+    "options": "Attribute Value"
+    }
+],
+"index_web_pages_for_search": 1,
+"istable": 1,
+"links": [],
+"modified": "2025-01-13 11:01:55.281892",
+"modified_by": "Administrator",
+"module": "GKE Order Forms",
+"name": "Order BOM Diamond Detail",
+"owner": "Administrator",
+"permissions": [],
+"sort_field": "modified",
+"sort_order": "DESC",
+"states": []
 }
