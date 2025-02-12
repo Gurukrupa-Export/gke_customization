@@ -244,6 +244,9 @@ doc_events = {
 # "Item": {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
 # },
+"Department IR": {
+    "autoname": "gke_customization.gke_order_forms.doc_events.department_ir.autoname"
+},
 }
 app_include_js = [
     '/assets/gke_customization/js/solitaire_calculator.js'
