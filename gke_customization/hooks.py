@@ -247,6 +247,9 @@ doc_events = {
 "Department IR": {
     "autoname": "gke_customization.gke_order_forms.doc_events.department_ir.autoname"
 },
+"Employee IR": {
+    "autoname": "gke_customization.gke_order_forms.doc_events.employee_ir.autoname"
+},
 }
 app_include_js = [
     '/assets/gke_customization/js/solitaire_calculator.js'
