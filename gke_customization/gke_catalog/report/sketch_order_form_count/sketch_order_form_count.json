@@ -1,0 +1,29 @@
+{
+ "_liked_by": "[\"Administrator\"]",
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2025-02-06 16:44:47.892289",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Gurukrupa Export",
+ "letterhead": null,
+ "modified": "2025-02-06 16:56:50.748008",
+ "modified_by": "hema_d@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Sketch Order Form Count",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Sketch Order Form",
+ "report_name": "Sketch Order Form Count",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "timeout": 0
+}
