@@ -766,7 +766,8 @@ def create_line_items(self):
 	# if not self.customer_order_form: 
 	item_variant = ''
 	if self.item_type == 'Template and Variant':
-		if self.design_type != 'Sketch Design':
+		# if self.design_type != 'Sketch Design':
+		if self.subcategory != frappe.db.get_value("Item","design_id","item_subcategory"):
 
 			design_id = frappe.db.get_value('Order',self.name,'design_id')
 			variant_of = frappe.db.get_value("Item",design_id,"variant_of")
