@@ -1,0 +1,82 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2025-02-19 11:43:35.305226",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Gurukrupa Export",
+ "letterhead": null,
+ "modified": "2025-02-19 11:43:35.305226",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "Sales Order Detailed Count",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Sales Order",
+ "report_name": "Sales Order Detailed Count",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Maintenance User"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Stock User"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Acc. Exec. - GK"
+  },
+  {
+   "role": "Acc. Exec. - SD"
+  },
+  {
+   "role": "Sr. Acc. Exec. - GK"
+  },
+  {
+   "role": "Manufacturing Plan & Management - ST - GE"
+  },
+  {
+   "role": "Sr. Acc. Exec. - SD"
+  },
+  {
+   "role": "Account Supervisor - CH - GK"
+  },
+  {
+   "role": "Chartered Accountant -ST - GK"
+  },
+  {
+   "role": "BOM"
+  },
+  {
+   "role": "QC Doctype"
+  },
+  {
+   "role": "Account Doctype"
+  },
+  {
+   "role": "Manufacturing Plan & Management - CH - GE"
+  },
+  {
+   "role": "GK Store"
+  },
+  {
+   "role": "GK Sub Contracting"
+  },
+  {
+   "role": "Acc. Exec. - KG"
+  }
+ ],
+ "timeout": 0
+}

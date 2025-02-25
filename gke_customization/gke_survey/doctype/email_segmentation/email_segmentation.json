@@ -1,0 +1,342 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-01-11 12:35:55.605423",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "erp_user",
+  "user",
+  "old_punch_id",
+  "employee_id",
+  "employee_name",
+  "branch",
+  "column_break_zwc6",
+  "company",
+  "designation",
+  "department",
+  "reporting_employee_name_",
+  "section_break_7ri2",
+  "zoho_email_id",
+  "zoho_name",
+  "used_by",
+  "column_break_ljio",
+  "zoho_vault",
+  "id_type",
+  "communication_preference",
+  "call",
+  "cliq",
+  "mail",
+  "whatsapp",
+  "column_break_9adr",
+  "engagement_level",
+  "internal_section",
+  "internal_count",
+  "internal",
+  "others_internal",
+  "add_internal",
+  "external_section",
+  "external_count_cus",
+  "customer",
+  "others_cust",
+  "add_cust",
+  "external_count_sup",
+  "request_for_quotation_supplier",
+  "others_supp",
+  "add_supp",
+  "section_break_vmxq",
+  "activity",
+  "naming_series"
+ ],
+ "fields": [
+  {
+   "fieldname": "erp_user",
+   "fieldtype": "Select",
+   "label": "ERP User",
+   "options": "\nYes\nNo"
+  },
+  {
+   "depends_on": "eval:doc.erp_user == \"Yes\"",
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "fieldname": "old_punch_id",
+   "fieldtype": "Data",
+   "label": "Old Punch ID"
+  },
+  {
+   "fieldname": "employee_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee_id.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fetch_from": "employee_id.branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_zwc6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee_id.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee_id.designation",
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee_id.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Department",
+   "options": "Department",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reporting_employee_name_",
+   "fieldtype": "Data",
+   "label": "Reports To",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_7ri2",
+   "fieldtype": "Section Break",
+   "label": "Zoho"
+  },
+  {
+   "fieldname": "zoho_email_id",
+   "fieldtype": "Data",
+   "label": "Zoho Email ID",
+   "options": "Email"
+  },
+  {
+   "fieldname": "zoho_name",
+   "fieldtype": "Data",
+   "label": "Zoho Name"
+  },
+  {
+   "description": "NAME OF PERSONS WHO IS USING MAIL ID",
+   "fieldname": "used_by",
+   "fieldtype": "Table",
+   "label": "Used By",
+   "options": "User Group Member"
+  },
+  {
+   "fieldname": "column_break_ljio",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "zoho_vault",
+   "fieldtype": "Select",
+   "label": "Zoho Vault",
+   "options": "\nProfessional\nStandard"
+  },
+  {
+   "fieldname": "id_type",
+   "fieldtype": "Select",
+   "label": "ID Type",
+   "options": "\nIndividual\nDepartment"
+  },
+  {
+   "fieldname": "communication_preference",
+   "fieldtype": "HTML",
+   "options": "<p>\nCommunication Preference\n</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "call",
+   "fieldtype": "Check",
+   "label": "Call"
+  },
+  {
+   "default": "0",
+   "fieldname": "cliq",
+   "fieldtype": "Check",
+   "label": " Cliq"
+  },
+  {
+   "default": "0",
+   "fieldname": "mail",
+   "fieldtype": "Check",
+   "label": "Mail"
+  },
+  {
+   "default": "0",
+   "fieldname": "whatsapp",
+   "fieldtype": "Check",
+   "label": "WhatsApp"
+  },
+  {
+   "fieldname": "column_break_9adr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "engagement_level",
+   "fieldtype": "Select",
+   "label": "Engagement Level",
+   "options": "\nInternal\nExternal\nBoth"
+  },
+  {
+   "depends_on": "eval: in_list(['Internal','Both'], doc.engagement_level) ",
+   "fieldname": "internal_section",
+   "fieldtype": "Section Break",
+   "label": "Internal"
+  },
+  {
+   "description": "NUMBER OF COUNT WITH YOU INTERACTING",
+   "fieldname": "internal_count",
+   "fieldtype": "Data",
+   "label": "Internal Contact Count"
+  },
+  {
+   "fieldname": "internal",
+   "fieldtype": "Table",
+   "label": "Internal",
+   "options": "User Group Member"
+  },
+  {
+   "default": "0",
+   "fieldname": "others_internal",
+   "fieldtype": "Check",
+   "label": "If Others Internal Contact"
+  },
+  {
+   "depends_on": "eval: doc.others_internal == 1",
+   "fieldname": "add_internal",
+   "fieldtype": "Small Text",
+   "label": "Add Other Internal Contact",
+   "mandatory_depends_on": "eval: doc.others_internal == 1"
+  },
+  {
+   "depends_on": "eval: in_list(['External','Both'], doc.engagement_level) ",
+   "fieldname": "external_section",
+   "fieldtype": "Section Break",
+   "label": "External"
+  },
+  {
+   "description": "NUMBER OF COUNT WITH YOU INTERACTING",
+   "fieldname": "external_count_cus",
+   "fieldtype": "Data",
+   "label": "External Contact Count For Customer"
+  },
+  {
+   "description": "Customer mail id & name with you interacting. ",
+   "fieldname": "customer",
+   "fieldtype": "Table",
+   "label": "Customer",
+   "options": "Process Statement Of Accounts Customer"
+  },
+  {
+   "default": "0",
+   "fieldname": "others_cust",
+   "fieldtype": "Check",
+   "label": "If Others Customer Contact"
+  },
+  {
+   "depends_on": "eval: doc.others_cust == 1",
+   "fieldname": "add_cust",
+   "fieldtype": "Small Text",
+   "label": "Add Other Customer Contact",
+   "mandatory_depends_on": "eval: doc.others_cust == 1"
+  },
+  {
+   "fieldname": "external_count_sup",
+   "fieldtype": "Data",
+   "label": "External Contact Count For Supplier"
+  },
+  {
+   "description": "Supplier mail id & name with you interacting.",
+   "fieldname": "request_for_quotation_supplier",
+   "fieldtype": "Table",
+   "label": "Supplier",
+   "options": "Request for Quotation Supplier"
+  },
+  {
+   "default": "0",
+   "fieldname": "others_supp",
+   "fieldtype": "Check",
+   "label": "If Others Supplier Contact"
+  },
+  {
+   "depends_on": "eval: doc.others_supp == 1",
+   "fieldname": "add_supp",
+   "fieldtype": "Small Text",
+   "label": "Add Other Supplier Contact",
+   "mandatory_depends_on": "eval: doc.others_supp == 1"
+  },
+  {
+   "fieldname": "section_break_vmxq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "activity",
+   "fieldtype": "Select",
+   "label": "Activity",
+   "options": "\nActive\nInactive"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "options": "ZH - ES - "
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-01-16 17:31:54.679532",
+ "modified_by": "Administrator",
+ "module": "GKE SURVEY",
+ "name": "Email Segmentation",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

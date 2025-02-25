@@ -1,4 +1,5 @@
 {
+"_liked_by": "[\"Administrator\"]",
 "actions": [],
 "allow_rename": 1,
 "autoname": "format:{serial_and_design_code_order_form}-{index}",
@@ -45,9 +46,6 @@
     "item",
     "bom",
     "tag_no",
-    "column_break_5wjbg",
-    "new_item_code",
-    "new_bom",
     "modification",
     "section_break_41",
     "category",
@@ -85,7 +83,7 @@
     "enamal",
     "rhodium",
     "column_break_n35mg",
-    "gemstone_type1",
+    "gemstone_type",
     "gemstone_quality",
     "section_break_wmgqk",
     "hinges",
@@ -98,9 +96,10 @@
     "column_break_vhivp",
     "hook_type",
     "lock_type",
+    "count_of_spiral_turns",
     "section_break_qocmn",
-    "black_beed",
-    "black_beed_line",
+    "black_bead",
+    "black_bead_line",
     "column_break_xvbl7",
     "back_belt_patti",
     "two_in_one",
@@ -154,8 +153,13 @@
     "column_break_41",
     "design_image4",
     "section_break_fgvjt",
+    "bom_assignment",
+    "section_break_5riv",
     "form_remarks",
     "remarks",
+    "new_item_code",
+    "column_break_5wjbg",
+    "new_bom",
     "amended_from",
     "tab_break_ztm2",
     "sketch",
@@ -603,14 +607,6 @@
     "fieldtype": "Column Break"
     },
     {
-    "fetch_from": "serial_and_design_code_order_form_detail.gemstone_type1",
-    "fieldname": "gemstone_type1",
-    "fieldtype": "Link",
-    "label": "Gemstone Type1",
-    "options": "Attribute Value",
-    "read_only": 1
-    },
-    {
     "fetch_from": "serial_and_design_code_order_form_detail.gemstone_quality",
     "fieldname": "gemstone_quality",
     "fieldtype": "Link",
@@ -634,7 +630,6 @@
     "read_only_depends_on": "eval:doc.modification =='No'"
     },
     {
-    "fetch_from": "serial_and_design_code_order_form_detail.kadi_type",
     "fieldname": "kadi_type",
     "fieldtype": "Link",
     "hidden": 1,
@@ -656,7 +651,6 @@
     "read_only_depends_on": "eval:doc.modification =='No'"
     },
     {
-    "fetch_from": "serial_and_design_code_order_form_detail.screw_type",
     "fieldname": "screw_type",
     "fieldtype": "Link",
     "hidden": 1,
@@ -669,7 +663,6 @@
     "fieldtype": "Column Break"
     },
     {
-    "fetch_from": "serial_and_design_code_order_form_detail.hook_type",
     "fieldname": "hook_type",
     "fieldtype": "Link",
     "hidden": 1,
@@ -689,23 +682,6 @@
     {
     "fieldname": "section_break_qocmn",
     "fieldtype": "Section Break"
-    },
-    {
-    "fetch_from": "serial_and_design_code_order_form_detail.black_beed",
-    "fieldname": "black_beed",
-    "fieldtype": "Link",
-    "hidden": 1,
-    "label": "Black Beed",
-    "options": "Attribute Value",
-    "read_only_depends_on": "eval:doc.modification =='No'"
-    },
-    {
-    "fetch_from": "serial_and_design_code_order_form_detail.black_beed_line",
-    "fieldname": "black_beed_line",
-    "fieldtype": "Float",
-    "hidden": 1,
-    "label": "Black Beed Line",
-    "read_only_depends_on": "eval:doc.modification =='No'"
     },
     {
     "fieldname": "column_break_xvbl7",
@@ -838,7 +814,6 @@
     "read_only_depends_on": "eval:doc.modification =='No'"
     },
     {
-    "fetch_from": "serial_and_design_code_order_form_detail.kadi_to_mugappu",
     "fieldname": "kadi_to_mugappu",
     "fieldtype": "Float",
     "hidden": 1,
@@ -1216,6 +1191,47 @@
     "fieldname": "updated_delivery_date",
     "fieldtype": "Date",
     "label": "Updated Delivery Date"
+    },
+    {
+    "fetch_from": "serial_and_design_code_order_form_detail.black_bead",
+    "fieldname": "black_bead",
+    "fieldtype": "Link",
+    "hidden": 1,
+    "label": "Black Bead",
+    "options": "Attribute Value",
+    "read_only_depends_on": "eval:doc.modification =='No'"
+    },
+    {
+    "fetch_from": "serial_and_design_code_order_form_detail.black_bead_line",
+    "fieldname": "black_bead_line",
+    "fieldtype": "Float",
+    "hidden": 1,
+    "label": "Black Bead Line",
+    "read_only_depends_on": "eval:doc.modification =='No'"
+    },
+    {
+    "fetch_from": "serial_and_design_code_order_form_detail.gemstone_type",
+    "fieldname": "gemstone_type",
+    "fieldtype": "Link",
+    "label": "Gemstone Type",
+    "options": "Attribute Value",
+    "read_only": 1
+    },
+    {
+    "allow_on_submit": 1,
+    "fieldname": "bom_assignment",
+    "fieldtype": "Table",
+    "label": "BOM Assignment",
+    "options": "Designer Assignment - CAD"
+    },
+    {
+    "fieldname": "section_break_5riv",
+    "fieldtype": "Section Break"
+    },
+    {
+    "fieldname": "count_of_spiral_turns",
+    "fieldtype": "Int",
+    "label": "Count Of Spiral Turns"
     }
 ],
 "index_web_pages_for_search": 1,
@@ -1235,7 +1251,7 @@
     }
 ],
 "make_attachments_public": 1,
-"modified": "2024-12-16 16:11:43.892089",
+"modified": "2025-01-01 15:17:51.610863",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Repair Order",

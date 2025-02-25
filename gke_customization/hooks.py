@@ -115,9 +115,9 @@ doctype_js = {
 # ---------------
 # Override standard doctype classes
 
-# override_doctype_class = {
-#	"ToDo": "custom_app.overrides.CustomToDo"
-# }
+override_doctype_class = {
+	"Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive"
+}
 
 # Document Events
 # ---------------
@@ -147,9 +147,9 @@ doctype_js = {
 # Overriding Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-#	"frappe.desk.doctype.event.event.get_events": "gke_customization.event.get_events"
-# }
+override_whitelisted_methods = {
+	"hrms.hr.doctype.job_offer.job_offer.make_employee": "gke_customization.gke_hrms.doc_events.job_offer.make_employee"
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
@@ -229,6 +229,9 @@ doc_events = {
 "Employee Advance": {
 	"validate": "gke_customization.gke_hrms.doc_events.employee_advance.calculate_working_days"
 },
+"Attendance Request": {
+	"on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit"
+},
 # "Shareholder": {
 #     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
 # },
@@ -241,6 +244,12 @@ doc_events = {
 # "Item": {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
 # },
+"Department IR": {
+    "autoname": "gke_customization.gke_order_forms.doc_events.department_ir.autoname"
+},
+"Employee IR": {
+    "autoname": "gke_customization.gke_order_forms.doc_events.employee_ir.autoname"
+},
 }
 app_include_js = [
     '/assets/gke_customization/js/solitaire_calculator.js'

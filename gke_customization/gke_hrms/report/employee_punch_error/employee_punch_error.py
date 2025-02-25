@@ -11,46 +11,47 @@ def execute(filters=None):
 
 def get_data(filters=None):
 	conditions = get_conditions(filters)
-	
+
 	if conditions:
 		data = frappe.db.sql(f"""SELECT 
-				ec.employee,ec.employee_name,
-				e.company ,e.department, 
-				DATE(ec.time) as date, 
-				COUNT(*) AS punch_count
+				at.employee, at.employee_name, 
+				at.company, at.shift,
+				at.department,at.attendance_date, 
+				# at.name,  tec.name as emp,
+				COUNT(tec.name) AS punch_count
 			FROM 
-				`tabEmployee Checkin` AS ec
+				`tabAttendance` AS at
 			LEFT JOIN 
-				`tabEmployee` AS e 
-			ON 
-				e.name = ec.employee
-					   {conditions}
+				`tabEmployee Checkin` AS tec ON tec.attendance = at.name
+			{conditions}
 			GROUP BY 
-				ec.employee, DATE(ec.time)
+				at.employee, at.attendance_date
 			HAVING 
-				MOD(COUNT(*), 2) != 0
+				COUNT(tec.name) % 2 != 0
 			ORDER BY 
-				COUNT(*) DESC""", as_dict=1)
-	else:
-		data = frappe.db.sql(f"""
-			SELECT 
-				ec.employee,ec.employee_name,
-				e.company ,e.department, 
-				DATE(ec.time) as date, 
-				COUNT(*) AS punch_count
-			FROM 
-				`tabEmployee Checkin` AS ec
-			LEFT JOIN 
-				`tabEmployee` AS e 
-			ON 
-				e.name = ec.employee
-			WHERE  DATE(ec.time) = CURDATE()
-			GROUP BY 
-				ec.employee, DATE(ec.time)
-			HAVING 
-				MOD(COUNT(*), 2) != 0
-			ORDER BY 
-				COUNT(*) DESC""", as_dict=1)
+				at.attendance_date ASC;
+		""", as_dict=1)
+	# else:
+	# 	data = frappe.db.sql(f"""
+	# 		SELECT 
+	# 			at.employee, at.employee_name, at.company, at.shift,
+	# 			at.department,at.attendance_date, at.name,  tec.name as emp,
+	# 			COUNT(tec.name) AS checkin_count
+	# 		FROM 
+	# 			`tabAttendance` AS at
+	# 		LEFT JOIN 
+	# 			`tabEmployee Checkin` AS tec ON tec.attendance = at.name
+	# 		WHERE 
+	# 			(at.in_time IS NOT NULL OR at.out_time IS NOT NULL)
+	# 			AND at.out_time IS NULL
+	# 			AND at.attendance_date BETWEEN '2025-01-01' AND '2025-01-11'
+	# 			AND at.company = 'Gurukrupa Export Private Limited'
+	# 			# AND at.department = 'Information Technology - GEPL'
+	# 		GROUP BY 
+	# 			at.employee, at.attendance_date
+	# 		ORDER BY 
+	# 			at.attendance_date ASC;
+	# 	""", as_dict=1)
 	
 	# frappe.throw(str(data))
 	return data
@@ -76,16 +77,16 @@ def get_columns(filters=None):
 			"width": 250
 		},
 		{
+			"label": _("Punch Date"),
+			"fieldname": "attendance_date",
+			"fieldtype": "Date"
+		},
+		{
 			"label": _("Department"),
 			"fieldname": "department",
 			"fieldtype": "Data",
 			"width": 200
 		},		
-		{
-			"label": _("Punch Date"),
-			"fieldname": "date",
-			"fieldtype": "Date"
-		},
 		# {
 		# 	"label": _("Punch Times"),
 		# 	"fieldname": "time",
@@ -106,18 +107,19 @@ def get_conditions(filters):
 	filter_list = []
 
 	if filters.get("company"):
-		filter_list.append(f'''e.company = "{filters.get("company")}"''')
+		filter_list.append(f'''at.company = "{filters.get("company")}"''')
 	
 	if filters.get("from_date") and filters.get("to_date"):
-		filter_list.append(f'''DATE(ec.time) Between "{filters.get("from_date")}" and "{filters.get("to_date")}" ''')
+		filter_list.append(f'''at.attendance_date Between "{filters.get("from_date")}" and "{filters.get("to_date")}" ''')
 
 	if filters.get("department"):
-		filter_list.append(f'''e.department = "{filters.get("department")}"''')
+		filter_list.append(f'''at.department = "{filters.get("department")}"''')
 
 	if filters.get("employee"):
-		filter_list.append(f'''ec.employee = "{filters.get("employee")}"''')
+		filter_list.append(f'''at.employee = "{filters.get("employee")}"''')
 	
 
-	conditions = "where " + " and ".join(filter_list)
+	# conditions = "where (at.in_time IS NOT NULL OR at.out_time IS NOT NULL) AND at.out_time IS NULL and " + " and ".join(filter_list)
+	conditions = "where (at.in_time IS NOT NULL OR at.out_time IS NOT NULL)  and " + " and ".join(filter_list)
 	if conditions!='where ':
 		return conditions

@@ -1,0 +1,64 @@
+{
+ "add_total_row": 1,
+ "columns": [],
+ "creation": "2025-01-06 15:08:16.535108",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Gurukrupa Export",
+ "letterhead": null,
+ "modified": "2025-01-13 18:42:46.182678",
+ "modified_by": "Administrator",
+ "module": "Gke Customization",
+ "name": "Stock Balance User",
+ "owner": "bhavika_pe@gkexport.com",
+ "prepared_report": 0,
+ "ref_doctype": "Stock Ledger Entry",
+ "report_name": "Stock Balance User",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Stock User"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Sr. Acc. Exec. - SD"
+  },
+  {
+   "role": "Computer Operator - ST - GE"
+  },
+  {
+   "role": "Computer Operator - ST - KG"
+  },
+  {
+   "role": "Executive - ST - GE"
+  },
+  {
+   "role": "Chartered Accountant -ST - GK"
+  },
+  {
+   "role": "Account Doctype"
+  },
+  {
+   "role": "GK Store"
+  },
+  {
+   "role": "GK Buying"
+  },
+  {
+   "role": "Acc. Exec. - GK"
+  },
+  {
+   "role": "Acc. Exec. - KG"
+  }
+ ],
+ "timeout": 0
+}

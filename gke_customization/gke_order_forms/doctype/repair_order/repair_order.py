@@ -6,6 +6,8 @@ from frappe.model.document import Document,json
 from erpnext.setup.utils import get_exchange_rate
 from frappe.utils import get_link_to_form
 from frappe.model.mapper import get_mapped_doc
+from frappe.utils.data import now_datetime
+
 
 class RepairOrder(Document):	
 	def on_submit(self):
@@ -20,19 +22,20 @@ class RepairOrder(Document):
 				frappe.msgprint("New Order Form Created: {0}".format(get_link_to_form("Order Form",order_form_id)))
 		
 		if self.required_design == 'No':
-			if self.product_type in ['Company Goods','Customer Goods (Company Manufactured)']:
-				# self.item = self.new_item_code
-				self.new_item_code = self.item
-				frappe.db.set_value('Item',self.item,'custom_repair_order',self.name)
-				frappe.db.set_value('Item',self.item,'custom_repair_order_form',self.serial_and_design_code_order_form)
-				new_bom_doc = create_bom(self,self.new_item_code)
-				self.new_bom = new_bom_doc
+			if self.product_type in ['Customer Goods (Company Manufactured)','Company Goods']:
+				# frappe.db.set_value('Item',self.item,'custom_repair_order',self.name)
+				# frappe.db.set_value('Item',self.item,'custom_repair_order_form',self.serial_and_design_code_order_form)
+				frappe.db.set_value(self.doctype, self.name, "new_item_code", self.item)
+				if self.workflow_state == 'Update Item':
+					new_bom_doc = create_bom(self,self.item)
+					frappe.db.set_value(self.doctype, self.name, "new_bom", new_bom_doc)
 			else:
 				item_template = create_item_template_from_order(self)
 				updatet_item_template(item_template)
 				item_variant = create_variant_of_template_from_order(item_template,self.name)
 				update_item_variant(item_variant,item_template)
 				frappe.msgprint(("New Item Created: {0}".format(get_link_to_form("Item",item_variant))))
+				frappe.db.set_value(self.doctype, self.name, "new_item_code", item_variant)
 				frappe.db.set_value(self.doctype, self.name, "item", item_variant)	
 
 	def on_update_after_submit(self):
@@ -43,9 +46,10 @@ class RepairOrder(Document):
 					frappe.throw("Sketch Order Form Item is not created")
 				order_form_id = create_cad(self,sketch_item_code)
 				frappe.msgprint("New Order Form Created: {0}".format(get_link_to_form("Order Form",order_form_id)))
-		# return
-# 	# def validate(self):
-# 	# 	populate_child_table(self)
+		# if self.product_type not in ['Customer Goods (Company Manufactured)','Company Goods'] and self.required_design == 'No':
+		# 	cerate_bom_timesheet(self)
+		
+
 
 		
 def create_cad(self,sketch_item_code):
@@ -54,6 +58,7 @@ def create_cad(self,sketch_item_code):
 	order_form_doc.company = self.company
 	order_form_doc.department = self.department
 	order_form_doc.branch = self.branch
+	order_form_doc.flow_type = self.flow_type
 	order_form_doc.salesman_name = self.salesman_name
 	order_form_doc.customer_code = self.customer_code
 	order_form_doc.order_date = self.order_date
@@ -68,7 +73,6 @@ def create_cad(self,sketch_item_code):
 	order_form_doc.repair_order = self.name
 	set_value_in_cad_child_table(order_form_doc,self,sketch_item_code)
 	
-	set_design_attributes_in_order_forms(order_form_doc,self)
 	
 	order_form_doc.save()
 	frappe.db.set_value('Repair Order',self.name,'order_form',order_form_doc.name)
@@ -92,7 +96,6 @@ def create_sketch(self):
 	order_form_doc.due_days = self.due_days
 	order_form_doc.repair_order = self.name
 	set_value_in_sketch_child_table(order_form_doc,self)
-	set_design_attributes_in_order_forms(order_form_doc,self)
 	order_form_doc.save()
 	frappe.db.set_value('Repair Order',self.name,'sketch_order_form',order_form_doc.name)
 	return order_form_doc.name
@@ -129,9 +132,8 @@ def set_value_in_cad_child_table(order_form_doc,self,sketch_item_code):
 	order_details.gemstone_type1 = self.gemstone_type1
 	subcategory_attributes = frappe.db.sql(f"""select item_attribute from `tabAttribute Value Item Attribute Detail` where parent = '{self.subcategory}' and in_cad = 1""",as_dict=1)
 	for i in subcategory_attributes:
-		a = getattr(self, i['item_attribute'].replace(' ','_').lower().replace('item_subcategory','subcategory').replace('item_category','category').replace('custom_metal_target','metal_target'))
+		a = getattr(self, i['item_attribute'].replace(' ','_').lower().replace('item_subcategory','subcategory').replace('item_category','category').replace('custom_metal_target','metal_target').replace('/',''))
 		setattr(order_details, i['item_attribute'].replace(' ','_').lower(), a)
-
 
 def set_value_in_sketch_child_table(order_form_doc,self):
 	order_details = order_form_doc.append("order_details", {})
@@ -158,83 +160,6 @@ def set_value_in_sketch_child_table(order_form_doc,self):
 		a = getattr(self, i['item_attribute'].replace(' ','_').lower().replace('item_subcategory','subcategory').replace('item_category','category').replace('custom_metal_target','metal_target'))
 		setattr(order_details, i['item_attribute'].replace(' ','_').lower(), a)
 	
-def set_design_attributes_in_order_forms(order_form_doc,self):
-	item_doc = frappe.db.sql(f"""select parentfield,design_attribute from `tabDesign Attribute - Multiselect` where parent='{self.item}'""",as_dict=1)
-	
-	age_group = order_form_doc.append("age_group", {})
-	alphabetnumber = order_form_doc.append("alphabetnumber", {})
-	animalbirds = order_form_doc.append("animalbirds", {})
-	collection = order_form_doc.append("collection", {})
-	design_style = order_form_doc.append("design_style", {})
-	gender = order_form_doc.append("gender", {})
-	lines_rows = order_form_doc.append("lines_rows", {})
-	language = order_form_doc.append("language", {})
-	occasion = order_form_doc.append("occasion", {})
-	rhodium = order_form_doc.append("rhodium", {})
-	religious = order_form_doc.append("religious", {})
-	shapes = order_form_doc.append("shapes", {})
-	zodiac = order_form_doc.append("zodiac", {})
-	
-	for i in item_doc:
-		if i['parentfield'] == 'custom_age_group':
-			if i['design_attribute']:
-				age_group.design_attribute = i['design_attribute']
-
-		elif i['parentfield'] == 'custom_alphabetnumber':
-			if i['design_attribute']:
-				alphabetnumber.design_attribute = i['design_attribute']		
-
-		elif i['parentfield'] == 'custom_animalbirds':
-			if i['design_attribute']:
-				animalbirds.design_attribute = i['design_attribute']		
-
-		elif i['parentfield'] == 'custom_collection':
-			if i['design_attribute']:
-				collection.design_attribute = i['design_attribute']		
-
-		elif i['parentfield'] == 'custom_design_style':
-			if i['design_attribute']:
-				design_style.design_attribute = i['design_attribute']
-
-		elif i['parentfield'] == 'custom_gender':
-			if i['design_attribute']:
-				gender.design_attribute = i['design_attribute']
-
-		elif i['parentfield'] == 'custom_lines__rows':
-			if i['design_attribute']:
-				lines_rows.design_attribute = i['design_attribute']
-
-		elif i['parentfield'] == 'custom_language':
-			if i['design_attribute']:
-				language.design_attribute = i['design_attribute']
-
-		elif i['parentfield'] == 'custom_occasion':
-			if i['design_attribute']:
-				occasion.design_attribute = i['design_attribute']
-
-		elif i['parentfield'] == 'custom_rhodium':
-			if i['design_attribute']:
-				rhodium.design_attribute = i['design_attribute']
-
-		elif i['parentfield'] == 'custom_religious':
-			if i['design_attribute']:
-				religious.design_attribute = i['design_attribute']
-
-		elif i['parentfield'] == 'custom_shapes':
-			if i['design_attribute']:
-				shapes.design_attribute = i['design_attribute']
-				
-		elif i['parentfield'] == 'custom_zodiac':
-			if i['design_attribute']:
-				zodiac.design_attribute = i['design_attribute']
-	
-	# if order_form_doc.rhodium == []:
-	# 	frappe.throw("IF")
-	# else:
-	# 	# frappe.throw("ELSE")
-	# 	frappe.throw(str((order_form_doc.rhodium[0])))
-	# return "YES"
-
 def workflow_state_maker(self):
 	if self.product_type in ['Company Goods','Customer Goods (Company Manufactured)']:
 		bom_or_cad = 'Duplicate BOM'
@@ -243,11 +168,12 @@ def workflow_state_maker(self):
 	return bom_or_cad
 
 def set_item_type(self):
+	item_type = ''
 	if self.product_type == 'Customer Goods (Other Company Manufactured)':
 		item_type = 'Template and Variant'
-	elif self.product_type in ['Company Goods','Customer Goods (Company Manufactured)'] and self.repair_type =='Modify Raw Material':
+	elif self.product_type in ['Company Goods','Customer Goods (Company Manufactured)'] and self.repair_type =='Modified Raw Material':
 		item_type = 'Only Variant'
-	elif self.product_type in ['Company Goods','Customer Goods (Company Manufactured)'] and self.repair_type =='Modify Product':
+	elif self.product_type in ['Company Goods','Customer Goods (Company Manufactured)'] and self.repair_type =='Modified Product':
 		item_type = 'Suffix Of Variant'
 	return item_type
 
@@ -255,9 +181,11 @@ def create_item_template_from_order(source_name, target_doc=None):
 	def post_process(source, target):
 		target.is_design_code = 1
 		target.has_variants = 1
-		if source.designer_assignment:
+		# frappe.throw(f"{}")
+		try:
+		# if source.designer_assignment:
 			target.designer = source.designer_assignment[0].designer
-		else:
+		except:
 			if frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name'):
 				target.designer = frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name')
 			else:
@@ -292,7 +220,7 @@ def create_variant_of_template_from_order(item_template,source_name, target_doc=
 		target.order_form_type = 'Repair Order'
 		target.item_group = frappe.db.get_value('Repair Order',source_name,'subcategory') + " - V",
 		target.custom_repair_order = source_name
-		target.custom_repair_order_form = frappe.db.get_value('Repair Order',source_name,'cad_order_form')
+		target.custom_repair_order_form = frappe.db.get_value('Repair Order',source_name,'order_form')
 		target.item_code = f'{item_template}-001'
 		target.sequence = item_template[2:7]
 		subcateogy = frappe.db.get_value('Item',item_template,'item_subcategory')
@@ -311,9 +239,10 @@ def create_variant_of_template_from_order(item_template,source_name, target_doc=
 				'attribute_value':attribute_value
 			})
 
-		if source.designer_assignment:
+		try:
+		# if source.designer_assignment:
 			target.designer = source.designer_assignment[0].designer
-		else:
+		except:
 			if frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name'):
 				target.designer = frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name')
 			else:
@@ -403,11 +332,14 @@ def make_quotation(source_name, target_doc=None):
 		target_doc = frappe.get_doc(target_doc)
 
 	snd_order = frappe.db.get_value("Repair Order", source_name, "*")
-
+	if snd_order.get("new_item_code"):
+		item = snd_order.get("new_item_code")
+	else:
+		item = snd_order.get("item")
 	target_doc.append("items", {
 		"branch": snd_order.get("branch"),
 		"project": snd_order.get("project"),
-		"item_code": snd_order.get("item"),
+		"item_code": item,
 		"serial_no": snd_order.get("tag_no"),
 		"metal_colour": snd_order.get("metal_colour"),
 		"metal_purity": snd_order.get("metal_purity"),
@@ -475,3 +407,248 @@ def create_bom(self,item_variant):
 	new_bom_doc.custom_repair_order_id = frappe.db.get_value("Item",item_variant,"custom_repair_order")
 	new_bom_doc.save()
 	return new_bom_doc.name
+
+
+def cerate_bom_timesheet(self):
+	if self.workflow_state == "Creating BOM":
+		if len(self.bom_assignment)>1:
+			for i in self.bom_assignment[:-1]:
+				timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"repair_order":self.name}, ["name","docstatus"])
+				if docstatus == 0:
+					timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+					if (timesheet_doc.time_logs):
+						timesheet_doc.time_logs[-1].to_time = now_datetime()
+						timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+						timesheet_doc.save()
+					timesheet_doc.run_method('submit')
+
+		designer_value = self.bom_assignment[-1].designer		
+		timesheet = frappe.get_all(
+			"Timesheet", filters={"employee": designer_value,"repair_order":self.name}, fields=["name"],
+		)
+		if timesheet:
+			timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+		else:
+			timesheet_doc = frappe.new_doc("Timesheet")
+			timesheet_doc.employee = designer_value
+		
+		if (timesheet_doc.time_logs and 
+			timesheet_doc.time_logs[-1].activity_type in ['BOM QC','BOM QC - On-Hold']) :
+			timesheet_doc.time_logs[-1].to_time = now_datetime()
+			timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+
+		time_log = timesheet_doc.append("time_logs", {})
+		time_log.activity_type = "Create BOM"
+		time_log.from_time = now_datetime()
+		timesheet_doc.repair_order = self.name	
+		if self.new_bom:
+			timesheet_doc.save()
+			frappe.msgprint("Timesheets Created for BOM each designer assignment")
+
+	elif self.workflow_state == "Creating BOM - On-Hold":
+		if len(self.bom_assignment)>1:
+			for i in self.bom_assignment[:-1]:
+				timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"repair_order":self.name}, ["name","docstatus"])
+				if docstatus == 0:
+					timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+					if (timesheet_doc.time_logs):
+						timesheet_doc.time_logs[-1].to_time = now_datetime()
+						timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+						timesheet_doc.save()
+					timesheet_doc.run_method('submit')
+
+
+		designer_value = self.bom_assignment[-1].designer
+		timesheet = frappe.get_all(
+			"Timesheet", filters={"employee": designer_value,"repair_order":self.name}, fields=["name"],
+		)
+		if timesheet:
+			timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+			if timesheet_doc.time_logs:	
+				time_log = timesheet_doc.time_logs[-1]					
+				time_log.to_time = now_datetime()
+				time_log.completed = 1
+				time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+
+			if not timesheet_doc.time_logs or timesheet_doc.time_logs[-1].activity_type != "Create BOM - On Hold":
+				qc_time_log = timesheet_doc.append("time_logs", {})
+				qc_time_log.activity_type = "Create BOM - On Hold"
+				qc_time_log.from_time = now_datetime()
+				qc_time_log.custom_cad_order_id = self.name
+				timesheet_doc.save()
+
+		else:
+			frappe.throw("Timesheets is not created for each designer assignment")		
+			
+
+	elif self.workflow_state == "BOM QC":
+		if len(self.bom_assignment)>1:
+			for i in self.bom_assignment[:-1]:
+				timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"repair_order":self.name}, ["name","docstatus"])
+				if docstatus == 0:
+					timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+					if (timesheet_doc.time_logs):
+						timesheet_doc.time_logs[-1].to_time = now_datetime()
+						timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+						timesheet_doc.save()
+					timesheet_doc.run_method('submit')
+
+		designer_value = self.bom_assignment[-1].designer
+
+		timesheet = frappe.get_all(
+			"Timesheet", filters={"employee": designer_value,"repair_order":self.name}, fields=["name"],
+		)
+		if timesheet:
+			timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+			if timesheet_doc.time_logs:	
+				time_log = timesheet_doc.time_logs[-1]					
+				time_log.to_time = now_datetime()
+				time_log.completed = 1
+				time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+
+			qc_time_log = timesheet_doc.append("time_logs", {})
+			qc_time_log.activity_type = "BOM QC"
+			qc_time_log.from_time = now_datetime()
+			qc_time_log.custom_cad_order_id = self.name				
+			timesheet_doc.save()
+		else:
+			frappe.throw("Timesheets is not created for each designer assignment")		
+
+	elif self.workflow_state == "BOM QC - On-Hold":
+		if len(self.bom_assignment)>1:
+			for i in self.bom_assignment[:-1]:
+				timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"repair_order":self.name}, ["name","docstatus"])
+				if docstatus == 0:
+					timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+					if (timesheet_doc.time_logs):
+						timesheet_doc.time_logs[-1].to_time = now_datetime()
+						timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+						timesheet_doc.save()
+					timesheet_doc.run_method('submit')
+
+		designer_value = self.bom_assignment[-1].designer
+		
+		timesheet = frappe.get_all(
+			"Timesheet", filters={"employee": designer_value,"repair_order":self.name}, fields=["name"],
+		)
+		if timesheet:
+			timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+			if timesheet_doc.time_logs:	
+				time_log = timesheet_doc.time_logs[-1]					
+				time_log.to_time = now_datetime()
+				time_log.completed = 1
+				time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+
+			if not timesheet_doc.time_logs or timesheet_doc.time_logs[-1].activity_type != "BOM QC - On Hold":
+				qc_time_log = timesheet_doc.append("time_logs", {})
+				qc_time_log.activity_type = "BOM QC - On Hold"
+				qc_time_log.from_time = now_datetime()
+				qc_time_log.custom_cad_order_id = self.name
+				timesheet_doc.save()
+		else:
+			frappe.throw("Timesheets is not created for each designer assignment")		
+
+	elif self.workflow_state == "Updating BOM":
+		if len(self.bom_assignment)>1:
+			for i in self.bom_assignment[:-1]:
+				timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"repair_order":self.name}, ["name","docstatus"])
+				if docstatus == 0:
+					timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+					if (timesheet_doc.time_logs):
+						timesheet_doc.time_logs[-1].to_time = now_datetime()
+						timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+						timesheet_doc.save()
+					timesheet_doc.run_method('submit')
+
+		designer_value = self.bom_assignment[-1].designer
+		timesheet = frappe.get_all(
+			"Timesheet", filters={"employee": designer_value,"repair_order":self.name}, fields=["name"],
+		)
+		if timesheet:
+			timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+			if timesheet_doc.time_logs:	
+				time_log = timesheet_doc.time_logs[-1]					
+				time_log.to_time = now_datetime()
+				time_log.completed = 1
+				time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+			
+			update_time_log = timesheet_doc.append("time_logs", {})
+			update_time_log.activity_type = "Updating BOM"
+			update_time_log.from_time = now_datetime()
+			update_time_log.custom_cad_order_id = self.name	
+			timesheet_doc.save()
+		else:
+			frappe.throw("Timesheets is not created for each designer assignment")
+			
+		frappe.msgprint("Timesheets Updating BOM for each designer assignment")
+
+	elif self.workflow_state == "Updating BOM - On-Hold":
+		if len(self.bom_assignment)>1:
+			for i in self.bom_assignment[:-1]:
+				timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"repair_order":self.name}, ["name","docstatus"])
+				if docstatus == 0:
+					timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+					if (timesheet_doc.time_logs):
+						timesheet_doc.time_logs[-1].to_time = now_datetime()
+						timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+						timesheet_doc.save()
+					timesheet_doc.run_method('submit')
+
+
+		designer_value = self.bom_assignment[-1].designer
+		timesheet = frappe.get_all(
+			"Timesheet", filters={"employee": designer_value,"repair_order":self.name}, fields=["name"],
+		)
+		if timesheet:
+			timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+			if timesheet_doc.time_logs:	
+				time_log = timesheet_doc.time_logs[-1]					
+				time_log.to_time = now_datetime()
+				time_log.completed = 1
+				time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+
+			if not timesheet_doc.time_logs or timesheet_doc.time_logs[-1].activity_type != "Updating BOM - On Hold":
+				qc_time_log = timesheet_doc.append("time_logs", {})
+				qc_time_log.activity_type = "Updating BOM - On Hold"
+				qc_time_log.from_time = now_datetime()
+				qc_time_log.custom_cad_order_id = self.name
+				timesheet_doc.save()
+		else:
+			frappe.throw("Timesheets is not created for each designer assignment")		
+			
+
+	elif self.workflow_state == "Approved":		
+		if len(self.bom_assignment)>1:				
+			for i in self.bom_assignment[:-1]:
+				timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"repair_order":self.name}, ["name","docstatus"])
+				if docstatus == 0:
+					timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+					if (timesheet_doc.time_logs):
+						timesheet_doc.time_logs[-1].to_time = now_datetime()
+						timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+						timesheet_doc.save()
+					timesheet_doc.run_method('submit')
+
+		
+		designer_value = self.bom_assignment[-1].designer
+		# Check if a timesheet document already exists for the employee
+		timesheet = frappe.get_all(
+			"Timesheet", filters={"employee": designer_value,"repair_order":self.name}, fields=["name"],
+		)
+		if timesheet:
+			timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+			time_log = timesheet_doc.time_logs[-1]					
+			time_log.to_time = now_datetime()
+			time_log.completed = 1
+			time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600				
+			timesheet_doc.save()
+			timesheet_doc.run_method('submit')				
+		else:
+			frappe.throw("Timesheets is not created for each designer assignment")
+

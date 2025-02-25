@@ -1,4 +1,5 @@
 {
+"_liked_by": "[\"Administrator\"]",
 "actions": [],
 "allow_rename": 1,
 "autoname": "hash",
@@ -7,13 +8,14 @@
 "editable_grid": 1,
 "engine": "InnoDB",
 "field_order": [
+    "is_finding_order",
     "customer_code",
     "design_by",
     "design_id",
     "bom",
     "delivery_date",
-    "mod_reason",
     "is_repairing",
+    "mod_reason",
     "section_break_10",
     "design_type",
     "update_item",
@@ -40,6 +42,8 @@
     "section_break_27",
     "category",
     "subcategory",
+    "finding_category",
+    "finding_subcategory",
     "setting_type",
     "sub_setting_type1",
     "sub_setting_type2",
@@ -49,6 +53,7 @@
     "metal_touch",
     "metal_colour",
     "diamond_type",
+    "finding_size",
     "section_break_78",
     "metal_target",
     "diamond_target",
@@ -117,15 +122,16 @@
     "options": "Customer"
     },
     {
+    "depends_on": "eval:doc.is_finding_order==0",
     "fieldname": "design_by",
     "fieldtype": "Select",
     "label": "Design By",
-    "options": "\nCustomer Design\nOur Design",
-    "reqd": 1
+    "mandatory_depends_on": "eval:doc.is_finding_order==0",
+    "options": "\nCustomer Design\nOur Design\nPurchase"
     },
     {
     "allow_on_submit": 1,
-    "depends_on": "eval: in_list(['Mod','Sketch Design','As Per Serial No'], doc.design_type)",
+    "depends_on": "eval: in_list(['Mod','Sketch Design','As Per Serial No'], doc.design_type) && doc.is_finding_order == 0",
     "fieldname": "design_id",
     "fieldtype": "Link",
     "label": "Design Code",
@@ -134,7 +140,7 @@
     "read_only_depends_on": "eval:doc.workflow_state == 'Approved'"
     },
     {
-    "depends_on": "eval: in_list(['Mod','Sketch Design','As Per Serial No'], doc.design_type)",
+    "depends_on": "eval: in_list(['Mod','Sketch Design','As Per Serial No'], doc.design_type) && doc.is_finding_order == 0",
     "fieldname": "bom",
     "fieldtype": "Link",
     "label": "Design Code BOM",
@@ -152,14 +158,15 @@
     "fieldtype": "Column Break"
     },
     {
+    "depends_on": "eval:doc.is_finding_order==0",
     "fieldname": "design_type",
     "fieldtype": "Link",
     "label": "Design Type",
-    "options": "Attribute Value",
-    "reqd": 1
+    "mandatory_depends_on": "eval:doc.is_finding_order==0",
+    "options": "Attribute Value"
     },
     {
-    "depends_on": "eval: in_list(['Mod','As Per Serial No'], doc.design_type)",
+    "depends_on": "eval: in_list(['Mod','As Per Serial No'], doc.design_type) && doc.is_finding_order==0",
     "fetch_from": "design_id.tag_no",
     "fetch_if_empty": 1,
     "fieldname": "tag_no",
@@ -189,14 +196,15 @@
     },
     {
     "fieldname": "section_break_hdjhs",
-    "fieldtype": "Section Break"
+    "fieldtype": "Section Break",
+    "hidden": 1
     },
     {
     "fieldname": "item_type",
     "fieldtype": "Select",
-    "hidden": 1,
     "label": "Item Type",
-    "options": "\nSuffix Of Variant\nOnly Variant\nNo Variant No Suffix\nVariant From Repair Order\nTemplate and Variant"
+    "options": "\nOnly Variant\nNo Variant No Suffix\nTemplate and Variant",
+    "read_only": 1
     },
     {
     "fieldname": "section_break_8",
@@ -260,6 +268,7 @@
     "fieldtype": "Section Break"
     },
     {
+    "depends_on": "eval:doc.is_finding_order==0",
     "fieldname": "category",
     "fieldtype": "Link",
     "in_list_view": 1,
@@ -268,14 +277,17 @@
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
+    "depends_on": "eval:doc.is_finding_order==0",
     "fieldname": "subcategory",
     "fieldtype": "Link",
     "in_list_view": 1,
     "label": "Item Subcategory",
+    "mandatory_depends_on": "eval:doc.is_finding_order==0",
     "options": "Attribute Value",
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
+    "depends_on": "eval:doc.is_finding_order==0",
     "fieldname": "setting_type",
     "fieldtype": "Link",
     "in_list_view": 1,
@@ -284,6 +296,7 @@
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
+    "depends_on": "eval:doc.is_finding_order==0",
     "fieldname": "sub_setting_type1",
     "fieldtype": "Link",
     "label": "Sub Setting Type1",
@@ -334,18 +347,21 @@
     "fieldtype": "Section Break"
     },
     {
+    "depends_on": "eval:doc.is_finding_order==0",
     "fieldname": "diamond_target",
     "fieldtype": "Float",
     "label": "Diamond Target",
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
+    "depends_on": "eval:doc.is_finding_order==0",
     "fieldname": "product_size",
     "fieldtype": "Data",
     "label": "Product Size",
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
+    "depends_on": "eval:doc.is_finding_order==0",
     "fieldname": "sizer_type",
     "fieldtype": "Link",
     "label": "Sizer Type",
@@ -357,7 +373,7 @@
     "fieldtype": "Section Break"
     },
     {
-    "depends_on": "eval: in_list([\"Belt Armlet\", \"Belt Oddiyanam\", \"Chain Oddiyanam\", \"Cuban Chain\", \"Nakshi Oddiyanam\",\r\n \"Fancy Oddiyanam\", \"God Oddiyanam\", \"Kids Oddiyanam\", \"Cocktail Pendant\", \"Casual Pendant\",\r\n \"Fancy Pendant\", \"God Pendant\", \"Kid Pendant\", \"Locket Pendant\", \"Nakshi Pendant\",\r\n \"Slider Pendant\", \"Addigai Necklace\", \"Cocktail Chain\", \"Cocktail Chain Haram\",\r\n \"Charm Necklace\", \"Chik Chokar\", \"Choker Necklace\", \"Collar Necklace\", \"Fancy Necklace\",\r\n \"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\",\r\n \"Layered Necklace\", \"Magdi Necklace\", \"Mala Necklace\", \"Nakshi Chain\", \"Nakshi Choker\",\r\n \"Nakshi Haram\", \"Nakshi Necklace\", \"Padhakam Necklace\", \"Short Necklace\", \"Station Necklace\",\r\n \"Tennis Necklace\", \"Fancy Mangalsutra\", \"God Mangalsutra\", \"Mangalsutra Chains\",\r\n \"Mangalsutra Pendant\", \"Thali/Tanmaniya\", \"Nakshi Thali/Tanmaniya\", \"Hair pin\", \"Jada\",\r\n \"Jada Billa\", \"Kids Hair Pin\", \"Maang Tikka\", \"Matal-Sahara\", \"Matha Patti\", \"Nakshi Jada\",\r\n \"Passa\", \"Nakshi Maang Tikka\", \"Nakshi Jada Billa\", \"Nakshi Jumkhi\", \"Threaders\",\r\n \"Band Bracelet\", \"Chain Bracelet\", \"Charm Bracelet\", \"Cuban Bracelet\", \"Fancy Bracelet\",\r\n \"Flexible Bracelet\", \"God Bracelet\", \"Kids Bracelet\", \"Mangalsutra Bracelet\", \"Casual Bracelet\",\r\n \"Tennis Bracelet\", \"Nakshi Bracelet\", \"Fancy Bangles\", \"God Bangles\", \"Golusu Bangles\",\r\n \"Kada Bangles\", \"Kids Bangles\", \"Nakshi Bangles\", \"Pacheli Bangles\", \"Chain Armlet\",\r\n \"Fancy Armlet\", \"God Vanki/Armlet\", \"Kids Vanki/Armlet\", \"Nakshi Vanki\", \"Tube Armlet\", \"Vanki\",\r\n \"Nakshi Armlet\", \"Anklet\", \"Belt\", \"Brooch\", \"Buttons\", \"Charms\", \"Crown\", \"Cufflinks\",\r\n \"Goggles\", \"Money Accessory\", \"Pen\", \"Sculpture\", \"Tie Clip\", \"Watches\", \"Fancy Accessory\",\r\n \"Fancy Box\"], doc.subcategory)",
+    "depends_on": "eval: in_list([\"Belt Armlet\", \"Belt Oddiyanam\", \"Chain Oddiyanam\", \"Cuban Chain\", \"Nakshi Oddiyanam\",\r\n \"Fancy Oddiyanam\", \"God Oddiyanam\", \"Kids Oddiyanam\", \"Cocktail Pendant\", \"Casual Pendant\",\r\n \"Fancy Pendant\", \"God Pendant\", \"Kid Pendant\", \"Locket Pendant\", \"Nakshi Pendant\",\r\n \"Slider Pendant\", \"Addigai Necklace\", \"Cocktail Chain\", \"Cocktail Chain Haram\",\r\n \"Charm Necklace\", \"Chik Chokar\", \"Choker Necklace\", \"Collar Necklace\", \"Fancy Necklace\",\r\n \"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\",\r\n \"Layered Necklace\", \"Magdi Necklace\", \"Mala Necklace\", \"Nakshi Chain\", \"Nakshi Choker\",\r\n \"Nakshi Haram\", \"Nakshi Necklace\", \"Padhakam Necklace\", \"Short Necklace\", \"Station Necklace\",\r\n \"Tennis Necklace\", \"Fancy Mangalsutra\", \"God Mangalsutra\", \"Mangalsutra Chains\",\r\n \"Mangalsutra Pendant\", \"Thali/Tanmaniya\", \"Nakshi Thali/Tanmaniya\", \"Hair pin\", \"Jada\",\r\n \"Jada Billa\", \"Kids Hair Pin\", \"Maang Tikka\", \"Matal-Sahara\", \"Matha Patti\", \"Nakshi Jada\",\r\n \"Passa\", \"Nakshi Maang Tikka\", \"Nakshi Jada Billa\", \"Nakshi Jumkhi\", \"Threaders\",\r\n \"Band Bracelet\", \"Chain Bracelet\", \"Charm Bracelet\", \"Cuban Bracelet\", \"Fancy Bracelet\",\r\n \"Flexible Bracelet\", \"God Bracelet\", \"Kids Bracelet\", \"Mangalsutra Bracelet\", \"Casual Bracelet\",\r\n \"Tennis Bracelet\", \"Nakshi Bracelet\", \"Fancy Bangles\", \"God Bangles\", \"Golusu Bangles\",\r\n \"Kada Bangles\", \"Kids Bangles\", \"Nakshi Bangles\", \"Pacheli Bangles\", \"Chain Armlet\",\r\n \"Fancy Armlet\", \"God Vanki/Armlet\", \"Kids Vanki/Armlet\", \"Nakshi Vanki\", \"Tube Armlet\", \"Vanki\",\r\n \"Nakshi Armlet\", \"Anklet\", \"Belt\", \"Brooch\", \"Buttons\", \"Charms\", \"Crown\", \"Cufflinks\",\r\n \"Goggles\", \"Money Accessory\", \"Pen\", \"Sculpture\", \"Tie Clip\", \"Watches\", \"Fancy Accessory\",\r\n \"Fancy Box\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "lock_type",
     "fieldtype": "Link",
     "label": "Lock Type",
@@ -365,7 +381,7 @@
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
-    "depends_on": "eval: in_list([\"Haram Necklace\", \"Layered Necklace\", \"Mala Necklace\", \"Nakshi Haram\", \"Nakshi Chokar\",\"Nakshi Vanki\", \"Vanki\"], doc.subcategory)",
+    "depends_on": "eval: in_list([\"Haram Necklace\", \"Layered Necklace\", \"Mala Necklace\", \"Nakshi Haram\", \"Nakshi Chokar\",\"Nakshi Vanki\", \"Vanki\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "back_chain",
     "fieldtype": "Link",
     "label": "Back Chain",
@@ -381,7 +397,7 @@
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
-    "depends_on": "eval:in_list([\"Fancy Oddiyanam\",\"God Oddiyanam\",\"Kids Oddiyanam\",\"Nakshi Oddiyanam\",\"Belt Oddiyanam\",\"Chain Oddiyanam\"], doc.subcategory)",
+    "depends_on": "eval:in_list([\"Fancy Oddiyanam\",\"God Oddiyanam\",\"Kids Oddiyanam\",\"Nakshi Oddiyanam\",\"Belt Oddiyanam\",\"Chain Oddiyanam\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "back_belt",
     "fieldtype": "Link",
     "label": "Back Belt",
@@ -405,7 +421,7 @@
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
-    "depends_on": "eval: in_list([\"Belt Oddiyanam\", \"Fancy Mugappu\", \"Nakshi Mugappu\", \"Cocktail Mugappu\", \"Casual Mugappu\", \r\n    \"Fancy Mugappu\", \"Fancy Oddiyanam\", \"God Mugappu\", \"God Oddiyanam\", \"Kids Oddiyanam\", \"Nakshi Mugappu\", \r\n\t\"Nakshi Oddiyanam\",\"Chain Oddiyanam\"], doc.subcategory)",
+    "depends_on": "eval: in_list([\"Belt Oddiyanam\", \"Fancy Mugappu\", \"Nakshi Mugappu\", \"Cocktail Mugappu\", \"Casual Mugappu\", \r\n    \"Fancy Mugappu\", \"Fancy Oddiyanam\", \"God Mugappu\", \"God Oddiyanam\", \"Kids Oddiyanam\", \"Nakshi Mugappu\", \r\n\t\"Nakshi Oddiyanam\",\"Chain Oddiyanam\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "back_side_size",
     "fieldtype": "Float",
     "label": "Back Side Size",
@@ -416,13 +432,14 @@
     "fieldtype": "Column Break"
     },
     {
-    "depends_on": "eval:in_list([\"Fancy Oddiyanam\",\"God Oddiyanam\",\"Kids Oddiyanam\",\"Nakshi Oddiyanam\",\"Oddiyanam\"], doc.subcategory)",
+    "depends_on": "eval:in_list([\"Fancy Oddiyanam\",\"God Oddiyanam\",\"Kids Oddiyanam\",\"Nakshi Oddiyanam\",\"Oddiyanam\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "back_belt_patti",
     "fieldtype": "Data",
     "label": "Back Belt Patti",
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
+    "depends_on": " eval:doc.is_finding_order==0",
     "fieldname": "rhodium",
     "fieldtype": "Link",
     "label": "Rhodium",
@@ -434,7 +451,7 @@
     "fieldtype": "Column Break"
     },
     {
-    "depends_on": "eval: in_list([\r\n    \"Belt Armlet\", \"Belt Oddiyanam\", \"Chain Oddiyanam\", \"Cuban Chain\",\r\n    \"Nakshi Oddiyanam\", \"Fancy Oddiyanam\", \"God Oddiyanam\",\r\n    \"Kids Oddiyanam\", \"Cocktail Ring\", \"Casual Ring\", \"Fancy Ring\",\r\n    \"Mangalsutra Ring\", \"Adjustable/Bolo Ring\", \"Cocktail Pendant\",\r\n    \"Casual Pendant\", \"Fancy Pendant\", \"God Pendant\", \"Kid Pendant\",\r\n    \"Locket Pendant\", \"Nakshi Pendant\", \"Slider Pendant\",\r\n    \"Addigai Necklace\", \"Cocktail Chain\", \"Cocktail Chain Haram\",\r\n    \"Charm Necklace\", \"Chik Chokar\", \"Choker Necklace\",\r\n    \"Collar Necklace\", \"Fancy Necklace\", \"Haram Necklace\",\r\n    \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\",\r\n    \"Layered Necklace\", \"Magdi Necklace\", \"Mala Necklace\",\r\n    \"Nakshi Chain\", \"Nakshi Choker\", \"Nakshi Haram\",\r\n    \"Nakshi Necklace\", \"Padhakam Necklace\", \"Short Necklace\",\r\n    \"Station Necklace\", \"Tennis Necklace\", \"Cocktail Mugappu\",\r\n    \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\",\r\n    \"Nakshi Mugappu\", \"Fancy Mangalsutra\", \"God Mangalsutra\",\r\n    \"Mangalsutra Chains\", \"Mangalsutra Pendant\", \"Thali/Tanmaniya\",\r\n    \"Nakshi Thali/Tanmaniya\", \"Hair pin\", \"Jada\", \"Jada Billa\",\r\n    \"Kids Hair Pin\", \"Maang Tikka\", \"Matal-Sahara\", \"Matha Patti\",\r\n    \"Nakshi Jada\", \"Passa\", \"Nakshi Maang Tikka\",\r\n    \"Nakshi Jada Billa\", \"Chandbali\", \"Dangler Earrings\",\r\n    \"Earcuff Earrings\", \"Front Back Earrings\", \"God Earrings\",\r\n    \"Hoops & Huggies Earrings\", \"Jumkhi\", \"Jumpring Earrings\",\r\n    \"Mismatch Earrings\", \"Threaders\", \"Band Bracelet\",\r\n    \"Chain Bracelet\", \"Charm Bracelet\", \"Cuban Bracelet\",\r\n    \"Fancy Bracelet\", \"Flexible Bracelet\", \"God Bracelet\",\r\n    \"Kids Bracelet\", \"Mangalsutra Bracelet\", \"Casual Bracelet\",\r\n    \"Tennis Bracelet\", \"Nakshi Bracelet\", \"Fancy Bangles\",\r\n    \"God Bangles\", \"Kada Bangles\", \"Pacheli Bangles\",\r\n    \"Chain Armlet\", \"Fancy Armlet\", \"God Vanki/Armlet\",\r\n    \"Kids Vanki/Armlet\", \"Nakshi Vanki\", \"Tube Armlet\", \"Vanki\",\r\n    \"Nakshi Armlet\", \"Anklet\", \"Belt\", \"Brooch\", \"Buttons\",\r\n    \"Charms\", \"Crown\", \"Cufflinks\", \"Goggles\", \"Money Accessory\",\r\n    \"Pen\", \"Sculpture\", \"Tie Clip\", \"Watches\", \"Fancy Accessory\",\r\n    \"Fancy Box\"], doc.subcategory) ",
+    "depends_on": "eval:in_list([\"Belt Armlet\", \"Belt Oddiyanam\", \"Chain Oddiyanam\", \"Cuban Chain\",\"Nakshi Oddiyanam\", \"Fancy Oddiyanam\", \"God Oddiyanam\",\r\n    \"Kids Oddiyanam\", \"Cocktail Ring\", \"Casual Ring\", \"Fancy Ring\",\"Mangalsutra Ring\", \"Adjustable/Bolo Ring\", \"Cocktail Pendant\",\r\n    \"Casual Pendant\", \"Fancy Pendant\", \"God Pendant\", \"Kid Pendant\", \"Locket Pendant\", \"Nakshi Pendant\", \"Slider Pendant\",\r\n    \"Addigai Necklace\", \"Cocktail Chain\", \"Cocktail Chain Haram\", \"Charm Necklace\", \"Chik Chokar\", \"Choker Necklace\",\r\n    \"Collar Necklace\", \"Fancy Necklace\", \"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\",\r\n    \"Layered Necklace\", \"Magdi Necklace\", \"Mala Necklace\",\"Nakshi Chain\", \"Nakshi Choker\", \"Nakshi Haram\",\r\n    \"Nakshi Necklace\", \"Padhakam Necklace\", \"Short Necklace\", \"Station Necklace\", \"Tennis Necklace\", \"Cocktail Mugappu\",\r\n    \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\", \"Nakshi Mugappu\", \"Hair pin\", \"Jada\", \"Jada Billa\",\r\n    \"Kids Hair Pin\", \"Maang Tikka\", \"Matal-Sahara\", \"Matha Patti\", \"Nakshi Jada\", \"Passa\", \"Nakshi Maang Tikka\",\r\n    \"Nakshi Jada Billa\", \"Chandbali\", \"Dangler Earrings\", \"Earcuff Earrings\", \"Front Back Earrings\", \"God Earrings\",\r\n    \"Hoops & Huggies Earrings\", \"Jumkhi\", \"Jumpring Earrings\", \"Mismatch Earrings\", \"Threaders\", \"Band Bracelet\",\r\n    \"Chain Bracelet\", \"Charm Bracelet\", \"Cuban Bracelet\", \"Fancy Bracelet\", \"Flexible Bracelet\", \"God Bracelet\",\r\n    \"Kids Bracelet\", \"Mangalsutra Bracelet\", \"Casual Bracelet\", \"Tennis Bracelet\", \"Nakshi Bracelet\", \"Fancy Bangles\",\r\n    \"God Bangles\", \"Kada Bangles\", \"Pacheli Bangles\", \"Chain Armlet\", \"Fancy Armlet\", \"God Vanki/Armlet\",\r\n    \"Kids Vanki/Armlet\", \"Nakshi Vanki\", \"Tube Armlet\", \"Vanki\", \"Nakshi Armlet\", \"Anklet\", \"Belt\", \"Brooch\", \"Buttons\",\r\n    \"Charms\", \"Crown\", \"Cufflinks\", \"Goggles\", \"Money Accessory\", \"Pen\", \"Sculpture\", \"Tie Clip\", \"Watches\", \"Fancy Accessory\",\"Fancy Box\"]\r\n, doc.subcategory)",
     "fieldname": "chain_type",
     "fieldtype": "Link",
     "label": "Chain Type",
@@ -442,14 +459,14 @@
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
-    "depends_on": "eval:in_list([\"Kodi Chain\", \"Snake Chain\", \"Runway\", \"Box Chain (Big)\", \"Box Chain (Small)\", \"Anchor Chain\", \"Black Bead Chain\", \"Shiva Chain\", \"Sadak Chain\", \"Highway Chain\", \"Mesh Chain\", \"Milan Chain\", \"Flat Ghop Chain\", \"Round Ghop Chain\", \"Nakshi Chain\", \"Fancy Chain\"], doc.chain_type)",
+    "depends_on": "eval:in_list([\"Belt Armlet\", \"Belt Oddiyanam\", \"Chain Oddiyanam\", \"Cuban Chain\",\"Nakshi Oddiyanam\", \"Fancy Oddiyanam\", \"God Oddiyanam\",\r\n    \"Kids Oddiyanam\", \"Cocktail Ring\", \"Casual Ring\", \"Fancy Ring\",\"Mangalsutra Ring\", \"Adjustable/Bolo Ring\", \"Cocktail Pendant\",\r\n    \"Casual Pendant\", \"Fancy Pendant\", \"God Pendant\", \"Kid Pendant\", \"Locket Pendant\", \"Nakshi Pendant\", \"Slider Pendant\",\r\n    \"Addigai Necklace\", \"Cocktail Chain\", \"Cocktail Chain Haram\", \"Charm Necklace\", \"Chik Chokar\", \"Choker Necklace\",\r\n    \"Collar Necklace\", \"Fancy Necklace\", \"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\",\r\n    \"Layered Necklace\", \"Magdi Necklace\", \"Mala Necklace\",\"Nakshi Chain\", \"Nakshi Choker\", \"Nakshi Haram\",\r\n    \"Nakshi Necklace\", \"Padhakam Necklace\", \"Short Necklace\", \"Station Necklace\", \"Tennis Necklace\", \"Cocktail Mugappu\",\r\n    \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\", \"Nakshi Mugappu\", \"Hair pin\", \"Jada\", \"Jada Billa\",\r\n    \"Kids Hair Pin\", \"Maang Tikka\", \"Matal-Sahara\", \"Matha Patti\", \"Nakshi Jada\", \"Passa\", \"Nakshi Maang Tikka\",\r\n    \"Nakshi Jada Billa\", \"Chandbali\", \"Dangler Earrings\", \"Earcuff Earrings\", \"Front Back Earrings\", \"God Earrings\",\r\n    \"Hoops & Huggies Earrings\", \"Jumkhi\", \"Jumpring Earrings\", \"Mismatch Earrings\", \"Threaders\", \"Band Bracelet\",\r\n    \"Chain Bracelet\", \"Charm Bracelet\", \"Cuban Bracelet\", \"Fancy Bracelet\", \"Flexible Bracelet\", \"God Bracelet\",\r\n    \"Kids Bracelet\", \"Mangalsutra Bracelet\", \"Casual Bracelet\", \"Tennis Bracelet\", \"Nakshi Bracelet\", \"Fancy Bangles\",\r\n    \"God Bangles\", \"Kada Bangles\", \"Pacheli Bangles\", \"Chain Armlet\", \"Fancy Armlet\", \"God Vanki/Armlet\",\r\n    \"Kids Vanki/Armlet\", \"Nakshi Vanki\", \"Tube Armlet\", \"Vanki\", \"Nakshi Armlet\", \"Anklet\", \"Belt\", \"Brooch\", \"Buttons\",\r\n    \"Charms\", \"Crown\", \"Cufflinks\", \"Goggles\", \"Money Accessory\", \"Pen\", \"Sculpture\", \"Tie Clip\", \"Watches\", \"Fancy Accessory\",\"Fancy Box\"]\r\n, doc.subcategory)",
     "fieldname": "customer_chain",
     "fieldtype": "Link",
     "label": "Chain From",
     "options": "Attribute Value"
     },
     {
-    "depends_on": "eval:in_list([\"Kodi Chain\", \"Snake Chain\", \"Runway\", \"Box Chain (Big)\", \"Box Chain (Small)\", \"Anchor Chain\", \"Black Bead Chain\", \"Shiva Chain\", \"Sadak Chain\", \"Highway Chain\", \"Mesh Chain\", \"Milan Chain\", \"Flat Ghop Chain\", \"Round Ghop Chain\", \"Nakshi Chain\", \"Fancy Chain\"], doc.chain_type)",
+    "depends_on": "eval:in_list([\"Belt Armlet\", \"Belt Oddiyanam\", \"Chain Oddiyanam\", \"Cuban Chain\",\"Nakshi Oddiyanam\", \"Fancy Oddiyanam\", \"God Oddiyanam\",\r\n    \"Kids Oddiyanam\", \"Cocktail Ring\", \"Casual Ring\", \"Fancy Ring\",\"Mangalsutra Ring\", \"Adjustable/Bolo Ring\", \"Cocktail Pendant\",\r\n    \"Casual Pendant\", \"Fancy Pendant\", \"God Pendant\", \"Kid Pendant\", \"Locket Pendant\", \"Nakshi Pendant\", \"Slider Pendant\",\r\n    \"Addigai Necklace\", \"Cocktail Chain\", \"Cocktail Chain Haram\", \"Charm Necklace\", \"Chik Chokar\", \"Choker Necklace\",\r\n    \"Collar Necklace\", \"Fancy Necklace\", \"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\",\r\n    \"Layered Necklace\", \"Magdi Necklace\", \"Mala Necklace\",\"Nakshi Chain\", \"Nakshi Choker\", \"Nakshi Haram\",\r\n    \"Nakshi Necklace\", \"Padhakam Necklace\", \"Short Necklace\", \"Station Necklace\", \"Tennis Necklace\", \"Cocktail Mugappu\",\r\n    \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\", \"Nakshi Mugappu\", \"Hair pin\", \"Jada\", \"Jada Billa\",\r\n    \"Kids Hair Pin\", \"Maang Tikka\", \"Matal-Sahara\", \"Matha Patti\", \"Nakshi Jada\", \"Passa\", \"Nakshi Maang Tikka\",\r\n    \"Nakshi Jada Billa\", \"Chandbali\", \"Dangler Earrings\", \"Earcuff Earrings\", \"Front Back Earrings\", \"God Earrings\",\r\n    \"Hoops & Huggies Earrings\", \"Jumkhi\", \"Jumpring Earrings\", \"Mismatch Earrings\", \"Threaders\", \"Band Bracelet\",\r\n    \"Chain Bracelet\", \"Charm Bracelet\", \"Cuban Bracelet\", \"Fancy Bracelet\", \"Flexible Bracelet\", \"God Bracelet\",\r\n    \"Kids Bracelet\", \"Mangalsutra Bracelet\", \"Casual Bracelet\", \"Tennis Bracelet\", \"Nakshi Bracelet\", \"Fancy Bangles\",\r\n    \"God Bangles\", \"Kada Bangles\", \"Pacheli Bangles\", \"Chain Armlet\", \"Fancy Armlet\", \"God Vanki/Armlet\",\r\n    \"Kids Vanki/Armlet\", \"Nakshi Vanki\", \"Tube Armlet\", \"Vanki\", \"Nakshi Armlet\", \"Anklet\", \"Belt\", \"Brooch\", \"Buttons\",\r\n    \"Charms\", \"Crown\", \"Cufflinks\", \"Goggles\", \"Money Accessory\", \"Pen\", \"Sculpture\", \"Tie Clip\", \"Watches\", \"Fancy Accessory\",\"Fancy Box\"]\r\n, doc.subcategory)",
     "fieldname": "chain_weight",
     "fieldtype": "Float",
     "label": "Chain Weight",
@@ -463,14 +480,14 @@
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
-    "depends_on": " eval: in_list([\"Cocktail Mugappu\", \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\", \"Nakshi Mugappu\",], doc.subcategory) ",
+    "depends_on": " eval: in_list([\"Cocktail Mugappu\", \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\", \"Nakshi Mugappu\",], doc.subcategory) && doc.is_finding_order==0 ",
     "fieldname": "space_between_mugappu",
     "fieldtype": "Float",
     "label": "Space between Mugappu",
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
-    "depends_on": "eval:in_list([\"Belt Armlet\", \"Belt Oddiyanam\", \"Chain Oddiyanam\", \"Fancy Nose Pin\", \"Cuban Chain\",\r\n \"Nakshi Ring\", \"Nakshi Oddiyanam\", \"Fancy Oddiyanam\", \"God Oddiyanam\", \"Kids Oddiyanam\",\r\n \"Band Ring\", \"Cocktail Ring\", \"Couple Ring\", \"Casual Ring\", \"Eternity Ring\", \"Fancy Ring\",\r\n \"God Ring\", \"Kids Ring\", \"Mangalsutra Ring\", \"Vanki Ring\", \"Adjustable/Bolo Ring\",\r\n \"Cocktail Pendant\", \"Casual Pendant\", \"Fancy Pendant\", \"God Pendant\", \"Kid Pendant\",\r\n \"Locket Pendant\", \"Nakshi Pendant\", \"Slider Pendant\", \"J Nose Pin\", \"O Nose Pin\",\r\n \"Drop Nose Pin\", \"Stud Nose Pin\", \"Addigai Necklace\", \"Cocktail Chain\", \"Cocktail Chain Haram\",\r\n \"Charm Necklace\", \"Chik Chokar\", \"Choker Necklace\", \"Collar Necklace\", \"Fancy Necklace\",\r\n \"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\", \"Layered Necklace\",\r\n \"Magdi Necklace\", \"Mala Necklace\", \"Nakshi Chain\", \"Nakshi Choker\", \"Nakshi Haram\",\r\n \"Nakshi Necklace\", \"Padhakam Necklace\", \"Short Necklace\", \"Station Necklace\", \"Tennis Necklace\",\r\n \"Cocktail Mugappu\", \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\", \"Nakshi Mugappu\",\r\n \"Fancy Mangalsutra\", \"God Mangalsutra\", \"Mangalsutra Chains\", \"Mangalsutra Pendant\",\r\n \"Thali/Tanmaniya\", \"Nakshi Thali/Tanmaniya\", \"Hair pin\", \"Jada\", \"Jada Billa\", \"Kids Hair Pin\",\r\n \"Maang Tikka\", \"Matal-Sahara\", \"Matha Patti\", \"Nakshi Jada\", \"Passa\", \"Nakshi Maang Tikka\",\r\n \"Nakshi Jada Billa\", \"Chandbali\", \"Chandeliers\", \"Cocktail Studs\", \"Casual Earrings\",\r\n \"Dangler Earrings\", \"Drop Earrings\", \"Earcuff Earrings\", \"Fancy Earrings\", \"Front Back Earrings\",\r\n \"God Earrings\", \"Hoops & Huggies Earrings\", \"Jumkhi\", \"Jumpring Earrings\", \"Kids Earrings\",\r\n \"Kuppu Earrings\", \"Mismatch Earrings\", \"Nakshi Jumkhi\", \"Threaders\", \"Nakshi Chandbalis\",\r\n \"Nakshi Earrings\", \"Band Bracelet\", \"Chain Bracelet\", \"Charm Bracelet\", \"Cuban Bracelet\",\r\n \"Fancy Bracelet\", \"Flexible Bracelet\", \"God Bracelet\", \"Kids Bracelet\", \"Mangalsutra Bracelet\",\r\n \"Casual Bracelet\", \"Tennis Bracelet\", \"Nakshi Bracelet\", \"Fancy Bangles\", \"God Bangles\",\r\n \"Golusu Bangles\", \"Kada Bangles\", \"Kids Bangles\", \"Nakshi Bangles\", \"Pacheli Bangles\",\r\n \"Chain Armlet\", \"Fancy Armlet\", \"God Vanki/Armlet\", \"Kids Vanki/Armlet\", \"Nakshi Vanki\",\r\n \"Tube Armlet\", \"Vanki\", \"Nakshi Armlet\", \"Anklet\", \"Belt\", \"Brooch\", \"Buttons\", \"Charms\",\r\n \"Crown\", \"Cufflinks\", \"Goggles\", \"Money Accessory\", \"Pen\", \"Sculpture\", \"Tie Clip\", \"Watches\",\r\n \"Fancy Accessory\", \"Fancy Box\"], doc.subcategory)",
+    "depends_on": "eval:in_list([\"Belt Armlet\", \"Belt Oddiyanam\", \"Chain Oddiyanam\", \"Fancy Nose Pin\", \"Cuban Chain\",\r\n \"Nakshi Ring\", \"Nakshi Oddiyanam\", \"Fancy Oddiyanam\", \"God Oddiyanam\", \"Kids Oddiyanam\",\r\n \"Band Ring\", \"Cocktail Ring\", \"Couple Ring\", \"Casual Ring\", \"Eternity Ring\", \"Fancy Ring\",\r\n \"God Ring\", \"Kids Ring\", \"Mangalsutra Ring\", \"Vanki Ring\", \"Adjustable/Bolo Ring\",\r\n \"Cocktail Pendant\", \"Casual Pendant\", \"Fancy Pendant\", \"God Pendant\", \"Kid Pendant\",\r\n \"Locket Pendant\", \"Nakshi Pendant\", \"Slider Pendant\", \"J Nose Pin\", \"O Nose Pin\",\r\n \"Drop Nose Pin\", \"Stud Nose Pin\", \"Addigai Necklace\", \"Cocktail Chain\", \"Cocktail Chain Haram\",\r\n \"Charm Necklace\", \"Chik Chokar\", \"Choker Necklace\", \"Collar Necklace\", \"Fancy Necklace\",\r\n \"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\", \"Layered Necklace\",\r\n \"Magdi Necklace\", \"Mala Necklace\", \"Nakshi Chain\", \"Nakshi Choker\", \"Nakshi Haram\",\r\n \"Nakshi Necklace\", \"Padhakam Necklace\", \"Short Necklace\", \"Station Necklace\", \"Tennis Necklace\",\r\n \"Cocktail Mugappu\", \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\", \"Nakshi Mugappu\",\r\n \"Fancy Mangalsutra\", \"God Mangalsutra\", \"Mangalsutra Chains\", \"Mangalsutra Pendant\",\r\n \"Thali/Tanmaniya\", \"Nakshi Thali/Tanmaniya\", \"Hair pin\", \"Jada\", \"Jada Billa\", \"Kids Hair Pin\",\r\n \"Maang Tikka\", \"Matal-Sahara\", \"Matha Patti\", \"Nakshi Jada\", \"Passa\", \"Nakshi Maang Tikka\",\r\n \"Nakshi Jada Billa\", \"Chandbali\", \"Chandeliers\", \"Cocktail Studs\", \"Casual Earrings\",\r\n \"Dangler Earrings\", \"Drop Earrings\", \"Earcuff Earrings\", \"Fancy Earrings\", \"Front Back Earrings\",\r\n \"God Earrings\", \"Hoops & Huggies Earrings\", \"Jumkhi\", \"Jumpring Earrings\", \"Kids Earrings\",\r\n \"Kuppu Earrings\", \"Mismatch Earrings\", \"Nakshi Jumkhi\", \"Threaders\", \"Nakshi Chandbalis\",\r\n \"Nakshi Earrings\", \"Band Bracelet\", \"Chain Bracelet\", \"Charm Bracelet\", \"Cuban Bracelet\",\r\n \"Fancy Bracelet\", \"Flexible Bracelet\", \"God Bracelet\", \"Kids Bracelet\", \"Mangalsutra Bracelet\",\r\n \"Casual Bracelet\", \"Tennis Bracelet\", \"Nakshi Bracelet\", \"Fancy Bangles\", \"God Bangles\",\r\n \"Golusu Bangles\", \"Kada Bangles\", \"Kids Bangles\", \"Nakshi Bangles\", \"Pacheli Bangles\",\r\n \"Chain Armlet\", \"Fancy Armlet\", \"God Vanki/Armlet\", \"Kids Vanki/Armlet\", \"Nakshi Vanki\",\r\n \"Tube Armlet\", \"Vanki\", \"Nakshi Armlet\", \"Anklet\", \"Belt\", \"Brooch\", \"Buttons\", \"Charms\",\r\n \"Crown\", \"Cufflinks\", \"Goggles\", \"Money Accessory\", \"Pen\", \"Sculpture\", \"Tie Clip\", \"Watches\",\r\n \"Fancy Accessory\", \"Fancy Box\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "enamal",
     "fieldtype": "Link",
     "label": "Enamal",
@@ -478,7 +495,7 @@
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
-    "depends_on": "eval: in_list([\"Nakshi Earrings\", \"Nakshi Jumkhi\"], doc.subcategory)",
+    "depends_on": "eval: in_list([\"Nakshi Earrings\", \"Nakshi Jumkhi\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "nakshi_from",
     "fieldtype": "Link",
     "label": "Nakshi From",
@@ -486,7 +503,7 @@
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
-    "depends_on": "eval: in_list([\"Nakshi Earrings\", \"Nakshi Jumkhi\"], doc.subcategory)",
+    "depends_on": "eval: in_list([\"Nakshi Earrings\", \"Nakshi Jumkhi\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "nakshi_weight",
     "fieldtype": "Link",
     "label": "Nakshi Weight",
@@ -498,6 +515,7 @@
     "fieldtype": "Section Break"
     },
     {
+    "depends_on": "eval:doc.is_finding_order==0",
     "fieldname": "gemstone_type1",
     "fieldtype": "Link",
     "label": "Gemstone Type1",
@@ -509,6 +527,7 @@
     "fieldtype": "Column Break"
     },
     {
+    "depends_on": "eval:doc.is_finding_order==0",
     "fieldname": "gemstone_quality",
     "fieldtype": "Link",
     "label": "Gemstone Quality",
@@ -520,7 +539,7 @@
     "fieldtype": "Section Break"
     },
     {
-    "depends_on": "eval:((doc.design_type==\"New Design\")||(doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
+    "fetch_from": "design_id.image",
     "fetch_if_empty": 1,
     "fieldname": "design_image_1",
     "fieldtype": "Attach Image",
@@ -547,7 +566,7 @@
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
-    "depends_on": "eval:in_list([\"Cocktail Mugappu\", \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\", \"Nakshi Mugappu\"], doc.subcategory)",
+    "depends_on": "eval:in_list([\"Cocktail Mugappu\", \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\", \"Nakshi Mugappu\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "distance_between_kadi_to_mugappu",
     "fieldtype": "Float",
     "label": "Distance Between Kadi To Mugappu",
@@ -556,29 +575,20 @@
     {
     "fieldname": "bom_or_cad",
     "fieldtype": "Select",
-    "hidden": 1,
     "label": "BOM Or CAD",
-    "options": "\nNew BOM\nCAD\nDuplicate BOM"
+    "options": "\nNew BOM\nCAD\nDuplicate BOM",
+    "read_only": 1
     },
     {
-    "default": "No Design Change",
-    "depends_on": "eval:doc.design_type == 'Mod'",
-    "fieldname": "mod_reason",
-    "fieldtype": "Link",
-    "label": "Mod Reason",
-    "mandatory_depends_on": "eval:doc.design_type == 'Mod'",
-    "options": "Attribute Value"
-    },
-    {
-    "depends_on": "eval: in_list([\"Belt Armlet\", \"Belt Oddiyanam\", \"Chain Oddiyanam\", \"Cuban Chain\", \"Nakshi Oddiyanam\",\r\n    \"Fancy Oddiyanam\", \"God Oddiyanam\", \"Kids Oddiyanam\", \"Cocktail Ring\", \"Fancy Ring\",\r\n    \"Cocktail Pendant\", \"Casual Pendant\", \"Fancy Pendant\", \"God Pendant\", \"Kid Pendant\",\r\n    \"Locket Pendant\", \"Nakshi Pendant\", \"Slider Pendant\", \"Addigai Necklace\", \"Cocktail Chain\",\r\n    \"Cocktail Chain Haram\", \"Charm Necklace\", \"Chik Chokar\", \"Choker Necklace\", \"Collar Necklace\",\r\n    \"Fancy Necklace\", \"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\",\r\n    \"Layered Necklace\", \"Magdi Necklace\", \"Mala Necklace\", \"Nakshi Chain\", \"Nakshi Choker\",\r\n    \"Nakshi Haram\", \"Nakshi Necklace\", \"Padhakam Necklace\", \"Short Necklace\", \"Station Necklace\",\r\n    \"Tennis Necklace\", \"Cocktail Mugappu\", \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\",\r\n    \"Nakshi Mugappu\", \"Fancy Mangalsutra\", \"God Mangalsutra\", \"Mangalsutra Chains\",\r\n    \"Mangalsutra Pendant\", \"Thali/Tanmaniya\", \"Nakshi Thali/Tanmaniya\", \"Hair pin\", \"Jada\",\r\n    \"Jada Billa\", \"Kids Hair Pin\", \"Maang Tikka\", \"Matal-Sahara\", \"Matha Patti\", \"Nakshi Jada\",\r\n    \"Passa\", \"Nakshi Maang Tikka\", \"Nakshi Jada Billa\", \"Chandbali\", \"Chandeliers\", \"Cocktail Studs\",\r\n    \"Casual Earrings\", \"Dangler Earrings\", \"Drop Earrings\", \"Earcuff Earrings\", \"Fancy Earrings\",\r\n    \"Front Back Earrings\", \"God Earrings\", \"Hoops & Huggies Earrings\", \"Jumkhi\", \"Jumpring Earrings\",\r\n    \"Kids Earrings\", \"Mismatch Earrings\", \"Nakshi Jumkhi\", \"Threaders\", \"Nakshi Chandbalis\",\r\n    \"Nakshi Earrings\", \"Band Bracelet\", \"Chain Bracelet\", \"Charm Bracelet\", \"Cuban Bracelet\",\r\n    \"Fancy Bracelet\", \"Flexible Bracelet\", \"God Bracelet\", \"Kids Bracelet\", \"Mangalsutra Bracelet\",\r\n    \"Casual Bracelet\", \"Nakshi Bracelet\", \"Fancy Bangles\", \"God Bangles\", \"Golusu Bangles\",\r\n    \"Kada Bangles\", \"Kids Bangles\", \"Nakshi Bangles\", \"Pacheli Bangles\", \"Chain Armlet\",\r\n    \"Fancy Armlet\", \"God Vanki/Armlet\", \"Kids Vanki/Armlet\", \"Nakshi Vanki\", \"Tube Armlet\", \"Vanki\",\r\n    \"Nakshi Armlet\", \"Anklet\", \"Brooch\", \"Crown\", \"Cufflinks\", \"Goggles\", \"Sculpture\",\r\n    \"Fancy Accessory\", \"Fancy Box\"], doc.subcategory)",
+    "depends_on": "eval: in_list([\"Belt Armlet\", \"Belt Oddiyanam\", \"Chain Oddiyanam\", \"Cuban Chain\", \"Nakshi Oddiyanam\",\r\n    \"Fancy Oddiyanam\", \"God Oddiyanam\", \"Kids Oddiyanam\", \"Cocktail Ring\", \"Fancy Ring\",\r\n    \"Cocktail Pendant\", \"Casual Pendant\", \"Fancy Pendant\", \"God Pendant\", \"Kid Pendant\",\r\n    \"Locket Pendant\", \"Nakshi Pendant\", \"Slider Pendant\", \"Addigai Necklace\", \"Cocktail Chain\",\r\n    \"Cocktail Chain Haram\", \"Charm Necklace\", \"Chik Chokar\", \"Choker Necklace\", \"Collar Necklace\",\r\n    \"Fancy Necklace\", \"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\",\r\n    \"Layered Necklace\", \"Magdi Necklace\", \"Mala Necklace\", \"Nakshi Chain\", \"Nakshi Choker\",\r\n    \"Nakshi Haram\", \"Nakshi Necklace\", \"Padhakam Necklace\", \"Short Necklace\", \"Station Necklace\",\r\n    \"Tennis Necklace\", \"Cocktail Mugappu\", \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\",\r\n    \"Nakshi Mugappu\", \"Fancy Mangalsutra\", \"God Mangalsutra\", \"Mangalsutra Chains\",\r\n    \"Mangalsutra Pendant\", \"Thali/Tanmaniya\", \"Nakshi Thali/Tanmaniya\", \"Hair pin\", \"Jada\",\r\n    \"Jada Billa\", \"Kids Hair Pin\", \"Maang Tikka\", \"Matal-Sahara\", \"Matha Patti\", \"Nakshi Jada\",\r\n    \"Passa\", \"Nakshi Maang Tikka\", \"Nakshi Jada Billa\", \"Chandbali\", \"Chandeliers\", \"Cocktail Studs\",\r\n    \"Casual Earrings\", \"Dangler Earrings\", \"Drop Earrings\", \"Earcuff Earrings\", \"Fancy Earrings\",\r\n    \"Front Back Earrings\", \"God Earrings\", \"Hoops & Huggies Earrings\", \"Jumkhi\", \"Jumpring Earrings\",\r\n    \"Kids Earrings\", \"Mismatch Earrings\", \"Nakshi Jumkhi\", \"Threaders\", \"Nakshi Chandbalis\",\r\n    \"Nakshi Earrings\", \"Band Bracelet\", \"Chain Bracelet\", \"Charm Bracelet\", \"Cuban Bracelet\",\r\n    \"Fancy Bracelet\", \"Flexible Bracelet\", \"God Bracelet\", \"Kids Bracelet\", \"Mangalsutra Bracelet\",\r\n    \"Casual Bracelet\", \"Nakshi Bracelet\", \"Fancy Bangles\", \"God Bangles\", \"Golusu Bangles\",\r\n    \"Kada Bangles\", \"Kids Bangles\", \"Nakshi Bangles\", \"Pacheli Bangles\", \"Chain Armlet\",\r\n    \"Fancy Armlet\", \"God Vanki/Armlet\", \"Kids Vanki/Armlet\", \"Nakshi Vanki\", \"Tube Armlet\", \"Vanki\",\r\n    \"Nakshi Armlet\", \"Anklet\", \"Brooch\", \"Crown\", \"Cufflinks\", \"Goggles\", \"Sculpture\",\r\n    \"Fancy Accessory\", \"Fancy Box\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "stone_changeable",
     "fieldtype": "Link",
-    "label": "Stone Changeable",
+    "label": "Stone Changeable ",
     "options": "Attribute Value",
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
-    "depends_on": "eval:in_list([\"Belt Armlet\", \"Belt Oddiyanam\", \"Chain Oddiyanam\", \"Cuban Chain\",\"Nakshi Oddiyanam\", \"Fancy Oddiyanam\", \"God Oddiyanam\", \"Kids Oddiyanam\",\r\n    \"Cocktail Pendant\", \"Casual Pendant\", \"Fancy Pendant\", \"God Pendant\",\"Kid Pendant\", \"Locket Pendant\", \"Nakshi Pendant\", \"Slider Pendant\",\r\n    \"Addigai Necklace\", \"Cocktail Chain\", \"Cocktail Chain Haram\", \"Charm Necklace\",\"Chik Chokar\", \"Choker Necklace\", \"Collar Necklace\", \"Fancy Necklace\",\r\n    \"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\",\"Layered Necklace\", \"Magdi Necklace\", \"Mala Necklace\", \"Nakshi Chain\",\r\n    \"Nakshi Choker\", \"Nakshi Haram\", \"Nakshi Necklace\", \"Padhakam Necklace\",\"Short Necklace\", \"Station Necklace\", \"Tennis Necklace\", \"Cocktail Mugappu\",\r\n    \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\", \"Nakshi Mugappu\",\"Fancy Mangalsutra\", \"God Mangalsutra\", \"Mangalsutra Chains\",\r\n    \"Mangalsutra Pendant\", \"Thali/Tanmaniya\", \"Nakshi Thali/Tanmaniya\",\"Hair pin\", \"Jada\", \"Jada Billa\", \"Kids Hair Pin\", \"Maang Tikka\",\r\n    \"Matal-Sahara\", \"Matha Patti\", \"Nakshi Jada\", \"Passa\", \"Nakshi Maang Tikka\",\"Nakshi Jada Billa\", \"Chandbali\", \"Chandeliers\", \"Cocktail Studs\",\r\n    \"Casual Earrings\", \"Dangler Earrings\", \"Drop Earrings\", \"Earcuff Earrings\",\"Fancy Earrings\", \"Front Back Earrings\", \"God Earrings\",\r\n    \"Hoops & Huggies Earrings\", \"Jumkhi\", \"Jumpring Earrings\", \"Mismatch Earrings\",\"Nakshi Jumkhi\", \"Threaders\", \"Nakshi Chandbalis\", \"Nakshi Earrings\",\r\n    \"Fancy Bracelet\", \"Nakshi Bracelet\", \"Chain Armlet\", \"Fancy Armlet\",\"God Vanki/Armlet\", \"Kids Vanki/Armlet\", \"Nakshi Vanki\", \"Tube Armlet\",\r\n    \"Vanki\", \"Nakshi Armlet\", \"Charms\", \"Sculpture\", \"Fancy Accessory\", \"Fancy Box\"], doc.subcategory)",
+    "depends_on": "eval:in_list([\"Belt Armlet\", \"Belt Oddiyanam\", \"Chain Oddiyanam\", \"Cuban Chain\",\"Nakshi Oddiyanam\", \"Fancy Oddiyanam\", \"God Oddiyanam\", \"Kids Oddiyanam\",\r\n    \"Cocktail Pendant\", \"Casual Pendant\", \"Fancy Pendant\", \"God Pendant\",\"Kid Pendant\", \"Locket Pendant\", \"Nakshi Pendant\", \"Slider Pendant\",\r\n    \"Addigai Necklace\", \"Cocktail Chain\", \"Cocktail Chain Haram\", \"Charm Necklace\",\"Chik Chokar\", \"Choker Necklace\", \"Collar Necklace\", \"Fancy Necklace\",\r\n    \"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\",\"Layered Necklace\", \"Magdi Necklace\", \"Mala Necklace\", \"Nakshi Chain\",\r\n    \"Nakshi Choker\", \"Nakshi Haram\", \"Nakshi Necklace\", \"Padhakam Necklace\",\"Short Necklace\", \"Station Necklace\", \"Tennis Necklace\", \"Cocktail Mugappu\",\r\n    \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\", \"Nakshi Mugappu\",\"Fancy Mangalsutra\", \"God Mangalsutra\", \"Mangalsutra Chains\",\r\n    \"Mangalsutra Pendant\", \"Thali/Tanmaniya\", \"Nakshi Thali/Tanmaniya\",\"Hair pin\", \"Jada\", \"Jada Billa\", \"Kids Hair Pin\", \"Maang Tikka\",\r\n    \"Matal-Sahara\", \"Matha Patti\", \"Nakshi Jada\", \"Passa\", \"Nakshi Maang Tikka\",\"Nakshi Jada Billa\", \"Chandbali\", \"Chandeliers\", \"Cocktail Studs\",\r\n    \"Casual Earrings\", \"Dangler Earrings\", \"Drop Earrings\", \"Earcuff Earrings\",\"Fancy Earrings\", \"Front Back Earrings\", \"God Earrings\",\r\n    \"Hoops & Huggies Earrings\", \"Jumkhi\", \"Jumpring Earrings\", \"Mismatch Earrings\",\"Nakshi Jumkhi\", \"Threaders\", \"Nakshi Chandbalis\", \"Nakshi Earrings\",\r\n    \"Fancy Bracelet\", \"Nakshi Bracelet\", \"Chain Armlet\", \"Fancy Armlet\",\"God Vanki/Armlet\", \"Kids Vanki/Armlet\", \"Nakshi Vanki\", \"Tube Armlet\",\r\n    \"Vanki\", \"Nakshi Armlet\", \"Charms\", \"Sculpture\", \"Fancy Accessory\", \"Fancy Box\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "detachable",
     "fieldtype": "Link",
     "label": "Detachable",
@@ -594,7 +604,7 @@
     "read_only": 1
     },
     {
-    "depends_on": "eval: in_list([\"Addigai Necklace\", \"Belt Armlet\", \"Belt Oddiyanam\", \"Casual Earrings\", \"Casual Mugappu\", \r\n    \"Casual Pendant\", \"Chain Armlet\", \"Chain Oddiyanam\", \"Chandeliers\", \"Charm Necklace\", \r\n    \"Chik Chokar\", \"Choker Necklace\", \"Cocktail Mugappu\", \"Cocktail Pendant\", \"Cocktail Ring\", \r\n    \"Cocktail Studs\", \"Collar Necklace\", \"Cuban Chain\", \"Dangler Earrings\", \"Fancy Armlet\", \r\n    \"Fancy Earrings\", \"Fancy Mangalsutra\", \"Fancy Mugappu\", \"Fancy Necklace\", \"Fancy Oddiyanam\", \r\n    \"Fancy Pendant\", \"Fancy Ring\", \"God Earrings\", \"God Mangalsutra\", \"God Mugappu\", \r\n    \"God Oddiyanam\", \"God Vanki/Armlet\", \"Hair pin\", \"Jada\", \"Jada Billa\", \"Jumkhi\", \r\n    \"Jumpring Earrings\", \"Kantha/Hasli Necklace\", \"Kids Hair Pin\", \"Kids Necklace\", \r\n    \"Kids Oddiyanam\", \"Kids Vanki/Armlet\", \"Lariat Necklace\", \"Layered Necklace\", \r\n    \"Locket Pendant\", \"Magdi Necklace\", \"Maang Tikka\", \"Mala Necklace\", \"Matal-Sahara\", \r\n    \"Matha Patti\", \"Mismatch Earrings\", \"Nakshi Armlet\", \"Nakshi Chandbalis\", \"Nakshi Choker\", \r\n    \"Nakshi Earrings\", \"Nakshi Haram\", \"Nakshi Jada\", \"Nakshi Jada Billa\", \"Nakshi Jumkhi\", \r\n    \"Nakshi Mugappu\", \"Nakshi Necklace\", \"Nakshi Oddiyanam\", \"Nakshi Pendant\", \r\n    \"Nakshi Thali/Tanmaniya\", \"Padhakam Necklace\", \"Passa\", \"Short Necklace\", \"Slider Pendant\", \r\n    \"Station Necklace\", \"Tennis Necklace\", \"Thali/Tanmaniya\", \"Tube Armlet\"], doc.subcategory)",
+    "depends_on": "eval: in_list([\"Addigai Necklace\", \"Belt Armlet\", \"Belt Oddiyanam\", \"Casual Earrings\", \"Casual Mugappu\", \r\n    \"Casual Pendant\", \"Chain Armlet\", \"Chain Oddiyanam\", \"Chandeliers\", \"Charm Necklace\", \r\n    \"Chik Chokar\", \"Choker Necklace\", \"Cocktail Mugappu\", \"Cocktail Pendant\", \"Cocktail Ring\", \r\n    \"Cocktail Studs\", \"Collar Necklace\", \"Cuban Chain\", \"Dangler Earrings\", \"Fancy Armlet\", \r\n    \"Fancy Earrings\", \"Fancy Mangalsutra\", \"Fancy Mugappu\", \"Fancy Necklace\", \"Fancy Oddiyanam\", \r\n    \"Fancy Pendant\", \"Fancy Ring\", \"God Earrings\", \"God Mangalsutra\", \"God Mugappu\", \r\n    \"God Oddiyanam\", \"God Vanki/Armlet\", \"Hair pin\", \"Jada\", \"Jada Billa\", \"Jumkhi\", \r\n    \"Jumpring Earrings\", \"Kantha/Hasli Necklace\", \"Kids Hair Pin\", \"Kids Necklace\", \r\n    \"Kids Oddiyanam\", \"Kids Vanki/Armlet\", \"Lariat Necklace\", \"Layered Necklace\", \r\n    \"Locket Pendant\", \"Magdi Necklace\", \"Maang Tikka\", \"Mala Necklace\", \"Matal-Sahara\", \r\n    \"Matha Patti\", \"Mismatch Earrings\", \"Nakshi Armlet\", \"Nakshi Chandbalis\", \"Nakshi Choker\", \r\n    \"Nakshi Earrings\", \"Nakshi Haram\", \"Nakshi Jada\", \"Nakshi Jada Billa\", \"Nakshi Jumkhi\", \r\n    \"Nakshi Mugappu\", \"Nakshi Necklace\", \"Nakshi Oddiyanam\", \"Nakshi Pendant\", \r\n    \"Nakshi Thali/Tanmaniya\", \"Padhakam Necklace\", \"Passa\", \"Short Necklace\", \"Slider Pendant\", \r\n    \"Station Necklace\", \"Tennis Necklace\", \"Thali/Tanmaniya\", \"Tube Armlet\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "two_in_one",
     "fieldtype": "Link",
     "label": "2 in 1",
@@ -602,14 +612,14 @@
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
-    "depends_on": " eval: in_list([\"Cocktail Mugappu\", \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\", \"Nakshi Mugappu\"], doc.subcategory)",
+    "depends_on": " eval: in_list([\"Cocktail Mugappu\", \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\", \"Nakshi Mugappu\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "number_of_ant",
     "fieldtype": "Float",
     "label": "Number of Ant",
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
-    "depends_on": "eval:in_list([\"Kodi Chain\", \"Snake Chain\", \"Runway\", \"Box Chain (Big)\", \"Box Chain (Small)\", \"Anchor Chain\", \"Black Bead Chain\", \"Shiva Chain\", \"Sadak Chain\", \"Highway Chain\", \"Mesh Chain\", \"Milan Chain\", \"Flat Ghop Chain\", \"Round Ghop Chain\", \"Nakshi Chain\", \"Fancy Chain\"], doc.chain_type)",
+    "depends_on": "eval:in_list([\"Belt Armlet\", \"Belt Oddiyanam\", \"Chain Oddiyanam\", \"Cuban Chain\",\"Nakshi Oddiyanam\", \"Fancy Oddiyanam\", \"God Oddiyanam\",\r\n    \"Kids Oddiyanam\", \"Cocktail Ring\", \"Casual Ring\", \"Fancy Ring\",\"Mangalsutra Ring\", \"Adjustable/Bolo Ring\", \"Cocktail Pendant\",\r\n    \"Casual Pendant\", \"Fancy Pendant\", \"God Pendant\", \"Kid Pendant\", \"Locket Pendant\", \"Nakshi Pendant\", \"Slider Pendant\",\r\n    \"Addigai Necklace\", \"Cocktail Chain\", \"Cocktail Chain Haram\", \"Charm Necklace\", \"Chik Chokar\", \"Choker Necklace\",\r\n    \"Collar Necklace\", \"Fancy Necklace\", \"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\",\r\n    \"Layered Necklace\", \"Magdi Necklace\", \"Mala Necklace\",\"Nakshi Chain\", \"Nakshi Choker\", \"Nakshi Haram\",\r\n    \"Nakshi Necklace\", \"Padhakam Necklace\", \"Short Necklace\", \"Station Necklace\", \"Tennis Necklace\", \"Cocktail Mugappu\",\r\n    \"Casual Mugappu\", \"Fancy Mugappu\", \"God Mugappu\", \"Nakshi Mugappu\", \"Hair pin\", \"Jada\", \"Jada Billa\",\r\n    \"Kids Hair Pin\", \"Maang Tikka\", \"Matal-Sahara\", \"Matha Patti\", \"Nakshi Jada\", \"Passa\", \"Nakshi Maang Tikka\",\r\n    \"Nakshi Jada Billa\", \"Chandbali\", \"Dangler Earrings\", \"Earcuff Earrings\", \"Front Back Earrings\", \"God Earrings\",\r\n    \"Hoops & Huggies Earrings\", \"Jumkhi\", \"Jumpring Earrings\", \"Mismatch Earrings\", \"Threaders\", \"Band Bracelet\",\r\n    \"Chain Bracelet\", \"Charm Bracelet\", \"Cuban Bracelet\", \"Fancy Bracelet\", \"Flexible Bracelet\", \"God Bracelet\",\r\n    \"Kids Bracelet\", \"Mangalsutra Bracelet\", \"Casual Bracelet\", \"Tennis Bracelet\", \"Nakshi Bracelet\", \"Fancy Bangles\",\r\n    \"God Bangles\", \"Kada Bangles\", \"Pacheli Bangles\", \"Chain Armlet\", \"Fancy Armlet\", \"God Vanki/Armlet\",\r\n    \"Kids Vanki/Armlet\", \"Nakshi Vanki\", \"Tube Armlet\", \"Vanki\", \"Nakshi Armlet\", \"Anklet\", \"Belt\", \"Brooch\", \"Buttons\",\r\n    \"Charms\", \"Crown\", \"Cufflinks\", \"Goggles\", \"Money Accessory\", \"Pen\", \"Sculpture\", \"Tie Clip\", \"Watches\", \"Fancy Accessory\",\"Fancy Box\"]\r\n, doc.subcategory)",
     "fieldname": "chain_thickness",
     "fieldtype": "Float",
     "label": "Chain Thickness"
@@ -621,7 +631,7 @@
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
-    "depends_on": "eval:doc.design_type == 'Mod'",
+    "depends_on": "eval:doc.design_type == 'Mod' && doc.is_finding_order==0",
     "fieldname": "update_item",
     "fieldtype": "Button",
     "in_list_view": 1,
@@ -632,14 +642,14 @@
     "fieldtype": "Section Break"
     },
     {
-    "depends_on": "eval:in_list([\"Cuban Chain\", \"Cocktail Pendant\", \"Casual Pendant\", \"Fancy Pendant\",\"God Pendant\", \"Kid Pendant\", \"Locket Pendant\", \"Nakshi Pendant\",\"Slider Pendant\", \"Addigai Necklace\", \"Cocktail Chain\",\r\n    \"Cocktail Chain Haram\", \"Charm Necklace\", \"Chik Chokar\",\"Choker Necklace\", \"Collar Necklace\", \"Fancy Necklace\",\"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\",\r\n    \"Lariat Necklace\", \"Layered Necklace\", \"Magdi Necklace\",\"Mala Necklace\", \"Nakshi Chain\", \"Nakshi Choker\", \"Nakshi Haram\",\"Nakshi Necklace\", \"Padhakam Necklace\", \"Short Necklace\",\r\n    \"Station Necklace\", \"Tennis Necklace\", \"Chandbali\", \"Chandeliers\",\"Cocktail Studs\", \"Casual Earrings\", \"Dangler Earrings\",\"Drop Earrings\", \"Earcuff Earrings\", \"Fancy Earrings\",\"Front Back Earrings\", \"God Earrings\", \"Hoops & Huggies Earrings\",\r\n    \"Jumkhi\", \"Jumpring Earrings\", \"Kids Earrings\", \"Kuppu Earrings\",\"Mismatch Earrings\", \"Nakshi Jumkhi\", \"Threaders\",\"Nakshi Chandbalis\", \"Nakshi Earrings\"], doc.subcategory)",
+    "depends_on": "eval:in_list([\"Cuban Chain\", \"Cocktail Pendant\", \"Casual Pendant\", \"Fancy Pendant\",\"God Pendant\", \"Kid Pendant\", \"Locket Pendant\", \"Nakshi Pendant\",\"Slider Pendant\", \"Addigai Necklace\", \"Cocktail Chain\",\r\n    \"Cocktail Chain Haram\", \"Charm Necklace\", \"Chik Chokar\",\"Choker Necklace\", \"Collar Necklace\", \"Fancy Necklace\",\"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\",\r\n    \"Lariat Necklace\", \"Layered Necklace\", \"Magdi Necklace\",\"Mala Necklace\", \"Nakshi Chain\", \"Nakshi Choker\", \"Nakshi Haram\",\"Nakshi Necklace\", \"Padhakam Necklace\", \"Short Necklace\",\r\n    \"Station Necklace\", \"Tennis Necklace\", \"Chandbali\", \"Chandeliers\",\"Cocktail Studs\", \"Casual Earrings\", \"Dangler Earrings\",\"Drop Earrings\", \"Earcuff Earrings\", \"Fancy Earrings\",\"Front Back Earrings\", \"God Earrings\", \"Hoops & Huggies Earrings\",\r\n    \"Jumkhi\", \"Jumpring Earrings\", \"Kids Earrings\", \"Kuppu Earrings\",\"Mismatch Earrings\", \"Nakshi Jumkhi\", \"Threaders\",\"Nakshi Chandbalis\", \"Nakshi Earrings\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "capganthan",
     "fieldtype": "Link",
     "label": "Cap/Ganthan",
     "options": "Attribute Value"
     },
     {
-    "depends_on": "eval:in_list([\"Chain Pendant\", \"Cuban Chain\", \"Nakshi Choker\", \n\"Nakshi Haram\", \"Nakshi Necklace\", \"Fancy Necklace\", \"Collar Necklace\",\n\"Choker Necklace\", \"Addigai Necklace\", \"Cocktail Chain\",\n\"Cocktail Chain Haram\", \"Charm Necklace\", \"Chik Chokar\",\n\"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \n\"Lariat Necklace\", \"Layered Necklace\", \"Magdi Necklace\",\n\"Mala Necklace\", \"Padhakam Necklace\", \"Short Necklace\",\n\"Station Necklace\", \"Tennis Necklace\", \n\"Nakshi Chain\", \"God Pendant\", \"Slider Pendant\",\n\"Nakshi Pendant\", \"Locket Pendant\", \"Kid Pendant\", \"Fancy Pendant\",\n\"Casual Pendant\", \"Cocktail Pendant\"], doc.subcategory)",
+    "depends_on": "eval:in_list([\"Chain Pendant\", \"Cuban Chain\", \"Nakshi Choker\", \n\"Nakshi Haram\", \"Nakshi Necklace\", \"Fancy Necklace\", \"Collar Necklace\",\n\"Choker Necklace\", \"Addigai Necklace\", \"Cocktail Chain\",\n\"Cocktail Chain Haram\", \"Charm Necklace\", \"Chik Chokar\",\n\"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \n\"Lariat Necklace\", \"Layered Necklace\", \"Magdi Necklace\",\n\"Mala Necklace\", \"Padhakam Necklace\", \"Short Necklace\",\n\"Station Necklace\", \"Tennis Necklace\", \n\"Nakshi Chain\", \"God Pendant\", \"Slider Pendant\",\n\"Nakshi Pendant\", \"Locket Pendant\", \"Kid Pendant\", \"Fancy Pendant\",\n\"Casual Pendant\", \"Cocktail Pendant\"], doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "charm",
     "fieldtype": "Link",
     "label": "Charm",
@@ -699,6 +709,7 @@
     "read_only": 1
     },
     {
+    "depends_on": "eval:doc.is_finding_order==0",
     "fieldname": "gemstone_type",
     "fieldtype": "Link",
     "label": "Gemstone Type",
@@ -706,19 +717,20 @@
     "read_only_depends_on": "eval:doc.design_type == 'As Per Serial No'"
     },
     {
-    "depends_on": "eval: in_list([\"Casual Mugappu\"],doc.subcategory)",
+    "depends_on": "eval: in_list([\"Casual Mugappu\"],doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "count_of_spiral_turns",
     "fieldtype": "Int",
     "label": "Count of Spiral Turns"
     },
     {
+    "depends_on": "eval:doc.is_finding_order==0",
     "fieldname": "diamond_type",
     "fieldtype": "Link",
     "label": "Diamond Type",
     "options": "Attribute Value"
     },
     {
-    "depends_on": "eval: in_list([\"Mangalsutra Ring\",\"Mangalsutra Bracelet\"],doc.subcategory)",
+    "depends_on": "eval: in_list([\"Mangalsutra Ring\",\"Mangalsutra Bracelet\"],doc.subcategory) && doc.is_finding_order==0",
     "fieldname": "black_bead",
     "fieldtype": "Link",
     "label": "Black Bead",
@@ -732,6 +744,7 @@
     },
     {
     "default": "0",
+    "depends_on": "eval:doc.is_finding_order==0",
     "fieldname": "is_diamond_target_range",
     "fieldtype": "Check",
     "label": "Is Diamond Target Range"
@@ -754,12 +767,46 @@
     "fieldname": "jewelex_batch_no",
     "fieldtype": "Data",
     "label": "Jewelex Batch No"
+    },
+    {
+    "depends_on": "eval:doc.is_finding_order==1",
+    "fieldname": "finding_category",
+    "fieldtype": "Link",
+    "label": "Finding Category",
+    "options": "Attribute Value"
+    },
+    {
+    "depends_on": "eval:doc.is_finding_order==1",
+    "fieldname": "finding_subcategory",
+    "fieldtype": "Link",
+    "label": "Finding Subcategory",
+    "options": "Attribute Value"
+    },
+    {
+    "default": "0",
+    "fieldname": "is_finding_order",
+    "fieldtype": "Check",
+    "label": "Is Finding Order",
+    "read_only": 1
+    },
+    {
+    "depends_on": "eval:doc.is_finding_order==1",
+    "fieldname": "finding_size",
+    "fieldtype": "Link",
+    "label": "Finding Size",
+    "options": "Attribute Value"
+    },
+    {
+    "fieldname": "mod_reason",
+    "fieldtype": "Link",
+    "label": "Mod Reason",
+    "options": "Attribute Value"
     }
 ],
 "index_web_pages_for_search": 1,
 "istable": 1,
 "links": [],
-"modified": "2024-12-16 15:11:13.619158",
+"modified": "2025-02-07 16:59:35.709222",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Order Form Detail",

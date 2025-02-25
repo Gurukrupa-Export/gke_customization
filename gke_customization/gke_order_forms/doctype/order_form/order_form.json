@@ -1,4 +1,5 @@
 {
+"_liked_by": "[\"Administrator\"]",
 "actions": [],
 "allow_import": 1,
 "allow_rename": 1,
@@ -22,6 +23,7 @@
     "updated_delivery_date",
     "project",
     "parcel_place",
+    "is_finding_order",
     "column_break_4",
     "po_no",
     "order_type",
@@ -133,7 +135,8 @@
     "fieldname": "order_type",
     "fieldtype": "Select",
     "label": "Order Type",
-    "options": "\nSales\nStock Order\nPurchase"
+    "options": "\nSales\nStock Order\nPurchase",
+    "reqd": 1
     },
     {
     "default": "0",
@@ -146,8 +149,8 @@
     "fieldname": "diamond_quality",
     "fieldtype": "Link",
     "label": "Customer Diamond Quality",
-    "options": "Attribute Value",
-    "reqd": 1
+    "mandatory_depends_on": "eval:(doc.is_finding_order == 0 && doc.order_type == 'Sales') || (doc.is_finding_order == 0 && doc.order_type == 'Stock Order')",
+    "options": "Attribute Value"
     },
     {
     "fieldname": "service_type",
@@ -235,8 +238,8 @@
     "fieldname": "flow_type",
     "fieldtype": "Select",
     "label": "Flow Type",
-    "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO",
-    "reqd": 1
+    "mandatory_depends_on": "eval:doc.order_type != 'Purchase'",
+    "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO"
     },
     {
     "fetch_from": "customer_code.customer_name",
@@ -289,6 +292,13 @@
     "fieldname": "updated_delivery_date",
     "fieldtype": "Date",
     "label": "Updated Delivery Date"
+    },
+    {
+    "default": "0",
+    "depends_on": "eval:doc.order_type != 'Purchase'",
+    "fieldname": "is_finding_order",
+    "fieldtype": "Check",
+    "label": "Is Finding Order"
     }
 ],
 "index_web_pages_for_search": 1,
@@ -311,7 +321,7 @@
     "link_fieldname": "custom_form_id"
     }
 ],
-"modified": "2024-12-16 14:12:03.369716",
+"modified": "2025-01-11 11:34:46.592466",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Order Form",

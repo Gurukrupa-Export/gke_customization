@@ -1,18 +1,16 @@
 frappe.ui.form.on('Order Form', {
-	delivery_date: function (frm) {
+	delivery_date(frm) {
 		validate_dates(frm, frm.doc, "delivery_date")
 		update_fields_in_child_table(frm, "delivery_date")
 		calculate_due_days(frm);
+	},
+	is_finding_order(frm) {
+		update_fields_in_child_table(frm, "is_finding_order")
 	},
 	estimated_duedate(frm) {
 		validate_dates(frm, frm.doc, "estimated_duedate")
 		update_fields_in_child_table(frm, "estimated_duedate")
 	},
-	// custom_cad_finish_date(frm) {
-	// 	validate_dates(frm, frm.doc, "delivery_date")
-	// 	// update_fields_in_child_table(frm, "delivery_date")
-	// 	calculate_due_days(frm);
-	// },
 	system_due_date(frm) {
 		validate_dates(frm, frm.doc, "system_due_date")
 	},
@@ -22,14 +20,14 @@ frappe.ui.form.on('Order Form', {
 	project(frm) {
 		update_fields_in_child_table(frm, "project")
 	},
-	setup: function (frm, cdt, cdn) {
+	setup(frm, cdt, cdn) {
 		var parent_fields = [
 			['diamond_quality', 'Diamond Quality']];
 		set_filters_on_parent_table_fields(frm, parent_fields);
 
 		var fields = [
 			['design_type', 'Design Type'],
-		['category', 'new Item subcategory1'],
+		['category', 'Item Category'],
 		['subcategory', 'Item Subcategory'],
 		['setting_type', 'Setting Type'],
 		['metal_type', 'Metal Type'],
@@ -74,19 +72,14 @@ frappe.ui.form.on('Order Form', {
 		['mod_reason', 'Mod Reason'],
 		['capganthan', 'Cap/Ganthan'],
 		['charm', 'Charm'],
+		['finding_category', 'Finding Category'],
+		['finding_subcategory', 'Finding Sub-Category'],
+		['finding_size', 'Finding Size'],
 		];
 
 		set_filters_on_child_table_fields(frm, fields);
-		// set_filter_for_salesman_name(frm);
+		set_filter_for_salesman_name(frm);
 
-		// frm.set_query("parcel_place", function (doc) {
-		// 	return {
-		// 		query: "jewellery_erpnext.query.get_parcel_place",
-		// 		filters: {
-		// 			"customer_code": doc.customer_code
-		// 		}
-		// 	}
-		// })
 		frm.set_query('sub_setting_type1', 'order_details', function (doc, cdt, cdn) {
 			let d = locals[cdt][cdn];
 			return {
@@ -111,6 +104,14 @@ frappe.ui.form.on('Order Form', {
 				}
 			};
 		});
+		frm.set_query('finding_subcategory', 'order_details', function (doc, cdt, cdn) {
+			let d = locals[cdt][cdn];
+			return {
+				filters: {
+					'parent_attribute_value': d.finding_category
+				}
+			};
+		});
 		frm.set_query('diamond_quality','order_details', function (doc) {
 			return {
 				query: 'jewellery_erpnext.query.item_attribute_query',
@@ -123,28 +124,17 @@ frappe.ui.form.on('Order Form', {
 				filters: { 'item_attribute': "Metal Touch", "customer_code": doc.customer_code }
 			};
 		});
-		if (frm.doc.order_details) {
-			frm.doc.order_details.forEach(function (d) {
-				// show_attribute_fields_for_subcategory(frm, d.doctype, d.name, d);
-			})
-		}
 	},
-	due_days: function (frm) {
+	due_days(frm) {
 		delivery_date(frm);
 	},
-	validate: function (frm) {
+	validate(frm) {
 		if (frm.doc.delivery_date < frm.doc.order_date) {
 			frappe.msgprint(__("You can not select past date in Delivery Date"));
 			frappe.validated = false;
 		}
 	},
-	concept_image: function (frm) {
-		refresh_field('image_preview');
-	},
-	// design_by: function (frm) {
-	// 	set_order_type_from_design_by(frm); 
-	// },
-	customer_code: function(frm){
+	customer_code(frm){
 		frm.doc.service_type = [];
         if(frm.doc.customer_code){
 			frappe.model.with_doc("Customer", frm.doc.customer_code, function() {
@@ -156,14 +146,14 @@ frappe.ui.form.on('Order Form', {
 				refresh_field("service_type");
 			});
         }
-		frm.set_query('subcategory', 'order_details', function (doc, cdt, cdn) {
-			let d = locals[cdt][cdn];
-			return {
-				filters: {
-					'parent_attribute_value': d.category
-				}
-			};
-		});
+		// frm.set_query('subcategory', 'order_details', function (doc, cdt, cdn) {
+		// 	let d = locals[cdt][cdn];
+		// 	return {
+		// 		filters: {
+		// 			'parent_attribute_value': d.category
+		// 		}
+		// 	};
+		// });
 		frm.set_query('diamond_quality','order_details', function (doc) {
 			return {
 				query: 'jewellery_erpnext.query.item_attribute_query',
@@ -184,7 +174,6 @@ frappe.ui.form.on('Order Form', {
 			},
 			callback: function (r) {
 				if (!r.exc) {
-					// console.log(r.message);
 					var arrayLength = r.message.length;
 					if (arrayLength === 1) {
 						frm.set_value("order_type", r.message[0].order_type);
@@ -209,7 +198,6 @@ frappe.ui.form.on('Order Form', {
 		// 	};
 		// }
    	},
-
 	refresh(frm){
 		frm.add_custom_button(__("Get Customer Order Form"), function(){
             erpnext.utils.map_current_doc({
@@ -252,95 +240,30 @@ frappe.ui.form.on('Order Form', {
                 // }
             })
         }, __("Get Order"))
+	},
+	order_type(frm){
+		if(frm.doc.order_type=='Purchase'){
+			$.each(frm.doc.order_details || [], function (i, d) {
+				d.design_by = frm.doc.order_type;
+				d.design_type = 'New Design';
+			});
+			refresh_field("order_details");
+		}
 	}
 
-
-
-    // refresh:function(frm) {
-	// 	// frm.add_custom_button(__("Customer Order"), function(){
-	// 	// 		erpnext.utils.map_current_doc({
-	// 	// 			method: "jewellery_erpnext.gurukrupa_exports.doctype.order_form.order_form.make_order_form",
-	// 	// 			source_doctype: "Customer Order Form",
-	// 	// 			target: me.frm,
-	// 	// 			setters: [
-	// 	// 				{
-	// 	// 					label: "Customer Name",
-	// 	// 					fieldname: "customer_code",
-	// 	// 					fieldtype: "Link",
-	// 	// 					options: "Customer",
-	// 	// 					reqd: 1,
-	// 	// 					read_only:1,
-	// 	// 					default: frm.doc.customer_code || undefined
-							
-	// 	// 				},
-	// 	// 				{
-	// 	// 					label: "Item Category",
-	// 	// 					fieldname: "item_category",
-	// 	// 					fieldtype: "Link",
-	// 	// 					options: "Attribute Value",
-	// 	// 					get_query: function(doc, cdt, cdn) {
-	// 	// 						return {
-	// 	// 							query: 'jewellery_erpnext.query.item_attribute_query',
-	// 	// 							filters: { 'item_attribute': "Item Category"}
-	// 	// 						};
-	// 	// 					}
-							
-	// 	// 				},
-	// 	// 				{
-	// 	// 					label: "Metal Touch",
-	// 	// 					fieldname: "metal_touch",
-	// 	// 					fieldtype: "Link",
-	// 	// 					options: "Attribute Value",
-	// 	// 					get_query: function(doc, cdt, cdn) {
-	// 	// 						return {
-	// 	// 							query: 'jewellery_erpnext.query.item_attribute_query',
-	// 	// 							filters: { 'item_attribute': "Metal Touch"}
-	// 	// 						};
-	// 	// 					}
-							
-	// 	// 				}
-	// 	// 			],
-	// 	// 			get_query_filters: {
-	// 	// 				// customer_code: ['=', cur_frm.doc.customer_code],
-	// 	// 				docstatus: 1
-	// 	// 			}
-	// 	// 		})
-	// 	// 	}, __("Get Order From"))
-	// 	frm.fields_dict['order_details'].grid.get_field('design_by').df.onchange = function() {
-    //         frm.fields_dict['order_details'].grid.grid_rows.forEach(function(row) {
-    //             var child = row.doc;
-    //             if (child.design_by === 'Customer Design') {
-    //                 row.fields_dict.design_type.get_query = function() {
-    //                     return {
-    //                         filters: [
-    //                             ["Attribute Value", "attribute_value", "in", ["New Design", "Sketch Design"]]
-    //                         ]
-    //                     };
-    //                 };
-    //             } else {
-    //                 row.fields_dict.design_type.get_query = function() {
-    //                     return {};
-    //                 };
-    //             }
-    //         });
-    //     };
-	// },
 });
 
 frappe.ui.form.on('Order Form Detail', {
 	form_render(frm, cdt, cdn) {
 		let order_detail = locals[cdt][cdn];
-		if (order_detail.subcategory) {
-			// set_field_visibility(frm, cdt, cdn)
-		}
 
 		var fields = ['design_id'];
 		if (order_detail.design_type == 'Sketch Design'){
 			set_filter_for_sketch_design_n_serial(frm,fields)
 		}
-		else{
-			set_filter_for_design_n_serial(frm,fields)
-		}
+		// else{
+		// 	set_filter_for_design_n_serial(frm,fields)
+		// }
 	},
 
 	tag_no(frm, cdt, cdn) {
@@ -352,21 +275,6 @@ frappe.ui.form.on('Order Form Detail', {
 			})
 		}
 	},
-
-	// reference_serial_no_1(frm, cdt, cdn) {
-	// 	var d = locals[cdt][cdn];
-	// 	fetch_item_from_serial(d, "reference_serial_no_1", "reference_designid")
-	// },
-
-	// reference_serial_no_2(frm, cdt, cdn) {
-	// 	var d = locals[cdt][cdn];
-	// 	fetch_item_from_serial(d, "reference_serial_no_2", "reference_design_id_2")
-	// },
-
-	// reference_serial_no_3(frm, cdt, cdn) {
-	// 	var d = locals[cdt][cdn];
-	// 	fetch_item_from_serial(d, "reference_serial_no_3", "reference_design_id_3")
-	// },
 
 	design_id: function (frm, cdt, cdn) {
 		var d = locals[cdt][cdn];
@@ -553,11 +461,6 @@ frappe.ui.form.on('Order Form Detail', {
 		}
 	},
 
-	subcategory: function (frm, cdt, cdn) {
-		// var d = locals[cdt][cdn];
-		// set_field_visibility(frm, cdt, cdn)
-	},
-
 	order_details_add: function (frm, cdt, cdn) {
 		var row = locals[cdt][cdn];
 		row.delivery_date = frm.doc.delivery_date;
@@ -566,13 +469,14 @@ frappe.ui.form.on('Order Form Detail', {
 		row.branch = frm.doc.branch
 		row.project = frm.doc.project
 		row.customer_code = frm.doc.customer_code
+		row.is_finding_order = frm.doc.is_finding_order
 		var fields = ['design_id'];
 		if (row.design_type == 'Sketch Design'){
 			set_filter_for_sketch_design_n_serial(frm,fields)
 		}
-		else{
-			set_filter_for_design_n_serial(frm,fields)
-		}
+		// else{
+		// 	set_filter_for_design_n_serial(frm,fields)
+		// }
 		if (frm.doc.order_type === 'Purchase') {
 			var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "design_type" })[0];
 			if (df) {
@@ -588,18 +492,11 @@ frappe.ui.form.on('Order Form Detail', {
 		refresh_field("order_details");
 	},
 
-	// design_image: function (frm, cdt, cdn) {
-	// 	refresh_field("order_details");
-	// },
-
 	design_type: function (frm, cdt, cdn) {
 		var row = locals[cdt][cdn];
 		var fields = ['design_id'];
 		if (row.design_type == 'Sketch Design'){
 			set_filter_for_sketch_design_n_serial(frm,fields)
-		}
-		else{
-			set_filter_for_design_n_serial(frm,fields)
 		}
 	},
 
@@ -608,59 +505,6 @@ frappe.ui.form.on('Order Form Detail', {
 		frappe.model.set_value(row.doctype, row.name, 'subcategory', '');
 	},
 
-	// serial_no_bom(frm, cdt, cdn) {
-	// 	set_metal_properties_from_bom(frm, cdt, cdn)
-	// },
-
-	// bom(frm, cdt, cdn) {
-	// 	set_metal_properties_from_bom(frm, cdt, cdn)
-	// },
-
-	metal_touch: function(frm,cdt,cdn){
-		var d = locals[cdt][cdn];
-		frappe.call({
-			method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.get_metal_purity',
-			args: {
-				'metal_type': d.metal_type,
-				'metal_touch': d.metal_touch,
-				'customer': frm.doc.customer_code
-			},
-			callback(r) {
-				if (r.message) {
-					frappe.model.set_value(cdt, cdn, "metal_purity", r.message[0].metal_purity);
-					// d.metal_purity = r.message[0].metal_purity
-					refresh_field('order_details');
-				}
-			}
-		});
-	},
-
-	// mod_reason:function(frm,cdt,cdn){
-	// 	var order_detail = locals[cdt][cdn];
-	// 	if(order_detail.mod_reason == 'Attribute Change'){
-	// 		if (order_detail.subcategory) {
-	// 			frappe.model.with_doc("Attribute Value", order_detail.subcategory, function (r) {
-	// 				var subcategory_attribute_value = frappe.model.get_doc("Attribute Value", order_detail.subcategory);
-	// 				if (subcategory_attribute_value.is_subcategory == 1) {
-	// 					if (subcategory_attribute_value.item_attributes) {
-	// 						$.each(subcategory_attribute_value.item_attributes, function (index, row) {
-	// 								if (row.in_item_variant == 0)
-	// 									{
-	// 										var field_name = row.item_attribute.toLowerCase().replace(/\s+/g, '_')
-	// 										var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": field_name })[0].depends_on;
-	// 										console.log(df)
-	// 										if (df) {
-	// 											if (df.read_only == 1);
-	// 										}
-	// 										frm.refresh_field("order_details");
-	// 									}
-	// 						});
-	// 					}
-	// 				}
-	// 			});
-	// 		}
-	// 	}
-	// },
 	// button to view item variants
 	update_item:function(frm,cdt,cdn){
 		var row = locals[cdt][cdn];
@@ -1130,13 +974,12 @@ frappe.ui.form.on('Order Form Detail', {
 		if (cur_frm.doc.docstatus == 1) {
 			dialog.$wrapper.find(".btn-modal-primary").remove();
 		} 
-	}
+	},
 
 });
 
 let edit_item_documents = (row,dialog,item_code,item_data) => {
 	var doc = frappe.model.get_doc("Item", item_code);
-	console.log(doc);
 	if (!doc) {
 		frappe.call({
 			method: "frappe.client.get",
@@ -1183,7 +1026,6 @@ let set_edit_item_details = (row,doc,dialog) => {
 
 	$.each(doc.attributes, function (index, d) {
 		var field_name = d.attribute.toLowerCase().replace(/\s+/g, '_');
-		// console.log(field_name);
 		dialog.set_df_property(field_name, "hidden", 1);
 	});
 };
@@ -1299,8 +1141,6 @@ function show_hide_field(frm, cdt, cdn, field, hidden) {
 		
 	if (df) {
 		df.hidden = hidden;
-		// console.log(df);
-		// if (df.hidden == 0) df.reqd = 1;
 	}
 	frm.refresh_field("order_details");
 };
@@ -1319,7 +1159,6 @@ function show_field_attribute(frm, cdt, cdn, field) {
 			var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": field_name })[0];
 			
 			if (df) {
-				console.log(df);
 				df.hidden = 0; 
 			}
 			frm.refresh_field("order_details");
@@ -1331,7 +1170,6 @@ function show_field_attribute(frm, cdt, cdn, field) {
 	if(field_name) {
 		var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": field_name })[0];
 		if (df) {
-			console.log(df);
 			df.reqd = 1;
 		}
 	}
@@ -1345,7 +1183,6 @@ function hide_field_attribute(frm, cdt, cdn, field) {
 	if(field_name) {
 		var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": field_name })[0];
 		if (df) {
-			console.log(df);
 			df.reqd = 1;			
 		}
 	}
@@ -1366,7 +1203,7 @@ function delivery_date(frm) {
 function set_filter_for_salesman_name(frm) {
 	frm.set_query("salesman_name", function () {
 		return {
-			"filters": { "designation": "Sales Person" }
+			"filters": { "parent_sales_person": "Sales Team" }
 		};
 	});
 };
@@ -1410,10 +1247,19 @@ function set_filter_for_design_n_serial(frm, fields) {
 		
 		frm.set_query(field, "order_details", function (doc, cdt, cdn) {
 			let d = locals[cdt][cdn];
-			return {
-				filters: {
-					"is_design_code": 1,
-					"is_stock_item":1,
+			if(d.is_finding_order==1){
+				return {
+					filters: {
+						"variant_of": "F",
+					}
+				}
+			}
+			else{
+				return {
+					filters: {
+						"is_design_code": 1,
+						"is_stock_item":1,
+					}
 				}
 			}
 		});
