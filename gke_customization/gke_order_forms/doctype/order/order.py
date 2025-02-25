@@ -767,12 +767,12 @@ def create_line_items(self):
 	item_variant = ''
 	if self.item_type == 'Template and Variant':
 		# if self.design_type != 'Sketch Design':
-		if self.subcategory != frappe.db.get_value("Item","design_id","item_subcategory"):
-
-			design_id = frappe.db.get_value('Order',self.name,'design_id')
-			variant_of = frappe.db.get_value("Item",design_id,"variant_of")
-			attribute_list = make_atribute_list(self.name)
-			validate_variant_attributes(variant_of,attribute_list)
+		if self.subcategory != frappe.db.get_value("Item",self.design_id,"item_subcategory"):
+			if self.design_type != 'New Design':
+				design_id = frappe.db.get_value('Order',self.name,'design_id')
+				variant_of = frappe.db.get_value("Item",design_id,"variant_of")
+				attribute_list = make_atribute_list(self.name)
+				validate_variant_attributes(variant_of,attribute_list)
 
 			item_template = create_item_template_from_order(self)
 			updatet_item_template(item_template)
