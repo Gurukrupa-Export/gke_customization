@@ -1,11 +1,10 @@
 from frappe.model.document import Document
 import frappe
+from frappe.model.mapper import get_mapped_doc
 
 
 class CustomerMasterUpdate(Document):
-    pass
-    def on_submit(self):
-        # Mapping of fields between CustomerMasterUpdate and Customer doctype
+    def on_submit(self):        
         fields_mapping = {
             "sequence": "custom_sequence",
             "salutation": "salutation",
@@ -41,6 +40,7 @@ class CustomerMasterUpdate(Document):
             "customer_details": "customer_details",
             "gemstone_price_multiplier": "custom_gemstone_price_multiplier",
             "customer_primary_contact": "customer_primary_contact",
+            "customer_primary_address": "customer_primary_address",
             "mobile_no": "mobile_no",
             "email_id": "email_id",
             "tax_id": "tax_id",
@@ -56,11 +56,14 @@ class CustomerMasterUpdate(Document):
             "is_frozen": "is_frozen",
             "disabled": "disabled",
             "tax_category": "tax_category",
+            "is_internal_customer": "is_internal_customer",
+            "represents_company": "represents_company",
         }
 
        
         credit_limit_data = self.get("credit_limit")
         sales_team_data = self.get("sales_team")
+        allowed_to_transact_with = self.get("allowed_to_transact_with")
 
         accounts_data = self.get("accounts")
 
@@ -87,12 +90,11 @@ class CustomerMasterUpdate(Document):
                             "bypass_credit_limit_check": row.get("bypass_credit_limit_check"),
                         })
 
-                # Update child table: sales_team
+                
                 if sales_team_data:
-                    # Clear existing sales team entries
                     customer_doc.sales_team = []
 
-                    # Append new sales team data
+                    
                     for row in sales_team_data:
                         customer_doc.append("sales_team", {
                             "sales_person": row.get("sales_person"),
@@ -125,8 +127,6 @@ class CustomerMasterUpdate(Document):
                 frappe.log_error(frappe.get_traceback(), "Customer Update Error")
                 frappe.throw(f"An error occurred while updating the customer: {str(e)}")
         else:
-            # Create a new Customer record if it doesn't exist
-            try:
                 # Prepare data for the new Customer record
                 customer_data = {
                     target_field: self.get(source_field)
@@ -136,7 +136,7 @@ class CustomerMasterUpdate(Document):
 
                 # Add mandatory fields
                 customer_data["doctype"] = "Customer"
-                customer_data["customer_name"] = self.get("customer_name") or "Unnamed Customer"
+                customer_data["customer_name"] = self.get("customer_name")
                 customer_data["customer_group"] = customer_data.get("customer_group") or "Default Customer Group"
                 customer_data["territory"] = customer_data.get("territory") or "All Territories"
                 customer_data["customer_type"] = customer_data.get("customer_type") or "Company"
@@ -166,6 +166,15 @@ class CustomerMasterUpdate(Document):
                         for row in sales_team_data
                     ]
 
+                if allowed_to_transact_with:
+                    if customer_data["is_internal_customer"]:
+                        customer_data["companies"] = [
+                            {
+                                "company": row.get("company"),
+                            }
+                            for row in allowed_to_transact_with
+                        ]
+
                 # Add child table data for accounts
                 if accounts_data:
                     customer_data["accounts"] = [
@@ -180,10 +189,73 @@ class CustomerMasterUpdate(Document):
                 # Create the new Customer record
                 new_customer = frappe.get_doc(customer_data)
                 new_customer.insert(ignore_permissions=True)
-                frappe.db.commit()
-                frappe.msgprint(f"New Customer '{new_customer.customer_name}' has been created successfully with sales team and accounts details.")
+                
+                frappe.db.set_value("Customer Master Update", self.name, "new_customer", new_customer.name)
+                frappe.db.set_value("Customer Master Update", self.name, "customer_primary_contact", '')
+                self.reload()
+                
+                frappe.msgprint(f"New Customer '{new_customer.name}' has been successfully created.")
+    
+    def on_update_after_submit(self):
+        create_supplier_address_contact(self)
 
-            except Exception as e:
-                frappe.log_error(frappe.get_traceback(), "Customer Creation Error")
-                frappe.throw(f"An error occurred while creating the customer: {str(e)}")
+def create_supplier_address_contact(self):
+    if self.workflow_state == "Create Address":
+        address_doc = frappe.new_doc("Address")
+        address_doc.address_title = self.address_title
+        address_doc.address_type = self.address_type
+        address_doc.address_line1 = self.address_line_1
+        address_doc.address_line2 = self.address_line_2
+        address_doc.city = self.city
+        address_doc.state = self.state
+        address_doc.country = self.add_country
+        address_doc.pincode = self.pincode
+        address_doc.email_address = self.email_address
+        address_doc.phone = self.phone
+            
+        if self.new_customer:
+            address_links = address_doc.append("links", {})
+            address_links.link_doctype = "Customer",
+            address_links.link_name = self.new_customer 
+        
+        address_doc.insert(ignore_permissions=True)
+        address_doc.save()
 
+        frappe.db.set_value("Customer", self.new_customer,"customer_primary_address",address_doc.name)
+        
+        frappe.db.set_value("Customer Master Update", self.name,"customer_primary_address",address_doc.name)
+        self.reload()
+
+        frappe.msgprint("Customer Address Created ")
+        
+    if self.workflow_state == "Create Contact":
+        contact_doc = frappe.new_doc("Contact")
+        contact_doc.company_name = self.customer_name
+        # contact_doc.email_id = self.email_address
+        # contact_doc.mobile_no = self.phone
+        # contact_doc.gstin
+    
+        if self.email_address:
+            contact_email = contact_doc.append("email_ids", {})
+            contact_email.email_id = self.email_address
+            contact_email.is_primary = 1 
+            
+        if self.phone:
+            contact_phone = contact_doc.append("phone_nos", {})
+            contact_phone.phone = self.phone
+            contact_phone.is_primary_mobile_no = 1 
+        
+        if self.new_customer:
+            contact_links = contact_doc.append("links", {})
+            contact_links.link_doctype = "Customer",
+            contact_links.link_name = self.new_customer 
+        
+        contact_doc.insert(ignore_permissions=True)
+        contact_doc.save()
+
+        frappe.db.set_value("Customer", self.new_customer,"customer_primary_contact",contact_doc.name)
+        
+        frappe.db.set_value("Customer Master Update", self.name,"customer_primary_contact",contact_doc.name)
+        self.reload()
+
+        frappe.msgprint("Customer Contact Created ")
