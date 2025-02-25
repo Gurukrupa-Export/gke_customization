@@ -19,7 +19,8 @@ def get_columns():
         {"fieldname": "orderform_id", "label": "Order Form ID", "fieldtype": "Data", "width": 150},
         {"fieldname": "company", "label": "Company", "fieldtype": "Data", "options": "Company", "width": 250},
         {"fieldname": "branch", "label": "Branch", "fieldtype": "Link", "options": "Branch", "width": 150},
-        {"fieldname": "customer", "label": "Customer", "fieldtype": "Data", "width": 150},    
+        {"fieldname": "customer", "label": "Customer", "fieldtype": "Data", "width": 150},   
+        {"label": "Customer PO", "fieldname": "po_no", "fieldtype": "Data", "width": 180}, 
         {"label": "Order Type", "fieldname": "order_type", "fieldtype": "Data", "width": 150},
         {"label": "Order Count", "fieldname": "order_count", "fieldtype": "Data", "width": 150},
         {"fieldname": "no_of_orders", "label": "No. of Pcs", "fieldtype": "Data", "width": 150},
@@ -33,6 +34,7 @@ def get_columns():
         {"fieldname": "designation", "label": "Designation", "fieldtype": "Data", "width": 200},
         {"fieldname": "assigned_to_dept", "label": "Assigned To Dept", "fieldtype": "Data", "width": 200},
         {"fieldname": "status", "label": "Status", "fieldtype": "Data", "width": 150},
+        {"fieldname": "workflow_state", "label": "Workflow State", "fieldtype": "Data", "width": 150},
         {"fieldname": "status_datetime", "label": "Status Date/Time", "fieldtype": "Datetime", "width": 180},
         {"fieldname": "time_difference", "label": "Time Difference", "fieldtype": "Data", "width": 250},
         {"fieldname": "status_duration", "label": "Status Duration", "fieldtype": "Data", "width": 250},
@@ -79,6 +81,10 @@ def get_data(filters):
     if filters.get("customer"):
         customers = ', '.join([f'"{customer}"' for customer in filters.get("customer")])
         conditions.append(f"ofd.customer_code IN ({customers})")
+
+    if filters.get("customer_po"):
+        customerspo = ', '.join([f'"{customer_po}"' for customer_po in filters.get("customer_po")])
+        conditions.append(f"ofd.po_no IN ({customerspo})")
     
     # if filters.get("category"):
     #     conditions.append(f'od.category = "{filters.get("category")}"')
@@ -96,6 +102,7 @@ def get_data(filters):
             ofd.company AS company,
             ofd.branch AS branch,
             ofd.customer_code AS customer,
+            ofd.po_no AS po_no,
             ofd.name AS orderform_id,
             count(distinct od.name) AS order_count,
             SUM(od.qty) AS no_of_orders,
@@ -111,6 +118,12 @@ def get_data(filters):
             od.design_type,
             ofd.creation AS created_datetime,
             ofd.workflow_state AS status,
+            CASE WHEN ofd.workflow_state = 'Cancelled' THEN 0
+    WHEN ofd.workflow_state = 'Draft' THEN 1
+    WHEN ofd.workflow_state = 'Send for Approval' THEN 2
+    WHEN ofd.workflow_state = 'On Hold' THEN 3
+    WHEN ofd.workflow_state = 'Approved' THEN 4
+         END AS workflow_state,
             ofd.modified AS status_datetime,
             "2 Days" AS target_days,
             SUM(bm.metal_weight) AS total_metal_weight,
@@ -156,7 +169,7 @@ def get_data(filters):
            row["updated_delivery_date"] = "-" 
 
         encoded_form_name = urllib.parse.quote(row["orderform_id"])
-        row["orderform_id"] = f'<a href="https://gkexport.frappe.cloud/app/order-form{encoded_form_name}" target="_blank">{row["orderform_id"]}</a>'
+        row["orderform_id"] = f'<a href="https://gkexport.frappe.cloud/app/order-form/{encoded_form_name}" target="_blank">{row["orderform_id"]}</a>'
         
         row["status"] = format_status(row["status"])
         created_dt = datetime.strptime(str(row["created_datetime"]), "%Y-%m-%d %H:%M:%S.%f")
@@ -281,6 +294,10 @@ def get_message():
         </span>
         <span class="indicator yellow" style="font-size: 15px; margin-left: 270px;">
         No. of Pcs: Quantity of items in Order
+        </span>
+        <br>
+        <span class="indicator green" style="font-size: 15px; margin-left: 72px;">
+        Worklflow State:- Cancelled: 0,  &nbsp;  Draft : 1,  &nbsp; Send For Approval  : 2,   &nbsp; On Hold : 3,  &nbsp;  Approved : 4
         </span>
 """
 

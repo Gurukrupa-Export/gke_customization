@@ -8,9 +8,11 @@ def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
     message = get_message()
+   
+    filtered_data = [row for row in data if row['status_duration'] != "-"]
 
     total_time_diff = calculate_total_time_diff(data)
-    total_status_duration = calculate_total_status_duration(data)
+    total_status_duration = calculate_total_status_duration(filtered_data)
     
 
     unique_order_count = len(set([row['form_name'] for row in data]))
@@ -48,6 +50,7 @@ def get_columns():
         # {"fieldname": "_assign", "label": _("Assigned to"), "fieldtype": "Data", "width": 150},
         {"fieldname": "assigned_department", "label": _("Assigned to Department"), "fieldtype": "Data","align":"left", "width": 190},
         {"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 150},
+        {"fieldname": "workflow_count", "label": _("Workflow State"), "fieldtype": "Data", "width": 130},
         {"fieldname": "status_change_time", "label": _("Status Date/Time"), "fieldtype": "Datetime", "width": 180},
         {"fieldname": "time_to_status", "label": _("Time Difference"), "fieldtype": "Data", "width": 200},
         {"fieldname": "status_duration", "label": _("Status Duration"), "fieldtype": "Data", "width": 200},
@@ -101,6 +104,20 @@ def get_data(filters):
          FROM `tabSketch Order` 
          WHERE name = sko.name) AS status_change_time,
         sko.workflow_state AS status,
+        (CASE
+          WHEN sko.workflow_state = 'Cancelled' THEN 0
+          WHEN sko.workflow_state = 'Unassigned' THEN 1
+          WHEN sko.workflow_state = 'On Hold' THEN 2
+		  WHEN sko.workflow_state = 'Assigned' THEN 3
+		  WHEN sko.workflow_state = 'On Hold - Assigned' THEN 4
+		  WHEN sko.workflow_state = 'Rough Sketch Approval (HOD)' THEN 5
+		  WHEN sko.workflow_state = 'On Hold - Rough Sketch Approval' THEN 6
+		  WHEN sko.workflow_state = 'Final Sketch Approval (HOD)' THEN 7
+          WHEN sko.workflow_state = 'ON Hold - Final Sketch Approved (HOD)' THEN 8
+          WHEN sko.workflow_state = 'Customer Approval' THEN 9
+          WHEN sko.workflow_state = 'Requires Update' THEN 10
+		  ELSE 11
+        END ) as workflow_count,
         latest_assignments._assign AS latest_assigned_user,
         emp.department AS latest_assigned_user_department
     FROM `tabSketch Order` sko
@@ -153,7 +170,7 @@ def get_data(filters):
         # row["status_change_time"] = status_dt.strftime("%Y-%m-%d %H:%M:%S.%f")
         # row["status_duration"] = calculate_status_duration(status_dt, row["status"])   
 
-        row["status"] = f'<span style="color:red;font-weight:bold;">Draft</span>' if row["status"] == 'Draft' else f'<span style="color:green;font-weight:bold;">Items Updated</span>' if row["status"] == 'Items Updated' else f'<span style="color:#FFAA1D;font-weight:bold;">{row["status"]}</span>'
+        row["status"] = f'<span style="color:red;font-weight:bold;">Draft</span>' if row["status"] == 'Draft' else f'<span style="color:green;font-weight:bold;">Items Updated</span>' if row["status"] == 'Items Updated' else row["status"]
         
         if "Items Updated" in row["status"] or "Cancelled" in row["status"]:
             row["status_duration"] = "-"
@@ -374,6 +391,18 @@ def get_message():
         <span class="indicator yellow" style="font-size: 15px; margin-left: 144px;">
         Items Count = Total Number of Items in Sketch Orders.
         </span>
+        <br>
+        </span>
+      <span style="display: inline-flex; align-items: baseline; font-size: 15px; margin-left: 20px;">
+      <span style="color: green; font-size: 27px; margin-right: 5px; line-height: 0;">•</span>
+       <span>
+        Total Number of Workflow State in this process is 12 (1-Unassigned, 2-On Hold, 3-Assigned, 
+        4-On Hold-Assigned, 5-Rough Sketch Approval (HOD), 6-On Hold - Rough Sketch Approval, 
+        7-Final Sketch Approval (HOD), 8-On Hold - Final Sketch Approved (HOD), 9-Customer Approval, 
+        10-Requires Update, 11-Items Updated, 0-Cancelled)
+       </span>
+    </span>
+
 """
 
 def get_conditions(filters):
@@ -397,5 +426,5 @@ def get_conditions(filters):
         customer_codes = "', '".join(filters["customer_code"])
         conditions.append(f"sko.customer_code IN ('{customer_codes}')")           
     if filters.get("status"):
-        conditions.append(f"""sko.workflow_state = "{filters['status']}" """)
+        conditions.append(f"""sko.workflow_state = "{filters['status']}" """)  
     return " AND ".join(conditions) if conditions else ""

@@ -20,6 +20,7 @@ def get_columns():
         {"label": "Company", "fieldname": "company", "fieldtype": "Link", "options": "Company", "width": 220},
         {"label": "Branch", "fieldname": "branch", "fieldtype": "Link", "options": "Branch", "width": 180},
         {"label": "Customer", "fieldname": "customer", "fieldtype": "HTML", "width": 180},
+        {"label": "Customer PO", "fieldname": "po_no", "fieldtype": "Data", "width": 180},
         {"label": "Order Type", "fieldname": "order_type", "fieldtype": "Data", "width": 150},    
         {"label": "No.of Pcs", "fieldname": "qty", "fieldtype": "Data", "width": 110},
         {"label": "Diamond Quality", "fieldname": "diamond_quality", "fieldtype": "Data", "width": 180},
@@ -31,7 +32,8 @@ def get_columns():
         {"fieldname": "designation", "label": "Designation", "fieldtype": "Data", "width": 200},      
         # {"label": "Assigned To", "fieldname": "assigned_users", "fieldtype": "Data", "width": 200},
         {"fieldname": "assigned_to_dept", "label": "Assigned To Dept", "fieldtype": "Data", "width": 200},
-        {"label": "Status", "fieldname": "status", "fieldtype": "HTML", "width": 120},
+        {"label": "Status", "fieldname": "status", "fieldtype": "HTML", "width": 190},
+        {"label": "Workflow State", "fieldname": "workflow_state1", "fieldtype": "Data", "width": 120},
         {"label": "Status Date-Time", "fieldname": "status_datetime", "fieldtype": "Data", "width": 180}, 
         {"label": "Time Difference", "fieldname": "time_difference", "fieldtype": "Data", "width": 230},
         {"label": "Status Duration", "fieldname": "status_duration", "fieldtype": "Data", "width": 250},
@@ -71,6 +73,10 @@ def get_data(filters):
     if filters.get("customer"):
         customers = ', '.join([f'"{customer}"' for customer in filters.get("customer")])
         conditions.append(f"od.customer_code IN ({customers})")
+
+    if filters.get("customer_po"):
+        customerspo = ', '.join([f'"{customer_po}"' for customer_po in filters.get("customer_po")])
+        conditions.append(f"od.po_no IN ({customerspo})")
     
     if filters.get("diamond_quality"):
         conditions.append(f'od.diamond_quality = "{filters.get("diamond_quality")}"')
@@ -86,6 +92,7 @@ def get_data(filters):
             od.company AS company,
             od.branch AS branch, 
             od.customer_code AS customer,
+            od.po_no AS po_no,
             od.order_type,
             od.qty AS qty,
             od.diamond_quality AS diamond_quality,
@@ -98,19 +105,43 @@ def get_data(filters):
             e.designation AS designation,
             od._assign AS assigned_users,  
             od.workflow_state AS status,
+            CASE 
+    WHEN od.workflow_state = 'Draft' THEN 1
+    WHEN od.workflow_state = 'Update Item' THEN 2
+    WHEN od.workflow_state = 'Assigned' THEN 3
+    WHEN od.workflow_state = 'Assigned - On-Hold' THEN 4
+    WHEN od.workflow_state = 'Designing' THEN 5
+    WHEN od.workflow_state = 'Update Designer' THEN 6
+    WHEN od.workflow_state = 'Designing - On-Hold' THEN 7
+    WHEN od.workflow_state = 'Sent to QC' THEN 8
+    WHEN od.workflow_state = 'Sent to QC-On-Hold' THEN 9
+    WHEN od.workflow_state = 'Customer Approval' THEN 10
+    WHEN od.workflow_state = 'Reupdate BOM' THEN 11
+    WHEN od.workflow_state = 'Update BOM' THEN 12
+    WHEN od.workflow_state = 'BOM QC - On-Hold' THEN 13
+    WHEN od.workflow_state = 'Customer Approval' THEN 14
+    WHEN od.workflow_state = 'Reupdate BOM' THEN 15
+    WHEN od.workflow_state = 'Approved' THEN 16
+    WHEN od.workflow_state = 'On-Hold' THEN 17
+    WHEN od.workflow_state = 'Rejected' THEN 18
+    WHEN od.workflow_state = 'Cancelled' THEN 0
+    ELSE NULL
+END AS workflow_state1,
+
+            
             od.modified AS status_datetime,
             "2 Days" AS target_days,
-            bm.metal_weight AS total_metal_weight,
-            bm.finding_weight_ AS total_finding_weight_per_grams,
+            CAST(bm.metal_weight AS DECIMAL(10,4)) AS total_metal_weight,
+            CAST(bm.finding_weight_ AS DECIMAL(10,4)) AS total_finding_weight_per_grams,
             bm.diamond_weight AS total_diamond_weight_in_grams,
             bm.gemstone_weight AS total_gemstone_weight_in_grams,
-            bm.other_weight AS other_weight_grams,
+            CAST(bm.other_weight AS DECIMAL(10,4)) AS other_weight_grams,
             odf.delivery_date AS delivery_date,
             odf.updated_delivery_date
         FROM `tabOrder` AS od
         LEFT JOIN `tabOrder Form` AS odf on od.cad_order_form = odf.name
         LEFT JOIN `tabEmployee` e ON od.owner = e.user_id
-        LEFT JOIN `tabBOM` bm on bm.name = od.bom
+        LEFT JOIN `tabBOM` bm on bm.name = COALESCE(od.new_bom, od.bom)
         {where_clause}
         GROUP BY od.name 
         ORDER BY created_datetime DESC, od.name ASC    
@@ -145,14 +176,16 @@ def get_data(filters):
            row["updated_delivery_date"] = "-"    
 
         encoded_form_name = urllib.parse.quote(row["orderform_id"])
-        row["orderform_id"] = f'<a href="https://gkexport.frappe.cloud/app/order{encoded_form_name}" target="_blank">{row["orderform_id"]}</a>'
+        row["orderform_id"] = f'<a href="https://gkexport.frappe.cloud/app/order/{encoded_form_name}" target="_blank">{row["orderform_id"]}</a>'
         
         row["status"] = format_status(row["status"])
         created_dt = datetime.strptime(str(row["created_datetime"]), "%Y-%m-%d %H:%M:%S.%f")
         status_dt = datetime.strptime(str(row["status_datetime"]), "%Y-%m-%d %H:%M:%S.%f")
         row["created_datetime"] = created_dt.strftime("%Y-%m-%d %H:%M:%S")
         row["status_datetime"] = status_dt.strftime("%Y-%m-%d %H:%M:%S")
+        
 
+        # metal_wt = row["metal_weight"]
         row["status_duration"], exceeded = calculate_status_duration(status_dt, row["status"])
         if row["status_duration"] != "-":
             has_valid_status = True
@@ -268,7 +301,16 @@ def get_message():
         </span>
         <br>
         <span class="indicator yellow" style="font-size: 15px; margin-left: 73px;">
-        No. of Pcs: Quantity of items in Order
+        No. of Pcs: Quantity of items in Order</span>
+        <br>
+      <span style="color: green; font-size: 27px; margin-right: 5px; line-height: 0;">•</span>
+        <span style="font-size: 15px;">Total Number of Workflow State in this process is 19 (1-Draft, 2-Update Item, 3-Assigned, 
+        4-Assigned-On-Hold, 5-Designing, 6-Update Designer, 
+        7-Designing- On-Hold, 8-Sent to QC, 9-Sent to QC-On-Hold, 
+        10-Customer Approval, 11-Reupdate BOM, 12-Update BOM, 13-BOM QC- On- Hold, 14-Customer Approval, 15 - Reupdate BOM, 16-Approved,17-On-Hold, 18-Rejected   0-Cancelled)
+       </span>
+        
+
 """
 
 

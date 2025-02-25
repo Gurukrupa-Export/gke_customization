@@ -68,6 +68,13 @@ frappe.query_reports["Quotation Detailed Count"] = {
                 return frappe.db.get_link_options("Customer", txt);
                 },
         },
+        {
+            fieldname: "customer_po",
+            label: __("Customer PO No."),
+            fieldtype: "MultiSelectList",
+            options: [],
+            reqd: 0,
+        },
 		// {
         //     fieldname: "category",
         //     label: __("Category"),
@@ -120,18 +127,20 @@ frappe.query_reports["Quotation Detailed Count"] = {
     
         fetchOptions("Quotation","diamond_quality", "diamond_quality",true);
         fetchOptions("Item", "item_category", "category", true);
-    
+        fetchOptions("Quotation", "workflow_state", "status",true);
+        fetchOptions("Order", "po_no", "customer_po",true);
+       
         
-        const status_options = [
-            { label: " ", value: " " },
-            { label: "Draft", value: "0" },
-            { label: "Submitted", value: "1" },
-            { label: "Cancelled", value: "2" }
-        ];
+        // const status_options = [
+        //     { label: " ", value: " " },
+        //     { label: "Draft", value: "0" },
+        //     { label: "Submitted", value: "1" },
+        //     { label: "Cancelled", value: "2" }
+        // ];
     
-        const status_filter = report.get_filter("status");
-        status_filter.df.options = status_options;
-        status_filter.refresh();
+        // const status_filter = report.get_filter("status");
+        // status_filter.df.options = status_options;
+        // status_filter.refresh();
     
         // Add Clear Filter button
         report.page.add_inner_button(__("Clear Filter"), function () {

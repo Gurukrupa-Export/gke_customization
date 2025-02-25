@@ -21,6 +21,7 @@ def get_columns():
         {"label": "Branch", "fieldname": "branch", "fieldtype": "Link", "options": "Branch", "width": 150},
         # {"label": "Quotation To", "fieldname": "quotation_to", "fieldtype": "Data", "width": 150},
         {"label": "Customer", "fieldname": "customer", "fieldtype": "Data", "width": 150},
+        {"label": "Customer PO No.", "fieldname": "customer_po", "fieldtype": "Data", "width": 150},
         {"label": "Order Type", "fieldname": "order_type", "fieldtype": "Data", "width": 150}, 
         {"label": "No. of Items", "fieldname": "item_count", "fieldtype": "Data", "width": 150}, 
         {"label": "No. of pcs", "fieldname": "qty", "fieldtype": "Data", "width": 150}, 
@@ -34,6 +35,7 @@ def get_columns():
         {"fieldname": "designation", "label": "Creator Designation", "fieldtype": "Data", "width": 200},
         {"fieldname": "assigned_to_dept", "label": "Assigned To Dept", "fieldtype": "Data", "width": 200},
         {"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 150},
+        {"label": "Workflow State", "fieldname": "workflow_state", "fieldtype": "Data", "width": 200},
         {"label": "Status Date-Time", "fieldname": "status_datetime", "fieldtype": "Datetime", "width": 180},
         {"label": "Time Difference", "fieldname": "time_difference", "fieldtype": "Data", "width": 250},
         {"fieldname": "status_duration", "label": "Status Duration", "fieldtype": "Data", "width": 280},
@@ -81,6 +83,10 @@ def get_data(filters):
         order_ids = ', '.join([f"'{order}'" for order in filters.get("order_id")])
         conditions.append(f"COALESCE(ord_form.name, rep_form.name) IN ({order_ids})")
 
+    if filters.get("customer_po"):
+        customer_pos = ', '.join([f"'{po_no}'" for po_no in filters.get("customer_po")])
+        conditions.append(f"qti.po_no IN ({customer_pos})")    
+
 
     if filters.get("company"):
         companies = ', '.join([f'"{company}"' for company in filters["company"]])
@@ -94,15 +100,15 @@ def get_data(filters):
         customers = ', '.join([f'"{customer}"' for customer in filters["customer"]])
         conditions.append(f"qt.party_name IN ({customers})")
 
-    if filters.get("category"):
-        conditions.append(f"i.item_category = '{filters['category']}'")
+    # if filters.get("category"):
+    #     conditions.append(f"i.item_category = '{filters['category']}'")
 
     if filters.get("diamond_quality"):
         conditions.append(f'qt.diamond_quality = "{filters.get("diamond_quality")}"')
 
 
     if filters.get("status"):
-        conditions.append(f"qt.docstatus = {filters['status']}")
+        conditions.append(f'qt.workflow_state = "{filters.get("status")}"')
 
     where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
@@ -125,7 +131,12 @@ def get_data(filters):
             qt.order_type,
             qt.diamond_quality,
             qt.creation AS created_datetime, 
-            qt.docstatus AS status,
+            qt.workflow_state AS status,
+            CASE WHEN qt.workflow_state = 'Cancelled' THEN 0
+    WHEN qt.workflow_state = 'Draft' THEN 1
+    WHEN qt.workflow_state = 'BOM Created' THEN 2
+    WHEN qt.workflow_state = 'Submitted' THEN 3
+         END AS workflow_state,
             qt.modified AS status_datetime,
             "5 Hrs" AS target_days,
             qt.modified AS status_datetime,
@@ -133,7 +144,7 @@ def get_data(filters):
             CASE WHEN qti.custom_customer_gold IS NULL OR qti.custom_customer_gold = '' THEN 'No'ELSE qti.custom_customer_gold END AS custom_customer_gold,
             CASE WHEN qti.custom_customer_diamond IS NULL OR qti.custom_customer_diamond = '' THEN 'No'ELSE qti.custom_customer_diamond END AS custom_customer_diamond,
             CASE WHEN qti.custom_customer_stone IS NULL OR qti.custom_customer_stone = '' THEN 'No'ELSE qti.custom_customer_stone END AS custom_customer_stone,
-
+            qti.po_no AS customer_po,
             SUM(bm.finding_weight_) AS total_finding_weight_per_grams,
             SUM(bm.diamond_weight) AS total_diamond_weight_in_grams,
             SUM(bm.gemstone_weight) AS total_gemstone_weight_in_grams,
@@ -145,12 +156,10 @@ def get_data(filters):
         LEFT JOIN `tabItem` AS i ON i.name = qti.item_code
         LEFT JOIN `tabEmployee` e on qt.owner = e.user_id
         LEFT JOIN `tabBOM` bm on bm.name = qti.quotation_bom
-        LEFT JOIN tabOrder ord ON qti.order_form_id = ord.name AND qti.order_form_type = 'Order'
+        LEFT JOIN  tabOrder ord ON qti.order_form_id = ord.name AND qti.order_form_type = 'Order'
         LEFT JOIN `tabOrder Form` ord_form ON ord.cad_order_form = ord_form.name
         LEFT JOIN `tabRepair Order` rep ON qti.order_form_id = rep.name AND qti.order_form_type = 'Repair Order'
         LEFT JOIN `tabOrder Form` rep_form ON rep.name = rep_form.repair_order
-
-
         {where_clause}
         GROUP BY qt.name
         ORDER BY created_datetime DESC, qt.name ASC
@@ -195,7 +204,7 @@ def get_data(filters):
             row["custom_customer_stone"] = f"<span style='color: #FFE5B4; font-weight: bold;'>{row['custom_customer_gold']}</span>"
 
         encoded_form_name = urllib.parse.quote(row["quotation_id"])
-        row["quotation_id"] = f'<a href="https://gkexport.frappe.cloud/app/quotation{encoded_form_name}" target="_blank">{row["quotation_id"]}</a>'
+        row["quotation_id"] = f'<a href="https://gkexport.frappe.cloud/app/quotation/{encoded_form_name}" target="_blank">{row["quotation_id"]}</a>'
         
         row["status"] = format_status(row["status"])
         
@@ -323,6 +332,11 @@ def get_message():
         <span class="indicator yellow" style="font-size: 15px; margin-left: 212px;">
         No. of pcs: Quantity of items in Quotation.
         </span>
+        <br>
+        <span style="color: green; font-size: 27px; margin-right: 5px; line-height: 0;">•</span>
+        <span style="font-size: 15px;">Total Number of Workflow State in this process is 4 (0-Cancelled, 1-Draft, 2-BOM Created, 3-Approved, 
+        )
+       </span>
 """
 
 
@@ -330,22 +344,22 @@ def get_message():
 def format_status(status):
     status_colors = {
         "Draft": "red",
-        "Approved": "green"
+        "Submitted": "green"
     }
     return f"<span style='color:{status_colors.get(status, 'inherit')}; font-weight:bold;'>{status}</span>"
 
-def format_status(status):
-    status_mapping = {
-        0: "Draft",
-        1: "Submitted",
-        2: "Cancelled"
-    }
-    status_colors = {
-        0: "red",
-        1: "green",
-        2: "inherit"
-    }
-    return f"<span style='color:{status_colors.get(status, 'black')}; font-weight:bold;'>{status_mapping.get(status, 'Unknown')}</span>"
+# def format_status(status):
+#     status_mapping = {
+#         0: "Draft",
+#         1: "Submitted",
+#         2: "Cancelled"
+#     }
+#     status_colors = {
+#         0: "red",
+#         1: "green",
+#         2: "inherit"
+#     }
+#     return f"<span style='color:{status_colors.get(status, 'black')}; font-weight:bold;'>{status_mapping.get(status, 'Unknown')}</span>"
 
 # def convert_seconds_to_time(seconds):
 #     hours, remainder = divmod(seconds, 3600)

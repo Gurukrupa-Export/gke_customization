@@ -84,6 +84,12 @@ frappe.query_reports["Sales Order Detailed Count"] = {
                 return frappe.db.get_link_options("Customer", txt);
             }
         },
+        {
+            "fieldname": "customer_po",
+            "label": __("Customer PO No."),
+            "fieldtype": "MultiSelectList",
+            "options": [],
+        },
         // {
         //     fieldname: "category",
         //     label: __("Category"),
@@ -139,7 +145,7 @@ frappe.query_reports["Sales Order Detailed Count"] = {
                             .map(row => row[field])
                             .filter(value => value !== null && value !== "");
         
-                        if (filterField === "category" || filterField == "status" || filterField == "diamond_quality") {
+                        if (filterField === "category" || filterField == "status" || filterField == "diamond_quality" || filterField == "customer_po") {
                             options.unshift("");
                         }
         
@@ -155,6 +161,7 @@ frappe.query_reports["Sales Order Detailed Count"] = {
         // fetchOptions("Item", "item_category", "category");
 		fetchOptions("Sales Order", "status", "status");
         fetchOptions("Sales Order", "custom_diamond_quality", "diamond_quality");
+        fetchOptions("Sales Order", "po_no", "customer_po");
 
 
         // fetchOptions("Customer", "old_customer_code", "old_customer_code");
