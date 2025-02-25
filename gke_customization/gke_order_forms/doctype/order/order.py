@@ -10,8 +10,6 @@ from frappe.model.mapper import get_mapped_doc
 from frappe.utils import get_link_to_form
 from erpnext.setup.utils import get_exchange_rate
 from erpnext.controllers.item_variant import create_variant, get_variant
-# import json
-
 
 class Order(Document):
 	def on_submit(self):
@@ -40,7 +38,6 @@ class Order(Document):
 		if self.is_finding_order and self.workflow_state == 'Update Item':
 			check_finding_code(self)
 		
-	
 	def on_update_after_submit(self):
 		if self.is_repairing == 0 and (self.design_type == 'Mod' and self.bom_type != 'Duplicate BOM'):
 			cerate_bom_timesheet(self)
@@ -769,7 +766,14 @@ def create_line_items(self):
 	# if not self.customer_order_form: 
 	item_variant = ''
 	if self.item_type == 'Template and Variant':
-		if self.design_type != 'Sketch Design':
+		# if self.design_type != 'Sketch Design':
+		if self.subcategory != frappe.db.get_value("Item","design_id","item_subcategory"):
+
+			design_id = frappe.db.get_value('Order',self.name,'design_id')
+			variant_of = frappe.db.get_value("Item",design_id,"variant_of")
+			attribute_list = make_atribute_list(self.name)
+			validate_variant_attributes(variant_of,attribute_list)
+
 			item_template = create_item_template_from_order(self)
 			updatet_item_template(item_template)
 			item_variant = create_variant_of_template_from_order(item_template,self.name)
@@ -782,7 +786,13 @@ def create_line_items(self):
 		# 	self.reload()
 
 	elif self.item_type == 'Only Variant':
-		if self.design_type != 'Sketch Design':
+		if self.subcategory != frappe.db.get_value("Item","design_id","item_subcategory"):
+
+			design_id = frappe.db.get_value('Order',self.name,'design_id')
+			variant_of = frappe.db.get_value("Item",design_id,"variant_of")
+			attribute_list = make_atribute_list(self.name)
+			validate_variant_attributes(variant_of,attribute_list)
+
 			item_variant = create_only_variant_from_order(self,self.name)
 			frappe.db.set_value('Item',item_variant[0],{
 				"is_design_code":1,
@@ -1332,6 +1342,29 @@ def calculate_item_wt_details(doc, bom=None, item=None):
 	doc["casting_weight"] = flt(doc["wax_weight"])*flt(ratio_dict[doc["metal_touch"]])
 	doc["cad_finish_ratio"] = flt(ratio_dict[doc["metal_touch"]])
 	return doc
+
+def make_atribute_list(source_name):
+	order_details = frappe.get_doc('Order',source_name)
+	all_variant_attribute = frappe.db.sql(
+		f"""select item_attribute from `tabAttribute Value Item Attribute Detail` 
+		where parent = '{order_details.subcategory}' and in_item_variant=1""",as_list=1
+	)
+
+	final_list = {}
+	for i in all_variant_attribute:
+		new_i = i[0].replace(' ','_').replace('/','').lower()
+		if new_i == 'rhodium':
+			new_i = 'rhodium_'
+		final_list[i[0]] = order_details.get_value(new_i)
+	return final_list
+
+def validate_variant_attributes(variant_of,attribute_list):
+	args = attribute_list
+	variant = get_variant(variant_of, args)
+	if variant:
+		frappe.throw(
+			_("Item variant <b>{0}</b> exists with same attributes").format(get_link_to_form("Item",variant)), ItemVariantExistsError
+		)
 
 
 

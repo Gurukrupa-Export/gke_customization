@@ -14,9 +14,7 @@
     "cad_weight",
     "column_break_7",
     "cad_finish_ratio",
-    "cad_to_finish_ratio",
     "quantity",
-    "additional_net_weight",
     "difference",
     "section_break_13",
     "cam_weight",
@@ -77,22 +75,11 @@
     "label": "CAD Finish Ratio"
     },
     {
-    "fieldname": "cad_to_finish_ratio",
-    "fieldtype": "Float",
-    "in_list_view": 1,
-    "label": "Less %"
-    },
-    {
     "default": "0",
     "fieldname": "quantity",
     "fieldtype": "Float",
     "in_list_view": 1,
     "label": "Weight (in gms)"
-    },
-    {
-    "fieldname": "additional_net_weight",
-    "fieldtype": "Float",
-    "label": "Additional Net Weight"
     },
     {
     "fieldname": "difference",
@@ -142,7 +129,7 @@
 "index_web_pages_for_search": 1,
 "istable": 1,
 "links": [],
-"modified": "2025-01-13 11:02:28.279231",
+"modified": "2025-02-04 18:03:43.087249",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Order BOM Metal Detail",

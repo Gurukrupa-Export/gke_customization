@@ -1,0 +1,36 @@
+{
+ "content": null,
+ "creation": "2025-02-19 16:33:28.428097",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-02-20 12:51:10.587873",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "bom-compare-tool",
+ "owner": "Administrator",
+ "page_name": "bom-compare-tool",
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Manufacturing User"
+  },
+  {
+   "role": "Manufacturing Manager"
+  },
+  {
+   "role": "BOM HOD"
+  },
+  {
+   "role": "BOM"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "BOM Compare Tool"
+}
