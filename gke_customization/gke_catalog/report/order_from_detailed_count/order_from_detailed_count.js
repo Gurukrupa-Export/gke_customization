@@ -58,6 +58,16 @@ frappe.query_reports["Order From Detailed Count"] = {
                 return frappe.db.get_link_options("Customer", txt);
                 },
         },
+        {
+            fieldname: "customer_po",
+            label: __("Customer PO No."),
+            fieldtype: "MultiSelectList",
+            options: [],
+            // reqd: 0,
+            // get_data: function (txt) {
+            //     return frappe.db.get_link_options("Customer", txt);
+            //     },
+        },
 
 		// {
         //     fieldname: "category",
@@ -115,6 +125,9 @@ frappe.query_reports["Order From Detailed Count"] = {
 		// fetchOptions("Item","item_category", "category",true);
         fetchOptions("Order Form","diamond_quality", "diamond_quality",true);
 		fetchOptions("Order Form", "workflow_state", "status",true);
+        fetchOptions("Order Form", "po_no", "customer_po",true);
+
+
 	
 		report.page.add_inner_button(__("Clear Filter"), function () {
 			report.filters.forEach(function (filter) {
