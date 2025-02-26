@@ -124,6 +124,19 @@ frappe.ui.form.on('Order Form', {
 				filters: { 'item_attribute': "Metal Touch", "customer_code": doc.customer_code }
 			};
 		});
+		frm.set_query('design_id', 'order_details', function (doc, cdt, cdn) {
+			let d = locals[cdt][cdn];
+			if (d.design_type == 'Sketch Design'){
+				return {
+					filters: {
+						"has_variants": 1,
+						"variant_of": ["=", ""],
+						"item_category": ["!=", ""],
+						"order_form_type":"Sketch Order"
+					}
+				};
+			}
+		});
 	},
 	due_days(frm) {
 		delivery_date(frm);
@@ -146,14 +159,6 @@ frappe.ui.form.on('Order Form', {
 				refresh_field("service_type");
 			});
         }
-		// frm.set_query('subcategory', 'order_details', function (doc, cdt, cdn) {
-		// 	let d = locals[cdt][cdn];
-		// 	return {
-		// 		filters: {
-		// 			'parent_attribute_value': d.category
-		// 		}
-		// 	};
-		// });
 		frm.set_query('diamond_quality','order_details', function (doc) {
 			return {
 				query: 'jewellery_erpnext.query.item_attribute_query',
@@ -197,7 +202,7 @@ frappe.ui.form.on('Order Form', {
 		// 		return { visible: 1 };
 		// 	};
 		// }
-   	},
+	},
 	refresh(frm){
 		frm.add_custom_button(__("Get Customer Order Form"), function(){
             erpnext.utils.map_current_doc({
@@ -1222,8 +1227,9 @@ function set_filter_for_sketch_design_n_serial(frm, fields) {
 			let d = locals[cdt][cdn];
 			return {
 				filters: {
-					"is_design_code": 1,
-					"is_stock_item":1,
+					"has_variants": 1,
+					"variant_of": ["=", ""],
+					"item_category": ["!=", ""],
 					"order_form_type":"Sketch Order"
 				}
 			}
