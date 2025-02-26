@@ -1,0 +1,283 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-02-13 14:18:04.193940",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_c4ht",
+  "employee",
+  "employee_name",
+  "department",
+  "designation",
+  "column_break_wuxm",
+  "company",
+  "branch",
+  "status",
+  "section_break_6tmw",
+  "notice_period",
+  "date_resignation",
+  "last_working_day",
+  "column_break_z8pb",
+  "reason_for_resignation",
+  "if_additional_comments",
+  "additional_comments",
+  "section_break_kaob",
+  "reporting_manager",
+  "reporting_manager_name",
+  "column_break_znbv",
+  "reporting_manager_approval",
+  "waive_off_notice_period",
+  "reduce_notice_days",
+  "section_break_abix",
+  "hr_manager",
+  "hr_manager_name",
+  "column_break_da5r",
+  "is_employee_on_probation",
+  "hr_manager_approval",
+  "section_break_1cid",
+  "naming_series",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_c4ht",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee ID",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Department",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_wuxm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Branch",
+   "options": "Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_6tmw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "employee.notice_number_of_days",
+   "fieldname": "notice_period",
+   "fieldtype": "Data",
+   "label": "Notice Period",
+   "read_only": 1
+  },
+  {
+   "fieldname": "date_resignation",
+   "fieldtype": "Date",
+   "label": "Date of Resignation"
+  },
+  {
+   "fieldname": "last_working_day",
+   "fieldtype": "Date",
+   "label": "Last Working Day",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_z8pb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reason_for_resignation",
+   "fieldtype": "Small Text",
+   "label": "Reason for Resignation"
+  },
+  {
+   "depends_on": "eval:doc.if_additional_comments == 1",
+   "fieldname": "additional_comments",
+   "fieldtype": "Data",
+   "label": "Additional Comments"
+  },
+  {
+   "fieldname": "section_break_kaob",
+   "fieldtype": "Section Break",
+   "label": "Approval"
+  },
+  {
+   "fetch_from": "employee.reports_to",
+   "fieldname": "reporting_manager",
+   "fieldtype": "Link",
+   "label": "Reporting Manager",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "reporting_manager.employee_name",
+   "fetch_if_empty": 1,
+   "fieldname": "reporting_manager_name",
+   "fieldtype": "Data",
+   "label": "Reporting Manager Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_znbv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "hr_manager",
+   "fieldtype": "Link",
+   "label": "HR Manager",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "hr_manager.employee_name",
+   "fieldname": "hr_manager_name",
+   "fieldtype": "Data",
+   "label": "HR Manager Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "label": "naming_series",
+   "options": "EMP-RS-",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "if_additional_comments",
+   "fieldtype": "Check",
+   "label": "If Additional Comments.."
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Status",
+   "options": "\nOpen\nPending\nApprove\nReject"
+  },
+  {
+   "depends_on": "eval: in_list(['Send to Manager','Send to HR','Approved'], doc.workflow_state )",
+   "fieldname": "reporting_manager_approval",
+   "fieldtype": "Select",
+   "label": "Reporting Manager Approval",
+   "options": "\nApproved\nRejected"
+  },
+  {
+   "fieldname": "section_break_abix",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_da5r",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: in_list(['Send to HR','Approved'], doc.workflow_state )",
+   "fieldname": "hr_manager_approval",
+   "fieldtype": "Select",
+   "label": "HR Manager Approval",
+   "options": "\nApproved\nRejected"
+  },
+  {
+   "fieldname": "section_break_1cid",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Employee Resignation",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "depends_on": "eval:doc.reporting_manager_approval == 'Approved'",
+   "fieldname": "waive_off_notice_period",
+   "fieldtype": "Select",
+   "label": "Waive Off Notice Period",
+   "options": "\nYes\nNo"
+  },
+  {
+   "depends_on": "eval:doc.waive_off_notice_period == 'Yes'",
+   "fieldname": "reduce_notice_days",
+   "fieldtype": "Data",
+   "label": "Reduce Notice Days"
+  },
+  {
+   "depends_on": "eval: in_list(['Send to HR','Approved'], doc.workflow_state )",
+   "fieldname": "is_employee_on_probation",
+   "fieldtype": "Select",
+   "label": "Is Employee on Probation?",
+   "options": "\nYes\nNo"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-02-15 17:14:11.614027",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Employee Resignation",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1
+}
