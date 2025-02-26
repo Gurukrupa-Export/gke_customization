@@ -1,0 +1,823 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-12-31 16:57:01.134933",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_xjmu",
+  "paper_set",
+  "max_marks",
+  "min_marks",
+  "column_break_hsrv",
+  "obtained_marks",
+  "test_status",
+  "set_a1_tab",
+  "sec_a",
+  "a1_q1",
+  "a1_q1_options",
+  "q2",
+  "a1_q2_options",
+  "a1_q3",
+  "a1_q3_options",
+  "section_b",
+  "a1_q4",
+  "a1_q4_options",
+  "a1_q5",
+  "a1_q5_options",
+  "a1_q6",
+  "a1_q6_options",
+  "section_c",
+  "a1_q7",
+  "a1_q7_options",
+  "a1_q8",
+  "a1_q8_options",
+  "a1_q9",
+  "a1_q9_options",
+  "a1_q10",
+  "a1_q10_options",
+  "section_d",
+  "a1_q11",
+  "a1_q11_options",
+  "a1_q12",
+  "a1_q12_options",
+  "section_e",
+  "a1_q13",
+  "a1_q13_options",
+  "a1_q14",
+  "a1_q14_options",
+  "a1_q15",
+  "a1_q15_options",
+  "section_f",
+  "a1_q16",
+  "a1_q16_options",
+  "a1_q17",
+  "a1_q17_options",
+  "a1_q18",
+  "a1_q18_options",
+  "set_a2_tab",
+  "a2_section_a",
+  "a2_q1",
+  "a2_q1_options",
+  "a2_q2",
+  "a2_q2_options",
+  "a2_q3",
+  "a2_q3_options",
+  "a2_sec_b",
+  "a2_q4",
+  "a2_q4_options",
+  "a2_q5",
+  "a2_q5_options",
+  "a2_q6",
+  "a2_q6_options",
+  "a2_sec_c",
+  "a2_q7",
+  "a2_q7_options",
+  "a2_q8",
+  "a2_q8_options",
+  "a2_q9",
+  "a2_q9_options",
+  "a2_sec_d",
+  "a2_q10",
+  "a2_q10_options",
+  "a2_q11",
+  "a2_q11_options",
+  "a2_q12",
+  "a2_q12_options",
+  "a2_sec_e",
+  "a2_q13",
+  "a2_q13_options",
+  "a2_q14",
+  "a2_q14_options",
+  "a2_q15",
+  "a2_q15_options",
+  "a2_sec_f",
+  "a2_q16",
+  "a2_q16_options",
+  "a2_q17",
+  "a2_q17_options",
+  "a2_q18",
+  "a2_q18_options",
+  "c1_tab",
+  "set_c1_section",
+  "c1_q1",
+  "c1_q1_options",
+  "c1_q2",
+  "c1_q2_options",
+  "c1_q3",
+  "c1_q3_options",
+  "c1_q4",
+  "c1_q4_options",
+  "c1_q5",
+  "c1_q5_options",
+  "c1_q6",
+  "c1_q6_options",
+  "c1_q7",
+  "c1_q7_options",
+  "c1_q8",
+  "c1_q8_options",
+  "c1_q9",
+  "c1_q9_options",
+  "c1_q10",
+  "c1_q10_options"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_xjmu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "paper_set",
+   "fieldtype": "Select",
+   "label": "Paper Set",
+   "options": "\nSet - A1\nSet - A2\nSet - C1"
+  },
+  {
+   "fieldname": "sec_a",
+   "fieldtype": "Section Break",
+   "label": "Section A- Data Interpretation"
+  },
+  {
+   "fieldname": "q2",
+   "fieldtype": "HTML",
+   "label": "q2",
+   "options": "<p>\n<b>Question 2.</b>\nThe following pie-chart shows the sources of funds to be collected by the National \nHighways Authority of India (NHAI) for its Phase II projects. Study the pie-chart and answers the \nquestion that follow. <br><br>\nSources of funds to be arranged by NHAI for Phase II projects (in crores Rs.)<br><br>\nNear about 20% of the funds are to be arranged through:\n</p>"
+  },
+  {
+   "fieldname": "a1_q1",
+   "fieldtype": "HTML",
+   "label": "q1",
+   "options": "<p>\n<b>Question 1.</b>\n A company conducted a survey of 500 customers to determine their satisfaction with the company\u2019s products. The results showed that 80% of customers were satisfied with the products. Of the satisfied customers, 60% were repeat customers. How many customers were repeat customers and satisfied with the products?\n\n</p>"
+  },
+  {
+   "fieldname": "a1_q1_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\n249.3\n240\n300\n150"
+  },
+  {
+   "fieldname": "a1_q2_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nSPVS\nExternal Assistance\nAnnuity\nMarket Borrowing"
+  },
+  {
+   "fieldname": "a1_q3",
+   "fieldtype": "HTML",
+   "label": "q3",
+   "options": "<p>\n<b>Question 3.</b>\nDirections for Questions 1 to 5:\u00a0Read the given information carefully and answer the questions that follow.\n<br>\nEleven friends M, N, O, P, Q, R, S, T, U, V and W are sitting in the first row of the stadium watching a cricket match.\n<br><br>\nT is to the immediate left of P and third to the right of U.<br>\nV is the immediate neighbour of M and N and third to the left of S.\n<br>\nM is the second to the right of Q, who is at one of the ends.\n<br>\nR is sitting next to the right of P and P is second to the right of O.\n<br><br>\n<b>Which of the following people are sitting to the right of S?</b>\n</p>"
+  },
+  {
+   "fieldname": "a1_q3_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nOTPQ\nOTPR\nUNVM\nUOTPR"
+  },
+  {
+   "fieldname": "section_b",
+   "fieldtype": "Section Break",
+   "label": "Section B Logical Reasoning"
+  },
+  {
+   "fieldname": "a1_q4",
+   "fieldtype": "HTML",
+   "label": "q4",
+   "options": "<p>\n<b>Question 4.</b>\nY is in the East of X which is in the North of Z. If P is in the South of Z, then in which direction of Y, is P?\n\n</p>"
+  },
+  {
+   "fieldname": "a1_q4_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nNorth\nSouth\nSouth-East\nNone of these"
+  },
+  {
+   "fieldname": "a1_q5",
+   "fieldtype": "HTML",
+   "label": "q5",
+   "options": "<p>\n<b>Question 5.</b>\n  Find the odd one out from the given options.\n<br>\n1, 1, 2, 6, 24, 96, 720\n</p>"
+  },
+  {
+   "fieldname": "a1_q5_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\n720\n96\n24\n6\n2"
+  },
+  {
+   "fieldname": "a1_q6",
+   "fieldtype": "HTML",
+   "label": "q6",
+   "options": "<p>\n<b>Question 6. Statements:</b>\n\u00a0Government has spoiled many top-ranking financial institutions by appointing bureaucrats as Directors of these institutions.<br><br>\n<b>Conclusions:</b><br>\nI.Government should appoint Directors of the financial institutes taking into consideration the expertise of the person in the area of finance.<br>\nII.The Director of the financial institute should have expertise commensurate with the financial work carried out by the institute.\n\n</p>"
+  },
+  {
+   "fieldname": "a1_q6_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nOnly conclusion I follows\nOnly conclusion II follows\nNeither I nor II follows\nBoth I and II follow"
+  },
+  {
+   "fieldname": "section_c",
+   "fieldtype": "Section Break",
+   "label": "Section C Technical Question"
+  },
+  {
+   "fieldname": "a1_q7",
+   "fieldtype": "HTML",
+   "label": "q7",
+   "options": "<p>\n<b>Question 7.</b>\nWhich of the following metals is most commonly used in high-quality jewelry?\n\n</p>"
+  },
+  {
+   "fieldname": "a1_q7_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nIron\nSilver\nCopper\nGold"
+  },
+  {
+   "fieldname": "a1_q8",
+   "fieldtype": "HTML",
+   "label": "q8",
+   "options": "<p>\n<b>Question 8.</b>\nIf a ring's size is measured as 18mm, what does this measurement refer to?\n\n</p>"
+  },
+  {
+   "fieldname": "a1_q8_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nThe width of the ring band\nThe diameter of the inside of the ring\nThe circumference of the ring\nThe weight of the ring"
+  },
+  {
+   "fieldname": "a1_q9",
+   "fieldtype": "HTML",
+   "label": "q9",
+   "options": "<p>\n<b>Question 9.</b>\n What is the first step in the jewellery-making process?\n\n</p>"
+  },
+  {
+   "fieldname": "a1_q9_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nPolishing\nCasting\nDesigning\nSetting gemstones"
+  },
+  {
+   "fieldname": "a1_q10",
+   "fieldtype": "HTML",
+   "label": "q10",
+   "options": "<p>\n<b>Question 10.</b>\nWhat is the \"Subject\" line in an email used for?\n\n</p>"
+  },
+  {
+   "fieldname": "a1_q10_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nTo add a message signature\nTo specify the main topic of the email\nTo list the recipients\nTo send a copy to yourself"
+  },
+  {
+   "fieldname": "a1_q11",
+   "fieldtype": "HTML",
+   "label": "q11",
+   "options": "<p>\n<b>Question 11.</b>\n What does \"CC\" stand for in an email? \n\n</p>"
+  },
+  {
+   "fieldname": "a1_q11_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nClose Copy\nCarbon Copy\nClear Copy\nCarbon Circulate"
+  },
+  {
+   "fieldname": "a1_q12",
+   "fieldtype": "HTML",
+   "label": "q12",
+   "options": "<p>\n<b>Question 12.</b>\nWhich of the following is NOT considered an email attachment type?\n\n</p>"
+  },
+  {
+   "fieldname": "a1_q12_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\n.jpg\n.pdf\n.docx\n.exe"
+  },
+  {
+   "fieldname": "section_e",
+   "fieldtype": "Section Break",
+   "label": "Section E General Knowledge"
+  },
+  {
+   "fieldname": "a1_q13",
+   "fieldtype": "HTML",
+   "label": "q13 ",
+   "options": "<p>\n<b>Question 13.</b>\nWho wrote the national anthem of India?\n</p>"
+  },
+  {
+   "fieldname": "a1_q13_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nSubhas Chandra Bose\nRabindranath Tagore\nLata Mangeshkar\nJawaharlal Nehru"
+  },
+  {
+   "fieldname": "a1_q14",
+   "fieldtype": "HTML",
+   "label": "q14",
+   "options": "<p>\n<b>Question 14.</b>\nWhich is the longest river in the world?\n</p>"
+  },
+  {
+   "fieldname": "a1_q14_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nNile\nGanga\nYamuna\nNone of the above"
+  },
+  {
+   "fieldname": "a1_q15",
+   "fieldtype": "HTML",
+   "label": "q15",
+   "options": "<p>\n<b>Question 15.</b>\nName the largest planet of our Solar System?\n</p>"
+  },
+  {
+   "fieldname": "section_f",
+   "fieldtype": "Section Break",
+   "label": "Section F Excel Queries"
+  },
+  {
+   "fieldname": "a1_q16",
+   "fieldtype": "HTML",
+   "label": "q16",
+   "options": "<p>\n<b>Question 16.</b>\n Explain the function Format Painter?\n</p>"
+  },
+  {
+   "fieldname": "a1_q16_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nCopy format style\nChange the Color\nCopy content\nRemove Content"
+  },
+  {
+   "fieldname": "a1_q17",
+   "fieldtype": "HTML",
+   "label": "q17",
+   "options": "<p>\n<b>Question 17.</b>\nWhat function would you use to find the average of a range of numbers in Excel?</p>"
+  },
+  {
+   "fieldname": "a1_q17_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nAveragea()\nAverage()\nAverageif()\nAverageifs()"
+  },
+  {
+   "fieldname": "a1_q18",
+   "fieldtype": "HTML",
+   "label": "q18",
+   "options": "<p>\n<b>Question 18.</b>\nWrite the formula of excel to calculate current time and date?</p>"
+  },
+  {
+   "fieldname": "a1_q18_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nNow()\nDate()\nTime()\nToday()"
+  },
+  {
+   "fieldname": "a2_q1",
+   "fieldtype": "HTML",
+   "label": "a1",
+   "options": "<p>\n<b>Question 1.</b>\nStudy the following line graph 1(A) and answer the questions.<br>  \nExports from three Companies Over the Years (in Rs. crore)<br>\nFor which of the following pairs of years the total exports from the three Companies together are equal?\n</p>"
+  },
+  {
+   "fieldname": "a2_q1_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\n1996 & 1995\n1997 & 1998\n1996 & 1997\n1995 & 1998"
+  },
+  {
+   "fieldname": "a2_q2",
+   "fieldtype": "HTML",
+   "label": "q2",
+   "options": "<p>\n<b>Question 2.</b>\n\u00a0Study the following bar graph and answer the questions that follow: Total monthly    income = Rs. 50,000. What amount is spent on food?\u00a0</p>"
+  },
+  {
+   "fieldname": "a2_q2_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\n10000\n5000\n8400\n15000"
+  },
+  {
+   "fieldname": "a2_q3",
+   "fieldtype": "HTML",
+   "label": "q3",
+   "options": "<p>\n<b>Question 3.</b>\n\u00a0Three Students \u2013 Jose, Bharath and Simon \u2013 have to select three sports each out of the   Six sports\u2013 Hockey, Baseball, Tennis, Basketball, Cricket and Football. If Football is selected, then Hockey cannot be selected. If Simon selects Tennis, then Jose does not select Football. If Bharath selects Baseball, then Simon cannot select Tennis and if Jose selects Hockey, then Simon selects Cricket and Football. If Simon selects Football and Bharath selects Baseball, then Simon cannot select\u00a0</p>"
+  },
+  {
+   "fieldname": "a2_q3_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nHockey and Tennis\nBaseball and Tennis\nTennis and Basketball\nHockey and Cricket"
+  },
+  {
+   "fieldname": "a2_q4",
+   "fieldtype": "HTML",
+   "label": "q4",
+   "options": "<p>\n<b>Question 4.</b>\nSowmya Krishnan walked 20 m towards the north. Then she turned right and walks 30 m. Then she turns right and walks 35 m. Then she turns left and walks 15 m. Finally, she turns left and walks 15 m. In which direction and how many meters is she from the starting position?\u00a0</p>"
+  },
+  {
+   "fieldname": "a2_q4_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\n15 m West\n30 m East\n30 m West\n45 m East"
+  },
+  {
+   "fieldname": "a2_q5",
+   "fieldtype": "HTML",
+   "label": "q5 ",
+   "options": "<p>\n<b>Question 5.</b>\nFind the odd one out from the given options.\u00a0</p>"
+  },
+  {
+   "fieldname": "a2_q5_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nBook: Author\nArt: Artist\nInvention: Scientist\nPatients: Doctors"
+  },
+  {
+   "fieldname": "a2_sec_b",
+   "fieldtype": "Section Break",
+   "label": "Section B Logical Reasoning"
+  },
+  {
+   "fieldname": "a2_q6",
+   "fieldtype": "HTML",
+   "label": "q6",
+   "options": "<p>\n<b>Question 6. Statement:</b>\nThe Team Manager humiliated Varun in front of his colleagues on a Monday morning.<br>\nConclusion I:\u00a0The Team Manager did not like Varun<br>\nConclusion II:\u00a0Varun was not as popular as his other colleagues\n</p>"
+  },
+  {
+   "fieldname": "a2_q6_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nOnly Conclusion I is true\nOnly Conclusion II is true\nBoth Conclusion I and II are true\nNeither Conclusion I nor II is true\nEither Conclusion I or II is true"
+  },
+  {
+   "fieldname": "a2_sec_c",
+   "fieldtype": "Section Break",
+   "label": "Section C Technical Question"
+  },
+  {
+   "fieldname": "a2_q7",
+   "fieldtype": "HTML",
+   "label": "q7",
+   "options": "<p>\n<b>Question 7.</b>\nWhat does the term \"karat\" refer to in gold jewelry?\u00a0</p>"
+  },
+  {
+   "fieldname": "a2_q7_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nThe weight of the gold\nThe color of the gold\nThe purity of the gold\nThe cost of the gold"
+  },
+  {
+   "fieldname": "a2_q8",
+   "fieldtype": "HTML",
+   "label": "q8",
+   "options": "<p>\n<b>Question 8.</b>\nWhat is \"casting\" in jewelry manufacturing? Answer. Write in Answer Sheet\u00a0</p>"
+  },
+  {
+   "fieldname": "a2_q8_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nShaping metal by heating and hammering it\nPouring molten metal into a mold to form a shape\nSetting gemstones into rings\nPolishing metal for a shiny finish"
+  },
+  {
+   "fieldname": "a2_q9",
+   "fieldtype": "HTML",
+   "label": "q9:",
+   "options": "<p>\n<b>Question 9.</b>\nWhich of the following safety precautions should be taken when working with molten metal in jewelry production?\u00a0</p>"
+  },
+  {
+   "fieldname": "a2_q9_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nWear protective gloves and goggles\nLeave the area unventilated\nUse open flame without supervision\nAvoid using a metal crucible"
+  },
+  {
+   "fieldname": "a2_sec_d",
+   "fieldtype": "Section Break",
+   "label": "Section D  Email Knowledge"
+  },
+  {
+   "fieldname": "a2_q10",
+   "fieldtype": "HTML",
+   "label": "q10",
+   "options": "<p>\n<b>Question 10.</b>\nWhat does the \"Reply\" button do in an email application?</p>"
+  },
+  {
+   "fieldname": "a2_q10_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nOpens a new email to send to a different address\nSends a response to the sender of the email\nForward the email to other recipients\nDeletes the email"
+  },
+  {
+   "fieldname": "a2_q11",
+   "fieldtype": "HTML",
+   "label": "q11",
+   "options": "<p>\n<b>Question 11.</b>\nWhat does the \"Reply All\" feature do in an email?</p>"
+  },
+  {
+   "fieldname": "a2_q11_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nSends a reply to the sender only\nSends a reply to the sender and all recipients of the email\nForwards the email to all recipients\nMarks the email as read"
+  },
+  {
+   "fieldname": "a2_q12",
+   "fieldtype": "HTML",
+   "label": "q12",
+   "options": "<p>\n<b>Question 12.</b>\nWhat is the purpose of the \"BCC\" field in an email?</p>"
+  },
+  {
+   "fieldname": "a2_sec_e",
+   "fieldtype": "Section Break",
+   "label": "Section E General Knowledge"
+  },
+  {
+   "fieldname": "a2_q13",
+   "fieldtype": "HTML",
+   "label": "q13",
+   "options": "<p>\n<b>Question 13.</b>\nWho wrote the national anthem of India?</p>"
+  },
+  {
+   "fieldname": "a2_q14",
+   "fieldtype": "HTML",
+   "label": "q14",
+   "options": "<p>\n<b>Question 14.</b>\nWhich is the longest river in the world?</p>"
+  },
+  {
+   "fieldname": "a2_q15",
+   "fieldtype": "HTML",
+   "label": "q15",
+   "options": "<p>\n<b>Question 15.</b>\nName the largest planet of our Solar System?</p>"
+  },
+  {
+   "fieldname": "a2_sec_f",
+   "fieldtype": "Section Break",
+   "label": "Section F Excel Queries"
+  },
+  {
+   "fieldname": "a2_q16",
+   "fieldtype": "HTML",
+   "label": "q16",
+   "options": "<p>\n<b>Question 16.</b>\nWhich function is used to find the largest number in a range of cells in Excel?</p>"
+  },
+  {
+   "fieldname": "a2_q17",
+   "fieldtype": "HTML",
+   "label": "q17",
+   "options": "<p>\n<b>Question 17.</b>\nHow can you freeze the top row in an Excel sheet?</p>"
+  },
+  {
+   "fieldname": "a2_q18",
+   "fieldtype": "HTML",
+   "label": "q18",
+   "options": "<p>\n<b>Question 18.</b>\nWhat does the VLOOKUP function do in Excel?</p>"
+  },
+  {
+   "fieldname": "a2_q12_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nTo send a blind copy to multiple recipients without others knowing\nTo send a copy of the email to a backup server\nTo allow recipients to see each other's email addresses\nTo encrypt the message"
+  },
+  {
+   "fieldname": "a2_q13_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nSubhas Chandra Bose\nRabindranath Tagore\nLata Mangeshkar\nJawaharlal Nehru"
+  },
+  {
+   "fieldname": "a2_q14_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nNile\nGanga\nYamuna\nNone of the above"
+  },
+  {
+   "fieldname": "a2_q15_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nJupiter\nSaturn\nSun\nMars"
+  },
+  {
+   "fieldname": "a2_q16_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nMax()\nMin()\nSum()\nAverage()"
+  },
+  {
+   "fieldname": "a2_q17_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nView > Freeze Panes > Freeze Top Row\nHome > Format > Freeze Panes\nInsert > Freeze Panes > Top Row\nData > Freeze Top Row"
+  },
+  {
+   "fieldname": "a2_q18_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nIt returns a value from a vertical lookup in a table.\nIt adds values from a specified range.\nIt merges multiple cells.\nIt checks if the data is valid."
+  },
+  {
+   "fieldname": "set_c1_section",
+   "fieldtype": "Section Break",
+   "label": "Set C1"
+  },
+  {
+   "fieldname": "c1_q1",
+   "fieldtype": "HTML",
+   "label": "q1 ",
+   "options": "<p>\n<b>Question 1.</b>\n What is the longest river in the world?</p>"
+  },
+  {
+   "fieldname": "c1_q2_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nNew Delhi\nChennai\nHimachal Pradesh\nAgra"
+  },
+  {
+   "fieldname": "c1_q1_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nThe Nile River\nGanga River\nYamuna River\nMahakali River"
+  },
+  {
+   "fieldname": "c1_q2",
+   "fieldtype": "HTML",
+   "label": "q2",
+   "options": "<p>\n<b>Question 2.</b>\nWhat is the capital of India?\n</p>"
+  },
+  {
+   "fieldname": "c1_q3",
+   "fieldtype": "HTML",
+   "label": "q3",
+   "options": "<p>\n<b>Question 3.</b>\nWho was the first Prime Minister of India?\n</p>"
+  },
+  {
+   "fieldname": "c1_q3_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nJwaharlal Nehru\nIndira Gandhi\nNarendra Modi\nManmohan Singh"
+  },
+  {
+   "fieldname": "c1_q4",
+   "fieldtype": "HTML",
+   "label": "q4",
+   "options": "<p>\n<b>Question 4.</b>\n What is the national animal of India?\n</p>"
+  },
+  {
+   "fieldname": "c1_q4_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nBengal tiger\nRabbit\nLion\nnone of the above"
+  },
+  {
+   "fieldname": "c1_q5",
+   "fieldtype": "HTML",
+   "label": "q5",
+   "options": "<p>\n<b>Question 5.</b>\n  Which sport is most popular in India?\n</p>"
+  },
+  {
+   "fieldname": "c1_q5_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nCricket\nHockey\nFootball\nTennis"
+  },
+  {
+   "fieldname": "c1_q6",
+   "fieldtype": "HTML",
+   "label": "q6",
+   "options": "<p>\n<b>Question 6.</b>\n   Who is known as the \"Father of the Nation\" in India?\n</p>"
+  },
+  {
+   "fieldname": "c1_q6_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nMahatma Gandhi\nRahul Gandhi\nNarendra Modi\nAbdul Kalam"
+  },
+  {
+   "fieldname": "c1_q7",
+   "fieldtype": "HTML",
+   "label": "q7",
+   "options": "<p>\n<b>Question 7.</b>\n  What is 25 + 18?\n</p>"
+  },
+  {
+   "fieldname": "c1_q7_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\n46\n47\n50\n67"
+  },
+  {
+   "fieldname": "c1_q8",
+   "fieldtype": "HTML",
+   "label": "q8",
+   "options": "<p>\n<b>Question 8.</b>\n  Add 15 and 32.\n</p>"
+  },
+  {
+   "fieldname": "c1_q8_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\n43\n42\n46\n50"
+  },
+  {
+   "fieldname": "c1_q9",
+   "fieldtype": "HTML",
+   "label": "q9",
+   "options": "<p>\n<b>Question 9.</b>\n  Subtract 14 from 30.\n</p>"
+  },
+  {
+   "fieldname": "c1_q9_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\n16\n25\n21\n12"
+  },
+  {
+   "fieldname": "c1_q10",
+   "fieldtype": "HTML",
+   "label": "q10",
+   "options": "<p>\n<b>Question 10.</b>\n What is 5 \u00d7 6?\n</p>"
+  },
+  {
+   "fieldname": "c1_q10_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\n30\n40\n54\n26"
+  },
+  {
+   "depends_on": "eval:doc.paper_set=='Set - C1'",
+   "fieldname": "c1_tab",
+   "fieldtype": "Tab Break",
+   "label": "Set C1"
+  },
+  {
+   "depends_on": "eval:doc.paper_set=='Set - A2'",
+   "fieldname": "set_a2_tab",
+   "fieldtype": "Tab Break",
+   "label": "Set A2"
+  },
+  {
+   "fieldname": "section_d",
+   "fieldtype": "Section Break",
+   "label": "Section D Email Knowledge"
+  },
+  {
+   "depends_on": "eval:doc.paper_set=='Set - A1'",
+   "fieldname": "set_a1_tab",
+   "fieldtype": "Tab Break",
+   "label": "Set A1"
+  },
+  {
+   "default": "90",
+   "fieldname": "max_marks",
+   "fieldtype": "Data",
+   "label": "Max Marks"
+  },
+  {
+   "default": "0",
+   "fieldname": "obtained_marks",
+   "fieldtype": "Data",
+   "label": "Obtained Marks"
+  },
+  {
+   "fieldname": "a1_q15_options",
+   "fieldtype": "Select",
+   "label": "Options:",
+   "options": "\nJupiter\nSaturn\nSun\nMars"
+  },
+  {
+   "fieldname": "test_status",
+   "fieldtype": "Data",
+   "label": "Test Status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "a2_section_a",
+   "fieldtype": "Section Break",
+   "label": "Section A Data Interpretation"
+  },
+  {
+   "fieldname": "min_marks",
+   "fieldtype": "Data",
+   "label": "Min Marks",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_hsrv",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-01-06 12:42:40.420807",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Aptitude Test",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
