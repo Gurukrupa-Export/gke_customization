@@ -8,8 +8,10 @@ def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
     
+    filtered_data = [row for row in data if row['status_duration'] != "-"]
+
     total_time_diff = calculate_total_time_diff(data)
-    total_status_duration = calculate_total_status_duration(data)
+    total_status_duration = calculate_total_status_duration(filtered_data)
     
     unique_order_count = len(set([row['form_name'] for row in data]))
     unique_customer_count = len(set([row['customer_code'] for row in data]))
@@ -42,6 +44,7 @@ def get_columns():
         {"fieldname": "company", "label": _( "Company"), "fieldtype": "Link", "options": "Company", "width": 250},
         {"fieldname": "branch", "label": _( "Branch"), "fieldtype": "Link", "options": "Branch", "width": 150},
         {"fieldname": "customer_code", "label": _( "Customer"), "fieldtype": "Data", "width": 150},
+        {"fieldname": "customer_po", "label": _( "Customer's PO No."), "fieldtype": "Data", "width": 150},
         {"fieldname": "order_type", "label": _( "Order Type"), "fieldtype": "Data", "width": 150},
         {"fieldname": "sales_type", "label": _( "Sales Type"), "fieldtype": "Data","align":"left", "width": 130},
         {"fieldname": "total_count", "label": _( "Number of Items"), "fieldtype": "Data", "width": 120},
@@ -120,6 +123,7 @@ def get_data(filters):
     CASE WHEN soi.custom_customer_stone IS NULL OR soi.custom_customer_stone = '' THEN 'No'ELSE soi.custom_customer_stone END AS custom_customer_stone,
     count(soi.name) AS total_count,
     qi.name AS quotation,
+    so.po_no AS customer_po,
     so.status
 FROM `tabSales Order` so
 LEFT JOIN tabEmployee e ON so.owner = e.user_id
@@ -438,6 +442,11 @@ def get_conditions(filters):
     if filters.get("customer_code"):
         customers = ', '.join([f"'{code}'" for code in filters.get("customer_code")])    
         conditions.append(f"so.customer IN ({customers})")
+    #  Added customer po filter- 25th feb
+    if filters.get("customer_po"):
+        customers_po = ', '.join([f"'{po}'" for po in filters.get("customer_po")])    
+        conditions.append(f"so.po_no IN ({customers_po})")
+
     if filters.get("diamond_quality"):
         conditions.append(f'qi.diamond_quality = "{filters.get("diamond_quality")}"')    
     if filters.get("status"):

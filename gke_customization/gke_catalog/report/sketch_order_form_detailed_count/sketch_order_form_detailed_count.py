@@ -7,8 +7,9 @@ def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
     
+    filtered_data = [row for row in data if row['status_duration'] != "-"]
     total_time_diff = calculate_total_time_diff(data)
-    total_status_duration = calculate_total_status_duration(data)
+    total_status_duration = calculate_total_status_duration(filtered_data)
     
 
     unique_order_count = len(set([row['form_name'] for row in data]))
@@ -45,7 +46,8 @@ def get_columns():
         {"fieldname": "creator_designation", "label": _("Creator Designation"), "fieldtype": "Data", "width": 200},
         {"fieldname": "assigned_department", "label": _("Assigned to Department"), "fieldtype": "Data","align":"left", "width": 190},
         {"fieldname": "status", "label": _( "Status"), "fieldtype": "Data", "width": 150},
-        {"fieldname": "diamond_target", "label": _( "Diamond Wt."), "fieldtype": "Data", "width": 150},
+        {"fieldname": "workflow_count", "label": _("Workflow State"), "fieldtype": "Data", "width": 140},
+        {"fieldname": "diamond_target", "label": _( "Diamond Wt."), "fieldtype": "Data", "width": 170},
         {"fieldname": "status_change_time", "label": _( "Status Date/Time"), "fieldtype": "Datetime", "width": 180},
         {"fieldname": "time_to_status", "label": _( "Time Difference"), "fieldtype": "Data", "width": 230},
         {"fieldname": "status_duration", "label": _("Status Duration"), "fieldtype": "Data", "width": 230},
@@ -80,6 +82,14 @@ def get_data(filters):
         latest_assignments._assign AS latest_assigned_user,
         emp.department AS latest_assigned_user_department,
         skof.workflow_state AS status,
+        (CASE
+          WHEN skof.workflow_state = 'Cancelled' THEN 0
+          WHEN skof.workflow_state = 'Draft' THEN 1
+          WHEN skof.workflow_state = 'Draft - On Hold' THEN 2
+          WHEN skof.workflow_state = 'On Hold' THEN 3
+          WHEN skof.workflow_state = 'Send For Approval' THEN 4
+		  ELSE 5
+        END ) as workflow_count,
         (SELECT MIN(modified) FROM `tabSketch Order Form` WHERE name = skof.name) AS status_change_time
     FROM `tabSketch Order Form` skof
     LEFT JOIN `tabSketch Order Form Detail` skfd
@@ -255,6 +265,11 @@ def get_message():
         </span>
         <span class="indicator yellow" style="font-size: 15px; margin-left: 143px;">
         Items Count = Total Number of Items in Sketch Orders.
+        </span>
+        <br>
+        </span>
+        <span class="indicator green" style="font-size: 15px; margin-left: 73px;">
+        Total Number of Workflow State in this process is 4 (1-Draft, 2-Draft - On Hold, 3-On Hold, 4-Send For Approval, 5-Approved, 0: Cancelled)
         </span>
 """
 
