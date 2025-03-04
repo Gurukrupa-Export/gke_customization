@@ -56,7 +56,6 @@ class SupplierUpdateMaster(Document):
 
         # Check if the supplier already exists
         if frappe.db.exists("Supplier", self.supplier_data):
-            frappe.throw("IF")
             try:
                 # Fetch the existing Supplier document
                 supplier_doc = frappe.get_doc("Supplier", self.supplier_data)
@@ -110,10 +109,10 @@ class SupplierUpdateMaster(Document):
 
             # Add mandatory fields
             supplier_data["doctype"] = "Supplier"
-            supplier_data["supplier_name"] = self.get("supplier_name") or "Unnamed Supplier"
-            supplier_data["supplier_group"] = supplier_data.get("supplier_group") or "Default Supplier Group"
-            supplier_data["territory"] = supplier_data.get("territory") or "All Territories"
-            supplier_data["supplier_type"] = supplier_data.get("supplier_type") or "Company"
+            supplier_data["supplier_name"] = self.get("supplier_name")
+            supplier_data["supplier_group"] = supplier_data.get("supplier_group")
+            supplier_data["custom_territory"] = supplier_data.get("territory")
+            supplier_data["supplier_type"] = supplier_data.get("supplier_type")
             
             # Add child table data for accounts
             if accounts_data:
@@ -146,6 +145,7 @@ class SupplierUpdateMaster(Document):
                 ]
             
             # Create the new Supplier record
+            # frappe.throw(f"{supplier_data}")
             new_supplier = frappe.get_doc(supplier_data)
             new_supplier.insert(ignore_permissions=True)
             
@@ -161,58 +161,64 @@ class SupplierUpdateMaster(Document):
 
 def create_supplier_address_contact(self):
     if self.workflow_state == "Create Address":
-        address_doc = frappe.new_doc("Address")
-        address_doc.address_title = self.address_title
-        address_doc.address_type = self.address_type
-        address_doc.address_line1 = self.address_line_1
-        address_doc.address_line2 = self.address_line_2
-        address_doc.city = self.city
-        address_doc.state = self.state
-        address_doc.country = self.country
-        address_doc.pincode = self.pincode
-        address_doc.email_address = self.email_address
-        address_doc.phone = self.phone
+        if self.address_title:
+            address_doc = frappe.new_doc("Address")
+            address_doc.address_title = self.address_title
+            address_doc.address_type = self.address_type
+            address_doc.address_line1 = self.address_line_1
+            address_doc.address_line2 = self.address_line_2
+            address_doc.city = self.city
+            address_doc.state = self.state
+            address_doc.country = self.country
+            address_doc.pincode = self.pincode
+            address_doc.email_address = self.email_address
+            address_doc.phone = self.phone
+                
+            if self.new_supplier:
+                address_links = address_doc.append("links", {})
+                address_links.link_doctype = "Supplier",
+                address_links.link_name = self.new_supplier 
             
-        if self.new_supplier:
-            address_links = address_doc.append("links", {})
-            address_links.link_doctype = "Supplier",
-            address_links.link_name = self.new_supplier 
-        
-        address_doc.insert(ignore_permissions=True)
-        address_doc.save()
-        
-        frappe.db.set_value("Supplier", self.new_supplier,"supplier_primary_address",address_doc.name)
-        
-        frappe.db.set_value("Supplier Update Master", self.name,"supplier_primary_address",address_doc.name)
-        self.reload()
-        
-        frappe.msgprint("Supplier Address Created ")       
+            address_doc.insert(ignore_permissions=True)
+            address_doc.save()
+            
+            frappe.db.set_value("Supplier", self.new_supplier,"supplier_primary_address",address_doc.name)
+            
+            frappe.db.set_value("Supplier Update Master", self.name,"supplier_primary_address",address_doc.name)
+            self.reload()
+            
+            frappe.msgprint("Supplier Address Created ")    
+        else:
+            frappe.throw(f"{self.address_title} is reqd..")   
 
     if self.workflow_state == "Create Contact": 
-        contact_doc = frappe.new_doc("Contact")
-        contact_doc.company_name = self.supplier_name 
-
-        if self.email_address:
-            contact_email = contact_doc.append("email_ids", {})
-            contact_email.email_id = self.email_address
-            contact_email.is_primary = 1 
-            
         if self.phone:
-            contact_phone = contact_doc.append("phone_nos", {})
-            contact_phone.phone = self.phone
-            contact_phone.is_primary_mobile_no = 1 
-        
-        if self.new_supplier:
-            contact_links = contact_doc.append("links", {})
-            contact_links.link_doctype = "Supplier",
-            contact_links.link_name = self.new_supplier 
-        
-        contact_doc.insert(ignore_permissions=True)
-        contact_doc.save()
+            contact_doc = frappe.new_doc("Contact")
+            contact_doc.company_name = self.supplier_name 
+
+            if self.email_address:
+                contact_email = contact_doc.append("email_ids", {})
+                contact_email.email_id = self.email_address
+                contact_email.is_primary = 1 
                 
-        frappe.db.set_value("Supplier", self.new_supplier,"supplier_primary_contact",contact_doc.name)
-        
-        frappe.db.set_value("Supplier Update Master", self.name,"supplier_primary_contact",contact_doc.name)
-        self.reload()
-        
-        frappe.msgprint("Supplier Contact Created ")
+            if self.phone:
+                contact_phone = contact_doc.append("phone_nos", {})
+                contact_phone.phone = self.phone
+                contact_phone.is_primary_mobile_no = 1 
+            
+            if self.new_supplier:
+                contact_links = contact_doc.append("links", {})
+                contact_links.link_doctype = "Supplier",
+                contact_links.link_name = self.new_supplier 
+            
+            contact_doc.insert(ignore_permissions=True)
+            contact_doc.save()
+                    
+            frappe.db.set_value("Supplier", self.new_supplier,"supplier_primary_contact",contact_doc.name)
+            
+            frappe.db.set_value("Supplier Update Master", self.name,"supplier_primary_contact",contact_doc.name)
+            self.reload()
+            
+            frappe.msgprint("Supplier Contact Created ")
+        else:
+            frappe.throw(f"{self.phone} is reqd..") 
