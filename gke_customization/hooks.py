@@ -116,7 +116,8 @@ doctype_js = {
 # Override standard doctype classes
 
 override_doctype_class = {
-	"Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive"
+	"Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive",
+	"Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin"
 }
 
 # Document Events
