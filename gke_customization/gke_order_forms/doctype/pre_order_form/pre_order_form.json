@@ -1,65 +1,66 @@
 {
- "actions": [],
- "allow_rename": 1,
- "creation": "2025-02-28 16:25:30.238199",
- "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": [
-  "section_break_rk5y",
-  "date",
-  "pre_order_form_details"
- ],
- "fields": [
-  {
-   "fieldname": "section_break_rk5y",
-   "fieldtype": "Section Break"
-  },
-  {
-   "default": "Today",
-   "fieldname": "date",
-   "fieldtype": "Date",
-   "label": "Date"
-  },
-  {
-   "fieldname": "pre_order_form_details",
-   "fieldtype": "Table",
-   "label": "Pre Order Form Details",
-   "options": "Pre Order Form Details"
-  }
- ],
- "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-03-04 17:55:16.197113",
- "modified_by": "Administrator",
- "module": "GKE Order Forms",
- "name": "Pre Order Form",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "MPM-MPM",
-   "share": 1,
-   "write": 1
-  }
- ],
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+"actions": [],
+"allow_rename": 1,
+"creation": "2025-02-28 16:25:30.238199",
+"doctype": "DocType",
+"engine": "InnoDB",
+"field_order": [
+    "section_break_rk5y",
+    "date",
+    "pre_order_form_details"
+],
+"fields": [
+    {
+    "fieldname": "section_break_rk5y",
+    "fieldtype": "Section Break"
+    },
+    {
+    "default": "Today",
+    "fieldname": "date",
+    "fieldtype": "Date",
+    "label": "Date"
+    },
+    {
+    "allow_bulk_edit": 1,
+    "fieldname": "pre_order_form_details",
+    "fieldtype": "Table",
+    "label": "Pre Order Form Details",
+    "options": "Pre Order Form Details"
+    }
+],
+"index_web_pages_for_search": 1,
+"links": [],
+"modified": "2025-03-04 22:01:48.283246",
+"modified_by": "Administrator",
+"module": "GKE Order Forms",
+"name": "Pre Order Form",
+"owner": "Administrator",
+"permissions": [
+    {
+    "create": 1,
+    "delete": 1,
+    "email": 1,
+    "export": 1,
+    "print": 1,
+    "read": 1,
+    "report": 1,
+    "role": "System Manager",
+    "share": 1,
+    "write": 1
+    },
+    {
+    "create": 1,
+    "email": 1,
+    "export": 1,
+    "print": 1,
+    "read": 1,
+    "report": 1,
+    "role": "MPM-MPM",
+    "share": 1,
+    "write": 1
+    }
+],
+"sort_field": "modified",
+"sort_order": "DESC",
+"states": []
 }

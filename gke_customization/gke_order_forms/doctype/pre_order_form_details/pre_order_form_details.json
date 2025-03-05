@@ -1,263 +1,263 @@
 {
- "actions": [],
- "allow_rename": 1,
- "creation": "2025-02-28 16:25:49.598768",
- "doctype": "DocType",
- "editable_grid": 1,
- "engine": "InnoDB",
- "field_order": [
-  "section_break_3dn1",
-  "sr_no",
-  "branch_name",
-  "order_date",
-  "due_days",
-  "party_code",
-  "order_no",
-  "bulk_order_no",
-  "column_break_py4j",
-  "order_type",
-  "po_number",
-  "setting_type",
-  "metal_touch",
-  "stylebio",
-  "tagno",
-  "section_break_xt7z",
-  "category",
-  "sub_category",
-  "new_category",
-  "new_sub_category",
-  "item_code",
-  "item_variant",
-  "bom",
-  "order_form",
-  "order_form_type",
-  "column_break_p0fn",
-  "order_id",
-  "metal_color",
-  "gold_target",
-  "diamond_pcs",
-  "diamond_target",
-  "order_details_and_remarks",
-  "item_and_bom_complete_date",
-  "status"
- ],
- "fields": [
-  {
-   "fieldname": "section_break_3dn1",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "sr_no",
-   "fieldtype": "Int",
-   "in_list_view": 1,
-   "label": "Sr No"
-  },
-  {
-   "fieldname": "branch_name",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Branch Name",
-   "options": "Branch"
-  },
-  {
-   "fieldname": "order_date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "Order Date"
-  },
-  {
-   "fieldname": "due_days",
-   "fieldtype": "Int",
-   "in_list_view": 1,
-   "label": "Due Days"
-  },
-  {
-   "fieldname": "party_code",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Party Code"
-  },
-  {
-   "fieldname": "order_no",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Order No"
-  },
-  {
-   "fieldname": "bulk_order_no",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Bulk Order No"
-  },
-  {
-   "fieldname": "order_type",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Order Type"
-  },
-  {
-   "fieldname": "po_number",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Po Number"
-  },
-  {
-   "fieldname": "setting_type",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Setting Type"
-  },
-  {
-   "fieldname": "metal_touch",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Metal Touch"
-  },
-  {
-   "fieldname": "stylebio",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "StyleBio"
-  },
-  {
-   "fieldname": "tagno",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "TagNo"
-  },
-  {
-   "fieldname": "category",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Category"
-  },
-  {
-   "fieldname": "sub_category",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Sub Category"
-  },
-  {
-   "fieldname": "new_category",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "New Category",
-   "options": "Attribute Value"
-  },
-  {
-   "fieldname": "new_sub_category",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "New Sub Category",
-   "options": "Attribute Value"
-  },
-  {
-   "fieldname": "item_code",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Item Code",
-   "options": "Item"
-  },
-  {
-   "fieldname": "item_variant",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Item Variant",
-   "options": "Item"
-  },
-  {
-   "fieldname": "bom",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "BOM",
-   "options": "BOM"
-  },
-  {
-   "fieldname": "order_form",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Order Form",
-   "options": "\nYes\nNo"
-  },
-  {
-   "fieldname": "order_form_type",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Order Form Type",
-   "options": "New Design\nMod\nSketch Design\nAs Per Serail No"
-  },
-  {
-   "fieldname": "order_id",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Order ID"
-  },
-  {
-   "fieldname": "metal_color",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Metal Color"
-  },
-  {
-   "fieldname": "gold_target",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Gold Target"
-  },
-  {
-   "fieldname": "diamond_pcs",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Diamond Pcs"
-  },
-  {
-   "fieldname": "diamond_target",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Diamond Target"
-  },
-  {
-   "fieldname": "order_details_and_remarks",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Order Details and Remarks"
-  },
-  {
-   "fieldname": "item_and_bom_complete_date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "Item and BOM Complete Date"
-  },
-  {
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Status",
-   "options": "No Item & No BOM\nItem Created\nBOM Created\nDone"
-  },
-  {
-   "fieldname": "column_break_py4j",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "section_break_xt7z",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "column_break_p0fn",
-   "fieldtype": "Column Break"
-  }
- ],
- "index_web_pages_for_search": 1,
- "istable": 1,
- "links": [],
- "modified": "2025-03-04 18:01:05.185321",
- "modified_by": "Administrator",
- "module": "GKE Order Forms",
- "name": "Pre Order Form Details",
- "owner": "Administrator",
- "permissions": [],
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+"actions": [],
+"allow_rename": 1,
+"creation": "2025-02-28 16:25:49.598768",
+"doctype": "DocType",
+"editable_grid": 1,
+"engine": "InnoDB",
+"field_order": [
+    "section_break_3dn1",
+    "sr_no",
+    "branch_name",
+    "order_date",
+    "due_days",
+    "party_code",
+    "order_no",
+    "bulk_order_no",
+    "column_break_py4j",
+    "order_type",
+    "po_number",
+    "setting_type",
+    "metal_touch",
+    "stylebio",
+    "tagno",
+    "section_break_xt7z",
+    "category",
+    "sub_category",
+    "new_category",
+    "new_sub_category",
+    "item_code",
+    "item_variant",
+    "bom",
+    "order_form",
+    "order_form_type",
+    "column_break_p0fn",
+    "order_id",
+    "metal_color",
+    "gold_target",
+    "diamond_pcs",
+    "diamond_target",
+    "order_details_and_remarks",
+    "item_and_bom_complete_date",
+    "status"
+],
+"fields": [
+    {
+    "fieldname": "section_break_3dn1",
+    "fieldtype": "Section Break"
+    },
+    {
+    "fieldname": "sr_no",
+    "fieldtype": "Int",
+    "in_list_view": 1,
+    "label": "Sr No"
+    },
+    {
+    "fieldname": "branch_name",
+    "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": "Branch Name",
+    "options": "Branch"
+    },
+    {
+    "fieldname": "order_date",
+    "fieldtype": "Date",
+    "in_list_view": 1,
+    "label": "Order Date"
+    },
+    {
+    "fieldname": "due_days",
+    "fieldtype": "Int",
+    "in_list_view": 1,
+    "label": "Due Days"
+    },
+    {
+    "fieldname": "party_code",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Party Code"
+    },
+    {
+    "fieldname": "order_no",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Order No"
+    },
+    {
+    "fieldname": "bulk_order_no",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Bulk Order No"
+    },
+    {
+    "fieldname": "order_type",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Order Type"
+    },
+    {
+    "fieldname": "po_number",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Po Number"
+    },
+    {
+    "fieldname": "setting_type",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Setting Type"
+    },
+    {
+    "fieldname": "metal_touch",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Metal Touch"
+    },
+    {
+    "fieldname": "stylebio",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "StyleBio"
+    },
+    {
+    "fieldname": "tagno",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "TagNo"
+    },
+    {
+    "fieldname": "category",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Category"
+    },
+    {
+    "fieldname": "sub_category",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Sub Category"
+    },
+    {
+    "fieldname": "new_category",
+    "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": "New Category",
+    "options": "Attribute Value"
+    },
+    {
+    "fieldname": "new_sub_category",
+    "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": "New Sub Category",
+    "options": "Attribute Value"
+    },
+    {
+    "fieldname": "item_code",
+    "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": "Item Code",
+    "options": "Item"
+    },
+    {
+    "fieldname": "item_variant",
+    "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": "Item Variant",
+    "options": "Item"
+    },
+    {
+    "fieldname": "bom",
+    "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": "BOM",
+    "options": "BOM"
+    },
+    {
+    "fieldname": "order_form",
+    "fieldtype": "Select",
+    "in_list_view": 1,
+    "label": "Order Form",
+    "options": "\nYes\nNo"
+    },
+    {
+    "fieldname": "order_form_type",
+    "fieldtype": "Select",
+    "in_list_view": 1,
+    "label": "Order Form Type",
+    "options": "New Design\nMod\nSketch Design\nAs Per Serail No"
+    },
+    {
+    "fieldname": "order_id",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Order ID"
+    },
+    {
+    "fieldname": "metal_color",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Metal Color"
+    },
+    {
+    "fieldname": "gold_target",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Gold Target"
+    },
+    {
+    "fieldname": "diamond_pcs",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Diamond Pcs"
+    },
+    {
+    "fieldname": "diamond_target",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Diamond Target"
+    },
+    {
+    "fieldname": "order_details_and_remarks",
+    "fieldtype": "Data",
+    "in_list_view": 1,
+    "label": "Order Details and Remarks"
+    },
+    {
+    "fieldname": "item_and_bom_complete_date",
+    "fieldtype": "Date",
+    "in_list_view": 1,
+    "label": "Item and BOM Complete Date"
+    },
+    {
+    "fieldname": "status",
+    "fieldtype": "Select",
+    "in_list_view": 1,
+    "label": "Status",
+    "options": "No Item & No BOM\nItem Created\nBOM Created\nDone"
+    },
+    {
+    "fieldname": "column_break_py4j",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fieldname": "section_break_xt7z",
+    "fieldtype": "Section Break"
+    },
+    {
+    "fieldname": "column_break_p0fn",
+    "fieldtype": "Column Break"
+    }
+],
+"index_web_pages_for_search": 1,
+"istable": 1,
+"links": [],
+"modified": "2025-03-04 18:01:05.185321",
+"modified_by": "Administrator",
+"module": "GKE Order Forms",
+"name": "Pre Order Form Details",
+"owner": "Administrator",
+"permissions": [],
+"sort_field": "modified",
+"sort_order": "DESC",
+"states": []
 }
