@@ -139,6 +139,13 @@ override_doctype_class = {
 # 	],
 # }
 
+scheduler_events = {
+    "daily": [
+        "gke_customization.gke_hrms.utils.check"
+    ],
+
+}
+
 # Testing
 # -------
 
@@ -231,6 +238,10 @@ doc_events = {
 },
 "Attendance Request": {
 	"on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit"
+},
+"Leave Application":{
+    "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
+    "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit"
 },
 # "Shareholder": {
 #     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
