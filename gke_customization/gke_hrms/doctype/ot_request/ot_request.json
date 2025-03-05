@@ -1,137 +1,149 @@
 {
- "actions": [],
- "allow_rename": 1,
- "autoname": "OT-.department.-.date.-.##",
- "creation": "2024-07-01 16:41:52.066199",
- "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": [
-  "department_head",
-  "department_head_name",
-  "department",
-  "designation",
-  "column_break_wydc",
-  "company",
-  "branch",
-  "date",
-  "ot_hours",
-  "reason_for_ot",
-  "overtime_details_section",
-  "order_request",
-  "hr_approver",
-  "amended_from"
- ],
- "fields": [
-  {
-   "fieldname": "department_head",
-   "fieldtype": "Link",
-   "label": "Department Head",
-   "options": "Employee"
-  },
-  {
-   "fetch_from": "department_head.department",
-   "fieldname": "department",
-   "fieldtype": "Data",
-   "label": "Department"
-  },
-  {
-   "fieldname": "column_break_wydc",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "department_head.designation",
-   "fieldname": "designation",
-   "fieldtype": "Data",
-   "label": "Designation"
-  },
-  {
-   "default": "Today",
-   "fieldname": "date",
-   "fieldtype": "Date",
-   "label": "Date"
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "OT Request",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
-  },
-  {
-   "fieldname": "overtime_details_section",
-   "fieldtype": "Section Break",
-   "label": "Overtime Details"
-  },
-  {
-   "fieldname": "order_request",
-   "fieldtype": "Table",
-   "label": "Overtime Request Details",
-   "options": "Overtime Request Details"
-  },
-  {
-   "fieldname": "hr_approver",
-   "fieldtype": "Table",
-   "label": "HR Approver Detail",
-   "options": "Employee Penalty Approver Detail"
-  },
-  {
-   "fetch_from": "department_head.company",
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "label": "Company",
-   "options": "Company"
-  },
-  {
-   "fetch_from": "department_head.branch",
-   "fieldname": "branch",
-   "fieldtype": "Data",
-   "label": "Branch"
-  },
-  {
-   "fieldname": "ot_hours",
-   "fieldtype": "Time",
-   "label": "OT Hours"
-  },
-  {
-   "fetch_from": "department_head.employee_name",
-   "fieldname": "department_head_name",
-   "fieldtype": "Data",
-   "label": "Department Head Name",
-   "read_only": 1
-  },
-  {
-   "fieldname": "reason_for_ot",
-   "fieldtype": "Data",
-   "label": "Reason For OT"
-  }
- ],
- "index_web_pages_for_search": 1,
- "is_submittable": 1,
- "links": [],
- "modified": "2024-11-25 18:45:33.626790",
- "modified_by": "Administrator",
- "module": "GKE HRMS",
- "name": "OT Request",
- "naming_rule": "Expression",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
-}
+    "actions": [],
+    "allow_rename": 1,
+    "creation": "2024-07-01 16:41:52.066199",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+     "department_head",
+     "department_head_name",
+     "department",
+     "designation",
+     "branch",
+     "company",
+     "column_break_wydc",
+     "male",
+     "female",
+     "date",
+     "ot_hours",
+     "reason_for_ot",
+     "overtime_details_section",
+     "order_request",
+     "hr_approver",
+     "amended_from"
+    ],
+    "fields": [
+     {
+      "fetch_from": "department_head.department",
+      "fieldname": "department",
+      "fieldtype": "Data",
+      "label": "Department"
+     },
+     {
+      "fieldname": "column_break_wydc",
+      "fieldtype": "Column Break"
+     },
+     {
+      "fetch_from": "department_head.designation",
+      "fieldname": "designation",
+      "fieldtype": "Data",
+      "label": "Designation"
+     },
+     {
+      "default": "Today",
+      "fieldname": "date",
+      "fieldtype": "Date",
+      "label": "Date"
+     },
+     {
+      "fieldname": "amended_from",
+      "fieldtype": "Link",
+      "label": "Amended From",
+      "no_copy": 1,
+      "options": "OT Request",
+      "print_hide": 1,
+      "read_only": 1,
+      "search_index": 1
+     },
+     {
+      "fieldname": "overtime_details_section",
+      "fieldtype": "Section Break",
+      "label": "Overtime Details"
+     },
+     {
+      "fieldname": "hr_approver",
+      "fieldtype": "Table",
+      "label": "HR Approver Detail",
+      "options": "Employee Penalty Approver Detail"
+     },
+     {
+      "fetch_from": "department_head.company",
+      "fieldname": "company",
+      "fieldtype": "Link",
+      "label": "Company",
+      "options": "Company"
+     },
+     {
+      "fetch_from": "department_head.branch",
+      "fieldname": "branch",
+      "fieldtype": "Link",
+      "label": "Branch",
+      "options": "Branch"
+     },
+     {
+      "fieldname": "ot_hours",
+      "fieldtype": "Time",
+      "label": "OT Hours"
+     },
+     {
+      "fieldname": "reason_for_ot",
+      "fieldtype": "Data",
+      "label": "Reason For OT"
+     },
+     {
+      "default": "0",
+      "fieldname": "male",
+      "fieldtype": "Check",
+      "label": "Male"
+     },
+     {
+      "default": "0",
+      "fieldname": "female",
+      "fieldtype": "Check",
+      "label": "Female"
+     },
+     {
+      "fieldname": "order_request",
+      "fieldtype": "Table",
+      "label": "Overtime Request Details",
+      "options": "Overtime Request Details"
+     },
+     {
+      "fieldname": "department_head",
+      "fieldtype": "Link",
+      "label": "Department Head",
+      "options": "Employee"
+     },
+     {
+      "fetch_from": "department_head.employee_name",
+      "fieldname": "department_head_name",
+      "fieldtype": "Data",
+      "label": "Department Head Name"
+     }
+    ],
+    "index_web_pages_for_search": 1,
+    "is_submittable": 1,
+    "links": [],
+    "modified": "2025-02-18 11:18:06.930413",
+    "modified_by": "Administrator",
+    "module": "GKE HRMS",
+    "name": "OT Request",
+    "owner": "Administrator",
+    "permissions": [
+     {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+     }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
+   }
