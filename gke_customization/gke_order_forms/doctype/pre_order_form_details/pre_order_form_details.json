@@ -39,7 +39,8 @@
     "diamond_target",
     "order_details_and_remarks",
     "item_and_bom_complete_date",
-    "status"
+    "status",
+    "mod_reason"
 ],
 "fields": [
     {
@@ -246,12 +247,17 @@
     {
     "fieldname": "column_break_p0fn",
     "fieldtype": "Column Break"
+    },
+    {
+    "fieldname": "mod_reason",
+    "fieldtype": "Data",
+    "label": "Mod Reason"
     }
 ],
 "index_web_pages_for_search": 1,
 "istable": 1,
 "links": [],
-"modified": "2025-03-04 18:01:05.185321",
+"modified": "2025-03-05 12:48:11.545137",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Pre Order Form Details",
