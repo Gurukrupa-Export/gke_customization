@@ -9,11 +9,10 @@
      "department_head_name",
      "department",
      "designation",
-     "branch",
-     "company",
      "column_break_wydc",
-     "male",
-     "female",
+     "company",
+     "branch",
+     "gender",
      "date",
      "ot_hours",
      "reason_for_ot",
@@ -76,9 +75,8 @@
      {
       "fetch_from": "department_head.branch",
       "fieldname": "branch",
-      "fieldtype": "Link",
-      "label": "Branch",
-      "options": "Branch"
+      "fieldtype": "Data",
+      "label": "Branch"
      },
      {
       "fieldname": "ot_hours",
@@ -89,18 +87,6 @@
       "fieldname": "reason_for_ot",
       "fieldtype": "Data",
       "label": "Reason For OT"
-     },
-     {
-      "default": "0",
-      "fieldname": "male",
-      "fieldtype": "Check",
-      "label": "Male"
-     },
-     {
-      "default": "0",
-      "fieldname": "female",
-      "fieldtype": "Check",
-      "label": "Female"
      },
      {
       "fieldname": "order_request",
@@ -118,16 +104,24 @@
       "fetch_from": "department_head.employee_name",
       "fieldname": "department_head_name",
       "fieldtype": "Data",
-      "label": "Department Head Name"
+      "label": "Department Head Name",
+      "read_only": 1
+     },
+     {
+      "fieldname": "gender",
+      "fieldtype": "Select",
+      "label": "Gender",
+      "options": "\nMale\nFemale"
      }
     ],
     "index_web_pages_for_search": 1,
     "is_submittable": 1,
     "links": [],
-    "modified": "2025-02-18 11:18:06.930413",
+    "modified": "2025-03-06 11:26:10.858553",
     "modified_by": "Administrator",
     "module": "GKE HRMS",
     "name": "OT Request",
+    "naming_rule": "Expression",
     "owner": "Administrator",
     "permissions": [
      {
