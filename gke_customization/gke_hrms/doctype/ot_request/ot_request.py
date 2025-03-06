@@ -9,6 +9,21 @@ from datetime import datetime, timedelta
 
 class OTRequest(Document):
 	def validate(self):
+		if not self.company or not self.branch:
+			frappe.throw("Company and Branch are required to generate the OT Request name.")
+		
+		# Get company abbreviation
+		company_abbr = frappe.db.get_value("Company", self.company, "abbr")
+		if not company_abbr:
+			frappe.throw(f"Abbreviation not found for company: {self.company}")
+
+		# Extract branch short code
+		branch_short = self.branch.split('-')[-2]  # Extract "ST" from "GEPL-ST"
+
+		# Naming series using company abbreviation
+		series = f"OT-{company_abbr}-{branch_short}-.#####"
+		self.name = frappe.model.naming.make_autoname(series)
+
 		for child in self.order_request:
 			if child.ot_hours:
 				try:
@@ -42,14 +57,14 @@ class OTRequest(Document):
 				row.status = self.workflow_state	
 
 
-	
 @frappe.whitelist()
 def fill_employee_details(department, gender=None):
-    gender_filter = f"AND gender = '{gender}'" if gender else ""
+    gender_filter = "" if not gender else "AND gender = %s"
+    gender_value = [gender] if gender else []
     
-    employees = frappe.db.sql(f"""
+    employees = frappe.db.sql(f'''
         SELECT name, employee_name FROM `tabEmployee`
-        WHERE department = '{department}' AND status = 'Active' {gender_filter}
-    """, as_dict=1)
+        WHERE department = %s AND status = 'Active' {gender_filter}
+    ''', [department] + gender_value, as_dict=1)
     
     return employees
