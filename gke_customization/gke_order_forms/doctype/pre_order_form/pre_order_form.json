@@ -5,9 +5,22 @@
 "doctype": "DocType",
 "engine": "InnoDB",
 "field_order": [
+    "customer_code",
+    "party_code",
+    "order_date",
+    "sales_person",
+    "diamond_quality",
+    "shipping_territory",
+    "column_break_tylw",
+    "branch",
+    "order_type",
+    "delivery_date",
+    "due_days",
+    "po_no",
+    "service_type",
     "section_break_rk5y",
-    "date",
-    "pre_order_form_details"
+    "pre_order_form_details",
+    "amended_from"
 ],
 "fields": [
     {
@@ -15,22 +28,101 @@
     "fieldtype": "Section Break"
     },
     {
-    "default": "Today",
-    "fieldname": "date",
-    "fieldtype": "Date",
-    "label": "Date"
-    },
-    {
     "allow_bulk_edit": 1,
     "fieldname": "pre_order_form_details",
     "fieldtype": "Table",
     "label": "Pre Order Form Details",
     "options": "Pre Order Form Details"
+    },
+    {
+    "fieldname": "amended_from",
+    "fieldtype": "Link",
+    "label": "Amended From",
+    "no_copy": 1,
+    "options": "Pre Order Form",
+    "print_hide": 1,
+    "read_only": 1,
+    "search_index": 1
+    },
+    {
+    "fieldname": "delivery_date",
+    "fieldtype": "Date",
+    "label": "Delivery Date"
+    },
+    {
+    "fieldname": "sales_person",
+    "fieldtype": "Link",
+    "label": "Sales Person",
+    "options": "Sales Person"
+    },
+    {
+    "fieldname": "diamond_quality",
+    "fieldtype": "Link",
+    "label": "Customer Diamond Quality",
+    "options": "Attribute Value"
+    },
+    {
+    "fieldname": "branch",
+    "fieldtype": "Link",
+    "label": "Branch",
+    "options": "Branch"
+    },
+    {
+    "default": "Today",
+    "fieldname": "order_date",
+    "fieldtype": "Date",
+    "label": "Order Date"
+    },
+    {
+    "fieldname": "column_break_tylw",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fieldname": "due_days",
+    "fieldtype": "Int",
+    "label": "Due Days"
+    },
+    {
+    "fetch_from": "customer.old_customer_code",
+    "fetch_if_empty": 1,
+    "fieldname": "party_code",
+    "fieldtype": "Data",
+    "label": "Party Code"
+    },
+    {
+    "fieldname": "order_type",
+    "fieldtype": "Select",
+    "label": "Order Type",
+    "options": "\nSales\nStock Order\nPurchase"
+    },
+    {
+    "fieldname": "shipping_territory",
+    "fieldtype": "Table MultiSelect",
+    "label": "Shipping Territory",
+    "options": "Territory Multi Select"
+    },
+    {
+    "fieldname": "service_type",
+    "fieldtype": "Table MultiSelect",
+    "label": "Service Type",
+    "options": "Service Type 2"
+    },
+    {
+    "fieldname": "po_no",
+    "fieldtype": "Data",
+    "label": "Customer PO No"
+    },
+    {
+    "fieldname": "customer_code",
+    "fieldtype": "Link",
+    "label": "Customer",
+    "options": "Customer"
     }
 ],
 "index_web_pages_for_search": 1,
+"is_submittable": 1,
 "links": [],
-"modified": "2025-03-04 22:01:48.283246",
+"modified": "2025-03-06 18:23:19.983718",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Pre Order Form",
@@ -62,5 +154,8 @@
 ],
 "sort_field": "modified",
 "sort_order": "DESC",
-"states": []
+"states": [],
+"track_changes": 1,
+"track_seen": 1,
+"track_views": 1
 }

@@ -623,3 +623,66 @@ def create_po(self):
 	
 	frappe.msgprint(msg)
 
+@frappe.whitelist()
+def make_from_pre_order_form(source_name, target_doc=None):
+	if isinstance(target_doc, str):
+		target_doc = json.loads(target_doc)
+	target_doc = frappe.new_doc("Order Form") if not target_doc else frappe.get_doc(target_doc)
+
+	if source_name:
+				customer_order_form = frappe.db.sql(f"""SELECT * FROM `tabPre Order Form Details` 
+							WHERE parent = '{source_name}'""", as_dict=1)
+		# customer_order_form = frappe.db.sql(f"""SELECT * FROM `tabPre Order Form Details` 
+		# 					WHERE parent = '{source_name}' AND docstatus = 1""", as_dict=1)
+
+	# parent = frappe.db.get_value("Pre Order Form Details",source_name)
+	target_doc.customer_code = frappe.db.get_value("Pre Order Form",source_name,"customer_code")
+	target_doc.order_date = frappe.db.get_value("Pre Order Form",source_name,"order_date")
+	target_doc.salesman_name = frappe.db.get_value("Pre Order Form",source_name,"sales_person")
+	target_doc.diamond_quality = frappe.db.get_value("Pre Order Form",source_name,"diamond_quality")
+	target_doc.branch = frappe.db.get_value("Pre Order Form",source_name,"branch")
+	target_doc.order_type = frappe.db.get_value("Pre Order Form",source_name,"order_type")
+	target_doc.due_days = frappe.db.get_value("Pre Order Form",source_name,"due_days")
+	target_doc.po_no = frappe.db.get_value("Pre Order Form",source_name,"po_no")
+	target_doc.delivery_date = frappe.db.get_value("Pre Order Form",source_name,"delivery_date")
+	# target_doc.branch = frappe.db.get_value("Pre Order Form",source_name,"customer")
+	service_types = frappe.db.get_values("Service Type 2", {"parent": source_name},"service_type1")
+	for service_type in service_types:
+		target_doc.append("service_type",{"service_type1": service_type[0]})
+	
+	shipping_territories = frappe.db.get_values("Territory Multi Select", {"parent": source_name},"territory")
+	for shipping_territory in shipping_territories:
+		target_doc.append("parcel_place",{"territory": shipping_territory[0]})
+
+	for i in customer_order_form:
+		# frappe.throw(f"{i}")
+		# item, order_id = i.get("design_code"), i.get("order_id")
+		# order_data = frappe.db.sql(f"SELECT * FROM `tabOrder` WHERE name = '{order_id}'", as_dict=1)
+		# customer_design_code = frappe.db.sql(f"SELECT * FROM `tabBOM` WHERE item = '{item}' AND name = '{i.get('design_code_bom')}'", as_dict=1)
+		# item_serial = frappe.db.get_value("Serial No", {'item_code': item}, 'name')
+
+		# data_source = order_data if order_data else customer_design_code
+		# if data_source:
+		# 	for j in data_source:
+		target_doc.append("order_details", {
+			"design_id": i.item_variant,
+			"bom":i.bom,
+			"category":i.new_category,
+			"subcategory":i.new_sub_category,
+			"order_type":i.order_type,
+			"metal_target":i.gold_target,
+			"diamond_target":i.diamond_target,
+			"setting_type":i.bom_setting_type,
+			"design_by":i.design_by,
+			"design_type":i.design_type,
+			"delivery_date":frappe.db.get_value("Pre Order Form",source_name,"delivery_date"),
+			"diamond_quality":frappe.db.get_value("Pre Order Form",source_name,"diamond_quality"),
+			"mod_reason":i.mod_reason,
+		})
+	return target_doc
+
+
+
+
+
+
