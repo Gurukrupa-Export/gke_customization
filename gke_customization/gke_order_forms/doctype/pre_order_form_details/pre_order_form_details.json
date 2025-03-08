@@ -41,6 +41,7 @@
     "design_by",
     "section_break_t4ig",
     "order_details_and_remarks",
+    "mod_remarks",
     "status",
     "column_break_r9sw",
     "mod_reason",
@@ -240,7 +241,7 @@
     "fieldtype": "Select",
     "in_list_view": 1,
     "label": "Status",
-    "options": "No Item & No BOM\nItem Created\nBOM Created\nDone"
+    "options": "Pending\nNo Item & No BOM\nItem Created\nBOM Created\nDone"
     },
     {
     "fieldname": "column_break_py4j",
@@ -346,12 +347,17 @@
     "fieldtype": "Link",
     "label": "Design Type",
     "options": "Attribute Value"
+    },
+    {
+    "fieldname": "mod_remarks",
+    "fieldtype": "Data",
+    "label": "Mod Remarks"
     }
 ],
 "index_web_pages_for_search": 1,
 "istable": 1,
 "links": [],
-"modified": "2025-03-07 12:34:32.728595",
+"modified": "2025-03-08 12:37:48.306199",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Pre Order Form Details",

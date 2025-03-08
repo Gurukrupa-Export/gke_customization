@@ -5,6 +5,7 @@
 "doctype": "DocType",
 "engine": "InnoDB",
 "field_order": [
+    "company",
     "customer_code",
     "party_code",
     "order_date",
@@ -117,12 +118,18 @@
     "fieldtype": "Link",
     "label": "Customer",
     "options": "Customer"
+    },
+    {
+    "fieldname": "company",
+    "fieldtype": "Link",
+    "label": "Company",
+    "options": "Company"
     }
 ],
 "index_web_pages_for_search": 1,
 "is_submittable": 1,
 "links": [],
-"modified": "2025-03-06 18:23:19.983718",
+"modified": "2025-03-08 12:37:27.095561",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Pre Order Form",
