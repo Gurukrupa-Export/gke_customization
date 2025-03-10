@@ -111,10 +111,11 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 			# if frappe.db.get_value("Item",design_id,"Item_group") == 'Design DNU':
 			# 	item_type = "Only Variant"
 	elif design_type == 'Sketch Design':
-		variant_of = frappe.db.get_value("Item",design_id,"variant_of")
-		attribute_list = make_atribute_list(source_name)
-		validate_variant_attributes(variant_of,attribute_list)
+		# variant_of = frappe.db.get_value("Item",design_id,"variant_of")
+		# attribute_list = make_atribute_list(source_name)
+		# validate_variant_attributes(variant_of,attribute_list)
 		# item_type = "No Variant No Suffix"
+		item_type = "Only Variant"
 		bom_or_cad = 'CAD'
 		# bom_or_cad = 'Check'
 	elif design_type == 'As Per Serial No':
@@ -678,6 +679,7 @@ def make_from_pre_order_form(source_name, target_doc=None):
 			"delivery_date":frappe.db.get_value("Pre Order Form",source_name,"delivery_date"),
 			"diamond_quality":frappe.db.get_value("Pre Order Form",source_name,"diamond_quality"),
 			"mod_reason":i.mod_reason,
+			"jewelex_batch_no":i.bulk_order_no
 		})
 	return target_doc
 

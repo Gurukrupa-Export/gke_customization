@@ -786,24 +786,24 @@ def create_line_items(self):
 		# 	self.reload()
 
 	elif self.item_type == 'Only Variant':
-		if self.subcategory != frappe.db.get_value("Item","design_id","item_subcategory"):
+		# if self.subcategory != frappe.db.get_value("Item","design_id","item_subcategory"):
 
-			design_id = frappe.db.get_value('Order',self.name,'design_id')
-			variant_of = frappe.db.get_value("Item",design_id,"variant_of")
-			attribute_list = make_atribute_list(self.name)
-			validate_variant_attributes(variant_of,attribute_list)
+		design_id = frappe.db.get_value('Order',self.name,'design_id')
+		# variant_of = frappe.db.get_value("Item",design_id,"variant_of")
+		# attribute_list = make_atribute_list(self.name)
+		# validate_variant_attributes(variant_of,attribute_list)
 
-			item_variant = create_only_variant_from_order(self,self.name)
-			frappe.db.set_value('Item',item_variant[0],{
-				"is_design_code":1,
-				"variant_of" : item_variant[1]
-			})
-			frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant[0]))))
-			frappe.db.set_value(self.doctype, self.name, "item", item_variant[0])
-			self.reload()
-		else:
-			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
-			self.reload()
+		item_variant = create_only_variant_from_order(self,self.name)
+		frappe.db.set_value('Item',item_variant[0],{
+			"is_design_code":1,
+			"variant_of" : item_variant[1]
+		})
+		frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant[0]))))
+		frappe.db.set_value(self.doctype, self.name, "item", item_variant[0])
+		self.reload()
+		# else:
+		# 	frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
+		# 	self.reload()
 		
 	elif self.item_type == 'No Variant No Suffix':
 		if not self.is_finding_order:
@@ -925,8 +925,6 @@ def create_variant_of_template_from_order(item_template,source_name, target_doc=
 	return doc.name
 
 def create_only_variant_from_order(self,source_name, target_doc=None):
-	db_data = frappe.db.get_list('Item',filters={'name':self.design_id},fields=['variant_of','item_group'],order_by='creation desc')[0]
-	db_data1 = frappe.db.get_list('Item',filters={'variant_of':db_data['variant_of']},fields=['name'],order_by='creation desc')[0]
 	def post_process(source, target):
 		# if db_data['item_group'] == 'Design DNU':
 		# 	index = int(self.design_id.split('-')[1]) + 1
@@ -934,7 +932,15 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 		# 	item_code = self.design_id.split('-')[0] + '-' + suffix
 		# 	# frappe.throw(f"{item_code}")
 		# else:
-		index = int(db_data1['name'].split('-')[1]) + 1
+		db_data = frappe.db.get_list('Item',filters={'name':self.design_id},fields=['variant_of','item_group'],order_by='creation desc')[0]
+		if db_data['variant_of']:
+			db_data1 = frappe.db.get_list('Item',filters={'variant_of':db_data['variant_of']},fields=['name'],order_by='creation desc')[0]
+			index = int(db_data1['name'].split('-')[1]) + 1
+			variant_of = db_data['variant_of']
+		else:
+			# variant_of = db_data['variant_of']
+			index =  1
+			variant_of = self.design_id
 		suffix = "%.3i" % index
 		item_code = db_data['variant_of'] + '-' + suffix
 		# frappe.throw(f"{item_code}")
@@ -950,7 +956,8 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 		target.custom_cad_order_id = source_name
 		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
 		target.has_serial_no = 1
-		
+		target.variant_of = variant_of
+
 		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': self.subcategory,'in_item_variant':1},'item_attribute',order_by='idx asc'):
 			attribute_with = i.item_attribute.lower().replace(' ', '_').replace('/', '')
 			if i.item_attribute == 'Rhodium':
@@ -969,7 +976,7 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 			# })
 			target.append('attributes',{
 				'attribute':i.item_attribute,
-				'variant_of':db_data['variant_of'],
+				'variant_of':variant_of,
 				'attribute_value':attribute_value
 			})
 
@@ -1018,7 +1025,7 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 		},target_doc, post_process
 	)
 	doc.save()
-	return doc.name,db_data['variant_of']
+	return doc.name,doc.variant_of
 
 def create_sufix_of_variant_template_from_order(source_name, target_doc=None):
 	variant_of = frappe.db.get_value("Item",source_name.design_id,'variant_of')
