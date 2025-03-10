@@ -925,7 +925,6 @@ def create_variant_of_template_from_order(item_template,source_name, target_doc=
 	return doc.name
 
 def create_only_variant_from_order(self,source_name, target_doc=None):
-	variant_of = ''
 	def post_process(source, target):
 		# if db_data['item_group'] == 'Design DNU':
 		# 	index = int(self.design_id.split('-')[1]) + 1
@@ -957,7 +956,8 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 		target.custom_cad_order_id = source_name
 		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
 		target.has_serial_no = 1
-		
+		target.variant_of = variant_of
+
 		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': self.subcategory,'in_item_variant':1},'item_attribute',order_by='idx asc'):
 			attribute_with = i.item_attribute.lower().replace(' ', '_').replace('/', '')
 			if i.item_attribute == 'Rhodium':
@@ -1025,7 +1025,7 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 		},target_doc, post_process
 	)
 	doc.save()
-	return doc.name,variant_of
+	return doc.name,doc.variant_of
 
 def create_sufix_of_variant_template_from_order(source_name, target_doc=None):
 	variant_of = frappe.db.get_value("Item",source_name.design_id,'variant_of')
