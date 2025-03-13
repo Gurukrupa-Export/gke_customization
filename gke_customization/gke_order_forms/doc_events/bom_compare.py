@@ -16,7 +16,7 @@ def get_bom_diff(bom1, bom2):
     doc2 = frappe.get_doc("BOM", bom2)
 
     # Fields to be shown at the parent level
-    parent_fields = {"item_category","item_subcategory","product_size","sizer_type","detachable","metal_target","diamond_target",
+    parent_fields = {"bom_type","item_category","item_subcategory","product_size","sizer_type","detachable","metal_target","diamond_target",
                      "metal_type","metal_colour","metal_touch","metal_purity","setting_type","sub_setting_type1","sub_setting_type2",
                      "qty","gemstone_type","gemstone_quality","stone_changeable","chain","chain_type","chain_thickness","chain_length","chain_weight",
                      "lock_type","capganthan","feature","back_chain","back_chain_size","back_belt","back_belt_length","distance_between_kadi_to_mugappu",
