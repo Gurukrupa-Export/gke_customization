@@ -23,6 +23,7 @@
     "est_delivery_date",
     "updated_delivery_date",
     "project",
+    "is_branch_shipping",
     "parcel_place",
     "system_due_date",
     "data_5",
@@ -309,6 +310,7 @@
     "read_only": 1
     },
     {
+    "depends_on": "eval:doc.is_branch_shipping",
     "fieldname": "parcel_place",
     "fieldtype": "Table MultiSelect",
     "label": "Shipping Territory",
@@ -1636,6 +1638,15 @@
     "fieldtype": "Select",
     "label": "BOM Type",
     "options": "\nNew BOM\nDuplicate BOM"
+    },
+    {
+        "default": "0",
+        "depends_on": "eval:doc.is_branch_shipping",
+        "fetch_from": "cad_order_form.is_branch_shipping",
+        "fieldname": "is_branch_shipping",
+        "fieldtype": "Check",
+        "label": "Is Branch Shipping",
+        "mandatory_depends_on": "eval:doc.is_branch_shipping"
     }
 ],
 "index_web_pages_for_search": 1,

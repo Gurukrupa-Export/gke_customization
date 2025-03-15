@@ -18,7 +18,7 @@ erpnext.BOMCompareTool = class BOMCompareTool {
 		this.form = new frappe.ui.FieldGroup({
 			fields: [
 				{
-					label: __("BOM 1"),
+					label: __("Template BOM"),
 					fieldname: "name1",
 					fieldtype: "Link",
 					options: "BOM",
@@ -26,7 +26,8 @@ erpnext.BOMCompareTool = class BOMCompareTool {
 					get_query: () => {
 						return {
 							filters: {
-								name: ["not in", [this.form.get_value("name2") || ""]],
+								// name: ["not in", [this.form.get_value("name2") || ""]],
+								"bom_type":"Template",
 							},
 						};
 					},
@@ -35,7 +36,7 @@ erpnext.BOMCompareTool = class BOMCompareTool {
 					fieldtype: "Column Break",
 				},
 				{
-					label: __("BOM 2"),
+					label: __("Finish Goods BOM"),
 					fieldname: "name2",
 					fieldtype: "Link",
 					options: "BOM",
@@ -43,7 +44,8 @@ erpnext.BOMCompareTool = class BOMCompareTool {
 					get_query: () => {
 						return {
 							filters: {
-								name: ["not in", [this.form.get_value("name1") || ""]],
+								// name: ["not in", [this.form.get_value("name1") || ""]],
+								"bom_type":"Finish Goods",
 							},
 						};
 					},

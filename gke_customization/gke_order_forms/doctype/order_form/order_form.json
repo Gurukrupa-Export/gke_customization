@@ -22,6 +22,7 @@
     "update_delivery_date",
     "updated_delivery_date",
     "project",
+    "is_branch_shipping",
     "parcel_place",
     "is_finding_order",
     "column_break_4",
@@ -116,11 +117,12 @@
     "options": "Project"
     },
     {
+    "depends_on": "eval:doc.is_branch_shipping",
     "fieldname": "parcel_place",
     "fieldtype": "Table MultiSelect",
     "label": "Shipping Territory",
-    "options": "Territory Multi Select",
-    "reqd": 1
+    "mandatory_depends_on": "eval:doc.is_branch_shipping",
+    "options": "Territory Multi Select"
     },
     {
     "fieldname": "column_break_4",
@@ -299,6 +301,12 @@
     "fieldname": "is_finding_order",
     "fieldtype": "Check",
     "label": "Is Finding Order"
+    },
+    {
+        "default": "0",
+        "fieldname": "is_branch_shipping",
+        "fieldtype": "Check",
+        "label": "Is Branch Shipping"
     }
 ],
 "index_web_pages_for_search": 1,
