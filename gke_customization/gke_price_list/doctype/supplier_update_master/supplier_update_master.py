@@ -151,6 +151,8 @@ class SupplierUpdateMaster(Document):
             
             frappe.db.set_value("Supplier Update Master", self.name, "new_supplier", new_supplier.name)
             frappe.db.set_value("Supplier Update Master", self.name, "supplier_primary_contact", '')
+            if self.others_supp_add:
+                frappe.db.set_value("Supplier Update Master", self.name, "address_title", new_supplier.name)
             self.reload()
             
             frappe.msgprint(f"New Supplier '{new_supplier.name}' has been successfully created.")
@@ -189,7 +191,7 @@ def create_supplier_address_contact(self):
             
             frappe.msgprint("Supplier Address Created ")    
         else:
-            frappe.throw(f"{self.address_title} is reqd..")   
+            frappe.throw(f"{self.address_title}Address Title is reqd..")   
 
     if self.workflow_state == "Create Contact": 
         if self.phone:
@@ -221,4 +223,4 @@ def create_supplier_address_contact(self):
             
             frappe.msgprint("Supplier Contact Created ")
         else:
-            frappe.throw(f"{self.phone} is reqd..") 
+            frappe.throw(f"{self.phone}Phone is reqd..") 
