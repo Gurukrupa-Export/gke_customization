@@ -122,7 +122,7 @@
     "fieldtype": "Table MultiSelect",
     "label": "Shipping Territory",
     "mandatory_depends_on": "eval:doc.is_branch_shipping",
-    "options": "Territory Multi Select"
+    "options": "Branch Shipping"
     },
     {
     "fieldname": "column_break_4",

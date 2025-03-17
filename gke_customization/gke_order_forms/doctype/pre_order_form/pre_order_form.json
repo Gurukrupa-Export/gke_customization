@@ -100,7 +100,7 @@
     "fieldname": "shipping_territory",
     "fieldtype": "Table MultiSelect",
     "label": "Shipping Territory",
-    "options": "Territory Multi Select"
+    "options": "Branch Shipping"
     },
     {
     "fieldname": "service_type",
