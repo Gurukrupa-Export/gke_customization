@@ -11,6 +11,7 @@
     "order_date",
     "sales_person",
     "diamond_quality",
+    "is_branch_shipping",
     "shipping_territory",
     "column_break_tylw",
     "branch",
@@ -97,10 +98,11 @@
     "options": "\nSales\nStock Order\nPurchase"
     },
     {
+    "depends_on": "eval:doc.is_branch_shipping",
     "fieldname": "shipping_territory",
     "fieldtype": "Table MultiSelect",
     "label": "Shipping Territory",
-    "options": "Territory Multi Select"
+    "options": "Branch Shipping"
     },
     {
     "fieldname": "service_type",
@@ -124,12 +126,18 @@
     "fieldtype": "Link",
     "label": "Company",
     "options": "Company"
+    },
+    {
+    "default": "0",
+    "fieldname": "is_branch_shipping",
+    "fieldtype": "Check",
+    "label": "Is Branch Shipping"
     }
 ],
 "index_web_pages_for_search": 1,
 "is_submittable": 1,
 "links": [],
-"modified": "2025-03-08 12:37:27.095561",
+"modified": "2025-03-17 16:35:02.751471",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Pre Order Form",

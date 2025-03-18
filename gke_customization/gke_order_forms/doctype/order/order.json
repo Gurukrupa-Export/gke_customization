@@ -314,7 +314,7 @@
     "fieldname": "parcel_place",
     "fieldtype": "Table MultiSelect",
     "label": "Shipping Territory",
-    "options": "Territory Multi Select",
+    "options": "Branch Shipping",
     "read_only": 1
     },
     {
