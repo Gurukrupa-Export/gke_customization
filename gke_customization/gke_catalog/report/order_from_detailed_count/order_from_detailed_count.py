@@ -244,7 +244,8 @@ def calculate_status_duration(modified_dt, status):
     if status in ["<span style='color:green; font-weight:bold;'>Approved</span>", 
                   "<span style='color:inherit; font-weight:bold;'>Cancelled</span>"]:
         return "-", False
-    current_dt = datetime.now()
+    # current_dt = datetime.now()
+    current_dt = frappe.utils.now_datetime()
     days_count = 0
     temp_dt = modified_dt
 
