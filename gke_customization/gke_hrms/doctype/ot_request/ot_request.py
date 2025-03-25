@@ -8,10 +8,7 @@ from datetime import datetime, timedelta
 
 
 class OTRequest(Document):
-	def validate(self):
-		if not self.company or not self.branch:
-			frappe.throw("Company and Branch are required to generate the OT Request name.")
-		
+	def autoname(self):
 		# Get company abbreviation
 		company_abbr = frappe.db.get_value("Company", self.company, "abbr")
 		if not company_abbr:
@@ -23,7 +20,13 @@ class OTRequest(Document):
 		# Naming series using company abbreviation
 		series = f"OT-{company_abbr}-{branch_short}-.#####"
 		self.name = frappe.model.naming.make_autoname(series)
-
+		
+		# return 
+	
+	def validate(self):
+		if not self.company or not self.branch:
+			frappe.throw("Company and Branch are required to generate the OT Request name.")
+		
 		for child in self.order_request:
 			if child.ot_hours:
 				try:
