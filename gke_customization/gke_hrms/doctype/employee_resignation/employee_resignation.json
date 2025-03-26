@@ -19,6 +19,7 @@
   "notice_period",
   "date_resignation",
   "last_working_day",
+  "requested_relieving_date",
   "column_break_z8pb",
   "reason_for_resignation",
   "if_additional_comments",
@@ -125,8 +126,9 @@
   },
   {
    "fieldname": "reason_for_resignation",
-   "fieldtype": "Small Text",
-   "label": "Reason for Resignation"
+   "fieldtype": "Select",
+   "label": "Reason for Resignation",
+   "options": "\nBetter Opportunity\nBetter Compensation\nBehavioral Issue\nCultural Issues\nFamily Reason\nHealth Issue\nHigher Education\nIntegrity Issue\nLack Of Career Growth\nLayoff\nMisconduct\nMarriage\nPerformance Issue\nOther\nRetirement\nRelocation\nStarting Own Business\nTermination\nViolation Of Sop"
   },
   {
    "depends_on": "eval:doc.if_additional_comments == 1",
@@ -247,12 +249,17 @@
    "fieldtype": "Select",
    "label": "Is Employee on Probation?",
    "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "requested_relieving_date",
+   "fieldtype": "Date",
+   "label": "Requested Relieving Date"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-02-15 17:14:11.614027",
+ "modified": "2025-03-11 11:18:18.344560",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Employee Resignation",
