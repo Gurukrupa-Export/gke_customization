@@ -35,7 +35,8 @@ class EmployeeUpdate(Document):
 			"employee_relative_relation", "resignation_letter_date", "relieving_date", "held_on", "new_workplace", 
 			"leave_encashed", "encashment_date", "reason_for_leaving", "feedback", "is_pf_applicable",
 			"pf_joining_date","pan_number", "name_as_pe_pan", "provident_fund_account", "handicap_certificate_date", 
-			"handicap_percenatge", "is_physical_handicap", "uan_number","variable_end_date","variable_start_date","variable_in"
+			"handicap_percenatge", "is_physical_handicap", "uan_number","variable_end_date","variable_start_date","variable_in",
+			"custom_linked_aadhar_contact"
 		]
 		
 		e_json = {

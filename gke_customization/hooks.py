@@ -116,7 +116,8 @@ doctype_js = {
 # Override standard doctype classes
 
 override_doctype_class = {
-	"Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive"
+	"Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive",
+	"Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin"
 }
 
 # Document Events
@@ -138,6 +139,13 @@ override_doctype_class = {
 # 		"gke_customization.gke_customization.gke_hrms.doc_events.user.test_uesr"
 # 	],
 # }
+
+scheduler_events = {
+    "daily": [
+        "gke_customization.gke_hrms.utils.check"
+    ],
+
+}
 
 # Testing
 # -------
@@ -231,6 +239,10 @@ doc_events = {
 },
 "Attendance Request": {
 	"on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit"
+},
+"Leave Application":{
+    "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
+    "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit"
 },
 # "Shareholder": {
 #     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"

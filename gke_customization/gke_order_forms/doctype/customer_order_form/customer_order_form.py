@@ -9,128 +9,63 @@ class CustomerOrderForm(Document):
 	def on_cancel(self):
 		frappe.db.set_value('Titan Order Form',self.name,'workflow_state','Cancelled')
 
-@frappe.whitelist()
-def set_customer_code_logic(customer_code,titan_code):
-	if customer_code == 'CU0010':
-		data_json = set_titan_code(customer_code,titan_code)
-	# elif customer_code == 'CU0122':
-	# 	data_json = set_reliance_code(customer_code,titan_code)
-	return data_json
+	def before_save(self):
+		if self.docstatus == 'Draft' or  not self.customer_order_form_detail:
+			frappe.throw('Fill atleast one row in table')
+		set_data(self)
 
-def set_titan_code(customer_code,titan_code):
-	data_json = {}
-
-	if len(titan_code) >1:
-		metal_touch = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[:2],'customer':customer_code},'parent')
-		data_json['metal_touch'] = metal_touch
-	
-	# design_code = frappe.db.get_value('Customer Theme Code',{'theme_code':titan_code[2:9],'customer_code':customer_code},'parent')
-	# data_json['design_code'] = design_code
-	design_code = ''
-	if len(titan_code) >2:
-		design_code = frappe.db.get_value('Customer Theme Code',{'theme_code':titan_code[2:9],'customer_code':customer_code},'parent')
-		data_json['design_code'] = design_code
-
-	# titan_category = get_cateogry(titan_code)
-	
-	if len(titan_code)>6:
-		design_code = frappe.db.sql(f"""select design_code, design_code_2 from `tabTitan Design Information Sheet` ttdis where fourteen_digit_set_code like '{titan_code[:6]}%'""",as_dict=1)[0]['design_code']
-		design_code_2 = frappe.db.sql(f"""select design_code, design_code_2 from `tabTitan Design Information Sheet` ttdis where fourteen_digit_set_code like '{titan_code[:6]}%'""",as_dict=1)[0]['design_code_2']
-		data_json['design_code'] = design_code
-		data_json['design_code_2'] = design_code_2
-
-	if design_code:
-		data_json['metal_colour'] = frappe.db.get_value('Titan Design Information Sheet',{'design_code':design_code},'metal_colour')
-
-		if len(titan_code) > 9:
-			size_data = get_size(customer_code,titan_code,design_code)
-			data_json['size_data'] = size_data
-
-		if frappe.db.get_value('Item',design_code,'item_category') in ['Nose Pin','Earrings']:
-			if len(titan_code) > 10:
-				finding_data = get_finding(titan_code)
-				data_json['finding_data'] = finding_data
-		else:
-			data_json['finding_data'] = ''
-			
-		if len(titan_code) >12:
-			stone_data = get_stone(customer_code,titan_code)
-		# 	# stone_data = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[12:14],'customer':customer_code},'parent')
-			data_json['stone_data'] = stone_data
-			# data_json['stone_type'] = stone_data.parent
-			# stone_quality = frappe.db.get_value('Customer Attributes Table',{'code':stone_data.description,'customer':customer_code},'parent')
-			# data_json['stone_quality'] = stone_quality
-
-			
-			design_code = frappe.db.get_value('Titan Design Information Sheet',{'fourteen_digit_set_code':titan_code},'design_code')
-			if design_code:
-				data_json['design_code_2'] = frappe.db.get_value('Titan Design Information Sheet',{'fourteen_digit_set_code':titan_code},'design_code_2')
-	
-	return data_json
-
-def get_stone(customer_code,titan_code):
-	# titan_prolif = []
-	# for i in frappe.get_doc('Item Attribute','Titan Prolif').item_attribute_values:
-	# 	titan_prolif.append(i.attribute_value)
-	stonre_data = frappe.db.sql(f"""select parent from `tabAttribute Value For  Customer Theme Code` tavfctc where customer = '{customer_code}' and details = 'PROLIF' and code='{titan_code[12:14]}'""",as_dict=1)
-
-	# for j in frappe.db.sql(f'''select code,customer from `tabCustomer Attributes Table` tcat WHERE code = "{titan_code[12:14]}" and customer = "CU0010"'''):
-	# # frappe.db.get_list('Customer Attributes Table',filters={'code':titan_code[12:14],'customer':'CU0010'},pluck='parent'):
-	# 	if j in titan_prolif:
-	return stonre_data[0]['parent']
-
-def get_finding(titan_code):
-	# titan_finding_category = []
-	# for i in frappe.get_doc('Item Attribute','Titan Finding').item_attribute_values:
-	# 	titan_finding_category.append(i.attribute_value)
-	finding_data = frappe.db.sql(f"""select parent from `tabAttribute Value For  Customer Theme Code` tavfctc where customer = 'CU0010' and details = 'FINDING' and code='{titan_code[10]}'""",as_dict=1)
-	# for j in frappe.db.sql(f'''select code,customer from `tabCustomer Attributes Table` tcat WHERE code = "{titan_code[10]}" and customer = "CU0010"'''):
-	# # frappe.db.get_list('Customer Attributes Table',filters={'code':titan_code[10],'customer':'CU0010'},pluck='parent'):
-	# 	if j in titan_finding_category:
-	# 		return j
-	return finding_data[0]['parent']
-		
-# def set_reliance_code(customer_code,titan_code):
-# 	data_json = {}
-# 	if len(titan_code) >= 1:
-# 		metal_touch = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[:1],'customer':customer_code,'description':'Metal Touch'},'parent')
-# 		data_json['metal_touch'] = metal_touch
-# 	if len(titan_code) > 1:
-# 		if titan_code[1:2] == 'D':
-# 			data_json['productivity'] = 'Studded'
-# 		else:
-# 			data_json['productivity'] = 'Plain'
-# 		# metal_type = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[1:2],'customer':customer_code,'description':'Metal Type'},'parent')
-# 		# data_json['metal_type'] = metal_type
-# 	if len(titan_code) > 2:
-# 		if titan_code[2:5].upper() == 'MSR' or titan_code[2:5].upper() == 'PDC' or titan_code[2:5].upper() == 'ECN':
-# 			data_json['chain'] = 'Yes'
-# 		else:
-# 			data_json['chain'] = 'No'
-# 		design_code = frappe.db.get_value('Customer Theme Code',{'theme_code':titan_code[2:11],'customer_code':customer_code},'parent')
-# 		data_json['design_code'] = design_code
-# 	if len(titan_code) > 11:
-# 		category = frappe.db.get_value('Item',{'name':data_json['design_code']},'item_category')
-# 		size = frappe.db.get_value('Reliance Size Master',{'item_category':category,'code':titan_code[11:13]},'product_size')
-# 		data_json['size'] = size
-# 	if len(titan_code) > 13:
-# 		if titan_code[13:15] == 'B2':
-# 			data_json['qty'] = 2
-# 		else:
-# 			data_json['qty'] = 1
-# 		finding_data = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[13:15],'customer':customer_code,'description':'Finding Type'},'parent')
-# 		data_json['finding_data'] = finding_data
-
-# 	if len(titan_code) > 15:
-# 		metal_colour = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[15],'customer':customer_code,'description':'Metal Colour'},'parent')
-# 		data_json['metal_colour'] = metal_colour
-# 	if len(titan_code) > 16:
-# 		diamond_quality = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[16:18],'customer':customer_code,'description':'Diamond Quality'},'parent')
-# 		data_json['diamond_quality'] = diamond_quality
+# @frappe.whitelist()
+# def set_customer_code_logic(customer_code,titan_code):
+# 	if customer_code == 'CU0010':
+# 		data_json = set_titan_code(customer_code,titan_code)
 
 # 	return data_json
 
-# ----------------
+# def set_titan_code(customer_code,titan_code):
+# 	data_json = {}
+
+# 	if len(titan_code) >1:
+# 		metal_touch = frappe.db.get_value('Customer Attributes Table',{'code':titan_code[:2],'customer':customer_code},'parent')
+# 		data_json['metal_touch'] = metal_touch
+	
+# 	design_code = ''
+# 	if len(titan_code) >2:
+# 		design_code = frappe.db.get_value('Customer Theme Code',{'theme_code':titan_code[2:9],'customer_code':customer_code},'parent')
+# 		data_json['design_code'] = design_code
+	
+# 	if len(titan_code)>6:
+# 		design_code = frappe.db.sql(f"""select design_code, design_code_2 from `tabTitan Design Information Sheet` ttdis where fourteen_digit_set_code like '{titan_code[:6]}%'""",as_dict=1)[0]['design_code']
+# 		design_code_2 = frappe.db.sql(f"""select design_code, design_code_2 from `tabTitan Design Information Sheet` ttdis where fourteen_digit_set_code like '{titan_code[:6]}%'""",as_dict=1)[0]['design_code_2']
+# 		data_json['design_code'] = design_code
+# 		data_json['design_code_2'] = design_code_2
+
+# 	if design_code:
+# 		data_json['metal_colour'] = frappe.db.get_value('Titan Design Information Sheet',{'design_code':design_code},'metal_colour')
+
+# 		if len(titan_code) > 9:
+# 			size_data = get_size(customer_code,titan_code,design_code)
+# 			data_json['size_data'] = size_data
+
+# 		if frappe.db.get_value('Item',design_code,'item_category') in ['Nose Pin','Earrings']:
+# 			if len(titan_code) > 10:
+# 				finding_data = get_finding(titan_code)
+# 				data_json['finding_data'] = finding_data
+# 		else:
+# 			data_json['finding_data'] = ''
+			
+# 		if len(titan_code) >12:
+# 			stone_data = get_stone(customer_code,titan_code)
+# 			data_json['stone_data'] = stone_data
+# 			# data_json['stone_type'] = stone_data.parent
+# 			# stone_quality = frappe.db.get_value('Customer Attributes Table',{'code':stone_data.description,'customer':customer_code},'parent')
+# 			# data_json['stone_quality'] = stone_quality
+
+			
+# 			design_code = frappe.db.get_value('Titan Design Information Sheet',{'fourteen_digit_set_code':titan_code},'design_code')
+# 			if design_code:
+# 				data_json['design_code_2'] = frappe.db.get_value('Titan Design Information Sheet',{'fourteen_digit_set_code':titan_code},'design_code_2')
+	
+# 	return data_json
 
 @frappe.whitelist()
 def get_order_form_detail(design_code):		
@@ -142,8 +77,6 @@ def get_order_form_detail(design_code):
 		left join `tabOrder` as tod on tod.name = ti.custom_cad_order_id and ti.name = tod.item
 		where tod.item = '{design_code}'
 	""", as_dict=1)
-
-	# frappe.throw(f"{order_design_code}")
 
 	return order_design_code
 
@@ -158,6 +91,7 @@ def get_quotation(source_name, target_doc=None):
 		target_doc = frappe.get_doc(target_doc)
 
 	if source_name:
+		# frappe.throw(f"{source_name}")
 		quotation_data = frappe.db.sql(f"""
 			select 
 				tq.party_name,tq.customer_name,
@@ -170,86 +104,136 @@ def get_quotation(source_name, target_doc=None):
 				tod.product_size,tod.feature,tod.rhodium_,tod.enamal,
 				tod.gemstone_type1,tod.gemstone_quality,
 				tod.qty,tod.diamond_quality,
-				ti.master_bom
+				ti.master_bom,
+				titd.theme_code
 			from `tabQuotation Item` as tqi 
 			left join `tabQuotation` as tq
 				on tq.name = tqi.parent
 			left join `tabItem` as ti
 				on ti.name = tqi.item_code
-			# left join `tabItem Theme Code Detail` as titd
-			# 	on titd.parent = ti.name and titd.customer = tq.party_name
+			left join `tabItem Theme Code Detail` as titd
+				on titd.parent = ti.name and titd.customer = tq.party_name
 			left join `tabOrder` as tod 
 				on tod.name = tqi.order_form_id and ti.name = tod.item
 			where tqi.parent = '{source_name}'
 		""", as_dict=1)
 	
+	# frappe.throw(f"{quotation_data}")
 	for i in quotation_data:
-		target_doc.append("customer_order_form_detail",{
-			"design_code": i.get("item_code"),
-			"design_code_bom": i.get("master_bom"), 
-			"customer_code": i.get("party_name"),
-			"customer_name": i.get("customer_name"),
-			"category": i.get("item_category"),
-			"subcategory": i.get("item_subcategory"),
-			"quotation": i.get("parent"),
-			"order_id": i.get("order_form_id"),
-			"metal_type": i.get("metal_type"),
-			"metal_touch": i.get("metal_touch"),
-			"metal_target": i.get("metal_target"),
-			"metal_colour": i.get("metal_colour"),
-			"feature": i.get("feature"),
-			"diamond_target": i.get("diamond_target"),
-			"diamond_quality": i.get("diamond_quality"),
-			"gemstone_type": i.get("gemstone_type1"),
-			"gemstone_quality": i.get("gemstone_quality"),
-			"product_size": i.get("product_size"),
-			"enamal": i.get("enamal"),
-			"no_of_pcs": i.get("qty"),
-			"rhodium": i.get("rhodium_"),
-		})
-	# quotation_data = frappe.db.sql(f"""
-		# 	select tqi.item_code,ti.custom_cad_order_id,tqi.parent,
-		# 	tod.metal_type,tod.metal_touch,tod.metal_colour,tod.metal_target,tod.diamond_target,
-		# 	tod.product_size,tod.feature,tod.rhodium_,tod.enamal,tod.gemstone_type1,tod.gemstone_quality,
-		# 	tod.qty,tod.diamond_quality
-		# 	from `tabQuotation Item` as tqi 
-		# 	left join `tabItem` as ti
-		# 	on ti.name = tqi.item_code
-		# 	left join `tabOrder` as tod on tod.name = tqi.order_form_id
-		# 	where tqi.parent = '{source_name}'
-		# """, as_dict=1)
-
-		# frappe.throw(f"{quotation_data}")
+		# if i.get("theme_code"):
+			target_doc.append("customer_order_form_detail",{
+				"design_code": i.get("item_code"),
+				"design_code_bom": i.get("master_bom"), 
+				"customer_code": i.get("party_name"),
+				"customer_name": i.get("customer_name"),
+				"category": i.get("item_category"),
+				"subcategory": i.get("item_subcategory"),
+				"quotation": i.get("parent"),
+				"order_id": i.get("order_form_id"),
+				# "metal_type": i.get("metal_type"),
+				# "metal_touch": i.get("metal_touch"),
+				"metal_target": i.get("metal_target"),
+				"metal_colour": i.get("metal_colour"),
+				"feature": i.get("feature"),
+				"diamond_target": i.get("diamond_target"),
+				"diamond_quality": i.get("diamond_quality"),
+				"gemstone_type": i.get("gemstone_type1"),
+				"gemstone_quality": i.get("gemstone_quality"),
+				"product_size": i.get("product_size"),
+				"enamal": i.get("enamal"),
+				"no_of_pcs": i.get("qty"),
+				"rhodium": i.get("rhodium_"),
+			})
+		# else: 
+		# 	frappe.throw(_("Please Set Theme Code in Item {0}")
+		# 		.format(i.get("item_code"))
+		# 		)
 	return target_doc
 
-# @frappe.whitelist()
-# def get_theme_code(customer):
-# 	item_code_list = frappe.db.sql(f""" 
-# 		select parent,theme_code from `tabItem Theme Code Detail` where customer = '{customer}' """,as_dict=1 )
+def set_data(self):
+	if self.customer_order_form_detail:
+		for row in self.customer_order_form_detail:
+			if row.digit14_code:
+				json_14digit = get_14code_detail(row.digit14_code, row.customer_code)
+				if isinstance(json_14digit, dict):
+					row.theme_code = json_14digit.get("theme_code")
+					row.design_code = json_14digit.get("design_code")
+					row.design_code_bom = json_14digit.get("bom")
+					row.category = json_14digit.get("item_category")
+					row.subcategory = json_14digit.get("item_subcategory")
+					row.setting_type = json_14digit.get("setting_type")
+					row.metal_type = json_14digit.get("metal_type")
+					row.metal_touch = json_14digit.get("metal_touch")
+					row.metal_colour = json_14digit.get("metal_colour")
+					row.diamond_quality = json_14digit.get("stone_data")
+					row.finding = json_14digit.get("finding_data")
+					row.customer_product_size = json_14digit.get("size_data")
+					row.image = json_14digit.get("design_image")
+					row.serial_no = json_14digit.get("serial_no")
+					# from bom
+					row.feature = json_14digit.get("feature")
+					row.metal_target = json_14digit.get("metal_target")
+					row.diamond_target = json_14digit.get("diamond_target")
+					row.product_size = json_14digit.get("product_size")
+					row.chain = json_14digit.get("chain")
+					row.rhodium = json_14digit.get("rhodium")
+			if row.digit18_code:
+				json_18digit = get_18code_detail(row.digit18_code, row.customer_code)
+				if isinstance(json_18digit, dict):
+					row.theme_code = json_18digit.get("theme_code")
+					row.design_code = json_18digit.get("design_code")
+					row.design_code_bom = json_18digit.get("bom")
+					row.category = json_18digit.get("item_category")
+					row.subcategory = json_18digit.get("item_subcategory")
+					row.setting_type = json_18digit.get("setting_type")
+					row.metal_type = json_18digit.get("metal_type")
+					row.metal_touch = json_18digit.get("metal_touch")
+					row.metal_colour = json_18digit.get("metal_colour")
+					row.diamond_quality = json_18digit.get("stone_data")
+					row.finding = json_18digit.get("finding_data")
+					row.customer_product_size = json_18digit.get("size_data")
+					row.image = json_18digit.get("design_image")
+					row.serial_no = json_18digit.get("serial_no")
+					# from bom
+					row.feature = json_18digit.get("feature")
+					row.metal_target = json_18digit.get("metal_target")
+					row.diamond_target = json_18digit.get("diamond_target")
+					row.product_size = json_18digit.get("product_size")
+					row.chain = json_18digit.get("chain")
+					row.rhodium = json_18digit.get("rhodium")
+			if row.digit15_code:
+				json_15digit = get_15code_detail(row.digit15_code, row.customer_code)
+				if isinstance(json_15digit, dict):
+					row.theme_code = json_15digit.get("theme_code")
+					row.product_type = json_15digit.get("product_type")
+					row.design_code = json_15digit.get("design_code")
+					row.design_code_bom = json_15digit.get("bom")
+					row.category = json_15digit.get("item_category")
+					row.subcategory = json_15digit.get("item_subcategory")
+					row.setting_type = json_15digit.get("setting_type")
+					row.metal_type = json_15digit.get("metal_type")
+					row.metal_touch = json_15digit.get("metal_touch")
+					row.metal_colour = json_15digit.get("metal_colour")
+					row.diamond_quality = json_15digit.get("stone_data")
+					row.finding = json_15digit.get("finding_data")
+					row.customer_product_size = json_15digit.get("size_data")
+					row.image = json_15digit.get("design_image")
+					row.serial_no = json_15digit.get("serial_no")
+					# from bom
+					row.feature = json_15digit.get("feature")
+					row.metal_target = json_15digit.get("metal_target")
+					row.diamond_target = json_15digit.get("diamond_target")
+					row.product_size = json_15digit.get("product_size")
+					row.chain = json_15digit.get("chain")
+					row.rhodium = json_15digit.get("rhodium")
+
+@frappe.whitelist()
+def get_temp_bom_details(design_code, bom):
+	# feature,metal_target,diamond_target,product_size,chain,rhodium,
+	bom_detail = frappe.db.get_value("BOM",{'item': design_code, 'name': bom, 'bom_type': 'Template'}, 
+		['feature','metal_target','diamond_target','product_size','chain','rhodium'])
 	
-# 	db_data = []
-# 	for item in item_code_list:
-# 		theme = item.theme_code 
-# 		item_bom = frappe.db.get_value("Item", item.parent, "master_bom")
-
-# 		if item_bom:
-# 			fg_bom_list = frappe.db.get_list("BOM",filters={"name": item_bom,"bom_type": "Finish Goods"} , fields=["*"])
-# 			master_bom = fg_bom_list
-
-# 			if not fg_bom_list:
-# 				temp_bom_list = frappe.db.get_list("BOM",filters={"name": item_bom,"bom_type": "Template"} , fields=["*"])
-# 				master_bom = temp_bom_list
-# 				# db_data.extend(master_bom)
-
-# 			if not master_bom:
-# 				frappe.throw(f"Master BOM is not set in {item.parent}")
-
-# 			for bom in master_bom:
-# 				bom["theme_code"] = theme 
-# 				db_data.append(bom)
-
-# 	return db_data
-
+	return bom_detail
 
 # get detail from 14 digit code 
 @frappe.whitelist()
@@ -271,23 +255,34 @@ def get_14code_detail(digit14_code, customer):
 		if design_code:
 			data_json['design_code'] = design_code
 		else:
-			frappe.msgprint(_("Please Set the Theme code in Item "))
+			frappe.throw(f"Please Set the Theme code <b>{theme_code}</b> in Item ")
 
 		# details from design information sheet as per design code
+		# 'metal_touch',
 		if design_code:
-			design_sheet = frappe.db.get_value('Customer Design Information Sheet', {'customer_code': customer, 'design_code': design_code}, 
-					['bom','item_category','item_subcategory','setting_type','metal_type','metal_touch','metal_colour','design_image','serial_no'])
-			# frappe.throw(f"{design_sheet}")
+			design_sheet = frappe.db.get_value('Customer Design Information Sheet', 
+					{'customer_code': customer, 'design_code': design_code}, 
+					['bom','item_category','item_subcategory','setting_type','metal_type','metal_colour','design_image','serial_no'])
+			# frappe.throw(f"{bom_detail}")
 			if design_sheet:
+				bom_detail = get_temp_bom_details(design_code, design_sheet[0])
 				data_json['bom'] = design_sheet[0]
 				data_json['item_category'] = design_sheet[1]
 				data_json['item_subcategory'] = design_sheet[2]
 				data_json['setting_type'] = design_sheet[3]
 				data_json['metal_type'] = design_sheet[4]
-				data_json['metal_touch'] = design_sheet[5]
-				data_json['metal_colour'] = design_sheet[6]
-				data_json['design_image'] = design_sheet[7]
-				data_json['serial_no'] = design_sheet[8]
+				# data_json['metal_touch'] = design_sheet[5]
+				data_json['metal_colour'] = design_sheet[5]
+				data_json['design_image'] = design_sheet[6]
+				data_json['serial_no'] = design_sheet[7]
+			if bom_detail:
+				# data_json[feature,metal_target,diamond_target,product_size,chain,rhodium]
+				data_json['feature'] = bom_detail[0]
+				data_json['metal_target'] = bom_detail[1]
+				data_json['diamond_target'] = bom_detail[2]
+				data_json['product_size'] = bom_detail[3]
+				data_json['chain'] = bom_detail[4]
+				data_json['rhodium'] = bom_detail[5]
 
 	if design_code:
 		# for size as per category
@@ -310,9 +305,8 @@ def get_14code_detail(digit14_code, customer):
 				data_json['stone_data'] = stone_data
 			else:
 				data_json['stone_data'] = ''
-	# frappe.throw(f"{data_json}")
+				
 	return data_json
-
 
 # get size from titan size master
 def get_size(customer,titan_code,design_code):
@@ -323,7 +317,6 @@ def get_size(customer,titan_code,design_code):
 	else:
 		size_data = frappe.db.get_value('Titan Size Master',{'customer':customer,'code':titan_code[9],'item_category':item_category,'country':'India'},'product_size')
 
-	# size_data = frappe.db.sql(f"""SELECT name, inner_dia ,circumference  from  `tabTitan Size by Category` ttsbc  where gk_category ='{bom_data.item_category}' and name like '{titan_code[9]}%'""",as_dict=1)
 	return size_data
 
 @frappe.whitelist()
@@ -348,20 +341,29 @@ def get_18code_detail(digit18_code, customer):
 		if design_code:
 			data_json['design_code'] = design_code
 		else:
-			frappe.msgprint(_("Please Set the Theme code in Item "))
+			frappe.throw(f"Please Set the Theme code <b>{theme_code}</b> in Item ")
 	
 	# 	# details from design information sheet as per design code
 		if design_code:
-			design_sheet = frappe.db.get_value('Customer Design Information Sheet', {'customer_code': customer, 'design_code': design_code}, 
+			design_sheet = frappe.db.get_value('Customer Design Information Sheet', 
+						{'customer_code': customer, 'design_code': design_code}, 
 					['bom','item_category','item_subcategory','setting_type','design_image','serial_no'])
 			
 			if design_sheet:
+				bom_detail = get_temp_bom_details(design_code, design_sheet[0])
 				data_json['bom'] = design_sheet[0]
 				data_json['item_category'] = design_sheet[1]
 				data_json['item_subcategory'] = design_sheet[2]
 				data_json['setting_type'] = design_sheet[3]
 				data_json['design_image'] = design_sheet[4]
 				data_json['serial_no'] = design_sheet[5]
+			if bom_detail:
+				data_json['feature'] = bom_detail[0]
+				data_json['metal_target'] = bom_detail[1]
+				data_json['diamond_target'] = bom_detail[2]
+				data_json['product_size'] = bom_detail[3]
+				data_json['chain'] = bom_detail[4]
+				data_json['rhodium'] = bom_detail[5]
 
 	if design_code:
 	# 	# for size as per category
@@ -416,14 +418,14 @@ def get_15code_detail(digit15_code, customer):
 		
 	design_code = ''
 	if len(digit15_code) > 13: 
-		theme_code = digit15_code[7:14]
+		theme_code = digit15_code[8:15]
 		data_json['theme_code'] = theme_code
 
 		design_code = frappe.db.get_value('Item Theme Code Detail', {'customer': customer, 'theme_code': theme_code}, 'parent')
 		if design_code:
 			data_json['design_code'] = design_code
 		else:
-			frappe.msgprint(_("Please Set the Theme code in Item "))
+			frappe.throw(f"Please Set the Theme code <b>{theme_code}</b> in Item ")
 	
 	# 	# details from design information sheet as per design code
 		if design_code:
@@ -431,6 +433,7 @@ def get_15code_detail(digit15_code, customer):
 					['bom','item_category','item_subcategory','setting_type','metal_type','design_image','serial_no'])
 			
 			if design_sheet:
+				bom_detail = get_temp_bom_details(design_code, design_sheet[0])
 				data_json['bom'] = design_sheet[0]
 				data_json['item_category'] = design_sheet[1]
 				data_json['item_subcategory'] = design_sheet[2]
@@ -438,6 +441,13 @@ def get_15code_detail(digit15_code, customer):
 				data_json['metal_type'] = design_sheet[4]
 				data_json['design_image'] = design_sheet[5]
 				data_json['serial_no'] = design_sheet[6]
+			if bom_detail:
+				data_json['feature'] = bom_detail[0]
+				data_json['metal_target'] = bom_detail[1]
+				data_json['diamond_target'] = bom_detail[2]
+				data_json['product_size'] = bom_detail[3]
+				data_json['chain'] = bom_detail[4]
+				data_json['rhodium'] = bom_detail[5]
 
 	if design_code:
 		# for size as per category

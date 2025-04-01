@@ -56,12 +56,14 @@ frappe.query_reports["Attendance Punch Error Report"] = {
 		}).addClass("btn-info");
 
 		report.page.add_button("Generate", function() {
-			var date = frappe.query_report.get_filter_value('attendance_date');
+			// var date = frappe.query_report.get_filter_value('attendance_date');
 			var employeeId = frappe.query_report.get_filter_value('employee');
-			frappe.query_report.set_filter_value({
-				"date": date,
-				"employee": employeeId
-			});
+			if (employeeId){
+				frappe.query_report.set_filter_value({
+					// "date": date,
+					"employee": employeeId
+				});
+			}
 		}).addClass("btn-primary");
 
 		report.page.add_inner_button(__("Mark as Attendance"), function () {
@@ -97,7 +99,7 @@ frappe.query_reports["Attendance Punch Error Report"] = {
 				return false;
 			}
 			
-			console.log(selectedRowIndex, selectedRowData);
+			console.log(checkedBox, selectedCell, selectedRowIndex, selectedRowData);
 			
 			// Open the Manual Punch form with the selected row's data
 			frappe.new_doc("Manual Punch", {
@@ -105,7 +107,16 @@ frappe.query_reports["Attendance Punch Error Report"] = {
 				error_date: selectedRowData.attendance_date,
 				employee: selectedRowData.employee
 			});
-		}).addClass("btn-second");				
+		}).addClass("btn-second");		
+		document.addEventListener("change", function (event) {
+            if (event.target.matches('.dt-cell input[type="checkbox"]')) {
+                document.querySelectorAll('.dt-cell input[type="checkbox"]').forEach(checkbox => {
+                    if (checkbox !== event.target) {
+                        checkbox.checked = false;
+                    }
+                });
+            }
+        });		
 	},
 	get_datatable_options(options) {
 		console.log(options);

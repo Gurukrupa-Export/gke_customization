@@ -78,49 +78,13 @@ frappe.ui.form.on('Delivery Challan', {
                 }
 			};
 		});
-		//status
-		// var currentStatus = frm.doc.status;
-        // frm.clear_custom_buttons('Status');
-
-        // if (currentStatus === 'On Hold') {
-        //     frm.add_custom_button(__('Resume'), function() {
-        //         frm.set_value('status', 'Draft'); 
-        //         frm.save();
-        //     }, __('Status'));
-        //     frm.add_custom_button(__('Close'), function() {
-        //         frm.set_value('status', 'Completed');
-        //         frm.save();
-        //     }, __('Status'));
-        // } else if (currentStatus === 'Completed') {
-        //     frm.add_custom_button(__('Re open'), function() {
-        //         frm.set_value('status', 'Draft');
-        //         frm.save();
-        //     }, __('Status'));
-        // } else {
-        //     // this.frm.add_custom_button(__('Hold'), () => this.hold_sales_order(), __("Status"))
-        //     frm.add_custom_button(__('Hold'), function() {
-        //         frm.set_value('status', 'On Hold');
-        //         hold_sales_order(frm);
-        //         frm.save();
-        //     }, __('Status'));
-		// 	frm.add_custom_button(__('Close'), function() {
-        //         frm.set_value('status', 'Completed');
-        //         frm.save();
-        //     }, __('Status'));
-        // }
 
         frm.add_custom_button(__("Sales Invoice"), function(){
             erpnext.utils.map_current_doc({
                 method: "gke_customization.gke_customization.doc_events.sales_invoice.get_delivery_challan",
                 source_doctype: "Sales Invoice",
                 target: frm,
-                setters: [
-					{
-                        label: "Amended From",
-                        fieldname: "amended_from",
-                        fieldtype: "Link",
-                        options: "Sales Invoice"
-                    },
+                setters: [ 
                     {
                         label: "Cost Center",
                         fieldname: "cost_center",
@@ -133,21 +97,14 @@ frappe.ui.form.on('Delivery Challan', {
                         fieldtype: "Link",
                         options: "Customer",
                         // reqd: 1,
-                        // default: frm.doc.party_name || undefined
-                    },
-                    {
-                        label: "Project",
-                        fieldname: "project",
-                        fieldtype: "Link",
-                        options: "Project",
-                        // reqd: 1,
-                        // default: frm.doc.order_type || undefined
-                    }
+                        default: frm.doc.customer || undefined
+                    }, 
                 ],
-                // get_query_filters: {
+                get_query_filters: {
+                    company: frm.doc.company,
                 //     item: ['is', 'set'],
-                //     docstatus: 1
-                // }
+                    docstatus: 1
+                }
             })
         }, __("Get Items From"))
         frm.add_custom_button(__("Stock Entry"), function(){
@@ -155,13 +112,7 @@ frappe.ui.form.on('Delivery Challan', {
                 method: "gke_customization.gke_customization.doc_events.stock_entry.get_delivery_challan",
                 source_doctype: "Stock Entry",
                 target: frm,
-                setters: [
-					{
-                        label: "Amended From",
-                        fieldname: "amended_from",
-                        fieldtype: "Link",
-                        options: "Stock Entry"
-                    },
+                setters: [ 
                     {
                         label: "Stock Entry Type",
                         fieldname: "stock_entry_type",
@@ -174,22 +125,22 @@ frappe.ui.form.on('Delivery Challan', {
                         fieldtype: "Link",
                         options: "Customer",
                         // reqd: 1,
-                        // default: frm.doc.party_name || undefined
+                        default: frm.doc.customer || undefined
                     },
                     {
-                        label: "Inventory Type",
-                        fieldname: "inventory_type",
+                        label: "Company",
+                        fieldname: "company",
                         fieldtype: "Link",
-                        options: "Inventory Type",
-                        // reqd: 1,
-                        default: frm.doc.order_type || undefined
+                        options: "Company",
+                        default: frm.doc.company || undefined
                     }
                 ],
                 
-                // get_query_filters: {
-                //     item: ['is', 'set'],
-                //     docstatus: 1
-                // }
+                get_query_filters: {
+                    company: frm.doc.company,
+                    customer: frm.doc.customer,
+                    docstatus: 1,
+                }
             })
         }, __("Get Items From"))
         frm.add_custom_button(__("Material Transfer to Branch"), function(){
@@ -197,18 +148,11 @@ frappe.ui.form.on('Delivery Challan', {
                 method: "gke_customization.gke_customization.doc_events.stock_entry.get_delivery_challan",
                 source_doctype: "Stock Entry",
                 target: frm,
-                setters: [
-					// {
-                    //     label: "Amended From",
-                    //     fieldname: "amended_from",
-                    //     fieldtype: "Link",
-                    //     options: "Stock Entry"
-                    // },
+                setters: [ 
                     {
                         label: "Stock Entry Type",
                         fieldname: "stock_entry_type",
-                        fieldtype: "Data",
-                        // options: "Stock Entry Type",
+                        fieldtype: "Data", 
                         default: "Material Transfer to Branch"
                     },
                     {
@@ -217,26 +161,58 @@ frappe.ui.form.on('Delivery Challan', {
                         fieldtype: "Link",
                         options: "Customer",
                         // reqd: 1,
-                        // default: frm.doc.party_name || undefined
+                        default: frm.doc.customer || undefined
                     },
                     {
-                        label: "Inventory Type",
-                        fieldname: "inventory_type",
+                        label: "Company",
+                        fieldname: "company",
                         fieldtype: "Link",
-                        options: "Inventory Type",
-                        // reqd: 1,
-                        default: frm.doc.order_type || undefined
+                        options: "Company",
+                        default: frm.doc.company || undefined
                     }
                 ],
                 size: "extra-large",
                 get_query_filters: {
-                    // item: ['is', 'set'],
+                    company: frm.doc.company,
                     docstatus: 1,
                     stock_entry_type : "Material Transfer to Branch"
                 }
             })
         }, __("Get Items From"))
-        // console.log(frm);		        
+        frm.add_custom_button(__("Purchase Return"), function(){
+            erpnext.utils.map_current_doc({
+                method: "gke_customization.gke_customization.doc_events.purchase_receipt.get_delivery_challan1",
+                source_doctype: "Purchase Receipt",
+                target: frm,
+                setters: [ 
+                    {
+                        label: "Return Against Purchase Receipt",
+                        fieldname: "return_against",
+                        fieldtype: "Link",
+                        options: "Purchase Receipt", 
+                    },
+                    {
+                        label: "Supplier",
+                        fieldname: "supplier",
+                        fieldtype: "Link",
+                        options: "Supplier",
+                        default: frm.doc.supplier || undefined
+                    }, 
+                    {
+                        label: "Company",
+                        fieldname: "company",
+                        fieldtype: "Link",
+                        options: "Company",
+                        default: frm.doc.company || undefined
+                    }
+                ],
+                // size: "extra-large", 
+                get_query_filters: {
+                    company: frm.doc.company,
+                    is_return: 1 
+                }
+            })
+        }, __("Get Items From"))		        
     }    
 });
 

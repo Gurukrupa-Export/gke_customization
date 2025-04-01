@@ -1,198 +1,200 @@
 {
-"actions": [],
-"allow_rename": 1,
-"autoname": "format:ORD/T/{#####}",
-"creation": "2023-10-27 09:24:02.490579",
-"default_view": "List",
-"doctype": "DocType",
-"editable_grid": 1,
-"engine": "InnoDB",
-"field_order": [
-    "workflow_state",
-    "customer_code",
-    "column_break_zyjn",
-    "customer_name",
-    "section_break_buom",
-    "customer_order_form_detail",
-    "section_break_oortm",
-    "design_code_2",
-    "design_code_2_bom",
-    "item_category_2",
-    "setting_type_2",
-    "column_break_qhc4d",
-    "serial_no_2",
-    "serial_no_2_bom",
-    "item_subcategory_2",
-    "section_break_msyr7",
-    "productivity",
-    "column_break_tipf2",
-    "titan_category",
-    "section_break_0qvw9",
-    "titan_order_form_details",
-    "amended_from"
-],
-"fields": [
-    {
-    "fieldname": "workflow_state",
-    "fieldtype": "Link",
-    "hidden": 1,
-    "label": "Workflow State",
-    "options": "Workflow State"
-    },
-    {
-    "fieldname": "customer_code",
-    "fieldtype": "Link",
-    "label": "Customer Code",
-    "options": "Customer"
-    },
-    {
-    "fieldname": "section_break_oortm",
-    "fieldtype": "Section Break",
-    "hidden": 1,
-    "label": "Design Code 2"
-    },
-    {
-    "default": "Studded",
-    "fieldname": "productivity",
-    "fieldtype": "Select",
-    "hidden": 1,
-    "label": "Productivity",
-    "options": "\nPlain\nStudded",
-    "read_only": 1
-    },
-    {
-    "fieldname": "column_break_tipf2",
-    "fieldtype": "Column Break"
-    },
-    {
-    "fieldname": "titan_category",
-    "fieldtype": "Link",
-    "hidden": 1,
-    "label": "Titan Category",
-    "options": "Attribute Value"
-    },
-    {
-    "fieldname": "section_break_0qvw9",
-    "fieldtype": "Section Break",
-    "hidden": 1,
-    "label": "Titan Order Form Details"
-    },
-    {
-    "fieldname": "titan_order_form_details",
-    "fieldtype": "Table",
-    "label": "Titan Order Form Details",
-    "options": "Titan Order Form Details"
-    },
-    {
-    "fieldname": "amended_from",
-    "fieldtype": "Link",
-    "label": "Amended From",
-    "no_copy": 1,
-    "options": "Customer Order Form",
-    "print_hide": 1,
-    "read_only": 1
-    },
-    {
-    "fieldname": "design_code_2",
-    "fieldtype": "Link",
-    "label": "Design Code 2",
-    "options": "Item"
-    },
-    {
-    "fetch_from": "design_code_2.master_bom",
-    "fieldname": "design_code_2_bom",
-    "fieldtype": "Link",
-    "label": "Design Code 2 BOM",
-    "options": "BOM"
-    },
-    {
-    "fieldname": "column_break_qhc4d",
-    "fieldtype": "Column Break"
-    },
-    {
-    "fieldname": "serial_no_2",
-    "fieldtype": "Link",
-    "label": "Serial No 2",
-    "options": "Serial No"
-    },
-    {
-    "fieldname": "serial_no_2_bom",
-    "fieldtype": "Link",
-    "label": "Serial No 2 BOM",
-    "options": "BOM"
-    },
-    {
-    "fieldname": "section_break_msyr7",
-    "fieldtype": "Section Break"
-    },
-    {
-    "fetch_from": "design_code_2.item_category",
-    "fieldname": "item_category_2",
-    "fieldtype": "Link",
-    "label": "Item Category 2",
-    "options": "Attribute Value"
-    },
-    {
-    "fetch_from": "design_code_2.setting_type",
-    "fieldname": "setting_type_2",
-    "fieldtype": "Link",
-    "label": "Setting Type 2",
-    "options": "Attribute Value"
-    },
-    {
-    "fetch_from": "design_code_2.item_subcategory",
-    "fieldname": "item_subcategory_2",
-    "fieldtype": "Link",
-    "label": "Item Subcategory 2",
-    "options": "Attribute Value"
-    },
-    {
-    "fieldname": "section_break_buom",
-    "fieldtype": "Section Break"
-    },
-    {
-    "fieldname": "customer_order_form_detail",
-    "fieldtype": "Table",
-    "label": "Customer Order Form Detail",
-    "options": "Customer Order Form Detail"
-    },
-    {
-    "fieldname": "column_break_zyjn",
-    "fieldtype": "Column Break"
-    },
-    {
-    "fetch_from": "customer_code.customer_name",
-    "fieldname": "customer_name",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "Customer Name",
-    "read_only": 1
-    }
-],
-"index_web_pages_for_search": 1,
-"is_submittable": 1,
-"links": [],
-"modified": "2024-12-17 17:02:13.864625",
-"modified_by": "Administrator",
-"module": "GKE Order Forms",
-"name": "Customer Order Form",
-"naming_rule": "Expression",
-"owner": "Administrator",
-"permissions": [
-    {
-    "create": 1,
-    "delete": 1,
-    "email": 1,
-    "export": 1,
-    "print": 1,
-    "read": 1,
-    "report": 1,
-    "role": "System Manager",
-    "share": 1,
-    "write": 1
-    }
-],
-"sort_field": "modified",
-"sort_order": "DESC",
-"states": []
+ "_liked_by": "[\"Administrator\"]",
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:ORD/T/{#####}",
+ "creation": "2023-10-27 09:24:02.490579",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "workflow_state",
+  "customer_code",
+  "column_break_zyjn",
+  "customer_name",
+  "section_break_buom",
+  "customer_order_form_detail",
+  "section_break_oortm",
+  "design_code_2",
+  "design_code_2_bom",
+  "item_category_2",
+  "setting_type_2",
+  "column_break_qhc4d",
+  "serial_no_2",
+  "serial_no_2_bom",
+  "item_subcategory_2",
+  "section_break_msyr7",
+  "productivity",
+  "column_break_tipf2",
+  "titan_category",
+  "section_break_0qvw9",
+  "titan_order_form_details",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Workflow State",
+   "options": "Workflow State"
+  },
+  {
+   "fieldname": "customer_code",
+   "fieldtype": "Link",
+   "label": "Customer Code",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "section_break_oortm",
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "label": "Design Code 2"
+  },
+  {
+   "default": "Studded",
+   "fieldname": "productivity",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Productivity",
+   "options": "\nPlain\nStudded",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_tipf2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "titan_category",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Titan Category",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "section_break_0qvw9",
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "label": "Titan Order Form Details"
+  },
+  {
+   "fieldname": "titan_order_form_details",
+   "fieldtype": "Table",
+   "label": "Titan Order Form Details",
+   "options": "Titan Order Form Details"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Customer Order Form",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "design_code_2",
+   "fieldtype": "Link",
+   "label": "Design Code 2",
+   "options": "Item"
+  },
+  {
+   "fetch_from": "design_code_2.master_bom",
+   "fieldname": "design_code_2_bom",
+   "fieldtype": "Link",
+   "label": "Design Code 2 BOM",
+   "options": "BOM"
+  },
+  {
+   "fieldname": "column_break_qhc4d",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "serial_no_2",
+   "fieldtype": "Link",
+   "label": "Serial No 2",
+   "options": "Serial No"
+  },
+  {
+   "fieldname": "serial_no_2_bom",
+   "fieldtype": "Link",
+   "label": "Serial No 2 BOM",
+   "options": "BOM"
+  },
+  {
+   "fieldname": "section_break_msyr7",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "design_code_2.item_category",
+   "fieldname": "item_category_2",
+   "fieldtype": "Link",
+   "label": "Item Category 2",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "design_code_2.setting_type",
+   "fieldname": "setting_type_2",
+   "fieldtype": "Link",
+   "label": "Setting Type 2",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "design_code_2.item_subcategory",
+   "fieldname": "item_subcategory_2",
+   "fieldtype": "Link",
+   "label": "Item Subcategory 2",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "section_break_buom",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "customer_order_form_detail",
+   "fieldtype": "Table",
+   "label": "Customer Order Form Detail",
+   "options": "Customer Order Form Detail"
+  },
+  {
+   "fieldname": "column_break_zyjn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "customer_code.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer Name",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-01-01 12:39:34.494734",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Customer Order Form",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
 }

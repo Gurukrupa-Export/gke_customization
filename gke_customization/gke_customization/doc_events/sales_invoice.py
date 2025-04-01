@@ -28,7 +28,9 @@ def get_delivery_challan(source_name, target_doc=None):
 					if k[2] in ['Diamond - V','Metal - V','Gemstone - V','Finding - V','Other - V','Diamond - T','Metal - T','Gemstone - T','Finding - T','Other - T'] :					
 						# frappe.throw('m')
 						target_doc.append("delivery_challan_detail", {
-								"sales_invoice": i.get("name"),
+								"reference_document_type" : "Sales Invoice",
+                                "reference_document": i.get("name"), 
+								# "sales_invoice": i.get("name"),
 								"amount": j.get("amount"),
 								"qty": j.get("qty"),
 								"uom": j.get("uom"),
@@ -37,7 +39,9 @@ def get_delivery_challan(source_name, target_doc=None):
 					else: 
 						if "JEWELLERY STUDDED WITH GEMS" in k[1]:
 							target_doc.append("delivery_challan_detail", {
-								"sales_invoice": i.get("name"),
+								"reference_document_type" : "Sales Invoice",
+                                "reference_document": i.get("name"),
+								# "sales_invoice": i.get("name"),
 								"amount": j.get("amount"),
 								"qty": j.get("qty"),
 								"uom": j.get("uom"),
@@ -45,7 +49,9 @@ def get_delivery_challan(source_name, target_doc=None):
 							})
 						else:
 							target_doc.append("delivery_challan_detail", {
-								"sales_invoice": i.get("name"),
+								"reference_document_type" : "Sales Invoice",
+                                "reference_document": i.get("name"),
+								# "sales_invoice": i.get("name"),
 								"amount": j.get("amount"),
 								"qty": j.get("qty"),
 								"uom": j.get("uom"),
@@ -53,11 +59,13 @@ def get_delivery_challan(source_name, target_doc=None):
 							})
 			else: 
 				target_doc.append("delivery_challan_detail", {
-							"sales_invoice": i.get("name"),
+							"reference_document_type" : "Sales Invoice",
+                            "reference_document": i.get("name"),
+							# "sales_invoice": i.get("name"),
 							"amount": j.get("amount"),
 							"qty": j.get("qty"),
 							"uom": j.get("uom"),
-							"description": ' ',
+							"description": j.get("description"),
 						})
 
 	return target_doc
