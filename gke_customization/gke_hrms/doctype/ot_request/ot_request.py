@@ -38,7 +38,11 @@ class OTRequest(Document):
 						ot_time = child.ot_hours
 					
 					# Convert time field (which is a time object) to total hours
-					total_hours = ot_time.hour + (ot_time.minute / 60) + (ot_time.second / 3600)
+					# total_hours = ot_time.hour + (ot_time.minute / 60) + (ot_time.second / 3600)
+					if isinstance(ot_time, timedelta):
+						total_hours = ot_time.total_seconds() / 3600  # Correct way to get total hours from timedelta
+					else:
+						total_hours = ot_time.hour + (ot_time.minute / 60) + (ot_time.second / 3600)
 					
 					# Set food eligibility based on total hours (1 hour or more is eligible)
 					child.food_eligibility = "Eligible" if total_hours > 1 else "Not Eligible"
