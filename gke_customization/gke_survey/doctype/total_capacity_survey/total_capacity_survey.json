@@ -15,14 +15,19 @@
   "space_metrics_section",
   "total_space_available",
   "total_occupied_space",
+  "column_break_jkaq",
   "total_balance_non_occupied_space",
   "output_metrics_section",
   "total_output_from_space_available",
   "total_output_from_occupied_space",
+  "column_break_lxzg",
   "total_output_from_non_occupied_space",
   "fulfillment_periods_section",
-  "space_fulfillment_period",
-  "output_fulfillment_period",
+  "from_space",
+  "from_output",
+  "column_break_6qcd",
+  "to_space",
+  "to_output",
   "amended_from"
  ],
  "fields": [
@@ -82,7 +87,8 @@
   {
    "fieldname": "total_balance_non_occupied_space",
    "fieldtype": "Float",
-   "label": "Total Balance Non-Occupied Space"
+   "label": "Total Balance Non-Occupied Space",
+   "read_only": 1
   },
   {
    "fieldname": "output_metrics_section",
@@ -102,22 +108,13 @@
   {
    "fieldname": "total_output_from_non_occupied_space",
    "fieldtype": "Float",
-   "label": "Total Output from Non-Occupied Space"
+   "label": "Total Not Output from Non-Occupied Space",
+   "read_only": 1
   },
   {
    "fieldname": "fulfillment_periods_section",
    "fieldtype": "Section Break",
    "label": "Fulfillment Periods"
-  },
-  {
-   "fieldname": "space_fulfillment_period",
-   "fieldtype": "Int",
-   "label": "Space Fulfillment Period"
-  },
-  {
-   "fieldname": "output_fulfillment_period",
-   "fieldtype": "Int",
-   "label": "Output Fulfillment Period"
   },
   {
    "fieldname": "amended_from",
@@ -128,12 +125,44 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "from_space",
+   "fieldtype": "Date",
+   "label": "From Date(Space Fulfillment Period)"
+  },
+  {
+   "fieldname": "from_output",
+   "fieldtype": "Date",
+   "label": "From Date(Output Fulfillment Period)"
+  },
+  {
+   "fieldname": "column_break_6qcd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "to_space",
+   "fieldtype": "Date",
+   "label": "To Date(Space Fulfillment Period)"
+  },
+  {
+   "fieldname": "to_output",
+   "fieldtype": "Date",
+   "label": "To Date(Output Fulfillment Period)"
+  },
+  {
+   "fieldname": "column_break_jkaq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_lxzg",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-02-05 12:24:03.804001",
+ "modified": "2025-04-01 13:03:19.901789",
  "modified_by": "Administrator",
  "module": "GKE SURVEY",
  "name": "Total Capacity Survey",
