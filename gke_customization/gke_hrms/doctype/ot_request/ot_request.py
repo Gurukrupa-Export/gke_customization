@@ -24,8 +24,8 @@ class OTRequest(Document):
 		# return 
 	
 	def validate(self):
-		if not self.company or not self.branch:
-			frappe.throw("Company and Branch are required to generate the OT Request name.")
+		# if not self.company or not self.branch:
+		# 	frappe.throw("Company and Branch are required to generate the OT Request name.")
 		
 		for child in self.order_request:
 			if child.ot_hours:
@@ -50,18 +50,18 @@ class OTRequest(Document):
 					frappe.throw(f"Invalid time format for ot_hours: {child.ot_hours}")
 
 
-	def before_save(self):
-		if self.workflow_state == 'Send For Approval':
-			for row in self.hr_approver:
-				row.status = self.workflow_state
+	# def before_save(self):
+	# 	if self.workflow_state == 'Send For Approval':
+	# 		for row in self.hr_approver:
+	# 			row.status = self.workflow_state
 
-	def before_submit(self):
-		if self.workflow_state == 'Approved':
-			for row in self.hr_approver:
-				row.status = self.workflow_state
-		if self.workflow_state == 'Rejected':
-			for row in self.hr_approver:
-				row.status = self.workflow_state	
+	# def before_submit(self):
+	# 	if self.workflow_state == 'Approved':
+	# 		for row in self.hr_approver:
+	# 			row.status = self.workflow_state
+	# 	if self.workflow_state == 'Rejected':
+	# 		for row in self.hr_approver:
+	# 			row.status = self.workflow_state	
 
 
 @frappe.whitelist()
