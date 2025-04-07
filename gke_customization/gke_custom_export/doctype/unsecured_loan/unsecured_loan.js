@@ -155,10 +155,10 @@ frappe.ui.form.on("Unsecured Loan", {
 
         frm.add_custom_button(__('Create Pay Payment Entry'), function() {
             frappe.new_doc('Payment Entry', {
-                payment_type: "Receive",
+                payment_type: "Pay",
                 party_type: "Supplier",
                 posting_date: frappe.datetime.nowdate(),
-                paid_amount: frm.doc.repayment_schedule[-1]['total_payment'],
+                paid_amount: frm.doc.repayment_schedule[frm.doc.repayment_schedule.length - 1].total_payment,
                 company: frm.doc.company,
                 mode_of_payment: "Cash",
             });
