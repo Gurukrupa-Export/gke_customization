@@ -137,6 +137,7 @@ frappe.ui.form.on("Unsecured Loan", {
                 paid_amount: frm.doc.loan_amount,
                 company: frm.doc.company,
                 mode_of_payment: "Cash",
+                custom_unsecured_loan:frm.doc.name
             });
     
             // Set the party field after a short delay
@@ -161,6 +162,7 @@ frappe.ui.form.on("Unsecured Loan", {
                 paid_amount: frm.doc.repayment_schedule[frm.doc.repayment_schedule.length - 1].total_payment,
                 company: frm.doc.company,
                 mode_of_payment: "Cash",
+                custom_unsecured_loan:frm.doc.name
             });
     
             // Set the party field after a short delay
