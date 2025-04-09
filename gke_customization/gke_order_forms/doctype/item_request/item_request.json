@@ -1,0 +1,218 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-04-07 17:15:56.355279",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "user_id",
+  "section_break_raw6",
+  "item_name",
+  "item_size",
+  "column_break_ihzf",
+  "item_color",
+  "item_weight",
+  "section_break_5qrb",
+  "item_group",
+  "gst",
+  "status",
+  "item_image",
+  "image_preview",
+  "column_break_wbqs",
+  "hsn_code",
+  "item_code",
+  "remarks",
+  "item_section",
+  "consumable_type",
+  "consumable_size",
+  "consumable_color",
+  "consumable_weight",
+  "column_break_pejo",
+  "item_template",
+  "item_tac",
+  "amended_from",
+  "naming_series"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_raw6",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Item Request",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name"
+  },
+  {
+   "fieldname": "item_size",
+   "fieldtype": "Data",
+   "label": "Item Size"
+  },
+  {
+   "fieldname": "column_break_ihzf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "item_color",
+   "fieldtype": "Data",
+   "label": "Item Color"
+  },
+  {
+   "fieldname": "item_weight",
+   "fieldtype": "Data",
+   "label": "Item Weight"
+  },
+  {
+   "fieldname": "section_break_5qrb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Item Group",
+   "options": "Item Group"
+  },
+  {
+   "description": "Add GST value in Percentage",
+   "fieldname": "gst",
+   "fieldtype": "Data",
+   "label": "Item Tax (GST %)"
+  },
+  {
+   "fieldname": "column_break_wbqs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "hsn_code",
+   "fieldtype": "Data",
+   "label": "HSN Code"
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item Code",
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item_section",
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "label": "Item"
+  },
+  {
+   "fieldname": "consumable_type",
+   "fieldtype": "Link",
+   "label": "Consumable Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "consumable_size",
+   "fieldtype": "Link",
+   "label": "Consumable Size",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "consumable_color",
+   "fieldtype": "Link",
+   "label": "Consumable Color",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "consumable_weight",
+   "fieldtype": "Link",
+   "label": "Consumable Weight",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "item_template",
+   "fieldtype": "Link",
+   "label": "Item Template",
+   "options": "Item"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "\nApproved\nRejected"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "naming_series",
+   "options": "IRQ-"
+  },
+  {
+   "fieldname": "user_id",
+   "fieldtype": "Link",
+   "label": "User ID",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item_tac",
+   "fieldtype": "Link",
+   "label": "Item Tax (GST %)",
+   "options": "Item Tax Template"
+  },
+  {
+   "fieldname": "item_image",
+   "fieldtype": "Attach",
+   "label": "Item Image"
+  },
+  {
+   "fieldname": "image_preview",
+   "fieldtype": "Image",
+   "label": "Image Preview",
+   "options": "item_image"
+  },
+  {
+   "fieldname": "column_break_pejo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-04-09 09:57:37.993771",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Item Request",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
