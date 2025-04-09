@@ -68,9 +68,12 @@ def make_serial_and_design_order(source_name, target_doc=None, parent_doc = None
 	return doc.name
 
 @frappe.whitelist()
-def get_bom_details(design_id):
+def get_bom_details(design_id,serial_no=None):
 	item_subcategory = frappe.db.get_value("Item",design_id,"item_subcategory")
-	master_bom = frappe.db.get_value("Item",design_id,"master_bom")
+	if serial_no:
+		master_bom = frappe.db.get_value("Serial No",serial_no,"custom_bom_no")
+	else:
+		master_bom = frappe.db.get_value("Item",design_id,"master_bom")
 	if not master_bom:
 		frappe.throw(f"Master BOM for Item <b>{get_link_to_form('Item',design_id)}</b> is not set")
 	all_item_attributes = []

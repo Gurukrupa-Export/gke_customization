@@ -1,0 +1,99 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:business_partner_name",
+ "creation": "2025-03-31 14:09:56.177058",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "party_type",
+  "business_partner_name",
+  "section_break_fnx9",
+  "customer",
+  "customer_name",
+  "column_break_cwaz",
+  "supplier",
+  "supplier_name",
+  "account"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_fnx9",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "party_type",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Party Type",
+   "options": "\nSupplier\nCustomer"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier"
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "supplier.supplier_name",
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "label": "Supplier Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "business_partner_name",
+   "fieldtype": "Data",
+   "label": "Business Partner Name",
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_cwaz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "account",
+   "fieldtype": "Link",
+   "label": "Account",
+   "options": "Account"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-01 14:25:00.220751",
+ "modified_by": "Administrator",
+ "module": "GKE Custom Export",
+ "name": "Business Partner",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
