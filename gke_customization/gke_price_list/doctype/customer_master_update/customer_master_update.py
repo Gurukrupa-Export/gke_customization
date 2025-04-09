@@ -192,6 +192,8 @@ class CustomerMasterUpdate(Document):
                 
                 frappe.db.set_value("Customer Master Update", self.name, "new_customer", new_customer.name)
                 frappe.db.set_value("Customer Master Update", self.name, "customer_primary_contact", '')
+                if self.other_cust_address:
+                    frappe.db.set_value("Customer Master Update", self.name, "address_title", new_customer.name)          
                 self.reload()
                 
                 frappe.msgprint(f"New Customer '{new_customer.name}' has been successfully created.")
@@ -212,6 +214,8 @@ def create_supplier_address_contact(self):
         address_doc.pincode = self.pincode
         address_doc.email_address = self.email_address
         address_doc.phone = self.phone
+        if self.gstin__uin:
+            address_doc.gstin = self.gstin__uin
             
         if self.new_customer:
             address_links = address_doc.append("links", {})

@@ -113,6 +113,8 @@ class SupplierUpdateMaster(Document):
             supplier_data["supplier_group"] = supplier_data.get("supplier_group")
             supplier_data["custom_territory"] = supplier_data.get("territory")
             supplier_data["supplier_type"] = supplier_data.get("supplier_type")
+            if not supplier_data["supplier_primary_contact"]:
+                supplier_data["email_id"] = ''
             
             # Add child table data for accounts
             if accounts_data:
@@ -175,6 +177,8 @@ def create_supplier_address_contact(self):
             address_doc.pincode = self.pincode
             address_doc.email_address = self.email_address
             address_doc.phone = self.phone
+            if self.gstin__uin:
+                address_doc.gstin = self.gstin__uin
                 
             if self.new_supplier:
                 address_links = address_doc.append("links", {})
