@@ -2,7 +2,7 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Repair Order Form', {
-	delivery_date: function (frm) {
+	delivery_date(frm) {
 		validate_dates(frm, frm.doc, "delivery_date")
 		update_fields_in_child_table(frm, "delivery_date")
 		calculate_due_days(frm);
@@ -14,13 +14,13 @@ frappe.ui.form.on('Repair Order Form', {
 	system_due_date(frm) {
 		validate_dates(frm, frm.doc, "system_due_date")
 	},
-	diamond_quality: function (frm) {
+	diamond_quality(frm) {
 		$.each(frm.doc.order_details || [], function (i, d) {
 			d.diamond_quality = frm.doc.diamond_quality;
 		});
 		refresh_field("order_details");
 	},
-	customer_code: function (frm) {
+	customer_code(frm) {
 		frm.doc.service_type = [];
 		if (frm.doc.customer_code) {
 			frappe.model.with_doc("Customer", frm.doc.customer_code, function () {
@@ -33,21 +33,7 @@ frappe.ui.form.on('Repair Order Form', {
 			});
 		}
 	},
-	setup: function (frm) {
-		frm.set_query("department", function(){
-			return {
-				"filters": [
-					["Department", "company", "=", frm.doc.company],
-				]
-			}
-		});
-		frm.set_query("branch", function(){
-			return {
-				"filters": [
-					["Branch", "company", "=", frm.doc.company],
-				]
-			}
-		});
+	setup(frm,cdt,cdn) {
 		frm.set_query("diamond_quality", function (doc) {
 			if (!doc.customer_code) {
 				frappe.throw("Please select customer code.")
@@ -59,6 +45,7 @@ frappe.ui.form.on('Repair Order Form', {
 				}
 			}
 		});
+
 		frm.set_query('subcategory', 'order_details', function (doc, cdt, cdn) {
 			let d = locals[cdt][cdn];
 			return {
@@ -67,12 +54,7 @@ frappe.ui.form.on('Repair Order Form', {
 				}
 			};
 		});
-		frm.set_query('diamond_quality','order_details', function (doc) {
-			return {
-				query: 'jewellery_erpnext.query.item_attribute_query',
-				filters: { 'item_attribute': "Diamond Quality", "customer_code": doc.customer_code }
-			};
-		});
+
 		frm.set_query('bom', 'order_details', function(doc, cdt, cdn) {
 			let d = locals[cdt][cdn];
 			return {
@@ -81,11 +63,6 @@ frappe.ui.form.on('Repair Order Form', {
 				}
 			};
 		});
-		if (frm.doc.order_details) {
-			frm.doc.order_details.forEach(function (d) {
-				show_attribute_fields_for_subcategory(frm, d.doctype, d.name, d);
-			})
-		};
 
 		var fields = [['category', 'Item Category'],
 		['subcategory', 'Item Subcategory'],
@@ -100,7 +77,7 @@ frappe.ui.form.on('Repair Order Form', {
 		['sizer_type', 'Sizer Type'],
 		['enamal', 'Enamal'],
 		['rhodium', 'Rhodium'],
-		['gemstone_type1', 'Gemstone Type1'],
+		['gemstone_type', 'Gemstone Type'],
 		['gemstone_quality', 'Gemstone Quality'],
 		['stone_changeable', 'Stone Changeable'],
 		['back_belt_patti', 'Back Belt Patti'],
@@ -121,6 +98,9 @@ frappe.ui.form.on('Repair Order Form', {
 		['repair_type', 'Repair Type'],
 		['product_type','Product Type'],
 		['required_design','Required Design'],
+		['feature','Feature'],
+		['black_bead','Black Bead'],
+
 		];
 		set_filters_on_child_table_fields(frm, fields);
 
@@ -177,11 +157,11 @@ frappe.ui.form.on('Repair Order Form Detail', {
 		var d = locals[cdt][cdn];
 		fetch_item_from_serial(d, "tag_no", "item")
 		if (d.tag_no) {
-			frappe.db.get_value("BOM",{"tag_no": d.tag_no},'name', (r)=>{
-				frappe.model.set_value(cdt, cdn, 'bom', r.name)
+			frappe.db.get_value("Serial No", d.tag_no,'custom_bom_no', (r)=>{
+				frappe.model.set_value(cdt, cdn, 'bom', r.custom_bom_no)
 			})
-			frappe.db.get_value("BOM",{"tag_no": d.tag_no},'gross_weight', (r)=>{
-				frappe.model.set_value(cdt, cdn, 'bom_weight', r.gross_weight)
+			frappe.db.get_value("Serial No",d.tag_no,'custom_gross_wt', (r)=>{
+				frappe.model.set_value(cdt, cdn, 'bom_weight', r.custom_bom_no)
 			})
 		}
 	},
@@ -192,6 +172,7 @@ frappe.ui.form.on('Repair Order Form Detail', {
 				method: "gke_customization.gke_order_forms.doctype.repair_order_form.repair_order_form.get_bom_details",
 				args: {
 					"design_id": d.item,
+					"serial_no":d.tag_no
 				},
 				callback(r) {
 					if(r.message) {
@@ -201,6 +182,8 @@ frappe.ui.form.on('Repair Order Form Detail', {
 						d.setting_type = r.message.setting_type;
 						d.sub_setting_type1 = r.message.sub_setting_type1
 						d.sub_setting_type2 = r.message.sub_setting_type2
+						// if(!d.tag_no){
+						// }
 						d.bom = r.message.master_bom;
 						d.qty = r.message.qty
 						d.metal_type = r.message.metal_type
@@ -309,6 +292,13 @@ frappe.ui.form.on('Repair Order Form Detail', {
 		var row = locals[cdt][cdn];
 		row.delivery_date = frm.doc.delivery_date;
 		row.diamond_quality = frm.doc.diamond_quality;
+		frappe.db.get_value("Customer", frm.doc.customer_code, "customer_name").then((r)=> {
+			if(r.message.customer_name){
+				if(r.message.customer_name.includes("Gurukrupa Export Private Limited")){
+					row.product_type = 'Company Goods'
+				}
+			}
+		});
 		refresh_field("order_details");
 	},
 	category: function (frm, cdt, cdn) {
@@ -878,55 +868,6 @@ function set_filters_on_parent_table_fields(frm, fields) {
 	});
 }
 
-//public function to show item attribute fields based on the selected subcategory
-function show_attribute_fields_for_subcategory(frm, cdt, cdn, order_detail) {
-	if (order_detail.subcategory) {
-		frappe.model.with_doc("Attribute Value", order_detail.subcategory, function (r) {
-			var subcategory_attribute_value = frappe.model.get_doc("Attribute Value", order_detail.subcategory);
-			if (subcategory_attribute_value.is_subcategory == 1) {
-				if (subcategory_attribute_value.item_attributes) {
-					$.each(subcategory_attribute_value.item_attributes, function (index, row) {
-						show_field(frm, cdt, cdn, row.item_attribute);
-					});
-				}
-			}
-		});
-	}
-}
-
-//private function to hide all subcategory related fields in order details
-function hide_all_subcategory_attribute_fields(frm, cdt, cdn) {
-
-	var subcategory_attribute_fields = ['Lock Type','Back Chain','Back Belt','Black Beed','Back Side Size','Hinges',
-		'Back Belt Patti','Chain Type','Vanki','Total Length','Number of Ant','Distance Between Kadi To Mugappu',
-		'Space between Mugappu','Two in One']
-	show_hide_fields(frm, cdt, cdn, subcategory_attribute_fields, 1);
-}
-
-
-//private function to show single child table field
-function show_field(frm, cdt, cdn, field_name) {
-	show_hide_field(frm, cdt, cdn, field_name, 0);
-}
-
-//private function to show or hide multiple child table fields
-function show_hide_fields(frm, cdt, cdn, fields, hidden) {
-	fields.map(function (field) {
-		show_hide_field(frm, cdt, cdn, field, hidden);
-	});
-}
-
-//private function to show or hide single child table fields
-function show_hide_field(frm, cdt, cdn, field, hidden) {
-	var field_name = field.toLowerCase().replace(/\s+/g, '_')
-	var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": field_name })[0];
-	if (df) {
-		df.hidden = hidden;
-		if (df.hidden == 0) df.reqd = 0;
-	}
-	cur_frm.refresh_field("order_details");
-}
-
 // Auto calculate due days from delivery date 
 function calculate_due_days(frm) {
 	frm.set_value('due_days', frappe.datetime.get_day_diff(frm.doc.delivery_date, frm.doc.order_date));
@@ -974,3 +915,6 @@ function set_filter_for_design_n_serial(frm, fields) {
 		})
 	});
 }
+
+
+
