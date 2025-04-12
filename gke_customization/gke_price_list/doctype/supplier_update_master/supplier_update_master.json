@@ -326,7 +326,6 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "// eval: doc.is_new_employee != 1",
    "fieldname": "supplier_primary_contact",
    "fieldtype": "Link",
    "label": "Supplier Primary Contact",
@@ -641,13 +640,27 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-02-21 11:53:32.324323",
+ "modified": "2025-03-01 14:34:49.038512",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Supplier Update Master",
  "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
- "permissions": [],
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

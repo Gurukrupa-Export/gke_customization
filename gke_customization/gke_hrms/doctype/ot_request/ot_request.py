@@ -11,17 +11,15 @@ class OTRequest(Document):
 	def autoname(self):
 		# Get company abbreviation
 		company_abbr = frappe.db.get_value("Company", self.company, "abbr")
-		if not company_abbr:
-			frappe.throw(f"Abbreviation not found for company: {self.company}")
+		if company_abbr:
+			if self.branch:
+				branch_short = self.branch.split('-')[-2] 
+				series = f"{company_abbr}-{branch_short}-OT-.#####"
+			else:
+				series = f"{company_abbr}-OT-.#####"
 
-		# Extract branch short code
-		branch_short = self.branch.split('-')[-2]  # Extract "ST" from "GEPL-ST"
-
-		# Naming series using company abbreviation
-		series = f"OT-{company_abbr}-{branch_short}-.#####"
-		self.name = frappe.model.naming.make_autoname(series)
+			self.name = frappe.model.naming.make_autoname(series)
 		
-		# return 
 	
 	def validate(self):
 		# if not self.company or not self.branch:
