@@ -809,7 +809,7 @@ def create_line_items(self):
 		if not self.is_finding_order:
 			item_variant = self.design_id
 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
-			frappe.db.set_value(self.doctype, self.name, "item", self.bom)
+			frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
 			self.reload()
 			if self.bom_or_cad in ['New BOM','CAD'] and self.is_repairing == 1 :
 				new_bom = create_bom(self,item_variant)
