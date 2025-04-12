@@ -1,5 +1,4 @@
 {
-"_liked_by": "[\"Administrator\"]",
 "actions": [],
 "allow_rename": 1,
 "autoname": "format:{cad_order_form}-{index}",
@@ -103,6 +102,7 @@
     "charm",
     "capganthan",
     "rhodium_",
+    "diamond_part_length",
     "column_break_56",
     "chain",
     "chain_type",
@@ -213,7 +213,9 @@
     "design_code_files_section",
     "cad_file",
     "column_break_wodq",
-    "rpt_file"
+    "rpt_file",
+    "column_break_zgjt",
+    "cad_image"
 ],
 "fields": [
     {
@@ -227,8 +229,7 @@
     "fieldname": "bom_or_cad",
     "fieldtype": "Select",
     "label": "BOM or CAD",
-    "options": "\nNew BOM\nDuplicate BOM\nCAD\nCheck",
-    "read_only": 1
+    "options": "\nNew BOM\nDuplicate BOM\nCAD\nCheck"
     },
     {
     "fieldname": "company",
@@ -444,7 +445,7 @@
     "fetch_from": "cad_order_form_detail.design_id",
     "fieldname": "design_id",
     "fieldtype": "Link",
-    "label": "Design ID",
+    "label": "Item",
     "options": "Item",
     "read_only": 1
     },
@@ -892,7 +893,7 @@
     "fieldtype": "Section Break"
     },
     {
-    "depends_on": "eval:doc.bom_or_cad == 'CAD' || (doc.bom_or_cad == 'Duplicate BOM' && doc.is_repairing == 0) || (doc.bom_or_cad == 'Check' && doc.workflow_type=='CAD') || (doc.design_type == 'New Design' && doc.bom_or_cad == 'CAD' && doc.customer_order_form)",
+    "depends_on": "eval:doc.bom_or_cad == 'CAD' || (doc.bom_or_cad == 'Duplicate BOM' && doc.is_repairing == 1) || (doc.bom_or_cad == 'Check' && doc.workflow_type=='CAD') || (doc.design_type == 'New Design' && doc.bom_or_cad == 'CAD' && doc.customer_order_form)",
     "fieldname": "designer_assignment",
     "fieldtype": "Table",
     "label": "Designer Assignment",
@@ -1029,13 +1030,13 @@
     "fieldname": "flow_type",
     "fieldtype": "Select",
     "label": "Flow Type",
-    "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO",
+    "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO\nPROTO",
     "read_only": 1
     },
     {
     "default": "0",
     "depends_on": "eval:doc.is_repairing",
-    "fetch_from": "cad_order_form_detail.is_repairing",
+    "fetch_if_empty": 1,
     "fieldname": "is_repairing",
     "fieldtype": "Check",
     "label": "Is Repairing"
@@ -1123,7 +1124,7 @@
     "fieldname": "cad_file",
     "fieldtype": "Attach",
     "label": "CAD File",
-    "mandatory_depends_on": "eval:(in_list(['BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))\n// eval: doc.doc.workflow_state == 'BOM QC'"
+    "mandatory_depends_on": "eval:(in_list(['BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))"
     },
     {
     "allow_on_submit": 1,
@@ -1138,7 +1139,7 @@
     },
     {
     "allow_on_submit": 1,
-    "depends_on": "eval: in_list(['Draft','Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state) && ((doc.design_type != 'As Per Serial No' && doc.is_repairing == 0 && doc.bom_type == 'New BOM') && doc.item)",
+    "depends_on": "eval: in_list(['Draft','Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state) && ((doc.design_type != 'As Per Serial No' && doc.bom_type == 'New BOM') && doc.item)",
     "fieldname": "bom_assignment",
     "fieldtype": "Table",
     "label": "BOM Assignment",
@@ -1640,13 +1641,30 @@
     "options": "\nNew BOM\nDuplicate BOM"
     },
     {
-        "default": "0",
-        "depends_on": "eval:doc.is_branch_shipping",
-        "fetch_from": "cad_order_form.is_branch_shipping",
-        "fieldname": "is_branch_shipping",
-        "fieldtype": "Check",
-        "label": "Is Branch Shipping",
-        "mandatory_depends_on": "eval:doc.is_branch_shipping"
+    "default": "0",
+    "depends_on": "eval:doc.is_branch_shipping",
+    "fetch_from": "cad_order_form.is_branch_shipping",
+    "fieldname": "is_branch_shipping",
+    "fieldtype": "Check",
+    "label": "Is Branch Shipping",
+    "mandatory_depends_on": "eval:doc.is_branch_shipping"
+    },
+    {
+    "fetch_from": "cad_order_form_detail.diamond_part_length",
+    "fetch_if_empty": 1,
+    "fieldname": "diamond_part_length",
+    "fieldtype": "Float",
+    "label": "Diamond Part Length"
+    },
+    {
+    "fieldname": "column_break_zgjt",
+    "fieldtype": "Column Break"
+    },
+    {
+    "fieldname": "cad_image",
+    "fieldtype": "Attach Image",
+    "label": "CAD Image",
+    "mandatory_depends_on": "eval:(in_list(['BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))"
     }
 ],
 "index_web_pages_for_search": 1,
@@ -1665,7 +1683,7 @@
     "link_fieldname": "order"
     }
 ],
-"modified": "2025-02-07 18:07:26.353165",
+"modified": "2025-04-09 14:37:53.685868",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Order",
