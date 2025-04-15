@@ -137,46 +137,56 @@ frappe.ui.form.on("Unsecured Loan", {
                 paid_amount: frm.doc.loan_amount,
                 company: frm.doc.company,
                 mode_of_payment: "Cash",
-                custom_unsecured_loan:frm.doc.name
+                custom_unsecured_loan:frm.doc.name,
+                
             });
     
             // Set the party field after a short delay
             setTimeout(function() {
-                
                 frappe.db.get_value("Business Partner", frm.doc.lender, "customer")
     	           .then((r)=> {
-                	   if(r.message.customer){
+                	   if(r.message){
                             cur_frm.set_value("party", r.message.customer);
+                            cur_frm.set_value("paid_to", frm.doc.principal_gl_account);
         	            }
             	});
-                cur_frm.set_value("paid_from", "");
-                cur_frm.set_value("paid_to", "");
-            }, 300);
+
+            }, 1500);
         }, __('Create'));
 
         frm.add_custom_button(__('Create Pay Payment Entry'), function() {
+            // Find the last repayment row where gl_entry_created is not checked
+            const schedule = frm.doc.repayment_schedule || [];
+            const target_row = [...schedule].reverse().find(row => !row.gl_entry_created);
+        
+            if (!target_row) {
+                frappe.msgprint("All repayment entries are already linked to GL Entries.");
+                return;
+            }
+        
             frappe.new_doc('Payment Entry', {
                 payment_type: "Pay",
                 party_type: "Supplier",
                 posting_date: frappe.datetime.nowdate(),
-                paid_amount: frm.doc.repayment_schedule[frm.doc.repayment_schedule.length - 1].total_payment,
+                paid_amount: target_row.total_payment,
+                received_amount:target_row.total_payment,
                 company: frm.doc.company,
                 mode_of_payment: "Cash",
-                custom_unsecured_loan:frm.doc.name
+                custom_unsecured_loan: frm.doc.name,
+                custom_unsecured_loan_repayment_schedule: target_row.name
             });
-    
-            // Set the party field after a short delay
+        
+            // Set party after a short delay
             setTimeout(function() {
-                
                 frappe.db.get_value("Business Partner", frm.doc.lender, "supplier")
-    	           .then((r)=> {
-                	   if(r.message.supplier){
+                    .then((r) => {
+                        if (r.message.supplier) {
                             cur_frm.set_value("party", r.message.supplier);
-        	            }
-            	});
-                cur_frm.set_value("paid_from", "");
-                cur_frm.set_value("paid_to", "");
-            }, 300);
+                            cur_frm.set_value("paid_from", frm.doc.principal_gl_account);
+                            
+                        }
+                    });
+            }, 1500);
         }, __('Create'));
         
 
