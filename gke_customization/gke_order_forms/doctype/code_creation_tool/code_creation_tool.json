@@ -1,0 +1,67 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-03-04 15:02:55.164631",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_jllq",
+  "select_doctype",
+  "download_template",
+  "file_to_upload",
+  "code_creation_log"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_jllq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "Item",
+   "fieldname": "select_doctype",
+   "fieldtype": "Select",
+   "label": "Select Doctype",
+   "options": "\nItem"
+  },
+  {
+   "description": "Attach .csv file ",
+   "fieldname": "file_to_upload",
+   "fieldtype": "Attach",
+   "label": "File To Upload"
+  },
+  {
+   "fieldname": "code_creation_log",
+   "fieldtype": "HTML",
+   "label": "Code Creation Log"
+  },
+  {
+   "fieldname": "download_template",
+   "fieldtype": "Button",
+   "label": "Download Template"
+  }
+ ],
+ "hide_toolbar": 1,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-03-21 12:40:36.699764",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Code Creation Tool",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

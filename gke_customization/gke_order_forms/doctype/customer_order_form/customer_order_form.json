@@ -1,5 +1,4 @@
 {
- "_liked_by": "[\"Administrator\"]",
  "actions": [],
  "allow_rename": 1,
  "autoname": "format:ORD/T/{#####}",
@@ -11,10 +10,13 @@
  "field_order": [
   "workflow_state",
   "customer_code",
+  "flow_type",
   "column_break_zyjn",
   "customer_name",
   "section_break_buom",
   "customer_order_form_detail",
+  "customer_portal_file",
+  "product_qty",
   "section_break_oortm",
   "design_code_2",
   "design_code_2_bom",
@@ -169,12 +171,29 @@
    "in_list_view": 1,
    "label": "Customer Name",
    "read_only": 1
+  },
+  {
+   "description": "Which is given by customer portal.",
+   "fieldname": "customer_portal_file",
+   "fieldtype": "Attach",
+   "label": "Customer Portal File"
+  },
+  {
+   "fieldname": "product_qty",
+   "fieldtype": "Data",
+   "label": "Product Qty"
+  },
+  {
+   "fieldname": "flow_type",
+   "fieldtype": "Select",
+   "label": "Flow Type",
+   "options": "\nPROTO\nMTO"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-01-01 12:39:34.494734",
+ "modified": "2025-03-27 15:33:33.648287",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Customer Order Form",
