@@ -4,6 +4,8 @@
 frappe.ui.form.on('Customer Order Form', {
 	// get quotation button for proto type
 	refresh(frm){
+		
+		set_item_attribute_filters_in_child_table(frm);
 		frm.add_custom_button(__("Get Quotation"), function(){
             erpnext.utils.map_current_doc({
                 method: "gke_customization.gke_order_forms.doctype.customer_order_form.customer_order_form.get_quotation",			
@@ -74,12 +76,34 @@ frappe.ui.form.on('Customer Order Form', {
 
 });
 
-// function update_fields_in_child_table(frm, fieldname) {
-// 	$.each(frm.doc.customer_order_form_detail || [], function (i, d) {
-// 		d[fieldname] = frm.doc[fieldname];
-// 	});
-// 	refresh_field("customer_order_form_detail");
-// };
+function set_item_attribute_filters_in_child_table(frm){
+	var fields = [  ['category', 'Item Category'],
+					['subcategory', 'Item Subcategory'],
+					['setting_type', 'Setting Type'],
+					['metal_type', 'Metal Type'],
+					['metal_touch', 'Metal Touch'],
+					['metal_colour', 'Metal Colour'],
+					['chain', 'Chain'],
+					['rhodium', 'Rhodium'],
+					['feature', 'Feature'],
+					['diamond_quality', 'Diamond Quality'],
+					['chain', 'Chain'],
+					['rhodium', 'Rhodium'],
+
+	];
+	set_item_attribute_filters_in_child_table_fields(frm, fields, 'customer_order_form_detail');
+}
+
+function set_item_attribute_filters_in_child_table_fields(frm, fields, child_table) {
+	fields.map(function(field) {
+		frm.set_query(field[0], child_table, function() {
+			return { 
+    			query: 'jewellery_erpnext.query.item_attribute_query',
+				filters: {'item_attribute': field[1]}
+			};
+    	});
+	});
+}
 
 frappe.ui.form.on('Customer Order Form Detail', {
 	customer_order_form_detail_add: function (frm, cdt, cdn) {
@@ -91,106 +115,19 @@ frappe.ui.form.on('Customer Order Form Detail', {
 		
 		refresh_field("customer_order_form_detail");
 	},
-	// digit14_code: function (frm, cdt, cdn) {
-	// 	var d = locals[cdt][cdn];
-	// 	frappe.call({
-	// 		method: "gke_customization.gke_order_forms.doctype.customer_order_form.customer_order_form.get_14code_detail",
-	// 		args: {
-	// 			"digit14_code": d.digit14_code,
-	// 			"customer" : d.customer_code
-	// 		},
-	// 		callback(r) {
-	// 			// console.log(r.message);
-	// 			d.theme_code = r.message.theme_code; 
-				
-	// 			if(!d.quotation){
-
-	// 				d.design_code = r.message.design_code;
-	// 				d.design_code_bom = r.message.bom;
-	// 				d.category = r.message.item_category;
-	// 				d.subcategory = r.message.item_subcategory;
-	// 				d.setting_type = r.message.setting_type;
-	// 				d.metal_type = r.message.metal_type;
-	// 				d.metal_touch = r.message.metal_touch;
-	// 				d.metal_colour = r.message.metal_colour;
-	// 				d.diamond_quality = r.message.stone_data;
-	// 				d.finding = r.message.finding_data;
-	// 				d.product_size = r.message.size_data;
-	// 				d.image = r.message.design_image; 
-	// 				d.serial_no = r.message.serial_no; 
-	// 			}
-				
-	// 			refresh_field('customer_order_form_detail');
-	// 		}
-	// 	})
-	// },
-	// digit18_code: function (frm, cdt, cdn) {
-	// 	var d = locals[cdt][cdn];
-	// 	frappe.call({
-	// 		method: "gke_customization.gke_order_forms.doctype.customer_order_form.customer_order_form.get_18code_detail",
-	// 		args: {
-	// 			"digit18_code": d.digit18_code,
-	// 			"customer" : d.customer_code
-	// 		},
-	// 		callback(r) {
-	// 			// console.log(r.message);
-	// 			d.theme_code = r.message.theme_code; 
-							
-	// 			if(!d.quotation){
-	// 				d.design_code = r.message.design_code;
-	// 				d.design_code_bom = r.message.bom;
-	// 				d.category = r.message.item_category;
-	// 				d.subcategory = r.message.item_subcategory;
-	// 				d.setting_type = r.message.setting_type;
-	// 				d.metal_type = r.message.metal_type;
-	// 				d.metal_touch = r.message.metal_touch;
-	// 				d.metal_colour = r.message.metal_color;
-	// 				d.diamond_quality = r.message.stone_data;
-	// 				d.finding = r.message.finding_data;
-	// 				d.product_size = r.message.size_data;
-	// 				d.image = r.message.design_image; 
-	// 				d.serial_no = r.message.serial_no;
-	// 			}
-
-	// 			refresh_field('customer_order_form_detail');
-	// 		}
-	// 	})
-	// },
-	// digit15_code: function (frm, cdt, cdn) {
-	// 	var d = locals[cdt][cdn];
-	// 	frappe.call({
-	// 		method: "gke_customization.gke_order_forms.doctype.customer_order_form.customer_order_form.get_15code_detail",
-	// 		args: {
-	// 			"digit15_code": d.digit15_code,
-	// 			"customer" : d.customer_code
-	// 		},
-	// 		callback(r) {
-	// 			// console.log(r.message);
-	// 			if(!d.quotation){
-	// 				d.theme_code = r.message.theme_code; 
-	// 				d.product_type = r.message.product_type;
-	// 				d.design_code = r.message.design_code;
-	// 				d.design_code_bom = r.message.bom;
-	// 				d.category = r.message.item_category;
-	// 				d.subcategory = r.message.item_subcategory;
-	// 				d.setting_type = r.message.setting_type;
-	// 				d.metal_type = r.message.metal_type;
-	// 				d.metal_touch = r.message.metal_touch;
-	// 				d.metal_colour = r.message.metal_color;
-	// 				d.diamond_quality = r.message.stone_data;
-	// 				d.finding = r.message.finding_data;
-	// 				d.product_size = r.message.size_data;
-	// 				d.image = r.message.design_image; 
-	// 				d.serial_no = r.message.serial_no;
-	// 			}
-
-	// 			refresh_field('customer_order_form_detail');
-	// 		}
-	// 	})
-	// },
-
 		
 });
+
+function set_filters_on_parent_table_fields(frm, fields) {
+	fields.map(function (field) {
+		frm.set_query(field[0], function (doc) {
+			return {
+				query: 'jewellery_erpnext.query.item_attribute_query',
+				filters: { 'item_attribute': field[1]}
+			};
+		});
+	});
+}
 
 
 // 5027612QYABA08
@@ -213,3 +150,11 @@ frappe.ui.form.on('Customer Order Form Detail', {
 // DEHYA40AANS935
 // D E H Y A 40 AANS935
 // 0 1 2 3 4 56 78910111213
+
+// caratlane 
+// KL01233-1YP600_18
+// KL01233 - 1Y P600     _  18
+// KL01233 - 1Y P 6 0 0  _  1 8
+// 0123456 7 89 10111213 14 1516
+
+// KL01233-YGP600_18
