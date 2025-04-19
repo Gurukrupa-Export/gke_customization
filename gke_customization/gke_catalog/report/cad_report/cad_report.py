@@ -173,28 +173,40 @@ def get_columns():
 
 
 def get_chart_data(orders):
-	state_counts = {}
+    workflow_order = [
+        "Draft", "Assigned", "Assigned-On-Hold",
+        "Designing", "Update Designer", "Designing- On-Hold",
+        "Sent to QC", "Sent to QC-On-Hold", "Update Item",
+        "Update BOM","BOM QC","BOM QC- On- Hold",
+        "Approved", "On-Hold",  "Cancelled",  "Rejected",
+    ]
 
-	
+   
+    state_counts = {}
+    for order in orders:
+        state = order.get("workflow_state", "Unknown")
+        state_counts[state] = state_counts.get(state, 0) + 1
 
-	for order in orders:
-		state = order.get("workflow_state", "Unknown")
-		state_counts[state] = state_counts.get(state, 0) + 1
+   
+    labels = []
+    values = []
+    for state in workflow_order:
+        count = state_counts.get(state, 0)
+        if count > 0:
+            labels.append(state)
+            values.append(count)
 
-	labels = list(state_counts.keys())
-	values = list(state_counts.values())
+    return {
+        "data": {
+            "labels": labels,
+            "datasets": [
+                {"name": "Order Count", "values": values},
+            ],
+        },
+        "type": "bar",
+        "barOptions": {"stacked": False},
+    }
 
-	return {
-		"data": {
-			"labels": labels[:30],
-			"datasets": [
-				{"name": "Order Count", "values": values[:30]},
-			],
-		},
-		"type": "bar",
-		# "colors": ["#34a853"],
-		"barOptions": {"stacked": False},
-	}
 
 
 def get_report_summary(total, unassigned, assigned, approved, orders=None, filters=None):
