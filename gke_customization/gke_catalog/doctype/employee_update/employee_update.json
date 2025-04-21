@@ -46,6 +46,7 @@
   "contract_end_date",
   "date_of_retirement",
   "column_break_z6ek",
+  "employee_onboarding",
   "custom_probation_period_days",
   "contact_details",
   "cell_number",
@@ -1153,7 +1154,8 @@
   {
    "fieldname": "approvers_section",
    "fieldtype": "Section Break",
-   "label": "Approvers"
+   "label": "Approvers",
+   "permlevel": 1
   },
   {
    "fieldname": "expense_approver",
@@ -1198,12 +1200,19 @@
    "fieldtype": "Link",
    "label": "Reporting User ID",
    "options": "User"
+  },
+  {
+   "fieldname": "employee_onboarding",
+   "fieldtype": "Link",
+   "label": "Employee Onboarding",
+   "options": "Employee Onboarding",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-03-01 11:52:47.307435",
+ "modified": "2025-04-18 16:15:49.025807",
  "modified_by": "Administrator",
  "module": "GKE Catalog",
  "name": "Employee Update",
