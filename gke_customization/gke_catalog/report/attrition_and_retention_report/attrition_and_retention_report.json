@@ -1,0 +1,28 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2025-04-09 17:00:07.771066",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "latter head",
+ "letterhead": null,
+ "modified": "2025-04-11 13:18:21.243687",
+ "modified_by": "jinali_g@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Attrition and Retention Report",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Employee",
+ "report_name": "Attrition and Retention Report",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "timeout": 0
+}
