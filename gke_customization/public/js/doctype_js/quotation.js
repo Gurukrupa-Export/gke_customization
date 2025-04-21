@@ -1,9 +1,8 @@
 frappe.ui.form.on('Quotation', {
     refresh(frm) {
         frm.add_custom_button(__("Order"), function () {
-            erpnext.utils.map_current_doc({
-              method: "gke_customization.gke_order_forms.doctype.order.order.make_quotation",
-              source_doctype: "Order",
+            let dialog = new frappe.ui.form.MultiSelectDialog({
+              doctype: "Order",
               target: frm,
               setters: [
                 {
@@ -20,25 +19,40 @@ frappe.ui.form.on('Quotation', {
                   reqd: 1,
                   default: frm.doc.party_name || undefined
                 },
-                // {
-                //   label: "Order Type",
-                //   fieldname: "order_type",
-                //   fieldtype: "Select",
-                //   options: ["Sales", "Stock Order"],
-                //   reqd: 1,
-                //   default: frm.doc.order_type || undefined
-                // }
               ],
-      
-              get_query_filters: {
-                item: ['is', 'set'],
-                workflow_state:['=','Approved'],
-                docstatus: 1
+              get_query() {
+                return {
+                  filters: {
+                    item: ['is', 'set'],
+                    workflow_state: 'Approved',
+                    docstatus: 1
+                  }
+                };
+              },
+              action(selections) {
+                if (!selections || selections.length === 0) return;
+        
+                frappe.call({
+                  method: "gke_customization.gke_order_forms.doctype.order.order.make_quotation_batch",
+                  args: {
+                    order_names: selections,
+                    target_doc: frm.doc
+                  },
+                  freeze: true,
+                  freeze_message: "Mapping orders to quotation...",
+                  callback: function (r) {
+                    if (r.message) {
+                      frappe.model.sync(r.message);
+                      frm.refresh();
+                      frm.set_df_property('party_name', 'read_only', 1);
+                    }
+                  }
+                });
+                dialog.dialog.hide();
               }
-            })
-            frm.set_df_property('party_name', 'read_only', 1);
-          }, __("Get Items From"))
-      
+            });
+          }, __("Get Items From"));
+
           frm.add_custom_button(__("Repair Order"), function () {
             erpnext.utils.map_current_doc({
               method: "gke_customization.gke_order_forms.doctype.repair_order.repair_order.make_quotation",
