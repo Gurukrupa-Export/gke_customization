@@ -3,13 +3,18 @@
 
 import frappe
 from frappe.model.document import Document
-
+from datetime import timedelta
+from frappe.utils import getdate
 
 class EmployeeUpdate(Document):
 	def validate(self):
 		self.full_name = " ".join(
 			filter(lambda x: x, [self.first_name, self.middle_name, self.last_name])
 		)
+		if self.date_of_joining and self.custom_probation_period_days:
+			probation_days = int(self.custom_probation_period_days)
+			joining_date = getdate(self.date_of_joining)  
+			self.final_confirmation_date = joining_date + timedelta(days=probation_days)
 
 	def on_submit(self):
 		filed_list = [
@@ -164,9 +169,3 @@ class EmployeeUpdate(Document):
 			frappe.msgprint("Employee has been updated...")
 		else:
 			frappe.msgprint("Employee has been created...")
-
-
-
-
-
-			
