@@ -4,7 +4,7 @@ import frappe
 
 def validate(doc, method):
     """Validation logic to check the sandwich rule and past leave restriction."""
-    check_past_month_restriction(doc)
+    #check_past_month_restriction(doc)
     check_sandwich_rule(doc)
 
 def check_past_month_restriction(doc):
