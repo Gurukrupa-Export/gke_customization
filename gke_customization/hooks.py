@@ -107,9 +107,9 @@ doctype_js = {
 #	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
 # }
 #
-# has_permission = {
-#	"Event": "frappe.desk.doctype.event.event.has_permission",
-# }
+has_permission = {
+	"Task": "gke_customization.gke_order_forms.doc_events.task.has_permission",
+}
 
 # DocType Class
 # ---------------
