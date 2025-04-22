@@ -7,6 +7,9 @@ def has_permission(doc, ptype, user):
         
     if "Task Manager" in frappe.get_roles(user):
         return True
+
+    if doc.owner == user:
+        return True
     # Check if this task is assigned to the current user
     assigned = frappe.db.exists("ToDo", {
         "reference_type": "Task",
