@@ -1377,3 +1377,86 @@ def validate_variant_attributes(variant_of,attribute_list):
 
 
 
+
+@frappe.whitelist()
+def make_quotation_batch(order_names, target_doc=None):
+	if isinstance(order_names, str):
+		order_names = json.loads(order_names)
+	if isinstance(target_doc, str):
+		target_doc = json.loads(target_doc)
+	if not target_doc:
+		target_doc = frappe.new_doc("Quotation")
+	else:
+		target_doc = frappe.get_doc(target_doc)
+
+	target_doc.items = []
+	for name in order_names:
+		order = frappe.db.get_value("Order", name, "*", as_dict=True)
+		if not order:
+			continue
+
+		target_doc.append("items", {
+			"branch": order.branch,
+			"project": order.project,
+			"item_code": order.item,
+			"serial_no": order.tag_no,
+			"metal_colour": order.metal_colour,
+			"metal_purity": order.metal_purity,
+			"metal_touch": order.metal_touch,
+			"gemstone_quality": order.gemstone_quality,
+			"item_category": order.category,
+			"diamond_quality": order.diamond_quality,
+			"item_subcategory": order.subcategory,
+			"setting_type": order.setting_type,
+			"delivery_date": order.delivery_date,
+			"order_form_type": "Order",
+			"order_form_id": order.name,
+			"salesman_name": order.salesman_name,
+			"order_form_date": order.order_date,
+			"custom_customer_sample": order.customer_sample,
+			"custom_customer_voucher_no": order.customer_voucher_no,
+			"custom_customer_gold": order.customer_gold,
+			"custom_customer_diamond": order.customer_diamond,
+			"custom_customer_stone": order.customer_stone,
+			"custom_customer_good": order.customer_good,
+			"po_no": order.po_no,
+			"custom_jewelex_batch_no": order.jewelex_batch_no,
+			"qty": order.qty
+		})
+
+	# Only run set_missing_values once
+	first_order = frappe.db.get_value("Order", order_names[0], "*", as_dict=True)
+	make_quotation_fill_defaults(target_doc, first_order)
+
+	return target_doc
+
+
+def make_quotation_fill_defaults(quotation, order):
+	from erpnext.controllers.accounts_controller import get_default_taxes_and_charges
+	company_currency = frappe.get_cached_value("Company", quotation.company, "default_currency")
+	if company_currency == quotation.currency:
+		exchange_rate = 1
+	else:
+		exchange_rate = get_exchange_rate(
+			quotation.currency, company_currency, quotation.transaction_date, args="for_selling"
+		)
+	quotation.conversion_rate = exchange_rate
+
+	taxes = get_default_taxes_and_charges(
+		"Sales Taxes and Charges Template", company=quotation.company
+	)
+	if taxes.get("taxes"):
+		quotation.update(taxes)
+
+	quotation.quotation_to = "Customer"
+	quotation.company = order.company
+	quotation.party_name = order.customer_code
+	quotation.order_type = order.order_type
+	quotation.diamond_quality = order.diamond_quality
+
+	service_types = frappe.db.get_values("Service Type 2", {"parent": order.name}, "service_type1")
+	for service_type in service_types:
+		quotation.append("service_type", {"service_type1": service_type[0]})
+
+	quotation.run_method("set_missing_values")
+	quotation.run_method("calculate_taxes_and_totals")
