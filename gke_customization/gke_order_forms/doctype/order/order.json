@@ -169,7 +169,6 @@
     "column_break_jjs3",
     "total_finding_weightin_gms",
     "bom_diamond_detail_section",
-    "diamond_grade",
     "diamond_detail",
     "section_break_svqn",
     "total_diamond_pcs",
@@ -1214,13 +1213,6 @@
     "fieldname": "total_finding_weightin_gms",
     "fieldtype": "Float",
     "label": "Total Finding Weight(In gms)"
-    },
-    {
-    "allow_on_submit": 1,
-    "fieldname": "diamond_grade",
-    "fieldtype": "Link",
-    "label": "Diamond Grade",
-    "options": "Attribute Value"
     },
     {
     "allow_on_submit": 1,
