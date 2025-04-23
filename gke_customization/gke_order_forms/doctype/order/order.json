@@ -35,6 +35,7 @@
     "flow_type",
     "section_break_10",
     "cad_order_form",
+    "pre_order_form",
     "design_by",
     "item_type",
     "jewelex_batch_no",
@@ -168,7 +169,6 @@
     "column_break_jjs3",
     "total_finding_weightin_gms",
     "bom_diamond_detail_section",
-    "diamond_grade",
     "diamond_detail",
     "section_break_svqn",
     "total_diamond_pcs",
@@ -1216,13 +1216,6 @@
     },
     {
     "allow_on_submit": 1,
-    "fieldname": "diamond_grade",
-    "fieldtype": "Link",
-    "label": "Diamond Grade",
-    "options": "Attribute Value"
-    },
-    {
-    "allow_on_submit": 1,
     "fieldname": "total_diamond_pcs",
     "fieldtype": "Int",
     "label": "Total Diamond Pcs"
@@ -1665,6 +1658,13 @@
     "fieldtype": "Attach Image",
     "label": "CAD Image",
     "mandatory_depends_on": "eval:(in_list(['BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))"
+    },
+    {
+        "fetch_from": "cad_order_form.pre_order_form",
+        "fieldname": "pre_order_form",
+        "fieldtype": "Link",
+        "label": "Pre Order Form",
+        "options": "Pre Order Form"
     }
 ],
 "index_web_pages_for_search": 1,

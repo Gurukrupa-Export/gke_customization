@@ -646,6 +646,7 @@ def make_from_pre_order_form(source_name, target_doc=None):
 	target_doc.due_days = frappe.db.get_value("Pre Order Form",source_name,"due_days")
 	target_doc.po_no = frappe.db.get_value("Pre Order Form",source_name,"po_no")
 	target_doc.delivery_date = frappe.db.get_value("Pre Order Form",source_name,"delivery_date")
+	target_doc.pre_order_form = source_name
 	# target_doc.branch = frappe.db.get_value("Pre Order Form",source_name,"customer")
 	service_types = frappe.db.get_values("Service Type 2", {"parent": source_name},"service_type1")
 	for service_type in service_types:
