@@ -190,4 +190,13 @@ def get_attendance(self, logs):
         "in_time": in_time,
         "out_time": out_time
     }
-
+	
+def get_attendance_record(self, attendance_date: str) -> str | None:
+	return frappe.db.exists(
+		"Attendance",
+		{
+			"employee": self.employee,
+			"attendance_date": attendance_date,
+			"docstatus": ("!=", 2),
+		},
+	)
