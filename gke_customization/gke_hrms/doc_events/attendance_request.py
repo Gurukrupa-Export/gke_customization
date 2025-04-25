@@ -8,7 +8,29 @@ from hrms.hr.doctype.employee_checkin.employee_checkin import (
 	mark_attendance_and_link_log,
 )
 
+from datetime import datetime
+
 def validate(self, method):
+    if self.custom_in_time and self.custom_out_time:
+        # Parse time strings if necessary
+        in_time = (
+            datetime.strptime(self.custom_in_time, "%H:%M:%S").time()
+            if isinstance(self.custom_in_time, str)
+            else self.custom_in_time
+        )
+        out_time = (
+            datetime.strptime(self.custom_out_time, "%H:%M:%S").time()
+            if isinstance(self.custom_out_time, str)
+            else self.custom_out_time
+        )
+
+        if out_time < in_time:
+            frappe.throw(
+                _("Out Time ({0}) cannot be earlier than In Time ({1})").format(
+                    out_time.strftime("%H:%M:%S"), in_time.strftime("%H:%M:%S")
+                )
+            )
+
     request_days = date_diff(self.to_date, self.from_date) + 1
     
     for day in range(request_days):
@@ -79,6 +101,8 @@ def validate(self, method):
                 out_doc.time = out_datetime_combined  
                 out_doc.custom_attendance_request = self.name  
                 out_doc.save()
+        
+        frappe.msgprint(_("Employee Checkin created"))
          
 def on_submit(self, method):
     request_days = date_diff(self.to_date, self.from_date) + 1
@@ -156,8 +180,9 @@ def get_attendance(self, logs):
 
     if source == "Work From Home":
         status = "Work From Home"
-    elif source == "Outdoor Duty":
+    elif source in ("Outdoor Duty","Manual Punch"):
         status = "Present"
+    # frappe.throw(f"{status}")
 
     return {
         "status": status,
@@ -168,3 +193,12 @@ def get_attendance(self, logs):
         "out_time": out_time
     }
 
+def get_attendance_record(self, attendance_date: str) -> str | None:
+	return frappe.db.exists(
+		"Attendance",
+		{
+			"employee": self.employee,
+			"attendance_date": attendance_date,
+			"docstatus": ("!=", 2),
+		},
+	)
