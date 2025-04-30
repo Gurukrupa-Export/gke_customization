@@ -238,8 +238,8 @@ doc_events = {
 	"validate": "gke_customization.gke_hrms.doc_events.employee_advance.calculate_working_days"
 },
 "Attendance Request": {
-	"on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit",
-	"validate": "gke_customization.gke_hrms.doc_events.attendance_request.validate"
+	"validate": "gke_customization.gke_hrms.doc_events.attendance_request.validate",
+	"on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit"	
 },
 "Leave Application":{
     "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
