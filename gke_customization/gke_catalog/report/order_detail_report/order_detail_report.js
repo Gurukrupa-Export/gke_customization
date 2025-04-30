@@ -124,6 +124,13 @@ frappe.query_reports["Order Detail Report"] = {
             reqd: 0,
             // default: frappe.datetime.month_start(),
         },
+        {
+            fieldname: "posting_date",
+            label: __("Posting Date"),
+            fieldtype: "Date",
+            reqd: 0,
+            // default: frappe.datetime.month_start(),
+        },
     ],
 
 
