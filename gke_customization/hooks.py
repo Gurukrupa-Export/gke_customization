@@ -257,12 +257,12 @@ doc_events = {
 # "Item": {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
 # },
-"Department IR": {
-    "autoname": "gke_customization.gke_order_forms.doc_events.department_ir.autoname"
-},
-"Employee IR": {
-    "autoname": "gke_customization.gke_order_forms.doc_events.employee_ir.autoname"
-},
+# "Department IR": {
+#     "autoname": "gke_customization.gke_order_forms.doc_events.department_ir.autoname"
+# },
+# "Employee IR": {
+#     "autoname": "gke_customization.gke_order_forms.doc_events.employee_ir.autoname"
+# },
 "Manufacturing Operation": {
     "autoname": "gke_customization.gke_order_forms.doc_events.manufacturing_operation.autoname"
 },
