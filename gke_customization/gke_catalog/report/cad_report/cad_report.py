@@ -123,9 +123,9 @@ def execute(filters=None):
         try:
             changes = json.loads(log.data).get("changed", [])
             for change in changes:
-               if change[0] == "workflow_state" and change[2] == "Assigned":
-                if log.docname not in assigned_dates_map:
-                    assigned_dates_map[log.docname] = log.creation
+                if change[0] == "workflow_state" and change[2] == "Assigned":
+                    if log.docname not in assigned_dates_map:
+                        assigned_dates_map[log.docname] = log.creation
                 break
         except Exception as e:
             frappe.log_error(str(e), "Error parsing Version data")
