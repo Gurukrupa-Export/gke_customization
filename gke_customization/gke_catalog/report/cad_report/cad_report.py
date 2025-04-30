@@ -172,44 +172,44 @@ def execute(filters=None):
             return unique_urls
 
 
-        unique_image_urls = get_distinct_file_urls(attachments)
+        # unique_image_urls = get_distinct_file_urls(attachments)
 
-        images_html = ""
-        for url in unique_image_urls:
-            images_html += f'<img src="{url}" style="height: 120px; margin-right: 5px; border-radius: 6px;"/>'
+        # images_html = ""
+        # for url in unique_image_urls:
+        #     images_html += f'<img src="{url}" style="height: 120px; margin-right: 5px; border-radius: 6px;"/>'
 
-        scrollable_gallery = f"""
-        <div style="white-space: nowrap; overflow-x: auto; max-width: 600px; padding: 5px;">
-            {images_html}
-        </div>
-        """
+        # scrollable_gallery = f"""
+        # <div style="white-space: nowrap; overflow-x: auto; max-width: 600px; padding: 5px;">
+        #     {images_html}
+        # </div>
+        # """
 
-        modal_id = f"modal-{order['name']}"
-        image_html = f"""
-        <button onclick="document.getElementById('{modal_id}').style.display='flex'" 
-            style="padding: 6px 10px; border: none; background: #007bff; color: white; border-radius: 5px; cursor: pointer;">
-            View Images
-        </button>
+#         modal_id = f"modal-{order['name']}"
+#         image_html = f"""
+#         <button onclick="document.getElementById('{modal_id}').style.display='flex'" 
+#             style="padding: 6px 10px; border: none; background: #007bff; color: white; border-radius: 5px; cursor: pointer;">
+#             View Images
+#         </button>
 
-        <div id="{modal_id}" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-    background-color: rgba(0,0,0,0.9); z-index:1000; overflow-y: auto;padding-top: 60px;" onclick="this.style.display='none'">
+#         <div id="{modal_id}" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+#     background-color: rgba(0,0,0,0.9); z-index:1000; overflow-y: auto;padding-top: 60px;" onclick="this.style.display='none'">
 
-            <div style="
-        display: flex; 
-        flex-direction: column; 
-        align-items: center;
-        gap: 20px;
-        max-width: 90%;
-        margin: auto;
-    ">
-        {"".join([f'<img src="{url}" title="{order['name']}" style="max-width: 100%; max-height: 90vh; border-radius: 12px;" />' for url in unique_image_urls])}
-    </div>
-</div>
-        """ if unique_image_urls else "-"
+#             <div style="
+#         display: flex; 
+#         flex-direction: column; 
+#         align-items: center;
+#         gap: 20px;
+#         max-width: 90%;
+#         margin: auto;
+#     ">
+#         {"".join([f'<img src="{url}" title="{order['name']}" style="max-width: 100%; max-height: 90vh; border-radius: 12px;" />' for url in unique_image_urls])}
+#     </div>
+# </div>
+#         """ if unique_image_urls else "-"
 
 
         data.append({
-            "design_image_1": image_html,
+            # "design_image_1": image_html,
             "name": order["name"],
             "company": order["company"],
             "branch": frappe.db.get_value("Branch", order["branch"], "branch_name"),
