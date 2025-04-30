@@ -126,10 +126,42 @@ frappe.query_reports["CAD Report"] = {
 		{
             fieldname: "status",
             label: __("Status"),
-            fieldtype: "Select",
+            fieldtype: "MultiSelectList",
             options: [],
             reqd: 0,
+            get_data: function(txt) {
+                return frappe.db.get_list("Order", {
+                    fields: ["distinct workflow_state as value"],
+                }).then(r => {
+                    return r.map(d => {
+                        return {
+                            value: d.value,
+                            description: ""  // manually adding empty description
+                        }
+                    });
+                });
+            }
         },
+
+        {
+        fieldname: "workflow_type",
+        label: __("Workflow Type"),
+        fieldtype: "MultiSelectList",
+        options: [],
+        reqd: 0,
+        get_data: function(txt) {
+            return frappe.db.get_list("Order", {
+                fields: ["distinct workflow_type as value"],
+            }).then(r => {
+                return r.map(d => {
+                    return {
+                        value: d.value,
+                        description: ""  // manually adding empty description
+                    }
+                });
+            });
+        }
+    },
 	],
 	onload: function(report) {
         // const customText = '<div style="text-align: center; left-padding: 8px; font-weight: bold; font-size: 15px; color:rgb(100, 151, 197) ;">Note: The standard deadline for this process is 2 days.</div>';
@@ -163,7 +195,8 @@ frappe.query_reports["CAD Report"] = {
 		// fetchOptions("Item","item_category", "category",true);
 		fetchOptions("Order", "workflow_state", "status",true);
       //  fetchOptions("Order Form", "po_no", "customer_po",true);
-	    fetchOptions("Order", "setting_type", "setting_type",false);
+	    fetchOptions("Order", "setting_type", "setting_type",false)
+        fetchOptions("Order", "workflow_type", "workflow_type",true);;
 
 
 
@@ -183,4 +216,7 @@ frappe.query_reports["CAD Report"] = {
 			});
 		});
 	}
+
+    
+    
 	} ;
