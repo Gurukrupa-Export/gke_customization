@@ -1460,7 +1460,7 @@
     "read_only": 1
     },
     {
-    "depends_on": "eval: (in_list([\"New Design\",\"Sketch Design\",\"Mod\"],doc.design_type) && in_list(['Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold','Approved'], doc.workflow_state))",
+    "depends_on": "eval: (in_list([\"New Design\",\"Sketch Design\",\"Mod\"],doc.design_type) && in_list(['Draft','Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold','Approved'], doc.workflow_state))",
     "fieldname": "view_item",
     "fieldtype": "Button",
     "label": "View Item"
