@@ -14,7 +14,8 @@ def execute(filters=None):
 
 def get_columns(filters=None):
     columns = [
-        {"label": "Manufacturing Work Order ID", "fieldname": "mwo_id", "fieldtype": "Data"},
+        {"label": "Manufacturing Work Order ID", "fieldname": "mwo_id", "fieldtype": "Data","sticky":True},
+        {"label": "Posting Date", "fieldname": "mwo_posting_date", "fieldtype": "Data"},
         {"label": "Is Finding MWO", "fieldname": "mwo_is_finding", "fieldtype": "Data"},
         {"label": "Customer Code", "fieldname": "mwo_customer", "fieldtype": "Link", "options": "Customer"},
         {"label": "Customer Name", "fieldname": "mwo_customer_name", "fieldtype": "Data"},
@@ -34,7 +35,7 @@ def get_columns(filters=None):
         {"label": "Metal Purity", "fieldname": "mwo_metal_purity", "fieldtype": "Data"},
         {"label": "Gross Wt", "fieldname": "mwo_gross_wt", "fieldtype": "Data"},
         {"label": "Net Wt", "fieldname": "mwo_net_wt", "fieldtype": "Data"},
-        # {"label": "Metal Wt", "fieldname": "mwo_metal_wt", "fieldtype": "Float"},
+        # {"label": "Metal Wt", "fieldname": "mwo_metal_wt", "fieldtype": "Data"},
         {"label": "Finding Wt", "fieldname": "mwo_finding_wt", "fieldtype": "Data"},
         {"label": "Diamond Wt (cts)", "fieldname": "mwo_diam_wt", "fieldtype": "Data"},
         {"label": "Gemstone Wt (cts)", "fieldname": "mwo_gem_wt", "fieldtype": "Data"},
@@ -49,10 +50,11 @@ def get_columns(filters=None):
         {"label": "Manufacturing Operation ID", "fieldname": "mop_id", "fieldtype": "Link", "options": "Manufacturing Operation"},
         {"label": "MOP Status", "fieldname": "mop_status", "fieldtype": "Data"},
         {"label": "Operation", "fieldname": "mop_operation", "fieldtype": "Data"},
-        {"label": "Status", "fieldname": "mop_status", "fieldtype": "Data"},
+        # {"label": "Status", "fieldname": "mop_status", "fieldtype": "Data"},
         {"label": "Department", "fieldname": "mop_department", "fieldtype": "Data"},
         {"label": "Employee ID", "fieldname": "mop_employee", "fieldtype": "Link", "options": "Employee"},
         {"label": "Employee Name", "fieldname": "mop_emp_name", "fieldtype": "Data"},
+        {"label": "Subcontractor", "fieldname": "mo_subcontractor", "fieldtype": "Data"},
         {"label": "Main Slip No", "fieldname": "mop_main_slip", "fieldtype": "Data"},
         {"label": "Diamond Quality", "fieldname": "pmo_diam_quality", "fieldtype": "Data"},
         {"label": "Customer Gold", "fieldname": "pmo_is_cust_gold", "fieldtype": "Data"},
@@ -94,6 +96,7 @@ def get_data(filters):
     query = f"""
     SELECT 
     mwo.name AS mwo_id,
+    mwo.posting_date AS mwo_posting_date,
     (CASE WHEN mwo.is_finding_mwo=1 THEN 'Yes' ELSE 'No' END) AS mwo_is_finding,
     mwo.customer AS mwo_customer,
     c.customer_name AS mwo_customer_name,
@@ -129,8 +132,8 @@ def get_data(filters):
     mo.name AS mop_id,
     mo.status AS mop_status,
     mo.operation AS mop_operation,
-    mo.status AS mop_status,
     mo.department AS mop_department,
+    (CASE WHEN mo.for_subcontracting = 1 THEN mo.subcontractor END) AS mo_subcontractor,
     mo.employee AS mop_employee,
     emp.employee_name AS mop_emp_name,
     mo.main_slip_no AS mop_main_slip,
@@ -179,7 +182,7 @@ def get_data(filters):
     LEFT JOIN `tabQuotation` q ON pmo.quotation = q.name
     LEFT JOIN `tabSales Order` so ON pmo.sales_order = so.name
     LEFT JOIN `tabSerial Number Creator` sn ON mo.name = sn.manufacturing_operation
-    WHERE mwo.department != 'Serial Number - GEPL' and mwo.department!= 'Serial Number - KGJPL'
+    WHERE mwo.for_fg != 1 
     {conditions}
     GROUP BY 
         mwo.manufacturing_order,mwo.delivery_date,
@@ -187,14 +190,17 @@ def get_data(filters):
         pmo.quotation,
         pmo.sales_order,DATE(q.creation),DATE(so.creation),
         sn.name
-    ORDER BY mwo.manufacturing_order desc  
+    ORDER BY mwo.posting_date desc  
     """
 
     data = frappe.db.sql(query, as_dict=1)
     
     for row in data:
-        encoded_mwo = urllib.parse.quote(row["mwo_id"])
-        encoded_mp_id = urllib.parse.quote(row["mwo_mp_id"])
+        # encoded_mwo = urllib.parse.quote(row["mwo_id"])
+        # encoded_mp_id = urllib.parse.quote(row["mwo_mp_id"])
+        encoded_mwo = urllib.parse.quote(str(row["mwo_id"] or ""))
+        encoded_mp_id = urllib.parse.quote(str(row["mwo_mp_id"] or ""))
+
         row["mwo_id"] = f'<a href="https://gkexport.frappe.cloud/app/manufacturing-work-order/{encoded_mwo}" target="_blank">{row["mwo_id"]}</a>'
         row["mwo_mp_id"] = f'<a href="https://gkexport.frappe.cloud/app/manufacturing-plan/{encoded_mp_id}" target="_blank">{row["mwo_mp_id"]}</a>'
         
@@ -248,6 +254,7 @@ def calculate_totals(data):
 
     totals_row = {
         "mwo_id": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">Total MWO: {len(unique_mwo_count)}</span></b>',
+        "mwo_posting_date":"",
         "mwo_is_finding": "",
         "mwo_customer": "",
         "mwo_customer_name": "",
@@ -283,6 +290,7 @@ def calculate_totals(data):
         "mop_department": "",
         "mop_employee": "",
         "mop_emp_name": "",
+        "mo_subcontractor":"",
         "mop_main_slip": "",
         "pmo_diam_quality": "",
         "pmo_is_cust_gold": "",
@@ -318,8 +326,6 @@ def calculate_totals(data):
     }
     
     return totals_row
-
-
 
 
 def get_conditions(filters):
@@ -366,6 +372,9 @@ def get_conditions(filters):
 
     if filters.get("delivery_date"):
         conditions.append(f"mwo.delivery_date = '{filters['delivery_date']}'")
+
+    if filters.get("posting_date"):
+        conditions.append(f"mwo.posting_date = '{filters['posting_date']}'")
 
     # if filters.get("pmo"):
     #     pmos = ', '.join([f'"{pmo}"' for pmo in filters.get("pmo")])
