@@ -11,7 +11,7 @@ from hrms.hr.doctype.employee_checkin.employee_checkin import (
 from datetime import datetime
 
 def validate(self, method):
-    if self.custom_in_time and self.custom_out_time:
+    if not (self.custom_in_time and self.custom_out_time):
         # Parse time strings if necessary
         in_time = (
             datetime.strptime(self.custom_in_time, "%H:%M:%S").time()
@@ -102,7 +102,7 @@ def validate(self, method):
                 out_doc.custom_attendance_request = self.name  
                 out_doc.save()
         
-        frappe.msgprint(_("Employee Checkin created"))
+            frappe.msgprint(_("Employee Checkin created"))
          
 def on_submit(self, method):
     request_days = date_diff(self.to_date, self.from_date) + 1
@@ -194,11 +194,11 @@ def get_attendance(self, logs):
     }
 
 def get_attendance_record(self, attendance_date: str) -> str | None:
-	return frappe.db.exists(
-		"Attendance",
-		{
-			"employee": self.employee,
-			"attendance_date": attendance_date,
-			"docstatus": ("!=", 2),
-		},
-	)
+		return frappe.db.exists(
+			"Attendance",
+			{
+				"employee": self.employee,
+				"attendance_date": attendance_date,
+				"docstatus": ("!=", 2),
+			},
+		)
