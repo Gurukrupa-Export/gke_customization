@@ -274,8 +274,9 @@ frappe.ui.form.on('Order Form', {
 		
 				get_query_filters: {
 				// item: ['is', 'set'],
-				workflow_state:['=','Approved'],
-				docstatus: 1
+                workflow_state:['in',['Approved','Creating Item & BOM']],
+				order_form_id:['is','not set'],
+                // docstatus: 1
 				}
 			})
 			frm.set_df_property('party_name', 'read_only', 1);
