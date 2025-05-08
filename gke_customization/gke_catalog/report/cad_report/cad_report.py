@@ -1,245 +1,214 @@
-# Copyright (c) 2025, Gurukrupa Export and contributors
-# For license information, please see license.txt
-
 import frappe
+from datetime import datetime
+from frappe.utils import now_datetime, get_datetime
 import json
 
 def execute(filters=None):
-    columns = get_columns()
-    data = []
+    current_user = frappe.session.user
+    restricted_users = ["khushal_r@gkexport.com","ashish_m@gkexport.com","rahul_k@gkexport.com","kaushik_g@gkexport.com","chandan_d@gkexport.com","soumaya_d@gkexport.com"]
 
-    if not filters:
-        filters = {}
+    apply_restrictions = current_user in restricted_users
 
-    order_filters = {}
+    relevant_order_names = []
+    assigned_by_map = {}
 
-    if filters.get("from_date") and filters.get("to_date"):
-        order_filters["order_date"] = ["between", [filters["from_date"], filters["to_date"]]]
-
-    if filters.get("order_id"):
-        order_filters["name"] = ["in", filters["order_id"]]
-    if filters.get("company"):
-        order_filters["company"] = ["in", filters["company"]]
-    if filters.get("branch"):
-        branch_names = filters["branch"]
-        branch_ids = frappe.get_all("Branch", filters={"branch_name": ["in", branch_names]}, pluck="name")
-        order_filters["branch"] = ["in", branch_ids]
-
-    if filters.get("customer"):
-        order_filters["customer_code"] = ["in", filters["customer"]]
-
-    if filters.get("employee"):
-        employee_names = filters["employee"]
-        if isinstance(employee_names, str):
-            employee_names = [employee_names]
-        employee_ids = frappe.get_all("Employee",
-            filters={"employee_name": ["in", employee_names]},
-            fields=["name", "user_id"]
-        )
-        user_ids = [e["user_id"] for e in employee_ids if e.get("user_id")]
-        if user_ids:
-            order_filters["owner"] = ["in", user_ids]
-        else:
-            order_filters["owner"] = "__invalid_user__"
-
-    if filters.get("setting_type"):
-        if isinstance(filters["setting_type"], str):
-            filters["setting_type"] = [filters["setting_type"]]
-        order_filters["setting_type"] = ["in", filters["setting_type"]]
-
-    if filters.get("status"):
-        if isinstance(filters["status"], str):
-            filters["status"] = [s.strip() for s in filters["status"].split(",") if s.strip()]
-        order_filters["workflow_state"] = ["in", filters["status"]]
-
-
-    if filters.get("workflow_type"):
-        if isinstance(filters["workflow_type"], str):
-            filters["workflow_type"] = [filters["workflow_type"]]
-        order_filters["workflow_type"] = ["in", filters["workflow_type"]]
-
-    orders = frappe.get_all("Order",
-        fields=["name", "company", "branch", "order_type", "order_date",
-                "workflow_state", "delivery_date", "updated_delivery_date", "owner"],
-        filters=order_filters
+    if apply_restrictions:
+        created_order_names = frappe.get_all(
+        "Order",
+        filters={"owner": current_user, "_assign": ["in", [None, ""]], "docstatus": ["<", 2]},
+        pluck="name"
     )
 
-    total_orders = len([o for o in orders if o["workflow_state"] != "Approved"])
-    unassigned_orders = 0
-    other_orders = 0
-    approved_orders = 0
-
-    for order in orders:
-        state = order["workflow_state"]
-        if state == "Draft":
-            unassigned_orders += 1
-        elif state == "Approved":
-            approved_orders += 1
-        else:
-            other_orders += 1
-
-    report_summary = get_report_summary(total_orders, unassigned_orders, other_orders, approved_orders, orders, filters)
-    chart = get_chart_data(orders)
-
-    order_names = [o["name"] for o in orders]
-    designer_map = {}
-    designer_dept_map = {}
-
-    import json
-
-    assigned_dates_map = {}
-    # if order_names:
-    #     version_logs = frappe.get_all("Version",
-    #     filters={
-    #         "ref_doctype": "Order",
-    #         "docname": ["in", order_names]
-    #     },
-    #     fields=["docname", "data", "creation"],
-    #     order_by="creation"
-    # )
-
-    # for log in version_logs:
-    #     try:
-    #         changes = json.loads(log.data).get("changed", [])
-    #         for change in changes:
-    #             if change[0] == "workflow_state" and change[2] == "Assigned":
-    #                 if log.docname not in assigned_dates_map:
-    #                     assigned_dates_map[log.docname] = log.creation
-    #                 break
-    #     except Exception as e:
-    #         frappe.log_error(str(e), "Error parsing Version data")
-
-
-    version_logs = []
-
-    if order_names:
-        version_logs = frappe.get_all("Version", filters={
-        "ref_doctype": "Order",
-        "docname": ["in", order_names]
-    }, fields=["docname", "data", "creation"], order_by="creation")
-
-
-    for log in version_logs:
-        try:
-            changes = json.loads(log.data).get("changed", [])
-            for change in changes:
-                if change[0] == "workflow_state" and change[2] == "Assigned":
-                    if log.docname not in assigned_dates_map:
-                        assigned_dates_map[log.docname] = log.creation
-                break
-        except Exception as e:
-            frappe.log_error(str(e), "Error parsing Version data")
-
-
-
-    if order_names:
-        assignments = frappe.get_all("Designer Assignment - CAD",
-            filters={"parent": ["in", order_names]},
-            fields=["parent", "designer_name", "designer"]
+        assigned_to_me = frappe.get_all(
+            "ToDo",
+            filters={"reference_type": "Order", "status": ["!=", "Cancelled"], "allocated_to": current_user},
+            fields=["reference_name", "owner"]
         )
-        for a in assignments:
-            order_id = a["parent"]
-            designer_id = a.get("designer")
-            if designer_id:
-                designer_name = frappe.db.get_value("Employee", designer_id, "employee_name") or designer_id
-                if order_id not in designer_map:
-                    designer_map[order_id] = designer_name
-                dept = frappe.db.get_value("Employee", {"name": designer_id}, "department")
-                designer_dept_map[order_id] = dept or ""
+        # assigned_by_me = frappe.get_all(
+        #     "ToDo",
+        #     filters={"reference_type": "Order", "status": ["!=", "Cancelled"], "owner": current_user},
+        #     fields=["reference_name", "owner"]
+        # )
 
-    for order in orders:
-        updated_delivery_date = order.get("updated_delivery_date")
-        delivery_date = order.get("delivery_date")
+        todo_order_names = set()
+        for row in assigned_to_me:
+            todo_order_names.add(row.reference_name)
+            if row.reference_name not in assigned_by_map:
+                assigned_by_map[row.reference_name] = set()
+            assigned_by_map[row.reference_name].add(row.owner)
 
-        updated_delivery_date_html = f'<span style="color: green;">{updated_delivery_date}</span>' if updated_delivery_date else "-"
-        delivery_date_html = f'<span style="color: red;">{delivery_date}</span>' if updated_delivery_date else (f"{delivery_date}" if delivery_date else "-")
+        relevant_order_names = list(set(created_order_names).union(todo_order_names))
 
-        # Fetch design image URLs
-        attachments = frappe.get_all("File", filters={
-            "attached_to_doctype": "Order",
-            "attached_to_name": order["name"],
-        }, fields=["distinct file_url", "is_folder", "file_name"])
+        if not relevant_order_names:
+            return [], [], None, {}, []
 
-        # image_extensions = (".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp")
+    # Build order filters
+    order_filters = {}
+    if apply_restrictions:
+        order_filters["name"] = ["in", relevant_order_names]
 
-        def get_distinct_file_urls(attachments):
-            image_extensions = (".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp")
-            unique_urls = []
-            for att in attachments:
-                url = (att.get("file_url") or "").strip()
-                if url.lower().endswith(image_extensions):
-                    unique_urls.append(url)
-            return unique_urls
+    # Apply incoming filters
+    if filters.get("order_id"):
+        user_selected_orders = filters["order_id"]
+        if apply_restrictions:
+            filtered_order_ids = list(set(user_selected_orders) & set(relevant_order_names))
+            if not filtered_order_ids:
+                return [], [], None, {}, []
+            order_filters["name"] = ["in", filtered_order_ids]
+        else:
+            order_filters["name"] = ["in", user_selected_orders]
+
+    if filters.get("start_date") and filters.get("end_date"):
+        order_filters["order_date"] = ["between", [filters["start_date"], filters["end_date"]]]
+
+    if filters.get("company"):
+        order_filters["company"] = filters["company"] if isinstance(filters["company"], str) else ["in", filters["company"]]
+
+    if filters.get("customer"):
+        order_filters["customer_code"] = filters["customer"] if isinstance(filters["customer"], str) else ["in", filters["customer"]]
+
+    if filters.get("setting_type"):
+        order_filters["setting_type"] = filters["setting_type"] if isinstance(filters["setting_type"], str) else ["in", filters["setting_type"]]
+
+    if filters.get("status"):
+        order_filters["workflow_state"] = filters["status"] if isinstance(filters["status"], str) else ["in", filters["status"]]
+
+    if filters.get("workflow_type"):
+        order_filters["workflow_type"] = filters["workflow_type"] if isinstance(filters["workflow_type"], str) else ["in", filters["workflow_type"]]
+
+    if filters.get("designer_branch"):
+        designers_in_branch = frappe.get_all(
+            "Employee",
+            filters={"branch": filters["designer_branch"]},
+            pluck="name"
+        )
+        if designers_in_branch:
+            orders_with_matching_designers = frappe.get_all(
+                "Designer Assignment - CAD",
+                filters={"designer": ["in", designers_in_branch]},
+                pluck="parent"
+            )
+            if orders_with_matching_designers:
+                if "name" in order_filters:
+                    order_filters["name"] = ["in", list(set(order_filters["name"][1]) & set(orders_with_matching_designers))]
+                else:
+                    order_filters["name"] = ["in", orders_with_matching_designers]
+            else:
+                return [], [], None, {}, []
+        else:
+            return [], [], None, {}, []
+    # Fetch order data
+    data = frappe.get_all(
+        "Order",
+        filters=order_filters,
+        fields=["name", "owner", "_assign", "workflow_state", "company", "branch", "order_type",
+                "order_date", "delivery_date", "updated_delivery_date", "modified"]
+    )
+
+    now = now_datetime()
+    for row in data:
+        row["assigned_by"] = ", ".join(assigned_by_map.get(row.name, [])) if apply_restrictions else ""
+        row["_assign"] = row.get("_assign") or ""
+        row["view_details"] = f"""<button class='btn btn-sm btn-primary view-assignment-btn' data-order="{row['name']}">View Details</button>"""
+        row["workflow_duration_button"] = f"""<button class='btn btn-sm btn-primary view-workflow-btn' data-order="{row['name']}">Workflow Duration</button>"""
+
+        if row.get("modified"):
+            modified_dt = get_datetime(row["modified"])
+            duration = now - modified_dt
+            row["status_duration"] = f"{duration.days}d {duration.seconds // 3600}h {(duration.seconds % 3600) // 60}m"
+        else:
+            row["status_duration"] = ""
+
+        designer_ids = frappe.get_all(
+            "Designer Assignment - CAD",
+            filters={"parent": row["name"], "parentfield": "designer_assignment"},
+            pluck="designer"
+        )
+        if designer_ids:
+            employee_names = frappe.get_all(
+                "Employee",
+                filters={"name": ["in", designer_ids]},
+                fields=["employee_name"]
+            )
+            row["designer_name"] = ", ".join(emp["employee_name"] for emp in employee_names)
+            row["assigned_to_dept"] = frappe.db.get_value("Employee", designer_ids[0], "department") or ""
+        else:
+            row["designer_name"] = ""
+            row["assigned_to_dept"] = ""
+
+        bom_ids = frappe.get_all(
+            "Designer Assignment - CAD",
+            filters={"parent": row["name"], "parentfield": "bom_assignment"},
+            pluck="designer"
+        )
+        if bom_ids:
+            employee_names = frappe.get_all(
+                "Employee",
+                filters={"name": ["in", bom_ids]},
+                fields=["employee_name"]
+            )
+            row["bom_name"] = ", ".join(emp["employee_name"] for emp in employee_names)
+        else:
+            row["bom_name"] = ""
+
+        result_rows = []
+
+        todos = frappe.get_all(
+        "ToDo",
+        filters={"reference_type": "Order", "reference_name": row.name, "status": ["!=", "Cancelled"]},
+        fields=["owner", "allocated_to", "creation"],
+        order_by="creation asc"
+    )
 
 
-        # unique_image_urls = get_distinct_file_urls(attachments)
+        if todos:
+           row["assigned_to"] = ", ".join(set(todo["allocated_to"] for todo in todos if todo.get("allocated_to")))
+           row["assigned_by"] = ", ".join(set(todo["owner"] for todo in todos if todo.get("owner")))
+           row["assigned_on"] = ", ".join(set(todo["creation"].strftime("%Y-%m-%d %H:%M") for todo in todos if todo.get("creation")))
+        else:
+           row["assigned_to"] = ""
+           row["assigned_by"] = ""
+           row["assigned_on"] = ""
 
-        # images_html = ""
-        # for url in unique_image_urls:
-        #     images_html += f'<img src="{url}" style="height: 120px; margin-right: 5px; border-radius: 6px;"/>'
-
-        # scrollable_gallery = f"""
-        # <div style="white-space: nowrap; overflow-x: auto; max-width: 600px; padding: 5px;">
-        #     {images_html}
-        # </div>
-        # """
-
-#         modal_id = f"modal-{order['name']}"
-#         image_html = f"""
-#         <button onclick="document.getElementById('{modal_id}').style.display='flex'" 
-#             style="padding: 6px 10px; border: none; background: #007bff; color: white; border-radius: 5px; cursor: pointer;">
-#             View Images
-#         </button>
-
-#         <div id="{modal_id}" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-#     background-color: rgba(0,0,0,0.9); z-index:1000; overflow-y: auto;padding-top: 60px;" onclick="this.style.display='none'">
-
-#             <div style="
-#         display: flex; 
-#         flex-direction: column; 
-#         align-items: center;
-#         gap: 20px;
-#         max-width: 90%;
-#         margin: auto;
-#     ">
-#         {"".join([f'<img src="{url}" title="{order['name']}" style="max-width: 100%; max-height: 90vh; border-radius: 12px;" />' for url in unique_image_urls])}
-#     </div>
-# </div>
-#         """ if unique_image_urls else "-"
+    # total_orders = sum(1 for o in data if o["workflow_state"] != "Approved")
+    total_orders = len(data)
+    unassigned_orders = sum(1 for o in data if o["workflow_state"] == "Draft")
+    assigned_orders = sum(1 for o in data if o["workflow_state"] == "Assigned")
+    other_orders = total_orders - unassigned_orders - assigned_orders
 
 
-        data.append({
-            # "design_image_1": image_html,
-            "name": order["name"],
-            "company": order["company"],
-            "branch": frappe.db.get_value("Branch", order["branch"], "branch_name"),
-            "order_type": order["order_type"],
-            "order_date": order["order_date"],
-            "designer_name": designer_map.get(order["name"], ""),
-            "assigned_date": assigned_dates_map.get(order["name"]),
-            "workflow_state": order["workflow_state"],
-            "delivery_date": delivery_date_html,
-            "updated_delivery_date": updated_delivery_date_html,
-            "assigned_to_dept": designer_dept_map.get(order["name"], "")
-        })
+    # report_summary = get_report_summary(total_orders, unassigned_orders, other_orders, approved_orders)
+    report_summary = get_report_summary(
+    total_orders, unassigned_orders, assigned_orders, orders=data, filters=filters
+)
+
+    chart = get_chart_data(data)
+
+    # Define report columns
+    columns = [
+        {"label": "Order ID", "fieldname": "name", "fieldtype": "Link", "options": "Order","width": 170},
+        {"label": "Company", "fieldname": "company", "fieldtype": "Link", "options": "Company", "width": 190},
+        # {"label": "Branch", "fieldname": "branch", "fieldtype": "Data", "width": 170},
+        {"label": "Order Type", "fieldname": "order_type", "fieldtype": "Data", "width": 100},
+        {"label": "Order Date", "fieldname": "order_date", "fieldtype": "Date", "width": 130},
+        {"label": "Creaated By", "fieldname": "owner", "fieldtype": "Data", "width": 130},
+        # {"label": "Assigned Details", "fieldname": "view_details", "fieldtype": "HTML"},
+        {"label": "Assigned By", "fieldname": "assigned_by", "fieldtype": "Data","width":190},
+        {"label": "Assigned To", "fieldname": "assigned_to", "fieldtype": "Data","width":190},
+        {"label": "Assigned On", "fieldname": "assigned_on", "fieldtype": "Data","width":190},
+        {"label": "Assigned to Deptartment", "fieldname": "assigned_to_dept", "fieldtype": "Data", "width": 240},
+        {"label": "Designer Assignment", "fieldname": "designer_name", "fieldtype": "Data", "width": 250},
+        {"label": "Workflow State", "fieldname": "workflow_state", "fieldtype": "Data", "width": 200},
+        {"label": "Status Date Time", "fieldname": "modified", "fieldtype": "Datetime", "width": 180},
+        {"label": "Status Duration", "fieldname": "status_duration", "fieldtype": "Data", "width": 150},
+        {"label": "Delivery Date", "fieldname": "delivery_date", "fieldtype": "HTML", "width": 160},
+        # {"label": "Updated Delivery Date", "fieldname": "updated_delivery_date", "fieldtype": "HTML", "width": 200},
+    ]
 
     return columns, data, None, chart, report_summary
 
-def get_columns():
-    return [
-        # {"label": "Design Image", "fieldname": "design_image_1", "fieldtype": "HTML", "width": 130},
-        {"label": "Order ID", "fieldname": "name", "fieldtype": "Link", "options": "Order", "width": 160},
-        {"label": "Company", "fieldname": "company", "fieldtype": "Link", "options": "Company", "width": 190},
-        {"label": "Branch", "fieldname": "branch", "fieldtype": "Data", "width": 170},
-        {"label": "Order Type", "fieldname": "order_type", "fieldtype": "Data", "width": 100},
-        {"label": "Order Date", "fieldname": "order_date", "fieldtype": "Date", "width": 130},
-        {"label": "Designer", "fieldname": "designer_name", "fieldtype": "Data", "width": 200},
-        {"label": "Assigned to Deptartment", "fieldname": "assigned_to_dept", "fieldtype": "Data", "width": 200},
-        {"label": "Assigned Date", "fieldname": "assigned_date", "fieldtype": "Date", "width": 200},
-        {"label": "Workflow State", "fieldname": "workflow_state", "fieldtype": "Data", "width": 200},
-        {"label": "Delivery Date", "fieldname": "delivery_date", "fieldtype": "HTML", "width": 160},
-        {"label": "Updated Delivery Date", "fieldname": "updated_delivery_date", "fieldtype": "HTML", "width": 200},
-    ]
+
+
 
 def get_chart_data(orders):
     workflow_order = [
@@ -270,77 +239,73 @@ def get_chart_data(orders):
         "barOptions": {"stacked": False},
     }
 
-def get_report_summary(total, unassigned, assigned, approved, orders=None, filters=None):
+
+
+def get_report_summary(total, unassigned, assigned, orders=None, filters=None):
+    from frappe import session
+
+    restricted_users = [
+         "khushal_r@gkexport.com", "ashish_m@gkexport.com",
+        "rahul_k@gkexport.com", "kaushik_g@gkexport.com", "chandan_d@gkexport.com",
+        "soumaya_d@gkexport.com"
+    ]
+
     summary = [
         {"value": total, "indicator": "Blue", "label": "Total CAD", "datatype": "Int"},
         {"value": unassigned, "indicator": "Red" if unassigned > 0 else "Green", "label": "Unassigned CAD", "datatype": "Int"},
         {"value": assigned, "indicator": "Green", "label": "Assigned CAD", "datatype": "Int"},
     ]
 
-    target_employee_ids = [
-        "HR-EMP-00968", "HR-EMP-00222", "HR-EMP-00957",
-        "HR-EMP-00254", "HR-EMP-00935", "HR-EMP-02452"
-    ]
+    if session.user not in restricted_users and orders:
+        user_summary = get_fixed_employee_summary(orders)
+        summary.extend(user_summary)
 
-    employee_records = frappe.get_all("Employee",
-        filters={"name": ["in", target_employee_ids]},
-        fields=["name", "employee_name", "user_id"]
-    )
+    return summary
 
-    user_id_to_name = {
-        emp["user_id"]: emp["employee_name"]
-        for emp in employee_records if emp.get("user_id")
+
+def get_fixed_employee_summary(orders):
+    target_employees = {
+        "rahul_k@gkexport.com": "Rahul K",
+        "soumaya_d@gkexport.com": "Soumaya D",
+        "chandan_d@gkexport.com": "Chandan D",
+        "kaushik_g@gkexport.com": "Kaushik G",
+        "khushal_r@gkexport.com": "Khushal R",
+        "ashish_m@gkexport.com": "Ashish M",
+        
     }
 
-    user_order_counts = {user_id_to_name.get(user_id, user_id): 0 for user_id in user_id_to_name}
+    counts = {label: 0 for label in target_employees.values()}
+    user_order_map = {user: set() for user in target_employees.keys()}
 
-    base_order_filters = {}
+    for order in orders:
+        order_name = order["name"]
 
-    if filters:
-        if filters.get("from_date") and filters.get("to_date"):
-            base_order_filters["order_date"] = ["between", [filters["from_date"], filters["to_date"]]]
-        if filters.get("order_id"):
-            base_order_filters["name"] = ["in", filters["order_id"]]
-        if filters.get("company"):
-            base_order_filters["company"] = ["in", filters["company"]]
-        if filters.get("branch"):
-            branch_names = filters["branch"]
-            branch_ids = frappe.get_all("Branch", filters={"branch_name": ["in", branch_names]}, pluck="name")
-            base_order_filters["branch"] = ["in", branch_ids]
-        if filters.get("customer"):
-            base_order_filters["customer_code"] = ["in", filters["customer"]]
-        if filters.get("setting_type"):
-            base_order_filters["setting_type"] = ["in", filters["setting_type"]]
-        # if filters.get("status"):
-        #     base_order_filters["workflow_state"] = filters["status"]
-        if filters.get("status"):
-            if isinstance(filters["status"], str):
-                filters["status"] = [s.strip() for s in filters["status"].split(",") if s.strip()]
-            base_order_filters["workflow_state"] = ["in", filters["status"]]
-        if filters.get("workflow_type"):
-            base_order_filters["workflow_type"] = ["in", filters["workflow_type"]]
-        # if filters.get("status"):
+        # Only consider ToDos where the employee is allocated_to
+        todos = frappe.get_all(
+            "ToDo",
+            filters={
+                "reference_type": "Order",
+                "reference_name": order_name,
+                "status": ["!=", "Cancelled"]
+            },
+            fields=["allocated_to"]
+        )
+        for todo in todos:
+            allocated_to = todo.get("allocated_to")
+            if allocated_to in target_employees:
+                user_order_map[allocated_to].add(order_name)
 
-    employee_orders = frappe.get_all("Order",
-        fields=["name", "owner", "workflow_state"],
-        filters=base_order_filters
-    )
+    for user, orders_set in user_order_map.items():
+        label = target_employees[user]
+        counts[label] = len(orders_set)
 
-    for order in employee_orders:
-        if order.get("workflow_state") == "Approved":
-            continue
-        uid = order.get("owner")
-        if uid in user_id_to_name:
-            name = user_id_to_name[uid]
-            user_order_counts[name] += 1
-
-    for name in user_order_counts:
-        count = user_order_counts[name]
+    summary = []
+    for label, count in counts.items():
         summary.append({
             "value": count,
-            "indicator": "Blue" if count > 0 else "Grey",
-            "label": name or "Unknown User",
-            "datatype": "Int",
+            "indicator": "Blue",
+            "label": label,
+            "datatype": "Int"
         })
 
     return summary
