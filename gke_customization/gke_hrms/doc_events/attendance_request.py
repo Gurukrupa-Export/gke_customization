@@ -110,7 +110,7 @@ def on_submit(self, method):
 
     for day in range(request_days):
         attendance_date = add_days(self.from_date, day)
-        attendance_name = self.get_attendance_record(attendance_date)
+        attendance_name = get_attendance_record(self, attendance_date)
 
         if attendance_name:
             doc = frappe.get_doc("Attendance", attendance_name)
@@ -194,11 +194,12 @@ def get_attendance(self, logs):
     }
 
 def get_attendance_record(self, attendance_date: str) -> str | None:
-		return frappe.db.exists(
-			"Attendance",
-			{
-				"employee": self.employee,
-				"attendance_date": attendance_date,
-				"docstatus": ("!=", 2),
-			},
-		)
+    frappe.msgprint(_("Attendance Checking.."))
+    return frappe.db.exists(
+        "Attendance",
+        {
+            "employee": self.employee,
+            "attendance_date": attendance_date,
+            "docstatus": ("!=", 2),
+        },
+    )
