@@ -5,7 +5,7 @@ import json
 
 def execute(filters=None):
     current_user = frappe.session.user
-    restricted_users = ["khushal_r@gkexport.com","ashish_m@gkexport.com","rahul_d@gkexport.com","kaushik_g@gkexport.com","chandan_d@gkexport.com","soumaya_d@gkexport.com"]
+    restricted_users = ["khushal_r@gkexport.com","ashish_m@gkexport.com","rahul_k@gkexport.com","kaushik_g@gkexport.com","chandan_d@gkexport.com","soumaya_d@gkexport.com"]
 
     apply_restrictions = current_user in restricted_users
 
@@ -14,24 +14,24 @@ def execute(filters=None):
 
     if apply_restrictions:
         created_order_names = frappe.get_all(
-            "Order",
-            filters={"owner": current_user, "docstatus": ["<", 2]},
-            pluck="name"
-        )
+        "Order",
+        filters={"owner": current_user, "_assign": ["in", [None, ""]], "docstatus": ["<", 2]},
+        pluck="name"
+    )
 
         assigned_to_me = frappe.get_all(
             "ToDo",
             filters={"reference_type": "Order", "status": ["!=", "Cancelled"], "allocated_to": current_user},
             fields=["reference_name", "owner"]
         )
-        assigned_by_me = frappe.get_all(
-            "ToDo",
-            filters={"reference_type": "Order", "status": ["!=", "Cancelled"], "owner": current_user},
-            fields=["reference_name", "owner"]
-        )
+        # assigned_by_me = frappe.get_all(
+        #     "ToDo",
+        #     filters={"reference_type": "Order", "status": ["!=", "Cancelled"], "owner": current_user},
+        #     fields=["reference_name", "owner"]
+        # )
 
         todo_order_names = set()
-        for row in assigned_to_me + assigned_by_me:
+        for row in assigned_to_me:
             todo_order_names.add(row.reference_name)
             if row.reference_name not in assigned_by_map:
                 assigned_by_map[row.reference_name] = set()
@@ -186,11 +186,12 @@ def execute(filters=None):
 
     # Define report columns
     columns = [
-        {"label": "Order ID", "fieldname": "name", "fieldtype": "Link", "options": "Order"},
+        {"label": "Order ID", "fieldname": "name", "fieldtype": "Link", "options": "Order","width": 170},
         {"label": "Company", "fieldname": "company", "fieldtype": "Link", "options": "Company", "width": 190},
         # {"label": "Branch", "fieldname": "branch", "fieldtype": "Data", "width": 170},
         {"label": "Order Type", "fieldname": "order_type", "fieldtype": "Data", "width": 100},
         {"label": "Order Date", "fieldname": "order_date", "fieldtype": "Date", "width": 130},
+        {"label": "Creaated By", "fieldname": "owner", "fieldtype": "Data", "width": 130},
         # {"label": "Assigned Details", "fieldname": "view_details", "fieldtype": "HTML"},
         {"label": "Assigned By", "fieldname": "assigned_by", "fieldtype": "Data","width":190},
         {"label": "Assigned To", "fieldname": "assigned_to", "fieldtype": "Data","width":190},
@@ -245,7 +246,7 @@ def get_report_summary(total, unassigned, assigned, orders=None, filters=None):
 
     restricted_users = [
          "khushal_r@gkexport.com", "ashish_m@gkexport.com",
-        "rahul_d@gkexport.com", "kaushik_g@gkexport.com", "chandan_d@gkexport.com",
+        "rahul_k@gkexport.com", "kaushik_g@gkexport.com", "chandan_d@gkexport.com",
         "soumaya_d@gkexport.com"
     ]
 
@@ -263,55 +264,36 @@ def get_report_summary(total, unassigned, assigned, orders=None, filters=None):
 
 
 def get_fixed_employee_summary(orders):
-    import json
-
     target_employees = {
-        "rahul_d@gkexport.com": "Rahul D",
+        "rahul_k@gkexport.com": "Rahul K",
         "soumaya_d@gkexport.com": "Soumaya D",
         "chandan_d@gkexport.com": "Chandan D",
-        # "poonam_n@gkexport.com": "Poonam N",
         "kaushik_g@gkexport.com": "Kaushik G",
         "khushal_r@gkexport.com": "Khushal R",
-        "ashish_m@gkexport.com": "Ashish M"
+        "ashish_m@gkexport.com": "Ashish M",
+        
     }
 
     counts = {label: 0 for label in target_employees.values()}
-
     user_order_map = {user: set() for user in target_employees.keys()}
 
     for order in orders:
         order_name = order["name"]
-        
-        # 1. Created by user
-        owner = order.get("owner")
-        if owner in target_employees:
-            user_order_map[owner].add(order_name)
 
-        # 2. Assigned in _assign field
-        _assign = order.get("_assign")
-        if _assign:
-            try:
-                assigned_users = json.loads(_assign)
-                for user in assigned_users:
-                    if user in target_employees:
-                        user_order_map[user].add(order_name)
-            except Exception:
-                pass
-
-        # 3 & 4. ToDos related to this order
+        # Only consider ToDos where the employee is allocated_to
         todos = frappe.get_all(
             "ToDo",
-            filters={"reference_type": "Order", "reference_name": order_name, "status": ["!=", "Cancelled"]},
-            fields=["allocated_to", "owner"]
+            filters={
+                "reference_type": "Order",
+                "reference_name": order_name,
+                "status": ["!=", "Cancelled"]
+            },
+            fields=["allocated_to"]
         )
         for todo in todos:
             allocated_to = todo.get("allocated_to")
-            owner = todo.get("owner")
-
             if allocated_to in target_employees:
                 user_order_map[allocated_to].add(order_name)
-            if owner in target_employees:
-                user_order_map[owner].add(order_name)
 
     for user, orders_set in user_order_map.items():
         label = target_employees[user]
