@@ -461,7 +461,7 @@ def cerate_timesheet(self):
 							timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
 							timesheet_doc.save()
 						timesheet_doc.run_method('submit')
-			if self.designer_assignment[-1].designer:
+			if self.designer_assignment:
 				designer_value = self.designer_assignment[-1].designer
 						# Check if a timesheet document already exists for the employee
 				timesheet = frappe.get_all(
