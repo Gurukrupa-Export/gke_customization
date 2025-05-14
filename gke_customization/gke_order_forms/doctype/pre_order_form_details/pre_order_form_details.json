@@ -6,358 +6,366 @@
 "editable_grid": 1,
 "engine": "InnoDB",
 "field_order": [
-    "section_break_3dn1",
-    "sr_no",
-    "branch_name",
-    "order_date",
-    "party_code",
-    "po_number",
-    "column_break_py4j",
-    "order_type",
-    "due_days",
-    "order_no",
-    "bulk_order_no",
-    "section_break_xt7z",
-    "stylebio",
-    "category",
-    "metal_touch",
-    "setting_type",
-    "gold_target",
-    "diamond_pcs",
-    "column_break_p0fn",
-    "tagno",
-    "sub_category",
-    "metal_color",
-    "no_of_pcs",
-    "diamond_target",
-    "section_break_s0wp",
-    "new_category",
-    "item_code",
-    "bom",
-    "design_type",
-    "column_break_otth",
-    "new_sub_category",
-    "item_variant",
-    "design_by",
-    "section_break_t4ig",
-    "order_details_and_remarks",
-    "mod_remarks",
-    "status",
-    "column_break_r9sw",
-    "mod_reason",
-    "item_and_bom_complete_date",
-    "section_break_ohur",
-    "item_metal_colour",
-    "column_break_3sfw",
-    "item_setting_type",
-    "section_break_rfez",
-    "bom__metal_touch",
-    "bom__metal_colour",
-    "column_break_utb9",
-    "bom_setting_type"
+"section_break_3dn1",
+"sr_no",
+"branch_name",
+"order_date",
+"party_code",
+"po_number",
+"column_break_py4j",
+"order_type",
+"due_days",
+"order_no",
+"bulk_order_no",
+"section_break_xt7z",
+"stylebio",
+"category",
+"metal_touch",
+"setting_type",
+"gold_target",
+"diamond_pcs",
+"column_break_p0fn",
+"tagno",
+"sub_category",
+"metal_color",
+"no_of_pcs",
+"diamond_target",
+"section_break_s0wp",
+"new_category",
+"item_code",
+"bom",
+"design_type",
+"column_break_otth",
+"new_sub_category",
+"item_variant",
+"design_by",
+"section_break_t4ig",
+"order_details_and_remarks",
+"mod_remarks",
+"status",
+"column_break_r9sw",
+"mod_reason",
+"item_and_bom_complete_date",
+"section_break_ohur",
+"item_metal_colour",
+"column_break_3sfw",
+"item_setting_type",
+"section_break_rfez",
+"bom__metal_touch",
+"bom__metal_colour",
+"column_break_utb9",
+"bom_setting_type",
+"order_form_id"
 ],
 "fields": [
-    {
-    "fieldname": "section_break_3dn1",
-    "fieldtype": "Section Break"
-    },
-    {
-    "fieldname": "sr_no",
-    "fieldtype": "Int",
-    "hidden": 1,
-    "label": "Sr No"
-    },
-    {
-    "fieldname": "branch_name",
-    "fieldtype": "Link",
-    "hidden": 1,
-    "in_list_view": 1,
-    "label": "Branch Name",
-    "options": "Branch"
-    },
-    {
-    "fieldname": "order_date",
-    "fieldtype": "Date",
-    "hidden": 1,
-    "in_list_view": 1,
-    "label": "Order Date"
-    },
-    {
-    "fieldname": "due_days",
-    "fieldtype": "Int",
-    "hidden": 1,
-    "in_list_view": 1,
-    "label": "Due Days"
-    },
-    {
-    "fieldname": "party_code",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "Party Code"
-    },
-    {
-    "fieldname": "order_no",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "Order No"
-    },
-    {
-    "fieldname": "bulk_order_no",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "Bulk Order No"
-    },
-    {
-    "fieldname": "order_type",
-    "fieldtype": "Data",
-    "hidden": 1,
-    "in_list_view": 1,
-    "label": "Order Type"
-    },
-    {
-    "fieldname": "po_number",
-    "fieldtype": "Data",
-    "hidden": 1,
-    "in_list_view": 1,
-    "label": "Po Number"
-    },
-    {
-    "fieldname": "setting_type",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "Setting Type"
-    },
-    {
-    "fieldname": "metal_touch",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "Metal Touch"
-    },
-    {
-    "fieldname": "stylebio",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "StyleBio"
-    },
-    {
-    "fieldname": "tagno",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "TagNo"
-    },
-    {
-    "fieldname": "category",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "Category"
-    },
-    {
-    "fieldname": "sub_category",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "Sub Category"
-    },
-    {
-    "fetch_from": "item_code.item_category",
-    "fetch_if_empty": 1,
-    "fieldname": "new_category",
-    "fieldtype": "Link",
-    "in_list_view": 1,
-    "label": "New Category",
-    "options": "Attribute Value"
-    },
-    {
-    "fetch_from": "item_code.item_subcategory",
-    "fetch_if_empty": 1,
-    "fieldname": "new_sub_category",
-    "fieldtype": "Link",
-    "in_list_view": 1,
-    "label": "New Sub Category",
-    "options": "Attribute Value"
-    },
-    {
-    "fetch_from": "item_variant.variant_of",
-    "fetch_if_empty": 1,
-    "fieldname": "item_code",
-    "fieldtype": "Link",
-    "in_list_view": 1,
-    "label": "Item Template",
-    "options": "Item"
-    },
-    {
-    "fieldname": "item_variant",
-    "fieldtype": "Link",
-    "in_list_view": 1,
-    "label": "Item Variant",
-    "options": "Item"
-    },
-    {
-    "fetch_from": "item_variant.master_bom",
-    "fetch_if_empty": 1,
-    "fieldname": "bom",
-    "fieldtype": "Link",
-    "in_list_view": 1,
-    "label": "BOM",
-    "options": "BOM"
-    },
-    {
-    "fieldname": "metal_color",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "Metal Color"
-    },
-    {
-    "fieldname": "gold_target",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "Gold Target"
-    },
-    {
-    "fieldname": "diamond_pcs",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "Diamond Pcs"
-    },
-    {
-    "fieldname": "diamond_target",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "Diamond Target"
-    },
-    {
-    "fieldname": "order_details_and_remarks",
-    "fieldtype": "Data",
-    "in_list_view": 1,
-    "label": "Order Details and Remarks"
-    },
-    {
-    "fieldname": "item_and_bom_complete_date",
-    "fieldtype": "Date",
-    "in_list_view": 1,
-    "label": "Item and BOM Complete Date"
-    },
-    {
-    "fieldname": "status",
-    "fieldtype": "Select",
-    "in_list_view": 1,
-    "label": "Status",
-    "options": "Pending\nNo Item & No BOM\nItem Created\nBOM Created\nDone"
-    },
-    {
-    "fieldname": "column_break_py4j",
-    "fieldtype": "Column Break"
-    },
-    {
-    "fieldname": "section_break_xt7z",
-    "fieldtype": "Section Break"
-    },
-    {
-    "fieldname": "column_break_p0fn",
-    "fieldtype": "Column Break"
-    },
-    {
-    "fieldname": "mod_reason",
-    "fieldtype": "Link",
-    "label": "Mod Reason",
-    "options": "Attribute Value"
-    },
-    {
-    "fieldname": "no_of_pcs",
-    "fieldtype": "Int",
-    "label": "No of Pcs"
-    },
-    {
-    "fieldname": "section_break_s0wp",
-    "fieldtype": "Section Break"
-    },
-    {
-    "fieldname": "column_break_otth",
-    "fieldtype": "Column Break"
-    },
-    {
-    "fieldname": "section_break_t4ig",
-    "fieldtype": "Section Break"
-    },
-    {
-    "fieldname": "column_break_r9sw",
-    "fieldtype": "Column Break"
-    },
-    {
-    "fieldname": "section_break_ohur",
-    "fieldtype": "Section Break",
-    "label": "Item Details",
-    "read_only": 1
-    },
-    {
-    "fetch_from": "item_variant.setting_type",
-    "fieldname": "item_metal_colour",
-    "fieldtype": "Link",
-    "label": "Item Metal Colour",
-    "options": "Attribute Value"
-    },
-    {
-    "fieldname": "item_setting_type",
-    "fieldtype": "Link",
-    "label": "Item Setting Type",
-    "options": "Attribute Value"
-    },
-    {
-    "fetch_from": "bom.metal_touch",
-    "fieldname": "bom__metal_touch",
-    "fieldtype": "Link",
-    "label": "BOM  Metal Touch",
-    "options": "Attribute Value"
-    },
-    {
-    "fetch_from": "bom.metal_colour",
-    "fieldname": "bom__metal_colour",
-    "fieldtype": "Link",
-    "label": "BOM  Metal Colour",
-    "options": "Attribute Value"
-    },
-    {
-    "fetch_from": "bom.setting_type",
-    "fieldname": "bom_setting_type",
-    "fieldtype": "Link",
-    "label": "BOM Setting Type",
-    "options": "Attribute Value"
-    },
-    {
-    "fieldname": "column_break_3sfw",
-    "fieldtype": "Column Break"
-    },
-    {
-    "fieldname": "section_break_rfez",
-    "fieldtype": "Section Break",
-    "label": "BOM Details",
-    "read_only": 1
-    },
-    {
-    "fieldname": "column_break_utb9",
-    "fieldtype": "Column Break"
-    },
-    {
-    "fieldname": "design_by",
-    "fieldtype": "Select",
-    "label": "Design By",
-    "options": "\nCustomer Design\nOur Design"
-    },
-    {
-    "fieldname": "design_type",
-    "fieldtype": "Link",
-    "label": "Design Type",
-    "options": "Attribute Value"
-    },
-    {
-    "fieldname": "mod_remarks",
-    "fieldtype": "Data",
-    "label": "Mod Remarks"
-    }
+{
+"fieldname": "section_break_3dn1",
+"fieldtype": "Section Break"
+},
+{
+"fieldname": "sr_no",
+"fieldtype": "Int",
+"hidden": 1,
+"label": "Sr No"
+},
+{
+"fieldname": "branch_name",
+"fieldtype": "Link",
+"hidden": 1,
+"in_list_view": 1,
+"label": "Branch Name",
+"options": "Branch"
+},
+{
+"fieldname": "order_date",
+"fieldtype": "Date",
+"hidden": 1,
+"in_list_view": 1,
+"label": "Order Date"
+},
+{
+"fieldname": "due_days",
+"fieldtype": "Int",
+"hidden": 1,
+"in_list_view": 1,
+"label": "Due Days"
+},
+{
+"fieldname": "party_code",
+"fieldtype": "Data",
+"in_list_view": 1,
+"label": "Party Code"
+},
+{
+"fieldname": "order_no",
+"fieldtype": "Data",
+"in_list_view": 1,
+"label": "Order No"
+},
+{
+"fieldname": "bulk_order_no",
+"fieldtype": "Data",
+"in_list_view": 1,
+"label": "Bulk Order No"
+},
+{
+"fieldname": "order_type",
+"fieldtype": "Data",
+"hidden": 1,
+"in_list_view": 1,
+"label": "Order Type"
+},
+{
+"fieldname": "po_number",
+"fieldtype": "Data",
+"hidden": 1,
+"in_list_view": 1,
+"label": "Po Number"
+},
+{
+"fieldname": "setting_type",
+"fieldtype": "Data",
+"in_list_view": 1,
+"label": "Setting Type"
+},
+{
+"fieldname": "metal_touch",
+"fieldtype": "Data",
+"in_list_view": 1,
+"label": "Metal Touch"
+},
+{
+"fieldname": "stylebio",
+"fieldtype": "Data",
+"in_list_view": 1,
+"label": "StyleBio"
+},
+{
+"fieldname": "tagno",
+"fieldtype": "Data",
+"in_list_view": 1,
+"label": "TagNo"
+},
+{
+"fieldname": "category",
+"fieldtype": "Data",
+"in_list_view": 1,
+"label": "Category"
+},
+{
+"fieldname": "sub_category",
+"fieldtype": "Data",
+"in_list_view": 1,
+"label": "Sub Category"
+},
+{
+"fetch_from": "item_code.item_category",
+"fetch_if_empty": 1,
+"fieldname": "new_category",
+"fieldtype": "Link",
+"in_list_view": 1,
+"label": "New Category",
+"options": "Attribute Value"
+},
+{
+"fetch_from": "item_code.item_subcategory",
+"fetch_if_empty": 1,
+"fieldname": "new_sub_category",
+"fieldtype": "Link",
+"in_list_view": 1,
+"label": "New Sub Category",
+"options": "Attribute Value"
+},
+{
+"fetch_from": "item_variant.variant_of",
+"fetch_if_empty": 1,
+"fieldname": "item_code",
+"fieldtype": "Link",
+"in_list_view": 1,
+"label": "Item Template",
+"options": "Item"
+},
+{
+"fieldname": "item_variant",
+"fieldtype": "Link",
+"in_list_view": 1,
+"label": "Item Variant",
+"options": "Item"
+},
+{
+"fetch_from": "item_variant.master_bom",
+"fetch_if_empty": 1,
+"fieldname": "bom",
+"fieldtype": "Link",
+"in_list_view": 1,
+"label": "BOM",
+"options": "BOM"
+},
+{
+"fieldname": "metal_color",
+"fieldtype": "Data",
+"in_list_view": 1,
+"label": "Metal Color"
+},
+{
+"fieldname": "gold_target",
+"fieldtype": "Data",
+"in_list_view": 1,
+"label": "Gold Target"
+},
+{
+"fieldname": "diamond_pcs",
+"fieldtype": "Data",
+"in_list_view": 1,
+"label": "Diamond Pcs"
+},
+{
+"fieldname": "diamond_target",
+"fieldtype": "Data",
+"in_list_view": 1,
+"label": "Diamond Target"
+},
+{
+"fieldname": "order_details_and_remarks",
+"fieldtype": "Data",
+"in_list_view": 1,
+"label": "Order Details and Remarks"
+},
+{
+"fieldname": "item_and_bom_complete_date",
+"fieldtype": "Date",
+"in_list_view": 1,
+"label": "Item and BOM Complete Date"
+},
+{
+"fieldname": "status",
+"fieldtype": "Select",
+"in_list_view": 1,
+"label": "Status",
+"options": "Pending\nNo Item & No BOM\nItem Created\nBOM Created\nDone"
+},
+{
+"fieldname": "column_break_py4j",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "section_break_xt7z",
+"fieldtype": "Section Break"
+},
+{
+"fieldname": "column_break_p0fn",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "mod_reason",
+"fieldtype": "Link",
+"label": "Mod Reason",
+"options": "Attribute Value"
+},
+{
+"fieldname": "no_of_pcs",
+"fieldtype": "Int",
+"label": "No of Pcs"
+},
+{
+"fieldname": "section_break_s0wp",
+"fieldtype": "Section Break"
+},
+{
+"fieldname": "column_break_otth",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "section_break_t4ig",
+"fieldtype": "Section Break"
+},
+{
+"fieldname": "column_break_r9sw",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "section_break_ohur",
+"fieldtype": "Section Break",
+"label": "Item Details",
+"read_only": 1
+},
+{
+"fieldname": "item_metal_colour",
+"fieldtype": "Link",
+"label": "Item Metal Colour",
+"options": "Attribute Value"
+},
+{
+"fetch_from": "item_variant.setting_type",
+"fetch_if_empty": 1,
+"fieldname": "item_setting_type",
+"fieldtype": "Link",
+"label": "Item Setting Type",
+"options": "Attribute Value"
+},
+{
+"fetch_from": "bom.metal_touch",
+"fieldname": "bom__metal_touch",
+"fieldtype": "Link",
+"label": "BOM  Metal Touch",
+"options": "Attribute Value"
+},
+{
+"fetch_from": "bom.metal_colour",
+"fieldname": "bom__metal_colour",
+"fieldtype": "Link",
+"label": "BOM  Metal Colour",
+"options": "Attribute Value"
+},
+{
+"fetch_from": "bom.setting_type",
+"fieldname": "bom_setting_type",
+"fieldtype": "Link",
+"label": "BOM Setting Type",
+"options": "Attribute Value"
+},
+{
+"fieldname": "column_break_3sfw",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "section_break_rfez",
+"fieldtype": "Section Break",
+"label": "BOM Details",
+"read_only": 1
+},
+{
+"fieldname": "column_break_utb9",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "design_by",
+"fieldtype": "Select",
+"label": "Design By",
+"options": "\nCustomer Design\nOur Design"
+},
+{
+"fieldname": "design_type",
+"fieldtype": "Link",
+"label": "Design Type",
+"options": "Attribute Value"
+},
+{
+"fieldname": "mod_remarks",
+"fieldtype": "Data",
+"label": "Mod Remarks"
+},
+{
+"fieldname": "order_form_id",
+"fieldtype": "Link",
+"label": "Order Form ID",
+"options": "Order Form"
+}
 ],
 "index_web_pages_for_search": 1,
 "istable": 1,
 "links": [],
-"modified": "2025-03-08 12:37:48.306199",
+"modified": "2025-05-05 12:40:59.482824",
 "modified_by": "Administrator",
 "module": "GKE Order Forms",
 "name": "Pre Order Form Details",

@@ -1,5 +1,3 @@
-# Copyright (c) 2025, Gurukrupa Export and contributors
-# For license information, please see license.txt
 
 import frappe
 import urllib.parse
@@ -16,7 +14,7 @@ def execute(filters=None):
 
 def get_columns():
     return [
-        {"label": "Order ID", "fieldname": "orderform_id", "fieldtype": "Data", "width": 180},
+        {"label": "Order ID", "fieldname": "orderform_id", "fieldtype": "Link","options": "Order", "width": 180},
         {"label": "Company", "fieldname": "company", "fieldtype": "Link", "options": "Company", "width": 220},
         {"label": "Branch", "fieldname": "branch", "fieldtype": "Link", "options": "Branch", "width": 180},
         {"label": "Customer", "fieldname": "customer", "fieldtype": "HTML", "width": 180},
@@ -54,9 +52,9 @@ def get_data(filters):
     #     conditions.append(f"DATE(od.creation) BETWEEN '{filters['from_date']}' AND '{filters['to_date']}'")
     
     if filters.get("from_date"):
-        conditions.append(f"""od.order_date >= "{filters['from_date']}" """)
+        conditions.append(f"""Date(od.creation) >= "{filters['from_date']}" """)
     if filters.get("to_date"):
-        conditions.append(f"""od.order_date <= "{filters['to_date']}" """)
+        conditions.append(f"""Date(od.creation) <= "{filters['to_date']}" """)
 
     if filters.get("order_id"):
         order_ids = "', '".join(filters["order_id"])
@@ -79,10 +77,15 @@ def get_data(filters):
         conditions.append(f"od.po_no IN ({customerspo})")
     
     if filters.get("diamond_quality"):
-        conditions.append(f'od.diamond_quality = "{filters.get("diamond_quality")}"')
+        # conditions.append(f'od.diamond_quality = "{filters.get("diamond_quality")}"')
+        diamond_qtly = ', '.join([f'"{diamond_quality}"' for diamond_quality in filters.get("diamond_quality")])
+        conditions.append(f"od.diamond_quality IN ({diamond_qtly})")
 
     if filters.get("status"):
-        conditions.append(f"od.workflow_state = '{filters['status']}'")
+        statuses = ', '.join([f'"{status}"' for status in filters.get("status")])
+        conditions.append(f"od.workflow_state IN ({statuses})")
+
+        # conditions.append(f"od.workflow_state = '{filters['status']}'")
 
     where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
@@ -107,23 +110,21 @@ def get_data(filters):
             od.workflow_state AS status,
             CASE 
     WHEN od.workflow_state = 'Draft' THEN 1
-    WHEN od.workflow_state = 'Update Item' THEN 2
-    WHEN od.workflow_state = 'Assigned' THEN 3
-    WHEN od.workflow_state = 'Assigned - On-Hold' THEN 4
-    WHEN od.workflow_state = 'Designing' THEN 5
-    WHEN od.workflow_state = 'Update Designer' THEN 6
-    WHEN od.workflow_state = 'Designing - On-Hold' THEN 7
-    WHEN od.workflow_state = 'Sent to QC' THEN 8
-    WHEN od.workflow_state = 'Sent to QC-On-Hold' THEN 9
-    WHEN od.workflow_state = 'Customer Approval' THEN 10
-    WHEN od.workflow_state = 'Reupdate BOM' THEN 11
-    WHEN od.workflow_state = 'Update BOM' THEN 12
+    WHEN od.workflow_state = 'Assigned' THEN 2
+    WHEN od.workflow_state = 'Assigned - On-Hold' THEN 3
+    WHEN od.workflow_state = 'Designing' THEN 4
+    WHEN od.workflow_state = 'Update Designer' THEN 5
+    WHEN od.workflow_state = 'Designing - On-Hold' THEN 6
+    WHEN od.workflow_state = 'Sent to QC' THEN 7
+    WHEN od.workflow_state = 'Sent to QC-On-Hold' THEN 8
+    WHEN od.workflow_state = 'Customer Approval' THEN 9
+    WHEN od.workflow_state = 'Update Item' THEN 10
+    WHEN od.workflow_state = 'Update BOM' THEN 11
+    WHEN od.workflow_state = 'Reupdate BOM' THEN 12
     WHEN od.workflow_state = 'BOM QC - On-Hold' THEN 13
-    WHEN od.workflow_state = 'Customer Approval' THEN 14
-    WHEN od.workflow_state = 'Reupdate BOM' THEN 15
-    WHEN od.workflow_state = 'Approved' THEN 16
-    WHEN od.workflow_state = 'On-Hold' THEN 17
-    WHEN od.workflow_state = 'Rejected' THEN 18
+    WHEN od.workflow_state = 'Approved' THEN 14
+    WHEN od.workflow_state = 'On-Hold' THEN 15
+    WHEN od.workflow_state = 'Rejected' THEN 16
     WHEN od.workflow_state = 'Cancelled' THEN 0
     ELSE NULL
 END AS workflow_state1,
@@ -175,8 +176,8 @@ END AS workflow_state1,
         else:
            row["updated_delivery_date"] = "-"    
 
-        encoded_form_name = urllib.parse.quote(row["orderform_id"])
-        row["orderform_id"] = f'<a href="https://gkexport.frappe.cloud/app/order/{encoded_form_name}" target="_blank">{row["orderform_id"]}</a>'
+        # encoded_form_name = urllib.parse.quote(row["orderform_id"])
+        # row["orderform_id"] = f'<a href="https://gkexport.frappe.cloud/app/order/{encoded_form_name}" target="_blank">{row["orderform_id"]}</a>'
         
         row["status"] = format_status(row["status"])
         created_dt = datetime.strptime(str(row["created_datetime"]), "%Y-%m-%d %H:%M:%S.%f")
@@ -218,7 +219,8 @@ END AS workflow_state1,
     
     total_row = {
         "customer": f"<b><span style='color: green;'>Customer: {len(unique_customers)}</span></b>",
-        "orderform_id": f"<b><span style='color: green;'>Total Orders: {total_orders}</span></b>",
+        # "orderform_id": f"<b><span style='color: green;'>Total Orders: {total_orders}</span></b>",
+        "orderform_id":"🟢 Total Orders: {}".format(total_orders) + "\u200B",
         "time_difference": f"<b><span style='color: green;'>{convert_seconds_to_time(total_seconds)}</span></b>",
         "status_difference": f"<b><span style='color: green;'>{convert_seconds_to_time(total_status_seconds)}</span></b>",
         "total_diamond_weight_in_grams": f"<b><span style='color: green;'>Total: {round(total_diam_wt,2)}</span></b>",
@@ -304,10 +306,7 @@ def get_message():
         No. of Pcs: Quantity of items in Order</span>
         <br>
       <span style="color: green; font-size: 27px; margin-right: 5px; line-height: 0;">•</span>
-        <span style="font-size: 15px;">Total Number of Workflow State in this process is 19 (1-Draft, 2-Update Item, 3-Assigned, 
-        4-Assigned-On-Hold, 5-Designing, 6-Update Designer, 
-        7-Designing- On-Hold, 8-Sent to QC, 9-Sent to QC-On-Hold, 
-        10-Customer Approval, 11-Reupdate BOM, 12-Update BOM, 13-BOM QC- On- Hold, 14-Customer Approval, 15 - Reupdate BOM, 16-Approved,17-On-Hold, 18-Rejected   0-Cancelled)
+        <span style="font-size: 15px;">Total Number of Workflow State in this process is 17 (1-Draft, 2-Assigned, 3-Assigned - On-Hold, 4-Designing, 5-Update Designer, 6-Designing - On-Hold, 7-Sent to QC, 8-Sent to QC-On-Hold, 9-Customer Approval, 10-Update Item, 11-Update BOM, 12-Reupdate BOM, 13-BOM QC - On-Hold, 14-Approved, 15-On-Hold, 16-Rejected, 0-Cancelled)
        </span>
         
 
