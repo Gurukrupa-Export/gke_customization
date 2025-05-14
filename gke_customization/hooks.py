@@ -266,6 +266,15 @@ doc_events = {
 "Manufacturing Operation": {
     "autoname": "gke_customization.gke_order_forms.doc_events.manufacturing_operation.autoname"
 },
+"Sales Order":{
+    "validate":"gke_customization.gke_customization.doc_events.sales_order.validate",
+},
+"Sales Invoice":{
+    "validate":"gke_customization.gke_customization.doc_events.sales_invoice.validate",
+},
+"Delivery Note":{
+    "validate":"gke_customization.gke_customization.doc_events.delivery_note.validate",
+}
 }
 app_include_js = [
     '/assets/gke_customization/js/solitaire_calculator.js'
