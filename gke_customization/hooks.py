@@ -1,5 +1,5 @@
 from . import __version__ as app_version
-
+import gke_customization.overrides
 app_name = "gke_customization"
 app_title = "Gke Customization"
 app_publisher = "Gurukrupa Export"
