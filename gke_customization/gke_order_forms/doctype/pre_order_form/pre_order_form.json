@@ -22,7 +22,8 @@
     "service_type",
     "section_break_rk5y",
     "pre_order_form_details",
-    "amended_from"
+    "amended_from",
+    "total_rows"
 ],
 "fields": [
     {
@@ -132,6 +133,12 @@
     "fieldname": "is_branch_shipping",
     "fieldtype": "Check",
     "label": "Is Branch Shipping"
+    },
+    {
+    "fieldname": "total_rows",
+    "fieldtype": "Int",
+    "label": "Total Rows",
+    "read_only": 1
     }
 ],
 "index_web_pages_for_search": 1,
