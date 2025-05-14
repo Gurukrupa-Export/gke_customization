@@ -274,7 +274,10 @@ doc_events = {
 },
 "Delivery Note":{
     "validate":"gke_customization.gke_customization.doc_events.delivery_note.validate",
-}
+},
+"Batch": {
+    "autoname": "jewellery_erpnext.jewellery_erpnext.customization.batch.batch.autoname",
+},
 }
 app_include_js = [
     '/assets/gke_customization/js/solitaire_calculator.js'
