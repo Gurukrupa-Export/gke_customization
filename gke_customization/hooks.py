@@ -1,5 +1,5 @@
 from . import __version__ as app_version
-
+import gke_customization.overrides
 app_name = "gke_customization"
 app_title = "Gke Customization"
 app_publisher = "Gurukrupa Export"
@@ -156,7 +156,9 @@ scheduler_events = {
 # ------------------------------
 #
 override_whitelisted_methods = {
-	"hrms.hr.doctype.job_offer.job_offer.make_employee": "gke_customization.gke_hrms.doc_events.job_offer.make_employee"
+	"hrms.hr.doctype.job_offer.job_offer.make_employee": "gke_customization.gke_hrms.doc_events.job_offer.make_employee",
+    "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note":"gke_customization.gke_customization.doc_events.sales_order.make_delivery_note",
+    "erpnext.selling.doctype.delivery_note.delivery_note.make_sales_invoice":"gke_customization.gke_customization.doc_events.delivery_note.make_sales_invoice"
 }
 #
 # each overriding function accepts a `data` argument;
@@ -265,6 +267,18 @@ doc_events = {
 # },
 "Manufacturing Operation": {
     "autoname": "gke_customization.gke_order_forms.doc_events.manufacturing_operation.autoname"
+},
+"Sales Order":{
+    "validate":"gke_customization.gke_customization.doc_events.sales_order.validate",
+},
+"Sales Invoice":{
+    "validate":"gke_customization.gke_customization.doc_events.sales_invoice.validate",
+},
+"Delivery Note":{
+    "validate":"gke_customization.gke_customization.doc_events.delivery_note.validate",
+},
+"Batch": {
+    "autoname": "jewellery_erpnext.jewellery_erpnext.customization.batch.batch.autoname",
 },
 }
 app_include_js = [

@@ -191,7 +191,7 @@ def execute(filters=None):
         # {"label": "Branch", "fieldname": "branch", "fieldtype": "Data", "width": 170},
         {"label": "Order Type", "fieldname": "order_type", "fieldtype": "Data", "width": 100},
         {"label": "Order Date", "fieldname": "order_date", "fieldtype": "Date", "width": 130},
-        {"label": "Creaated By", "fieldname": "owner", "fieldtype": "Data", "width": 130},
+        {"label": "Created By", "fieldname": "owner", "fieldtype": "Data", "width": 130},
         # {"label": "Assigned Details", "fieldname": "view_details", "fieldtype": "HTML"},
         {"label": "Assigned By", "fieldname": "assigned_by", "fieldtype": "Data","width":190},
         {"label": "Assigned To", "fieldname": "assigned_to", "fieldtype": "Data","width":190},
