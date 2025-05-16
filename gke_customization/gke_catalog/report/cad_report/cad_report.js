@@ -4,7 +4,7 @@
 
 frappe.query_reports["CAD Report"] = {
     "filters": [
-		{
+        {
             fieldname: "start_date",
             label: __("From Date"),
             fieldtype: "Date",
@@ -32,7 +32,7 @@ frappe.query_reports["CAD Report"] = {
         // },
         
         
-		{
+        {
             fieldname: "company",
             label: __("Company"),
             fieldtype: "MultiSelectList",
@@ -65,29 +65,44 @@ frappe.query_reports["CAD Report"] = {
             }
         },
         {
-            fieldname: "setting_type",
-            label: __("Setting Type"),
-            fieldtype: "MultiSelectList",
-            options: [],
-            reqd: 0,
-            get_data: function(txt) {
-                return frappe.db.get_list("Order", {
-                    fields: ["distinct setting_type as value"],
-                    filters: [
-                        ["setting_type", "not in", [ " "]],
-                        ["setting_type", "like", `%${txt}%`]
-                    ],
-                    limit: 20
-                }).then(r => {
-                    return r.map(d => {
-                        return {
-                            value: d.value,
-                            description: ""  // manually adding empty description
-                        }
-                    });
-                });
-            }
-        },
+    fieldname: "setting_type",
+    label: __("Setting Type"),
+    fieldtype: "MultiSelectList",
+    options: [],
+    reqd: 0,
+    get_data: function(txt) {
+        const current_user = frappe.session.user;
+        const arun_only = ["Close Setting", "Close"];
+        const restricted_users = [
+            "khushal_r@gkexport.com","ashish_m@gkexport.com","rahul_k@gkexport.com",
+            "kaushik_g@gkexport.com","chandan_d@gkexport.com","soumaya_d@gkexport.com",
+            "arun_l@gkexport.com"
+        ];
+
+        let filters = [["setting_type", "!=", ""]];
+
+        if (current_user === "arun_l@gkexport.com") {
+            filters.push(["setting_type", "in", arun_only]);
+        } else if (restricted_users.includes(current_user)) {
+            filters.push(["setting_type", "not in", arun_only]);
+        } else {
+        }
+        if (txt) {
+            filters.push(["setting_type", "like", `%${txt}%`]);
+        }
+
+        return frappe.db.get_list("Order", {
+            fields: ["distinct setting_type as value"],
+            filters: filters,
+            limit: 20
+        }).then(r => {
+            return r.map(d => ({
+                value: d.value,
+                description: ""
+            }));
+        });
+    }
+},
         {
             fieldname: "status",
             label: __("Status"),
@@ -131,16 +146,16 @@ frappe.query_reports["CAD Report"] = {
     onload: function(report) {
 
         report.page.add_inner_button(__("Clear Filter"), function () {
-			report.filters.forEach(function (filter) {
-				let field = report.get_filter(filter.fieldname);
+            report.filters.forEach(function (filter) {
+                let field = report.get_filter(filter.fieldname);
 
-				if (field.df.fieldtype === "MultiSelectList") {
-					field.set_value([]); 
-				} else if (field.df.default) {
-					field.set_value(field.df.default); 
-				} else {
-					field.set_value(""); 
-				}
-			});
-		});
+                if (field.df.fieldtype === "MultiSelectList") {
+                    field.set_value([]); 
+                } else if (field.df.default) {
+                    field.set_value(field.df.default); 
+                } else {
+                    field.set_value(""); 
+                }
+            });
+        });
     }}

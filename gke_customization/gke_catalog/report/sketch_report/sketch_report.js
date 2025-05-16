@@ -19,7 +19,7 @@ frappe.query_reports["Sketch Report"] = {
             default: frappe.datetime.month_end(),
         },  
         
-		{
+        {
             fieldname: "company",
             label: __("Company"),
             fieldtype: "MultiSelectList",
@@ -94,25 +94,7 @@ frappe.query_reports["Sketch Report"] = {
                 });
             }
         },
-        // {
-        //     fieldname: "sketch_workflow_state",
-        //     label: __("Sketch Workflow State"),
-        //     fieldtype: "MultiSelectList",
-        //     options: [],
-        //     reqd: 0,
-        //     get_data: function(txt) {
-        //         return frappe.db.get_list("Order", {
-        //             fields: ["distinct custom_sketch_workflow_state as value"],
-        //         }).then(r => {
-        //             return r.map(d => {
-        //                 return {
-        //                     value: d.value,
-        //                     description: ""  
-        //                 }
-        //             });
-        //         });
-        //     }
-        // },
+
 
         {
             fieldname: "user",
@@ -175,4 +157,4 @@ onload: function (report) {
 }
 
 
-		
+        
