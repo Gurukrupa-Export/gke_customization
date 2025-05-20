@@ -1,0 +1,81 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-05-19 15:37:32.605876",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "month",
+  "setting_type",
+  "nature",
+  "target_1",
+  "target_2",
+  "target_3",
+  "target_4",
+  "target_5"
+ ],
+ "fields": [
+  {
+   "fieldname": "setting_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Setting Type",
+   "options": "\nOpen\nClose"
+  },
+  {
+   "fieldname": "nature",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Nature",
+   "options": "\nOutright\nOutwork"
+  },
+  {
+   "fieldname": "month",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Month"
+  },
+  {
+   "fieldname": "target_1",
+   "fieldtype": "Select",
+   "label": "Target 1(In Carat)",
+   "options": "\n1000\n1500\n2000\n2500\n3000\n3500\n4000\n4500\n5000\n5500\n6000\n6500\n7000\n7500\n8000\n8500\n9000\n9500\n10000\n10500\n11000\n11500\n12000\n12500\n13000\n13500\n14000\n14500\n15000\n15500\n16000\n16500\n17000\n17500\n18000\n18500\n19000\n19500\n20000"
+  },
+  {
+   "fieldname": "target_2",
+   "fieldtype": "Select",
+   "label": "Target 2(In Carat)",
+   "options": "\n1000\n1500\n2000\n2500\n3000\n3500\n4000\n4500\n5000\n5500\n6000\n6500\n7000\n7500\n8000\n8500\n9000\n9500\n10000\n10500\n11000\n11500\n12000\n12500\n13000\n13500\n14000\n14500\n15000\n15500\n16000\n16500\n17000\n17500\n18000\n18500\n19000\n19500\n20000"
+  },
+  {
+   "fieldname": "target_3",
+   "fieldtype": "Select",
+   "label": "Target 3(In Carat)",
+   "options": "\n1000\n1500\n2000\n2500\n3000\n3500\n4000\n4500\n5000\n5500\n6000\n6500\n7000\n7500\n8000\n8500\n9000\n9500\n10000\n10500\n11000\n11500\n12000\n12500\n13000\n13500\n14000\n14500\n15000\n15500\n16000\n16500\n17000\n17500\n18000\n18500\n19000\n19500\n20000"
+  },
+  {
+   "fieldname": "target_4",
+   "fieldtype": "Select",
+   "label": "Target 4(In Carat)",
+   "options": "\n1000\n1500\n2000\n2500\n3000\n3500\n4000\n4500\n5000\n5500\n6000\n6500\n7000\n7500\n8000\n8500\n9000\n9500\n10000\n10500\n11000\n11500\n12000\n12500\n13000\n13500\n14000\n14500\n15000\n15500\n16000\n16500\n17000\n17500\n18000\n18500\n19000\n19500\n20000"
+  },
+  {
+   "fieldname": "target_5",
+   "fieldtype": "Select",
+   "label": "Target 5(In Carat)",
+   "options": "\n1000\n1500\n2000\n2500\n3000\n3500\n4000\n4500\n5000\n5500\n6000\n6500\n7000\n7500\n8000\n8500\n9000\n9500\n10000\n10500\n11000\n11500\n12000\n12500\n13000\n13500\n14000\n14500\n15000\n15500\n16000\n16500\n17000\n17500\n18000\n18500\n19000\n19500\n20000"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-05-19 17:59:49.342501",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Order Target Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
