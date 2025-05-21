@@ -1,0 +1,182 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-05-19 14:52:27.771546",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "section_break_24te",
+  "company",
+  "target",
+  "module",
+  "column_break_gu06",
+  "date",
+  "month",
+  "section_break_plgo",
+  "order_target_detail",
+  "section_break_qipr",
+  "total_open_outright",
+  "total_open_outwork",
+  "total_openclose_outright",
+  "column_break_immi",
+  "total_close_outright",
+  "total_close_outwork",
+  "total_closeopen_outwork",
+  "section_break_d1ex",
+  "total_open_of",
+  "column_break_ujjh",
+  "total_close_of",
+  "section_break_fodl",
+  "round_of_total"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_24te",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "Gurukrupa Export Private Limited",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "target",
+   "fieldtype": "Select",
+   "label": "Target",
+   "options": "\nFull Month\n1 Half Month\n2 Half Month"
+  },
+  {
+   "fieldname": "column_break_gu06",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "month",
+   "fieldtype": "Data",
+   "label": "Month",
+   "read_only": 1
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "options": "OTF-"
+  },
+  {
+   "fieldname": "section_break_plgo",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "order_target_detail",
+   "fieldtype": "Table",
+   "label": "Order Target Detail",
+   "options": "Order Target Detail"
+  },
+  {
+   "fieldname": "module",
+   "fieldtype": "Select",
+   "label": "Module",
+   "options": "\nOrder\nManufacturing\nSales"
+  },
+  {
+   "fieldname": "section_break_qipr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_open_outright",
+   "fieldtype": "Float",
+   "label": "Total Open Outright"
+  },
+  {
+   "fieldname": "total_open_outwork",
+   "fieldtype": "Float",
+   "label": "Total Open Outwork"
+  },
+  {
+   "fieldname": "column_break_immi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_close_outright",
+   "fieldtype": "Float",
+   "label": "Total Close Outright"
+  },
+  {
+   "fieldname": "total_close_outwork",
+   "fieldtype": "Float",
+   "label": "Total Close Outwork"
+  },
+  {
+   "fieldname": "total_openclose_outright",
+   "fieldtype": "Float",
+   "label": "Total Open/Close Outright"
+  },
+  {
+   "fieldname": "total_closeopen_outwork",
+   "fieldtype": "Float",
+   "label": "Total Close/Open Outwork"
+  },
+  {
+   "fieldname": "section_break_d1ex",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_open_of",
+   "fieldtype": "Float",
+   "label": "Total Open Outright/Outwork"
+  },
+  {
+   "fieldname": "total_close_of",
+   "fieldtype": "Float",
+   "label": "Total Close Outright/Outwork"
+  },
+  {
+   "fieldname": "column_break_ujjh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "round_of_total",
+   "fieldtype": "Float",
+   "label": "Total Target"
+  },
+  {
+   "fieldname": "section_break_fodl",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-05-20 08:57:34.430563",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Targets Form",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

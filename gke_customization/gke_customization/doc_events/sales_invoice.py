@@ -72,7 +72,7 @@ def get_delivery_challan(source_name, target_doc=None):
 
 
 def validate(self,method=None):
-	if self.company=='Sadguru Diamond':
+	if self.company=='Sadguru Diamond' and not self.is_return:
 		for r in self.items :
 			# if r.sales_order:
 			# 	Diamond_grade=frappe.db.get_value('Sales Order',r.sales_order,'items.diamond_grade')

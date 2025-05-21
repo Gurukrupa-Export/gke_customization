@@ -1,134 +1,7 @@
 
-// frappe.ui.form.on("Unsecured Loan", {
-//     refresh(frm) {
-//         // Add a custom button labeled "Accounting Ledger"
-//         frm.add_custom_button("Accounting Ledger", () => {
-//             frappe.set_route("query-report", "General Ledger", {
-//                 account: frm.doc.account || "",
-//                 voucher_no: frm.doc.name, 
-//                 company: frm.doc.company || "" 
-//             });
-//         }, __("View")); 
-//     },
-//     interest_rate(frm){
-//         update_fields_in_child_table(frm, "interest_rate")
-//     },
-//     loan_amount(frm){
-//         console.log("HERE");
-//         update_fields_in_child_table(frm, "loan_amount")
-//     },
-// });
-
-// frappe.ui.form.on("Unsecured Loan Repayment Schedule", {
-//     repayment_schedule_add(frm,cdt,cdn) {
-//         var row = locals[cdt][cdn];
-//         row.interest_rate = frm.doc.interest_rate;
-//         row.loan_amount = frm.doc.loan_amount;
-//         refresh_field("repayment_schedule");
-//     },
-// });
-
-
-// function update_fields_in_child_table(frm, fieldname) {
-// 	$.each(frm.doc.repayment_schedule || [], function (i, d) {
-// 		d[fieldname] = frm.doc[fieldname];
-// 	});
-// 	refresh_field("repayment_schedule");
-// };
-
-
-
-
-// frappe.ui.form.on("Unsecured Loan", {
-//     refresh(frm) {
-//         // Add a button under the "View" menu for Accounting Ledger
-//         frm.add_custom_button("Accounting Ledger", () => {
-//             frappe.set_route("query-report", "General Ledger", {
-//                 account: frm.doc.account || "",
-//                 voucher_no: frm.doc.name, 
-//                 company: frm.doc.company || "" 
-//             });
-//         }, __("View"));
-
-//         // Ensure fields are updated in child table
-//         update_fields_in_child_table(frm, "interest_rate");
-//         update_fields_in_child_table(frm, "loan_amount");
-//     },
-
-//     interest_rate(frm) {
-//         update_fields_in_child_table(frm, "interest_rate");
-//     },
-
-//     loan_amount(frm) {
-//         console.log("HERE");
-//         update_fields_in_child_table(frm, "loan_amount");
-//     }
-// });
-
-// frappe.ui.form.on("Unsecured Loan Repayment Schedule", {
-//     repayment_schedule_add(frm, cdt, cdn) {
-//         var row = locals[cdt][cdn];
-//         row.interest_rate = frm.doc.interest_rate;
-//         row.loan_amount = frm.doc.loan_amount;
-//         refresh_field("repayment_schedule");
-//     }
-// });
-
-// function update_fields_in_child_table(frm, fieldname) {
-//     $.each(frm.doc.repayment_schedule || [], function (i, d) {
-//         d[fieldname] = frm.doc[fieldname];
-//     });
-//     refresh_field("repayment_schedule");
-// };
-
-
-
 
 frappe.ui.form.on("Unsecured Loan", {
     refresh(frm) {
-        // Add a button under the "View" menu for Accounting Ledger
-        // frm.add_custom_button("Accounting Ledger", () => {
-        //     frappe.set_route("query-report", "General Ledger", {
-        //         voucher_no: frm.doc.name, 
-        //         company: frm.doc.company || "" 
-        //     });
-        // }, __("View"));
-        // if(frm.doc.parent_gl_entry_created==0){
-        //     frm.add_custom_button(__('Create Receive Payment Entry'), function() {
-        //         frappe.call({
-        //             method: "gke_customization.gke_custom_export.doctype.unsecured_loan.unsecured_loan.create_receive_payment_entry",
-        //             args: {
-        //                 loan_name: frm.doc.name
-        //             },
-        //             callback: function(r) {
-        //                 if (r.message.status === "success") {
-        //                     frappe.msgprint(__('Payment Entry {0} created successfully.', [r.message.payment_entry]));
-        //                     // frappe.set_route("Form", "Payment Entry", r.message.payment_entry);
-        //                 } else {
-        //                     frappe.msgprint(__('Error: {0}', [r.message.message]));
-        //                 }
-        //             }
-        //         });
-        //     }, __('Create'));
-        // }
-    
-        // frm.add_custom_button(__('Create Pay Payment Entry'), function() {
-        //     frappe.call({
-        //         method: "gke_customization.gke_custom_export.doctype.unsecured_loan.unsecured_loan.create_pay_payment_entry",
-        //         args: {
-        //             loan_name: frm.doc.name
-        //         },
-        //         callback: function(r) {
-        //             if (r.message.status === "success") {
-        //                 frappe.msgprint(__('Payment Entry {0} created successfully.', [r.message.payment_entry]));
-        //                 // frappe.set_route("Form", "Payment Entry", r.message.payment_entry);
-        //             } else {
-        //                 frappe.msgprint(__('Error: {0}', [r.message.message]));
-        //             }
-        //         }
-        //     });
-        // }, __('Create'));
-
         frm.add_custom_button(__('Create Receive Payment Entry'), function() {
             frappe.new_doc('Payment Entry', {
                 payment_type: "Receive",
@@ -143,13 +16,12 @@ frappe.ui.form.on("Unsecured Loan", {
     
             // Set the party field after a short delay
             setTimeout(function() {
-                frappe.db.get_value("Business Partner", frm.doc.lender, "customer")
-    	           .then((r)=> {
-                	   if(r.message){
+                frappe.db.get_value("Business Partner", frm.doc.lender, "customer").then((r)=> {
+                    if(r.message){
                             cur_frm.set_value("party", r.message.customer);
-                            cur_frm.set_value("paid_to", frm.doc.principal_gl_account);
-        	            }
-            	});
+                            cur_frm.set_value("paid_to", "50200 - HDFC - SD");
+                        }
+                    });
 
             }, 1500);
         }, __('Create'));
@@ -182,7 +54,7 @@ frappe.ui.form.on("Unsecured Loan", {
                     .then((r) => {
                         if (r.message.supplier) {
                             cur_frm.set_value("party", r.message.supplier);
-                            cur_frm.set_value("paid_from", frm.doc.principal_gl_account);
+                            cur_frm.set_value("paid_from", "50200 - HDFC - SD");
                             
                         }
                     });
