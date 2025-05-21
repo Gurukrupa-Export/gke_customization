@@ -117,7 +117,7 @@ frappe.query_reports["CAD Report"] = {
         },
         {
             fieldname: "status",
-            label: __("Workflow Status"),
+            label: __("Workflow State"),
             fieldtype: "MultiSelectList",
             options: [],
             reqd: 0,
@@ -134,24 +134,33 @@ frappe.query_reports["CAD Report"] = {
                 });
             }
         },
+        // {
+        //     fieldname: "workflow_type",
+        //     label: __("Workflow Type"),
+        //     fieldtype: "MultiSelectList",
+        //     options: [],
+        //     default: ["CAD"],
+        //     reqd: 0,
+        //     get_data: function(txt) {
+        //         return frappe.db.get_list("Order", {
+        //             fields: ["distinct workflow_type as value"],
+        //         }).then(r => {
+        //             return r.map(d => {
+        //                 return {
+        //                     value: d.value,
+        //                     description: ""  
+        //                 }
+        //             });
+        //         });
+        //     }
+        // },
         {
-            fieldname: "workflow_type",
-            label: __("Workflow Type"),
-            fieldtype: "MultiSelectList",
-            options: [],
-            reqd: 0,
-            get_data: function(txt) {
-                return frappe.db.get_list("Order", {
-                    fields: ["distinct workflow_type as value"],
-                }).then(r => {
-                    return r.map(d => {
-                        return {
-                            value: d.value,
-                            description: ""  
-                        }
-                    });
-                });
-            }
+            fieldname: "bom_or_cad",
+            label: __("BOM or CAD"),
+            fieldtype: "Select",
+            options: ["CAD"],
+            read_only: 1,
+            default:"CAD"
         },
 
     ],
@@ -183,20 +192,37 @@ frappe.query_reports["CAD Report"] = {
                     }
                 }
             });
+
+        
+    }
+
+        const workflow_type_filter = report.get_filter('workflow_type');
+        if (workflow_type_filter) {
+        workflow_type_filter.set_value(["CAD"]);
     }
 
         report.page.add_inner_button(__("Clear Filter"), function () {
-            report.filters.forEach(function (filter) {
-                let field = report.get_filter(filter.fieldname);
+        report.filters.forEach(function (filter) {
+            let field = report.get_filter(filter.fieldname);
 
-                if (field.df.fieldtype === "MultiSelectList") {
-                    field.set_value([]); 
-                } else if (field.df.default) {
-                    field.set_value(field.df.default); 
+            if (field.df.fieldtype === "MultiSelectList") {
+                if (Array.isArray(field.df.default)) {
+                    field.set_value(field.df.default);
                 } else {
-                    field.set_value(""); 
+                    field.set_value([]);
                 }
-            });
+            } else if (field.df.default !== undefined) {
+                field.set_value(field.df.default);
+            } else {
+                field.set_value("");
+            }
         });
-    },  
+
+        if (workflow_type_filter) {
+            workflow_type_filter.set_value(["CAD"]);
+        }
+
+        frappe.query_report.refresh();
+    });
+}
 }
