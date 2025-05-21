@@ -3,6 +3,33 @@ from datetime import datetime
 from frappe.utils import now_datetime, get_datetime
 import json
 
+
+def filter_orders_by_workflow_type(data, workflow_types):
+    if not workflow_types:
+        return data
+
+    filtered = []
+    for row in data:
+        wt = (row.get("workflow_type") or "").strip()
+        dt = (row.get("design_type") or "").strip()
+
+        if "CAD" in workflow_types:
+            if (
+                wt == "CAD"
+                or (not wt and dt in ("New Design", "Sketch Design"))
+            ):
+                filtered.append(row)
+                continue  # skip normal logic for CAD
+
+        # Include row if workflow_type is in the other selected types (not CAD)
+        other_wt = [w for w in workflow_types if w != "CAD"]
+        if other_wt and wt in other_wt:
+            filtered.append(row)
+
+    return filtered
+
+
+
 def execute(filters=None):
     current_user = frappe.session.user
     restricted_users = ["khushal_r@gkexport.com","ashish_m@gkexport.com","rahul_k@gkexport.com","kaushik_g@gkexport.com",
@@ -79,12 +106,16 @@ def execute(filters=None):
     if filters.get("docstatus") and filters.get("docstatus") != "":
         order_filters["docstatus"] = int(filters["docstatus"])
 
+    if filters.get("bom_or_cad"):
+        order_filters["bom_or_cad"] = filters["bom_or_cad"]
+
+
     if filters.get("status"):
         order_filters["workflow_state"] = filters["status"] if isinstance(filters["status"], str) else ["in", filters["status"]]
 
-    if filters.get("workflow_type"):
-        order_filters["workflow_type"] = filters["workflow_type"] if isinstance(filters["workflow_type"], str) else ["in", filters["workflow_type"]]
-
+    # if filters.get("workflow_type"):
+    #     order_filters["workflow_type"] = filters["workflow_type"] if isinstance(filters["workflow_type"], str) else ["in", filters["workflow_type"]]
+    
     if filters.get("designer_branch"):
         designers_in_branch = frappe.get_all(
             "Employee",
@@ -110,9 +141,15 @@ def execute(filters=None):
     data = frappe.get_all(
         "Order",
         filters=order_filters,
-        fields=["name", "owner", "_assign", "workflow_state", "company", "branch", "order_type",
-                "order_date", "delivery_date", "updated_delivery_date", "modified","creation"]
+        fields=["name", "owner", "_assign", "workflow_state", "company", "branch", "order_type","bom_or_cad",
+                "order_date", "delivery_date", "updated_delivery_date", "modified","creation","workflow_type", "design_type"]
     )
+
+    workflow_types = filters.get("workflow_type")
+    if isinstance(workflow_types, str):
+        workflow_types = [workflow_types]
+
+    data = filter_orders_by_workflow_type(data, workflow_types)
 
     now = now_datetime()
     for row in data:
@@ -129,6 +166,8 @@ def execute(filters=None):
             row["status_duration"] = f"{duration.days}d {duration.seconds // 3600}h {(duration.seconds % 3600) // 60}m"
         else:
             row["status_duration"] = ""
+
+
 
 
         designer_ids = frappe.get_all(
