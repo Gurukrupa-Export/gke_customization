@@ -76,7 +76,7 @@ frappe.query_reports["CAD Report"] = {
         const restricted_users = [
             "khushal_r@gkexport.com","ashish_m@gkexport.com","rahul_k@gkexport.com",
             "kaushik_g@gkexport.com","chandan_d@gkexport.com","soumaya_d@gkexport.com",
-            "arun_l@gkexport.com"
+            "arun_l@gkexport.com","sudip_k@gkexport.com"
         ];
 
         let filters = [["setting_type", "!=", ""]];
@@ -104,8 +104,20 @@ frappe.query_reports["CAD Report"] = {
     }
 },
         {
+            fieldname: "docstatus",
+            label: __("Document Status"),
+            fieldtype: "Select",
+            options: 
+            [{ label: "", value: "" },
+            { label: "Draft", value: "0" },
+            { label: "Submitted", value: "1" },
+            { label: "Cancelled", value: "2" }],
+            reqd: 0,
+            default:"0"
+        },
+        {
             fieldname: "status",
-            label: __("Status"),
+            label: __("Workflow Status"),
             fieldtype: "MultiSelectList",
             options: [],
             reqd: 0,
@@ -144,6 +156,34 @@ frappe.query_reports["CAD Report"] = {
 
     ],
     onload: function(report) {
+        const restricted_users = [
+        "khushal_r@gkexport.com", "ashish_m@gkexport.com", "rahul_k@gkexport.com",
+        "kaushik_g@gkexport.com", "chandan_d@gkexport.com", "soumaya_d@gkexport.com",
+        "arun_l@gkexport.com", "sudip_k@gkexport.com"
+    ];
+
+    const current_user = frappe.session.user;
+    const branch_field = report.get_filter('designer_branch');
+
+    if (restricted_users.includes(current_user)) {
+        // Get branch from Employee
+        frappe.db.get_value('Employee', { user_id: current_user, status: 'Active' }, 'branch')
+            .then(res => {
+                if (res && res.message && res.message.branch) {
+                    const user_branch = res.message.branch;
+
+                    // Set and disable branch filter
+                    if (branch_field) {
+                        branch_field.set_value(user_branch);
+
+                        // Disable after value is set
+                        setTimeout(() => {
+                            branch_field.$wrapper.find('input, select').prop('disabled', true);
+                        }, 100);
+                    }
+                }
+            });
+    }
 
         report.page.add_inner_button(__("Clear Filter"), function () {
             report.filters.forEach(function (filter) {
@@ -158,4 +198,5 @@ frappe.query_reports["CAD Report"] = {
                 }
             });
         });
-    }}
+    },  
+}

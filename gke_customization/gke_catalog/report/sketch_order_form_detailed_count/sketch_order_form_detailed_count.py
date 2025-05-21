@@ -45,7 +45,8 @@ def get_columns():
         {"fieldname": "creator_department", "label": _("Creator Department"), "fieldtype": "Data","align":"left", "width": 200},
         {"fieldname": "creator_designation", "label": _("Creator Designation"), "fieldtype": "Data", "width": 200},
         {"fieldname": "assigned_department", "label": _("Assigned to Department"), "fieldtype": "Data","align":"left", "width": 190},
-        {"fieldname": "status", "label": _( "Status"), "fieldtype": "Data", "width": 150},
+        {"fieldname": "docstatus", "label": _("Document Status"), "fieldtype": "Data", "width": 150},
+        {"fieldname": "status", "label": _( "Workflow Status"), "fieldtype": "Data", "width": 150},
         {"fieldname": "workflow_count", "label": _("Workflow State"), "fieldtype": "Data", "width": 140},
         {"fieldname": "diamond_target", "label": _( "Diamond Wt."), "fieldtype": "Data", "width": 170},
         {"fieldname": "status_change_time", "label": _( "Status Date/Time"), "fieldtype": "Datetime", "width": 180},
@@ -64,6 +65,10 @@ def get_data(filters):
         skof.company,
         skof.branch,
         skof.owner,
+        (CASE WHEN skof.docstatus = 0 THEN "Draft" 
+             WHEN skof.docstatus = 1 THEN "Submitted"
+             WHEN skof.docstatus = 2 THEN "Cancelled"
+        END) AS docstatus, 
         skof._assign,
         skof.delivery_date,
         skof.order_type,
@@ -282,17 +287,18 @@ def get_conditions(filters):
     # if filters.get("category"):
     #     conditions.append(f"""skfd.category = "{filters['category']}" """)
     if filters.get("company"):
-        companies = ', '.join([f'"{company}"' for company in filters.get("company")])
-        conditions.append(f"""skof.company IN ({companies})""")
+        conditions.append(f"""skof.company = "{filters['company']}" """)      
     if filters.get("branch"):
-        branches = ', '.join([f'"{branch}"' for branch in filters.get("branch")])
-        conditions.append(f"""skof.branch IN ({branches})""")
+        # branches = ', '.join([f'"{branch}"' for branch in filters.get("branch")])
+        conditions.append(f"""skof.branch = "{filters['branch']}" """)      
     if filters.get("order_id"):
         order_ids = "', '".join(filters["order_id"])
         conditions.append(f"skof.name IN ('{order_ids}')")  
     if filters.get("customer_code"):
         order_ids = "', '".join(filters["customer_code"])
-        conditions.append(f"skof.customer_code IN ('{order_ids}')")           
+        conditions.append(f"skof.customer_code IN ('{order_ids}')")
+    if filters.get("docstatus"):
+        conditions.append(f"""sko.docstatus = "{filters['docstatus']}" """)               
     if filters.get("status"):
         conditions.append(f"""skof.workflow_state = "{filters['status']}" """)
     return " AND ".join(conditions) if conditions else ""
