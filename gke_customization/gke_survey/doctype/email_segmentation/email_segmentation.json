@@ -17,6 +17,8 @@
   "designation",
   "department",
   "reporting_employee_name_",
+  "approval_user_id",
+  "remark",
   "section_break_7ri2",
   "zoho_email_id",
   "zoho_name",
@@ -33,6 +35,7 @@
   "engagement_level",
   "internal_section",
   "internal_count",
+  "department_table",
   "internal",
   "others_internal",
   "add_internal",
@@ -47,7 +50,8 @@
   "add_supp",
   "section_break_vmxq",
   "activity",
-  "naming_series"
+  "naming_series",
+  "amended_from"
  ],
  "fields": [
   {
@@ -223,6 +227,7 @@
   {
    "fieldname": "internal",
    "fieldtype": "Table",
+   "hidden": 1,
    "label": "Internal",
    "options": "User Group Member"
   },
@@ -311,11 +316,45 @@
    "fieldtype": "Data",
    "hidden": 1,
    "options": "ZH - ES - "
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Email Segmentation",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "default": "hjr@gkexport.com",
+   "depends_on": "eval: (in_list(['Send For Approval','Approved','Rejected'], doc.workflow_state))",
+   "fieldname": "approval_user_id",
+   "fieldtype": "Link",
+   "label": "Approval User ID",
+   "mandatory_depends_on": "eval: doc.workflow_state == 'Approved'",
+   "options": "User"
+  },
+  {
+   "depends_on": "eval: doc.workflow_state == 'On Hold'",
+   "fieldname": "remark",
+   "fieldtype": "Small Text",
+   "label": "Remark",
+   "mandatory_depends_on": "eval: doc.workflow_state == 'On Hold'"
+  },
+  {
+   "depends_on": "eval:doc.custom_all_internal_contact == 1",
+   "fieldname": "department_table",
+   "fieldtype": "Table",
+   "label": "Department Table",
+   "options": "Department Table"
   }
  ],
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2025-01-16 17:31:54.679532",
+ "modified": "2025-05-21 15:27:07.140950",
  "modified_by": "Administrator",
  "module": "GKE SURVEY",
  "name": "Email Segmentation",
