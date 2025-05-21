@@ -6,6 +6,8 @@ import urllib.parse
 import json
 from datetime import datetime, timedelta
 
+import frappe.utils
+
 def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
@@ -16,7 +18,7 @@ def execute(filters=None):
 
 def get_columns():
     return [
-        {"fieldname": "orderform_id", "label": "Order Form ID", "fieldtype": "Data", "width": 150},
+        {"fieldname": "orderform_id", "label": "Order Form ID", "fieldtype": "Data", "width": 150,"sticky":True},
         {"fieldname": "company", "label": "Company", "fieldtype": "Data", "options": "Company", "width": 250},
         {"fieldname": "branch", "label": "Branch", "fieldtype": "Link", "options": "Branch", "width": 150},
         {"fieldname": "customer", "label": "Customer", "fieldtype": "Data", "width": 150},   
@@ -33,7 +35,8 @@ def get_columns():
         {"fieldname": "department", "label": "Department", "fieldtype": "Data", "width": 200},
         {"fieldname": "designation", "label": "Designation", "fieldtype": "Data", "width": 200},
         {"fieldname": "assigned_to_dept", "label": "Assigned To Dept", "fieldtype": "Data", "width": 200},
-        {"fieldname": "status", "label": "Status", "fieldtype": "Data", "width": 150},
+        {"fieldname": "docstatus", "label": "Document Status", "fieldtype": "Data", "width": 150},
+        {"fieldname": "status", "label": "Workflow Status", "fieldtype": "Data", "width": 150},
         {"fieldname": "workflow_state", "label": "Workflow State", "fieldtype": "Data", "width": 150},
         {"fieldname": "status_datetime", "label": "Status Date/Time", "fieldtype": "Datetime", "width": 180},
         {"fieldname": "time_difference", "label": "Time Difference", "fieldtype": "Data", "width": 250},
@@ -71,12 +74,12 @@ def get_data(filters):
         conditions.append(f"ofd.name IN ('{order_ids}')")
 
     if filters.get("company"):
-        companies = ', '.join([f'"{company}"' for company in filters.get("company")])
-        conditions.append(f"ofd.company IN ({companies})")
+        # companies = ', '.join([f'"{company}"' for company in filters.get("company")])
+        conditions.append(f"""ofd.company = "{filters['company']}" """)
     
     if filters.get("branch"):
-        branches = ', '.join([f'"{branch}"' for branch in filters.get("branch")])
-        conditions.append(f"ofd.branch IN ({branches})")
+        # branches = ', '.join([f'"{branch}"' for branch in filters.get("branch")])
+        conditions.append(f"""ofd.branch = "{filters['branch']}" """)
     
     if filters.get("customer"):
         customers = ', '.join([f'"{customer}"' for customer in filters.get("customer")])
@@ -94,6 +97,14 @@ def get_data(filters):
 
     if filters.get("status"):
         conditions.append(f"ofd.workflow_state = '{filters['status']}'")
+
+    # if filters.get("status"):
+    #     statuses = ', '.join([f'"{status}"' for status in filters.get("status")])
+    #     conditions.append(f"ofd.workflow_state IN ({statuses})")
+
+    if filters.get("docstatus"):
+        conditions.append(f"""ofd.docstatus = "{filters['docstatus']}" """)
+ 
 
     conditions = " AND ".join(conditions) if conditions else ""
 
@@ -117,6 +128,9 @@ def get_data(filters):
             ofd.diamond_quality,
             od.design_type,
             ofd.creation AS created_datetime,
+              CASE WHEN ofd.docstatus = 0 THEN "Draft"
+                 WHEN ofd.docstatus = 1 THEN "Submitted"
+                 WHEN ofd.docstatus = 2 THEN "Cancelled" END AS docstatus, 
             ofd.workflow_state AS status,
             CASE WHEN ofd.workflow_state = 'Cancelled' THEN 0
     WHEN ofd.workflow_state = 'Draft' THEN 1
@@ -178,7 +192,7 @@ def get_data(filters):
         row["status_datetime"] = status_dt.strftime("%Y-%m-%d %H:%M:%S")
 
         row["status_duration"], exceeded = calculate_status_duration(status_dt, row["status"])
-
+        
         if row["status_duration"] != "-":
             has_valid_status = True
         

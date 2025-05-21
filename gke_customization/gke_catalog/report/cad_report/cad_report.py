@@ -5,7 +5,8 @@ import json
 
 def execute(filters=None):
     current_user = frappe.session.user
-    restricted_users = ["khushal_r@gkexport.com","ashish_m@gkexport.com","rahul_k@gkexport.com","kaushik_g@gkexport.com","chandan_d@gkexport.com","soumaya_d@gkexport.com","arun_l@gkexport.com"]
+    restricted_users = ["khushal_r@gkexport.com","ashish_m@gkexport.com","rahul_k@gkexport.com","kaushik_g@gkexport.com",
+                        "chandan_d@gkexport.com","soumaya_d@gkexport.com","arun_l@gkexport.com","sudip_k@gkexport.com"]
 
     apply_restrictions = current_user in restricted_users
 
@@ -74,6 +75,9 @@ def execute(filters=None):
 
     if filters.get("setting_type"):
         order_filters["setting_type"] = filters["setting_type"] if isinstance(filters["setting_type"], str) else ["in", filters["setting_type"]]
+
+    if filters.get("docstatus") and filters.get("docstatus") != "":
+        order_filters["docstatus"] = int(filters["docstatus"])
 
     if filters.get("status"):
         order_filters["workflow_state"] = filters["status"] if isinstance(filters["status"], str) else ["in", filters["status"]]
@@ -190,13 +194,17 @@ def execute(filters=None):
     assigned_orders = sum(1 for o in data if o["workflow_state"] == "Assigned")
     on_hold_orders = sum(1 for o in data if o["workflow_state"] in on_hold_states )
     cancelled_orders = sum(1 for o in data if o["workflow_state"] == "Cancelled")
+    designing_orders = sum(1 for o in data if o["workflow_state"] == "Designing")
+    sent_to_qc_orders = sum(1 for o in data if o["workflow_state"] == "Sent to QC")
+    update_item_orders = sum(1 for o in data if o["workflow_state"] == "Update Item")
+    approved_orders = sum(1 for o in data if o["workflow_state"] == "Approved")
 
     other_orders = total_orders - unassigned_orders - assigned_orders
 
 
     # report_summary = get_report_summary(total_orders, unassigned_orders, other_orders, approved_orders)
     report_summary = get_report_summary(
-    total_orders, unassigned_orders, assigned_orders, on_hold_orders, cancelled_orders, orders=data, filters=filters
+    total_orders, unassigned_orders, assigned_orders, on_hold_orders, cancelled_orders, designing_orders, sent_to_qc_orders, update_item_orders, approved_orders, orders=data, filters=filters
 )
 
     chart = get_chart_data(data)
@@ -261,7 +269,7 @@ def execute(filters=None):
     "assigned_to_dept":"",
     "workflow_state":"",
     "modified":"",
-    "status_duration": f"<span style='color: green; font-weight: bold;'>Total Duration: {duration_str}</span>",
+    "status_duration":"",
     "delivery_date":""
 }
 
@@ -278,7 +286,7 @@ def execute(filters=None):
 
 def get_chart_data(orders):
     workflow_order = [
-       "Draft", "Assigned", "Designing", "Sent to QC", "Update Item", "Approved"
+        "Draft", "Assigned", "Designing", "Sent to QC", "Update Item", "Approved"
     ]
     state_counts = {}
     for order in orders:
@@ -290,7 +298,7 @@ def get_chart_data(orders):
     for state in workflow_order:
         count = state_counts.get(state, 0)
         if count > 0:
-            labels.append(state)
+            labels.append(f"{state} ({count})")  
             values.append(count)
 
     return {
@@ -300,7 +308,9 @@ def get_chart_data(orders):
         },
         "type": "bar",
         "barOptions": {"stacked": False},
+        
     }
+
 
 
     # on_hold_variants = {
@@ -312,13 +322,13 @@ def get_chart_data(orders):
 
 
 
-def get_report_summary(total, unassigned, assigned, hold, cancelled, orders=None, filters=None):
+def get_report_summary(total, unassigned, assigned, hold, cancelled, designing, sent_to_qc, update_item, approved, orders=None, filters=None):
     from frappe import session
 
     restricted_users = [
          "khushal_r@gkexport.com", "ashish_m@gkexport.com",
         "rahul_k@gkexport.com", "kaushik_g@gkexport.com", "chandan_d@gkexport.com",
-        "soumaya_d@gkexport.com","arun_l@gkexport.com"
+        "soumaya_d@gkexport.com","arun_l@gkexport.com","sudip_k@gkexport.com"
     ]
 
     summary = [
@@ -327,6 +337,10 @@ def get_report_summary(total, unassigned, assigned, hold, cancelled, orders=None
         {"value": assigned, "indicator": "Green", "label": "Assigned CAD", "datatype": "Int"},
         {"value": hold, "indicator": "Orange", "label": "On-Hold CAD", "datatype": "Int"},
         {"value": cancelled, "indicator": "Red", "label": "Cancelled CAD", "datatype": "Int"},
+        {"value": designing, "indicator": "Blue", "label": "Desiging ", "datatype": "Int"},
+        {"value": sent_to_qc, "indicator": "Blue", "label": "Sent to QC", "datatype": "Int"},
+        {"value": update_item, "indicator": "Blue", "label": "Update Item", "datatype": "Int"},
+         {"value": approved, "indicator": "Green", "label": "Approved", "datatype": "Int"},
 
     ]
 
@@ -345,7 +359,8 @@ def get_fixed_employee_summary(orders):
         "kaushik_g@gkexport.com": "Kaushik G",
         "khushal_r@gkexport.com": "Khushal R",
         "ashish_m@gkexport.com": "Ashish M",
-        "arun_l@gkexport.com": "Arun L"
+        "arun_l@gkexport.com": "Arun L",
+        "sudip_k@gkexport.com": "Sudip K"
         
     }
 
