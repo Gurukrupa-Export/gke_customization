@@ -18,7 +18,7 @@ def get_columns():
         {"label": "Sketch Order Form ID", "fieldname": "sketch_order_form", "fieldtype": "Link", "options": "Sketch Order Form", "width": 230},
 		{"label": "Sketch Order ID", "fieldname": "name", "fieldtype": "Link", "options": "Sketch Order", "width": 170},
         # {"label": "Workflow State", "fieldname": "workflow_state", "fieldtype": "Data", "width": 150},
-		{"label": "Company", "fieldname": "company", "fieldtype": "Link", "options": "Company", "width": 190},
+		{"label": "Company", "fieldname": "company", "fieldtype": "Data", "options": "Company", "width": 190},
 		{"label": "Created Branch", "fieldname": "branch", "fieldtype": "Data", "width": 170},
         {"label": "Created By", "fieldname": "owner", "fieldtype": "Data", "width": 170},
 		{"label": "Working Branch", "fieldname": "working_branch", "fieldtype": "Data", "width": 170},
@@ -106,8 +106,10 @@ def get_data(filters=None):
     if user_details and user_details[0] == "Active" and user_details[1] in ["Manager", "Data Analyst"] and user_details[2] in ["Product Development - GEPL", "Sketch - GEPL"]:
 
         employee = frappe.get_value("Employee", {"user_id": user}, "name")
-        reportees = frappe.get_all("Employee", filters={"reports_to": employee}, pluck="name")
-        reportees.append(employee)
+        reportees = frappe.get_all("Employee", filters={"reports_to": employee}, pluck="user_id")
+        reportees = [r for r in reportees if r]  # remove None values
+        reportees.append(user) 
+        # reportees.append(employee)
 
         order_filters["owner"] = ["in", reportees]
     else:
@@ -129,6 +131,9 @@ def get_data(filters=None):
      
     if filters.get("customer"):
         order_filters["customer_code"] = filters["customer"] if isinstance(filters["customer"], str) else ["in", filters["customer"]]
+
+    if filters.get("docstatus") and filters.get("docstatus") != "":
+        order_filters["docstatus"] = int(filters["docstatus"])
 
     if filters.get("designer_branch"):
         designers_in_branch = frappe.get_all("Employee", filters={"branch": filters["designer_branch"]}, pluck="name")

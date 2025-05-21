@@ -1,4 +1,3 @@
-
 // Copyright (c) 2025, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
@@ -18,7 +17,6 @@ frappe.query_reports["Sketch Report"] = {
             reqd: 0,
             default: frappe.datetime.month_end(),
         },  
-        
         {
             fieldname: "company",
             label: __("Company"),
@@ -31,10 +29,9 @@ frappe.query_reports["Sketch Report"] = {
         {
             fieldname: "designer_branch",
             label: __("Branch"),
-            fieldtype: "Link",
+            fieldtype: "Select",
             reqd: 0,
-            options:"Branch"
-          
+            options:[]
         },        
         {
             fieldname: "customer",
@@ -76,8 +73,20 @@ frappe.query_reports["Sketch Report"] = {
             }
         },
         {
+            fieldname: "docstatus",
+            label: __("Document Status"),
+            fieldtype: "Select",
+            options: 
+            [{ label: "", value: "" },
+            { label: "Draft", value: "0" },
+            { label: "Submitted", value: "1" },
+            { label: "Cancelled", value: "2" }],
+            reqd: 0,
+            default:"0"
+        },
+        {
             fieldname: "status",
-            label: __("Status"),
+            label: __("Workflow Status"),
             fieldtype: "MultiSelectList",
             options: [],
             reqd: 0,
@@ -94,8 +103,6 @@ frappe.query_reports["Sketch Report"] = {
                 });
             }
         },
-
-
         {
             fieldname: "user",
             label: __("User"),
@@ -116,7 +123,12 @@ frappe.query_reports["Sketch Report"] = {
         },
     ],
 
-onload: function (report) {
+  onload: function (report) {
+    // Get the filter objects
+    const branch_field = report.get_filter('designer_branch');
+    const user_filter = report.get_filter('user');
+
+    //  Check if user is a restricted Manager
     frappe.call({
         method: "frappe.client.get_list",
         args: {
@@ -127,20 +139,55 @@ onload: function (report) {
                 designation: "Manager",
                 department: ["in", ["Product Development - GEPL", "Sketch - GEPL"]]
             },
-            fields: ["name"]  
+            fields: ["name", "branch"]
         },
         callback: function (res) {
-            // If a matching employee is found, hide the "User" filter
             if (res.message && res.message.length > 0) {
-                const userFilter = report.get_filter('user');
-                if (userFilter) {
-                    userFilter.toggle(false);
-                    userFilter.df.hidden = 1;
-                    report.refresh_filter_fields();
+                const emp = res.message[0];
+                const user_branch = emp.branch;
+
+                // Hide the 'User' filter
+                if (user_filter) {
+                    user_filter.toggle(false);
+                    user_filter.df.hidden = 1;
                 }
+
+                // Set value of branch AFTER options are set
+                if (branch_field) {
+                    // Set a temporary empty list of options first
+                    branch_field.df.options = [user_branch].join("\n");
+                    branch_field.refresh();
+                    
+                    // Set the value
+                    branch_field.set_value(user_branch);
+
+                    // Disable input box after value is set
+                    setTimeout(() => {
+                        branch_field.$wrapper.find("select").prop("disabled", true);
+                    }, 100);
+                }
+
+                report.refresh_filter_fields();
+            } else {
+                // Not a restricted user — show all branches
+                frappe.db.get_list("Employee", {
+                    filters: {
+                        department: "Sketch - GEPL"
+                    },
+                    fields: ["branch"],
+                    distinct: true
+                }).then(records => {
+                    const branches = [...new Set(records.map(r => r.branch))].filter(Boolean);
+                    if (branch_field) {
+                        branch_field.df.options = ["", ...branches].join("\n");
+                        branch_field.refresh();
+                    }
+                });
             }
         }
     });
+
+    // Step 3: Add Clear Filter button
     report.page.add_inner_button(__("Clear Filter"), function () {
         report.filters.forEach(function (filter) {
             let field = report.get_filter(filter.fieldname);
@@ -155,6 +202,3 @@ onload: function (report) {
     });
 }
 }
-
-
-        
