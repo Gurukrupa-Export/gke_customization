@@ -20,6 +20,7 @@
   "item_image",
   "image_preview",
   "column_break_wbqs",
+  "default_expense_account",
   "hsn_code",
   "item_code",
   "remarks",
@@ -52,7 +53,9 @@
   {
    "fieldname": "item_name",
    "fieldtype": "Data",
-   "label": "Item Name"
+   "in_list_view": 1,
+   "label": "Item Name",
+   "reqd": 1
   },
   {
    "fieldname": "item_size",
@@ -81,12 +84,13 @@
    "fieldname": "item_group",
    "fieldtype": "Link",
    "label": "Item Group",
-   "options": "Item Group"
+   "options": "Item Group",
+   "reqd": 1
   },
   {
    "description": "Add GST value in Percentage",
    "fieldname": "gst",
-   "fieldtype": "Data",
+   "fieldtype": "Select",
    "label": "Item Tax (GST %)"
   },
   {
@@ -186,12 +190,19 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "depends_on": "eval:[\"Administrative Expense\", \"Business Promotion Expense\", \"Employee Benefits Expense\", \r\n\"Finance Expense\", \"Interest and Penalty Expense\", \"Repairs and Maintance Expense\", \r\n\"Selling and Distribution Expense\", \"Utility Expense\", \"Product Certification Expense\", \r\n\"Dine & Stay Expense\"].includes(doc.item_group)",
+   "fieldname": "default_expense_account",
+   "fieldtype": "Link",
+   "label": "Default Expense Account",
+   "options": "Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-09 09:57:37.993771",
+ "modified": "2025-05-22 10:10:29.738482",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Item Request",
