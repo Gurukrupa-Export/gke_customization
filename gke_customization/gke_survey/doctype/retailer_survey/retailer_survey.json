@@ -129,8 +129,25 @@
   "que_22",
   "yes_22",
   "no_22",
+  "section_break_w2px",
+  "que_23",
+  "check_23_1",
+  "check_23_2",
+  "check_23_3",
+  "check_23_4",
+  "other_23",
+  "column_break_ayzh",
+  "check_23_5",
+  "check_23_6",
+  "check_23_7",
   "section_break_mxaz",
-  "store_image"
+  "store_image1",
+  "store_image2",
+  "store_image3",
+  "column_break_qnuk",
+  "store_image4",
+  "store_image5",
+  "store_image6"
  ],
  "fields": [
   {
@@ -824,14 +841,103 @@
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "store_image",
+   "fieldname": "que_23",
+   "fieldtype": "Heading",
+   "label": "23. The courier service(s) Preference"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_1",
+   "fieldtype": "Check",
+   "label": "DHL"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_2",
+   "fieldtype": "Check",
+   "label": "Blue Dart"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_3",
+   "fieldtype": "Check",
+   "label": "FedEx"
+  },
+  {
+   "fieldname": "check_23_4",
+   "fieldtype": "Data",
+   "label": "Others"
+  },
+  {
+   "depends_on": "eval:doc.check_23_4 == 1",
+   "fieldname": "other_23",
+   "fieldtype": "Small Text",
+   "label": "Others courier service(s) Preference"
+  },
+  {
+   "fieldname": "column_break_ayzh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_5",
+   "fieldtype": "Check",
+   "label": "DTDC"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_6",
+   "fieldtype": "Check",
+   "label": "Sequel"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_7",
+   "fieldtype": "Check",
+   "label": "Jai Matadi Courier"
+  },
+  {
+   "fieldname": "store_image1",
    "fieldtype": "Attach",
-   "label": "Store Image"
+   "label": "Store Image1"
+  },
+  {
+   "fieldname": "store_image2",
+   "fieldtype": "Attach",
+   "label": "Store Image2"
+  },
+  {
+   "fieldname": "store_image3",
+   "fieldtype": "Attach",
+   "label": "Store Image3"
+  },
+  {
+   "fieldname": "column_break_qnuk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "store_image4",
+   "fieldtype": "Attach",
+   "label": "Store Image4"
+  },
+  {
+   "fieldname": "store_image5",
+   "fieldtype": "Attach",
+   "label": "Store Image5"
+  },
+  {
+   "fieldname": "store_image6",
+   "fieldtype": "Attach",
+   "label": "Store Image6"
+  },
+  {
+   "fieldname": "section_break_w2px",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-14 12:57:02.484179",
+ "modified": "2025-05-21 10:59:56.346592",
  "modified_by": "Administrator",
  "module": "GKE SURVEY",
  "name": "Retailer Survey",
