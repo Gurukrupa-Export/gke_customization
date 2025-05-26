@@ -1,0 +1,3144 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-05-20 16:22:38.777663",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "section_break_3tmb",
+  "employee_id",
+  "employee_name",
+  "department",
+  "language",
+  "column_break_vgf9",
+  "designation",
+  "date_of_joining",
+  "branch",
+  "section_break_hx5u",
+  "eng_1",
+  "eng1_check1",
+  "eng1_check2",
+  "eng1_check3",
+  "eng1_check4",
+  "hind_1",
+  "hin1_check1",
+  "hin1_check2",
+  "hin1_check3",
+  "hin1_check4",
+  "column_break_akip",
+  "eng_2",
+  "eng2_check1",
+  "eng2_check2",
+  "eng2_check3",
+  "eng2_check4",
+  "hind_2",
+  "hin2_check1",
+  "hin2_check2",
+  "hin2_check3",
+  "hin2_check4",
+  "code_of_conduct_section",
+  "eng_3",
+  "eng3_check1",
+  "eng3_check2",
+  "eng3_check3",
+  "eng3_check4",
+  "hind_3",
+  "hin3_check1",
+  "hin3_check2",
+  "hin3_check3",
+  "hin3_check4",
+  "column_break_jlpk",
+  "eng_4",
+  "eng4_check1",
+  "eng4_check2",
+  "eng4_check3",
+  "eng4_check4",
+  "hind_4",
+  "hin4_check1",
+  "hin4_check2",
+  "hin4_check3",
+  "hin4_check4",
+  "policy1_tab",
+  "sec_5",
+  "eng_5",
+  "eng5_check1",
+  "eng5_check2",
+  "eng5_check3",
+  "eng5_check6",
+  "hind_5",
+  "hin5_check1",
+  "hin5_check2",
+  "hin5_check3",
+  "hin5_check4",
+  "column_break_8czb",
+  "eng_6",
+  "eng6_check1",
+  "eng6_check2",
+  "eng6_check3",
+  "eng6_check4",
+  "hind_6",
+  "hin6_check1",
+  "hin6_check2",
+  "hin6_check3",
+  "hin6_check4",
+  "sec7",
+  "eng_7",
+  "eng7_check1",
+  "eng7_check2",
+  "eng7_check3",
+  "eng7_check4",
+  "hind_7",
+  "hin7_check1",
+  "hin7_check2",
+  "hin7_check3",
+  "hin7_check4",
+  "column_break_wsb6",
+  "eng_8",
+  "eng8_check1",
+  "eng8_check2",
+  "eng8_check3",
+  "eng8_check4",
+  "hind_8",
+  "hin8_check1",
+  "hin8_check2",
+  "hin8_check3",
+  "hin8_check4",
+  "sec9",
+  "eng_9",
+  "eng9_check1",
+  "eng9_check2",
+  "eng9_check3",
+  "eng9_check4",
+  "hind_9",
+  "hin9_check1",
+  "hin9_check2",
+  "hin9_check3",
+  "hin9_check4",
+  "column_break_5utc",
+  "eng_10",
+  "eng10_check1",
+  "eng10_check2",
+  "eng10_check3",
+  "eng10_check4",
+  "hind_10",
+  "hin10_check1",
+  "hin10_check2",
+  "hin10_check3",
+  "hin10_check4",
+  "policy2_tab",
+  "leave_policy_section",
+  "eng_11",
+  "eng11_check1",
+  "eng11_check2",
+  "eng11_check3",
+  "eng11_check4",
+  "hind_11",
+  "hin11_check1",
+  "hin11_check2",
+  "hin11_check3",
+  "hin11_check4",
+  "column_break_3htj",
+  "eng_12",
+  "eng12_check1",
+  "eng12_check2",
+  "eng12_check3",
+  "eng12_check4",
+  "hind_12",
+  "hin12_check1",
+  "hin12_check2",
+  "hin12_check3",
+  "hin12_check4",
+  "loan_policy_section",
+  "eng_13",
+  "eng13_check1",
+  "eng13_check2",
+  "eng13_check3",
+  "eng13_check4",
+  "hind_13",
+  "hin13_check1",
+  "hin13_check2",
+  "hin13_check3",
+  "hin13_check4",
+  "column_break_fzir",
+  "eng_14",
+  "eng14_check1",
+  "eng14_check2",
+  "eng14_check3",
+  "eng14_check4",
+  "hind_14",
+  "hin14_check1",
+  "hin14_check2",
+  "hin14_check3",
+  "hin14_check4",
+  "company_separation_policy_section",
+  "eng_15",
+  "eng15_check1",
+  "eng15_check2",
+  "eng15_check3",
+  "eng15_check4",
+  "hind_15",
+  "hin15_check1",
+  "hin15_check2",
+  "hin15_check3",
+  "hin15_check4",
+  "column_break_pjjq",
+  "eng_16",
+  "eng16_check1",
+  "eng16_check2",
+  "eng16_check3",
+  "eng16_check4",
+  "hind_16",
+  "hin16_check1",
+  "hin16_check2",
+  "hin16_check3",
+  "hin16_check4",
+  "policy3_tab",
+  "employee_referral_policy_section",
+  "eng_17",
+  "eng17_check1",
+  "eng17_check2",
+  "eng17_check3",
+  "eng17_check4",
+  "hind_17",
+  "hin17_check1",
+  "hin18_check2hin17_check2",
+  "hin17_check3",
+  "hin17_check4",
+  "column_break_al48",
+  "eng_18",
+  "eng18_check1",
+  "eng18_check2",
+  "eng18_check3",
+  "eng18_check4",
+  "hind_18",
+  "hin18_check1",
+  "hin18_check2",
+  "hin18_check3",
+  "hin18_check4",
+  "internal_job_posting_section",
+  "eng_19",
+  "eng19_check1",
+  "eng19_check2",
+  "eng19_check3",
+  "eng19_check4",
+  "hind_19",
+  "hin19_check1",
+  "hin19_check2",
+  "hin19_check3",
+  "hin19_check4",
+  "column_break_2bvh",
+  "eng_20",
+  "eng20_check1",
+  "eng20_check2",
+  "eng20_check3",
+  "eng20_check4",
+  "hind_20",
+  "hin20_check1",
+  "hin20_check2",
+  "hin20_check3",
+  "hin20_check4",
+  "posh_policy_section",
+  "eng_21",
+  "eng21_check1",
+  "eng21_check2",
+  "eng21_check3",
+  "eng21_check4",
+  "hind_21",
+  "hin21_check1",
+  "hin21_check2",
+  "hin21_check3",
+  "hin21_check4",
+  "column_break_n4tu",
+  "eng_22",
+  "eng22_check1",
+  "eng22_check2",
+  "eng22_check3",
+  "eng22_check4",
+  "hind_22",
+  "hin22_check1",
+  "hin22_check2",
+  "hin22_check3",
+  "hin22_check4",
+  "policy4_tab",
+  "retention_bonus_policy_section",
+  "eng_23",
+  "eng23_check1",
+  "eng23_check2",
+  "eng23_check3",
+  "eng23_check4",
+  "hind_23",
+  "hin23_check1",
+  "hin23_check2",
+  "hin23_check3",
+  "hin23_check4",
+  "column_break_awng",
+  "eng_24",
+  "eng24_check1",
+  "eng24_check2",
+  "eng24_check3",
+  "eng24_check4",
+  "hind_24",
+  "hin24_check1",
+  "hin24_check2",
+  "hin24_check3",
+  "hin24_check4",
+  "gifting_policy_section",
+  "eng_25",
+  "eng25_check1",
+  "eng25_check2",
+  "eng25_check3",
+  "eng25_check4",
+  "hind_25",
+  "hin25_check1",
+  "hin25_check2",
+  "hin25_check3",
+  "hin25_check4",
+  "column_break_jtmw",
+  "eng_26",
+  "eng26_check1",
+  "eng26_check2",
+  "eng26_check3",
+  "eng26_check4",
+  "hind_26",
+  "hin26_check1",
+  "hin26_check2",
+  "hin26_check3",
+  "hin26_check4",
+  "sec27",
+  "eng_27",
+  "eng27_check1",
+  "eng27_check2",
+  "eng27_check3",
+  "eng27_check4",
+  "hind_27",
+  "hin27_check1",
+  "hin27_check2",
+  "hin27_check3",
+  "hin27_check4",
+  "column_break_flhb",
+  "eng_28",
+  "eng28_check1",
+  "eng28_check2",
+  "eng28_check3",
+  "eng28_check4",
+  "hind_28",
+  "hin28_check1",
+  "hin28_check2",
+  "hin28_check3",
+  "hin28_check4",
+  "policy5_tab",
+  "trial_policy_section",
+  "eng_29",
+  "eng29_check1",
+  "eng29_check2",
+  "eng29_check3",
+  "eng29_check4",
+  "hind_29",
+  "hin29_check1",
+  "hin29_check2",
+  "hin29_check3",
+  "hin29_check4",
+  "column_break_xgsj",
+  "eng_30",
+  "eng30_check1",
+  "eng30_check2",
+  "eng30_check3",
+  "eng30_check4",
+  "hind_30",
+  "hin30_check1",
+  "hin30_check2",
+  "hin30_check3",
+  "hin30_check4",
+  "whistleblower_policy_section",
+  "eng_31",
+  "eng31_check1",
+  "eng31_check2",
+  "eng31_check3",
+  "eng31_check4",
+  "hind_31",
+  "hin31_check1",
+  "hin31_check2",
+  "hin31_check3",
+  "hin31_check4",
+  "column_break_pptz",
+  "eng_32",
+  "eng32_check1",
+  "eng32_check2",
+  "eng32_check3",
+  "eng32_check4",
+  "hind_32",
+  "hin32_check1",
+  "hin32_check2",
+  "hin32_check3",
+  "hin32_check4",
+  "work_from_home_policy_section",
+  "eng_33",
+  "eng33_check1",
+  "eng33_check2",
+  "eng33_check3",
+  "eng33_check4",
+  "hind_33",
+  "hin33_check1",
+  "hin33_check2",
+  "hin33_check3",
+  "hin33_check4",
+  "column_break_3vs7",
+  "eng_34",
+  "eng34_check1",
+  "eng34_check2",
+  "eng34_check3",
+  "eng34_check4",
+  "hind_34",
+  "hin34_check1",
+  "hin34_check2",
+  "hin34_check3",
+  "hin34_check4",
+  "policy6_tab",
+  "sec35",
+  "eng_35",
+  "eng35_check1",
+  "eng35_check2",
+  "eng35_check3",
+  "eng35_check4",
+  "hind_35",
+  "hin35_check1",
+  "hin35_check2",
+  "hin35_check3",
+  "hin35_check4",
+  "column_break_kr4w",
+  "eng_36",
+  "eng36_check1",
+  "eng36_check2",
+  "eng36_check3",
+  "eng36_check4",
+  "hind_36",
+  "hin36_check1",
+  "hin36_check2",
+  "hin36_check3",
+  "hin36_check4"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_3tmb",
+   "fieldtype": "Section Break",
+   "label": "Employee Details"
+  },
+  {
+   "fieldname": "employee_id",
+   "fieldtype": "Link",
+   "label": "Employee ID",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "language",
+   "fieldtype": "Select",
+   "label": "Language",
+   "options": "\nEnglish\nHindi"
+  },
+  {
+   "fieldname": "column_break_vgf9",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "date_of_joining",
+   "fieldtype": "Date",
+   "label": "Date of Joining",
+   "options": "doj"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "section_break_hx5u",
+   "fieldtype": "Section Break",
+   "label": "TEA/COFFEE/NASTA POLICY"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_1",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ1. How many times a day can tea/coffee be distributed to employees?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng1_check1",
+   "fieldtype": "Check",
+   "label": "1 time only"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng1_check2",
+   "fieldtype": "Check",
+   "label": "Unlimited"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng1_check3",
+   "fieldtype": "Check",
+   "label": "2 times (Morning & Evening)"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng1_check4",
+   "fieldtype": "Check",
+   "label": "Only during breaks"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_1",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ1. \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u093f\u092f\u094b\u0902 \u0915\u094b \u090f\u0915 \u0926\u093f\u0928 \u092e\u0947\u0902 \u0915\u093f\u0924\u0928\u0940 \u092c\u093e\u0930 \u091a\u093e\u092f/\u0915\u0949\u092b\u0940 \u092e\u093f\u0932 \u0938\u0915\u0924\u0940 \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin1_check1",
+   "fieldtype": "Check",
+   "label": "\u0938\u093f\u0930\u094d\u092b 1 \u092c\u093e\u0930"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin1_check2",
+   "fieldtype": "Check",
+   "label": "\u091c\u093f\u0924\u0928\u0940 \u092c\u093e\u0930 \u091a\u093e\u0939\u0947\u0902 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin1_check3",
+   "fieldtype": "Check",
+   "label": "2 \u092c\u093e\u0930 (\u0938\u0941\u092c\u0939 \u0914\u0930 \u0936\u093e\u092e)"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin1_check4",
+   "fieldtype": "Check",
+   "label": "\u0938\u093f\u0930\u094d\u092b \u092c\u094d\u0930\u0947\u0915 \u091f\u093e\u0907\u092e \u092e\u0947\u0902 "
+  },
+  {
+   "fieldname": "column_break_akip",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_2",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ2. Who can authorize extra servings for guests or meetings?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng2_check1",
+   "fieldtype": "Check",
+   "label": "Any employee"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng2_check2",
+   "fieldtype": "Check",
+   "label": "Admin team"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng2_check3",
+   "fieldtype": "Check",
+   "label": "Listed senior personnel"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng2_check4",
+   "fieldtype": "Check",
+   "label": "Pantry staff"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_2",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ2. \u092e\u0947\u0939\u092e\u093e\u0928\u094b\u0902 \u092f\u093e \u092e\u0940\u091f\u093f\u0902\u0917\u094d\u0938 \u0915\u0947 \u0932\u093f\u090f \u090f\u0915\u094d\u0938\u094d\u091f\u094d\u0930\u093e \u0938\u0930\u094d\u0935\u093f\u0902\u0917\u094d\u0938 (\u091a\u093e\u092f/\u0915\u0949\u092b\u093c\u0940) \u0915\u094c\u0928 \u0911\u0930\u094d\u0921\u0930 \u0915\u0930 \u0938\u0915\u0924\u093e \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin2_check1",
+   "fieldtype": "Check",
+   "label": "\u0915\u094b\u0908 \u092d\u0940 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin2_check2",
+   "fieldtype": "Check",
+   "label": "\u090f\u0921\u092e\u093f\u0928 \u091f\u0940\u092e "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin2_check3",
+   "fieldtype": "Check",
+   "label": "\u091a\u0941\u0928\u0947 \u0939\u0941\u090f \u0938\u0940\u0928\u093f\u092f\u0930 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin2_check4",
+   "fieldtype": "Check",
+   "label": "\u092a\u0948\u0902\u091f\u094d\u0930\u0940 \u0938\u094d\u091f\u093e\u092b"
+  },
+  {
+   "fieldname": "code_of_conduct_section",
+   "fieldtype": "Section Break",
+   "label": "CODE OF CONDUCT"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_3",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ3. What should guide employee behavior at the workplace?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng3_check1",
+   "fieldtype": "Check",
+   "label": "Personal values"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng3_check2",
+   "fieldtype": "Check",
+   "label": "Honesty, accountability, and professionalism"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng3_check3",
+   "fieldtype": "Check",
+   "label": "Peer behavior"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng3_check4",
+   "fieldtype": "Check",
+   "label": "Past experience"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_3",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ3. \u0911\u092b\u093f\u0938 \u092e\u0947\u0902 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u093f\u092f\u094b\u0902 \u0915\u093e \u0935\u094d\u092f\u0935\u0939\u093e\u0930 \u0915\u093f\u0938 \u0906\u0927\u093e\u0930 \u092a\u0930 \u0939\u094b\u0928\u093e \u091a\u093e\u0939\u093f\u090f? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin3_check1",
+   "fieldtype": "Check",
+   "label": "\u0905\u092a\u0928\u0940 \u092a\u0930\u094d\u0938\u0928\u0932 \u0938\u094b\u091a "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin3_check2",
+   "fieldtype": "Check",
+   "label": " \u0908\u092e\u093e\u0928\u0926\u093e\u0930\u0940, \u091c\u093f\u092e\u094d\u092e\u0947\u0926\u093e\u0930\u0940 \u0914\u0930 \u092a\u094d\u0930\u094b\u092b\u0947\u0936\u0928\u0932 \u0905\u0902\u0926\u093e\u091c\u093c "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin3_check3",
+   "fieldtype": "Check",
+   "label": "\u092c\u093e\u0915\u0940 \u0938\u093e\u0925\u093f\u092f\u094b\u0902 \u0915\u093e \u0930\u0935\u0948\u092f\u093e "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin3_check4",
+   "fieldtype": "Check",
+   "label": "\u092a\u0942\u0930\u094d\u0935 \u0905\u0928\u0941\u092d\u0935"
+  },
+  {
+   "fieldname": "column_break_jlpk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_4",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ4. Following legal, ethical, and sustainability standards reflects which value?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng4_check1",
+   "fieldtype": "Check",
+   "label": "Quality"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng4_check2",
+   "fieldtype": "Check",
+   "label": "Integrity"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng4_check3",
+   "fieldtype": "Check",
+   "label": "Respect"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng4_check4",
+   "fieldtype": "Check",
+   "label": "Hygiene"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_4",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ4. \u0915\u093e\u0928\u0942\u0928, \u0928\u0948\u0924\u093f\u0915\u0924\u093e \u0914\u0930 \u0938\u094d\u0925\u093f\u0930\u0924\u093e \u0915\u094b \u0905\u092a\u0928\u093e\u0928\u093e \u0915\u093f\u0938 \u0935\u0948\u0932\u094d\u092f\u0942 \u0915\u094b \u0926\u0930\u094d\u0936\u093e\u0924\u093e \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin4_check1",
+   "fieldtype": "Check",
+   "label": "\u0915\u094d\u0935\u093e\u0932\u093f\u091f\u0940 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin4_check2",
+   "fieldtype": "Check",
+   "label": "\u0908\u092e\u093e\u0928\u0926\u093e\u0930\u0940"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin4_check3",
+   "fieldtype": "Check",
+   "label": "\u0938\u092e\u094d\u092e\u093e\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin4_check4",
+   "fieldtype": "Check",
+   "label": "\u0938\u092b\u093e\u0908 "
+  },
+  {
+   "fieldname": "policy1_tab",
+   "fieldtype": "Tab Break",
+   "label": "Policy1"
+  },
+  {
+   "fieldname": "sec_5",
+   "fieldtype": "Section Break",
+   "label": "EMPLOYEE POLICIES & DRESS CODE"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_5",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ5. What type of clothing is not allowed at the workplace?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng5_check1",
+   "fieldtype": "Check",
+   "label": "Casuals"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng5_check2",
+   "fieldtype": "Check",
+   "label": "Uniform"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng5_check3",
+   "fieldtype": "Check",
+   "label": "Inappropriate or excessive jewelry"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng5_check6",
+   "fieldtype": "Check",
+   "label": "Formals"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_5",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ5. \u0911\u092b\u093f\u0938 \u092e\u0947\u0902 \u0915\u093f\u0938 \u0924\u0930\u0939 \u0915\u0947 \u0915\u092a\u0921\u093c\u0947 \u092e\u0928\u093e \u0939\u0948\u0902? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin5_check1",
+   "fieldtype": "Check",
+   "label": "\u0915\u0948\u091c\u093c\u0941\u0905\u0932"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin5_check2",
+   "fieldtype": "Check",
+   "label": "\u092f\u0942\u0928\u093f\u092b\u0949\u0930\u094d\u092e"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin5_check3",
+   "fieldtype": "Check",
+   "label": "\u0917\u0932\u0924 \u092f\u093e \u092c\u0939\u0941\u0924 \u091c\u094d\u092f\u093e\u0926\u093e \u0917\u0939\u0928\u0947 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin5_check4",
+   "fieldtype": "Check",
+   "label": "\u092b\u0949\u0930\u094d\u092e\u0932 "
+  },
+  {
+   "fieldname": "column_break_8czb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_6",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ6. What must employees do before leaving office premises?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng6_check1",
+   "fieldtype": "Check",
+   "label": "Log out from ERP"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng6_check2",
+   "fieldtype": "Check",
+   "label": "Take prior approval for external movement"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng6_check3",
+   "fieldtype": "Check",
+   "label": "Inform HR later"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng6_check4",
+   "fieldtype": "Check",
+   "label": "Submit a leave form"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_6",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ6. \u0911\u092b\u093f\u0938 \u091b\u094b\u0921\u093c\u0928\u0947 \u0938\u0947 \u092a\u0939\u0932\u0947 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u093f\u092f\u094b\u0902 \u0915\u094b \u0915\u094d\u092f\u093e \u0915\u0930\u0928\u093e \u091a\u093e\u0939\u093f\u090f? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin6_check1",
+   "fieldtype": "Check",
+   "label": "ERP \u0938\u0947 \u0932\u0949\u0917\u0906\u0909\u091f \u0915\u0930\u0947\u0902"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin6_check2",
+   "fieldtype": "Check",
+   "label": "\u092c\u093e\u0939\u0930 \u091c\u093e\u0928\u0947 \u0915\u0940 \u092a\u0939\u0932\u0947 \u0907\u091c\u093e\u091c\u0924 \u0932\u0947\u0902 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin6_check3",
+   "fieldtype": "Check",
+   "label": "\u092c\u093e\u0926 \u092e\u0947\u0902 HR \u0915\u094b \u092c\u0924\u093e\u090f\u0902 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin6_check4",
+   "fieldtype": "Check",
+   "label": "\u091b\u0941\u091f\u094d\u091f\u0940 \u0915\u093e \u092b\u0949\u0930\u094d\u092e \u092d\u0930\u0947\u0902 "
+  },
+  {
+   "fieldname": "sec7",
+   "fieldtype": "Section Break",
+   "label": "LOCKER & IT ASSET ALLOCATION"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_7",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ7. Lockers are meant for:\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng7_check1",
+   "fieldtype": "Check",
+   "label": "Food storage"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng7_check2",
+   "fieldtype": "Check",
+   "label": "Sharing with others"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng7_check3",
+   "fieldtype": "Check",
+   "label": "Personal non-perishable items only"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng7_check4",
+   "fieldtype": "Check",
+   "label": "Electronic items"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_7",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ7. \u0932\u0949\u0915\u0930 \u0915\u093f\u0938\u0932\u093f\u090f \u0939\u094b\u0924\u0947 \u0939\u0948\u0902? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin7_check1",
+   "fieldtype": "Check",
+   "label": "\u0916\u093e\u0928\u0947 \u0915\u0940 \u091a\u0940\u091c\u0947\u0902 \u0930\u0916\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin7_check2",
+   "fieldtype": "Check",
+   "label": "\u0926\u0942\u0938\u0930\u094b\u0902 \u0915\u0947 \u0938\u093e\u0925 \u0936\u0947\u092f\u0930 \u0915\u0930\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin7_check3",
+   "fieldtype": "Check",
+   "label": "\u0938\u093f\u0930\u094d\u092b \u0905\u092a\u0928\u0940 \u092a\u0930\u094d\u0938\u0928\u0932 \u091a\u0940\u091c\u094b\u0902 \u0915\u0947 \u0932\u093f\u090f "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin7_check4",
+   "fieldtype": "Check",
+   "label": "\u0907\u0932\u0947\u0915\u094d\u091f\u094d\u0930\u0949\u0928\u093f\u0915 \u0906\u0907\u091f\u092e\u094d\u0938 \u0915\u0947 \u0932\u093f\u090f "
+  },
+  {
+   "fieldname": "column_break_wsb6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_8",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ8. Who manages IT asset allocation?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng8_check1",
+   "fieldtype": "Check",
+   "label": "HR"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng8_check2",
+   "fieldtype": "Check",
+   "label": "Admin"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng8_check3",
+   "fieldtype": "Check",
+   "label": "IT department"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng8_check4",
+   "fieldtype": "Check",
+   "label": "Reporting Manager"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_8",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ8. IT \u091a\u0940\u091c\u094b\u0902 \u0915\u0940 \u091c\u093c\u093f\u092e\u094d\u092e\u0947\u0926\u093e\u0930\u0940 \u0915\u093f\u0938\u0915\u0940 \u0939\u094b\u0924\u0940 \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin8_check1",
+   "fieldtype": "Check",
+   "label": "HR"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin8_check2",
+   "fieldtype": "Check",
+   "label": "\u090f\u0921\u092e\u093f\u0928 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin8_check3",
+   "fieldtype": "Check",
+   "label": "IT \u091f\u0940\u092e "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin8_check4",
+   "fieldtype": "Check",
+   "label": "\u0930\u093f\u092a\u094b\u0930\u094d\u091f\u093f\u0902\u0917 \u092e\u0948\u0928\u0947\u091c\u0930"
+  },
+  {
+   "fieldname": "sec9",
+   "fieldtype": "Section Break",
+   "label": "CONFIDENTIALITY & ETHICAL PRACTICES"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_9",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ9. How should employees report ethical concerns?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng9_check1",
+   "fieldtype": "Check",
+   "label": "Tell friends"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng9_check2",
+   "fieldtype": "Check",
+   "label": "Use email, hotline, or grievance system"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng9_check3",
+   "fieldtype": "Check",
+   "label": "Ignore them"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng9_check4",
+   "fieldtype": "Check",
+   "label": "Post anonymously on social media"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_9",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ9. \u0905\u0917\u0930 \u0915\u094b\u0908 \u0928\u0948\u0924\u093f\u0915 \u092a\u0930\u0947\u0936\u093e\u0928\u0940 \u0939\u094b \u0924\u094b \u0915\u094d\u092f\u093e \u0915\u0930\u0928\u093e \u091a\u093e\u0939\u093f\u090f? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin9_check1",
+   "fieldtype": "Check",
+   "label": "\u0926\u094b\u0938\u094d\u0924\u094b\u0902 \u0915\u094b \u092c\u0924\u093e\u090f\u0902"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin9_check2",
+   "fieldtype": "Check",
+   "label": " \u0908\u092e\u0947\u0932, \u0939\u0947\u0932\u094d\u092a\u0932\u093e\u0907\u0928 \u092f\u093e \u0936\u093f\u0915\u093e\u092f\u0924 \u092a\u094b\u0930\u094d\u091f\u0932 \u0915\u093e \u0907\u0938\u094d\u0924\u0947\u092e\u093e\u0932 \u0915\u0930\u0947\u0902 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin9_check3",
+   "fieldtype": "Check",
+   "label": "\u0905\u0928\u0926\u0947\u0916\u093e \u0915\u0930\u0947\u0902 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin9_check4",
+   "fieldtype": "Check",
+   "label": "\u0938\u094b\u0936\u0932 \u092e\u0940\u0921\u093f\u092f\u093e \u092a\u0930 \u0921\u093e\u0932\u0947\u0902 "
+  },
+  {
+   "fieldname": "column_break_5utc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_10",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ10. What are the consequences of violating ethical policies?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng10_check1",
+   "fieldtype": "Check",
+   "label": "Appreciation"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng10_check2",
+   "fieldtype": "Check",
+   "label": "Counseling, suspension, termination, or legal action"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng10_check3",
+   "fieldtype": "Check",
+   "label": "Transfer"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng10_check4",
+   "fieldtype": "Check",
+   "label": "Extra training"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_10",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ10. \u0905\u0917\u0930 \u0915\u094b\u0908 \u0928\u0948\u0924\u093f\u0915 \u0928\u093f\u092f\u092e \u0924\u094b\u0921\u093c\u0924\u093e \u0939\u0948 \u0924\u094b \u0915\u094d\u092f\u093e \u0939\u094b \u0938\u0915\u0924\u093e \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin10_check1",
+   "fieldtype": "Check",
+   "label": "\u0924\u093e\u0930\u0940\u092b "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin10_check2",
+   "fieldtype": "Check",
+   "label": "\u0915\u093e\u0909\u0902\u0938\u0932\u093f\u0902\u0917, \u0938\u0938\u094d\u092a\u0947\u0902\u0936\u0928, \u0928\u093f\u0915\u093e\u0932\u0928\u093e \u092f\u093e \u0932\u0940\u0917\u0932 \u090f\u0915\u094d\u0936\u0928 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin10_check3",
+   "fieldtype": "Check",
+   "label": "\u091f\u094d\u0930\u093e\u0902\u0938\u092b\u0930 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin10_check4",
+   "fieldtype": "Check",
+   "label": "\u0905\u0932\u0917 \u0938\u0947 \u091f\u094d\u0930\u0947\u0928\u093f\u0902\u0917 "
+  },
+  {
+   "fieldname": "policy2_tab",
+   "fieldtype": "Tab Break",
+   "label": "Policy2"
+  },
+  {
+   "fieldname": "leave_policy_section",
+   "fieldtype": "Section Break",
+   "label": "LEAVE POLICY"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_11",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ11. How is Earned Leave (EL) accrued?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng11_check1",
+   "fieldtype": "Check",
+   "label": "1 day for every 20 working days"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng11_check2",
+   "fieldtype": "Check",
+   "label": "Fixed 10 days/year"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng11_check3",
+   "fieldtype": "Check",
+   "label": "Only after probation"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng11_check4",
+   "fieldtype": "Check",
+   "label": "Not applicable"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_11",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ11. \u0905\u0930\u094d\u091c\u093f\u0924 \u091b\u0941\u091f\u094d\u091f\u0940 (EL) \u0915\u0948\u0938\u0947 \u092e\u093f\u0932\u0924\u0940 \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin11_check1",
+   "fieldtype": "Check",
+   "label": "\u0939\u0930 20 \u0935\u0930\u094d\u0915\u093f\u0902\u0917 \u0921\u0947 \u092a\u0930 1 \u0926\u093f\u0928 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin11_check2",
+   "fieldtype": "Check",
+   "label": "\u0939\u0930 \u0938\u093e\u0932 10 \u0926\u093f\u0928 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin11_check3",
+   "fieldtype": "Check",
+   "label": "\u0938\u093f\u0930\u094d\u092b \u092a\u094d\u0930\u094b\u092c\u0947\u0936\u0928 \u0915\u0947 \u092c\u093e\u0926 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin11_check4",
+   "fieldtype": "Check",
+   "label": "\u0932\u093e\u0917\u0942 \u0928\u0939\u0940\u0902 \u0939\u0948"
+  },
+  {
+   "fieldname": "column_break_3htj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_12",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ12. Which leave is only available for hospitalization?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng12_check1",
+   "fieldtype": "Check",
+   "label": "Casual Leave"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng12_check2",
+   "fieldtype": "Check",
+   "label": "Infirmary Leave"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng12_check3",
+   "fieldtype": "Check",
+   "label": "Sick Leave"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng12_check4",
+   "fieldtype": "Check",
+   "label": "Earned Leave"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_12",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ12. \u0905\u0938\u094d\u092a\u0924\u093e\u0932 \u092e\u0947\u0902 \u092d\u0930\u094d\u0924\u0940 \u0939\u094b\u0928\u0947 \u092a\u0930 \u0915\u094c\u0928 \u0938\u0940 \u091b\u0941\u091f\u094d\u091f\u0940 \u092e\u093f\u0932\u0924\u0940 \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin12_check1",
+   "fieldtype": "Check",
+   "label": "\u0906\u0915\u0938\u094d\u092e\u093f\u0915 \u091b\u0941\u091f\u094d\u091f\u0940 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin12_check2",
+   "fieldtype": "Check",
+   "label": "\u0939\u0949\u0938\u094d\u092a\u093f\u091f\u0932 \u0932\u0940\u0935 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin12_check3",
+   "fieldtype": "Check",
+   "label": "\u092c\u0940\u092e\u093e\u0930\u0940 \u0915\u0940 \u091b\u0941\u091f\u094d\u091f\u0940 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin12_check4",
+   "fieldtype": "Check",
+   "label": "\u092c\u093f\u0928\u093e \u0935\u0947\u0924\u0928 \u091b\u0941\u091f\u094d\u091f\u0940 "
+  },
+  {
+   "fieldname": "loan_policy_section",
+   "fieldtype": "Section Break",
+   "label": "LOAN POLICY"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_13",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ13. What is the minimum service requirement to apply for a loan?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng13_check1",
+   "fieldtype": "Check",
+   "label": "6 months"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng13_check2",
+   "fieldtype": "Check",
+   "label": "1 year"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng13_check3",
+   "fieldtype": "Check",
+   "label": "3 years"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng13_check4",
+   "fieldtype": "Check",
+   "label": "No condition"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_13",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ13. \u0932\u094b\u0928 \u0915\u0947 \u0932\u093f\u090f \u0905\u092a\u094d\u0932\u093e\u0908 \u0915\u0930\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0915\u092e \u0938\u0947 \u0915\u092e \u0915\u093f\u0924\u0928\u0940 \u0938\u0930\u094d\u0935\u093f\u0938 \u091a\u093e\u0939\u093f\u090f? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin13_check1",
+   "fieldtype": "Check",
+   "label": "6 \u092e\u0939\u0940\u0928\u0947"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin13_check2",
+   "fieldtype": "Check",
+   "label": "1 \u0935\u0930\u094d\u0937"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin13_check3",
+   "fieldtype": "Check",
+   "label": "3 \u0935\u0930\u094d\u0937"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin13_check4",
+   "fieldtype": "Check",
+   "label": "\u0915\u094b\u0908 \u0936\u0930\u094d\u0924 \u0928\u0939\u0940\u0902 \u0939\u0948"
+  },
+  {
+   "fieldname": "column_break_fzir",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_14",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ14. What is the maximum loan amount one can get?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng14_check1",
+   "fieldtype": "Check",
+   "label": "1x monthly salary"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng14_check2",
+   "fieldtype": "Check",
+   "label": "2x gross monthly salary"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng14_check3",
+   "fieldtype": "Check",
+   "label": "\u20b950,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng14_check4",
+   "fieldtype": "Check",
+   "label": "\u20b91,00,000"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_14",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ14. \u0915\u094b\u0908 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940 \u091c\u094d\u092f\u093e\u0926\u093e \u0938\u0947 \u091c\u094d\u092f\u093e\u0926\u093e \u0915\u093f\u0924\u0928\u093e \u0932\u094b\u0928 \u0932\u0947 \u0938\u0915\u0924\u093e \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin14_check1",
+   "fieldtype": "Check",
+   "label": "1x \u0938\u093e\u0932 \u0915\u0940 \u0938\u0948\u0932\u0930\u0940 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin14_check2",
+   "fieldtype": "Check",
+   "label": "2x \u0915\u0941\u0932 \u0938\u093e\u0932\u093e\u0928\u093e \u0938\u0948\u0932\u0930\u0940 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin14_check3",
+   "fieldtype": "Check",
+   "label": "\u20b950,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin14_check4",
+   "fieldtype": "Check",
+   "label": "\u20b91,00,000"
+  },
+  {
+   "fieldname": "company_separation_policy_section",
+   "fieldtype": "Section Break",
+   "label": "COMPANY SEPARATION POLICY"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_15",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ15. What is the notice period for non-managerial roles?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng15_check1",
+   "fieldtype": "Check",
+   "label": "30 days"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng15_check2",
+   "fieldtype": "Check",
+   "label": "7 days"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng15_check3",
+   "fieldtype": "Check",
+   "label": "60 days"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng15_check4",
+   "fieldtype": "Check",
+   "label": "90 days"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_15",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ15. \u0928\u0949\u0928-\u092e\u0948\u0928\u0947\u091c\u0930 \u092a\u094b\u0938\u094d\u091f \u0915\u0947 \u0932\u093f\u090f \u0928\u094b\u091f\u093f\u0938 \u092a\u0940\u0930\u093f\u092f\u0921 \u0915\u093f\u0924\u0928\u093e \u0939\u094b\u0924\u093e \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin15_check1",
+   "fieldtype": "Check",
+   "label": "30 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin15_check2",
+   "fieldtype": "Check",
+   "label": "7 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin15_check3",
+   "fieldtype": "Check",
+   "label": "60 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin15_check4",
+   "fieldtype": "Check",
+   "label": "90 \u0926\u093f\u0928"
+  },
+  {
+   "fieldname": "column_break_pjjq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_16",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ16. When is the F&amp;F settlement processed?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng16_check1",
+   "fieldtype": "Check",
+   "label": "Same day"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng16_check2",
+   "fieldtype": "Check",
+   "label": "Within 45 days of last working day"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng16_check3",
+   "fieldtype": "Check",
+   "label": "60 days later"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng16_check4",
+   "fieldtype": "Check",
+   "label": "Before exit interview"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_16",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ16. \u092b\u0941\u0932 \u090f\u0902\u0921 \u092b\u093e\u0907\u0928\u0932 \u0938\u0947\u091f\u0932\u092e\u0947\u0902\u091f \u0915\u092c \u0939\u094b\u0924\u093e \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin16_check1",
+   "fieldtype": "Check",
+   "label": "\u0909\u0938\u0940 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin16_check2",
+   "fieldtype": "Check",
+   "label": "\u0906\u0916\u093f\u0930\u0940 \u0915\u093e\u092e \u0915\u0947 \u0926\u093f\u0928 \u0938\u0947 45 \u0926\u093f\u0928 \u0915\u0947 \u0905\u0902\u0926\u0930 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin16_check3",
+   "fieldtype": "Check",
+   "label": "60 \u0926\u093f\u0928 \u092c\u093e\u0926"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin16_check4",
+   "fieldtype": "Check",
+   "label": "\u090f\u0917\u094d\u091c\u093f\u091f \u0907\u0902\u091f\u0930\u0935\u094d\u092f\u0942 \u0938\u0947 \u092a\u0939\u0932\u0947 "
+  },
+  {
+   "fieldname": "policy3_tab",
+   "fieldtype": "Tab Break",
+   "label": "Policy3"
+  },
+  {
+   "fieldname": "employee_referral_policy_section",
+   "fieldtype": "Section Break",
+   "label": "EMPLOYEE REFERRAL POLICY"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_17",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ17. Who is eligible to refer a candidate?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng17_check1",
+   "fieldtype": "Check",
+   "label": "Full-time employees with 6+ months of service"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng17_check2",
+   "fieldtype": "Check",
+   "label": "Anyone"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng17_check3",
+   "fieldtype": "Check",
+   "label": "New joiners"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng17_check4",
+   "fieldtype": "Check",
+   "label": "Interns"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_17",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ17. \u0915\u093f\u0938\u0940 \u0915\u094b \u0930\u0947\u092b\u0930 \u0915\u0930\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0915\u094c\u0928 \u092f\u094b\u0917\u094d\u092f \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin17_check1",
+   "fieldtype": "Check",
+   "label": "\u091c\u094b \u092b\u0941\u0932 \u091f\u093e\u0907\u092e 6+ \u092e\u0939\u0940\u0928\u0947 \u0938\u0947 \u0915\u093e\u092e \u0915\u0930 \u0930\u0939\u093e \u0939\u094b "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin18_check2hin17_check2",
+   "fieldtype": "Check",
+   "label": "\u0915\u094b\u0908 \u092d\u0940"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin17_check3",
+   "fieldtype": "Check",
+   "label": "\u0928\u090f \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin17_check4",
+   "fieldtype": "Check",
+   "label": "\u0907\u0902\u091f\u0930\u094d\u0928"
+  },
+  {
+   "fieldname": "column_break_al48",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_18",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ18. What is the referral bonus for critical/niche positions?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng18_check1",
+   "fieldtype": "Check",
+   "label": "\u20b91,500"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng18_check2",
+   "fieldtype": "Check",
+   "label": "\u20b95,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng18_check3",
+   "fieldtype": "Check",
+   "label": "\u20b94,500"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng18_check4",
+   "fieldtype": "Check",
+   "label": "\u20b92,000"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_18",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ18. \u0938\u094d\u092a\u0947\u0936\u0932 \u092a\u094b\u0938\u094d\u091f (\u0915\u094d\u0930\u093f\u091f\u093f\u0915\u0932 \u0914\u0930 \u0928\u0940\u0936) \u0915\u0947 \u0932\u093f\u090f \u0930\u0947\u092b\u0930\u0932 \u092c\u094b\u0928\u0938 \u0915\u093f\u0924\u0928\u093e \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin18_check1",
+   "fieldtype": "Check",
+   "label": "\u20b91,500"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin18_check2",
+   "fieldtype": "Check",
+   "label": "\u20b95,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin18_check3",
+   "fieldtype": "Check",
+   "label": "\u20b94,500"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin18_check4",
+   "fieldtype": "Check",
+   "label": "\u20b92,000"
+  },
+  {
+   "fieldname": "internal_job_posting_section",
+   "fieldtype": "Section Break",
+   "label": "INTERNAL JOB POSTING"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_19",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ19. What is the minimum tenure required to apply for IJP?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng19_check1",
+   "fieldtype": "Check",
+   "label": "6 months"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng19_check2",
+   "fieldtype": "Check",
+   "label": "2 years"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng19_check3",
+   "fieldtype": "Check",
+   "label": "1 year"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng19_check4",
+   "fieldtype": "Check",
+   "label": "No condition"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_19",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ19. IJP \u0915\u0947 \u0932\u093f\u090f \u0905\u092a\u094d\u0932\u093e\u0908 \u0915\u0930\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0915\u092e \u0938\u0947 \u0915\u092e \u0915\u093f\u0924\u0928\u0940 \u0928\u094c\u0915\u0930\u0940 \u0939\u094b\u0928\u0940 \u091a\u093e\u0939\u093f\u090f? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin19_check1",
+   "fieldtype": "Check",
+   "label": "6 \u092e\u0939\u0940\u0928\u0947"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin19_check2",
+   "fieldtype": "Check",
+   "label": "2 \u0935\u0930\u094d\u0937"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin19_check3",
+   "fieldtype": "Check",
+   "label": "1 \u0935\u0930\u094d\u0937"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin19_check4",
+   "fieldtype": "Check",
+   "label": "\u0915\u094b\u0908 \u0936\u0930\u094d\u0924 \u0928\u0939\u0940\u0902 \u0939\u0948"
+  },
+  {
+   "fieldname": "column_break_2bvh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_20",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ20. What salary hike is applicable for promotions under IJP?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng20_check1",
+   "fieldtype": "Check",
+   "label": "5%"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng20_check2",
+   "fieldtype": "Check",
+   "label": "Case-by-case"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng20_check3",
+   "fieldtype": "Check",
+   "label": "10%"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng20_check4",
+   "fieldtype": "Check",
+   "label": "No change"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_20",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ20. I.JP \u0915\u0947 \u0924\u0939\u0924 \u092a\u094d\u0930\u092e\u094b\u0936\u0928 \u092e\u0947\u0902 \u0915\u093f\u0924\u0928\u093e \u0935\u0947\u0924\u0928 \u092c\u0922\u093c \u0938\u0915\u0924\u093e \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin20_check1",
+   "fieldtype": "Check",
+   "label": "5%"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin20_check2",
+   "fieldtype": "Check",
+   "label": "\u0915\u0947\u0938-\u092c\u093e\u092f-\u0915\u0947\u0938"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin20_check3",
+   "fieldtype": "Check",
+   "label": "10%"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin20_check4",
+   "fieldtype": "Check",
+   "label": "\u0915\u094b\u0908 \u092c\u0926\u0932\u093e\u0935 \u0928\u0939\u0940\u0902 "
+  },
+  {
+   "fieldname": "posh_policy_section",
+   "fieldtype": "Section Break",
+   "label": "POSH POLICY"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_21",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ21. Within how many months must a POSH complaint be filed?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng21_check1",
+   "fieldtype": "Check",
+   "label": "3 months"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng21_check2",
+   "fieldtype": "Check",
+   "label": "1 month"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng21_check3",
+   "fieldtype": "Check",
+   "label": "6 months"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng21_check4",
+   "fieldtype": "Check",
+   "label": "No time limit"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_21",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ21. POSH \u0936\u093f\u0915\u093e\u092f\u0924 \u0915\u093f\u0924\u0928\u0947 \u0938\u092e\u092f \u092e\u0947\u0902 \u0915\u0930\u0928\u0940 \u091a\u093e\u0939\u093f\u090f? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin21_check1",
+   "fieldtype": "Check",
+   "label": "3 \u092e\u0939\u0940\u0928\u0947"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin21_check2",
+   "fieldtype": "Check",
+   "label": "1 \u092e\u0939\u0940\u0928\u093e"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin21_check3",
+   "fieldtype": "Check",
+   "label": "6 \u092e\u0939\u0940\u0928\u0947"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin21_check4",
+   "fieldtype": "Check",
+   "label": "\u0915\u094b\u0908 \u0924\u092f \u0938\u092e\u092f \u0928\u0939\u0940\u0902 "
+  },
+  {
+   "fieldname": "column_break_n4tu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_22",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ22. Which of the following is not sexual harassment?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng22_check1",
+   "fieldtype": "Check",
+   "label": "Unwelcome contact"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng22_check2",
+   "fieldtype": "Check",
+   "label": "Sexual jokes"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng22_check3",
+   "fieldtype": "Check",
+   "label": "Constructive feedback"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng22_check4",
+   "fieldtype": "Check",
+   "label": "Demands for sexual favors"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_22",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ22. \u0907\u0928\u092e\u0947\u0902 \u0938\u0947 \u0915\u094d\u092f\u093e \u092f\u094c\u0928 \u0909\u0924\u094d\u092a\u0940\u0921\u093c\u0928 \u0928\u0939\u0940\u0902 \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin22_check1",
+   "fieldtype": "Check",
+   "label": "\u092c\u093f\u0928\u093e \u0907\u091c\u093c\u093e\u091c\u093c\u0924 \u0915\u0947 \u091b\u0942\u0928\u093e "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin22_check2",
+   "fieldtype": "Check",
+   "label": "\u0917\u0902\u0926\u0947 \u091c\u094b\u0915 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin22_check3",
+   "fieldtype": "Check",
+   "label": "\u0915\u094d\u0930\u093f\u090f\u091f\u093f\u0935 \u092b\u0940\u0921\u092c\u0948\u0915 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin22_check4",
+   "fieldtype": "Check",
+   "label": "\u092f\u094c\u0928 \u092b\u093e\u092f\u0926\u0947 \u0915\u0940 \u0921\u093f\u092e\u093e\u0902\u0921"
+  },
+  {
+   "fieldname": "policy4_tab",
+   "fieldtype": "Tab Break",
+   "label": "Policy4"
+  },
+  {
+   "fieldname": "retention_bonus_policy_section",
+   "fieldtype": "Section Break",
+   "label": "RETENTION BONUS POLICY"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_23",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ23. What is the retention bonus amount for trainees?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng23_check1",
+   "fieldtype": "Check",
+   "label": "\u20b91,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng23_check2",
+   "fieldtype": "Check",
+   "label": "\u20b93,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng23_check3",
+   "fieldtype": "Check",
+   "label": "\u20b92,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng23_check4",
+   "fieldtype": "Check",
+   "label": "\u20b9500"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_23",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ23. \u0907\u0902\u091f\u0930\u094d\u0928 \u0915\u094b \u0930\u0947\u092b\u0930 \u0915\u0930\u0928\u0947 \u092a\u0930 \u0915\u093f\u0924\u0928\u093e \u092c\u094b\u0928\u0938 \u092e\u093f\u0932\u0924\u093e \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin23_check1",
+   "fieldtype": "Check",
+   "label": "\u20b91,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin23_check2",
+   "fieldtype": "Check",
+   "label": "\u20b93,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin23_check3",
+   "fieldtype": "Check",
+   "label": "\u20b92,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin23_check4",
+   "fieldtype": "Check",
+   "label": "\u20b9500"
+  },
+  {
+   "fieldname": "column_break_awng",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_24",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ24. When is the second tranche of bonus paid?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng24_check1",
+   "fieldtype": "Check",
+   "label": "After 6 months"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng24_check2",
+   "fieldtype": "Check",
+   "label": "After 1 year"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng24_check3",
+   "fieldtype": "Check",
+   "label": "After 27 months"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng24_check4",
+   "fieldtype": "Check",
+   "label": "fter 30 months"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_24",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ24. \u0930\u0947\u092b\u0930\u0932 \u092c\u094b\u0928\u0938 \u0915\u093e \u0926\u0942\u0938\u0930\u093e \u0939\u093f\u0938\u094d\u0938\u093e \u0915\u092c \u0926\u093f\u092f\u093e \u091c\u093e\u0924\u093e \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin24_check1",
+   "fieldtype": "Check",
+   "label": "6 \u092e\u0939\u0940\u0928\u0947 \u092c\u093e\u0926"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin24_check2",
+   "fieldtype": "Check",
+   "label": "1 \u0938\u093e\u0932 \u092c\u093e\u0926 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin24_check3",
+   "fieldtype": "Check",
+   "label": "27 \u092e\u0939\u0940\u0928\u0947 \u092c\u093e\u0926"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin24_check4",
+   "fieldtype": "Check",
+   "label": "30 \u092e\u0939\u0940\u0928\u0947 \u092c\u093e\u0926"
+  },
+  {
+   "fieldname": "gifting_policy_section",
+   "fieldtype": "Section Break",
+   "label": "GIFTING POLICY"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_25",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ25. Which of the following is allowed as a gift?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng25_check1",
+   "fieldtype": "Check",
+   "label": "Cash"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng25_check2",
+   "fieldtype": "Check",
+   "label": "Gold ring"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng25_check3",
+   "fieldtype": "Check",
+   "label": "Mug worth \u20b9500"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng25_check4",
+   "fieldtype": "Check",
+   "label": "Free vacation"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_25",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ25. \u0907\u0928\u092e\u0947\u0902 \u0938\u0947 \u0915\u094c\u0928 \u0938\u093e \u0917\u093f\u092b\u094d\u091f \u0932\u0947\u0928\u093e \u0938\u0939\u0940 \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin25_check1",
+   "fieldtype": "Check",
+   "label": "\u0928\u0915\u0926"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin25_check2",
+   "fieldtype": "Check",
+   "label": "\u0938\u094b\u0928\u0947 \u0915\u0940 \u0905\u0902\u0917\u0942\u0920\u0940"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin25_check3",
+   "fieldtype": "Check",
+   "label": "\u20b9500 \u0915\u093e \u092e\u0917 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin25_check4",
+   "fieldtype": "Check",
+   "label": "\u092b\u094d\u0930\u0940 \u091b\u0941\u091f\u094d\u091f\u093f\u092f\u093e\u0902 "
+  },
+  {
+   "fieldname": "column_break_jtmw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_26",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ26. What should be done with gifts over the limit?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng26_check1",
+   "fieldtype": "Check",
+   "label": "Deny or surrender to company"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng26_check2",
+   "fieldtype": "Check",
+   "label": "Sell them"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng26_check3",
+   "fieldtype": "Check",
+   "label": "Take them home"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng26_check4",
+   "fieldtype": "Check",
+   "label": "Ignore"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_26",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ26. \u0924\u092f \u0938\u0940\u092e\u093e \u0938\u0947 \u091c\u094d\u092f\u093e\u0926\u093e \u0917\u093f\u092b\u094d\u091f \u092e\u093f\u0932\u0928\u0947 \u092a\u0930 \u0915\u094d\u092f\u093e \u0915\u0930\u0947\u0902? \n</h5>\n"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin26_check1",
+   "fieldtype": "Check",
+   "label": "\u092e\u0928\u093e \u0915\u0930\u0947\u0902 \u092f\u093e \u0915\u0902\u092a\u0928\u0940 \u0915\u094b \u0926\u0947\u0902 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin26_check2",
+   "fieldtype": "Check",
+   "label": "\u092c\u0947\u091a \u0926\u0947\u0902 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin26_check3",
+   "fieldtype": "Check",
+   "label": "\u0918\u0930 \u0932\u0947 \u091c\u093e\u090f\u0902 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin26_check4",
+   "fieldtype": "Check",
+   "label": "\u0905\u0928\u0926\u0947\u0916\u093e \u0915\u0930\u0947\u0902"
+  },
+  {
+   "fieldname": "sec27",
+   "fieldtype": "Section Break",
+   "label": "TIME & ATTENDANCE POLICY"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_27",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ27. What\u2019s the grace period for late arrivals?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng27_check1",
+   "fieldtype": "Check",
+   "label": "5 mins"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng27_check2",
+   "fieldtype": "Check",
+   "label": "10 mins (max 3 times/month)"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng27_check3",
+   "fieldtype": "Check",
+   "label": "15 mins unlimited"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng27_check4",
+   "fieldtype": "Check",
+   "label": "None"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_27",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ27. \u0932\u0947\u091f \u0906\u0928\u0947 \u092a\u0930 \u0915\u093f\u0924\u0928\u093e \u0938\u092e\u092f \u092e\u093e\u092b \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin27_check1",
+   "fieldtype": "Check",
+   "label": "5 \u092e\u093f\u0928\u091f"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin27_check2",
+   "fieldtype": "Check",
+   "label": "10 \u092e\u093f\u0928\u091f (\u0939\u0930 \u0939\u092b\u094d\u0924\u0947 3 \u092c\u093e\u0930 \u0924\u0915) "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin27_check3",
+   "fieldtype": "Check",
+   "label": "15 \u092e\u093f\u0928\u091f \u0905\u0928\u0932\u093f\u092e\u093f\u091f\u0947\u0921 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin27_check4",
+   "fieldtype": "Check",
+   "label": "\u0915\u094b\u0908 \u0928\u0939\u0940\u0902"
+  },
+  {
+   "fieldname": "column_break_flhb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_28",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ28. When should long leave be applied for?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng28_check1",
+   "fieldtype": "Check",
+   "label": "After taking leave"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng28_check2",
+   "fieldtype": "Check",
+   "label": "At least 7 days in advance"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng28_check3",
+   "fieldtype": "Check",
+   "label": "Same day"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng28_check4",
+   "fieldtype": "Check",
+   "label": "Never"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_28",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ28. \u0932\u0902\u092c\u0940 \u091b\u0941\u091f\u094d\u091f\u0940 \u0915\u0947 \u0932\u093f\u090f \u0915\u092c \u0905\u092a\u094d\u0932\u093e\u0908 \u0915\u0930\u0928\u093e \u091a\u093e\u0939\u093f\u090f? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin28_check1",
+   "fieldtype": "Check",
+   "label": "\u091b\u0941\u091f\u094d\u091f\u0940 \u0915\u0947 \u092c\u093e\u0926 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin28_check2",
+   "fieldtype": "Check",
+   "label": "\u0915\u092e \u0938\u0947 \u0915\u092e 7 \u0926\u093f\u0928 \u092a\u0939\u0932\u0947"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin28_check3",
+   "fieldtype": "Check",
+   "label": "\u0909\u0938\u0940 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin28_check4",
+   "fieldtype": "Check",
+   "label": "\u0915\u092d\u0940 \u0928\u0939\u0940\u0902"
+  },
+  {
+   "fieldname": "policy5_tab",
+   "fieldtype": "Tab Break",
+   "label": "Policy5"
+  },
+  {
+   "fieldname": "trial_policy_section",
+   "fieldtype": "Section Break",
+   "label": "TRIAL POLICY"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_29",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ29. What is the max number of trial days allowed?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng29_check1",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng29_check2",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng29_check3",
+   "fieldtype": "Check",
+   "label": "6"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng29_check4",
+   "fieldtype": "Check",
+   "label": "No limit"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_29",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ29. \u090f\u0915 \u0938\u093e\u0932 \u092e\u0947\u0902 \u0915\u093f\u0924\u0928\u0947 \u0930\u0947\u092b\u0930\u0932 \u0926\u093f\u090f \u091c\u093e \u0938\u0915\u0924\u0947 \u0939\u0948\u0902? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin29_check1",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin29_check2",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin29_check3",
+   "fieldtype": "Check",
+   "label": "6"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin29_check4",
+   "fieldtype": "Check",
+   "label": "\u0915\u094b\u0908 \u0938\u0940\u092e\u093e \u0928\u0939\u0940\u0902"
+  },
+  {
+   "fieldname": "column_break_xgsj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_30",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ30. When is trial allowance paid?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng30_check1",
+   "fieldtype": "Check",
+   "label": "Always"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng30_check2",
+   "fieldtype": "Check",
+   "label": "If candidate is rejected or declines offer"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng30_check3",
+   "fieldtype": "Check",
+   "label": "For freshers only"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng30_check4",
+   "fieldtype": "Check",
+   "label": "If they join"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_30",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ30. \u0930\u0947\u092b\u0930\u0932 \u092c\u094b\u0928\u0938 \u0915\u092c \u092e\u093f\u0932\u0924\u093e \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin30_check1",
+   "fieldtype": "Check",
+   "label": "\u0939\u092e\u0947\u0936\u093e"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin30_check2",
+   "fieldtype": "Check",
+   "label": "\u0905\u0917\u0930 \u0915\u0948\u0902\u0921\u093f\u0921\u0947\u091f \u0930\u093f\u091c\u0947\u0915\u094d\u091f \u0939\u094b \u092f\u093e \u0911\u092b\u0930 \u092e\u0928\u093e \u0915\u0930\u0947 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin30_check3",
+   "fieldtype": "Check",
+   "label": "\u0938\u093f\u0930\u094d\u092b \u092b\u094d\u0930\u0947\u0936\u0930 \u0915\u0947 \u0932\u093f\u090f "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin30_check4",
+   "fieldtype": "Check",
+   "label": "\u0905\u0917\u0930 \u0935\u094b \u091c\u0949\u0907\u0928 \u0915\u0930\u0947 "
+  },
+  {
+   "fieldname": "whistleblower_policy_section",
+   "fieldtype": "Section Break",
+   "label": "WHISTLEBLOWER POLICY "
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_31",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ31. What can be reported under the whistleblower policy?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng31_check1",
+   "fieldtype": "Check",
+   "label": "Fraud, harassment, misuse of resources"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng31_check2",
+   "fieldtype": "Check",
+   "label": "Gossip"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng31_check3",
+   "fieldtype": "Check",
+   "label": "Resignations"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng31_check4",
+   "fieldtype": "Check",
+   "label": "Suggestions only"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_31",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ31. Whistleblower \u0928\u0940\u0924\u093f \u0915\u0947 \u0924\u0939\u0924 \u0915\u094d\u092f\u093e \u0930\u093f\u092a\u094b\u0930\u094d\u091f \u0915\u093f\u092f\u093e \u091c\u093e \u0938\u0915\u0924\u093e \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin31_check1",
+   "fieldtype": "Check",
+   "label": "\u0927\u094b\u0916\u093e, \u0909\u0924\u094d\u092a\u0940\u0921\u093c\u0928, \u0938\u0902\u0938\u093e\u0927\u0928\u094b\u0902 \u0915\u093e \u0917\u0932\u0924 \u0907\u0938\u094d\u0924\u0947\u092e\u093e\u0932 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin31_check2",
+   "fieldtype": "Check",
+   "label": "\u0917\u0949\u0938\u093f\u092a "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin31_check3",
+   "fieldtype": "Check",
+   "label": "\u0907\u0938\u094d\u0924\u0940\u092b\u093e"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin31_check4",
+   "fieldtype": "Check",
+   "label": "\u0938\u093f\u0930\u094d\u092b \u0938\u0941\u091d\u093e\u0935 "
+  },
+  {
+   "fieldname": "column_break_pptz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_32",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ32. What happens if someone files a false complaint?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng32_check1",
+   "fieldtype": "Check",
+   "label": "Disciplinary action"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng32_check2",
+   "fieldtype": "Check",
+   "label": "Ignored"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng32_check3",
+   "fieldtype": "Check",
+   "label": "Promoted"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng32_check4",
+   "fieldtype": "Check",
+   "label": "Paid"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_32",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ32. \u0905\u0917\u0930 \u0915\u094b\u0908 \u091d\u0942\u0920\u0940 \u0936\u093f\u0915\u093e\u092f\u0924 \u0915\u0930\u0924\u093e \u0939\u0948 \u0924\u094b \u0915\u094d\u092f\u093e \u0939\u094b\u0917\u093e? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin32_check1",
+   "fieldtype": "Check",
+   "label": "\u0938\u0916\u094d\u0924 \u0915\u093e\u0930\u094d\u0930\u0935\u093e\u0908 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin32_check2",
+   "fieldtype": "Check",
+   "label": "\u0905\u0928\u0926\u0947\u0916\u093e "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin32_check3",
+   "fieldtype": "Check",
+   "label": "\u092a\u094d\u0930\u092e\u094b\u0936\u0928 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin32_check4",
+   "fieldtype": "Check",
+   "label": "\u092a\u0947\u092e\u0947\u0902\u091f "
+  },
+  {
+   "fieldname": "work_from_home_policy_section",
+   "fieldtype": "Section Break",
+   "label": "WORK FROM HOME POLICY "
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_33",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ33. Which department has default WFH eligibility?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng33_check1",
+   "fieldtype": "Check",
+   "label": "IT (Software)"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng33_check2",
+   "fieldtype": "Check",
+   "label": "HR"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng33_check3",
+   "fieldtype": "Check",
+   "label": "Admin"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng33_check4",
+   "fieldtype": "Check",
+   "label": "Sales"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_33",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ33. \u0921\u093f\u092b\u0949\u0932\u094d\u091f \u0935\u0930\u094d\u0915 \u092b\u094d\u0930\u0949\u092e \u0939\u094b\u092e \u0915\u093e \u0939\u0915 \u0915\u093f\u0938\u0947 \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin33_check1",
+   "fieldtype": "Check",
+   "label": "IT (\u0938\u0949\u092b\u094d\u091f\u0935\u0947\u092f\u0930)"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin33_check2",
+   "fieldtype": "Check",
+   "label": "HR"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin33_check3",
+   "fieldtype": "Check",
+   "label": "\u090f\u0921\u092e\u093f\u0928 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin33_check4",
+   "fieldtype": "Check",
+   "label": "\u0932\u0949\u092c\u0940 "
+  },
+  {
+   "fieldname": "column_break_3vs7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_34",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ34. WFH for non-IT employees is allowed only in case of:\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng34_check1",
+   "fieldtype": "Check",
+   "label": "Vacation"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng34_check2",
+   "fieldtype": "Check",
+   "label": "Flexibility"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng34_check3",
+   "fieldtype": "Check",
+   "label": "Emergency situations"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng34_check4",
+   "fieldtype": "Check",
+   "label": "Weekend work"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_34",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ34. \u0917\u0948\u0930-IT \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u093f\u092f\u094b\u0902 \u0915\u094b WFH \u0915\u092c \u092e\u093f\u0932 \u0938\u0915\u0924\u093e \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin34_check1",
+   "fieldtype": "Check",
+   "label": "\u091b\u0941\u091f\u094d\u091f\u0940 \u0915\u0947 \u0926\u093f\u0928 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin34_check2",
+   "fieldtype": "Check",
+   "label": "\u092b\u094d\u0932\u0947\u0915\u094d\u0938\u093f\u092c\u0932 \u0915\u093e\u092e \u0915\u0947 \u0932\u093f\u090f "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin34_check3",
+   "fieldtype": "Check",
+   "label": "\u0907\u092e\u0930\u091c\u0947\u0902\u0938\u0940 \u092e\u0947\u0902 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin34_check4",
+   "fieldtype": "Check",
+   "label": "\u0935\u0940\u0915\u0947\u0902\u0921 \u092e\u0947\u0902"
+  },
+  {
+   "fieldname": "policy6_tab",
+   "fieldtype": "Tab Break",
+   "label": "Policy6"
+  },
+  {
+   "fieldname": "sec35",
+   "fieldtype": "Section Break",
+   "label": "WORKPLACE HARASSMENT & GRIEVANCE HANDLING"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_35",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ35. Who must complete a termination grievance form?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng35_check1",
+   "fieldtype": "Check",
+   "label": "All staff"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng35_check2",
+   "fieldtype": "Check",
+   "label": "Interns"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng35_check3",
+   "fieldtype": "Check",
+   "label": "Senior employees leaving"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng35_check4",
+   "fieldtype": "Check",
+   "label": "Referred employees"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_35",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ35. \u0915\u094c\u0928 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940 \u090f\u0917\u094d\u091c\u093f\u091f \u0936\u093f\u0915\u093e\u092f\u0924 \u092b\u0949\u0930\u094d\u092e \u092d\u0930\u0924\u093e \u0939\u0948? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin35_check1",
+   "fieldtype": "Check",
+   "label": "\u0938\u092d\u0940 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin35_check2",
+   "fieldtype": "Check",
+   "label": "\u0907\u0902\u091f\u0930\u094d\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin35_check3",
+   "fieldtype": "Check",
+   "label": "\u0938\u0940\u0928\u093f\u092f\u0930 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940 \u091c\u094b \u091c\u093e \u0930\u0939\u0947 \u0939\u094b\u0902 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin35_check4",
+   "fieldtype": "Check",
+   "label": "\u091c\u093f\u0928\u0938\u0947 \u0915\u0939\u093e \u091c\u093e\u090f "
+  },
+  {
+   "fieldname": "column_break_kr4w",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng_36",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ36. Which issue cannot be raised in grievance?\n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng36_check1",
+   "fieldtype": "Check",
+   "label": "Food complaints"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng36_check2",
+   "fieldtype": "Check",
+   "label": "Stock price feedback"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng36_check3",
+   "fieldtype": "Check",
+   "label": "PF/ESIC"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "eng36_check4",
+   "fieldtype": "Check",
+   "label": "Medical claims"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hind_36",
+   "fieldtype": "HTML",
+   "options": "<h5>\nQ36. \u0915\u094c\u0928 \u0938\u0940 \u0936\u093f\u0915\u093e\u092f\u0924 \u0928\u0939\u0940\u0902 \u092e\u093e\u0928\u0940 \u091c\u093e\u090f\u0917\u0940? \n</h5>"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin36_check1",
+   "fieldtype": "Check",
+   "label": "\u0916\u093e\u0928\u0947 \u0938\u0947 \u091c\u0941\u0921\u093c\u0940 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin36_check2",
+   "fieldtype": "Check",
+   "label": "\u0938\u094d\u091f\u0949\u0915 \u0935\u0948\u0932\u094d\u092f\u0942 \u0938\u0947 \u091c\u0941\u0921\u093c\u0940 \u0930\u093e\u092f "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin36_check3",
+   "fieldtype": "Check",
+   "label": "PF/ESIC"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "hin36_check4",
+   "fieldtype": "Check",
+   "label": "\u092e\u0947\u0921\u093f\u0915\u0932 \u0915\u094d\u0932\u0947\u092e"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "options": "COM-POL-"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-05-26 17:14:28.370921",
+ "modified_by": "Administrator",
+ "module": "GKE SURVEY",
+ "name": "Company Policies Assessment",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
