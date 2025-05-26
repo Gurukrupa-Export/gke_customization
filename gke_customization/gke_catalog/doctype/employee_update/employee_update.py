@@ -15,9 +15,12 @@ class EmployeeUpdate(Document):
 			probation_days = int(self.custom_probation_period_days)
 			joining_date = getdate(self.date_of_joining)  
 			self.final_confirmation_date = joining_date + timedelta(days=probation_days)
+		# if self.is_new_employee:
+		# 	if self.health_insurance_status:
 
+		# 		frappe.msgprint(f"{self.health_insurance_status}")
 	def on_submit(self):
-		filed_list = [
+		field_list = [
 			"first_name", "middle_name", "last_name", "image", "date_of_birth", 
 			"salutation","gender","custom_notice_dayes", "employment_type","custom_probation_period_days",
 			"date_of_joining","contract_end_date", "old_employee_code", "old_punch_id","status",
@@ -40,11 +43,10 @@ class EmployeeUpdate(Document):
 			"employee_relative_relation", "resignation_letter_date", "relieving_date", "held_on", "new_workplace", 
 			"leave_encashed", "encashment_date", "reason_for_leaving", "feedback", "is_pf_applicable",
 			"pf_joining_date","pan_number", "name_as_pe_pan", "provident_fund_account", "handicap_certificate_date", 
-			"handicap_percenatge", "is_physical_handicap", "uan_number","variable_end_date","variable_start_date","variable_in",
-			"custom_linked_aadhar_contact"
+			"handicap_percenatge", "is_physical_handicap", "uan_number","variable_end_date","variable_start_date","variable_in"
 		]
 		
-		e_json = {
+		field_mapping = {
 			"full_name": "employee_name",
 			"operation": "custom_operation",
 			"city": "custom_city",
@@ -56,43 +58,34 @@ class EmployeeUpdate(Document):
 			"sum_assured_accident_insurance_": "custom_sum_assured_accident_insurance_",
 			"accident_insurance_no": "custom_accident_insurance_no",
 			"is_esic_applicable": "custom_is_esic_applicable",
-			# "variable_end_date": "custom_contract_end_date",
-			# "variable_start_date": "custom_contract_start_date",
-			# "variable_in": "custom_variable_in",
+			
 			}
 		
-		e_diff_filed = [
-			"full_name", "operation", "city", "state", "health_insurance_status", "sum_assured_",
-			"accident_insurance_provider", "accident_insurance_status", "sum_assured_accident_insurance_",
-			"accident_insurance_no", "is_esic_applicable" 
-			]
+		if self.is_new_employee:
+			# Create new employee
+			emp_doc = frappe.get_doc({"doctype": "Employee"})
 
-		if not self.is_new_employee:
-			for i in filed_list:
-				e_i = i
-				if i in e_diff_filed:
-					e_i = e_json[i]
-				emp_value = frappe.db.get_value("Employee",self.employee,e_i)
-				uemp_value = frappe.db.get_value("Employee Update",{'employee':self.employee}, i)
-				if emp_value == uemp_value:
-					continue
-				frappe.db.set_value("Employee",self.employee,e_i,uemp_value)
+			for field in field_list:
+				source_field = field
+				target_field = field_mapping.get(field, field)
+
+				value = frappe.db.get_value("Employee Update", self.name, source_field)
+				emp_doc.set(target_field, value)
+
+			# emp_doc.insert()
+			doc_ = emp_doc
 		else:
-			emp_doc = frappe.get_doc({'doctype': 'Employee'})
-			
-			for field in filed_list:
-				if field in e_diff_filed:
-					field = e_json[field]
-				value = frappe.db.get_value("Employee Update", self.name, field)
-				emp_doc.set(field, value)
-			
-			emp_doc.insert()
+			# Update existing employee
+			for field in field_list:
+				target_field = field_mapping.get(field, field)
+				emp_value = frappe.db.get_value("Employee", self.employee, target_field)
+				update_value = frappe.db.get_value("Employee Update", {"employee": self.employee}, field)
 
-		if not self.is_new_employee:
-			doc_ = frappe.get_doc('Employee', self.employee)
-		else:
-			doc_ = frappe.get_doc('Employee', emp_doc.name)
+				if emp_value != update_value:
+					frappe.db.set_value("Employee", self.employee, target_field, update_value)
 
+			doc_ = frappe.get_doc("Employee", self.employee)
+				
 		doc_.set("custom_employee_languages", [])
 		if self.employee_languages:
 			for lan in self.employee_languages:
@@ -163,7 +156,8 @@ class EmployeeUpdate(Document):
 			emergency_contact_details_table.relation = ecdt.relation
 
 		doc_.save()
-
+		# frappe.throw(f"{doc_.name}")
+		frappe.db.commit()
 
 		if not self.is_new_employee:
 			frappe.msgprint("Employee has been updated...")
