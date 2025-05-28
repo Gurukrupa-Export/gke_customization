@@ -20,9 +20,11 @@
   "item_image",
   "image_preview",
   "column_break_wbqs",
+  "default_expense_account",
   "hsn_code",
   "item_code",
   "remarks",
+  "reason_for_hold",
   "item_section",
   "consumable_type",
   "consumable_size",
@@ -52,7 +54,9 @@
   {
    "fieldname": "item_name",
    "fieldtype": "Data",
-   "label": "Item Name"
+   "in_list_view": 1,
+   "label": "Item Name",
+   "reqd": 1
   },
   {
    "fieldname": "item_size",
@@ -81,12 +85,13 @@
    "fieldname": "item_group",
    "fieldtype": "Link",
    "label": "Item Group",
-   "options": "Item Group"
+   "options": "Item Group",
+   "reqd": 1
   },
   {
    "description": "Add GST value in Percentage",
    "fieldname": "gst",
-   "fieldtype": "Data",
+   "fieldtype": "Select",
    "label": "Item Tax (GST %)"
   },
   {
@@ -99,11 +104,12 @@
    "label": "HSN Code"
   },
   {
+   "allow_on_submit": 1,
+   "depends_on": "eval: (in_list(['Approved','Completed'], doc.workflow_state))",
    "fieldname": "item_code",
    "fieldtype": "Link",
    "label": "Item Code",
-   "options": "Item",
-   "read_only": 1
+   "options": "Item"
   },
   {
    "fieldname": "item_section",
@@ -144,6 +150,7 @@
   {
    "fieldname": "status",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Status",
    "options": "\nApproved\nRejected"
   },
@@ -186,12 +193,25 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "depends_on": "eval:[\"Administrative Expense\", \"Business Promotion Expense\", \"Employee Benefits Expense\", \r\n\"Finance Expense\", \"Interest and Penalty Expense\", \"Repairs and Maintance Expense\", \r\n\"Selling and Distribution Expense\", \"Utility Expense\", \"Product Certification Expense\", \r\n\"Dine & Stay Expense\"].includes(doc.item_group)",
+   "fieldname": "default_expense_account",
+   "fieldtype": "Link",
+   "label": "Default Expense Account",
+   "options": "Account"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "reason_for_hold",
+   "fieldtype": "Data",
+   "label": "Reason For Hold"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-09 09:57:37.993771",
+ "modified": "2025-05-23 15:18:52.257412",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Item Request",

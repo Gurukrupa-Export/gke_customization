@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "naming_series:",
  "creation": "2024-07-11 11:10:07.051716",
@@ -154,7 +155,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-07-11 16:15:37.344458",
+ "modified": "2025-03-07 13:00:32.837021",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Employee B Record",

@@ -1,3 +1,5 @@
+# Copyright (c) 2025, Gurukrupa Export and contributors
+# For license information, please see license.txt
 
 import frappe
 import urllib.parse
@@ -30,7 +32,8 @@ def get_columns():
         {"fieldname": "designation", "label": "Designation", "fieldtype": "Data", "width": 200},      
         # {"label": "Assigned To", "fieldname": "assigned_users", "fieldtype": "Data", "width": 200},
         {"fieldname": "assigned_to_dept", "label": "Assigned To Dept", "fieldtype": "Data", "width": 200},
-        {"label": "Status", "fieldname": "status", "fieldtype": "HTML", "width": 190},
+        {"fieldname": "docstatus", "label": "Document Status", "fieldtype": "Data", "width": 150},
+        {"label": "Workflow Status", "fieldname": "status", "fieldtype": "HTML", "width": 190},
         {"label": "Workflow State", "fieldname": "workflow_state1", "fieldtype": "Data", "width": 120},
         {"label": "Status Date-Time", "fieldname": "status_datetime", "fieldtype": "Data", "width": 180}, 
         {"label": "Time Difference", "fieldname": "time_difference", "fieldtype": "Data", "width": 230},
@@ -52,22 +55,22 @@ def get_data(filters):
     #     conditions.append(f"DATE(od.creation) BETWEEN '{filters['from_date']}' AND '{filters['to_date']}'")
     
     if filters.get("from_date"):
-        conditions.append(f"""Date(od.creation) >= "{filters['from_date']}" """)
+        conditions.append(f"""Date(od.order_date) >= "{filters['from_date']}" """)
     if filters.get("to_date"):
-        conditions.append(f"""Date(od.creation) <= "{filters['to_date']}" """)
+        conditions.append(f"""Date(od.order_date) <= "{filters['to_date']}" """)
 
     if filters.get("order_id"):
         order_ids = "', '".join(filters["order_id"])
         conditions.append(f"odf.name IN ('{order_ids}')")
 
     if filters.get("company"):
-        companies = ', '.join([f'"{company}"' for company in filters.get("company")])
-        conditions.append(f"od.company IN ({companies})")
+        # companies = ', '.join([f'"{company}"' for company in filters.get("company")])
+        conditions.append(f"""od.company = "{filters['company']}" """)
     
     if filters.get("branch"):
-        branches = ', '.join([f'"{branch}"' for branch in filters.get("branch")])
-        conditions.append(f"od.branch IN ({branches})")
-    
+        # branches = ', '.join([f'"{branch}"' for branch in filters.get("branch")])
+        conditions.append(f"""od.branch = "{filters['branch']}" """)
+
     if filters.get("customer"):
         customers = ', '.join([f'"{customer}"' for customer in filters.get("customer")])
         conditions.append(f"od.customer_code IN ({customers})")
@@ -77,13 +80,21 @@ def get_data(filters):
         conditions.append(f"od.po_no IN ({customerspo})")
     
     if filters.get("diamond_quality"):
-        # conditions.append(f'od.diamond_quality = "{filters.get("diamond_quality")}"')
-        diamond_qtly = ', '.join([f'"{diamond_quality}"' for diamond_quality in filters.get("diamond_quality")])
-        conditions.append(f"od.diamond_quality IN ({diamond_qtly})")
+        conditions.append(f'od.diamond_quality = "{filters.get("diamond_quality")}"')
+        # diamond_qtly = ', '.join([f'"{diamond_quality}"' for diamond_quality in filters.get("diamond_quality")])
+        # conditions.append(f"od.diamond_quality IN ({diamond_qtly})")
 
     if filters.get("status"):
-        statuses = ', '.join([f'"{status}"' for status in filters.get("status")])
-        conditions.append(f"od.workflow_state IN ({statuses})")
+        # statuses = ', '.join([f'"{status}"' for status in filters.get("status")])
+        conditions.append(f"""od.workflow_state = "{filters['status']}" """)
+
+    # if filters.get("docstatus"):
+    #     docstatuses = ', '.join([str(int(docstatus)) for docstatus in filters.get("docstatus")])
+    #     conditions.append(f"od.docstatus IN ({docstatuses})")
+
+    if filters.get("docstatus"):
+        conditions.append(f"""od.docstatus = "{filters['docstatus']}" """) 
+ 
 
         # conditions.append(f"od.workflow_state = '{filters['status']}'")
 
@@ -106,7 +117,10 @@ def get_data(filters):
             e.employee AS employee,
             e.department AS department,
             e.designation AS designation,
-            od._assign AS assigned_users,  
+            od._assign AS assigned_users, 
+            CASE WHEN od.docstatus = 0 THEN "Draft"
+                 WHEN od.docstatus = 1 THEN "Submitted"
+                 WHEN od.docstatus = 2 THEN "Cancelled" END AS docstatus, 
             od.workflow_state AS status,
             CASE 
     WHEN od.workflow_state = 'Draft' THEN 1

@@ -3,9 +3,37 @@ from datetime import datetime
 from frappe.utils import now_datetime, get_datetime
 import json
 
+
+def filter_orders_by_workflow_type(data, workflow_types):
+    if not workflow_types:
+        return data
+
+    filtered = []
+    for row in data:
+        wt = (row.get("workflow_type") or "").strip()
+        dt = (row.get("design_type") or "").strip()
+
+        if "CAD" in workflow_types:
+            if (
+                wt == "CAD"
+                or (not wt and dt in ("New Design", "Sketch Design"))
+            ):
+                filtered.append(row)
+                continue  # skip normal logic for CAD
+
+        # Include row if workflow_type is in the other selected types (not CAD)
+        other_wt = [w for w in workflow_types if w != "CAD"]
+        if other_wt and wt in other_wt:
+            filtered.append(row)
+
+    return filtered
+
+
+
 def execute(filters=None):
     current_user = frappe.session.user
-    restricted_users = ["khushal_r@gkexport.com","ashish_m@gkexport.com","rahul_k@gkexport.com","kaushik_g@gkexport.com","chandan_d@gkexport.com","soumaya_d@gkexport.com"]
+    restricted_users = ["khushal_r@gkexport.com","ashish_m@gkexport.com","rahul_k@gkexport.com","kaushik_g@gkexport.com",
+                        "chandan_d@gkexport.com","soumaya_d@gkexport.com","arun_l@gkexport.com","sudip_k@gkexport.com"]
 
     apply_restrictions = current_user in restricted_users
 
@@ -15,7 +43,7 @@ def execute(filters=None):
     if apply_restrictions:
         created_order_names = frappe.get_all(
         "Order",
-        filters={"owner": current_user, "_assign": ["in", [None, ""]], "docstatus": ["<", 2]},
+        filters={"owner": current_user, "_assign": ["in", [None, ""]]},
         pluck="name"
     )
 
@@ -47,6 +75,11 @@ def execute(filters=None):
     if apply_restrictions:
         order_filters["name"] = ["in", relevant_order_names]
 
+    
+    if current_user == "arun_k@gkexport.com":
+          order_filters["setting_type"] = ["in", ["Close Setting", "Close"]]
+
+
     # Apply incoming filters
     if filters.get("order_id"):
         user_selected_orders = filters["order_id"]
@@ -59,7 +92,7 @@ def execute(filters=None):
             order_filters["name"] = ["in", user_selected_orders]
 
     if filters.get("start_date") and filters.get("end_date"):
-        order_filters["order_date"] = ["between", [filters["start_date"], filters["end_date"]]]
+        order_filters["creation"] = ["between", [filters["start_date"], filters["end_date"]]]
 
     if filters.get("company"):
         order_filters["company"] = filters["company"] if isinstance(filters["company"], str) else ["in", filters["company"]]
@@ -70,12 +103,19 @@ def execute(filters=None):
     if filters.get("setting_type"):
         order_filters["setting_type"] = filters["setting_type"] if isinstance(filters["setting_type"], str) else ["in", filters["setting_type"]]
 
+    if filters.get("docstatus") and filters.get("docstatus") != "":
+        order_filters["docstatus"] = int(filters["docstatus"])
+
+    if filters.get("bom_or_cad"):
+        order_filters["bom_or_cad"] = filters["bom_or_cad"]
+
+
     if filters.get("status"):
         order_filters["workflow_state"] = filters["status"] if isinstance(filters["status"], str) else ["in", filters["status"]]
 
-    if filters.get("workflow_type"):
-        order_filters["workflow_type"] = filters["workflow_type"] if isinstance(filters["workflow_type"], str) else ["in", filters["workflow_type"]]
-
+    # if filters.get("workflow_type"):
+    #     order_filters["workflow_type"] = filters["workflow_type"] if isinstance(filters["workflow_type"], str) else ["in", filters["workflow_type"]]
+    
     if filters.get("designer_branch"):
         designers_in_branch = frappe.get_all(
             "Employee",
@@ -101,9 +141,15 @@ def execute(filters=None):
     data = frappe.get_all(
         "Order",
         filters=order_filters,
-        fields=["name", "owner", "_assign", "workflow_state", "company", "branch", "order_type",
-                "order_date", "delivery_date", "updated_delivery_date", "modified"]
+        fields=["name", "owner", "_assign", "workflow_state", "company", "branch", "order_type","bom_or_cad",
+                "order_date", "delivery_date", "updated_delivery_date", "modified","creation","workflow_type", "design_type"]
     )
+
+    workflow_types = filters.get("workflow_type")
+    if isinstance(workflow_types, str):
+        workflow_types = [workflow_types]
+
+    data = filter_orders_by_workflow_type(data, workflow_types)
 
     now = now_datetime()
     for row in data:
@@ -112,12 +158,17 @@ def execute(filters=None):
         row["view_details"] = f"""<button class='btn btn-sm btn-primary view-assignment-btn' data-order="{row['name']}">View Details</button>"""
         row["workflow_duration_button"] = f"""<button class='btn btn-sm btn-primary view-workflow-btn' data-order="{row['name']}">Workflow Duration</button>"""
 
-        if row.get("modified"):
+        if row.get("workflow_state") == "Approved":
+            row["status_duration"] = "-"
+        elif row.get("modified"):
             modified_dt = get_datetime(row["modified"])
             duration = now - modified_dt
             row["status_duration"] = f"{duration.days}d {duration.seconds // 3600}h {(duration.seconds % 3600) // 60}m"
         else:
             row["status_duration"] = ""
+
+
+
 
         designer_ids = frappe.get_all(
             "Designer Assignment - CAD",
@@ -170,52 +221,111 @@ def execute(filters=None):
            row["assigned_by"] = ""
            row["assigned_on"] = ""
 
+    on_hold_states = {
+    "Assigned - On-Hold", 
+    "Designing - On-Hold", 
+    "Sent to QC - On-Hold", 
+    "On-Hold"
+}
     # total_orders = sum(1 for o in data if o["workflow_state"] != "Approved")
     total_orders = len(data)
     unassigned_orders = sum(1 for o in data if o["workflow_state"] == "Draft")
     assigned_orders = sum(1 for o in data if o["workflow_state"] == "Assigned")
+    on_hold_orders = sum(1 for o in data if o["workflow_state"] in on_hold_states )
+    cancelled_orders = sum(1 for o in data if o["workflow_state"] == "Cancelled")
+    designing_orders = sum(1 for o in data if o["workflow_state"] == "Designing")
+    sent_to_qc_orders = sum(1 for o in data if o["workflow_state"] == "Sent to QC")
+    update_item_orders = sum(1 for o in data if o["workflow_state"] == "Update Item")
+    approved_orders = sum(1 for o in data if o["workflow_state"] == "Approved")
+
     other_orders = total_orders - unassigned_orders - assigned_orders
 
 
     # report_summary = get_report_summary(total_orders, unassigned_orders, other_orders, approved_orders)
     report_summary = get_report_summary(
-    total_orders, unassigned_orders, assigned_orders, orders=data, filters=filters
+    total_orders, unassigned_orders, assigned_orders, on_hold_orders, cancelled_orders, designing_orders, sent_to_qc_orders, update_item_orders, approved_orders, orders=data, filters=filters
 )
 
     chart = get_chart_data(data)
 
     # Define report columns
     columns = [
-        {"label": "Order ID", "fieldname": "name", "fieldtype": "Link", "options": "Order","width": 170},
+        {"label": "Order ID", "fieldname": "name", "fieldtype": "Link", "options": "Order","width": 210},
         {"label": "Company", "fieldname": "company", "fieldtype": "Link", "options": "Company", "width": 190},
         # {"label": "Branch", "fieldname": "branch", "fieldtype": "Data", "width": 170},
         {"label": "Order Type", "fieldname": "order_type", "fieldtype": "Data", "width": 100},
         {"label": "Order Date", "fieldname": "order_date", "fieldtype": "Date", "width": 130},
-        {"label": "Created By", "fieldname": "owner", "fieldtype": "Data", "width": 130},
+        {"label": "Created By", "fieldname": "owner", "fieldtype": "Data", "width": 160},
         # {"label": "Assigned Details", "fieldname": "view_details", "fieldtype": "HTML"},
-        {"label": "Assigned By", "fieldname": "assigned_by", "fieldtype": "Data","width":190},
-        {"label": "Assigned To", "fieldname": "assigned_to", "fieldtype": "Data","width":190},
+        {"label": "Assigned By", "fieldname": "assigned_by", "fieldtype": "Data","width":350},
+        {"label": "Assigned To", "fieldname": "assigned_to", "fieldtype": "Data","width":350},
         {"label": "Assigned On", "fieldname": "assigned_on", "fieldtype": "Data","width":190},
         {"label": "Assigned to Deptartment", "fieldname": "assigned_to_dept", "fieldtype": "Data", "width": 240},
         {"label": "Designer Assignment", "fieldname": "designer_name", "fieldtype": "Data", "width": 250},
         {"label": "Workflow State", "fieldname": "workflow_state", "fieldtype": "Data", "width": 200},
         {"label": "Status Date Time", "fieldname": "modified", "fieldtype": "Datetime", "width": 180},
-        {"label": "Status Duration", "fieldname": "status_duration", "fieldtype": "Data", "width": 150},
+        {"label": "Status Duration", "fieldname": "status_duration", "fieldtype": "Data", "width":200},
         {"label": "Delivery Date", "fieldname": "delivery_date", "fieldtype": "HTML", "width": 160},
         # {"label": "Updated Delivery Date", "fieldname": "updated_delivery_date", "fieldtype": "HTML", "width": 200},
     ]
 
+    from datetime import timedelta
+
+    distinct_orders = {d["name"] for d in data if d.get("name")}
+    distinct_order_types = {d["order_type"] for d in data if d.get("order_type")}
+    distinct_designers = set()
+    total_duration = timedelta()
+
+    for d in data:
+        if d.get("designer_name"):
+          for name in d["designer_name"].split(","):
+            distinct_designers.add(name.strip())
+
+        val = d.get("status_duration", "")
+        if isinstance(val, str) and "d" in val:
+            try:
+               parts = val.split(" ")
+               days = int(parts[0].replace("d", ""))
+               hours = int(parts[1].replace("h", ""))
+               minutes = int(parts[2].replace("m", ""))
+               total_duration += timedelta(days=days, hours=hours, minutes=minutes)
+            except:
+                pass
+
+    duration_str = f"{total_duration.days} d {total_duration.seconds // 3600} h {(total_duration.seconds % 3600) // 60} m"
+
+# Create total row
+    totals_row = {
+    # "name": f"🟢 Total Orders: {len(distinct_orders)}",
+    "name":"🟢 Total Orders: {}".format(len(distinct_orders)) + "\u200B",
+    "company":" ",
+    "order_type": f"<span style='color: green; font-weight: bold;'>Types: {len(distinct_order_types)}</span>",
+    "owner":"",
+   "designer_name": f"<span style='color: green; font-weight: bold;'>Total Designers: {len(distinct_designers)}</span>",
+    "assigned_by":"",
+    "assigned_to":"",
+    "assigned_on":"",
+    "assigned_to_dept":"",
+    "workflow_state":"",
+    "modified":"",
+    "status_duration":"",
+    "delivery_date":""
+}
+
+# Fill empty values for all other fields
+    for col in columns:
+        if col["fieldname"] not in totals_row:
+            totals_row[col["fieldname"]] = "-"
+
+# Append to data
+    data.append(totals_row)
+   
+
     return columns, data, None, chart, report_summary
-
-
-
 
 def get_chart_data(orders):
     workflow_order = [
-        "Draft", "Assigned", "Assigned-On-Hold", "Designing", "Update Designer",
-        "Designing- On-Hold", "Sent to QC", "Sent to QC-On-Hold", "Update Item",
-        "Update BOM", "BOM QC", "BOM QC- On- Hold", "Approved",
-        "On-Hold", "Cancelled", "Rejected",
+        "Draft", "Assigned", "Designing", "Sent to QC", "Update Item", "Approved"
     ]
     state_counts = {}
     for order in orders:
@@ -227,7 +337,7 @@ def get_chart_data(orders):
     for state in workflow_order:
         count = state_counts.get(state, 0)
         if count > 0:
-            labels.append(state)
+            labels.append(f"{state} ({count})")  
             values.append(count)
 
     return {
@@ -237,23 +347,40 @@ def get_chart_data(orders):
         },
         "type": "bar",
         "barOptions": {"stacked": False},
+        
     }
 
 
 
-def get_report_summary(total, unassigned, assigned, orders=None, filters=None):
+    # on_hold_variants = {
+    #     "Assigned - On-Hold", "Designing - On-Hold", "Sent to QC - On-Hold",
+    #     "On-Hold"
+    # }
+
+
+
+
+
+def get_report_summary(total, unassigned, assigned, hold, cancelled, designing, sent_to_qc, update_item, approved, orders=None, filters=None):
     from frappe import session
 
     restricted_users = [
          "khushal_r@gkexport.com", "ashish_m@gkexport.com",
         "rahul_k@gkexport.com", "kaushik_g@gkexport.com", "chandan_d@gkexport.com",
-        "soumaya_d@gkexport.com"
+        "soumaya_d@gkexport.com","arun_l@gkexport.com","sudip_k@gkexport.com"
     ]
 
     summary = [
         {"value": total, "indicator": "Blue", "label": "Total CAD", "datatype": "Int"},
         {"value": unassigned, "indicator": "Red" if unassigned > 0 else "Green", "label": "Unassigned CAD", "datatype": "Int"},
         {"value": assigned, "indicator": "Green", "label": "Assigned CAD", "datatype": "Int"},
+        {"value": hold, "indicator": "Orange", "label": "On-Hold CAD", "datatype": "Int"},
+        {"value": cancelled, "indicator": "Red", "label": "Cancelled CAD", "datatype": "Int"},
+        {"value": designing, "indicator": "Blue", "label": "Desiging ", "datatype": "Int"},
+        {"value": sent_to_qc, "indicator": "Blue", "label": "Sent to QC", "datatype": "Int"},
+        {"value": update_item, "indicator": "Blue", "label": "Update Item", "datatype": "Int"},
+         {"value": approved, "indicator": "Green", "label": "Approved", "datatype": "Int"},
+
     ]
 
     if session.user not in restricted_users and orders:
@@ -271,6 +398,8 @@ def get_fixed_employee_summary(orders):
         "kaushik_g@gkexport.com": "Kaushik G",
         "khushal_r@gkexport.com": "Khushal R",
         "ashish_m@gkexport.com": "Ashish M",
+        "arun_l@gkexport.com": "Arun L",
+        "sudip_k@gkexport.com": "Sudip K"
         
     }
 

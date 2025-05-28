@@ -12,11 +12,11 @@ from erpnext.controllers.accounts_controller import get_taxes_and_charges, merge
 def validate(self,method=None):
 	if self.company=='Sadguru Diamond':
 		for r in self.items :
-			if r.against_sales_order:
-				Diamond_grade=frappe.db.get_value('Sales Order',r.against_sales_order,'items.diamond_grade')
-				Batch_no=frappe.db.get_value('Sales Order',r.against_sales_order,'items.batch_no')
-				r.diamond_grade=Diamond_grade
-				r.batch_no = Batch_no
+			# if r.against_sales_order:
+			# 	Diamond_grade=frappe.db.get_value('Sales Order',r.against_sales_order,'items.diamond_grade')
+			# 	Batch_no=frappe.db.get_value('Sales Order',r.against_sales_order,'items.batch_no')
+			# 	r.diamond_grade=Diamond_grade
+			# 	r.batch_no = Batch_no
 			
 			if not r.batch_no and not r.diamond_grade:
 				frappe.throw("Batch no and Diamond grade are mandatory")

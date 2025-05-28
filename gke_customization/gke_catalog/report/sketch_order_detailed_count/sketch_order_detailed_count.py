@@ -34,38 +34,35 @@ def execute(filters=None):
 
 def get_columns():
     columns = [
-        {"fieldname": "form_name", "label": _("ID"), "fieldtype": "Data", "width": 170},
-        {"fieldname": "company", "label": _("Company"), "fieldtype": "Link", "options": "Company", "width": 250},
-        {"fieldname": "branch", "label": _("Branch"), "fieldtype": "Link", "options": "Branch", "width": 150},
-        {"fieldname": "customer_code", "label": _("Customer"), "fieldtype": "Data", "width": 150},
-        {"fieldname": "order_type", "label": _("Order Type"), "fieldtype": "Data", "width": 150},
-        # {"fieldname": "category", "label": _("Category"), "fieldtype": "Data", "width": 120},
-        # {"fieldname": "subcategory", "label": _("Sub Category"), "fieldtype": "Data", "width": 180},
-        {"fieldname": "order_date", "label": _("Order Date"), "fieldtype": "Date", "width": 150},
-        {"fieldname": "document_created", "label": _("Created Date/Time"), "fieldtype": "Datetime", "width": 190},
-        {"fieldname": "owner", "label": _("Order Creator"), "fieldtype": "Data", "width": 200},
-        {"fieldname": "employee", "label": _("Creator Emp ID"), "fieldtype": "Link","options":"Employee", "width": 150},
-        {"fieldname": "creator_department", "label": _("Creator Department"), "fieldtype": "Data","align":"left", "width": 200},
-        {"fieldname": "creator_designation", "label": _("Creator Designation"), "fieldtype": "Data", "width": 200},
+        {"fieldname": "form_name", "label": _("ID (Order Creation)"), "fieldtype": "Data", "width": 170},
+        {"fieldname": "company", "label": _("Company(Order Creation)"), "fieldtype": "Link", "options": "Company", "width": 250},
+        {"fieldname": "branch", "label": _("Branch(Order Creation)"), "fieldtype": "Link", "options": "Branch", "width": 150},
+        {"fieldname": "customer_code", "label": _("Customer(Order Creation)"), "fieldtype": "Data", "width": 150},
+        {"fieldname": "order_type", "label": _("Order Type(Order Creation)"), "fieldtype": "Data", "width": 150},
+        {"fieldname": "order_date", "label": _("Order Date(Order Creation)"), "fieldtype": "Date", "width": 150},
+        {"fieldname": "document_created", "label": _("Created Date/Time(Order Creation)"), "fieldtype": "Datetime", "width": 190},
+        {"fieldname": "owner", "label": _("Order Creator(Assigned To)"), "fieldtype": "Data", "width": 200},
+        {"fieldname": "employee", "label": _("Creator Emp ID(Assigned To)"), "fieldtype": "Link","options":"Employee", "width": 150},
+        {"fieldname": "creator_department", "label": _("Creator Department(Assigned To)"), "fieldtype": "Data","align":"left", "width": 200},
+        {"fieldname": "creator_designation", "label": _("Creator Designation(Assigned To)"), "fieldtype": "Data", "width": 200},
         # {"fieldname": "_assign", "label": _("Assigned to"), "fieldtype": "Data", "width": 150},
-        {"fieldname": "assigned_department", "label": _("Assigned to Department"), "fieldtype": "Data","align":"left", "width": 190},
-        {"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 150},
-        {"fieldname": "workflow_count", "label": _("Workflow State"), "fieldtype": "Data", "width": 130},
-        {"fieldname": "status_change_time", "label": _("Status Date/Time"), "fieldtype": "Datetime", "width": 180},
-        {"fieldname": "time_to_status", "label": _("Time Difference"), "fieldtype": "Data", "width": 200},
-        {"fieldname": "status_duration", "label": _("Status Duration"), "fieldtype": "Data", "width": 200},
-        {"fieldname": "item", "label": _("Item Code"), "fieldtype": "Link","options":"Item","align":"left", "width": 150},
-        {"fieldname": "bom", "label": _("Template BOM"), "fieldtype": "Link","options":"BOM", "align":"left" ,"width": 200},
-        {"fieldname": "metal_weight", "label": "Total Metal Wt(g)", "fieldtype": "Data", "width": 180},
-        # {"fieldname": "finding_pcs", "label": "Finding Pcs", "fieldtype": "Int", "width": 120},
-        # {"fieldname": "total_diamond_pcs", "label": "Total Diamond Pcs", "fieldtype": "Int", "width": 120},
-        {"fieldname": "total_diamond_weight_in_gms", "label": "Total Diamond Wt (g)", "fieldtype": "Data", "width": 180},
-        {"fieldname": "total_finding_weight_per_gram", "label": "Total Finding Wt (g)", "fieldtype": "Data", "width": 180},
-        # {"fieldname": "total_gemstone_pcs", "label": "Total Gemstone Pcs", "fieldtype": "Int", "width": 120},
-        {"fieldname": "total_gemstone_weight_in_gms", "label": "Total Gemstone Wt (g)", "fieldtype": "Data", "width": 180},
-        {"fieldname": "other_weight", "label": "Other Wt", "fieldtype": "Data", "width": 180},
-        # {"fieldname": "total_other_pcs", "label": "Total Other Pcs", "fieldtype": "Int", "width": 120},
-        {"fieldname": "delivery_date", "label": _("Delivery Date"), "fieldtype": "Date", "width": 150}
+        {"fieldname": "assigned_department", "label": _("Assigned to Department(Assigned To)"), "fieldtype": "Data","align":"left", "width": 190},
+        {"fieldname": "docstatus", "label": _("Status(Assigned To)"), "fieldtype": "Data", "width": 150},
+        {"fieldname": "workflow_count", "label": _("Workflow State(Assigned To)"), "fieldtype": "Data", "width": 130},
+        {"fieldname": "status_change_time", "label": _("Status Date/Time(Assigned To)"), "fieldtype": "Datetime", "width": 180},
+        {"fieldname": "time_to_status", "label": _("Time Difference(Assigned To)"), "fieldtype": "Data", "width": 200},
+        {"fieldname": "status_duration", "label": _("Status Duration(Assigned To)"), "fieldtype": "Data", "width": 200},
+        {"fieldname": "item", "label": _("Item Code(Final Approval)"), "fieldtype": "Link","options":"Item","align":"left", "width": 150},
+        {"fieldname": "status", "label": _("Workflow Status(Final Approval)"), "fieldtype": "Data", "width": 150},
+        {"fieldname": "completion_date", "label": _("Complete Date(Final Approval)"), "fieldtype": "Date", "width": 150},
+        ##add completed date
+
+        {"fieldname": "metal_weight", "label": "Total Metal Wt(g)(Other)", "fieldtype": "Data", "width": 180},
+        {"fieldname": "total_diamond_weight_in_gms", "label": "Total Diamond Wt (g)(Other)", "fieldtype": "Data", "width": 180},
+        {"fieldname": "total_finding_weight_per_gram", "label": "Total Finding Wt (g)(Other)", "fieldtype": "Data", "width": 180},
+        {"fieldname": "total_gemstone_weight_in_gms", "label": "Total Gemstone Wt (g)(Other)", "fieldtype": "Data", "width": 180},
+        {"fieldname": "other_weight", "label": "Other Wt(Other)", "fieldtype": "Data", "width": 180},
+        # {"fieldname": "delivery_date", "label": _("Delivery Date"), "fieldtype": "Date", "width": 150}
     ]
     return columns
 
@@ -75,7 +72,14 @@ def get_data(filters):
     SELECT
         sko.name AS form_name,
         sko.company AS company,
+        ----sko.docstatus AS docstatus,
+        (CASE WHEN sko.docstatus = 0 THEN "Draft" 
+             WHEN sko.docstatus = 1 THEN "Submitted"
+             WHEN sko.docstatus = 2 THEN "Cancelled"
+        END) AS docstatus,       
         sko.branch AS branch,
+        (CASE WHEN sko.workflow_state = "Approved" THEN max(DATE(sko.modified)) END) AS completion_date,
+        sko.sketch_order_form AS sketch_order_form,
         sko.owner,
         e.employee,
         i.name as item,
@@ -172,7 +176,7 @@ def get_data(filters):
 
         row["status"] = f'<span style="color:red;font-weight:bold;">Draft</span>' if row["status"] == 'Draft' else f'<span style="color:green;font-weight:bold;">Items Updated</span>' if row["status"] == 'Items Updated' else row["status"]
         
-        if "Items Updated" in row["status"] or "Cancelled" in row["status"]:
+        if "Items Updated" in row["status"] or "Cancelled" in row["status"] or "Approved" in row["status"]:
             row["status_duration"] = "-"
 
         encoded_form_name = urllib.parse.quote(row["form_name"])
@@ -413,18 +417,22 @@ def get_conditions(filters):
         conditions.append(f"""sko.order_date <= "{filters['to_date']}" """)
     # if filters.get("category"):
     #     conditions.append(f"""sko.category = "{filters['category']}" """)
+    # if filters.get("company"):
+    #     companies = ', '.join([f'"{company}"' for company in filters.get("company")])
+    #     conditions.append(f"""sko.company IN ({companies})""")
     if filters.get("company"):
-        companies = ', '.join([f'"{company}"' for company in filters.get("company")])
-        conditions.append(f"""sko.company IN ({companies})""")
+        conditions.append(f"""sko.company = "{filters['company']}" """)      
     if filters.get("branch"):
-        branches = ', '.join([f'"{branch}"' for branch in filters.get("branch")])
-        conditions.append(f"""sko.branch IN ({branches})""")
+        # branches = ', '.join([f'"{branch}"' for branch in filters.get("branch")])
+        conditions.append(f"""sko.branch = "{filters['branch']}" """) 
     if filters.get("order_id"):
         order_ids = "', '".join(filters["order_id"])
-        conditions.append(f"sko.name IN ('{order_ids}')")  
+        conditions.append(f"sko.sketch_order_form IN ('{order_ids}')")  
     if filters.get("customer_code"):
         customer_codes = "', '".join(filters["customer_code"])
         conditions.append(f"sko.customer_code IN ('{customer_codes}')")           
     if filters.get("status"):
-        conditions.append(f"""sko.workflow_state = "{filters['status']}" """)  
+        conditions.append(f"""sko.workflow_state = "{filters['status']}" """)
+    if filters.get("docstatus"):
+        conditions.append(f"""sko.docstatus = "{filters['docstatus']}" """)      
     return " AND ".join(conditions) if conditions else ""
