@@ -217,19 +217,7 @@
 "column_break_wodq",
 "rpt_file",
 "column_break_zgjt",
-"cad_image",
-"section_break_uop9",
-"front_view",
-"column_break_dmq2",
-"top_view",
-"column_break_bgyc",
-"left_view",
-"section_break_qnfg",
-"back_view",
-"column_break_9aeb",
-"buttom_view",
-"column_break_jdmz",
-"right_view"
+"cad_image"
 ],
 "fields": [
 {
@@ -1686,60 +1674,6 @@
 "fieldname": "rework",
 "fieldtype": "Check",
 "label": "Rework"
-},
-{
-"fieldname": "section_break_uop9",
-"fieldtype": "Section Break"
-},
-{
-"fieldname": "front_view",
-"fieldtype": "Attach Image",
-"label": "Front View"
-},
-{
-"fieldname": "column_break_dmq2",
-"fieldtype": "Column Break"
-},
-{
-"fieldname": "top_view",
-"fieldtype": "Attach Image",
-"label": "Top View"
-},
-{
-"fieldname": "column_break_bgyc",
-"fieldtype": "Column Break"
-},
-{
-"fieldname": "left_view",
-"fieldtype": "Attach Image",
-"label": "Left View"
-},
-{
-"fieldname": "section_break_qnfg",
-"fieldtype": "Section Break"
-},
-{
-"fieldname": "back_view",
-"fieldtype": "Attach Image",
-"label": "Back View"
-},
-{
-"fieldname": "column_break_9aeb",
-"fieldtype": "Column Break"
-},
-{
-"fieldname": "buttom_view",
-"fieldtype": "Attach Image",
-"label": "Buttom View"
-},
-{
-"fieldname": "column_break_jdmz",
-"fieldtype": "Column Break"
-},
-{
-"fieldname": "right_view",
-"fieldtype": "Attach Image",
-"label": "Right View"
 },
 {
 "fieldname": "jewelex_design_id",

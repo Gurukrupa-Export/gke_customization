@@ -33,6 +33,7 @@
     "due_days",
     "diamond_quality",
     "service_type",
+    "required_customer_approval",
     "section_break_0q02",
     "supplier",
     "supplier_name",
@@ -315,6 +316,12 @@
         "label": "Pre Order Form",
         "options": "Pre Order Form",
         "read_only": 1
+    },
+    {
+        "default": "1",
+        "fieldname": "required_customer_approval",
+        "fieldtype": "Check",
+        "label": "Required Customer Approval"
     }
 ],
 "index_web_pages_for_search": 1,
