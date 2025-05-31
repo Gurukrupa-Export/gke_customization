@@ -41,6 +41,8 @@
     "purchase_type",
     "section_break_12",
     "order_details",
+    "total_rows",
+    "total_no_of_designs",
     "section_break_24",
     "remarks",
     "territories_tab",
@@ -322,6 +324,16 @@
         "fieldname": "required_customer_approval",
         "fieldtype": "Check",
         "label": "Required Customer Approval"
+    },
+    {
+    "fieldname": "total_rows",
+    "fieldtype": "Int",
+    "label": "Total Rows"
+    },
+    {
+    "fieldname": "total_no_of_designs",
+    "fieldtype": "Int",
+    "label": "Total No of Designs"
     }
 ],
 "index_web_pages_for_search": 1,
