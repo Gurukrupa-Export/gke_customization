@@ -140,6 +140,7 @@
   "check_23_5",
   "check_23_6",
   "check_23_7",
+  "check_23_8",
   "section_break_mxaz",
   "store_image1",
   "store_image2",
@@ -895,6 +896,12 @@
    "fieldname": "check_23_7",
    "fieldtype": "Check",
    "label": "Jai Matadi Courier"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_8",
+   "fieldtype": "Check",
+   "label": "BVC Logistics"
   },
   {
    "fieldname": "store_image1",
