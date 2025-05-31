@@ -39,6 +39,7 @@
 "new_sub_category",
 "item_variant",
 "design_by",
+"design_image",
 "section_break_t4ig",
 "order_details_and_remarks",
 "mod_remarks",
@@ -360,6 +361,13 @@
 "fieldtype": "Link",
 "label": "Order Form ID",
 "options": "Order Form"
+},
+{
+"depends_on": "eval:doc.design_type == 'New Design'",
+"fieldname": "design_image",
+"fieldtype": "Attach",
+"label": "Design Image",
+"mandatory_depends_on": "eval:doc.design_type == 'New Design'"
 }
 ],
 "index_web_pages_for_search": 1,

@@ -33,6 +33,7 @@
     "due_days",
     "diamond_quality",
     "service_type",
+    "required_customer_approval",
     "section_break_0q02",
     "supplier",
     "supplier_name",
@@ -40,6 +41,8 @@
     "purchase_type",
     "section_break_12",
     "order_details",
+    "total_rows",
+    "total_no_of_designs",
     "section_break_24",
     "remarks",
     "territories_tab",
@@ -315,6 +318,22 @@
         "label": "Pre Order Form",
         "options": "Pre Order Form",
         "read_only": 1
+    },
+    {
+        "default": "1",
+        "fieldname": "required_customer_approval",
+        "fieldtype": "Check",
+        "label": "Required Customer Approval"
+    },
+    {
+    "fieldname": "total_rows",
+    "fieldtype": "Int",
+    "label": "Total Rows"
+    },
+    {
+    "fieldname": "total_no_of_designs",
+    "fieldtype": "Int",
+    "label": "Total No of Designs"
     }
 ],
 "index_web_pages_for_search": 1,

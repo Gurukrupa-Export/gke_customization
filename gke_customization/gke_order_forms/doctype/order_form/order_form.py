@@ -987,6 +987,9 @@ def make_from_pre_order_form(source_name, target_doc=None):
 				"diamond_target":i.diamond_target,
 				"setting_type":i.bom_setting_type,
 				"pre_order_form_details":i.name,
+				"diamond_type":"Natural",
+				"jewelex_batch_no":i.bulk_order_no,
+				"design_image_1":i.design_image,
 				**extra_fields
 			})
 			
