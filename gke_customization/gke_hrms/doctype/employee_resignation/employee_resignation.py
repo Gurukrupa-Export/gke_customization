@@ -21,10 +21,11 @@ class EmployeeResignation(Document):
 
 					if self.date_resignation:
 						resignation_date = datetime.strptime(str(self.date_resignation), "%Y-%m-%d")
-						if notice_days:
-							if int(self.notice_period) > int(notice_days):
-								notice_days = self.notice_period - notice_days
-								last_working_day = resignation_date + timedelta(days=notice_days)
+						if self.waive_off_notice_period:
+							if notice_days:
+								if int(self.notice_period) > int(notice_days):
+									notice_days = self.notice_period - notice_days
+									last_working_day = resignation_date + timedelta(days=notice_days)
 						else:
 							last_working_day = resignation_date + timedelta(days=self.notice_period)
 
