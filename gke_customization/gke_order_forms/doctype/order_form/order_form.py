@@ -990,6 +990,8 @@ def make_from_pre_order_form(source_name, target_doc=None):
 				"diamond_type":"Natural",
 				"jewelex_batch_no":i.bulk_order_no,
 				"design_image_1":i.design_image,
+				**({"metal_touch": i.metal_touch} if i.design_type == "New Design" else {}),
+				**({"metal_colour": i.metal_color} if i.design_type == "New Design" else {}),
 				**extra_fields
 			})
 			
