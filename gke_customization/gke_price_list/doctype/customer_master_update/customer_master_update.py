@@ -60,7 +60,6 @@ class CustomerMasterUpdate(Document):
             "represents_company": "represents_company",
         }
 
-       
         credit_limit_data = self.get("credit_limit")
         sales_team_data = self.get("sales_team")
         allowed_to_transact_with = self.get("allowed_to_transact_with")
