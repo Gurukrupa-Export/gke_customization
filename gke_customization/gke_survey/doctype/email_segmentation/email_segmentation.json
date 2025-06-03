@@ -6,6 +6,11 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "reason_for_filing_the_form",
+  "engagement_level",
+  "column_break_aodo",
+  "approval_user_id",
+  "column_break_9adr",
   "erp_user",
   "user",
   "old_punch_id",
@@ -17,7 +22,6 @@
   "designation",
   "department",
   "reporting_employee_name_",
-  "approval_user_id",
   "remark",
   "section_break_7ri2",
   "zoho_email_id",
@@ -31,8 +35,6 @@
   "cliq",
   "mail",
   "whatsapp",
-  "column_break_9adr",
-  "engagement_level",
   "internal_section",
   "internal_count",
   "department_table",
@@ -86,8 +88,7 @@
    "fieldname": "employee_name",
    "fieldtype": "Data",
    "label": "Employee Name",
-   "read_only": 1,
-   "unique": 1
+   "read_only": 1
   },
   {
    "fetch_from": "employee_id.branch",
@@ -215,7 +216,7 @@
   {
    "depends_on": "eval: in_list(['Internal','Both'], doc.engagement_level) ",
    "fieldname": "internal_section",
-   "fieldtype": "Section Break",
+   "fieldtype": "Tab Break",
    "label": "Internal"
   },
   {
@@ -247,7 +248,7 @@
   {
    "depends_on": "eval: in_list(['External','Both'], doc.engagement_level) ",
    "fieldname": "external_section",
-   "fieldtype": "Section Break",
+   "fieldtype": "Tab Break",
    "label": "External"
   },
   {
@@ -348,13 +349,24 @@
    "fieldname": "department_table",
    "fieldtype": "Table",
    "label": "Department Table",
+   "mandatory_depends_on": "eval:doc.custom_all_internal_contact == 1",
    "options": "Department Table"
+  },
+  {
+   "fieldname": "reason_for_filing_the_form",
+   "fieldtype": "Select",
+   "label": "Reason for Filing the Form",
+   "options": "New Zoho Mail Request\nEngagement Level Request (Internal & External)\nInternal Contact Request (User)\nExternal Contact Request (Customer & Supplier)\nExternal Contact Request (Supplier Only)\nExternal Contact Request (Customer Only)"
+  },
+  {
+   "fieldname": "column_break_aodo",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-05-21 15:27:07.140950",
+ "modified": "2025-06-02 12:57:16.710525",
  "modified_by": "Administrator",
  "module": "GKE SURVEY",
  "name": "Email Segmentation",
