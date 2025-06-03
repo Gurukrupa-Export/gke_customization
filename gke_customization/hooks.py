@@ -243,6 +243,9 @@ doc_events = {
     "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
     "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit"
 },
+"Share Transfer":{
+    "validate":"gke_customization.gke_customization.doc_events.share_transfer.validate",
+},
 # "Shareholder": {
 #     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
 # },
