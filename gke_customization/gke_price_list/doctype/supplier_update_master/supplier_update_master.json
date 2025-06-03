@@ -14,6 +14,7 @@
   "country",
   "consider_purchase_receipt_as_customer",
   "new_supplier",
+  "reason_for_hold",
   "column_break_ucz3",
   "supplier_group",
   "supplier_type",
@@ -25,6 +26,10 @@
   "export_type",
   "is_transporter",
   "image",
+  "attachment_section",
+  "aadhar_card",
+  "pan_card",
+  "other_documents",
   "defaults_section",
   "billing_currency",
   "default_company_bank_account",
@@ -175,6 +180,7 @@
   {
    "fieldname": "image",
    "fieldtype": "Attach Image",
+   "hidden": 1,
    "label": "Image"
   },
   {
@@ -635,12 +641,41 @@
    "fieldname": "contact_section",
    "fieldtype": "Section Break",
    "label": "Contact"
+  },
+  {
+   "fieldname": "reason_for_hold",
+   "fieldtype": "Data",
+   "label": "Reason For Hold"
+  },
+  {
+   "fieldname": "attachment_section",
+   "fieldtype": "Section Break",
+   "label": "Attachment"
+  },
+  {
+   "depends_on": "eval:doc.supplier_type == 'Individual'",
+   "fieldname": "aadhar_card",
+   "fieldtype": "Attach",
+   "label": "Aadhar Card",
+   "mandatory_depends_on": "eval:doc.supplier_type == 'Individual'"
+  },
+  {
+   "depends_on": "eval:doc.supplier_type == 'Individual'",
+   "fieldname": "pan_card",
+   "fieldtype": "Attach",
+   "label": "PAN Card",
+   "mandatory_depends_on": "eval:doc.supplier_type == 'Individual'"
+  },
+  {
+   "fieldname": "other_documents",
+   "fieldtype": "Attach",
+   "label": "Other Documents"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-03-01 14:34:49.038512",
+ "modified": "2025-06-03 11:04:44.179496",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Supplier Update Master",
