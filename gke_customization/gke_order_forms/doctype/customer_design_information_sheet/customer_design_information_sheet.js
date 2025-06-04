@@ -65,7 +65,7 @@ frappe.ui.form.on('Customer Design Information Sheet', {
 				frappe.throw(`<b>${arr[0]}</b> already available`)
 			}   
 		});
-		frm.set_value('serial_no','');
+		
 		// frappe.db.get_value("Item", frm.doc.design_code, "master_bom", (r)=> {
 		// 	if (r.master_bom){
 		// 		frappe.db.get_list('BOM Finding Detail', {filters: {'parent': r.master_bom},fields: ['finding_category','finding_type'],}).then(function(response) {
@@ -106,13 +106,13 @@ frappe.ui.form.on('Customer Design Information Sheet', {
 	// // 	// frm.set_value('design_code_2','')
 	// // 	// frm.set_value('fourteen_digit_set_code','')
 	// },
-	serial_no:function(frm){
-		frappe.db.get_value("Serial No", frm.doc.serial_no, "item_code", (r)=> {
-			if (r.item_code){
-				frm.set_value("design_code", r.item_code)
-			}   
-		})
-	},
+	// serial_no:function(frm){
+	// 	frappe.db.get_value("Serial No", frm.doc.serial_no, "item_code", (r)=> {
+	// 		if (r.item_code){
+	// 			frm.set_value("design_code", r.item_code)
+	// 		}   
+	// 	})
+	// },
 	// design_code_2:function(frm){
 
 	// 	frappe.call({

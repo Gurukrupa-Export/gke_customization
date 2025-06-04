@@ -63,8 +63,9 @@
   },
   {
    "fieldname": "company_address",
-   "fieldtype": "Data",
-   "label": "Company Address"
+   "fieldtype": "Small Text",
+   "label": "Company Address",
+   "read_only": 1
   },
   {
    "fieldname": "section_break_gb046",
@@ -79,7 +80,8 @@
   {
    "fieldname": "gst_no",
    "fieldtype": "Data",
-   "label": "Company GST No."
+   "label": "Company GST No.",
+   "read_only": 1
   },
   {
    "fieldname": "details_section",
@@ -97,7 +99,7 @@
   {
    "depends_on": "eval: in_list(['Customer' ], doc.customer_supplier)",
    "fieldname": "address",
-   "fieldtype": "Data",
+   "fieldtype": "Small Text",
    "label": "Customer Address",
    "read_only": 1
   },
@@ -208,7 +210,7 @@
   {
    "depends_on": "eval: in_list(['Supplier' ], doc.customer_supplier)",
    "fieldname": "supplier_address",
-   "fieldtype": "Data",
+   "fieldtype": "Small Text",
    "label": "Supplier Address",
    "read_only": 1
   },
@@ -243,7 +245,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-05-14 12:24:03.487000",
+ "modified": "2025-03-04 12:40:05.775742",
  "modified_by": "Administrator",
  "module": "GKE Custom Export",
  "name": "Delivery Challan",

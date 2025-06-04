@@ -1,0 +1,253 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-04-07 17:15:56.355279",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "user_id",
+  "section_break_raw6",
+  "item_name",
+  "item_size",
+  "column_break_ihzf",
+  "item_color",
+  "item_weight",
+  "section_break_5qrb",
+  "item_group",
+  "gst",
+  "status",
+  "item_image",
+  "image_preview",
+  "column_break_wbqs",
+  "default_expense_account",
+  "hsn_code",
+  "item_code",
+  "remarks",
+  "reason_for_hold",
+  "item_section",
+  "consumable_type",
+  "consumable_size",
+  "consumable_color",
+  "consumable_weight",
+  "column_break_pejo",
+  "item_template",
+  "item_tac",
+  "amended_from",
+  "naming_series"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_raw6",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Item Request",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Item Name",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'",
+   "reqd": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "item_size",
+   "fieldtype": "Data",
+   "label": "Item Size",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'"
+  },
+  {
+   "fieldname": "column_break_ihzf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "item_color",
+   "fieldtype": "Data",
+   "label": "Item Color",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "item_weight",
+   "fieldtype": "Data",
+   "label": "Item Weight",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'"
+  },
+  {
+   "fieldname": "section_break_5qrb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Item Group",
+   "options": "Item Group",
+   "reqd": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Add GST value in Percentage",
+   "fieldname": "gst",
+   "fieldtype": "Select",
+   "label": "Item Tax (GST %)"
+  },
+  {
+   "fieldname": "column_break_wbqs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "hsn_code",
+   "fieldtype": "Data",
+   "label": "HSN Code"
+  },
+  {
+   "allow_on_submit": 1,
+   "depends_on": "eval: (in_list(['Approved','Completed'], doc.workflow_state))",
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item Code",
+   "options": "Item"
+  },
+  {
+   "fieldname": "item_section",
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "label": "Item"
+  },
+  {
+   "fieldname": "consumable_type",
+   "fieldtype": "Link",
+   "label": "Consumable Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "consumable_size",
+   "fieldtype": "Link",
+   "label": "Consumable Size",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "consumable_color",
+   "fieldtype": "Link",
+   "label": "Consumable Color",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "consumable_weight",
+   "fieldtype": "Link",
+   "label": "Consumable Weight",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "item_template",
+   "fieldtype": "Link",
+   "label": "Item Template",
+   "options": "Item"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Status",
+   "options": "\nApproved\nRejected"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "naming_series",
+   "options": "IRQ-"
+  },
+  {
+   "fieldname": "user_id",
+   "fieldtype": "Link",
+   "label": "User ID",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item_tac",
+   "fieldtype": "Link",
+   "label": "Item Tax (GST %)",
+   "options": "Item Tax Template"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "item_image",
+   "fieldtype": "Attach",
+   "label": "Item Image"
+  },
+  {
+   "fieldname": "image_preview",
+   "fieldtype": "Image",
+   "label": "Image Preview",
+   "options": "item_image"
+  },
+  {
+   "fieldname": "column_break_pejo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "default_expense_account",
+   "fieldtype": "Link",
+   "label": "Default Expense Account",
+   "options": "Account"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "reason_for_hold",
+   "fieldtype": "Data",
+   "label": "Reason For Hold"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-05-30 18:19:19.308570",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Item Request",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

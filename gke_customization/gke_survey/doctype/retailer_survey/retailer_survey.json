@@ -1,0 +1,971 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-05-14 09:36:04.319662",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_vcnj",
+  "head_main",
+  "agree_1",
+  "agree_2",
+  "section_break_ngbz",
+  "user_id",
+  "column_break_js2k",
+  "user_name",
+  "tab_1",
+  "1_businessstore_name",
+  "2_contact_person",
+  "designation",
+  "column_break_2vnk",
+  "location",
+  "state",
+  "phone",
+  "email",
+  "section_break_gnqg",
+  "3_store_format",
+  "gold_jewellery_store",
+  "fashionapparel_retailer",
+  "multipurpose_retail_outlet",
+  "mall_anchor_store",
+  "other_3",
+  "other_text",
+  "section_break_z07s",
+  "4_store_size_sec",
+  "size_sq_ft",
+  "single_location",
+  "multiple_branches",
+  "number_branches",
+  "section_break_zj5p",
+  "5_primary_customer_demographic",
+  "upper_income",
+  "middle_income",
+  "mixed",
+  "luxury_focused",
+  "column_break_bx8b",
+  "6_footfall_per_day_approx",
+  "under_50",
+  "50_100",
+  "100_150",
+  "150",
+  "tab_break_yfaz",
+  "tab_2",
+  "que_7",
+  "yes_7",
+  "maybe_7",
+  "no_7",
+  "que_8",
+  "diamond",
+  "gold",
+  "platinum",
+  "fashion_jewellery",
+  "none",
+  "naming_series",
+  "section_break_sa7s",
+  "que_9",
+  "close_setting",
+  "open_setting",
+  "both_9",
+  "que_10",
+  "ef_vvs",
+  "gh_vvs",
+  "both_10",
+  "other_10",
+  "specify_other_diamond_quality",
+  "que_11",
+  "yes_11",
+  "no_11",
+  "name_of_brands",
+  "que_12",
+  "brand_credibility",
+  "revenue_share_12",
+  "customer_demand",
+  "securitylogistics",
+  "brand_alignment",
+  "other_12",
+  "other_key_considerations",
+  "tab_3",
+  "ope_comer_section",
+  "que_13",
+  "fixed_rent",
+  "revenue_share_13",
+  "hybrid",
+  "open_to_discussion",
+  "que_14",
+  "less_100",
+  "100_150_sq",
+  "150_200_sq",
+  "more_200",
+  "other_14",
+  "other_preferred_sizeallocation",
+  "que_15",
+  "yes_15",
+  "no_15",
+  "if_yes_location_within_store",
+  "que_16",
+  "staff_training",
+  "inventory_management",
+  "brand_marketing",
+  "certification_compliance",
+  "security_support",
+  "other_16",
+  "other_support_or_assurance_from_the_jewellery_brand",
+  "tab_4",
+  "market_brand",
+  "que_17",
+  "que_18",
+  "check_18_1",
+  "check_18_2",
+  "check_18_3",
+  "check_18_4",
+  "que_19",
+  "kiosk_open_format",
+  "counter_in_counter",
+  "dedicated_mini_store",
+  "pop_up_store",
+  "que_20",
+  "que_21",
+  "que_22",
+  "yes_22",
+  "no_22",
+  "section_break_w2px",
+  "que_23",
+  "check_23_1",
+  "check_23_2",
+  "check_23_3",
+  "check_23_4",
+  "other_23",
+  "column_break_ayzh",
+  "check_23_5",
+  "check_23_6",
+  "check_23_7",
+  "check_23_8",
+  "section_break_mxaz",
+  "store_image1",
+  "store_image2",
+  "store_image3",
+  "column_break_qnuk",
+  "store_image4",
+  "store_image5",
+  "store_image6"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_vcnj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "agree_1",
+   "fieldtype": "Check",
+   "label": "I agree to participate and share the necessary business information."
+  },
+  {
+   "default": "0",
+   "fieldname": "agree_2",
+   "fieldtype": "Check",
+   "label": "I do not agree."
+  },
+  {
+   "fieldname": "1_businessstore_name",
+   "fieldtype": "Data",
+   "label": "1. Business/Store Name"
+  },
+  {
+   "fieldname": "2_contact_person",
+   "fieldtype": "Data",
+   "label": "2. Contact Person"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation"
+  },
+  {
+   "fieldname": "column_break_2vnk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Location"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email"
+  },
+  {
+   "fieldname": "section_break_z07s",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "3_store_format",
+   "fieldtype": "Heading",
+   "label": "3. Store Format"
+  },
+  {
+   "default": "0",
+   "fieldname": "gold_jewellery_store",
+   "fieldtype": "Check",
+   "label": "Gold Jewellery Store"
+  },
+  {
+   "default": "0",
+   "fieldname": "fashionapparel_retailer",
+   "fieldtype": "Check",
+   "label": "Fashion/Apparel Retailer"
+  },
+  {
+   "default": "0",
+   "fieldname": "multipurpose_retail_outlet",
+   "fieldtype": "Check",
+   "label": "Multipurpose Retail Outlet"
+  },
+  {
+   "default": "0",
+   "fieldname": "mall_anchor_store",
+   "fieldtype": "Check",
+   "label": "Mall Anchor Store"
+  },
+  {
+   "depends_on": "eval:doc.other_3 == 1",
+   "fieldname": "other_text",
+   "fieldtype": "Small Text",
+   "label": "Other Store Format"
+  },
+  {
+   "fieldname": "size_sq_ft",
+   "fieldtype": "Data",
+   "label": "Size in sq. ft"
+  },
+  {
+   "default": "0",
+   "fieldname": "single_location",
+   "fieldtype": "Check",
+   "label": "Single location"
+  },
+  {
+   "default": "0",
+   "fieldname": "multiple_branches",
+   "fieldtype": "Check",
+   "label": "Multiple branches"
+  },
+  {
+   "fieldname": "4_store_size_sec",
+   "fieldtype": "Heading",
+   "label": "4. Store Size"
+  },
+  {
+   "fieldname": "5_primary_customer_demographic",
+   "fieldtype": "Heading",
+   "label": "5. Primary customer demographic"
+  },
+  {
+   "fieldname": "section_break_zj5p",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_gnqg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "tab_1",
+   "fieldtype": "Section Break",
+   "label": "1 Retailer Information"
+  },
+  {
+   "depends_on": "eval:doc.multiple_branches == 1",
+   "fieldname": "number_branches",
+   "fieldtype": "Data",
+   "label": "Number of branches"
+  },
+  {
+   "default": "0",
+   "fieldname": "upper_income",
+   "fieldtype": "Check",
+   "label": "Upper Income"
+  },
+  {
+   "default": "0",
+   "fieldname": "middle_income",
+   "fieldtype": "Check",
+   "label": "Middle Income"
+  },
+  {
+   "default": "0",
+   "fieldname": "mixed",
+   "fieldtype": "Check",
+   "label": "Mixed"
+  },
+  {
+   "default": "0",
+   "fieldname": "luxury_focused",
+   "fieldtype": "Check",
+   "label": "Luxury Focused"
+  },
+  {
+   "fieldname": "column_break_bx8b",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "6_footfall_per_day_approx",
+   "fieldtype": "Heading",
+   "label": "6. Footfall per day (approx.)"
+  },
+  {
+   "default": "0",
+   "fieldname": "under_50",
+   "fieldtype": "Check",
+   "label": "Under 50"
+  },
+  {
+   "default": "0",
+   "fieldname": "50_100",
+   "fieldtype": "Check",
+   "label": "50\u2013100"
+  },
+  {
+   "default": "0",
+   "fieldname": "100_150",
+   "fieldtype": "Check",
+   "label": "100\u2013150"
+  },
+  {
+   "default": "0",
+   "fieldname": "150",
+   "fieldtype": "Check",
+   "label": "150+"
+  },
+  {
+   "fieldname": "tab_break_yfaz",
+   "fieldtype": "Tab Break",
+   "label": "Jewellery Concept"
+  },
+  {
+   "fieldname": "tab_2",
+   "fieldtype": "Section Break",
+   "label": "2: Interest in Store-in-Store Diamond Jewellery Concept"
+  },
+  {
+   "fieldname": "que_7",
+   "fieldtype": "Heading",
+   "label": "7. Are you open to exploring a store-in-store diamond jewellery counter or kiosk within your retail space?"
+  },
+  {
+   "default": "0",
+   "fieldname": "yes_7",
+   "fieldtype": "Check",
+   "label": "Yes"
+  },
+  {
+   "default": "0",
+   "fieldname": "maybe_7",
+   "fieldtype": "Check",
+   "label": "Maybe"
+  },
+  {
+   "default": "0",
+   "fieldname": "no_7",
+   "fieldtype": "Check",
+   "label": "No"
+  },
+  {
+   "fieldname": "que_8",
+   "fieldtype": "Heading",
+   "label": "8. Which jewellery categories are most appealing to your customer base? (Select all that apply)"
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond",
+   "fieldtype": "Check",
+   "label": "Diamond"
+  },
+  {
+   "default": "0",
+   "fieldname": "gold",
+   "fieldtype": "Check",
+   "label": "Gold"
+  },
+  {
+   "default": "0",
+   "fieldname": "platinum",
+   "fieldtype": "Check",
+   "label": "Platinum"
+  },
+  {
+   "default": "0",
+   "fieldname": "fashion_jewellery",
+   "fieldtype": "Check",
+   "label": "Fashion jewellery"
+  },
+  {
+   "default": "0",
+   "fieldname": "none",
+   "fieldtype": "Check",
+   "label": "None"
+  },
+  {
+   "fieldname": "que_9",
+   "fieldtype": "Heading",
+   "label": "9. What type of setting product would you prefer to have?"
+  },
+  {
+   "default": "0",
+   "fieldname": "close_setting",
+   "fieldtype": "Check",
+   "label": "Close Setting"
+  },
+  {
+   "default": "0",
+   "fieldname": "open_setting",
+   "fieldtype": "Check",
+   "label": "Open Setting"
+  },
+  {
+   "default": "0",
+   "fieldname": "both_9",
+   "fieldtype": "Check",
+   "label": "Both"
+  },
+  {
+   "fieldname": "que_10",
+   "fieldtype": "Heading",
+   "label": "10. What type of diamond quality would you prefer?"
+  },
+  {
+   "default": "0",
+   "fieldname": "ef_vvs",
+   "fieldtype": "Check",
+   "label": " EF-VVS"
+  },
+  {
+   "default": "0",
+   "fieldname": "gh_vvs",
+   "fieldtype": "Check",
+   "label": "GH-VVS"
+  },
+  {
+   "default": "0",
+   "fieldname": "both_10",
+   "fieldtype": "Check",
+   "label": "Both"
+  },
+  {
+   "default": "0",
+   "fieldname": "other_10",
+   "fieldtype": "Check",
+   "label": "Other"
+  },
+  {
+   "depends_on": "eval: doc.other_10 == 1",
+   "fieldname": "specify_other_diamond_quality",
+   "fieldtype": "Small Text",
+   "label": "Specify Other Diamond Quality"
+  },
+  {
+   "fieldname": "que_11",
+   "fieldtype": "Heading",
+   "label": "11. Have you previously partnered with any jewellery or high-value item brands?"
+  },
+  {
+   "default": "0",
+   "fieldname": "yes_11",
+   "fieldtype": "Check",
+   "label": "Yes"
+  },
+  {
+   "depends_on": "eval: doc.yes_11 == 1",
+   "fieldname": "name_of_brands",
+   "fieldtype": "Small Text",
+   "label": "Name of Brands"
+  },
+  {
+   "default": "0",
+   "fieldname": "no_11",
+   "fieldtype": "Check",
+   "label": "No"
+  },
+  {
+   "fieldname": "que_12",
+   "fieldtype": "Heading",
+   "label": "12. What are your key considerations before allowing a new brand/store-in-store inside your outlet?"
+  },
+  {
+   "default": "0",
+   "fieldname": "brand_credibility",
+   "fieldtype": "Check",
+   "label": "Brand credibility"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_demand",
+   "fieldtype": "Check",
+   "label": "Customer demand"
+  },
+  {
+   "default": "0",
+   "fieldname": "securitylogistics",
+   "fieldtype": "Check",
+   "label": "Security/logistics"
+  },
+  {
+   "default": "0",
+   "fieldname": "brand_alignment",
+   "fieldtype": "Check",
+   "label": "Brand alignment"
+  },
+  {
+   "default": "0",
+   "fieldname": "other_12",
+   "fieldtype": "Check",
+   "label": "Other"
+  },
+  {
+   "depends_on": "eval: doc.other_12 == 1",
+   "fieldname": "other_key_considerations",
+   "fieldtype": "Small Text",
+   "label": "Other Key Considerations"
+  },
+  {
+   "fieldname": "tab_3",
+   "fieldtype": "Tab Break",
+   "label": "Operational & Commercial Considerations"
+  },
+  {
+   "fieldname": "ope_comer_section",
+   "fieldtype": "Section Break",
+   "label": "3: Operational & Commercial Considerations"
+  },
+  {
+   "fieldname": "que_13",
+   "fieldtype": "Heading",
+   "label": "13. What kind of commercial model would you prefer for such a partnership?"
+  },
+  {
+   "default": "0",
+   "fieldname": "revenue_share_12",
+   "fieldtype": "Check",
+   "label": "Revenue share"
+  },
+  {
+   "default": "0",
+   "fieldname": "fixed_rent",
+   "fieldtype": "Check",
+   "label": "Fixed rent"
+  },
+  {
+   "default": "0",
+   "fieldname": "revenue_share_13",
+   "fieldtype": "Check",
+   "label": "Revenue share"
+  },
+  {
+   "default": "0",
+   "fieldname": "hybrid",
+   "fieldtype": "Check",
+   "label": "Hybrid (Rent + Revenue share)"
+  },
+  {
+   "default": "0",
+   "fieldname": "open_to_discussion",
+   "fieldtype": "Check",
+   "label": "Open to discussion"
+  },
+  {
+   "fieldname": "que_14",
+   "fieldtype": "Heading",
+   "label": "14. Preferred size/allocation available for such a store-in-store (sq. ft.)"
+  },
+  {
+   "default": "0",
+   "fieldname": "less_100",
+   "fieldtype": "Check",
+   "label": "Less than 100 sq. ft."
+  },
+  {
+   "default": "0",
+   "fieldname": "100_150_sq",
+   "fieldtype": "Check",
+   "label": "100\u2013150 sq. ft."
+  },
+  {
+   "default": "0",
+   "fieldname": "150_200_sq",
+   "fieldtype": "Check",
+   "label": "150\u2013200 sq. ft."
+  },
+  {
+   "default": "0",
+   "fieldname": "more_200",
+   "fieldtype": "Check",
+   "label": "More than 200 sq. ft."
+  },
+  {
+   "fieldname": "que_15",
+   "fieldtype": "Heading",
+   "label": "15. Do you have any existing unused or underutilized retail space suitable for a diamond jewellery counter?"
+  },
+  {
+   "default": "0",
+   "fieldname": "yes_15",
+   "fieldtype": "Check",
+   "label": "Yes"
+  },
+  {
+   "default": "0",
+   "fieldname": "no_15",
+   "fieldtype": "Check",
+   "label": "No"
+  },
+  {
+   "depends_on": "eval:doc.yes_15 == 1",
+   "fieldname": "if_yes_location_within_store",
+   "fieldtype": "Small Text",
+   "label": "If yes, location within store"
+  },
+  {
+   "fieldname": "que_16",
+   "fieldtype": "Heading",
+   "label": "16. What additional support or assurance would you expect from the jewellery brand?"
+  },
+  {
+   "default": "0",
+   "fieldname": "staff_training",
+   "fieldtype": "Check",
+   "label": "Staff training"
+  },
+  {
+   "default": "0",
+   "fieldname": "inventory_management",
+   "fieldtype": "Check",
+   "label": "Inventory management"
+  },
+  {
+   "default": "0",
+   "fieldname": "brand_marketing",
+   "fieldtype": "Check",
+   "label": "Brand marketing"
+  },
+  {
+   "default": "0",
+   "fieldname": "certification_compliance",
+   "fieldtype": "Check",
+   "label": "Certification compliance"
+  },
+  {
+   "default": "0",
+   "fieldname": "security_support",
+   "fieldtype": "Check",
+   "label": "Security support"
+  },
+  {
+   "default": "0",
+   "fieldname": "other_16",
+   "fieldtype": "Check",
+   "label": "Other"
+  },
+  {
+   "depends_on": "eval:doc.other_16 == 1",
+   "fieldname": "other_support_or_assurance_from_the_jewellery_brand",
+   "fieldtype": "Small Text",
+   "label": "Other support or assurance from the Jewellery brand"
+  },
+  {
+   "fieldname": "tab_4",
+   "fieldtype": "Tab Break",
+   "label": "Market & Brand Perception"
+  },
+  {
+   "fieldname": "market_brand",
+   "fieldtype": "Section Break",
+   "label": "4: Market & Brand Perception"
+  },
+  {
+   "fieldname": "que_17",
+   "fieldtype": "Small Text",
+   "label": "17. Which jewellery brands are most recognized or requested by your customers?"
+  },
+  {
+   "fieldname": "que_18",
+   "fieldtype": "Heading",
+   "label": "18. What price range do you think customers in your store are most comfortable with for diamond jewellery?"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_18_1",
+   "fieldtype": "Check",
+   "label": "Below \u20b925,000"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_18_2",
+   "fieldtype": "Check",
+   "label": "\u20b925,000 \u2013 \u20b91,00,000"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_18_3",
+   "fieldtype": "Check",
+   "label": "\u20b91,00,000 \u2013 \u20b93,00,000"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_18_4",
+   "fieldtype": "Check",
+   "label": "\u20b93,00,000+"
+  },
+  {
+   "fieldname": "que_19",
+   "fieldtype": "Heading",
+   "label": "19. What kind of jewellery formats do you believe would work best in your store?"
+  },
+  {
+   "default": "0",
+   "fieldname": "kiosk_open_format",
+   "fieldtype": "Check",
+   "label": "Kiosk (open format)"
+  },
+  {
+   "default": "0",
+   "fieldname": "counter_in_counter",
+   "fieldtype": "Check",
+   "label": "Counter-in-counter"
+  },
+  {
+   "default": "0",
+   "fieldname": "dedicated_mini_store",
+   "fieldtype": "Check",
+   "label": "Dedicated mini-store section"
+  },
+  {
+   "default": "0",
+   "fieldname": "pop_up_store",
+   "fieldtype": "Check",
+   "label": "Pop-up store"
+  },
+  {
+   "fieldname": "que_20",
+   "fieldtype": "Small Text",
+   "label": "20. Are there any concerns you have about introducing a diamond jewellery section in your store?"
+  },
+  {
+   "fieldname": "que_21",
+   "fieldtype": "Small Text",
+   "label": "21. What value would you expect such a partnership to add to your current business?"
+  },
+  {
+   "fieldname": "que_22",
+   "fieldtype": "Heading",
+   "label": "22. Would you be open to a follow-up meeting or discussion with the brand team?"
+  },
+  {
+   "default": "0",
+   "fieldname": "yes_22",
+   "fieldtype": "Check",
+   "label": "Yes"
+  },
+  {
+   "default": "0",
+   "fieldname": "no_22",
+   "fieldtype": "Check",
+   "label": "No"
+  },
+  {
+   "fieldname": "head_main",
+   "fieldtype": "HTML",
+   "options": "<p>\n\"This business survey is for feasibility research regarding a potential store-in-store partnership with a diamond jewellery brand. All responses are\nconfidential and used solely for internal strategic analysis. Your personal or business data will not be shared externally without consent, in\naccordance with Indian data protection norms (Digital Personal Data Protection Act, 2023).\"\n</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "other_3",
+   "fieldtype": "Check",
+   "label": "Other"
+  },
+  {
+   "fieldname": "section_break_sa7s",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "options": "RTL-SUR-"
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "Link",
+   "label": "State",
+   "options": "State List"
+  },
+  {
+   "fieldname": "section_break_ngbz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "user_id",
+   "fieldtype": "Link",
+   "label": "User ID",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_js2k",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "user_name",
+   "fieldtype": "Data",
+   "label": "User Name",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "other_14",
+   "fieldtype": "Check",
+   "label": "Other"
+  },
+  {
+   "depends_on": "eval: doc.other_14 == 1",
+   "fieldname": "other_preferred_sizeallocation",
+   "fieldtype": "Small Text",
+   "label": "Other Preferred size/allocation"
+  },
+  {
+   "fieldname": "section_break_mxaz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "que_23",
+   "fieldtype": "Heading",
+   "label": "23. The courier service(s) Preference"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_1",
+   "fieldtype": "Check",
+   "label": "DHL"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_2",
+   "fieldtype": "Check",
+   "label": "Blue Dart"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_3",
+   "fieldtype": "Check",
+   "label": "FedEx"
+  },
+  {
+   "fieldname": "check_23_4",
+   "fieldtype": "Data",
+   "label": "Others"
+  },
+  {
+   "depends_on": "eval:doc.check_23_4 == 1",
+   "fieldname": "other_23",
+   "fieldtype": "Small Text",
+   "label": "Others courier service(s) Preference"
+  },
+  {
+   "fieldname": "column_break_ayzh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_5",
+   "fieldtype": "Check",
+   "label": "DTDC"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_6",
+   "fieldtype": "Check",
+   "label": "Sequel"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_7",
+   "fieldtype": "Check",
+   "label": "Jai Matadi Courier"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_8",
+   "fieldtype": "Check",
+   "label": "BVC Logistics"
+  },
+  {
+   "fieldname": "store_image1",
+   "fieldtype": "Attach",
+   "label": "Store Image1"
+  },
+  {
+   "fieldname": "store_image2",
+   "fieldtype": "Attach",
+   "label": "Store Image2"
+  },
+  {
+   "fieldname": "store_image3",
+   "fieldtype": "Attach",
+   "label": "Store Image3"
+  },
+  {
+   "fieldname": "column_break_qnuk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "store_image4",
+   "fieldtype": "Attach",
+   "label": "Store Image4"
+  },
+  {
+   "fieldname": "store_image5",
+   "fieldtype": "Attach",
+   "label": "Store Image5"
+  },
+  {
+   "fieldname": "store_image6",
+   "fieldtype": "Attach",
+   "label": "Store Image6"
+  },
+  {
+   "fieldname": "section_break_w2px",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-05-21 10:59:56.346592",
+ "modified_by": "Administrator",
+ "module": "GKE SURVEY",
+ "name": "Retailer Survey",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

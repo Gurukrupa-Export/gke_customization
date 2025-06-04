@@ -1,0 +1,902 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-05-20 15:56:18.280186",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "section_break_ymjb",
+  "employee",
+  "employee_name",
+  "company",
+  "language",
+  "column_break_ek8g",
+  "punch_id",
+  "department",
+  "designation",
+  "section_break_p19j",
+  "que_1",
+  "year_1",
+  "year_2",
+  "year_3",
+  "year_4",
+  "que_2",
+  "achive_1",
+  "achive_2",
+  "achive_3",
+  "achive_4",
+  "que_3",
+  "chair_1",
+  "chair_2",
+  "chair_3",
+  "chair_4",
+  "que_4",
+  "leave_1",
+  "leave_2",
+  "leave_3",
+  "leave_4",
+  "que_5",
+  "manager",
+  "staff_l",
+  "only_m",
+  "assistant",
+  "section_break_qgws",
+  "que_6",
+  "times_3",
+  "times_2",
+  "many_taxt",
+  "anytime_a",
+  "que_7",
+  "refer_1",
+  "refer_2",
+  "refer_3",
+  "refer_4",
+  "que_8",
+  "max_1",
+  "max_2",
+  "max_3",
+  "max_4",
+  "que_9",
+  "month_3",
+  "month_4",
+  "month_5",
+  "month_6",
+  "que_10",
+  "required_1",
+  "required_2",
+  "required_3",
+  "required_4",
+  "details_2_tab",
+  "que_11",
+  "start_year",
+  "start1_year",
+  "company_start",
+  "many_year",
+  "que_12",
+  "palli",
+  "mukut",
+  "mukut_1",
+  "kettin",
+  "que_13",
+  "chair_5",
+  "chair_6",
+  "chair_7",
+  "chair_8",
+  "que_14",
+  "leave_days",
+  "leave1_days",
+  "leave2_days",
+  "leave3_days",
+  "que_15",
+  "sick",
+  "sick_s",
+  "sick_m",
+  "sick_a",
+  "section_break_yyts",
+  "que_16",
+  "chai",
+  "chai_s",
+  "chai_t",
+  "never",
+  "que_17",
+  "before",
+  "before_t",
+  "before_f",
+  "before_s",
+  "que_18",
+  "staff",
+  "staff_f",
+  "staff_o",
+  "staff_t",
+  "que_19",
+  "late",
+  "late_f",
+  "late_t",
+  "late_s",
+  "que_20",
+  "loan",
+  "loan_t",
+  "loan_s",
+  "loan_n"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_ymjb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee Id",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "language",
+   "fieldtype": "Select",
+   "label": "Language",
+   "options": "\nEnglish\nHindi"
+  },
+  {
+   "fieldname": "column_break_ek8g",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "punch_id",
+   "fieldtype": "Data",
+   "label": "Punching ID"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "section_break_p19j",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que_1",
+   "fieldtype": "Heading",
+   "label": "Q1. In which year was Gurukrupa established? "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "year_1",
+   "fieldtype": "Check",
+   "label": "1997 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "year_2",
+   "fieldtype": "Check",
+   "label": "1996 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "year_3",
+   "fieldtype": "Check",
+   "label": "1993 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "year_4",
+   "fieldtype": "Check",
+   "label": "1987 "
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que_2",
+   "fieldtype": "Heading",
+   "label": "Q2. Which of the following is not an achievement of Gurukrupa?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "achive_1",
+   "fieldtype": "Check",
+   "label": "Crown for Palani Murugan Temple "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "achive_2",
+   "fieldtype": "Check",
+   "label": "Crown for Lord Swami Narayan "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "achive_3",
+   "fieldtype": "Check",
+   "label": "Crown for Guruvayur Krishna Temple "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "achive_4",
+   "fieldtype": "Check",
+   "label": "Canteen"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que_3",
+   "fieldtype": "Heading",
+   "label": "Q3. Who is the Chairman of the company? "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "chair_1",
+   "fieldtype": "Check",
+   "label": "Jayanti Ramani "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "chair_2",
+   "fieldtype": "Check",
+   "label": "Gaurang Ramani"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "chair_3",
+   "fieldtype": "Check",
+   "label": "Jignesh Ramani "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "chair_4",
+   "fieldtype": "Check",
+   "label": "Jaysukh Ramani "
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que_4",
+   "fieldtype": "Heading",
+   "label": "Q4. Under the leave encashment policy, after how many working days is one leave earned? "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "leave_1",
+   "fieldtype": "Check",
+   "label": "20 days "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "leave_2",
+   "fieldtype": "Check",
+   "label": "10 days "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "leave_3",
+   "fieldtype": "Check",
+   "label": "5 days "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "leave_4",
+   "fieldtype": "Check",
+   "label": "25 days "
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que_5",
+   "fieldtype": "Heading",
+   "label": "Q5. Sick leaves are given to which designation? "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "manager",
+   "fieldtype": "Check",
+   "label": "Manager and above "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "staff_l",
+   "fieldtype": "Check",
+   "label": "Staff level "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "only_m",
+   "fieldtype": "Check",
+   "label": "Only Managers "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "assistant",
+   "fieldtype": "Check",
+   "label": "Assistant Managers "
+  },
+  {
+   "fieldname": "section_break_qgws",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que_6",
+   "fieldtype": "Heading",
+   "label": "Q6. How many times in a day can an employee get tea/coffee? "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "times_3",
+   "fieldtype": "Check",
+   "label": "3 times "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "times_2",
+   "fieldtype": "Check",
+   "label": "2 times "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "many_taxt",
+   "fieldtype": "Check",
+   "label": "1 time "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "anytime_a",
+   "fieldtype": "Check",
+   "label": "Anytime "
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que_7",
+   "fieldtype": "Heading",
+   "label": "Q7. If you refer an employee to the company, the referral amount is paid in how many installments? "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "refer_1",
+   "fieldtype": "Check",
+   "label": "40% before 3 months and 60% after completion of 6 months "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "refer_2",
+   "fieldtype": "Check",
+   "label": "20% before 3 months and 80% after completion of 6 months "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "refer_3",
+   "fieldtype": "Check",
+   "label": "50% before 3 months and 50% after completion of 6 months "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "refer_4",
+   "fieldtype": "Check",
+   "label": "None of this"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que_8",
+   "fieldtype": "Heading",
+   "label": "Q8. What is the maximum gift amount a staff-level employee can receive from a third party? "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "max_1",
+   "fieldtype": "Check",
+   "label": "\u20b9500 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "max_2",
+   "fieldtype": "Check",
+   "label": "\u20b9400 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "max_3",
+   "fieldtype": "Check",
+   "label": "\u20b91000 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "max_4",
+   "fieldtype": "Check",
+   "label": "\u20b9800"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que_9",
+   "fieldtype": "Heading",
+   "label": "Q9. Which of the following sentences is incorrect? "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "month_3",
+   "fieldtype": "Check",
+   "label": "In a month, 3 late comings are allowed "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "month_4",
+   "fieldtype": "Check",
+   "label": "In a month, 4 late comings result in a 0.5-day salary deduction "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "month_5",
+   "fieldtype": "Check",
+   "label": "In a month, 3 hours relaxation can be given to employees for personal work "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "month_6",
+   "fieldtype": "Check",
+   "label": "A 5-minute grace period for late coming is allowed to employees for 4 days "
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que_10",
+   "fieldtype": "Heading",
+   "label": "Q10. What is the minimum tenure required for an employee to be eligible to request a loan? "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "required_1",
+   "fieldtype": "Check",
+   "label": "1 year "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "required_2",
+   "fieldtype": "Check",
+   "label": "2 years "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "required_3",
+   "fieldtype": "Check",
+   "label": "6 months "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "required_4",
+   "fieldtype": "Check",
+   "label": "9 months "
+  },
+  {
+   "fieldname": "details_2_tab",
+   "fieldtype": "Tab Break",
+   "label": "Details 2"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que_11",
+   "fieldtype": "Heading",
+   "label": "Q1. \u0917\u0941\u0930\u0941\u0915\u0943\u092a\u093e \u0915\u0902\u092a\u0928\u0940 \u0915\u0940 \u0936\u0941\u0930\u0941\u0906\u0924 \u0915\u093f\u0938 \u0938\u093e\u0932 \u092e\u0947\u0902 \u0939\u0941\u0908 \u0925\u0940?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "start_year",
+   "fieldtype": "Check",
+   "label": "1997"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "start1_year",
+   "fieldtype": "Check",
+   "label": "1996"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "company_start",
+   "fieldtype": "Check",
+   "label": " 1993"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "many_year",
+   "fieldtype": "Check",
+   "label": "1987 "
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que_12",
+   "fieldtype": "Heading",
+   "label": "Q2. \u0928\u0940\u091a\u0947 \u092e\u0947\u0902 \u0938\u0947 \u0915\u094d\u092f\u093e \u0917\u0941\u0930\u0941\u0915\u0943\u092a\u093e \u0915\u0940 \u0909\u092a\u0932\u092c\u094d\u0927\u093f\u092f\u094b\u0902 \u092e\u0947\u0902 \u0936\u093e\u092e\u093f\u0932 \u0928\u0939\u0940\u0902 \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "palli",
+   "fieldtype": "Check",
+   "label": " \u092a\u0932\u094d\u0932\u0928\u0940 \u092e\u0941\u0930\u0941\u0917\u0928 \u092e\u0902\u0926\u093f\u0930 \u0915\u0947 \u0932\u093f\u090f \u092e\u0941\u0915\u0941\u091f"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "mukut",
+   "fieldtype": "Check",
+   "label": "\u092d\u0917\u0935\u093e\u0928 \u0938\u094d\u0935\u093e\u092e\u0940\u0928\u093e\u0930\u093e\u092f\u0923 \u0915\u0947 \u0932\u093f\u090f \u092e\u0941\u0915\u0941\u091f"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "mukut_1",
+   "fieldtype": "Check",
+   "label": "\u0917\u0941\u0930\u0941\u0935\u093e\u092f\u0941\u0930 \u0915\u0943\u0937\u094d\u0923 \u092e\u0902\u0926\u093f\u0930 \u0915\u0947 \u0932\u093f\u090f \u092e\u0941\u0915\u0941\u091f"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "kettin",
+   "fieldtype": "Check",
+   "label": "\u0915\u0948\u0902\u091f\u0940\u0928 "
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que_13",
+   "fieldtype": "Heading",
+   "label": "Q3. \u0915\u0902\u092a\u0928\u0940 \u0915\u0947 \u091a\u0947\u092f\u0930\u092e\u0948\u0928 \u0915\u094c\u0928 \u0939\u0948\u0902?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "chair_5",
+   "fieldtype": "Check",
+   "label": "\u091c\u092f\u0902\u0924\u0940 \u0930\u092e\u093e\u0928\u0940"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "chair_6",
+   "fieldtype": "Check",
+   "label": "\u0917\u094c\u0930\u093e\u0902\u0917 \u0930\u092e\u093e\u0928\u0940"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "chair_7",
+   "fieldtype": "Check",
+   "label": "\u091c\u093f\u0917\u094d\u0928\u0947\u0936 \u0930\u092e\u093e\u0928\u0940"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "chair_8",
+   "fieldtype": "Check",
+   "label": "\u091c\u092f\u0938\u0941\u0916 \u0930\u092e\u093e\u0928\u0940 "
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que_14",
+   "fieldtype": "Heading",
+   "label": "Q4. \u0932\u0940\u0935 \u090f\u0928\u094d\u0915\u0948\u0936\u092e\u0947\u0902\u091f \u092a\u0949\u0932\u093f\u0938\u0940 \u0915\u0947 \u0939\u093f\u0938\u093e\u092c \u0938\u0947, \u0915\u093f\u0924\u0928\u0947 \u0915\u093e\u092e \u0915\u0930\u0928\u0947 \u0915\u0947 \u0926\u093f\u0928\u094b\u0902 \u0915\u0947 \u092c\u093e\u0926 \u090f\u0915 \u091b\u0941\u091f\u094d\u091f\u0940 \u092e\u093f\u0932\u0924\u0940 \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "leave_days",
+   "fieldtype": "Check",
+   "label": "20 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "leave1_days",
+   "fieldtype": "Check",
+   "label": "10 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "leave2_days",
+   "fieldtype": "Check",
+   "label": "5 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "leave3_days",
+   "fieldtype": "Check",
+   "label": "25 \u0926\u093f\u0928 "
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que_15",
+   "fieldtype": "Heading",
+   "label": "Q5. \u092c\u0940\u092e\u093e\u0930\u0940 \u0915\u0940 \u091b\u0941\u091f\u094d\u091f\u093f\u092f\u093e\u0901 (\u0938\u093f\u0915 \u0932\u0940\u0935) \u0915\u093f\u0928\u0915\u094b \u092e\u093f\u0932\u0924\u0940 \u0939\u0948\u0902?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "sick",
+   "fieldtype": "Check",
+   "label": "\u092e\u0948\u0928\u0947\u091c\u0930 \u0914\u0930 \u0909\u0938\u0938\u0947 \u090a\u092a\u0930 \u0915\u0947 \u092a\u0926\u094b\u0902 \u0915\u094b"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "sick_s",
+   "fieldtype": "Check",
+   "label": "\u0938\u094d\u091f\u093e\u092b \u0932\u0947\u0935\u0932 \u0935\u093e\u0932\u094b\u0902 \u0915\u094b"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "sick_m",
+   "fieldtype": "Check",
+   "label": "\u0938\u093f\u0930\u094d\u092b \u092e\u0948\u0928\u0947\u091c\u0930 \u0915\u094b"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "sick_a",
+   "fieldtype": "Check",
+   "label": "\u0905\u0938\u093f\u0938\u094d\u091f\u0947\u0902\u091f \u092e\u0948\u0928\u0947\u091c\u0930 \u0915\u094b "
+  },
+  {
+   "fieldname": "section_break_yyts",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que_16",
+   "fieldtype": "Heading",
+   "label": "Q6. \u090f\u0915 \u0926\u093f\u0928 \u092e\u0947\u0902 \u0915\u093f\u0924\u0928\u0940 \u092c\u093e\u0930 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940 \u0915\u094b \u091a\u093e\u092f/\u0915\u0949\u092b\u0940 \u092e\u093f\u0932 \u0938\u0915\u0924\u0940 \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "chai",
+   "fieldtype": "Check",
+   "label": "3 \u092c\u093e\u0930"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "chai_s",
+   "fieldtype": "Check",
+   "label": "2 \u092c\u093e\u0930"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "chai_t",
+   "fieldtype": "Check",
+   "label": "1 \u092c\u093e\u0930"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "never",
+   "fieldtype": "Check",
+   "label": "\u0915\u092d\u0940 \u092d\u0940"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que_17",
+   "fieldtype": "Heading",
+   "label": "Q7. \u0905\u0917\u0930 \u0906\u092a \u0915\u093f\u0938\u0940 \u0915\u094b \u0915\u0902\u092a\u0928\u0940 \u092e\u0947\u0902 \u0930\u0947\u092b\u0930 \u0915\u0930\u0924\u0947 \u0939\u0948\u0902, \u0924\u094b \u0906\u092a\u0915\u094b \u0930\u0947\u092b\u0930\u0932 \u0915\u093e \u092a\u0948\u0938\u093e \u0915\u093f\u0924\u0928\u0940 \u0915\u093f\u0936\u094d\u0924\u094b\u0902 \u092e\u0947\u0902  \u092e\u093f\u0932\u0924\u093e \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "before",
+   "fieldtype": "Check",
+   "label": "40% \u0924\u0940\u0928 \u092e\u0939\u0940\u0928\u0947 \u0915\u0947 \u092a\u0939\u0932\u0947 \u0914\u0930 60% \u091b\u0939 \u092e\u0939\u0940\u0928\u0947 \u092a\u0942\u0930\u0947 \u0939\u094b\u0928\u0947 \u0915\u0947 \u092c\u093e\u0926"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "before_t",
+   "fieldtype": "Check",
+   "label": "20% \u0924\u0940\u0928 \u092e\u0939\u0940\u0928\u0947 \u0915\u0947 \u092a\u0939\u0932\u0947 \u0914\u0930 80% \u091b\u0939 \u092e\u0939\u0940\u0928\u0947 \u092a\u0942\u0930\u0947 \u0939\u094b\u0928\u0947 \u0915\u0947 \u092c\u093e\u0926"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "before_f",
+   "fieldtype": "Check",
+   "label": "50% \u0924\u0940\u0928 \u092e\u0939\u0940\u0928\u0947 \u0915\u0947 \u092a\u0939\u0932\u0947 \u0914\u0930 50% \u091b\u0939 \u092e\u0939\u0940\u0928\u0947 \u092a\u0942\u0930\u0947 \u0939\u094b\u0928\u0947 \u0915\u0947 \u092c\u093e\u0926"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "before_s",
+   "fieldtype": "Check",
+   "label": "\u0907\u0928\u092e\u0947 \u0938\u0947 \u0915\u094b\u0908 \u0928\u0939\u0940\u0902"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que_18",
+   "fieldtype": "Heading",
+   "label": "Q8. \u090f\u0915 \u0938\u094d\u091f\u093e\u092b \u0932\u0947\u0935\u0932 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940 \u092c\u093e\u0939\u0930 \u0938\u0947 (\u0925\u0930\u094d\u0921 \u092a\u093e\u0930\u094d\u091f\u0940 \u0938\u0947) \u091c\u094d\u092f\u093e\u0926\u093e \u0938\u0947 \u091c\u094d\u092f\u093e\u0926\u093e \u0915\u093f\u0924\u0928\u093e \u0917\u093f\u092b\u094d\u091f \u0932\u0947 \u0938\u0915\u0924\u093e  \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "staff",
+   "fieldtype": "Check",
+   "label": "\u20b9500"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "staff_f",
+   "fieldtype": "Check",
+   "label": "\u20b9400"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "staff_o",
+   "fieldtype": "Check",
+   "label": " \u20b91000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "staff_t",
+   "fieldtype": "Check",
+   "label": "\u20b9800 "
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que_19",
+   "fieldtype": "Heading",
+   "label": "Q9. \u0928\u0940\u091a\u0947 \u0926\u093f\u090f \u0917\u090f \u0935\u093e\u0915\u094d\u092f\u094b\u0902 \u092e\u0947\u0902 \u0938\u0947 \u0915\u094c\u0928-\u0938\u093e \u0917\u0932\u0924 \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "late",
+   "fieldtype": "Check",
+   "label": "\u092e\u0939\u0940\u0928\u0947 \u092e\u0947\u0902 3 \u092c\u093e\u0930 \u0932\u0947\u091f \u0906\u0928\u093e \u092e\u093e\u092b \u0939\u0948"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "late_f",
+   "fieldtype": "Check",
+   "label": "\u092e\u0939\u0940\u0928\u0947 \u092e\u0947\u0902 4 \u092c\u093e\u0930 \u0932\u0947\u091f \u0906\u0928\u0947 \u092a\u0930 \u0906\u0927\u0947 \u0926\u093f\u0928 \u0915\u0940 \u0938\u0948\u0932\u0930\u0940 \u0915\u091f\u0924\u0940 \u0939\u0948"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "late_t",
+   "fieldtype": "Check",
+   "label": "\u092e\u0939\u0940\u0928\u0947 \u092e\u0947\u0902 3 \u0918\u0902\u091f\u0947 \u0924\u0915 \u092a\u0930\u094d\u0938\u0928\u0932 \u0915\u093e\u092e \u0915\u0947 \u0932\u093f\u090f \u091b\u0941\u091f\u094d\u091f\u0940 \u0926\u0940 \u091c\u093e \u0938\u0915\u0924\u0940 \u0939\u0948"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "late_s",
+   "fieldtype": "Check",
+   "label": "4 \u0926\u093f\u0928 \u0924\u0915 5 \u092e\u093f\u0928\u091f \u0932\u0947\u091f \u0906\u0928\u0947 \u0915\u0940 \u091b\u0942\u091f \u092e\u093f\u0932\u0924\u0940 \u0939\u0948 "
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que_20",
+   "fieldtype": "Heading",
+   "label": "Q10. \u0932\u094b\u0928 \u0932\u0947\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940 \u0915\u094b \u0915\u092e \u0938\u0947 \u0915\u092e \u0915\u093f\u0924\u0928\u0947 \u0938\u092e\u092f \u0924\u0915 \u0915\u0902\u092a\u0928\u0940 \u092e\u0947\u0902 \u0915\u093e\u092e \u0915\u0930\u0928\u093e \u091c\u0930\u0942\u0930\u0940  \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "loan",
+   "fieldtype": "Check",
+   "label": "1 \u0938\u093e\u0932"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "loan_t",
+   "fieldtype": "Check",
+   "label": "2 \u0938\u093e\u0932"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "loan_s",
+   "fieldtype": "Check",
+   "label": "6 \u092e\u0939\u0940\u0928\u0947"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "loan_n",
+   "fieldtype": "Check",
+   "label": "9 \u092e\u0939\u0940\u0928\u0947 "
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "options": "INQ-"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-05-23 13:00:44.627461",
+ "modified_by": "Administrator",
+ "module": "GKE SURVEY",
+ "name": "Induction Questionaire",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

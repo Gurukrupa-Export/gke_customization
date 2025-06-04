@@ -1,0 +1,203 @@
+{
+"actions": [],
+"allow_rename": 1,
+"creation": "2025-03-10 14:44:23.606897",
+"doctype": "DocType",
+"engine": "InnoDB",
+"field_order": [
+"loan_details_section",
+"lender",
+"lender_name",
+"loan_amount",
+"loan_date",
+"column_break_rwcd",
+"company",
+"repayment_period",
+"interest_rate",
+"monthly_interest",
+"interest_type",
+"repayment_details_section",
+"repayment_schedule",
+"cost_center",
+"accounting_section",
+"principal_gl_account",
+"interest_gl_account",
+"status_section",
+"loan_status",
+"interest_accrued",
+"amended_from",
+"parent_gl_entry_created",
+"section_break_1trw",
+"payment_entry"
+],
+"fields": [
+{
+"fieldname": "loan_details_section",
+"fieldtype": "Section Break",
+"label": "Loan Details"
+},
+{
+"fieldname": "lender",
+"fieldtype": "Link",
+"label": "Lender",
+"options": "Business Partner"
+},
+{
+"fieldname": "lender_name",
+"fieldtype": "Data",
+"label": "Lender Name",
+"read_only": 1
+},
+{
+"fieldname": "loan_amount",
+"fieldtype": "Currency",
+"label": "Loan Amount"
+},
+{
+"default": "Today",
+"fieldname": "loan_date",
+"fieldtype": "Date",
+"label": "Loan Date"
+},
+{
+"fieldname": "column_break_rwcd",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "company",
+"fieldtype": "Link",
+"label": "Company",
+"options": "Company"
+},
+{
+"fieldname": "repayment_period",
+"fieldtype": "Int",
+"label": "Repayment Period (In Month)"
+},
+{
+"fieldname": "interest_rate",
+"fieldtype": "Float",
+"label": "Interest Rate"
+},
+{
+"fieldname": "monthly_interest",
+"fieldtype": "Currency",
+"hidden": 1,
+"label": "Monthly Interest"
+},
+{
+"default": "Fixed",
+"fieldname": "interest_type",
+"fieldtype": "Select",
+"label": "Interest Type",
+"options": "\nFixed\nVariable"
+},
+{
+"fieldname": "repayment_details_section",
+"fieldtype": "Section Break",
+"label": "Repayment Details"
+},
+{
+"fieldname": "repayment_schedule",
+"fieldtype": "Table",
+"label": "Repayment Schedule",
+"options": "Unsecured Loan Repayment Schedule"
+},
+{
+"fieldname": "accounting_section",
+"fieldtype": "Section Break",
+"label": "Accounting"
+},
+{
+"fieldname": "principal_gl_account",
+"fieldtype": "Link",
+"label": "Principal GL Account",
+"options": "Account"
+},
+{
+"fieldname": "interest_gl_account",
+"fieldtype": "Link",
+"label": "Interest GL Account",
+"options": "Account"
+},
+{
+"fieldname": "status_section",
+"fieldtype": "Column Break",
+"label": "Status"
+},
+{
+"fieldname": "loan_status",
+"fieldtype": "Select",
+"label": "Loan Status",
+"options": "\nPending\nDisbursed\nCompleted"
+},
+{
+"fieldname": "interest_accrued",
+"fieldtype": "Currency",
+"label": "Interest Accrued"
+},
+{
+"fieldname": "amended_from",
+"fieldtype": "Link",
+"label": "Amended From",
+"no_copy": 1,
+"options": "Unsecured Loan",
+"print_hide": 1,
+"read_only": 1,
+"search_index": 1
+},
+{
+"default": "0",
+"fieldname": "parent_gl_entry_created",
+"fieldtype": "Check",
+"label": "Parent GL Entry Created"
+},
+{
+"fieldname": "cost_center",
+"fieldtype": "Link",
+"in_list_view": 1,
+"label": "Cost Center",
+"options": "Cost Center",
+"reqd": 1
+},
+{
+"fieldname": "payment_entry",
+"fieldtype": "Link",
+"label": "Payment Entry",
+"options": "Payment Entry"
+},
+{
+"fieldname": "section_break_1trw",
+"fieldtype": "Section Break"
+}
+],
+"index_web_pages_for_search": 1,
+"links": [
+{
+"link_doctype": "Payment Entry",
+"link_fieldname": "custom_unsecured_loan"
+}
+],
+"modified": "2025-04-18 15:28:13.888645",
+"modified_by": "Administrator",
+"module": "GKE Custom Export",
+"name": "Unsecured Loan",
+"owner": "Administrator",
+"permissions": [
+{
+"create": 1,
+"delete": 1,
+"email": 1,
+"export": 1,
+"print": 1,
+"read": 1,
+"report": 1,
+"role": "System Manager",
+"share": 1,
+"write": 1
+}
+],
+"sort_field": "modified",
+"sort_order": "DESC",
+"states": []
+}

@@ -2,7 +2,7 @@ import frappe
 import json
 
 @frappe.whitelist()
-def get_delivery_challan(source_name, target_doc=None):
+def get_delivery_challan(source_name, target_doc=None): 
 	if isinstance(target_doc, str):
 		target_doc = json.loads(target_doc)
 	if not target_doc:
@@ -30,7 +30,9 @@ def get_delivery_challan(source_name, target_doc=None):
 					if k[2] in ['Diamond - V','Metal - V','Gemstone - V','Finding - V','Other - V','Diamond - T','Metal - T','Gemstone - T','Finding - T','Other - T'] :					
 						# frappe.throw('m')
 						target_doc.append("delivery_challan_detail", {
-								"stock_entry": i.get("name"),
+								"reference_document_type" : "Stock Entry",
+                                "reference_document": i.get("name"),
+								# "stock_entry": i.get("name"),
 								"stock_entry_type": i.get("stock_entry_type"),
 								"amount": j.get("amount"),
 								"qty": j.get("qty"),
@@ -41,7 +43,9 @@ def get_delivery_challan(source_name, target_doc=None):
 						# frappe.throw('h')
 						if "JEWELLERY STUDDED WITH GEMS" in k[1]:
 							target_doc.append("delivery_challan_detail", {
-								"stock_entry": i.get("name"),
+								"reference_document_type" : "Stock Entry",
+                                "reference_document": i.get("name"),
+								# "stock_entry": i.get("name"),
 								"stock_entry_type": i.get("stock_entry_type"),
 								"amount": j.get("amount"),
 								"qty": j.get("qty"),
@@ -50,7 +54,9 @@ def get_delivery_challan(source_name, target_doc=None):
 							})
 						else:
 							target_doc.append("delivery_challan_detail", {
-								"stock_entry": i.get("name"),
+								"reference_document_type" : "Stock Entry",
+                                "reference_document": i.get("name"),
+								# "stock_entry": i.get("name"),
 								"stock_entry_type": i.get("stock_entry_type"),
 								"amount": j.get("amount"),
 								"qty": j.get("qty"),
@@ -59,12 +65,14 @@ def get_delivery_challan(source_name, target_doc=None):
 							})
 			else:
 				target_doc.append("delivery_challan_detail", {
-							"stock_entry": i.get("name"),
+							"reference_document_type" : "Stock Entry",
+                            "reference_document": i.get("name"),
+							# "stock_entry": i.get("name"),
 							"stock_entry_type": i.get("stock_entry_type"),
 							"amount": j.get("amount"),
 							"qty": j.get("qty"),
 							"uom": j.get("uom"),
-							"description": ' ',
+							"description": j.get("description"),
 						})
 
 	return target_doc

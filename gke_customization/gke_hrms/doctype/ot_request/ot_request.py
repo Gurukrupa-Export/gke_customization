@@ -8,22 +8,23 @@ from datetime import datetime, timedelta
 
 
 class OTRequest(Document):
-	def validate(self):
-		if not self.company or not self.branch:
-			frappe.throw("Company and Branch are required to generate the OT Request name.")
-		
+	def autoname(self):
 		# Get company abbreviation
 		company_abbr = frappe.db.get_value("Company", self.company, "abbr")
-		if not company_abbr:
-			frappe.throw(f"Abbreviation not found for company: {self.company}")
+		if company_abbr:
+			if self.branch:
+				branch_short = self.branch.split('-')[-2] 
+				series = f"{company_abbr}-{branch_short}-OT-.#####"
+			else:
+				series = f"{company_abbr}-OT-.#####"
 
-		# Extract branch short code
-		branch_short = self.branch.split('-')[-2]  # Extract "ST" from "GEPL-ST"
-
-		# Naming series using company abbreviation
-		series = f"OT-{company_abbr}-{branch_short}-.#####"
-		self.name = frappe.model.naming.make_autoname(series)
-
+			self.name = frappe.model.naming.make_autoname(series)
+		
+	
+	def validate(self):
+		# if not self.company or not self.branch:
+		# 	frappe.throw("Company and Branch are required to generate the OT Request name.")
+		
 		for child in self.order_request:
 			if child.ot_hours:
 				try:
@@ -35,7 +36,11 @@ class OTRequest(Document):
 						ot_time = child.ot_hours
 					
 					# Convert time field (which is a time object) to total hours
-					total_hours = ot_time.hour + (ot_time.minute / 60) + (ot_time.second / 3600)
+					# total_hours = ot_time.hour + (ot_time.minute / 60) + (ot_time.second / 3600)
+					if isinstance(ot_time, timedelta):
+						total_hours = ot_time.total_seconds() / 3600  # Correct way to get total hours from timedelta
+					else:
+						total_hours = ot_time.hour + (ot_time.minute / 60) + (ot_time.second / 3600)
 					
 					# Set food eligibility based on total hours (1 hour or more is eligible)
 					child.food_eligibility = "Eligible" if total_hours > 1 else "Not Eligible"
@@ -43,18 +48,18 @@ class OTRequest(Document):
 					frappe.throw(f"Invalid time format for ot_hours: {child.ot_hours}")
 
 
-	def before_save(self):
-		if self.workflow_state == 'Send For Approval':
-			for row in self.hr_approver:
-				row.status = self.workflow_state
+	# def before_save(self):
+	# 	if self.workflow_state == 'Send For Approval':
+	# 		for row in self.hr_approver:
+	# 			row.status = self.workflow_state
 
-	def before_submit(self):
-		if self.workflow_state == 'Approved':
-			for row in self.hr_approver:
-				row.status = self.workflow_state
-		if self.workflow_state == 'Rejected':
-			for row in self.hr_approver:
-				row.status = self.workflow_state	
+	# def before_submit(self):
+	# 	if self.workflow_state == 'Approved':
+	# 		for row in self.hr_approver:
+	# 			row.status = self.workflow_state
+	# 	if self.workflow_state == 'Rejected':
+	# 		for row in self.hr_approver:
+	# 			row.status = self.workflow_state	
 
 
 @frappe.whitelist()

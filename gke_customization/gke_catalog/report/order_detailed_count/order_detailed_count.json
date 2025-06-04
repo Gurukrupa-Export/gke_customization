@@ -1,0 +1,67 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2025-02-19 11:32:03.176540",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Gurukrupa Export",
+ "letterhead": null,
+ "modified": "2025-02-19 11:32:03.176540",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "Order Detailed Count",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Order",
+ "report_name": "Order Detailed Count",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Employee Self Service"
+  },
+  {
+   "role": "Computer Aided Designing Executive - KL - GE"
+  },
+  {
+   "role": "Computer Aided Designing Executive - ST - GE"
+  },
+  {
+   "role": "Manufacturing Plan & Management - ST - GE"
+  },
+  {
+   "role": "CAD/CAM"
+  },
+  {
+   "role": "Order QC"
+  },
+  {
+   "role": "MPM - ST - Executive"
+  },
+  {
+   "role": "CAD QC"
+  },
+  {
+   "role": "Designer"
+  },
+  {
+   "role": "MPM-Order"
+  },
+  {
+   "role": "QC Doctype"
+  },
+  {
+   "role": "GK Order Form Approver"
+  },
+  {
+   "role": "Manufacturing Plan & Management - CH - GE"
+  }
+ ],
+ "timeout": 0
+}
