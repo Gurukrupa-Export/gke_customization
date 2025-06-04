@@ -7,6 +7,9 @@ from frappe.desk.form import assign_to
 
 class EmailSegmentation(Document):
 	pass
+    # def before_save(self):
+    #     frappe.throw(f"{self.custom_all_internal_contact}") 
+
 	# def after_save(self):
 	# 	# if self.workflow_state == 'Send For Approval':
 	# 		args = {

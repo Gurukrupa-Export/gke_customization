@@ -52,36 +52,49 @@
    "search_index": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "item_name",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Item Name",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'",
    "reqd": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "item_size",
    "fieldtype": "Data",
-   "label": "Item Size"
+   "label": "Item Size",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'"
   },
   {
    "fieldname": "column_break_ihzf",
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "item_color",
    "fieldtype": "Data",
-   "label": "Item Color"
+   "label": "Item Color",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "item_weight",
    "fieldtype": "Data",
-   "label": "Item Weight"
+   "label": "Item Weight",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'"
   },
   {
    "fieldname": "section_break_5qrb",
    "fieldtype": "Section Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "item_group",
    "fieldtype": "Link",
    "label": "Item Group",
@@ -89,6 +102,7 @@
    "reqd": 1
   },
   {
+   "allow_on_submit": 1,
    "description": "Add GST value in Percentage",
    "fieldname": "gst",
    "fieldtype": "Select",
@@ -175,6 +189,7 @@
    "options": "Item Tax Template"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "item_image",
    "fieldtype": "Attach",
    "label": "Item Image"
@@ -195,7 +210,7 @@
    "label": "Remarks"
   },
   {
-   "depends_on": "eval:[\"Administrative Expense\", \"Business Promotion Expense\", \"Employee Benefits Expense\", \r\n\"Finance Expense\", \"Interest and Penalty Expense\", \"Repairs and Maintance Expense\", \r\n\"Selling and Distribution Expense\", \"Utility Expense\", \"Product Certification Expense\", \r\n\"Dine & Stay Expense\"].includes(doc.item_group)",
+   "allow_on_submit": 1,
    "fieldname": "default_expense_account",
    "fieldtype": "Link",
    "label": "Default Expense Account",
@@ -211,7 +226,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-05-23 15:18:52.257412",
+ "modified": "2025-05-30 18:19:19.308570",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Item Request",
