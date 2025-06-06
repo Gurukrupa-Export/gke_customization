@@ -291,6 +291,11 @@
 "read_only": 1
 },
 {
+   "fieldname": "product_size",
+   "fieldtype": "Float",
+   "label": "Product Size"
+},
+{
 "fieldname": "item_metal_colour",
 "fieldtype": "Link",
 "label": "Item Metal Colour",
