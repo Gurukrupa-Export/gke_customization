@@ -1,11 +1,14 @@
-from frappe.utils import getdate, nowdate, add_days
+from frappe.utils import getdate, nowdate, add_days , today
 from frappe import _
 import frappe
+from datetime import timedelta , datetime 
+
 
 def validate(doc, method):
     """Validation logic to check the sandwich rule and past leave restriction."""
-    #check_past_month_restriction(doc)
+    # check_past_month_restriction(doc)
     check_sandwich_rule(doc)
+
 
 def check_past_month_restriction(doc):
     """Ensure leave is applied only for the current or future months."""
@@ -22,10 +25,11 @@ def check_past_month_restriction(doc):
         frappe.throw("You cannot apply for leave in past months. Please select a date in the current or future months.")
 
 
+
 def check_sandwich_rule(doc):
     if doc.employee and doc.from_date and doc.to_date:
         holiday_list = frappe.db.get_value('Employee', doc.employee, 'holiday_list')
-
+        # frappe.throw(f"{holiday_list}")
         if holiday_list:
             holiday_list_doc = frappe.get_doc('Holiday List', holiday_list)
             holidays = holiday_list_doc.get('holidays') or []
@@ -33,33 +37,41 @@ def check_sandwich_rule(doc):
             from_date = getdate(doc.from_date)
             to_date = getdate(doc.to_date)
 
-            holiday_dates = [
+            # Separate holiday dates and weekly off dates
+            holiday_dates = {
                 getdate(holiday.holiday_date)
                 for holiday in holidays
-            ]
+            if not holiday.weekly_off
+            }
+            weekly_off_dates = {
+                getdate(holiday.holiday_date)
+                for holiday in holidays
+                if holiday.weekly_off
+            }
 
-            # Count holidays that fall strictly within the leave period (sandwiched)
-            holiday_count = sum(1 for holiday_date in holiday_dates if from_date < holiday_date < to_date)
+            leave_dates = {
+                from_date + timedelta(days=i) for i in range((to_date - from_date).days + 1)
+            }
 
-            # Ensure leave days are only counted when leave surrounds the holiday
-            if from_date in holiday_dates or to_date in holiday_dates:
-                holiday_count = 0  # Do not count if leave does not sandwich the holiday
+            # Identify sandwiched holidays (holidays having leave before & after)
+            sandwiched_holidays = {
+                date for date in holiday_dates
+                if (date - timedelta(days=1) in leave_dates and date + timedelta(days=1) in leave_dates)
+            }
 
-            # Add holiday count to total_leave_days correctly
-            if hasattr(doc, "total_leave_days"):
-                doc.total_leave_days = (to_date - from_date).days + 1 + holiday_count
+            # Calculate total leave days (excluding only weekly offs, including sandwiched holidays)
+            doc.total_leave_days = len([
+                date for date in leave_dates
+                if date not in weekly_off_dates and (date not in holiday_dates or date in sandwiched_holidays)
+            ])
 
-            # Check for holidays that are not weekly offs and set leave type accordingly
-            for holiday_date in holiday_dates:
-                if from_date < holiday_date < to_date:
-                    frappe.msgprint(
-                        _("A holiday is sandwiched between your leave period. Leave type has been automatically set to Leave Without Pay (LWP)."),
-                        alert=True
-                    )
-                    doc.leave_type = "Leave Without Pay"
-                    break
-
-
+            # If any holiday is sandwiched, set leave type to LWP
+            if sandwiched_holidays:
+                frappe.msgprint(
+                    _("A holiday is sandwiched between your leave period. Leave type has been automatically set to Leave Without Pay (LWP)."),
+                    alert=True
+                )
+                doc.leave_type = "Leave Without Pay"
 
 
 def on_submit(doc, method):
@@ -131,3 +143,9 @@ def create_attendance_records(doc):
                 new_attendance.submit()
 
                 current_date = add_days(current_date, 1)
+
+
+
+
+
+              
