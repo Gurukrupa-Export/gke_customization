@@ -798,8 +798,10 @@
     },
     {
     "fieldname": "mod_reason",
+    "depends_on": "eval:doc.design_type == 'Mod'",
     "fieldtype": "Link",
     "label": "Mod Reason",
+    "mandatory_depends_on": "eval:doc.design_type == 'Mod'",
     "options": "Attribute Value"
     }
 ],

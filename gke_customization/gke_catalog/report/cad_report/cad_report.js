@@ -6,14 +6,14 @@ frappe.query_reports["CAD Report"] = {
     "filters": [
         {
             fieldname: "start_date",
-            label: __("From Date"),
+            label: __("From Date(Order Creation)"),
             fieldtype: "Date",
             reqd: 0,
             default: frappe.datetime.month_start(),
         },
         {
             fieldname: "end_date",
-            label: __("To Date"),
+            label: __("To Date(Order Creation)"),
             fieldtype: "Date",
             reqd: 0,
             default: frappe.datetime.month_end(),
@@ -134,26 +134,7 @@ frappe.query_reports["CAD Report"] = {
                 });
             }
         },
-        // {
-        //     fieldname: "workflow_type",
-        //     label: __("Workflow Type"),
-        //     fieldtype: "MultiSelectList",
-        //     options: [],
-        //     default: ["CAD"],
-        //     reqd: 0,
-        //     get_data: function(txt) {
-        //         return frappe.db.get_list("Order", {
-        //             fields: ["distinct workflow_type as value"],
-        //         }).then(r => {
-        //             return r.map(d => {
-        //                 return {
-        //                     value: d.value,
-        //                     description: ""  
-        //                 }
-        //             });
-        //         });
-        //     }
-        // },
+
         {
             fieldname: "bom_or_cad",
             label: __("BOM or CAD"),
@@ -165,36 +146,26 @@ frappe.query_reports["CAD Report"] = {
 
     ],
     onload: function(report) {
-        const restricted_users = [
-        "khushal_r@gkexport.com", "ashish_m@gkexport.com", "rahul_k@gkexport.com",
-        "kaushik_g@gkexport.com", "chandan_d@gkexport.com", "soumaya_d@gkexport.com",
-        "arun_l@gkexport.com", "sudip_k@gkexport.com"
-    ];
+   
 
-    const current_user = frappe.session.user;
-    const branch_field = report.get_filter('designer_branch');
+     frappe.call({
+        method: "frappe.client.get",
+        args: {
+            doctype: "User",
+            name: frappe.session.user
+        },
+        callback: function (res) {
+            const roles = res.message.roles.map(role => role.role);
+            const isSystemManager = roles.includes("System Manager");
 
-    if (restricted_users.includes(current_user)) {
-        // Get branch from Employee
-        frappe.db.get_value('Employee', { user_id: current_user, status: 'Active' }, 'branch')
-            .then(res => {
-                if (res && res.message && res.message.branch) {
-                    const user_branch = res.message.branch;
-
-                    // Set and disable branch filter
-                    if (branch_field) {
-                        branch_field.set_value(user_branch);
-
-                        // Disable after value is set
-                        setTimeout(() => {
-                            branch_field.$wrapper.find('input, select').prop('disabled', true);
-                        }, 100);
-                    }
+            if (!isSystemManager) {
+                const user_filter = report.get_filter("employee");
+                if (user_filter) {
+                    user_filter.$wrapper.hide(); // Hide the filter UI
                 }
-            });
-
-        
-    }
+            }
+        }
+    });
 
         const workflow_type_filter = report.get_filter('workflow_type');
         if (workflow_type_filter) {
