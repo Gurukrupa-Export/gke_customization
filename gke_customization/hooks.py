@@ -117,7 +117,8 @@ has_permission = {
 
 override_doctype_class = {
 	"Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive",
-	"Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin"
+	"Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin",
+    "Parent Manufacturing Order": "gke_customization.overrides.parent_manufacturing_order.CustomParentManufacturingOrder"
 }
 
 # Document Events
