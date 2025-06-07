@@ -284,6 +284,9 @@ doc_events = {
 "Batch": {
     "autoname": "jewellery_erpnext.jewellery_erpnext.customization.batch.batch.autoname",
 },
+"Stock Entry": {
+    "before_validate": "gke_customization.gke_order_forms.doc_events.stock_entry.before_validate",
+}
 }
 app_include_js = [
     '/assets/gke_customization/js/solitaire_calculator.js'
