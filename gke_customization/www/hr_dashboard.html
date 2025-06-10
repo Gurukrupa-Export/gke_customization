@@ -1,0 +1,125 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<div id="debug-info" style="padding: 20px; background: #f5f5f5; margin-bottom: 20px; display: none;">
+    <h3>Debug Information</h3>
+    <div id="status-message">Initializing...</div>
+</div>
+
+<div id="secure-content" style="display: none;">
+    <h2>Metabase Dashboard</h2>
+    <div id="dashboard-container" style="position: relative;">
+        <iframe id="metabase-frame" 
+                src="http://3.108.219.130:3000/public/dashboard/7cf51291-357b-4485-8d68-baf32b730900"
+                width="100%" 
+                height="600" 
+                frameborder="0" 
+                allowtransparency="true"
+                style="display: none;">
+        </iframe>
+        <div id="loading-message" style="text-align: center; padding: 20px;">
+            <h3>Loading secure dashboard...</h3>
+        </div>
+    </div>
+</div>
+
+<div id="unauthorized-message" style="display: none;">
+    <h1>Access Denied</h1>
+    <p>You are not authorized to view this content.</p>
+</div>
+
+<script>
+    function updateStatus(message) {
+        // To see status messages in the browser console, uncomment the next line:
+        // console.log('Status:', message);
+        // To show status messages on the page (e.g., in the debug panel), uncomment the next line:
+        // document.getElementById('status-message').innerHTML = message;
+    }
+
+    // Run security checks when page is ready
+    frappe.ready(function() {
+        updateStatus('Page ready. Checking session...');
+        
+        // Check if user is logged in after frappe is ready
+        if (!frappe.session || !frappe.session.user || frappe.session.user === 'Guest') {
+            updateStatus('No valid session found after ready. Redirecting...');
+            window.location.href = '/login?redirect-to=' + encodeURIComponent(window.location.pathname);
+        } else {
+            const currentUser = frappe.session.user;
+            updateStatus('Logged in as: ' + currentUser + '. Fetching roles from server...');
+
+            // Call server-side method to get user roles from api.py
+            frappe.call({
+                method: 'gke_customization.www.hr_dashboard.get_current_user_roles',
+                callback: function(response) {
+                    console.log('Server response for roles:', response);
+                    const userRoles = response.message;
+                    console.log('User roles from server:', userRoles);
+                    
+                    let isAuthorized = false;
+                    
+                    // Check if user is Administrator or has System Manager role
+                    if (currentUser === 'Administrator') {
+                        isAuthorized = true;
+                        updateStatus('User is Administrator.');
+                    } else if (userRoles && Array.isArray(userRoles)) {
+                        isAuthorized = userRoles.includes('System Manager');
+                         updateStatus('User roles checked from server. Has System Manager role: ' + isAuthorized);
+                    }
+                    
+                    console.log('Is Authorized:', isAuthorized);
+
+                    if (isAuthorized) {
+                        updateStatus('User is authorized. Showing content.');
+                        document.getElementById('secure-content').style.display = 'block';
+                        document.getElementById('loading-message').style.display = 'block';
+                        
+                        // Show iframe after a short delay
+                        setTimeout(function() {
+                            document.getElementById('loading-message').style.display = 'none';
+                            document.getElementById('metabase-frame').style.display = 'block';
+                            updateStatus('Dashboard loaded successfully');
+                        }, 1000);
+                    } else {
+                        updateStatus('Access denied - Not authorized.');
+                        document.getElementById('unauthorized-message').style.display = 'block';
+                        // Redirect to login after a delay if not authorized
+                         setTimeout(function() {
+                             window.location.href = '/login?redirect-to=' + encodeURIComponent(window.location.pathname);
+                         }, 2000);
+                    }
+                },
+                error: function(err) {
+                    updateStatus('Error fetching roles from server: ' + JSON.stringify(err));
+                    document.getElementById('unauthorized-message').style.display = 'block';
+                }
+            });
+        }
+    });
+
+    // Prevent right-click
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+    });
+
+    // Prevent keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && (e.key === 's' || e.key === 'p' || e.key === 'u')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+     // Prevent iframe content from being accessed directly (optional, depends on Metabase setup)
+     window.addEventListener('message', function(e) {
+         // IMPORTANT: Replace "http://3.108.219.130:3000" with your actual Metabase origin if different
+         if (e.origin !== "http://3.108.219.130:3000") {
+             console.warn('Blocked message from untrusted origin:', e.origin);
+             // e.preventDefault(); // Prevent default action if necessary
+             // return false; // Stop propagation if necessary
+         }
+     });
+
+</script>
+{% endblock %}

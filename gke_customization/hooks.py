@@ -117,7 +117,8 @@ has_permission = {
 
 override_doctype_class = {
 	"Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive",
-	"Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin"
+	"Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin",
+    "Parent Manufacturing Order": "gke_customization.overrides.parent_manufacturing_order.CustomParentManufacturingOrder"
 }
 
 # Document Events
@@ -283,6 +284,9 @@ doc_events = {
 "Batch": {
     "autoname": "jewellery_erpnext.jewellery_erpnext.customization.batch.batch.autoname",
 },
+"Stock Entry": {
+    "before_validate": "gke_customization.gke_order_forms.doc_events.stock_entry.before_validate",
+}
 }
 app_include_js = [
     '/assets/gke_customization/js/solitaire_calculator.js'
