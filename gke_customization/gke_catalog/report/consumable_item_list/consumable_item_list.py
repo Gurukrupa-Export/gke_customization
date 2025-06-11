@@ -74,16 +74,15 @@ def get_data(filters):
 
 # Creating HTML thumbnails for all images
         thumbnails = f"""
-<div style="display: flex; justify-content: center; align-items: center; padding: 0; margin: 0; height: 100%;">
-    {''.join([
-        f"""
-        <img src="{url}" 
-            style="height: 50px; width: auto; padding: 0; margin: 0; border-radius: 6px; cursor: pointer;
-                   object-fit: contain; display: block;"
-            onclick="document.getElementById('{modal_id}').style.display='flex'" />
-        """ for url in urls
-    ])}
-</div>
+                <div style="display: flex; justify-content: center; align-items: center; padding: 0; margin: 0; height: 100%;">
+                    {''.join([
+                        f'<img src="{url}" '
+                        f'style="height: 50px; width: auto; padding: 0; margin: 0; border-radius: 6px; cursor: pointer; '
+                        f'object-fit: contain; display: block;" '
+                        f'onclick="document.getElementById(\'{modal_id}\').style.display=\'flex\'" />'
+                        for url in urls
+                    ])}
+                </div>
 """
 # Making HTML for full-size images inside modal
         full_images = "".join([
