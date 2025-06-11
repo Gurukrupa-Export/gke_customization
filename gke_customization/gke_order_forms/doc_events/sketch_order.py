@@ -13,13 +13,12 @@ from frappe.utils import (
 # with filters
 # ?from_date=2025-06-03&to_date=2025-06-05&company=Gurukrupa%20Export%20Private%20Limited&sof_docstatus=1
 
-
 @frappe.whitelist()
 def get_sketch_order(from_date=None, to_date=None, company=None, sof_docstatus=None, branch=None, sketch_order_form=None, customer=None, workflow_state=None, docstatus=None):
     from_date = frappe.utils.getdate(from_date)
     to_date = frappe.utils.getdate(to_date)
-    sof_doc_status = int(sof_docstatus)
-   
+    sof_doc_status = int(sof_docstatus) or 0
+    
     filters = {
         'order_date': ["between", [from_date, to_date]],
         'company': company,
@@ -39,6 +38,7 @@ def get_sketch_order(from_date=None, to_date=None, company=None, sof_docstatus=N
             filters = filters,
             fields=["name", "docstatus", "company", "branch","workflow_state","order_date","customer_code"]
         )
+        # frappe.throw(f"{sketch_order_forms}")
 
         valid_sketch_order_forms = []
         for form in sketch_order_forms:
@@ -57,8 +57,8 @@ def get_sketch_order(from_date=None, to_date=None, company=None, sof_docstatus=N
                         "creation","owner","modified","_assign"
                         ]
             )
-            if not orders:
-                continue
+            # if not orders:
+            #     continue
 
             for order in orders:
                 final_items = frappe.db.get_all("Final Sketch Approval CMO",
@@ -105,13 +105,14 @@ def get_sketch_order(from_date=None, to_date=None, company=None, sof_docstatus=N
                 order["workflow_state"] = order.pop("workflow_state")
                 order["items"] = final_items
             
-            
-            form["sof_docstatus"] = form.pop("docstatus")
-            form["sketch_orderform_id"] = form.pop("name")
-            form["sof_workflow_state"] = form.pop("workflow_state")
-            form["sketch_order"] = orders  # Attach enriched orders to the form
-            
-            valid_sketch_order_forms.append(form)  # ✅ Collect only valid forms
+            if form["docstatus"] == 0 or orders:
+                form["sof_docstatus"] = form.pop("docstatus")
+                form["sketch_orderform_id"] = form.pop("name")
+                form["sof_workflow_state"] = form.pop("workflow_state")
+                if orders:
+                    form["sketch_order"] = orders 
+                
+                valid_sketch_order_forms.append(form) 
 
     return valid_sketch_order_forms
 
