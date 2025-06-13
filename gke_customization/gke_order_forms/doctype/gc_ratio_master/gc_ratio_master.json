@@ -1,0 +1,46 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-09 17:14:35.422985",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_3gbl",
+  "gc_ratio"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_3gbl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "gc_ratio",
+   "fieldtype": "Table",
+   "label": "GC Ratio",
+   "options": "GC Ratio"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-06-09 17:28:30.891651",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "GC Ratio Master",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
