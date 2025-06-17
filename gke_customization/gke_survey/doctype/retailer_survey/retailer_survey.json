@@ -87,16 +87,11 @@
   "other_key_considerations",
   "tab_3",
   "ope_comer_section",
-  "que_13",
-  "fixed_rent",
-  "revenue_share_13",
-  "hybrid",
-  "open_to_discussion",
   "que_14",
-  "less_100",
-  "100_150_sq",
-  "150_200_sq",
-  "more_200",
+  "sq_1",
+  "sq_2",
+  "sq_3",
+  "sq_4",
   "other_14",
   "other_preferred_sizeallocation",
   "que_15",
@@ -544,73 +539,20 @@
    "label": "3: Operational & Commercial Considerations"
   },
   {
-   "fieldname": "que_13",
-   "fieldtype": "Heading",
-   "label": "13. What kind of commercial model would you prefer for such a partnership?"
-  },
-  {
    "default": "0",
    "fieldname": "revenue_share_12",
    "fieldtype": "Check",
    "label": "Revenue share"
   },
   {
-   "default": "0",
-   "fieldname": "fixed_rent",
-   "fieldtype": "Check",
-   "label": "Fixed rent"
-  },
-  {
-   "default": "0",
-   "fieldname": "revenue_share_13",
-   "fieldtype": "Check",
-   "label": "Revenue share"
-  },
-  {
-   "default": "0",
-   "fieldname": "hybrid",
-   "fieldtype": "Check",
-   "label": "Hybrid (Rent + Revenue share)"
-  },
-  {
-   "default": "0",
-   "fieldname": "open_to_discussion",
-   "fieldtype": "Check",
-   "label": "Open to discussion"
-  },
-  {
    "fieldname": "que_14",
    "fieldtype": "Heading",
-   "label": "14. Preferred size/allocation available for such a store-in-store (sq. ft.)"
-  },
-  {
-   "default": "0",
-   "fieldname": "less_100",
-   "fieldtype": "Check",
-   "label": "Less than 100 sq. ft."
-  },
-  {
-   "default": "0",
-   "fieldname": "100_150_sq",
-   "fieldtype": "Check",
-   "label": "100\u2013150 sq. ft."
-  },
-  {
-   "default": "0",
-   "fieldname": "150_200_sq",
-   "fieldtype": "Check",
-   "label": "150\u2013200 sq. ft."
-  },
-  {
-   "default": "0",
-   "fieldname": "more_200",
-   "fieldtype": "Check",
-   "label": "More than 200 sq. ft."
+   "label": "13. Preferred size/allocation available for such a store-in-store (sq. ft.)"
   },
   {
    "fieldname": "que_15",
    "fieldtype": "Heading",
-   "label": "15. Do you have any existing unused or underutilized retail space suitable for a diamond jewellery counter?"
+   "label": "14. Do you have any existing unused or underutilized retail space suitable for a diamond jewellery counter?"
   },
   {
    "default": "0",
@@ -633,7 +575,7 @@
   {
    "fieldname": "que_16",
    "fieldtype": "Heading",
-   "label": "16. What additional support or assurance would you expect from the jewellery brand?"
+   "label": "15. What additional support or assurance would you expect from the jewellery brand?"
   },
   {
    "default": "0",
@@ -690,12 +632,12 @@
   {
    "fieldname": "que_17",
    "fieldtype": "Small Text",
-   "label": "17. Which jewellery brands are most recognized or requested by your customers?"
+   "label": "16. Which jewellery brands are most recognized or requested by your customers?"
   },
   {
    "fieldname": "que_18",
    "fieldtype": "Heading",
-   "label": "18. What price range do you think customers in your store are most comfortable with for diamond jewellery?"
+   "label": "17. What price range do you think customers in your store are most comfortable with for diamond jewellery?"
   },
   {
    "default": "0",
@@ -724,7 +666,7 @@
   {
    "fieldname": "que_19",
    "fieldtype": "Heading",
-   "label": "19. What kind of jewellery formats do you believe would work best in your store?"
+   "label": "18. What kind of jewellery formats do you believe would work best in your store?"
   },
   {
    "default": "0",
@@ -753,17 +695,17 @@
   {
    "fieldname": "que_20",
    "fieldtype": "Small Text",
-   "label": "20. Are there any concerns you have about introducing a diamond jewellery section in your store?"
+   "label": "19. Are there any concerns you have about introducing a diamond jewellery section in your store?"
   },
   {
    "fieldname": "que_21",
    "fieldtype": "Small Text",
-   "label": "21. What value would you expect such a partnership to add to your current business?"
+   "label": "20. What value would you expect such a partnership to add to your current business?"
   },
   {
    "fieldname": "que_22",
    "fieldtype": "Heading",
-   "label": "22. Would you be open to a follow-up meeting or discussion with the brand team?"
+   "label": "21. Would you be open to a follow-up meeting or discussion with the brand team?"
   },
   {
    "default": "0",
@@ -844,7 +786,7 @@
   {
    "fieldname": "que_23",
    "fieldtype": "Heading",
-   "label": "23. The courier service(s) Preference"
+   "label": "22. The courier service(s) Preference"
   },
   {
    "default": "0",
@@ -865,8 +807,9 @@
    "label": "FedEx"
   },
   {
+   "default": "0",
    "fieldname": "check_23_4",
-   "fieldtype": "Data",
+   "fieldtype": "Check",
    "label": "Others"
   },
   {
@@ -896,12 +839,6 @@
    "fieldname": "check_23_7",
    "fieldtype": "Check",
    "label": "Jai Matadi Courier"
-  },
-  {
-   "default": "0",
-   "fieldname": "check_23_8",
-   "fieldtype": "Check",
-   "label": "BVC Logistics"
   },
   {
    "fieldname": "store_image1",
@@ -940,11 +877,41 @@
   {
    "fieldname": "section_break_w2px",
    "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "sq_1",
+   "fieldtype": "Check",
+   "label": "1 Sq. meter"
+  },
+  {
+   "default": "0",
+   "fieldname": "sq_2",
+   "fieldtype": "Check",
+   "label": "2 Sq. meter"
+  },
+  {
+   "default": "0",
+   "fieldname": "sq_3",
+   "fieldtype": "Check",
+   "label": "3 Sq. meter"
+  },
+  {
+   "default": "0",
+   "fieldname": "sq_4",
+   "fieldtype": "Check",
+   "label": "4 Sq. meter"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_23_8",
+   "fieldtype": "Check",
+   "label": "BVC Logistics"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-21 10:59:56.346592",
+ "modified": "2025-06-17 15:16:36.868585",
  "modified_by": "Administrator",
  "module": "GKE SURVEY",
  "name": "Retailer Survey",
