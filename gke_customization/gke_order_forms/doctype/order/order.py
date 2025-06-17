@@ -53,7 +53,14 @@ class Order(Document):
 			timesheet.run_method('submit')
 		if self.workflow_state == 'Update BOM' and self.design_type == 'Sketch Design':
 			update_variant_attributes(self)
-		
+	
+	def on_cancel(self):
+		if frappe.db.get_list("Timesheet",filters={"order":self.name},fields="name"):
+			for timesheet in frappe.db.get_list("Timesheet",filters={"order",self.name},fields="name"):
+				frappe.db.set_value("Timesheet",timesheet["name"],"docstatus","2")
+
+		frappe.db.set_value("Order",self.name,"workflow_state","Cancelled")
+		self.reload()
 
 def calculate_metal_weights(self):
 	total_metal_weight = 0
@@ -133,7 +140,40 @@ def calculate_total(self):
 	self.metal_to_diamond_ratio_excl_of_finding = (
 		flt(self.metal_weight) / flt(self.diamond_weight) if self.diamond_weight else 0
 	)
+	if self.gold_to_diamond_ratio:
+		ratio_value = float(self.gold_to_diamond_ratio)
+
+		# Fetch the single GC Ratio Master document
+		gc_ratio_master = frappe.get_single("GC Ratio Master")
+		for row in gc_ratio_master.gc_ratio:
+			range_text = row.metal_to_gold_ratio_group.strip()
+
+			try:
+				if '-' in range_text:
+					lower, upper = [float(x.strip()) for x in range_text.split('-')]
+					if lower <= ratio_value <= upper:
+						self.rating = row.rating
+						# frappe.msgprint(f"Found rating: {row.rating} for ratio {ratio_value} in range {lower}-{upper}")
+						break
+
+				elif 'Above' in range_text:
+					threshold = float(range_text.replace('Above', '').strip())
+					if ratio_value > threshold:
+						self.rating = row.rating
+						# frappe.msgprint(f"Found rating: {row.rating} for ratio {ratio_value} above {threshold}")
+						break
+
+				elif 'Below' in range_text:
+					threshold = float(range_text.replace('Below', '').strip())
+					if ratio_value < threshold:
+						self.rating = row.rating
+						# frappe.msgprint(f"Found rating: {row.rating} for ratio {ratio_value} below {threshold}")
+						break
+
+			except ValueError:
+				frappe.msgprint(f"Skipping invalid range value: {range_text}")
 	# net_wt_add_on
+
 
 def cerate_timesheet(self):
 	if not self.customer_order_form:
