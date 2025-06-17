@@ -1,5 +1,6 @@
 # Copyright (c) 2023, Nirali and contributors
 # For license information, please see license.txt
+# check push
 from __future__ import unicode_literals
 from frappe.utils import flt
 import frappe
@@ -132,7 +133,40 @@ def calculate_total(self):
 	self.metal_to_diamond_ratio_excl_of_finding = (
 		flt(self.metal_weight) / flt(self.diamond_weight) if self.diamond_weight else 0
 	)
+	if self.gold_to_diamond_ratio:
+		ratio_value = float(self.gold_to_diamond_ratio)
+
+		# Fetch the single GC Ratio Master document
+		gc_ratio_master = frappe.get_single("GC Ratio Master")
+		for row in gc_ratio_master.gc_ratio:
+			range_text = row.metal_to_gold_ratio_group.strip()
+
+			try:
+				if '-' in range_text:
+					lower, upper = [float(x.strip()) for x in range_text.split('-')]
+					if lower <= ratio_value <= upper:
+						self.rating = row.rating
+						# frappe.msgprint(f"Found rating: {row.rating} for ratio {ratio_value} in range {lower}-{upper}")
+						break
+
+				elif 'Above' in range_text:
+					threshold = float(range_text.replace('Above', '').strip())
+					if ratio_value > threshold:
+						self.rating = row.rating
+						# frappe.msgprint(f"Found rating: {row.rating} for ratio {ratio_value} above {threshold}")
+						break
+
+				elif 'Below' in range_text:
+					threshold = float(range_text.replace('Below', '').strip())
+					if ratio_value < threshold:
+						self.rating = row.rating
+						# frappe.msgprint(f"Found rating: {row.rating} for ratio {ratio_value} below {threshold}")
+						break
+
+			except ValueError:
+				frappe.msgprint(f"Skipping invalid range value: {range_text}")
 	# net_wt_add_on
+
 
 def cerate_timesheet(self):
 	if not self.customer_order_form:
