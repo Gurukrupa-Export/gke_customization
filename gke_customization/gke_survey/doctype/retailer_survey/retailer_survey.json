@@ -129,7 +129,7 @@
   "check_23_1",
   "check_23_2",
   "check_23_3",
-  "check_23_4",
+  "check23_4",
   "other_23",
   "column_break_ayzh",
   "check_23_5",
@@ -807,13 +807,7 @@
    "label": "FedEx"
   },
   {
-   "default": "0",
-   "fieldname": "check_23_4",
-   "fieldtype": "Check",
-   "label": "Others"
-  },
-  {
-   "depends_on": "eval:doc.check_23_4 == 1",
+   "depends_on": "eval:doc.check23_4 == 1",
    "fieldname": "other_23",
    "fieldtype": "Small Text",
    "label": "Others courier service(s) Preference"
@@ -907,11 +901,17 @@
    "fieldname": "check_23_8",
    "fieldtype": "Check",
    "label": "BVC Logistics"
+  },
+  {
+   "default": "0",
+   "fieldname": "check23_4",
+   "fieldtype": "Check",
+   "label": "Other Courier Service"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-17 15:16:36.868585",
+ "modified": "2025-06-18 09:50:02.766090",
  "modified_by": "Administrator",
  "module": "GKE SURVEY",
  "name": "Retailer Survey",
