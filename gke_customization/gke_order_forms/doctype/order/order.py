@@ -1264,10 +1264,13 @@ def update_item_variant(item_variant,item_template):
 		"variant_of" : item_template
 	})
 
-def create_bom(self,item_variant):
-	bom_doc = frappe.get_doc("BOM",self.bom)
-	new_bom_doc = frappe.new_doc("BOM")
-	new_bom_doc = bom_doc
+
+
+def create_bom(self, item_variant):
+	bom_doc = frappe.get_doc("BOM", self.bom)
+
+	# Create a copy of the BOM
+	new_bom_doc = frappe.copy_doc(bom_doc)
 	new_bom_doc.docstatus = 0
 	new_bom_doc.name = ''
 	new_bom_doc.is_active = 1
@@ -1277,9 +1280,47 @@ def create_bom(self,item_variant):
 	new_bom_doc.custom_order_form_type = 'Order'
 	new_bom_doc.custom_cad_order_form_id = self.cad_order_form
 	new_bom_doc.custom_order_id = self.name
-	new_bom_doc.save()
 
+	# If metal_type is Silver, update metal details and convert quantities
+	if self.metal_type and  self.mod_reason == "Change In Metal Type" and self.metal_type.strip().lower() == "silver":
+		# Fetch Jewellery Settings
+		settings = frappe.get_single("Jewellery Settings")
+		wax_to_gold_10 = settings.wax_to_gold_10
+		wax_to_gold_14 = settings.wax_to_gold_14
+		wax_to_gold_18 = settings.wax_to_gold_18
+		wax_to_gold_22 = settings.wax_to_gold_22
+		wax_to_silver_ratio = settings.wax_to_silver
+
+		# Update each row in new BOM's metal_detail
+		for new_row, original_row in zip(new_bom_doc.metal_detail, bom_doc.metal_detail):
+			new_row.metal_type = "Silver"
+			new_row.metal_touch = self.metal_touch
+			new_row.metal_colour = self.metal_colour
+
+			# Perform conversion based on original metal_touch
+			if original_row.metal_touch == "10KT":
+				converted_qty = (original_row.quantity / wax_to_gold_10) * wax_to_silver_ratio
+			elif original_row.metal_touch == "14KT":
+				converted_qty = (original_row.quantity / wax_to_gold_14) * wax_to_silver_ratio
+			elif original_row.metal_touch == "18KT":
+				converted_qty = (original_row.quantity / wax_to_gold_18) * wax_to_silver_ratio
+			elif original_row.metal_touch == "22KT":
+				converted_qty = (original_row.quantity / wax_to_gold_22) * wax_to_silver_ratio
+			else:
+				# If not matched, keep original quantity
+				converted_qty = original_row.quantity
+
+			new_row.quantity = converted_qty
+
+		# Update BOM-level fields
+		new_bom_doc.metal_type = self.metal_type
+		new_bom_doc.metal_touch = self.metal_touch
+		new_bom_doc.metal_colour = self.metal_colour
+
+	
+	new_bom_doc.save()
 	return new_bom_doc.name
+
 
 def create_bom_for_touch(self,item_variant=None):
 	bom_doc = frappe.get_doc("BOM",self.bom)
