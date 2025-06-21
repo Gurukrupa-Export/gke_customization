@@ -803,68 +803,137 @@ def cerate_bom_timesheet(self):
 					frappe.throw("Timesheets is not created for each designer assignment")
 			# frappe.msgprint("Timesheets Created for each bom designer assignment")
 
+# def create_line_items(self):
+# 	# if not self.customer_order_form: 
+# 	item_variant = ''
+# 	if self.item_type == 'Template and Variant':
+# 		# if self.design_type != 'Sketch Design':
+# 		if self.subcategory != frappe.db.get_value("Item",self.design_id,"item_subcategory"):
+# 			if self.design_type != 'New Design':
+# 				design_id = frappe.db.get_value('Order',self.name,'design_id')
+# 				variant_of = frappe.db.get_value("Item",design_id,"variant_of")
+# 				attribute_list = make_atribute_list(self.name)
+# 				validate_variant_attributes(variant_of,attribute_list)
+
+# 			item_template = create_item_template_from_order(self)
+# 			updatet_item_template(item_template)
+# 			item_variant = create_variant_of_template_from_order(item_template,self.name)
+# 			update_item_variant(item_variant,item_template)
+# 			frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant))))
+# 			frappe.db.set_value(self.doctype, self.name, "item", item_variant)
+# 			self.reload()
+# 		# else:
+# 		# 	frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
+# 		# 	self.reload()
+
+# 	elif self.item_type == 'Only Variant':
+# 		# if self.subcategory != frappe.db.get_value("Item","design_id","item_subcategory"):
+
+# 		design_id = frappe.db.get_value('Order',self.name,'design_id')
+# 		# variant_of = frappe.db.get_value("Item",design_id,"variant_of")
+# 		# attribute_list = make_atribute_list(self.name)
+# 		# validate_variant_attributes(variant_of,attribute_list)
+
+# 		item_variant = create_only_variant_from_order(self,self.name)
+# 		frappe.db.set_value('Item',item_variant[0],{
+# 			"is_design_code":1,
+# 			"variant_of" : item_variant[1]
+# 		})
+# 		frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant[0]))))
+# 		frappe.db.set_value(self.doctype, self.name, "item", item_variant[0])
+# 		self.reload()
+# 		# else:
+# 		# 	frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
+# 		# 	self.reload()
+		
+# 	elif self.item_type == 'No Variant No Suffix':
+# 		if not self.is_finding_order:
+# 			item_variant = self.design_id
+# 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
+# 			frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
+# 			self.reload()
+# 			if self.bom_or_cad in ['New BOM','CAD'] and self.is_repairing == 1 :
+# 				new_bom = create_bom(self,item_variant)
+# 				frappe.db.set_value("Order",self.name,"new_bom",new_bom)
+# 			elif self.design_type == 'Sketch Design':
+# 				update_variant_attributes(self)
+# 				frappe.db.set_value("Item",self.design_id,"custom_cad_order_id",self.name)
+# 				frappe.db.set_value("Item",self.design_id,"custom_cad_order_form_id",self.cad_order_form)
+# 			# else:
+# 			# 	frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
+# 		else:
+# 			item_variant = self.item
+
+# 	return	item_variant
+
+
 def create_line_items(self):
-	# if not self.customer_order_form: 
+	
+	sketch_order_form_id = frappe.db.get_value("Item", self.design_id, "custom_sketch_order_id")
+	custom_sketch_order_form_id = frappe.db.get_value("Item", self.design_id, "custom_sketch_order_form_id")
+
 	item_variant = ''
+	new_item_created = False  # Flag to track if a new item is created
+
 	if self.item_type == 'Template and Variant':
-		# if self.design_type != 'Sketch Design':
-		if self.subcategory != frappe.db.get_value("Item",self.design_id,"item_subcategory"):
-			if self.design_type != 'New Design':
-				design_id = frappe.db.get_value('Order',self.name,'design_id')
-				variant_of = frappe.db.get_value("Item",design_id,"variant_of")
-				attribute_list = make_atribute_list(self.name)
-				validate_variant_attributes(variant_of,attribute_list)
+		item_template = create_item_template_from_order(self)
+		updatet_item_template(item_template)
+		item_variant = create_variant_of_template_from_order(item_template, self.name)
+		update_item_variant(item_variant, item_template)
 
-			item_template = create_item_template_from_order(self)
-			updatet_item_template(item_template)
-			item_variant = create_variant_of_template_from_order(item_template,self.name)
-			update_item_variant(item_variant,item_template)
-			frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant))))
-			frappe.db.set_value(self.doctype, self.name, "item", item_variant)
-			self.reload()
-		# else:
-		# 	frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
-		# 	self.reload()
+		# Set custom_sketch_order_id to the new variant
+		frappe.db.set_value("Item", item_variant, "custom_sketch_order_id", sketch_order_form_id)
+		frappe.db.set_value("Item", item_variant, "custom_sketch_order_form_id", custom_sketch_order_form_id)
 
+		frappe.db.set_value(self.doctype, self.name, "item", item_variant)
+		self.reload()
+		new_item_created = True
+		frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item", item_variant))))
+		
 	elif self.item_type == 'Only Variant':
-		# if self.subcategory != frappe.db.get_value("Item","design_id","item_subcategory"):
+		design_id = frappe.db.get_value('Order', self.name, 'design_id')
+		item_variant = create_only_variant_from_order(self, self.name)
 
-		design_id = frappe.db.get_value('Order',self.name,'design_id')
-		# variant_of = frappe.db.get_value("Item",design_id,"variant_of")
-		# attribute_list = make_atribute_list(self.name)
-		# validate_variant_attributes(variant_of,attribute_list)
-
-		item_variant = create_only_variant_from_order(self,self.name)
-		frappe.db.set_value('Item',item_variant[0],{
-			"is_design_code":1,
-			"variant_of" : item_variant[1]
+		frappe.db.set_value('Item', item_variant[0], {
+			"is_design_code": 1,
+			"variant_of": item_variant[1],
+			"custom_sketch_order_id": sketch_order_form_id,
+			"custom_sketch_order_form_id": custom_sketch_order_form_id
 		})
-		frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant[0]))))
+
 		frappe.db.set_value(self.doctype, self.name, "item", item_variant[0])
 		self.reload()
-		# else:
-		# 	frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
-		# 	self.reload()
-		
+		new_item_created = True
+		frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item", item_variant[0]))))
+
 	elif self.item_type == 'No Variant No Suffix':
 		if not self.is_finding_order:
 			item_variant = self.design_id
 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 			frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
 			self.reload()
-			if self.bom_or_cad in ['New BOM','CAD'] and self.is_repairing == 1 :
-				new_bom = create_bom(self,item_variant)
-				frappe.db.set_value("Order",self.name,"new_bom",new_bom)
+
+			if self.bom_or_cad in ['New BOM', 'CAD'] and self.is_repairing == 1:
+				new_bom = create_bom(self, item_variant)
+				frappe.db.set_value("Order", self.name, "new_bom", new_bom)
+
 			elif self.design_type == 'Sketch Design':
 				update_variant_attributes(self)
-				frappe.db.set_value("Item",self.design_id,"custom_cad_order_id",self.name)
-				frappe.db.set_value("Item",self.design_id,"custom_cad_order_form_id",self.cad_order_form)
-			# else:
-			# 	frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
+				frappe.db.set_value("Item", self.design_id, "custom_cad_order_id", self.name)
+				frappe.db.set_value("Item", self.design_id, "custom_cad_order_form_id", self.cad_order_form)
+
+			# Set sketch order IDs
+			frappe.db.set_value("Item", self.design_id, "custom_sketch_order_id", sketch_order_form_id)
+			frappe.db.set_value("Item", item_variant, "custom_sketch_order_form_id", custom_sketch_order_form_id)
 		else:
 			item_variant = self.item
 
-	return	item_variant
+	# Set item_remark based on whether a new item was created
+	frappe.db.set_value(self.doctype, self.name, "item_remark", "New Item" if new_item_created else "Copy Paste Item")
+
+	return item_variant
+
+
 
 def create_item_template_from_order(source_name, target_doc=None):
 	def post_process(source, target):
@@ -1203,10 +1272,13 @@ def update_item_variant(item_variant,item_template):
 		"variant_of" : item_template
 	})
 
-def create_bom(self,item_variant):
-	bom_doc = frappe.get_doc("BOM",self.bom)
-	new_bom_doc = frappe.new_doc("BOM")
-	new_bom_doc = bom_doc
+
+
+def create_bom(self, item_variant):
+	bom_doc = frappe.get_doc("BOM", self.bom)
+
+	# Create a copy of the BOM
+	new_bom_doc = frappe.copy_doc(bom_doc)
 	new_bom_doc.docstatus = 0
 	new_bom_doc.name = ''
 	new_bom_doc.is_active = 1
@@ -1216,9 +1288,47 @@ def create_bom(self,item_variant):
 	new_bom_doc.custom_order_form_type = 'Order'
 	new_bom_doc.custom_cad_order_form_id = self.cad_order_form
 	new_bom_doc.custom_order_id = self.name
-	new_bom_doc.save()
 
+	# If metal_type is Silver, update metal details and convert quantities
+	if self.metal_type and  self.mod_reason == "Change In Metal Type" and self.metal_type.strip().lower() == "silver":
+		# Fetch Jewellery Settings
+		settings = frappe.get_single("Jewellery Settings")
+		wax_to_gold_10 = settings.wax_to_gold_10
+		wax_to_gold_14 = settings.wax_to_gold_14
+		wax_to_gold_18 = settings.wax_to_gold_18
+		wax_to_gold_22 = settings.wax_to_gold_22
+		wax_to_silver_ratio = settings.wax_to_silver
+
+		# Update each row in new BOM's metal_detail
+		for new_row, original_row in zip(new_bom_doc.metal_detail, bom_doc.metal_detail):
+			new_row.metal_type = "Silver"
+			new_row.metal_touch = self.metal_touch
+			new_row.metal_colour = self.metal_colour
+
+			# Perform conversion based on original metal_touch
+			if original_row.metal_touch == "10KT":
+				converted_qty = (original_row.quantity / wax_to_gold_10) * wax_to_silver_ratio
+			elif original_row.metal_touch == "14KT":
+				converted_qty = (original_row.quantity / wax_to_gold_14) * wax_to_silver_ratio
+			elif original_row.metal_touch == "18KT":
+				converted_qty = (original_row.quantity / wax_to_gold_18) * wax_to_silver_ratio
+			elif original_row.metal_touch == "22KT":
+				converted_qty = (original_row.quantity / wax_to_gold_22) * wax_to_silver_ratio
+			else:
+				# If not matched, keep original quantity
+				converted_qty = original_row.quantity
+
+			new_row.quantity = converted_qty
+
+		# Update BOM-level fields
+		new_bom_doc.metal_type = self.metal_type
+		new_bom_doc.metal_touch = self.metal_touch
+		new_bom_doc.metal_colour = self.metal_colour
+
+	
+	new_bom_doc.save()
 	return new_bom_doc.name
+
 
 def create_bom_for_touch(self,item_variant=None):
 	bom_doc = frappe.get_doc("BOM",self.bom)

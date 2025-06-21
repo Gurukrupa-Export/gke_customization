@@ -1689,6 +1689,12 @@
 "link_fieldname": "custom_cad_order_id"
 },
 {
+"fieldname": "item_remark",
+"fieldtype": "Select",
+"label": "Item Remark",
+"options": "\nNew Item\nCopy Paste Item"
+},
+{
 "link_doctype": "BOM",
 "link_fieldname": "custom_order_id"
 },
