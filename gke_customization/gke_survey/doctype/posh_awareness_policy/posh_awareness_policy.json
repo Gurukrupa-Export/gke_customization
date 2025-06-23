@@ -1,0 +1,1738 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-06 12:33:19.655656",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "employee_id",
+  "employee_name",
+  "company",
+  "language",
+  "column_break_zrkq",
+  "punching_id",
+  "designation",
+  "department",
+  "section_break_qxbj",
+  "que1",
+  "op1",
+  "op2",
+  "op3",
+  "op4",
+  "que2",
+  "yr1",
+  "yr2",
+  "yr3",
+  "yr4",
+  "que3",
+  "act1",
+  "act2",
+  "act3",
+  "act4",
+  "que4",
+  "opt1",
+  "opt2",
+  "opt3",
+  "opt4",
+  "sect1",
+  "que5",
+  "no1",
+  "no2",
+  "no3",
+  "no4",
+  "que6",
+  "ofcr1",
+  "ofcr2",
+  "ofcr3",
+  "ofcr4",
+  "que7",
+  "org1",
+  "org2",
+  "org3",
+  "org4",
+  "que8",
+  "days1",
+  "days2",
+  "days3",
+  "days4",
+  "sect2",
+  "que9",
+  "quid1",
+  "quid2",
+  "quid3",
+  "quid4",
+  "que10",
+  "ex1",
+  "ex2",
+  "ex3",
+  "ex4",
+  "que11",
+  "har1",
+  "har2",
+  "har3",
+  "har4",
+  "que12",
+  "frm1",
+  "frm2",
+  "frm3",
+  "frm4",
+  "legal_and_disciplinary_aspects_section",
+  "que13",
+  "rs1",
+  "rs2",
+  "rs3",
+  "r4",
+  "que14",
+  "dr1",
+  "dr2",
+  "dr3",
+  "dr4",
+  "que15",
+  "y1",
+  "y2",
+  "y3",
+  "y4",
+  "complaint_process_section",
+  "que16",
+  "tym1",
+  "tym2",
+  "tym3",
+  "tym4",
+  "que17",
+  "day1",
+  "day2",
+  "day3",
+  "day4",
+  "que18",
+  "timeline1",
+  "timeline2",
+  "timeline3",
+  "timeline4",
+  "real_world_incidents",
+  "que19",
+  "com1",
+  "com2",
+  "com3",
+  "com4",
+  "que20",
+  "false1",
+  "false2",
+  "false3",
+  "false4",
+  "details_2_tab",
+  "column_break_zzoj",
+  "que21",
+  "mean1",
+  "mean2",
+  "mean3",
+  "mean4",
+  "que22",
+  "date1",
+  "date2",
+  "date3",
+  "date4",
+  "que23",
+  "case1",
+  "case2",
+  "case3",
+  "case4",
+  "que24",
+  "gen1",
+  "gen2",
+  "gen3",
+  "gen4",
+  "section_break_c7af",
+  "que25",
+  "min1",
+  "min2",
+  "min3",
+  "min4",
+  "que26",
+  "po1",
+  "po2",
+  "po3",
+  "po4",
+  "que27",
+  "head1",
+  "head2",
+  "headd3",
+  "head4",
+  "que28",
+  "dayss1",
+  "dayss2",
+  "dayss3",
+  "dayss4",
+  "section_break_noox",
+  "que29",
+  "mean10",
+  "mean20",
+  "mean30",
+  "mean40",
+  "que30",
+  "eg1",
+  "eg2",
+  "eg3",
+  "eg4",
+  "que31",
+  "tell1",
+  "tell2",
+  "tell3",
+  "tell4",
+  "que32",
+  "noposh1",
+  "noposh2",
+  "noposh3",
+  "noposh4",
+  "section_break_c3mc",
+  "que33",
+  "inr1",
+  "inr2",
+  "inr3",
+  "inr4",
+  "que34",
+  "yer1",
+  "yer2",
+  "yer3",
+  "yer4",
+  "que35",
+  "yes1",
+  "yes2",
+  "yes3",
+  "yes4",
+  "section_break_rvzg",
+  "que36",
+  "final1",
+  "final2",
+  "final3",
+  "final4",
+  "que37",
+  "finall1",
+  "finall2",
+  "finall3",
+  "finall4",
+  "que38",
+  "action1",
+  "action2",
+  "action3",
+  "action4",
+  "section_break_l1vw",
+  "que39",
+  "company1",
+  "company2",
+  "company3",
+  "company4",
+  "que40",
+  "case10",
+  "case20",
+  "case30",
+  "case40"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee_id",
+   "fieldtype": "Link",
+   "label": " Employee Id",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "language",
+   "fieldtype": "Select",
+   "label": "Language",
+   "options": "\nEnglish\nHindi"
+  },
+  {
+   "fieldname": "column_break_zrkq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "punching_id",
+   "fieldtype": "Data",
+   "label": "Punching ID"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "section_break_qxbj",
+   "fieldtype": "Section Break",
+   "label": "General  Understanding"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que1",
+   "fieldtype": "Heading",
+   "label": "1. What does POSH stand for ?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "op1",
+   "fieldtype": "Check",
+   "label": "Protection of Society from Harm"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "op2",
+   "fieldtype": "Check",
+   "label": "Prevention of Sexual Harassment"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "op3",
+   "fieldtype": "Check",
+   "label": "Prevention of Office Stress and Harassment"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "op4",
+   "fieldtype": "Check",
+   "label": "Policy on Sexual Health"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que2",
+   "fieldtype": "Heading",
+   "label": "2. When was the POSH Act implemented in India?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "yr1",
+   "fieldtype": "Check",
+   "label": "2011"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "yr2",
+   "fieldtype": "Check",
+   "label": "1997"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "yr3",
+   "fieldtype": "Check",
+   "label": "2013"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "yr4",
+   "fieldtype": "Check",
+   "label": "2015"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que3",
+   "fieldtype": "Heading",
+   "label": "3. Which landmark case laid the foundation for the POSH Act?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "act1",
+   "fieldtype": "Check",
+   "label": "Nirbhaya Case"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "act2",
+   "fieldtype": "Check",
+   "label": "Vishaka Judgment"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "act3",
+   "fieldtype": "Check",
+   "label": "Priya Sharma Case"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "act4",
+   "fieldtype": "Check",
+   "label": "Bhanwari Devi Case"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que4",
+   "fieldtype": "Heading",
+   "label": "4. The POSH Act applies to which gender?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "opt1",
+   "fieldtype": "Check",
+   "label": "Only men"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "opt2",
+   "fieldtype": "Check",
+   "label": " Only women"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "opt3",
+   "fieldtype": "Check",
+   "label": "All genders equally"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "opt4",
+   "fieldtype": "Check",
+   "label": "Women (under POSH), men can seek protection under IPC"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "sect1",
+   "fieldtype": "Section Break",
+   "label": "Committees and Applicability"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que5",
+   "fieldtype": "Heading",
+   "label": "5. What is the minimum number of employees required to form an Internal Committee(IC)?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "no1",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "no2",
+   "fieldtype": "Check",
+   "label": "10"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "no3",
+   "fieldtype": "Check",
+   "label": "15"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "no4",
+   "fieldtype": "Check",
+   "label": "20"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que6",
+   "fieldtype": "Heading",
+   "label": "6. Who must be the Presiding Officer of the IC?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "ofcr1",
+   "fieldtype": "Check",
+   "label": "Male Manager"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "ofcr2",
+   "fieldtype": "Check",
+   "label": "External Lawyer"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "ofcr3",
+   "fieldtype": "Check",
+   "label": "Senior Woman Employee"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "ofcr4",
+   "fieldtype": "Check",
+   "label": " HR Executive"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que7",
+   "fieldtype": "Heading",
+   "label": "7. If an organization has fewer than 10 employees, where can a complaint be submitted?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "org1",
+   "fieldtype": "Check",
+   "label": "HR Department"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "org2",
+   "fieldtype": "Check",
+   "label": "Local Complaints Committee (LCC)"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "org3",
+   "fieldtype": "Check",
+   "label": "Police Station"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "org4",
+   "fieldtype": "Check",
+   "label": "Head Office"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que8",
+   "fieldtype": "Heading",
+   "label": "8.The IC must complete an inquiry within how many days?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "days1",
+   "fieldtype": "Check",
+   "label": "30 days"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "days2",
+   "fieldtype": "Check",
+   "label": "45 days"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "days3",
+   "fieldtype": "Check",
+   "label": "60 days"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "days4",
+   "fieldtype": "Check",
+   "label": "90 days"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "sect2",
+   "fieldtype": "Section Break",
+   "label": "Types and Forms of Harassment"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que9",
+   "fieldtype": "Heading",
+   "label": "9. Quid Pro Quo refers to:"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "quid1",
+   "fieldtype": "Check",
+   "label": " Verbal abuse"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "quid2",
+   "fieldtype": "Check",
+   "label": "Unwelcome gestures"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "quid3",
+   "fieldtype": "Check",
+   "label": "Favor in exchange for sexual acts"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "quid4",
+   "fieldtype": "Check",
+   "label": "Written insults"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que10",
+   "fieldtype": "Heading",
+   "label": "10. Which of the following is an example of a hostile work environment?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "ex1",
+   "fieldtype": "Check",
+   "label": "Regular performance feedback"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "ex2",
+   "fieldtype": "Check",
+   "label": "Friendly conversation"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "ex3",
+   "fieldtype": "Check",
+   "label": "Repeated offensive jokes and comments"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "ex4",
+   "fieldtype": "Check",
+   "label": "Office celebration"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que11",
+   "fieldtype": "Heading",
+   "label": "11. What type of harassment involves misuse of hierarchy or power?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "har1",
+   "fieldtype": "Check",
+   "label": "Verbal"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "har2",
+   "fieldtype": "Check",
+   "label": "Cyber"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "har3",
+   "fieldtype": "Check",
+   "label": "Abuse of Power"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "har4",
+   "fieldtype": "Check",
+   "label": "Emotional"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que12",
+   "fieldtype": "Heading",
+   "label": "12. Which of these is not a valid form of workplace harassment under POSH?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "frm1",
+   "fieldtype": "Check",
+   "label": "Suggestive gestures"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "frm2",
+   "fieldtype": "Check",
+   "label": "Promotions based on merit"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "frm3",
+   "fieldtype": "Check",
+   "label": "Sexual jokes"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "frm4",
+   "fieldtype": "Check",
+   "label": "Sharing pornographic content"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "legal_and_disciplinary_aspects_section",
+   "fieldtype": "Section Break",
+   "label": "Legal and Disciplinary Aspects"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que13",
+   "fieldtype": "Heading",
+   "label": "13. Failure to comply with POSH provisions may result in a fine of:"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "rs1",
+   "fieldtype": "Check",
+   "label": "\u20b925,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "rs2",
+   "fieldtype": "Check",
+   "label": "\u20b950,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "rs3",
+   "fieldtype": "Check",
+   "label": "\u20b975,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "r4",
+   "fieldtype": "Check",
+   "label": "\u20b91,00,000"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que14",
+   "fieldtype": "Heading",
+   "label": "14. How long should POSH records be maintained?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "dr1",
+   "fieldtype": "Check",
+   "label": "3 years"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "dr2",
+   "fieldtype": "Check",
+   "label": "5 years"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "dr3",
+   "fieldtype": "Check",
+   "label": "7 years"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "dr4",
+   "fieldtype": "Check",
+   "label": "Permanently"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que15",
+   "fieldtype": "Heading",
+   "label": "15. Is it possible for a female employee to misuse the POSH Act by filing a false complaint against a male colleague?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "y1",
+   "fieldtype": "Check",
+   "label": "No, POSH complaints are always genuine"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "y2",
+   "fieldtype": "Check",
+   "label": "Yes, and no action is taken against false complainants"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "y3",
+   "fieldtype": "Check",
+   "label": "Yes, and if proven false, the complainant may face disciplinary action"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "y4",
+   "fieldtype": "Check",
+   "label": "No, because POSH does not apply to male colleagues"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "complaint_process_section",
+   "fieldtype": "Section Break",
+   "label": "Complaint Process"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que16",
+   "fieldtype": "Heading",
+   "label": "16. By when should a complaint ideally be filed?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "tym1",
+   "fieldtype": "Check",
+   "label": "30 days"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "tym2",
+   "fieldtype": "Check",
+   "label": "2 months"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "tym3",
+   "fieldtype": "Check",
+   "label": "3 months"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "tym4",
+   "fieldtype": "Check",
+   "label": "6 months"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que17",
+   "fieldtype": "Heading",
+   "label": "17. How many days does the employer have to take action after the IC report?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "day1",
+   "fieldtype": "Check",
+   "label": "30 days"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "day2",
+   "fieldtype": "Check",
+   "label": "15 days"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "day3",
+   "fieldtype": "Check",
+   "label": "60 days"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "day4",
+   "fieldtype": "Check",
+   "label": "90 days"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que18",
+   "fieldtype": "Heading",
+   "label": "18. What is the timeline for IC to acknowledge a complaint after receiving it?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "timeline1",
+   "fieldtype": "Check",
+   "label": " Immediately"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "timeline2",
+   "fieldtype": "Check",
+   "label": "Within 3 days"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "timeline3",
+   "fieldtype": "Check",
+   "label": "Within 7 days"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "timeline4",
+   "fieldtype": "Check",
+   "label": "Within 15 days"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "real_world_incidents",
+   "fieldtype": "Section Break",
+   "label": "Real-World Incidents & Application"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que19",
+   "fieldtype": "Heading",
+   "label": "19. Which of the following companies faced a high-profile POSH case in 2018?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "com1",
+   "fieldtype": "Check",
+   "label": "Flipkart"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "com2",
+   "fieldtype": "Check",
+   "label": "Infosys"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "com3",
+   "fieldtype": "Check",
+   "label": "HCL"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "com4",
+   "fieldtype": "Check",
+   "label": "Amazon"
+  },
+  {
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "que20",
+   "fieldtype": "Heading",
+   "label": "20. What happens if a woman is found guilty of making a false POSH complaint?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "false1",
+   "fieldtype": "Check",
+   "label": "No action"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "false2",
+   "fieldtype": "Check",
+   "label": "Counseling"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "false3",
+   "fieldtype": "Check",
+   "label": "Same disciplinary action as the accused"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'English'",
+   "fieldname": "false4",
+   "fieldtype": "Check",
+   "label": "Warning letter"
+  },
+  {
+   "fieldname": "details_2_tab",
+   "fieldtype": "Tab Break",
+   "label": "Details 2"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "column_break_zzoj",
+   "fieldtype": "Column Break",
+   "label": "\u0938\u093e\u092e\u093e\u0928\u094d\u092f \u091c\u093e\u0928\u0915\u093e\u0930\u0940"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que21",
+   "fieldtype": "Heading",
+   "label": "1.POSH \u0915\u093e \u092a\u0942\u0930\u093e \u092e\u0924\u0932\u092c \u0915\u094d\u092f\u093e \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "mean1",
+   "fieldtype": "Check",
+   "label": "\u0938\u092e\u093e\u091c \u0915\u0940 \u0930\u0915\u094d\u0937\u093e \u0915\u093e\u0928\u0942\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "mean2",
+   "fieldtype": "Check",
+   "label": "\u092f\u094c\u0928 \u0909\u0924\u094d\u092a\u0940\u0921\u093c\u0928 \u0915\u0940 \u0930\u094b\u0915\u0925\u093e\u092e"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "mean3",
+   "fieldtype": "Check",
+   "label": "\u0911\u092b\u093f\u0938 \u0924\u0928\u093e\u0935 \u0938\u0947 \u092c\u091a\u093e\u0935"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "mean4",
+   "fieldtype": "Check",
+   "label": "\u092f\u094c\u0928 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0928\u0940\u0924\u093f"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que22",
+   "fieldtype": "Heading",
+   "label": "2. POSH \u0915\u093e\u0928\u0942\u0928 \u092d\u093e\u0930\u0924 \u092e\u0947\u0902 \u0915\u092c \u0932\u093e\u0917\u0942 \u0939\u0941\u0906 \u0925\u093e?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "date1",
+   "fieldtype": "Check",
+   "label": "2011"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "date2",
+   "fieldtype": "Check",
+   "label": "1997"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "date3",
+   "fieldtype": "Check",
+   "label": "2013"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "date4",
+   "fieldtype": "Check",
+   "label": "2015"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que23",
+   "fieldtype": "Heading",
+   "label": "3. \u0915\u093f\u0938 \u0915\u0947\u0938 \u0928\u0947 POSH \u0915\u093e\u0928\u0942\u0928 \u0915\u0940 \u0928\u0940\u0902\u0935 \u0930\u0916\u0940 \u0925\u0940?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "case1",
+   "fieldtype": "Check",
+   "label": "\u0928\u0930\u094d\u092e\u0926\u093e \u0915\u0947\u0938"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "case2",
+   "fieldtype": "Check",
+   "label": "\u0935\u093f\u0936\u093e\u0916\u093e \u0928\u093f\u0930\u094d\u0923\u092f"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "case3",
+   "fieldtype": "Check",
+   "label": "\u092a\u094d\u0930\u093f\u092f\u093e \u0936\u0930\u094d\u092e\u093e \u0915\u0947\u0938"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "case4",
+   "fieldtype": "Check",
+   "label": "\u092d\u0902\u0935\u0930\u0940 \u0926\u0947\u0935\u0940 \u0915\u0947\u0938"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que24",
+   "fieldtype": "Heading",
+   "label": "4. POSH \u0915\u093e\u0928\u0942\u0928 \u0915\u093f\u0938 \u091c\u0947\u0902\u0921\u0930 (\u0932\u093f\u0902\u0917) \u092a\u0930 \u0932\u093e\u0917\u0942 \u0939\u094b\u0924\u093e \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "gen1",
+   "fieldtype": "Check",
+   "label": "\u0938\u093f\u0930\u094d\u092b \u092a\u0941\u0930\u0941\u0937\u094b\u0902 \u092a\u0930"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "gen2",
+   "fieldtype": "Check",
+   "label": "\u0938\u093f\u0930\u094d\u092b \u092e\u0939\u093f\u0932\u093e\u0913\u0902 \u092a\u0930"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "gen3",
+   "fieldtype": "Check",
+   "label": "\u0938\u092d\u0940 \u0932\u093f\u0902\u0917\u094b\u0902 \u092a\u0930 \u092c\u0930\u093e\u092c\u0930"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "gen4",
+   "fieldtype": "Check",
+   "label": "\u092e\u0939\u093f\u0932\u093e\u0913\u0902 \u092a\u0930 POSH, \u092a\u0941\u0930\u0941\u0937 IPC \u0915\u0947 \u0924\u0939\u0924 \u0936\u093f\u0915\u093e\u092f\u0924 \u0915\u0930 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "section_break_c7af",
+   "fieldtype": "Section Break",
+   "label": "\u0915\u092e\u0947\u091f\u0940 \u0914\u0930 \u0932\u093e\u0917\u0942 \u0915\u094d\u0937\u0947\u0924\u094d\u0930"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que25",
+   "fieldtype": "Heading",
+   "label": "5. IC (Internal Committee) \u092c\u0928\u093e\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0911\u092b\u093f\u0938 \u092e\u0947\u0902 \u0915\u092e \u0938\u0947 \u0915\u092e \u0915\u093f\u0924\u0928\u0947 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940 \u0939\u094b\u0928\u0947 \u091a\u093e\u0939\u093f\u090f?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "min1",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "min2",
+   "fieldtype": "Check",
+   "label": "10"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "min3",
+   "fieldtype": "Check",
+   "label": "15"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "min4",
+   "fieldtype": "Check",
+   "label": "20"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que26",
+   "fieldtype": "Heading",
+   "label": "6. IC \u0915\u0940 \u0905\u0927\u094d\u092f\u0915\u094d\u0937 (Presiding Officer) \u0915\u094c\u0928 \u0939\u094b\u0928\u0940 \u091a\u093e\u0939\u093f\u090f?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "po1",
+   "fieldtype": "Check",
+   "label": "\u092a\u0941\u0930\u0941\u0937 \u092e\u0948\u0928\u0947\u091c\u0930"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "po2",
+   "fieldtype": "Check",
+   "label": "\u092c\u093e\u0939\u0930\u0940 \u0935\u0915\u0940\u0932"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "po3",
+   "fieldtype": "Check",
+   "label": "\u0938\u0940\u0928\u093f\u092f\u0930 \u092e\u0939\u093f\u0932\u093e \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "po4",
+   "fieldtype": "Check",
+   "label": " \u090f\u091a\u0906\u0930 \u0905\u0927\u093f\u0915\u093e\u0930\u0940 "
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que27",
+   "fieldtype": "Heading",
+   "label": "7. \u0905\u0917\u0930 \u0915\u093f\u0938\u0940 \u0915\u0902\u092a\u0928\u0940 \u092e\u0947\u0902 10 \u0938\u0947 \u0915\u092e \u0932\u094b\u0917 \u0915\u093e\u092e \u0915\u0930\u0924\u0947 \u0939\u0948\u0902 \u0924\u094b \u0936\u093f\u0915\u093e\u092f\u0924 \u0915\u0939\u093e\u0901 \u0915\u0940 \u091c\u093e\u0924\u0940 \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "head1",
+   "fieldtype": "Check",
+   "label": "\u090f\u091a\u0906\u0930 \u0921\u093f\u092a\u093e\u0930\u094d\u091f\u092e\u0947\u0902\u091f "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "head2",
+   "fieldtype": "Check",
+   "label": " \u0932\u094b\u0915\u0932 \u0936\u093f\u0915\u093e\u092f\u0924 \u0938\u092e\u093f\u0924\u093f (LCC)"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "headd3",
+   "fieldtype": "Check",
+   "label": "\u092a\u0941\u0932\u093f\u0938 \u0938\u094d\u091f\u0947\u0936\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "head4",
+   "fieldtype": "Check",
+   "label": "\u0939\u0947\u0921 \u0911\u092b\u093f\u0938"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que28",
+   "fieldtype": "Heading",
+   "label": "8. IC \u0915\u094b \u091c\u093e\u0902\u091a \u092a\u0942\u0930\u0940 \u0915\u0930\u0928\u0947 \u092e\u0947\u0902 \u0905\u0927\u093f\u0915\u0924\u092e \u0915\u093f\u0924\u0928\u0947 \u0926\u093f\u0928 \u092e\u093f\u0932\u0924\u0947 \u0939\u0948\u0902?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "dayss1",
+   "fieldtype": "Check",
+   "label": "30 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "dayss2",
+   "fieldtype": "Check",
+   "label": "45 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "dayss3",
+   "fieldtype": "Check",
+   "label": "60 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "dayss4",
+   "fieldtype": "Check",
+   "label": "90 \u0926\u093f\u0928"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "section_break_noox",
+   "fieldtype": "Section Break",
+   "label": "\u0909\u0924\u094d\u092a\u0940\u0921\u093c\u0928 \u0915\u0947 \u092a\u094d\u0930\u0915\u093e\u0930"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que29",
+   "fieldtype": "Heading",
+   "label": "9. \u2018Quid Pro Quo\u2019 \u0915\u093e \u092e\u0924\u0932\u092c \u0915\u094d\u092f\u093e \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "mean10",
+   "fieldtype": "Check",
+   "label": "\u092e\u094c\u0916\u093f\u0915 \u0917\u093e\u0932\u0940"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "mean20",
+   "fieldtype": "Check",
+   "label": "\u0917\u0932\u0924 \u0907\u0936\u093e\u0930\u0947"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "mean30",
+   "fieldtype": "Check",
+   "label": "\u092f\u094c\u0928 \u0938\u0902\u092c\u0902\u0927 \u0915\u0947 \u092c\u0926\u0932\u0947 \u0932\u093e\u092d \u0926\u0947\u0928\u093e \u092f\u093e \u0932\u0947\u0928\u093e"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "mean40",
+   "fieldtype": "Check",
+   "label": "\u0932\u093f\u0916\u093f\u0924 \u0917\u093e\u0932\u0940"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que30",
+   "fieldtype": "Heading",
+   "label": "10. \u0928\u093f\u092e\u094d\u0928 \u092e\u0947\u0902 \u0938\u0947 \u0915\u094c\u0928-\u0938\u0940 hostile (\u0905\u092a\u094d\u0930\u093f\u092f) work environment \u0915\u0940 \u0938\u094d\u0925\u093f\u0924\u093f \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "eg1",
+   "fieldtype": "Check",
+   "label": "\u0938\u093e\u092e\u093e\u0928\u094d\u092f \u092b\u0940\u0921\u092c\u0948\u0915"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "eg2",
+   "fieldtype": "Check",
+   "label": "\u0926\u094b\u0938\u094d\u0924\u093e\u0928\u093e \u092c\u093e\u0924"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "eg3",
+   "fieldtype": "Check",
+   "label": "\u092c\u093e\u0930-\u092c\u093e\u0930 \u0905\u092a\u092e\u093e\u0928\u091c\u0928\u0915 \u091c\u094b\u0915 \u092f\u093e \u091f\u093f\u092a\u094d\u092a\u0923\u0940"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "eg4",
+   "fieldtype": "Check",
+   "label": "\u0911\u092b\u093f\u0938 \u092a\u093e\u0930\u094d\u091f\u0940"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que31",
+   "fieldtype": "Heading",
+   "label": "11. \u0915\u094c\u0928-\u0938\u093e \u0909\u0924\u094d\u092a\u0940\u0921\u093c\u0928 \u092a\u093e\u0935\u0930 \u092f\u093e \u092a\u0926 \u0915\u0947 \u0917\u0932\u0924 \u0907\u0938\u094d\u0924\u0947\u092e\u093e\u0932 \u0938\u0947 \u0939\u094b\u0924\u093e \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "tell1",
+   "fieldtype": "Check",
+   "label": "\u092e\u094c\u0916\u093f\u0915"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "tell2",
+   "fieldtype": "Check",
+   "label": "\u0938\u093e\u0907\u092c\u0930"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "tell3",
+   "fieldtype": "Check",
+   "label": "\u0938\u0924\u094d\u0924\u093e \u0915\u093e \u0926\u0941\u0930\u0941\u092a\u092f\u094b\u0917"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "tell4",
+   "fieldtype": "Check",
+   "label": "\u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que32",
+   "fieldtype": "Heading",
+   "label": "12. \u0907\u0928\u092e\u0947\u0902 \u0938\u0947 \u0915\u094c\u0928-\u0938\u0940 POSH \u0915\u0947 \u0905\u0928\u0941\u0938\u093e\u0930 \u0909\u0924\u094d\u092a\u0940\u0921\u093c\u0928 \u0928\u0939\u0940\u0902 \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "noposh1",
+   "fieldtype": "Check",
+   "label": "\u0905\u0936\u094d\u0932\u0940\u0932 \u0907\u0936\u093e\u0930\u0947"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "noposh2",
+   "fieldtype": "Check",
+   "label": "\u092f\u094b\u0917\u094d\u092f\u0924\u093e \u0915\u0947 \u0906\u0927\u093e\u0930 \u092a\u0930 \u092a\u094d\u0930\u092e\u094b\u0936\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "noposh3",
+   "fieldtype": "Check",
+   "label": "\u092f\u094c\u0928 \u091c\u094b\u0915\u094d\u0938 "
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "noposh4",
+   "fieldtype": "Check",
+   "label": "\u092a\u0949\u0930\u094d\u0928 \u0936\u0947\u092f\u0930 \u0915\u0930\u0928\u093e"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "section_break_c3mc",
+   "fieldtype": "Section Break",
+   "label": "\u0915\u093e\u0928\u0942\u0928 \u0914\u0930 \u0905\u0928\u0941\u0936\u093e\u0938\u0928\u093e\u0924\u094d\u092e\u0915 \u092c\u093f\u0902\u0926\u0941"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que33",
+   "fieldtype": "Heading",
+   "label": "13. \u0905\u0917\u0930 \u0915\u0902\u092a\u0928\u0940 POSH \u0928\u093f\u092f\u092e \u0928\u0939\u0940\u0902 \u092e\u093e\u0928\u0924\u0940 \u0924\u094b \u0905\u0927\u093f\u0915\u0924\u092e \u0915\u093f\u0924\u0928\u093e \u091c\u0941\u0930\u094d\u092e\u093e\u0928\u093e \u0932\u0917 \u0938\u0915\u0924\u093e \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "inr1",
+   "fieldtype": "Check",
+   "label": "\u20b925,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "inr2",
+   "fieldtype": "Check",
+   "label": "\u20b950,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "inr3",
+   "fieldtype": "Check",
+   "label": "\u20b975,000"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "inr4",
+   "fieldtype": "Check",
+   "label": "\u20b91,00,000"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que34",
+   "fieldtype": "Heading",
+   "label": "14. POSH \u0930\u093f\u0915\u0949\u0930\u094d\u0921 \u0915\u093f\u0924\u0928\u0947 \u0938\u093e\u0932\u094b\u0902 \u0924\u0915 \u0930\u0916\u0928\u0947 \u091c\u0930\u0942\u0930\u0940 \u0939\u094b\u0924\u0947 \u0939\u0948\u0902?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "yer1",
+   "fieldtype": "Check",
+   "label": "3 \u0935\u0930\u094d\u0937"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "yer2",
+   "fieldtype": "Check",
+   "label": "5 \u0935\u0930\u094d\u0937"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "yer3",
+   "fieldtype": "Check",
+   "label": "7 \u0935\u0930\u094d\u0937"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "yer4",
+   "fieldtype": "Check",
+   "label": "\u0939\u092e\u0947\u0936\u093e \u0915\u0947 \u0932\u093f\u090f"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que35",
+   "fieldtype": "Heading",
+   "label": "15. \u0915\u094d\u092f\u093e \u0915\u094b\u0908 \u092e\u0939\u093f\u0932\u093e \u0917\u0932\u0924 \u0924\u0930\u0940\u0915\u0947 \u0938\u0947 \u092a\u0941\u0930\u0941\u0937 \u0938\u0939\u0915\u0930\u094d\u092e\u0940 \u092a\u0930 POSH \u0915\u0947 \u0924\u0939\u0924 \u091d\u0942\u0920\u093e \u0906\u0930\u094b\u092a \u0932\u0917\u093e \u0938\u0915\u0924\u0940 \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "yes1",
+   "fieldtype": "Check",
+   "label": "\u0928\u0939\u0940\u0902, POSH \u0915\u0940 \u0936\u093f\u0915\u093e\u092f\u0924\u0947\u0902 \u0939\u092e\u0947\u0936\u093e \u0938\u091a\u094d\u091a\u0940 \u0939\u094b\u0924\u0940 \u0939\u0948\u0902"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "yes2",
+   "fieldtype": "Check",
+   "label": "\u0939\u093e\u0902, \u0914\u0930 \u0909\u0938 \u092a\u0930 \u0915\u094b\u0908 \u0915\u093e\u0930\u094d\u0930\u0935\u093e\u0908 \u0928\u0939\u0940\u0902 \u0939\u094b\u0924\u0940"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "yes3",
+   "fieldtype": "Check",
+   "label": "\u0939\u093e\u0902, \u0914\u0930 \u0905\u0917\u0930 \u0906\u0930\u094b\u092a \u091d\u0942\u0920\u093e \u0938\u093e\u092c\u093f\u0924 \u0939\u0941\u0906 \u0924\u094b \u092e\u0939\u093f\u0932\u093e \u092a\u0930 \u092d\u0940 \u0915\u093e\u0930\u094d\u0930\u0935\u093e\u0908 \u0939\u094b \u0938\u0915\u0924\u0940 \u0939\u0948"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "yes4",
+   "fieldtype": "Check",
+   "label": "\u0928\u0939\u0940\u0902, POSH \u092a\u0941\u0930\u0941\u0937\u094b\u0902 \u092a\u0930 \u0932\u093e\u0917\u0942 \u0928\u0939\u0940\u0902 \u0939\u094b\u0924\u093e"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "section_break_rvzg",
+   "fieldtype": "Section Break",
+   "label": "\u0936\u093f\u0915\u093e\u092f\u0924 \u0915\u0940 \u092a\u094d\u0930\u0915\u094d\u0930\u093f\u092f\u093e"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que36",
+   "fieldtype": "Heading",
+   "label": "16. \u0915\u093f\u0938\u0940 \u0918\u091f\u0928\u093e \u0915\u0947 \u092c\u093e\u0926 \u0936\u093f\u0915\u093e\u092f\u0924 \u0915\u093f\u0924\u0928\u0947 \u0938\u092e\u092f \u092e\u0947\u0902 \u0915\u0940 \u091c\u093e\u0928\u0940 \u091a\u093e\u0939\u093f\u090f?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "final1",
+   "fieldtype": "Check",
+   "label": "30 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "final2",
+   "fieldtype": "Check",
+   "label": "2 \u092e\u0939\u0940\u0928\u0947"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "final3",
+   "fieldtype": "Check",
+   "label": "3 \u092e\u0939\u0940\u0928\u0947"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "final4",
+   "fieldtype": "Check",
+   "label": "6 \u092e\u0939\u0940\u0928\u0947"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que37",
+   "fieldtype": "Heading",
+   "label": "17. IC \u0915\u0940 \u0930\u093f\u092a\u094b\u0930\u094d\u091f \u0915\u0947 \u092c\u093e\u0926 \u0915\u0902\u092a\u0928\u0940 \u0915\u094b \u0915\u093f\u0924\u0928\u0947 \u0926\u093f\u0928\u094b\u0902 \u092e\u0947\u0902 \u090f\u0915\u094d\u0936\u0928 \u0932\u0947\u0928\u093e \u091a\u093e\u0939\u093f\u090f?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "finall1",
+   "fieldtype": "Check",
+   "label": "30 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "finall2",
+   "fieldtype": "Check",
+   "label": "45 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "finall3",
+   "fieldtype": "Check",
+   "label": "60 \u0926\u093f\u0928"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "finall4",
+   "fieldtype": "Check",
+   "label": "90 \u0926\u093f\u0928"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que38",
+   "fieldtype": "Heading",
+   "label": "18. IC \u0936\u093f\u0915\u093e\u092f\u0924 \u092e\u093f\u0932\u0928\u0947 \u0915\u0947 \u0915\u093f\u0924\u0928\u0947 \u0926\u093f\u0928\u094b\u0902 \u092e\u0947\u0902 \u0909\u0938\u0947 \u0938\u094d\u0935\u0940\u0915\u093e\u0930 \u0915\u0930 \u0932\u0947\u0924\u0940 \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "action1",
+   "fieldtype": "Check",
+   "label": "\u0924\u0941\u0930\u0902\u0924"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "action2",
+   "fieldtype": "Check",
+   "label": "3 \u0926\u093f\u0928 \u0915\u0947 \u0905\u0902\u0926\u0930"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "action3",
+   "fieldtype": "Check",
+   "label": " 7 \u0926\u093f\u0928 \u0915\u0947 \u0905\u0902\u0926\u0930"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "action4",
+   "fieldtype": "Check",
+   "label": " 15 \u0926\u093f\u0928 \u0915\u0947 \u0905\u0902\u0926\u0930"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "section_break_l1vw",
+   "fieldtype": "Section Break",
+   "label": "\u0935\u093e\u0938\u094d\u0924\u0935\u093f\u0915 \u0918\u091f\u0928\u093e\u090f\u0902 \u0914\u0930 \u0905\u0928\u0941\u092a\u094d\u0930\u092f\u094b\u0917"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que39",
+   "fieldtype": "Heading",
+   "label": "19. \u0928\u093f\u092e\u094d\u0928 \u092e\u0947\u0902 \u0938\u0947 \u0915\u093f\u0938 \u0915\u0902\u092a\u0928\u0940 \u092e\u0947\u0902 2018 \u092e\u0947\u0902 POSH \u0915\u0947\u0938 \u0938\u093e\u092e\u0928\u0947 \u0906\u092f\u093e \u0925\u093e?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "company1",
+   "fieldtype": "Check",
+   "label": "\u092b\u094d\u0932\u093f\u092a\u0915\u093e\u0930\u094d\u091f"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "company2",
+   "fieldtype": "Check",
+   "label": "\u0907\u0902\u092b\u094b\u0938\u093f\u0938"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "company3",
+   "fieldtype": "Check",
+   "label": "HCL"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "company4",
+   "fieldtype": "Check",
+   "label": "\u0905\u092e\u0947\u095b\u0928"
+  },
+  {
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "que40",
+   "fieldtype": "Heading",
+   "label": "20. \u0905\u0917\u0930 \u092e\u0939\u093f\u0932\u093e \u091d\u0942\u0920\u093e POSH \u0915\u0947\u0938 \u0915\u0930\u0924\u0940 \u0939\u0948 \u0914\u0930 \u092f\u0939 \u0938\u093e\u092c\u093f\u0924 \u0939\u094b \u091c\u093e\u090f \u0924\u094b \u0915\u094d\u092f\u093e \u0939\u094b\u0924\u093e \u0939\u0948?"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "case10",
+   "fieldtype": "Check",
+   "label": "\u0915\u094b\u0908 \u0915\u093e\u0930\u094d\u0930\u0935\u093e\u0908 \u0928\u0939\u0940\u0902"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "case20",
+   "fieldtype": "Check",
+   "label": "\u0915\u093e\u0909\u0902\u0938\u0932\u093f\u0902\u0917 \u0926\u0940 \u091c\u093e\u0924\u0940 \u0939\u0948"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "case30",
+   "fieldtype": "Check",
+   "label": "\u092e\u0939\u093f\u0932\u093e \u092a\u0930 \u092d\u0940 \u0935\u0948\u0938\u0940 \u0939\u0940 \u0905\u0928\u0941\u0936\u093e\u0938\u0928\u093e\u0924\u094d\u092e\u0915 \u0915\u093e\u0930\u094d\u0930\u0935\u093e\u0908 \u0939\u094b \u0938\u0915\u0924\u0940 \u0939\u0948"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.language == 'Hindi'",
+   "fieldname": "case40",
+   "fieldtype": "Check",
+   "label": "\u0926\u094b\u092c\u093e\u0930\u093e \u091c\u093e\u0902\u091a \u0915\u092e\u0947\u091f\u0940 \u092c\u0928\u0924\u0940 \u0939\u0948"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-06-17 15:26:39.080998",
+ "modified_by": "Administrator",
+ "module": "GKE SURVEY",
+ "name": "Posh Awareness Policy",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

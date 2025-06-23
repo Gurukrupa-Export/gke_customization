@@ -1,5 +1,6 @@
 # Copyright (c) 2023, Nirali and contributors
 # For license information, please see license.txt
+# check push
 from __future__ import unicode_literals
 from frappe.utils import flt
 import frappe
@@ -52,7 +53,14 @@ class Order(Document):
 			timesheet.run_method('submit')
 		if self.workflow_state == 'Update BOM' and self.design_type == 'Sketch Design':
 			update_variant_attributes(self)
-		
+	
+	def on_cancel(self):
+		if frappe.db.get_list("Timesheet",filters={"order":self.name},fields="name"):
+			for timesheet in frappe.db.get_list("Timesheet",filters={"order",self.name},fields="name"):
+				frappe.db.set_value("Timesheet",timesheet["name"],"docstatus","2")
+
+		frappe.db.set_value("Order",self.name,"workflow_state","Cancelled")
+		self.reload()
 
 def calculate_metal_weights(self):
 	total_metal_weight = 0
