@@ -1,0 +1,37 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2025-06-09 10:41:59.936006",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "latter head",
+ "letterhead": null,
+ "modified": "2025-06-09 11:02:38.602970",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "Asset Depreciation",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Asset",
+ "report_name": "Asset Depreciation",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Quality Manager"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Chartered Accountant -ST - GK"
+  },
+  {
+   "role": "GK Store"
+  }
+ ],
+ "timeout": 0
+}
