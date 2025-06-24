@@ -331,17 +331,33 @@ frappe.ui.form.on('Order Form Detail', {
 					if(r.message) {
 						d.category = r.message.item_category;
 						d.subcategory = r.message.item_subcategory;
-						d.setting_type = r.message.setting_type;
+						// d.setting_type = r.message.setting_type;
+						if (d.metal_type === "Silver") {
+							d.setting_type = "Open";
+						} else {
+							d.setting_type = r.message.setting_type;
+						}
 						d.sub_setting_type1 = r.message.sub_setting_type1
 						d.sub_setting_type2 = r.message.sub_setting_type2
 						d.bom = r.message.master_bom;
-
+						if (d.metal_type === "Silver") {
+							d.diamond_type = "AD";
+						}
 						d.qty = r.message.qty
 						d.metal_type = r.message.metal_type
-						d.metal_touch = r.message.metal_touch
+						// d.metal_touch = r.message.metal_touch
+						if (d.metal_type === "Silver") {
+							d.metal_touch = "20KT";
+						} else {
+							d.metal_touch = r.message.metal_touch;
+						}
 						d.metal_purity = r.message.metal_purity
-						d.metal_colour = r.message.metal_colour
-		
+						// d.metal_colour = r.message.metal_colour
+						if (d.metal_type === "Silver") {
+							d.metal_colour = "White";
+						} else {
+							d.metal_colour = r.message.metal_colour;
+						}
 						d.metal_target = r.message.metal_target
 						// check this line
 						d.metal_target = r.message.custom_metal_target
@@ -419,16 +435,32 @@ frappe.ui.form.on('Order Form Detail', {
 					if(r.message) {
 						d.category = r.message.item_category;
 						d.subcategory = r.message.item_subcategory;
-						d.setting_type = r.message.setting_type;
+						// d.setting_type = r.message.setting_type;
+						if (d.metal_type === "Silver") {
+							d.setting_type = "Open";
+						} else {
+							d.setting_type = r.message.setting_type;
+						}
 						d.sub_setting_type1 = r.message.sub_setting_type1
 						d.sub_setting_type2 = r.message.sub_setting_type2
-
+						if (d.metal_type === "Silver") {
+							d.diamond_type = "AD";
+						}
 						d.qty = r.message.qty
 						d.metal_type = r.message.metal_type
-						d.metal_touch = r.message.metal_touch
+						// d.metal_touch = r.message.metal_touch
+						if (d.metal_type === "Silver") {
+							d.metal_touch = "20KT";
+						} else {
+							d.metal_touch = r.message.metal_touch;
+						}
 						d.metal_purity = r.message.metal_purity
-						d.metal_colour = r.message.metal_colour
-		
+						// d.metal_colour = r.message.metal_colour
+						if (d.metal_type === "Silver") {
+							d.metal_colour = "White";
+						} else {
+							d.metal_colour = r.message.metal_colour;
+						}
 						if(r.message.metal_target){
 							d.metal_target = r.message.metal_target
 						}

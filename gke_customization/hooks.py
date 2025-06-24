@@ -250,13 +250,15 @@ doc_events = {
 },
 "Share Transfer":{
     "validate":"gke_customization.gke_customization.doc_events.share_transfer.validate",
+    "on_trash":"gke_customization.gke_customization.doc_events.share_transfer.on_trash",
+    "on_cancel":"gke_customization.gke_customization.doc_events.share_transfer.on_cancel",
 },
 # "Shareholder": {
 #     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
 # },
-"Payment Entry": {
-    "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_update_after_submit"
-},
+# "Payment Entry": {
+#     "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_update_after_submit"
+# },
 "Journal Entry": {
     "on_submit": "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit"
 },

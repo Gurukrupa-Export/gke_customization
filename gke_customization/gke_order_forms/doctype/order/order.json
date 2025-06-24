@@ -149,6 +149,7 @@
 "update_reason",
 "section_break_tcrzb",
 "item",
+"item_remark",
 "column_break_ggjel",
 "new_bom",
 "territories_tab",
@@ -926,6 +927,12 @@
 "options": "Item"
 },
 {
+"fieldname": "item_remark",
+"fieldtype": "Select",
+"label": "Item Remark",
+"options": "\nNew Item\nCopy Paste Item"
+},
+{
 "fieldname": "column_break_ggjel",
 "fieldtype": "Column Break"
 },
@@ -1687,12 +1694,6 @@
 {
 "link_doctype": "Item",
 "link_fieldname": "custom_cad_order_id"
-},
-{
-"fieldname": "item_remark",
-"fieldtype": "Select",
-"label": "Item Remark",
-"options": "\nNew Item\nCopy Paste Item"
 },
 {
 "link_doctype": "BOM",
