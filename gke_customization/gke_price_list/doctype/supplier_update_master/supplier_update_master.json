@@ -12,7 +12,6 @@
   "supplier_data",
   "supplier_name",
   "country",
-  "consider_purchase_receipt_as_customer",
   "new_supplier",
   "reason_for_hold",
   "column_break_ucz3",
@@ -20,7 +19,6 @@
   "supplier_type",
   "territory",
   "territory_code",
-  "reverse_chargeapplicable",
   "gst_transporter_id",
   "gst_category",
   "export_type",
@@ -32,16 +30,13 @@
   "other_documents",
   "defaults_section",
   "billing_currency",
-  "default_company_bank_account",
   "column_break_3zkf",
   "price_list",
   "default_payment_terms_template",
-  "certification_charges",
   "internal_supplier_section",
   "is_internal_supplier",
   "represents_company",
   "column_break_nj7k",
-  "is_external_customer",
   "allowed_to_transact_with",
   "more_information_section",
   "supplier_details",
@@ -51,7 +46,6 @@
   "dashboard_tab",
   "tax_tab",
   "tax_id",
-  "is_irs_1099_reporting_required_for_supplier",
   "column_break_lfmg",
   "tax_category",
   "tax_withholding_category",
@@ -70,6 +64,7 @@
   "supplier_primary_address",
   "primary_address",
   "column_break_hozt",
+  "add_same",
   "others_supp_contact",
   "others_supp_add",
   "contact_section",
@@ -81,19 +76,36 @@
   "address_line_1",
   "address_line_2",
   "city",
-  "state",
   "column_break_b3cn",
+  "state",
   "add_country",
   "pincode",
   "fax",
   "is_primary_address",
   "is_shipping_address",
+  "primary_address_detail_section",
+  "pri_add_title",
+  "pri_add_type",
+  "pri_add_line1",
+  "pri_add_line2",
+  "pri_add_city",
+  "column_break_gd5l",
+  "pri_add_state",
+  "pri_add_country",
+  "pri_add_pin",
+  "pri_add_fax",
   "accounting_tab",
   "accounts",
   "settings_tab",
   "allow_purchase_invoice_creation_without_purchase_order",
   "allow_purchase_invoice_creation_without_purchase_receipt",
+  "consider_purchase_receipt_as_customer",
+  "reverse_chargeapplicable",
+  "default_company_bank_account",
+  "certification_charges",
   "column_break_nhz8",
+  "is_external_customer",
+  "is_irs_1099_reporting_required_for_supplier",
   "is_frozen",
   "disabled",
   "warn_rfqs",
@@ -174,6 +186,7 @@
   {
    "fieldname": "export_type",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Export Type",
    "options": "\nWith Payment of Tax\nWithout Payment of Tax"
   },
@@ -232,6 +245,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval:doc.represents_company",
    "fieldname": "allowed_to_transact_with",
    "fieldtype": "Table",
    "label": "Allowed To Transact With",
@@ -332,6 +346,7 @@
   },
   {
    "allow_on_submit": 1,
+   "depends_on": "eval:doc.supplier_data || doc.new_supplier",
    "fieldname": "supplier_primary_contact",
    "fieldtype": "Link",
    "label": "Supplier Primary Contact",
@@ -343,6 +358,7 @@
   },
   {
    "allow_on_submit": 1,
+   "depends_on": "eval:doc.supplier_data || doc.new_supplier",
    "fieldname": "supplier_primary_address",
    "fieldtype": "Link",
    "label": "Supplier Primary Address",
@@ -653,29 +669,93 @@
    "label": "Attachment"
   },
   {
-   "depends_on": "eval:doc.supplier_type == 'Individual'",
+   "depends_on": "eval:doc.gst_category == 'Unregistered'",
    "fieldname": "aadhar_card",
    "fieldtype": "Attach",
    "label": "Aadhar Card",
-   "mandatory_depends_on": "eval:doc.supplier_type == 'Individual'"
+   "mandatory_depends_on": "eval:doc.gst_category == 'Unregistered'"
   },
   {
-   "depends_on": "eval:doc.supplier_type == 'Individual'",
+   "depends_on": "eval:doc.gst_category == 'Unregistered'",
    "fieldname": "pan_card",
    "fieldtype": "Attach",
    "label": "PAN Card",
-   "mandatory_depends_on": "eval:doc.supplier_type == 'Individual'"
+   "mandatory_depends_on": "eval:doc.gst_category == 'Unregistered'"
   },
   {
    "fieldname": "other_documents",
    "fieldtype": "Attach",
    "label": "Other Documents"
+  },
+  {
+   "default": "1",
+   "fieldname": "add_same",
+   "fieldtype": "Check",
+   "label": "Primary & Address is Same"
+  },
+  {
+   "depends_on": "eval:doc.add_same == 0",
+   "fieldname": "primary_address_detail_section",
+   "fieldtype": "Section Break",
+   "label": "Primary Address Detail"
+  },
+  {
+   "fieldname": "pri_add_title",
+   "fieldtype": "Data",
+   "label": "Address Title"
+  },
+  {
+   "fieldname": "pri_add_type",
+   "fieldtype": "Select",
+   "label": "Address Type",
+   "options": "Billing\nShipping\nOffice\nPersonal\nPlant\nPostal\nShop\nSubsidiary\nWarehouse\nCurrent\nPermanent\nOther"
+  },
+  {
+   "fieldname": "pri_add_line1",
+   "fieldtype": "Data",
+   "label": "Address Line 1"
+  },
+  {
+   "fieldname": "pri_add_line2",
+   "fieldtype": "Data",
+   "label": "Address Line 2"
+  },
+  {
+   "fieldname": "pri_add_city",
+   "fieldtype": "Data",
+   "label": "City/Town"
+  },
+  {
+   "fieldname": "column_break_gd5l",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pri_add_state",
+   "fieldtype": "Link",
+   "label": "State/Province",
+   "options": "State List"
+  },
+  {
+   "fieldname": "pri_add_country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country"
+  },
+  {
+   "fieldname": "pri_add_pin",
+   "fieldtype": "Data",
+   "label": "Postal Code"
+  },
+  {
+   "fieldname": "pri_add_fax",
+   "fieldtype": "Data",
+   "label": "Fax"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-03 11:04:44.179496",
+ "modified": "2025-06-19 18:02:50.786891",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Supplier Update Master",
