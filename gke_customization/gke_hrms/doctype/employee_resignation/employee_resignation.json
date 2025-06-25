@@ -18,6 +18,7 @@
   "section_break_6tmw",
   "notice_period",
   "date_resignation",
+  "late_entry",
   "last_working_day",
   "requested_relieving_date",
   "column_break_z8pb",
@@ -30,7 +31,7 @@
   "column_break_znbv",
   "reporting_manager_approval",
   "waive_off_notice_period",
-  "reduce_notice_days",
+  "reduce_notice_day",
   "section_break_abix",
   "hr_manager",
   "hr_manager_name",
@@ -50,6 +51,7 @@
    "fieldname": "employee",
    "fieldtype": "Link",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Employee ID",
    "options": "Employee",
    "reqd": 1
@@ -117,7 +119,7 @@
    "fieldname": "last_working_day",
    "fieldtype": "Date",
    "label": "Last Working Day",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.late_entry == 0"
   },
   {
    "fieldname": "column_break_z8pb",
@@ -237,13 +239,6 @@
    "options": "\nYes\nNo"
   },
   {
-   "depends_on": "eval:doc.waive_off_notice_period == 'Yes'",
-   "fieldname": "reduce_notice_days",
-   "fieldtype": "Data",
-   "label": "Reduce Notice Days"
-  },
-  {
-   "depends_on": "eval: in_list(['Send to HR','Approved'], doc.workflow_state )",
    "fieldname": "is_employee_on_probation",
    "fieldtype": "Select",
    "label": "Is Employee on Probation?",
@@ -253,12 +248,24 @@
    "fieldname": "requested_relieving_date",
    "fieldtype": "Date",
    "label": "Requested Relieving Date"
+  },
+  {
+   "default": "0",
+   "fieldname": "late_entry",
+   "fieldtype": "Check",
+   "label": "Late Entry"
+  },
+  {
+   "depends_on": "eval:doc.waive_off_notice_period == 'Yes'",
+   "fieldname": "reduce_notice_day",
+   "fieldtype": "Int",
+   "label": "Reduce Notice Days"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-05-26 12:39:58.857951",
+ "modified": "2025-06-23 18:20:02.620030",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Employee Resignation",

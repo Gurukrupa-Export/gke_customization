@@ -14,6 +14,8 @@
   "column_break_gu06",
   "date",
   "month",
+  "customer_target",
+  "customer",
   "section_break_plgo",
   "order_target_detail",
   "section_break_qipr",
@@ -152,11 +154,24 @@
   {
    "fieldname": "section_break_fodl",
    "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_target",
+   "fieldtype": "Check",
+   "label": "Customer Target"
+  },
+  {
+   "depends_on": "eval:doc.customer_target == 1",
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-20 08:57:34.430563",
+ "modified": "2025-06-24 15:57:59.471093",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Targets Form",
