@@ -804,8 +804,7 @@ def validate_design_id(self):
 					i.metal_touch = bom_doc.metal_detail[0].metal_touch or None
 				else:
 					frappe.msgprint(f"No metal details found for BOM {i.bom}")
-					i.metal_type = None
-					i.metal_touch = None
+					
 
 				# Set setting_type from BOM
 				i.setting_type = bom_doc.setting_type or None
