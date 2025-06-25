@@ -50,6 +50,7 @@ class OrderForm(Document):
 	def validate(self):
 		self.validate_category_subcaegory()
 		self.validate_filed_value()
+		validate_design_id(self)
 		set_data(self)
 		for i in self.order_details:	
 			if i.metal_type == "Silver":
@@ -784,6 +785,63 @@ def get_customer_order_form(source_name, target_doc=None):
 					"nakshi_weght": j.get("nakshi_weght"),
 				})
 	return target_doc
+
+
+def validate_design_id(self):
+	for i in self.order_details:
+		if i.design_id and i.bom:
+			
+			# Check if mod_reason is NOT "Change In Metal Type"
+			# Then set values from BOM and Item attributes
+			if i.mod_reason != "Change In Metal Type":
+
+				# Fetch BOM and extract metal details
+				bom_doc = frappe.get_doc("BOM", i.bom)
+
+				# Set metal_type and metal_touch from metal_detail table
+				if bom_doc.metal_detail:
+					i.metal_type = bom_doc.metal_detail[0].metal_type or None
+					i.metal_touch = bom_doc.metal_detail[0].metal_touch or None
+				else:
+					frappe.msgprint(f"No metal details found for BOM {i.bom}")
+					i.metal_type = None
+					i.metal_touch = None
+
+				# Set setting_type from BOM
+				i.setting_type = bom_doc.setting_type or None
+
+				# Set item_category from BOM
+				i.category = bom_doc.item_category or None
+				i.subcategory = bom_doc.item_subcategory or None
+
+				# Fetch metal_colour and diamond_target from design_id (Item) attributes
+				item_doc = frappe.get_doc("Item", i.design_id)
+				i.metal_colour = None
+				i.diamond_target = None
+
+				for attr in item_doc.attributes:
+					if attr.attribute == "Metal Colour":
+						i.metal_colour = attr.attribute_value
+					elif attr.attribute == "Diamond Target":
+						i.diamond_target = attr.attribute_value
+					elif attr.attribute == "Stone Changeable":
+						i.stone_changeable = attr.attribute_value
+					elif attr.attribute == "Gemstone Type":
+						i.gemstone_type = attr.attribute_value
+					elif attr.attribute == "Chain Type":
+						i.chain_type = attr.attribute_value
+					elif attr.attribute == "Chain Length":
+						i.chain_length = attr.attribute_value
+					elif attr.attribute == "Feature":
+						i.feature = attr.attribute_value
+					elif attr.attribute == "Rhodium":
+						i.rhodium = attr.attribute_value
+					elif attr.attribute == "Enamal":
+						i.enamal = attr.attribute_value
+					elif attr.attribute == "Detachable":
+						i.detachable = attr.attribute_value
+					elif attr.attribute == "Cap/Ganthan":
+						i.capganthan = attr.attribute_value
 	
 def set_data(self):
 	if self.order_details:
