@@ -1327,6 +1327,11 @@ def create_bom(self, item_variant):
 		new_bom_doc.metal_colour = self.metal_colour
 		new_bom_doc.metal_purity = "85.0"
 
+		total_metal_weight = sum(row.quantity for row in new_bom_doc.metal_detail)
+		new_bom_doc.metal_weight = total_metal_weight
+		new_bom_doc.metal_target = total_metal_weight
+		new_bom_doc.total_metal_weight = total_metal_weight
+
 	
 	new_bom_doc.save()
 	return new_bom_doc.name
