@@ -20,21 +20,14 @@
   "old_customer_code",
   "customer_grade",
   "image",
-  "new_customer",
   "column_break_99dw",
   "reason_for_hold",
+  "new_customer",
   "territory",
   "territory_code",
   "gender",
   "vendor_code",
-  "from_lead",
-  "from_opportunity",
-  "from_prospect",
   "account_manager",
-  "certification_charges",
-  "ignore_po_creation_for_certification",
-  "custom_separate_hallmarking_invoice",
-  "custom_making_rates_based_on_custom_code",
   "attachment_section",
   "aadhar_card",
   "pan_card",
@@ -42,14 +35,12 @@
   "defaults_section",
   "column_break_2xpv",
   "default_price_list",
-  "default_company_bank_account",
   "column_break_ol6e",
   "billing_currency",
   "internal_customer_section",
   "is_internal_customer",
   "represents_company",
   "amended_from",
-  "is_customer_exempted_from_sales_tax",
   "column_break_f9zq",
   "allowed_to_transact_with",
   "more_information_section",
@@ -60,7 +51,6 @@
   "print_language",
   "column_break_rgsi",
   "customer_details",
-  "gemstone_price_multiplier",
   "address_contact_tab",
   "address__contact_section",
   "address_html",
@@ -72,6 +62,7 @@
   "customer_primary_address",
   "primary_address",
   "section_break_unpp",
+  "cust_add_same",
   "other_cust_contact",
   "other_cust_address",
   "contact_section",
@@ -90,6 +81,17 @@
   "fax",
   "preferred_billing_add",
   "preferred_shipping_add",
+  "primary_address_detail_section",
+  "cus_add_title",
+  "cus_add_type",
+  "cus_add_line1",
+  "cus_add_line2",
+  "cus_add_city",
+  "column_break_qcv4",
+  "cus_add_state",
+  "cus_add_country",
+  "cus_add_pin",
+  "cus_add_fax",
   "tax_tab",
   "section_break_fkjs",
   "tax_id",
@@ -110,17 +112,50 @@
   "loyalty_program",
   "column_break_w5ep",
   "loyalty_program_tier",
+  "sales_team_section",
   "sales_team",
   "section_break_48sj",
   "sales_partner",
   "column_break_2dhn",
   "commission_rate",
   "settings_tab",
+  "certification_charges",
+  "default_company_bank_account",
+  "gemstone_price_multiplier",
+  "section_break_briu",
+  "custom_separate_hallmarking_invoice",
+  "custom_making_rates_based_on_custom_code",
+  "is_customer_exempted_from_sales_tax",
+  "ignore_po_creation_for_certification",
+  "column_break_fyzc",
   "allow_sales_invoice_creation_without_sales_order",
   "allow_sales_invoice_creation_without_delivery_note",
-  "column_break_fyzc",
   "is_frozen",
-  "disabled"
+  "disabled",
+  "custom_criteria_tab",
+  "brand",
+  "custom_order_type_criteria",
+  "custom_allowed_item_category_for_invoice",
+  "custom_approval_warehouse",
+  "column_break_pjle",
+  "cfa",
+  "custom_sketch_workflow_state",
+  "custom_order_workflow_state",
+  "custom_consider_2_digit_for_bom",
+  "custom_consider_2_digit_for_diamond",
+  "custom_consider_2_digit_for_gemstone",
+  "custom_advanced_manual_bagging_available",
+  "custom_require_customer_bulk_numbers",
+  "section_break_e3a6",
+  "compute_making_charges_on",
+  "sales_type",
+  "column_break_jgx4",
+  "diamond_price_list",
+  "custom_gemstone_price_list_type",
+  "metal_criteria",
+  "diamond_quality_section",
+  "diamond_grades",
+  "section_break_utwk"
  ],
  "fields": [
   {
@@ -219,24 +254,6 @@
    "fieldname": "vendor_code",
    "fieldtype": "Data",
    "label": "Vendor Code"
-  },
-  {
-   "fieldname": "from_lead",
-   "fieldtype": "Link",
-   "label": "From Lead",
-   "options": "Lead"
-  },
-  {
-   "fieldname": "from_opportunity",
-   "fieldtype": "Link",
-   "label": "From Opportunity",
-   "options": "Opportunity"
-  },
-  {
-   "fieldname": "from_prospect",
-   "fieldtype": "Link",
-   "label": "From Prospect",
-   "options": "Prospect"
   },
   {
    "fieldname": "account_manager",
@@ -412,6 +429,7 @@
   },
   {
    "allow_on_submit": 1,
+   "depends_on": "eval:doc.customer_data || doc.new_customer",
    "fieldname": "customer_primary_contact",
    "fieldtype": "Link",
    "label": "Customer Primary Contact",
@@ -548,7 +566,8 @@
   {
    "fieldname": "settings_tab",
    "fieldtype": "Tab Break",
-   "label": "Settings"
+   "label": "Settings",
+   "permlevel": 1
   },
   {
    "default": "0",
@@ -586,6 +605,7 @@
   },
   {
    "allow_on_submit": 1,
+   "depends_on": "eval:doc.customer_data || doc.new_customer",
    "fieldname": "customer_primary_address",
    "fieldtype": "Link",
    "label": "Customer Primary Address",
@@ -726,7 +746,7 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:doc.is_new_employee != 1",
+   "depends_on": "eval:doc.is_new_employee == 1",
    "fieldname": "new_customer",
    "fieldtype": "Link",
    "label": "New Customer",
@@ -744,18 +764,18 @@
    "label": "Attachment"
   },
   {
-   "depends_on": "eval:doc.customer_type == 'Individual'",
+   "depends_on": "eval:doc.gst_category == 'Unregistered'",
    "fieldname": "aadhar_card",
    "fieldtype": "Attach",
    "label": "Aadhar Card",
-   "mandatory_depends_on": "eval:doc.customer_type == 'Individual';"
+   "mandatory_depends_on": "eval:doc.gst_category == 'Unregistered'"
   },
   {
-   "depends_on": "eval:doc.customer_type == 'Individual'",
+   "depends_on": "eval:doc.gst_category == 'Unregistered'",
    "fieldname": "pan_card",
    "fieldtype": "Attach",
    "label": "PAN Card",
-   "mandatory_depends_on": "eval:doc.customer_type == 'Individual'"
+   "mandatory_depends_on": "eval:doc.gst_category == 'Unregistered'"
   },
   {
    "fieldname": "other_documents",
@@ -766,12 +786,216 @@
    "fieldname": "reason_for_hold",
    "fieldtype": "Data",
    "label": "Reason For Hold"
+  },
+  {
+   "default": "1",
+   "fieldname": "cust_add_same",
+   "fieldtype": "Check",
+   "label": "Primary & Address is Same"
+  },
+  {
+   "fieldname": "section_break_briu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:doc.cust_add_same == 0",
+   "fieldname": "primary_address_detail_section",
+   "fieldtype": "Section Break",
+   "label": "Primary Address Detail"
+  },
+  {
+   "fieldname": "cus_add_title",
+   "fieldtype": "Data",
+   "label": "Address Title"
+  },
+  {
+   "fieldname": "cus_add_type",
+   "fieldtype": "Select",
+   "label": "Address Type"
+  },
+  {
+   "fieldname": "cus_add_line1",
+   "fieldtype": "Data",
+   "label": "Address Line 1"
+  },
+  {
+   "fieldname": "cus_add_line2",
+   "fieldtype": "Data",
+   "label": "Address Line 2"
+  },
+  {
+   "fieldname": "cus_add_city",
+   "fieldtype": "Data",
+   "label": "City/Town"
+  },
+  {
+   "fieldname": "column_break_qcv4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cus_add_state",
+   "fieldtype": "Link",
+   "label": "State/Province",
+   "options": "State List"
+  },
+  {
+   "fieldname": "cus_add_country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country"
+  },
+  {
+   "fieldname": "cus_add_pin",
+   "fieldtype": "Data",
+   "label": "Postal Code"
+  },
+  {
+   "fieldname": "cus_add_fax",
+   "fieldtype": "Data",
+   "label": "Fax"
+  },
+  {
+   "fieldname": "sales_team_section",
+   "fieldtype": "Tab Break",
+   "label": "Sales Team"
+  },
+  {
+   "fieldname": "custom_criteria_tab",
+   "fieldtype": "Section Break",
+   "label": "Custom Criteria"
+  },
+  {
+   "fieldname": "brand",
+   "fieldtype": "Data",
+   "label": "Brand"
+  },
+  {
+   "fieldname": "column_break_pjle",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cfa",
+   "fieldtype": "Data",
+   "label": "CFA"
+  },
+  {
+   "fieldname": "section_break_e3a6",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "compute_making_charges_on",
+   "fieldtype": "Select",
+   "label": "Compute Making Charges On",
+   "options": "Diamond Inclusive\nNet Wt"
+  },
+  {
+   "fieldname": "sales_type",
+   "fieldtype": "Table",
+   "label": "Sales Type",
+   "options": "Sales Type Multiselect"
+  },
+  {
+   "fieldname": "column_break_jgx4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "metal_criteria",
+   "fieldtype": "Table",
+   "label": "Metal Criteria",
+   "options": "Metal Criteria"
+  },
+  {
+   "fieldname": "diamond_quality_section",
+   "fieldtype": "Section Break",
+   "label": "Diamond Quality"
+  },
+  {
+   "fieldname": "diamond_grades",
+   "fieldtype": "Table",
+   "label": "Diamond Grades",
+   "options": "Customer Diamond Grade"
+  },
+  {
+   "fieldname": "section_break_utwk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_order_type_criteria",
+   "fieldtype": "Table",
+   "label": "Order Type Criteria",
+   "options": "Order Type"
+  },
+  {
+   "fieldname": "custom_approval_warehouse",
+   "fieldtype": "Link",
+   "label": "Approval Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "custom_sketch_workflow_state",
+   "fieldtype": "Select",
+   "label": "Sketch Workflow State",
+   "options": "\nInternal\nExternal"
+  },
+  {
+   "fieldname": "custom_order_workflow_state",
+   "fieldtype": "Select",
+   "label": "Order Workflow State",
+   "options": "\nInternal\nExternal"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_consider_2_digit_for_bom",
+   "fieldtype": "Check",
+   "label": "Consider 2 Digit for BOM"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_consider_2_digit_for_diamond",
+   "fieldtype": "Check",
+   "label": "Consider 2 Digit for Diamond"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_consider_2_digit_for_gemstone",
+   "fieldtype": "Check",
+   "label": "Consider 2 Digit for Gemstone"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_advanced_manual_bagging_available",
+   "fieldtype": "Check",
+   "label": "Advanced Manual Bagging Available"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_require_customer_bulk_numbers",
+   "fieldtype": "Check",
+   "label": "Require Customer Bulk Numbers"
+  },
+  {
+   "fieldname": "diamond_price_list",
+   "fieldtype": "Select",
+   "label": "Diamond Price List Type",
+   "options": "\nSieve Size Range\nWeight (in cts)\nSize (in mm)"
+  },
+  {
+   "fieldname": "custom_gemstone_price_list_type",
+   "fieldtype": "Select",
+   "label": "Gemstone Price List Type",
+   "options": "Weight (in cts)\nFixed\nMultiplier"
+  },
+  {
+   "fieldname": "custom_allowed_item_category_for_invoice",
+   "fieldtype": "Select",
+   "label": "Allowed Item Category For Invoice",
+   "options": "Mix\nUnique\nMIx And Unique"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-02 17:57:16.345893",
+ "modified": "2025-06-26 14:13:50.959215",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Customer Master Update",
@@ -794,5 +1018,8 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
 }

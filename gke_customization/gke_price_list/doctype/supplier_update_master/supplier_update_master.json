@@ -389,7 +389,8 @@
   {
    "fieldname": "settings_tab",
    "fieldtype": "Tab Break",
-   "label": "Settings"
+   "label": "Settings",
+   "permlevel": 1
   },
   {
    "default": "0",
@@ -457,6 +458,7 @@
   {
    "fieldname": "hold_type",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Hold Type",
    "options": "\nAll\nInvoices\nPayments"
   },
@@ -755,7 +757,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-19 18:02:50.786891",
+ "modified": "2025-06-26 14:12:31.781071",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Supplier Update Master",
