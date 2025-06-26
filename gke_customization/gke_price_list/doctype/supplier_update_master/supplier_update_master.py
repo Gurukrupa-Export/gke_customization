@@ -199,7 +199,7 @@ class SupplierUpdateMaster(Document):
                 
                 frappe.msgprint("Supplier Address Created ")    
             else:
-                frappe.throw(f"{self.address_title}Address Title is reqd..")
+                frappe.throw(f"{self.address_title} Address Title is reqd..")
         if self.workflow_state == "Create Contact": 
             if self.phone:
                 contact_doc = frappe.new_doc("Contact")
