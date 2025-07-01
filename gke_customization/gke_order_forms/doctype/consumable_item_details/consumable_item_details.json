@@ -7,8 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "item_code",
-  "item_name",
-  "mr_by_departmnet"
+  "item_name"
  ],
  "fields": [
   {
@@ -25,13 +24,6 @@
    "in_list_view": 1,
    "in_preview": 1,
    "label": "Item Name"
-  },
-  {
-   "fieldname": "mr_by_departmnet",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "MR By Departmnet",
-   "options": "Yes\nNo"
   }
  ],
  "index_web_pages_for_search": 1,
