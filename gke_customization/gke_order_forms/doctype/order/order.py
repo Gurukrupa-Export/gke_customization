@@ -1366,6 +1366,7 @@ def create_bom_for_touch(self,item_variant=None):
 
 @frappe.whitelist()
 def make_quotation(source_name, target_doc=None):
+	
 	import json
 	from erpnext.setup.utils import get_exchange_rate
 
