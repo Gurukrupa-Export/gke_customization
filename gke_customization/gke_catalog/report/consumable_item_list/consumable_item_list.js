@@ -42,7 +42,7 @@ frappe.query_reports["Consumable Item List"] = {
             get_data: function(txt) {
                 return frappe.db.get_list("Item Group", {
                     fields: ["name as value", "parent_item_group as description"],
-                    filters: { "parent_item_group": "Consumable" }
+                    filters: { "parent_item_group": "Necklace - V" }
                 });
             }
         }
