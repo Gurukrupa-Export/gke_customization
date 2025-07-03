@@ -16,13 +16,18 @@
   "section_break_5qrb",
   "item_group",
   "gst",
+  "multiple_tax",
+  "tax_1",
   "status",
   "item_image",
   "image_preview",
   "column_break_wbqs",
   "default_expense_account",
   "hsn_code",
+  "cons_hsn_code",
+  "uom",
   "item_code",
+  "item_code_2",
   "remarks",
   "reason_for_hold",
   "item_section",
@@ -99,6 +104,8 @@
    "fieldtype": "Link",
    "label": "Item Group",
    "options": "Item Group",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'",
    "reqd": 1
   },
   {
@@ -106,7 +113,9 @@
    "description": "Add GST value in Percentage",
    "fieldname": "gst",
    "fieldtype": "Select",
-   "label": "Item Tax (GST %)"
+   "label": "Item Tax (GST %)",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'"
   },
   {
    "fieldname": "column_break_wbqs",
@@ -115,6 +124,7 @@
   {
    "fieldname": "hsn_code",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "HSN Code"
   },
   {
@@ -214,19 +224,57 @@
    "fieldname": "default_expense_account",
    "fieldtype": "Link",
    "label": "Default Expense Account",
-   "options": "Account"
+   "mandatory_depends_on": "eval:doc.workflow_state != 'Send to Account'",
+   "options": "Account",
+   "read_only_depends_on": "// eval:doc.workflow_state != 'Verify Detail'"
   },
   {
    "allow_on_submit": 1,
    "fieldname": "reason_for_hold",
    "fieldtype": "Data",
    "label": "Reason For Hold"
+  },
+  {
+   "default": "0",
+   "fieldname": "multiple_tax",
+   "fieldtype": "Check",
+   "label": "Item has Multiple Tax"
+  },
+  {
+   "allow_on_submit": 1,
+   "depends_on": "eval:doc.multiple_tax == 1",
+   "fieldname": "tax_1",
+   "fieldtype": "Select",
+   "label": "Item Tax",
+   "mandatory_depends_on": "eval:doc.multiple_tax == 1",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'"
+  },
+  {
+   "allow_on_submit": 1,
+   "depends_on": "eval:doc.tax_1 && (in_list(['Approved','Completed'], doc.workflow_state))",
+   "fieldname": "item_code_2",
+   "fieldtype": "Link",
+   "label": "Item Code 2",
+   "options": "Item"
+  },
+  {
+   "fieldname": "cons_hsn_code",
+   "fieldtype": "Int",
+   "label": "HSN Code",
+   "reqd": 1
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-05-30 18:19:19.308570",
+ "modified": "2025-06-20 16:36:04.380931",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Item Request",

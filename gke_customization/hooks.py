@@ -143,7 +143,10 @@ override_doctype_class = {
 
 scheduler_events = {
     "daily": [
-        "gke_customization.gke_hrms.utils.check"
+        "gke_customization.gke_hrms.utils.check",
+        "gke_customization.gke_hrms.doc_events.leave_allocation.get_earned_leave_allocation",
+        "gke_customization.gke_hrms.doc_events.leave_allocation.infirmary_leave_allocation",
+        "gke_customization.gke_hrms.doc_events.leave_allocation.compOff_leave_allocation"    
     ],
 
 }
@@ -290,9 +293,9 @@ doc_events = {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.stock_entry.before_validate",
 # }
 }
-app_include_js = [
-    '/assets/gke_customization/js/solitaire_calculator.js'
-]
+# app_include_js = [
+#     '/assets/gke_customization/js/solitaire_calculator.js'
+# ]
 
 fixtures = [
     {

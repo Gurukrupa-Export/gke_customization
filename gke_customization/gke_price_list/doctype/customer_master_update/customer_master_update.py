@@ -4,7 +4,7 @@ from frappe.model.mapper import get_mapped_doc
 
 
 class CustomerMasterUpdate(Document):
-    def validate(self):
+    def on_submit(self):
         if self.workflow_state == 'Update Customer' or self.workflow_state == 'Create Customer':      
             fields_mapping = {
                 "sequence": "custom_sequence",
@@ -59,30 +59,46 @@ class CustomerMasterUpdate(Document):
                 "tax_category": "tax_category",
                 "is_internal_customer": "is_internal_customer",
                 "represents_company": "represents_company",
+                "brand": "brand",
+                "cfa": "cfa",
+                "custom_sketch_workflow_state": "custom_sketch_workflow_state",
+                "custom_order_workflow_state": "custom_order_workflow_state",
+                "custom_consider_2_digit_for_bom": "custom_consider_2_digit_for_bom",
+                "custom_consider_2_digit_for_diamond": "custom_consider_2_digit_for_diamond",
+                "custom_consider_2_digit_for_gemstone": "custom_consider_2_digit_for_gemstone",
+                "custom_advanced_manual_bagging_available": "custom_advanced_manual_bagging_available",
+                "custom_require_customer_bulk_numbers": "custom_require_customer_bulk_numbers",
+                "custom_allowed_item_category_for_invoice": "custom_allowed_item_category_for_invoice",
+                "custom_approval_warehouse": "custom_approval_warehouse",
+                "compute_making_charges_on": "compute_making_charges_on",
+                "diamond_price_list": "diamond_price_list",
+                "custom_gemstone_price_list_type": "custom_gemstone_price_list_type"
             }
 
             credit_limit_data = self.get("credit_limit")
             sales_team_data = self.get("sales_team")
             allowed_to_transact_with = self.get("allowed_to_transact_with")
+            order_type_criteria = self.get("custom_order_type_criteria")
+            sales_type = self.get("sales_type")
+            metal_criteria = self.get("metal_criteria")
+            diamond_grades = self.get("diamond_grades")
 
             accounts_data = self.get("accounts")
 
-        
             if frappe.db.exists("Customer", self.customer_data):
                 try:
                     customer_doc = frappe.get_doc("Customer", self.customer_data)
 
                     for source_field, target_field in fields_mapping.items():
+                        # source_field = 'gst_category'
                         new_value = self.get(source_field)
                         if new_value is not None:
+                            # frappe.throw(f"{customer_doc} || {source_field} || {new_value}")
                             customer_doc.set(target_field, new_value)
 
                 
                     if credit_limit_data:
-                        # Clear existing child table entries
                         customer_doc.credit_limits = []
-
-                        # Append new child table data
                         for row in credit_limit_data:
                             customer_doc.append("credit_limits", {
                                 "company": row.get("company"),
@@ -90,11 +106,8 @@ class CustomerMasterUpdate(Document):
                                 "bypass_credit_limit_check": row.get("bypass_credit_limit_check"),
                             })
 
-                    
                     if sales_team_data:
                         customer_doc.sales_team = []
-
-                        
                         for row in sales_team_data:
                             customer_doc.append("sales_team", {
                                 "sales_person": row.get("sales_person"),
@@ -105,23 +118,55 @@ class CustomerMasterUpdate(Document):
                                 "incentives": row.get("incentives"),
                             })
 
-                    # Update child table: accounts
                     if accounts_data:
-                        # Clear existing accounts entries
                         customer_doc.accounts = []
-
-                        # Append new accounts data
                         for row in accounts_data:
                             customer_doc.append("accounts", {
                                 "company": row.get("company"),
                                 "account": row.get("account"),
                                 "advance_account": row.get("advance_account"),
                             })
+                    
+                    if order_type_criteria:
+                        customer_doc.custom_order_type_criteria = []
+                        for row in order_type_criteria:
+                            customer_doc.append("custom_order_type_criteria", {
+                                "order_type": row.get("order_type"),
+                                "flow_type": row.get("flow_type")
+                            })
+                    
+                    if sales_type:
+                        customer_doc.sales_type = []
+                        for row in sales_type:
+                            customer_doc.append("sales_type", {
+                                "sales_type": row.get("sales_type"),
+                                "tax_rate": row.get("tax_rate")
+                            })
+                    
+                    if metal_criteria:
+                        customer_doc.metal_criteria = []
+                        for row in metal_criteria:
+                            customer_doc.append("metal_criteria", {
+                                "metal_type": row.get("metal_type"),
+                                "metal_touch": row.get("metal_touch"),
+                                "metal_purity": row.get("metal_purity")
+                            })
+                    
+                    if diamond_grades:
+                        customer_doc.diamond_grades = []
+                        for row in diamond_grades:
+                            customer_doc.append("diamond_grades", {
+                                "diamond_quality": row.get("diamond_quality"),
+                                "diamond_grade_1": row.get("diamond_grade_1"),
+                                "diamond_grade_2": row.get("diamond_grade_2"),
+                                "diamond_grade_3": row.get("diamond_grade_3"),
+                                "diamond_grade_4": row.get("diamond_grade_4")
+                            })
 
                     # Save the updated Customer document
                     customer_doc.save(ignore_permissions=True)
                     frappe.db.commit()
-                    frappe.msgprint("Customer has been updated successfully with updated credit limits, sales team details, and accounts.")
+                    frappe.msgprint("Customer has been updated successfully.")
 
                 except Exception as e:
                     frappe.log_error(frappe.get_traceback(), "Customer Update Error")
@@ -138,7 +183,7 @@ class CustomerMasterUpdate(Document):
                     customer_data["doctype"] = "Customer"
                     customer_data["customer_name"] = self.get("customer_name")
                     customer_data["customer_group"] = customer_data.get("customer_group") or "Default Customer Group"
-                    customer_data["territory"] = customer_data.get("territory") or "All Territories"
+                    customer_data["territory"] = customer_data.get("territory")
                     customer_data["customer_type"] = customer_data.get("customer_type") or "Company"
 
                     # Add child table data for credit limits
@@ -185,6 +230,46 @@ class CustomerMasterUpdate(Document):
                             }
                             for row in accounts_data
                         ]
+                    
+                    if order_type_criteria:
+                        customer_data["custom_order_type_criteria"] = [
+                            {
+                                "order_type": row.get("order_type"),
+                                "flow_type": row.get("flow_type")
+                            }
+                            for row in order_type_criteria
+                        ]
+                    
+                    if sales_type:
+                        customer_data["sales_type"] = [
+                            {
+                                "sales_type": row.get("sales_type"),
+                                "tax_rate": row.get("tax_rate")
+                            }
+                            for row in sales_type
+                        ]
+                    if metal_criteria:
+                        customer_data["metal_criteria"] = [
+                            {
+                                "metal_type": row.get("metal_type"),
+                                "metal_touch": row.get("metal_touch"),
+                                "metal_purity": row.get("metal_purity")
+                            }
+                            for row in metal_criteria
+                        ]
+                    if diamond_grades:
+                        customer_data["diamond_grades"] = [
+                            {
+                                "diamond_quality": row.get("diamond_quality"),
+                                "diamond_grade_1": row.get("diamond_grade_1"),
+                                "diamond_grade_2": row.get("diamond_grade_2"),
+                                "diamond_grade_3": row.get("diamond_grade_3"),
+                                "diamond_grade_4": row.get("diamond_grade_4")
+
+                            }
+                            for row in diamond_grades
+                        ]
+
 
                     # Create the new Customer record
                     new_customer = frappe.get_doc(customer_data)
@@ -199,67 +284,72 @@ class CustomerMasterUpdate(Document):
                     frappe.msgprint(f"New Customer '{new_customer.name}' has been successfully created.")
     
     def on_update_after_submit(self):
-        create_supplier_address_contact(self)
+        self.create_supplier_address_contact()
+        if self.workflow_state != 'Completed':
+            frappe.msgprint(f"Customer address/contact has been successfully created.")
+        
 
-def create_supplier_address_contact(self):
-    if self.workflow_state == "Create Address":
-        address_doc = frappe.new_doc("Address")
-        address_doc.address_title = self.address_title
-        address_doc.address_type = self.address_type
-        address_doc.address_line1 = self.address_line_1
-        address_doc.address_line2 = self.address_line_2
-        address_doc.city = self.city
-        address_doc.state = self.state
-        address_doc.country = self.add_country
-        address_doc.pincode = self.pincode
-        address_doc.email_address = self.email_address
-        address_doc.phone = self.phone
-        if self.gstin__uin:
-            address_doc.gstin = self.gstin__uin
+    def create_supplier_address_contact(self):
+        if self.workflow_state == "Create Address":
+            if self.address_title:
+                address_doc = frappe.new_doc("Address")
+                address_doc.address_title = self.address_title
+                address_doc.address_type = self.address_type
+                address_doc.address_line1 = self.address_line_1
+                address_doc.address_line2 = self.address_line_2
+                address_doc.city = self.city
+                address_doc.state = self.state
+                address_doc.country = self.add_country
+                address_doc.pincode = self.pincode
+                address_doc.email_address = self.email_address
+                address_doc.phone = self.phone
+                if self.gstin__uin:
+                    address_doc.gstin = self.gstin__uin
+                    
+                if self.new_customer:
+                    address_links = address_doc.append("links", {})
+                    address_links.link_doctype = "Customer",
+                    address_links.link_name = self.new_customer 
+                
+                address_doc.insert(ignore_permissions=True)
+                address_doc.save()
+
+                frappe.db.set_value("Customer", self.new_customer,"customer_primary_address",address_doc.name)
+                
+                frappe.db.set_value("Customer Master Update", self.name,"customer_primary_address",address_doc.name)
+                self.reload()
+
+                frappe.msgprint("Customer Address Created ")
+            else:
+                frappe.throw(f"{self.address_title} Address Title is reqd..") 
+        if self.workflow_state == "Create Contact":
+            if self.phone:
+                contact_doc = frappe.new_doc("Contact")
+                contact_doc.company_name = self.customer_name 
             
-        if self.new_customer:
-            address_links = address_doc.append("links", {})
-            address_links.link_doctype = "Customer",
-            address_links.link_name = self.new_customer 
-        
-        address_doc.insert(ignore_permissions=True)
-        address_doc.save()
+                if self.email_address:
+                    contact_email = contact_doc.append("email_ids", {})
+                    contact_email.email_id = self.email_address
+                    contact_email.is_primary = 1 
+                    
+                if self.phone:
+                    contact_phone = contact_doc.append("phone_nos", {})
+                    contact_phone.phone = self.phone
+                    contact_phone.is_primary_mobile_no = 1 
+                
+                if self.new_customer:
+                    contact_links = contact_doc.append("links", {})
+                    contact_links.link_doctype = "Customer",
+                    contact_links.link_name = self.new_customer 
+                
+                contact_doc.insert(ignore_permissions=True)
+                contact_doc.save()
 
-        frappe.db.set_value("Customer", self.new_customer,"customer_primary_address",address_doc.name)
-        
-        frappe.db.set_value("Customer Master Update", self.name,"customer_primary_address",address_doc.name)
-        self.reload()
+                frappe.db.set_value("Customer", self.new_customer,"customer_primary_contact",contact_doc.name)
+                
+                frappe.db.set_value("Customer Master Update", self.name,"customer_primary_contact",contact_doc.name)
+                self.reload()
 
-        frappe.msgprint("Customer Address Created ")
-        
-    if self.workflow_state == "Create Contact":
-        contact_doc = frappe.new_doc("Contact")
-        contact_doc.company_name = self.customer_name
-        # contact_doc.email_id = self.email_address
-        # contact_doc.mobile_no = self.phone
-        # contact_doc.gstin
-    
-        if self.email_address:
-            contact_email = contact_doc.append("email_ids", {})
-            contact_email.email_id = self.email_address
-            contact_email.is_primary = 1 
-            
-        if self.phone:
-            contact_phone = contact_doc.append("phone_nos", {})
-            contact_phone.phone = self.phone
-            contact_phone.is_primary_mobile_no = 1 
-        
-        if self.new_customer:
-            contact_links = contact_doc.append("links", {})
-            contact_links.link_doctype = "Customer",
-            contact_links.link_name = self.new_customer 
-        
-        contact_doc.insert(ignore_permissions=True)
-        contact_doc.save()
-
-        frappe.db.set_value("Customer", self.new_customer,"customer_primary_contact",contact_doc.name)
-        
-        frappe.db.set_value("Customer Master Update", self.name,"customer_primary_contact",contact_doc.name)
-        self.reload()
-
-        frappe.msgprint("Customer Contact Created ")
+                frappe.msgprint("Customer Contact Created ")
+            else:
+                frappe.throw(f"{self.phone}Phone is reqd..") 

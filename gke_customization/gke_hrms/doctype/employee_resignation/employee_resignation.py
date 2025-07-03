@@ -17,7 +17,7 @@ class EmployeeResignation(Document):
 				if self.reporting_manager_approval == 'Approved':
 					if self.waive_off_notice_period == 'Yes':
 						# notice_days = 0
-						notice_days = int(self.reduce_notice_days or 0)
+						notice_days = int(self.reduce_notice_day or 0)
 
 					if self.date_resignation:
 						resignation_date = datetime.strptime(str(self.date_resignation), "%Y-%m-%d")

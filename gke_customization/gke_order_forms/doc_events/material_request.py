@@ -87,7 +87,7 @@ def create_consumable_material_req(items, user):
     
     # frappe.throw(f"{target_emp_warehouse} , {user}")
     if not target_emp_warehouse:
-        frappe.throw(_("Employee is not linked to the Warehouse."))
+        frappe.throw(_("Employee's Department is not linked to the Warehouse."))
 
     consumable_warehouse = frappe.db.get_value("Consumable Master", {'department': employee_detail.department}, ['warehouse'])
     source_warehouse = frappe.db.get_value("Warehouse",

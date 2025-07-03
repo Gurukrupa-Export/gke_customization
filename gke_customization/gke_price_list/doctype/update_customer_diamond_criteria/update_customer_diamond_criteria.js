@@ -11,32 +11,54 @@ frappe.ui.form.on('Update Customer Diamond Criteria', {
     customer: function (frm) {
         if (!frm.doc.customer) return;
 
-        frappe.db.get_doc('Customer', frm.doc.customer).then(doc => {
-            if (!doc.diamond_grades || !doc.diamond_grades.length) {
-                frappe.msgprint(__('No diamond grades found for this customer.'));
-                return;
+        // frappe.db.get_doc('Customer', frm.doc.customer).then(doc => {
+        //     if (!doc.diamond_grades || !doc.diamond_grades.length) {
+        //         frappe.msgprint(__('No diamond grades found for this customer.'));
+        //         return;
+        //     }
+
+        //     // Clear existing child table first
+        //     frm.clear_table('diamond_grades');
+
+
+        //     // Add each row from customer's diamond_grades
+        //     doc.diamond_grades.forEach(row => {
+        //         let child = frm.add_child('diamond_grades');
+        //         child.diamond_quality = row.diamond_quality;
+        //         child.diamond_grade_1 = row.diamond_grade_1;
+        //         child.diamond_grade_2 = row.diamond_grade_2;
+        //         child.diamond_grade_3 = row.diamond_grade_3;
+        //         child.diamond_grade_4 = row.diamond_grade_4;
+        //     });
+
+        //     frm.refresh_field('diamond_grades');
+        // });
+         frappe.call({
+            method: "frappe.client.get",
+            args: {
+                doctype: "Customer",
+                name: frm.doc.customer
+            },
+            callback: function (r) {
+                if (!r.message || !r.message.diamond_grades || !r.message.diamond_grades.length) {
+                    frappe.msgprint(__('No diamond grades found for this customer.'));
+                    return;
+                }
+                frm.clear_table('diamond_grades');
+
+                r.message.diamond_grades.forEach(row => {
+                    let child = frm.add_child('diamond_grades');
+                    child.diamond_quality = row.diamond_quality;
+                    child.diamond_grade_1 = row.diamond_grade_1;
+                    child.diamond_grade_2 = row.diamond_grade_2;
+                    child.diamond_grade_3 = row.diamond_grade_3;
+                    child.diamond_grade_4 = row.diamond_grade_4;
+                });
+
+                frm.refresh_field('diamond_grades');
             }
-
-            // Clear existing child table first
-            frm.clear_table('diamond_grades');
-
-
-            // Add each row from customer's diamond_grades
-            doc.diamond_grades.forEach(row => {
-                let child = frm.add_child('diamond_grades');
-                child.diamond_quality = row.diamond_quality;
-                child.diamond_grade_1 = row.diamond_grade_1;
-                child.diamond_grade_2 = row.diamond_grade_2;
-                child.diamond_grade_3 = row.diamond_grade_3;
-                child.diamond_grade_4 = row.diamond_grade_4;
-            });
-
-            frm.refresh_field('diamond_grades');
         });
-    }
-});
-
-frappe.ui.form.on('Update Customer Diamond Criteria', {
+    },
     setup(frm) {
         frm.set_query('diamond_quality', 'diamond_grades', function () {
             return {
@@ -46,22 +68,23 @@ frappe.ui.form.on('Update Customer Diamond Criteria', {
             };
         });
 
-        const grade_fields = [
-            'diamond_grade_1',
-            'diamond_grade_2',
-            'diamond_grade_3',
-            'diamond_grade_4'
-        ]
+        var fields = [
+			['diamond_grade_1', 'Diamond Grade'],
+            ['diamond_grade_2', 'Diamond Grade'],
+            ['diamond_grade_3', 'Diamond Grade'],
+            ['diamond_grade_4', 'Diamond Grade'],]
 
-        grade_fields.forEach((field) => {
-            frm.set_query(field, 'diamond_grades', function () {
-                return {
-                        query: 'jewellery_erpnext.query.item_attribute_query',
-                        filters: { 'item_attribute': "Diamond Grade"}
-                    };
-            });
-
-        })
+        set_filters_on_child_table_fields(frm, fields);
     }
 });
 
+function set_filters_on_child_table_fields(frm, fields) {
+    fields.map(function (field) {
+        frm.set_query(field[0], "diamond_grades", function () {
+            return {
+                query: 'jewellery_erpnext.query.item_attribute_query',
+                filters: { 'item_attribute': field[1] }
+            };
+        });
+    });
+};
