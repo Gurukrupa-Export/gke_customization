@@ -1550,7 +1550,7 @@ def calculate_item_wt_details(doc, bom=None, item=None):
 		"18KT":"16",
 		"14KT":"14.23",
 		"10KT":"12.73",
-		"20KT":"10",
+		"20KT":"10"
 	}
 
 	doc["casting_weight"] = flt(doc["wax_weight"])*flt(ratio_dict[doc["metal_touch"]])
@@ -1579,7 +1579,6 @@ def validate_variant_attributes(variant_of,attribute_list):
 		frappe.throw(
 			_("Item variant <b>{0}</b> exists with same attributes").format(get_link_to_form("Item",variant)), ItemVariantExistsError
 		)
-
 
 
 
