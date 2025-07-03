@@ -293,9 +293,9 @@ doc_events = {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.stock_entry.before_validate",
 # }
 }
-app_include_js = [
-    '/assets/gke_customization/js/solitaire_calculator.js'
-]
+# app_include_js = [
+#     '/assets/gke_customization/js/solitaire_calculator.js'
+# ]
 
 fixtures = [
     {
