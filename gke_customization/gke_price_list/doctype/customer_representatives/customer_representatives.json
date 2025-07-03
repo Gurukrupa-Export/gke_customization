@@ -32,6 +32,7 @@
    "read_only": 1
   },
   {
+   "fetch_from": "employee.user_id",
    "fieldname": "user_id",
    "fieldtype": "Link",
    "in_list_view": 1,

@@ -1304,6 +1304,7 @@ def create_bom(self, item_variant):
 			new_row.metal_type = "Silver"
 			new_row.metal_touch = self.metal_touch
 			new_row.metal_colour = self.metal_colour
+			new_row.metal_purity = "85.0"
 
 			# Perform conversion based on original metal_touch
 			if original_row.metal_touch == "10KT":
@@ -1324,6 +1325,12 @@ def create_bom(self, item_variant):
 		new_bom_doc.metal_type = self.metal_type
 		new_bom_doc.metal_touch = self.metal_touch
 		new_bom_doc.metal_colour = self.metal_colour
+		new_bom_doc.metal_purity = "85.0"
+
+		total_metal_weight = sum(row.quantity for row in new_bom_doc.metal_detail)
+		new_bom_doc.metal_weight = total_metal_weight
+		new_bom_doc.metal_target = total_metal_weight
+		new_bom_doc.total_metal_weight = total_metal_weight
 
 	
 	new_bom_doc.save()
