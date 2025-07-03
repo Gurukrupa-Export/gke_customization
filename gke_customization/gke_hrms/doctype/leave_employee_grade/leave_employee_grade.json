@@ -1,0 +1,37 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-05 17:44:02.384263",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_ftni",
+  "employee_grade"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_ftni",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee_grade",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee Grade",
+   "options": "Employee Grade"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-06-25 13:45:04.268524",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Leave Employee Grade",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
