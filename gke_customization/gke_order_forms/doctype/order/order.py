@@ -27,6 +27,8 @@ class Order(Document):
 				frappe.msgprint(_("New BOM Created: {0}".format(get_link_to_form("BOM",new_bom))))
 				self.reload()
 
+
+
 	def validate(self):
 		if self.order_type != 'Purchase':
 			cerate_timesheet(self)
