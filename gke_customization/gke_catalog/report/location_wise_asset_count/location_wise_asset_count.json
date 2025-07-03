@@ -1,0 +1,61 @@
+{
+ "_liked_by": "[\"hema_d@gkexport.com\"]",
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2025-07-01 17:44:33.072245",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [
+  {
+   "default": "Sadguru",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "mandatory": 1,
+   "options": "Company",
+   "wildcard_filter": 0
+  }
+ ],
+ "idx": 1,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2025-07-02 14:19:04.749113",
+ "modified_by": "hema_d@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Location wise Asset count",
+ "owner": "hema_d@gkexport.com",
+ "prepared_report": 0,
+ "query": "SELECT location As Location, count(name) as \"Count\"\nFrom tabAsset\nWhere docstatus = 1\nAND company = %(company)s\nGroup by location",
+ "ref_doctype": "Asset",
+ "report_name": "Location wise Asset count",
+ "report_type": "Query Report",
+ "roles": [
+  {
+   "role": "Quality Manager"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Chartered Accountant -ST - GK"
+  },
+  {
+   "role": "GK Store"
+  },
+  {
+   "role": "Store Manager - ST"
+  },
+  {
+   "role": "Store Executive - ST"
+  },
+  {
+   "role": "Store Executive - MUM"
+  },
+  {
+   "role": "Store Executive - KGJPL"
+  }
+ ],
+ "timeout": 0
+}
