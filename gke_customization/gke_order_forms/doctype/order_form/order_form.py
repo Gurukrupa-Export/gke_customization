@@ -405,6 +405,8 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	doc.india_states = parent_doc.india_states
 	doc.item_type = item_type
 	doc.bom_or_cad = bom_or_cad
+	if design_type in ['New Design','Sketch Design']:
+		doc.workflow_type = 'CAD'
 	
 	doc.save()
 	if design_type == 'As Per Serial No' and item_type == "No Variant No Suffix" and bom_or_cad == 'New BOM':

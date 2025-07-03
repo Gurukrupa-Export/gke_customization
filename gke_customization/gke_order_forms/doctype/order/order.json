@@ -1052,7 +1052,7 @@
 "label": "Is Repairing"
 },
 {
-"depends_on": "eval:doc.design_type == 'Mod'",
+"depends_on": "eval:doc.design_type == \"New Design\" || doc.design_type == \"Sketch Design\"\r",
 "fieldname": "workflow_type",
 "fieldtype": "Select",
 "label": "Workflow Type",
