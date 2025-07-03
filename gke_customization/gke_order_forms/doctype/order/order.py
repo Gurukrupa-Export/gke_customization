@@ -1552,6 +1552,7 @@ def calculate_item_wt_details(doc, bom=None, item=None):
 		"10KT":"12.73",
 		"20KT":"10",
 	}
+	
 	doc["casting_weight"] = flt(doc["wax_weight"])*flt(ratio_dict[doc["metal_touch"]])
 	doc["cad_finish_ratio"] = flt(ratio_dict[doc["metal_touch"]])
 	return doc
