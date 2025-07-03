@@ -1393,7 +1393,6 @@ def make_quotation(source_name, target_doc=None):
 
 		quotation.quotation_to = "Customer"
 		field_map = {
-			# target : source
 			"company": "company",
 			"party_name": "customer_code",
 			"order_type": "order_type",
@@ -1552,7 +1551,7 @@ def calculate_item_wt_details(doc, bom=None, item=None):
 		"10KT":"12.73",
 		"20KT":"10",
 	}
-	
+
 	doc["casting_weight"] = flt(doc["wax_weight"])*flt(ratio_dict[doc["metal_touch"]])
 	doc["cad_finish_ratio"] = flt(ratio_dict[doc["metal_touch"]])
 	return doc
