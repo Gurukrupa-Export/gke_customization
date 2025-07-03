@@ -26,7 +26,7 @@ def get_data(filters):
     if filters.get("branch"):
         conds.append(["branch", "in", filters.get("branch")])
     if filters.get("location"):
-        conds.append(["book_location", "in", filters.get("location")])    
+        conds.append(["location", "in", filters.get("location")])    
     if filters.get("department"):
         conds.append(["department", "in", filters.get("department")])
     conds.append(["custodian", "=", ""])
