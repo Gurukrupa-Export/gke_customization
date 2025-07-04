@@ -15,7 +15,7 @@ from erpnext.controllers.item_variant import create_variant, get_variant
 class Order(Document):
 	def on_submit(self):
 		item_variant = create_line_items(self)
-		if self.bom_or_cad == 'Duplicate BOM' or (self.design_type == 'Mod' and self.bom_type == 'Duplicate BOM'):
+		if self.bom_or_cad == 'Duplicate BOM' or (self.design_type == 'Mod - Old Stylebio & Tag No' and self.bom_type == 'Duplicate BOM'):
 			if (self.mod_reason == 'Change in Metal Touch'):
 				new_bom = create_bom_for_touch(self,item_variant)
 				frappe.db.set_value("Order",self.name,"new_bom",new_bom)
@@ -40,7 +40,7 @@ class Order(Document):
 			check_finding_code(self)
 		
 	def on_update_after_submit(self):
-		if self.is_repairing == 0 and (self.design_type == 'Mod' and self.bom_type != 'Duplicate BOM'):
+		if self.is_repairing == 0 and (self.design_type == 'Mod - Old Stylebio & Tag No' and self.bom_type != 'Duplicate BOM'):
 			cerate_bom_timesheet(self)
 		calculate_metal_weights(self)
 		calculate_finding_weights(self)
