@@ -1,0 +1,53 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2025-07-04 15:07:36.482357",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2025-07-04 15:26:15.469476",
+ "modified_by": "hema_d@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Total Asset Value and NBV",
+ "owner": "hema_d@gkexport.com",
+ "prepared_report": 0,
+ "query": "SELECT\r\n    company_table.company AS company,\r\n    company_table.total_cost AS total_asset_cost,\r\n    (SUM(a.total_asset_cost) - COALESCE(SUM(ds.depreciation_amount), 0)) AS net_book_value\r\nFROM \r\n    `tabAsset` a\r\n\r\n-- Subquery to get total asset cost for all submitted assets per company\r\nINNER JOIN (\r\n    SELECT \r\n        company,\r\n        SUM(total_asset_cost) AS total_cost\r\n    FROM \r\n        `tabAsset`\r\n    WHERE\r\n        docstatus = 1\r\n    GROUP BY\r\n        company\r\n) AS company_table ON a.company = company_table.company\r\n\r\nLEFT JOIN \r\n    `tabAsset Depreciation Schedule` ads \r\n    ON a.name = ads.asset \r\n    AND ads.docstatus = 1\r\n\r\nLEFT JOIN \r\n    `tabDepreciation Schedule` ds \r\n    ON ads.name = ds.parent \r\n    AND ds.journal_entry IS NOT NULL \r\n    AND ds.schedule_date <= CURDATE()\r\n\r\nWHERE \r\n    a.docstatus = 1\r\n    AND a.status NOT IN (\"Scrapped\", \"Sold\")\r\n\r\nGROUP BY\r\n    company_table.company\r\n",
+ "ref_doctype": "Asset",
+ "report_name": "Total Asset Value and NBV",
+ "report_type": "Query Report",
+ "roles": [
+  {
+   "role": "Quality Manager"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Chartered Accountant -ST - GK"
+  },
+  {
+   "role": "GK Store"
+  },
+  {
+   "role": "Store Manager - ST"
+  },
+  {
+   "role": "Store Executive - ST"
+  },
+  {
+   "role": "Store Executive - MUM"
+  },
+  {
+   "role": "Store Executive - KGJPL"
+  },
+  {
+   "role": "Data Analyst"
+  }
+ ],
+ "timeout": 0
+}

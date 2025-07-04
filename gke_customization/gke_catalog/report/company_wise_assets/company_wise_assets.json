@@ -1,0 +1,53 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2025-07-04 14:40:36.554587",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 1,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2025-07-04 15:33:08.118976",
+ "modified_by": "hema_d@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Company wise Assets",
+ "owner": "hema_d@gkexport.com",
+ "prepared_report": 0,
+ "query": "SELECT \n   company AS company,\n   count(name) AS total_asset\nFROM tabAsset\nWHERE docstatus = 1\nGROUP BY company  \n    \n",
+ "ref_doctype": "Asset",
+ "report_name": "Company wise Assets",
+ "report_type": "Query Report",
+ "roles": [
+  {
+   "role": "Quality Manager"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Chartered Accountant -ST - GK"
+  },
+  {
+   "role": "GK Store"
+  },
+  {
+   "role": "Store Manager - ST"
+  },
+  {
+   "role": "Store Executive - ST"
+  },
+  {
+   "role": "Store Executive - MUM"
+  },
+  {
+   "role": "Store Executive - KGJPL"
+  },
+  {
+   "role": "Data Analyst"
+  }
+ ],
+ "timeout": 0
+}
