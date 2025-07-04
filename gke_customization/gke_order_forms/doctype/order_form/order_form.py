@@ -51,6 +51,7 @@ class OrderForm(Document):
 		self.validate_category_subcaegory()
 		self.validate_filed_value()
 		validate_design_id(self)
+		validate_is_mannual(self)
 		set_data(self)
 		for i in self.order_details:	
 			if i.metal_type == "Silver":
@@ -881,6 +882,73 @@ def validate_design_id(self):
 						if attr.attribute == attrname:
 							if not is_manual_override or not getattr(i, fieldname):
 								setattr(i, fieldname, attr.attribute_value)
+
+def validate_is_mannual(self):
+	if self.is_mannual:
+		errors = []
+
+		for row in self.order_details:
+			missing_fields = []
+
+			if not row.stylebio:
+				missing_fields.append("'Style Bio'")
+			if not row.status:
+				missing_fields.append("'Status'")
+			if not row.order_details_and_remarks:
+				missing_fields.append("'Order Details and Remark'")
+
+			# Set design_id and bom from Item if tagno exists
+			if row.tagno:
+				existing_item = frappe.db.get_value("Item", {"old_tag_no": row.tagno}, ["name", "master_bom"])
+				if existing_item:
+					item_name, master_bom = existing_item
+					row.design_id = item_name  
+					row.bom = master_bom
+					if master_bom:
+						diamond_type = frappe.db.get_value(
+							"BOM Diamond Detail", 
+							{"parent": master_bom}, 
+							"diamond_type"
+						)
+						# frappe.throw(f"{diamond_type}")
+						if diamond_type:
+							row.diamond_type = diamond_type
+
+			# if workflow_state == "Creating Item & BOM", design_type is mandatory
+			if (
+				not row.is_finding_order
+				and not row.design_type
+				and self.workflow_state == "Approved"
+			):
+				missing_fields.append("'Design Type' (required in 'Creating Item & BOM')")
+
+			if missing_fields:
+				errors.append(f"Row {row.idx} is missing: {', '.join(missing_fields)}")
+
+		if errors:
+			frappe.throw("<br>".join(errors))
+
+		# New condition added below:
+		if self.workflow_state == "Approved":
+			for row in self.order_details:
+				if row.status != "Done":
+					frappe.throw(f"Row {row.idx}: Status must be 'Done' before you approve. Please update it.")
+
+	else:
+		# is_mannual is unchecked validate design_type for non-finding orders
+		missing_design_type_rows = []
+		for row in self.order_details:
+			if not row.is_finding_order and not row.design_type:
+				missing_design_type_rows.append(
+					f"Row {row.idx}: Design Type is mandatory when 'Is Finding Order' is unchecked and 'Is Mannual' is also unchecked."
+				)
+
+		if missing_design_type_rows:
+			frappe.throw("<br>".join(missing_design_type_rows))
+
+
+
+
 
 
 
