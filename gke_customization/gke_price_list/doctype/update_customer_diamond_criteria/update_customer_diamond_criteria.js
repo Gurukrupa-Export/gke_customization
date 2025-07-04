@@ -34,10 +34,9 @@ frappe.ui.form.on('Update Customer Diamond Criteria', {
         //     frm.refresh_field('diamond_grades');
         // });
          frappe.call({
-            method: "frappe.client.get",
+            method:"gke_customization.gke_price_list.doctype.update_customer_diamond_criteria.update_customer_diamond_criteria.get_customer_diamond_criteria",
             args: {
-                doctype: "Customer",
-                name: frm.doc.customer
+                customer: frm.doc.customer
             },
             callback: function (r) {
                 if (!r.message || !r.message.diamond_grades || !r.message.diamond_grades.length) {

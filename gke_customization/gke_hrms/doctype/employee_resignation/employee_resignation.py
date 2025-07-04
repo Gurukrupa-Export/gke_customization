@@ -35,7 +35,7 @@ class EmployeeResignation(Document):
 			self.is_employee_on_probation = 'Yes'
 		else:
 			self.is_employee_on_probation = 'No'
-
+			
 @frappe.whitelist()
 def create_employee_resignation(source_name, target_doc=None):
 	doc = frappe.get_doc("Employee Resignation", source_name)

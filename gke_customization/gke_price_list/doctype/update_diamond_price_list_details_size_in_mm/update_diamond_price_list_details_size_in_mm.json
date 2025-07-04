@@ -8,6 +8,7 @@
  "field_order": [
   "size_in_mm",
   "diamond_size_in_mm",
+  "supplier_fg_purchase_rate",
   "section_break_hjga",
   "rate_per_carat",
   "diamond_handling_rate",
@@ -82,6 +83,11 @@
    "fieldtype": "Link",
    "label": "Diamond Size in MM",
    "options": "Attribute Value"
+  },
+  {
+   "fieldname": "supplier_fg_purchase_rate",
+   "fieldtype": "Currency",
+   "label": "Supplier Fg Purchase Rate"
   }
  ],
  "index_web_pages_for_search": 1,

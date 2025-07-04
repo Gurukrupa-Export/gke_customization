@@ -1,0 +1,57 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-25 14:23:51.285575",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "variable_label",
+  "description",
+  "value",
+  "param_name",
+  "path"
+ ],
+ "fields": [
+  {
+   "fieldname": "variable_label",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Variable Name",
+   "options": "Customer Scorecard Variable",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "value",
+   "fieldtype": "Float",
+   "label": "value"
+  },
+  {
+   "fieldname": "param_name",
+   "fieldtype": "Data",
+   "label": "Parameter Name"
+  },
+  {
+   "fieldname": "path",
+   "fieldtype": "Data",
+   "label": "Path"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-06-25 17:19:47.329139",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Customer Scorecard Scoring Variable",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

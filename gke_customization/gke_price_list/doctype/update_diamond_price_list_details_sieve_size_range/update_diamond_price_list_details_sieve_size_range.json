@@ -8,6 +8,7 @@
  "engine": "InnoDB",
  "field_order": [
   "sieve_size_range",
+  "supplier_fg_purchase_rate",
   "section_break_emmd",
   "rate_per_carat",
   "diamond_handling_rate",
@@ -77,6 +78,11 @@
    "fieldname": "difference_diamond_handling_rate",
    "fieldtype": "Currency",
    "label": "Difference(New Diamond Handling Rate-Diamond Handling Rate)"
+  },
+  {
+   "fieldname": "supplier_fg_purchase_rate",
+   "fieldtype": "Currency",
+   "label": "Supplier Fg Purchase Rate"
   }
  ],
  "index_web_pages_for_search": 1,
