@@ -57,3 +57,11 @@ class UpdateCustomerDiamondCriteria(Document):
 
 			# frappe.throw(f"{data}")
 			customer_doc.save()
+
+@frappe.whitelist()
+def get_customer_diamond_criteria(customer):
+	doc = frappe.get_doc("Customer",customer)
+	return doc
+
+
+
