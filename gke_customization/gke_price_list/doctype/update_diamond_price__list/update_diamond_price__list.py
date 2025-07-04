@@ -74,7 +74,7 @@ class UpdateDiamondPriceList(Document):
 
         for i in self.get(table):
             
-            frappe.db.set_value('Diamond Price List',i.diamond_price_list,{'rate':i.revised_rate,'effective_from':self.date})
+            frappe.db.set_value('Diamond Price List',i.diamond_price_list,{'rate':i.revised_rate,'effective_from':self.date'supplier_fg_purchase_rate':i.supplier_fg_purchase_rate})
             if not i.diamond_price_list:
                 crate_price_list(self,i)
         frappe.msgprint("Price List Updated")
