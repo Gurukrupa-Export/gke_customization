@@ -1,0 +1,79 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-27 17:53:32.116362",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_2quv",
+  "due_date",
+  "emi_amount",
+  "principal_amount",
+  "interest_rate",
+  "outstanding_amount",
+  "payment_status",
+  "make_payment_entry"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_2quv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Due Date"
+  },
+  {
+   "fieldname": "emi_amount",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "EMI Amount"
+  },
+  {
+   "fieldname": "principal_amount",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Principal Amount"
+  },
+  {
+   "fieldname": "interest_rate",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Interest Rate"
+  },
+  {
+   "fieldname": "outstanding_amount",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Outstanding Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Payment Status",
+   "options": "Unpaid\nPaid"
+  },
+  {
+   "fieldname": "make_payment_entry",
+   "fieldtype": "Button",
+   "label": "Make Payment Entry"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-07-04 09:35:44.304649",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Secured Loan Repayment Schedule",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
