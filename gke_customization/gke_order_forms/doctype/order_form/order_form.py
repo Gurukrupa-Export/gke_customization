@@ -902,8 +902,12 @@ def validate_is_mannual(self):
 				existing_item = frappe.db.get_value("Item", {"old_tag_no": row.tagno}, ["name", "master_bom"])
 				if existing_item:
 					item_name, master_bom = existing_item
-					row.design_id = item_name  
-					row.bom = master_bom
+					# chnage over here
+					if not row.design_id:
+						row.design_id = item_name
+					# chnage over here
+					if not row.bom:  
+						row.bom = master_bom
 					if master_bom:
 						diamond_type = frappe.db.get_value(
 							"BOM Diamond Detail", 
