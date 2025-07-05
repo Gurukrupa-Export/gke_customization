@@ -58,23 +58,23 @@ frappe.ui.form.on('Update Customer Diamond Criteria', {
             }
         });
     },
-    setup(frm) {
-        frm.set_query('diamond_quality', 'diamond_grades', function () {
-            return {
-                filters: {
-                    is_customer_diamond_quality: 1
-                }
-            };
-        });
+   //  setup(frm) {
+   //      frm.set_query('diamond_quality', 'diamond_grades', function () {
+   //          return {
+   //              filters: {
+   //                  is_customer_diamond_quality: 1
+   //              }
+   //          };
+   //      });
 
-        var fields = [
-			['diamond_grade_1', 'Diamond Grade'],
-            ['diamond_grade_2', 'Diamond Grade'],
-            ['diamond_grade_3', 'Diamond Grade'],
-            ['diamond_grade_4', 'Diamond Grade'],]
+   //      var fields = [
+			// ['diamond_grade_1', 'Diamond Grade'],
+   //          ['diamond_grade_2', 'Diamond Grade'],
+   //          ['diamond_grade_3', 'Diamond Grade'],
+   //          ['diamond_grade_4', 'Diamond Grade'],]
 
-        set_filters_on_child_table_fields(frm, fields);
-    }
+   //      set_filters_on_child_table_fields(frm, fields);
+   //  }
 });
 
 function set_filters_on_child_table_fields(frm, fields) {
