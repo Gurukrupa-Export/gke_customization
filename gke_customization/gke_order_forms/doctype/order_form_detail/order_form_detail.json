@@ -821,7 +821,7 @@
     "fieldname": "order_details_and_remarks",
     "fieldtype": "Data",
     "label": "Order Details and Remarks"
-    },
+    }
 ],
 "index_web_pages_for_search": 1,
 "istable": 1,
