@@ -1,0 +1,340 @@
+{
+ "add_total_row": 1,
+ "columns": [],
+ "creation": "2025-07-03 10:06:42.233026",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2025-07-07 11:05:00.221163",
+ "modified_by": "jinali_g@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Advance Bagging Report From MR",
+ "owner": "jinali_g@gkexport.com",
+ "prepared_report": 0,
+ "ref_doctype": "Material Request",
+ "report_name": "Advance Bagging Report From MR",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Purchase User"
+  },
+  {
+   "role": "Purchase Manager"
+  },
+  {
+   "role": "Stock User"
+  },
+  {
+   "role": "Stock Manager"
+  },
+  {
+   "role": "Computer Operator - ST - KG"
+  },
+  {
+   "role": "Manufacturing Plan & Management - ST - GE"
+  },
+  {
+   "role": "Account Supervisor GK"
+  },
+  {
+   "role": "Chartered Accountant -ST - GK"
+  },
+  {
+   "role": "QC Doctype"
+  },
+  {
+   "role": "Executive - ST - GE"
+  },
+  {
+   "role": "Bangalore Account"
+  },
+  {
+   "role": "GK Store"
+  },
+  {
+   "role": "Acc. Exec. - GK"
+  },
+  {
+   "role": "GK Chennai Sales"
+  },
+  {
+   "role": "Gk Gemstone Bagging"
+  },
+  {
+   "role": "Acc. Exec. - KG"
+  },
+  {
+   "role": "Account Supervisor KG"
+  },
+  {
+   "role": "Computer Operator - ST - GE"
+  },
+  {
+   "role": "MPM Stock CH"
+  },
+  {
+   "role": "Sr. Mgr. Acc. - SD"
+  },
+  {
+   "role": "Test Role"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Waxing Executive - ST"
+  },
+  {
+   "role": "Waxing Manager - ST"
+  },
+  {
+   "role": "Central Executive - ST"
+  },
+  {
+   "role": "Waxing 2 Manager - ST"
+  },
+  {
+   "role": "Waxing 2 Executive - ST"
+  },
+  {
+   "role": "close waxing Manager - ST"
+  },
+  {
+   "role": "close waxing Executive - ST"
+  },
+  {
+   "role": "Model Making Manager - ST"
+  },
+  {
+   "role": "Model Making Executive - ST"
+  },
+  {
+   "role": "Close Model Making Manager - ST"
+  },
+  {
+   "role": "Close Model Making Executive - ST"
+  },
+  {
+   "role": "Pre polish Executive - ST"
+  },
+  {
+   "role": "Close Pre polish Executive - ST"
+  },
+  {
+   "role": "Diamond Setting Manager - ST"
+  },
+  {
+   "role": "Diamond Setting Executive - ST"
+  },
+  {
+   "role": "Close Diamond Setting Manager - ST"
+  },
+  {
+   "role": "Close Diamond Setting Executive - ST"
+  },
+  {
+   "role": "Final Polish Manager - ST"
+  },
+  {
+   "role": "Final Polish Executive - ST"
+  },
+  {
+   "role": "Close Final Polish Manager - ST"
+  },
+  {
+   "role": "Close Final Polish Executive - ST"
+  },
+  {
+   "role": "Sub Contracting Manager - ST"
+  },
+  {
+   "role": "Sub Contracting Executive - ST"
+  },
+  {
+   "role": "Tagging Manager - ST"
+  },
+  {
+   "role": "Tagging Executive - ST"
+  },
+  {
+   "role": "Diamond Bagging Execuitve - ST"
+  },
+  {
+   "role": "Diamond Bagging Manager - ST"
+  },
+  {
+   "role": "Gemstone Bagging Manager - ST"
+  },
+  {
+   "role": "Gemstone Bagging Execuitve - ST"
+  },
+  {
+   "role": "Refinery Manager - ST"
+  },
+  {
+   "role": "Refinery Executive -ST"
+  },
+  {
+   "role": "Purchase Manager - ST"
+  },
+  {
+   "role": "Store Manager - ST"
+  },
+  {
+   "role": "Store Executive - ST"
+  },
+  {
+   "role": "Account Manager - ST"
+  },
+  {
+   "role": "Account Executive - ST"
+  },
+  {
+   "role": "Manufacturing Plan & Management Manager - ST"
+  },
+  {
+   "role": "Manufacturing Plan & Management Executive - ST"
+  },
+  {
+   "role": "Account Manager - MUM"
+  },
+  {
+   "role": "Account Executive - MUM"
+  },
+  {
+   "role": "Order Management Executive - MUM"
+  },
+  {
+   "role": "Experience Executive - MUM"
+  },
+  {
+   "role": "Manufacturing Manager - MUM"
+  },
+  {
+   "role": "D2D Marketing Executive - MUM"
+  },
+  {
+   "role": "Waxing Executive - MUM"
+  },
+  {
+   "role": "Central Executive - MUM"
+  },
+  {
+   "role": "Model Making Manager - MUM"
+  },
+  {
+   "role": "Diamond Setting Executive - MUM"
+  },
+  {
+   "role": "Final Polish Executive - MUM"
+  },
+  {
+   "role": "Sub Contracting Manager - MUM"
+  },
+  {
+   "role": "Sub Contracting Executive - MUM"
+  },
+  {
+   "role": "Tagging Executive - MUM"
+  },
+  {
+   "role": "Store Executive - MUM"
+  },
+  {
+   "role": "Central Manager - KGJPL"
+  },
+  {
+   "role": "Central Executive - KGJPL"
+  },
+  {
+   "role": "Diamond Bagging Executive - KGJPL"
+  },
+  {
+   "role": "Diamond Setting Manager - KGJPL"
+  },
+  {
+   "role": "Diamond Setting Executive - KGJPL"
+  },
+  {
+   "role": "Final Polish Manager - KGJPL"
+  },
+  {
+   "role": "Final Polish Executive - KGJPL"
+  },
+  {
+   "role": "Gemstone Bagging Executive - KGJPL"
+  },
+  {
+   "role": "Gemstone Bagging Executive - KGJPL"
+  },
+  {
+   "role": "Model Making Manager - KGJPL"
+  },
+  {
+   "role": "Model Making Executive - KGJPL"
+  },
+  {
+   "role": "Pre Polish Executive - KGJPL"
+  },
+  {
+   "role": "Tagging Executive - KGJPL"
+  },
+  {
+   "role": "Waxing Manager - KGJPL"
+  },
+  {
+   "role": "Waxing Executive - KGJPL"
+  },
+  {
+   "role": "Product Allocation Executive - KGJPL"
+  },
+  {
+   "role": "Store Executive - KGJPL"
+  },
+  {
+   "role": "Account Executive - KGJPL"
+  },
+  {
+   "role": "Order Management Executive - CH"
+  },
+  {
+   "role": "Order Management Executive - HD"
+  },
+  {
+   "role": "Sales Manager - CH"
+  },
+  {
+   "role": "Sales Executive - CH"
+  },
+  {
+   "role": "Product Allocation Manager - CH"
+  },
+  {
+   "role": "Product Allocation Manager - CH"
+  },
+  {
+   "role": "Account Manager - ST"
+  },
+  {
+   "role": "Account Manager - MUM"
+  },
+  {
+   "role": "Account Manager - CH"
+  },
+  {
+   "role": "Account Executive - CH"
+  },
+  {
+   "role": "Account Executive - TH"
+  },
+  {
+   "role": "Data Analyst"
+  }
+ ],
+ "timeout": 0
+}
