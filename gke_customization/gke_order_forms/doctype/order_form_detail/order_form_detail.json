@@ -18,6 +18,9 @@
     "mod_reason",
     "section_break_10",
     "design_type",
+    "stylebio",
+    "tagno",
+    "order_details_and_remarks",
     "update_item",
     "tag_no",
     "serial_no_bom",
@@ -803,7 +806,22 @@
     "label": "Mod - Old Stylebio & Tag No Reason",
     "mandatory_depends_on": "eval:doc.design_type == 'Mod - Old Stylebio & Tag No'",
     "options": "Attribute Value"
-    }
+    },
+    {
+    "fieldname": "stylebio",
+    "fieldtype": "Data",
+    "label": "StyleBio"
+    },
+    {
+    "fieldname": "tagno",
+    "fieldtype": "Data",
+    "label": "TagNo"
+    },
+    {
+    "fieldname": "order_details_and_remarks",
+    "fieldtype": "Data",
+    "label": "Order Details and Remarks"
+    },
 ],
 "index_web_pages_for_search": 1,
 "istable": 1,
