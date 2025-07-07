@@ -21,6 +21,7 @@
     "stylebio",
     "tagno",
     "order_details_and_remarks",
+    "status",
     "update_item",
     "tag_no",
     "serial_no_bom",
@@ -821,7 +822,13 @@
     "fieldname": "order_details_and_remarks",
     "fieldtype": "Data",
     "label": "Order Details and Remarks"
-    }
+    },
+    {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nDone"
+  }
 ],
 "index_web_pages_for_search": 1,
 "istable": 1,
