@@ -23,7 +23,6 @@
     "updated_delivery_date",
     "project",
     "pre_order_form",
-    "order_through_date",
     "is_branch_shipping",
     "parcel_place",
     "is_finding_order",
@@ -35,7 +34,7 @@
     "due_days",
     "diamond_quality",
     "service_type",
-    "order_through_time",
+    "order_through_date_and_time",
     "order_through",
     "required_customer_approval",
     "section_break_0q02",
@@ -317,22 +316,17 @@
     "label": "Is Mannual"
     },
     {
-        "default": "0",
-        "fieldname": "is_branch_shipping",
-        "fieldtype": "Check",
-        "label": "Is Branch Shipping"
+    "default": "0",
+    "fieldname": "is_branch_shipping",
+    "fieldtype": "Check",
+    "label": "Is Branch Shipping"
     },
     {
-        "fieldname": "pre_order_form",
-        "fieldtype": "Link",
-        "label": "Pre Order Form",
-        "options": "Pre Order Form",
-        "read_only": 1
-    },
-    {
-    "fieldname": "order_through_date",
-    "fieldtype": "Date",
-    "label": "Order through Date"
+    "fieldname": "pre_order_form",
+    "fieldtype": "Link",
+    "label": "Pre Order Form",
+    "options": "Pre Order Form",
+    "read_only": 1
     },
     {
     "fieldname": "order_through",
@@ -340,15 +334,10 @@
     "label": "Order Through"
     },
     {
-    "fieldname": "order_through_time",
-    "fieldtype": "Time",
-    "label": "Order through Time"
-    },
-    {
-        "default": "1",
-        "fieldname": "required_customer_approval",
-        "fieldtype": "Check",
-        "label": "Required Customer Approval"
+    "default": "1",
+    "fieldname": "required_customer_approval",
+    "fieldtype": "Check",
+    "label": "Required Customer Approval"
     },
     {
     "fieldname": "total_rows",
@@ -359,6 +348,11 @@
     "fieldname": "total_no_of_designs",
     "fieldtype": "Int",
     "label": "Total No of Designs"
+    },
+    {
+   "fieldname": "order_through_date_and_time",
+   "fieldtype": "Datetime",
+   "label": "Order through Date and Time"
     }
 ],
 "index_web_pages_for_search": 1,
