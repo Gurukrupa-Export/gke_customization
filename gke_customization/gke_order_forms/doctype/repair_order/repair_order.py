@@ -105,7 +105,7 @@ def set_value_in_cad_child_table(order_form_doc,self,sketch_item_code):
 	if self.required_design == 'Manual':
 		order_details.design_type = 'Sketch Design'
 	elif self.required_design == 'CAD':
-		order_details.design_type = 'Mod'
+		order_details.design_type = 'Mod - Old Stylebio & Tag No'
 
 	if self.product_type == 'Company Goods':
 		order_details.design_by = 'Our Design'
@@ -137,7 +137,7 @@ def set_value_in_cad_child_table(order_form_doc,self,sketch_item_code):
 
 def set_value_in_sketch_child_table(order_form_doc,self):
 	order_details = order_form_doc.append("order_details", {})
-	order_details.design_type = 'Mod'
+	order_details.design_type = 'Mod - Old Stylebio & Tag No'
 	# order_details.item_type = 'Only Variant'
 	order_details.is_repairing = 1
 	order_details.tag__design_id = self.item

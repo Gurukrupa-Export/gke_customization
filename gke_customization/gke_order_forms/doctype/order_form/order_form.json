@@ -26,6 +26,7 @@
     "is_branch_shipping",
     "parcel_place",
     "is_finding_order",
+    "is_mannual",
     "column_break_4",
     "po_no",
     "order_type",
@@ -33,6 +34,8 @@
     "due_days",
     "diamond_quality",
     "service_type",
+    "order_through_date_and_time",
+    "order_through",
     "required_customer_approval",
     "section_break_0q02",
     "supplier",
@@ -119,6 +122,12 @@
     "fieldtype": "Link",
     "label": "Project",
     "options": "Project"
+    },
+    {
+    "default": "0",
+    "fieldname": "is_mannual",
+    "fieldtype": "Check",
+    "label": "Is Mannual"
     },
     {
     "depends_on": "eval:doc.is_branch_shipping",
@@ -334,6 +343,16 @@
     "fieldname": "total_no_of_designs",
     "fieldtype": "Int",
     "label": "Total No of Designs"
+    },
+    {
+    "fieldname": "order_through_date_and_time",
+    "fieldtype": "Datetime",
+    "label": "Order through Date and Time"
+    },
+    {
+    "fieldname": "order_through",
+    "fieldtype": "Attach",
+    "label": "Order Through"
     }
 ],
 "index_web_pages_for_search": 1,
