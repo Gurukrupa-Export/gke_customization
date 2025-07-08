@@ -6,16 +6,17 @@ from frappe.model.document import Document
 
 
 class UpdateCustomerDiamondCriteria(Document):
-		def validate(self):
-			self.update_items_in_diamond_criteria()
+	pass
+		# def validate(self):
+		# 	self.update_items_in_diamond_criteria()
 
-		def update_items_in_diamond_criteria(self):
-			data = []
-			if not self.customer:
+		# def update_items_in_diamond_criteria(self):
+		# 	data = []
+		# 	if not self.customer:
 			
-				frappe.throw("Customer not selected.")
+		# 		frappe.throw("Customer not selected.")
 
-			customer_doc = frappe.get_doc("Customer", self.customer)
+		# 	customer_doc = frappe.get_doc("Customer", self.customer)
 
 
 			# for row, customer_row in zip(self.diamond_grades, customer_doc.diamond_grades):
@@ -32,18 +33,18 @@ class UpdateCustomerDiamondCriteria(Document):
 			# 		customer_row.diamond_grade_4 = row.existing_grade_4
 			# 		data.append(customer_row.as_dict())	
 
-			customer_doc.set("diamond_grades", [])
+			# customer_doc.set("diamond_grades", [])
 
-			for row in self.diamond_grades:
-				# if row.is_new_diamond_quality == 0:
-					data.append(row.as_dict())
-					customer_doc.append("diamond_grades", {
-						"diamond_quality": row.diamond_quality,
-						"diamond_grade_1": row.diamond_grade_1,
-						"diamond_grade_2": row.diamond_grade_2,
-						"diamond_grade_3": row.diamond_grade_3,
-						"diamond_grade_4": row.diamond_grade_4,
-			        })
+			# for row in self.diamond_grades:
+			# 	# if row.is_new_diamond_quality == 0:
+			# 		data.append(row.as_dict())
+			# 		customer_doc.append("diamond_grades", {
+			# 			"diamond_quality": row.diamond_quality,
+			# 			"diamond_grade_1": row.diamond_grade_1,
+			# 			"diamond_grade_2": row.diamond_grade_2,
+			# 			"diamond_grade_3": row.diamond_grade_3,
+			# 			"diamond_grade_4": row.diamond_grade_4,
+			#         })
 				# else:
 				# 	data.append(row.as_dict())
 				# 	customer_doc.append("diamond_grades", {
@@ -56,12 +57,12 @@ class UpdateCustomerDiamondCriteria(Document):
 
 
 			# frappe.throw(f"{data}")
-			customer_doc.save()
+			# customer_doc.save()
 
-@frappe.whitelist()
-def get_customer_diamond_criteria(customer):
-	doc = frappe.get_doc("Customer",customer)
-	return doc
+# @frappe.whitelist()
+# def get_customer_diamond_criteria(customer):
+# 	doc = frappe.get_doc("Customer",customer)
+# 	return doc
 
 
 
