@@ -5,12 +5,14 @@
 #  http://192.168.200.207:8001/app/query-report/Advance%20Bagging%20Report%20From%20MR?prepared_report_name=28c359a0im
 
 import frappe
+from frappe.utils import format_datetime
 
 def execute(filters=None):
     columns = [
         {"label": "Company", "fieldname": "company", "fieldtype": "Data","width": 220},
         {"label": "Material Req Id", "fieldname": "name", "fieldtype": "Link", "options": "Material Request", "width": 180},
         {"label": "Status", "fieldname": "workflow_state", "fieldtype": "Data","width": 220},
+        {"label": "Material Req Creation", "fieldname": "creation", "fieldtype": "Data","width": 220},
         {"label": "Purpose", "fieldname": "material_request_type", "fieldtype": "Data", "width": 130},
         {"label": "Material Type", "fieldname": "material_type", "fieldtype": "Data", "width": 130},
         {"label": "Item Code", "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 210},
@@ -46,6 +48,9 @@ def execute(filters=None):
     elif filters.get("to_date"):
         filters_dict["creation"] = ["<=", filters["to_date"]]
 
+    if filters.get("workflow_state"):
+        filters_dict["workflow_state"] = ["in", filters["workflow_state"]]
+
     # PMO Filter
     if filters.get("manufacturing_order"):
         filters_dict["manufacturing_order"] = ["in", filters["manufacturing_order"]]
@@ -59,7 +64,7 @@ def execute(filters=None):
         fields=[
             "name", "material_request_type", "title", "custom_customer_po_no",
             "custom_jewelex_order_no", "custom_order_type", "manufacturing_order",
-            "custom_manufacturer", "custom_ref_customer","docstatus","workflow_state"
+            "custom_manufacturer", "custom_ref_customer","docstatus","workflow_state","creation"
         ],
         filters=filters_dict,
        # limit=10
@@ -96,6 +101,7 @@ def execute(filters=None):
                 "company":pmo.company,
                 "name": mr.name,
                 "workflow_state":mr.workflow_state,
+                "creation":format_datetime(mr.creation, "dd-MM-yyyy HH:mm:ss"),
                 "material_request_type": mr.material_request_type,
                 "material_type": material_type,
                 "item_code": item.item_code,
@@ -117,6 +123,8 @@ def execute(filters=None):
                 "item_attributes": attributes
             }
             data.append(row)
+
+    data.sort(key=lambda x: (0 if x["workflow_state"] == "Draft" else 1))
 
     return columns, data
 
