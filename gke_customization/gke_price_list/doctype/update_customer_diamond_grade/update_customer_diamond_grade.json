@@ -14,35 +14,30 @@
  ],
  "fields": [
   {
-   "depends_on": "eval:!doc.is_new_diamond_quality;",
    "fieldname": "diamond_quality",
    "fieldtype": "Link",
    "label": "Diamond Quality",
    "options": "Attribute Value"
   },
   {
-   "depends_on": "eval:!doc.is_new_diamond_quality;",
    "fieldname": "diamond_grade_1",
    "fieldtype": "Link",
    "label": "Diamond Grade 1",
    "options": "Attribute Value"
   },
   {
-   "depends_on": "eval:!doc.is_new_diamond_quality;",
    "fieldname": "diamond_grade_2",
    "fieldtype": "Link",
    "label": "Diamond Grade 2",
    "options": "Attribute Value"
   },
   {
-   "depends_on": "eval:!doc.is_new_diamond_quality;",
    "fieldname": "diamond_grade_3",
    "fieldtype": "Link",
    "label": "Diamond Grade 3",
    "options": "Attribute Value"
   },
   {
-   "depends_on": "eval:!doc.is_new_diamond_quality;",
    "fieldname": "diamond_grade_4",
    "fieldtype": "Link",
    "label": "Diamond Grade 4",
