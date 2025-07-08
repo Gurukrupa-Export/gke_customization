@@ -47,13 +47,13 @@ frappe.ui.form.on('Update Customer Diamond Criteria', {
    //  }
 });
 
-function set_filters_on_child_table_fields(frm, fields) {
-    fields.map(function (field) {
-        frm.set_query(field[0], "diamond_grades", function () {
-            return {
-                query: 'jewellery_erpnext.query.item_attribute_query',
-                filters: { 'item_attribute': field[1] }
-            };
-        });
-    });
-};
+// function set_filters_on_child_table_fields(frm, fields) {
+//     fields.map(function (field) {
+//         frm.set_query(field[0], "diamond_grades", function () {
+//             return {
+//                 query: 'jewellery_erpnext.query.item_attribute_query',
+//                 filters: { 'item_attribute': field[1] }
+//             };
+//         });
+//     });
+// };
