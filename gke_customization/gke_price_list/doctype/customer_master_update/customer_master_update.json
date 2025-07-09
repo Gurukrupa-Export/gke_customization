@@ -6,10 +6,16 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "is_customer_payment_terms",
+  "is_customer_master",
+  "is_new_employee",
+  "customer_payment_terms_section",
+  "cpt_customer",
+  "customer",
+  "customer_payment_terms",
   "section_break_zwxd",
   "sequence",
   "naming_series",
-  "is_new_employee",
   "customer_data",
   "customer_name",
   "customer_codes",
@@ -154,11 +160,11 @@
   "custom_gemstone_price_list_type",
   "metal_criteria",
   "diamond_quality_section",
-  "diamond_grades",
-  "section_break_utwk"
+  "diamond_grades"
  ],
  "fields": [
   {
+   "depends_on": "eval:doc.is_customer_master==1",
    "fieldname": "section_break_zwxd",
    "fieldtype": "Section Break",
    "label": "Details"
@@ -170,7 +176,7 @@
    "label": "Sequence"
   },
   {
-   "depends_on": "eval:doc.is_new_employee != 1",
+   "depends_on": "eval:doc.is_new_employee == 0 && doc.is_customer_master == 1",
    "fieldname": "customer_data",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -179,10 +185,11 @@
    "options": "Customer"
   },
   {
+   "depends_on": "eval:doc.is_new_employee==1 && doc.is_customer_master == 1",
    "fieldname": "customer_name",
    "fieldtype": "Data",
    "label": "Customer Name",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.is_new_employee == 1 && doc.is_customer_master == 1"
   },
   {
    "fieldname": "customer_codes",
@@ -194,18 +201,18 @@
    "fieldname": "customer_type",
    "fieldtype": "Select",
    "label": "Customer Type",
-   "options": "Company\nIndividual\nPartnership",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.is_customer_master == 1",
+   "options": "Company\nIndividual\nPartnership"
   },
   {
    "fieldname": "gst_category",
    "fieldtype": "Select",
    "label": "GST Category",
-   "options": "Registered Regular\nRegistered Composition\nUnregistered\nSEZ\nOverseas\nConsumer\nDeemed Export\nUIN Holders",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.is_customer_master == 1",
+   "options": "Registered Regular\nRegistered Composition\nUnregistered\nSEZ\nOverseas\nConsumer\nDeemed Export\nUIN Holders"
   },
   {
-   "depends_on": "eval:in_list([\"SEZ\", \"Overseas\", \"Deemed Export\"], doc.gst_category)",
+   "depends_on": "eval:in_list([\"SEZ\", \"Overseas\", \"Deemed Export\"], doc.gst_category)\neval:doc.is_customer_master==1",
    "fieldname": "export_type",
    "fieldtype": "Select",
    "label": "Export Type",
@@ -235,8 +242,8 @@
    "fieldname": "territory",
    "fieldtype": "Link",
    "label": "Territory",
-   "options": "Territory",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.is_customer_master == 1",
+   "options": "Territory"
   },
   {
    "fieldname": "territory_code",
@@ -279,6 +286,7 @@
    "label": "Ignore PO creation for Certification"
   },
   {
+   "depends_on": "eval:doc.is_customer_master==1",
    "fieldname": "defaults_section",
    "fieldtype": "Section Break",
    "label": "Defaults"
@@ -310,6 +318,7 @@
    "options": "Currency"
   },
   {
+   "depends_on": "eval:doc.is_customer_master==1",
    "fieldname": "internal_customer_section",
    "fieldtype": "Section Break",
    "label": "Internal Customer"
@@ -321,7 +330,6 @@
    "label": "Is Internal Customer"
   },
   {
-   "depends_on": "is_internal_customer",
    "fieldname": "represents_company",
    "fieldtype": "Link",
    "label": "Represents Company",
@@ -348,6 +356,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval:doc.is_customer_master==1",
    "fieldname": "more_information_section",
    "fieldtype": "Tab Break",
    "label": "More Information"
@@ -395,6 +404,7 @@
    "label": "Gemstone Price Multiplier"
   },
   {
+   "depends_on": "eval:doc.is_customer_master==1",
    "fieldname": "address_contact_tab",
    "fieldtype": "Tab Break",
    "label": "Address & Contact"
@@ -436,6 +446,7 @@
    "options": "Contact"
   },
   {
+   "depends_on": "eval:doc.is_customer_master==1",
    "fieldname": "tax_tab",
    "fieldtype": "Tab Break",
    "label": "Tax"
@@ -479,13 +490,14 @@
    "fieldname": "pan",
    "fieldtype": "Data",
    "label": "PAN",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.is_customer_master == 1"
   },
   {
    "fieldname": "column_break_3kk8",
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval:doc.is_customer_master==1",
    "fieldname": "accounting_tab",
    "fieldtype": "Tab Break",
    "label": "Accounting"
@@ -564,6 +576,7 @@
    "label": "Commission Rate"
   },
   {
+   "depends_on": "eval:doc.is_customer_master==1",
    "fieldname": "settings_tab",
    "fieldtype": "Tab Break",
    "label": "Settings",
@@ -601,7 +614,7 @@
    "default": "0",
    "fieldname": "is_new_employee",
    "fieldtype": "Check",
-   "label": "Is New Customer"
+   "label": "Is New"
   },
   {
    "allow_on_submit": 1,
@@ -615,12 +628,10 @@
    "fieldname": "naming_series",
    "fieldtype": "Data",
    "hidden": 1,
-   "in_list_view": 1,
-   "label": "Series",
-   "options": "CUST-.YYYY.-"
+   "label": "Series"
   },
   {
-   "depends_on": "represents_company",
+   "depends_on": "represents_company\neval:doc.is_customer_master==1",
    "fieldname": "allowed_to_transact_with",
    "fieldtype": "Table",
    "label": "Allowed To Transact With",
@@ -759,6 +770,7 @@
    "label": "Contact"
   },
   {
+   "depends_on": "eval:doc.is_customer_master==1",
    "fieldname": "attachment_section",
    "fieldtype": "Section Break",
    "label": "Attachment"
@@ -855,6 +867,7 @@
    "label": "Fax"
   },
   {
+   "depends_on": "eval:doc.is_customer_master==1",
    "fieldname": "sales_team_section",
    "fieldtype": "Tab Break",
    "label": "Sales Team"
@@ -914,10 +927,6 @@
    "fieldtype": "Table",
    "label": "Diamond Grades",
    "options": "Customer Diamond Grade"
-  },
-  {
-   "fieldname": "section_break_utwk",
-   "fieldtype": "Section Break"
   },
   {
    "fieldname": "custom_order_type_criteria",
@@ -990,12 +999,50 @@
    "fieldtype": "Select",
    "label": "Allowed Item Category For Invoice",
    "options": "Mix\nUnique\nMIx And Unique"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_customer_master",
+   "fieldtype": "Check",
+   "label": "Is Customer Master"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_customer_payment_terms",
+   "fieldtype": "Check",
+   "label": "Is Customer Payment Terms"
+  },
+  {
+   "fieldname": "customer_payment_terms",
+   "fieldtype": "Table",
+   "label": "Customer Payment Terms",
+   "options": "Customer Payment Terms Details"
+  },
+  {
+   "depends_on": "eval:doc.is_customer_payment_terms==1",
+   "fieldname": "customer_payment_terms_section",
+   "fieldtype": "Section Break",
+   "label": "Customer Payment Terms"
+  },
+  {
+   "depends_on": "eval:doc.is_new_employee == 1 && doc.is_customer_payment_terms == 1",
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "depends_on": "eval:doc.is_new_employee == 0 && doc.is_customer_payment_terms == 1",
+   "fieldname": "cpt_customer",
+   "fieldtype": "Link",
+   "label": "Customer Payment Terms",
+   "options": "Customer Payment Terms"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-26 14:13:50.959215",
+ "modified": "2025-07-02 12:19:40.095204",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Customer Master Update",
