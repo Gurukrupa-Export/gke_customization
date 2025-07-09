@@ -57,7 +57,7 @@
    "fieldtype": "Link",
    "label": "Amended From",
    "no_copy": 1,
-   "options": "Customer Score Card",
+   "options": "Customer Scorecard",
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
