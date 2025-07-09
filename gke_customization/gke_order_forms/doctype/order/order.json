@@ -212,6 +212,7 @@
 "metal_to_diamond_ratio_excl_of_finding",
 "column_break_5bib",
 "diamond_ratio",
+"rating",
 "images_tab",
 "design_code_files_section",
 "cad_file",
@@ -1407,6 +1408,11 @@
 "fieldname": "diamond_ratio",
 "fieldtype": "Float",
 "label": "Avg. Diamond Weight(In Carat)"
+},
+{
+"fieldname": "rating",
+"fieldtype": "Rating",
+"label": "Rating"
 },
 {
 "allow_on_submit": 1,
