@@ -174,7 +174,6 @@ def calculate_total(self):
 				frappe.msgprint(f"Skipping invalid range value: {range_text}")
 	# net_wt_add_on
 
-
 def cerate_timesheet(self):
 	if not self.customer_order_form:
 		if self.workflow_state == "Designing":
