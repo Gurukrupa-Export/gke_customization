@@ -899,7 +899,8 @@ def create_line_items(self):
 		for variant in possible_variants:
 			variant = frappe.get_doc("Item", variant)
 			if variant:
-				frappe.throw(f"Already available {str(variant).replace("Item(","").replace(")","")}")
+				final_variant = str(variant).replace("Item(","").replace(")","")
+				frappe.throw(f"Already available {final_variant}")
 
 		item_variant = create_only_variant_from_order(self, self.name)
 
