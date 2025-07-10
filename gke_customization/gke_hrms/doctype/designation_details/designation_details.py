@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class UpdateCustomerDiamondCriteria(Document):
+class DesignationDetails(Document):
 	pass
