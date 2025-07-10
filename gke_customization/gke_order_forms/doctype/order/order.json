@@ -212,6 +212,7 @@
 "metal_to_diamond_ratio_excl_of_finding",
 "column_break_5bib",
 "diamond_ratio",
+"rating",
 "images_tab",
 "design_code_files_section",
 "cad_file",
@@ -436,7 +437,7 @@
 "fieldtype": "Section Break"
 },
 {
-"depends_on": "eval:((doc.design_type==\"Mod\"))",
+"depends_on": "eval:((doc.design_type==\"Mod - Old Stylebio & Tag No\"))",
 "fetch_from": "cad_order_form_detail.tag_no",
 "fieldname": "tag_no",
 "fieldtype": "Link",
@@ -453,7 +454,7 @@
 "read_only": 1
 },
 {
-"depends_on": "eval:doc.design_type == \"Mod\"",
+"depends_on": "eval:doc.design_type == \"Mod - Old Stylebio & Tag No\"",
 "fetch_from": "cad_order_form_detail.bom",
 "fieldname": "bom",
 "fieldtype": "Link",
@@ -1051,7 +1052,7 @@
 "label": "Is Repairing"
 },
 {
-"depends_on": "eval:doc.design_type == 'Mod'",
+"depends_on": "eval:doc.design_type == 'Mod - Old Stylebio & Tag No'",
 "fieldname": "workflow_type",
 "fieldtype": "Select",
 "label": "Workflow Type",
@@ -1148,11 +1149,11 @@
 },
 {
 "allow_on_submit": 1,
-"depends_on": "eval: in_list(['Draft','Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state) && (((doc.design_type != 'As Per Serial No' && doc.bom_type == 'New BOM') || doc.design_type == \"New Design\") && doc.item)",
+"depends_on": "eval: in_list(['Draft','Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state) && (((doc.design_type != 'As Per Design Type' && doc.bom_type == 'New BOM') || doc.design_type == \"New Design\") && doc.item)",
 "fieldname": "bom_assignment",
 "fieldtype": "Table",
 "label": "BOM Assignment",
-"mandatory_depends_on": "eval: (doc.workflow_state == 'Update BOM' && doc.design_type != 'As Per Serial No') || (doc.design_type != 'New Design' && doc.bom_or_cad != 'CAD' && doc.customer_order_form)",
+"mandatory_depends_on": "eval: (doc.workflow_state == 'Update BOM' && doc.design_type != 'As Per Design Type') || (doc.design_type != 'New Design' && doc.bom_or_cad != 'CAD' && doc.customer_order_form)",
 "options": "Designer Assignment - CAD"
 },
 {
@@ -1409,6 +1410,11 @@
 "label": "Avg. Diamond Weight(In Carat)"
 },
 {
+"fieldname": "rating",
+"fieldtype": "Rating",
+"label": "Rating"
+},
+{
 "allow_on_submit": 1,
 "fieldname": "metal_detail",
 "fieldtype": "Table",
@@ -1469,7 +1475,7 @@
 "read_only": 1
 },
 {
-"depends_on": "eval: (in_list([\"New Design\",\"Sketch Design\",\"Mod\"],doc.design_type) && in_list(['Draft','Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold','Approved'], doc.workflow_state))",
+"depends_on": "eval: (in_list([\"New Design\",\"Sketch Design\",\"Mod - Old Stylebio & Tag No\"],doc.design_type) && in_list(['Draft','Update BOM','Updating BOM','Updating BOM - On-Hold','Creating BOM', 'BOM QC', 'Creating BOM - On-Hold', 'BOM QC - On-Hold','Approved'], doc.workflow_state))",
 "fieldname": "view_item",
 "fieldtype": "Button",
 "label": "View Item"
@@ -1636,7 +1642,7 @@
 "read_only": 1
 },
 {
-"depends_on": "eval:doc.design_type == 'Mod'",
+"depends_on": "eval:doc.design_type == 'Mod - Old Stylebio & Tag No'",
 "fieldname": "bom_type",
 "fieldtype": "Select",
 "label": "BOM Type",

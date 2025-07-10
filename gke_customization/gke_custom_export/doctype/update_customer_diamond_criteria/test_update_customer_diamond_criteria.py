@@ -7,5 +7,3 @@ from frappe.tests.utils import FrappeTestCase
 
 class TestUpdateCustomerDiamondCriteria(FrappeTestCase):
 	pass
-  
-    
