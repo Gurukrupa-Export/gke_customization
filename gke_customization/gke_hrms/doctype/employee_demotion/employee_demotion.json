@@ -126,12 +126,14 @@
   {
    "fieldname": "employee_demotion_reasons",
    "fieldtype": "Table",
-   "options": "Employee Reason"
+   "label": "Employee Reason Detail",
+   "options": "Employee Reason",
+   "reqd": 1
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-04 17:49:21.620029",
+ "modified": "2025-07-10 10:20:13.132043",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Employee Demotion",
@@ -153,7 +155,6 @@
    "write": 1
   }
  ],
- "quick_entry": 1,
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],
