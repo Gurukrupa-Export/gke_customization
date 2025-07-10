@@ -1,0 +1,59 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-08 14:06:40.393363",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_8uo7",
+  "designation",
+  "grade",
+  "notice_period",
+  "probation_period"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_8uo7",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "grade",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Grade",
+   "options": "Employee Grade"
+  },
+  {
+   "fieldname": "notice_period",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Notice Period"
+  },
+  {
+   "fieldname": "probation_period",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Probation Period"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-07-10 10:49:58.228148",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Designation Details",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
