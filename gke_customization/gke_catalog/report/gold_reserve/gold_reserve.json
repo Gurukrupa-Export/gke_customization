@@ -1,0 +1,47 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2025-07-03 11:35:05.087769",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2025-07-10 15:00:50.532187",
+ "modified_by": "sahil_g@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "gold reserve",
+ "owner": "sahil_g@gkexport.com",
+ "prepared_report": 0,
+ "query": "SELECT\r\n    DATE_ADD(MIN(sle.posting_date), INTERVAL (4 - WEEKDAY(MIN(sle.posting_date))) DAY) AS `Week Ending`,\r\n\r\n    SUM(CASE WHEN i.item_name LIKE '%-G-%' AND i.item_name LIKE '%24KT%' THEN sle.actual_qty ELSE 0 END) AS `Gold 24KT Qty`,\r\n    ROUND(SUM(CASE WHEN i.item_name LIKE '%-G-%' AND i.item_name LIKE '%24KT%' THEN sle.valuation_rate * sle.actual_qty ELSE 0 END) /\r\n          NULLIF(SUM(CASE WHEN i.item_name LIKE '%-G-%' AND i.item_name LIKE '%24KT%' THEN sle.actual_qty ELSE 0 END), 0), 2) AS `Gold 24KT Rate`,\r\n    ROUND(SUM(CASE WHEN i.item_name LIKE '%-G-%' AND i.item_name LIKE '%24KT%' THEN sle.valuation_rate * sle.actual_qty ELSE 0 END), 2) AS `Gold 24KT Value`,\r\n\r\n    SUM(CASE WHEN i.item_name LIKE '%-G-%' AND i.item_name LIKE '%22KT%' THEN sle.actual_qty ELSE 0 END) AS `Gold 22KT Qty`,\r\n    ROUND(SUM(CASE WHEN i.item_name LIKE '%-G-%' AND i.item_name LIKE '%22KT%' THEN sle.valuation_rate * sle.actual_qty ELSE 0 END) /\r\n          NULLIF(SUM(CASE WHEN i.item_name LIKE '%-G-%' AND i.item_name LIKE '%22KT%' THEN sle.actual_qty ELSE 0 END), 0), 2) AS `Gold 22KT Rate`,\r\n    ROUND(SUM(CASE WHEN i.item_name LIKE '%-G-%' AND i.item_name LIKE '%22KT%' THEN sle.valuation_rate * sle.actual_qty ELSE 0 END), 2) AS `Gold 22KT Value`,\r\n\r\n    SUM(CASE WHEN i.item_name LIKE '%-G-%' AND i.item_name LIKE '%18KT%' THEN sle.actual_qty ELSE 0 END) AS `Gold 18KT Qty`,\r\n    ROUND(SUM(CASE WHEN i.item_name LIKE '%-G-%' AND i.item_name LIKE '%18KT%' THEN sle.valuation_rate * sle.actual_qty ELSE 0 END) /\r\n          NULLIF(SUM(CASE WHEN i.item_name LIKE '%-G-%' AND i.item_name LIKE '%18KT%' THEN sle.actual_qty ELSE 0 END), 0), 2) AS `Gold 18KT Rate`,\r\n    ROUND(SUM(CASE WHEN i.item_name LIKE '%-G-%' AND i.item_name LIKE '%18KT%' THEN sle.valuation_rate * sle.actual_qty ELSE 0 END), 2) AS `Gold 18KT Value`,\r\n\r\n    SUM(CASE WHEN i.item_name LIKE '%-S-%' THEN sle.actual_qty ELSE 0 END) AS `Silver Qty`,\r\n    ROUND(SUM(CASE WHEN i.item_name LIKE '%-S-%' THEN sle.valuation_rate * sle.actual_qty ELSE 0 END) /\r\n          NULLIF(SUM(CASE WHEN i.item_name LIKE '%-S-%' THEN sle.actual_qty ELSE 0 END), 0), 2) AS `Silver Rate`,\r\n    ROUND(SUM(CASE WHEN i.item_name LIKE '%-S-%' THEN sle.valuation_rate * sle.actual_qty ELSE 0 END), 2) AS `Silver Value`,\r\n\r\n    ROUND(SUM(CASE \r\n        WHEN i.item_name LIKE '%-G-%' THEN sle.actual_qty\r\n        WHEN i.item_name LIKE '%-S-%' THEN sle.actual_qty\r\n        ELSE 0\r\n    END), 3) AS `Total Qty`\r\n\r\nFROM `tabStock Ledger Entry` sle\r\nJOIN `tabItem` i ON sle.item_code = i.name\r\nWHERE\r\n    sle.posting_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)\r\n    AND sle.actual_qty > 0\r\n    AND sle.is_cancelled = 0\r\nGROUP BY\r\n    YEAR(sle.posting_date), WEEK(sle.posting_date, 1)\r\nORDER BY `Week Ending`;\r\n",
+ "ref_doctype": "Stock Ledger Entry",
+ "report_name": "gold reserve",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Acc. Exec. - GK"
+  },
+  {
+   "role": "Acc. Exec. - SD"
+  },
+  {
+   "role": "Sr. Acc. Exec. - SD"
+  },
+  {
+   "role": "Sr. Acc. Exec. - GK"
+  },
+  {
+   "role": "Senior Manager - BL - GE"
+  },
+  {
+   "role": "Senior Manager - ST - GE"
+  }
+ ],
+ "timeout": 0
+}
