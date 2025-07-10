@@ -60,8 +60,8 @@
   {
    "fieldname": "update_custom_diamond_details",
    "fieldtype": "Table",
-   "label": "Update Custom Diamond Details",
-   "options": "Update Custom Diamond Details"
+   "label": "Update Customer Diamond Criteria Details Table",
+   "options": "Update Customer Diamond Criteria Details Table"
   }
  ],
  "index_web_pages_for_search": 1,
