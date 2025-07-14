@@ -1,0 +1,113 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-24 11:45:28.842030",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "customer",
+  "customer_score",
+  "column_break_o6bb",
+  "period",
+  "customer_scoring_setup_section",
+  "weighting_function",
+  "standings",
+  "criteria_setup",
+  "criteria",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "column_break_o6bb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "period",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Period",
+   "options": "Per Week\nPer Month\nPer Year",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer_scoring_setup_section",
+   "fieldtype": "Section Break",
+   "label": "Customer Scoring Setup"
+  },
+  {
+   "fieldname": "criteria_setup",
+   "fieldtype": "Section Break",
+   "label": "Criteria Setup"
+  },
+  {
+   "fieldname": "criteria",
+   "fieldtype": "Table",
+   "label": "Scoring Criteria",
+   "options": "Customer Scorecard Scoring Criteria",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Customer Scorecard",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "standings",
+   "fieldtype": "Table",
+   "label": "Customer Scoring Standing",
+   "options": "Customer Scorecard Scoring Standing",
+   "reqd": 1
+  },
+  {
+   "fieldname": "weighting_function",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Weighting Function",
+   "options": "(sales_score * 0.30) + \n(margin_score * 0.02) + \n(payment_score * 0.15) + \n(delivery_score * 0.10) + \n(order_freq_score * 0.08) + \n(gc_score * 0.05) + \n(return_score * 0.05) + \n(growth_score * 0.25)\n",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer_score",
+   "fieldtype": "Data",
+   "label": "Customer Score",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-07-02 12:09:27.681424",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Customer Scorecard",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

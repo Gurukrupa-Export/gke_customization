@@ -41,7 +41,7 @@ class OrderForm(Document):
 				frappe.db.set_value("Order",order["name"],"workflow_state","Cancelled")
 				# frappe.throw(f"{order}")
 				if frappe.db.get_list("Timesheet",filters={"order":order["name"]},fields="name"):
-					for timesheet in frappe.db.get_list("Timesheet",filters={"order",order["name"]},fields="name"):
+					for timesheet in frappe.db.get_list("Timesheet",filters={"order":order["name"]},fields="name"):
 						frappe.db.set_value("Timesheet",timesheet["name"],"docstatus","2")
 
 		frappe.db.set_value("Order Form",self.name,"workflow_state","Cancelled")
@@ -51,6 +51,8 @@ class OrderForm(Document):
 		self.validate_category_subcaegory()
 		self.validate_filed_value()
 		validate_design_id(self)
+
+		validate_is_mannual(self)
 		set_data(self)
 		for i in self.order_details:	
 			if i.metal_type == "Silver":
@@ -335,7 +337,7 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	design_id = frappe.get_doc('Order Form Detail',source_name).design_id
 	is_repairing = frappe.get_doc('Order Form Detail',source_name).is_repairing
 	is_finding_order = frappe.get_doc('Order Form Detail',source_name).is_finding_order
-	if design_type == 'Mod':
+	if design_type == 'Mod - Old Stylebio & Tag No':
 		if is_repairing == 1:
 			bom_or_cad = frappe.get_doc('Order Form Detail',source_name).bom_or_cad
 			item_type = frappe.get_doc('Order Form Detail',source_name).item_type
@@ -375,7 +377,7 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 		item_type = "Only Variant"
 		bom_or_cad = 'CAD'
 		# bom_or_cad = 'Check'
-	elif design_type == 'As Per Serial No':
+	elif design_type == 'As Per Design Type':
 		item_type = "No Variant No Suffix"
 		bom_or_cad = 'New BOM'
 	elif is_finding_order:
@@ -405,9 +407,11 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	doc.india_states = parent_doc.india_states
 	doc.item_type = item_type
 	doc.bom_or_cad = bom_or_cad
+	if design_type in ['New Design','Sketch Design']:
+		doc.workflow_type = 'CAD'
 	
 	doc.save()
-	if design_type == 'As Per Serial No' and item_type == "No Variant No Suffix" and bom_or_cad == 'New BOM':
+	if design_type == 'As Per Design Type' and item_type == "No Variant No Suffix" and bom_or_cad == 'New BOM':
 		doc.submit()
 		frappe.db.set_value("Order",doc.name,"workflow_state","Approved")
 	return doc.name
@@ -513,7 +517,7 @@ def make_order_form(source_name,target_doc=None):
 	target_doc.append("order_details", {
 		"category": titan_order_form.get("item_category"),
 		"design_by": "Our Design",
-		"design_type": "Mod",
+		"design_type": "Mod - Old Stylebio & Tag No",
 		"design_id": titan_order_form.get("design_code"),
 		"titan_code": titan_order_form.get("titan_code"),
 		"subcategory": titan_order_form.get("item_subcategory"),
@@ -789,63 +793,173 @@ def get_customer_order_form(source_name, target_doc=None):
 
 def validate_design_id(self):
 	for i in self.order_details:
+		# If tagno exists, find the latest matching Item by old_tag_no
+		if i.tagno:
+			latest_item = frappe.db.get_all(
+				"Item",
+				filters={"old_tag_no": i.tagno},
+				fields=["name", "master_bom"],
+				order_by="creation desc",
+				limit=1
+		 )
+			if latest_item:
+				matched_design_id = latest_item[0].name
+
+				# Set design_id only if not manually overridden
+				if not i.design_id or i.design_id == matched_design_id:
+					i.design_id = matched_design_id
+					if not i.bom:
+						i.bom = latest_item[0].master_bom
+
+		# If design_id is set, fetch Item and set master_bom to bom
+		if i.design_id:
+			item_doc = frappe.get_doc("Item", i.design_id)
+			if item_doc.master_bom and not i.bom:
+				i.bom = item_doc.master_bom
+
+		# Continue only if design_id and bom are now set
 		if i.design_id and i.bom:
-			
+			# Manual override check
+			is_manual_override = (i.design_type == "Mod - Old Stylebio & Tag No")
+
 			# Check if mod_reason is NOT "Change In Metal Type"
-			# Then set values from BOM and Item attributes
 			if i.mod_reason != "Change In Metal Type":
 
-				# Fetch BOM and extract metal details
+				# Fetch BOM
 				bom_doc = frappe.get_doc("BOM", i.bom)
 
-				# Set metal_type and metal_touch from metal_detail table
+				# Set metal_type and metal_touch from metal_detail
 				if bom_doc.metal_detail:
-					i.metal_type = bom_doc.metal_detail[0].metal_type or None
-					i.metal_touch = bom_doc.metal_detail[0].metal_touch or None
+					if not is_manual_override or not i.metal_type:
+						i.metal_type = bom_doc.metal_detail[0].metal_type or None
+					if not is_manual_override or not i.metal_touch:
+						i.metal_touch = bom_doc.metal_detail[0].metal_touch or None
 				else:
 					frappe.msgprint(f"No metal details found for BOM {i.bom}")
-					
 
-				# Set setting_type from BOM
-				i.setting_type = bom_doc.setting_type or None
+				# Set setting_type, category, subcategory
+				if not is_manual_override or not i.setting_type:
+					i.setting_type = bom_doc.setting_type or None
+				if not is_manual_override or not i.category:
+					i.category = bom_doc.item_category or None
+				if not is_manual_override or not i.subcategory:
+					i.subcategory = bom_doc.item_subcategory or None
 
-				# Set item_category from BOM
-				i.category = bom_doc.item_category or None
-				i.subcategory = bom_doc.item_subcategory or None
+				# Attribute mapping: fieldname -> attribute name
+				attr_map = {
+					"metal_colour": "Metal Colour",
+					"diamond_target": "Diamond Target",
+					"stone_changeable": "Stone Changeable",
+					"gemstone_type": "Gemstone Type",
+					"chain_type": "Chain Type",
+					"chain_length": "Chain Length",
+					"feature": "Feature",
+					"rhodium": "Rhodium",
+					"enamal": "Enamal",
+					"detachable": "Detachable",
+					"capganthan": "Cap/Ganthan",
+					"two_in_one": "Two in One",
+					"product_size": "Product Size",
+					"sizer_type": "Sizer Type",
+					"lock_type": "Lock Type",
+					"black_bead_line": "Black Bead Line",
+					"charm": "Charm",
+					"count_of_spiral_turns": "Count of Spiral Turns",
+					"number_of_ant": "Number of Ant",
+					"back_side_size": "Back Side Size",
+					"space_between_mugappu": "Space between Mugappu",
+					"distance_between_kadi_to_mugappu": "Distance Between Kadi To Mugappu",
+					"back_belt": "Back Belt",
+					"back_belt_length": "Back Belt Length",
+				}
 
-				# Fetch metal_colour and diamond_target from design_id (Item) attributes
-				item_doc = frappe.get_doc("Item", i.design_id)
-				i.metal_colour = None
-				i.diamond_target = None
+				# Initialize fields to None if not manual override
+				if not is_manual_override:
+					for fieldname in attr_map.keys():
+						setattr(i, fieldname, None)
 
+				# Set values from attributes if not manually overridden
 				for attr in item_doc.attributes:
-					if attr.attribute == "Metal Colour":
-						i.metal_colour = attr.attribute_value
-					elif attr.attribute == "Diamond Target":
-						i.diamond_target = attr.attribute_value
-					elif attr.attribute == "Stone Changeable":
-						i.stone_changeable = attr.attribute_value
-					elif attr.attribute == "Gemstone Type":
-						i.gemstone_type = attr.attribute_value
-					elif attr.attribute == "Chain Type":
-						i.chain_type = attr.attribute_value
-					elif attr.attribute == "Chain Length":
-						i.chain_length = attr.attribute_value
-					elif attr.attribute == "Feature":
-						i.feature = attr.attribute_value
-					elif attr.attribute == "Rhodium":
-						i.rhodium = attr.attribute_value
-					elif attr.attribute == "Enamal":
-						i.enamal = attr.attribute_value
-					elif attr.attribute == "Detachable":
-						i.detachable = attr.attribute_value
-					elif attr.attribute == "Cap/Ganthan":
-						i.capganthan = attr.attribute_value
-	
+					for fieldname, attrname in attr_map.items():
+						if attr.attribute == attrname:
+							if not is_manual_override or not getattr(i, fieldname):
+								setattr(i, fieldname, attr.attribute_value)
+
+
+def validate_is_mannual(self):
+	if self.is_mannual:
+		errors = []
+
+		for row in self.order_details:
+			missing_fields = []
+
+			if not row.stylebio:
+				missing_fields.append("'Style Bio'")
+			if not row.status:
+				missing_fields.append("'Status'")
+			if not row.order_details_and_remarks:
+				missing_fields.append("'Order Details and Remark'")
+
+			# Set design_id and bom from Item if tagno exists
+			if row.tagno:
+				existing_item = frappe.db.get_value("Item", {"old_tag_no": row.tagno}, ["name", "master_bom"])
+				if existing_item:
+					item_name, master_bom = existing_item
+					# chnage over here
+					if not row.design_id:
+						row.design_id = item_name
+					# chnage over here
+					if not row.bom:  
+						row.bom = master_bom
+					if master_bom:
+						diamond_type = frappe.db.get_value(
+							"BOM Diamond Detail", 
+							{"parent": master_bom}, 
+							"diamond_type"
+						)
+						# frappe.throw(f"{diamond_type}")
+						if diamond_type:
+							row.diamond_type = diamond_type
+
+			# if workflow_state == "Creating Item & BOM", design_type is mandatory
+			if (
+				not row.is_finding_order
+				and not row.design_type
+				and self.workflow_state == "Approved"
+			):
+				missing_fields.append("'Design Type' (required in 'Creating Item & BOM')")
+
+			if missing_fields:
+				errors.append(f"Row {row.idx} is missing: {', '.join(missing_fields)}")
+
+		if errors:
+			frappe.throw("<br>".join(errors))
+
+		# New condition added below:
+		if self.workflow_state == "Approved":
+			for row in self.order_details:
+				if row.status != "Done":
+					frappe.throw(f"Row {row.idx}: Status must be 'Done' before you approve. Please update it.")
+
+	else:
+		# is_mannual is unchecked validate design_type for non-finding orders
+		missing_design_type_rows = []
+		for row in self.order_details:
+			if not row.is_finding_order and not row.design_type:
+				missing_design_type_rows.append(
+					f"Row {row.idx}: Design Type is mandatory when 'Is Finding Order' is unchecked and 'Is Mannual' is also unchecked."
+				)
+
+		if missing_design_type_rows:
+			frappe.throw("<br>".join(missing_design_type_rows))
+
+
+
+
 def set_data(self):
 	if self.order_details:
 		for i in self.order_details:
-			if i.design_type in ['As Per Serial No','Mod'] and i.design_id:
+			if i.design_type in ['As Per Design Type','Mod - Old Stylebio & Tag No'] and i.design_id:
 				try:
 					design_id = i.design_id
 					item_subcategory = frappe.db.get_value("Item", design_id, "item_subcategory")

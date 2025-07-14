@@ -1,0 +1,160 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-24 18:30:28.838392",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_bb5z",
+  "is_employee",
+  "employee",
+  "employee_name",
+  "employee_job_offer",
+  "company",
+  "department",
+  "earnings",
+  "column_break_vxir",
+  "designation",
+  "branch",
+  "ctc",
+  "salary_structure",
+  "is_pf_applicable",
+  "is_esic_applicable",
+  "deductions"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_bb5z",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fetch_from": "employee.branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fetch_from": "employee.ctc",
+   "fieldname": "ctc",
+   "fieldtype": "Currency",
+   "label": "CTC"
+  },
+  {
+   "fieldname": "salary_structure",
+   "fieldtype": "Link",
+   "label": "Salary Structure",
+   "options": "Salary Structure"
+  },
+  {
+   "fieldname": "earnings",
+   "fieldtype": "Table",
+   "label": "Earnings",
+   "options": "Employee Annexure Detail"
+  },
+  {
+   "fieldname": "deductions",
+   "fieldtype": "Table",
+   "label": "Deductions",
+   "options": "Employee Annexure Detail"
+  },
+  {
+   "fieldname": "column_break_vxir",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.ctc<=21000",
+   "fieldname": "is_esic_applicable",
+   "fieldtype": "Check",
+   "label": "Is ESIC applicable"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_pf_applicable",
+   "fieldtype": "Check",
+   "label": "Is PF applicable"
+  },
+  {
+   "depends_on": "eval:!doc.is_employee",
+   "fieldname": "employee_job_offer",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Employee Job Offer ",
+   "options": "Job Offer"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_employee",
+   "fieldtype": "Check",
+   "label": "Is Employee"
+  },
+  {
+   "depends_on": "eval:doc.is_employee",
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Employee",
+   "options": "Employee"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-10 10:42:16.995784",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Employee Annexure",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}

@@ -1105,7 +1105,7 @@ let set_edit_item_details = (row,doc,dialog) => {
 
 function set_metal_properties_from_bom(frm, cdt, cdn) {
 	let row = locals[cdt][cdn]
-	if (row.design_type == "Mod" && (row.serial_no_bom || row.bom)) {
+	if (row.design_type == "Mod - Old Stylebio & Tag No" && (row.serial_no_bom || row.bom)) {
 		frappe.db.get_value("BOM", row.serial_no_bom || row.bom, ["metal_touch","metal_type","metal_colour","metal_purity"], (r)=> {
 			frappe.model.set_value(cdt, cdn, r)
 		})
