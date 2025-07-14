@@ -820,7 +820,7 @@
     },
     {
     "fieldname": "order_details_and_remarks",
-    "fieldtype": "Data",
+    "fieldtype": "Text",
     "label": "Order Details and Remarks"
     },
     {
