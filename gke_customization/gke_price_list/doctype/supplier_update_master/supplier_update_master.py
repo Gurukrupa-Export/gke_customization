@@ -46,13 +46,18 @@ class SupplierUpdateMaster(Document):
                 "release_date": "release_date",
                 "is_internal_supplier": "is_internal_supplier",
                 "represents_company": "represents_company",
-                "reverse_chargeapplicable": "is_reverse_charge_applicable"
+                "reverse_chargeapplicable": "is_reverse_charge_applicable",
+                "custom_tan_no": "custom_tan_no",
+                "custom_msme_number": "custom_msme_number",
+                "custom_msme_type": "custom_msme_type",
+                "custom_iec_no": "custom_iec_no",
             }
             
             # Fetch child table data for accounts and allowed_to_transact_with
             accounts_data = self.get("accounts") or []
             companies_data = self.get("allowed_to_transact_with") or []
             purchase_type_data = self.get("purchase_type") or []
+            supplier_representatives = self.get("custom_supplier_representatives") or []
 
             # Check if the supplier already exists
             if frappe.db.exists("Supplier", self.supplier_data):
@@ -65,6 +70,14 @@ class SupplierUpdateMaster(Document):
                         new_value = self.get(source_field)
                         if new_value is not None:
                             supplier_doc.set(target_field, new_value)
+                    
+                    gst_category_value = self.get("gst_category")
+                    if gst_category_value:
+                        supplier_doc.set("gst_category", gst_category_value)
+                    
+                    msme_num_value = self.get("custom_msme_number") 
+                    if msme_num_value: 
+                        supplier_doc.set("is_msme", 1)
 
                     # Update child table: accounts
                     supplier_doc.accounts = []  # Clear existing accounts
@@ -91,6 +104,16 @@ class SupplierUpdateMaster(Document):
                             supplier_doc.append("purchase_type", {
                                 "purchase_type": row.get("purchase_type"),
                             })
+                    
+                    # Update child table: custom_supplier_representatives
+                    supplier_doc.custom_supplier_representatives = []  # Clear existing purchase_type
+                    for row in supplier_representatives:
+                        if row:
+                            supplier_doc.append("custom_supplier_representatives", {
+                                "employee": row.get("employee"),
+                                "full_name": row.get("full_name"),
+                                "user_id": row.get("user_id")
+                            })
 
                     # Save the updated Supplier document
                     supplier_doc.save(ignore_permissions=True)
@@ -107,6 +130,9 @@ class SupplierUpdateMaster(Document):
                     for source_field, target_field in fields_mapping.items()
                     if self.get(source_field) is not None
                 }
+                msme_num_value = self.get("custom_msme_number") 
+                if msme_num_value: 
+                    supplier_data["is_msme"] = 1
 
                 # Add mandatory fields
                 supplier_data["doctype"] = "Supplier"
@@ -148,10 +174,20 @@ class SupplierUpdateMaster(Document):
                         for row in purchase_type_data
                     ]
                 
+                if supplier_representatives:
+                    supplier_data["custom_supplier_representatives"] = [
+                        {
+                            "employee": row.get("employee"),
+                            "full_name": row.get("full_name"),
+                            "user_id": row.get("user_id") 
+                        }
+                        for row in supplier_representatives
+                    ]
+                                
                 # Create the new Supplier record
                 new_supplier = frappe.get_doc(supplier_data)
                 new_supplier.insert(ignore_permissions=True)
-                
+                                
                 frappe.db.set_value("Supplier Update Master", self.name, "new_supplier", new_supplier.name)
                 frappe.db.set_value("Supplier Update Master", self.name, "supplier_primary_contact", '')
                 if self.others_supp_add: 
@@ -231,3 +267,21 @@ class SupplierUpdateMaster(Document):
                 frappe.msgprint("Supplier Contact Created ")
             else:
                 frappe.throw(f"{self.phone}Phone is reqd..") 
+        if self.workflow_state == "Create Bank Account":
+            if self.bank:
+                bank_acc = frappe.new_doc("Bank Account")
+                bank_acc.account_name = self.new_supplier
+                bank_acc.bank = self.bank 
+                bank_acc.account_type = self.account_type
+                bank_acc.party_type = "Supplier" 
+                bank_acc.party = self.new_supplier
+                bank_acc.insert(ignore_permissions=True)
+                bank_acc.save()
+
+                # frappe.throw(f"{bank_acc.name}")
+                frappe.db.set_value("Supplier Update Master", self.name,"bank_account",bank_acc.name)
+                self.reload()
+
+                frappe.msgprint("Supplier Bank Account Created ")
+            else:
+                frappe.throw(f"{self.bank} Bank is reqd..") 

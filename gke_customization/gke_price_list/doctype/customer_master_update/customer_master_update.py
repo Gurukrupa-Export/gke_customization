@@ -65,6 +65,7 @@ class CustomerMasterUpdate(Document):
         metal_criteria = self.get("metal_criteria")
         diamond_grades = self.get("diamond_grades")
         accounts_data = self.get("accounts")
+        customer_representatives = self.get("custom_customer_representatives")
 
         try:
             customer_doc = frappe.get_doc("Customer", self.customer_data)
@@ -145,6 +146,15 @@ class CustomerMasterUpdate(Document):
                         "diamond_grade_3": row.get("diamond_grade_3"),
                         "diamond_grade_4": row.get("diamond_grade_4")
                     })
+            
+            if customer_representatives:
+                customer_doc.custom_customer_representatives = []
+                for row in customer_representatives:
+                    customer_doc.append("custom_customer_representatives", {
+                        "employee": row.get("employee"),
+                        "full_name": row.get("full_name"),
+                        "user_id": row.get("user_id") 
+                    })
             customer_doc.save(ignore_permissions=True)
             frappe.db.commit()
             
@@ -215,7 +225,11 @@ class CustomerMasterUpdate(Document):
             "custom_approval_warehouse": "custom_approval_warehouse",
             "compute_making_charges_on": "compute_making_charges_on",
             "diamond_price_list": "diamond_price_list",
-            "custom_gemstone_price_list_type": "custom_gemstone_price_list_type"
+            "custom_gemstone_price_list_type": "custom_gemstone_price_list_type",
+            "custom_tan_no": "custom_tan_no",
+            "custom_msme_no": "custom_msme_no",
+            "custom_msme_type": "custom_msme_type",
+            "custom_iec_no": "custom_iec_no",
         }
 
     def create_customer(self):
@@ -228,6 +242,7 @@ class CustomerMasterUpdate(Document):
         metal_criteria = self.get("metal_criteria")
         diamond_grades = self.get("diamond_grades")
         accounts_data = self.get("accounts")
+        customer_representatives = self.get("custom_customer_representatives")
 
         customer_data = {
             target_field: self.get(source_field)
@@ -324,6 +339,17 @@ class CustomerMasterUpdate(Document):
                 }
                 for row in diamond_grades
             ]
+        
+        if customer_representatives:
+            customer_data["custom_customer_representatives"] = [
+                {
+                    "employee": row.get("employee"),
+                    "full_name": row.get("full_name"),
+                    "user_id": row.get("user_id") 
+
+                }
+                for row in customer_representatives
+            ]
         # Insert the customer
         new_customer = frappe.get_doc(customer_data)
         new_customer.insert(ignore_permissions=True)
@@ -337,7 +363,6 @@ class CustomerMasterUpdate(Document):
         self.reload()
         frappe.msgprint(f"New Customer '{new_customer.name}' has been successfully created.")
 
-        
     def on_update_after_submit(self):
         self.create_supplier_address_contact()
         if self.workflow_state != 'Completed':
@@ -407,6 +432,24 @@ class CustomerMasterUpdate(Document):
                 frappe.msgprint("Customer Contact Created ")
             else:
                 frappe.throw(f"{self.phone}Phone is reqd..") 
+        if self.workflow_state == "Create Bank Account":
+            if self.bank:
+                bank_acc = frappe.new_doc("Bank Account")
+                bank_acc.account_name = self.new_customer
+                bank_acc.bank = self.bank 
+                bank_acc.account_type = self.account_type
+                bank_acc.party_type = "Customer" 
+                bank_acc.party = self.new_customer
+                bank_acc.insert(ignore_permissions=True)
+                bank_acc.save()
+
+                # frappe.throw(f"{bank_acc.name}")
+                frappe.db.set_value("Customer Master Update", self.name,"bank_account",bank_acc.name)
+                self.reload()
+
+                frappe.msgprint("Customer Bank Account Created ")
+            else:
+                frappe.throw(f"{self.bank} Bank is reqd..") 
 
 # if self.workflow_state == 'Update Customer' or self.workflow_state == 'Create Customer':      
 #             fields_mapping = {

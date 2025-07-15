@@ -1,1072 +1,1215 @@
 {
- "actions": [],
- "allow_rename": 1,
- "autoname": "naming_series:",
- "creation": "2025-01-13 15:32:21.535290",
- "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": [
-  "is_customer_payment_terms",
-  "is_customer_master",
-  "is_new_employee",
-  "customer_payment_terms_section",
-  "cpt_customer",
-  "customer",
-  "customer_payment_terms",
-  "section_break_zwxd",
-  "sequence",
-  "naming_series",
-  "customer_data",
-  "customer_name",
-  "customer_codes",
-  "customer_type",
-  "gst_category",
-  "export_type",
-  "customer_group",
-  "old_customer_code",
-  "customer_grade",
-  "image",
-  "column_break_99dw",
-  "reason_for_hold",
-  "new_customer",
-  "territory",
-  "territory_code",
-  "gender",
-  "vendor_code",
-  "account_manager",
-  "attachment_section",
-  "aadhar_card",
-  "pan_card",
-  "other_documents",
-  "defaults_section",
-  "column_break_2xpv",
-  "default_price_list",
-  "column_break_ol6e",
-  "billing_currency",
-  "internal_customer_section",
-  "is_internal_customer",
-  "represents_company",
-  "amended_from",
-  "column_break_f9zq",
-  "allowed_to_transact_with",
-  "more_information_section",
-  "market_segment",
-  "industry",
-  "customer_pos_id",
-  "website",
-  "print_language",
-  "column_break_rgsi",
-  "customer_details",
-  "address_contact_tab",
-  "address__contact_section",
-  "address_html",
-  "column_break_x1ht",
-  "contact_html",
-  "primary_address_and_contact_section",
-  "customer_primary_contact",
-  "column_break_i7g7",
-  "customer_primary_address",
-  "primary_address",
-  "section_break_unpp",
-  "cust_add_same",
-  "other_cust_contact",
-  "other_cust_address",
-  "contact_section",
-  "email_address",
-  "phone",
-  "address_section",
-  "address_title",
-  "address_type",
-  "address_line_1",
-  "address_line_2",
-  "city",
-  "column_break_es7i",
-  "state",
-  "add_country",
-  "pincode",
-  "fax",
-  "preferred_billing_add",
-  "preferred_shipping_add",
-  "primary_address_detail_section",
-  "cus_add_title",
-  "cus_add_type",
-  "cus_add_line1",
-  "cus_add_line2",
-  "cus_add_city",
-  "column_break_qcv4",
-  "cus_add_state",
-  "cus_add_country",
-  "cus_add_pin",
-  "cus_add_fax",
-  "tax_tab",
-  "section_break_fkjs",
-  "tax_id",
-  "column_break_oo4n",
-  "tax_category",
-  "tax_withholding_category",
-  "tax_details_section",
-  "gstin__uin",
-  "pan",
-  "column_break_3kk8",
-  "accounting_tab",
-  "credit_limit_and_payment_terms_section",
-  "default_payment_terms_template",
-  "credit_limit",
-  "default_accounts_section",
-  "accounts",
-  "loyalty_points_section",
-  "loyalty_program",
-  "column_break_w5ep",
-  "loyalty_program_tier",
-  "sales_team_section",
-  "sales_team",
-  "section_break_48sj",
-  "sales_partner",
-  "column_break_2dhn",
-  "commission_rate",
-  "settings_tab",
-  "certification_charges",
-  "default_company_bank_account",
-  "gemstone_price_multiplier",
-  "section_break_briu",
-  "custom_separate_hallmarking_invoice",
-  "custom_making_rates_based_on_custom_code",
-  "is_customer_exempted_from_sales_tax",
-  "ignore_po_creation_for_certification",
-  "column_break_fyzc",
-  "allow_sales_invoice_creation_without_sales_order",
-  "allow_sales_invoice_creation_without_delivery_note",
-  "is_frozen",
-  "disabled",
-  "custom_criteria_tab",
-  "brand",
-  "custom_order_type_criteria",
-  "custom_allowed_item_category_for_invoice",
-  "custom_approval_warehouse",
-  "column_break_pjle",
-  "cfa",
-  "custom_sketch_workflow_state",
-  "custom_order_workflow_state",
-  "custom_consider_2_digit_for_bom",
-  "custom_consider_2_digit_for_diamond",
-  "custom_consider_2_digit_for_gemstone",
-  "custom_advanced_manual_bagging_available",
-  "custom_require_customer_bulk_numbers",
-  "section_break_e3a6",
-  "compute_making_charges_on",
-  "sales_type",
-  "column_break_jgx4",
-  "diamond_price_list",
-  "custom_gemstone_price_list_type",
-  "metal_criteria",
-  "diamond_quality_section",
-  "diamond_grades"
- ],
- "fields": [
-  {
-   "depends_on": "eval:doc.is_customer_master==1",
-   "fieldname": "section_break_zwxd",
-   "fieldtype": "Section Break",
-   "label": "Details"
-  },
-  {
-   "fieldname": "sequence",
-   "fieldtype": "Int",
-   "hidden": 1,
-   "label": "Sequence"
-  },
-  {
-   "depends_on": "eval:doc.is_new_employee == 0 && doc.is_customer_master == 1",
-   "fieldname": "customer_data",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Customer Data ",
-   "options": "Customer"
-  },
-  {
-   "depends_on": "eval:doc.is_new_employee==1 && doc.is_customer_master == 1",
-   "fieldname": "customer_name",
-   "fieldtype": "Data",
-   "label": "Customer Name",
-   "mandatory_depends_on": "eval:doc.is_new_employee == 1 && doc.is_customer_master == 1"
-  },
-  {
-   "fieldname": "customer_codes",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Customer Code"
-  },
-  {
-   "fieldname": "customer_type",
-   "fieldtype": "Select",
-   "label": "Customer Type",
-   "mandatory_depends_on": "eval:doc.is_customer_master == 1",
-   "options": "Company\nIndividual\nPartnership"
-  },
-  {
-   "fieldname": "gst_category",
-   "fieldtype": "Select",
-   "label": "GST Category",
-   "mandatory_depends_on": "eval:doc.is_customer_master == 1",
-   "options": "Registered Regular\nRegistered Composition\nUnregistered\nSEZ\nOverseas\nConsumer\nDeemed Export\nUIN Holders"
-  },
-  {
-   "depends_on": "eval:in_list([\"SEZ\", \"Overseas\", \"Deemed Export\"], doc.gst_category)\neval:doc.is_customer_master==1",
-   "fieldname": "export_type",
-   "fieldtype": "Select",
-   "label": "Export Type",
-   "options": "\nWith Payment of Tax\nWithout Payment of Tax"
-  },
-  {
-   "fieldname": "customer_group",
-   "fieldtype": "Link",
-   "label": "Customer Group",
-   "options": "Customer Group"
-  },
-  {
-   "fieldname": "old_customer_code",
-   "fieldtype": "Data",
-   "label": "Old Customer Code"
-  },
-  {
-   "fieldname": "customer_grade",
-   "fieldtype": "Data",
-   "label": "Customer Grade"
-  },
-  {
-   "fieldname": "column_break_99dw",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "territory",
-   "fieldtype": "Link",
-   "label": "Territory",
-   "mandatory_depends_on": "eval:doc.is_customer_master == 1",
-   "options": "Territory"
-  },
-  {
-   "fieldname": "territory_code",
-   "fieldtype": "Data",
-   "label": "Territory Code"
-  },
-  {
-   "depends_on": "eval:doc.customer_type != 'Company'",
-   "fieldname": "gender",
-   "fieldtype": "Link",
-   "label": "Gender",
-   "options": "Gender"
-  },
-  {
-   "fieldname": "vendor_code",
-   "fieldtype": "Data",
-   "label": "Vendor Code"
-  },
-  {
-   "fieldname": "account_manager",
-   "fieldtype": "Link",
-   "label": "Account Manager",
-   "options": "User"
-  },
-  {
-   "fieldname": "image",
-   "fieldtype": "Attach Image",
-   "hidden": 1,
-   "label": "Image"
-  },
-  {
-   "fieldname": "certification_charges",
-   "fieldtype": "Currency",
-   "label": "Certification Charges"
-  },
-  {
-   "default": "0",
-   "fieldname": "ignore_po_creation_for_certification",
-   "fieldtype": "Check",
-   "label": "Ignore PO creation for Certification"
-  },
-  {
-   "depends_on": "eval:doc.is_customer_master==1",
-   "fieldname": "defaults_section",
-   "fieldtype": "Section Break",
-   "label": "Defaults"
-  },
-  {
-   "fieldname": "column_break_2xpv",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "default_price_list",
-   "fieldtype": "Link",
-   "label": "Default Price List",
-   "options": "Price List"
-  },
-  {
-   "fieldname": "default_company_bank_account",
-   "fieldtype": "Link",
-   "label": "Default Company Bank Account",
-   "options": "Bank Account"
-  },
-  {
-   "fieldname": "column_break_ol6e",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "billing_currency",
-   "fieldtype": "Link",
-   "label": "Billing Currency",
-   "options": "Currency"
-  },
-  {
-   "depends_on": "eval:doc.is_customer_master==1",
-   "fieldname": "internal_customer_section",
-   "fieldtype": "Section Break",
-   "label": "Internal Customer"
-  },
-  {
-   "default": "0",
-   "fieldname": "is_internal_customer",
-   "fieldtype": "Check",
-   "label": "Is Internal Customer"
-  },
-  {
-   "fieldname": "represents_company",
-   "fieldtype": "Link",
-   "label": "Represents Company",
-   "options": "Company"
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Customer Master Update",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "is_customer_exempted_from_sales_tax",
-   "fieldtype": "Check",
-   "label": "Is customer exempted from sales tax?"
-  },
-  {
-   "fieldname": "column_break_f9zq",
-   "fieldtype": "Column Break"
-  },
-  {
-   "depends_on": "eval:doc.is_customer_master==1",
-   "fieldname": "more_information_section",
-   "fieldtype": "Tab Break",
-   "label": "More Information"
-  },
-  {
-   "fieldname": "market_segment",
-   "fieldtype": "Link",
-   "label": "Market Segment",
-   "options": "Market Segment"
-  },
-  {
-   "fieldname": "industry",
-   "fieldtype": "Link",
-   "label": "Industry",
-   "options": "Industry Type"
-  },
-  {
-   "fieldname": "customer_pos_id",
-   "fieldtype": "Data",
-   "label": "Customer POS id"
-  },
-  {
-   "fieldname": "website",
-   "fieldtype": "Data",
-   "label": "Website"
-  },
-  {
-   "fieldname": "print_language",
-   "fieldtype": "Link",
-   "label": "Print Language",
-   "options": "Language"
-  },
-  {
-   "fieldname": "column_break_rgsi",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "customer_details",
-   "fieldtype": "Text",
-   "label": "Customer Details"
-  },
-  {
-   "fieldname": "gemstone_price_multiplier",
-   "fieldtype": "Float",
-   "label": "Gemstone Price Multiplier"
-  },
-  {
-   "depends_on": "eval:doc.is_customer_master==1",
-   "fieldname": "address_contact_tab",
-   "fieldtype": "Tab Break",
-   "label": "Address & Contact"
-  },
-  {
-   "depends_on": "eval:!doc.__islocal",
-   "fieldname": "address__contact_section",
-   "fieldtype": "Section Break",
-   "label": "Address & Contact",
-   "options": "fa fa-map-marker\n"
-  },
-  {
-   "fieldname": "address_html",
-   "fieldtype": "HTML",
-   "label": "Address HTML",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_x1ht",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "contact_html",
-   "fieldtype": "HTML",
-   "label": "Contact HTML",
-   "read_only": 1
-  },
-  {
-   "fieldname": "primary_address_and_contact_section",
-   "fieldtype": "Section Break",
-   "label": "Primary Address and Contact"
-  },
-  {
-   "allow_on_submit": 1,
-   "depends_on": "eval:doc.customer_data || doc.new_customer",
-   "fieldname": "customer_primary_contact",
-   "fieldtype": "Link",
-   "label": "Customer Primary Contact",
-   "options": "Contact"
-  },
-  {
-   "depends_on": "eval:doc.is_customer_master==1",
-   "fieldname": "tax_tab",
-   "fieldtype": "Tab Break",
-   "label": "Tax"
-  },
-  {
-   "fieldname": "section_break_fkjs",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "tax_id",
-   "fieldtype": "Data",
-   "label": "Tax ID"
-  },
-  {
-   "fieldname": "column_break_oo4n",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "tax_category",
-   "fieldtype": "Link",
-   "label": "Tax Category",
-   "options": "Tax Category"
-  },
-  {
-   "fieldname": "tax_withholding_category",
-   "fieldtype": "Link",
-   "label": "Tax Withholding Category",
-   "options": "Tax Withholding Category"
-  },
-  {
-   "fieldname": "tax_details_section",
-   "fieldtype": "Section Break",
-   "label": "Tax Details"
-  },
-  {
-   "fieldname": "gstin__uin",
-   "fieldtype": "Autocomplete",
-   "label": "GSTIN / UIN"
-  },
-  {
-   "fieldname": "pan",
-   "fieldtype": "Data",
-   "label": "PAN",
-   "mandatory_depends_on": "eval:doc.is_customer_master == 1"
-  },
-  {
-   "fieldname": "column_break_3kk8",
-   "fieldtype": "Column Break"
-  },
-  {
-   "depends_on": "eval:doc.is_customer_master==1",
-   "fieldname": "accounting_tab",
-   "fieldtype": "Tab Break",
-   "label": "Accounting"
-  },
-  {
-   "fieldname": "credit_limit_and_payment_terms_section",
-   "fieldtype": "Section Break",
-   "label": "Credit Limit and Payment Terms"
-  },
-  {
-   "fieldname": "default_payment_terms_template",
-   "fieldtype": "Link",
-   "label": "Default Payment Terms Template",
-   "options": "Payment Terms Template"
-  },
-  {
-   "fieldname": "credit_limit",
-   "fieldtype": "Table",
-   "label": "Credit Limit",
-   "options": "Customer Credit Limit"
-  },
-  {
-   "fieldname": "default_accounts_section",
-   "fieldtype": "Section Break",
-   "label": "Default Accounts"
-  },
-  {
-   "fieldname": "accounts",
-   "fieldtype": "Table",
-   "label": "Accounts",
-   "options": "Party Account"
-  },
-  {
-   "fieldname": "loyalty_points_section",
-   "fieldtype": "Section Break",
-   "label": "Loyalty Points"
-  },
-  {
-   "fieldname": "loyalty_program",
-   "fieldtype": "Link",
-   "label": "Loyalty Program",
-   "options": "Loyalty Program"
-  },
-  {
-   "fieldname": "column_break_w5ep",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "loyalty_program_tier",
-   "fieldtype": "Data",
-   "label": "Loyalty Program Tier"
-  },
-  {
-   "fieldname": "sales_team",
-   "fieldtype": "Table",
-   "label": "Sales Team",
-   "options": "Sales Team"
-  },
-  {
-   "fieldname": "section_break_48sj",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "sales_partner",
-   "fieldtype": "Link",
-   "label": "Sales Partner",
-   "options": "Sales Partner"
-  },
-  {
-   "fieldname": "column_break_2dhn",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "commission_rate",
-   "fieldtype": "Float",
-   "label": "Commission Rate"
-  },
-  {
-   "depends_on": "eval:doc.is_customer_master==1",
-   "fieldname": "settings_tab",
-   "fieldtype": "Tab Break",
-   "label": "Settings",
-   "permlevel": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "allow_sales_invoice_creation_without_sales_order",
-   "fieldtype": "Check",
-   "label": "Allow Sales Invoice Creation Without Sales Order"
-  },
-  {
-   "default": "0",
-   "fieldname": "allow_sales_invoice_creation_without_delivery_note",
-   "fieldtype": "Check",
-   "label": "Allow Sales Invoice Creation Without Delivery Note"
-  },
-  {
-   "fieldname": "column_break_fyzc",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "0",
-   "fieldname": "is_frozen",
-   "fieldtype": "Check",
-   "label": "Is Frozen"
-  },
-  {
-   "default": "0",
-   "fieldname": "disabled",
-   "fieldtype": "Check",
-   "label": "Disabled"
-  },
-  {
-   "default": "0",
-   "fieldname": "is_new_employee",
-   "fieldtype": "Check",
-   "label": "Is New"
-  },
-  {
-   "allow_on_submit": 1,
-   "depends_on": "eval:doc.customer_data || doc.new_customer",
-   "fieldname": "customer_primary_address",
-   "fieldtype": "Link",
-   "label": "Customer Primary Address",
-   "options": "Address"
-  },
-  {
-   "fieldname": "naming_series",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Series"
-  },
-  {
-   "depends_on": "represents_company\neval:doc.is_customer_master==1",
-   "fieldname": "allowed_to_transact_with",
-   "fieldtype": "Table",
-   "label": "Allowed To Transact With",
-   "options": "Allowed To Transact With"
-  },
-  {
-   "fieldname": "primary_address",
-   "fieldtype": "Text",
-   "label": "Primary Address",
-   "read_only": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "custom_separate_hallmarking_invoice",
-   "fieldtype": "Check",
-   "label": "Separate Hallmarking invoice"
-  },
-  {
-   "default": "0",
-   "fieldname": "custom_making_rates_based_on_custom_code",
-   "fieldtype": "Check",
-   "label": "Making Rates based on Custom Code"
-  },
-  {
-   "fieldname": "column_break_i7g7",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "section_break_unpp",
-   "fieldtype": "Section Break"
-  },
-  {
-   "default": "0",
-   "fieldname": "other_cust_contact",
-   "fieldtype": "Check",
-   "label": "If Others Customer Contact"
-  },
-  {
-   "default": "0",
-   "fieldname": "other_cust_address",
-   "fieldtype": "Check",
-   "label": "If Others Customer Address"
-  },
-  {
-   "depends_on": "eval: doc.other_cust_address == 1",
-   "fieldname": "address_section",
-   "fieldtype": "Section Break",
-   "label": "Address"
-  },
-  {
-   "fieldname": "address_title",
-   "fieldtype": "Data",
-   "label": "Address Title"
-  },
-  {
-   "fieldname": "address_type",
-   "fieldtype": "Select",
-   "label": "Address Type",
-   "options": "Billing\nShipping\nOffice\nPersonal\nPlant\nPostal\nShop\nSubsidiary\nWarehouse\nCurrent\nPermanent\nOther"
-  },
-  {
-   "fieldname": "address_line_1",
-   "fieldtype": "Data",
-   "label": "Address Line 1"
-  },
-  {
-   "fieldname": "address_line_2",
-   "fieldtype": "Data",
-   "label": "Address Line 2"
-  },
-  {
-   "fieldname": "city",
-   "fieldtype": "Data",
-   "label": "City/Town"
-  },
-  {
-   "fieldname": "state",
-   "fieldtype": "Link",
-   "label": "State/Province",
-   "options": "State List"
-  },
-  {
-   "fieldname": "add_country",
-   "fieldtype": "Link",
-   "label": "Country",
-   "options": "Country"
-  },
-  {
-   "fieldname": "pincode",
-   "fieldtype": "Data",
-   "label": "Postal Code"
-  },
-  {
-   "fieldname": "column_break_es7i",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "email_address",
-   "fieldtype": "Data",
-   "label": "Email Address"
-  },
-  {
-   "fieldname": "phone",
-   "fieldtype": "Data",
-   "label": "Phone"
-  },
-  {
-   "fieldname": "fax",
-   "fieldtype": "Data",
-   "label": "Fax"
-  },
-  {
-   "default": "0",
-   "fieldname": "preferred_billing_add",
-   "fieldtype": "Check",
-   "label": "Preferred Billing Address"
-  },
-  {
-   "default": "0",
-   "fieldname": "preferred_shipping_add",
-   "fieldtype": "Check",
-   "label": "Preferred Shipping Address"
-  },
-  {
-   "allow_on_submit": 1,
-   "depends_on": "eval:doc.is_new_employee == 1",
-   "fieldname": "new_customer",
-   "fieldtype": "Link",
-   "label": "New Customer",
-   "options": "Customer"
-  },
-  {
-   "depends_on": "eval: doc.other_cust_contact == 1",
-   "fieldname": "contact_section",
-   "fieldtype": "Section Break",
-   "label": "Contact"
-  },
-  {
-   "depends_on": "eval:doc.is_customer_master==1",
-   "fieldname": "attachment_section",
-   "fieldtype": "Section Break",
-   "label": "Attachment"
-  },
-  {
-   "depends_on": "eval:doc.gst_category == 'Unregistered'",
-   "fieldname": "aadhar_card",
-   "fieldtype": "Attach",
-   "label": "Aadhar Card",
-   "mandatory_depends_on": "eval:doc.gst_category == 'Unregistered'"
-  },
-  {
-   "depends_on": "eval:doc.gst_category == 'Unregistered'",
-   "fieldname": "pan_card",
-   "fieldtype": "Attach",
-   "label": "PAN Card",
-   "mandatory_depends_on": "eval:doc.gst_category == 'Unregistered'"
-  },
-  {
-   "fieldname": "other_documents",
-   "fieldtype": "Attach",
-   "label": "Other Documents"
-  },
-  {
-   "fieldname": "reason_for_hold",
-   "fieldtype": "Data",
-   "label": "Reason For Hold"
-  },
-  {
-   "default": "1",
-   "fieldname": "cust_add_same",
-   "fieldtype": "Check",
-   "label": "Primary & Address is Same"
-  },
-  {
-   "fieldname": "section_break_briu",
-   "fieldtype": "Section Break"
-  },
-  {
-   "depends_on": "eval:doc.cust_add_same == 0",
-   "fieldname": "primary_address_detail_section",
-   "fieldtype": "Section Break",
-   "label": "Primary Address Detail"
-  },
-  {
-   "fieldname": "cus_add_title",
-   "fieldtype": "Data",
-   "label": "Address Title"
-  },
-  {
-   "fieldname": "cus_add_type",
-   "fieldtype": "Select",
-   "label": "Address Type"
-  },
-  {
-   "fieldname": "cus_add_line1",
-   "fieldtype": "Data",
-   "label": "Address Line 1"
-  },
-  {
-   "fieldname": "cus_add_line2",
-   "fieldtype": "Data",
-   "label": "Address Line 2"
-  },
-  {
-   "fieldname": "cus_add_city",
-   "fieldtype": "Data",
-   "label": "City/Town"
-  },
-  {
-   "fieldname": "column_break_qcv4",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "cus_add_state",
-   "fieldtype": "Link",
-   "label": "State/Province",
-   "options": "State List"
-  },
-  {
-   "fieldname": "cus_add_country",
-   "fieldtype": "Link",
-   "label": "Country",
-   "options": "Country"
-  },
-  {
-   "fieldname": "cus_add_pin",
-   "fieldtype": "Data",
-   "label": "Postal Code"
-  },
-  {
-   "fieldname": "cus_add_fax",
-   "fieldtype": "Data",
-   "label": "Fax"
-  },
-  {
-   "depends_on": "eval:doc.is_customer_master==1",
-   "fieldname": "sales_team_section",
-   "fieldtype": "Tab Break",
-   "label": "Sales Team"
-  },
-  {
-   "fieldname": "custom_criteria_tab",
-   "fieldtype": "Section Break",
-   "label": "Custom Criteria"
-  },
-  {
-   "fieldname": "brand",
-   "fieldtype": "Data",
-   "label": "Brand"
-  },
-  {
-   "fieldname": "column_break_pjle",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "cfa",
-   "fieldtype": "Data",
-   "label": "CFA"
-  },
-  {
-   "fieldname": "section_break_e3a6",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "compute_making_charges_on",
-   "fieldtype": "Select",
-   "label": "Compute Making Charges On",
-   "options": "Diamond Inclusive\nNet Wt"
-  },
-  {
-   "fieldname": "sales_type",
-   "fieldtype": "Table",
-   "label": "Sales Type",
-   "options": "Sales Type Multiselect"
-  },
-  {
-   "fieldname": "column_break_jgx4",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "metal_criteria",
-   "fieldtype": "Table",
-   "label": "Metal Criteria",
-   "options": "Metal Criteria"
-  },
-  {
-   "fieldname": "diamond_quality_section",
-   "fieldtype": "Section Break",
-   "label": "Diamond Quality"
-  },
-  {
-   "fieldname": "diamond_grades",
-   "fieldtype": "Table",
-   "label": "Diamond Grades",
-   "options": "Customer Diamond Grade"
-  },
-  {
-   "fieldname": "custom_order_type_criteria",
-   "fieldtype": "Table",
-   "label": "Order Type Criteria",
-   "options": "Order Type"
-  },
-  {
-   "fieldname": "custom_approval_warehouse",
-   "fieldtype": "Link",
-   "label": "Approval Warehouse",
-   "options": "Warehouse"
-  },
-  {
-   "fieldname": "custom_sketch_workflow_state",
-   "fieldtype": "Select",
-   "label": "Sketch Workflow State",
-   "options": "\nInternal\nExternal"
-  },
-  {
-   "fieldname": "custom_order_workflow_state",
-   "fieldtype": "Select",
-   "label": "Order Workflow State",
-   "options": "\nInternal\nExternal"
-  },
-  {
-   "default": "0",
-   "fieldname": "custom_consider_2_digit_for_bom",
-   "fieldtype": "Check",
-   "label": "Consider 2 Digit for BOM"
-  },
-  {
-   "default": "0",
-   "fieldname": "custom_consider_2_digit_for_diamond",
-   "fieldtype": "Check",
-   "label": "Consider 2 Digit for Diamond"
-  },
-  {
-   "default": "0",
-   "fieldname": "custom_consider_2_digit_for_gemstone",
-   "fieldtype": "Check",
-   "label": "Consider 2 Digit for Gemstone"
-  },
-  {
-   "default": "0",
-   "fieldname": "custom_advanced_manual_bagging_available",
-   "fieldtype": "Check",
-   "label": "Advanced Manual Bagging Available"
-  },
-  {
-   "default": "0",
-   "fieldname": "custom_require_customer_bulk_numbers",
-   "fieldtype": "Check",
-   "label": "Require Customer Bulk Numbers"
-  },
-  {
-   "fieldname": "diamond_price_list",
-   "fieldtype": "Select",
-   "label": "Diamond Price List Type",
-   "options": "\nSieve Size Range\nWeight (in cts)\nSize (in mm)"
-  },
-  {
-   "fieldname": "custom_gemstone_price_list_type",
-   "fieldtype": "Select",
-   "label": "Gemstone Price List Type",
-   "options": "Weight (in cts)\nFixed\nMultiplier"
-  },
-  {
-   "fieldname": "custom_allowed_item_category_for_invoice",
-   "fieldtype": "Select",
-   "label": "Allowed Item Category For Invoice",
-   "options": "Mix\nUnique\nMIx And Unique"
-  },
-  {
-   "default": "0",
-   "fieldname": "is_customer_master",
-   "fieldtype": "Check",
-   "label": "Is Customer Master"
-  },
-  {
-   "default": "0",
-   "fieldname": "is_customer_payment_terms",
-   "fieldtype": "Check",
-   "label": "Is Customer Payment Terms"
-  },
-  {
-   "fieldname": "customer_payment_terms",
-   "fieldtype": "Table",
-   "label": "Customer Payment Terms",
-   "options": "Customer Payment Terms Details"
-  },
-  {
-   "depends_on": "eval:doc.is_customer_payment_terms==1",
-   "fieldname": "customer_payment_terms_section",
-   "fieldtype": "Section Break",
-   "label": "Customer Payment Terms"
-  },
-  {
-   "depends_on": "eval:doc.is_new_employee == 1 && doc.is_customer_payment_terms == 1",
-   "fieldname": "customer",
-   "fieldtype": "Link",
-   "label": "Customer",
-   "options": "Customer"
-  },
-  {
-   "depends_on": "eval:doc.is_new_employee == 0 && doc.is_customer_payment_terms == 1",
-   "fieldname": "cpt_customer",
-   "fieldtype": "Link",
-   "label": "Customer Payment Terms",
-   "options": "Customer Payment Terms"
-  }
- ],
- "index_web_pages_for_search": 1,
- "is_submittable": 1,
- "links": [],
- "modified": "2025-07-02 12:19:40.095204",
- "modified_by": "Administrator",
- "module": "Gke Price List",
- "name": "Customer Master Update",
- "naming_rule": "By \"Naming Series\" field",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "submit": 1,
-   "write": 1
-  }
- ],
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": [],
- "track_changes": 1,
- "track_seen": 1,
- "track_views": 1
+"actions": [],
+"allow_rename": 1,
+"autoname": "naming_series:",
+"creation": "2025-01-13 15:32:21.535290",
+"doctype": "DocType",
+"engine": "InnoDB",
+"field_order": [
+"is_customer_payment_terms",
+"is_customer_master",
+"is_new_employee",
+"user_id",
+"column_break_osc8",
+"company",
+"branch",
+"customer_payment_terms_section",
+"cpt_customer",
+"customer",
+"customer_payment_terms",
+"section_break_zwxd",
+"sequence",
+"naming_series",
+"customer_data",
+"customer_name",
+"customer_codes",
+"customer_type",
+"gst_category",
+"export_type",
+"customer_group",
+"old_customer_code",
+"customer_grade",
+"image",
+"column_break_99dw",
+"reason_for_hold",
+"new_customer",
+"territory",
+"territory_code",
+"gender",
+"vendor_code",
+"account_manager",
+"defaults_section",
+"column_break_2xpv",
+"default_price_list",
+"column_break_ol6e",
+"billing_currency",
+"internal_customer_section",
+"is_internal_customer",
+"represents_company",
+"amended_from",
+"column_break_f9zq",
+"allowed_to_transact_with",
+"more_information_section",
+"market_segment",
+"industry",
+"customer_pos_id",
+"website",
+"print_language",
+"column_break_rgsi",
+"customer_details",
+"address_contact_tab",
+"address__contact_section",
+"address_html",
+"column_break_x1ht",
+"contact_html",
+"primary_address_and_contact_section",
+"customer_primary_contact",
+"column_break_i7g7",
+"customer_primary_address",
+"primary_address",
+"section_break_k568",
+"custom_customer_representatives",
+"section_break_unpp",
+"cust_add_same",
+"other_cust_contact",
+"other_cust_address",
+"contact_section",
+"email_address",
+"phone",
+"address_section",
+"address_title",
+"address_type",
+"address_line_1",
+"address_line_2",
+"city",
+"column_break_es7i",
+"state",
+"add_country",
+"pincode",
+"fax",
+"preferred_billing_add",
+"preferred_shipping_add",
+"primary_address_detail_section",
+"cus_add_title",
+"cus_add_type",
+"cus_add_line1",
+"cus_add_line2",
+"cus_add_city",
+"column_break_qcv4",
+"cus_add_state",
+"cus_add_country",
+"cus_add_pin",
+"cus_add_fax",
+"bank_account_tab",
+"bank_account",
+"section_break_lvvk",
+"bank",
+"account_type",
+"column_break_rjjf",
+"branch_code",
+"bank_account_no",
+"tax_tab",
+"section_break_fkjs",
+"tax_id",
+"column_break_oo4n",
+"tax_category",
+"tax_withholding_category",
+"tax_details_section",
+"gstin__uin",
+"custom_msme_no",
+"custom_msme_type",
+"column_break_3kk8",
+"pan",
+"custom_tan_no",
+"custom_iec_no",
+"attachment_section",
+"aadhar_card",
+"pan_card",
+"other_documents",
+"column_break_ovkz",
+"cancel_cheque",
+"authorized_persons_letter",
+"kyc",
+"accounting_tab",
+"credit_limit_and_payment_terms_section",
+"default_payment_terms_template",
+"credit_limit",
+"default_accounts_section",
+"accounts",
+"loyalty_points_section",
+"loyalty_program",
+"column_break_w5ep",
+"loyalty_program_tier",
+"sales_team_section",
+"sales_team",
+"section_break_48sj",
+"sales_partner",
+"column_break_2dhn",
+"commission_rate",
+"settings_tab",
+"certification_charges",
+"default_company_bank_account",
+"gemstone_price_multiplier",
+"section_break_briu",
+"custom_separate_hallmarking_invoice",
+"custom_making_rates_based_on_custom_code",
+"is_customer_exempted_from_sales_tax",
+"ignore_po_creation_for_certification",
+"column_break_fyzc",
+"allow_sales_invoice_creation_without_sales_order",
+"allow_sales_invoice_creation_without_delivery_note",
+"is_frozen",
+"disabled",
+"custom_criteria_tab",
+"brand",
+"custom_order_type_criteria",
+"custom_allowed_item_category_for_invoice",
+"custom_approval_warehouse",
+"column_break_pjle",
+"cfa",
+"custom_sketch_workflow_state",
+"custom_order_workflow_state",
+"custom_consider_2_digit_for_bom",
+"custom_consider_2_digit_for_diamond",
+"custom_consider_2_digit_for_gemstone",
+"custom_advanced_manual_bagging_available",
+"custom_require_customer_bulk_numbers",
+"section_break_e3a6",
+"compute_making_charges_on",
+"sales_type",
+"column_break_jgx4",
+"diamond_price_list",
+"custom_gemstone_price_list_type",
+"metal_criteria",
+"diamond_quality_section",
+"diamond_grades"
+],
+"fields": [
+{
+"depends_on": "eval:doc.is_customer_master==1",
+"fieldname": "section_break_zwxd",
+"fieldtype": "Section Break",
+"label": "Details"
+},
+{
+"fieldname": "sequence",
+"fieldtype": "Int",
+"hidden": 1,
+"label": "Sequence"
+},
+{
+"depends_on": "eval:doc.is_new_employee == 0 && doc.is_customer_master == 1",
+"fieldname": "customer_data",
+"fieldtype": "Link",
+"in_list_view": 1,
+"in_standard_filter": 1,
+"label": "Customer Data ",
+"options": "Customer"
+},
+{
+"depends_on": "eval:doc.is_new_employee==1 && doc.is_customer_master == 1",
+"fieldname": "customer_name",
+"fieldtype": "Data",
+"label": "Customer Name",
+"mandatory_depends_on": "eval:doc.is_new_employee == 1 && doc.is_customer_master == 1"
+},
+{
+"fieldname": "customer_codes",
+"fieldtype": "Data",
+"hidden": 1,
+"label": "Customer Code"
+},
+{
+"fieldname": "customer_type",
+"fieldtype": "Select",
+"label": "Customer Type",
+"mandatory_depends_on": "eval:doc.is_customer_master == 1",
+"options": "Company\nIndividual\nPartnership"
+},
+{
+"fieldname": "gst_category",
+"fieldtype": "Select",
+"label": "GST Category",
+"mandatory_depends_on": "eval:doc.is_customer_master == 1",
+"options": "Registered Regular\nRegistered Composition\nUnregistered\nSEZ\nOverseas\nConsumer\nDeemed Export\nUIN Holders"
+},
+{
+"depends_on": "eval:in_list([\"SEZ\", \"Overseas\", \"Deemed Export\"], doc.gst_category)\neval:doc.is_customer_master==1",
+"fieldname": "export_type",
+"fieldtype": "Select",
+"label": "Export Type",
+"options": "\nWith Payment of Tax\nWithout Payment of Tax"
+},
+{
+"fieldname": "customer_group",
+"fieldtype": "Link",
+"label": "Customer Group",
+"options": "Customer Group"
+},
+{
+"fieldname": "old_customer_code",
+"fieldtype": "Data",
+"label": "Old Customer Code"
+},
+{
+"fieldname": "customer_grade",
+"fieldtype": "Data",
+"label": "Customer Grade"
+},
+{
+"fieldname": "column_break_99dw",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "territory",
+"fieldtype": "Link",
+"label": "Territory",
+"mandatory_depends_on": "eval:doc.is_customer_master == 1",
+"options": "Territory"
+},
+{
+"fieldname": "territory_code",
+"fieldtype": "Data",
+"label": "Territory Code"
+},
+{
+"depends_on": "eval:doc.customer_type != 'Company'",
+"fieldname": "gender",
+"fieldtype": "Link",
+"label": "Gender",
+"options": "Gender"
+},
+{
+"fieldname": "vendor_code",
+"fieldtype": "Data",
+"label": "Vendor Code"
+},
+{
+"fieldname": "account_manager",
+"fieldtype": "Link",
+"label": "Account Manager",
+"options": "User"
+},
+{
+"fieldname": "image",
+"fieldtype": "Attach Image",
+"hidden": 1,
+"label": "Image"
+},
+{
+"fieldname": "certification_charges",
+"fieldtype": "Currency",
+"label": "Certification Charges"
+},
+{
+"default": "0",
+"fieldname": "ignore_po_creation_for_certification",
+"fieldtype": "Check",
+"label": "Ignore PO creation for Certification"
+},
+{
+"depends_on": "eval:doc.is_customer_master==1",
+"fieldname": "defaults_section",
+"fieldtype": "Section Break",
+"label": "Defaults"
+},
+{
+"fieldname": "column_break_2xpv",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "default_price_list",
+"fieldtype": "Link",
+"label": "Default Price List",
+"options": "Price List"
+},
+{
+"fieldname": "default_company_bank_account",
+"fieldtype": "Link",
+"label": "Default Company Bank Account",
+"options": "Bank Account"
+},
+{
+"fieldname": "column_break_ol6e",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "billing_currency",
+"fieldtype": "Link",
+"label": "Billing Currency",
+"options": "Currency"
+},
+{
+"depends_on": "eval:doc.is_customer_master==1",
+"fieldname": "internal_customer_section",
+"fieldtype": "Section Break",
+"label": "Internal Customer"
+},
+{
+"default": "0",
+"fieldname": "is_internal_customer",
+"fieldtype": "Check",
+"label": "Is Internal Customer"
+},
+{
+"fieldname": "represents_company",
+"fieldtype": "Link",
+"label": "Represents Company",
+"options": "Company"
+},
+{
+"fieldname": "amended_from",
+"fieldtype": "Link",
+"label": "Amended From",
+"no_copy": 1,
+"options": "Customer Master Update",
+"print_hide": 1,
+"read_only": 1,
+"search_index": 1
+},
+{
+"default": "0",
+"fieldname": "is_customer_exempted_from_sales_tax",
+"fieldtype": "Check",
+"label": "Is customer exempted from sales tax?"
+},
+{
+"fieldname": "column_break_f9zq",
+"fieldtype": "Column Break"
+},
+{
+"depends_on": "eval:doc.is_customer_master==1",
+"fieldname": "more_information_section",
+"fieldtype": "Tab Break",
+"label": "More Information"
+},
+{
+"fieldname": "market_segment",
+"fieldtype": "Link",
+"label": "Market Segment",
+"options": "Market Segment"
+},
+{
+"fieldname": "industry",
+"fieldtype": "Link",
+"label": "Industry",
+"options": "Industry Type"
+},
+{
+"fieldname": "customer_pos_id",
+"fieldtype": "Data",
+"label": "Customer POS id"
+},
+{
+"fieldname": "website",
+"fieldtype": "Data",
+"label": "Website"
+},
+{
+"fieldname": "print_language",
+"fieldtype": "Link",
+"label": "Print Language",
+"options": "Language"
+},
+{
+"fieldname": "column_break_rgsi",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "customer_details",
+"fieldtype": "Text",
+"label": "Customer Details"
+},
+{
+"fieldname": "gemstone_price_multiplier",
+"fieldtype": "Float",
+"label": "Gemstone Price Multiplier"
+},
+{
+"depends_on": "eval:doc.is_customer_master==1",
+"fieldname": "address_contact_tab",
+"fieldtype": "Tab Break",
+"label": "Address & Contact"
+},
+{
+"depends_on": "eval:!doc.__islocal",
+"fieldname": "address__contact_section",
+"fieldtype": "Section Break",
+"label": "Address & Contact",
+"options": "fa fa-map-marker\n"
+},
+{
+"fieldname": "address_html",
+"fieldtype": "HTML",
+"label": "Address HTML",
+"read_only": 1
+},
+{
+"fieldname": "column_break_x1ht",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "contact_html",
+"fieldtype": "HTML",
+"label": "Contact HTML",
+"read_only": 1
+},
+{
+"fieldname": "primary_address_and_contact_section",
+"fieldtype": "Section Break",
+"label": "Primary Address and Contact"
+},
+{
+"allow_on_submit": 1,
+"depends_on": "eval:doc.customer_data || doc.new_customer",
+"fieldname": "customer_primary_contact",
+"fieldtype": "Link",
+"label": "Customer Primary Contact",
+"options": "Contact",
+"read_only_depends_on": "eval:doc.customer_data || doc.new_customer"
+},
+{
+"depends_on": "eval:doc.is_customer_master==1",
+"fieldname": "tax_tab",
+"fieldtype": "Tab Break",
+"label": "Tax"
+},
+{
+"fieldname": "section_break_fkjs",
+"fieldtype": "Section Break"
+},
+{
+"fieldname": "tax_id",
+"fieldtype": "Data",
+"label": "Tax ID"
+},
+{
+"fieldname": "column_break_oo4n",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "tax_category",
+"fieldtype": "Link",
+"label": "Tax Category",
+"options": "Tax Category"
+},
+{
+"fieldname": "tax_withholding_category",
+"fieldtype": "Link",
+"label": "Tax Withholding Category",
+"options": "Tax Withholding Category"
+},
+{
+"fieldname": "tax_details_section",
+"fieldtype": "Section Break",
+"label": "Tax Details"
+},
+{
+"fieldname": "gstin__uin",
+"fieldtype": "Autocomplete",
+"label": "GSTIN / UIN"
+},
+{
+"fieldname": "column_break_3kk8",
+"fieldtype": "Column Break"
+},
+{
+"depends_on": "eval:doc.is_customer_master==1",
+"fieldname": "accounting_tab",
+"fieldtype": "Tab Break",
+"label": "Accounting"
+},
+{
+"fieldname": "credit_limit_and_payment_terms_section",
+"fieldtype": "Section Break",
+"label": "Credit Limit and Payment Terms"
+},
+{
+"fieldname": "default_payment_terms_template",
+"fieldtype": "Link",
+"label": "Default Payment Terms Template",
+"options": "Payment Terms Template"
+},
+{
+"fieldname": "credit_limit",
+"fieldtype": "Table",
+"label": "Credit Limit",
+"options": "Customer Credit Limit"
+},
+{
+"fieldname": "default_accounts_section",
+"fieldtype": "Section Break",
+"label": "Default Accounts"
+},
+{
+"fieldname": "accounts",
+"fieldtype": "Table",
+"label": "Accounts",
+"options": "Party Account"
+},
+{
+"fieldname": "loyalty_points_section",
+"fieldtype": "Section Break",
+"label": "Loyalty Points"
+},
+{
+"fieldname": "loyalty_program",
+"fieldtype": "Link",
+"label": "Loyalty Program",
+"options": "Loyalty Program"
+},
+{
+"fieldname": "column_break_w5ep",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "loyalty_program_tier",
+"fieldtype": "Data",
+"label": "Loyalty Program Tier"
+},
+{
+"fieldname": "sales_team",
+"fieldtype": "Table",
+"label": "Sales Team",
+"options": "Sales Team"
+},
+{
+"fieldname": "section_break_48sj",
+"fieldtype": "Section Break"
+},
+{
+"fieldname": "sales_partner",
+"fieldtype": "Link",
+"label": "Sales Partner",
+"options": "Sales Partner"
+},
+{
+"fieldname": "column_break_2dhn",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "commission_rate",
+"fieldtype": "Float",
+"label": "Commission Rate"
+},
+{
+"depends_on": "eval:doc.is_customer_master==1",
+"fieldname": "settings_tab",
+"fieldtype": "Tab Break",
+"label": "Settings",
+"permlevel": 1
+},
+{
+"default": "0",
+"fieldname": "allow_sales_invoice_creation_without_sales_order",
+"fieldtype": "Check",
+"label": "Allow Sales Invoice Creation Without Sales Order"
+},
+{
+"default": "0",
+"fieldname": "allow_sales_invoice_creation_without_delivery_note",
+"fieldtype": "Check",
+"label": "Allow Sales Invoice Creation Without Delivery Note"
+},
+{
+"fieldname": "column_break_fyzc",
+"fieldtype": "Column Break"
+},
+{
+"default": "0",
+"fieldname": "is_frozen",
+"fieldtype": "Check",
+"label": "Is Frozen"
+},
+{
+"default": "0",
+"fieldname": "disabled",
+"fieldtype": "Check",
+"label": "Disabled"
+},
+{
+"default": "0",
+"fieldname": "is_new_employee",
+"fieldtype": "Check",
+"label": "Is New"
+},
+{
+"allow_on_submit": 1,
+"depends_on": "eval:doc.customer_data || doc.new_customer",
+"fieldname": "customer_primary_address",
+"fieldtype": "Link",
+"label": "Customer Primary Address",
+"options": "Address",
+"read_only_depends_on": "eval:doc.customer_data || doc.new_customer"
+},
+{
+"fieldname": "naming_series",
+"fieldtype": "Data",
+"hidden": 1,
+"label": "Series"
+},
+{
+"depends_on": "represents_company\neval:doc.is_customer_master==1",
+"fieldname": "allowed_to_transact_with",
+"fieldtype": "Table",
+"label": "Allowed To Transact With",
+"options": "Allowed To Transact With"
+},
+{
+"fieldname": "primary_address",
+"fieldtype": "Text",
+"label": "Primary Address",
+"read_only": 1
+},
+{
+"default": "0",
+"fieldname": "custom_separate_hallmarking_invoice",
+"fieldtype": "Check",
+"label": "Separate Hallmarking invoice"
+},
+{
+"default": "0",
+"fieldname": "custom_making_rates_based_on_custom_code",
+"fieldtype": "Check",
+"label": "Making Rates based on Custom Code"
+},
+{
+"fieldname": "column_break_i7g7",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "section_break_unpp",
+"fieldtype": "Section Break"
+},
+{
+"default": "0",
+"fieldname": "other_cust_contact",
+"fieldtype": "Check",
+"label": "If Others Customer Contact"
+},
+{
+"default": "0",
+"fieldname": "other_cust_address",
+"fieldtype": "Check",
+"label": "If Others Customer Address"
+},
+{
+"depends_on": "eval: doc.other_cust_address == 1",
+"fieldname": "address_section",
+"fieldtype": "Section Break",
+"label": "Address"
+},
+{
+"fieldname": "address_title",
+"fieldtype": "Data",
+"label": "Address Title"
+},
+{
+"fieldname": "address_type",
+"fieldtype": "Select",
+"label": "Address Type",
+"options": "Billing\nShipping\nOffice\nPersonal\nPlant\nPostal\nShop\nSubsidiary\nWarehouse\nCurrent\nPermanent\nOther"
+},
+{
+"fieldname": "address_line_1",
+"fieldtype": "Data",
+"label": "Address Line 1"
+},
+{
+"fieldname": "address_line_2",
+"fieldtype": "Data",
+"label": "Address Line 2"
+},
+{
+"fieldname": "city",
+"fieldtype": "Data",
+"label": "City/Town"
+},
+{
+"fieldname": "state",
+"fieldtype": "Link",
+"label": "State/Province",
+"options": "State List"
+},
+{
+"fieldname": "add_country",
+"fieldtype": "Link",
+"label": "Country",
+"options": "Country"
+},
+{
+"fieldname": "pincode",
+"fieldtype": "Data",
+"label": "Postal Code"
+},
+{
+"fieldname": "column_break_es7i",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "email_address",
+"fieldtype": "Data",
+"label": "Email Address"
+},
+{
+"fieldname": "phone",
+"fieldtype": "Data",
+"label": "Phone"
+},
+{
+"fieldname": "fax",
+"fieldtype": "Data",
+"label": "Fax"
+},
+{
+"default": "0",
+"fieldname": "preferred_billing_add",
+"fieldtype": "Check",
+"label": "Preferred Billing Address"
+},
+{
+"default": "0",
+"fieldname": "preferred_shipping_add",
+"fieldtype": "Check",
+"label": "Preferred Shipping Address"
+},
+{
+"allow_on_submit": 1,
+"depends_on": "eval:doc.is_new_employee == 1",
+"fieldname": "new_customer",
+"fieldtype": "Link",
+"label": "New Customer",
+"options": "Customer"
+},
+{
+"depends_on": "eval: doc.other_cust_contact == 1",
+"fieldname": "contact_section",
+"fieldtype": "Section Break",
+"label": "Contact"
+},
+{
+"depends_on": "eval:doc.is_customer_master==1",
+"fieldname": "attachment_section",
+"fieldtype": "Section Break",
+"label": "Attachment"
+},
+{
+"depends_on": "eval:doc.gst_category == 'Unregistered'",
+"fieldname": "aadhar_card",
+"fieldtype": "Attach",
+"label": "Aadhar Card",
+"mandatory_depends_on": "eval:doc.gst_category == 'Unregistered'"
+},
+{
+"depends_on": "eval:doc.gst_category == 'Unregistered'",
+"fieldname": "pan_card",
+"fieldtype": "Attach",
+"label": "PAN Card",
+"mandatory_depends_on": "eval:doc.gst_category == 'Unregistered'"
+},
+{
+"fieldname": "other_documents",
+"fieldtype": "Attach",
+"label": "Other Documents"
+},
+{
+"fieldname": "reason_for_hold",
+"fieldtype": "Data",
+"label": "Reason For Hold"
+},
+{
+"default": "1",
+"fieldname": "cust_add_same",
+"fieldtype": "Check",
+"label": "Primary & Address is Same"
+},
+{
+"fieldname": "section_break_briu",
+"fieldtype": "Section Break"
+},
+{
+"depends_on": "eval:doc.cust_add_same == 0",
+"fieldname": "primary_address_detail_section",
+"fieldtype": "Section Break",
+"label": "Primary Address Detail"
+},
+{
+"fieldname": "cus_add_title",
+"fieldtype": "Data",
+"label": "Address Title"
+},
+{
+"fieldname": "cus_add_type",
+"fieldtype": "Select",
+"label": "Address Type"
+},
+{
+"fieldname": "cus_add_line1",
+"fieldtype": "Data",
+"label": "Address Line 1"
+},
+{
+"fieldname": "cus_add_line2",
+"fieldtype": "Data",
+"label": "Address Line 2"
+},
+{
+"fieldname": "cus_add_city",
+"fieldtype": "Data",
+"label": "City/Town"
+},
+{
+"fieldname": "column_break_qcv4",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "cus_add_state",
+"fieldtype": "Link",
+"label": "State/Province",
+"options": "State List"
+},
+{
+"fieldname": "cus_add_country",
+"fieldtype": "Link",
+"label": "Country",
+"options": "Country"
+},
+{
+"fieldname": "cus_add_pin",
+"fieldtype": "Data",
+"label": "Postal Code"
+},
+{
+"fieldname": "cus_add_fax",
+"fieldtype": "Data",
+"label": "Fax"
+},
+{
+"depends_on": "eval:doc.is_customer_master==1",
+"fieldname": "sales_team_section",
+"fieldtype": "Tab Break",
+"label": "Sales Team"
+},
+{
+"fieldname": "custom_criteria_tab",
+"fieldtype": "Section Break",
+"label": "Custom Criteria"
+},
+{
+"fieldname": "brand",
+"fieldtype": "Data",
+"label": "Brand"
+},
+{
+"fieldname": "column_break_pjle",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "cfa",
+"fieldtype": "Data",
+"label": "CFA"
+},
+{
+"fieldname": "section_break_e3a6",
+"fieldtype": "Section Break"
+},
+{
+"fieldname": "compute_making_charges_on",
+"fieldtype": "Select",
+"label": "Compute Making Charges On",
+"options": "Diamond Inclusive\nNet Wt"
+},
+{
+"fieldname": "sales_type",
+"fieldtype": "Table",
+"label": "Sales Type",
+"options": "Sales Type Multiselect"
+},
+{
+"fieldname": "column_break_jgx4",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "metal_criteria",
+"fieldtype": "Table",
+"label": "Metal Criteria",
+"options": "Metal Criteria"
+},
+{
+"fieldname": "diamond_quality_section",
+"fieldtype": "Section Break",
+"label": "Diamond Quality"
+},
+{
+"fieldname": "diamond_grades",
+"fieldtype": "Table",
+"label": "Diamond Grades",
+"options": "Customer Diamond Grade"
+},
+{
+"fieldname": "custom_order_type_criteria",
+"fieldtype": "Table",
+"label": "Order Type Criteria",
+"options": "Order Type"
+},
+{
+"fieldname": "custom_approval_warehouse",
+"fieldtype": "Link",
+"label": "Approval Warehouse",
+"options": "Warehouse"
+},
+{
+"fieldname": "custom_sketch_workflow_state",
+"fieldtype": "Select",
+"label": "Sketch Workflow State",
+"options": "\nInternal\nExternal"
+},
+{
+"fieldname": "custom_order_workflow_state",
+"fieldtype": "Select",
+"label": "Order Workflow State",
+"options": "\nInternal\nExternal"
+},
+{
+"default": "0",
+"fieldname": "custom_consider_2_digit_for_bom",
+"fieldtype": "Check",
+"label": "Consider 2 Digit for BOM"
+},
+{
+"default": "0",
+"fieldname": "custom_consider_2_digit_for_diamond",
+"fieldtype": "Check",
+"label": "Consider 2 Digit for Diamond"
+},
+{
+"default": "0",
+"fieldname": "custom_consider_2_digit_for_gemstone",
+"fieldtype": "Check",
+"label": "Consider 2 Digit for Gemstone"
+},
+{
+"default": "0",
+"fieldname": "custom_advanced_manual_bagging_available",
+"fieldtype": "Check",
+"label": "Advanced Manual Bagging Available"
+},
+{
+"default": "0",
+"fieldname": "custom_require_customer_bulk_numbers",
+"fieldtype": "Check",
+"label": "Require Customer Bulk Numbers"
+},
+{
+"fieldname": "diamond_price_list",
+"fieldtype": "Select",
+"label": "Diamond Price List Type",
+"options": "\nSieve Size Range\nWeight (in cts)\nSize (in mm)"
+},
+{
+"fieldname": "custom_gemstone_price_list_type",
+"fieldtype": "Select",
+"label": "Gemstone Price List Type",
+"options": "Weight (in cts)\nFixed\nMultiplier"
+},
+{
+"fieldname": "custom_allowed_item_category_for_invoice",
+"fieldtype": "Select",
+"label": "Allowed Item Category For Invoice",
+"options": "Mix\nUnique\nMIx And Unique"
+},
+{
+"default": "0",
+"fieldname": "is_customer_master",
+"fieldtype": "Check",
+"label": "Is Customer Master"
+},
+{
+"default": "0",
+"fieldname": "is_customer_payment_terms",
+"fieldtype": "Check",
+"label": "Is Customer Payment Terms"
+},
+{
+"fieldname": "customer_payment_terms",
+"fieldtype": "Table",
+"label": "Customer Payment Terms",
+"options": "Customer Payment Terms Details"
+},
+{
+"depends_on": "eval:doc.is_customer_payment_terms==1",
+"fieldname": "customer_payment_terms_section",
+"fieldtype": "Section Break",
+"label": "Customer Payment Terms"
+},
+{
+"depends_on": "eval:doc.is_new_employee == 1 && doc.is_customer_payment_terms == 1",
+"fieldname": "customer",
+"fieldtype": "Link",
+"label": "Customer",
+"options": "Customer"
+},
+{
+"depends_on": "eval:doc.is_new_employee == 0 && doc.is_customer_payment_terms == 1",
+"fieldname": "cpt_customer",
+"fieldtype": "Link",
+"label": "Customer Payment Terms",
+"options": "Customer Payment Terms"
+},
+{
+"fieldname": "user_id",
+"fieldtype": "Link",
+"label": "User Id",
+"options": "User",
+"read_only": 1
+},
+{
+"fieldname": "column_break_osc8",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "company",
+"fieldtype": "Link",
+"label": "Company",
+"options": "Company",
+"read_only": 1
+},
+{
+"fieldname": "branch",
+"fieldtype": "Link",
+"label": "Branch",
+"options": "Branch",
+"read_only": 1
+},
+{
+"fieldname": "section_break_k568",
+"fieldtype": "Section Break"
+},
+{
+"fieldname": "custom_customer_representatives",
+"fieldtype": "Table",
+"label": "Customer Representatives",
+"options": "Customer Representatives"
+},
+{
+"fieldname": "bank_account_tab",
+"fieldtype": "Tab Break",
+"label": "Bank Account"
+},
+{
+"allow_on_submit": 1,
+"depends_on": "eval:doc.customer_data || doc.new_customer",
+"fieldname": "bank_account",
+"fieldtype": "Link",
+"label": "Bank Account",
+"options": "Bank Account",
+"read_only_depends_on": "eval:doc.customer_data || doc.new_customer"
+},
+{
+"fieldname": "section_break_lvvk",
+"fieldtype": "Section Break"
+},
+{
+"fieldname": "bank",
+"fieldtype": "Link",
+"label": "Bank",
+"options": "Bank"
+},
+{
+"fieldname": "account_type",
+"fieldtype": "Link",
+"label": "Account Type",
+"options": "Bank Account Type"
+},
+{
+"fieldname": "column_break_rjjf",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "branch_code",
+"fieldtype": "Data",
+"label": "Branch Code"
+},
+{
+"fieldname": "bank_account_no",
+"fieldtype": "Data",
+"label": "Bank Account No"
+},
+{
+"fieldname": "column_break_ovkz",
+"fieldtype": "Column Break"
+},
+{
+"fieldname": "cancel_cheque",
+"fieldtype": "Attach",
+"label": "Cancel Cheque"
+},
+{
+"fieldname": "authorized_persons_letter",
+"fieldtype": "Attach",
+"label": "Authorized Person's Letter"
+},
+{
+"fieldname": "kyc",
+"fieldtype": "Attach",
+"label": "KYC"
+},
+{
+"fieldname": "custom_msme_no",
+"fieldtype": "Data",
+"label": "MSME No"
+},
+{
+"fieldname": "custom_msme_type",
+"fieldtype": "Select",
+"label": "MSME Type",
+"options": "\nMicro Enterprise\nSmall Enterprise\nMedium Enterprise"
+},
+{
+"fieldname": "custom_tan_no",
+"fieldtype": "Data",
+"label": "TAN No"
+},
+{
+"fieldname": "custom_iec_no",
+"fieldtype": "Data",
+"label": "IEC No"
+},
+{
+"fieldname": "pan",
+"fieldtype": "Data",
+"label": "PAN",
+"mandatory_depends_on": "eval:doc.is_customer_master == 1"
+}
+],
+"index_web_pages_for_search": 1,
+"is_submittable": 1,
+"links": [],
+"modified": "2025-07-15 11:32:33.393667",
+"modified_by": "Administrator",
+"module": "Gke Price List",
+"name": "Customer Master Update",
+"naming_rule": "By \"Naming Series\" field",
+"owner": "Administrator",
+"permissions": [
+{
+"create": 1,
+"delete": 1,
+"email": 1,
+"export": 1,
+"print": 1,
+"read": 1,
+"report": 1,
+"role": "System Manager",
+"share": 1,
+"submit": 1,
+"write": 1
+}
+],
+"sort_field": "modified",
+"sort_order": "DESC",
+"states": [],
+"track_changes": 1,
+"track_seen": 1,
+"track_views": 1
 }
