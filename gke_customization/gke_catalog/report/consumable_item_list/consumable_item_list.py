@@ -44,7 +44,7 @@ def get_data(filters):
         LEFT JOIN `tabConsumable Master` cm on cm.name = cim.parent
         WHERE ig.parent_item_group = 'Consumable' and has_variants != 1
         {f"AND " + conditions if conditions else ""}
-        GROUP BY i.item_code, cim.mr_by_departmnet
+        GROUP BY i.item_code, i.custom_mr_by_department
         ORDER BY i.item_group, i.name,  i.item_code
     """
     rows = frappe.db.sql(query, as_dict=1)

@@ -1,0 +1,177 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-05-10 16:53:48.184932",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "date",
+  "punch_id",
+  "shift_name",
+  "start_time",
+  "end_time",
+  "column_break_auw4y",
+  "employee",
+  "employee_name",
+  "search",
+  "section_break_buh6b",
+  "new_punch",
+  "column_break_2sjup",
+  "add_new_punch",
+  "for_od",
+  "section_break_dn8t7",
+  "details",
+  "to_be_deleted",
+  "error_date",
+  "locked_by",
+  "naming_series"
+ ],
+ "fields": [
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Attendance Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "punch_id",
+   "fieldtype": "Data",
+   "label": "Punch ID"
+  },
+  {
+   "fieldname": "shift_name",
+   "fieldtype": "Link",
+   "label": "Shift Name",
+   "options": "Shift Type",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.shift_name",
+   "fetch_from": "shift_name.start_time",
+   "fieldname": "start_time",
+   "fieldtype": "Time",
+   "label": "Start Time",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.shift_name",
+   "fetch_from": "shift_name.end_time",
+   "fieldname": "end_time",
+   "fieldtype": "Time",
+   "label": "End Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_auw4y",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "search",
+   "fieldtype": "Button",
+   "label": "Search"
+  },
+  {
+   "fieldname": "section_break_buh6b",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "new_punch",
+   "fieldtype": "Datetime",
+   "label": "New punch"
+  },
+  {
+   "fieldname": "column_break_2sjup",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "add_new_punch",
+   "fieldtype": "Button",
+   "label": "Add New Punch"
+  },
+  {
+   "default": "0",
+   "fieldname": "for_od",
+   "fieldtype": "Check",
+   "label": "For OD"
+  },
+  {
+   "fieldname": "section_break_dn8t7",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "details",
+   "fieldtype": "Table",
+   "label": "Details",
+   "options": "Manual Punch Details"
+  },
+  {
+   "description": "To temporary store check-in names",
+   "fieldname": "to_be_deleted",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "To Be Deleted"
+  },
+  {
+   "fieldname": "error_date",
+   "fieldtype": "Data",
+   "label": "Punch Error Date"
+  },
+  {
+   "fieldname": "locked_by",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "locked_by",
+   "options": "User"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "naming_series",
+   "options": "MPE-"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-06-13 10:20:37.846068",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Manual Punch Entry",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}

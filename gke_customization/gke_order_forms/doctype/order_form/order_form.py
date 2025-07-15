@@ -41,7 +41,7 @@ class OrderForm(Document):
 				frappe.db.set_value("Order",order["name"],"workflow_state","Cancelled")
 				# frappe.throw(f"{order}")
 				if frappe.db.get_list("Timesheet",filters={"order":order["name"]},fields="name"):
-					for timesheet in frappe.db.get_list("Timesheet",filters={"order",order["name"]},fields="name"):
+					for timesheet in frappe.db.get_list("Timesheet",filters={"order":order["name"]},fields="name"):
 						frappe.db.set_value("Timesheet",timesheet["name"],"docstatus","2")
 
 		frappe.db.set_value("Order Form",self.name,"workflow_state","Cancelled")

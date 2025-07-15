@@ -1,23 +1,22 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2025-07-09 09:56:24.886933",
+ "creation": "2025-07-10 14:13:47.715712",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "section_break_43cq",
   "amended_from",
   "company",
   "customer",
-  "column_break_iyps",
+  "column_break_oufx",
   "date",
   "customer_name",
-  "section_break_aa2a",
+  "section_break_3j7m",
   "update_custom_diamond_details"
  ],
  "fields": [
   {
-   "fieldname": "section_break_43cq",
+   "fieldname": "section_break_3j7m",
    "fieldtype": "Section Break"
   },
   {
@@ -25,7 +24,7 @@
    "fieldtype": "Link",
    "label": "Amended From",
    "no_copy": 1,
-   "options": "Update Customer Diamond Criteria",
+   "options": "Update Customer Diamond Criteria Details",
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
@@ -43,7 +42,7 @@
    "options": "Customer"
   },
   {
-   "fieldname": "column_break_iyps",
+   "fieldname": "column_break_oufx",
    "fieldtype": "Column Break"
   },
   {
@@ -52,28 +51,26 @@
    "label": "Date"
   },
   {
+   "fetch_from": "customer.customer_name",
    "fieldname": "customer_name",
    "fieldtype": "Data",
-   "label": "Customer Name"
-  },
-  {
-   "fieldname": "section_break_aa2a",
-   "fieldtype": "Section Break"
+   "label": "Customer Name",
+   "read_only": 1
   },
   {
    "fieldname": "update_custom_diamond_details",
    "fieldtype": "Table",
    "label": "Update Custom Diamond Details",
-   "options": "Update Custom Diamond Details"
+   "options": "Update Customer Diamond Criteria Details Table"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-09 10:07:22.443293",
+ "modified": "2025-07-10 16:39:15.586922",
  "modified_by": "Administrator",
  "module": "GKE Custom Export",
- "name": "Update Customer Diamond Criteria",
+ "name": "Update Customer Diamond Criteria Details",
  "owner": "Administrator",
  "permissions": [
   {
