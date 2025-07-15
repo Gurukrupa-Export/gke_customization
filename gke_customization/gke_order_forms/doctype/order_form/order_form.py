@@ -791,23 +791,25 @@ def get_customer_order_form(source_name, target_doc=None):
 
 def validate_design_id(self):
 	for i in self.order_details:
-		# If tagno exists, find the latest matching Item by old_tag_no
+		# If tagno exists, find all matching enabled Items by old_tag_no
 		if i.tagno:
-			latest_item = frappe.db.get_all(
+			matching_items = frappe.db.get_all(
 				"Item",
-				filters={"old_tag_no": i.tagno},
-				fields=["name", "master_bom"],
-				order_by="creation desc",
-				limit=1
-		 )
-			if latest_item:
-				matched_design_id = latest_item[0].name
+				filters={"old_tag_no": i.tagno, "disabled": 0},
+				fields=["name", "master_bom", "creation"],
+				order_by="creation desc"
+			)
+
+			if matching_items:
+				# Pick the latest enabled item
+				item = matching_items[0]
+				matched_design_id = item.name
 
 				# Set design_id only if not manually overridden
 				if not i.design_id or i.design_id == matched_design_id:
 					i.design_id = matched_design_id
 					if not i.bom:
-						i.bom = latest_item[0].master_bom
+						i.bom = item.master_bom
 
 		# If design_id is set, fetch Item and set master_bom to bom
 		if i.design_id:
@@ -817,13 +819,10 @@ def validate_design_id(self):
 
 		# Continue only if design_id and bom are now set
 		if i.design_id and i.bom:
-			# Manual override check
 			is_manual_override = (i.design_type == "Mod - Old Stylebio & Tag No")
 
-			# Check if mod_reason is NOT "Change In Metal Type"
+			# Skip if mod_reason is "Change In Metal Type"
 			if i.mod_reason != "Change In Metal Type":
-
-				# Fetch BOM
 				bom_doc = frappe.get_doc("BOM", i.bom)
 
 				# Set metal_type and metal_touch from metal_detail
@@ -843,7 +842,7 @@ def validate_design_id(self):
 				if not is_manual_override or not i.subcategory:
 					i.subcategory = bom_doc.item_subcategory or None
 
-				# Attribute mapping: fieldname -> attribute name
+				# Attribute mapping
 				attr_map = {
 					"metal_colour": "Metal Colour",
 					"diamond_target": "Diamond Target",
@@ -871,7 +870,7 @@ def validate_design_id(self):
 					"back_belt_length": "Back Belt Length",
 				}
 
-				# Initialize fields to None if not manual override
+				# Clear all mapped fields if not manual override
 				if not is_manual_override:
 					for fieldname in attr_map.keys():
 						setattr(i, fieldname, None)
@@ -882,6 +881,30 @@ def validate_design_id(self):
 						if attr.attribute == attrname:
 							if not is_manual_override or not getattr(i, fieldname):
 								setattr(i, fieldname, attr.attribute_value)
+
+		# Final mandatory field validation
+		if  i.design_type == "New Design":
+			missing = []
+			if not i.category:
+				missing.append("Category")
+			if not i.subcategory:
+				missing.append("Subcategory")
+			if not i.metal_type:
+				missing.append("Metal Type")
+			if not i.diamond_target:
+				missing.append("Diamond Target")
+			if not i.setting_type:
+				missing.append("Setting Type")
+			if not i.metal_touch:
+				missing.append("Metal Touch")
+			if not i.metal_colour:
+				missing.append("Metal Colour")
+			if not i.metal_target:
+				missing.append("Metal Target")
+
+			if missing:
+				frappe.throw(f"Row {i.idx}: Please fill the following fields for 'New Design' with Manual checked: {', '.join(missing)}")
+
 
 def validate_is_mannual(self):
 	if self.is_mannual:
@@ -897,28 +920,33 @@ def validate_is_mannual(self):
 			if not row.order_details_and_remarks:
 				missing_fields.append("'Order Details and Remark'")
 
-			# Set design_id and bom from Item if tagno exists
+			# Enhanced: handle multiple items with same tagno, pick non-disabled one
 			if row.tagno:
-				existing_item = frappe.db.get_value("Item", {"old_tag_no": row.tagno}, ["name", "master_bom"])
-				if existing_item:
-					item_name, master_bom = existing_item
-					# chnage over here
+				matching_items = frappe.db.get_all(
+					"Item",
+					filters={"old_tag_no": row.tagno},
+					fields=["name", "master_bom", "disabled"],
+					order_by="creation desc"
+				)
+
+				selected_item = next((item for item in matching_items if not item.disabled), None)
+
+				if selected_item:
 					if not row.design_id:
-						row.design_id = item_name
-					# chnage over here
-					if not row.bom:  
-						row.bom = master_bom
-					if master_bom:
+						row.design_id = selected_item.name
+					if not row.bom:
+						row.bom = selected_item.master_bom
+
+					if selected_item.master_bom:
 						diamond_type = frappe.db.get_value(
 							"BOM Diamond Detail", 
-							{"parent": master_bom}, 
+							{"parent": selected_item.master_bom}, 
 							"diamond_type"
 						)
-						# frappe.throw(f"{diamond_type}")
 						if diamond_type:
 							row.diamond_type = diamond_type
 
-			# if workflow_state == "Creating Item & BOM", design_type is mandatory
+			# If workflow_state == "Approved", design_type is mandatory for non-finding
 			if (
 				not row.is_finding_order
 				and not row.design_type
@@ -932,7 +960,7 @@ def validate_is_mannual(self):
 		if errors:
 			frappe.throw("<br>".join(errors))
 
-		# New condition added below:
+		# Enforce all status as 'Done' if workflow_state is Approved
 		if self.workflow_state == "Approved":
 			for row in self.order_details:
 				if row.status != "Done":
@@ -949,7 +977,6 @@ def validate_is_mannual(self):
 
 		if missing_design_type_rows:
 			frappe.throw("<br>".join(missing_design_type_rows))
-
 
 
 
