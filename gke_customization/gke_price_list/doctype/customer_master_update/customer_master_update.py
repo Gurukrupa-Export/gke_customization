@@ -65,6 +65,7 @@ class CustomerMasterUpdate(Document):
         metal_criteria = self.get("metal_criteria")
         diamond_grades = self.get("diamond_grades")
         accounts_data = self.get("accounts")
+        customer_representatives = self.get("custom_customer_representatives")
 
         try:
             customer_doc = frappe.get_doc("Customer", self.customer_data)
@@ -80,18 +81,18 @@ class CustomerMasterUpdate(Document):
                 # frappe.db.set_value("Customer", customer_doc.name, 'gst_category', gst_category_value)
                 # self.reload()
 
-            if credit_limit_data:
+            if self.credit_limit:
                 customer_doc.credit_limits = []
-                for row in credit_limit_data:
+                for row in self.credit_limit:
                     customer_doc.append("credit_limits", {
                         "company": row.get("company"),
                         "credit_limit": row.get("credit_limit"),
                         "bypass_credit_limit_check": row.get("bypass_credit_limit_check"),
                     })
 
-            if sales_team_data:
+            if self.sales_team_data:
                 customer_doc.sales_team = []
-                for row in sales_team_data:
+                for row in self.sales_team_data:
                     customer_doc.append("sales_team", {
                         "sales_person": row.get("sales_person"),
                         "contact_no": row.get("contact_no"),
@@ -101,49 +102,58 @@ class CustomerMasterUpdate(Document):
                         "incentives": row.get("incentives"),
                     })
 
-            if accounts_data:
+            if self.accounts:
                 customer_doc.accounts = []
-                for row in accounts_data:
+                for row in self.accounts:
                     customer_doc.append("accounts", {
                         "company": row.get("company"),
                         "account": row.get("account"),
                         "advance_account": row.get("advance_account"),
                     })
             
-            if order_type_criteria:
+            if self.custom_order_type_criteria:
                 customer_doc.custom_order_type_criteria = []
-                for row in order_type_criteria:
+                for row in self.custom_order_type_criteria:
                     customer_doc.append("custom_order_type_criteria", {
                         "order_type": row.get("order_type"),
                         "flow_type": row.get("flow_type")
                     })
             
-            if sales_type:
+            if self.sales_type:
                 customer_doc.sales_type = []
-                for row in sales_type:
+                for row in self.sales_type:
                     customer_doc.append("sales_type", {
                         "sales_type": row.get("sales_type"),
                         "tax_rate": row.get("tax_rate")
                     })
             
-            if metal_criteria:
+            if self.metal_criteria:
                 customer_doc.metal_criteria = []
-                for row in metal_criteria:
+                for row in self.metal_criteria:
                     customer_doc.append("metal_criteria", {
                         "metal_type": row.get("metal_type"),
                         "metal_touch": row.get("metal_touch"),
                         "metal_purity": row.get("metal_purity")
                     })
             
-            if diamond_grades:
+            if self.diamond_grades:
                 customer_doc.diamond_grades = []
-                for row in diamond_grades:
+                for row in self.diamond_grades:
                     customer_doc.append("diamond_grades", {
                         "diamond_quality": row.get("diamond_quality"),
                         "diamond_grade_1": row.get("diamond_grade_1"),
                         "diamond_grade_2": row.get("diamond_grade_2"),
                         "diamond_grade_3": row.get("diamond_grade_3"),
                         "diamond_grade_4": row.get("diamond_grade_4")
+                    })
+            
+            if self.custom_customer_representatives:
+                customer_doc.custom_customer_representatives = []
+                for row in self.custom_customer_representatives:
+                    customer_doc.append("custom_customer_representatives", {
+                        "employee": row.get("employee"),
+                        "full_name": row.get("full_name"),
+                        "user_id": row.get("user_id") 
                     })
             customer_doc.save(ignore_permissions=True)
             frappe.db.commit()
@@ -215,7 +225,17 @@ class CustomerMasterUpdate(Document):
             "custom_approval_warehouse": "custom_approval_warehouse",
             "compute_making_charges_on": "compute_making_charges_on",
             "diamond_price_list": "diamond_price_list",
-            "custom_gemstone_price_list_type": "custom_gemstone_price_list_type"
+            "custom_gemstone_price_list_type": "custom_gemstone_price_list_type",
+            "custom_tan_no": "custom_tan_no",
+            "custom_msme_no": "custom_msme_no",
+            "custom_msme_type": "custom_msme_type",
+            "custom_iec_no": "custom_iec_no",
+            "aadhar_card": "custom_aadhar_card",
+            "pan_card": "custom_pan_card",
+            "other_documents": "custom_other_documents",
+            "cancel_cheque": "custom_cancel_cheque",
+            "authorized_persons_letter": "custom_authorized_persons_letter",
+            "kyc": "custom_kyc",
         }
 
     def create_customer(self):
@@ -228,6 +248,7 @@ class CustomerMasterUpdate(Document):
         metal_criteria = self.get("metal_criteria")
         diamond_grades = self.get("diamond_grades")
         accounts_data = self.get("accounts")
+        customer_representatives = self.get("custom_customer_representatives")
 
         customer_data = {
             target_field: self.get(source_field)
@@ -324,6 +345,17 @@ class CustomerMasterUpdate(Document):
                 }
                 for row in diamond_grades
             ]
+        
+        if customer_representatives:
+            customer_data["custom_customer_representatives"] = [
+                {
+                    "employee": row.get("employee"),
+                    "full_name": row.get("full_name"),
+                    "user_id": row.get("user_id") 
+
+                }
+                for row in customer_representatives
+            ]
         # Insert the customer
         new_customer = frappe.get_doc(customer_data)
         new_customer.insert(ignore_permissions=True)
@@ -337,7 +369,6 @@ class CustomerMasterUpdate(Document):
         self.reload()
         frappe.msgprint(f"New Customer '{new_customer.name}' has been successfully created.")
 
-        
     def on_update_after_submit(self):
         self.create_supplier_address_contact()
         if self.workflow_state != 'Completed':
@@ -407,6 +438,26 @@ class CustomerMasterUpdate(Document):
                 frappe.msgprint("Customer Contact Created ")
             else:
                 frappe.throw(f"{self.phone}Phone is reqd..") 
+        if self.workflow_state == "Create Bank Account":
+            if self.bank:
+                bank_acc = frappe.new_doc("Bank Account")
+                bank_acc.account_name = self.customer_name
+                bank_acc.bank = self.bank 
+                bank_acc.account_type = self.account_type
+                bank_acc.party_type = "Customer" 
+                bank_acc.party = self.new_customer
+                bank_acc.branch_code = self.branch_code
+                bank_acc.bank_account_no = self.bank_account_no
+                bank_acc.insert(ignore_permissions=True)
+                bank_acc.save()
+
+                # frappe.throw(f"{bank_acc.name}")
+                frappe.db.set_value("Customer Master Update", self.name,"bank_account",bank_acc.name)
+                self.reload()
+
+                frappe.msgprint("Customer Bank Account Created ")
+            else:
+                frappe.throw(f"{self.bank} Bank is reqd..") 
 
 # if self.workflow_state == 'Update Customer' or self.workflow_state == 'Create Customer':      
 #             fields_mapping = {
