@@ -1,0 +1,46 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2025-07-05 17:57:56.549330",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [
+  {
+   "default": "2025-06-01",
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date",
+   "mandatory": 0,
+   "wildcard_filter": 0
+  },
+  {
+   "default": "2025-06-30",
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date",
+   "mandatory": 0,
+   "wildcard_filter": 0
+  }
+ ],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "latter head",
+ "letterhead": null,
+ "modified": "2025-07-05 17:57:56.549330",
+ "modified_by": "jinali_g@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Branch Wise Sketch Order Form",
+ "owner": "jinali_g@gkexport.com",
+ "prepared_report": 0,
+ "query": "select branch AS Branch,\ncount(name) AS 'Total Orders',\nSUM(CASE WHEN docstatus = 1 THEN 1 ELSE 0 END) AS submitted_orders, \nSUM(CASE WHEN docstatus = 0 THEN 1 ELSE 0 END) AS pending_orders,\nSUM(CASE WHEN docstatus = 2 THEN 1 ELSE 0 END) AS cancelled_orders\nfrom `tabSketch Order Form`\nwhere ( %(from_date)s IS NULL OR %(to_date)s IS NULL OR (Date(creation) BETWEEN %(from_date)s AND %(to_date)s) )\ngroup by branch",
+ "ref_doctype": "Sketch Order Form",
+ "report_name": "Branch Wise Sketch Order Form",
+ "report_type": "Query Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "timeout": 0
+}

@@ -891,6 +891,17 @@ def create_line_items(self):
 		
 	elif self.item_type == 'Only Variant':
 		design_id = frappe.db.get_value('Order', self.name, 'design_id')
+		template = frappe.db.get_value("Item",design_id,"variant_of")
+		args = make_atribute_list(self.name)
+		variant_item_code = None
+		possible_variants = [i for i in get_item_codes_by_attributes(args, template) if i != variant_item_code]
+		for variant in possible_variants:
+			variant = frappe.get_doc("Item", variant)
+			if variant:
+				final_variant = str(variant).replace("Item(","").replace(")","")
+				frappe.throw(f"Already available {final_variant}")
+
+		
 		item_variant = create_only_variant_from_order(self, self.name)
 
 		frappe.db.set_value('Item', item_variant[0], {
@@ -931,6 +942,65 @@ def create_line_items(self):
 	frappe.db.set_value(self.doctype, self.name, "item_remark", "New Item" if new_item_created else "Copy Paste Item")
 
 	return item_variant
+
+def get_item_codes_by_attributes(attribute_filters, template_item_code=None):
+	items = []
+
+	for attribute, values in attribute_filters.items():
+		attribute_values = values
+
+		if not isinstance(attribute_values, list):
+			attribute_values = [attribute_values]
+
+		if not attribute_values:
+			continue
+
+		wheres = []
+		query_values = []
+		for attribute_value in attribute_values:
+			wheres.append("( attribute = %s and attribute_value = %s )")
+			query_values += [attribute, attribute_value]
+
+		attribute_query = " or ".join(wheres)
+
+		if template_item_code:
+			variant_of_query = "AND t2.variant_of = %s"
+			query_values.append(template_item_code)
+		else:
+			variant_of_query = ""
+
+		query = f"""
+			SELECT
+				t1.parent
+			FROM
+				`tabItem Variant Attribute` t1
+			WHERE
+				1 = 1
+				AND (
+					{attribute_query}
+				)
+				AND EXISTS (
+					SELECT
+						1
+					FROM
+						`tabItem` t2
+					WHERE
+						t2.name = t1.parent
+						{variant_of_query}
+				)
+			GROUP BY
+				t1.parent
+			ORDER BY
+				NULL
+		"""
+
+		item_codes = set([r[0] for r in frappe.db.sql(query, query_values)])
+		items.append(item_codes)
+
+	res = list(set.intersection(*items))
+
+	return res
+
 
 
 
@@ -1365,6 +1435,9 @@ def create_bom_for_touch(self,item_variant=None):
 
 @frappe.whitelist()
 def make_quotation(source_name, target_doc=None):
+	
+	import json
+	from erpnext.setup.utils import get_exchange_rate
 
 	def set_missing_values(source, target):
 		from erpnext.controllers.accounts_controller import get_default_taxes_and_charges
@@ -1377,28 +1450,30 @@ def make_quotation(source_name, target_doc=None):
 				quotation.currency, company_currency, quotation.transaction_date, args="for_selling"
 			)
 		quotation.conversion_rate = exchange_rate
+
 		# get default taxes
 		taxes = get_default_taxes_and_charges(
 			"Sales Taxes and Charges Template", company=quotation.company
 		)
 		if taxes.get("taxes"):
 			quotation.update(taxes)
+
 		quotation.run_method("set_missing_values")
 		quotation.run_method("calculate_taxes_and_totals")
 
 		quotation.quotation_to = "Customer"
 		field_map = {
- 			# target : source
 			"company": "company",
 			"party_name": "customer_code",
 			"order_type": "order_type",
 			"diamond_quality": "diamond_quality"
 		}
 		for target_field, source_field in field_map.items():
-			quotation.set(target_field,source.get(source_field))
-		service_types = frappe.db.get_values("Service Type 2", {"parent": source.name},"service_type1")
+			quotation.set(target_field, source.get(source_field))
+
+		service_types = frappe.db.get_values("Service Type 2", {"parent": source.name}, "service_type1")
 		for service_type in service_types:
-			quotation.append("service_type",{"service_type1": service_type[0]})
+			quotation.append("service_type", {"service_type1": service_type[0]})
 
 	if isinstance(target_doc, str):
 		target_doc = json.loads(target_doc)
@@ -1407,38 +1482,78 @@ def make_quotation(source_name, target_doc=None):
 	else:
 		target_doc = frappe.get_doc(target_doc)
 
-	order = frappe.db.get_value("Order", source_name, "*")
-	# frappe.throw(f"{order}")
-	target_doc.append("items", {
-		"branch": order.get("branch"),
-		"project": order.get("project"),
-		"item_code": order.get("item"),
-		"serial_no": order.get("tag_no"),
-		"metal_colour": order.get("metal_colour"),
-		"metal_purity": order.get("metal_purity"),
-		"metal_touch": order.get("metal_touch"),
-		"gemstone_quality": order.get("gemstone_quality"),
-		"item_category" : order.get("category"),
-		"diamond_quality": order.get("diamond_quality"),
-		"item_subcategory": order.get("subcategory"),
-		"setting_type": order.get("setting_type"),
-		"delivery_date": order.get("delivery_date"),
+	order = frappe.db.get_value("Order", source_name, "*", as_dict=True)
+
+	item_data = {
 		"order_form_type": "Order",
 		"order_form_id": order.get("name"),
-		"salesman_name": order.get("salesman_name"),
-		"order_form_date": order.get("order_date"),
-		"custom_customer_sample": order.get("customer_sample"),
-		"custom_customer_voucher_no": order.get("customer_voucher_no"),
-		"custom_customer_gold": order.get("customer_gold"),
-		"custom_customer_diamond": order.get("customer_diamond"),
-		"custom_customer_stone": order.get("customer_stone"),
-		"custom_customer_good": order.get("customer_good"),
-		"po_no": order.get("po_no"),
-		"custom_jewelex_batch_no":order.get("jewelex_batch_no"),
-		"qty":order.get("qty")
-	})
-	set_missing_values(order, target_doc)
+		"qty": order.get("qty") or 1,
+		"copy_bom": order.get("new_bom")
+	}
 
+	# If new_bom is present, get fields from BOM
+	if order.get("new_bom"):
+		bom = frappe.get_doc("BOM", order.get("new_bom"))
+		item_data.update({
+			"branch": bom.get("branch"),
+			"project": bom.get("project"),
+			"item_code": bom.get("item"),
+			"serial_no": bom.get("serial_no"),
+			"metal_type": bom.get("metal_type"),
+			"metal_colour": bom.get("metal_colour"),
+			"metal_purity": bom.get("metal_purity"),
+			"metal_touch": bom.get("metal_touch"),
+			"gemstone_quality": bom.get("gemstone_quality"),
+			"item_category": bom.get("item_category"),
+			"diamond_quality": bom.get("diamond_quality"),
+			"item_subcategory": bom.get("item_subcategory"),
+			"setting_type": bom.get("setting_type"),
+			"delivery_date": bom.get("delivery_date"),
+			"salesman_name": bom.get("salesman_name"),
+			"order_form_date": bom.get("order_form_date"),
+			"custom_customer_sample": bom.get("custom_customer_sample"),
+			"custom_customer_voucher_no": bom.get("custom_customer_voucher_no"),
+			"custom_customer_gold": bom.get("custom_customer_gold"),
+			"custom_customer_diamond": bom.get("custom_customer_diamond"),
+			"custom_customer_stone": bom.get("custom_customer_stone"),
+			"custom_customer_good": bom.get("custom_customer_good"),
+			"po_no": bom.get("po_no"),
+			"custom_jewelex_batch_no": bom.get("custom_jewelex_batch_no"),
+			"custom_product_size": bom.get("custom_product_size")
+		})
+	else:
+		# Fallback to Order fields
+		item_data.update({
+			"branch": order.get("branch"),
+			"project": order.get("project"),
+			"item_code": order.get("item"),
+			"serial_no": order.get("tag_no"),
+			"metal_type": order.get("metal_type"),
+			"metal_colour": order.get("metal_colour"),
+			"metal_purity": order.get("metal_purity"),
+			"metal_touch": order.get("metal_touch"),
+			"gemstone_quality": order.get("gemstone_quality"),
+			"item_category": order.get("category"),
+			"diamond_quality": order.get("diamond_quality"),
+			"item_subcategory": order.get("subcategory"),
+			"setting_type": order.get("setting_type"),
+			"delivery_date": order.get("delivery_date"),
+			"salesman_name": order.get("salesman_name"),
+			"order_form_date": order.get("order_date"),
+			"custom_customer_sample": order.get("customer_sample"),
+			"custom_customer_voucher_no": order.get("customer_voucher_no"),
+			"custom_customer_gold": order.get("customer_gold"),
+			"custom_customer_diamond": order.get("customer_diamond"),
+			"custom_customer_stone": order.get("customer_stone"),
+			"custom_customer_good": order.get("customer_good"),
+			"po_no": order.get("po_no"),
+			"custom_jewelex_batch_no": order.get("jewelex_batch_no"),
+			"custom_product_size": order.get("product_size")
+		})
+
+	target_doc.append("items", item_data)
+
+	set_missing_values(order, target_doc)
 	return target_doc
 
 def update_variant_attributes(self):
@@ -1504,7 +1619,9 @@ def calculate_item_wt_details(doc, bom=None, item=None):
 		"18KT":"16",
 		"14KT":"14.23",
 		"10KT":"12.73",
+		"20KT":"10"
 	}
+
 	doc["casting_weight"] = flt(doc["wax_weight"])*flt(ratio_dict[doc["metal_touch"]])
 	doc["cad_finish_ratio"] = flt(ratio_dict[doc["metal_touch"]])
 	return doc
@@ -1531,7 +1648,6 @@ def validate_variant_attributes(variant_of,attribute_list):
 		frappe.throw(
 			_("Item variant <b>{0}</b> exists with same attributes").format(get_link_to_form("Item",variant)), ItemVariantExistsError
 		)
-
 
 
 
