@@ -1,0 +1,160 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:UP-{#}",
+ "creation": "2025-05-15 11:14:11.226681",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item",
+  "metal_colour",
+  "stone_changeable",
+  "gemstone_type",
+  "order_from_type",
+  "order_form_id",
+  "section_break_af3s2",
+  "delivery_date",
+  "customer_code",
+  "update_manufacturing_end_date",
+  "parcel_place",
+  "manufacturing_end_date",
+  "column_break_nhv5g",
+  "update_delivery_date",
+  "update_customer_code",
+  "update_parcel_place"
+ ],
+ "fields": [
+  {
+   "fieldname": "order_from_type",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Order From Type",
+   "options": "CAD Order"
+  },
+  {
+   "depends_on": "eval:doc.order_from_type",
+   "fieldname": "order_form_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Order Form ID",
+   "options": "Order"
+  },
+  {
+   "depends_on": "eval:doc.order_form_id",
+   "fieldname": "section_break_af3s2",
+   "fieldtype": "Section Break",
+   "hidden": 1
+  },
+  {
+   "fetch_from": "order_form_id.delivery_date",
+   "fieldname": "delivery_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Delivery Date"
+  },
+  {
+   "fieldname": "customer_code",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Customer Code",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "parcel_place",
+   "fieldtype": "Table MultiSelect",
+   "hidden": 1,
+   "label": "Shipping Territory",
+   "options": "Territory Multi Select"
+  },
+  {
+   "fieldname": "manufacturing_end_date",
+   "fieldtype": "Date",
+   "hidden": 1,
+   "label": "Est.MFG End Date"
+  },
+  {
+   "fieldname": "column_break_nhv5g",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "update_delivery_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Update Delivery Date"
+  },
+  {
+   "fieldname": "update_customer_code",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Update Customer Code",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "update_parcel_place",
+   "fieldtype": "Table MultiSelect",
+   "hidden": 1,
+   "label": "Update Shipping Territory",
+   "options": "Territory Multi Select"
+  },
+  {
+   "fieldname": "update_manufacturing_end_date",
+   "fieldtype": "Date",
+   "hidden": 1,
+   "label": "Update Est.MFG End Date"
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "metal_colour",
+   "fieldtype": "Link",
+   "label": "Metal Colour",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "stone_changeable",
+   "fieldtype": "Link",
+   "label": "Stone Changeable",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "gemstone_type",
+   "fieldtype": "Link",
+   "label": "Gemstone Type",
+   "options": "Attribute Value"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-14 22:57:50.082317",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Rewise Filed",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
