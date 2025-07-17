@@ -9,6 +9,10 @@
   "is_customer_payment_terms",
   "is_customer_master",
   "is_new_employee",
+  "user_id",
+  "column_break_osc8",
+  "company",
+  "branch",
   "customer_payment_terms_section",
   "cpt_customer",
   "customer",
@@ -63,6 +67,8 @@
   "column_break_i7g7",
   "customer_primary_address",
   "primary_address",
+  "section_break_k568",
+  "custom_customer_representatives",
   "section_break_unpp",
   "cust_add_same",
   "other_cust_contact",
@@ -94,6 +100,15 @@
   "cus_add_country",
   "cus_add_pin",
   "cus_add_fax",
+  "bank_account_tab",
+  "bank_account",
+  "if_others_customer_bank_account",
+  "section_break_lvvk",
+  "bank",
+  "account_type",
+  "column_break_rjjf",
+  "branch_code",
+  "bank_account_no",
   "tax_tab",
   "section_break_fkjs",
   "tax_id",
@@ -102,12 +117,20 @@
   "tax_withholding_category",
   "tax_details_section",
   "gstin__uin",
+  "custom_msme_no",
+  "custom_msme_type",
   "column_break_3kk8",
   "pan",
+  "custom_tan_no",
+  "custom_iec_no",
   "attachment_section",
   "aadhar_card",
   "pan_card",
   "other_documents",
+  "column_break_ovkz",
+  "cancel_cheque",
+  "authorized_persons_letter",
+  "kyc",
   "accounting_tab",
   "credit_limit_and_payment_terms_section",
   "default_payment_terms_template",
@@ -443,7 +466,8 @@
    "fieldname": "customer_primary_contact",
    "fieldtype": "Link",
    "label": "Customer Primary Contact",
-   "options": "Contact"
+   "options": "Contact",
+   "read_only_depends_on": "eval:doc.customer_data || doc.new_customer"
   },
   {
    "depends_on": "eval:doc.is_customer_master==1",
@@ -484,13 +508,8 @@
   {
    "fieldname": "gstin__uin",
    "fieldtype": "Autocomplete",
-   "label": "GSTIN / UIN"
-  },
-  {
-   "fieldname": "pan",
-   "fieldtype": "Data",
-   "label": "PAN",
-   "mandatory_depends_on": "eval:doc.is_customer_master == 1"
+   "label": "GSTIN / UIN",
+   "mandatory_depends_on": "eval:doc.gst_category == 'Registered Regular'"
   },
   {
    "fieldname": "column_break_3kk8",
@@ -622,7 +641,8 @@
    "fieldname": "customer_primary_address",
    "fieldtype": "Link",
    "label": "Customer Primary Address",
-   "options": "Address"
+   "options": "Address",
+   "read_only_depends_on": "eval:doc.customer_data || doc.new_customer"
   },
   {
    "fieldname": "naming_series",
@@ -1037,12 +1057,144 @@
    "fieldtype": "Link",
    "label": "Customer Payment Terms",
    "options": "Customer Payment Terms"
+  },
+  {
+   "fieldname": "user_id",
+   "fieldtype": "Link",
+   "label": "User Id",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_osc8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_k568",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "custom_customer_representatives",
+   "fieldtype": "Table",
+   "label": "Customer Representatives",
+   "options": "Customer Representatives"
+  },
+  {
+   "fieldname": "bank_account_tab",
+   "fieldtype": "Tab Break",
+   "label": "Bank Account"
+  },
+  {
+   "allow_on_submit": 1,
+   "depends_on": "eval:doc.customer_data || doc.new_customer",
+   "fieldname": "bank_account",
+   "fieldtype": "Link",
+   "label": "Bank Account",
+   "options": "Bank Account",
+   "read_only_depends_on": "eval:doc.customer_data || doc.new_customer"
+  },
+  {
+   "depends_on": "eval:doc.if_others_customer_bank_account == 1",
+   "fieldname": "section_break_lvvk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "bank",
+   "fieldtype": "Link",
+   "label": "Bank",
+   "options": "Bank"
+  },
+  {
+   "fieldname": "account_type",
+   "fieldtype": "Link",
+   "label": "Account Type",
+   "options": "Bank Account Type"
+  },
+  {
+   "fieldname": "column_break_rjjf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "branch_code",
+   "fieldtype": "Data",
+   "label": "Branch Code"
+  },
+  {
+   "fieldname": "bank_account_no",
+   "fieldtype": "Data",
+   "label": "Bank Account No"
+  },
+  {
+   "fieldname": "column_break_ovkz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cancel_cheque",
+   "fieldtype": "Attach",
+   "label": "Cancel Cheque"
+  },
+  {
+   "fieldname": "authorized_persons_letter",
+   "fieldtype": "Attach",
+   "label": "Authorized Person's Letter"
+  },
+  {
+   "fieldname": "kyc",
+   "fieldtype": "Attach",
+   "label": "KYC"
+  },
+  {
+   "fieldname": "custom_msme_no",
+   "fieldtype": "Data",
+   "label": "MSME No"
+  },
+  {
+   "fieldname": "custom_msme_type",
+   "fieldtype": "Select",
+   "label": "MSME Type",
+   "options": "\nMicro Enterprise\nSmall Enterprise\nMedium Enterprise"
+  },
+  {
+   "fieldname": "custom_tan_no",
+   "fieldtype": "Data",
+   "label": "TAN No"
+  },
+  {
+   "fieldname": "custom_iec_no",
+   "fieldtype": "Data",
+   "label": "IEC No"
+  },
+  {
+   "fieldname": "pan",
+   "fieldtype": "Data",
+   "label": "PAN",
+   "mandatory_depends_on": "eval:doc.is_customer_master == 1"
+  },
+  {
+   "default": "0",
+   "fieldname": "if_others_customer_bank_account",
+   "fieldtype": "Check",
+   "label": "If Others Customer Bank Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-10 12:12:25.391518",
+ "modified": "2025-07-16 11:28:32.068050",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Customer Master Update",

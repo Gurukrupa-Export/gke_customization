@@ -6,6 +6,10 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "user_id",
+  "company",
+  "column_break_1ki7",
+  "branch",
   "section_break_rlt8",
   "naming_series",
   "is_new_employee",
@@ -24,10 +28,6 @@
   "export_type",
   "is_transporter",
   "image",
-  "attachment_section",
-  "aadhar_card",
-  "pan_card",
-  "other_documents",
   "defaults_section",
   "billing_currency",
   "column_break_3zkf",
@@ -51,8 +51,20 @@
   "tax_withholding_category",
   "tax_details_section",
   "gstin__uin",
-  "pan",
+  "custom_msme_number",
+  "custom_msme_type",
   "column_break_w8vq",
+  "pan",
+  "custom_tan_no",
+  "custom_iec_no",
+  "attachment_section",
+  "aadhar_card",
+  "pan_card",
+  "other_documents",
+  "column_break_bkwj",
+  "cancel_cheque",
+  "authorized_persons_letter",
+  "kyc",
   "address_contact_tab",
   "address_contact_section",
   "address_html",
@@ -63,6 +75,8 @@
   "column_break_kem5",
   "supplier_primary_address",
   "primary_address",
+  "section_break_b9s9",
+  "custom_supplier_representatives",
   "column_break_hozt",
   "add_same",
   "others_supp_contact",
@@ -94,6 +108,15 @@
   "pri_add_country",
   "pri_add_pin",
   "pri_add_fax",
+  "bank_account_section",
+  "bank_account",
+  "others_sup_bank_account",
+  "section_break_xip8",
+  "bank",
+  "account_type",
+  "column_break_glp8",
+  "branch_code",
+  "bank_account_no",
   "accounting_tab",
   "accounts",
   "settings_tab",
@@ -305,7 +328,8 @@
   {
    "fieldname": "gstin__uin",
    "fieldtype": "Autocomplete",
-   "label": "GSTIN / UIN"
+   "label": "GSTIN / UIN",
+   "mandatory_depends_on": "eval:doc.gst_category == 'Registered Regular'"
   },
   {
    "fieldname": "pan",
@@ -752,12 +776,134 @@
    "fieldname": "pri_add_fax",
    "fieldtype": "Data",
    "label": "Fax"
+  },
+  {
+   "fieldname": "user_id",
+   "fieldtype": "Link",
+   "label": "User Id",
+   "options": "User"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_1ki7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "section_break_b9s9",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "bank_account_section",
+   "fieldtype": "Tab Break",
+   "label": "Bank Account"
+  },
+  {
+   "depends_on": "eval:doc.supplier_data || doc.new_supplier",
+   "fieldname": "bank_account",
+   "fieldtype": "Link",
+   "label": "Bank Account",
+   "options": "Bank Account",
+   "read_only_depends_on": "eval:doc.supplier_data || doc.new_supplier"
+  },
+  {
+   "depends_on": "eval:doc.others_sup_bank_account == 1",
+   "fieldname": "section_break_xip8",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "bank",
+   "fieldtype": "Link",
+   "label": "Bank",
+   "options": "Bank"
+  },
+  {
+   "fieldname": "account_type",
+   "fieldtype": "Link",
+   "label": "Account Type",
+   "options": "Bank Account Type"
+  },
+  {
+   "fieldname": "column_break_glp8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "branch_code",
+   "fieldtype": "Data",
+   "label": "Branch Code"
+  },
+  {
+   "fieldname": "bank_account_no",
+   "fieldtype": "Data",
+   "label": "Bank Account No"
+  },
+  {
+   "fieldname": "custom_supplier_representatives",
+   "fieldtype": "Table",
+   "label": "Supplier Representatives",
+   "options": "Supplier Representatives"
+  },
+  {
+   "fieldname": "custom_msme_type",
+   "fieldtype": "Select",
+   "label": "MSME Type",
+   "options": "\nMicro Enterprise\nSmall Enterprise\nMedium Enterprise"
+  },
+  {
+   "fieldname": "custom_tan_no",
+   "fieldtype": "Data",
+   "label": "TAN No"
+  },
+  {
+   "fieldname": "custom_iec_no",
+   "fieldtype": "Data",
+   "label": "IEC No"
+  },
+  {
+   "fieldname": "column_break_bkwj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cancel_cheque",
+   "fieldtype": "Attach",
+   "label": "Cancel Cheque"
+  },
+  {
+   "fieldname": "authorized_persons_letter",
+   "fieldtype": "Attach",
+   "label": "Authorized Person's Letter"
+  },
+  {
+   "fieldname": "kyc",
+   "fieldtype": "Attach",
+   "label": "KYC"
+  },
+  {
+   "fieldname": "custom_msme_number",
+   "fieldtype": "Data",
+   "label": "MSME Number"
+  },
+  {
+   "default": "0",
+   "fieldname": "others_sup_bank_account",
+   "fieldtype": "Check",
+   "label": "If Others Supplier Bank Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-26 14:12:31.781071",
+ "modified": "2025-07-16 11:29:45.738415",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Supplier Update Master",

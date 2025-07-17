@@ -25,8 +25,9 @@
   {
    "fetch_from": "department_head.department",
    "fieldname": "department",
-   "fieldtype": "Data",
-   "label": "Department"
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
   },
   {
    "fieldname": "column_break_wydc",
@@ -35,8 +36,9 @@
   {
    "fetch_from": "department_head.designation",
    "fieldname": "designation",
-   "fieldtype": "Data",
-   "label": "Designation"
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
   },
   {
    "default": "Today",
@@ -118,7 +120,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-08 13:05:57.792064",
+ "modified": "2025-07-14 15:09:45.503081",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "OT Request",
