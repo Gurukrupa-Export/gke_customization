@@ -428,7 +428,7 @@ def get_order(from_date=None, to_date=None, of_docstatus=None, branch=None, orde
     if branch:
         filters["branch"] = branch
     if order_form:
-        filters["name"] = order_form
+        filters['name'] = ["like", f"%{order_form}%"]
     if customer:
         filters["customer_code"] = customer
 
@@ -457,12 +457,13 @@ def get_order(from_date=None, to_date=None, of_docstatus=None, branch=None, orde
         fields=[
             "name", "docstatus", "company", "branch", "customer_code", "cad_order_form",
             "workflow_state", "order_type", "flow_type", "order_date", "delivery_date", "cad_file",
-            "creation", "owner", "modified", "_assign", "item", "new_bom", "category"
+            "creation", "owner", "modified", "_assign", "item", "new_bom", "category",
+            "design_type","workflow_type","design_image_1"
         ],
         # start=offset,
         # page_length=limit
     )
-
+    
     # Group orders by cad_order_form
     order_map = defaultdict(list)
     item_codes = set()
@@ -522,16 +523,19 @@ def get_order(from_date=None, to_date=None, of_docstatus=None, branch=None, orde
             order["bom_detail"] = [bom_details.get(order["new_bom"])] if order.get("new_bom") in bom_details else []
 
             assign = None
+            assigned_user = None
             assigned_dept = None
             try:
                 assign_list = json.loads(order.get("_assign", "[]"))
                 assign = assign_list[0] if assign_list else None
+                assigned_user = employee_data.get(assign, {}).get("user_id") if assign else None
                 assigned_dept = employee_data.get(assign, {}).get("department") if assign else None
             except:
                 pass
 
             order["_assign"] = assign
             order["assigned_depart"] = assigned_dept
+            order["assigned_user"] = assigned_user
 
             owner = order.get("owner")
             emp_info = employee_data.get(owner, {}) if owner else {}
@@ -548,6 +552,5 @@ def get_order(from_date=None, to_date=None, of_docstatus=None, branch=None, orde
 
     return {
         "total_count": len(final_forms),
-        # "data": final_forms
         "data": final_forms[offset:offset + limit]
     }
