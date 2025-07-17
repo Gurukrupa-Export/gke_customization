@@ -22,55 +22,54 @@ frappe.ui.form.on('Secured Loan Repayment Schedule', {
     }
 });
 
-// frappe.ui.form.on('Secured Loan', {
-//     refresh(frm) {
-//         if (frm.doc.secured_loan_repayment_schedule?.length > 0) {
-//             console.log("oiuytyuygui")
-//             frm.doc.secured_loan_repayment_schedule.forEach(row => {
-//                 if (row.payment_status === 'Unpaid') {
-//                     row.make_payment_entry = `
-//                         <button class="btn btn-sm btn-primary make-payment-btn" data-idx="${row.idx}">
-//                             Make Payment
-//                         </button>
-//                     `;
-//                 } else {
-//                     row.make_payment_entry = '';
-//                 }
-//             });
-
-//             frm.refresh_field('secured_loan_repayment_schedule');
-//         }
-//     }
-// });
 
 
+frappe.ui.form.on('Secured Loan Repayment Schedule', {
+    grid_row_rendered(frm, cdt, cdn) {
+        console.log("grid_row_rendered triggered");
+        const row = locals[cdt][cdn];
+        const grid_row = frm.fields_dict.secured_loan_repayment_schedule.grid.grid_rows_by_docname[cdn];
+        console.log(grid_row.fields_dict)
 
-frappe.ui.form.on('Secured Loan', {
-    refresh(frm) {
-        render_payment_buttons(frm);
+        if (row.payment_status === 'Unpaid' && grid_row?.fields_dict?.make_payment_entry) {
+            const html = `
+                <button type="button" class="btn btn-sm btn-primary make-payment-btn" data-idx="${row.idx}">
+                    Make Payment
+                </button>
+            `;
+            grid_row.fields_dict.make_payment_entry.$wrapper.html(html);
+        }
     }
 });
 
-function render_payment_buttons(frm) {
-    const rows = frm.doc.secured_loan_repayment_schedule || [];
-    
-    if (!rows.length) return;
 
-    const grid = frm.fields_dict.secured_loan_repayment_schedule.grid;
-    
-    rows.forEach(row => {
-        const grid_row = grid.grid_rows_by_docname[row.name];
-        
-        console.log(grid_row)
+// frappe.ui.form.on('Secured Loan', {
+//     refresh(frm) {
+//         render_payment_buttons(frm);
+//     }
+// });
 
-        if (grid_row?.fields_dict.make_payment_entry) {
-            const html = row.payment_status === 'Unpaid'
-                ? `<button class="btn btn-sm btn-primary make-payment-btn" data-idx="${row.idx}">
-                        Make Payment
-                   </button>`
-                : '';
+// function render_payment_buttons(frm) {
+//     const rows = frm.doc.secured_loan_repayment_schedule || [];
 
-            grid_row.fields_dict.make_payment_entry.$wrapper.html(html);
-        }
-    });
-}
+//     if (!rows.length) return;
+
+//     const grid = frm.fields_dict.secured_loan_repayment_schedule.grid;
+
+//     rows.forEach(row => {
+//         const grid_row = grid?.grid_rows_by_docname?.[row.name];
+//         console.log(grid_row.fields_dict)
+//         if (grid_row && grid_row.fields_dict && grid_row.fields_dict.make_payment_entry) {
+//             const html = row.payment_status === 'Unpaid'
+//                 ? `<button type="button" class="btn btn-sm btn-primary make-payment-btn" data-idx="${row.idx}">
+//                             Make Payment
+//                        </button>`
+//                 : '';
+
+//             // ✅ SAFE injection
+//             grid_row.fields_dict.make_payment_entry.$wrapper.html(html);
+//             console.log(grid_row.fields_dict.make_payment_entry)
+//         }
+//     });
+// }
+0
