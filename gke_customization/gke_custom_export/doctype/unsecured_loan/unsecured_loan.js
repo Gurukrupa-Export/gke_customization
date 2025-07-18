@@ -19,7 +19,6 @@ frappe.ui.form.on("Unsecured Loan", {
                 frappe.db.get_value("Business Partner", frm.doc.lender, "customer").then((r)=> {
                     if(r.message){
                             cur_frm.set_value("party", r.message.customer);
-                            cur_frm.set_value("paid_to", "50200 - HDFC - SD");
                         }
                     });
 
