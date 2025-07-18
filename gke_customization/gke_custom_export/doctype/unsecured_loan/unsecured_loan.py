@@ -10,7 +10,7 @@ from frappe.utils import getdate
 
 class UnsecuredLoan(Document):
 	def validate(self):
-		if not self.loan_amount or not self.interest_rate or not self.repayment_period:
+		if not self.loan_amount or not self.interest_rate:
 			frappe.throw("Please ensure loan amount, interest rate, and repayment period are provided.")
 
 		# Set first row if empty
@@ -56,6 +56,8 @@ class UnsecuredLoan(Document):
 
 		# if self.workflow_state == 'Interest Accrual':
 		# 	create_gl_entry(self)
+
+
 
 # def create_gl_entry(self):
 # 	if not self.parent_gl_entry_created:
