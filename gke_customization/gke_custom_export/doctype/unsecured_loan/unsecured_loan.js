@@ -9,7 +9,6 @@ frappe.ui.form.on("Unsecured Loan", {
                 posting_date: frappe.datetime.nowdate(),
                 paid_amount: frm.doc.loan_amount,
                 company: frm.doc.company,
-                mode_of_payment: "Cash",
                 custom_unsecured_loan:frm.doc.name,
                 
             });
@@ -42,7 +41,6 @@ frappe.ui.form.on("Unsecured Loan", {
                 paid_amount: target_row.total_payment,
                 received_amount:target_row.total_payment,
                 company: frm.doc.company,
-                mode_of_payment: "Cash",
                 custom_unsecured_loan: frm.doc.name,
                 custom_unsecured_loan_repayment_schedule: target_row.name
             });
@@ -53,8 +51,6 @@ frappe.ui.form.on("Unsecured Loan", {
                     .then((r) => {
                         if (r.message.supplier) {
                             cur_frm.set_value("party", r.message.supplier);
-                            cur_frm.set_value("paid_from", "50200 - HDFC - SD");
-                            
                         }
                     });
             }, 1500);
