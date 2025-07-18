@@ -3,6 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
+from frappe import _
 
 class RewiseField(Document):
 	def validate(self):
@@ -42,33 +43,32 @@ class RewiseField(Document):
 			"back_belt": "Back Belt",
 			"back_belt_length": "Back Belt Length"
 		}
-
+		
 		updated = False
 
 		for fieldname, attribute in field_to_attribute.items():
 			new_value = self.get(fieldname)
+			
 			if not new_value:
 				continue
 
-			found = False
+			# Check attribute already exists
+			existing_row = None
 			for row in item_doc.attributes:
 				if row.attribute == attribute:
-					found = True
-					if row.attribute_value != new_value:
-						row.attribute_value = new_value
-						updated = True
+					existing_row = row
 					break
 
-			if not found:
-				item_doc.append("attributes", {
-					"attribute": attribute,
-					"attribute_value": new_value
-				})
-				updated = True
+			if existing_row:
+				if existing_row.attribute_value != new_value:
+					# Update the attribute value
+					frappe.db.set_value("Item Variant Attribute", existing_row.name, "attribute_value", new_value)
+					updated = True
+	
 
 		if updated:
-			item_doc.save()
 			frappe.msgprint(_("Item attributes updated in Item <b>{0}</b>").format(item_doc.name))
+
 
 
 @frappe.whitelist()
@@ -95,22 +95,3 @@ def get_filtered_item_attributes(item_code):
 
 	return {attr["attribute"]: attr["attribute_value"] for attr in attributes}
 
-
-import frappe
-from frappe import _
-
-@frappe.whitelist()
-def get_order_form_fields(order_form_id):
-	doc = frappe.get_doc("Order Form", order_form_id)
-
-	# List of fields to extract
-	fields_to_copy = [
-		"metal_colour", "diamond_target", "stone_changeable", "gemstone_type", "chain_type",
-		"chain_length", "feature", "rhodium", "enamal", "detachable", "capganthan", "two_in_one",
-		"product_size", "sizer_type", "lock_type", "black_bead_line", "charm",
-		"count_of_spiral_turns", "number_of_ant", "back_side_size", "space_between_mugappu",
-		"distance_between_kadi_to_mugappu", "back_belt", "back_belt_length"
-	]
-
-	# Return only allowed fields as dict
-	return {field: getattr(doc, field, None) for field in fields_to_copy}

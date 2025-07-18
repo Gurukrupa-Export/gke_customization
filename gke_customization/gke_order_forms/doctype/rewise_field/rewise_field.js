@@ -38,30 +38,34 @@ frappe.ui.form.on("Rewise Field", {
 						"Space between Mugappu": "space_between_mugappu",
 						"Distance Between Kadi To Mugappu": "distance_between_kadi_to_mugappu",
 						"Back Belt": "back_belt",
-						"Back Belt Length": "back_belt_length",
-                        
+						"Back Belt Length": "back_belt_length"
 					};
 
-					console.log("Backend attributes:", attribute_map);
+					let fields_updated = false;
 
 					for (let [attribute, value] of Object.entries(attribute_map)) {
 						let fieldname = attribute_to_field[attribute];
-						console.log("Attribute:", attribute, " → Fieldname:", fieldname, " → Value:", value);
 
 						if (fieldname && frm.fields_dict[fieldname]) {
-							let df = frm.fields_dict[fieldname].df;
-							console.log("Field Type of", fieldname, "is", df.fieldtype);
+							let current_val = frm.doc[fieldname];
 
-							if (df.fieldtype === "Select" && !df.options?.includes(value)) {
-								df.options += `\n${value}`;
-								console.log("Added new select option:", value);
-								frm.refresh_field(fieldname);
+							if (current_val !== value) {
+								let df = frm.fields_dict[fieldname].df;
+
+								if (df.fieldtype === "Select" && df.options && !df.options.includes(value)) {
+									df.options += `\n${value}`;
+									frm.refresh_field(fieldname);
+								}
+
+								frm.set_value(fieldname, value);
+								fields_updated = true;
 							}
-							console.log("Setting value for", fieldname, "=", value);
-							frm.set_value(fieldname, value);
-						} else {
-							console.warn("Field not found for attribute:", attribute);
 						}
+					}
+
+					// Optional: set a hidden field or flag to avoid repeating update on load
+					if (!fields_updated) {
+						frm.doc.__attribute_applied = true;
 					}
 				}
 			}
@@ -69,7 +73,8 @@ frappe.ui.form.on("Rewise Field", {
 	},
 
 	onload: function(frm) {
-		if (frm.doc.item) {
+		// Prevent re-triggering if already applied
+		if (frm.doc.item && !frm.doc.__attribute_applied) {
 			frm.trigger("item");
 		}
 	}
