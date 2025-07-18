@@ -1,0 +1,248 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<!-- Load Custom Font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #fff;
+        color: #333;
+        background: url("/files/e8cda319-edf9-4558-99a1-607e2b205de5.png") center/cover no-repeat fixed;
+        overflow: hidden;
+    }
+
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: url("/files/2490f790-ce42-45e8-ab3f-bac976fed2b1.png") repeat;
+        background-size: 100px auto;
+        opacity: 0.1;
+        z-index: -2;
+    }
+
+    .background {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        z-index: -1;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    .diamond {
+        position: absolute;
+        font-size: 10rem;
+        opacity: 0.;
+        animation: float 20s linear infinite;
+    }
+
+    @keyframes float {
+        0% {
+            transform: translateY(100vh) rotate(0deg);
+            opacity: 0.3;
+        }
+        100% {
+            transform: translateY(-10vh) rotate(360deg);
+            opacity: 0;
+        }
+    }
+
+    .navbar .navbar-brand {
+        display: none !important;
+    }
+
+    #dashboard-container {
+        position: relative;
+    }
+
+    #loading-message {
+        text-align: center;
+        padding: 40px;
+    }
+
+    #loading-message h3 {
+        font-weight: 600;
+        font-size: 20px;
+        color: #2c3e50;
+    }
+
+    #loading-message p {
+        color: #777;
+    }
+
+    .loader {
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #007bff;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        margin: 20px auto;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    #unauthorized-message {
+        display: none;
+        text-align: center;
+        padding: 80px;
+    }
+
+    #unauthorized-message h1 {
+        color: #e74c3c;
+    }
+
+    #unauthorized-message p {
+        color: #555;
+        font-size: 16px;
+    }
+
+    #unauthorized-message a {
+        margin-top: 20px;
+        display: inline-block;
+        background: #007bff;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+    }
+
+    iframe {
+        width: 100%;
+        height: 700px;
+        border: none;
+        display: none;
+    }
+
+    @media only screen and (max-width: 600px) {
+        iframe {
+            height: 500px;
+        }
+    }
+</style>
+
+<!-- Floating Diamonds -->
+<div class="background" id="bgDiamonds"></div>
+
+<div id="debug-info" style="padding: 20px; background: #f5f5f5; margin-bottom: 20px; display: none;">
+    <h3>Debug Information</h3>
+    <div id="status-message">Initializing...</div>
+</div>
+
+<div id="secure-content" style="display: none;">
+    <h5>
+        <img src="http://gkexport.frappe.cloud/files/GK-removebg-preview.png" style="height: 50px;">
+        Gurukrupa Export
+    </h5>
+    <div id="dashboard-container">
+        <iframe id="metabase-frame" 
+            src="https://www.gkexport.co/public/dashboard/04145159-a4c0-4f8a-a7e5-ec0a7fc79448"
+            allowtransparency="true">
+        </iframe>
+        <div id="loading-message">
+            <h3>🔍 Turning data into decisions...</h3>
+            <p>Loading the truth behind the numbers. Please wait.</p>
+            <div class="loader"></div>
+        </div>
+    </div>
+</div>
+
+<div id="unauthorized-message">
+    <h1>🔒 Secure area</h1>
+    <p>This data is restricted. Redirecting you to safety...</p>
+    <a href="/login">Login</a>
+</div>
+
+<script>
+    function updateStatus(message) {
+        // console.log('Status:', message);
+    }
+
+    frappe.ready(function () {
+        updateStatus('Page ready. Checking session...');
+
+        if (!frappe.session || !frappe.session.user || frappe.session.user === 'Guest') {
+            updateStatus('No valid session. Redirecting...');
+            window.location.href = '/login?redirect-to=' + encodeURIComponent(window.location.pathname);
+        } else {
+            const currentUser = frappe.session.user;
+            updateStatus('Logged in as: ' + currentUser);
+
+            frappe.call({
+                method: 'gke_customization.www.hr_dashboard.get_current_user_roles',
+                callback: function (response) {
+                    const userRoles = response.message || [];
+                    let isAuthorized = false;
+
+                    if (currentUser === 'Administrator' || userRoles.includes('System Manager')) {
+                        isAuthorized = true;
+                        updateStatus('User is authorized. Showing content.');
+
+                        document.getElementById('secure-content').style.display = 'block';
+                        document.getElementById('loading-message').style.display = 'block';
+
+                        setTimeout(function () {
+                            const iframe = document.getElementById('metabase-frame');
+                            document.getElementById('loading-message').style.display = 'none';
+                            iframe.style.display = 'block';
+                            iframe.style.opacity = 0;
+                            iframe.style.transition = 'opacity 0.8s ease-in-out';
+                            setTimeout(() => {
+                                iframe.style.opacity = 1;
+                            }, 50);
+                            updateStatus('Dashboard loaded successfully');
+                        }, 1000);
+                    } else {
+                        updateStatus('Access denied - Not authorized.');
+                        document.getElementById('unauthorized-message').style.display = 'block';
+                        setTimeout(function () {
+                            window.location.href = '/login?redirect-to=' + encodeURIComponent(window.location.pathname);
+                        }, 2000);
+                    }
+                },
+                error: function (err) {
+                    updateStatus('Error fetching roles: ' + JSON.stringify(err));
+                    document.getElementById('unauthorized-message').style.display = 'block';
+                }
+            });
+        }
+    });
+
+    // Generate floating 💎
+    const bg = document.getElementById('bgDiamonds');
+    for (let i = 0; i < 40; i++) {
+        const d = document.createElement('div');
+        d.className = 'diamond';
+        d.textContent = '💎';
+        d.style.left = Math.random() * 100 + 'vw';
+        d.style.fontSize = (Math.random() * 2 + 1) + 'rem';
+        d.style.animationDuration = (10 + Math.random() * 10) + 's';
+        d.style.animationDelay = Math.random() * 5 + 's';
+        bg.appendChild(d);
+    }
+
+    document.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        return false;
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.ctrlKey && ['s', 'p', 'u'].includes(e.key.toLowerCase())) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    window.addEventListener('message', function (e) {
+        if (e.origin !== "http://3.108.219.130:3000") {
+            console.warn('Blocked message from untrusted origin:', e.origin);
+        }
+    });
+</script>
+{% endblock %}

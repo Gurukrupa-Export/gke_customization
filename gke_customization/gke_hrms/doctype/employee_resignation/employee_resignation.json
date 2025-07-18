@@ -66,16 +66,18 @@
   {
    "fetch_from": "employee.department",
    "fieldname": "department",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Department",
+   "options": "Department",
    "read_only": 1
   },
   {
    "fetch_from": "employee.designation",
    "fieldname": "designation",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "label": "Designation",
+   "options": "Designation",
    "read_only": 1
   },
   {
@@ -101,6 +103,14 @@
    "read_only": 1
   },
   {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Status",
+   "options": "\nOpen\nPending\nApprove\nReject"
+  },
+  {
    "fieldname": "section_break_6tmw",
    "fieldtype": "Section Break"
   },
@@ -116,10 +126,21 @@
    "label": "Date of Resignation"
   },
   {
+   "default": "0",
+   "fieldname": "late_entry",
+   "fieldtype": "Check",
+   "label": "Late Entry"
+  },
+  {
    "fieldname": "last_working_day",
    "fieldtype": "Date",
    "label": "Last Working Day",
    "read_only_depends_on": "eval:doc.late_entry == 0"
+  },
+  {
+   "fieldname": "requested_relieving_date",
+   "fieldtype": "Date",
+   "label": "Requested Relieving Date"
   },
   {
    "fieldname": "column_break_z8pb",
@@ -130,6 +151,12 @@
    "fieldtype": "Select",
    "label": "Reason for Resignation",
    "options": "\nBetter Opportunity\nBetter Compensation\nBehavioral Issue\nCultural Issues\nFamily Reason\nHealth Issue\nHigher Education\nIntegrity Issue\nLack Of Career Growth\nLayoff\nMisconduct\nMarriage\nPerformance Issue\nOther\nRetirement\nRelocation\nStarting Own Business\nTermination\nViolation Of Sop"
+  },
+  {
+   "default": "0",
+   "fieldname": "if_additional_comments",
+   "fieldtype": "Check",
+   "label": "If Additional Comments.."
   },
   {
    "depends_on": "eval:doc.if_additional_comments == 1",
@@ -162,6 +189,30 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval: in_list(['Send to Manager','Send to HR','Approved'], doc.workflow_state )",
+   "fieldname": "reporting_manager_approval",
+   "fieldtype": "Select",
+   "label": "Reporting Manager Approval",
+   "options": "\nApproved\nRejected"
+  },
+  {
+   "depends_on": "eval:doc.reporting_manager_approval == 'Approved'",
+   "fieldname": "waive_off_notice_period",
+   "fieldtype": "Select",
+   "label": "Waive Off Notice Period",
+   "options": "\nYes\nNo"
+  },
+  {
+   "depends_on": "eval:doc.waive_off_notice_period == 'Yes'",
+   "fieldname": "reduce_notice_day",
+   "fieldtype": "Int",
+   "label": "Reduce Notice Days"
+  },
+  {
+   "fieldname": "section_break_abix",
+   "fieldtype": "Section Break"
+  },
+  {
    "fieldname": "hr_manager",
    "fieldtype": "Link",
    "label": "HR Manager",
@@ -175,40 +226,14 @@
    "read_only": 1
   },
   {
-   "fieldname": "naming_series",
-   "fieldtype": "Data",
-   "label": "naming_series",
-   "options": "EMP-RS-",
-   "read_only": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "if_additional_comments",
-   "fieldtype": "Check",
-   "label": "If Additional Comments.."
-  },
-  {
-   "default": "Open",
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "hidden": 1,
-   "label": "Status",
-   "options": "\nOpen\nPending\nApprove\nReject"
-  },
-  {
-   "depends_on": "eval: in_list(['Send to Manager','Send to HR','Approved'], doc.workflow_state )",
-   "fieldname": "reporting_manager_approval",
-   "fieldtype": "Select",
-   "label": "Reporting Manager Approval",
-   "options": "\nApproved\nRejected"
-  },
-  {
-   "fieldname": "section_break_abix",
-   "fieldtype": "Section Break"
-  },
-  {
    "fieldname": "column_break_da5r",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_employee_on_probation",
+   "fieldtype": "Select",
+   "label": "Is Employee on Probation?",
+   "options": "\nYes\nNo"
   },
   {
    "depends_on": "eval: in_list(['Send to HR','Approved'], doc.workflow_state )",
@@ -222,6 +247,13 @@
    "fieldtype": "Section Break"
   },
   {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "label": "naming_series",
+   "options": "EMP-RS-",
+   "read_only": 1
+  },
+  {
    "fieldname": "amended_from",
    "fieldtype": "Link",
    "label": "Amended From",
@@ -230,42 +262,12 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
-  },
-  {
-   "depends_on": "eval:doc.reporting_manager_approval == 'Approved'",
-   "fieldname": "waive_off_notice_period",
-   "fieldtype": "Select",
-   "label": "Waive Off Notice Period",
-   "options": "\nYes\nNo"
-  },
-  {
-   "fieldname": "is_employee_on_probation",
-   "fieldtype": "Select",
-   "label": "Is Employee on Probation?",
-   "options": "\nYes\nNo"
-  },
-  {
-   "fieldname": "requested_relieving_date",
-   "fieldtype": "Date",
-   "label": "Requested Relieving Date"
-  },
-  {
-   "default": "0",
-   "fieldname": "late_entry",
-   "fieldtype": "Check",
-   "label": "Late Entry"
-  },
-  {
-   "depends_on": "eval:doc.waive_off_notice_period == 'Yes'",
-   "fieldname": "reduce_notice_day",
-   "fieldtype": "Int",
-   "label": "Reduce Notice Days"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-23 18:20:02.620030",
+ "modified": "2025-07-14 15:36:47.860911",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Employee Resignation",

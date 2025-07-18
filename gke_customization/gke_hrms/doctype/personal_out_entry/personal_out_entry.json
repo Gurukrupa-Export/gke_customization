@@ -1,0 +1,143 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-05-27 14:27:16.769857",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "filters_section",
+  "from_date",
+  "company",
+  "department",
+  "branch",
+  "designation",
+  "column_break_bnm65",
+  "to_date",
+  "employee",
+  "employee_name",
+  "search",
+  "approve",
+  "section_break_hi6cd",
+  "checkin_details",
+  "locked_by"
+ ],
+ "fields": [
+  {
+   "fieldname": "filters_section",
+   "fieldtype": "Section Break",
+   "label": "Filters"
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "From Date",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "column_break_bnm65",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "To Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "search",
+   "fieldtype": "Button",
+   "label": "Search",
+   "options": "get_checkin_details"
+  },
+  {
+   "default": "0",
+   "fieldname": "approve",
+   "fieldtype": "Check",
+   "label": "Approve"
+  },
+  {
+   "fieldname": "section_break_hi6cd",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "checkin_details",
+   "fieldtype": "Table",
+   "label": "Checkin Details",
+   "options": "Checkin Details"
+  },
+  {
+   "fieldname": "locked_by",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "locked_by",
+   "options": "User"
+  },
+  {
+   "fetch_from": "employee.branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-10 17:28:04.858483",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Personal Out Entry",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
