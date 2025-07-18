@@ -1,30 +1,86 @@
 // Copyright (c) 2025, Gurukrupa Export and contributors
 // For license information, please see license.txt
+frappe.ui.form.on('Secured Loan', {
+    refresh(frm) {
+        frm.add_custom_button(__('Create Receive Payment Entry'), function() {
+            frappe.new_doc('Payment Entry', {
+                payment_type: "Receive",
+                party_type: "Customer",
+                posting_date: frappe.datetime.nowdate(),
+                paid_amount: frm.doc.loan_amount,
+                company: frm.doc.company,
+                mode_of_payment: "Bank Draft",
+                custom_unsecured_loan:frm.doc.name,
+                secured_loan:frm.doc.name,
+                
+            });
+    
+            // Set the party field after a short delay
+            setTimeout(function() {
+                frappe.db.get_value("Business Partner", frm.doc.lender, ["customer","receivable_account"]).then((r)=> {
+                    if(r.message){
+                        console.log(r.message)
+                            cur_frm.set_value("party", r.message.customer);
+                            cur_frm.set_value("paid_from", r.message.receivable_account);
+                        }
+                    });
+
+            }, 1500);
+        }, __('Create'));
+
+
+        // Ensure fields are updated in child table
+        // update_fields_in_child_table(frm, "interest_rate");
+        // update_fields_in_child_table(frm, "loan_amount");
+    },
+});
+
+
 frappe.ui.form.on('Secured Loan Repayment Schedule', {
     make_payment_entry(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
 
+        // frappe.new_doc('Payment Entry', {
+        //     payment_type: "Pay",
+        //     party_type: frm.doc.lender_type,
+        //     posting_date: frappe.datetime.nowdate(),
+        //     paid_amount: row.emi_amount,
+        //     company: frm.doc.company,
+        //     mode_of_payment: "Bank Draft",
+        //     secured_loan: frm.doc.name,
+        //     secured_loan_repayment_schedule: row.name,
+        // });
+
+        // // Set party after a short delay
+        // setTimeout(function () {
+        //     cur_frm.set_value("party", frm.doc.lender);
+        // }, 1500);
         frappe.new_doc('Payment Entry', {
-            payment_type: "Pay",
-            party_type: frm.doc.lender_type,
-            posting_date: frappe.datetime.nowdate(),
-            paid_amount: row.outstanding_amount,
-            company: frm.doc.company,
-            mode_of_payment: "Cash",
-            secured_loan: frm.doc.name,
-            secured_loan_repayment_schedule: row.name,
-        });
+                payment_type: "Pay",
+                party_type: "Supplier",
+                posting_date: frappe.datetime.nowdate(),
+                paid_amount: row.emi_amount,
+                company: frm.doc.company,
+                mode_of_payment: "Bank Draft",
+                custom_unsecured_loan: frm.doc.name,
+                custom_unsecured_loan_repayment_schedule: row.name
+            });
+        
+            // Set party after a short delay
+            setTimeout(function() {
+                frappe.db.get_value("Business Partner", frm.doc.lender, ["supplier","payable_account"])
+                    .then((r) => {
+                        if (r.message) {
+                            console.log(r.message)
+                            cur_frm.set_value("party", r.message.supplier);
+                            cur_frm.set_value("paid_to", r.message.payable_account);
+                            
+                        }
+                    });
+            }, 1500);
 
-        // Set party after a short delay
-        setTimeout(function () {
-            cur_frm.set_value("party", frm.doc.lender);
-        }, 1500);
-    }
-});
 
-
-
-frappe.ui.form.on('Secured Loan Repayment Schedule', {
+    },
     grid_row_rendered(frm, cdt, cdn) {
         console.log("grid_row_rendered triggered");
         const row = locals[cdt][cdn];
@@ -41,6 +97,8 @@ frappe.ui.form.on('Secured Loan Repayment Schedule', {
         }
     }
 });
+
+
 
 
 // frappe.ui.form.on('Secured Loan', {
@@ -72,4 +130,3 @@ frappe.ui.form.on('Secured Loan Repayment Schedule', {
 //         }
 //     });
 // }
-0

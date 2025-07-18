@@ -13,7 +13,8 @@
   "interest_rate",
   "outstanding_amount",
   "payment_status",
-  "make_payment_entry"
+  "make_payment_entry",
+  "payment_entry_created"
  ],
  "fields": [
   {
@@ -61,13 +62,20 @@
   {
    "fieldname": "make_payment_entry",
    "fieldtype": "Button",
+   "in_list_view": 1,
    "label": "Make Payment Entry"
+  },
+  {
+   "default": "0",
+   "fieldname": "payment_entry_created",
+   "fieldtype": "Check",
+   "label": "Payment Entry Created"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-04 09:35:44.304649",
+ "modified": "2025-07-18 11:32:43.781435",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Secured Loan Repayment Schedule",

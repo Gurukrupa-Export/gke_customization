@@ -20,7 +20,8 @@
   "end_date",
   "outstanding_amount",
   "section_break_dusv",
-  "secured_loan_repayment_schedule"
+  "secured_loan_repayment_schedule",
+  "payment_entry_created"
  ],
  "fields": [
   {
@@ -51,7 +52,7 @@
    "fieldname": "lender_type",
    "fieldtype": "Select",
    "label": "Lender Type",
-   "options": "Supplier\nBank"
+   "options": "Business Partner"
   },
   {
    "fieldname": "lender",
@@ -112,12 +113,18 @@
    "fieldtype": "Link",
    "label": "Branch",
    "options": "Branch"
+  },
+  {
+   "default": "0",
+   "fieldname": "payment_entry_created",
+   "fieldtype": "Check",
+   "label": "Payment Entry Created"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-30 15:10:35.163448",
+ "modified": "2025-07-18 11:19:48.551017",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Secured Loan",
