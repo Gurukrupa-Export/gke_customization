@@ -38,6 +38,7 @@
   {
    "fieldname": "company",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Company",
    "options": "Company",
    "reqd": 1
@@ -73,6 +74,7 @@
   {
    "fieldname": "employee",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Employee",
    "options": "Employee"
   },
@@ -126,7 +128,7 @@
    "link_fieldname": "ot_allowance_entry"
   }
  ],
- "modified": "2025-06-30 15:36:43.045899",
+ "modified": "2025-07-19 10:24:20.062517",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "OT Allowance Entry",
