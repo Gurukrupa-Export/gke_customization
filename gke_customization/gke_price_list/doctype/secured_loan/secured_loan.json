@@ -83,6 +83,7 @@
    "label": "Loan Amount"
   },
   {
+   "depends_on": "eval:doc.payment_entry_created",
    "fieldname": "section_break_dusv",
    "fieldtype": "Section Break"
   },
@@ -123,7 +124,12 @@
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
- "links": [],
+ "links": [
+  {
+   "link_doctype": "Payment Entry",
+   "link_fieldname": "custom_secured_loan"
+  }
+ ],
  "modified": "2025-07-18 11:19:48.551017",
  "modified_by": "Administrator",
  "module": "Gke Price List",
