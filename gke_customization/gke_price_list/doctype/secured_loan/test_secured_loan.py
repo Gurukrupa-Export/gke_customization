@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestUpdateCustomerDiamondCriteriaDetails(FrappeTestCase):
+class TestSecuredLoan(FrappeTestCase):
 	pass

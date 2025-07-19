@@ -9,6 +9,45 @@
         font-family: 'Inter', sans-serif;
         background-color: #fff;
         color: #333;
+        background: url("/files/e8cda319-edf9-4558-99a1-607e2b205de5.png") center/cover no-repeat fixed;
+        overflow: hidden;
+    }
+
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: url("/files/2490f790-ce42-45e8-ab3f-bac976fed2b1.png") repeat;
+        background-size: 100px auto;
+        opacity: 0.1;
+        z-index: -2;
+    }
+
+    .background {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        z-index: -1;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    .diamond {
+        position: absolute;
+        font-size: 10rem;
+        opacity: 0.;
+        animation: float 20s linear infinite;
+    }
+
+    @keyframes float {
+        0% {
+            transform: translateY(100vh) rotate(0deg);
+            opacity: 0.5;
+        }
+        100% {
+            transform: translateY(-10vh) rotate(360deg);
+            opacity: 0.1;
+        }
     }
 
     .navbar .navbar-brand {
@@ -88,6 +127,9 @@
     }
 </style>
 
+<!-- Floating Diamonds -->
+<div class="background" id="bgDiamonds"></div>
+
 <div id="debug-info" style="padding: 20px; background: #f5f5f5; margin-bottom: 20px; display: none;">
     <h3>Debug Information</h3>
     <div id="status-message">Initializing...</div>
@@ -100,7 +142,7 @@
     </h5>
     <div id="dashboard-container">
         <iframe id="metabase-frame" 
-            src="http://3.108.219.130:3000/public/dashboard/466b68e9-3959-4477-b894-974cf12ffd19"
+            src="https://www.gkexport.co/public/dashboard/466b68e9-3959-4477-b894-974cf12ffd19"
             allowtransparency="true">
         </iframe>
         <div id="loading-message">
@@ -112,15 +154,14 @@
 </div>
 
 <div id="unauthorized-message">
-    <h1>🚫 Access Denied</h1>
-    <p>You don’t have permission to view this dashboard.<br>Please contact your administrator if you believe this is a mistake.</p>
+    <h1>🔒 Secure area</h1>
+    <p>This data is restricted. Redirecting you to safety...</p>
     <a href="/login">Login</a>
 </div>
 
 <script>
     function updateStatus(message) {
         // console.log('Status:', message);
-        // document.getElementById('status-message').innerHTML = message;
     }
 
     frappe.ready(function () {
@@ -146,7 +187,6 @@
                         document.getElementById('secure-content').style.display = 'block';
                         document.getElementById('loading-message').style.display = 'block';
 
-                        // Show iframe with fade-in effect
                         setTimeout(function () {
                             const iframe = document.getElementById('metabase-frame');
                             document.getElementById('loading-message').style.display = 'none';
@@ -174,13 +214,24 @@
         }
     });
 
-    // Disable right-click
+    // Generate floating 💎
+    const bg = document.getElementById('bgDiamonds');
+    for (let i = 0; i < 40; i++) {
+        const d = document.createElement('div');
+        d.className = 'diamond';
+        d.textContent = '💎';
+        d.style.left = Math.random() * 100 + 'vw';
+        d.style.fontSize = (Math.random() * 2 + 1) + 'rem';
+        d.style.animationDuration = (10 + Math.random() * 10) + 's';
+        d.style.animationDelay = Math.random() * 5 + 's';
+        bg.appendChild(d);
+    }
+
     document.addEventListener('contextmenu', function (e) {
         e.preventDefault();
         return false;
     });
 
-    // Disable shortcut keys
     document.addEventListener('keydown', function (e) {
         if (e.ctrlKey && ['s', 'p', 'u'].includes(e.key.toLowerCase())) {
             e.preventDefault();
@@ -188,7 +239,6 @@
         }
     });
 
-    // Optional: Check iframe origin (update if Metabase origin changes)
     window.addEventListener('message', function (e) {
         if (e.origin !== "http://3.108.219.130:3000") {
             console.warn('Blocked message from untrusted origin:', e.origin);
