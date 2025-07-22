@@ -10,7 +10,9 @@ frappe.ui.form.on('Secured Loan', {
                 paid_amount: frm.doc.loan_amount,
                 company: frm.doc.company,
                 mode_of_payment: "Bank Draft",
-                custom_secured_loan:frm.doc.name,
+                custom_unsecured_loan:frm.doc.name,
+                secured_loan:frm.doc.name,
+                
             });
     
             // Set the party field after a short delay
@@ -60,8 +62,8 @@ frappe.ui.form.on('Secured Loan Repayment Schedule', {
                 paid_amount: row.emi_amount,
                 company: frm.doc.company,
                 mode_of_payment: "Bank Draft",
-                custom_secured_loan: frm.doc.name,
-                custom_secured_loan_repayment_schedule: row.name
+                custom_unsecured_loan: frm.doc.name,
+                custom_unsecured_loan_repayment_schedule: row.name
             });
         
             // Set party after a short delay

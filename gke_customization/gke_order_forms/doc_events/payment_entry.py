@@ -190,7 +190,6 @@ def on_submit(self, method):
             'company':self.company,
             'posting_date': self.posting_date,
             'account': frappe.db.get_value("Unsecured Loan",self.custom_unsecured_loan,"principal_gl_account"),
-            # 'account': frappe.db.get_value("Business Partner",self.custom_unsecured_loan,"principal_gl_account"), 
             'debit': 0,
             'credit': self.paid_amount,
             'party_type': self.party_type,
@@ -244,6 +243,77 @@ def on_submit(self, method):
             gl_entry.submit()
             frappe.flags.ignore_permissions = False
 
+    if self.custom_secured_loan and self.payment_type == 'Receive':
+        gl_entries = []
+    
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': self.paid_from, 
+            'debit': self.paid_amount,
+            'credit': 0,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': frappe.db.get_value("Secured Loan",self.custom_secured_loan,"principal_gl_account"),
+            'debit': 0,
+            'credit': self.paid_amount,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        for entry in gl_entries:
+            gl_entry = frappe.get_doc({
+                'doctype': 'GL Entry',
+                **entry
+            })
+            gl_entry.insert(ignore_permissions=True)
+            gl_entry.submit()
+            frappe.flags.ignore_permissions = False
+
+    if self.custom_secured_loan and self.payment_type == 'Pay':
+        gl_entries = []
+    
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': self.paid_to, 
+            'debit': 0,
+            'credit': self.paid_amount,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': frappe.db.get_value("Secured Loan",self.custom_secured_loan,"principal_gl_account"),
+            'debit': self.paid_amount,
+            'credit': 0,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        for entry in gl_entries:
+            gl_entry = frappe.get_doc({
+                'doctype': 'GL Entry',
+                **entry
+            })
+            gl_entry.insert(ignore_permissions=True)
+            gl_entry.submit()
+            frappe.flags.ignore_permissions = False
 
 
 
