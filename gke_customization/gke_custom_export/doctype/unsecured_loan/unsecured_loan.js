@@ -2,6 +2,31 @@
 
 frappe.ui.form.on("Unsecured Loan", {
     refresh(frm) {
+        if(frm.doc.payment_entry_created==0){
+            frm.add_custom_button(__('Create Receive Payment Entry'), () => {
+                    frappe.new_doc('Payment Entry', {
+                    payment_type: "Receive",
+                    party_type: "Customer",
+                    posting_date: frappe.datetime.nowdate(),
+                    paid_amount: frm.doc.loan_amount,
+                    company: frm.doc.company,
+                    mode_of_payment: "Cash",
+                    custom_unsecured_loan:frm.doc.name,
+                    
+                });
+        
+                // Set the party field after a short delay
+                setTimeout(function() {
+                    frappe.db.get_value("Business Partner", frm.doc.lender, "customer").then((r)=> {
+                        if(r.message){
+                                cur_frm.set_value("party", r.message.customer);
+                                cur_frm.set_value("paid_to", "50200 - HDFC - SD");
+                            }
+                        });
+    
+                }, 1500);
+                });
+        }
         // frm.add_custom_button(__('Create Receive Payment Entry'), function() {
         //     frappe.new_doc('Payment Entry', {
         //         payment_type: "Receive",

@@ -26,7 +26,7 @@
   "loan_status",
   "interest_accrued",
   "amended_from",
-  "parent_gl_entry_created",
+  "payment_entry_created",
   "section_break_1trw",
   "payment_entry"
  ],
@@ -99,6 +99,7 @@
    "label": "Repayment Details"
   },
   {
+   "depends_on": "eval:doc.payment_entry_created",
    "fieldname": "repayment_schedule",
    "fieldtype": "Table",
    "label": "Repayment Schedule",
@@ -153,12 +154,6 @@
    "search_index": 1
   },
   {
-   "default": "0",
-   "fieldname": "parent_gl_entry_created",
-   "fieldtype": "Check",
-   "label": "Parent GL Entry Created"
-  },
-  {
    "fieldname": "cost_center",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -175,6 +170,12 @@
    "fieldname": "section_break_1trw",
    "fieldtype": "Section Break",
    "hidden": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "payment_entry_created",
+   "fieldtype": "Check",
+   "label": "Payment Entry Created"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -184,7 +185,7 @@
    "link_fieldname": "custom_unsecured_loan"
   }
  ],
- "modified": "2025-07-22 10:26:17.272812",
+ "modified": "2025-07-22 17:44:23.167903",
  "modified_by": "Administrator",
  "module": "GKE Custom Export",
  "name": "Unsecured Loan",
