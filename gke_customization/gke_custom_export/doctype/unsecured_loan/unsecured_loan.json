@@ -111,6 +111,8 @@
    "label": "Accounting"
   },
   {
+   "fetch_from": "lender.unsecured_loan_account",
+   "fetch_if_empty": 1,
    "fieldname": "principal_gl_account",
    "fieldtype": "Link",
    "label": "Principal GL Account",
