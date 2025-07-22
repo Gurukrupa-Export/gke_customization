@@ -12,7 +12,7 @@ class RewiseField(Document):
 
 		item_doc = frappe.get_doc("Item", self.item)
 
-		# Only update for variants (if needed, remove check if applicable to all items)
+		# Only update for variants 
 		if not item_doc.variant_of:
 			return
 
@@ -95,3 +95,17 @@ def get_filtered_item_attributes(item_code):
 
 	return {attr["attribute"]: attr["attribute_value"] for attr in attributes}
 
+
+
+@frappe.whitelist()
+def get_attribute_values(doctype, txt, searchfield, start, page_len, filters):
+    attribute = filters.get("attribute")
+
+    return frappe.db.sql("""
+        SELECT val.attribute_value, val.attribute_value
+        FROM `tabItem Attribute` AS attr
+        JOIN `tabItem Attribute Value` AS val ON val.parent = attr.name
+        WHERE attr.name = %s AND val.attribute_value LIKE %s
+        ORDER BY val.attribute_value
+        LIMIT %s OFFSET %s
+    """, (attribute, f"%{txt}%", page_len, start))
