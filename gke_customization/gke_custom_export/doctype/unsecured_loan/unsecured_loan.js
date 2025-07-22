@@ -20,7 +20,7 @@ frappe.ui.form.on("Unsecured Loan", {
                     frappe.db.get_value("Business Partner", frm.doc.lender, "customer").then((r)=> {
                         if(r.message){
                                 cur_frm.set_value("party", r.message.customer);
-                                cur_frm.set_value("paid_to", "50200 - HDFC - SD");
+                                // cur_frm.set_value("paid_to", "50200 - HDFC - SD");
                             }
                         });
     
@@ -134,7 +134,7 @@ frappe.ui.form.on("Unsecured Loan Repayment Schedule", {
         // setTimeout(function () {
         //     cur_frm.set_value("party", frm.doc.lender);
         // }, 1500);
-        if (row.payment_type == 'Pay'){
+        if (row.payment_type == 'Pay' && row.payment_entry_created ==0){
 
             frappe.new_doc('Payment Entry', {
                     payment_type: "Pay",
@@ -160,7 +160,7 @@ frappe.ui.form.on("Unsecured Loan Repayment Schedule", {
                         });
                 }, 1500);
         }
-        if (row.payment_type == 'Receive'){
+        if (row.payment_type == 'Receive' && row.payment_entry_created ==0){
 
             frappe.new_doc('Payment Entry', {
                     payment_type: "Receive",
