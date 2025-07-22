@@ -1,0 +1,172 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-15 15:01:48.455637",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_fjv3",
+  "amended_from",
+  "task_id",
+  "job_applicant",
+  "employee_name",
+  "first_name",
+  "last_name",
+  "column_break_oy8d",
+  "designation",
+  "department",
+  "company",
+  "branch",
+  "employee",
+  "operation",
+  "section_break_ejbq",
+  "username",
+  "user_id",
+  "column_break_d3qo",
+  "role_profie"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_fjv3",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "User Permission Management",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fetch_from": "job_applicant.applicant_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "label": "First Name"
+  },
+  {
+   "fetch_from": "employee_name.last_name",
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "label": "Last Name"
+  },
+  {
+   "fieldname": "column_break_oy8d",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "job_applicant.designation",
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fetch_from": "job_applicant.custom_department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "task_id",
+   "fieldtype": "Link",
+   "label": "Task Id",
+   "options": "Task"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fetch_from": "employee_name.branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "job_applicant",
+   "fieldtype": "Data",
+   "label": "Job Applicant"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "user_id",
+   "fieldtype": "Link",
+   "label": "User ID",
+   "options": "User"
+  },
+  {
+   "allow_on_submit": 1,
+   "depends_on": "eval:true",
+   "fieldname": "role_profie",
+   "fieldtype": "Link",
+   "label": "Role Profile",
+   "options": "Role Profile"
+  },
+  {
+   "fieldname": "section_break_ejbq",
+   "fieldtype": "Section Break",
+   "label": "User Detail"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "label": "Email"
+  },
+  {
+   "fieldname": "column_break_d3qo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Data",
+   "label": "Employee"
+  },
+  {
+   "fieldname": "operation",
+   "fieldtype": "Data",
+   "label": "Operation"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-07-17 14:56:55.538143",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "User Permission Request",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}

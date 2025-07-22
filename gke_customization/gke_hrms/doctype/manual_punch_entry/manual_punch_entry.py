@@ -23,7 +23,6 @@ class ManualPunchEntry(Document):
 				cancel_linked_records(date=self.date, employee=self.employee)
 				create_prsnl_out_logs(from_date=self.date, to_date=self.date, employee=self.employee)
 				frappe.msgprint(_("Attendance Updated"))
-		
 
 	def validate(self): 
 		self.locked_by = frappe.session.user
@@ -100,10 +99,23 @@ class ManualPunchEntry(Document):
 			frappe.throw(_("Date is Mandatory"))
 		if self.punch_id:
 			emp = frappe.db.get_value("Employee",{"attendance_device_id": self.punch_id},['name','employee_name', 'default_shift'], as_dict=1)
+			shift_ass = frappe.db.get_value("Shift Assignment",
+					{"employee": self.employee,
+	  					"start_date": ["<=", self.date],
+						"end_date": [">=", self.date],
+						"docstatus": 1
+	  				},
+					['name','shift_type'], as_dict=1)
+			shift_type = ''
+			if shift_ass:
+				shift_type = shift_ass.shift_type
+			else: 
+				if emp:
+					shift_type = emp.get("default_shift")
 			if emp:
 				self.employee = emp.get('name')
 				self.employee_name = emp.get("employee_name")
-				self.shift_name = emp.get("default_shift")
+				self.shift_name = shift_type
 				if self.shift_name:
 					self.start_time, self.end_time = frappe.db.get_value("Shift Type", self.shift_name,['start_time', 'end_time'])
 		if not self.employee:

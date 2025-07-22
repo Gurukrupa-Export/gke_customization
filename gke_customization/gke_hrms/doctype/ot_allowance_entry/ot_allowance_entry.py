@@ -68,6 +68,7 @@ class OTAllowanceEntry(Document):
 		OTLog = frappe.qb.DocType("OT Log")
 		Employee = frappe.qb.DocType("Employee")
 		PersonalOutLog = frappe.qb.DocType("Personal Out Log")
+		ShiftAssignment = frappe.qb.DocType("Shift Assignment")
 
 		conditions = self.get_conditions(Attendance, Employee, OTLog, from_log)
 		
@@ -106,7 +107,7 @@ class OTAllowanceEntry(Document):
 			)
 			- sub_query_personal_out_log
 		).as_("attn_ot_hrs")
-		# frappe.throw(f"{ot_hours}")
+		
 		query = (
 			frappe.qb.from_(Attendance)
 			.left_join(ShiftType).on(Attendance.shift == ShiftType.name)
@@ -143,16 +144,16 @@ class OTAllowanceEntry(Document):
 
 		self.ot_details = []
 
-		data = data + self.get_weekoffs_ot(from_log)
-		# frappe.throw(f"{data}")
+		data =  data + self.get_weekoffs_ot(from_log)
 		if not data:
 			frappe.msgprint(_("No Records were found for the current filters"))
 			return
-		# frappe.throw(f"aaaaaaaa {data}")
-		data = sorted(data, key=lambda x:x.get("attendance_date"))
+		
+		data = sorted(data, key=lambda x:x.get("attendance_date")) 
+
 		for row in data:
 			if not row.get("allowed_ot"):
-				row["allowed_ot"] = row.get("attn_ot_hrs")
+				row["allowed_ot"] = row.get("attn_ot_hrs") 
 			if row.get("allowed_ot") < timedelta(minutes=30):	# for excluding OT that are less than 30 min
 				continue
 
@@ -167,16 +168,38 @@ class OTAllowanceEntry(Document):
 					"holiday_date":["between",[self.from_date, self.to_date]]}, ["holiday_date","weekly_off"])
 			for emp in emp_list:
 				res += self.get_weekoffs_ot_per_employee(from_log, emp, holidays_list)
-		# frappe.throw(f"{res}")
+		# frappe.throw(f"res {res}")
 		return res
 
 	def get_weekoffs_ot_per_employee(self, from_log=False, emp = None, holidays = []):
 		res = []
 		final_result = []
 		for holiday in holidays:
-			shift = get_shift(emp.name, holiday.holiday_date, emp.default_shift) 
-			date_time = datetime.combine(getdate(holiday.holiday_date), get_time(shift.start_time))
+			shift_ass = frappe.db.get_value("Shift Assignment",
+					{"employee": self.employee,
+	  					"start_date": ["<=", holiday.holiday_date],
+						"end_date": [">=", holiday.holiday_date],
+						"docstatus": 1
+	  				},
+					['name','shift_type'], as_dict=1)
+			default_shift = ''
+			holiday_date = getdate(holiday.holiday_date)
+			
+			if shift_ass:
+				default_shift = shift_ass.shift_type
+				shift_start_date = holiday_date - timedelta(days=1)
+			else:
+				default_shift = emp.default_shift
+				shift_start_date = holiday_date
+			shift = get_shift(emp.name, holiday.holiday_date, default_shift) 
+			
+			start_time = get_time(shift.start_time)
+
+			date_time = datetime.combine(shift_start_date, start_time)		
+			# date_time = datetime.combine(getdate(holiday.holiday_date), get_time(shift.start_time))
+
 			shift_timings = get_employee_shift_timings(emp.name, get_datetime(date_time), True)[1]
+			# frappe.throw(f"{date_time} == {shift_start_date} {shift_timings}")
 			filters = {
 					"time":["between",[get_datetime_str(shift_timings.actual_start), get_datetime_str(shift_timings.actual_end)]],
 					"employee": emp.name,
@@ -186,7 +209,7 @@ class OTAllowanceEntry(Document):
 			 				"name as employee_checkin", f"date('{holiday.holiday_date}') as holiday", "employee", "employee_name","shift"]
 
 			data = frappe.get_list("Employee Checkin", filters= filters, fields=fields, order_by='date_time')
-			# frappe.throw(f"data {data}")			
+			# frappe.throw(f"data {filters} |||||| shift_timings {shift_timings} ===== date_time {data}")
 			checkin = {}
 			for row in data:
 				if not checkin and row.type == "IN":
