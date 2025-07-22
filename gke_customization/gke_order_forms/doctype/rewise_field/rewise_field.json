@@ -1,0 +1,321 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:UP-{#}",
+ "creation": "2025-07-16 17:38:20.715158",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item",
+  "metal_colour",
+  "diamond_target",
+  "stone_changeable",
+  "gemstone_type",
+  "chain_type",
+  "chain_length",
+  "feature",
+  "rhodium",
+  "enamal",
+  "detachable",
+  "capganthan",
+  "two_in_one",
+  "product_size",
+  "sizer_type",
+  "lock_type",
+  "black_bead_line",
+  "space_between_mugappu",
+  "distance_between_kadi_to_mugappu",
+  "charm",
+  "count_of_spiral_turns",
+  "number_of_ant",
+  "back_side_size",
+  "back_belt",
+  "back_belt_length",
+  "order_from_type",
+  "order_form_id",
+  "section_break_af3s2",
+  "delivery_date",
+  "customer_code",
+  "update_manufacturing_end_date",
+  "parcel_place",
+  "manufacturing_end_date",
+  "column_break_nhv5g",
+  "update_delivery_date",
+  "update_customer_code",
+  "update_parcel_place"
+ ],
+ "fields": [
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "metal_colour",
+   "fieldtype": "Link",
+   "label": "Metal Colour",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "stone_changeable",
+   "fieldtype": "Link",
+   "label": "Stone Changeable",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "gemstone_type",
+   "fieldtype": "Link",
+   "label": "Gemstone Type",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "chain_type",
+   "fieldtype": "Link",
+   "label": "Chain Type",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "chain_length",
+   "fieldtype": "Float",
+   "label": "Chain Length"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "feature",
+   "fieldtype": "Link",
+   "label": "Feature",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "rhodium",
+   "fieldtype": "Link",
+   "label": "Rhodium",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "enamal",
+   "fieldtype": "Link",
+   "label": "Enamal",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "detachable",
+   "fieldtype": "Link",
+   "label": "Detachable",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "capganthan",
+   "fieldtype": "Link",
+   "label": "Cap/Ganthan",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "two_in_one",
+   "fieldtype": "Link",
+   "label": "2 in 1",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "product_size",
+   "fieldtype": "Data",
+   "label": "Product Size"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "sizer_type",
+   "fieldtype": "Link",
+   "label": "Sizer Type",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "lock_type",
+   "fieldtype": "Link",
+   "label": "Lock Type",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "black_bead_line",
+   "fieldtype": "Float",
+   "label": "Black Bead Line"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "space_between_mugappu",
+   "fieldtype": "Float",
+   "label": "Space between Mugappu"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "distance_between_kadi_to_mugappu",
+   "fieldtype": "Float",
+   "label": "Distance Between Kadi To Mugappu"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "charm",
+   "fieldtype": "Link",
+   "label": "Charm",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "count_of_spiral_turns",
+   "fieldtype": "Int",
+   "label": "Count of Spiral Turns"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "number_of_ant",
+   "fieldtype": "Float",
+   "label": "Number of Ant"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "back_side_size",
+   "fieldtype": "Float",
+   "label": "Back Side Size"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "back_belt",
+   "fieldtype": "Float",
+   "label": "Back Belt"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id",
+   "fieldname": "back_belt_length",
+   "fieldtype": "Float",
+   "label": "Back Belt Length"
+  },
+  {
+   "fieldname": "order_from_type",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Order From Type",
+   "options": "CAD Order"
+  },
+  {
+   "depends_on": "eval:doc.order_from_type",
+   "fieldname": "order_form_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Order Form ID",
+   "options": "Order"
+  },
+  {
+   "depends_on": "eval:doc.order_form_id",
+   "fieldname": "section_break_af3s2",
+   "fieldtype": "Section Break",
+   "hidden": 1
+  },
+  {
+   "fetch_from": "order_form_id.delivery_date",
+   "fieldname": "delivery_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Delivery Date"
+  },
+  {
+   "fieldname": "customer_code",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Customer Code",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "update_manufacturing_end_date",
+   "fieldtype": "Date",
+   "hidden": 1,
+   "label": "Update Est.MFG End Date"
+  },
+  {
+   "fieldname": "parcel_place",
+   "fieldtype": "Table MultiSelect",
+   "hidden": 1,
+   "label": "Shipping Territory",
+   "options": "Territory Multi Select"
+  },
+  {
+   "fieldname": "manufacturing_end_date",
+   "fieldtype": "Date",
+   "hidden": 1,
+   "label": "Est.MFG End Date"
+  },
+  {
+   "fieldname": "column_break_nhv5g",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "update_delivery_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Update Delivery Date"
+  },
+  {
+   "fieldname": "update_customer_code",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Update Customer Code",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "update_parcel_place",
+   "fieldtype": "Table MultiSelect",
+   "hidden": 1,
+   "label": "Update Shipping Territory",
+   "options": "Territory Multi Select"
+  },
+  {
+   "depends_on": "eval:doc.item || doc.order_form_id\r\n",
+   "fieldname": "diamond_target",
+   "fieldtype": "Float",
+   "label": "Diamond Target",
+   "options": "Attribute Value"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-16 17:43:47.478332",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Rewise Field",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
