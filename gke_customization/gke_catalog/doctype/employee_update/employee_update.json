@@ -28,6 +28,7 @@
   "company",
   "department",
   "designation",
+  "grade",
   "column_break_hkde",
   "operation",
   "manufacturer",
@@ -47,6 +48,7 @@
   "date_of_retirement",
   "column_break_z6ek",
   "employee_onboarding",
+  "job_applicant",
   "custom_probation_period_days",
   "contact_details",
   "cell_number",
@@ -290,7 +292,7 @@
    "fieldtype": "Link",
    "label": "Company",
    "options": "Company",
-   "read_only_depends_on": "eval: doc.employee"
+   "read_only_depends_on": "eval: doc.employee || doc.job_applicant"
   },
   {
    "fetch_from": "employee.department",
@@ -298,7 +300,7 @@
    "fieldtype": "Link",
    "label": "Department",
    "options": "Department",
-   "read_only_depends_on": "eval: doc.employee"
+   "read_only_depends_on": "eval: doc.employee || doc.job_applicant"
   },
   {
    "fieldname": "column_break_hkde",
@@ -319,7 +321,7 @@
    "fieldtype": "Link",
    "label": "Designation",
    "options": "Designation",
-   "read_only_depends_on": "eval: doc.employee"
+   "read_only_depends_on": "eval: doc.employee || doc.job_applicant"
   },
   {
    "fieldname": "contact_details",
@@ -1207,12 +1209,25 @@
    "label": "Employee Onboarding",
    "options": "Employee Onboarding",
    "read_only": 1
+  },
+  {
+   "fetch_from": "designation.custom_grade",
+   "fieldname": "grade",
+   "fieldtype": "Link",
+   "label": "Grade",
+   "options": "Employee Grade"
+  },
+  {
+   "fieldname": "job_applicant",
+   "fieldtype": "Link",
+   "label": "Job Applicant",
+   "options": "Job Applicant"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-18 16:15:49.025807",
+ "modified": "2025-07-23 15:23:42.787978",
  "modified_by": "Administrator",
  "module": "GKE Catalog",
  "name": "Employee Update",
