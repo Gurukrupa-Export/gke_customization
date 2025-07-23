@@ -11,7 +11,7 @@ frappe.ui.form.on('Secured Loan', {
                     paid_amount: frm.doc.loan_amount,
                     company: frm.doc.company,
                     mode_of_payment: "Cash",
-                    custom_unsecured_loan:frm.doc.name,
+                    custom_secured_loan:frm.doc.name,
                     
                 });
         
@@ -88,8 +88,8 @@ frappe.ui.form.on('Secured Loan Repayment Schedule', {
                     paid_amount: row.emi_amount,
                     company: frm.doc.company,
                     mode_of_payment: "Bank Draft",
-                    custom_unsecured_loan: frm.doc.name,
-                    custom_unsecured_loan_repayment_schedule: row.name
+                    custom_secured_loan: frm.doc.name,
+                    custom_secured_loan_repayment_schedule: row.name
                 });
             
                 // Set party after a short delay
@@ -108,20 +108,20 @@ frappe.ui.form.on('Secured Loan Repayment Schedule', {
 
 
     },
-    grid_row_rendered(frm, cdt, cdn) {
-        console.log("grid_row_rendered triggered");
-        const row = locals[cdt][cdn];
-        const grid_row = frm.fields_dict.secured_loan_repayment_schedule.grid.grid_rows_by_docname[cdn];
-        console.log(grid_row.fields_dict)
+    // grid_row_rendered(frm, cdt, cdn) {
+    //     console.log("grid_row_rendered triggered");
+    //     const row = locals[cdt][cdn];
+    //     const grid_row = frm.fields_dict.secured_loan_repayment_schedule.grid.grid_rows_by_docname[cdn];
+    //     console.log(grid_row.fields_dict)
 
-        if (row.payment_status === 'Unpaid' && grid_row?.fields_dict?.make_payment_entry) {
-            const html = `
-                <button type="button" class="btn btn-sm btn-primary make-payment-btn" data-idx="${row.idx}">
-                    Make Payment
-                </button>
-            `;
-            grid_row.fields_dict.make_payment_entry.$wrapper.html(html);
-        }
+    //     if (row.payment_status === 'Unpaid' && grid_row?.fields_dict?.make_payment_entry) {
+    //         const html = `
+    //             <button type="button" class="btn btn-sm btn-primary make-payment-btn" data-idx="${row.idx}">
+    //                 Make Payment
+    //             </button>
+    //         `;
+    //         grid_row.fields_dict.make_payment_entry.$wrapper.html(html);
+    //     }
     }
 });
 
