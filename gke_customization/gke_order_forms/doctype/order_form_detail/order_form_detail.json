@@ -320,6 +320,7 @@
     "fieldtype": "Column Break"
     },
     {
+    "default": "1",
     "fieldname": "qty",
     "fieldtype": "Int",
     "label": "No. of Pcs",
