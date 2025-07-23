@@ -122,7 +122,7 @@ frappe.ui.form.on('Secured Loan Repayment Schedule', {
     //         `;
     //         grid_row.fields_dict.make_payment_entry.$wrapper.html(html);
     //     }
-    }
+    // }
 });
 
 
