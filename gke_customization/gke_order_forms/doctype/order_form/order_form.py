@@ -790,6 +790,7 @@ def get_customer_order_form(source_name, target_doc=None):
 				})
 	return target_doc
 
+
 def validate_item_variant(self):
 	for i in self.order_details:
 		if i.design_type == "Sketch Design" and i.design_id:
