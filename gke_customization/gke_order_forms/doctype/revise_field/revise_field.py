@@ -5,7 +5,7 @@ import frappe
 from frappe.model.document import Document
 from frappe import _
 
-class RewiseField(Document):
+class ReviseField(Document):
 	def validate(self):
 		if not self.item:
 			return

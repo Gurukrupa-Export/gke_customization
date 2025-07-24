@@ -1,4 +1,4 @@
-frappe.ui.form.on("Rewise Field", {
+frappe.ui.form.on("Revise Field", {
 	item: function(frm) {
 		if (!frm.doc.item) {
 			frm.fields_dict["item_attributes"].$wrapper.html("<div style='color: red;'>Please select an Item</div>");
@@ -6,7 +6,7 @@ frappe.ui.form.on("Rewise Field", {
 		}
 
 		frappe.call({
-			method: "gke_customization.gke_order_forms.doctype.rewise_field.rewise_field.get_filtered_item_attributes",
+			method: "gke_customization.gke_order_forms.doctype.revise_field.revise_field.get_filtered_item_attributes",
 			args: {
 				item_code: frm.doc.item
 			},

@@ -51,7 +51,7 @@ class OrderForm(Document):
 		self.validate_category_subcaegory()
 		self.validate_filed_value()
 		validate_design_id(self)
-
+		validate_item_variant(self)
 		validate_is_mannual(self)
 		set_data(self)
 		for i in self.order_details:	
@@ -789,6 +789,27 @@ def get_customer_order_form(source_name, target_doc=None):
 					"nakshi_weght": j.get("nakshi_weght"),
 				})
 	return target_doc
+
+def validate_item_variant(self):
+	for i in self.order_details:
+		if i.design_type == "Sketch Design" and i.design_id:
+			custom_sketch_order_id = frappe.db.get_value("Item", i.design_id, "custom_sketch_order_id")
+			if custom_sketch_order_id:
+				# Get all variants where variant_of = i.design_id
+				variants = frappe.get_all("Item",
+					filters={"variant_of": i.design_id},
+					fields=["name"]
+				)
+				# frappe.throw(f"{variants}")
+				if variants:
+					variant_names = ", ".join(item.name for item in variants)
+					frappe.throw(f"""
+						You already created a variant for this Design ID ({i.design_id}).<br><br>
+						Items found: {variant_names}<br><br>
+						You cannot create another variant using <b>Sketch Design</b>.<br>
+						Please select <b>Design Type = 'Mod - Old Stylebio & Tag No'</b> and select the variant in Design ID.
+					""")
+
 
 def validate_design_id(self):
 	for i in self.order_details:
