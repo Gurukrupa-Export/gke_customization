@@ -1,0 +1,57 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-24 18:41:04.245393",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_hxge",
+  "component",
+  "abbr",
+  "amount",
+  "formula"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_hxge",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "component",
+   "fieldtype": "Link",
+   "label": "Component",
+   "options": "Salary Component"
+  },
+  {
+   "fieldname": "abbr",
+   "fieldtype": "Data",
+   "label": "Abbr"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "options": "currency"
+  },
+  {
+   "fieldname": "formula",
+   "fieldtype": "Code",
+   "hidden": 1,
+   "label": "Formula",
+   "options": "PythonExpression"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-06-26 09:58:29.678638",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Employee Annexure Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

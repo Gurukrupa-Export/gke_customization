@@ -24,7 +24,9 @@ def employee_update(source_name, target_doc=None):
                     "date_of_joining": "date_of_joining",
                     "employee_name": "full_name",
                     "holiday_list": "holiday_list",
-                    "employee_onboarding": "name"
+                    "employee_onboarding": "name",
+                    "employee_grade": "grade",
+                    "job_applicant": "job_applicant"
                 },
             }
         },
@@ -36,7 +38,6 @@ def employee_update(source_name, target_doc=None):
     doc.custom_notice_dayes = job_applicant.notice_period_in_days
     
     doc.scheduled_confirmation_date = job_offer.offer_date
-    # doc.final_confirmation_date = 
 
     doc.gender = job_applicant.gender
     doc.employment_type = job_opening.employment_type
@@ -47,8 +48,9 @@ def employee_update(source_name, target_doc=None):
     doc.personal_email = job_applicant.email_id
     doc.current_address = job_applicant.current_address
     doc.permanent_address = job_applicant.native_or_permanent_address
-    doc.ctc = frappe.db.get_value('Job Offer Term',{'parent': job_offer.name,'offer_term': 'Monthly Gross Salary'},['value'])
+    # doc.ctc = frappe.db.get_value('Job Offer Term',{'parent': job_offer.name,'offer_term': 'Monthly Gross Salary'},['value'])
     doc.marital_status = job_applicant.marital_status_new
+    doc.ctc = frappe.db.get_value("Employee Annexure", {'employee_job_offer': job_offer.name},['ctc'])
     
     for lan in job_applicant.language_known:
         employee_languages = doc.append("employee_languages", {})
