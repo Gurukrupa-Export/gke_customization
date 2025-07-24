@@ -170,7 +170,8 @@ def get_sketch_order(from_date=None, to_date=None, sof_docstatus=None, branch=No
         filters=order_filters,
         fields=["name", "docstatus", "company", "branch", "customer_code", "sketch_order_form", "workflow_state",
                 "sketch_image", "order_type", "flow_type", "order_date", "delivery_date", "creation",
-                "owner", "modified", "_assign"]
+                "owner", "modified", "_assign","design_image","design_image1",
+                "design_image2","design_image3","design_image4"]
     )
 
     order_names = [order["name"] for order in sketch_orders]
