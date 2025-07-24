@@ -9,7 +9,7 @@ from collections import defaultdict
 
 def get_columns(group_key):
     return [
-        {"label": group_key.title(), "fieldname": group_key, "fieldtype": "Data", "width": 180},
+        {"label": group_key.replace("_", " ").title(), "fieldname": group_key, "fieldtype": "Data", "width": 180},
         {"label": "Assigned Qty", "fieldname": "assigned_qty", "fieldtype": "Int", "width": 120},
         {"label": "Rough Approved Qty", "fieldname": "rough_approved_qty", "fieldtype": "Int", "width": 180},
         {"label": "Rough Rejected Qty", "fieldname": "rough_rejected_qty", "fieldtype": "Int", "width": 180},
@@ -83,7 +83,11 @@ def execute(filters=None):
         # # return so_map[parent].get(group_by_type) or "Unknown"
 
         if group_by_type == "branch":
-            return designer_branch_map.get(designer) or "Not Defined"
+            branch_id = designer_branch_map.get(designer)
+            if not branch_id:
+               return "Not Defined"
+            return frappe.db.get_value("Branch", branch_id, "branch_name") or branch_id
+
         elif group_by_type in {"category", "diamond_target_range", "metal_target_range"}:
             return so_map.get(parent, {}).get(group_by_type) or "Not Defined"
         return "Not Defined"

@@ -7,22 +7,6 @@
  "doctype": "Report",
  "filters": [
   {
-   "default": "2025-06-01",
-   "fieldname": "from_date",
-   "fieldtype": "Date",
-   "label": "From Date",
-   "mandatory": 0,
-   "wildcard_filter": 0
-  },
-  {
-   "default": "2025-06-30",
-   "fieldname": "to_date",
-   "fieldtype": "Date",
-   "label": "To Date",
-   "mandatory": 0,
-   "wildcard_filter": 0
-  },
-  {
    "default": "GEPL-MU-0009",
    "fieldname": "branch",
    "fieldtype": "Link",
@@ -30,19 +14,37 @@
    "mandatory": 0,
    "options": "Branch",
    "wildcard_filter": 0
+  },
+  {
+   "default": "2025",
+   "fieldname": "year",
+   "fieldtype": "Select",
+   "label": "Year",
+   "mandatory": 0,
+   "options": "2023\n2024\n2025\n2026",
+   "wildcard_filter": 0
+  },
+  {
+   "default": "July",
+   "fieldname": "month",
+   "fieldtype": "Select",
+   "label": "Month",
+   "mandatory": 0,
+   "options": "January\nFebruary\nMarch\nApril\n May\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember",
+   "wildcard_filter": 0
   }
  ],
- "idx": 0,
+ "idx": 3,
  "is_standard": "Yes",
  "letter_head": "Gurukrupa Export",
  "letterhead": null,
- "modified": "2025-07-07 14:52:12.531213",
+ "modified": "2025-07-21 14:59:45.061462",
  "modified_by": "jinali_g@gkexport.com",
  "module": "GKE Catalog",
  "name": "Monthly Sketch Order Form for Delivery",
  "owner": "jinali_g@gkexport.com",
  "prepared_report": 0,
- "query": "SELECT \r\n    DATE_FORMAT(delivery_date, '%%Y-%%m-%%d') AS `Delivery Date`,\r\n    COUNT(name) AS `Total Orders`,\r\n    SUM(CASE WHEN docstatus = 1 THEN 1 ELSE 0 END) AS Submitted,\r\n    SUM(CASE WHEN docstatus = 0 THEN 1 ELSE 0 END) AS Pending,\r\n    SUM(CASE WHEN Workflow_state = 'Cancelled' THEN 1 ELSE 0 END) AS Cancelled\r\nFROM `tabSketch Order Form`\r\nWHERE \r\n    (%(from_date)s IS NULL OR DATE(modified) >= %(from_date)s) \r\n    AND (%(to_date)s IS NULL OR DATE(modified) <= %(to_date)s)\r\n    AND (%(branch)s IS NULL OR branch = %(branch)s)\r\nGROUP BY delivery_date\r\nORDER BY delivery_date ASC;\r\n",
+ "query": "SELECT \r\n    DATE_FORMAT(delivery_date, '%%Y-%%m-%%d') AS `Delivery Date`,\r\n    COUNT(name) AS `Total Orders`,\r\n    SUM(CASE WHEN docstatus = 1 THEN 1 ELSE 0 END) AS Submitted,\r\n    SUM(CASE WHEN docstatus = 0 THEN 1 ELSE 0 END) AS Pending,\r\n    SUM(CASE WHEN Workflow_state = 'Cancelled' THEN 1 ELSE 0 END) AS Cancelled\r\nFROM `tabSketch Order Form`\r\nWHERE \r\n    (%(branch)s IS NULL OR branch = %(branch)s)\r\n     AND (%(year)s IS NULL OR YEAR(delivery_date) = %(year)s)\r\n     AND (%(month)s IS NULL OR month(delivery_date) = %(month)s)\r\n\r\nGROUP BY delivery_date\r\nORDER BY delivery_date ASC;\r\n",
  "ref_doctype": "Sketch Order Form",
  "report_name": "Monthly Sketch Order Form for Delivery",
  "report_type": "Query Report",
