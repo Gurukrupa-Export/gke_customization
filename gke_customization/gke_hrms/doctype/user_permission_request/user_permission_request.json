@@ -35,7 +35,7 @@
    "fieldtype": "Link",
    "label": "Amended From",
    "no_copy": 1,
-   "options": "User Permission Management",
+   "options": "User Permission Request",
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
