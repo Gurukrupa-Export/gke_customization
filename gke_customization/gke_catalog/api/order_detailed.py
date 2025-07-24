@@ -407,7 +407,8 @@ def get_order12(from_date=None, to_date=None, of_docstatus=None, branch=None, or
 
 @frappe.whitelist()
 def get_order(from_date=None, to_date=None, of_docstatus=None, branch=None, order_form=None, 
-            customer=None, workflow_state=None, docstatus=None, is_initial_load=None,offset=None, limit=None):
+            customer=None, workflow_state=None, docstatus=None, workflow_type=None, design_type=None,
+            is_initial_load=None,offset=None, limit=None):
     from_date = frappe.utils.getdate(from_date) if from_date else None
     to_date = frappe.utils.getdate(to_date) if to_date else None
 
@@ -451,6 +452,11 @@ def get_order(from_date=None, to_date=None, of_docstatus=None, branch=None, orde
 
     if is_initial_load != "true" and is_initial_load != True and workflow_state:
         order_filters["workflow_state"] = workflow_state
+    
+    if workflow_type:
+        order_filters["workflow_type"] = workflow_type
+    if design_type:
+        order_filters["design_type"] = design_type
 
     orders = frappe.get_all("Order",
         filters=order_filters,

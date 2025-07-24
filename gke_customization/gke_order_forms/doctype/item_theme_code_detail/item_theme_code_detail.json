@@ -6,11 +6,16 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "section_break_tbxu",
   "customer",
-  "customer_name",
   "column_break_dpk6",
-  "theme_code"
+  "customer_name",
+  "section_break_tbxu",
+  "theme_code",
+  "column_break_ox3o",
+  "digit_14code",
+  "digit_18code",
+  "digit_15code",
+  "sku_code"
  ],
  "fields": [
   {
@@ -39,12 +44,40 @@
    "fieldname": "customer_name",
    "fieldtype": "Data",
    "label": "Customer Name"
+  },
+  {
+   "depends_on": "eval: doc.customer_name.includes('Carat')",
+   "fieldname": "sku_code",
+   "fieldtype": "Data",
+   "label": "SKU Code"
+  },
+  {
+   "fieldname": "column_break_ox3o",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.customer_name.includes('Titan')",
+   "fieldname": "digit_14code",
+   "fieldtype": "Data",
+   "label": "14 Digit Code"
+  },
+  {
+   "depends_on": "eval: doc.customer_name.includes('Reliance')",
+   "fieldname": "digit_18code",
+   "fieldtype": "Data",
+   "label": "18 Digit Code"
+  },
+  {
+   "depends_on": "eval: doc.customer_name.includes('Novel')",
+   "fieldname": "digit_15code",
+   "fieldtype": "Data",
+   "label": "15 Digit Code"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-09-12 10:09:29.792823",
+ "modified": "2025-03-04 17:40:10.753486",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Item Theme Code Detail",
