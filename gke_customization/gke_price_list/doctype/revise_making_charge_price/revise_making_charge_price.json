@@ -19,9 +19,9 @@
   "subcontracting_wastage",
   "amended_from",
   "section_break_okj7w",
-  "update_making_charge_price_item_subcategory",
+  "revise_making_charge_price_item_subcategory",
   "section_break_6qxib",
-  "update_making_charge_price_finding_subcategory"
+  "revise_making_charge_price_finding_subcategory"
  ],
  "fields": [
   {
@@ -66,9 +66,9 @@
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "update_making_charge_price_item_subcategory",
+   "fieldname": "revise_making_charge_price_item_subcategory",
    "fieldtype": "Table",
-   "label": "Update Making Charge Price Item Subcategory",
+   "label": "Revise Making Charge Price Item Subcategory",
    "options": "Revise Making Charge Price Item Subcategory"
   },
   {
@@ -82,9 +82,9 @@
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "update_making_charge_price_finding_subcategory",
+   "fieldname": "revise_making_charge_price_finding_subcategory",
    "fieldtype": "Table",
-   "label": "Update Making Charge Price Finding Subcategory",
+   "label": "Revise Making Charge Price Finding Subcategory",
    "options": "Revise Making Charge Price Finding Subcategory"
   },
   {

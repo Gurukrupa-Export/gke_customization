@@ -16,39 +16,39 @@ class ReviseDiamondPriceList(Document):
 			}
 
         if self.price_list_type == 'Sieve Size Range':
-            if len(self.update_diamond_price_list_details_sieve_size_range) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["sieve_size_range"])):
-                if self.update_diamond_price_list_details_sieve_size_range==[]:
-                    self.set("update_diamond_price_list_details_sieve_size_range", [])
+            if len(self.revise_diamond_price_list_details_sieve_size_range) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["sieve_size_range"])):
+                if self.revise_diamond_price_list_details_sieve_size_range==[]:
+                    self.set("revise_diamond_price_list_details_sieve_size_range", [])
                     diamond_price_list = frappe.db.get_list("Diamond Price List",filters=filters,fields=["sieve_size_range"])
                     output_list = remove_duplicate_data(diamond_price_list)
                     sorted_data = sort_data(self,output_list)
                     set_data_in_child_table(self,sorted_data)
                 else:
-                    old_diamond_price_list = [d.diamond_price_list for d in self.update_diamond_price_list_details_sieve_size_range]
+                    old_diamond_price_list = [d.diamond_price_list for d in self.revise_diamond_price_list_details_sieve_size_range]
                     for j in frappe.db.get_list("Diamond Price List",filters=filters,pluck="name"):
                         if j not in old_diamond_price_list:
                             sorted_data = frappe.db.get_list("Diamond Price List",filters={"name":j},fields=["sieve_size_range"])
                             set_data_in_child_table(self,sorted_data)
         
         elif self.price_list_type == 'Size (in mm)':
-            if len(self.update_diamond_price_list_details_size_in_mm) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["size_in_mm"])):
-                if self.update_diamond_price_list_details_size_in_mm==[]:
-                    self.set("update_diamond_price_list_details_size_in_mm", [])
+            if len(self.revise_diamond_price_list_details_size_in_mm) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["size_in_mm"])):
+                if self.revise_diamond_price_list_details_size_in_mm==[]:
+                    self.set("revise_diamond_price_list_details_size_in_mm", [])
                     diamond_price_list = frappe.db.get_list("Diamond Price List",filters=filters,fields=["size_in_mm"])
                     output_list = remove_duplicate_data(diamond_price_list)
                     sorted_data = sort_data(self,output_list)
                     set_data_in_child_table(self,sorted_data)
                 else:
-                    old_diamond_price_list = [d.diamond_price_list for d in self.update_diamond_price_list_details_size_in_mm]
+                    old_diamond_price_list = [d.diamond_price_list for d in self.revise_diamond_price_list_details_size_in_mm]
                     for j in frappe.db.get_list("Diamond Price List",filters=filters,pluck="name"):
                         if j not in old_diamond_price_list:
                             sorted_data = frappe.db.get_list("Diamond Price List",filters={"name":j},fields=["size_in_mm"])
                             set_data_in_child_table(self,sorted_data)
                     
         else:
-            if len(self.update_diamond_price_list_details) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["from_weight","to_weight"])):
-                if self.update_diamond_price_list_details==[]:
-                    self.set("update_diamond_price_list_details", [])
+            if len(self.revise_diamond_price_list_details) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["from_weight","to_weight"])):
+                if self.revise_diamond_price_list_details==[]:
+                    self.set("revise_diamond_price_list_details", [])
                     old_diamond_price_list = frappe.db.get_list("Diamond Price List",filters=filters,fields=["from_weight","to_weight"])
                     diamond_price_list = []
                     for j in old_diamond_price_list:
@@ -58,7 +58,7 @@ class ReviseDiamondPriceList(Document):
                     sorted_data = sort_data(self,output_list)
                     set_data_in_child_table(self,sorted_data)
                 else:
-                    old_diamond_price_list = [d.diamond_price_list for d in self.update_diamond_price_list_details]
+                    old_diamond_price_list = [d.diamond_price_list for d in self.revise_diamond_price_list_details]
                     for j in frappe.db.get_list("Diamond Price List",filters=filters,pluck="name"):
                         if j not in old_diamond_price_list:
                             sorted_data = frappe.db.get_list("Diamond Price List",filters={"name":j},fields=["from_weight","to_weight"])
@@ -66,11 +66,11 @@ class ReviseDiamondPriceList(Document):
 
     def on_submit(self):
         if self.price_list_type == 'Sieve Size Range':
-            table = 'update_diamond_price_list_details_sieve_size_range'
+            table = 'revise_diamond_price_list_details_sieve_size_range'
         elif self.price_list_type == 'Size (in mm)':
-            table = 'update_diamond_price_list_details_size_in_mm'
+            table = 'revise_diamond_price_list_details_size_in_mm'
         else:
-            table = 'update_diamond_price_list_details'
+            table = 'revise_diamond_price_list_details'
 
         for i in self.get(table):
             
@@ -168,7 +168,7 @@ def for_sieve_size_range(self,i):
     rate = frappe.db.get_value("Diamond Price List",rate_filters,"rate")
     name = frappe.db.get_value("Diamond Price List",rate_filters,"name")
     handling_rate = frappe.db.get_value("Diamond Price List",rate_filters,"handling_rate")
-    rate_details = self.append("update_diamond_price_list_details_sieve_size_range", {})
+    rate_details = self.append("revise_diamond_price_list_details_sieve_size_range", {})
     rate_details.rate_per_carat = rate
     rate_details.diamond_price_list = name
     rate_details.diamond_handling_rate = handling_rate
@@ -189,7 +189,7 @@ def for_size_in_mm(self,i):
     rate = frappe.db.get_value("Diamond Price List",rate_filters,"rate")
     name = frappe.db.get_value("Diamond Price List",rate_filters,"name")
     handling_rate = frappe.db.get_value("Diamond Price List",rate_filters,"handling_rate")
-    rate_details = self.append("update_diamond_price_list_details_size_in_mm", {})
+    rate_details = self.append("revise_diamond_price_list_details_size_in_mm", {})
     rate_details.rate_per_carat = rate
     rate_details.diamond_price_list = name
     rate_details.diamond_handling_rate = handling_rate
@@ -211,7 +211,7 @@ def for_weight_in_cts(self,i):
     rate = frappe.db.get_value("Diamond Price List",rate_filters,"rate")
     name = frappe.db.get_value("Diamond Price List",rate_filters,"name")
     handling_rate = frappe.db.get_value("Diamond Price List",rate_filters,"handling_rate")
-    rate_details = self.append("update_diamond_price_list_details", {})
+    rate_details = self.append("revise_diamond_price_list_details", {})
     rate_details.rate_per_carat = rate
     rate_details.diamond_price_list = name
     rate_details.diamond_handling_rate = handling_rate

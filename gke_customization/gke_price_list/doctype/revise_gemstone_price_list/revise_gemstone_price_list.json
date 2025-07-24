@@ -30,7 +30,7 @@
   "outwork_handling_charges_rate",
   "amended_from",
   "section_break_8njhb",
-  "update_gemstone_price_list_details",
+  "revise_gemstone_price_list_details",
   "section_break_pzvtv",
   "rate_per_carat",
   "revised_rate",
@@ -110,12 +110,12 @@
    "depends_on": "eval:doc.price_list_type == 'Weight (in cts)'",
    "fieldname": "section_break_8njhb",
    "fieldtype": "Section Break",
-   "label": "Update Gemstone Price List Details"
+   "label": "Revise Gemstone Price List Details"
   },
   {
-   "fieldname": "update_gemstone_price_list_details",
+   "fieldname": "revise_gemstone_price_list_details",
    "fieldtype": "Table",
-   "label": "Update Gemstone Price List Details",
+   "label": "Revise Gemstone Price List Details",
    "options": "Revise Gemstone Price List Details"
   },
   {
