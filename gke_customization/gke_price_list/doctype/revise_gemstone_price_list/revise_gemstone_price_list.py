@@ -48,10 +48,12 @@ class ReviseGemstonePriceList(Document):
             for i in self.revise_gemstone_price_list_details:
                 # if i.difference!=0:
                 frappe.db.set_value('Gemstone Price List',i.gemstone_price_list,{'rate':i.revised_rate,'effective_from':self.date})
+                if not i.gemstone_price_list:
+                    crate_price_list(self,i)
         else:
             frappe.db.set_value('Gemstone Price List',self.gemstone_price_list,{'rate':self.revised_rate,'effective_from':self.date})
-        if not i.gemstone_price_list:
-            crate_price_list(self,i)
+            if not self.gemstone_price_list:
+                crate_price_list(self,i)
         frappe.msgprint("Price List Updated")
             
 def crate_price_list(self,row):
@@ -66,12 +68,12 @@ def crate_price_list(self,row):
     gemstone_price_list_doc.gemstone_size = self.stone_size
 
     if self.handling_charges_for_outright:
-        gemstone_price_list_doc.outright_handling_charges_in_percentage = self.custom_outright_handling_charges_in_percentage
-        gemstone_price_list_doc.outright_handling_charges_rate = self.custom_outright_handling_charges_rate
+        gemstone_price_list_doc.outright_handling_charges_in_percentage = self.outright_handling_charges_in_percentage
+        gemstone_price_list_doc.outright_handling_charges_rate = self.outright_handling_charges_rate
 
-    if self.handling_charges_for_outwork_handling_rate:
-        gemstone_price_list_doc.outwork_handling_charges_in_percentage = self.custom_outwork_handling_charges_in_percentage
-        gemstone_price_list_doc.outwork_handling_charges_rate = self.custom_outwork_handling_charges_rate
+    if self.handling_charges_for_outwork:
+        gemstone_price_list_doc.outwork_handling_charges_in_percentage = self.outwork_handling_charges_in_percentage
+        gemstone_price_list_doc.outwork_handling_charges_rate = self.outwork_handling_charges_rate
 
 
     if self.price_list_type == 'Weight (in cts)':
