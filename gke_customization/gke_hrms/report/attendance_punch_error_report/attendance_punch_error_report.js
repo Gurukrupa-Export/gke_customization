@@ -102,8 +102,9 @@ frappe.query_reports["Attendance Punch Error Report"] = {
 			console.log(checkedBox, selectedCell, selectedRowIndex, selectedRowData);
 			
 			// Open the Manual Punch form with the selected row's data
-			frappe.new_doc("Manual Punch", {
-				doctype: "Manual Punch",
+			frappe.new_doc("Manual Punch Entry", {
+				doctype: "Manual Punch Entry",
+				date: selectedRowData.attendance_date,
 				error_date: selectedRowData.attendance_date,
 				employee: selectedRowData.employee
 			});
