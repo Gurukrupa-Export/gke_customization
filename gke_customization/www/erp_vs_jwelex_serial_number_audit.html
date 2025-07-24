@@ -42,11 +42,11 @@
     @keyframes float {
         0% {
             transform: translateY(100vh) rotate(0deg);
-            opacity: 0.3;
+            opacity: 0.5;
         }
         100% {
             transform: translateY(-10vh) rotate(360deg);
-            opacity: 0;
+            opacity: 0.1;
         }
     }
 
@@ -142,7 +142,7 @@
     </h5>
     <div id="dashboard-container">
         <iframe id="metabase-frame" 
-            src="https://www.gkexport.co/public/dashboard/04145159-a4c0-4f8a-a7e5-ec0a7fc79448"
+            src="https://www.gkexport.co/public/dashboard/e35a59ae-0153-4daa-a3c0-514ecde00858"
             allowtransparency="true">
         </iframe>
         <div id="loading-message">
@@ -180,7 +180,7 @@
                     const userRoles = response.message || [];
                     let isAuthorized = false;
 
-                    if (currentUser === 'Administrator' || userRoles.includes('System Manager')) {
+                    if (currentUser === 'Administrator' || userRoles.includes('Metabase Viewer')) {
                         isAuthorized = true;
                         updateStatus('User is authorized. Showing content.');
 
