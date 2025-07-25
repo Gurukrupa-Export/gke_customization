@@ -12,7 +12,7 @@ class ReviseField(Document):
 
 		item_doc = frappe.get_doc("Item", self.item)
 
-		# Only update for variants 
+		# Only update variants 
 		if not item_doc.variant_of:
 			return
 
@@ -48,8 +48,9 @@ class ReviseField(Document):
 
 		for fieldname, attribute in field_to_attribute.items():
 			new_value = self.get(fieldname)
-			
-			if not new_value:
+
+			# Allow 0 but skip None or empty
+			if new_value is None or new_value == "":
 				continue
 
 			# Check attribute already exists
@@ -60,11 +61,9 @@ class ReviseField(Document):
 					break
 
 			if existing_row:
-				if existing_row.attribute_value != new_value:
-					# Update the attribute value
+				if str(existing_row.attribute_value) != str(new_value):
 					frappe.db.set_value("Item Variant Attribute", existing_row.name, "attribute_value", new_value)
 					updated = True
-	
 
 		if updated:
 			frappe.msgprint(_("Item attributes updated in Item <b>{0}</b>").format(item_doc.name))
@@ -94,6 +93,7 @@ def get_filtered_item_attributes(item_code):
 	)
 
 	return {attr["attribute"]: attr["attribute_value"] for attr in attributes}
+
 
 
 
