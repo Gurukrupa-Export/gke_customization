@@ -1,0 +1,84 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-26 12:09:26.847444",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "diamond_type",
+  "weight_type",
+  "sieve_size",
+  "sieve_size_range",
+  "from_diamond",
+  "to_diamond",
+  "plus_percent",
+  "minus_percent"
+ ],
+ "fields": [
+  {
+   "fieldname": "diamond_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Diamond Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "weight_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Weight Type",
+   "options": "Tolerance Weight Type"
+  },
+  {
+   "fieldname": "sieve_size",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sieve Size",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "sieve_size_range",
+   "fieldtype": "Link",
+   "label": "Sieve Size Range",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "from_diamond",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "From Diamond"
+  },
+  {
+   "fieldname": "to_diamond",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "To Diamond"
+  },
+  {
+   "fieldname": "plus_percent",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "(+) Percent"
+  },
+  {
+   "fieldname": "minus_percent",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "(-) Percent"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-07-26 12:09:26.847444",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Revise Diamond Tolerance Table",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
