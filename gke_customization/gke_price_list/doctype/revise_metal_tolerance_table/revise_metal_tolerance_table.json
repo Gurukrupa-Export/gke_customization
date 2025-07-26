@@ -1,0 +1,83 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-26 12:09:07.082509",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "weight_type",
+  "metal_type",
+  "range_type",
+  "tolerance_range",
+  "from_weight",
+  "to_weight",
+  "plus_percent",
+  "minus_percent"
+ ],
+ "fields": [
+  {
+   "fieldname": "weight_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Weight Type",
+   "options": "Tolerance Weight Type"
+  },
+  {
+   "fieldname": "metal_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Metal Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "range_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Range Type",
+   "options": "\nWeight Range\nPercentage"
+  },
+  {
+   "fieldname": "tolerance_range",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Tolerance Range (+/-)"
+  },
+  {
+   "fieldname": "from_weight",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "From Weight"
+  },
+  {
+   "fieldname": "to_weight",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "To Weight"
+  },
+  {
+   "fieldname": "plus_percent",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "(+) Percent"
+  },
+  {
+   "fieldname": "minus_percent",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "(-) Percent"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-07-26 12:09:07.082509",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Revise Metal Tolerance Table",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
