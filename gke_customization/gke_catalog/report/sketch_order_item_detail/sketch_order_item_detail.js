@@ -2,7 +2,7 @@
 // For license information, please see license.txt
 
 frappe.query_reports["Sketch Order Item Detail"] = {
-	"filters": [
+    "filters": [
 {
     fieldname: "item_group",
     label: __("Item Group"),
@@ -29,18 +29,18 @@ frappe.query_reports["Sketch Order Item Detail"] = {
     fieldname: "sketch_order",
     label: __("Sketch Order"),
     fieldtype: "Link",
-	options:"Sketch Order",
+    options:"Sketch Order",
     //hidden: 1
 }
 
-	],
+    ],
 
 onload: function(report) {
 
 
-	report.page.add_inner_button(__("← Back"), function () {
-			frappe.set_route("query-report", "Sketch Order Detail");
-		});
+    report.page.add_inner_button(__("← Back"), function () {
+            frappe.set_route("query-report", "Sketch Order Detail");
+        });
 
      report.page.add_inner_button(__("Clear Filter"), function () {
             report.filters.forEach(function (filter) {
@@ -63,7 +63,7 @@ onload: function(report) {
     }
 });  
 
-	const params = frappe.query_string;
+    const params = frappe.query_string;
     if (params.sketch_order) {
         // Filter the Item field using sketch_order
         frappe.db.get_list("Item", {
@@ -76,8 +76,8 @@ onload: function(report) {
             report.set_filter_value("item", item_names);
         });
     }
-	
-	
+    
+    
  
 }
 };
