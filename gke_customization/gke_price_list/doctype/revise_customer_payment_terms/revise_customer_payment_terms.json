@@ -1,0 +1,75 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-26 12:17:31.842797",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_r9q6",
+  "customer",
+  "customer_payment_details",
+  "customer_payment_terms_name",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_r9q6",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Revise Customer Payment Terms",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "customer_payment_details",
+   "fieldtype": "Table",
+   "label": "Customer Payment Details",
+   "options": "Revise Customer Payment Terms Details"
+  },
+  {
+   "fieldname": "customer_payment_terms_name",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Cust Name"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-07-26 19:10:21.716067",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Revise Customer Payment Terms",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

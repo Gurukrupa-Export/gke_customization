@@ -1,0 +1,67 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-26 12:41:01.833642",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_type",
+  "payment_term",
+  "due_date_based_on",
+  "due_days",
+  "due_months"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "E Invoice Item Type",
+   "options": "E Invoice Item"
+  },
+  {
+   "fieldname": "payment_term",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Payment Term",
+   "options": "Payment Term"
+  },
+  {
+   "fetch_from": "payment_term.due_date_based_on",
+   "fieldname": "due_date_based_on",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Due Date Based On",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "payment_term.credit_days",
+   "fieldname": "due_days",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Due Days",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "payment_term.credit_months",
+   "fieldname": "due_months",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Due Months",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-07-28 11:11:28.777339",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Revise Customer Payment Terms Details",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
