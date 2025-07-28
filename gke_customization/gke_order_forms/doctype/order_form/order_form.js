@@ -281,6 +281,115 @@ frappe.ui.form.on('Order Form', {
 			})
 			frm.set_df_property('party_name', 'read_only', 1);
 			}, __("Get Order"))
+		// if(frm.doc.customer_name.includes('Titan') && frm.doc.flow_type == 'PROTO' && !frm.doc.gc_format_file && frm.doc.docstatus == '1'){
+			frm.add_custom_button(__("Get GC Format"), function(){
+				frappe.call({
+					method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.gc_export_to_excel',
+					args: {
+						order_form: frm.doc.name,
+						doc: frm.doc
+					},
+					callback: function(response) {
+						if (response.message) {
+							
+							frm.set_value('gc_format_file' ,response.message)
+							frm.save('Update');
+
+							const a = document.createElement('a');
+							a.href = response.message; 
+							let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+							let filename = `${formatted_date}_GC_Format.xlsx`;
+							a.download = filename;
+							a.click();
+						}
+					}
+				});
+			}, __("Get File"))
+		// }
+		
+		// if(frm.doc.customer_name.includes('Titan') && frm.doc.flow_type == 'PROTO' && !frm.doc.code_creation_file && frm.doc.docstatus == '1'){
+			frm.add_custom_button(__("Get Code Creation"), function(){
+				frappe.call({
+					method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.creation_export_to_excel',
+					args: {
+						order_form: frm.doc.name,
+						doc: frm.doc
+					},
+					callback: function(response) {
+						if (response.message) {
+							
+							frm.set_value('code_creation_file' ,response.message)
+							frm.save('Update');
+
+							const a = document.createElement('a');
+							a.href = response.message; 
+							let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+							let filename = `${formatted_date}_Code_Creation_File.xlsx`;
+							a.download = filename;
+							a.click();
+						}
+					}
+				});
+			}, __("Get File"))
+			
+		// }
+
+		// if( (frm.doc.customer_name.includes('Caratlane')) && frm.doc.flow_type == 'PROTO'){
+		if(frm.doc.docstatus == '1'){
+			frm.add_custom_button(__("Get Proto Sheet"), function(){
+				frappe.call({
+				method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.proto_export_to_excel',
+				args: {
+					order_form: frm.doc.name,
+					doc: frm.doc
+				},
+				callback: function(response) {
+					if (response.message) {
+					
+					frm.set_value('proto_sheet_file' ,response.message)
+					frm.save('Update');
+		
+					const a = document.createElement('a');
+					a.href = response.message; 
+					
+					let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+					let filename = `${formatted_date}_Proto_Sheet.xlsx`;
+					a.download = filename;
+					console.log(filename);
+					a.click();
+					}
+				}
+				});
+			}, __("Get File"))
+		}
+
+		if(frm.doc.docstatus == '1'){
+			frm.add_custom_button(__("Get Variant Format"), function(){
+				frappe.call({
+				method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.get_variant_format',
+				args: {
+					order_form: frm.doc.name,
+					doc: frm.doc
+				},
+				callback: function(response) {
+					if (response.message) {
+					
+					// frm.set_value('variant_format_file' ,response.message)
+					// frm.save('Update');
+		
+					const a = document.createElement('a');
+					a.href = response.message; 
+					
+					let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+					let filename = `${formatted_date}_Variant_Format.xlsx`;
+					a.download = filename;
+					// console.log(filename);
+					a.click();
+					}
+				}
+				});
+			}, __("Get File"))
+		}
 	},
 	order_type(frm){
 		if(frm.doc.order_type=='Purchase'){
