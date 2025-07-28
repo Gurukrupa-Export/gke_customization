@@ -10,6 +10,7 @@
  "engine": "InnoDB",
  "field_order": [
   "customer_code",
+<<<<<<< HEAD
   "column_break_gawu",
   "customer_name",
   "section_break_10dzs",
@@ -19,6 +20,17 @@
   "designer",
   "designer_name",
   "branch",
+=======
+  "customer_name",
+  "column_break_gawu",
+  "order_date",
+  "company",
+  "branch",
+  "section_break_10dzs",
+  "designer",
+  "column_break_5icy6",
+  "designer_name",
+>>>>>>> f75d909 (Initial commit)
   "department",
   "salesman_name",
   "section_break_1vgct",
@@ -33,6 +45,7 @@
   "theme_code",
   "product_code",
   "set_product_code",
+<<<<<<< HEAD
   "section_break_bkres",
   "complexity",
   "productivity",
@@ -50,6 +63,19 @@
   "min_weight",
   "max_weight",
   "product_weight_section",
+=======
+  "section_break_76nr3",
+  "metal_type",
+  "metal_touch",
+  "column_break_qxqbh",
+  "metal_purity",
+  "metal_colour",
+  "product_weight_section",
+  "gross_weight",
+  "min_weight",
+  "max_weight",
+  "column_break_9ksbz",
+>>>>>>> f75d909 (Initial commit)
   "diamond_weight",
   "max_diamond",
   "min_diamond",
@@ -57,13 +83,26 @@
   "metal_and_finding_weight",
   "max_net",
   "min_net",
+<<<<<<< HEAD
+=======
+  "section_break_bkres",
+  "collection",
+  "productivity",
+  "complexity",
+  "delicate",
+  "enamel",
+  "rhodium",
+>>>>>>> f75d909 (Initial commit)
   "section_break_yexsu",
   "rpt_cad_approval",
   "supplier",
   "column_break_5mhdj",
   "npd",
   "cfa",
+<<<<<<< HEAD
   "collection",
+=======
+>>>>>>> f75d909 (Initial commit)
   "section_break_ciwuk",
   "necklace_17",
   "column_break_wklre",
@@ -96,6 +135,7 @@
   "renarks",
   "images_tab",
   "design_image",
+<<<<<<< HEAD
   "design_image_preview",
   "section_break_tabba",
   "cad_image",
@@ -105,11 +145,23 @@
   "old_e_pdis_image",
   "column_break_uib6w",
   "old_e_pdis_image_preview",
+=======
+  "cad_image",
+  "old_e_pdis_image",
+  "section_break_tabba",
+  "design_image_preview",
+  "column_break_xywuv",
+  "cad_image_preview",
+  "column_break_uib6w",
+  "old_e_pdis_image_preview",
+  "section_break_urbiu",
+>>>>>>> f75d909 (Initial commit)
   "bom_diamond_details",
   "diamond_detail",
   "section_break_w1pn5",
   "gemstone_detail",
   "section_break_zhv2",
+<<<<<<< HEAD
   "bom_finding_detail_tab",
   "tab_break_mw8g",
   "launch_month",
@@ -120,21 +172,32 @@
   "chain_type",
   "finding_type",
   "setting_type"
+=======
+  "bom_finding_detail_tab"
+>>>>>>> f75d909 (Initial commit)
  ],
  "fields": [
   {
    "collapsible": 1,
    "collapsible_depends_on": "eval:true",
    "fieldname": "section_break_10dzs",
+<<<<<<< HEAD
    "fieldtype": "Section Break",
    "label": "Company Details"
+=======
+   "fieldtype": "Section Break"
+>>>>>>> f75d909 (Initial commit)
   },
   {
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
+<<<<<<< HEAD
    "options": "Company",
    "read_only": 1
+=======
+   "options": "Company"
+>>>>>>> f75d909 (Initial commit)
   },
   {
    "fieldname": "department",
@@ -191,11 +254,14 @@
    "label": "Order Date"
   },
   {
+<<<<<<< HEAD
    "fieldname": "launch_month",
    "fieldtype": "Date",
    "label": "Launch Month"
   },
   {
+=======
+>>>>>>> f75d909 (Initial commit)
    "default": "0",
    "fieldname": "is_set",
    "fieldtype": "Check",
@@ -238,7 +304,12 @@
    "fieldname": "item_category",
    "fieldtype": "Link",
    "label": "Item Category",
+<<<<<<< HEAD
    "options": "Attribute Value"
+=======
+   "options": "Attribute Value",
+   "read_only": 1
+>>>>>>> f75d909 (Initial commit)
   },
   {
    "fetch_from": "design_code.item_subcategory",
@@ -247,7 +318,12 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Item Subcategory",
+<<<<<<< HEAD
    "options": "Attribute Value"
+=======
+   "options": "Attribute Value",
+   "read_only": 1
+>>>>>>> f75d909 (Initial commit)
   },
   {
    "fieldname": "column_break_yl4oe",
@@ -262,6 +338,7 @@
    "label": "Theme Code"
   },
   {
+<<<<<<< HEAD
    "fieldname": "design_details",
    "fieldtype": "Link",
    "label": "Design Details",
@@ -274,6 +351,8 @@
    "options": "Attribute Value"
   },
   {
+=======
+>>>>>>> f75d909 (Initial commit)
    "collapsible": 1,
    "collapsible_depends_on": "eval:true",
    "fieldname": "section_break_bkres",
@@ -282,9 +361,14 @@
   {
    "fieldname": "complexity",
    "fieldtype": "Select",
+<<<<<<< HEAD
    "hidden": 1,
    "label": "Complexity",
    "options": "Simple\nGeneric\nComplex"
+=======
+   "label": "Complexity",
+   "options": "\nSimple\nMedium\nComplex"
+>>>>>>> f75d909 (Initial commit)
   },
   {
    "fieldname": "productivity",
@@ -323,7 +407,12 @@
    "collapsible": 1,
    "collapsible_depends_on": "eval:true",
    "fieldname": "section_break_76nr3",
+<<<<<<< HEAD
    "fieldtype": "Section Break"
+=======
+   "fieldtype": "Section Break",
+   "label": "Metal Details"
+>>>>>>> f75d909 (Initial commit)
   },
   {
    "default": "Gold",
@@ -343,6 +432,7 @@
    "options": "Attribute Value"
   },
   {
+<<<<<<< HEAD
    "fieldname": "back_chain",
    "fieldtype": "Select",
    "label": "Back Chain",
@@ -355,6 +445,8 @@
    "options": "Attribute Value"
   },
   {
+=======
+>>>>>>> f75d909 (Initial commit)
    "fieldname": "column_break_9ksbz",
    "fieldtype": "Column Break"
   },
@@ -367,7 +459,10 @@
    "options": "Attribute Value"
   },
   {
+<<<<<<< HEAD
    "fetch_if_empty": 1,
+=======
+>>>>>>> f75d909 (Initial commit)
    "fieldname": "gross_weight",
    "fieldtype": "Float",
    "label": "Gross Weight"
@@ -382,6 +477,7 @@
    "options": "Attribute Value"
   },
   {
+<<<<<<< HEAD
    "fieldname": "finding_type",
    "fieldtype": "Link",
    "label": "Finding Type",
@@ -396,6 +492,8 @@
    "options": "Attribute Value"
   },
   {
+=======
+>>>>>>> f75d909 (Initial commit)
    "collapsible": 1,
    "collapsible_depends_on": "eval:true",
    "fieldname": "section_break_yexsu",
@@ -409,6 +507,7 @@
    "options": "No\nYes"
   },
   {
+<<<<<<< HEAD
    "fieldname": "category_manager",
    "fieldtype": "Link",
    "hidden": 1,
@@ -416,6 +515,8 @@
    "options": "Titan Category Manager"
   },
   {
+=======
+>>>>>>> f75d909 (Initial commit)
    "fieldname": "column_break_5mhdj",
    "fieldtype": "Column Break"
   },
@@ -688,12 +789,15 @@
    "label": "Customer Name"
   },
   {
+<<<<<<< HEAD
    "fieldname": "tab_break_mw8g",
    "fieldtype": "Tab Break",
    "hidden": 1,
    "label": "Extra"
   },
   {
+=======
+>>>>>>> f75d909 (Initial commit)
    "description": "which is SKU Code, 14Digit Code,15Digit Code,18Digit Code",
    "fieldname": "product_code",
    "fieldtype": "Data",
@@ -724,17 +828,30 @@
   {
    "fieldname": "min_weight",
    "fieldtype": "Data",
+<<<<<<< HEAD
    "label": "Min Weight"
+=======
+   "label": "Min Weight",
+   "read_only": 1
+>>>>>>> f75d909 (Initial commit)
   },
   {
    "fieldname": "max_weight",
    "fieldtype": "Data",
+<<<<<<< HEAD
    "label": "Max Weight"
+=======
+   "label": "Max Weight",
+   "read_only": 1
+>>>>>>> f75d909 (Initial commit)
   },
   {
    "fieldname": "product_weight_section",
    "fieldtype": "Section Break",
+<<<<<<< HEAD
    "hidden": 1,
+=======
+>>>>>>> f75d909 (Initial commit)
    "label": "Product Weight"
   },
   {
@@ -746,12 +863,22 @@
   {
    "fieldname": "max_diamond",
    "fieldtype": "Float",
+<<<<<<< HEAD
    "label": "Max Diamond Weight"
+=======
+   "label": "Max Diamond Weight",
+   "read_only": 1
+>>>>>>> f75d909 (Initial commit)
   },
   {
    "fieldname": "min_diamond",
    "fieldtype": "Float",
+<<<<<<< HEAD
    "label": "Min Diamond Weight"
+=======
+   "label": "Min Diamond Weight",
+   "read_only": 1
+>>>>>>> f75d909 (Initial commit)
   },
   {
    "fieldname": "column_break_qphn",
@@ -762,8 +889,12 @@
    "fetch_from": "bom.metal_and_finding_weight",
    "fieldname": "metal_and_finding_weight",
    "fieldtype": "Float",
+<<<<<<< HEAD
    "label": "Net Weight (In Gram)",
    "read_only": 1
+=======
+   "label": "Net Weight (In Gram)"
+>>>>>>> f75d909 (Initial commit)
   },
   {
    "fieldname": "max_net",
@@ -781,7 +912,11 @@
  "index_web_pages_for_search": 1,
  "links": [],
  "make_attachments_public": 1,
+<<<<<<< HEAD
  "modified": "2025-04-01 12:41:00.610158",
+=======
+ "modified": "2025-05-02 15:26:02.870494",
+>>>>>>> f75d909 (Initial commit)
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Customer Design Information Sheet",
