@@ -31,6 +31,7 @@
    "options": "Designation"
   },
   {
+   "fetch_from": "department.company",
    "fieldname": "company",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -41,7 +42,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-19 18:18:10.225397",
+ "modified": "2025-07-21 15:39:51.745971",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Role Mapping",
