@@ -180,7 +180,7 @@
                     const userRoles = response.message || [];
                     let isAuthorized = false;
 
-                    if (currentUser === 'Administrator' || userRoles.includes('System Manager')) {
+                    if (currentUser === 'Administrator' || userRoles.includes('Metabase Viewer')) {
                         isAuthorized = true;
                         updateStatus('User is authorized. Showing content.');
 

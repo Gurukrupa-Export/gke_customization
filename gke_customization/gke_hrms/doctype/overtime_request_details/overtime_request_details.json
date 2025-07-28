@@ -11,7 +11,8 @@
   "column_break_omku",
   "ot_hours",
   "reason_for_ot",
-  "section_break_lnkm"
+  "section_break_lnkm",
+  "food_eligibility"
  ],
  "fields": [
   {
@@ -47,12 +48,19 @@
   {
    "fieldname": "section_break_lnkm",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "food_eligibility",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Food Eligiblity",
+   "options": "\nEligible\nNot Eligible"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-07-16 18:25:18.517965",
+ "modified": "2025-03-06 11:31:12.057559",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Overtime Request Details",

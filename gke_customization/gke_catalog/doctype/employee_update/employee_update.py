@@ -150,6 +150,13 @@ class EmployeeUpdate(Document):
 			employee_family_background.occupation = efb.occupation
 			employee_family_background.birth_date = efb.birth_date
 			employee_family_background.age = efb.age
+			employee_family_background.document_name = efb.document_name
+			employee_family_background.document_number = efb.document_number
+			employee_family_background.same_as_present = efb.same_as_present
+			employee_family_background.same_as_permanent = efb.same_as_permanent
+			employee_family_background.address = efb.address
+			employee_family_background.is_nominee = efb.is_nominee
+			employee_family_background.nominee_share = efb.nominee_share
 
 		doc_.set("employee_relative_deails", [])
 		for erd in self.employee_relative_deails:
