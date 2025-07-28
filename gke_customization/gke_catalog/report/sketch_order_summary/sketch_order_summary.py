@@ -41,19 +41,19 @@ def get_data(filters):
     conditions = []
 
     if filters.get("branch"):
-        conditions.append("so.branch = %(branch)s")
+        conditions.append("sof.branch = %(branch)s")
 
     if filters.get("from_date"):
-        conditions.append("so.modified >= %(from_date)s")
+        conditions.append("sof.order_date >= %(from_date)s")
 
     if filters.get("to_date"):
-        conditions.append("so.modified <= %(to_date)s")
+        conditions.append("sof.order_date <= %(to_date)s")
 
     if filters.get("customer_group"):
         conditions.append("cg.customer_group_name = %(customer_group)s")
         
     if filters.get("customer"):
-        conditions.append("c.name = %(customer_group)s")
+        conditions.append("c.name = %(customer)s")
 
     condition_sql = " AND ".join(conditions)
     if condition_sql:
@@ -68,13 +68,13 @@ def get_data(filters):
                 ELSE 'Other-Groups'
             END AS customer_category,
 
-            SUM(CASE WHEN sof.docstatus = 0 THEN 1 ELSE 0 END) AS sof_draft,
-            SUM(CASE WHEN sof.docstatus = 1 THEN 1 ELSE 0 END) AS sof_submitted,
-            SUM(CASE WHEN sof.docstatus = 2 THEN 1 ELSE 0 END) AS sof_cancelled,
+            COUNT(DISTINCT CASE WHEN sof.docstatus = 0 THEN sof.name END) AS sof_draft,
+            COUNT(DISTINCT CASE WHEN sof.docstatus = 1 THEN sof.name END) AS sof_submitted,
+            COUNT(DISTINCT CASE WHEN sof.docstatus = 2 THEN sof.name END) AS sof_cancelled,
 
-            SUM(CASE WHEN so.docstatus = 0 THEN 1 ELSE 0 END) AS so_draft,
-            SUM(CASE WHEN so.docstatus = 1 THEN 1 ELSE 0 END) AS so_submitted,
-            SUM(CASE WHEN so.workflow_state = 'Cancelled' THEN 1 ELSE 0 END) AS so_cancelled,
+            COUNT(DISTINCT CASE WHEN so.docstatus = 0 THEN so.name END) AS so_draft,
+            COUNT(DISTINCT CASE WHEN so.docstatus = 1 THEN so.name END) AS so_submitted,
+            COUNT(DISTINCT CASE WHEN so.workflow_state = 'Cancelled' THEN so.name END) AS so_cancelled,
             
             GROUP_CONCAT(DISTINCT c.customer_name SEPARATOR ', ') AS customers,
             GROUP_CONCAT(DISTINCT c.name SEPARATOR ',') AS customer_codes,
@@ -91,3 +91,14 @@ def get_data(filters):
 
     return frappe.db.sql(query, filters, as_dict=True)
 
+
+
+
+            # SUM(CASE WHEN sof.docstatus = 0 THEN 1 ELSE 0 END) AS sof_draft,
+            # COUNT(DISTINCT CASE WHEN sof.docstatus = 1 THEN sof.name END) AS sof_submitted,
+            # SUM(CASE WHEN sof.docstatus = 2 THEN 1 ELSE 0 END) AS sof_cancelled,
+
+            # SUM(CASE WHEN so.docstatus = 0 THEN 1 ELSE 0 END) AS so_draft,
+            # SUM(CASE WHEN so.docstatus = 1 THEN 1 ELSE 0 END) AS so_submitted,
+            # SUM(CASE WHEN so.workflow_state = 'Cancelled' THEN 1 ELSE 0 END) AS so_cancelled,
+            
