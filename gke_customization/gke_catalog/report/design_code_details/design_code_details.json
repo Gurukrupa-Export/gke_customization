@@ -1,0 +1,30 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2025-07-29 16:01:33.338137",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2025-07-29 16:59:08.696239",
+ "modified_by": "jinali_g@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Design Code Details",
+ "owner": "jinali_g@gkexport.com",
+ "prepared_report": 0,
+ "query": "SELECT\r\n    i.name AS Variant,\r\n    i.stylebio as 'Old StyleBio',\r\n    i.old_tag_no as 'Old TagNo',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Diamond Target' THEN iva.attribute_value END), 'No') AS 'Diamond Target',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Metal Colour' THEN iva.attribute_value END), 'No') AS 'Metal Colour',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Product Size' THEN iva.attribute_value END), 'No') AS 'Product Size',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Enamal' THEN iva.attribute_value END), 'No') AS Enamal,\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Rhodium' THEN iva.attribute_value END), 'No') AS Rhodium,\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Lock Type' THEN iva.attribute_value END), 'No') AS 'Lock Type',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Cap/Ganthan' THEN iva.attribute_value END), 'No') AS 'Cap Ganthan',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Gemstone Type' THEN iva.attribute_value END), 'No') AS 'Gemstone Type',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Sizer Type' THEN iva.attribute_value END), 'No') AS 'Sizer Type',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Chain Type' THEN iva.attribute_value END), 'No') AS 'Chain Type',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Stone Changeable' THEN iva.attribute_value END), 'No') AS 'Stone Changeable',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Detachable' THEN iva.attribute_value END), 'No') AS Detachable,\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Chain Length' THEN iva.attribute_value END), 'No') AS 'Chain Length',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Charm' THEN iva.attribute_value END), 'No') AS Charm,\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Two in One' THEN iva.attribute_value END), 'No') AS 'Two In One',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Feature' THEN iva.attribute_value END), 'No') AS Feature,\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Back Belt' THEN iva.attribute_value END), 'No') AS 'Back Belt',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Back Belt Length' THEN iva.attribute_value END), 'No') AS 'Back Belt Length',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Back Side Size' THEN iva.attribute_value END), 'No') AS 'Back Side Size',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Distance Between Kadi To Mugappu' THEN iva.attribute_value END), 'No') AS 'Distance kadi Mugappu',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Space between Mugappu' THEN iva.attribute_value END), 'No') AS 'Space Between Mugappu',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Number of Ant' THEN iva.attribute_value END), 'No') AS 'Number Of Ant',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Count of Spiral Turns' THEN iva.attribute_value END), 'No') AS 'Spiral Turns',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Chain' THEN iva.attribute_value END), 'No') AS Chain,\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Black Bead Line' THEN iva.attribute_value END), 'No') AS 'Black Bead Line',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Chain Thickness' THEN iva.attribute_value END), 'No') AS 'Chain Thickness',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Back Chain' THEN iva.attribute_value END), 'No') AS 'Back Chain',\r\n    COALESCE(MAX(CASE WHEN iva.attribute = 'Black Bead' THEN iva.attribute_value END), 'No') AS 'Black Bead'\r\nFROM `tabItem` i\r\nLEFT JOIN `tabItem Variant Attribute` iva ON i.name = iva.parent\r\nWHERE i.variant_of IS NOT NULL AND i.disabled = 0\r\nand i.name = %(name)s\r\nGROUP BY i.name\r\nORDER BY i.name;\r\n",
+ "ref_doctype": "Item",
+ "report_name": "Design Code Details",
+ "report_script": "",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "timeout": 0
+}
