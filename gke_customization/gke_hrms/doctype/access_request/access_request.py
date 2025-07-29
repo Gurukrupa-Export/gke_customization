@@ -46,3 +46,36 @@ class AccessRequest(Document):
 				self.reload()
 
 			# self.db_update()	
+
+@frappe.whitelist()
+def auto_department(user_id, request_purpose):
+    if request_purpose == 'Department Access':
+        employee = frappe.get_value('Employee', {'user_id': user_id}, ['department'], as_dict=True)
+        if employee and employee.department:
+            return employee.department
+    return None
+
+
+@frappe.whitelist()
+def get_designation_query(doctype, txt, searchfield, start, page_len, filters):
+    department = filters.get("department")
+
+    if department:
+        designation_count = frappe.db.count("Designation Details", {"parent": department})
+
+        if designation_count > 0:
+            return frappe.db.sql("""
+                SELECT designation 
+                FROM `tabDesignation Details`
+                WHERE parent = %s AND designation LIKE %s
+                ORDER BY designation
+                LIMIT %s OFFSET %s
+            """, (department, f"%{txt}%", page_len, start))
+
+    return frappe.db.sql("""
+        SELECT name 
+        FROM `tabDesignation`
+        WHERE name LIKE %s
+        ORDER BY name
+        LIMIT %s OFFSET %s
+    """, (f"%{txt}%", page_len, start))

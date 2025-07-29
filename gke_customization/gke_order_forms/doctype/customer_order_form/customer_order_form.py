@@ -9,6 +9,8 @@ class CustomerOrderForm(Document):
 	def before_save(self):
 		if self.docstatus == 'Draft' or  not self.customer_order_form_detail:
 			frappe.throw('Fill atleast one row in table')
+	
+	def validate(self):
 		set_data(self)
 		# calculate_qty(self)
 
@@ -34,79 +36,80 @@ def get_order_form_detail(design_code):
 	return order_design_code
 
 # get detail from quotation doctype
-@frappe.whitelist()
-def get_quotation(source_name, target_doc=None):
-	if isinstance(target_doc, str):
-		target_doc = json.loads(target_doc)
-	if not target_doc:
-		target_doc = frappe.new_doc("Quotation")
-	else:
-		target_doc = frappe.get_doc(target_doc)
+# @frappe.whitelist()
+# def get_quotation(source_name, target_doc=None):
+# 	if isinstance(target_doc, str):
+# 		target_doc = json.loads(target_doc)
+# 	if not target_doc:
+# 		target_doc = frappe.new_doc("Quotation")
+# 	else:
+# 		target_doc = frappe.get_doc(target_doc)
 
-	if source_name:
-		# frappe.throw(f"{source_name}")
-		quotation_data = frappe.db.sql(f"""
-			select 
-				tq.party_name,tq.customer_name,
-				# titd.theme_code,
-				tqi.item_code,ti.custom_cad_order_id,
-				tqi.parent,tqi.order_form_id,
-				tqi.item_category,tqi.item_subcategory,
-				tod.metal_type,tod.metal_touch,tod.metal_colour,
-				tod.metal_target,tod.diamond_target,
-				tod.product_size,tod.feature,tod.rhodium_,tod.enamal,
-				tod.gemstone_type1,tod.gemstone_quality,
-				tod.qty,tod.diamond_quality,
-				ti.master_bom,
-				titd.theme_code
-			from `tabQuotation Item` as tqi 
-			left join `tabQuotation` as tq
-				on tq.name = tqi.parent
-			left join `tabItem` as ti
-				on ti.name = tqi.item_code
-			left join `tabItem Theme Code Detail` as titd
-				on titd.parent = ti.name and titd.customer = tq.party_name
-			left join `tabOrder` as tod 
-				on tod.name = tqi.order_form_id and ti.name = tod.item
-			where tqi.parent = '{source_name}'
-		""", as_dict=1)
+# 	if source_name:
+# 		# frappe.throw(f"{source_name}")
+# 		quotation_data = frappe.db.sql(f"""
+# 			select 
+# 				tq.party_name,tq.customer_name,
+# 				# titd.theme_code,
+# 				tqi.item_code,ti.custom_cad_order_id,
+# 				tqi.parent,tqi.order_form_id,
+# 				tqi.item_category,tqi.item_subcategory,
+# 				tod.metal_type,tod.metal_touch,tod.metal_colour,
+# 				tod.metal_target,tod.diamond_target,
+# 				tod.product_size,tod.feature,tod.rhodium_,tod.enamal,
+# 				tod.gemstone_type1,tod.gemstone_quality,
+# 				tod.qty,tod.diamond_quality,
+# 				ti.master_bom,
+# 				titd.theme_code
+# 			from `tabQuotation Item` as tqi 
+# 			left join `tabQuotation` as tq
+# 				on tq.name = tqi.parent
+# 			left join `tabItem` as ti
+# 				on ti.name = tqi.item_code
+# 			left join `tabItem Theme Code Detail` as titd
+# 				on titd.parent = ti.name and titd.customer = tq.party_name
+# 			left join `tabOrder` as tod 
+# 				on tod.name = tqi.order_form_id and ti.name = tod.item
+# 			where tqi.parent = '{source_name}'
+# 		""", as_dict=1)
 	
-	# frappe.throw(f"{quotation_data}")
-	for i in quotation_data:
-		# if i.get("theme_code"):
-			target_doc.append("customer_order_form_detail",{
-				"design_code": i.get("item_code"),
-				"design_code_bom": i.get("master_bom"), 
-				"customer_code": i.get("party_name"),
-				"customer_name": i.get("customer_name"),
-				"category": i.get("item_category"),
-				"subcategory": i.get("item_subcategory"),
-				"quotation": i.get("parent"),
-				"order_id": i.get("order_form_id"),
-				# "metal_type": i.get("metal_type"),
-				# "metal_touch": i.get("metal_touch"),
-				"metal_target": i.get("metal_target"),
-				"metal_colour": i.get("metal_colour"),
-				"feature": i.get("feature"),
-				"diamond_target": i.get("diamond_target"),
-				"diamond_quality": i.get("diamond_quality"),
-				"gemstone_type": i.get("gemstone_type1"),
-				"gemstone_quality": i.get("gemstone_quality"),
-				"product_size": i.get("product_size"),
-				"enamal": i.get("enamal"),
-				"no_of_pcs": i.get("qty"),
-				"rhodium": i.get("rhodium_"),
-			})
-		# else: 
-		# 	frappe.throw(_("Please Set Theme Code in Item {0}")
-		# 		.format(i.get("item_code"))
-		# 		)
-	return target_doc
+# 	# frappe.throw(f"{quotation_data}")
+# 	for i in quotation_data:
+# 		# if i.get("theme_code"):
+# 			target_doc.append("customer_order_form_detail",{
+# 				"design_code": i.get("item_code"),
+# 				"design_code_bom": i.get("master_bom"), 
+# 				"customer_code": i.get("party_name"),
+# 				"customer_name": i.get("customer_name"),
+# 				"category": i.get("item_category"),
+# 				"subcategory": i.get("item_subcategory"),
+# 				"quotation": i.get("parent"),
+# 				"order_id": i.get("order_form_id"),
+# 				# "metal_type": i.get("metal_type"),
+# 				# "metal_touch": i.get("metal_touch"),
+# 				"metal_target": i.get("metal_target"),
+# 				"metal_colour": i.get("metal_colour"),
+# 				"feature": i.get("feature"),
+# 				"diamond_target": i.get("diamond_target"),
+# 				"diamond_quality": i.get("diamond_quality"),
+# 				"gemstone_type": i.get("gemstone_type1"),
+# 				"gemstone_quality": i.get("gemstone_quality"),
+# 				"product_size": i.get("product_size"),
+# 				"enamal": i.get("enamal"),
+# 				"no_of_pcs": i.get("qty"),
+# 				"rhodium": i.get("rhodium_"),
+# 			})
+# 		# else: 
+# 		# 	frappe.throw(_("Please Set Theme Code in Item {0}")
+# 		# 		.format(i.get("item_code"))
+# 		# 		)
+# 	return target_doc
 
 def set_data(self):
 	if self.customer_order_form_detail:
 		for row in self.customer_order_form_detail:
-			if row.digit14_code:
+			if row.digit14_code != None:
+				# frappe.throw(f"here {row.digit14_code}")
 				json_14digit = get_14code_detail(row.digit14_code, row.customer_code)
 				if isinstance(json_14digit, dict):
 					row.theme_code = json_14digit.get("theme_code")
@@ -260,22 +263,22 @@ def get_item_detail(theme_code, customer):
 			data_json['metal_type'] = design_sheet[4]
 			data_json['design_image'] = design_sheet[5]
 			data_json['serial_no'] = design_sheet[6]
-		if bom_detail:
-			data_json['feature'] = bom_detail[0]
-			data_json['metal_target'] = bom_detail[1]
-			data_json['diamond_target'] = bom_detail[2]
-			data_json['product_size'] = bom_detail[3]
-			data_json['chain'] = bom_detail[4]
-			data_json['rhodium'] = bom_detail[5]
+			if bom_detail:
+				data_json['feature'] = bom_detail[0]
+				data_json['metal_target'] = bom_detail[1]
+				data_json['diamond_target'] = bom_detail[2]
+				data_json['product_size'] = bom_detail[3]
+				data_json['chain'] = bom_detail[4]
+				data_json['rhodium'] = bom_detail[5]
 	
 	return data_json
 
 
-# get detail from 14 digit code 
-@frappe.whitelist()
+# # get detail from 14 digit code 
+# @frappe.whitelist()
 def get_14code_detail(digit14_code, customer):
 	data_json = {}
-
+	# frappe.throw(f"{digit14_code} here")
 	# metal touch
 	if len(digit14_code) > 1:
 		metal_touch = frappe.db.get_value('Customer Metal Touch Detail',{'code_touch': digit14_code[:2], 'parent': customer}, 'gk_metal_touch' )
@@ -311,14 +314,14 @@ def get_14code_detail(digit14_code, customer):
 				data_json['metal_colour'] = design_sheet[5]
 				data_json['design_image'] = design_sheet[6]
 				data_json['serial_no'] = design_sheet[7]
-			if bom_detail:
-				# data_json[feature,metal_target,diamond_target,product_size,chain,rhodium]
-				data_json['feature'] = bom_detail[0]
-				data_json['metal_target'] = bom_detail[1]
-				data_json['diamond_target'] = bom_detail[2]
-				data_json['product_size'] = bom_detail[3]
-				data_json['chain'] = bom_detail[4]
-				data_json['rhodium'] = bom_detail[5]
+				if bom_detail:
+					# data_json[feature,metal_target,diamond_target,product_size,chain,rhodium]
+					data_json['feature'] = bom_detail[0]
+					data_json['metal_target'] = bom_detail[1]
+					data_json['diamond_target'] = bom_detail[2]
+					data_json['product_size'] = bom_detail[3]
+					data_json['chain'] = bom_detail[4]
+					data_json['rhodium'] = bom_detail[5]
 
 	if design_code:
 		# for size as per category
@@ -477,13 +480,14 @@ def get_15code_detail(digit15_code, customer):
 				data_json['metal_type'] = design_sheet[4]
 				data_json['design_image'] = design_sheet[5]
 				data_json['serial_no'] = design_sheet[6]
-			if bom_detail:
-				data_json['feature'] = bom_detail[0]
-				data_json['metal_target'] = bom_detail[1]
-				data_json['diamond_target'] = bom_detail[2]
-				data_json['product_size'] = bom_detail[3]
-				data_json['chain'] = bom_detail[4]
-				data_json['rhodium'] = bom_detail[5]
+				
+				if bom_detail:
+					data_json['feature'] = bom_detail[0]
+					data_json['metal_target'] = bom_detail[1]
+					data_json['diamond_target'] = bom_detail[2]
+					data_json['product_size'] = bom_detail[3]
+					data_json['chain'] = bom_detail[4]
+					data_json['rhodium'] = bom_detail[5]
 
 	if design_code:
 		# for size as per category
