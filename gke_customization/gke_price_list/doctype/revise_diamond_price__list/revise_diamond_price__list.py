@@ -5,7 +5,7 @@ import frappe
 from frappe.model.document import Document
 
 class ReviseDiamondPriceList(Document):
-    def before_save(self):
+        def before_save(self):
         filters = {
 				"price_list": self.price_list,
 				"diamond_type": self.diamond_type,
@@ -16,53 +16,59 @@ class ReviseDiamondPriceList(Document):
 			}
 
         if self.price_list_type == 'Sieve Size Range':
-            if len(self.revise_diamond_price_list_details_sieve_size_range) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["sieve_size_range"])):
-                if self.revise_diamond_price_list_details_sieve_size_range==[]:
-                    self.set("revise_diamond_price_list_details_sieve_size_range", [])
-                    diamond_price_list = frappe.db.get_list("Diamond Price List",filters=filters,fields=["sieve_size_range"])
-                    output_list = remove_duplicate_data(diamond_price_list)
-                    sorted_data = sort_data(self,output_list)
-                    set_data_in_child_table(self,sorted_data)
-                else:
-                    old_diamond_price_list = [d.diamond_price_list for d in self.revise_diamond_price_list_details_sieve_size_range]
-                    for j in frappe.db.get_list("Diamond Price List",filters=filters,pluck="name"):
-                        if j not in old_diamond_price_list:
-                            sorted_data = frappe.db.get_list("Diamond Price List",filters={"name":j},fields=["sieve_size_range"])
-                            set_data_in_child_table(self,sorted_data)
+            if len(self.revise_diamond_price_list_details_sieve_size_range) == 0:
+            # if len(self.revise_diamond_price_list_details_sieve_size_range) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["sieve_size_range"])):
+            #     if self.revise_diamond_price_list_details_sieve_size_range==[]:
+                self.set("revise_diamond_price_list_details_sieve_size_range", [])
+                diamond_price_list = frappe.db.get_list("Diamond Price List",filters=filters,fields=["sieve_size_range"])
+                output_list = remove_duplicate_data(diamond_price_list)
+                sorted_data = sort_data(self,output_list)
+                set_data_in_child_table(self,sorted_data)
+                # else:
+                #     old_diamond_price_list = [d.diamond_price_list for d in self.revise_diamond_price_list_details_sieve_size_range]
+                #     for j in frappe.db.get_list("Diamond Price List",filters=filters,pluck="name"):
+                #         if j not in old_diamond_price_list:
+                #             sorted_data = frappe.db.get_list("Diamond Price List",filters={"name":j},fields=["sieve_size_range"])
+                #             set_data_in_child_table(self,sorted_data)
         
         elif self.price_list_type == 'Size (in mm)':
-            if len(self.revise_diamond_price_list_details_size_in_mm) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["size_in_mm"])):
-                if self.revise_diamond_price_list_details_size_in_mm==[]:
-                    self.set("revise_diamond_price_list_details_size_in_mm", [])
-                    diamond_price_list = frappe.db.get_list("Diamond Price List",filters=filters,fields=["size_in_mm"])
-                    output_list = remove_duplicate_data(diamond_price_list)
-                    sorted_data = sort_data(self,output_list)
-                    set_data_in_child_table(self,sorted_data)
-                else:
-                    old_diamond_price_list = [d.diamond_price_list for d in self.revise_diamond_price_list_details_size_in_mm]
-                    for j in frappe.db.get_list("Diamond Price List",filters=filters,pluck="name"):
-                        if j not in old_diamond_price_list:
-                            sorted_data = frappe.db.get_list("Diamond Price List",filters={"name":j},fields=["size_in_mm"])
-                            set_data_in_child_table(self,sorted_data)
+            if len(self.revise_diamond_price_list_details_size_in_mm) == 0:
+            # if len(self.revise_diamond_price_list_details_size_in_mm) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["size_in_mm"])):
+                # if self.revise_diamond_price_list_details_size_in_mm==[]:
+                self.set("revise_diamond_price_list_details_size_in_mm", [])
+                diamond_price_list = frappe.db.get_list("Diamond Price List",filters=filters,fields=["size_in_mm"])
+                output_list = remove_duplicate_data(diamond_price_list)
+                sorted_data = sort_data(self,output_list)
+                set_data_in_child_table(self,sorted_data)
+                # else:
+                #     old_diamond_price_list = [d.diamond_price_list for d in self.revise_diamond_price_list_details_size_in_mm]
+                #     for j in frappe.db.get_list("Diamond Price List",filters=filters,pluck="name"):
+                #         if j not in old_diamond_price_list:
+                #             sorted_data = frappe.db.get_list("Diamond Price List",filters={"name":j},fields=["size_in_mm"])
+                #             set_data_in_child_table(self,sorted_data)
                     
         else:
-            if len(self.revise_diamond_price_list_details) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["from_weight","to_weight"])):
-                if self.revise_diamond_price_list_details==[]:
-                    self.set("revise_diamond_price_list_details", [])
-                    old_diamond_price_list = frappe.db.get_list("Diamond Price List",filters=filters,fields=["from_weight","to_weight"])
-                    diamond_price_list = []
-                    for j in old_diamond_price_list:
-                        diamond_price_list.append({"weight":f"{j['from_weight']}-{j['to_weight']}"})
+            if len(self.revise_diamond_price_list_details) == 0:
+            # if len(self.revise_diamond_price_list_details) != len(frappe.db.get_list("Diamond Price List",filters=filters,fields=["from_weight","to_weight"])):
+                # if self.revise_diamond_price_list_details==[]:
+                self.set("revise_diamond_price_list_details", [])
+                old_diamond_price_list = frappe.db.get_list("Diamond Price List",filters=filters,fields=["from_weight","to_weight"])
+                diamond_price_list = []
+                for j in old_diamond_price_list:
+                    diamond_price_list.append({"weight":f"{j['from_weight']}-{j['to_weight']}"})
 
-                    output_list = remove_duplicate_data(diamond_price_list)
-                    sorted_data = sort_data(self,output_list)
-                    set_data_in_child_table(self,sorted_data)
-                else:
-                    old_diamond_price_list = [d.diamond_price_list for d in self.revise_diamond_price_list_details]
-                    for j in frappe.db.get_list("Diamond Price List",filters=filters,pluck="name"):
-                        if j not in old_diamond_price_list:
-                            sorted_data = frappe.db.get_list("Diamond Price List",filters={"name":j},fields=["from_weight","to_weight"])
-                            set_data_in_child_table(self,sorted_data)
+                output_list = remove_duplicate_data(diamond_price_list)
+                sorted_data = sort_data(self,output_list)
+                set_data_in_child_table(self,sorted_data)
+                # else:
+                #     old_diamond_price_list = [d.diamond_price_list for d in self.revise_diamond_price_list_details]
+                #     for j in frappe.db.get_list("Diamond Price List",filters=filters,pluck="name"):
+                #         if j not in old_diamond_price_list:
+                #             # sorted_data = frappe.db.get_list("Diamond Price List",filters={"name":j},fields=["from_weight","to_weight"])
+                #             raw_data = frappe.db.get_list("Diamond Price List",filters={"name":j},fields=["from_weight","to_weight"])
+                            
+                #             # sorted_data = [{"weight": f"{d['from_weight']}-{d['to_weight']}"} for d in raw_data]
+                #             set_data_in_child_table(self,sorted_data)
 
     def on_submit(self):
         if self.price_list_type == 'Sieve Size Range':
