@@ -27,11 +27,19 @@
     "serial_no_bom",
     "diamond_quality",
     "jewelex_batch_no",
+
     "section_break_f9sk",
     "customer_order_form",
     "titan_code",
+    "product_code",
+    "collection_name",
     "column_break_0bng",
     "theme_code",
+    "mfg_complexity_code",
+    "ope_nonopen",
+    "uomset_of",
+    "gender",
+
     "section_break_hdjhs",
     "item_type",
     "bom_or_cad",
@@ -706,6 +714,41 @@
     "fieldtype": "Data",
     "label": "Theme Code",
     "read_only": 1
+    },
+    {
+    "fieldname": "product_code",
+    "fieldtype": "Data",
+    "label": "Product Code",
+    "read_only": 1
+    },
+    {
+    "fieldname": "collection_name",
+    "fieldtype": "Data",
+    "label": "Collection Name"
+    },
+    {
+    "fieldname": "mfg_complexity_code",
+    "fieldtype": "Select",
+    "label": "Mfg Complexity Code",
+    "options": "\nSimple\nMedium\nComplex"
+    },
+    {
+    "fieldname": "ope_nonopen",
+    "fieldtype": "Select",
+    "label": "Openable/Non-Openable",
+    "options": "\nOpenable\nNon-Openable"
+    },
+    {
+    "fieldname": "uomset_of",
+    "fieldtype": "Select",
+    "label": "UOM/SET OF",
+    "options": "\nNOS\nPAIR\nSET"
+    },
+    {
+    "fieldname": "gender",
+    "fieldtype": "Link",
+    "label": "Gender",
+    "options": "Attribute Value"
     },
     {
     "fieldname": "customer_order_form",

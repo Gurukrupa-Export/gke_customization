@@ -13,12 +13,13 @@
   "column_break_rskuf",
   "country",
   "section_break_dwllo",
+  "code",
   "item_category",
   "item_subcategory",
   "column_break_1gtdf",
   "abbr",
   "product_size",
-  "code"
+  "product_size_in"
  ],
  "fields": [
   {
@@ -79,11 +80,16 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Code"
+  },
+  {
+   "fieldname": "product_size_in",
+   "fieldtype": "Data",
+   "label": "Product Size In"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-12-16 10:01:15.701142",
+ "modified": "2025-05-09 15:35:52.828311",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Novel Size Master",
