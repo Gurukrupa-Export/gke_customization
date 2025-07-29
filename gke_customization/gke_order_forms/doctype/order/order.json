@@ -19,8 +19,8 @@
 "customer_code",
 "order_date",
 "delivery_date",
-"est_delivery_date",
 "updated_delivery_date",
+"est_delivery_date",
 "project",
 "is_branch_shipping",
 "rework",
@@ -219,7 +219,9 @@
 "column_break_wodq",
 "rpt_file",
 "column_break_zgjt",
-"cad_image"
+"cad_image",
+"cad_delivery_date",
+"ibm_delivery_date"
 ],
 "fields": [
 {
@@ -300,8 +302,16 @@
 "read_only": 1
 },
 {
+   "allow_on_submit": 1,
+   "fetch_from": "cad_order_form.updated_delivery_date",
+   "fieldname": "updated_delivery_date",
+   "fieldtype": "Datetime",
+   "label": "Updated Delivery Date"
+  },
+{
 "fieldname": "est_delivery_date",
 "fieldtype": "Date",
+"hidden": 1,
 "label": "Est. Delivery Date",
 "mandatory_depends_on": "eval:!doc.__islocal"
 },
@@ -327,7 +337,9 @@
 "fieldname": "system_due_date",
 "fieldtype": "Date",
 "label": "System Due Date",
+"hidden": 1,
 "read_only": 1
+
 },
 {
 "fieldname": "data_5",
@@ -1573,11 +1585,16 @@
 },
 {
 "allow_on_submit": 1,
+"fieldtype": "Datetime",
 "fetch_from": "cad_order_form.updated_delivery_date",
 "fieldname": "updated_delivery_date",
-"fieldtype": "Date",
 "label": "Updated Delivery Date"
 },
+{
+   "fieldname": "update_cad_delivery_date",
+   "fieldtype": "Datetime",
+   "label": "Update Cad Delivery Date"
+  },
 {
 "fetch_from": "cad_order_form_detail.jewelex_batch_no",
 "fieldname": "jewelex_batch_no",
@@ -1674,6 +1691,18 @@
 "label": "CAD Image",
 "mandatory_depends_on": "eval:(in_list(['BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))"
 },
+{
+   "depends_on": "eval:doc.workflow_type == \"CAD\" && doc.workflow_type",
+   "fieldname": "cad_delivery_date",
+   "fieldtype": "Datetime",
+   "label": "Cad Delivery Date"
+ },
+{
+   "depends_on": "eval:doc.workflow_type == \"BOM\" || doc.workflow_type == \"CAD\" && doc.workflow_type",
+   "fieldname": "ibm_delivery_date",
+   "fieldtype": "Datetime",
+   "label": "IBM Delivery Date"
+  },
 {
 "fetch_from": "cad_order_form.pre_order_form",
 "fieldname": "pre_order_form",
