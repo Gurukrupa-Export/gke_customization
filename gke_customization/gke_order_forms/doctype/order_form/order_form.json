@@ -104,12 +104,10 @@
     "reqd": 1
     },
     {
-    "default": "Today",
     "fieldname": "order_date",
     "fieldtype": "Datetime",
     "in_list_view": 1,
     "label": "Order Date",
-    "read_only": 1,
     "reqd": 1
     },
       {
