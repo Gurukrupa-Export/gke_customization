@@ -39,6 +39,18 @@ class OrderForm(Document):
 		if self.supplier:
 			create_po(self)
 
+	def on_update_after_submit(self):
+		if self.updated_delivery_date:
+			order_names = frappe.get_all(
+				"Order",
+				filters={"cad_order_form": self.name},
+				pluck="name"
+			)
+
+			for order_name in order_names:
+				frappe.db.set_value("Order", order_name, "updated_delivery_date", self.updated_delivery_date)
+
+
 	# def on_cancel(self):
 	# 	delete_auto_created_cad_order(self)
 	def on_cancel(self):

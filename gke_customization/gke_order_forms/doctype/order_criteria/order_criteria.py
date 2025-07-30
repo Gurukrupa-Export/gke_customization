@@ -142,6 +142,7 @@ def get_order_criteria(workflow_type, order_date_str, docname=None):
     return result
 
 
+
 @frappe.whitelist()
 def apply_cad_time_on_selected_date(selected_date_str):
     from datetime import datetime, time, timedelta
@@ -171,11 +172,36 @@ def apply_cad_time_on_selected_date(selected_date_str):
     else:
         cad_time = time(0, 0, 0)
 
-    # Get the selected date from frontend and combine with cad_time
+    # Combine selected date and cad time
     try:
         selected_date = getdate(selected_date_str)
     except Exception:
         frappe.throw("Invalid date format provided.")
 
-    final_datetime = datetime.combine(selected_date, cad_time)
-    return {"update_cad_delivery_date": final_datetime}
+    update_cad_datetime = datetime.combine(selected_date, cad_time)
+
+    # Add cad_approval_timefrom_ibm_team to above datetime
+    ibm_time_raw = enabled_criteria.cad_appoval_timefrom_ibm_team
+    if not ibm_time_raw:
+        frappe.throw("CAD Approval Time from IBM Team not set in Order Criteria.")
+
+    # Convert ibm_time_raw to timedelta
+    if isinstance(ibm_time_raw, time):
+        ibm_delta = timedelta(hours=ibm_time_raw.hour, minutes=ibm_time_raw.minute, seconds=ibm_time_raw.second)
+    elif isinstance(ibm_time_raw, timedelta):
+        ibm_delta = ibm_time_raw
+    elif isinstance(ibm_time_raw, str):
+        try:
+            h, m, s = [int(x) for x in ibm_time_raw.strip().split(".")]
+            ibm_delta = timedelta(hours=h, minutes=m, seconds=s)
+        except:
+            frappe.throw("Invalid IBM Approval Time format.")
+    else:
+        ibm_delta = timedelta(0)
+
+    ibm_delivery_datetime = update_cad_datetime + ibm_delta
+
+    return {
+        "update_cad_delivery_date": update_cad_datetime,
+        "ibm_delivery_date": ibm_delivery_datetime
+    }

@@ -20,6 +20,7 @@
 "order_date",
 "delivery_date",
 "updated_delivery_date",
+"update_cad_delivery_date",
 "est_delivery_date",
 "project",
 "is_branch_shipping",
@@ -1602,6 +1603,12 @@
 "fetch_from": "cad_order_form.updated_delivery_date",
 "fieldname": "updated_delivery_date",
 "label": "Updated Delivery Date"
+},
+{
+   "depends_on": "eval:doc.workflow_type == \"CAD\"",
+   "fieldname": "update_cad_delivery_date",
+   "fieldtype": "Datetime",
+   "label": "Update Cad Delivery Date"
 },
 
 {
