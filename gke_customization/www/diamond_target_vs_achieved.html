@@ -10,7 +10,7 @@
         background-color: #fff;
         color: #333;
         background: url("/files/e8cda319-edf9-4558-99a1-607e2b205de5.png") center/cover no-repeat fixed;
-        overflow: hidden;
+        overflow-x: hidden;
     }
 
     body::before {
@@ -50,7 +50,7 @@
         }
     }
 
-    .navbar .navbar-brand {
+    .navbar  {
         display: none !important;
     }
 
@@ -114,15 +114,15 @@
     }
 
     iframe {
-        width: 100%;
-        height: 700px;
-        border: none;
-        display: none;
+    width: 100%;
+    height: calc(92vh - 40px); /* Leave 40px padding for taskbar */
+    border: none;
+    display: none;
     }
 
-    @media only screen and (max-width: 600px) {
+    @media only screen and (max-width: 768px) {
         iframe {
-            height: 500px;
+            height: 90px;
         }
     }
 </style>
