@@ -5,7 +5,7 @@ import frappe
 from frappe.model.document import Document
 
 class ReviseDiamondPriceList(Document):
-        def before_save(self):
+    def before_save(self):
         filters = {
 				"price_list": self.price_list,
 				"diamond_type": self.diamond_type,
@@ -69,6 +69,8 @@ class ReviseDiamondPriceList(Document):
                             
                 #             # sorted_data = [{"weight": f"{d['from_weight']}-{d['to_weight']}"} for d in raw_data]
                 #             set_data_in_child_table(self,sorted_data)
+
+
 
     def on_submit(self):
         if self.price_list_type == 'Sieve Size Range':
