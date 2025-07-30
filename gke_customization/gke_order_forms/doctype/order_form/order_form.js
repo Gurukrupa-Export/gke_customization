@@ -1,5 +1,13 @@
 frappe.ui.form.on('Order Form', {
+	setup(frm) {
+		// Ensure default time is 11:00:00 AM on load too if needed
+		if (frm.doc.delivery_date) {
+			set_11am_time_on_date(frm, 'delivery_date');
+		}
+	},
+	
 	delivery_date(frm) {
+		set_11am_time_on_date(frm, 'delivery_date');
 		validate_dates(frm, frm.doc, "delivery_date")
 		update_fields_in_child_table(frm, "delivery_date")
 		calculate_due_days(frm);
@@ -1111,12 +1119,30 @@ function set_metal_properties_from_bom(frm, cdt, cdn) {
 		})
 	}
 };
+function set_11am_time_on_date(frm, fieldname) {
+	if (frm.doc[fieldname]) {
+		let date_only = frappe.datetime.obj_to_str(frappe.datetime.str_to_obj(frm.doc[fieldname]), 'date');
+		let new_datetime = `${date_only} 11:00:00`;
+		frm.set_value(fieldname, new_datetime);
+	}
+};
 
 function validate_dates(frm, doc, dateField) {
-    let order_date = frm.doc.order_date
-    if (doc[dateField] < order_date) {
-        frappe.model.set_value(doc.doctype, doc.name, dateField, frappe.datetime.add_days(order_date,1))
-    }
+	let order_date = frm.doc.order_date;
+	let delivery_date = doc[dateField];
+
+	if (!order_date || !delivery_date) return;
+
+	// Ensure order_date and delivery_date are both datetime objects
+	const order_dt = frappe.datetime.str_to_obj(order_date);
+	const delivery_dt = frappe.datetime.str_to_obj(delivery_date);
+
+	// If delivery date is earlier than order date, reset it to +1 day at 11:00 AM
+	if (delivery_dt < order_dt) {
+		let new_date = frappe.datetime.add_days(order_date, 1);
+		new_date = frappe.datetime.set_time(new_date, '11:00:00');
+		frappe.model.set_value(doc.doctype, doc.name, dateField, new_date);
+	}
 };
 
 function fetch_item_from_serial(doc, fieldname, itemfield) {
@@ -1265,12 +1291,37 @@ function hide_field_attribute(frm, cdt, cdn, field) {
 
 // Auto calculate due days from delivery date    
 function calculate_due_days(frm) {
-	frm.set_value('due_days', frappe.datetime.get_day_diff(frm.doc.delivery_date, frm.doc.order_date));
+	if (frm.doc.delivery_date && frm.doc.order_date) {
+		const delivery = frappe.datetime.str_to_obj(frm.doc.delivery_date);
+		const order = frappe.datetime.str_to_obj(frm.doc.order_date);
+
+		// Get date-only values
+		const delivery_date_only = new Date(delivery.getFullYear(), delivery.getMonth(), delivery.getDate());
+		const order_date_only = new Date(order.getFullYear(), order.getMonth(), order.getDate());
+
+		const ms_diff = delivery_date_only - order_date_only;
+		console.log(ms_diff)
+		const days = Math.ceil(ms_diff / (1000 * 60 * 60 * 24));  // ⬅️ Use ceil instead of round
+
+		frm.set_value('due_days', days);
+	}
 };
 
-// Auto Calculate delivery date from due days
+
 function delivery_date(frm) {
-	frm.set_value('delivery_date', frappe.datetime.add_days(frm.doc.order_date, frm.doc.due_days));
+	if (frm.doc.order_date && frm.doc.due_days != null) {
+		const order_date = frappe.datetime.str_to_obj(frm.doc.order_date);
+
+		// Add due_days to order_date
+		let delivery = frappe.datetime.add_days(order_date, frm.doc.due_days);
+
+		// Set time to 11:00:00 AM
+		delivery = frappe.datetime.obj_to_str(new Date(
+			new Date(delivery).setHours(11, 0, 0)
+		));
+
+		frm.set_value('delivery_date', delivery);
+	}
 };
 
 function set_filter_for_salesman_name(frm) {
