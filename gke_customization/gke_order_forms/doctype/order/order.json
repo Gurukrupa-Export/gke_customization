@@ -297,7 +297,7 @@
 "fetch_from": "cad_order_form_detail.delivery_date",
 "fetch_if_empty": 1,
 "fieldname": "delivery_date",
-"fieldtype": "Date",
+"fieldtype": "Datetime",
 "label": "Delivery Date",
 "read_only": 1
 },
