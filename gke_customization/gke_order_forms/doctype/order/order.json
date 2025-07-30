@@ -288,7 +288,7 @@
 {
 "fetch_from": "cad_order_form.order_date",
 "fieldname": "order_date",
-"fieldtype": "Date",
+"fieldtype": "Datetime",
 "in_list_view": 1,
 "label": "Order Date",
 "read_only": 1
