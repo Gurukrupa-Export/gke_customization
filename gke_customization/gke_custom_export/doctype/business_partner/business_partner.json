@@ -1,14 +1,11 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:business_partner_name",
  "creation": "2025-03-31 14:09:56.177058",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "is_bank",
-  "party_type",
-  "business_partner_name",
   "section_break_fnx9",
   "customer",
   "customer_name",
@@ -17,20 +14,23 @@
   "supplier",
   "supplier_name",
   "payable_account",
+  "section_break_dakx",
   "unsecured_loan_account",
-  "secured_loan_account"
+  "column_break_jmkx",
+  "secured_loan_account",
+  "section_break_sdom",
+  "loan_accounts",
+  "section_break_m3ej",
+  "pan_number",
+  "address",
+  "column_break_mbgj",
+  "aadhar_card_number",
+  "tax_withholding_category"
  ],
  "fields": [
   {
    "fieldname": "section_break_fnx9",
    "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "party_type",
-   "fieldtype": "Select",
-   "hidden": 1,
-   "label": "Party Type",
-   "options": "\nSupplier\nCustomer"
   },
   {
    "fieldname": "customer",
@@ -59,24 +59,20 @@
    "read_only": 1
   },
   {
-   "fieldname": "business_partner_name",
-   "fieldtype": "Data",
-   "label": "Business Partner Name",
-   "unique": 1
-  },
-  {
    "fieldname": "column_break_cwaz",
    "fieldtype": "Column Break"
   },
   {
    "fieldname": "payable_account",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Payable Account",
    "options": "Account"
   },
   {
    "fieldname": "receivable_account",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Receivable Account",
    "options": "Account"
   },
@@ -97,15 +93,72 @@
    "fieldtype": "Link",
    "label": "Secured Loan Account",
    "options": "Account"
+  },
+  {
+   "fieldname": "section_break_dakx",
+   "fieldtype": "Section Break",
+   "hidden": 1
+  },
+  {
+   "fieldname": "column_break_jmkx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_sdom",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "loan_accounts",
+   "fieldtype": "Table",
+   "label": "Loan Accounts",
+   "options": "Loan Accounts"
+  },
+  {
+   "fieldname": "section_break_m3ej",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "pan_number",
+   "fieldtype": "Data",
+   "label": "PAN Number"
+  },
+  {
+   "fieldname": "aadhar_card_number",
+   "fieldtype": "Data",
+   "label": "Aadhar Card Number"
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Link",
+   "label": "Address",
+   "options": "Address"
+  },
+  {
+   "fieldname": "tax_withholding_category",
+   "fieldtype": "Link",
+   "label": "Tax Withholding Category",
+   "options": "Tax Withholding Category"
+  },
+  {
+   "fieldname": "column_break_mbgj",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-07-22 10:31:31.101072",
+ "links": [
+  {
+   "link_doctype": "Secured Loan",
+   "link_fieldname": "lender"
+  },
+  {
+   "link_doctype": "Unsecured Loan",
+   "link_fieldname": "lender"
+  }
+ ],
+ "modified": "2025-07-30 16:41:46.951993",
  "modified_by": "Administrator",
  "module": "GKE Custom Export",
  "name": "Business Partner",
- "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
