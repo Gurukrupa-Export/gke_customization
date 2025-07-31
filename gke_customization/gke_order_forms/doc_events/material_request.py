@@ -7,11 +7,11 @@ def get_department_wise_items(user_id=None, item_group=None):
     if not user_id and not item_group:
         frappe.throw("User ID or Item Group is required.")
     
-    emp_detail = frappe.db.get_value("Employee", {'user_id': user_id}, ['name', 'department'], as_dict=True)
+    emp_detail = frappe.db.get_value("Employee", {'user_id': user_id}, ['name', 'department','branch'], as_dict=True)
     if not emp_detail:
         frappe.throw("No employee found for the given user.")
 
-    consumable_master = frappe.db.get_value("Consumable Master", {'department': emp_detail.department}, ['name'])
+    consumable_master = frappe.db.get_value("Consumable Master", {'department': emp_detail.department,'branch':emp_detail.branch}, ['name'])
     if not consumable_master:
         frappe.throw("No Consumable Master found for this department.")
 
@@ -38,7 +38,8 @@ def get_department_wise_items(user_id=None, item_group=None):
             item_filters['item_group'] = item_group
         else:
             item_filters['item_group'] = ['in', [
-                'Tools & Accessories', 'Chemicals', 'Machinery', 'Office Supplies', 'Electric Accessories'
+                # 'Tools & Accessories', 
+                'Chemicals', 'Machinery', 'Office Supplies', 'Electric Accessories'
             ]]
 
         item_detail = frappe.db.get_all(
