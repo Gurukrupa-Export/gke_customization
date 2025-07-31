@@ -1,0 +1,53 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-05-21 11:48:07.773238",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_a7nq",
+  "order",
+  "department_shift"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_a7nq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "order",
+   "fieldtype": "Table",
+   "label": "Order",
+   "options": "Order Criteria Table"
+  },
+  {
+   "fieldname": "department_shift",
+   "fieldtype": "Table",
+   "label": "Department Shift",
+   "options": "Department Shift"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-07-29 15:36:30.651553",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Order Criteria",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
