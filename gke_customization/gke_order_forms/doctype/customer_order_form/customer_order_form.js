@@ -3,30 +3,29 @@
 
 frappe.ui.form.on('Customer Order Form', {
 	// get quotation button for proto type
-	refresh(frm){
-		
+	refresh(frm){		
 		set_item_attribute_filters_in_child_table(frm);
-		frm.add_custom_button(__("Get Quotation"), function(){
-            erpnext.utils.map_current_doc({
-                method: "gke_customization.gke_order_forms.doctype.customer_order_form.customer_order_form.get_quotation",			
-				source_doctype: "Quotation",
-                target: frm,
-                setters: [
-                    {
-                        label: "Customer",
-                        fieldname: "party_name",
-                        fieldtype: "Link",
-                        options: "Customer",
-                        // reqd: 1,
-                        // default: frm.doc.customer_code || undefined
-                    },
-                ],
-                // get_query_filters: {
-                    // docstatus: 1,
-					// cad_order_form: frappe.db.get_list('Order Form')
-                // }
-            })
-        }, __("Get Quotation"))
+		// frm.add_custom_button(__("Get Quotation"), function(){
+        //     erpnext.utils.map_current_doc({
+        //         method: "gke_customization.gke_order_forms.doctype.customer_order_form.customer_order_form.get_quotation",			
+		// 		source_doctype: "Quotation",
+        //         target: frm,
+        //         setters: [
+        //             {
+        //                 label: "Customer",
+        //                 fieldname: "party_name",
+        //                 fieldtype: "Link",
+        //                 options: "Customer",
+        //                 // reqd: 1,
+        //                 // default: frm.doc.customer_code || undefined
+        //             },
+        //         ],
+        //         // get_query_filters: {
+        //             // docstatus: 1,
+		// 			// cad_order_form: frappe.db.get_list('Order Form')
+        //         // }
+        //     })
+        // }, __("Get Quotation"))
 	},
 
 	customer_code(frm){
@@ -111,6 +110,7 @@ frappe.ui.form.on('Customer Order Form Detail', {
 		if(!row.quotation){
 			row.customer_name = frm.doc.customer_name;
 			row.customer_code = frm.doc.customer_code;
+			row.flow_type = frm.doc.flow_type;
 		}
 		
 		refresh_field("customer_order_form_detail");

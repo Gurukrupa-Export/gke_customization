@@ -123,9 +123,9 @@ def get_conditions(filters):
     conditions = []
 
     if filters.get("from_date"):
-        conditions.append(f"""so.modified >= "{filters['from_date']}" """)
+        conditions.append(f"""so.order_date >= "{filters['from_date']}" """)
     if filters.get("to_date"):
-        conditions.append(f"""so.modified <= "{filters['to_date']}" """)
+        conditions.append(f"""so.order_date <= "{filters['to_date']}" """)
     if filters.get("branch"):
         conditions.append(f"""so.branch = "{filters['branch']}" """)
     if filters.get("customer"):
@@ -141,6 +141,7 @@ def get_conditions(filters):
             filters["customer_list"] = customer_list
     if filters.get("customer_group"):
         conditions.append(f"""cst.customer_group = "{filters['customer_group']}" """)
+
     if filters.get("docstatus") not in (None, "", "undefined"):
         conditions.append(f"""so.docstatus = {int(filters['docstatus'])}""")
     if filters.get("workflow_state"):

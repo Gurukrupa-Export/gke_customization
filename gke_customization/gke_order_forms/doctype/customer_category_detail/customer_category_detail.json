@@ -9,7 +9,9 @@
   "section_break_ajxr",
   "code_category",
   "customer_category",
+  "customer_subcategory",
   "column_break_jfcf",
+  "article",
   "gk_category",
   "gk_sub_category"
  ],
@@ -47,12 +49,24 @@
    "in_list_view": 1,
    "label": "GK Sub Category",
    "options": "Attribute Value"
+  },
+  {
+   "fieldname": "customer_subcategory",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer Subcategory"
+  },
+  {
+   "fieldname": "article",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Article"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-12-16 10:00:20.788890",
+ "modified": "2025-05-12 15:54:43.808804",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Customer Category Detail",

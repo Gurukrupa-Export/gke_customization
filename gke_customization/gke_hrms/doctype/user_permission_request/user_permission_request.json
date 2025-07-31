@@ -23,7 +23,8 @@
   "username",
   "user_id",
   "column_break_d3qo",
-  "role_profie"
+  "role_profie",
+  "module_profile"
  ],
  "fields": [
   {
@@ -137,13 +138,20 @@
   {
    "fieldname": "operation",
    "fieldtype": "Data",
-   "label": "Operation"
+   "label": "Process"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "module_profile",
+   "fieldtype": "Link",
+   "label": "Module Profile",
+   "options": "Module Profile"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-17 14:56:55.538143",
+ "modified": "2025-07-24 11:45:55.431763",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "User Permission Request",
