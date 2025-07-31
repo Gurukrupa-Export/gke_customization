@@ -21,6 +21,7 @@
 "delivery_date",
 "est_delivery_date",
 "updated_delivery_date",
+"update_cad_delivery_date",
 "project",
 "is_branch_shipping",
 "rework",
@@ -34,6 +35,8 @@
 "est_due_days",
 "service_type",
 "flow_type",
+"cad_delivery_date",
+"ibm_delivery_date",
 "section_break_10",
 "cad_order_form",
 "pre_order_form",
@@ -286,7 +289,7 @@
 {
 "fetch_from": "cad_order_form.order_date",
 "fieldname": "order_date",
-"fieldtype": "Date",
+"fieldtype": "Datetime",
 "in_list_view": 1,
 "label": "Order Date",
 "read_only": 1
@@ -295,15 +298,15 @@
 "fetch_from": "cad_order_form_detail.delivery_date",
 "fetch_if_empty": 1,
 "fieldname": "delivery_date",
-"fieldtype": "Date",
+"fieldtype": "Datetime",
 "label": "Delivery Date",
 "read_only": 1
 },
 {
 "fieldname": "est_delivery_date",
 "fieldtype": "Date",
-"label": "Est. Delivery Date",
-"mandatory_depends_on": "eval:!doc.__islocal"
+"hidden": 1,
+"label": "Est. Delivery Date"
 },
 {
 "fetch_from": "cad_order_form.project",
@@ -326,6 +329,7 @@
 "fetch_from": "cad_order_form.system_due_date",
 "fieldname": "system_due_date",
 "fieldtype": "Date",
+ "hidden": 1,
 "label": "System Due Date",
 "read_only": 1
 },
@@ -1044,6 +1048,18 @@
 "read_only": 1
 },
 {
+   "depends_on": "eval:doc.workflow_type == \"CAD\" && doc.workflow_type",
+   "fieldname": "cad_delivery_date",
+   "fieldtype": "Datetime",
+   "label": "Cad Delivery Date"
+  },
+{
+   "depends_on": "eval:doc.workflow_type == \"BOM\" || doc.workflow_type == \"CAD\" && doc.workflow_type",
+   "fieldname": "ibm_delivery_date",
+   "fieldtype": "Datetime",
+   "label": "IBM Delivery Date"
+  },
+{
 "default": "0",
 "depends_on": "eval:doc.is_repairing",
 "fetch_if_empty": 1,
@@ -1575,9 +1591,15 @@
 "allow_on_submit": 1,
 "fetch_from": "cad_order_form.updated_delivery_date",
 "fieldname": "updated_delivery_date",
-"fieldtype": "Date",
+"fieldtype": "Datetime",
 "label": "Updated Delivery Date"
 },
+  {
+   "depends_on": "eval:doc.workflow_type == \"CAD\"",
+   "fieldname": "update_cad_delivery_date",
+   "fieldtype": "Datetime",
+   "label": "Update Cad Delivery Date"
+  },
 {
 "fetch_from": "cad_order_form_detail.jewelex_batch_no",
 "fieldname": "jewelex_batch_no",

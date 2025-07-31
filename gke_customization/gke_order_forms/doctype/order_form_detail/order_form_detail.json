@@ -160,7 +160,7 @@
     },
     {
     "fieldname": "delivery_date",
-    "fieldtype": "Date",
+    "fieldtype": "Datetime",
     "in_list_view": 1,
     "label": "Delivery Date",
     "reqd": 1

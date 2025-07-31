@@ -19,6 +19,7 @@
     "customer_name",
     "order_date",
     "delivery_date",
+    "above_delivery_date_includes_cad_approval_time_period",
     "update_delivery_date",
     "updated_delivery_date",
     "project",
@@ -103,9 +104,8 @@
     "reqd": 1
     },
     {
-    "default": "Today",
     "fieldname": "order_date",
-    "fieldtype": "Date",
+    "fieldtype": "Datetime",
     "in_list_view": 1,
     "label": "Order Date",
     "read_only": 1,
@@ -113,10 +113,16 @@
     },
     {
     "fieldname": "delivery_date",
-    "fieldtype": "Date",
+    "fieldtype": "Datetime",
     "label": "Delivery Date",
     "reqd": 1
     },
+    {
+    "default": "0",
+    "fieldname": "above_delivery_date_includes_cad_approval_time_period",
+    "fieldtype": "Check",
+    "label": "Above delivery date Includes CAD approval time period."
+  },
     {
     "fieldname": "project",
     "fieldtype": "Link",
