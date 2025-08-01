@@ -195,8 +195,8 @@ class OTAllowanceEntry(Document):
 			
 			start_time = get_time(shift.start_time)
 
-			date_time = datetime.combine(shift_start_date, start_time)		
-			# date_time = datetime.combine(getdate(holiday.holiday_date), get_time(shift.start_time))
+			# date_time = datetime.combine(shift_start_date, start_time)	
+			date_time = datetime.combine(getdate(holiday.holiday_date), get_time(shift.start_time))
 
 			shift_timings = get_employee_shift_timings(emp.name, get_datetime(date_time), True)[1]
 			filters = {
