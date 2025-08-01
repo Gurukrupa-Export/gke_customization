@@ -8,6 +8,21 @@ import hrms
 from hrms.hr.doctype.job_requisition.job_requisition import JobRequisition
 
 class CustomJobRequisition(JobRequisition):
+    def autoname(self):
+        if self.custom_branch:
+            parts = self.custom_branch.split("-")
+            branch_prefix = "-".join(parts[:2])
+
+            series_number = frappe.model.naming.make_autoname("HIREQ-.#####")
+            series = f"{branch_prefix}-HIREQ-{series_number.split('-')[-1]}"
+
+            self.name = series
+        else:
+            company_abbr = frappe.db.get_value("Company", self.company, "abbr")
+            series = f"{company_abbr}-HIREQ-.#####"
+            
+            self.name = frappe.model.naming.make_autoname(series)
+
     def validate(self):
         self.validate_duplicates()
         self.set_time_to_fill()
