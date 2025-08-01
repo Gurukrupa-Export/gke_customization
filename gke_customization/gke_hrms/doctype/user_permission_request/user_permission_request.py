@@ -13,7 +13,7 @@ class UserPermissionRequest(Document):
         self.name = frappe.model.naming.make_autoname(prefix)
 
     def on_submit(self):
-        if self.workflow_state == 'Create User ID':
+        if self.workflow_state == 'Create user ID':
 
             if frappe.db.exists('User', self.username):
                 frappe.throw("User already exists")
