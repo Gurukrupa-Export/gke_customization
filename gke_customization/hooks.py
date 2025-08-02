@@ -289,6 +289,12 @@ doc_events = {
 "Batch": {
     "autoname": "jewellery_erpnext.jewellery_erpnext.customization.batch.batch.autoname",
 },
+"Timesheet": {
+    "validate": "gke_customization.gke_order_forms.doc_events.timesheet.validate",
+    "on_submit": "gke_customization.gke_order_forms.doc_events.timesheet.on_submit",
+    "on_update": "gke_customization.gke_order_forms.doc_events.timesheet.on_update"
+    
+},
 # "Stock Entry": {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.stock_entry.before_validate",
 # }
