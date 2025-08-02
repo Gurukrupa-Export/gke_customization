@@ -311,7 +311,7 @@
     "allow_on_submit": 1,
     "depends_on": "eval: doc.update_delivery_date == 1",
     "fieldname": "updated_delivery_date",
-    "fieldtype": "Date",
+    "fieldtype": "Datetime",
     "label": "Updated Delivery Date"
     },
     {
