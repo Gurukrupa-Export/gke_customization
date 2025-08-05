@@ -25,33 +25,33 @@ class UnsecuredLoan(Document):
 				"interest_rate": self.interest_rate
 			})
 
-		repayment_rows = self.repayment_schedule
-		for i in range(1, len(self.repayment_schedule)):
-			prev_row = self.repayment_schedule[i - 1]
-			row = self.repayment_schedule[i]
+		# repayment_rows = self.repayment_schedule
+		# for i in range(1, len(self.repayment_schedule)):
+		# 	prev_row = self.repayment_schedule[i - 1]
+		# 	row = self.repayment_schedule[i]
 
-			if not row.payment_date or not prev_row.payment_date:
-				continue
+		# 	if not row.payment_date or not prev_row.payment_date:
+		# 		continue
 
-			prev_date = getdate(prev_row.payment_date)
-			curr_date = getdate(row.payment_date)
-			days = (curr_date - prev_date).days
-			row.number_of_days = days
+		# 	prev_date = getdate(prev_row.payment_date)
+		# 	curr_date = getdate(row.payment_date)
+		# 	days = (curr_date - prev_date).days
+		# 	row.number_of_days = days
 
-			prev_balance = prev_row.balance_loan_amount or 0
-			interest = (prev_balance * self.interest_rate / 100) * (days / 365)
-			row.interest_amount = interest
+		# 	prev_balance = prev_row.balance_loan_amount or 0
+		# 	interest = (prev_balance * self.interest_rate / 100) * (days / 365)
+		# 	row.interest_amount = interest
 
-			row.total_payment = row.total_payment or 0
-			row.repay_loan_amount = row.repay_loan_amount or 0
-			row.loan_amount = row.loan_amount or 0
+		# 	row.total_payment = row.total_payment or 0
+		# 	row.repay_loan_amount = row.repay_loan_amount or 0
+		# 	row.loan_amount = row.loan_amount or 0
 
-			if row.payment_type == "Pay":
-				row.repay_loan_amount = row.total_payment - interest
-				row.balance_loan_amount = prev_balance - row.repay_loan_amount
-			elif row.payment_type == "Receive":
-				row.repay_loan_amount = 0
-				row.balance_loan_amount = prev_balance + row.loan_amount
+		# 	if row.payment_type == "Pay":
+		# 		row.repay_loan_amount = row.total_payment - interest
+		# 		row.balance_loan_amount = prev_balance - row.repay_loan_amount
+		# 	elif row.payment_type == "Receive":
+		# 		row.repay_loan_amount = 0
+		# 		row.balance_loan_amount = prev_balance + row.loan_amount
 
 
 		# if self.workflow_state == 'Interest Accrual':

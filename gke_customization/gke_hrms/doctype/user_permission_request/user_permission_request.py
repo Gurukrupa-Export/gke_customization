@@ -11,8 +11,9 @@ class UserPermissionRequest(Document):
         type_code='UPR'
         prefix = f"{company_abbr}-{type_code}-"
         self.name = frappe.model.naming.make_autoname(prefix)
+
     def on_submit(self):
-        if self.workflow_state == 'Create User ID':
+        if self.workflow_state == 'Create user ID':
 
             if frappe.db.exists('User', self.username):
                 frappe.throw("User already exists")
@@ -72,8 +73,9 @@ def get_task_data(task_id):
 
     onboarding = frappe.get_doc('Employee Onboarding', activity[0].parent)
     Job_applicant=frappe.get_doc('Job Applicant',onboarding.job_applicant)
-    job_title = Job_applicant.job_title
-    location = frappe.db.get_value('Job Opening', job_title, 'location')
+    # job_title = Job_applicant.job_title
+    location=onboarding.custom_branch
+    # location = frappe.db.get_value('Job Opening', job_title, 'location')
     # first_name = onboarding.employee_name.split()[0]
     # last_name = onboarding.employee_name.split()[-1]
     

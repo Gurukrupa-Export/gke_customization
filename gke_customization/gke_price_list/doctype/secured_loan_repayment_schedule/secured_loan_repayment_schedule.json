@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "section_break_2quv",
+  "payment_date",
   "due_date",
   "emi_amount",
   "principal_amount",
@@ -25,25 +26,29 @@
    "fieldname": "due_date",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Due Date"
+   "label": "Due Date",
+   "read_only": 1
   },
   {
    "fieldname": "emi_amount",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "EMI Amount"
+   "label": "EMI Amount",
+   "read_only": 1
   },
   {
    "fieldname": "principal_amount",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Principal Amount"
+   "label": "Principal Amount",
+   "read_only": 1
   },
   {
    "fieldname": "interest_rate",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Interest Rate"
+   "label": "Interest Rate",
+   "read_only": 1
   },
   {
    "fieldname": "outstanding_amount",
@@ -57,7 +62,8 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Payment Status",
-   "options": "Unpaid\nPaid"
+   "options": "Unpaid\nPaid",
+   "read_only": 1
   },
   {
    "fieldname": "make_payment_entry",
@@ -69,13 +75,21 @@
    "default": "0",
    "fieldname": "payment_entry_created",
    "fieldtype": "Check",
-   "label": "Payment Entry Created"
+   "label": "Payment Entry Created",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "payment_date",
+   "fieldtype": "Date",
+   "label": "Payment Date",
+   "read_only_depends_on": "eval:doc.payment_status!='Paid'"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-18 11:32:43.781435",
+ "modified": "2025-07-28 12:57:54.751675",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Secured Loan Repayment Schedule",
