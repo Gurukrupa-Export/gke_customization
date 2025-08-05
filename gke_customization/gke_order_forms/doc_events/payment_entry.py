@@ -15,7 +15,7 @@ def on_update_after_submit(self, method):
         self.append("deductions", 
                     {
                         "branch": list(set(invoice_branchs))[0],
-                        "account": "Inter Branch  Clearing Account - GEPL",
+                        "account": "Inter Branch Clearing Account - GEPL",
                         "amount": self.paid_amount
                     }
                     )
@@ -161,4 +161,181 @@ def create_gl_entries(self):
 # 			days_between = (next_date - current_date).days
 # 			total_interest_amount += days_between * interest
 # 		Shareholder.custom_total_interest_amount = total_interest_amount
+
+import frappe
+import erpnext.accounts.doctype.payment_entry.payment_entry as pe_module
+import erpnext.accounts.party as party_module
+
+def skip_party_account_check(self):
+    pass  # no validation = bypassed
+
+party_module.validate_account_party_type = skip_party_account_check
+def on_submit(self, method):
+    if self.custom_unsecured_loan and self.payment_type == 'Receive':
+        bussiness_patner = frappe.db.get_value("Unsecured Loan",self.custom_unsecured_loan,"lender")
+        unsecured_laon_account = frappe.db.sql(f"""select unsecured_loan_account from `tabLoan Accounts` where parent = '{bussiness_patner}' and company = '{self.company}'""",as_dict=1)
+        if not unsecured_laon_account:
+            frappe.throw("Unsecured Loan account is not available for this Company")
+
+        gl_entries = []
+    
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': self.paid_from, 
+            'debit': self.paid_amount,
+            'debit_in_account_currency': self.paid_amount,
+            'debit_in_transaction_currency': self.paid_amount,
+            'credit': 0,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': unsecured_laon_account[0]['unsecured_loan_account'],
+            'debit': 0,
+            'credit': self.paid_amount,
+            'credit_in_account_currency': self.paid_amount,
+            'credit_in_transaction_currency': self.paid_amount,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        for entry in gl_entries:
+            gl_entry = frappe.get_doc({
+                'doctype': 'GL Entry',
+                **entry
+            })
+            gl_entry.insert(ignore_permissions=True)
+            gl_entry.submit()
+            frappe.flags.ignore_permissions = False
+        frappe.msgprint("Done")
+
+    if self.custom_unsecured_loan and self.payment_type == 'Pay':
+        bussiness_patner = frappe.db.get_value("Unsecured Loan",self.custom_unsecured_loan,"lender")
+        unsecured_laon_account = frappe.db.sql(f"""select unsecured_loan_account from `tabLoan Accounts` where parent = '{bussiness_patner}' and company = '{self.company}'""",as_dict=1)
+        if not unsecured_laon_account:
+            frappe.throw("Unsecured Loan account is not available for this Company")
+
+        gl_entries = []
+    
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': self.paid_to, 
+            'debit': 0,
+            'credit': self.paid_amount,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': unsecured_laon_account[0]['unsecured_loan_account'], 
+            'debit': self.paid_amount,
+            'credit': 0,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        for entry in gl_entries:
+            gl_entry = frappe.get_doc({
+                'doctype': 'GL Entry',
+                **entry
+            })
+            gl_entry.insert(ignore_permissions=True)
+            gl_entry.submit()
+            frappe.flags.ignore_permissions = False
+
+    if self.custom_secured_loan and self.payment_type == 'Receive':
+        bussiness_patner = frappe.db.get_value("Secured Loan",self.custom_secured_loan,"lender")
+        secured_laon_account = frappe.db.sql(f"""select secured_loan_account from `tabLoan Accounts` where parent = '{bussiness_patner}' and company = '{self.company}'""",as_dict=1)
+        if not secured_laon_account:
+            frappe.throw("Secured Loan account is not available for this Company")
+        gl_entries = []
+    
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': self.paid_from, 
+            'debit': self.paid_amount,
+            'credit': 0,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': secured_laon_account[0]['secured_loan_account'],
+            'debit': 0,
+            'credit': self.paid_amount,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        for entry in gl_entries:
+            gl_entry = frappe.get_doc({
+                'doctype': 'GL Entry',
+                **entry
+            })
+            gl_entry.insert(ignore_permissions=True)
+            gl_entry.submit()
+            frappe.flags.ignore_permissions = False
+
+    if self.custom_secured_loan and self.payment_type == 'Pay':
+        bussiness_patner = frappe.db.get_value("Secured Loan",self.custom_secured_loan,"lender")
+        secured_laon_account = frappe.db.sql(f"""select secured_loan_account from `tabLoan Accounts` where parent = '{bussiness_patner}' and company = '{self.company}'""",as_dict=1)
+        if not secured_laon_account:
+            frappe.throw("Secured Loan account is not available for this Company")
+        gl_entries = []
+    
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': self.paid_to, 
+            'debit': 0,
+            'credit': self.paid_amount,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': secured_laon_account[0]['secured_loan_account'],
+            'debit': self.paid_amount,
+            'credit': 0,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        for entry in gl_entries:
+            gl_entry = frappe.get_doc({
+                'doctype': 'GL Entry',
+                **entry
+            })
+            gl_entry.insert(ignore_permissions=True)
+            gl_entry.submit()
+            frappe.flags.ignore_permissions = False
+
 
