@@ -1,4 +1,7 @@
 
+
+
+
 import frappe
 from frappe.utils import now_datetime, time_diff_in_hours
 
@@ -180,8 +183,11 @@ def on_update(doc, method):
         update_order_status_from_timesheets(doc.order)
 
 
-def update_order_status_from_timesheets(order_name):
-    # Get all Timesheets linked to the given order
+def update_order_status_from_timesheets(order_name): 
+    workflow_type = frappe.db.get_value("Order", order_name, "workflow_type")
+    if workflow_type != "CAD":
+        return  
+    
     timesheets = frappe.get_all(
         "Timesheet",
         filters={"order": order_name},
@@ -189,22 +195,19 @@ def update_order_status_from_timesheets(order_name):
     )
 
     if not timesheets:
-        return  # No timesheets, nothing to do
+        return  
 
-    # Extract all workflow states from the timesheets
     workflow_states = list(set(ts["workflow_state"] for ts in timesheets))
 
-    # Case 1: If all timesheets are 'Approved', set order workflow_state to 'Update Item'
+    # All timesheets are Approved
     if all(ts["workflow_state"] == "Approved" for ts in timesheets):
         frappe.db.set_value("Order", order_name, "workflow_state", "Update Item")
         frappe.db.commit()
         return
 
-    # Case 2: If all timesheets have the same workflow_state (but not 'Approved')
     if len(workflow_states) == 1:
         common_state = workflow_states[0]
-
-        # Update the order's workflow_state to match the common state
+        # frappe.throw(f"{common_state}")
         frappe.db.set_value("Order", order_name, "workflow_state", common_state)
         frappe.db.commit()
 
