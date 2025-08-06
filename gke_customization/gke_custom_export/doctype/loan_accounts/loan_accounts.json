@@ -1,0 +1,53 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-28 12:26:12.187868",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_7i94",
+  "company",
+  "unsecured_loan_account",
+  "secured_loan_account"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_7i94",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "unsecured_loan_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Unsecured Loan Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "secured_loan_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Secured Loan Account",
+   "options": "Account"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-07-28 12:29:45.953680",
+ "modified_by": "Administrator",
+ "module": "GKE Custom Export",
+ "name": "Loan Accounts",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -375,11 +375,7 @@
    "description": "Titan's 14 Digit Code",
    "fieldname": "digit14_code",
    "fieldtype": "Data",
-<<<<<<< HEAD
    "label": "Product Code",
-=======
-   "label": "Product Code(14 Digit)",
->>>>>>> f75d909 (Initial commit)
    "length": 14,
    "mandatory_depends_on": "eval: doc.customer_name.includes('Titan')"
   },
@@ -388,33 +384,19 @@
    "description": "Reliance's 18 Digit Code",
    "fieldname": "digit18_code",
    "fieldtype": "Data",
-<<<<<<< HEAD
    "label": "Product Code",
-=======
-   "label": "Product Code(18 Digit)",
->>>>>>> f75d909 (Initial commit)
    "length": 18,
    "mandatory_depends_on": "eval: doc.customer_name.includes('Reliance')"
   },
   {
-<<<<<<< HEAD
    "depends_on": "eval: doc.customer_name.includes('Novel') ",
-=======
-   "depends_on": "eval: doc.customer_name.includes('Novel') && doc.flow_type !== 'PROTO'",
->>>>>>> f75d909 (Initial commit)
    "description": "Novel's 15 Digit Code",
    "fieldname": "digit15_code",
    "fieldtype": "Data",
    "in_list_view": 1,
-<<<<<<< HEAD
    "label": "Product Code",
    "length": 15,
    "mandatory_depends_on": "// eval: doc.customer_name.includes('Novel')"
-=======
-   "label": "Product Code(15 Digit)",
-   "length": 15,
-   "mandatory_depends_on": "// eval: doc.customer_name.includes('Novel') && doc.flow_type !== 'PROTO'"
->>>>>>> f75d909 (Initial commit)
   },
   {
    "fieldname": "product_type",
@@ -471,11 +453,7 @@
    "description": "Caratlane's SKU Code",
    "fieldname": "sku_code",
    "fieldtype": "Data",
-<<<<<<< HEAD
    "label": "Product Code"
-=======
-   "label": "Product Code(SKU Code)"
->>>>>>> f75d909 (Initial commit)
   },
   {
    "fieldname": "product_weight_section",
@@ -489,19 +467,11 @@
    "label": "Diamond Weight (In Carat)"
   },
   {
-<<<<<<< HEAD
-=======
-   "depends_on": "eval: doc.customer_name.includes('Carat')",
->>>>>>> f75d909 (Initial commit)
    "fieldname": "max_diamond",
    "fieldtype": "Float",
    "label": "Max Diamond Weight"
   },
   {
-<<<<<<< HEAD
-=======
-   "depends_on": "eval: doc.customer_name.includes('Carat')",
->>>>>>> f75d909 (Initial commit)
    "fieldname": "min_diamond",
    "fieldtype": "Float",
    "label": "Min Diamond Weight"
@@ -518,19 +488,11 @@
    "label": "Net Weight (In Gram)"
   },
   {
-<<<<<<< HEAD
-=======
-   "depends_on": "eval: doc.customer_name.includes('Carat')",
->>>>>>> f75d909 (Initial commit)
    "fieldname": "max_net",
    "fieldtype": "Float",
    "label": "Max Net Weight"
   },
   {
-<<<<<<< HEAD
-=======
-   "depends_on": "eval: doc.customer_name.includes('Carat')",
->>>>>>> f75d909 (Initial commit)
    "fieldname": "min_net",
    "fieldtype": "Float",
    "label": "Min Net Weight"
@@ -539,25 +501,12 @@
    "fieldname": "stone_code",
    "fieldtype": "Data",
    "label": "Stone Code"
-<<<<<<< HEAD
-=======
-  },
-  {
-   "fieldname": "flow_type",
-   "fieldtype": "Data",
-   "label": "Flow Type",
-   "read_only": 1
->>>>>>> f75d909 (Initial commit)
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
-<<<<<<< HEAD
  "modified": "2025-03-27 15:40:18.210043",
-=======
- "modified": "2025-05-05 15:42:22.246221",
->>>>>>> f75d909 (Initial commit)
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Customer Order Form Detail",

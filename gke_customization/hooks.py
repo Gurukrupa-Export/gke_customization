@@ -118,6 +118,7 @@ has_permission = {
 override_doctype_class = {
 	"Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive",
 	"Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin",
+    "Job Requisition": "gke_customization.overrides.job_requisition.CustomJobRequisition"
     # "Parent Manufacturing Order": "gke_customization.overrides.parent_manufacturing_order.CustomParentManufacturingOrder"
 }
 
@@ -288,6 +289,12 @@ doc_events = {
 },
 "Batch": {
     "autoname": "jewellery_erpnext.jewellery_erpnext.customization.batch.batch.autoname",
+},
+"Timesheet": {
+    "validate": "gke_customization.gke_order_forms.doc_events.timesheet.validate",
+    "on_submit": "gke_customization.gke_order_forms.doc_events.timesheet.on_submit",
+    "on_update": "gke_customization.gke_order_forms.doc_events.timesheet.on_update"
+    
 },
 # "Stock Entry": {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.stock_entry.before_validate",

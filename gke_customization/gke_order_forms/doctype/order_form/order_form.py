@@ -32,11 +32,24 @@ import requests
 import os
 
 class OrderForm(Document):
+	
 	def on_submit(self):
 		create_cad_orders(self)
 		if self.supplier:
 			create_po(self)
 
+
+	def on_update_after_submit(self):
+		if self.updated_delivery_date:
+			order_names = frappe.get_all(
+				"Order",
+				filters={"cad_order_form": self.name},
+				pluck="name"
+			)
+
+			for order_name in order_names:
+				frappe.db.set_value("Order", order_name, "updated_delivery_date", self.updated_delivery_date)
+				
 	# def on_cancel(self):
 	# 	delete_auto_created_cad_order(self)
 	def on_cancel(self):
@@ -311,17 +324,89 @@ class OrderForm(Document):
 
 
 
-def create_cad_orders(self):
-	doclist = []
-	for row in self.order_details:
-		docname = make_cad_order(row.name, parent_doc = self)
-		doclist.append(get_link_to_form("Order", docname))
+from datetime import datetime, timedelta, time
+import frappe
+from frappe.utils import now_datetime, get_datetime
+from frappe.utils import get_link_to_form
+from frappe import _
 
-	if doclist:
-		msg = _("The following {0} were created: {1}").format(
-				frappe.bold(_("Orders")), "<br>" + ", ".join(doclist)
-			)
-		frappe.msgprint(msg)
+def create_cad_orders(self):
+    doclist = []
+
+    # Fetch Order Criteria once
+    order_criteria = frappe.get_single("Order Criteria")
+    criteria_rows = order_criteria.get("order")
+    enabled_criteria = next((row for row in criteria_rows if not row.disable), None)
+
+    if not enabled_criteria:
+        frappe.throw("No enabled Order Criteria found.")
+
+    # Parse CAD and IBM times
+    cad_days = int(enabled_criteria.cad_approval_day or 0)
+
+    # Parse cad_submission_time
+    cad_time_raw = enabled_criteria.cad_submission_time
+    if isinstance(cad_time_raw, time):
+        cad_time = cad_time_raw
+    elif isinstance(cad_time_raw, timedelta):
+        cad_time = (datetime.min + cad_time_raw).time()
+    elif isinstance(cad_time_raw, str):
+        try:
+            h, m, s = [int(x) for x in cad_time_raw.strip().split(".")]
+            cad_time = time(h, m, s)
+        except:
+            frappe.throw("Invalid CAD Submission Time format.")
+    else:
+        cad_time = time(0, 0, 0)
+
+    # Parse IBM approval time
+    ibm_time_raw = enabled_criteria.cad_appoval_timefrom_ibm_team
+    if isinstance(ibm_time_raw, time):
+        ibm_timedelta = timedelta(hours=ibm_time_raw.hour, minutes=ibm_time_raw.minute, seconds=ibm_time_raw.second)
+    elif isinstance(ibm_time_raw, timedelta):
+        ibm_timedelta = ibm_time_raw
+    elif isinstance(ibm_time_raw, str):
+        try:
+            h, m, s = [int(x) for x in ibm_time_raw.strip().split(".")]
+            ibm_timedelta = timedelta(hours=h, minutes=m, seconds=s)
+        except:
+            frappe.throw("Invalid IBM Approval Time format.")
+    else:
+        ibm_timedelta = timedelta()
+
+    for row in self.order_details:
+        # Create Order
+        docname = make_cad_order(row.name, parent_doc=self)
+
+        # Link Pre Order Form Details
+        if row.pre_order_form_details:
+            frappe.db.set_value("Pre Order Form Details", row.pre_order_form_details, "order_form_id", self.name)
+
+        # Set order_date to now
+        order_datetime = now_datetime()
+        frappe.db.set_value("Order", docname, "order_date", order_datetime)
+
+        # Set delivery_date if available
+        if self.delivery_date:
+            frappe.db.set_value("Order", docname, "delivery_date", self.delivery_date)
+
+        # Calculate CAD & IBM delivery dates
+        cad_delivery_datetime = datetime.combine(order_datetime.date() + timedelta(days=cad_days), cad_time)
+        ibm_delivery_datetime = cad_delivery_datetime + ibm_timedelta
+
+        frappe.db.set_value("Order", docname, "cad_delivery_date", cad_delivery_datetime)
+        frappe.db.set_value("Order", docname, "ibm_delivery_date", ibm_delivery_datetime)
+
+        # Collect links for message
+        doclist.append(get_link_to_form("Order", docname))
+
+    # Final message
+    if doclist:
+        msg = _("The following {0} were created: {1}").format(
+            frappe.bold(_("Orders")), "<br>" + ", ".join(doclist)
+        )
+        frappe.msgprint(msg)
+
 
 def delete_auto_created_cad_order(self):
 	for row in frappe.get_all("Order", filters={"order_form": self.name}):

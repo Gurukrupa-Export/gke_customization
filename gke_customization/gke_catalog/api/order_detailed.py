@@ -1,10 +1,10 @@
 import frappe, json
 from frappe.utils import today
 from frappe.utils import (
-	get_datetime,get_first_day,get_last_day,nowdate,
-    add_days,getdate
+    time_diff,get_datetime_str,time_diff_in_hours,time_diff_in_seconds,format_time,format_duration
 )
-from collections import defaultdict
+from collections import defaultdict 
+
 #/home/frappe/frappe-bench/apps/gke_customization/gke_customization/gke_catalog/api/order_detailed.py
 
 # initial call
@@ -411,6 +411,7 @@ def get_order(from_date=None, to_date=None, of_docstatus=None, branch=None, orde
             is_initial_load=None,offset=None, limit=None):
     from_date = frappe.utils.getdate(from_date) if from_date else None
     to_date = frappe.utils.getdate(to_date) if to_date else None
+    
 
     if from_date and to_date and from_date > to_date:
         from_date, to_date = to_date, from_date
@@ -435,7 +436,7 @@ def get_order(from_date=None, to_date=None, of_docstatus=None, branch=None, orde
 
     order_forms = frappe.get_all("Order Form",
         filters=filters,
-        fields=["name", "docstatus", "company", "branch", "workflow_state", "order_date", "customer_code"],
+        fields=["name", "docstatus", "company", "branch", "workflow_state", "order_date", "customer_code","delivery_date"],
         # start=offset,
         # page_length=limit
     
@@ -549,11 +550,32 @@ def get_order(from_date=None, to_date=None, of_docstatus=None, branch=None, orde
             order["owner_dept"] = emp_info.get("department")
             order["owner_desig"] = emp_info.get("designation")
 
+            if form["order_date"] and order["order_date"]:
+                of_time_order_date = get_datetime_str(form["order_date"])
+                o_time_order_date = get_datetime_str(order["order_date"])
+                
+                if of_time_order_date and o_time_order_date:
+                    total_time_diff = time_diff(of_time_order_date, o_time_order_date)
+                    # frappe.throw(f"{of_time_order_date} || {o_time_order_date} {format_time(total_time_diff)}")
+                    total_time_diff_hours = time_diff_in_hours(of_time_order_date, o_time_order_date)
+                    total_time_diff_seconds = time_diff_in_seconds(of_time_order_date, o_time_order_date)
+                    total_time_diff_days = format_duration(total_time_diff_seconds)
+                                        
+                    if total_time_diff:
+                        order["total_time_diff"] = total_time_diff
+                    
+                    if total_time_diff_hours:
+                        order["total_time_diff_hours"] = round(total_time_diff_hours,2)
+                    
+                    if total_time_diff_days:
+                        order["total_time_diff_days"] = total_time_diff_days
+                
         if form["docstatus"] == 0 or related_orders:
             form["orderform_id"] = form.pop("name")
             form["of_docstatus"] = form.pop("docstatus")
             form["of_workflow_state"] = form.pop("workflow_state")
             form["order"] = related_orders
+            # if form
             final_forms.append(form)
 
     return {
