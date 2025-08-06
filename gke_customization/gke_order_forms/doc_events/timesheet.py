@@ -1,3 +1,7 @@
+
+
+
+
 import frappe
 from frappe.utils import now_datetime, time_diff_in_hours
 
@@ -179,7 +183,11 @@ def on_update(doc, method):
         update_order_status_from_timesheets(doc.order)
 
 
-def update_order_status_from_timesheets(order_name):
+def update_order_status_from_timesheets(order_name): 
+    workflow_type = frappe.db.get_value("Order", order_name, "workflow_type")
+    if workflow_type != "CAD":
+        return  
+
     timesheets = frappe.get_all(
         "Timesheet",
         filters={"order": order_name},
@@ -187,20 +195,26 @@ def update_order_status_from_timesheets(order_name):
     )
 
     if not timesheets:
-        return 
+        return  
 
     workflow_states = list(set(ts["workflow_state"] for ts in timesheets))
 
+    # Get current order workflow_state
+    current_order_state = frappe.db.get_value("Order", order_name, "workflow_state")
+
+    # All timesheets are Approved
     if all(ts["workflow_state"] == "Approved" for ts in timesheets):
-        frappe.db.set_value("Order", order_name, "workflow_state", "Update Item")
-        frappe.db.commit()
+        if current_order_state != "Approved":
+            frappe.db.set_value("Order", order_name, "workflow_state", "Update Item")
+            frappe.db.commit()
         return
 
+    # If all timesheets are in the same non-approved state, update the order state
     if len(workflow_states) == 1:
         common_state = workflow_states[0]
-
-        frappe.db.set_value("Order", order_name, "workflow_state", common_state)
-        frappe.db.commit()
+        if current_order_state != common_state:
+            frappe.db.set_value("Order", order_name, "workflow_state", common_state)
+            frappe.db.commit()
 
 
 def validate_workflow(doc):
