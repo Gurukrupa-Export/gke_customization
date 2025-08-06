@@ -38,6 +38,7 @@ class Order(Document):
 			validate_timesheet(self)
 		# if self.order_type != 'Purchase':
 		# 	cerate_timesheet(self)
+		assign_designer(self)
 		calculate_metal_weights(self)
 		calculate_finding_weights(self)
 		calculate_diamond_weights(self)
@@ -69,6 +70,27 @@ class Order(Document):
 
 		frappe.db.set_value("Order",self.name,"workflow_state","Cancelled")
 		self.reload()
+
+
+import frappe
+from frappe.desk.form.assign_to import add as add_assignment
+
+def assign_designer(self):
+	if self.workflow_state == "Assigned":
+		for row in self.designer_assignment:
+			if row.designer:
+				# Get user_id from Employee
+				user_id = frappe.db.get_value("Employee", row.designer, "user_id")
+				if user_id:
+					add_assignment({
+						"assign_to": [user_id],
+						"doctype": self.doctype,
+						"name": self.name,
+						"description": "Assigned to Designer via Workflow"
+					})
+				else:
+					frappe.msgprint(f"User ID not found for Employee: {row.designer}")
+
 
 def calculate_metal_weights(self):
 	total_metal_weight = 0
