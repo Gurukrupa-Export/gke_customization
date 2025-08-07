@@ -5,8 +5,6 @@ import frappe
 from frappe.model.document import Document
 from datetime import datetime, timedelta
 
-
-
 class OTRequest(Document):
 	def autoname(self):
 		# Get company abbreviation
@@ -63,13 +61,24 @@ class OTRequest(Document):
 
 
 @frappe.whitelist()
-def fill_employee_details(department, gender=None):
-    gender_filter = "" if not gender else "AND gender = %s"
-    gender_value = [gender] if gender else []
-    
-    employees = frappe.db.sql(f'''
-        SELECT name, employee_name FROM `tabEmployee`
-        WHERE department = %s AND status = 'Active' {gender_filter}
-    ''', [department] + gender_value, as_dict=1)
-    
-    return employees
+def fill_employee_details(department,department_head,branch, gender=None):
+	filters = {
+		'department': department,
+		'reports_to': department_head
+	}
+	if branch:
+		filters.update({ 'branch': branch })
+	
+	if gender:
+		filters.update({ 'gender': gender })
+		
+	employees = frappe.db.get_all("Employee",
+			filters = filters,
+			fields = ['name','employee_name']
+		)
+	# frappe.throw(f"{employees}")
+
+	if employees:
+		return employees
+	else:
+		frappe.msgprint(f"There is no Employees for Selected Department Head.")
