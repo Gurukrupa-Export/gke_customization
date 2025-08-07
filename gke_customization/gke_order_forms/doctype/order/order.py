@@ -13,6 +13,10 @@ from erpnext.setup.utils import get_exchange_rate
 from erpnext.controllers.item_variant import create_variant, get_variant
 
 class Order(Document):
+	def on_update(self):
+		if self.workflow_state == "Assigned":
+			create_timesheet(self)
+
 	def on_submit(self):
 		item_variant = create_line_items(self)
 		if self.bom_or_cad == 'Duplicate BOM' or (self.design_type == 'Mod - Old Stylebio & Tag No' and self.bom_type == 'Duplicate BOM'):
@@ -28,8 +32,13 @@ class Order(Document):
 				self.reload()
 
 	def validate(self):
-		if self.order_type != 'Purchase':
-			cerate_timesheet(self)
+		if self.workflow_state in ["Update Item", "Design Rework in Progress"]:
+			timesheet_validation(self)
+		if self.order_type != 'Purchase' and self.workflow_state == "Assigned":
+			validate_timesheet(self)
+		# if self.order_type != 'Purchase':
+		# 	cerate_timesheet(self)
+		assign_designer(self)
 		calculate_metal_weights(self)
 		calculate_finding_weights(self)
 		calculate_diamond_weights(self)
@@ -61,6 +70,27 @@ class Order(Document):
 
 		frappe.db.set_value("Order",self.name,"workflow_state","Cancelled")
 		self.reload()
+
+
+import frappe
+from frappe.desk.form.assign_to import add as add_assignment
+
+def assign_designer(self):
+	if self.workflow_state == "Assigned":
+		for row in self.designer_assignment:
+			if row.designer:
+				# Get user_id from Employee
+				user_id = frappe.db.get_value("Employee", row.designer, "user_id")
+				if user_id:
+					add_assignment({
+						"assign_to": [user_id],
+						"doctype": self.doctype,
+						"name": self.name,
+						"description": "Assigned to Designer via Workflow"
+					})
+				else:
+					frappe.msgprint(f"User ID not found for Employee: {row.designer}")
+
 
 def calculate_metal_weights(self):
 	total_metal_weight = 0
@@ -174,7 +204,398 @@ def calculate_total(self):
 				frappe.msgprint(f"Skipping invalid range value: {range_text}")
 	# net_wt_add_on
 
-def cerate_timesheet(self):
+# def cerate_timesheet(self):
+# 	if not self.customer_order_form:
+# 		if self.workflow_state == "Designing":
+# 			# for assignment in self.designer_assignment:
+			
+# 			if len(self.designer_assignment)>1:
+# 				for i in self.designer_assignment[:-1]:
+# 					timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"order":self.name}, ["name","docstatus"])
+# 					if docstatus == 0:
+# 					# frappe.db.set_value("Timesheet",timesheet,"docstatus","1")
+# 						timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+# 						if (timesheet_doc.time_logs):
+# 							timesheet_doc.time_logs[-1].to_time = now_datetime()
+# 							timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+# 							timesheet_doc.save()
+# 						timesheet_doc.run_method('submit')
+# 				# frappe.throw(f"{time_sheet_list}")
+
+# 			designer_value = self.designer_assignment[-1].designer
+		
+
+# 			# # Check if a timesheet document already exists for the employee
+# 			timesheet = frappe.get_all(
+# 				"Timesheet", filters={"employee": designer_value,"order":self.name}, fields=["name"],
+# 			)
+# 			if timesheet:
+# 				timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+# 			else:
+# 				timesheet_doc = frappe.new_doc("Timesheet")
+# 				timesheet_doc.employee = designer_value
+			
+# 			if (timesheet_doc.time_logs and 
+# 				timesheet_doc.time_logs[-1].activity_type in ['CAD Designing','CAD Designing - On-Hold','QC Activity - On-Hold']) :
+# 				timesheet_doc.time_logs[-1].to_time = now_datetime()
+# 				timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+
+# 			time_log = timesheet_doc.append("time_logs", {})
+# 			time_log.activity_type = "CAD Designing"
+# 			time_log.from_time = now_datetime()
+# 			timesheet_doc.order = self.name			
+# 			timesheet_doc.save()			
+
+# 			frappe.msgprint("Timesheets created for CAD for each designer assignment") 
+
+# 		elif self.workflow_state == "Sent to QC":
+# 			# for assignment in self.designer_assignment:
+# 			if len(self.designer_assignment)>1:
+# 				for i in self.designer_assignment[:-1]:
+# 					timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"order":self.name}, ["name","docstatus"])
+# 					if docstatus == 0:
+# 						timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+# 						if (timesheet_doc.time_logs):
+# 							timesheet_doc.time_logs[-1].to_time = now_datetime()
+# 							timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+# 							timesheet_doc.save()
+# 						timesheet_doc.run_method('submit')
+
+# 			designer_value = self.designer_assignment[-1].designer
+# 					# designer_value = assignment.designer
+
+# 					# Check if a timesheet document already exists for the employee
+# 			timesheet = frappe.get_all(
+# 				"Timesheet", filters={"employee": designer_value,"order":self.name}, fields=["name"],
+# 			)
+# 			if timesheet:
+# 				timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+# 				if timesheet_doc.time_logs:	
+# 					time_log = timesheet_doc.time_logs[-1]					
+# 					time_log.to_time = now_datetime()
+# 					time_log.completed = 1
+# 					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+
+# 				qc_time_log = timesheet_doc.append("time_logs", {})
+# 				qc_time_log.activity_type = "QC Activity"
+# 				qc_time_log.from_time = now_datetime()
+# 				qc_time_log.custom_cad_order_id = self.name				
+# 				timesheet_doc.save()
+# 			else:
+# 				frappe.throw("Timesheets is not created for each designer assignment")		
+			
+# 			frappe.msgprint("Timesheets created for QC for each designer assignment")
+		
+# 		elif self.workflow_state == "Designing - On-Hold":
+# 			# for assignment in self.designer_assignment:
+# 					# designer_value = assignment.designer
+# 			if len(self.designer_assignment)>1:
+# 				for i in self.designer_assignment[:-1]:
+# 					timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"order":self.name}, ["name","docstatus"])
+# 					if docstatus == 0:
+# 					# frappe.db.set_value("Timesheet",timesheet,"docstatus","1")
+# 						timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+# 						if (timesheet_doc.time_logs):
+# 							timesheet_doc.time_logs[-1].to_time = now_datetime()
+# 							timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+# 							timesheet_doc.save()
+# 						timesheet_doc.run_method('submit')
+
+
+# 			designer_value = self.designer_assignment[-1].designer
+# 					# Check if a timesheet document already exists for the employee
+# 					# timesheet = frappe.db.get_list("Timesheet",filters={"employee":designer_value,"order":self.name},fields=["name"])
+# 			timesheet = frappe.get_all(
+# 				"Timesheet", filters={"employee": designer_value,"order":self.name}, fields=["name"],
+# 			)
+# 			if timesheet:
+# 				timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+# 				if (timesheet_doc.time_logs):	
+# 					time_log = timesheet_doc.time_logs[-1]					
+# 					time_log.to_time = now_datetime()
+# 					time_log.completed = 1
+# 					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+
+# 				if not timesheet_doc.time_logs or timesheet_doc.time_logs[-1].activity_type != "CAD Designing - On-Hold":
+# 					qc_time_log = timesheet_doc.append("time_logs", {})
+# 					qc_time_log.activity_type = "CAD Designing - On-Hold"
+# 					qc_time_log.from_time = now_datetime()
+# 					qc_time_log.custom_cad_order_id = self.name				
+# 					timesheet_doc.save()
+# 			else:
+# 				frappe.throw("Timesheets is not created for each designer assignment")		
+			
+# 			# frappe.msgprint("Timesheets created for Designing - On-Hold for each designer assignment")
+		
+# 		elif self.workflow_state == "Assigned":
+# 			# for assignment in self.designer_assignment:
+# 			# 		designer_value = assignment.designer
+# 			if len(self.designer_assignment)>1:
+# 				for i in self.designer_assignment[:-1]:
+# 					timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"order":self.name}, ["name","docstatus"])
+# 					if docstatus == 0:
+# 						timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+# 						if (timesheet_doc.time_logs):
+# 							timesheet_doc.time_logs[-1].to_time = now_datetime()
+# 							timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+# 							timesheet_doc.save()
+# 						timesheet_doc.run_method('submit')
+
+# 			designer_value = self.designer_assignment[-1].designer
+# 					# Check if a timesheet document already exists for the employee
+# 					# timesheet = frappe.db.get_list("Timesheet",filters={"employee":designer_value,"order":self.name},fields=["name"])
+# 			timesheet = frappe.get_all(
+# 				"Timesheet", filters={"employee": designer_value,"order":self.name}, fields=["name"],
+# 			)
+# 			if timesheet:
+# 				timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+# 				activity_type = timesheet_doc.time_logs[-1].activity_type
+# 				if activity_type == 'QC Activity':
+# 					timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+# 					if timesheet_doc.time_logs:	
+# 						time_log = timesheet_doc.time_logs[-1]					
+# 						time_log.to_time = now_datetime()
+# 						time_log.completed = 1
+# 						time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+
+# 					# qc_time_log = timesheet_doc.append("time_logs", {})
+# 					# qc_time_log.activity_type = "CAD Designing - On-Hold"
+# 					# qc_time_log.from_time = now_datetime()
+# 					# qc_time_log.custom_cad_order_id = self.name
+									
+# 					timesheet_doc.save()
+# 			# else:
+# 						# frappe.throw("Timesheets is not created for each designer assignment")		
+			
+# 			frappe.msgprint("Timesheets Assigned for each designer assignment")
+		
+# 		elif self.workflow_state == "Sent to QC - On-Hold":
+# 			# for assignment in self.designer_assignment:
+# 			# 		designer_value = assignment.designer
+# 			if len(self.designer_assignment)>1:
+# 				for i in self.designer_assignment[:-1]:
+# 					timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"order":self.name}, ["name","docstatus"])
+# 					if docstatus == 0:
+# 						timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+# 						if (timesheet_doc.time_logs):
+# 							timesheet_doc.time_logs[-1].to_time = now_datetime()
+# 							timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+# 							timesheet_doc.save()
+# 						timesheet_doc.run_method('submit')
+
+# 			designer_value = self.designer_assignment[-1].designer
+# 					# Check if a timesheet document already exists for the employee
+# 					# timesheet = frappe.db.get_list("Timesheet",filters={"employee":designer_value,"order":self.name},fields=["name"])
+# 			timesheet = frappe.get_all(
+# 				"Timesheet", filters={"employee": designer_value,"order":self.name}, fields=["name"],
+# 			)
+# 			if timesheet:
+# 				timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+# 				if timesheet_doc.time_logs:	
+# 					time_log = timesheet_doc.time_logs[-1]					
+# 					time_log.to_time = now_datetime()
+# 					time_log.completed = 1
+# 					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+				
+# 				if not timesheet_doc.time_logs or timesheet_doc.time_logs[-1].activity_type != "QC Activity - On-Hold":			
+# 					qc_time_log = timesheet_doc.append("time_logs", {})
+# 					qc_time_log.activity_type = "QC Activity - On-Hold"
+# 					qc_time_log.from_time = now_datetime()
+# 					qc_time_log.custom_cad_order_id = self.name
+# 					timesheet_doc.save()
+# 			else:
+# 				frappe.throw("Timesheets is not created for each designer assignment")		
+			
+# 			# frappe.msgprint("Timesheets created for QC - On-Hold for each designer assignment")
+		
+# 		elif self.workflow_state == "Update Item":
+# 			if self.bom_or_cad == 'CAD':
+# 				# for assignment in self.designer_assignment:
+# 				# 		designer_value = assignment.designer
+# 				if len(self.designer_assignment)>1:
+# 					for i in self.designer_assignment[:-1]:
+# 						timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"order":self.name}, ["name","docstatus"])
+# 						if docstatus == 0:
+# 							timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+# 							if (timesheet_doc.time_logs):
+# 								timesheet_doc.time_logs[-1].to_time = now_datetime()
+# 								timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+# 								timesheet_doc.save()
+# 							timesheet_doc.run_method('submit')
+
+# 				designer_value = self.designer_assignment[-1].designer
+# 						# Check if a timesheet document already exists for the employee
+# 				timesheet = frappe.get_all(
+# 					"Timesheet", filters={"employee": designer_value,"order":self.name}, fields=["name"],
+# 				)
+# 				if timesheet:
+# 					timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+# 					if timesheet_doc.time_logs:	
+# 						time_log = timesheet_doc.time_logs[-1]					
+# 						time_log.to_time = now_datetime()
+# 						time_log.completed = 1
+# 						time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+
+# 					update_time_log = timesheet_doc.append("time_logs", {})
+# 					update_time_log.activity_type = "Update Item"
+# 					update_time_log.from_time = now_datetime()
+# 					update_time_log.custom_cad_order_id = self.name				
+# 					timesheet_doc.save()
+					
+# 				else:
+# 					frappe.throw("Timesheets is not created for each designer assignment")
+# 				frappe.msgprint("Timesheets created for Update Item for each designer assignment")		
+		
+# 		elif self.workflow_state == "Update BOM":
+# 			# frappe.throw(str(self.workflow_state))
+# 			if self.bom_or_cad == 'CAD':
+# 				# for assignment in self.designer_assignment:
+# 				# 		designer_value = assignment.designer
+# 				if len(self.designer_assignment)>1:
+# 					for i in self.designer_assignment[:-1]:
+# 						timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"order":self.name}, ["name","docstatus"])
+# 						if docstatus == 0:
+# 							timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+# 							if (timesheet_doc.time_logs):
+# 								timesheet_doc.time_logs[-1].to_time = now_datetime()
+# 								timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+# 								timesheet_doc.save()
+# 							timesheet_doc.run_method('submit')
+
+# 				designer_value = self.designer_assignment[-1].designer
+# 						# Check if a timesheet document already exists for the employee
+# 				timesheet = frappe.get_all(
+# 					"Timesheet", filters={"employee": designer_value,"order":self.name}, fields=["name"],)
+# 				if timesheet:
+# 					timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+					
+# 					time_log = timesheet_doc.time_logs[-1]					
+# 					time_log.to_time = now_datetime()
+# 					time_log.completed = 1
+# 					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+# 					timesheet_doc.save()
+# 					timesheet_doc.run_method('submit')
+					
+# 					frappe.msgprint("Timesheets Completed for each designer assignment")
+				
+# 				else:
+# 					frappe.throw("Timesheets is not created for each designer assignment")
+
+# 		elif self.workflow_state == "Update Designer":
+# 			if self.bom_or_cad == 'CAD':
+# 				# for assignment in self.designer_assignment:
+# 				# 		designer_value = assignment.designer
+# 				if len(self.designer_assignment)>1:
+# 					for i in self.designer_assignment[:-1]:
+# 						timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"order":self.name}, ["name","docstatus"])
+# 						if docstatus == 0:
+# 							timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+# 							if (timesheet_doc.time_logs):
+# 								timesheet_doc.time_logs[-1].to_time = now_datetime()
+# 								timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+# 								timesheet_doc.save()
+# 							timesheet_doc.run_method('submit')
+
+# 				designer_value = self.designer_assignment[-1].designer
+# 						# Check if a timesheet document already exists for the employee
+# 				timesheet = frappe.get_all(
+# 					"Timesheet", filters={"employee": designer_value,"order":self.name}, fields=["name"],
+# 				)
+# 				if timesheet:
+# 					timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+
+# 					time_log = timesheet_doc.time_logs[-1]					
+# 					time_log.to_time = now_datetime()
+# 					time_log.completed = 1
+# 					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+# 					timesheet_doc.save()				
+# 				else:
+# 					frappe.throw("Timesheets is not created for each designer assignment")
+# 				frappe.msgprint("Timesheets Update for each designer assignment")
+
+# 		elif self.workflow_state == "Cancelled": 
+# 		# for assignment in self.designer_assignment:
+# 		# 		designer_value = assignment.designer
+# 			if len(self.designer_assignment)>1:
+# 				for i in self.designer_assignment[:-1]:
+# 					timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"order":self.name}, ["name","docstatus"])
+# 					if docstatus == 0:
+# 						timesheet_doc = frappe.get_doc("Timesheet", timesheet)
+# 						if (timesheet_doc.time_logs):
+# 							timesheet_doc.time_logs[-1].to_time = now_datetime()
+# 							timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
+# 							timesheet_doc.save()
+# 						timesheet_doc.run_method('submit')
+# 			if self.designer_assignment:
+# 				designer_value = self.designer_assignment[-1].designer
+# 						# Check if a timesheet document already exists for the employee
+# 				timesheet = frappe.get_all(
+# 					"Timesheet", filters={"employee": designer_value,}, fields=["name"],
+# 				)
+# 				if timesheet:
+# 					timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+	
+# 					time_log = timesheet_doc.time_logs[-1]					
+# 					time_log.to_time = now_datetime()
+# 					time_log.completed = 1
+# 					time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
+									
+# 					timesheet_doc.save()
+# 					timesheet_doc.run_method('submit')
+# 				# else:
+# 				# 	frappe.throw("Timesheets is cancelled for each designer assignment")		
+			
+# 			frappe.msgprint("Timesheets Cancelled for each designer assignment")
+
+
+
+
+def create_timesheet(self):
+    current_time = now_datetime()
+
+    # Only proceed if the state is Assigned
+    if self.workflow_state != "Assigned":
+        return
+
+    for row in self.designer_assignment:
+        if not row.designer:
+            continue
+
+        # Check if any existing Timesheet already created for this designer and order
+        existing_ts = frappe.get_all("Timesheet", filters={
+            "employee": row.designer,
+            "order": self.name
+        }, limit=1)
+
+        if existing_ts:
+            frappe.msgprint(f"Skipping {row.designer}: Timesheet already exists.")
+            continue
+
+        try:
+            timesheet = frappe.new_doc("Timesheet")
+            timesheet.employee = row.designer
+            timesheet.order = self.name
+            timesheet.start_date = current_time.date()
+            timesheet.append("time_logs", {
+                "activity_type": "CAD Designing",
+                "from_time": current_time,
+                "hours": 0
+            })
+            timesheet.save(ignore_permissions=True)
+            frappe.db.commit()
+            frappe.msgprint(f" Timesheet created for {row.designer}")
+
+        except Exception as e:
+            frappe.log_error(f"Error creating timesheet for {row.designer}: {e}")
+            frappe.msgprint(f" Could not create timesheet for {row.designer}")
+
+
+def validate_timesheet(self):
 	if not self.customer_order_form:
 		if self.workflow_state == "Designing":
 			# for assignment in self.designer_assignment:
@@ -300,47 +721,34 @@ def cerate_timesheet(self):
 			# frappe.msgprint("Timesheets created for Designing - On-Hold for each designer assignment")
 		
 		elif self.workflow_state == "Assigned":
-			# for assignment in self.designer_assignment:
-			# 		designer_value = assignment.designer
-			if len(self.designer_assignment)>1:
-				for i in self.designer_assignment[:-1]:
-					timesheet,docstatus = frappe.db.get_value("Timesheet", {"employee": i.designer,"order":self.name}, ["name","docstatus"])
-					if docstatus == 0:
-						timesheet_doc = frappe.get_doc("Timesheet", timesheet)
-						if (timesheet_doc.time_logs):
-							timesheet_doc.time_logs[-1].to_time = now_datetime()
-							timesheet_doc.time_logs[-1].hours = (now_datetime() - timesheet_doc.time_logs[-1].from_time).total_seconds()/3600
-							timesheet_doc.save()
-						timesheet_doc.run_method('submit')
+			for assignment in self.designer_assignment:
+				designer_value = assignment.designer
 
-			designer_value = self.designer_assignment[-1].designer
-					# Check if a timesheet document already exists for the employee
-					# timesheet = frappe.db.get_list("Timesheet",filters={"employee":designer_value,"order":self.name},fields=["name"])
-			timesheet = frappe.get_all(
-				"Timesheet", filters={"employee": designer_value,"order":self.name}, fields=["name"],
-			)
-			if timesheet:
-				timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
-				activity_type = timesheet_doc.time_logs[-1].activity_type
-				if activity_type == 'QC Activity':
+				timesheet = frappe.get_all(
+					"Timesheet", filters={"employee": designer_value, "order": self.name}, fields=["name"],
+				)
+
+				if timesheet:
 					timesheet_doc = frappe.get_doc("Timesheet", timesheet[0]["name"])
+					if timesheet_doc.time_logs and timesheet_doc.time_logs[-1].to_time is None:
+						activity_type = timesheet_doc.time_logs[-1].activity_type
+						if activity_type == 'QC Activity':
+							time_log = timesheet_doc.time_logs[-1]
+							time_log.to_time = now_datetime()
+							time_log.completed = 1
+							time_log.hours = (now_datetime() - time_log.from_time).total_seconds() / 3600
+							timesheet_doc.save()
+				else:
+					timesheet_doc = frappe.new_doc("Timesheet")
+					timesheet_doc.employee = designer_value
+					timesheet_doc.order = self.name
 
-					if timesheet_doc.time_logs:	
-						time_log = timesheet_doc.time_logs[-1]					
-						time_log.to_time = now_datetime()
-						time_log.completed = 1
-						time_log.hours = (now_datetime() - time_log.from_time).total_seconds()/3600
-
-					# qc_time_log = timesheet_doc.append("time_logs", {})
-					# qc_time_log.activity_type = "CAD Designing - On-Hold"
-					# qc_time_log.from_time = now_datetime()
-					# qc_time_log.custom_cad_order_id = self.name
-									
+					time_log = timesheet_doc.append("time_logs", {})
+					time_log.activity_type = "CAD Designing"
+					time_log.from_time = now_datetime()
 					timesheet_doc.save()
-			# else:
-						# frappe.throw("Timesheets is not created for each designer assignment")		
-			
-			frappe.msgprint("Timesheets Assigned for each designer assignment")
+
+			frappe.msgprint("Timesheets Assigned for all designer assignments")
 		
 		elif self.workflow_state == "Sent to QC - On-Hold":
 			# for assignment in self.designer_assignment:
@@ -521,6 +929,50 @@ def cerate_timesheet(self):
 				# 	frappe.throw("Timesheets is cancelled for each designer assignment")		
 			
 			frappe.msgprint("Timesheets Cancelled for each designer assignment")
+
+
+def timesheet_validation(self):
+	if self.cad_order_form and self.workflow_state in ["Update Item", "Design Rework in Progress"]:
+		required_approval = frappe.db.get_value("Order Form", self.cad_order_form, "required_customer_approval")
+		
+
+		# Get all Timesheets for this Order
+		timesheets = frappe.get_all("Timesheet",
+			filters={"order": self.name},
+			fields=["name", "workflow_state"]
+		)
+
+		if self.workflow_state == "Update Item":
+			if required_approval:
+				for ts in timesheets:
+					if ts["workflow_state"] != "Approved":
+						timesheet_doc = frappe.get_doc("Timesheet", ts["name"])
+						timesheet_doc.workflow_state = "Approved"
+						timesheet_doc.save()
+						timesheet_doc.submit()
+						frappe.db.commit()
+				frappe.msgprint(f"All Timesheets are now auto-approved for Order {self.name}. Proceeding.")
+			else:
+				not_approved = [ts["name"] for ts in timesheets if ts["workflow_state"] != "Approved"]
+				if not_approved:
+					message = f"The following Timesheets are not Approved for Order {self.name}: {', '.join(not_approved)}"
+					frappe.throw(message)
+
+		elif self.workflow_state == "Design Rework in Progress":
+			if required_approval:
+				for ts in timesheets:
+					if ts["workflow_state"] != "Design Rework in Progress":
+						timesheet_doc = frappe.get_doc("Timesheet", ts["name"])
+						timesheet_doc.workflow_state = "Design Rework in Progress"
+						timesheet_doc.save()
+						frappe.db.commit()
+				frappe.msgprint(f"All Timesheets for Order {self.name} updated to 'Design Rework in Progress'.")
+			else:
+				not_approved = [ts["name"] for ts in timesheets if ts["workflow_state"] != "Approved"]
+				if not_approved:
+					message = f"The following Timesheets are not Approved for Order {self.name}: {', '.join(not_approved)}"
+					frappe.throw(message)
+
 
 def cerate_bom_timesheet(self):
 	if not self.customer_order_form:
@@ -867,12 +1319,11 @@ def cerate_bom_timesheet(self):
 
 
 def create_line_items(self):
-	
 	sketch_order_form_id = frappe.db.get_value("Item", self.design_id, "custom_sketch_order_id")
 	custom_sketch_order_form_id = frappe.db.get_value("Item", self.design_id, "custom_sketch_order_form_id")
 
 	item_variant = ''
-	new_item_created = False  # Flag to track if a new item is created
+	new_item_created = False
 
 	if self.item_type == 'Template and Variant':
 		item_template = create_item_template_from_order(self)
@@ -880,7 +1331,6 @@ def create_line_items(self):
 		item_variant = create_variant_of_template_from_order(item_template, self.name)
 		update_item_variant(item_variant, item_template)
 
-		# Set custom_sketch_order_id to the new variant
 		frappe.db.set_value("Item", item_variant, "custom_sketch_order_id", sketch_order_form_id)
 		frappe.db.set_value("Item", item_variant, "custom_sketch_order_form_id", custom_sketch_order_form_id)
 
@@ -888,20 +1338,24 @@ def create_line_items(self):
 		self.reload()
 		new_item_created = True
 		frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item", item_variant))))
-		
-	elif self.item_type == 'Only Variant':
-		design_id = frappe.db.get_value('Order', self.name, 'design_id')
-		template = frappe.db.get_value("Item",design_id,"variant_of")
-		args = make_atribute_list(self.name)
-		variant_item_code = None
-		possible_variants = [i for i in get_item_codes_by_attributes(args, template) if i != variant_item_code]
-		for variant in possible_variants:
-			variant = frappe.get_doc("Item", variant)
-			if variant:
-				final_variant = str(variant).replace("Item(","").replace(")","")
-				frappe.throw(f"Already available {final_variant}")
 
-		
+	elif self.item_type == 'Only Variant':
+		design_id = self.design_id
+		template = frappe.db.get_value("Item", design_id, "variant_of")
+
+		if template:
+			args = make_atribute_list(self.name)
+			possible_variants = get_item_codes_by_attributes(args, template)
+
+			# Exclude the template itself from variants
+			actual_variants = [code for code in possible_variants if code != template]
+
+			for variant_code in actual_variants:
+				variant = frappe.get_doc("Item", variant_code)
+				if variant:
+					frappe.throw(f"Already available <a href='/app/item/{variant.name}'>{variant.name}</a>")
+
+		# Create new variant only if no exact match found
 		item_variant = create_only_variant_from_order(self, self.name)
 
 		frappe.db.set_value('Item', item_variant[0], {
@@ -932,16 +1386,15 @@ def create_line_items(self):
 				frappe.db.set_value("Item", self.design_id, "custom_cad_order_id", self.name)
 				frappe.db.set_value("Item", self.design_id, "custom_cad_order_form_id", self.cad_order_form)
 
-			# Set sketch order IDs
 			frappe.db.set_value("Item", self.design_id, "custom_sketch_order_id", sketch_order_form_id)
 			frappe.db.set_value("Item", item_variant, "custom_sketch_order_form_id", custom_sketch_order_form_id)
 		else:
 			item_variant = self.item
 
-	# Set item_remark based on whether a new item was created
 	frappe.db.set_value(self.doctype, self.name, "item_remark", "New Item" if new_item_created else "Copy Paste Item")
 
 	return item_variant
+
 
 def get_item_codes_by_attributes(attribute_filters, template_item_code=None):
 	items = []
