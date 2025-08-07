@@ -460,7 +460,7 @@ frappe.ui.form.on('Order Form Detail', {
 						if (d.metal_type === "Silver") {
 							d.diamond_type = "AD";
 						}
-						d.qty = r.message.qty
+						// d.qty = r.message.qty
 						d.metal_type = r.message.metal_type
 						// d.metal_touch = r.message.metal_touch
 						if (d.metal_type === "Silver") {
@@ -563,7 +563,7 @@ frappe.ui.form.on('Order Form Detail', {
 						if (d.metal_type === "Silver") {
 							d.diamond_type = "AD";
 						}
-						d.qty = r.message.qty
+						// d.qty = r.message.qty
 						d.metal_type = r.message.metal_type
 						// d.metal_touch = r.message.metal_touch
 						if (d.metal_type === "Silver") {
