@@ -80,8 +80,8 @@ class Order(Document):
 
 
 def bom_creation(self):
-	if not self.item:
-		frappe.throw("Item is not specified in the Order.")
+	# if not self.item:
+	# 	frappe.throw("Item is not specified in the Order.")
 	if not self.qty:
 		frappe.throw("Quantity is not specified in the Order.")
 
