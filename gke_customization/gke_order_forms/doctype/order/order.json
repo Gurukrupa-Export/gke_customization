@@ -1067,7 +1067,8 @@
    "depends_on": "eval:doc.workflow_type == \"BOM\" || doc.workflow_type == \"CAD\" && doc.workflow_type",
    "fieldname": "ibm_delivery_date",
    "fieldtype": "Datetime",
-   "label": "IBM Delivery Date"
+   "label": "IBM Delivery Date",
+   "read_only": 1
   },
 {
 "default": "0",
@@ -1711,7 +1712,8 @@
    "depends_on": "eval:doc.workflow_type == \"CAD\" && doc.workflow_type",
    "fieldname": "cad_delivery_date",
    "fieldtype": "Datetime",
-   "label": "Cad Delivery Date"
+   "label": "Cad Delivery Date",
+   "read_only": 1
  },
 
 {

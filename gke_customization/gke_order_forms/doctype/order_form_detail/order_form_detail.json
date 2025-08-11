@@ -324,7 +324,7 @@
     "fieldname": "qty",
     "fieldtype": "Int",
     "label": "No. of Pcs",
-    "read_only_depends_on": "// eval:doc.design_type == 'As Per Design Type'"
+    "read_only_depends_on": "eval:cur_frm.doc.workflow_state != \"Draft\""
     },
     {
     "fieldname": "metal_type",

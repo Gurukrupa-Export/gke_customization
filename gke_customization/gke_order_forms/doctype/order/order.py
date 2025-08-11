@@ -51,6 +51,8 @@ class Order(Document):
 			check_finding_code(self)
 		
 	def on_update_after_submit(self):
+		if self.workflow_state == "Creating BOM" and self.docstatus == 1:
+			bom_creation(self)
 		if self.is_repairing == 0 and (self.design_type == 'Mod - Old Stylebio & Tag No' and self.bom_type != 'Duplicate BOM'):
 			cerate_bom_timesheet(self)
 		calculate_metal_weights(self)
@@ -947,6 +949,178 @@ def cerate_bom_timesheet(self):
 # 			item_variant = self.item
 
 # 	return	item_variant
+
+
+
+def bom_creation(self):
+	if not self.item:
+		frappe.throw("Item is not specified in the Order.")
+	if not self.qty:
+		frappe.throw("Quantity is not specified in the Order.")
+
+	# Check if BOM already exists for this item and design_type is NOT Mod
+	if self.design_type != "Mod - Old Stylebio & Tag No":
+		existing_boms = frappe.get_all("BOM", filters={"item": self.item, "docstatus": 1}, fields=["name"])
+		if existing_boms:
+			frappe.throw(f"BOM already exists for item {self.item}. Multiple BOMs are allowed only for 'Mod' design type.")
+
+	# Create new BOM document
+	bom = frappe.new_doc("BOM")
+	bom.item = self.item
+	bom.is_active = 1
+	bom.is_default = 0
+
+	total_diamond_pcs = 0
+	total_finding_pcs = 0
+	total_gemstone_pcs = 0
+	finding_quantity = 0
+	gemstone_quantity = 0
+	metal_quantity_total = 0
+	diamond_weight = 0 
+	gemstone_weight = 0
+	finding_weight = 0
+
+	# Set naming series
+	bom.naming_series = f"BOM-{self.item}.-"
+	bom.product_size = self.product_size
+	bom.detachable = self.detachable
+	bom.metal_type = self.metal_type
+	bom.metal_touch = self.metal_touch
+	bom.metal_colour = self.metal_colour
+	bom.diamond_type = self.diamond_type
+	bom.metal_target = self.metal_target
+	bom.diamond_target = self.diamond_target
+	bom.stone_changeable = self.stone_changeable
+	bom.capganthan = self.capganthan
+	bom.chain_weight = self.chain_weight
+	bom.feature = self.feature
+	bom.rhodium = self.rhodium_
+	bom.back_chain_size = self.back_chain_size
+	bom.two_in_one = self.two_in_one
+	bom.enamal = self.enamal
+	bom.chain_type = self.chain_type
+	bom.gemstone_type1 = self.gemstone_type
+	bom.gemstone_quality = self.gemstone_quality
+	bom.setting_type = self.setting_type
+	bom.sub_setting_type1 = self.sub_setting_type1
+	bom.lock_type = self.lock_type
+	bom.distance_between_kadi_to_mugappu = self.distance_between_kadi_to_mugappu
+	bom.number_of_ant = self.number_of_ant
+	bom.space_between_mugappu = self.space_between_mugappu
+	bom.count_of_spiral_turns = self.count_of_spiral_turns
+	bom.black_bead_line = self.black_bead_line
+	bom.chain_length = self.chain_length
+
+	# Append item in BOM Items table (Raw Materials)
+	bom.append("items", {
+		"item_code": self.item,
+		"qty": self.qty
+	})
+
+	# Copy metal_detail and set BOM's metal_purity from first row
+	first_metal_purity = None
+	for row in self.metal_detail:
+		if not first_metal_purity and row.metal_purity:
+			first_metal_purity = row.metal_purity
+		metal_quantity_total += row.quantity or 0
+		bom.append("metal_detail", {
+			"metal_type": row.metal_type,
+			"metal_touch": row.metal_touch,
+			"metal_purity": row.metal_purity,
+			"metal_colour": row.metal_colour,
+			"cad_weight": row.cad_weight,
+			"cam_weight": row.cam_weight,
+			"finish_product_weight": row.finish_product_weight,
+			"wax_weight": row.wax_weight,
+			"casting_weight": row.casting_weight,
+			"finish_loss_percentage": row.finish_loss_percentage,
+			"finish_loss_grams": row.finish_loss_grams,
+			"quantity": row.finish_product_weight
+		})
+	bom.total_metal_weight = metal_quantity_total
+	bom.metal_weight = bom.total_metal_weight
+	if first_metal_purity:
+		bom.metal_purity = first_metal_purity
+
+	# Copy finding_detail
+	for row in self.finding_detail:
+		finding_weight += row.quantity or 0
+		total_finding_pcs += row.qty or 0
+		finding_quantity += row.quantity or 0
+		bom.append("finding_detail", {
+			"metal_type": row.metal_type,
+			"metal_touch": row.metal_touch,
+			"metal_purity": row.metal_purity,
+			"metal_colour": row.metal_colour,
+			"finding_category": row.finding_category,
+			"finding_type": row.finding_type,
+			"finding_size": row.finding_size,
+			"qty": row.qty,
+			"quantity": row.quantity
+		})
+	bom.finding_pcs = total_finding_pcs
+	bom.total_finding_weight_per_gram = finding_quantity
+	bom.finding_weight = finding_weight
+
+	# Copy diamond_detail
+	for row in self.diamond_detail:
+		diamond_weight += row.quantity or 0
+		total_diamond_pcs += row.pcs or 0
+		bom.append("diamond_detail", {
+			"diamond_type": row.diamond_type,
+			"stone_shape": row.stone_shape,
+			"sub_setting_type": row.sub_setting_type,
+			"size_in_mm": row.size_in_mm,
+			"diamond_sieve_size": row.diamond_sieve_size,
+			"sieve_size_range": row.sieve_size_range,
+			"pcs": row.pcs,	
+			"weight_per_pcs": row.weight_per_pcs,
+			"quantity": row.quantity,
+			"weight_in_gms": row.weight_in_gms,
+			"diamond_grade": row.diamond_grade,
+			"quality": row.quality
+		})
+	bom.total_diamond_pcs = total_diamond_pcs
+	bom.diamond_weight = diamond_weight
+
+	# Copy gemstone_details
+	for row in self.gemstone_detail:
+		total_gemstone_pcs += row.pcs
+		gemstone_quantity += row.quantity
+		gemstone_weight += row.quantity
+		bom.append("gemstone_detail", {
+			"gemstone_type": row.gemstone_type,
+			"stone_shape": row.stone_shape,
+			"cut_or_cab": row.cut_or_cab,
+			"gemstone_quality": row.gemstone_quality,
+			"gemstone_grade": row.gemstone_grade,
+			"gemstone_size": row.gemstone_size,
+			"gemstone_code": row.gemstone_code,
+			"sub_setting_type": row.sub_setting_type,
+			"pcs": row.pcs,
+			"quantity": row.quantity,
+			"weight_in_gms": row.weight_in_gms
+		})
+	bom.total_gemstone_pcs = total_gemstone_pcs
+	bom.total_gemstone_weight_per_gram = gemstone_quantity
+	bom.gemstone_weight = gemstone_weight
+
+	# Final calculated fields
+	bom.metal_and_finding_weight = (bom.metal_weight or 0) + (bom.finding_weight or 0)
+	bom.gold_to_diamond_ratio = (
+		flt(bom.metal_and_finding_weight) / flt(bom.diamond_weight) if bom.diamond_weight else 0
+	)
+
+	# Save and submit the BOM
+	bom.save(ignore_permissions=True)
+
+	# Update Order with created BOM name
+	self.db_set("new_bom", bom.name)  # Assuming 'new_bom' field exists
+
+	frappe.msgprint(f"BOM {bom.name} created successfully.")
+
+
+
 
 
 def assign_designer(self):
