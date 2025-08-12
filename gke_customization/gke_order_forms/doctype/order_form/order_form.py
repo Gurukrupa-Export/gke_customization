@@ -211,21 +211,6 @@ class OrderForm(Document):
 					if val not in attribute_cache[attr_name]:
 						frappe.throw(f"{display_name} is not Correct in Row #{idx}")
 			
-		
-# def create_cad_orders(self):
-# 	doclist = []
-# 	for row in self.order_details:
-# 		docname = make_cad_order(row.name, parent_doc = self)
-# 		doclist.append(get_link_to_form("Order", docname))
-
-# 	if doclist:
-# 		msg = _("The following {0} were created: {1}").format(
-# 				frappe.bold(_("Orders")), "<br>" + ", ".join(doclist)
-# 			)
-# 		frappe.msgprint(msg)
-
-
-
 def create_cad_orders(self):
     doclist = []
 
@@ -237,7 +222,7 @@ def create_cad_orders(self):
     if not enabled_criteria:
         frappe.throw("No enabled Order Criteria found.")
 
-    # Parse CAD and IBM times
+    # Parse CAD approval days
     cad_days = int(enabled_criteria.cad_approval_day or 0)
 
     # Parse cad_submission_time
@@ -270,9 +255,10 @@ def create_cad_orders(self):
     else:
         ibm_timedelta = timedelta()
 
-	for row in self.order_details:
-		if row.status == 'Pending' and self.is_mannual == 1:
-			frappe.throw(f"Status of row{row.idx} should be Done before approvedd")
+    # Process each order row
+    for row in self.order_details:
+        if row.status == 'Pending' and self.is_mannual == 1:
+            frappe.throw(f"Status of row {row.idx} should be Done before approval.")
 
         # Create Order
         docname = make_cad_order(row.name, parent_doc=self)
@@ -299,7 +285,7 @@ def create_cad_orders(self):
         # Collect links for message
         doclist.append(get_link_to_form("Order", docname))
 
-    # Final message
+    # Final message after loop completes
     if doclist:
         msg = _("The following {0} were created: {1}").format(
             frappe.bold(_("Orders")), "<br>" + ", ".join(doclist)
