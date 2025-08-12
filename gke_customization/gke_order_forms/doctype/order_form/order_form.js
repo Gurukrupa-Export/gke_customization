@@ -289,6 +289,27 @@ frappe.ui.form.on('Order Form', {
 			})
 			frm.set_df_property('party_name', 'read_only', 1);
 			}, __("Get Order"))
+		if(frm.doc.workflow_state=='Validate Rows' && frm.doc.name && !frm.doc.__islocal){
+			frm.add_custom_button('Validate Rows', function () {
+				frappe.call({
+					method: "gke_customization.gke_order_forms.doctype.order_form.order_form.validate_rows",
+					args: {
+						docname: frm.doc.name
+					},
+					callback(r) {
+						if (r.message) {
+							frappe.msgprint(r.message);
+							console.log(r.message);
+							
+							if (r.message == "No duplicates found"){
+								frm.reload_doc();
+
+							}
+						}
+					}
+				});
+			});
+		}
 	},
 	order_type(frm){
 		if(frm.doc.order_type=='Purchase'){
@@ -325,222 +346,9 @@ frappe.ui.form.on('Order Form Detail', {
 		}
 	},
 
-	design_id: function (frm, cdt, cdn) {
-		var d = locals[cdt][cdn];
-		if (d.design_id && d.design_type!='Sketch Design') {
-			let list_of_attributes = [];
-			frappe.call({
-				method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_bom_details",
-				args: {
-					"design_id": d.design_id,
-					"doc":d
-				},
-				callback(r) {
-					if(r.message) {
-						d.category = r.message.item_category;
-						d.subcategory = r.message.item_subcategory;
-						// d.setting_type = r.message.setting_type;
-						if (d.metal_type === "Silver") {
-							d.setting_type = "Open";
-						} else {
-							d.setting_type = r.message.setting_type;
-						}
-						d.sub_setting_type1 = r.message.sub_setting_type1
-						d.sub_setting_type2 = r.message.sub_setting_type2
-						d.bom = r.message.master_bom;
-						if (d.metal_type === "Silver") {
-							d.diamond_type = "AD";
-						}
-						d.qty = r.message.qty
-						d.metal_type = r.message.metal_type
-						// d.metal_touch = r.message.metal_touch
-						if (d.metal_type === "Silver") {
-							d.metal_touch = "20KT";
-						} else {
-							d.metal_touch = r.message.metal_touch;
-						}
-						d.metal_purity = r.message.metal_purity
-						// d.metal_colour = r.message.metal_colour
-						if (d.metal_type === "Silver") {
-							d.metal_colour = "White";
-						} else {
-							d.metal_colour = r.message.metal_colour;
-						}
-						d.metal_target = r.message.metal_target
-						// check this line
-						d.metal_target = r.message.custom_metal_target
-						// check this line
-
-						d.diamond_target = r.message.diamond_target
-						d.product_size = r.message.product_size
-						d.sizer_type = r.message.sizer_type
-						
-						d.stone_changeable = r.message.stone_changeable
-						d.detachable = r.message.detachable
-
-						d.lock_type = r.message.lock_type
-						d.feature = r.message.feature
-						
-						d.back_chain = r.message.back_chain
-						d.back_chain_size = r.message.back_chain_size
-						d.back_belt = r.message.back_belt
-						d.back_belt_length = r.message.back_belt_length
-						d.black_beed_line = r.message.black_beed_line
-						d.back_side_size = r.message.back_side_size
-						
-						d.back_belt_patti = r.message.back_belt_patti
-						d.rhodium = r.message.rhodium
-
-						d.chain_type = r.message.chain_type
-						d.customer_chain = r.message.customer_chain
-						d.chain_weight = r.message.chain_weight
-						d.chain_length = r.message.chain_length
-						d.chain_thickness = r.message.chain_thickness
-						d.chain_from = r.message.chain_from
-
-						if(r.message.number_of_ant){
-							d.number_of_ant = r.message.number_of_ant
-						}
-						else{
-							// check this line
-							d.number_of_ant = r.message.custom_number_of_ant
-							// check this line
-						}
-
-
-						d.distance_between_kadi_to_mugappu = r.message.distance_between_kadi_to_mugappu
-						d.space_between_mugappu = r.message.space_between_mugappu
-						if(r.message.two_in_one){
-							d.two_in_one = r.message.two_in_one
-						}
-						else{
-							d.two_in_one = r.message.custom_two_in_one
-						}
-
-						d.rhodium = r.message.rhodium
-						d.enamal = r.message.enamal
-
-						d.gemstone_type = r.message.gemstone_type1
-						d.gemstone_quality = r.message.gemstone_quality
-
-						d.charm = r.message.charm
-						d.capganthan = r.message.capganthan
-				
-						refresh_field('order_details');
-						// set_field_visibility(frm, cdt, cdn)
-					}
-				}
-			});
-
-		} 
-		else if(d.design_id && d.design_type=='Sketch Design'){
-			frappe.call({
-				method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_sketh_details",
-				args: {
-					"design_id": d.design_id,
-				},
-				callback(r) {
-					if(r.message) {
-						d.category = r.message.item_category;
-						d.subcategory = r.message.item_subcategory;
-						// d.setting_type = r.message.setting_type;
-						if (d.metal_type === "Silver") {
-							d.setting_type = "Open";
-						} else {
-							d.setting_type = r.message.setting_type;
-						}
-						d.sub_setting_type1 = r.message.sub_setting_type1
-						d.sub_setting_type2 = r.message.sub_setting_type2
-						if (d.metal_type === "Silver") {
-							d.diamond_type = "AD";
-						}
-						d.qty = r.message.qty
-						d.metal_type = r.message.metal_type
-						// d.metal_touch = r.message.metal_touch
-						if (d.metal_type === "Silver") {
-							d.metal_touch = "20KT";
-						} else {
-							d.metal_touch = r.message.metal_touch;
-						}
-						d.metal_purity = r.message.metal_purity
-						// d.metal_colour = r.message.metal_colour
-						if (d.metal_type === "Silver") {
-							d.metal_colour = "White";
-						} else {
-							d.metal_colour = r.message.metal_colour;
-						}
-						if(r.message.metal_target){
-							d.metal_target = r.message.metal_target
-						}
-						else{
-							// check this line
-							d.metal_target = r.message.custom_metal_target
-							// check this line
-						}
-
-						d.diamond_target = r.message.diamond_target
-						d.product_size = r.message.product_size
-						d.sizer_type = r.message.sizer_type
-		
-						d.length = r.message.length
-						d.height = r.message.height
-						d.width = r.message.width
-						
-						d.stone_changeable = r.message.stone_changeable
-						d.detachable = r.message.detachable
-
-						d.lock_type = r.message.lock_type
-						d.feature = r.message.feature
-						
-						d.back_chain = r.message.back_chain
-						d.back_chain_size = r.message.back_chain_size
-						d.back_belt = r.message.back_belt
-						d.back_belt_length = r.message.back_belt_length
-						d.black_beed = r.message.black_beed
-						d.black_beed_line = r.message.black_beed_line
-						d.back_side_size = r.message.back_side_size
-						
-						d.back_belt_patti = r.message.back_belt_patti
-						d.vanki = r.message.vanki
-						d.rhodium = r.message.rhodium
-
-						d.chain_type = r.message.chain_type
-						d.customer_chain = r.message.customer_chain
-						d.chain_weight = r.message.chain_weight
-						d.chain_length = r.message.chain_length
-
-						d.number_of_ant = r.message.number_of_ant
-
-						// check this line
-						d.number_of_ant = r.message.custom_number_of_ant
-						// check this line
-
-						d.distance_between_kadi_to_mugappu = r.message.distance_between_kadi_to_mugappu
-						d.space_between_mugappu = r.message.space_between_mugappu
-						d.two_in_one = r.message.two_in_one
-
-						d.rhodium = r.message.rhodium
-						d.enamal = r.message.enamal
-
-						d.gemstone_type = r.message.gemstone_type1
-						d.gemstone_quality = r.message.gemstone_quality
-				
-						refresh_field('order_details');
-						// set_field_visibility(frm, cdt, cdn)
-					}
-				}
-			});
-		}
-		else {
-			d.design_image = "";
-			d.image = "";
-			d.category = "";
-			d.subcategory = "";
-			d.setting_type = "";
-			d.bom = "";
-			refresh_field('order_details');
-		}
-	},
+	design_id: function(frm, cdt, cdn) {
+		handle_design_id_change(frm, cdt, cdn);
+    },
 
 	order_details_add: function (frm, cdt, cdn) {
 		var row = locals[cdt][cdn];
@@ -1401,3 +1209,42 @@ function set_filter_for_design_n_serial(frm, fields) {
 		// })
 	});
 };
+
+function handle_design_id_change(frm, cdt, cdn) {
+    var d = locals[cdt][cdn];
+    // your existing code from design_id handler goes here
+    if (d.design_id && (['Mod - Old Stylebio & Tag No', 'Sketch Design', 'As Per Design Type'].includes(d.design_type) || d.design_type == '')) {
+        let method = d.design_type === 'Sketch Design'
+            ? "gke_customization.gke_order_forms.doctype.order_form.order_form.get_sketh_details"
+            : "gke_customization.gke_order_forms.doctype.order_form.order_form.get_bom_details";
+
+        frappe.call({
+            method: method,
+            args: { design_id: d.design_id, doc: d },
+            callback: function (r) {
+                if (r.message) {
+                    $.extend(d, r.message);
+                    if (d.metal_type === "Silver") {
+                        d.setting_type = "Open";
+                        d.diamond_type = "AD";
+                        d.metal_touch = "20KT";
+                        d.metal_colour = "White";
+                    }
+                    frm.refresh_field('order_details');
+                    frm.fields_dict['order_details'].grid.grid_rows_by_docname[d.name].refresh();
+                }
+            }
+        });
+    } else {
+        // Clear fields if design_id is empty
+        d.design_image = "";
+        d.image = "";
+        d.category = "";
+        d.subcategory = "";
+        d.setting_type = "";
+        d.bom = "";
+        frm.refresh_field('order_details');
+        frm.fields_dict['order_details'].grid.grid_rows_by_docname[d.name].refresh();
+    }
+}
+

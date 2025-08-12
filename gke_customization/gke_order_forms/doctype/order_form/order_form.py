@@ -31,13 +31,79 @@ from frappe.utils import (
 	strip,
 	strip_html,
 )
-
+import json
+from datetime import datetime, date
+from frappe.utils.file_manager import save_file
+import openpyxl
+from io import BytesIO
 
 class OrderForm(Document):
 	def on_submit(self):
-		create_cad_orders(self)
+		if self.workflow_state == 'Approved':
+			create_cad_orders(self)
 		if self.supplier:
 			create_po(self)
+
+	def validate_rows(self):
+		seen = {}
+		duplicates = {}
+		error_logs = []
+
+		try:
+			for i, row in enumerate(self.order_details):
+				try:
+					row_dict = row.as_dict()
+					for field in [
+						'name', 'idx', 'parent', 'parenttype', 'parentfield',
+						'doctype', '__unsaved', 'owner', 'creation',
+						'modified', 'modified_by'
+					]:
+						row_dict.pop(field, None)
+					for key, value in row_dict.items():
+						if isinstance(value, (datetime, date)):
+							row_dict[key] = value.isoformat()
+					row_str = json.dumps(row_dict, sort_keys=True)
+
+					# Track all indices where this row pattern appears
+					if row_str not in seen:
+						seen[row_str] = [i]
+					else:
+						seen[row_str].append(i)
+				except Exception as row_error:
+					frappe.log_error(title="Validate Row Error", 
+									message=f"Order Form: {self.name} | Row: {i+1} -> {row_error}")
+					error_logs.append(f"Row {i+1}: {row_error}")
+
+			# Now, collect all duplicates
+			for indices in seen.values():
+				if len(indices) > 1:
+					duplicates[tuple(idx+1 for idx in indices)] = True
+
+			if duplicates:
+				# Build the duplicate message with bold rows inside
+				msg = "❌ Duplicate rows found: "
+				groups = []
+				for dup_rows in duplicates.keys():
+					bold_rows = ", ".join([f"<b>{num}</b>" for num in dup_rows])
+					groups.append(f"Rows {bold_rows} are identical")
+				msg += ". ".join(groups) + "."
+
+				# Save the error message (stripping HTML tags for plain text) into error_log field
+				import re
+				plain_text_msg = re.sub(r'<[^>]*>', '', msg)
+				frappe.db.set_value(self.doctype, self.name, "error_log", plain_text_msg)
+				frappe.msgprint(msg)
+			
+			else:
+				frappe.db.set_value(self.doctype, self.name, "error_log", None)
+				# frappe.db.set_value(self.doctype, self.name, "workflow_state", "Draft")
+				return "No duplicates found"
+
+		except Exception as e:
+			# General fallback error (catch for the whole method)
+			frappe.log_error(title="Validate Rows (General Error)", 
+							message=f"Order Form: {self.name} | Error: {e}")
+			raise
 
 	def on_update_after_submit(self):
 		if self.updated_delivery_date:
@@ -50,9 +116,6 @@ class OrderForm(Document):
 			for order_name in order_names:
 				frappe.db.set_value("Order", order_name, "updated_delivery_date", self.updated_delivery_date)
 
-
-	# def on_cancel(self):
-	# 	delete_auto_created_cad_order(self)
 	def on_cancel(self):
 		if frappe.db.get_list("Order",filters={"cad_order_form":self.name},fields="name"):
 			for order in frappe.db.get_list("Order",filters={"cad_order_form":self.name},fields="name"):
@@ -66,19 +129,27 @@ class OrderForm(Document):
 		self.reload()
 
 	def validate(self):
-		self.validate_category_subcaegory()
-		self.validate_filed_value()
-		validate_design_id(self)
-		validate_item_variant(self)
-		validate_is_mannual(self)
-		set_data(self)
+
+		# self.validate_category_subcaegory()
+		# self.validate_filed_value()
+		# validate_item_variant(self)
+		# validate_is_mannual(self)
+		if self.workflow_state == 'Validate Rows':
+			self.validate_rows()
+
+		if self.workflow_state == 'Fetch Data':
+			validate_design_id(self)
+			set_data(self)
+
+		if self.workflow_state == 'Send For Approval':
+			self.validate_filed_value()
+		
 		for i in self.order_details:	
 			if i.metal_type == "Silver":
 				i.metal_colour = "White"
 				i.metal_touch = "20KT"
 				i.setting_type = "Open"
 				i.diamond_type = "AD"
-			# return
 
 	def validate_category_subcaegory(self):
 		for row in self.get("order_details"):
@@ -88,243 +159,59 @@ class OrderForm(Document):
 					frappe.throw(_(f"Category & Sub Category mismatched in row #{row.idx}"))
 	
 	def validate_filed_value(self):
-		for row in self.get("order_details"):
-			if row.design_type:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Design Type").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.design_type not in attribute_list:
-					frappe.throw("Design Type is not Correct")
+    # List of attribute names and corresponding row field to validate
+		attr_fields = [
+			("Design Type", "design_type", "Design Type"),
+			("Diamond Quality", "diamond_quality", "Diamond Quality"),
+			("Setting Type", "setting_type", "Setting Type"),
+			("Sub Setting Type1", "sub_setting_type1", "Setting Type 1"),
+			("Sub Setting Type2", "sub_setting_type2", "Setting Type 2"),
+			("Metal Type", "metal_type", "Metal Type"),
+			("Metal Touch", "metal_touch", "Metal Touch"),
+			("Metal Colour", "metal_colour", "Metal Colour"),
+			("Diamond Type", "diamond_type", "Diamond Type"),
+			("Sizer Type", "sizer_type", "Sizer Type"),
+			("Stone Changeable", "stone_changeable", "Stone Changeable"),
+			("Feature", "feature", "Feature"),
+			("Rhodium", "rhodium", "Rhodium"),
+			("Enamal", "enamal", "Enamal"),
+			("Gemstone Type", "gemstone_type", "Gemstone Type"),
+			("Gemstone Quality", "gemstone_quality", "Gemstone Quality"),
+			("Mod Reason", "mod_reason", "Mod Reason"),
+			("Finding Category", "finding_category", "Finding Category"),
+			("Finding Sub-Category", "finding_subcategory", "Finding Sub-Category"),
+			("Finding Size", "finding_size", "Finding Size"),
+			("Metal Target Range", "metal_target_from_range", "Metal Target Range"),
+			("Diamond Target Range", "diamond_target_from_range", "Diamond Target Range"),
+			("Detachable", "detachable", "Detachable"),
+			("Lock Type", "lock_type", "Lock Type"),
+			("Cap/Ganthan", "capganthan", "Cap/Ganthan"),
+			("Charm", "charm", "Charm"),
+			("Back Chain", "back_chain", "Back Chain"),
+			("Back Belt", "back_belt", "Back Belt"),
+			("Black Bead", "black_bead", "Black Bead"),
+			("2 in 1", "two_in_one", "2 in 1"),
+			("Chain Type", "chain_type", "Chain Type"),
+			("Nakshi From", "nakshi_from", "Nakshi From"),
+		]
 
-			if row.diamond_quality:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Diamond Quality").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.diamond_quality not in attribute_list:
-					frappe.throw("Diamond Quality is not Correct")
+		# Cache all attribute values in a dict: { attribute_name: set_of_values }
+		attribute_cache = {}
 
-			if row.setting_type:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Setting Type").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.setting_type not in attribute_list:
-					frappe.throw("Setting Type is not Correct")
+		for attr_name, _, _ in attr_fields:
+			doc = frappe.get_doc("Item Attribute", attr_name)
+			# Using set for O(1) contains lookup
+			attribute_cache[attr_name] = set(i.attribute_value for i in doc.item_attribute_values)
+
+		# Iterate over rows and validate
+		for idx, row in enumerate(self.get("order_details"), start=1):
+			for attr_name, field_name, display_name in attr_fields:
+				val = getattr(row, field_name, None)
+				if val:  # Check only if field value is present
+					if val not in attribute_cache[attr_name]:
+						frappe.throw(f"{display_name} is not Correct in Row #{idx}")
 			
-			if row.sub_setting_type1:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Sub Setting Type1").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.sub_setting_type1 not in attribute_list:
-					frappe.throw("Setting Type 1 is not Correct")
-			
-			if row.sub_setting_type2:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Sub Setting Type2").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.sub_setting_type2 not in attribute_list:
-					frappe.throw("Setting Type 2 is not Correct")
-			
-			if row.metal_type:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Metal Type").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.metal_type not in attribute_list:
-					frappe.throw("Metal Type is not Correct")
-
-			if row.metal_touch:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Metal Touch").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.metal_touch not in attribute_list:
-					frappe.throw("Metal Touch is not Correct")
-
-			if row.metal_colour:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Metal Colour").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.metal_colour not in attribute_list:
-					frappe.throw("Metal Colour is not Correct")
-
-			if row.diamond_type:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Diamond Type").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.diamond_type not in attribute_list:
-					frappe.throw("Diamond Type is not Correct")
-			
-			if row.sizer_type:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Sizer Type").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.sizer_type not in attribute_list:
-					frappe.throw("Sizer Type is not Correct")
-
-			if row.stone_changeable:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Stone Changeable").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.stone_changeable not in attribute_list:
-					frappe.throw("Stone Changeable is not Correct")
-
-			if row.feature:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Feature").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.feature not in attribute_list:
-					frappe.throw("Feature is not Correct")
-
-			if row.rhodium:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Rhodium").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.rhodium not in attribute_list:
-					frappe.throw("Rhodium is not Correct")
-
-			if row.enamal:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Enamal").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.enamal not in attribute_list:
-					frappe.throw("Enamal is not Correct")
-			
-			if row.gemstone_type:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Gemstone Type").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.gemstone_type not in attribute_list:
-					frappe.throw("Gemstone Type is not Correct")
-			
-			if row.gemstone_quality:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Gemstone Quality").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.gemstone_quality not in attribute_list:
-					frappe.throw("Gemstone Quality is not Correct")
-			
-			if row.mod_reason:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Mod Reason").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.mod_reason not in attribute_list:
-					frappe.throw("Mod Reason is not Correct")
-			
-			if row.finding_category:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Finding Category").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.finding_category not in attribute_list:
-					frappe.throw("Finding Category is not Correct")
-
-			if row.finding_subcategory:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Finding Sub-Category").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.finding_subcategory not in attribute_list:
-					frappe.throw("Finding Sub-Category is not Correct")
-			
-			if row.finding_size:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Finding Size").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.finding_size not in attribute_list:
-					frappe.throw("Finding Size is not Correct")
-			
-			if row.metal_target_from_range:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Metal Target Range").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.metal_target_from_range not in attribute_list:
-					frappe.throw("Metal Target Range is not Correct")
-
-			if row.diamond_target_from_range:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Diamond Target Range").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.diamond_target_from_range not in attribute_list:
-					frappe.throw("Diamond Target Range is not Correct")
-			
-			if row.detachable:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Detachable").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.detachable not in attribute_list:
-					frappe.throw("Detachable is not Correct")
-			
-			if row.lock_type:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Lock Type").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.lock_type not in attribute_list:
-					frappe.throw("Lock Type is not Correct")
-			
-			if row.capganthan:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Cap/Ganthan").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.capganthan not in attribute_list:
-					frappe.throw("Cap/Ganthan is not Correct")
-			
-			if row.charm:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Charm").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.charm not in attribute_list:
-					frappe.throw("Charm is not Correct")
-			
-			if row.back_chain:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Back Chain").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.back_chain not in attribute_list:
-					frappe.throw("ChBack Chainarm is not Correct")
-
-			if row.back_belt:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Back Belt").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.back_belt not in attribute_list:
-					frappe.throw("Back Belt is not Correct")
-
-			if row.black_bead:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Black Bead").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.black_bead not in attribute_list:
-					frappe.throw("Black Bead is not Correct")
-
-			if row.two_in_one:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","2 in 1").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.two_in_one not in attribute_list:
-					frappe.throw("2 in 1 is not Correct")
-
-			if row.chain_type:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Chain Type").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.chain_type not in attribute_list:
-					frappe.throw("Chain Type is not Correct")
-
-			# if row.customer_chain:
-			# 	attribute_list = []
-			# 	for i in frappe.get_doc("Item Attribute","Black Bead").item_attribute_values:
-			# 		attribute_list.append(i.attribute_value)
-			# 	if row.customer_chain not in attribute_list:
-			# 		frappe.throw("Black Bead is not Correct")
-
-			if row.nakshi_from:
-				attribute_list = []
-				for i in frappe.get_doc("Item Attribute","Nakshi From").item_attribute_values:
-					attribute_list.append(i.attribute_value)
-				if row.nakshi_from not in attribute_list:
-					frappe.throw("Nakshi From is not Correct")
-
-
 		
-
-
-
 # def create_cad_orders(self):
 # 	doclist = []
 # 	for row in self.order_details:
@@ -383,7 +270,10 @@ def create_cad_orders(self):
     else:
         ibm_timedelta = timedelta()
 
-    for row in self.order_details:
+	for row in self.order_details:
+		if row.status == 'Pending' and self.is_mannual == 1:
+			frappe.throw(f"Status of row{row.idx} should be Done before approvedd")
+
         # Create Order
         docname = make_cad_order(row.name, parent_doc=self)
 
@@ -714,7 +604,7 @@ def get_bom_details(design_id, doc):
 		frappe.throw(f"{master_bom}//{doc['is_finding_order']}")
 
 	item_subcategory = frappe.db.get_value("Item", design_id, "item_subcategory")
-
+	item_info = frappe.db.get_value("Item", design_id, ["item_category", "item_subcategory"], as_dict=1) or {}
 	fg_bom = frappe.db.get_value("BOM", {"bom_type": "Finished Goods", "item": design_id}, "name", order_by="creation DESC")
 	master_bom = fg_bom or frappe.db.get_value("Item", design_id, "master_bom")
 
@@ -741,7 +631,9 @@ def get_bom_details(design_id, doc):
 	for original_name, formatted_key in attribute_pairs:
 		with_value[formatted_key] = variant_map.get(formatted_key) or bom_values.get(formatted_key)
 
-	with_value['master_bom'] = master_bom
+	with_value['bom'] = master_bom
+	with_value['category'] = item_info.get("item_category") or ""
+	with_value['subcategory'] = item_info.get("item_subcategory") or ""
 	return with_value
 
 def validate_variant_attributes(variant_of,attribute_list):
@@ -888,195 +780,6 @@ def get_customer_order_form(source_name, target_doc=None):
 				})
 	return target_doc
 
-def validate_design_id(self):
-	for i in self.order_details:
-		# If tagno exists, find all matching enabled Items by old_tag_no
-		if i.tagno:
-			matching_items = frappe.db.get_all(
-				"Item",
-				filters={"old_tag_no": i.tagno, "disabled": 0},
-				fields=["name", "master_bom", "creation"],
-				order_by="creation desc"
-			)
-
-			if matching_items:
-				# Pick the latest enabled item
-				item = matching_items[0]
-				matched_design_id = item.name
-
-				# Set design_id only if not manually overridden
-				if not i.design_id or i.design_id == matched_design_id:
-					i.design_id = matched_design_id
-					if not i.bom:
-						i.bom = item.master_bom
-
-		# If design_id is set, fetch Item and set master_bom to bom
-		if i.design_id:
-			item_doc = frappe.get_doc("Item", i.design_id)
-			if item_doc.master_bom and not i.bom:
-				i.bom = item_doc.master_bom
-
-		# Continue only if design_id and bom are now set
-		if i.design_id and i.bom:
-			is_manual_override = (i.design_type == "Mod - Old Stylebio & Tag No")
-
-			# Skip if mod_reason is "Change In Metal Type"
-			if i.mod_reason != "Change In Metal Type":
-				bom_doc = frappe.get_doc("BOM", i.bom)
-
-				# Set metal_type and metal_touch from metal_detail
-				if bom_doc.metal_detail:
-					if not is_manual_override or not i.metal_type:
-						i.metal_type = bom_doc.metal_detail[0].metal_type or None
-					if not is_manual_override or not i.metal_touch:
-						i.metal_touch = bom_doc.metal_detail[0].metal_touch or None
-				else:
-					frappe.msgprint(f"No metal details found for BOM {i.bom}")
-
-				# Set setting_type, category, subcategory
-				if not is_manual_override or not i.setting_type:
-					i.setting_type = bom_doc.setting_type or None
-				if not is_manual_override or not i.category:
-					i.category = bom_doc.item_category or None
-				if not is_manual_override or not i.subcategory:
-					i.subcategory = bom_doc.item_subcategory or None
-
-				# Attribute mapping
-				attr_map = {
-					"metal_colour": "Metal Colour",
-					"diamond_target": "Diamond Target",
-					"stone_changeable": "Stone Changeable",
-					"gemstone_type": "Gemstone Type",
-					"chain_type": "Chain Type",
-					"chain_length": "Chain Length",
-					"feature": "Feature",
-					"rhodium": "Rhodium",
-					"enamal": "Enamal",
-					"detachable": "Detachable",
-					"capganthan": "Cap/Ganthan",
-					"two_in_one": "Two in One",
-					"product_size": "Product Size",
-					"sizer_type": "Sizer Type",
-					"lock_type": "Lock Type",
-					"black_bead_line": "Black Bead Line",
-					"charm": "Charm",
-					"count_of_spiral_turns": "Count of Spiral Turns",
-					"number_of_ant": "Number of Ant",
-					"back_side_size": "Back Side Size",
-					"space_between_mugappu": "Space between Mugappu",
-					"distance_between_kadi_to_mugappu": "Distance Between Kadi To Mugappu",
-					"back_belt": "Back Belt",
-					"back_belt_length": "Back Belt Length",
-				}
-
-				# Clear all mapped fields if not manual override
-				if not is_manual_override:
-					for fieldname in attr_map.keys():
-						setattr(i, fieldname, None)
-
-				# Set values from attributes if not manually overridden
-				for attr in item_doc.attributes:
-					for fieldname, attrname in attr_map.items():
-						if attr.attribute == attrname:
-							if not is_manual_override or not getattr(i, fieldname):
-								setattr(i, fieldname, attr.attribute_value)
-
-		# Final mandatory field validation
-		if  i.design_type == "New Design":
-			missing = []
-			if not i.category:
-				missing.append("Category")
-			if not i.subcategory:
-				missing.append("Subcategory")
-			if not i.metal_type:
-				missing.append("Metal Type")
-			if not i.diamond_target:
-				missing.append("Diamond Target")
-			if not i.setting_type:
-				missing.append("Setting Type")
-			if not i.metal_touch:
-				missing.append("Metal Touch")
-			if not i.metal_colour:
-				missing.append("Metal Colour")
-			if not i.metal_target:
-				missing.append("Metal Target")
-
-			if missing:
-				frappe.throw(f"Row {i.idx}: Please fill the following fields for 'New Design' with Manual checked: {', '.join(missing)}")
-
-
-def validate_is_mannual(self):
-	if self.is_mannual:
-		errors = []
-
-		for row in self.order_details:
-			missing_fields = []
-
-			if not row.stylebio:
-				missing_fields.append("'Style Bio'")
-			if not row.status:
-				missing_fields.append("'Status'")
-			if not row.order_details_and_remarks:
-				missing_fields.append("'Order Details and Remark'")
-
-			# Enhanced: handle multiple items with same tagno, pick non-disabled one
-			if row.tagno:
-				matching_items = frappe.db.get_all(
-					"Item",
-					filters={"old_tag_no": row.tagno},
-					fields=["name", "master_bom", "disabled"],
-					order_by="creation desc"
-				)
-
-				selected_item = next((item for item in matching_items if not item.disabled), None)
-
-				if selected_item:
-					if not row.design_id:
-						row.design_id = selected_item.name
-					if not row.bom:
-						row.bom = selected_item.master_bom
-
-					if selected_item.master_bom:
-						diamond_type = frappe.db.get_value(
-							"BOM Diamond Detail", 
-							{"parent": selected_item.master_bom}, 
-							"diamond_type"
-						)
-						if diamond_type:
-							row.diamond_type = diamond_type
-
-			# If workflow_state == "Approved", design_type is mandatory for non-finding
-			if (
-				not row.is_finding_order
-				and not row.design_type
-				and self.workflow_state == "Approved"
-			):
-				missing_fields.append("'Design Type' (required in 'Creating Item & BOM')")
-
-			if missing_fields:
-				errors.append(f"Row {row.idx} is missing: {', '.join(missing_fields)}")
-
-		if errors:
-			frappe.throw("<br>".join(errors))
-
-		# Enforce all status as 'Done' if workflow_state is Approved
-		if self.workflow_state == "Approved":
-			for row in self.order_details:
-				if row.status != "Done":
-					frappe.throw(f"Row {row.idx}: Status must be 'Done' before you approve. Please update it.")
-
-	else:
-		# is_mannual is unchecked validate design_type for non-finding orders
-		missing_design_type_rows = []
-		for row in self.order_details:
-			if not row.is_finding_order and not row.design_type:
-				missing_design_type_rows.append(
-					f"Row {row.idx}: Design Type is mandatory when 'Is Finding Order' is unchecked and 'Is Mannual' is also unchecked."
-				)
-
-		if missing_design_type_rows:
-			frappe.throw("<br>".join(missing_design_type_rows))
-
 def validate_item_variant(self):
 	for i in self.order_details:
 		if i.design_type == "Sketch Design" and i.design_id:
@@ -1087,7 +790,6 @@ def validate_item_variant(self):
 					filters={"variant_of": i.design_id},
 					fields=["name"]
 				)
-				# frappe.throw(f"{variants}")
 				if variants:
 					variant_names = ", ".join(item.name for item in variants)
 					frappe.throw(f"""
@@ -1097,10 +799,37 @@ def validate_item_variant(self):
 						Please select <b>Design Type = 'Mod - Old Stylebio & Tag No'</b> and select the variant in Design ID.
 					""")
 
-
-
-
-
+def validate_design_id(self):
+	for i in self.order_details:
+		if i.subcategory:
+			parent = frappe.db.get_value("Attribute Value", i.subcategory, "parent_attribute_value")
+			if i.category != parent:
+				frappe.throw(_(f"Category & Sub Category mismatched in row #{i.idx}"))
+		# If tagno exists, find all matching enabled Items by old_tag_no
+		if i.tagno and i.design_type != 'Sketch Design':
+			matching_item = frappe.db.get_value("Item",{"old_tag_no": i.tagno, "disabled": 0},"name",order_by="creation desc")
+			if matching_item:
+				matching_bom = frappe.db.get_value("Item",matching_item,"master_bom")
+				# Set design_id only if not manually overridden
+				if not i.design_id or i.design_id == matching_item:
+					i.design_id = matching_item
+					if not i.bom:
+						i.bom = matching_bom
+					
+		if i.design_type == "Sketch Design" and i.design_id:
+			custom_sketch_order_id = frappe.db.get_value("Item", i.design_id, "custom_sketch_order_id")
+			if custom_sketch_order_id:
+				# Get all variants where variant_of = i.design_id
+				variants = frappe.db.get_list("Item",filters={"variant_of": i.design_id,"disabled":0},pluck="name")
+				if variants:
+					# variant_names = ", ".join(item.name for item in variants)
+					variant_names = ", ".join(variant_names)
+					frappe.throw(f"""
+						You already created a variant for this Design ID ({i.design_id}).<br><br>
+						Items found: {variant_names}<br><br>
+						You cannot create another variant using <b>Sketch Design</b>.<br>
+						Please select <b>Design Type = 'Mod - Old Stylebio & Tag No'</b> and select the variant in Design ID.
+					""")
 
 def set_data(self):
 	if self.order_details:
@@ -1130,37 +859,13 @@ def set_data(self):
 						if str(key) == "item_subcategory":
 							key = "subcategory"
 						a = getattr(i, key, value)
+						# frappe.throw(f"{a}")
 						if a:
 							continue
-						# frappe.throw(f"{a}")
 						else:
 							setattr(i, key, value)
-						# Prepare a list to hold the item attribute names formatted as per your requirements
-						all_item_attributes = []
-						
-						# Retrieve all item attributes for the given item subcategory
-						for item_attr in frappe.get_doc("Attribute Value", item_subcategory).item_attributes:
-							# Format the item attribute names by replacing spaces with underscores, removing '/', and converting to lower case
-							formatted_attr = item_attr.item_attribute.replace(' ', '_').replace('/', '').lower()
-							
-							all_item_attributes.append(formatted_attr)
-						
-						# Retrieve the values for the specified attributes from the BOM
-						attribute_values = frappe.db.get_value("BOM", master_bom, all_item_attributes, as_dict=1)
-						# Dynamically set the attributes on self with the retrieved values
-						for key, value in attribute_values.items():
-							if str(key) == "item_category":
-								key = "category"
-							if str(key) == "item_subcategory":
-								key = "subcategory"
-							a = getattr(i, key, value)
-							if a:
-								continue
-							else:
-								setattr(i, key, value)
 				except:
 					frappe.throw(f"Row {i.idx} has Issue.Check BOM first.")
-
 
 def create_po(self):
 	qty = 0
@@ -1332,5 +1037,9 @@ def make_from_pre_order_form(source_name, target_doc=None):
 	return target_doc
 
 
+@frappe.whitelist()
+def validate_rows(docname):
+    doc = frappe.get_doc("Order Form", docname)
+    return doc.validate_rows()
 
 
