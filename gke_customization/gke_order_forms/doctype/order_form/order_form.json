@@ -1,410 +1,457 @@
 {
-"_liked_by": "[\"Administrator\"]",
-"actions": [],
-"allow_import": 1,
-"allow_rename": 1,
-"autoname": "ORD/C/.#####",
-"creation": "2022-05-11 22:26:19.574092",
-"doctype": "DocType",
-"editable_grid": 1,
-"engine": "InnoDB",
-"field_order": [
-    "company",
-    "department",
-    "column_break_zuipg",
-    "branch",
-    "salesman_name",
-    "section_break_aofbu",
-    "customer_code",
-    "customer_name",
-    "order_date",
-    "above_delivery_date_includes_cad_approval_time_period",
-    "delivery_date",
-    "update_delivery_date",
-    "updated_delivery_date",
-    "project",
-    "pre_order_form",
-    "is_branch_shipping",
-    "parcel_place",
-    "is_finding_order",
-    "is_mannual",
-    "column_break_4",
-    "po_no",
-    "order_type",
-    "flow_type",
-    "due_days",
-    "diamond_quality",
-    "service_type",
-    "order_through_date_and_time",
-    "order_through",
-    "required_customer_approval",
-    "section_break_0q02",
-    "supplier",
-    "supplier_name",
-    "column_break_wfgc",
-    "purchase_type",
-    "section_break_12",
-    "order_details",
-    "total_rows",
-    "total_no_of_designs",
-    "section_break_24",
-    "remarks",
-    "territories_tab",
-    "india",
-    "india_states",
-    "column_break_anxf6",
-    "usa",
-    "usa_states",
-    "amended_from",
-    "tab_break_kio0",
-    "repair_order"
-],
-"fields": [
-    {
-    "fieldname": "company",
-    "fieldtype": "Link",
-    "label": "Company",
-    "options": "Company",
-    "reqd": 1
-    },
-    {
-    "fieldname": "department",
-    "fieldtype": "Link",
-    "label": "Department",
-    "options": "Department",
-    "reqd": 1
-    },
-    {
-    "fieldname": "column_break_zuipg",
-    "fieldtype": "Column Break"
-    },
-    {
-    "fieldname": "branch",
-    "fieldtype": "Link",
-    "label": "Branch",
-    "options": "Branch",
-    "reqd": 1
-    },
-    {
-    "fieldname": "salesman_name",
-    "fieldtype": "Link",
-    "label": "Sales Person",
-    "options": "Sales Person",
-    "reqd": 1
-    },
-    {
-    "fieldname": "section_break_aofbu",
-    "fieldtype": "Section Break"
-    },
-    {
-    "fieldname": "customer_code",
-    "fieldtype": "Link",
-    "label": "Customer Name",
-    "options": "Customer",
-    "reqd": 1
-    },
-    {
-    "fieldname": "order_date",
-    "fieldtype": "Datetime",
-    "in_list_view": 1,
-    "label": "Order Date",
-    "reqd": 1
-    },
-      {
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "ORD/C/.#####",
+ "creation": "2022-05-11 22:26:19.574092",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "department",
+  "column_break_zuipg",
+  "branch",
+  "salesman_name",
+  "section_break_aofbu",
+  "customer_code",
+  "customer_name",
+  "order_date",
+  "delivery_date",
+  "above_delivery_date_includes_cad_approval_time_period",
+  "update_delivery_date",
+  "updated_delivery_date",
+  "project",
+  "pre_order_form",
+  "is_branch_shipping",
+  "is_finding_order",
+  "is_mannual",
+  "parcel_place",
+  "column_break_4",
+  "po_no",
+  "order_type",
+  "flow_type",
+  "due_days",
+  "diamond_quality",
+  "service_type",
+  "order_through_date_and_time",
+  "order_through",
+  "required_customer_approval",
+  "section_break_0q02",
+  "supplier",
+  "supplier_name",
+  "column_break_wfgc",
+  "purchase_type",
+  "section_break_12",
+  "order_details",
+  "total_rows",
+  "total_no_of_designs",
+  "section_break_24",
+  "remarks",
+  "error_log",
+  "territories_tab",
+  "india",
+  "india_states",
+  "code_creation_file",
+  "proto_sheet_file",
+  "column_break_anxf6",
+  "usa",
+  "usa_states",
+  "amended_from",
+  "gc_format_file",
+  "tab_break_kio0",
+  "repair_order"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'",
+   "reqd": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_zuipg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'",
+   "reqd": 1
+  },
+  {
+   "fieldname": "salesman_name",
+   "fieldtype": "Link",
+   "label": "Sales Person",
+   "options": "Sales Person",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_aofbu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "customer_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "read_only_depends_on": "eval:doc.customer_code",
+   "reqd": 1
+  },
+  {
+   "fieldname": "order_date",
+   "fieldtype": "Datetime",
+   "label": "Order Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_mannual",
+   "fieldtype": "Check",
+   "label": "Is Mannual"
+  },
+  {
+   "depends_on": "eval:doc.is_branch_shipping",
+   "fieldname": "parcel_place",
+   "fieldtype": "Table MultiSelect",
+   "label": "Shipping Territory",
+   "mandatory_depends_on": "eval:doc.is_branch_shipping",
+   "options": "Branch Shipping",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "po_no",
+   "fieldtype": "Data",
+   "label": "Customer PO No"
+  },
+  {
+   "fieldname": "order_type",
+   "fieldtype": "Select",
+   "label": "Order Type",
+   "options": "\nSales\nStock Order\nPurchase",
+   "read_only_depends_on": "eval:doc.order_type && doc.workflow_state == 'Cancelled'",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "due_days",
+   "fieldtype": "Int",
+   "label": "Due Days",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'",
+   "reqd": 1
+  },
+  {
+   "fieldname": "diamond_quality",
+   "fieldtype": "Link",
+   "label": "Customer Diamond Quality",
+   "mandatory_depends_on": "eval:(doc.is_finding_order == 0 && doc.order_type == 'Sales') || (doc.is_finding_order == 0 && doc.order_type == 'Stock Order')",
+   "options": "Attribute Value",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "service_type",
+   "fieldtype": "Table MultiSelect",
+   "label": "Service Type",
+   "options": "Service Type 2",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "section_break_12",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "order_details",
+   "fieldtype": "Table",
+   "label": "Order Details",
+   "options": "Order Form Detail",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "section_break_24",
+   "fieldtype": "Section Break",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Text",
+   "hidden": 1,
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Order Form",
+   "print_hide": 1,
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "territories_tab",
+   "fieldtype": "Tab Break",
+   "label": "Territories"
+  },
+  {
+   "default": "0",
+   "fieldname": "india",
+   "fieldtype": "Check",
+   "label": "INDIA",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "india_states",
+   "fieldtype": "Table MultiSelect",
+   "label": "States",
+   "options": "Territory Multi Select",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "column_break_anxf6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "usa",
+   "fieldtype": "Check",
+   "label": "USA",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "usa_states",
+   "fieldtype": "Select",
+   "label": "States",
+   "options": "\nUSA",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "repair_order",
+   "fieldtype": "Link",
+   "label": "Repair Order",
+   "options": "Repair Order",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "depends_on": "eval:doc.repair_order",
+   "fieldname": "tab_break_kio0",
+   "fieldtype": "Tab Break",
+   "label": "Repair Order"
+  },
+  {
+   "fieldname": "flow_type",
+   "fieldtype": "Select",
+   "label": "Flow Type",
+   "mandatory_depends_on": "eval:doc.order_type != 'Purchase'",
+   "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO\nPROTO",
+   "read_only_depends_on": "eval:doc.flow_type && doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fetch_from": "customer_code.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.order_type == 'Purchase'",
+   "fieldname": "section_break_0q02",
+   "fieldtype": "Section Break",
+   "label": "Purchase Details"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "mandatory_depends_on": "eval:doc.order_type == 'Purchase'",
+   "options": "Supplier",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "purchase_type",
+   "fieldtype": "Select",
+   "label": "Purchase Type",
+   "mandatory_depends_on": "eval:doc.order_type == 'Purchase'",
+   "options": "Design\nMould\nRPT\nModel",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fetch_from": "supplier.supplier_name",
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "label": "Supplier Name",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "column_break_wfgc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fieldname": "update_delivery_date",
+   "fieldtype": "Check",
+   "label": "Update Delivery Date",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.order_type != 'Purchase'",
+   "fieldname": "is_finding_order",
+   "fieldtype": "Check",
+   "label": "Is Finding Order",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_branch_shipping",
+   "fieldtype": "Check",
+   "label": "Is Branch Shipping",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "pre_order_form",
+   "fieldtype": "Link",
+   "label": "Pre Order Form",
+   "options": "Pre Order Form",
+   "read_only": 1,
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "default": "0",
+   "fieldname": "required_customer_approval",
+   "fieldtype": "Check",
+   "label": "Required Customer Approval",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "total_rows",
+   "fieldtype": "Int",
+   "label": "Total Rows",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "total_no_of_designs",
+   "fieldtype": "Int",
+   "label": "Total No of Designs",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "fieldname": "order_through_date_and_time",
+   "fieldtype": "Datetime",
+   "label": "Order through Date and Time"
+  },
+  {
+   "fieldname": "order_through",
+   "fieldtype": "Attach",
+   "label": "Order Through"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "code_creation_file",
+   "fieldtype": "Attach",
+   "label": "Code Creation File",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "proto_sheet_file",
+   "fieldtype": "Attach",
+   "label": "Proto Sheet File",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "gc_format_file",
+   "fieldtype": "Attach",
+   "label": "GC Format File",
+   "read_only_depends_on": "eval:doc.workflow_state == 'Cancelled'"
+  },
+  {
    "default": "0",
    "fieldname": "above_delivery_date_includes_cad_approval_time_period",
    "fieldtype": "Check",
    "label": "Above delivery date Includes CAD approval time period."
   },
-    {
-    "fieldname": "delivery_date",
-    "fieldtype": "Datetime",
-    "label": "Delivery Date",
-    "reqd": 1
-    },
-    {
-    "fieldname": "project",
-    "fieldtype": "Link",
-    "label": "Project",
-    "options": "Project"
-    },
-    {
-    "depends_on": "eval:doc.is_branch_shipping",
-    "fieldname": "parcel_place",
-    "fieldtype": "Table MultiSelect",
-    "label": "Shipping Territory",
-    "mandatory_depends_on": "eval:doc.is_branch_shipping",
-    "options": "Branch Shipping"
-    },
-    {
-    "fieldname": "column_break_4",
-    "fieldtype": "Column Break"
-    },
-    {
-    "fieldname": "po_no",
-    "fieldtype": "Data",
-    "label": "Customer PO No"
-    },
-    {
-    "fieldname": "order_type",
-    "fieldtype": "Select",
-    "label": "Order Type",
-    "options": "\nSales\nStock Order\nPurchase",
-    "reqd": 1
-    },
-    {
-    "default": "0",
-    "fieldname": "due_days",
-    "fieldtype": "Int",
-    "label": "Due Days",
-    "reqd": 1
-    },
-    {
-    "fieldname": "diamond_quality",
-    "fieldtype": "Link",
-    "label": "Customer Diamond Quality",
-    "mandatory_depends_on": "eval:(doc.is_finding_order == 0 && doc.order_type == 'Sales') || (doc.is_finding_order == 0 && doc.order_type == 'Stock Order')",
-    "options": "Attribute Value"
-    },
-    {
-    "fieldname": "service_type",
-    "fieldtype": "Table MultiSelect",
-    "label": "Service Type",
-    "options": "Service Type 2"
-    },
-    {
-    "fieldname": "section_break_12",
-    "fieldtype": "Section Break"
-    },
-    {
-    "allow_bulk_edit": 1,
-    "fieldname": "order_details",
-    "fieldtype": "Table",
-    "label": "Order Details",
-    "options": "Order Form Detail"
-    },
-    {
-    "fieldname": "section_break_24",
-    "fieldtype": "Section Break"
-    },
-    {
-    "fieldname": "remarks",
-    "fieldtype": "Text",
-    "hidden": 1,
-    "label": "Remarks"
-    },
-    {
-    "fieldname": "amended_from",
-    "fieldtype": "Link",
-    "label": "Amended From",
-    "no_copy": 1,
-    "options": "Order Form",
-    "print_hide": 1,
-    "read_only": 1
-    },
-    {
-    "fieldname": "territories_tab",
-    "fieldtype": "Tab Break",
-    "label": "Territories"
-    },
-    {
-    "default": "0",
-    "fieldname": "india",
-    "fieldtype": "Check",
-    "label": "INDIA"
-    },
-    {
-    "fieldname": "india_states",
-    "fieldtype": "Table MultiSelect",
-    "label": "States",
-    "options": "Territory Multi Select"
-    },
-    {
-    "fieldname": "column_break_anxf6",
-    "fieldtype": "Column Break"
-    },
-    {
-    "default": "0",
-    "fieldname": "usa",
-    "fieldtype": "Check",
-    "label": "USA"
-    },
-    {
-    "fieldname": "usa_states",
-    "fieldtype": "Select",
-    "label": "States",
-    "options": "\nUSA"
-    },
-    {
-    "fieldname": "repair_order",
-    "fieldtype": "Link",
-    "label": "Repair Order",
-    "options": "Repair Order",
-    "read_only": 1
-    },
-    {
-    "depends_on": "eval:doc.repair_order",
-    "fieldname": "tab_break_kio0",
-    "fieldtype": "Tab Break",
-    "label": "Repair Order"
-    },
-    {
-    "fieldname": "flow_type",
-    "fieldtype": "Select",
-    "label": "Flow Type",
-    "mandatory_depends_on": "eval:doc.order_type != 'Purchase'",
-    "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO"
-    },
-    {
-    "fetch_from": "customer_code.customer_name",
-    "fieldname": "customer_name",
-    "fieldtype": "Data",
-    "label": "customerName"
-    },
-    {
-    "depends_on": "eval:doc.order_type == 'Purchase'",
-    "fieldname": "section_break_0q02",
-    "fieldtype": "Section Break",
-    "label": "Purchase Details"
-    },
-    {
-    "fieldname": "supplier",
-    "fieldtype": "Link",
-    "label": "Supplier",
-    "mandatory_depends_on": "eval:doc.order_type == 'Purchase'",
-    "options": "Supplier"
-    },
-    {
-    "fieldname": "purchase_type",
-    "fieldtype": "Select",
-    "label": "Purchase Type",
-    "mandatory_depends_on": "eval:doc.order_type == 'Purchase'",
-    "options": "Design\nMould\nRPT\nModel"
-    },
-    {
-    "fetch_from": "supplier.supplier_name",
-    "fieldname": "supplier_name",
-    "fieldtype": "Data",
-    "label": "Supplier Name",
-    "read_only": 1
-    },
-    {
-    "fieldname": "column_break_wfgc",
-    "fieldtype": "Column Break"
-    },
-    {
-    "allow_on_submit": 1,
-    "default": "0",
-    "depends_on": "eval: doc.docstatus == 1;",
-    "fieldname": "update_delivery_date",
-    "fieldtype": "Check",
-    "label": "Update Delivery Date"
-    },
-    {
-    "allow_on_submit": 1,
-    "depends_on": "eval: doc.update_delivery_date == 1",
-    "fieldname": "updated_delivery_date",
-    "fieldtype": "Datetime",
-    "label": "Updated Delivery Date"
-    },
-    {
-    "default": "0",
-    "depends_on": "eval:doc.order_type != 'Purchase'",
-    "fieldname": "is_finding_order",
-    "fieldtype": "Check",
-    "label": "Is Finding Order"
-    },
-    {
-    "default": "0",
-    "fieldname": "is_mannual",
-    "fieldtype": "Check",
-    "label": "Is Mannual"
-    },
-    {
-    "default": "0",
-    "fieldname": "is_branch_shipping",
-    "fieldtype": "Check",
-    "label": "Is Branch Shipping"
-    },
-    {
-    "fieldname": "pre_order_form",
-    "fieldtype": "Link",
-    "label": "Pre Order Form",
-    "options": "Pre Order Form",
-    "read_only": 1
-    },
-    {
-    "fieldname": "order_through",
-    "fieldtype": "Attach",
-    "label": "Order Through"
-    },
-    {
-    "default": "1",
-    "fieldname": "required_customer_approval",
-    "fieldtype": "Check",
-    "label": "Required Customer Approval"
-    },
-    {
-    "fieldname": "total_rows",
-    "fieldtype": "Int",
-    "label": "Total Rows"
-    },
-    {
-    "fieldname": "total_no_of_designs",
-    "fieldtype": "Int",
-    "label": "Total No of Designs"
-    },
-    {
-   "fieldname": "order_through_date_and_time",
+  {
+   "fieldname": "delivery_date",
    "fieldtype": "Datetime",
-   "label": "Order through Date and Time"
-    }
-],
-"index_web_pages_for_search": 1,
-"is_submittable": 1,
-"links": [
-    {
-    "link_doctype": "Order",
-    "link_fieldname": "cad_order_form"
-    },
-    {
-    "link_doctype": "Item",
-    "link_fieldname": "custom_cad_order_form_id"
-    },
-    {
-    "link_doctype": "BOM",
-    "link_fieldname": "custom_cad_order_form_id"
-    },
-    {
-    "link_doctype": "Purchase Order",
-    "link_fieldname": "custom_form_id"
-    }
-],
-"modified": "2025-01-11 11:34:46.592466",
-"modified_by": "Administrator",
-"module": "GKE Order Forms",
-"name": "Order Form",
-"naming_rule": "Expression (old style)",
-"owner": "Administrator",
-"permissions": [
-    {
-    "create": 1,
-    "delete": 1,
-    "email": 1,
-    "export": 1,
-    "print": 1,
-    "read": 1,
-    "report": 1,
-    "role": "System Manager",
-    "share": 1,
-    "submit": 1,
-    "write": 1
-    }
-],
-"sort_field": "modified",
-"sort_order": "DESC",
-"states": [],
-"track_changes": 1,
-"track_seen": 1,
-"track_views": 1
+   "label": "Delivery Date",
+   "reqd": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "depends_on": "eval: doc.update_delivery_date == 1",
+   "fieldname": "updated_delivery_date",
+   "fieldtype": "Datetime",
+   "label": "Updated Delivery Date"
+  },
+  {
+   "fieldname": "error_log",
+   "fieldtype": "Long Text",
+   "label": "Error Log"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [
+  {
+   "link_doctype": "Order",
+   "link_fieldname": "cad_order_form"
+  },
+  {
+   "link_doctype": "Item",
+   "link_fieldname": "custom_cad_order_form_id"
+  },
+  {
+   "link_doctype": "BOM",
+   "link_fieldname": "custom_cad_order_form_id"
+  },
+  {
+   "link_doctype": "Purchase Order",
+   "link_fieldname": "custom_form_id"
+  }
+ ],
+ "modified": "2025-08-06 10:11:00.766326",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Order Form",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
 }
