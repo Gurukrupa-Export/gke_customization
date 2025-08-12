@@ -97,8 +97,9 @@
   },
   {
    "fieldname": "job_applicant",
-   "fieldtype": "Data",
-   "label": "Job Applicant"
+   "fieldtype": "Link",
+   "label": "Job Applicant",
+   "options": "Job Applicant"
   },
   {
    "allow_on_submit": 1,
@@ -132,8 +133,9 @@
   },
   {
    "fieldname": "employee",
-   "fieldtype": "Data",
-   "label": "Employee"
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
   },
   {
    "fieldname": "operation",
@@ -151,7 +153,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-24 11:45:55.431763",
+ "modified": "2025-08-05 10:07:56.899883",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "User Permission Request",

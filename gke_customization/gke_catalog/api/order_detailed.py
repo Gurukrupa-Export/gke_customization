@@ -359,6 +359,8 @@ def get_order12(from_date=None, to_date=None, of_docstatus=None, branch=None, or
 
     valid_sketch_order_forms = []
     for form in order_forms:
+        if form["workflow_state"] == 'Cancelled':
+            continue
         form_orders = orders_by_form.get(form.name, [])
 
         for order in form_orders:
@@ -523,6 +525,8 @@ def get_order(from_date=None, to_date=None, of_docstatus=None, branch=None, orde
     # Assemble Orders
     final_forms = []
     for form in order_forms:
+        if form["workflow_state"] == 'Cancelled':
+            continue
         related_orders = order_map.get(form["name"], [])
         for order in related_orders:
             order["order_id"] = order.pop("name")
