@@ -811,7 +811,8 @@
     {
     "fieldname": "stylebio",
     "fieldtype": "Data",
-    "label": "StyleBio"
+    "label": "StyleBio",
+    "mandatory_depends_on": "eval:cur_frm.doc.is_mannual == 1 && doc.is_finding_order == 0"
     },
     {
     "fieldname": "tagno",
@@ -821,14 +822,16 @@
     {
     "fieldname": "order_details_and_remarks",
     "fieldtype": "Text",
-    "label": "Order Details and Remarks"
+    "label": "Order Details and Remarks",
+    "mandatory_depends_on": "eval:cur_frm.doc.is_mannual == 1 && doc.is_finding_order == 0"
     },
     {
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "label": "Status",
-   "options": "Pending\nDone"
-  }
+    "fieldname": "status",
+    "fieldtype": "Select",
+    "label": "Status",
+    "mandatory_depends_on": "eval:cur_frm.doc.is_mannual == 1 && doc.is_finding_order == 0",
+    "options": "Pending\nDone"
+    }
 ],
 "index_web_pages_for_search": 1,
 "istable": 1,
