@@ -310,6 +310,13 @@ frappe.ui.form.on('Order Form', {
 				});
 			});
 		}
+		if (frm.doc.workflow_state === 'Fetch Data' && frm.doc.order_details) {
+            frm.doc.order_details.forEach(function(child_row) {
+                if (child_row.design_id) {
+                    handle_design_id_change(frm, 'Order Form Detail', child_row.name);
+                }
+            });
+        }
 	},
 	order_type(frm){
 		if(frm.doc.order_type=='Purchase'){
