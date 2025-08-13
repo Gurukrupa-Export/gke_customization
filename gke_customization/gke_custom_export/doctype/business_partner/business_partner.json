@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "is_bank",
+  "business_partner",
   "section_break_fnx9",
   "customer",
   "customer_name",
@@ -142,6 +143,11 @@
   {
    "fieldname": "column_break_mbgj",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "business_partner",
+   "fieldtype": "Data",
+   "label": "Business Partner"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -155,7 +161,7 @@
    "link_fieldname": "lender"
   }
  ],
- "modified": "2025-07-30 16:41:46.951993",
+ "modified": "2025-08-13 16:29:18.892525",
  "modified_by": "Administrator",
  "module": "GKE Custom Export",
  "name": "Business Partner",
