@@ -27,7 +27,6 @@ frappe.query_reports["Design Code Details"] = {
 		// 	}
 		// },
 
-
         {
             fieldname: "item_name",
             label: __("Item"),
@@ -53,7 +52,51 @@ frappe.query_reports["Design Code Details"] = {
             }
         },
 
+        {
+            fieldname: "old_stylebio",
+            label: __("Old StyleBio"),
+            fieldtype: "MultiSelectList",
+            reqd: 0,
+            get_data: function (txt) {
+                return frappe.db.get_list("Item", {
+                    fields: ["name", "stylebio"],
+                    filters: {
+                        stylebio: ["like", `%${txt}%`]
+                    },
+                    limit: 20
+                }).then(items => {
+                    return items
+                        .filter(item => item.stylebio)
+                        .map(item => ({
+                            value: item.stylebio,
+                            description: item.name
+                        }));
+                });
+            }
+        },
 
+        {
+            fieldname: "old_tag_no",
+            label: __("Old Tag No"),
+            fieldtype: "MultiSelectList",
+            reqd: 0,
+            get_data: function (txt) {
+                return frappe.db.get_list("Item", {
+                    fields: ["name", "old_tag_no"],
+                    filters: {
+                        old_tag_no: ["like", `%${txt}%`]
+                    },
+                    limit: 20
+                }).then(items => {
+                    return items
+                        .filter(item => item.old_tag_no)
+                        .map(item => ({
+                            value: item.old_tag_no,
+                            description: item.name
+                        }));
+                });
+            }
+        }
 
         // {
         //     fieldname: "item_name",
@@ -80,7 +123,6 @@ frappe.query_reports["Design Code Details"] = {
         //     }
         // }
 
-
 	],
     onload: function (report) {
 		//Function code to add a button on top which will clear all selections from the filter and set it to default values.
@@ -97,7 +139,5 @@ frappe.query_reports["Design Code Details"] = {
                 }
             });
         });
-
 	}
-
 };
