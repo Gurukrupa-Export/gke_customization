@@ -19,6 +19,7 @@
   "customer_prolif_detail",
   "tolerance_section",
   "metal_tolerance_table",
+  "diamond_tolerance",
   "diamond_tolerance_table"
  ],
  "fields": [
@@ -88,7 +89,6 @@
    "options": "Customer Prolif Detail"
   },
   {
-   "depends_on": "eval: doc.customer_name.includes('Caratlane')",
    "fieldname": "tolerance_section",
    "fieldtype": "Section Break",
    "label": "Tolerance"
@@ -104,11 +104,16 @@
    "fieldtype": "Table",
    "label": "Diamond Tolerance Table",
    "options": "Diamond Tolerance Table"
+  },
+  {
+   "fieldname": "diamond_tolerance",
+   "fieldtype": "Percent",
+   "label": "Diamond Tolerance"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-17 16:16:54.760466",
+ "modified": "2025-08-14 12:13:23.854578",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Customer Attributes",

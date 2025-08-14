@@ -8,7 +8,7 @@ frappe.ui.form.on("Employee Onboarding", {
                     __("Employee Update"),
                     function () {
                         frappe.model.open_mapped_doc({
-                            method: "gke_customization.gke_hrms.override.employee_onboarding.employee_update",
+                            method: "gke_customization.gke_hrms.doc_events.employee_onboarding.employee_update",
                             frm: frm,
                         });
                     },
