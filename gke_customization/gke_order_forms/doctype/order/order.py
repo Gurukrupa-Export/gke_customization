@@ -1147,7 +1147,13 @@ def create_line_items(self):
 
 	item_variant = ''
 	new_item_created = False  # Flag to track if a new item is created
-
+	supplier_for_design = None
+	purchase_type_for_design = None
+	if self.cad_order_form:
+		order_type = frappe.db.get_value("Order Form", self.cad_order_form, "order_type")
+		if order_type == "Purchase":
+			purchase_type_for_design = frappe.db.get_value("Order Form", self.cad_order_form, "purchase_type")
+			supplier_for_design = frappe.db.get_value("Order Form", self.cad_order_form, "supplier")
 	if self.item_type == 'Template and Variant':
 		item_template = create_item_template_from_order(self)
 		updatet_item_template(item_template)
@@ -1157,7 +1163,10 @@ def create_line_items(self):
 		# Set custom_sketch_order_id to the new variant
 		frappe.db.set_value("Item", item_variant, "custom_sketch_order_id", sketch_order_form_id)
 		frappe.db.set_value("Item", item_variant, "custom_sketch_order_form_id", custom_sketch_order_form_id)
-
+		if purchase_type_for_design:
+			frappe.db.set_value("Item", item_variant, "custom_purchase_type", purchase_type_for_design)
+		if supplier_for_design:
+			frappe.db.set_value("Item", item_variant, "design_supplier", supplier_for_design)
 		frappe.db.set_value(self.doctype, self.name, "item", item_variant)
 		self.reload()
 		new_item_created = True
@@ -1183,7 +1192,10 @@ def create_line_items(self):
 			"custom_sketch_order_id": sketch_order_form_id,
 			"custom_sketch_order_form_id": custom_sketch_order_form_id
 		})
-
+		if purchase_type_for_design:
+			frappe.db.set_value("Item", item_variant, "custom_purchase_type", purchase_type_for_design)
+		if supplier_for_design:
+			frappe.db.set_value("Item", item_variant, "design_supplier", supplier_for_design)
 		frappe.db.set_value(self.doctype, self.name, "item", item_variant[0])
 		self.reload()
 		new_item_created = True
@@ -1204,7 +1216,10 @@ def create_line_items(self):
 				update_variant_attributes(self)
 				frappe.db.set_value("Item", self.design_id, "custom_cad_order_id", self.name)
 				frappe.db.set_value("Item", self.design_id, "custom_cad_order_form_id", self.cad_order_form)
-
+			if purchase_type_for_design:
+				frappe.db.set_value("Item", item_variant, "custom_purchase_type", purchase_type_for_design)
+			if supplier_for_design:
+				frappe.db.set_value("Item", item_variant, "design_supplier", supplier_for_design)
 			# Set sketch order IDs
 			frappe.db.set_value("Item", self.design_id, "custom_sketch_order_id", sketch_order_form_id)
 			frappe.db.set_value("Item", item_variant, "custom_sketch_order_form_id", custom_sketch_order_form_id)
