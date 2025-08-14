@@ -1,0 +1,125 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-10 09:57:19.851050",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_dbci",
+  "borrower_name",
+  "loan_type",
+  "loan_amount",
+  "interest_rate",
+  "tenure",
+  "outstanding",
+  "column_break_wtmx",
+  "start_date",
+  "end_date",
+  "bank_name",
+  "status",
+  "remarks",
+  "section_break_dzbj",
+  "repayment_schedule"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_dbci",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "borrower_name",
+   "fieldtype": "Data",
+   "label": "Borrower Name"
+  },
+  {
+   "fieldname": "loan_type",
+   "fieldtype": "Data",
+   "label": "Loan Type"
+  },
+  {
+   "fieldname": "loan_amount",
+   "fieldtype": "Float",
+   "label": "Loan Amount"
+  },
+  {
+   "fieldname": "interest_rate",
+   "fieldtype": "Float",
+   "label": "Interest Rate",
+   "precision": "2"
+  },
+  {
+   "fieldname": "tenure",
+   "fieldtype": "Data",
+   "label": "Tenure"
+  },
+  {
+   "fieldname": "outstanding",
+   "fieldtype": "Float",
+   "label": "Outstanding"
+  },
+  {
+   "fieldname": "column_break_wtmx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "bank_name",
+   "fieldtype": "Data",
+   "label": "Bank Name"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "\nActive\nPending"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Data",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "section_break_dzbj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "repayment_schedule",
+   "fieldtype": "Table",
+   "label": "Repayment Schedule",
+   "options": "Personal Debt Repayment Schedule"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-10 12:20:29.883863",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Personal Debt",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
