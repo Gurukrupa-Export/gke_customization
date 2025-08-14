@@ -11,45 +11,43 @@ def execute(filters=None):
 
 def get_columns():
     return [
-{"label": _("Variant"),"fieldname": "variant","fieldtype": "Link","options": "Item","width": 150},
-{"label": _("Old StyleBio"),"fieldname": "old_stylebio","fieldtype": "Data","width": 120},
-{"label": _("Old Tag No"),"fieldname": "old_tag_no","fieldtype":"Data","width": 100},
-{"label": _("Diamond Target"),"fieldname": "diamond_target","fieldtype": "Data","width": 150},
-{"label": _("Metal Colour"),"fieldname": "metal_colour","fieldtype": "Data","width": 150},
-{"label": _("Product Size"),"fieldname": "product_size","fieldtype": "Data","width": 150},
-{"label": _("Enamal"),"fieldname": "enamal","fieldtype": "Data","width": 80},
-{"label": _("Rhodium"),"fieldname": "rhodium","fieldtype": "Data","width": 100},
-{"label": _("Lock Type"),"fieldname": "lock_type","fieldtype": "Data","width": 100},
-{"label": _("Cap Ganthan"),"fieldname": "cap_ganthan","fieldtype": "Data","width": 150},
-{"label": _("Gemstone Type"),"fieldname": "gemstone_type","fieldtype": "Data","width": 150},
-{"label": _("Sizer Type"),"fieldname": "sizer_type","fieldtype": "Data","width": 100},
-{ "label": _("Chain Type"), "fieldname": "chain_type", "fieldtype": "Data", "width": 100},
-{"label": _("Stone Changeable"),"fieldname": "stone_changeable","fieldtype": "Data","width": 150},
-{"label": _("Detachable"),"fieldname": "detachable","fieldtype": "Data","width": 100},
-{"label": _("Chain Length"),"fieldname": "chain_length","fieldtype": "Data","width": 150},
-{"label": _("Charm"),"fieldname": "charm","fieldtype": "Data","width": 80},
-{"label": _("Two In One"),"fieldname": "two_in_one","fieldtype": "Data","width":100 },
-{"label": _("Feature"),"fieldname": "feature","fieldtype": "Data","width":100 },
-{"label": _("Back Belt"),"fieldname": "back_belt","fieldtype": "Data","width":100 },
-{"label": _("Back Belt Length"),"fieldname": "back_belt_length","fieldtype": "Data","width":150 },
-{"label": _("Back Side Size"),"fieldname": "back_side_size","fieldtype": "Data","width":150 },
-{"label": _("Distance Kadi Mugappu"),"fieldname": "distance_kadi_mugappu","fieldtype": "Data","width":180 },
-{"label": _("Space Between Mugappu"),"fieldname": "space_between_mugappu","fieldtype": "Data","width":200 },
-{"label": _("Number Of Ant"),"fieldname": "number_of_ant","fieldtype": "Data","width":160 },
-{"label": _("Spiral Turns"),"fieldname": "spiral_turns","fieldtype": "Data","width":140 },
-{"label": _("Chain"),"fieldname": "chain","fieldtype": "Data","width":80 },
-{"label": _("Black Bead Line"),"fieldname": "black_bead_line","fieldtype": "Data","width":150 },
-{"label": _("Chain Thickness"),"fieldname": "chain_thickness","fieldtype": "Data","width":150 },
-{"label": _("Back Chain"),"fieldname": "back_chain","fieldtype": "Data","width":100 },
-{"label": _("Black Bead"),"fieldname": "black_bead","fieldtype": "Data","width":100 }
+        {"label": "Variant", "fieldname": "variant", "fieldtype": "Link", "options": "Item", "width": 180},
+        {"label": "Old Style Bio", "fieldname": "old_stylebio", "fieldtype": "Data", "width": 130},
+        {"label": "Old Tag No", "fieldname": "old_tag_no", "fieldtype": "Data", "width": 120},
+        {"label": "Diamond Target", "fieldname": "diamond_target", "fieldtype": "Data", "width": 120},
+        {"label": "Metal Colour", "fieldname": "metal_colour", "fieldtype": "Data", "width": 120},
+        {"label": "Product Size", "fieldname": "product_size", "fieldtype": "Data", "width": 120},
+        {"label": "Enamal", "fieldname": "enamal", "fieldtype": "Data", "width": 100},
+        {"label": "Rhodium", "fieldname": "rhodium", "fieldtype": "Data", "width": 100},
+        {"label": "Lock Type", "fieldname": "lock_type", "fieldtype": "Data", "width": 120},
+        {"label": "Cap/Ganthan", "fieldname": "cap_ganthan", "fieldtype": "Data", "width": 120},
+        {"label": "Gemstone Type", "fieldname": "gemstone_type", "fieldtype": "Data", "width": 130},
+        {"label": "Sizer Type", "fieldname": "sizer_type", "fieldtype": "Data", "width": 120},
+        {"label": "Chain Type", "fieldname": "chain_type", "fieldtype": "Data", "width": 120},
+        {"label": "Stone Changeable", "fieldname": "stone_changeable", "fieldtype": "Data", "width": 140},
+        {"label": "Detachable", "fieldname": "detachable", "fieldtype": "Data", "width": 110},
+        {"label": "Chain Length", "fieldname": "chain_length", "fieldtype": "Data", "width": 120},
+        {"label": "Charm", "fieldname": "charm", "fieldtype": "Data", "width": 100},
+        {"label": "Two in One", "fieldname": "two_in_one", "fieldtype": "Data", "width": 110},
+        {"label": "Feature", "fieldname": "feature", "fieldtype": "Data", "width": 110},
+        {"label": "Back Belt", "fieldname": "back_belt", "fieldtype": "Data", "width": 110},
+        {"label": "Back Belt Length", "fieldname": "back_belt_length", "fieldtype": "Data", "width": 150},
+        {"label": "Back Side Size", "fieldname": "back_side_size", "fieldtype": "Data", "width": 130},
+        {"label": "Distance Between Kadi To Mugappu", "fieldname": "distance_kadi_mugappu", "fieldtype": "Data", "width": 220},
+        {"label": "Space between Mugappu", "fieldname": "space_between_mugappu", "fieldtype": "Data", "width": 180},
+        {"label": "Number of Ant", "fieldname": "number_of_ant", "fieldtype": "Data", "width": 130},
+        {"label": "Count of Spiral Turns", "fieldname": "spiral_turns", "fieldtype": "Data", "width": 160},
+        {"label": "Chain", "fieldname": "chain", "fieldtype": "Data", "width": 100},
+        {"label": "Black Bead Line", "fieldname": "black_bead_line", "fieldtype": "Data", "width": 140},
+        {"label": "Chain Thickness", "fieldname": "chain_thickness", "fieldtype": "Data", "width": 140},
+        {"label": "Back Chain", "fieldname": "back_chain", "fieldtype": "Data", "width": 120},
+        {"label": "Black Bead", "fieldname": "black_bead", "fieldtype": "Data", "width": 120},
     ]
 
 def get_data(filters):
-    
-    
     conditions = get_conditions(filters)
-    
-    query = """
+
+    query = f"""
         SELECT
             i.name as variant,
             i.stylebio as old_stylebio,
@@ -89,42 +87,11 @@ def get_data(filters):
         {conditions}
         GROUP BY i.name
         ORDER BY i.name
-    """.format(conditions=conditions)
-    
-    return frappe.db.sql(query, filters, as_dict=1)
-
-# def get_conditions(filters):
-#     conditions = []
-
-#     # if filters.get("item_name"):
-#     #     item_doc = frappe.get_doc("Item", filters["item_name"])
-#     #     if item_doc.has_variants:
-#     #         conditions.append("AND i.variant_of = %(item_name)s")
-#     #     else:
-#     #         conditions.append("AND i.name = %(item_name)s")
-
-#     if filters.get("item_name"):
-#         variant_items = []
-#         template_items = []
-
-#     for item_name in filters["item_name"]:
-#         item_doc = frappe.get_doc("Item", item_name)
-#         if item_doc.has_variants:
-#             template_items.append(item_name)
-#         else:
-#             variant_items.append(item_name)
-
-#     if template_items:
-#         conditions.append("AND i.variant_of IN %(template_items)s")
-#     if variant_items:
-#         conditions.append("AND i.name IN %(variant_items)s")
-
-#     return " ".join(conditions) if conditions else ""
-
+    """
+    return frappe.db.sql(query, filters, as_dict=True)
 
 def get_conditions(filters):
     conditions = []
-
     variant_items = []
     template_items = []
 
@@ -143,6 +110,16 @@ def get_conditions(filters):
         conditions.append("AND i.name IN %(variant_items)s")
         filters["variant_items"] = variant_items
 
+    if filters.get("item_group"):
+        conditions.append("AND i.item_group = %(item_group)s")
+
+    if filters.get("item_code"):
+        conditions.append("AND i.name = %(item_code)s")
+
+    if filters.get("old_stylebio"):
+        conditions.append("AND i.stylebio = %(old_stylebio)s")
+
+    if filters.get("old_tag_no"):
+        conditions.append("AND i.old_tag_no = %(old_tag_no)s")
+
     return " ".join(conditions) if conditions else ""
-
-
