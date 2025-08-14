@@ -96,62 +96,79 @@ class CustomerDesignInformationSheet(Document):
                         if bom_gemstone.get("quantity"):
                             titan_gemstone.quantity = bom_gemstone.quantity
                 
-                # if self.customer_name in ("Caratlane"):
-                #     frappe.throw(f"{self.diamond_weight}")
-                #     if self.diamond_weight:
-                #         dia_wgt = self.diamond_weight
-                #         tolerance = (dia_wgt * 3) / 100
-                        
-                #         self.max_diamond = dia_wgt + tolerance
-                #         self.min_diamond = dia_wgt - tolerance
+                # gross tolerance
+                gross_tolerance = frappe.db.get_value('Metal Tolerance Table',{'weight_type': 'Gross Weight', 'parent': self.customer_code}, 'tolerance_range' )
+                if self.gross_weight:
+                    gross_wgt = self.gross_weight
+                    tolerance = ''
+                    if self.is_gross_tolerance:
+                        edit_tolerance = self.gross_weight_tolerance
+                        tolerance = (gross_wgt * edit_tolerance) / 100
+                    else:
+                        if gross_tolerance:
+                            tolerance = (gross_wgt * gross_tolerance) / 100
 
-                #     if self.metal_and_finding_weight:
-                #         net_wgt = self.metal_and_finding_weight
-                #         tolerance = (net_wgt * 3) / 100
+                    self.max_weight = gross_wgt + tolerance if tolerance else 0
+                    self.min_weight = gross_wgt - tolerance if tolerance else 0
+                    
+
+                # dia tolerance
+                dia_tolerance = frappe.db.get_value('Customer Attributes',{'name': self.customer_code}, 'diamond_tolerance' )
+                if self.diamond_weight:
+                    dia_wgt = self.diamond_weight
+                    if dia_tolerance:
+                        tolerance = (dia_wgt * dia_tolerance) / 100
                         
-                #         self.max_net = net_wgt + tolerance
-                #         self.min_net = net_wgt - tolerance
+                        self.max_diamond = dia_wgt + tolerance
+                        self.min_diamond = dia_wgt - tolerance
+                
+                # net tolerance
+                net_tolerance = set_tolerance(self.metal_and_finding_weight, self.customer_code, self.is_net_tolerance, self.net_weight_tolerance)
+                # frappe.throw(f"{net_tolerance}") 
+                if net_tolerance:
+                    self.max_net = net_tolerance.get('max_weight', '')
+                    self.min_net = net_tolerance.get('min_weight', '')
+                    self.customer_max_net_weight = net_tolerance.get('cust_max_weight', '')
+                    self.customer_min_net_weight = net_tolerance.get('cust_min_weight', '')
+
             else:
                 frappe.msgprint("BOM is Not Found!")
         
-        if self.name:
-            if self.is_set == 0:
-                design_code_2 = frappe.db.get_value('Titan Design Information Sheet',self.name,'design_code_2')
-                similar_doc = frappe.db.get_value('Titan Design Information Sheet',{'design_code':design_code_2,'design_code_2':self.design_code},'name')
+        # if self.name:
+        #     if self.is_set == 0:
+        #         design_code_2 = frappe.db.get_value('Titan Design Information Sheet',self.name,'design_code_2')
+        #         similar_doc = frappe.db.get_value('Titan Design Information Sheet',{'design_code':design_code_2,'design_code_2':self.design_code},'name')
                 
-                frappe.db.set_value('Titan Design Information Sheet',similar_doc,'is_set',0)
-                frappe.db.set_value('Titan Design Information Sheet',similar_doc,'design_code_2','')
-                frappe.db.set_value('Titan Design Information Sheet',similar_doc,'fourteen_digit_set_code','')
+        #         frappe.db.set_value('Titan Design Information Sheet',similar_doc,'is_set',0)
+        #         frappe.db.set_value('Titan Design Information Sheet',similar_doc,'design_code_2','')
+        #         frappe.db.set_value('Titan Design Information Sheet',similar_doc,'fourteen_digit_set_code','')
 
 
-            if self.is_set == 1:
-                design_code_2 = frappe.db.get_value('Titan Design Information Sheet',self.name,'design_code_2')
-                if not design_code_2:
-                    design_code_2 = self.design_code_2
+        #     if self.is_set == 1:
+        #         design_code_2 = frappe.db.get_value('Titan Design Information Sheet',self.name,'design_code_2')
+        #         if not design_code_2:
+        #             design_code_2 = self.design_code_2
 
-                similar_doc_name = frappe.db.get_value('Titan Design Information Sheet',{'design_code':design_code_2},'name')
-                if not similar_doc_name:
-                    similar_doc = frappe.get_doc('Titan Design Information Sheet',similar_doc_name)
-                    doc = frappe.get_doc({
-                        'doctype':'Titan Design Information Sheet',
-                        'design_code':design_code_2,
-                        'design_code_2':self.design_code,
-                        'is_set':1,
-                        'designer':self.designer,
-                        'order_date':self.order_date,
-                        'launch_month':self.launch_month,
-                        'fourteen_digit_set_code':self.fourteen_digit_set_code,
-                        })
-                    doc.insert()
-                else:
-                    frappe.db.set_value('Titan Design Information Sheet',similar_doc_name,{
-                                            'is_set':1,
-                                            'design_code_2':self.design_code,
-                                            'fourteen_digit_set_code':self.fourteen_digit_set_code
-                                            })
-                    
-                    
-
+        #         similar_doc_name = frappe.db.get_value('Titan Design Information Sheet',{'design_code':design_code_2},'name')
+        #         if not similar_doc_name:
+        #             similar_doc = frappe.get_doc('Titan Design Information Sheet',similar_doc_name)
+        #             doc = frappe.get_doc({
+        #                 'doctype':'Titan Design Information Sheet',
+        #                 'design_code':design_code_2,
+        #                 'design_code_2':self.design_code,
+        #                 'is_set':1,
+        #                 'designer':self.designer,
+        #                 'order_date':self.order_date,
+        #                 'launch_month':self.launch_month,
+        #                 'fourteen_digit_set_code':self.fourteen_digit_set_code,
+        #                 })
+        #             doc.insert()
+        #         else:
+        #             frappe.db.set_value('Titan Design Information Sheet',similar_doc_name,{
+        #                                     'is_set':1,
+        #                                     'design_code_2':self.design_code,
+        #                                     'fourteen_digit_set_code':self.fourteen_digit_set_code
+        #                                     })
 
     # def validate(self):
     #     if self.is_set == 0:
@@ -183,4 +200,35 @@ def get_table_details(design_code):
             return diamond_detail,gemstone_detail
                 
 
+def set_tolerance(weight, customer, is_net_tolerance = None, edit_net_tolerance = None):
+    data_json = {}
+    if weight:
+        tolerance_data = frappe.db.get_all('Metal Tolerance Table',
+            filters={'weight_type': 'Net Weight', 'parent': customer}, 
+            fields=['from_weight', 'to_weight', 'tolerance_range', 'customer_tolerance'])
 
+        for row in tolerance_data:
+            if row['from_weight'] <= weight <= row['to_weight']:
+                net_tolerance = row['tolerance_range']
+                cust_net_tolerance = row['customer_tolerance']
+
+                tolerance = ''
+                if edit_net_tolerance:
+                    tolerance = (weight * edit_net_tolerance) / 100
+                else:
+                    tolerance = (weight * net_tolerance) / 100
+
+                if cust_net_tolerance:
+                    cust_tolerance = (weight * cust_net_tolerance) / 100
+                    cust_max_weight = weight + cust_tolerance
+                    cust_min_weight = weight - cust_tolerance
+                    
+                max_weight = weight + tolerance
+                min_weight = weight - tolerance
+
+                data_json['max_weight'] = max_weight
+                data_json['min_weight'] = min_weight
+                data_json['cust_min_weight'] = cust_min_weight
+                data_json['cust_max_weight'] = cust_max_weight
+        
+    return data_json
