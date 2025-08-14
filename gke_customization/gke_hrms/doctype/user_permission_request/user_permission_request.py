@@ -13,12 +13,12 @@ class UserPermissionRequest(Document):
         self.name = frappe.model.naming.make_autoname(prefix)
 
     def on_submit(self):
-        if self.workflow_state == 'Create user ID':
+        if self.workflow_state == 'Create User ID':
 
             if frappe.db.exists('User', self.username):
                 frappe.throw("User already exists")
-                
                 return
+            
             user = frappe.new_doc('User')
             user.email = self.username
             user.first_name = self.first_name
@@ -27,9 +27,15 @@ class UserPermissionRequest(Document):
             user.module_profile=self.module_profile
             user.role_profile_name=self.role_profie
             user.insert(ignore_permissions=True)
+            
+            # frappe.get_doc(self.doctype, self.name).db_set('user_id', self.username)
+            # self.user_id=self.username
+
+            frappe.db.set_value("User Permission Request", self.name, "user_id", user.name)
+            self.reload()
+            
             frappe.msgprint(f"User has been created.")
-            frappe.get_doc(self.doctype, self.name).db_set('user_id', self.username)
-            self.user_id=self.username
+
     def validate(self):
         if self.task_id:
             existing = frappe.db.exists(
