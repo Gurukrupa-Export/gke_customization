@@ -13,7 +13,7 @@ def get_desktime_detail(date=None):
     period = frappe.form_dict.get("period") or "day"
     user_id = user_id
 
-    allowed_users = ["bhavika_p@gkexport.com", "guest2@gkexport.com", "vishalrajput@gkexport.com"]
+    allowed_users = ["bhavika_p@gkexport.com", "hjr@gkexport.com", "vishalrajput@gkexport.com"]
 
     if user_id not in allowed_users:
         frappe.response["message"] = {"error": "Access denied. Only guest users can fetch DeskTime API."}
