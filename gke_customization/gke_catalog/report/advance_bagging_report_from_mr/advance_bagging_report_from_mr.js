@@ -19,13 +19,6 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
 
         },
         {
-			fieldname: "company",
-			label: __("Company"),
-			fieldtype: "Link",
-			options: "Company",
-			reqd: 0
-		},
-        {
             label: "Material Type",
             fieldname: "material_type",
             fieldtype: "Select",
@@ -83,27 +76,6 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
         });
     }
 },
-   {
-            fieldname: "workflow_state",
-            label: __("Status"),
-            fieldtype: "MultiSelectList",
-            options: [],
-            reqd: 0,
-            get_data: function(txt) {
-                return frappe.db.get_list("Material Request", {
-                    fields: ["distinct workflow_state as value"],
-                }).then(r => {
-            return r
-                .filter(d => d.value)  // Removes null, undefined, empty strings
-                .map(d => {
-                    return {
-                        value: d.value,
-                        description: ""
-                    }
-                });
-        });
-    }
-}
     ],
      onload: function(report) {
 
