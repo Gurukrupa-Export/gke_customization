@@ -1596,12 +1596,12 @@
 "fieldtype": "Datetime",
 "label": "Updated Delivery Date"
 },
-  {
-   "depends_on": "eval:doc.workflow_type == \"CAD\"",
-   "fieldname": "update_cad_delivery_date",
-   "fieldtype": "Datetime",
-   "label": "Update Cad Delivery Date"
-  },
+{
+ "depends_on": "eval:doc.workflow_type == \"CAD\"",
+ "fieldname": "update_cad_delivery_date",
+ "fieldtype": "Datetime",
+ "label": "Update Cad Delivery Date"
+},
 {
 "fetch_from": "cad_order_form_detail.jewelex_batch_no",
 "fieldname": "jewelex_batch_no",
