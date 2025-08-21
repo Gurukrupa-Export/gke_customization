@@ -1044,7 +1044,7 @@
 "fieldname": "flow_type",
 "fieldtype": "Select",
 "label": "Flow Type",
-"options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO\nPROTO",
+"options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO\nPROTO\nSTT\nPCPM",
 "read_only": 1
 },
 {
