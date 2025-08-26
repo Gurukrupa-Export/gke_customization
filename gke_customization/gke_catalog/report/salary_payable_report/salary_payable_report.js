@@ -4,16 +4,18 @@
 frappe.query_reports["Salary Payable report"] = {
     "filters": [
         {
-            "fieldname": "month",
-            "label": __("Month"),
-            "fieldtype": "Select",
-            "options": "\nJanuary\nFebruary\nMarch\nApril\nMay\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember"
+            "fieldname": "from_date",
+            "label": __("From Date"),
+            "fieldtype": "Date",
+            "default": frappe.datetime.add_months(frappe.datetime.get_today(), -1),
+            "reqd": 0
         },
         {
-            "fieldname": "year",
-            "label": __("Year"),
-            "fieldtype": "Int",
-            "default": new Date().getFullYear()
+            "fieldname": "to_date",
+            "label": __("To Date"),
+            "fieldtype": "Date",
+            "default": frappe.datetime.get_today(),
+            "reqd": 0
         },
         {
             "fieldname": "company",
