@@ -44,13 +44,21 @@ frappe.query_reports["Branch wise Stock Ledger"] = {
         { fieldname: "brand", label: __("Brand"), fieldtype: "Link", options: "Brand" },
         { fieldname: "voucher_no", label: __("Voucher #"), fieldtype: "Data" },
         { fieldname: "project", label: __("Project"), fieldtype: "Link", options: "Project" },
-        { fieldname: "include_uom", label: __("Include UOM"), fieldtype: "Link", options: "UOM" },
+        { fieldname: "include_uom", label: __("Include UOM"), fieldtype: "Link", options: "UOM" },  
+        { fieldname: "inventory_type", label: __("Inventory Type"), fieldtype: "Link", options: "Inventory Type" },
+        { fieldname: "customer", label: __("Customer"), fieldtype: "Link", options: "Customer" },
         {
             fieldname: "valuation_field_type",
             label: __("Valuation Field Type"),
             fieldtype: "Select",
             options: "Currency\nFloat",
             default: "Currency",
+        },
+        {
+            fieldname: "segregate_serial_batch_bundle",
+            label: __("Segregate Serial / Batch Bundle"),
+            fieldtype: "Check",
+            default: 0,
         },
     ],
 };
