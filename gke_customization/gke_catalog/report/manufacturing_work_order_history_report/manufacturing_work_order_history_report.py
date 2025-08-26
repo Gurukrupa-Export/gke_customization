@@ -9,7 +9,6 @@ def get_columns():
     return [
         {"label": "Manufacturing Work Order", "fieldname": "work_order_id", "fieldtype": "Link", "options": "Manufacturing Work Order", "width": 180},
         {"label": "Department", "fieldname": "department", "fieldtype": "Data", "width": 120},
-        {"label": "Department Process", "fieldname": "department_process", "fieldtype": "Data", "width": 140},
         {"label": "Manufacturing Operation", "fieldname": "operation_id", "fieldtype": "Link", "options": "Manufacturing Operation", "width": 150},
         {"label": "Operation", "fieldname": "operation_name", "fieldtype": "Data", "width": 120},
         {"label": "Manufacturing Operation Status", "fieldname": "operation_status", "fieldtype": "Data", "width": 160},
@@ -47,7 +46,6 @@ def get_data(filters):
         SELECT
             mwo.name AS work_order_id,
             mop.department,
-            COALESCE(mop.department_process, mop.operation) AS department_process,
             mop.name AS operation_id,
             mop.operation AS operation_name,
             mop.status AS operation_status,
@@ -106,6 +104,7 @@ def get_data(filters):
         if not op.get('time_hour'):
             op['time_hour'] = time_min / 60
         if not op.get('time_day'):
-            op['time_day'] = time_min / 1440  # 1440 minutes per day
+            op['time_day'] = time_min / 1440  
 
     return operations
+    
