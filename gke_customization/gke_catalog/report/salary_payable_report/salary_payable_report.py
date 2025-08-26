@@ -1,7 +1,6 @@
 import frappe
 from frappe.utils import cint
 
-
 def execute(filters=None):
     if not filters:
         filters = {}
@@ -21,13 +20,17 @@ def execute(filters=None):
         conditions.append("ss.employee = %(employee)s")
         values["employee"] = filters.get("employee")
 
-    if filters.get("year"):
-        conditions.append("YEAR(ss.start_date) = %(year)s")
-        values["year"] = cint(filters.get("year"))
-
-    if filters.get("month"):
-        conditions.append("MONTHNAME(ss.start_date) = %(month)s")
-        values["month"] = filters.get("month")
+    # Custom date filter replacing year and month filters
+    if filters.get("from_date") and filters.get("to_date"):
+        conditions.append("ss.start_date BETWEEN %(from_date)s AND %(to_date)s")
+        values["from_date"] = filters.get("from_date")
+        values["to_date"] = filters.get("to_date")
+    elif filters.get("from_date"):
+        conditions.append("ss.start_date >= %(from_date)s")
+        values["from_date"] = filters.get("from_date")
+    elif filters.get("to_date"):
+        conditions.append("ss.start_date <= %(to_date)s")
+        values["to_date"] = filters.get("to_date")
 
     if filters.get("hold_status") == "Yes":
         conditions.append("ss.custom_salary_status = 'Hold'")
