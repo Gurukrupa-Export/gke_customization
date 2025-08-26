@@ -5,7 +5,6 @@
 # License: GNU General Public License v3
 
 import copy
-from erpnext.controllers.sales_and_purchase_return import get_serial_and_batch_bundle
 import frappe
 from frappe import _
 from frappe.query_builder.functions import Sum
@@ -19,7 +18,6 @@ from erpnext.stock.utils import (
     is_reposting_item_valuation_in_progress,
     update_included_uom_in_report,
 )
-
 
 # ------------------------
 # MAIN EXECUTION
@@ -110,7 +108,6 @@ def execute(filters=None):
     update_included_uom_in_report(columns, data, include_uom, conversion_factors)
     return columns, data
 
-
 # ------------------------
 # QUERY FUNCTION (JOIN TO STOCK ENTRY TO GET BRANCH)
 # ------------------------
@@ -153,7 +150,8 @@ def get_stock_ledger_entries(filters, items):
     if items:
         query = query.where(sle.item_code.isin(items))
 
-    for field in ["voucher_no", "project", "company"]:
+    # Add customer and inventory_type filtering
+    for field in ["voucher_no", "project", "company", "customer", "inventory_type"]:
         if filters.get(field) and field not in inventory_dimension_fields:
             query = query.where(sle[field] == filters.get(field))
 
@@ -161,7 +159,7 @@ def get_stock_ledger_entries(filters, items):
         query = query.where(se.branch == filters.get("branch"))
 
     if filters.get("batch_no"):
-        bundles = get_serial_and_batch_bundle(filters)
+        bundles = get_serial_and_batch_bundles(filters)
         if bundles:
             query = query.where(
                 (sle.serial_and_batch_bundle.isin(bundles)) | (sle.batch_no == filters.batch_no)
@@ -171,7 +169,6 @@ def get_stock_ledger_entries(filters, items):
 
     query = apply_warehouse_filter(query, sle, filters)
     return query.run(as_dict=True)
-
 
 # ------------------------
 # OPENING BALANCES
@@ -185,7 +182,7 @@ def get_opening_balance_from_batch(filters, columns, sl_entries):
         "posting_date": ("<", filters.from_date),
         "company": filters.company,
     }
-    for fields in ["item_code", "warehouse", "company"]:
+    for fields in ["item_code", "warehouse", "company", "customer", "inventory_type"]:
         if filters.get(fields):
             query_filters[fields] = filters.get(fields)
 
@@ -194,7 +191,12 @@ def get_opening_balance_from_batch(filters, columns, sl_entries):
         fields=["sum(actual_qty) as qty_after_transaction",
                 "sum(stock_value_difference) as stock_value"],
         filters=query_filters,
-    )[0]
+    )
+
+    if opening_data:
+        opening_data = opening_data[0]
+    else:
+        opening_data = {}
 
     for f in ["qty_after_transaction", "stock_value", "valuation_rate"]:
         if opening_data.get(f) is None:
@@ -202,9 +204,9 @@ def get_opening_balance_from_batch(filters, columns, sl_entries):
 
     return {
         "item_code": _("'Opening'"),
-        "qty_after_transaction": opening_data.qty_after_transaction,
-        "valuation_rate": opening_data.valuation_rate,
-        "stock_value": opening_data.stock_value,
+        "qty_after_transaction": opening_data.get("qty_after_transaction", 0),
+        "valuation_rate": opening_data.get("valuation_rate", 0),
+        "stock_value": opening_data.get("stock_value", 0),
     }
 
 def get_warehouse_condition(warehouse):
@@ -217,7 +219,6 @@ def get_warehouse_condition(warehouse):
             and warehouse = wh.name
         )"""
     return ""
-
 
 def get_opening_balance(filters, columns, sl_entries):
     if not (filters.item_code and filters.warehouse and filters.from_date):
@@ -238,10 +239,24 @@ def get_opening_balance(filters, columns, sl_entries):
         "stock_value": last_entry.get("stock_value", 0),
     }
 
+def get_serial_and_batch_bundles(filters):
+    SBB = frappe.qb.DocType("Serial and Batch Bundle")
+    SBE = frappe.qb.DocType("Serial and Batch Entry")
 
-# ------------------------
-# HELPER FUNCTIONS (with Branch column in get_columns)
-# ------------------------
+    query = (
+        frappe.qb.from_(SBE)
+        .inner_join(SBB)
+        .on(SBE.parent == SBB.name)
+        .select(SBE.parent)
+        .where(
+            (SBB.docstatus == 1)
+            & (SBB.has_batch_no == 1)
+            & (SBB.voucher_no.notnull())
+            & (SBE.batch_no == filters.batch_no)
+        )
+    )
+
+    return query.run(pluck=SBE.parent)
 
 # ------------------------
 # HELPER FUNCTIONS (with Branch column in get_columns)
@@ -274,7 +289,7 @@ def get_segregated_bundle_entries(sle, bundle_details, batch_balance_dict, filte
             batch_balance_dict[row.batch_no][1] += row.stock_value_difference
             new_sle.update(
                 {
-                    "qty_after_transaction": batch_balance_dict[row.batch_no],
+                    "qty_after_transaction": batch_balance_dict[row.batch_no][0],
                     "stock_value": batch_balance_dict[row.batch_no][1],
                 }
             )
@@ -287,7 +302,6 @@ def get_segregated_bundle_entries(sle, bundle_details, batch_balance_dict, filte
         segregated_entries.append(new_sle)
 
     return segregated_entries
-
 
 def get_serial_batch_bundle_details(sl_entries, filters=None):
     bundle_details = []
@@ -314,7 +328,6 @@ def get_serial_batch_bundle_details(sl_entries, filters=None):
 
     return _bundle_details
 
-
 def update_available_serial_nos(available_serial_nos, sle):
     serial_nos = get_serial_nos(sle.serial_no)
     key = (sle.item_code, sle.warehouse)
@@ -339,7 +352,6 @@ def update_available_serial_nos(available_serial_nos, sle):
                 existing_serial_no.append(sn)
 
     sle.balance_serial_no = "\n".join(existing_serial_no)
-
 
 def get_columns(filters):
     columns = [
@@ -382,10 +394,8 @@ def get_columns(filters):
     ])
     return columns
 
-
 def get_inventory_dimension_fields():
     return [dimension.fieldname for dimension in get_inventory_dimensions()]
-
 
 def get_items(filters):
     item = frappe.qb.DocType("Item")
@@ -405,10 +415,9 @@ def get_items(filters):
     if conditions:
         for condition in conditions:
             query = query.where(condition)
-        items = [r for r in query.run()]
+        items = [r[0] for r in query.run()]
 
     return items
-
 
 def get_item_details(items, sl_entries, include_uom):
     item_details = {}
@@ -438,7 +447,6 @@ def get_item_details(items, sl_entries, include_uom):
 
     return item_details
 
-
 def get_item_group_condition(item_group, item_table=None):
     item_group_details = frappe.db.get_value("Item Group", item_group, ["lft", "rgt"], as_dict=1)
     if item_group_details:
@@ -460,7 +468,6 @@ def get_item_group_condition(item_group, item_table=None):
                 and ig.rgt <= {item_group_details.rgt}
                 and item.item_group = ig.name
             )"""
-
 
 def check_inventory_dimension_filters_applied(filters) -> bool:
     for dimension in get_inventory_dimensions():
