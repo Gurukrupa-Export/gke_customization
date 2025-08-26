@@ -1,9 +1,11 @@
 import frappe
 
+
 def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
     return columns, data
+
 
 def get_columns():
     return [
@@ -22,8 +24,9 @@ def get_columns():
         {"label": "Quantity", "fieldname": "quantity", "fieldtype": "Float", "width": 100},
     ]
 
+
 def get_data(filters):
-    conditions = ["mwo.docstatus = 1", "mwo.is_finding_mwo = 1"]
+    conditions = ["mwo.is_finding_mwo = 1"]
     values = {}
 
     if filters:
@@ -43,16 +46,18 @@ def get_data(filters):
             conditions.append("mwo.department = %(department)s")
             values["department"] = filters["department"]
         if filters.get("work_order_status"):
-            status_map = {
-                "Completed": "Completed",
-                "Draft": "Draft",
-                "Pending": "Pending",
-                "On Hold": "On Hold",
-                "Cancelled": "Cancelled"
-            }
-            if filters["work_order_status"] in status_map:
+            if filters["work_order_status"] == "Draft":
+                conditions.append("mwo.docstatus = 0")
+            elif filters["work_order_status"] == "Cancelled":
+                conditions.append("mwo.docstatus = 2")
+            elif filters["work_order_status"] in ["Not Started", "In Process", "Completed", "Stopped"]:
+                conditions.append("mwo.docstatus = 1")
                 conditions.append("mwo.status = %(work_order_status)s")
-                values["work_order_status"] = status_map[filters["work_order_status"]]
+                values["work_order_status"] = filters["work_order_status"]
+        else:
+            # If no status filter, show all except cancelled
+            conditions.append("mwo.docstatus IN (0, 1)")
+            
         if filters.get("goods_type"):
             if filters["goods_type"] == "Yes":
                 conditions.append("""
@@ -79,7 +84,12 @@ def get_data(filters):
         SELECT
             mwo.name AS manufacturing_work_order,
             mwo.manufacturing_order AS pmo_no,
-            CASE WHEN mwo.docstatus = 1 THEN 'Submitted' ELSE 'Draft' END AS status,
+            CASE 
+                WHEN mwo.docstatus = 0 THEN 'Draft'
+                WHEN mwo.docstatus = 2 THEN 'Cancelled'
+                WHEN mwo.docstatus = 1 THEN COALESCE(mwo.status, 'Submitted')
+                ELSE 'Unknown'
+            END AS status,
             COALESCE(mwo.finding_wt, 0) AS wt_quantity,
             mwo.customer AS customer_id,
             c.customer_name,
