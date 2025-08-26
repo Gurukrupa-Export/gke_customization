@@ -8,29 +8,121 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
             label: "From Date",
             fieldtype: "Date",
             reqd: 0,
-            default:frappe.datetime.month_start(),
+            default: frappe.datetime.month_start(),
         },
         {
             fieldname: "to_date",
             label: "To Date",
             fieldtype: "Date",
             reqd: 0,
-            default:frappe.datetime.month_end(),
-
+            default: frappe.datetime.month_end(),
         },
-        {
-			fieldname: "company",
-			label: __("Company"),
-			fieldtype: "Link",
-			options: "Company",
-			reqd: 0
-		},
         {
             label: "Material Type",
             fieldname: "material_type",
             fieldtype: "Select",
             options: ["", "Diamond", "Metal", "Gemstone", "Finding", "Others"],
             reqd: 0
+        },
+        {
+            fieldname: "workflow_state",
+            label: __("Status"),
+            fieldtype: "MultiSelectList",
+            options: [],
+            reqd: 0,
+            get_data: function(txt) {
+                return frappe.db.get_list("Material Request", {
+                    fields: ["distinct workflow_state as value"],
+                    filters: {
+                        "material_request_type": "Manufacture",
+                        "workflow_state": ["is", "set"],
+                        "workflow_state": ["!=", "Material Transferred to MOP"]
+                    },
+                    order_by: "workflow_state"
+                }).then(r => {
+                    return r
+                        .filter(d => d.value && d.value.trim() !== "")
+                        .map(d => {
+                            return {
+                                value: d.value,
+                                description: ""
+                            }
+                        });
+                });
+            }
+        },
+        {
+            fieldname: "warehouse",
+            label: __("Warehouse"),
+            fieldtype: "MultiSelectList",
+            options: [],
+            reqd: 0,
+            get_data: function(txt) {
+                return frappe.db.get_list("Warehouse", {
+                    fields: ["name as value", "warehouse_name"],
+                    filters: {
+                        "disabled": 0
+                    },
+                    order_by: "name"
+                }).then(r => {
+                    return r
+                        .filter(d => d.value && d.value.trim() !== "")
+                        .map(d => {
+                            return {
+                                value: d.value,
+                                description: d.warehouse_name || ""
+                            }
+                        });
+                });
+            }
+        },
+        {
+            fieldname: "department",
+            label: __("Department"),
+            fieldtype: "MultiSelectList",
+            options: [],
+            reqd: 0,
+            get_data: function(txt) {
+                let departments = new Set();
+                
+                return Promise.all([
+                    frappe.db.get_list("Material Request", {
+                        fields: ["distinct custom_department as value"],
+                        filters: {
+                            "material_request_type": "Manufacture",
+                            "custom_department": ["is", "set"],
+                            "workflow_state": ["!=", "Material Transferred to MOP"]
+                        }
+                    }),
+                    frappe.db.get_list("Parent Manufacturing Order", {
+                        fields: ["distinct department as value"],
+                        filters: {
+                            "department": ["is", "set"]
+                        }
+                    }),
+                    frappe.db.get_list("Department", {
+                        fields: ["name as value"],
+                        filters: {
+                            "disabled": 0
+                        }
+                    })
+                ]).then(results => {
+                    results.forEach(result => {
+                        result.forEach(item => {
+                            if (item.value && item.value.trim() !== "") {
+                                departments.add(item.value);
+                            }
+                        });
+                    });
+                    
+                    return Array.from(departments).sort().map(dept => {
+                        return {
+                            value: dept,
+                            description: ""
+                        }
+                    });
+                });
+            }
         },
         {
             label: "Parent Manufacturing Order",
@@ -41,27 +133,28 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
                 return frappe.db.get_link_options("Parent Manufacturing Order", txt);
             }
         },
-       {
-    fieldname: "item_category",
-    label: __("Category"),
-    fieldtype: "MultiSelectList",
-    options: [],
-    reqd: 0,
-    get_data: function(txt) {
-        return frappe.db.get_list("Parent Manufacturing Order", {
-            fields: ["distinct item_category as value"],
-        }).then(r => {
-            return r
-                .filter(d => d.value)  // Removes null, undefined, empty strings
-                .map(d => {
-                    return {
-                        value: d.value,
-                        description: ""
-                    }
+        {
+            fieldname: "item_category",
+            label: __("Category"),
+            fieldtype: "MultiSelectList",
+            options: [],
+            reqd: 0,
+            get_data: function(txt) {
+                return frappe.db.get_list("Parent Manufacturing Order", {
+                    fields: ["distinct item_category as value"],
+                    order_by: "item_category"
+                }).then(r => {
+                    return r
+                        .filter(d => d.value && d.value.trim() !== "")
+                        .map(d => {
+                            return {
+                                value: d.value,
+                                description: ""
+                            }
+                        });
                 });
-        });
-    }
-},
+            }
+        },
         {
             fieldname: "setting_type",
             label: __("Setting Type"),
@@ -71,56 +164,33 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
             get_data: function(txt) {
                 return frappe.db.get_list("Parent Manufacturing Order", {
                     fields: ["distinct setting_type as value"],
+                    order_by: "setting_type"
                 }).then(r => {
-            return r
-                .filter(d => d.value)  // Removes null, undefined, empty strings
-                .map(d => {
-                    return {
-                        value: d.value,
-                        description: ""
-                    }
+                    return r
+                        .filter(d => d.value && d.value.trim() !== "")
+                        .map(d => {
+                            return {
+                                value: d.value,
+                                description: ""
+                            }
+                        });
                 });
-        });
-    }
-},
-   {
-            fieldname: "workflow_state",
-            label: __("Status"),
-            fieldtype: "MultiSelectList",
-            options: [],
-            reqd: 0,
-            get_data: function(txt) {
-                return frappe.db.get_list("Material Request", {
-                    fields: ["distinct workflow_state as value"],
-                }).then(r => {
-            return r
-                .filter(d => d.value)  // Removes null, undefined, empty strings
-                .map(d => {
-                    return {
-                        value: d.value,
-                        description: ""
-                    }
-                });
-        });
-    }
-}
+            }
+        },
     ],
-     onload: function(report) {
-
-     report.page.add_inner_button(__("Clear Filter"), function () {
+    onload: function(report) {
+        report.page.add_inner_button(__("Clear Filter"), function () {
             report.filters.forEach(function (filter) {
                 let field = report.get_filter(filter.fieldname);
-                if (field.df.fieldtype === "MultiSelectList") {
+                if (field && field.df.fieldtype === "MultiSelectList") {
                     field.set_value([]);
-                } else if (field.df.default) {
+                } else if (field && field.df.default) {
                     field.set_value(field.df.default);
-                } else {
+                } else if (field) {
                     field.set_value("");
                 }
             });
+            report.refresh();
         });
-
-  
+    }
 }
-}
-
