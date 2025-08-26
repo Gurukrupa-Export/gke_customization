@@ -17,6 +17,7 @@ def get_data(filters=None):
 				at.employee, at.employee_name, 
 				at.company, at.shift,
 				at.department,at.attendance_date, 
+				tec.custom_branch,
 				# at.name,  tec.name as emp,
 				COUNT(tec.name) AS punch_count
 			FROM 
@@ -87,6 +88,12 @@ def get_columns(filters=None):
 			"fieldtype": "Data",
 			"width": 200
 		},		
+		{
+			"label": _("Branch"),
+			"fieldname": "custom_branch",
+			"fieldtype": "Data",
+			"width": 200
+		},		
 		# {
 		# 	"label": _("Punch Times"),
 		# 	"fieldname": "time",
@@ -117,6 +124,9 @@ def get_conditions(filters):
 
 	if filters.get("employee"):
 		filter_list.append(f'''at.employee = "{filters.get("employee")}"''')
+	
+	if filters.get("branch"):
+		filter_list.append(f'''tec.custom_branch = "{filters.get("branch")}"''')
 	
 
 	# conditions = "where (at.in_time IS NOT NULL OR at.out_time IS NOT NULL) AND at.out_time IS NULL and " + " and ".join(filter_list)

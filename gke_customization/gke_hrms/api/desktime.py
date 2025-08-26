@@ -4,7 +4,7 @@ import frappe
 import requests
 
 @frappe.whitelist()
-def get_desktime_detail(date=None, user_id=None):
+def get_desktime_detail(user_id, date=None):
     today_date = datetime.now().date()
     formatted_date = today_date.strftime("%Y-%m-%d")
 
