@@ -1,9 +1,11 @@
 import frappe
 
+
 def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
     return columns, data
+
 
 def get_columns():
     return [
@@ -34,13 +36,16 @@ def get_columns():
         {"label": "Time (days)", "fieldname": "time_day", "fieldtype": "Float", "width": 90},
     ]
 
+
 def get_data(filters):
     conditions = ""
     params = {}
 
+
     if filters and filters.get("manufacturing_work_order"):
         conditions += " AND mwo.name = %(manufacturing_work_order)s"
         params["manufacturing_work_order"] = filters.get("manufacturing_work_order")
+
 
     query = f"""
         SELECT
@@ -69,6 +74,7 @@ def get_data(filters):
             COALESCE(motl.total_time_hour, 0) AS time_hour,
             COALESCE(motl.total_time_day, 0) AS time_day
 
+
         FROM `tabManufacturing Work Order` mwo
         INNER JOIN `tabManufacturing Operation` mop ON mop.manufacturing_work_order = mwo.name
         LEFT JOIN `tabEmployee` emp ON mop.employee = emp.name
@@ -84,13 +90,16 @@ def get_data(filters):
             GROUP BY parent
         ) motl ON motl.parent = mop.name
 
+
         WHERE 1=1
         {conditions}
         GROUP BY mop.name, motl.total_time_min, motl.total_time_hour, motl.total_time_day
-        ORDER BY mwo.name DESC, mop.idx DESC
+        ORDER BY COALESCE(mop.start_time, mop.creation) DESC
     """
 
+
     operations = frappe.db.sql(query, params, as_dict=True)
+
 
     for op in operations:
         # Metal loss logic
@@ -99,6 +108,7 @@ def get_data(filters):
         else:
             op['metal_loss'] = op.get('loss_wt', 0.0)
 
+
         # Dynamic hour and day calculation from minutes if zero
         time_min = op.get('time_min') or 0.0
         if not op.get('time_hour'):
@@ -106,5 +116,5 @@ def get_data(filters):
         if not op.get('time_day'):
             op['time_day'] = time_min / 1440  
 
+
     return operations
-    
