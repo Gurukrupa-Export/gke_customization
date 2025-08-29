@@ -21,7 +21,8 @@ class ItemRequest(Document):
 			'Diamond': 'D',
 			'Metal': 'M',
 			'Gemstone': 'G',
-			'Other': 'O'
+			'Other': 'O',
+			'Alloy': 'A'
 		}
 
 		# Separate series for consumables
@@ -41,4 +42,5 @@ class ItemRequest(Document):
 
 		# Final name with type code
 		self.name = series
+
 
