@@ -1,7 +1,6 @@
 // Copyright (c) 2025, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
-
 frappe.query_reports["Finding Manufacturing Work Order Report"] = {
   "filters": [
     {
@@ -17,6 +16,7 @@ frappe.query_reports["Finding Manufacturing Work Order Report"] = {
       "fieldtype": "Link",
       "options": "Branch",
       "reqd": 0,
+      "depends_on": "eval:doc.company"
     },
     {
       "fieldname": "from_date",
@@ -36,7 +36,7 @@ frappe.query_reports["Finding Manufacturing Work Order Report"] = {
       "fieldname": "work_order_status",
       "label": __("Work Order Status"),
       "fieldtype": "Select",
-      "options": "\nDraft\nNot Started\nIn Process\nCompleted\nStopped\nCancelled",
+      "options": "\nDraft\nSubmitted\nCancelled",
       "reqd": 0
     },
     {
@@ -57,17 +57,17 @@ frappe.query_reports["Finding Manufacturing Work Order Report"] = {
 
   onload: function(report) {
     // Add "Clear Filter" button
-    report.page.add_inner_button(__("Clear Filter"), function () {
-      report.filters.forEach(function (filter) {
-        let field = report.get_filter(filter.fieldname);
-        if (field.df.fieldtype === "MultiSelectList") {
-          field.set_value([]);
-        } else if (field.df.default) {
-          field.set_value(field.df.default);
-        } else {
-          field.set_value("");
-        }
-      });
+    report.page.add_inner_button(__("Clear Filters"), function () {
+      // Reset all filters to their default values or empty
+      report.get_filter("company").set_value("");
+      report.get_filter("branch").set_value("");
+      report.get_filter("from_date").set_value(frappe.datetime.add_months(frappe.datetime.get_today(), -1));
+      report.get_filter("to_date").set_value(frappe.datetime.get_today());
+      report.get_filter("work_order_status").set_value("");
+      report.get_filter("goods_type").set_value("");
+      report.get_filter("department").set_value("");
+      
+      // Refresh the report
       report.refresh();
     });
   }
