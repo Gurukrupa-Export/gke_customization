@@ -293,9 +293,9 @@ doc_events = {
 "Delivery Note":{
     "validate":"gke_customization.gke_customization.doc_events.delivery_note.validate",
 },
-"Batch": {
-    "autoname": "jewellery_erpnext.jewellery_erpnext.customization.batch.batch.autoname",
-},
+# "Batch": {
+#     "autoname": "jewellery_erpnext.jewellery_erpnext.customization.batch.batch.autoname",
+# },
 # "Stock Entry": {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.stock_entry.before_validate",
 # }
