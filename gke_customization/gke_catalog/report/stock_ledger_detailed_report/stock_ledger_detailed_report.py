@@ -19,6 +19,10 @@ from erpnext.stock.utils import (
     update_included_uom_in_report,
 )
 
+# ------------------------
+# MAIN EXECUTION
+# ------------------------
+
 def execute(filters=None):
     filters = frappe._dict(filters or {})
     if not filters.get("from_date") or not filters.get("to_date"):
@@ -103,6 +107,10 @@ def execute(filters=None):
 
     update_included_uom_in_report(columns, data, include_uom, conversion_factors)
     return columns, data
+
+# ------------------------
+# QUERY FUNCTION (JOIN TO STOCK ENTRY TO GET BRANCH)
+# ------------------------
 
 def get_stock_ledger_entries(filters, items):
     from_date = get_datetime(filters.from_date + " 00:00:00")
