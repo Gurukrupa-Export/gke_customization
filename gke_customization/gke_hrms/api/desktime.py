@@ -11,6 +11,13 @@ def get_desktime_detail(date=None):
     apiKey = "2ebf1bad1d730527759fac0807b29708"
     date = date or formatted_date
     period = frappe.form_dict.get("period") or "day"
+    user_id = user_id
+
+    # allowed_users = ["bhavika_p@gkexport.com", "hjr@gkexport.com", "vishalrajput@gkexport.com"]
+
+    if user_id not in allowed_users:
+        frappe.response["message"] = {"error": "Access denied. Only guest users can fetch DeskTime API."}
+        return
     
     url = "https://desktime.com/api/v2/json/employees"
     params = {
@@ -43,7 +50,7 @@ def get_desktime_detail(date=None):
         frappe.response["message"] = {
             "totals": totals,
             "metricSections": metric_sections,
-            # "data": data
+            "data": data
         }
 
     except requests.exceptions.RequestException as e:
@@ -148,3 +155,34 @@ def get_metric_sections(employees):
         {"title": "Late Arrivals", "employees": get_top_employees(employees, "late"), "metricType": "late", "emptyMessage": "No late arrivals today"},
         {"title": "Most Idle Time", "employees": get_top_employees(employees, "idle"), "metricType": "idle", "emptyMessage": "No idle time tracked"}
     ]
+
+
+
+@frappe.whitelist()
+def get_salesdata(cust_code=None,sale_year=None,sale_month=None,category=None,subcategory=None,
+        setting=None,diamondRange=None,base_stylebio=None,salesDays_Range=None):
+    url = "http://3.108.219.130:8000/sale_data"
+
+    params = {
+        "cust_code": cust_code,
+        "sale_year": sale_year,
+        "sale_month": sale_month,
+        "category_name": category,
+        "sub_category_name": subcategory,
+        "setting_name": setting,
+        "diamondRange": diamondRange,
+        "base_stylebio": base_stylebio,
+        "salesDays_Range": salesDays_Range
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=30)   # 10s timeout safety
+        response.raise_for_status()
+        data = response.json()
+        return data    
+        # return {
+        #     "total_count": len(data),
+        #     "data": data[:5]
+        # }
+    except requests.exceptions.RequestException as e:
+        frappe.throw(f"Error fetching API: {e}")
