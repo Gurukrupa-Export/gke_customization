@@ -32,13 +32,15 @@ def execute(filters=None):
         conditions.append("ss.start_date <= %(to_date)s")
         values["to_date"] = filters.get("to_date")
 
+    # Updated hold status filter to work with status field instead of custom field
     if filters.get("hold_status") == "Yes":
-        conditions.append("ss.custom_salary_status = 'Hold'")
+        conditions.append("ss.status = 'Withheld'")
     elif filters.get("hold_status") == "No":
-        conditions.append("ss.custom_salary_status != 'Hold'")
+        conditions.append("ss.status = 'Submitted'")
 
-    # Only include submitted salary slips
+    # Only include submitted salary slips and show Submitted/Withheld status
     conditions.append("ss.docstatus = 1")
+    conditions.append("ss.status IN ('Submitted', 'Withheld')")
 
     where_clause = " AND ".join(conditions) if conditions else "1=1"
 
@@ -55,7 +57,7 @@ def execute(filters=None):
             ss.net_pay,
             ss.status AS status,
             ss.name AS salary_slip_code,
-            IF(ss.custom_salary_status = 'Hold', 'Yes', 'No') AS hold,
+            IF(ss.status = 'Withheld', 'Yes', 'No') AS withheld,
             DATE_FORMAT(ss.start_date, '%%m/%%Y') AS date
         FROM
             `tabSalary Slip` ss
@@ -79,7 +81,7 @@ def execute(filters=None):
         {"label": "Net Pay", "fieldname": "net_pay", "fieldtype": "Currency", "width": 120},
         {"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 100},
         {"label": "Salary Slip Code", "fieldname": "salary_slip_code", "fieldtype": "Link", "options": "Salary Slip", "width": 180},
-        {"label": "Hold", "fieldname": "hold", "fieldtype": "Data", "width": 80},
+        {"label": "Withheld", "fieldname": "withheld", "fieldtype": "Data", "width": 80},
         {"label": "Date (Month/Year)", "fieldname": "date", "fieldtype": "Data", "width": 100},
     ]
 
