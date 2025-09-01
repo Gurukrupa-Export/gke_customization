@@ -19,7 +19,8 @@
   "revised_diamond_handling_rate",
   "difference_diamond_handling_rate",
   "section_break_r0p2",
-  "diamond_price_list"
+  "diamond_price_list",
+  "stone_code"
  ],
  "fields": [
   {
@@ -96,6 +97,11 @@
    "in_list_view": 1,
    "label": "Diamond Price List",
    "options": "Diamond Price List"
+  },
+  {
+   "fieldname": "stone_code",
+   "fieldtype": "Data",
+   "label": "Stone Code"
   }
  ],
  "index_web_pages_for_search": 1,

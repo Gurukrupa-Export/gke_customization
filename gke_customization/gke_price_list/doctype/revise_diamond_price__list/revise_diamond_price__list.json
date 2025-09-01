@@ -20,7 +20,6 @@
   "diamond_type",
   "stone_shape",
   "diamond_quality",
-  "stone_code",
   "handling_charges_for_outwork",
   "outwork_handling_charges_in_percentage",
   "outwork_handling_charges_rate",
@@ -128,11 +127,6 @@
    "fieldname": "outright_handling_charges_rate",
    "fieldtype": "Currency",
    "label": "Outright Handling Charges Rate"
-  },
-  {
-   "fieldname": "stone_code",
-   "fieldtype": "Date",
-   "label": "Stone Code"
   },
   {
    "depends_on": "eval:doc.handling_charges_for_outwork_handling_rate",

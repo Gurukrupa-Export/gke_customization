@@ -18,7 +18,8 @@
   "revised_diamond_handling_rate",
   "difference_diamond_handling_rate",
   "section_break_ssae",
-  "diamond_price_list"
+  "diamond_price_list",
+  "stone_code"
  ],
  "fields": [
   {
@@ -88,6 +89,11 @@
    "fieldname": "supplier_fg_purchase_rate",
    "fieldtype": "Currency",
    "label": "Supplier Fg Purchase Rate"
+  },
+  {
+   "fieldname": "stone_code",
+   "fieldtype": "Data",
+   "label": "Stone Code"
   }
  ],
  "index_web_pages_for_search": 1,
