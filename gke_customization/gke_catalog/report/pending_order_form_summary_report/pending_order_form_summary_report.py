@@ -5,89 +5,144 @@ import frappe
 from frappe import _
 
 def execute(filters=None):
+    filters = filters or {}
     columns = get_columns()
     data = get_data(filters)
-    return columns, data
+    summary = get_summary(data)
+    total_row = get_total_row(data)
+    if total_row:
+        data.append(total_row)
+    return columns, data, None, None, summary
 
 def get_columns():
     return [
+        {"label": _("Order Date"), "fieldname": "order_date", "fieldtype": "Date", "width": 120},
         {"label": _("Delivery Date"), "fieldname": "delivery_date", "fieldtype": "Date", "width": 120},
-        {"label": _("ERP Order No."), "fieldname": "erp_order_no", "fieldtype": "Link", "options": "Order Form", "width": 150},
+        {"label": _("Order No."), "fieldname": "erp_order_no", "fieldtype": "Link", "options": "Order Form", "width": 150},
         {"label": _("Customer PO No."), "fieldname": "customer_po_no", "fieldtype": "Data", "width": 140},
         {"label": _("No. of Orders"), "fieldname": "no_of_orders", "fieldtype": "Data", "width": 120},
         {"label": _("No. of Designs"), "fieldname": "no_of_designs", "fieldtype": "Int", "width": 120},
-        {"label": _("BOM Pending"), "fieldname": "bom_pending", "fieldtype": "Data", "width": 120},
+        {"label": _("No. of Orders Approved"), "fieldname": "no_of_orders_approved", "fieldtype": "Data", "width": 140},
+        {"label": _("No. of Orders Pending"), "fieldname": "no_of_orders_pending", "fieldtype": "Data", "width": 140},
         {"label": _("CAD Pending"), "fieldname": "cad_pending", "fieldtype": "Data", "width": 120},
-        {"label": _("Total Pending Orders"), "fieldname": "total_pending_orders", "fieldtype": "Data", "width": 140}
+        {"label": _("IBM Pending"), "fieldname": "bom_pending", "fieldtype": "Data", "width": 120}
     ]
 
 def get_data(filters):
     conditions = get_conditions(filters)
-    cad_state_idx = [1,2,3,4,5,6,7,8,9,10,11,12,13,17,18,22,24,31,32]
-    cad_idx_list = ','.join(map(str, cad_state_idx))
+    
+    # CAD Pending States
+    cad_states = "'Assigned','Assigned - On-Hold','Designing','Sent to QC','Update Requested','Designing - On-Hold','Sent to QC - On-Hold','Customer Approval','Customer Approved','Customer Design Rejected','Create CAD','Update Designer','Design Rework in Progress','Design Rework in Progress - On Hold'"
+    
+    # IBM Pending States  
+    ibm_states = "'Update Item','Update BOM','Order BOM','Create BOM','BOM QC','Creating BOM','Updating BOM','BOM QC - On-Hold','Creating BOM - On-Hold','Updating BOM - On-Hold'"
 
     query = f"""
     SELECT 
+        of.order_date AS order_date,
         of.delivery_date AS delivery_date,
         of.name AS erp_order_no,
         of.po_no AS customer_po_no,
-        of.total_rows AS no_of_orders,
+        COUNT(DISTINCT o.name) AS no_of_orders,
         COUNT(DISTINCT ofd.design_id) AS no_of_designs,
 
-        -- BOM/CAD counts: Count ORDERS not pieces (PENDING ONLY including drafts)
-        COALESCE(child_data.bom_pending, 0) AS bom_pending,
-        COALESCE(child_data.cad_pending, 0) AS cad_pending,
-
-        -- Total pending orders (including drafts)
-        COALESCE(pending_orders.pending_order_count, 0) AS total_pending_orders
+        COALESCE(approved_count.approved_orders, 0) AS no_of_orders_approved,
+        COALESCE(pending_count.pending_orders, 0) AS no_of_orders_pending,
+        COALESCE(cad_pending_count.cad_pending, 0) AS cad_pending,
+        COALESCE(bom_pending_count.bom_pending, 0) AS bom_pending
 
     FROM `tabOrder Form` of
     LEFT JOIN `tabOrder Form Detail` ofd ON of.name = ofd.parent
+    LEFT JOIN `tabOrder` o ON o.cad_order_form = of.name
 
-    -- Count PENDING orders by status (including drafts)
+    LEFT JOIN (
+        SELECT o1.cad_order_form, COUNT(DISTINCT o1.name) AS approved_orders
+        FROM `tabOrder` o1
+        WHERE o1.workflow_state = 'Approved'
+        GROUP BY o1.cad_order_form
+    ) approved_count ON approved_count.cad_order_form = of.name
+
+    LEFT JOIN (
+        SELECT o2.cad_order_form, COUNT(DISTINCT o2.name) AS pending_orders
+        FROM `tabOrder` o2
+        WHERE o2.workflow_state NOT IN ('Cancelled', 'Approved')
+        GROUP BY o2.cad_order_form
+    ) pending_count ON pending_count.cad_order_form = of.name
+
     LEFT JOIN (
         SELECT
-            ofd.parent,
-            COUNT(DISTINCT CASE 
-                WHEN wds.idx NOT IN ({cad_idx_list}) 
-                     AND (COALESCE(o.workflow_state, '') != 'Approved' OR o.docstatus = 0)
-                THEN o.name 
-            END) AS bom_pending,
-            
-            COUNT(DISTINCT CASE 
-                WHEN wds.idx IN ({cad_idx_list}) 
-                     AND (COALESCE(o.workflow_state, '') != 'Approved' OR o.docstatus = 0)
-                THEN o.name 
-            END) AS cad_pending
-            
-        FROM `tabOrder Form Detail` ofd
-        INNER JOIN `tabOrder` o ON ofd.design_id = o.design_id AND ofd.parent = o.cad_order_form
-        LEFT JOIN `tabWorkflow Document State` wds 
-            ON o.workflow_state = wds.state 
-            AND wds.parent = 'Order with Customer Approval Final'
-        WHERE (o.workflow_state != 'Approved' OR o.docstatus = 0)
-        GROUP BY ofd.parent
-    ) child_data ON child_data.parent = of.name
+            ofd3.parent,
+            COUNT(DISTINCT o3.name) AS cad_pending
+        FROM `tabOrder Form Detail` ofd3
+        INNER JOIN `tabOrder` o3 ON ofd3.design_id = o3.design_id AND ofd3.parent = o3.cad_order_form
+        WHERE o3.workflow_state IN ({cad_states})
+        GROUP BY ofd3.parent
+    ) cad_pending_count ON cad_pending_count.parent = of.name
 
-    -- Count total pending orders (including drafts)
     LEFT JOIN (
-        SELECT 
-            cad_order_form, 
-            COUNT(DISTINCT name) AS pending_order_count
-        FROM `tabOrder`
-        WHERE (workflow_state != 'Approved' OR docstatus = 0)
-        GROUP BY cad_order_form
-    ) pending_orders ON pending_orders.cad_order_form = of.name
+        SELECT
+            ofd4.parent,
+            COUNT(DISTINCT o4.name) AS bom_pending
+        FROM `tabOrder Form Detail` ofd4
+        INNER JOIN `tabOrder` o4 ON ofd4.design_id = o4.design_id AND ofd4.parent = o4.cad_order_form
+        WHERE o4.workflow_state IN ({ibm_states})
+        GROUP BY ofd4.parent
+    ) bom_pending_count ON bom_pending_count.parent = of.name
 
-    WHERE of.docstatus >= 0
-      AND COALESCE(pending_orders.pending_order_count, 0) > 0
+    WHERE 
+        of.status IN ('Pending', 'Approved') 
+        AND of.docstatus IN (1, 2)
+        AND (
+            EXISTS (
+                SELECT 1 FROM `tabOrder Form Detail` ofd2 
+                WHERE ofd2.parent = of.name 
+                AND ofd2.docstatus != 1
+            )
+            OR of.status = 'Pending'
+        )
       {conditions}
 
-    GROUP BY of.name, of.total_rows, of.delivery_date, of.po_no
-    ORDER BY of.delivery_date ASC
+    GROUP BY of.name, of.order_date, of.delivery_date, of.po_no
+    ORDER BY of.order_date ASC
     """
-
+    
     return frappe.db.sql(query, as_dict=1)
+
+def get_summary(data):
+    if not data:
+        return []
+    
+    total_order_forms = len([d for d in data if d.get('erp_order_no') != 'SUMMARY'])
+    total_orders = sum(d.get('no_of_orders', 0) for d in data if d.get('erp_order_no') != 'SUMMARY')
+    total_pending_orders = sum(d.get('no_of_orders_pending', 0) for d in data if d.get('erp_order_no') != 'SUMMARY')
+    total_cad_pending = sum(d.get('cad_pending', 0) for d in data if d.get('erp_order_no') != 'SUMMARY')
+    total_ibm_pending = sum(d.get('bom_pending', 0) for d in data if d.get('erp_order_no') != 'SUMMARY')
+    
+    return [
+        {"label": "Total Pending Order Forms", "value": total_order_forms, "indicator": "Blue"},
+        {"label": "Total Orders", "value": total_orders, "indicator": "Green"},
+        {"label": "Total Pending Orders", "value": total_pending_orders, "indicator": "Orange"},
+        {"label": "Total CAD Pending", "value": total_cad_pending, "indicator": "Yellow"},
+        {"label": "Total IBM Pending", "value": total_ibm_pending, "indicator": "Red"},
+    ]
+
+def get_total_row(data):
+    if not data:
+        return None
+    
+    total_row = {
+        'order_date': 'SUMMARY',
+        'delivery_date': '',
+        'erp_order_no': f'Total Order Forms: {len(data)}',
+        'customer_po_no': '',
+        'no_of_orders': sum(d.get('no_of_orders', 0) for d in data),
+        'no_of_designs': sum(d.get('no_of_designs', 0) for d in data),
+        'no_of_orders_approved': sum(d.get('no_of_orders_approved', 0) for d in data),
+        'no_of_orders_pending': sum(d.get('no_of_orders_pending', 0) for d in data),
+        'cad_pending': sum(d.get('cad_pending', 0) for d in data),
+        'bom_pending': sum(d.get('bom_pending', 0) for d in data),
+    }
+    return total_row
 
 def get_conditions(filters):
     conditions = []
@@ -95,10 +150,6 @@ def get_conditions(filters):
         conditions.append(f"of.company = '{filters['company']}'")
     if filters.get("branch"):
         conditions.append(f"of.branch = '{filters['branch']}'")
-    if filters.get("from_date"):
-        conditions.append(f"of.order_date >= '{filters['from_date']}'")
-    if filters.get("to_date"):
-        conditions.append(f"of.order_date <= '{filters['to_date']}'")
     if filters.get("order_form_no"):
         if isinstance(filters["order_form_no"], list):
             order_forms = ', '.join([f"'{order}'" for order in filters["order_form_no"]])
