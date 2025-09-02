@@ -8,7 +8,6 @@ frappe.query_reports["Pending Order Form Summary Report"] = {
             "label": __("Company"),
             "fieldtype": "Select",
             "options": "\nGurukrupa Export Private Limited\nKG GK Jewellers Private Limited",
-            "default": "Gurukrupa Export Private Limited",
             "reqd": 0
         },
         {
@@ -16,20 +15,6 @@ frappe.query_reports["Pending Order Form Summary Report"] = {
             "label": __("Branch"),
             "fieldtype": "Link",
             "options": "Branch",
-            "reqd": 0
-        },
-        {
-            "fieldname": "from_date",
-            "label": __("From Date"),
-            "fieldtype": "Date",
-            "default": frappe.datetime.add_months(frappe.datetime.get_today(), -1),
-            "reqd": 0
-        },
-        {
-            "fieldname": "to_date",
-            "label": __("To Date"),
-            "fieldtype": "Date",
-            "default": frappe.datetime.get_today(),
             "reqd": 0
         },
         {
@@ -45,65 +30,79 @@ frappe.query_reports["Pending Order Form Summary Report"] = {
 
     "formatter": function(value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
-        
-        // Get Order Form name from second column
         const order_form = data.erp_order_no;
-        
-        // Make No. of Orders clickable
-        if (column.fieldname === "no_of_orders" && value && parseInt(value) > 0) {
-            return `<a onclick="openOrderList('${order_form}', 'All Orders')" style="cursor: pointer;">${value}</a>`;
+
+        // Skip SUMMARY row checks
+        if (order_form && order_form.toString().includes('Total Order Forms:')) {
+            // Make summary clickable with bold styling
+            if (["no_of_orders", "no_of_orders_approved", "no_of_orders_pending", "cad_pending", "bom_pending"].includes(column.fieldname) && value && parseInt(value) > 0) {
+                return `<a onclick="openSummaryDetail('${column.fieldname}')" style="cursor: pointer; font-weight: bold;">${value}</a>`;
+            }
+            return value;
         }
-        
-        // No. of Designs - NOT clickable (removed formatter)
-        
-        if (column.fieldname === "bom_pending" && value && parseInt(value) > 0) {
-            return `<a onclick="openOrderList('${order_form}', 'BOM Pending')" style="cursor: pointer;">${value}</a>`;
+
+        // Make numeric columns clickable for data rows
+        if (value && parseInt(value) > 0) {
+            if (column.fieldname === "no_of_orders") {
+                return `<a onclick="openOrderList('${order_form}', 'All Orders')" style="cursor: pointer;">${value}</a>`;
+            }
+            if (column.fieldname === "no_of_orders_approved") {
+                return `<a onclick="openOrderList('${order_form}', 'Orders Approved')" style="cursor: pointer;">${value}</a>`;
+            }
+            if (column.fieldname === "no_of_orders_pending") {
+                return `<a onclick="openOrderList('${order_form}', 'Orders Pending')" style="cursor: pointer;">${value}</a>`;
+            }
+            if (column.fieldname === "cad_pending") {
+                return `<a onclick="openOrderList('${order_form}', 'CAD Pending')" style="cursor: pointer;">${value}</a>`;
+            }
+            if (column.fieldname === "bom_pending") {
+                return `<a onclick="openOrderList('${order_form}', 'IBM Pending')" style="cursor: pointer;">${value}</a>`;
+            }
         }
-        
-        if (column.fieldname === "cad_pending" && value && parseInt(value) > 0) {
-            return `<a onclick="openOrderList('${order_form}', 'CAD Pending')" style="cursor: pointer;">${value}</a>`;
-        }
-        
-        if (column.fieldname === "total_pending_orders" && value && parseInt(value) > 0) {
-            return `<a onclick="openOrderList('${order_form}', 'Total Pending')" style="cursor: pointer;">${value}</a>`;
-        }
-        
+
         return value;
+    },
+
+    "onload": function(report) {
+        report.page.add_inner_button(__("Clear Filter"), function () {
+            report.filters.forEach(function (filter) {
+                let field = report.get_filter(filter.fieldname);
+                if (field.df.fieldtype === "MultiSelectList") {
+                    field.set_value([]);
+                } else if (field.df.default) {
+                    field.set_value(field.df.default);
+                } else {
+                    field.set_value("");
+                }
+            });
+        });
     }
 };
 
-// Global function to open Order list with filters
 function openOrderList(order_form, status_type) {
-    let filters = [
-        ["Order", "cad_order_form", "=", order_form]
-    ];
-    
-    // Add status-specific filters for PENDING orders only
-    if (status_type === "All Orders") {
-        // Show all orders for this Order Form
-        // No additional filter needed
-    }
-    else if (status_type === "BOM Pending") {
-        // BOM states - NOT in CAD idx AND not approved
-        filters.push(["Order", "workflow_state", "!=", "Approved"]);
-    } 
-    else if (status_type === "CAD Pending") {
-        // CAD states AND not approved
-        filters.push(["Order", "workflow_state", "!=", "Approved"]);
-    } 
-    else if (status_type === "Total Pending") {
-        filters.push(["Order", "workflow_state", "!=", "Approved"]);
-    }
-    
-    // Navigate to Order List with filters
     frappe.route_options = {
         "cad_order_form": order_form
     };
-    
-    if (status_type !== "All Orders") {
+
+    if (status_type === "All Orders") {
+        // Show all orders
+    } 
+    else if (status_type === "Orders Approved") {
+        frappe.route_options.workflow_state = "Approved";  
+    }
+    else if (status_type === "Orders Pending") {
         frappe.route_options.workflow_state = ["!=", "Approved"];
     }
-    
+    else if (status_type === "CAD Pending") {
+        frappe.route_options.workflow_state = ["!=", "Approved"];
+    } 
+    else if (status_type === "IBM Pending") {
+        frappe.route_options.workflow_state = ["!=", "Approved"];
+    }
+
     frappe.set_route("List", "Order");
 }
 
+function openSummaryDetail(fieldname) {
+    frappe.msgprint(`Summary Detail: ${fieldname}`, "Summary Information");
+}
