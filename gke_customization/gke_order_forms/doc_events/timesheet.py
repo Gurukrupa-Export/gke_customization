@@ -6,6 +6,7 @@ import frappe
 from frappe.utils import now_datetime, time_diff_in_hours
 
 def validate(doc, method):
+    validate_timesheets(doc)
     validate_workflow(doc)
     current_time = now_datetime()
     
@@ -227,3 +228,32 @@ def validate_workflow(doc):
                 doc.custom_required_customer_approval = 1
                 
                 
+
+import frappe
+
+def validate_timesheets(doc):
+    
+    all_timesheets = frappe.get_all(
+        "Timesheet",
+        filters={
+            "employee": doc.employee,
+            "docstatus": 0 
+        },
+        fields=["name", "workflow_state"]
+    )
+
+    # States where only one timesheet is allowed per employee
+    restricted_states = ["Designing"]
+
+    
+    if doc.workflow_state in restricted_states:
+        for ts in all_timesheets:
+            if ts.name == doc.name:
+                continue
+
+            if ts.workflow_state == doc.workflow_state:
+                frappe.throw(
+                    f"Employee {doc.employee} already has Timesheet {ts.name} in '{doc.workflow_state}'. "
+                    f"You cannot move Timesheet {doc.name} to '{doc.workflow_state}' "
+                    "because 2 Timesheets cannot be in the same state for the same employee."
+                )
