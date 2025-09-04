@@ -63,9 +63,9 @@ def get_data(filters):
     ) approved_count ON approved_count.cad_order_form = of.name
 
     LEFT JOIN (
-        SELECT o2.cad_order_form, COUNT(DISTINCT o2.name) AS pending_orders
+        SELECT o2.cad_order_form, 
+               COUNT(DISTINCT CASE WHEN o2.workflow_state NOT IN ('Approved', 'Cancelled') THEN o2.name END) AS pending_orders
         FROM `tabOrder` o2
-        WHERE o2.workflow_state NOT IN ('Cancelled', 'Approved')
         GROUP BY o2.cad_order_form
     ) pending_count ON pending_count.cad_order_form = of.name
 
@@ -75,7 +75,7 @@ def get_data(filters):
             COUNT(DISTINCT o3.name) AS cad_pending
         FROM `tabOrder Form Detail` ofd3
         INNER JOIN `tabOrder` o3 ON ofd3.design_id = o3.design_id AND ofd3.parent = o3.cad_order_form
-        WHERE o3.workflow_state IN ({cad_states})
+        WHERE o3.workflow_state IN ({cad_states}) AND o3.workflow_state != 'Cancelled'
         GROUP BY ofd3.parent
     ) cad_pending_count ON cad_pending_count.parent = of.name
 
@@ -85,20 +85,21 @@ def get_data(filters):
             COUNT(DISTINCT o4.name) AS bom_pending
         FROM `tabOrder Form Detail` ofd4
         INNER JOIN `tabOrder` o4 ON ofd4.design_id = o4.design_id AND ofd4.parent = o4.cad_order_form
-        WHERE o4.workflow_state IN ({ibm_states})
+        WHERE o4.workflow_state IN ({ibm_states}) AND o4.workflow_state != 'Cancelled'
         GROUP BY ofd4.parent
     ) bom_pending_count ON bom_pending_count.parent = of.name
 
     WHERE 
-        of.status IN ('Pending', 'Approved') 
-        AND of.docstatus IN (1, 2)
+        of.workflow_state IN ('Pending', 'Approved') 
+        AND of.workflow_state != 'Cancelled'
+        AND of.docstatus = 1
         AND (
-            EXISTS (
-                SELECT 1 FROM `tabOrder Form Detail` ofd2 
-                WHERE ofd2.parent = of.name 
-                AND ofd2.docstatus != 1
+            of.workflow_state = 'Pending'
+            OR EXISTS (
+                SELECT 1 FROM `tabOrder` o_check 
+                WHERE o_check.cad_order_form = of.name 
+                AND o_check.workflow_state NOT IN ('Approved', 'Cancelled')
             )
-            OR of.status = 'Pending'
         )
       {conditions}
 
@@ -119,7 +120,7 @@ def get_summary(data):
     total_ibm_pending = sum(d.get('bom_pending', 0) for d in data if d.get('erp_order_no') != 'SUMMARY')
     
     return [
-        {"label": "Total Pending Order Forms", "value": total_order_forms, "indicator": "Blue"},
+        {"label": "Total Order Forms", "value": total_order_forms, "indicator": "Blue"},
         {"label": "Total Orders", "value": total_orders, "indicator": "Green"},
         {"label": "Total Pending Orders", "value": total_pending_orders, "indicator": "Orange"},
         {"label": "Total CAD Pending", "value": total_cad_pending, "indicator": "Yellow"},
