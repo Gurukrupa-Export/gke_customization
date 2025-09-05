@@ -19,14 +19,10 @@ class OTRequest(Document):
 			self.name = frappe.model.naming.make_autoname(series)
 		
 	
-	def validate(self):
-		# if not self.company or not self.branch:
-		# 	frappe.throw("Company and Branch are required to generate the OT Request name.")
-		
+	def validate(self):		
 		for child in self.order_request:
 			if child.ot_hours:
 				try:
-					# Ensure ot_hours is properly converted from string if necessary
 					if isinstance(child.ot_hours, str):
 						time_format = "%H:%M:%S"
 						ot_time = datetime.strptime(child.ot_hours, time_format).time()
@@ -45,26 +41,12 @@ class OTRequest(Document):
 				except ValueError:
 					frappe.throw(f"Invalid time format for ot_hours: {child.ot_hours}")
 
-
-	# def before_save(self):
-	# 	if self.workflow_state == 'Send For Approval':
-	# 		for row in self.hr_approver:
-	# 			row.status = self.workflow_state
-
-	# def before_submit(self):
-	# 	if self.workflow_state == 'Approved':
-	# 		for row in self.hr_approver:
-	# 			row.status = self.workflow_state
-	# 	if self.workflow_state == 'Rejected':
-	# 		for row in self.hr_approver:
-	# 			row.status = self.workflow_state	
-
-
 @frappe.whitelist()
 def fill_employee_details(department,department_head,branch, gender=None):
 	filters = {
 		'department': department,
-		'reports_to': department_head
+		'reports_to': department_head,
+		'status': 'Active'
 	}
 	if branch:
 		filters.update({ 'branch': branch })
@@ -76,7 +58,6 @@ def fill_employee_details(department,department_head,branch, gender=None):
 			filters = filters,
 			fields = ['name','employee_name']
 		)
-	# frappe.throw(f"{employees}")
 
 	if employees:
 		return employees

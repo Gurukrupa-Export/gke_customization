@@ -252,6 +252,9 @@ doc_events = {
     "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
     "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit"
 },
+"Loan Application":{
+    "validate":"gke_customization.gke_hrms.doc_events.loan_application.validate"
+},
 "Share Transfer":{
     "validate":"gke_customization.gke_customization.doc_events.share_transfer.validate",
     "on_trash":"gke_customization.gke_customization.doc_events.share_transfer.on_trash",

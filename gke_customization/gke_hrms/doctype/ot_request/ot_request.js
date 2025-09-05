@@ -46,7 +46,6 @@ frappe.ui.form.on("OT Request", {
                     row.reason_for_ot = remark_to_set;
                 });
                 frm.refresh_field('order_request');
-                // frm.save_or_update();
             }
         }        
     },
