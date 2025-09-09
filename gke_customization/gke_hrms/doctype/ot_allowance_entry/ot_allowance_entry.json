@@ -1,0 +1,154 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-05-13 11:07:37.650332",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "filters_section",
+  "from_date",
+  "company",
+  "department",
+  "designation",
+  "branch",
+  "column_break_bnm65",
+  "to_date",
+  "punch_id",
+  "employee",
+  "employee_name",
+  "search",
+  "allow",
+  "section_break_hi6cd",
+  "locked_by",
+  "ot_details"
+ ],
+ "fields": [
+  {
+   "fieldname": "filters_section",
+   "fieldtype": "Section Break",
+   "label": "Filters"
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "From Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "punch_id",
+   "fieldtype": "Data",
+   "label": "Punch ID"
+  },
+  {
+   "fieldname": "column_break_bnm65",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "To Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "search",
+   "fieldtype": "Button",
+   "label": "Search",
+   "options": "get_ot_details"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow",
+   "fieldtype": "Check",
+   "label": "Allow"
+  },
+  {
+   "fieldname": "section_break_hi6cd",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "ot_details",
+   "fieldtype": "Table",
+   "label": "OT Details",
+   "options": "OT Details"
+  },
+  {
+   "fetch_from": "employee.branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "locked_by",
+   "fieldtype": "Link",
+   "label": "Locked By",
+   "options": "User",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "link_doctype": "OT Log",
+   "link_fieldname": "ot_allowance_entry"
+  }
+ ],
+ "modified": "2025-07-19 10:24:20.062517",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "OT Allowance Entry",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

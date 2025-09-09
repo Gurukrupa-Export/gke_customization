@@ -1,0 +1,68 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-11 14:30:12.881743",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_jcqc",
+  "platform",
+  "cliq_channel_required",
+  "service",
+  "justification",
+  "status"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_jcqc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "platform",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Platform",
+   "options": "Zoho Mail\nAWS\nMetabase\nUdemy\nDeskTime"
+  },
+  {
+   "depends_on": "eval:doc.platform=='AWS'",
+   "fieldname": "service",
+   "fieldtype": "Select",
+   "label": "Service",
+   "options": "\nEC2\nIAM\nBiling\nLightsail"
+  },
+  {
+   "fieldname": "justification",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Justification"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "\nRequested\nIn Progress\nApproved\nCompleted"
+  },
+  {
+   "depends_on": "eval:doc.platform=='Zoho Mail'",
+   "fieldname": "cliq_channel_required",
+   "fieldtype": "Data",
+   "label": "Cliq Channel Required?"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-07-28 11:46:03.737064",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Platform Access",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

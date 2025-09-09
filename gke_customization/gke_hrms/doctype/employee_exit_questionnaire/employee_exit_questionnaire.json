@@ -1,0 +1,1340 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2023-09-05 16:51:39.567540",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "designation",
+  "last_working",
+  "column_break_npyj",
+  "employee_name",
+  "date_of_joining",
+  "reporting_name",
+  "column_break_crvu",
+  "department",
+  "date_of_resignation",
+  "branch_name",
+  "section_break_4hza",
+  "primary",
+  "company_1",
+  "company_2",
+  "company_3",
+  "company_4",
+  "company_5",
+  "company_6",
+  "company_7",
+  "company_8",
+  "company_9",
+  "company_10",
+  "company_11",
+  "column_break_lefu",
+  "company_12",
+  "company_13",
+  "company_14",
+  "company_15",
+  "company_16",
+  "company_17",
+  "company_a",
+  "company_19",
+  "section_break_qoik",
+  "resignation",
+  "resignation_1",
+  "resignation_2",
+  "resignation_3",
+  "resignation_4",
+  "resignation_5",
+  "resignation_6",
+  "resignation_7",
+  "resig_8",
+  "resignation_9",
+  "section_break_6glb",
+  "own",
+  "own_w1",
+  "section_break_gi0c",
+  "start",
+  "start_t1",
+  "start_t2",
+  "start_t3",
+  "start_t4",
+  "start_t5",
+  "column_break_fsq4",
+  "about",
+  "resigning_1",
+  "resigning_2",
+  "resigning_3",
+  "resigning_4",
+  "section_break_ifjd",
+  "role",
+  "job_r1",
+  "job_r2",
+  "job_r3",
+  "job_r4",
+  "job_r5",
+  "section_break_jdef",
+  "match",
+  "hired1",
+  "hired2",
+  "hired3",
+  "hired4",
+  "section_break_f1wq",
+  "work",
+  "work1",
+  "work2",
+  "work3",
+  "work4",
+  "work5",
+  "column_break_0dcg",
+  "support",
+  "tools1",
+  "tools2",
+  "tools_3",
+  "section_break_divx",
+  "lead",
+  "lead1",
+  "lead2",
+  "lead3",
+  "lead4",
+  "lead5",
+  "tab_break_hxym",
+  "feed",
+  "from1",
+  "from2",
+  "from3",
+  "from4",
+  "column_break_msms",
+  "value",
+  "value1",
+  "value2",
+  "value3",
+  "value4",
+  "section_break_lbrm",
+  "manage",
+  "team1",
+  "column_break_7zqw",
+  "over",
+  "over1",
+  "over2",
+  "over3",
+  "over4",
+  "over5",
+  "section_break_0dtm",
+  "during",
+  "during1",
+  "during2",
+  "during3",
+  "during4",
+  "during5",
+  "column_break_mj0p",
+  "unsafe",
+  "unsafe1",
+  "unsafe2",
+  "unsafe3",
+  "section_break_2a1c",
+  "company",
+  "most1",
+  "column_break_loyu",
+  "improve",
+  "culture1",
+  "section_break_xvqo",
+  "rate",
+  "salary1",
+  "salary2",
+  "salary3",
+  "salary4",
+  "salary5",
+  "column_break_bcaz",
+  "fair",
+  "fair1",
+  "fair2",
+  "fair3",
+  "tab_break_xx7f",
+  "salary",
+  "timely1",
+  "timely2",
+  "timely3",
+  "column_break_ysgj",
+  "growth",
+  "growth1",
+  "growth2",
+  "growth3",
+  "section_break_dvqi",
+  "skill",
+  "skills1",
+  "skills2",
+  "skills3",
+  "column_break_brg2",
+  "clear",
+  "career1",
+  "career2",
+  "section_break_ee99",
+  "offer",
+  "offer1",
+  "column_break_kynu",
+  "basic",
+  "basic1",
+  "basic2",
+  "basic3",
+  "basic4",
+  "basic5",
+  "section_break_fnmy",
+  "response",
+  "support1",
+  "support2",
+  "support3",
+  "support4",
+  "support5",
+  "column_break_pi8o",
+  "aware",
+  "aware1",
+  "aware2",
+  "aware3",
+  "section_break_qsun",
+  "suggest",
+  "suggest1",
+  "column_break_kpjw",
+  "good",
+  "place1",
+  "place2",
+  "place3",
+  "tab_break_vmir",
+  "future",
+  "rejoin1",
+  "rejoin2",
+  "rejoin3",
+  "column_break_m2na",
+  "final",
+  "share1",
+  "naming_series"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee Code",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "last_working",
+   "fieldtype": "Data",
+   "label": "Last Working Day"
+  },
+  {
+   "fieldname": "column_break_npyj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "date_of_joining",
+   "fieldtype": "Date",
+   "label": "Date of Joining"
+  },
+  {
+   "fieldname": "reporting_name",
+   "fieldtype": "Data",
+   "label": "Reporting Manager\u2019s Name"
+  },
+  {
+   "fieldname": "column_break_crvu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "date_of_resignation",
+   "fieldtype": "Date",
+   "label": "Date of Resignation"
+  },
+  {
+   "fieldname": "branch_name",
+   "fieldtype": "Data",
+   "label": "Branch/Location"
+  },
+  {
+   "fieldname": "section_break_4hza",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "primary",
+   "fieldtype": "Heading",
+   "label": "1. What is the primary reason for your decision to leave the company?"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_1",
+   "fieldtype": "Check",
+   "label": "Better opportunity"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_2",
+   "fieldtype": "Check",
+   "label": "Better Compensation"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_3",
+   "fieldtype": "Check",
+   "label": "Family reason"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_4",
+   "fieldtype": "Check",
+   "label": "Relocation"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_5",
+   "fieldtype": "Check",
+   "label": "Lack of career growth"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_6",
+   "fieldtype": "Check",
+   "label": "Cultural issues"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_7",
+   "fieldtype": "Check",
+   "label": "Health Issue"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_8",
+   "fieldtype": "Check",
+   "label": "Marriage"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_9",
+   "fieldtype": "Check",
+   "label": "Higher Education"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_10",
+   "fieldtype": "Check",
+   "label": "Starting own business"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_11",
+   "fieldtype": "Check",
+   "label": "Retirement"
+  },
+  {
+   "fieldname": "column_break_lefu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_12",
+   "fieldtype": "Check",
+   "label": "Performance Issue"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_13",
+   "fieldtype": "Check",
+   "label": "Integrity issue"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_14",
+   "fieldtype": "Check",
+   "label": "Behavioral issue "
+  },
+  {
+   "default": "0",
+   "fieldname": "company_15",
+   "fieldtype": "Check",
+   "label": "Layoff"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_16",
+   "fieldtype": "Check",
+   "label": "Misconduct"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_17",
+   "fieldtype": "Check",
+   "label": "Violation of SOP"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_a",
+   "fieldtype": "Check",
+   "label": "Other"
+  },
+  {
+   "depends_on": "eval:doc.company_a == 1",
+   "fieldname": "company_19",
+   "fieldtype": "Small Text",
+   "label": " (Please specify)"
+  },
+  {
+   "fieldname": "section_break_qoik",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "resignation",
+   "fieldtype": "Heading",
+   "label": "2. Are there any secondary reasons contributing to your resignation?"
+  },
+  {
+   "default": "0",
+   "fieldname": "resignation_1",
+   "fieldtype": "Check",
+   "label": "Delayed increments or appraisals"
+  },
+  {
+   "default": "0",
+   "fieldname": "resignation_2",
+   "fieldtype": "Check",
+   "label": " Poor communication from leadership"
+  },
+  {
+   "default": "0",
+   "fieldname": "resignation_3",
+   "fieldtype": "Check",
+   "label": "Favoritism in the team"
+  },
+  {
+   "default": "0",
+   "fieldname": "resignation_4",
+   "fieldtype": "Check",
+   "label": "Lack of job security"
+  },
+  {
+   "default": "0",
+   "fieldname": "resignation_5",
+   "fieldtype": "Check",
+   "label": " Poor infrastructure / basic amenities"
+  },
+  {
+   "default": "0",
+   "fieldname": "resignation_6",
+   "fieldtype": "Check",
+   "label": " Lack of team collaboration"
+  },
+  {
+   "default": "0",
+   "fieldname": "resignation_7",
+   "fieldtype": "Check",
+   "label": " Work-life imbalance"
+  },
+  {
+   "default": "0",
+   "fieldname": "resig_8",
+   "fieldtype": "Check",
+   "label": "Other"
+  },
+  {
+   "depends_on": "eval:doc.resig_8 == 1",
+   "fieldname": "resignation_9",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "section_break_6glb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "own",
+   "fieldtype": "Heading",
+   "label": "3. In your own words, why did you decide to leave the company? "
+  },
+  {
+   "fieldname": "own_w1",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "section_break_gi0c",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "start",
+   "fieldtype": "Heading",
+   "label": "4. When did you start thinking about leaving the company?"
+  },
+  {
+   "default": "0",
+   "fieldname": "start_t1",
+   "fieldtype": "Check",
+   "label": "Within 3 months of joining"
+  },
+  {
+   "default": "0",
+   "fieldname": "start_t2",
+   "fieldtype": "Check",
+   "label": "After 6 months"
+  },
+  {
+   "default": "0",
+   "fieldname": "start_t3",
+   "fieldtype": "Check",
+   "label": "After 1 year"
+  },
+  {
+   "default": "0",
+   "fieldname": "start_t4",
+   "fieldtype": "Check",
+   "label": "After 2+ years"
+  },
+  {
+   "default": "0",
+   "fieldname": "start_t5",
+   "fieldtype": "Check",
+   "label": "Just recently"
+  },
+  {
+   "fieldname": "column_break_fsq4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "about",
+   "fieldtype": "Heading",
+   "label": "5. Did you inform anyone about your dissatisfaction before resigning?"
+  },
+  {
+   "default": "0",
+   "fieldname": "resigning_1",
+   "fieldtype": "Check",
+   "label": "Yes, my manager"
+  },
+  {
+   "default": "0",
+   "fieldname": "resigning_2",
+   "fieldtype": "Check",
+   "label": " Yes, HR"
+  },
+  {
+   "default": "0",
+   "fieldname": "resigning_3",
+   "fieldtype": "Check",
+   "label": "Yes, a colleague"
+  },
+  {
+   "default": "0",
+   "fieldname": "resigning_4",
+   "fieldtype": "Check",
+   "label": "No, I didn\u2019t share with anyone"
+  },
+  {
+   "fieldname": "section_break_ifjd",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "role",
+   "fieldtype": "Heading",
+   "label": "6. How satisfied were you with your job role and responsibilities?"
+  },
+  {
+   "default": "0",
+   "fieldname": "job_r1",
+   "fieldtype": "Check",
+   "label": "Very Satisfied"
+  },
+  {
+   "default": "0",
+   "fieldname": "job_r2",
+   "fieldtype": "Check",
+   "label": "Satisfied"
+  },
+  {
+   "default": "0",
+   "fieldname": "job_r3",
+   "fieldtype": "Check",
+   "label": "Neutral"
+  },
+  {
+   "default": "0",
+   "fieldname": "job_r4",
+   "fieldtype": "Check",
+   "label": "Dissatisfied"
+  },
+  {
+   "default": "0",
+   "fieldname": "job_r5",
+   "fieldtype": "Check",
+   "label": "Very Dissatisfied"
+  },
+  {
+   "fieldname": "section_break_jdef",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "match",
+   "fieldtype": "Heading",
+   "label": "7. Did the actual work match the job description you were hired for?"
+  },
+  {
+   "default": "0",
+   "fieldname": "hired1",
+   "fieldtype": "Check",
+   "label": "Completely"
+  },
+  {
+   "default": "0",
+   "fieldname": "hired2",
+   "fieldtype": "Check",
+   "label": "Mostly"
+  },
+  {
+   "default": "0",
+   "fieldname": "hired3",
+   "fieldtype": "Check",
+   "label": "Somewhat"
+  },
+  {
+   "default": "0",
+   "fieldname": "hired4",
+   "fieldtype": "Check",
+   "label": " Not at all"
+  },
+  {
+   "fieldname": "section_break_f1wq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "work",
+   "fieldtype": "Heading",
+   "label": "8. Was your workload manageable?"
+  },
+  {
+   "default": "0",
+   "fieldname": "work1",
+   "fieldtype": "Check",
+   "label": "Always"
+  },
+  {
+   "default": "0",
+   "fieldname": "work2",
+   "fieldtype": "Check",
+   "label": "Most of the time"
+  },
+  {
+   "default": "0",
+   "fieldname": "work3",
+   "fieldtype": "Check",
+   "label": "Occasionally"
+  },
+  {
+   "default": "0",
+   "fieldname": "work4",
+   "fieldtype": "Check",
+   "label": "Rarely"
+  },
+  {
+   "default": "0",
+   "fieldname": "work5",
+   "fieldtype": "Check",
+   "label": "Never"
+  },
+  {
+   "fieldname": "column_break_0dcg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "support",
+   "fieldtype": "Heading",
+   "label": "9. Did you receive the necessary tools and support to perform your job efficiently?"
+  },
+  {
+   "default": "0",
+   "fieldname": "tools1",
+   "fieldtype": "Check",
+   "label": "Yes"
+  },
+  {
+   "default": "0",
+   "fieldname": "tools2",
+   "fieldtype": "Check",
+   "label": "Partially"
+  },
+  {
+   "default": "0",
+   "fieldname": "tools_3",
+   "fieldtype": "Check",
+   "label": "No"
+  },
+  {
+   "fieldname": "section_break_divx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "lead",
+   "fieldtype": "Heading",
+   "label": "10.Rate your manager\u2019s ability to lead and support you."
+  },
+  {
+   "default": "0",
+   "fieldname": "lead1",
+   "fieldtype": "Check",
+   "label": "Excellent"
+  },
+  {
+   "default": "0",
+   "fieldname": "lead2",
+   "fieldtype": "Check",
+   "label": "Good"
+  },
+  {
+   "default": "0",
+   "fieldname": "lead3",
+   "fieldtype": "Check",
+   "label": "Average"
+  },
+  {
+   "default": "0",
+   "fieldname": "lead4",
+   "fieldtype": "Check",
+   "label": "Poor"
+  },
+  {
+   "default": "0",
+   "fieldname": "lead5",
+   "fieldtype": "Check",
+   "label": " Very Poor"
+  },
+  {
+   "fieldname": "tab_break_hxym",
+   "fieldtype": "Tab Break",
+   "label": "Details1"
+  },
+  {
+   "fieldname": "feed",
+   "fieldtype": "Heading",
+   "label": "11. Did you receive regular and constructive feedback from your manager?"
+  },
+  {
+   "default": "0",
+   "fieldname": "from1",
+   "fieldtype": "Check",
+   "label": " Yes, regularly"
+  },
+  {
+   "default": "0",
+   "fieldname": "from2",
+   "fieldtype": "Check",
+   "label": "Occasionally"
+  },
+  {
+   "default": "0",
+   "fieldname": "from3",
+   "fieldtype": "Check",
+   "label": "Rarely"
+  },
+  {
+   "default": "0",
+   "fieldname": "from4",
+   "fieldtype": "Check",
+   "label": "Never"
+  },
+  {
+   "fieldname": "column_break_msms",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "value",
+   "fieldtype": "Heading",
+   "label": "12. Did you feel valued and respected by your manager/team leader?"
+  },
+  {
+   "default": "0",
+   "fieldname": "value1",
+   "fieldtype": "Check",
+   "label": "Always"
+  },
+  {
+   "default": "0",
+   "fieldname": "value2",
+   "fieldtype": "Check",
+   "label": "Sometimes"
+  },
+  {
+   "default": "0",
+   "fieldname": "value3",
+   "fieldtype": "Check",
+   "label": "Rarely"
+  },
+  {
+   "default": "0",
+   "fieldname": "value4",
+   "fieldtype": "Check",
+   "label": "Never"
+  },
+  {
+   "fieldname": "section_break_lbrm",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "manage",
+   "fieldtype": "Heading",
+   "label": "13. What could your manager/team have done differently to retain you?"
+  },
+  {
+   "fieldname": "team1",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "column_break_7zqw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "over",
+   "fieldtype": "Heading",
+   "label": "14. How would you describe the overall work culture of the company?"
+  },
+  {
+   "default": "0",
+   "fieldname": "over1",
+   "fieldtype": "Check",
+   "label": "Very Positive"
+  },
+  {
+   "default": "0",
+   "fieldname": "over2",
+   "fieldtype": "Check",
+   "label": "Positive"
+  },
+  {
+   "default": "0",
+   "fieldname": "over3",
+   "fieldtype": "Check",
+   "label": "Neutral"
+  },
+  {
+   "default": "0",
+   "fieldname": "over4",
+   "fieldtype": "Check",
+   "label": "Negative"
+  },
+  {
+   "default": "0",
+   "fieldname": "over5",
+   "fieldtype": "Check",
+   "label": "Very Negative"
+  },
+  {
+   "fieldname": "section_break_0dtm",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "during",
+   "fieldtype": "Heading",
+   "label": "15. Did you experience any of the following during your time here?"
+  },
+  {
+   "default": "0",
+   "fieldname": "during1",
+   "fieldtype": "Check",
+   "label": " Teamwork & support"
+  },
+  {
+   "default": "0",
+   "fieldname": "during2",
+   "fieldtype": "Check",
+   "label": "Office politics or favoritism"
+  },
+  {
+   "default": "0",
+   "fieldname": "during3",
+   "fieldtype": "Check",
+   "label": "Discrimination or bias"
+  },
+  {
+   "default": "0",
+   "fieldname": "during4",
+   "fieldtype": "Check",
+   "label": "Micromanagement"
+  },
+  {
+   "default": "0",
+   "fieldname": "during5",
+   "fieldtype": "Check",
+   "label": "Unfair treatment"
+  },
+  {
+   "fieldname": "column_break_mj0p",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "unsafe",
+   "fieldtype": "Heading",
+   "label": "16. Did you ever feel unsafe, harassed, or bullied at work?"
+  },
+  {
+   "default": "0",
+   "fieldname": "unsafe1",
+   "fieldtype": "Check",
+   "label": "Yes (Please elaborate below)"
+  },
+  {
+   "default": "0",
+   "fieldname": "unsafe2",
+   "fieldtype": "Check",
+   "label": "No"
+  },
+  {
+   "depends_on": "eval:doc.unsafe1 == 1",
+   "fieldname": "unsafe3",
+   "fieldtype": "Small Text",
+   "label": "If yes, please provide details"
+  },
+  {
+   "fieldname": "section_break_2a1c",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Heading",
+   "label": "17. What did you like the most about the company culture?"
+  },
+  {
+   "fieldname": "most1",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "column_break_loyu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "improve",
+   "fieldtype": "Heading",
+   "label": "18. What would you recommend improving in the company culture? "
+  },
+  {
+   "fieldname": "culture1",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "section_break_xvqo",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Heading",
+   "label": "19. How would you rate your satisfaction with the salary and benefits offered?"
+  },
+  {
+   "default": "0",
+   "fieldname": "salary1",
+   "fieldtype": "Check",
+   "label": "Very Satisfied"
+  },
+  {
+   "default": "0",
+   "fieldname": "salary2",
+   "fieldtype": "Check",
+   "label": "Satisfied"
+  },
+  {
+   "default": "0",
+   "fieldname": "salary3",
+   "fieldtype": "Check",
+   "label": "Neutral"
+  },
+  {
+   "default": "0",
+   "fieldname": "salary4",
+   "fieldtype": "Check",
+   "label": "Dissatisfied"
+  },
+  {
+   "default": "0",
+   "fieldname": "salary5",
+   "fieldtype": "Check",
+   "label": "Very Dissatisfied "
+  },
+  {
+   "fieldname": "column_break_bcaz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fair",
+   "fieldtype": "Heading",
+   "label": "20. Did you feel your compensation was fair compared to your role and responsibilities?"
+  },
+  {
+   "default": "0",
+   "fieldname": "fair1",
+   "fieldtype": "Check",
+   "label": "Yes"
+  },
+  {
+   "default": "0",
+   "fieldname": "fair2",
+   "fieldtype": "Check",
+   "label": "No"
+  },
+  {
+   "default": "0",
+   "fieldname": "fair3",
+   "fieldtype": "Check",
+   "label": "Not sure"
+  },
+  {
+   "fieldname": "tab_break_xx7f",
+   "fieldtype": "Tab Break",
+   "label": "Details2"
+  },
+  {
+   "fieldname": "salary",
+   "fieldtype": "Heading",
+   "label": "21. Was salary revision/increment timely and justified?"
+  },
+  {
+   "default": "0",
+   "fieldname": "timely1",
+   "fieldtype": "Check",
+   "label": "Yes"
+  },
+  {
+   "default": "0",
+   "fieldname": "timely2",
+   "fieldtype": "Check",
+   "label": "No"
+  },
+  {
+   "default": "0",
+   "fieldname": "timely3",
+   "fieldtype": "Check",
+   "label": "Not applicable"
+  },
+  {
+   "fieldname": "column_break_ysgj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "growth",
+   "fieldtype": "Data",
+   "label": "22. Were there adequate growth and promotion opportunities within the company?"
+  },
+  {
+   "default": "0",
+   "fieldname": "growth1",
+   "fieldtype": "Check",
+   "label": "Yes"
+  },
+  {
+   "default": "0",
+   "fieldname": "growth2",
+   "fieldtype": "Check",
+   "label": "No"
+  },
+  {
+   "default": "0",
+   "fieldname": "growth3",
+   "fieldtype": "Check",
+   "label": "Limited"
+  },
+  {
+   "fieldname": "section_break_dvqi",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "skill",
+   "fieldtype": "Heading",
+   "label": "23. Did you receive sufficient training or development programs to enhance your skills?"
+  },
+  {
+   "default": "0",
+   "fieldname": "skills1",
+   "fieldtype": "Check",
+   "label": "Yes"
+  },
+  {
+   "default": "0",
+   "fieldname": "skills2",
+   "fieldtype": "Check",
+   "label": "No"
+  },
+  {
+   "default": "0",
+   "fieldname": "skills3",
+   "fieldtype": "Check",
+   "label": "Somewhat"
+  },
+  {
+   "fieldname": "column_break_brg2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "clear",
+   "fieldtype": "Heading",
+   "label": "24. Did you have clear career progression discussions with your manager?"
+  },
+  {
+   "default": "0",
+   "fieldname": "career1",
+   "fieldtype": "Check",
+   "label": "Yes"
+  },
+  {
+   "default": "0",
+   "fieldname": "career2",
+   "fieldtype": "Check",
+   "label": "No"
+  },
+  {
+   "fieldname": "section_break_ee99",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "offer",
+   "fieldtype": "Heading",
+   "label": "25. What growth opportunities did the new company offer that influenced your decision?"
+  },
+  {
+   "fieldname": "offer1",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "column_break_kynu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "basic",
+   "fieldtype": "Heading",
+   "label": "26. How satisfied were you with the basic facilities (canteen, restrooms, cleanliness, etc.)?"
+  },
+  {
+   "default": "0",
+   "fieldname": "basic1",
+   "fieldtype": "Check",
+   "label": "Very Satisfied"
+  },
+  {
+   "default": "0",
+   "fieldname": "basic2",
+   "fieldtype": "Check",
+   "label": "Satisfied"
+  },
+  {
+   "default": "0",
+   "fieldname": "basic3",
+   "fieldtype": "Check",
+   "label": "Neutral"
+  },
+  {
+   "default": "0",
+   "fieldname": "basic4",
+   "fieldtype": "Check",
+   "label": "Dissatisfied"
+  },
+  {
+   "default": "0",
+   "fieldname": "basic5",
+   "fieldtype": "Check",
+   "label": "Very Dissatisfied"
+  },
+  {
+   "fieldname": "section_break_fnmy",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "response",
+   "fieldtype": "Heading",
+   "label": "27. How would you rate the HR support and responsiveness?"
+  },
+  {
+   "default": "0",
+   "fieldname": "support1",
+   "fieldtype": "Check",
+   "label": "Excellent"
+  },
+  {
+   "default": "0",
+   "fieldname": "support2",
+   "fieldtype": "Check",
+   "label": "Good"
+  },
+  {
+   "default": "0",
+   "fieldname": "support3",
+   "fieldtype": "Check",
+   "label": "Average"
+  },
+  {
+   "default": "0",
+   "fieldname": "support4",
+   "fieldtype": "Check",
+   "label": "Poor"
+  },
+  {
+   "default": "0",
+   "fieldname": "support5",
+   "fieldtype": "Check",
+   "label": "Very Poor"
+  },
+  {
+   "fieldname": "column_break_pi8o",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "aware",
+   "fieldtype": "Heading",
+   "label": "28. Were you aware of all company policies (leave, attendance, grievance, etc.)?"
+  },
+  {
+   "default": "0",
+   "fieldname": "aware1",
+   "fieldtype": "Check",
+   "label": "Yes"
+  },
+  {
+   "default": "0",
+   "fieldname": "aware2",
+   "fieldtype": "Check",
+   "label": "No"
+  },
+  {
+   "default": "0",
+   "fieldname": "aware3",
+   "fieldtype": "Check",
+   "label": "Somewhat"
+  },
+  {
+   "fieldname": "section_break_qsun",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "suggest",
+   "fieldtype": "Heading",
+   "label": "29. What suggestions would you give to improve employee retention?"
+  },
+  {
+   "fieldname": "suggest1",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "column_break_kpjw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "good",
+   "fieldtype": "Heading",
+   "label": "30. Would you recommend this company to others as a good place to work?"
+  },
+  {
+   "default": "0",
+   "fieldname": "place1",
+   "fieldtype": "Check",
+   "label": "Yes"
+  },
+  {
+   "default": "0",
+   "fieldname": "place2",
+   "fieldtype": "Check",
+   "label": "No"
+  },
+  {
+   "default": "0",
+   "fieldname": "place3",
+   "fieldtype": "Check",
+   "label": "Maybe"
+  },
+  {
+   "fieldname": "tab_break_vmir",
+   "fieldtype": "Tab Break",
+   "label": "Details3"
+  },
+  {
+   "fieldname": "future",
+   "fieldtype": "Heading",
+   "label": "31. Would you consider rejoining the company in the future?"
+  },
+  {
+   "default": "0",
+   "fieldname": "rejoin1",
+   "fieldtype": "Check",
+   "label": "Yes"
+  },
+  {
+   "default": "0",
+   "fieldname": "rejoin2",
+   "fieldtype": "Check",
+   "label": "No"
+  },
+  {
+   "default": "0",
+   "fieldname": "rejoin3",
+   "fieldtype": "Check",
+   "label": "Depends on the situation"
+  },
+  {
+   "fieldname": "column_break_m2na",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "final",
+   "fieldtype": "Heading",
+   "label": "32. Any final comments you would like to share?"
+  },
+  {
+   "fieldname": "share1",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "naming_series",
+   "options": "EMP-EX-"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-08-25 11:32:57.928593",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Employee Exit Questionnaire",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}

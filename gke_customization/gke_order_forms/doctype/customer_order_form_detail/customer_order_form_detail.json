@@ -11,6 +11,7 @@
   "design_code_bom",
   "serial_no",
   "serial_no_bom",
+  "flow_type",
   "column_break_uqoj",
   "customer_code",
   "customer_name",
@@ -376,7 +377,7 @@
    "fieldtype": "Data",
    "label": "Product Code",
    "length": 14,
-   "mandatory_depends_on": "// eval: doc.customer_name.includes('Titan')"
+   "mandatory_depends_on": "eval: doc.customer_name.includes('Titan')"
   },
   {
    "depends_on": "eval: doc.customer_name.includes('Reliance')",

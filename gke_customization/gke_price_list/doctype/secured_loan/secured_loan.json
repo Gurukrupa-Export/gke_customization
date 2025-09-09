@@ -1,0 +1,171 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-27 15:55:57.279880",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_fzbc",
+  "amended_from",
+  "company",
+  "lender_type",
+  "lender",
+  "lender_name",
+  "loan_amount",
+  "interest_rate",
+  "column_break_whf3",
+  "branch",
+  "asset_collateral",
+  "start_date",
+  "end_date",
+  "outstanding_amount",
+  "section_break_dusv",
+  "secured_loan_repayment_schedule",
+  "payment_entry_created",
+  "section_break_ke4x",
+  "principal_gl_account"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_fzbc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Secured Loan",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "lender_type",
+   "fieldtype": "Select",
+   "label": "Lender Type",
+   "options": "Business Partner\nBank"
+  },
+  {
+   "fieldname": "lender",
+   "fieldtype": "Link",
+   "label": "Lender",
+   "options": "Business Partner"
+  },
+  {
+   "fieldname": "outstanding_amount",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Outstanding Amount"
+  },
+  {
+   "fieldname": "interest_rate",
+   "fieldtype": "Float",
+   "label": "Interest Rate"
+  },
+  {
+   "fieldname": "asset_collateral",
+   "fieldtype": "Link",
+   "label": "Asset Collateral",
+   "options": "Asset"
+  },
+  {
+   "fieldname": "loan_amount",
+   "fieldtype": "Float",
+   "label": "Loan Amount"
+  },
+  {
+   "depends_on": "eval:doc.payment_entry_created",
+   "fieldname": "section_break_dusv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "secured_loan_repayment_schedule",
+   "fieldtype": "Table",
+   "label": "Secured Loan Repayment Schedule",
+   "options": "Secured Loan Repayment Schedule"
+  },
+  {
+   "fieldname": "column_break_whf3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lender_name",
+   "fieldtype": "Data",
+   "label": "Lender Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "default": "0",
+   "fieldname": "payment_entry_created",
+   "fieldtype": "Check",
+   "label": "Payment Entry Created"
+  },
+  {
+   "fieldname": "section_break_ke4x",
+   "fieldtype": "Section Break",
+   "hidden": 1
+  },
+  {
+   "fetch_from": "lender.secured_loan_account",
+   "fetch_if_empty": 1,
+   "fieldname": "principal_gl_account",
+   "fieldtype": "Link",
+   "label": "Principal GL Account",
+   "options": "Account"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [
+  {
+   "link_doctype": "Payment Entry",
+   "link_fieldname": "custom_secured_loan"
+  }
+ ],
+ "modified": "2025-07-22 11:24:54.093327",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Secured Loan",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

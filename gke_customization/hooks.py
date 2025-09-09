@@ -118,6 +118,7 @@ has_permission = {
 override_doctype_class = {
 	"Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive",
 	"Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin",
+    "Job Requisition": "gke_customization.overrides.job_requisition.CustomJobRequisition"
     # "Parent Manufacturing Order": "gke_customization.overrides.parent_manufacturing_order.CustomParentManufacturingOrder"
 }
 
@@ -251,6 +252,9 @@ doc_events = {
     "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
     "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit"
 },
+"Loan Application":{
+    "validate":"gke_customization.gke_hrms.doc_events.loan_application.validate"
+},
 "Share Transfer":{
     "validate":"gke_customization.gke_customization.doc_events.share_transfer.validate",
     "on_trash":"gke_customization.gke_customization.doc_events.share_transfer.on_trash",
@@ -259,9 +263,10 @@ doc_events = {
 # "Shareholder": {
 #     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
 # },
-# "Payment Entry": {
-#     "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_update_after_submit"
-# },
+"Payment Entry": {
+    # "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_update_after_submit"
+	"on_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_submit"
+},
 "Journal Entry": {
     "on_submit": "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit"
 },
@@ -288,6 +293,12 @@ doc_events = {
 },
 "Batch": {
     "autoname": "jewellery_erpnext.jewellery_erpnext.customization.batch.batch.autoname",
+},
+"Timesheet": {
+    "validate": "gke_customization.gke_order_forms.doc_events.timesheet.validate",
+    "on_submit": "gke_customization.gke_order_forms.doc_events.timesheet.on_submit",
+    "on_update": "gke_customization.gke_order_forms.doc_events.timesheet.on_update"
+    
 },
 # "Stock Entry": {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.stock_entry.before_validate",

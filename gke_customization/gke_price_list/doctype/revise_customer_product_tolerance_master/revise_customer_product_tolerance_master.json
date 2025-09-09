@@ -1,0 +1,125 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:RE-PTM-{customer_name}-{#####}",
+ "creation": "2025-07-26 12:07:51.882780",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "customer_name",
+  "product_tolerance",
+  "column_break_kssh",
+  "effective_date",
+  "is_standard",
+  "customer_product_tolerance_master",
+  "section_break_k33qb",
+  "revise_metal_tolerance_table",
+  "revise_diamond_tolerance_table",
+  "revise_gemstone_tolerance_table",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer Name ",
+   "options": "Customer",
+   "reqd": 1,
+   "set_only_once": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "product_tolerance",
+   "fieldtype": "Select",
+   "label": "Product Tolerance",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "column_break_kssh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_standard",
+   "fieldtype": "Check",
+   "label": "Is Standard",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "section_break_k33qb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "eval:doc.product_tolerance == \"Yes\"",
+   "fieldname": "revise_metal_tolerance_table",
+   "fieldtype": "Table",
+   "label": "Metal Tolerance Table",
+   "options": "Revise Metal Tolerance Table"
+  },
+  {
+   "depends_on": "eval:doc.product_tolerance == \"Yes\"",
+   "fieldname": "revise_diamond_tolerance_table",
+   "fieldtype": "Table",
+   "label": "Diamond Tolerance Table",
+   "options": "Revise Diamond Tolerance Table"
+  },
+  {
+   "depends_on": "eval:doc.product_tolerance == \"Yes\"",
+   "fieldname": "revise_gemstone_tolerance_table",
+   "fieldtype": "Table",
+   "label": "Gemstone Tolerance Table",
+   "options": "Revise Gemstone Tolerance Table"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Revise Customer Product Tolerance Master",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "effective_date",
+   "fieldtype": "Date",
+   "label": "Effective Date"
+  },
+  {
+   "fieldname": "customer_product_tolerance_master",
+   "fieldtype": "Link",
+   "label": "Customer Product Tolerance Master",
+   "options": "Customer Product Tolerance Master"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-07-26 12:46:09.266723",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Revise Customer Product Tolerance Master",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

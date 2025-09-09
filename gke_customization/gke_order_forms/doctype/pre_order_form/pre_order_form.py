@@ -27,7 +27,7 @@ class PreOrderForm(Document):
 					missing_fields.append("BOM Setting Type")
 
 				# Check for Mod-specific fields
-				if row.design_type == "Mod":
+				if row.design_type == "Mod - Old Stylebio & Tag No":
 					if not row.mod_reason:
 						missing_fields.append("Mod Reason")
 					if not row.mod_remarks:

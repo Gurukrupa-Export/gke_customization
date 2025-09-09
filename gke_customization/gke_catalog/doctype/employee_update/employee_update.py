@@ -15,13 +15,22 @@ class EmployeeUpdate(Document):
 			probation_days = int(self.custom_probation_period_days)
 			joining_date = getdate(self.date_of_joining)  
 			self.final_confirmation_date = joining_date + timedelta(days=probation_days)
+
+		if self.allowed_personal_hours:
+			self.allowed_personal_hours = timedelta(hours=3)
+
 		# if self.is_new_employee:
 		# 	if self.health_insurance_status:
 
 		# 		frappe.msgprint(f"{self.health_insurance_status}")
+		# if self.employee_onboarding:
+		# 	job_appliacnt=frappe.db.get_value('Employee Onboarding',self.employee_onboarding,'job_applicant')
+		# 	image=frappe.db.get_value('Job Applicant',job_appliacnt,'custom_image')
+		# 	self.image=image
+		# 	frappe.throw(f"{image}")
 	def on_submit(self):
 		field_list = [
-			"first_name", "middle_name", "last_name", "image", "date_of_birth", 
+			"first_name", "middle_name", "last_name", "image", "date_of_birth", "grade","job_applicant",
 			"salutation","gender","custom_notice_dayes", "employment_type","custom_probation_period_days",
 			"date_of_joining","contract_end_date", "old_employee_code", "old_punch_id","status",
 			"company", "department", "designation","operation","branch","apprentice_contract_no",
@@ -72,6 +81,9 @@ class EmployeeUpdate(Document):
 				value = frappe.db.get_value("Employee Update", self.name, source_field)
 				emp_doc.set(target_field, value)
 
+			allowed_personal_hours = self.get("allowed_personal_hours")
+			if allowed_personal_hours:
+				emp_doc.set("allowed_personal_hours", timedelta(hours=3))
 			# emp_doc.insert()
 			doc_ = emp_doc
 		else:
@@ -85,7 +97,8 @@ class EmployeeUpdate(Document):
 					frappe.db.set_value("Employee", self.employee, target_field, update_value)
 
 			doc_ = frappe.get_doc("Employee", self.employee)
-				
+		
+
 		doc_.set("custom_employee_languages", [])
 		if self.employee_languages:
 			for lan in self.employee_languages:
@@ -137,6 +150,13 @@ class EmployeeUpdate(Document):
 			employee_family_background.occupation = efb.occupation
 			employee_family_background.birth_date = efb.birth_date
 			employee_family_background.age = efb.age
+			employee_family_background.document_name = efb.document_name
+			employee_family_background.document_number = efb.document_number
+			employee_family_background.same_as_present = efb.same_as_present
+			employee_family_background.same_as_permanent = efb.same_as_permanent
+			employee_family_background.address = efb.address
+			employee_family_background.is_nominee = efb.is_nominee
+			employee_family_background.nominee_share = efb.nominee_share
 
 		doc_.set("employee_relative_deails", [])
 		for erd in self.employee_relative_deails:

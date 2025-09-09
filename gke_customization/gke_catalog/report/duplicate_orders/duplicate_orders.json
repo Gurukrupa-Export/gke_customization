@@ -1,0 +1,231 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2025-07-24 16:35:06.525156",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2025-07-24 18:10:01.505789",
+ "modified_by": "jinali_g@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Duplicate Orders",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Order",
+ "reference_report": "",
+ "report_name": "Duplicate Orders",
+ "report_script": "",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Employee Self Service"
+  },
+  {
+   "role": "Computer Aided Designing Executive - KL - GE"
+  },
+  {
+   "role": "Computer Aided Designing Executive - ST - GE"
+  },
+  {
+   "role": "Manufacturing Plan & Management - ST - GE"
+  },
+  {
+   "role": "CAD/CAM"
+  },
+  {
+   "role": "Order QC"
+  },
+  {
+   "role": "MPM - ST - Executive"
+  },
+  {
+   "role": "CAD QC"
+  },
+  {
+   "role": "Designer"
+  },
+  {
+   "role": "MPM-Order"
+  },
+  {
+   "role": "QC Doctype"
+  },
+  {
+   "role": "GK Order Form Approver"
+  },
+  {
+   "role": "Manufacturing Plan & Management - CH - GE"
+  },
+  {
+   "role": "BOM HOD"
+  },
+  {
+   "role": "Central Manager - ST"
+  },
+  {
+   "role": "Central Executive - ST"
+  },
+  {
+   "role": "Model Making Manager - ST"
+  },
+  {
+   "role": "Model Making Executive - ST"
+  },
+  {
+   "role": "Close Model Making Manager - ST"
+  },
+  {
+   "role": "Close Model Making Executive - ST"
+  },
+  {
+   "role": "Pre polish Executive - ST"
+  },
+  {
+   "role": "Close Pre polish Executive - ST"
+  },
+  {
+   "role": "Diamond Setting Executive - ST"
+  },
+  {
+   "role": "Close Diamond Setting Executive - ST"
+  },
+  {
+   "role": "Final Polish Executive - ST"
+  },
+  {
+   "role": "Close Final Polish Executive - ST"
+  },
+  {
+   "role": "Refinery Executive -ST"
+  },
+  {
+   "role": "Sales & Marketing Manager - ST"
+  },
+  {
+   "role": "Manufacturing Plan & Management Manager - ST"
+  },
+  {
+   "role": "Manufacturing Plan & Management Executive - ST"
+  },
+  {
+   "role": "BOM Executive - ST"
+  },
+  {
+   "role": "Computer Aided Designing Manager - ST"
+  },
+  {
+   "role": "Computer Aided Designing Executive - ST"
+  },
+  {
+   "role": "Order Management Executive - MUM"
+  },
+  {
+   "role": "Product Development Manager - MUM"
+  },
+  {
+   "role": "Experience Executive - MUM"
+  },
+  {
+   "role": "Creative Lab Manager - MUM"
+  },
+  {
+   "role": "Creative Lab Executive - MUM"
+  },
+  {
+   "role": "Manufacturing Manager - MUM"
+  },
+  {
+   "role": "Sketch Manager - MUM"
+  },
+  {
+   "role": "Sketch Executive - MUM"
+  },
+  {
+   "role": "Sketch Designer - MUM"
+  },
+  {
+   "role": "D2D Marketing Executive - MUM"
+  },
+  {
+   "role": "Central Executive - MUM"
+  },
+  {
+   "role": "Model Making Manager - MUM"
+  },
+  {
+   "role": "Diamond Setting Executive - MUM"
+  },
+  {
+   "role": "Final Polish Executive - MUM"
+  },
+  {
+   "role": "Sales & Marketing Manager - MUM"
+  },
+  {
+   "role": "Computer Aided Designer - KGJPL"
+  },
+  {
+   "role": "BOM Executive - KGJPL"
+  },
+  {
+   "role": "Computer Aided Designing Manager - KL"
+  },
+  {
+   "role": "Computer Aided Designing Designer - KL"
+  },
+  {
+   "role": "Sketch Manager - KL"
+  },
+  {
+   "role": "Sketch Designer - KL"
+  },
+  {
+   "role": "Order Management Manager - CH"
+  },
+  {
+   "role": "Order Management Executive - CH"
+  },
+  {
+   "role": "Order Management Executive - HD"
+  },
+  {
+   "role": "D2D Marketing Manager - CH"
+  },
+  {
+   "role": "D2D Marketing Executive - CH"
+  },
+  {
+   "role": "D2D Marketing Executive - BL"
+  },
+  {
+   "role": "D2D Marketing Executive - HD"
+  },
+  {
+   "role": "D2D Marketing Executive - TH"
+  },
+  {
+   "role": "D2D Marketing Executive - VD"
+  },
+  {
+   "role": "Sales & Marketing Manager - HD"
+  },
+  {
+   "role": "Sales & Marketing Manager - HD"
+  },
+  {
+   "role": "Sales & Marketing Manager - VD"
+  },
+  {
+   "role": "Data Analyst"
+  }
+ ],
+ "timeout": 0
+}

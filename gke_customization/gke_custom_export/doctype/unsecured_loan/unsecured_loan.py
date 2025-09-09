@@ -6,43 +6,58 @@ from frappe.utils import flt
 from frappe.model.document import Document
 from datetime import datetime, timedelta
 import frappe.utils
-
+from frappe.utils import getdate
 
 class UnsecuredLoan(Document):
-    # pass
 	def validate(self):
-		loan_amount = self.loan_amount
-		interest_rate = self.interest_rate
-		repayment_period = self.repayment_period
-		loan_date = self.loan_date
-		if not loan_amount or not interest_rate or not repayment_period:
+		if not self.loan_amount or not self.interest_rate:
 			frappe.throw("Please ensure loan amount, interest rate, and repayment period are provided.")
-		if self.repayment_schedule: 
-			if len(self.repayment_schedule)==1:
-				d1 = frappe.utils.getdate(loan_date)
-				d2 = frappe.utils.getdate(self.repayment_schedule[0].payment_date)
-				days = (d2 - d1).days
-				interest = flt((loan_amount*interest_rate*days)/(100*365),2)
-				self.repayment_schedule[0].number_of_days = days
-				self.repayment_schedule[0].interest_amount = interest
-				self.repayment_schedule[0].repay_loan_amount = self.repayment_schedule[0].total_payment - interest
-				self.repayment_schedule[0].balance_loan_amount = loan_amount - self.repayment_schedule[0].repay_loan_amount
-				if self.repayment_schedule[0].balance_loan_amount > loan_amount:
-					frappe.throw("Repayment Loan Amount is not correct")
-			else:
-				d1 = frappe.utils.getdate(self.repayment_schedule[-2].payment_date)
-				d2 = frappe.utils.getdate(self.repayment_schedule[-1].payment_date)
-				days = (d2 - d1).days
-				interest = flt((self.repayment_schedule[-2].balance_loan_amount*interest_rate*days)/(100*365),2)
-				self.repayment_schedule[-1].number_of_days = days
-				self.repayment_schedule[-1].interest_amount = interest
-				self.repayment_schedule[-1].repay_loan_amount = self.repayment_schedule[-1].total_payment - interest
-				self.repayment_schedule[-1].balance_loan_amount = self.repayment_schedule[-2].balance_loan_amount - self.repayment_schedule[-1].repay_loan_amount
-				if self.repayment_schedule[-1].repay_loan_amount > self.repayment_schedule[-2].balance_loan_amount:
-					frappe.throw("Repayment Loan Amount is not correct")
+
+		# Set first row if empty
+		if not self.repayment_schedule:
+			self.append("repayment_schedule", {
+				"payment_type": "Receive",
+				"payment_date": self.loan_date,
+				"number_of_days": 0,
+				"total_payment": self.loan_amount,
+				"balance_loan_amount": self.loan_amount,
+				"loan_amount": self.loan_amount,
+				"interest_rate": self.interest_rate
+			})
+
+		# repayment_rows = self.repayment_schedule
+		# for i in range(1, len(self.repayment_schedule)):
+		# 	prev_row = self.repayment_schedule[i - 1]
+		# 	row = self.repayment_schedule[i]
+
+		# 	if not row.payment_date or not prev_row.payment_date:
+		# 		continue
+
+		# 	prev_date = getdate(prev_row.payment_date)
+		# 	curr_date = getdate(row.payment_date)
+		# 	days = (curr_date - prev_date).days
+		# 	row.number_of_days = days
+
+		# 	prev_balance = prev_row.balance_loan_amount or 0
+		# 	interest = (prev_balance * self.interest_rate / 100) * (days / 365)
+		# 	row.interest_amount = interest
+
+		# 	row.total_payment = row.total_payment or 0
+		# 	row.repay_loan_amount = row.repay_loan_amount or 0
+		# 	row.loan_amount = row.loan_amount or 0
+
+		# 	if row.payment_type == "Pay":
+		# 		row.repay_loan_amount = row.total_payment - interest
+		# 		row.balance_loan_amount = prev_balance - row.repay_loan_amount
+		# 	elif row.payment_type == "Receive":
+		# 		row.repay_loan_amount = 0
+		# 		row.balance_loan_amount = prev_balance + row.loan_amount
+
 
 		# if self.workflow_state == 'Interest Accrual':
 		# 	create_gl_entry(self)
+
+
 
 # def create_gl_entry(self):
 # 	if not self.parent_gl_entry_created:
