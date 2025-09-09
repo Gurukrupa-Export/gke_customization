@@ -1,0 +1,55 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2025-07-04 12:36:30.485099",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [
+  {
+   "default": "2025-06-01",
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date",
+   "mandatory": 0,
+   "wildcard_filter": 0
+  },
+  {
+   "default": "2025-06-30",
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date",
+   "mandatory": 0,
+   "wildcard_filter": 0
+  },
+  {
+   "default": "GEPL-ST-0002",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "mandatory": 0,
+   "options": "Branch",
+   "wildcard_filter": 0
+  }
+ ],
+ "idx": 2,
+ "is_standard": "Yes",
+ "letter_head": "Gurukrupa Export",
+ "letterhead": null,
+ "modified": "2025-07-04 15:05:49.268245",
+ "modified_by": "jinali_g@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Customer Group wise Sketch Order Form",
+ "owner": "jinali_g@gkexport.com",
+ "prepared_report": 0,
+ "query": "SELECT \r\n     CASE \r\n        WHEN cc.customer_group_name IN ('Groups', 'Individual', 'Common Party', 'Wholesale') THEN 'Wholesale'\r\n        WHEN cc.customer_group_name = 'Internal' THEN 'Internal'\r\n        WHEN cc.customer_group_name = 'Retail' THEN 'Retail'\r\n        ELSE 'Other-Groups'\r\n    END AS Customer_Category,\r\n    GROUP_CONCAT(DISTINCT ct.customer_name SEPARATOR ', ') AS Customers,\r\n    GROUP_CONCAT(DISTINCT ct.name SEPARATOR ',') AS customer_codes,\r\n    COUNT(DISTINCT ct.customer_name) AS \"Customer Count\",\r\n    COUNT(sof.name) AS \"Total Orders\",\r\n    SUM(CASE WHEN sof.docstatus = 1 THEN 1 ELSE 0 END) AS \"Submitted\",\r\n    SUM(CASE WHEN sof.docstatus = 0 THEN 1 ELSE 0 END) AS \"Pending\",\r\n    SUM(CASE WHEN sof.docstatus = 2 THEN 1 ELSE 0 END) AS \"Cancelled\"\r\nFROM `tabSketch Order Form` sof\r\nLEFT JOIN `tabCustomer` ct\r\n    ON sof.customer_code = ct.name\r\nLEFT JOIN `tabCustomer Group` cc\r\n    ON ct.customer_group = cc.name\r\nWHERE (%(from_date)s IS NULL OR DATE(sof.modified) >= %(from_date)s)\r\nAND (%(to_date)s IS NULL OR DATE(sof.modified) <= %(to_date)s)\r\n    AND (%(branch)s IS NULL OR branch = %(branch)s)\r\nGROUP BY Customer_Category\r\nORDER BY Customer_Category;\r\n",
+ "ref_doctype": "Customer",
+ "report_name": "Customer Group wise Sketch Order Form",
+ "report_type": "Query Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "timeout": 0
+}

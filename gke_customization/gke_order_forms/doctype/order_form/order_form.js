@@ -1,5 +1,13 @@
 frappe.ui.form.on('Order Form', {
+	setup(frm) {
+		// Ensure default time is 11:00:00 AM on load too if needed
+		if (frm.doc.delivery_date) {
+			set_11am_time_on_date(frm, 'delivery_date');
+		}
+	},
+	
 	delivery_date(frm) {
+		set_11am_time_on_date(frm, 'delivery_date');
 		validate_dates(frm, frm.doc, "delivery_date")
 		update_fields_in_child_table(frm, "delivery_date")
 		calculate_due_days(frm);
@@ -281,6 +289,115 @@ frappe.ui.form.on('Order Form', {
 			})
 			frm.set_df_property('party_name', 'read_only', 1);
 			}, __("Get Order"))
+		// if(frm.doc.customer_name.includes('Titan') && frm.doc.flow_type == 'PROTO' && !frm.doc.gc_format_file && frm.doc.docstatus == '1'){
+			frm.add_custom_button(__("Get GC Format"), function(){
+				frappe.call({
+					method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.gc_export_to_excel',
+					args: {
+						order_form: frm.doc.name,
+						doc: frm.doc
+					},
+					callback: function(response) {
+						if (response.message) {
+							
+							frm.set_value('gc_format_file' ,response.message)
+							frm.save('Update');
+
+							const a = document.createElement('a');
+							a.href = response.message; 
+							let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+							let filename = `${formatted_date}_GC_Format.xlsx`;
+							a.download = filename;
+							a.click();
+						}
+					}
+				});
+			}, __("Get File"))
+		// }
+		
+		// if(frm.doc.customer_name.includes('Titan') && frm.doc.flow_type == 'PROTO' && !frm.doc.code_creation_file && frm.doc.docstatus == '1'){
+			frm.add_custom_button(__("Get Code Creation"), function(){
+				frappe.call({
+					method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.creation_export_to_excel',
+					args: {
+						order_form: frm.doc.name,
+						doc: frm.doc
+					},
+					callback: function(response) {
+						if (response.message) {
+							
+							frm.set_value('code_creation_file' ,response.message)
+							frm.save('Update');
+
+							const a = document.createElement('a');
+							a.href = response.message; 
+							let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+							let filename = `${formatted_date}_Code_Creation_File.xlsx`;
+							a.download = filename;
+							a.click();
+						}
+					}
+				});
+			}, __("Get File"))
+			
+		// }
+
+		// if( (frm.doc.customer_name.includes('Caratlane')) && frm.doc.flow_type == 'PROTO'){
+		if(frm.doc.docstatus == '1'){
+			frm.add_custom_button(__("Get Proto Sheet"), function(){
+				frappe.call({
+				method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.proto_export_to_excel',
+				args: {
+					order_form: frm.doc.name,
+					doc: frm.doc
+				},
+				callback: function(response) {
+					if (response.message) {
+					
+					frm.set_value('proto_sheet_file' ,response.message)
+					frm.save('Update');
+		
+					const a = document.createElement('a');
+					a.href = response.message; 
+					
+					let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+					let filename = `${formatted_date}_Proto_Sheet.xlsx`;
+					a.download = filename;
+					console.log(filename);
+					a.click();
+					}
+				}
+				});
+			}, __("Get File"))
+		}
+
+		if(frm.doc.docstatus == '1'){
+			frm.add_custom_button(__("Get Variant Format"), function(){
+				frappe.call({
+				method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.get_variant_format',
+				args: {
+					order_form: frm.doc.name,
+					doc: frm.doc
+				},
+				callback: function(response) {
+					if (response.message) {
+					
+					// frm.set_value('variant_format_file' ,response.message)
+					// frm.save('Update');
+		
+					const a = document.createElement('a');
+					a.href = response.message; 
+					
+					let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+					let filename = `${formatted_date}_Variant_Format.xlsx`;
+					a.download = filename;
+					// console.log(filename);
+					a.click();
+					}
+				}
+				});
+			}, __("Get File"))
+		}
 	},
 	order_type(frm){
 		if(frm.doc.order_type=='Purchase'){
@@ -343,7 +460,7 @@ frappe.ui.form.on('Order Form Detail', {
 						if (d.metal_type === "Silver") {
 							d.diamond_type = "AD";
 						}
-						d.qty = r.message.qty
+						// d.qty = r.message.qty
 						d.metal_type = r.message.metal_type
 						// d.metal_touch = r.message.metal_touch
 						if (d.metal_type === "Silver") {
@@ -446,7 +563,6 @@ frappe.ui.form.on('Order Form Detail', {
 						if (d.metal_type === "Silver") {
 							d.diamond_type = "AD";
 						}
-						d.qty = r.message.qty
 						d.metal_type = r.message.metal_type
 						// d.metal_touch = r.message.metal_touch
 						if (d.metal_type === "Silver") {
@@ -1105,19 +1221,39 @@ let set_edit_item_details = (row,doc,dialog) => {
 
 function set_metal_properties_from_bom(frm, cdt, cdn) {
 	let row = locals[cdt][cdn]
-	if (row.design_type == "Mod" && (row.serial_no_bom || row.bom)) {
+	if (row.design_type == "Mod - Old Stylebio & Tag No" && (row.serial_no_bom || row.bom)) {
 		frappe.db.get_value("BOM", row.serial_no_bom || row.bom, ["metal_touch","metal_type","metal_colour","metal_purity"], (r)=> {
 			frappe.model.set_value(cdt, cdn, r)
 		})
 	}
 };
 
-function validate_dates(frm, doc, dateField) {
-    let order_date = frm.doc.order_date
-    if (doc[dateField] < order_date) {
-        frappe.model.set_value(doc.doctype, doc.name, dateField, frappe.datetime.add_days(order_date,1))
-    }
+function set_11am_time_on_date(frm, fieldname) {
+	if (frm.doc[fieldname]) {
+		let date_only = frappe.datetime.obj_to_str(frappe.datetime.str_to_obj(frm.doc[fieldname]), 'date');
+		let new_datetime = `${date_only} 11:00:00`;
+		frm.set_value(fieldname, new_datetime);
+	}
 };
+
+function validate_dates(frm, doc, dateField) {
+	let order_date = frm.doc.order_date;
+	let delivery_date = doc[dateField];
+
+	if (!order_date || !delivery_date) return;
+
+	// Ensure order_date and delivery_date are both datetime objects
+	const order_dt = frappe.datetime.str_to_obj(order_date);
+	const delivery_dt = frappe.datetime.str_to_obj(delivery_date);
+
+	// If delivery date is earlier than order date, reset it to +1 day at 11:00 AM
+	if (delivery_dt < order_dt) {
+		let new_date = frappe.datetime.add_days(order_date, 1);
+		new_date = frappe.datetime.set_time(new_date, '11:00:00');
+		frappe.model.set_value(doc.doctype, doc.name, dateField, new_date);
+	}
+};
+
 
 function fetch_item_from_serial(doc, fieldname, itemfield) {
 	if (doc[fieldname]) {
@@ -1265,12 +1401,37 @@ function hide_field_attribute(frm, cdt, cdn, field) {
 
 // Auto calculate due days from delivery date    
 function calculate_due_days(frm) {
-	frm.set_value('due_days', frappe.datetime.get_day_diff(frm.doc.delivery_date, frm.doc.order_date));
+	if (frm.doc.delivery_date && frm.doc.order_date) {
+		const delivery = frappe.datetime.str_to_obj(frm.doc.delivery_date);
+		const order = frappe.datetime.str_to_obj(frm.doc.order_date);
+
+		// Get date-only values
+		const delivery_date_only = new Date(delivery.getFullYear(), delivery.getMonth(), delivery.getDate());
+		const order_date_only = new Date(order.getFullYear(), order.getMonth(), order.getDate());
+
+		const ms_diff = delivery_date_only - order_date_only;
+		console.log(ms_diff)
+		const days = Math.ceil(ms_diff / (1000 * 60 * 60 * 24));  // ⬅️ Use ceil instead of round
+
+		frm.set_value('due_days', days);
+	}
 };
 
-// Auto Calculate delivery date from due days
+
 function delivery_date(frm) {
-	frm.set_value('delivery_date', frappe.datetime.add_days(frm.doc.order_date, frm.doc.due_days));
+	if (frm.doc.order_date && frm.doc.due_days != null) {
+		const order_date = frappe.datetime.str_to_obj(frm.doc.order_date);
+
+		// Add due_days to order_date
+		let delivery = frappe.datetime.add_days(order_date, frm.doc.due_days);
+
+		// Set time to 11:00:00 AM
+		delivery = frappe.datetime.obj_to_str(new Date(
+			new Date(delivery).setHours(11, 0, 0)
+		));
+
+		frm.set_value('delivery_date', delivery);
+	}
 };
 
 function set_filter_for_salesman_name(frm) {
@@ -1282,11 +1443,12 @@ function set_filter_for_salesman_name(frm) {
 };
 
 function update_fields_in_child_table(frm, fieldname) {
-	$.each(frm.doc.order_details || [], function (i, d) {
+	(frm.doc.order_details || []).forEach(d => {
 		d[fieldname] = frm.doc[fieldname];
 	});
 	refresh_field("order_details");
 };
+
 
 function set_filter_for_sketch_design_n_serial(frm, fields) {
 	fields.map(function (field) {

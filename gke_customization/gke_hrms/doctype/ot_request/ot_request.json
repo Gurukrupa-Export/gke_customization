@@ -25,8 +25,9 @@
   {
    "fetch_from": "department_head.department",
    "fieldname": "department",
-   "fieldtype": "Data",
-   "label": "Department"
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
   },
   {
    "fieldname": "column_break_wydc",
@@ -35,8 +36,9 @@
   {
    "fetch_from": "department_head.designation",
    "fieldname": "designation",
-   "fieldtype": "Data",
-   "label": "Designation"
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
   },
   {
    "default": "Today",
@@ -73,7 +75,6 @@
    "options": "Company"
   },
   {
-   "fetch_from": "department_head.branch",
    "fieldname": "branch",
    "fieldtype": "Link",
    "label": "Branch",
@@ -118,8 +119,8 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-08 13:05:57.792064",
- "modified_by": "Administrator",
+ "modified": "2025-09-04 09:56:46.143711",
+ "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE HRMS",
  "name": "OT Request",
  "naming_rule": "Expression",
@@ -138,6 +139,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

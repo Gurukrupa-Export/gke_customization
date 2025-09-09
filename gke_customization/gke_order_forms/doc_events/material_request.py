@@ -7,11 +7,17 @@ def get_department_wise_items(user_id=None, item_group=None):
     if not user_id and not item_group:
         frappe.throw("User ID or Item Group is required.")
     
-    emp_detail = frappe.db.get_value("Employee", {'user_id': user_id}, ['name', 'department'], as_dict=True)
+    emp_detail = frappe.db.get_value("Employee", {'user_id': user_id}, ['name', 'department','branch'], as_dict=True)
     if not emp_detail:
         frappe.throw("No employee found for the given user.")
 
-    consumable_master = frappe.db.get_value("Consumable Master", {'department': emp_detail.department}, ['name'])
+    consumable_filters = {
+        'department': emp_detail.department
+    }
+    if emp_detail.branch:
+        consumable_filters['branch'] = emp_detail.branch
+        
+    consumable_master = frappe.db.get_value("Consumable Master",consumable_filters,['name'])
     if not consumable_master:
         frappe.throw("No Consumable Master found for this department.")
 
@@ -38,7 +44,8 @@ def get_department_wise_items(user_id=None, item_group=None):
             item_filters['item_group'] = item_group
         else:
             item_filters['item_group'] = ['in', [
-                'Tools & Accessories', 'Chemicals', 'Machinery', 'Office Supplies', 'Electric Accessories'
+                # 'Tools & Accessories', 
+                'Chemicals', 'Machinery', 'Office Supplies', 'Electric Accessories'
             ]]
 
         item_detail = frappe.db.get_all(
@@ -89,16 +96,16 @@ def create_consumable_material_req(items, user):
     if not target_emp_warehouse:
         frappe.throw(_("Employee's Department is not linked to the Warehouse."))
 
-    consumable_warehouse = frappe.db.get_value("Consumable Master", {'department': employee_detail.department}, ['warehouse'])
-    source_warehouse = frappe.db.get_value("Warehouse",
-            {   
-                'name': consumable_warehouse,
-                'custom_branch': employee_detail.branch,
-                'company': employee_detail.company,
-                'warehouse_type': 'Consumables',
-                'parent_warehouse': ['like', 'Stores%']
-            }, 
-            ['name']) 
+    source_warehouse = frappe.db.get_value("Consumable Master", {'department': employee_detail.department}, ['warehouse'])
+    # source_warehouse = frappe.db.get_value("Warehouse",
+    #         {   
+    #             'name': consumable_warehouse,
+    #             'custom_branch': employee_detail.branch,
+    #             'company': employee_detail.company,
+    #             'warehouse_type': 'Consumables',
+    #             'parent_warehouse': ['like', 'Stores%']
+    #         }, 
+    #         ['name']) 
     
     if not source_warehouse:
         frappe.throw(_("Check Store Warehouse once in Warehouse."))

@@ -5,8 +5,6 @@ import frappe
 from frappe.model.document import Document
 from datetime import datetime, timedelta
 
-
-
 class OTRequest(Document):
 	def autoname(self):
 		# Get company abbreviation
@@ -21,14 +19,10 @@ class OTRequest(Document):
 			self.name = frappe.model.naming.make_autoname(series)
 		
 	
-	def validate(self):
-		# if not self.company or not self.branch:
-		# 	frappe.throw("Company and Branch are required to generate the OT Request name.")
-		
+	def validate(self):		
 		for child in self.order_request:
 			if child.ot_hours:
 				try:
-					# Ensure ot_hours is properly converted from string if necessary
 					if isinstance(child.ot_hours, str):
 						time_format = "%H:%M:%S"
 						ot_time = datetime.strptime(child.ot_hours, time_format).time()
@@ -47,29 +41,25 @@ class OTRequest(Document):
 				except ValueError:
 					frappe.throw(f"Invalid time format for ot_hours: {child.ot_hours}")
 
-
-	# def before_save(self):
-	# 	if self.workflow_state == 'Send For Approval':
-	# 		for row in self.hr_approver:
-	# 			row.status = self.workflow_state
-
-	# def before_submit(self):
-	# 	if self.workflow_state == 'Approved':
-	# 		for row in self.hr_approver:
-	# 			row.status = self.workflow_state
-	# 	if self.workflow_state == 'Rejected':
-	# 		for row in self.hr_approver:
-	# 			row.status = self.workflow_state	
-
-
 @frappe.whitelist()
-def fill_employee_details(department, gender=None):
-    gender_filter = "" if not gender else "AND gender = %s"
-    gender_value = [gender] if gender else []
-    
-    employees = frappe.db.sql(f'''
-        SELECT name, employee_name FROM `tabEmployee`
-        WHERE department = %s AND status = 'Active' {gender_filter}
-    ''', [department] + gender_value, as_dict=1)
-    
-    return employees
+def fill_employee_details(department,department_head,branch, gender=None):
+	filters = {
+		'department': department,
+		'reports_to': department_head,
+		'status': 'Active'
+	}
+	if branch:
+		filters.update({ 'branch': branch })
+	
+	if gender:
+		filters.update({ 'gender': gender })
+		
+	employees = frappe.db.get_all("Employee",
+			filters = filters,
+			fields = ['name','employee_name']
+		)
+
+	if employees:
+		return employees
+	else:
+		frappe.msgprint(f"There is no Employees for Selected Department Head.")

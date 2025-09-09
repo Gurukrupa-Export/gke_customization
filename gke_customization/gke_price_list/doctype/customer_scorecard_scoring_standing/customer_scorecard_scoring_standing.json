@@ -1,0 +1,61 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-25 10:37:04.361426",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "standing_name",
+  "column_break_1",
+  "standing_color",
+  "min_grade",
+  "max_grade",
+  "actions"
+ ],
+ "fields": [
+  {
+   "fieldname": "standing_name",
+   "fieldtype": "Link",
+   "label": "Standing Name",
+   "options": "Customer Scorecard Standing"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "standing_color",
+   "fieldtype": "Select",
+   "label": "Color",
+   "options": "Blue\nPurple\nGreen\nYellow\nOrange\nRed"
+  },
+  {
+   "fieldname": "min_grade",
+   "fieldtype": "Percent",
+   "label": "Min Grade"
+  },
+  {
+   "fieldname": "max_grade",
+   "fieldtype": "Percent",
+   "label": "Max Grade"
+  },
+  {
+   "fieldname": "actions",
+   "fieldtype": "Section Break",
+   "label": "Actions"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-06-26 15:28:38.191519",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Customer Scorecard Scoring Standing",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
