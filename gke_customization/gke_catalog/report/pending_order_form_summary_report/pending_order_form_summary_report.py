@@ -104,7 +104,7 @@ def get_data(filters):
       {conditions}
 
     GROUP BY of.name, of.order_date, of.delivery_date, of.po_no
-    ORDER BY of.order_date ASC
+    ORDER BY of.order_date DESC
     """
     
     return frappe.db.sql(query, as_dict=1)
