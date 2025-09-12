@@ -4,13 +4,20 @@ import frappe
 import requests
 
 @frappe.whitelist()
-def get_desktime_detail(date=None):
+def get_desktime_detail(user_id, date=None):
     today_date = datetime.now().date()
     formatted_date = today_date.strftime("%Y-%m-%d")
 
     apiKey = "2ebf1bad1d730527759fac0807b29708"
     date = date or formatted_date
     period = frappe.form_dict.get("period") or "day"
+    # user_id = user_id or frappe.session.user
+
+    allowed_users = ["bhavika_p@gkexport.com", "hjr@gkexport.com", "vishalrajput@gkexport.com"]
+
+    if user_id and user_id not in allowed_users:
+        frappe.response["message"] = {"error": "Access denied. Only guest users can fetch DeskTime API."}
+        return
     
     url = "https://desktime.com/api/v2/json/employees"
     params = {
@@ -18,7 +25,7 @@ def get_desktime_detail(date=None):
         "date": date,
         "period": period
     }
-
+    
     try:
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
@@ -49,6 +56,58 @@ def get_desktime_detail(date=None):
     except requests.exceptions.RequestException as e:
         frappe.response["message"] = {"error": str(e)}
 
+@frappe.whitelist()
+def get_desktime_detail1(date=None):
+    today_date = datetime.now().date()
+    formatted_date = today_date.strftime("%Y-%m-%d")
+
+    apiKey = "2ebf1bad1d730527759fac0807b29708"
+    date = date or formatted_date
+    period = frappe.form_dict.get("period") or "day"
+    # user_id = user_id or frappe.session.user
+
+    # allowed_users = ["bhavika_p@gkexport.com", "hjr@gkexport.com", "vishalrajput@gkexport.com"]
+
+    # if user_id and user_id not in allowed_users:
+    #     frappe.response["message"] = {"error": "Access denied. Only guest users can fetch DeskTime API."}
+    #     return
+    
+    url = "https://desktime.com/api/v2/json/employees"
+    params = {
+        "apiKey": apiKey,
+        "date": date,
+        "period": period
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        employees_list = list(data.get("employees", {}).get(date, {}).values())
+
+        # Add calculated fields to each employee
+        for emp in employees_list:
+            productive_time = emp.get("productiveTime", 0)
+            expected_work_time = emp.get("expectedWorkTime", 28800)  # default 8h = 28800s
+            at_work_time = emp.get("atWorkTime", 0)
+            desktime_time = emp.get("desktimeTime", 0)
+
+            emp["effectivenessPercentage"] = calculate_effectiveness(productive_time, expected_work_time)
+            emp["lateTime"] = calculate_late_time(emp.get("arrived"), emp.get("work_starts"))
+            emp["idleTime"] = calculate_idle_time(at_work_time, desktime_time)
+
+        totals = get_total(employees_list)
+        metric_sections = get_metric_sections(employees_list)
+
+        frappe.response["message"] = {
+            "totals": totals,
+            "metricSections": metric_sections,
+            "data": data
+        }
+
+    except requests.exceptions.RequestException as e:
+        frappe.response["message"] = {"error": str(e)}
 
 def calculate_effectiveness(productive_time, expected_work_time=28800):
     if expected_work_time == 0:

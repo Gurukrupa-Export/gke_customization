@@ -217,7 +217,9 @@ def set_tolerance(weight, customer, is_net_tolerance = None, edit_net_tolerance 
                     tolerance = (weight * edit_net_tolerance) / 100
                 else:
                     tolerance = (weight * net_tolerance) / 100
-
+                
+                cust_min_weight = ''
+                cust_max_weight = ''
                 if cust_net_tolerance:
                     cust_tolerance = (weight * cust_net_tolerance) / 100
                     cust_max_weight = weight + cust_tolerance
@@ -228,7 +230,7 @@ def set_tolerance(weight, customer, is_net_tolerance = None, edit_net_tolerance 
 
                 data_json['max_weight'] = max_weight
                 data_json['min_weight'] = min_weight
-                data_json['cust_min_weight'] = cust_min_weight
-                data_json['cust_max_weight'] = cust_max_weight
+                data_json['cust_min_weight'] = cust_min_weight if cust_min_weight else 0
+                data_json['cust_max_weight'] = cust_max_weight if cust_max_weight else 0
         
     return data_json

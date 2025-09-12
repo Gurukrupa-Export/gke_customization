@@ -4,6 +4,7 @@ import hrms
 from frappe.utils import cint, get_datetime
 
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_actual_start_end_datetime_of_shift
+from hrms.hr.doctype.shift_type.shift_type import get_employee_shift
 
 from hrms.hr.utils import (
 	get_distance_between_coordinates,
@@ -55,12 +56,27 @@ class CustomEmployeeCheckin(EmployeeCheckin):
             pluck="shift_type",
         )
         if assignment:
-            self.offshift = 0
-            self.shift = shift_actual_timings.shift_type.name
-            self.shift_actual_start = shift_actual_timings.actual_start
-            self.shift_actual_end = shift_actual_timings.actual_end
-            self.shift_start = shift_actual_timings.start_datetime
-            self.shift_end = shift_actual_timings.end_datetime
+            shift_assigment = get_employee_shift(self.employee, get_datetime(self.time), True, "forward")
+            if(shift_actual_timings.shift_type.name != shift_assigment.shift_type.name):
+                self.offshift = 0
+                self.shift = shift_assigment.shift_type.name
+                self.shift_actual_start = shift_assigment.actual_start
+                self.shift_actual_end = shift_assigment.actual_end
+                self.shift_start = shift_assigment.start_datetime
+                self.shift_end = shift_assigment.end_datetime
+            else:
+                self.offshift = 0
+                self.shift = shift_actual_timings.shift_type.name
+                self.shift_actual_start = shift_actual_timings.actual_start
+                self.shift_actual_end = shift_actual_timings.actual_end
+                self.shift_start = shift_actual_timings.start_datetime
+                self.shift_end = shift_actual_timings.end_datetime
+            # self.offshift = 0
+            # self.shift = shift_actual_timings.shift_type.name
+            # self.shift_actual_start = shift_actual_timings.actual_start
+            # self.shift_actual_end = shift_actual_timings.actual_end
+            # self.shift_start = shift_actual_timings.start_datetime
+            # self.shift_end = shift_actual_timings.end_datetime
         elif not self.attendance:
             self.offshift = 0
             self.shift = shift_actual_timings.shift_type.name

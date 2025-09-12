@@ -260,7 +260,7 @@
     "fieldtype": "Select",
     "label": "Flow Type",
     "mandatory_depends_on": "eval:doc.order_type != 'Purchase'",
-    "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO"
+    "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO\nPROTO\nSTT\nPCPM"
     },
     {
     "fetch_from": "customer_code.customer_name",

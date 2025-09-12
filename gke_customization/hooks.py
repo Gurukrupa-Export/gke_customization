@@ -169,9 +169,9 @@ override_whitelisted_methods = {
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
-# override_doctype_dashboards = {
-#	"Task": "gke_customization.task.get_dashboard_data"
-# }
+override_doctype_dashboards = {
+    "Project": "gke_customization.overrides.project_dashboard.get_data"
+}
 
 # exempt linked doctypes from being automatically cancelled
 #
@@ -252,6 +252,9 @@ doc_events = {
     "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
     "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit"
 },
+"Loan Application":{
+    "validate":"gke_customization.gke_hrms.doc_events.loan_application.validate"
+},
 "Share Transfer":{
     "validate":"gke_customization.gke_customization.doc_events.share_transfer.validate",
     "on_trash":"gke_customization.gke_customization.doc_events.share_transfer.on_trash",
@@ -260,9 +263,10 @@ doc_events = {
 # "Shareholder": {
 #     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
 # },
-# "Payment Entry": {
-#     "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_update_after_submit"
-# },
+"Payment Entry": {
+    # "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_update_after_submit"
+	"on_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_submit"
+},
 "Journal Entry": {
     "on_submit": "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit"
 },
