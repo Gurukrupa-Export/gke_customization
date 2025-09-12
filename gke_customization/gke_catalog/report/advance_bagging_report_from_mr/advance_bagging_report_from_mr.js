@@ -178,7 +178,14 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
             }
         },
     ],
+    
     onload: function(report) {
+        report.page.add_inner_button(__("View Summary Report"), function () {
+            let current_filters = report.get_filter_values();
+            
+            frappe.set_route("query-report", "Advance Bagging Summary Report", current_filters);
+        });
+        
         report.page.add_inner_button(__("Clear Filter"), function () {
             report.filters.forEach(function (filter) {
                 let field = report.get_filter(filter.fieldname);

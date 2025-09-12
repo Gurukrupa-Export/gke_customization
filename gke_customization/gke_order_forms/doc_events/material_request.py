@@ -11,7 +11,13 @@ def get_department_wise_items(user_id=None, item_group=None):
     if not emp_detail:
         frappe.throw("No employee found for the given user.")
 
-    consumable_master = frappe.db.get_value("Consumable Master", {'department': emp_detail.department,'branch':emp_detail.branch}, ['name'])
+    consumable_filters = {
+        'department': emp_detail.department
+    }
+    if emp_detail.branch:
+        consumable_filters['branch'] = emp_detail.branch
+        
+    consumable_master = frappe.db.get_value("Consumable Master",consumable_filters,['name'])
     if not consumable_master:
         frappe.throw("No Consumable Master found for this department.")
 
