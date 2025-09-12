@@ -39,37 +39,6 @@
   "column_break_qxqbh",
   "metal_purity",
   "metal_colour",
-  "product_weight_section",
-  "gross_weight",
-  "is_gross_tolerance",
-  "gross_weight_tolerance",
-  "max_weight",
-  "min_weight",
-  "column_break_9ksbz",
-  "diamond_weight",
-  "max_diamond",
-  "min_diamond",
-  "column_break_qphn",
-  "metal_and_finding_weight",
-  "is_net_tolerance",
-  "net_weight_tolerance",
-  "max_net",
-  "min_net",
-  "customer_max_net_weight",
-  "customer_min_net_weight",
-  "section_break_bkres",
-  "collection",
-  "productivity",
-  "complexity",
-  "delicate",
-  "enamel",
-  "rhodium",
-  "section_break_yexsu",
-  "rpt_cad_approval",
-  "supplier",
-  "column_break_5mhdj",
-  "npd",
-  "cfa",
   "section_break_ciwuk",
   "necklace_17",
   "column_break_wklre",
@@ -100,22 +69,56 @@
   "baby_w",
   "section_break_r3hoy",
   "renarks",
-  "images_tab",
-  "design_image",
-  "cad_image",
-  "old_e_pdis_image",
-  "section_break_tabba",
-  "design_image_preview",
-  "column_break_xywuv",
-  "cad_image_preview",
-  "column_break_uib6w",
-  "old_e_pdis_image_preview",
+  "product_weight_section",
+  "gross_weight_tolerance",
+  "gross_weight",
+  "is_gross_tolerance",
+  "max_weight",
+  "min_weight",
+  "column_break_9ksbz",
+  "diamond_weight",
+  "max_diamond",
+  "min_diamond",
+  "column_break_qphn",
+  "metal_and_finding_weight",
+  "is_net_tolerance",
+  "max_net",
+  "net_weight_tolerance",
+  "min_net",
+  "customer_max_net_weight",
+  "customer_min_net_weight",
+  "section_break_bkres",
+  "collection",
+  "productivity",
+  "complexity",
+  "delicate",
+  "enamel",
+  "rhodium",
+  "section_break_yexsu",
+  "rpt_cad_approval",
+  "supplier",
+  "column_break_5mhdj",
+  "npd",
+  "cfa",
   "bom_diamond_details",
+  "metal_detail",
+  "section_break_3iny",
   "diamond_detail",
   "section_break_w1pn5",
   "gemstone_detail",
-  "section_break_zhv2",
-  "bom_finding_detail_tab"
+  "section_break_tabba",
+  "other_detail",
+  "section_break_obb6",
+  "bom_finding_detail_tab",
+  "images_tab",
+  "design_image",
+  "design_image_preview",
+  "column_break_uib6w",
+  "cad_image",
+  "cad_image_preview",
+  "column_break_xywuv",
+  "old_e_pdis_image",
+  "old_e_pdis_image_preview"
  ],
  "fields": [
   {
@@ -303,6 +306,7 @@
    "collapsible_depends_on": "eval:true",
    "fieldname": "section_break_76nr3",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Metal Details"
   },
   {
@@ -311,6 +315,7 @@
    "fetch_if_empty": 1,
    "fieldname": "metal_type",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Metal Type",
    "options": "Attribute Value"
   },
@@ -319,6 +324,7 @@
    "fetch_if_empty": 1,
    "fieldname": "metal_touch",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Metal Touch",
    "options": "Attribute Value"
   },
@@ -331,6 +337,7 @@
    "fetch_if_empty": 1,
    "fieldname": "metal_colour",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Metal Colour",
    "options": "Attribute Value"
   },
@@ -536,11 +543,13 @@
    "collapsible_depends_on": "eval:true",
    "fieldname": "section_break_r3hoy",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Remarks"
   },
   {
    "fieldname": "renarks",
    "fieldtype": "Small Text",
+   "hidden": 1,
    "label": "Remarks"
   },
   {
@@ -584,6 +593,7 @@
   {
    "fieldname": "old_e_pdis_image",
    "fieldtype": "Attach Image",
+   "hidden": 1,
    "label": "Old E-PDIS Image"
   },
   {
@@ -593,6 +603,7 @@
   {
    "fieldname": "old_e_pdis_image_preview",
    "fieldtype": "Image",
+   "hidden": 1,
    "label": "Old E PDIS Image Preview",
    "options": "old_e_pdis_image"
   },
@@ -648,10 +659,6 @@
    "options": "Supplier"
   },
   {
-   "fieldname": "section_break_zhv2",
-   "fieldtype": "Section Break"
-  },
-  {
    "fieldname": "bom_finding_detail_tab",
    "fieldtype": "Table",
    "label": "BOM Finding Detail",
@@ -659,13 +666,15 @@
   },
   {
    "fieldname": "min_weight",
-   "fieldtype": "Data",
-   "label": "Min Weight"
+   "fieldtype": "Float",
+   "label": "Min Weight",
+   "read_only": 1
   },
   {
    "fieldname": "max_weight",
-   "fieldtype": "Data",
-   "label": "Max Weight"
+   "fieldtype": "Float",
+   "label": "Max Weight",
+   "read_only": 1
   },
   {
    "fieldname": "product_weight_section",
@@ -748,13 +757,35 @@
    "fieldtype": "Float",
    "label": "Customer Min Net Weight",
    "read_only": 1
+  },
+  {
+   "fieldname": "metal_detail",
+   "fieldtype": "Table",
+   "hidden": 1,
+   "label": "Metal Detail",
+   "options": "Order BOM Metal Detail"
+  },
+  {
+   "fieldname": "section_break_3iny",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_obb6",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "other_detail",
+   "fieldtype": "Table",
+   "hidden": 1,
+   "label": "Other Detail",
+   "options": "Order BOM Other Detail"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2025-08-15 12:10:08.650160",
- "modified_by": "Administrator",
+ "modified": "2025-09-12 17:33:58.085209",
+ "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Customer Design Information Sheet",
  "naming_rule": "Expression",
@@ -773,6 +804,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
