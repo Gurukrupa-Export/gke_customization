@@ -9,7 +9,7 @@ frappe.ui.form.on("OT Request", {
                     // 'department': frm.doc.department,
                     'gender': frm.doc.gender || null,
                     'department_head': frm.doc.department_head,
-                    'branch': frm.doc.branch
+                    'branch': frm.doc.branch || null
                 },
                 callback: function(r) {
                     if (!r.exc) {                        
