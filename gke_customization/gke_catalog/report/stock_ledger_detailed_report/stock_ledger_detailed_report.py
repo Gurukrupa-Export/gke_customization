@@ -156,6 +156,7 @@ def get_stock_ledger_entries(filters, items):
                         query = query.where(sle[fieldname].isin(filter_value))
                 else:
                     query = query.where(sle[fieldname] == filter_value)
+                query = query.where(sle[fieldname].isin(filters.get(fieldname)))
 
     if items:
         query = query.where(sle.item_code.isin(items))
@@ -174,6 +175,10 @@ def get_stock_ledger_entries(filters, items):
                     query = query.where(sle[field].isin(filter_value))
             else:
                 query = query.where(sle[field] == filter_value)
+    # Add customer and inventory_type filtering
+    for field in ["voucher_no", "project", "company", "customer", "inventory_type"]:
+        if filters.get(field) and field not in inventory_dimension_fields:
+            query = query.where(sle[field] == filters.get(field))
 
     if filters.get("branch"):
         query = query.where(se.branch == filters.get("branch"))
@@ -488,3 +493,4 @@ def check_inventory_dimension_filters_applied(filters) -> bool:
         if dimension.fieldname in filters and filters.get(dimension.fieldname):
             return True
     return False
+  

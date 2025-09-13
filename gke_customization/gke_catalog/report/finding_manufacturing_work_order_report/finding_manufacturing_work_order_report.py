@@ -15,6 +15,7 @@ def get_columns():
         {"label": "PMO", "fieldname": "pmo_no", "fieldtype": "Data", "width": 120},
         {"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 100},
         {"label": "Weight", "fieldname": "wt_quantity", "fieldtype": "Float", "width": 100},
+        {"label": "WT Quantity", "fieldname": "wt_quantity", "fieldtype": "Float", "width": 100},
         {"label": "Customer Code", "fieldname": "customer_id", "fieldtype": "Link", "options": "Customer", "width": 140},
         {"label": "Customer Name", "fieldname": "customer_name", "fieldtype": "Data", "width": 180},
         {"label": "Customer Goods Used", "fieldname": "customer_goods_used", "fieldtype": "Data", "width": 120},
@@ -76,6 +77,35 @@ def get_data(filters):
                     AND COALESCE(pmo.customer_sample, 0) = 0
                     AND COALESCE(pmo.is_customer_material, 0) = 0
                     AND COALESCE(pmo.customer_voucher_no, '') = '')
+        if filters.get("work_order_status"):
+            status_map = {
+                "Completed": "Completed",
+                "Draft": "Draft",
+                "Pending": "Pending",
+                "On Hold": "On Hold",
+                "Cancelled": "Cancelled"
+            }
+            if filters["work_order_status"] in status_map:
+                conditions.append("mwo.status = %(work_order_status)s")
+                values["work_order_status"] = status_map[filters["work_order_status"]]
+        if filters.get("goods_type"):
+            if filters["goods_type"] == "Yes":
+                conditions.append("""
+                    (bom.customer_gold > 0
+                    OR bom.customer_diamond > 0
+                    OR bom.customer_stone > 0
+                    OR bom.customer_sample > 0
+                    OR bom.customer_chain > 0
+                    OR IFNULL(bom.customer_voucher_no, '') != '')
+                """)
+            elif filters["goods_type"] == "No":
+                conditions.append("""
+                    (bom.customer_gold = 0
+                    AND bom.customer_diamond = 0
+                    AND bom.customer_stone = 0
+                    AND bom.customer_sample = 0
+                    AND bom.customer_chain = 0
+                    AND IFNULL(bom.customer_voucher_no, '') = '')
                 """)
 
     where_condition = " AND ".join(conditions)
@@ -102,6 +132,21 @@ def get_data(filters):
             COALESCE(mwo.master_bom, '') AS bom_no,
             COALESCE(mwo.department, '') AS department,
             COALESCE((
+            c.customer_name,
+            CASE
+                WHEN bom.customer_gold > 0
+                    OR bom.customer_diamond > 0
+                    OR bom.customer_stone > 0
+                    OR bom.customer_sample > 0
+                    OR bom.customer_chain > 0
+                    OR IFNULL(bom.customer_voucher_no, '') != ''
+                THEN 'Yes'
+                ELSE 'No'
+            END AS customer_goods_used,
+            mwo.item_code AS design_code,
+            mwo.master_bom AS bom_no,
+            mwo.department,
+            (
                 SELECT mop2.status
                 FROM `tabManufacturing Operation` mop2
                 WHERE mop2.manufacturing_work_order = mwo.name
@@ -113,6 +158,11 @@ def get_data(filters):
             COALESCE(mwo.qty, 0) AS quantity
         FROM `tabManufacturing Work Order` mwo
         LEFT JOIN `tabParent Manufacturing Order` pmo ON pmo.name = mwo.manufacturing_order
+            ) AS department_status,
+            mwo.posting_date,
+            mwo.qty AS quantity
+        FROM `tabManufacturing Work Order` mwo
+        LEFT JOIN `tabBOM` bom ON bom.name = mwo.master_bom
         LEFT JOIN `tabCustomer` c ON c.name = mwo.customer
         WHERE {where_condition}
         ORDER BY mwo.posting_date DESC
@@ -145,3 +195,4 @@ def get_total_row(data):
         "posting_date": "",
         "quantity": total_quantity,
     }
+

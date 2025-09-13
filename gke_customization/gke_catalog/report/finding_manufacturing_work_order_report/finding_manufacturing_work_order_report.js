@@ -36,7 +36,6 @@ frappe.query_reports["Finding Manufacturing Work Order Report"] = {
       "label": __("Department Status"),
       "fieldtype": "Select",
       "options": "\nCancelled\nFinished\nNot Started\nOn Hold\nWIP",
-      "reqd": 0
     },
     {
       "fieldname": "goods_type",
