@@ -1,7 +1,6 @@
 // Copyright (c) 2025, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
-
 frappe.query_reports["Finding Manufacturing Work Order Report"] = {
   "filters": [
     {
@@ -33,11 +32,10 @@ frappe.query_reports["Finding Manufacturing Work Order Report"] = {
       "reqd": 0
     },
     {
-      "fieldname": "work_order_status",
-      "label": __("Work Order Status"),
+      "fieldname": "department_status",
+      "label": __("Department Status"),
       "fieldtype": "Select",
-      "options": "\nCompleted\nDraft\nPending\nOn Hold\nCancelled",
-      "reqd": 0
+      "options": "\nCancelled\nFinished\nNot Started\nOn Hold\nWIP",
     },
     {
       "fieldname": "goods_type",
