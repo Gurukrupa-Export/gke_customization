@@ -11,9 +11,6 @@ def get_columns():
         {"label": "Manufacturing Work Order", "fieldname": "work_order_id", "fieldtype": "Link", "options": "Manufacturing Work Order", "width": 180},
         {"label": "Department", "fieldname": "department", "fieldtype": "Data", "width": 120},
         {"label": "Department Process", "fieldname": "department_process", "fieldtype": "Data", "width": 120},
-        {"label": "Manufacturing Work Order", "fieldname": "work_order_id", "fieldtype": "Link", "options": "Manufacturing Work Order", "width": 180},
-        {"label": "Department", "fieldname": "department", "fieldtype": "Data", "width": 120},
-        {"label": "Department Process", "fieldname": "department_process", "fieldtype": "Data", "width": 140},
         {"label": "Manufacturing Operation", "fieldname": "operation_id", "fieldtype": "Link", "options": "Manufacturing Operation", "width": 150},
         {"label": "Operation", "fieldname": "operation_name", "fieldtype": "Data", "width": 120},
         {"label": "Manufacturing Operation Status", "fieldname": "operation_status", "fieldtype": "Data", "width": 160},
@@ -36,9 +33,6 @@ def get_columns():
         {"label": "Gemstone Loss", "fieldname": "gemstone_loss", "fieldtype": "Float", "width": 90},
         {"label": "Time (hour)", "fieldname": "time_hour", "fieldtype": "Data", "width": 90},
         {"label": "Time (day)", "fieldname": "time_day", "fieldtype": "Float", "width": 90},
-        {"label": "Time (mins)", "fieldname": "time_min", "fieldtype": "Float", "width": 80},
-        {"label": "Time (hours)", "fieldname": "time_hour", "fieldtype": "Float", "width": 90},
-        {"label": "Time (days)", "fieldname": "time_day", "fieldtype": "Float", "width": 90},
     ]
 
 def get_data(filters):
@@ -100,7 +94,8 @@ def get_data(filters):
 
         WHERE 1=1 """ + conditions + """
         ORDER BY COALESCE(mop.start_time, mop.creation) DESC
-        """
+    """
+
     operations = frappe.db.sql(query, params, as_dict=True)
 
     # Step 2: For each operation, calculate loss_wt and fetch loss data using Python
@@ -211,10 +206,5 @@ def get_data(filters):
         time_hour_value = op.get('time_hour')
         if time_hour_value in ('00:00:00', '0:00:00', '00:00', '0:00'):
             op['time_hour'] = None
-    for op in operations:
-        if op['diamond_loss'] > 0 or op['gemstone_loss'] > 0 or op['finding_loss'] > 0:
-            op['metal_loss'] = 0.0
-        else:
-            op['metal_loss'] = op.get('loss_wt', 0.0)
 
     return operations
