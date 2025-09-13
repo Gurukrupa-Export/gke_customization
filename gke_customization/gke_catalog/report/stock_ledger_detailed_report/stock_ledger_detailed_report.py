@@ -109,7 +109,7 @@ def execute(filters=None):
     return columns, data
 
 # ------------------------
-# QUERY FUNCTION (JOIN TO STOCK ENTRY TO GET BRANCH)
+# QUERY FUNCTION (JOIN TO STOCK ENTRY TO GET BRANCH) - FIXED
 # ------------------------
 
 def get_stock_ledger_entries(filters, items):
@@ -145,11 +145,36 @@ def get_stock_ledger_entries(filters, items):
         for fieldname in inventory_dimension_fields:
             query = query.select(fieldname)
             if fieldname in filters and filters.get(fieldname):
+                filter_value = filters.get(fieldname)
+                # Fix: Handle both single values and lists properly
+                if isinstance(filter_value, str):
+                    query = query.where(sle[fieldname] == filter_value)
+                elif isinstance(filter_value, (list, tuple)):
+                    if len(filter_value) == 1:
+                        query = query.where(sle[fieldname] == filter_value[0])
+                    else:
+                        query = query.where(sle[fieldname].isin(filter_value))
+                else:
+                    query = query.where(sle[fieldname] == filter_value)
                 query = query.where(sle[fieldname].isin(filters.get(fieldname)))
 
     if items:
         query = query.where(sle.item_code.isin(items))
 
+    # Add customer and inventory_type filtering - FIXED
+    for field in ["voucher_no", "project", "company", "customer", "inventory_type"]:
+        if filters.get(field) and field not in inventory_dimension_fields:
+            filter_value = filters.get(field)
+            # Handle single values for regular fields too
+            if isinstance(filter_value, str):
+                query = query.where(sle[field] == filter_value)
+            elif isinstance(filter_value, (list, tuple)):
+                if len(filter_value) == 1:
+                    query = query.where(sle[field] == filter_value[0])
+                else:
+                    query = query.where(sle[field].isin(filter_value))
+            else:
+                query = query.where(sle[field] == filter_value)
     # Add customer and inventory_type filtering
     for field in ["voucher_no", "project", "company", "customer", "inventory_type"]:
         if filters.get(field) and field not in inventory_dimension_fields:
@@ -468,4 +493,4 @@ def check_inventory_dimension_filters_applied(filters) -> bool:
         if dimension.fieldname in filters and filters.get(dimension.fieldname):
             return True
     return False
-
+  
