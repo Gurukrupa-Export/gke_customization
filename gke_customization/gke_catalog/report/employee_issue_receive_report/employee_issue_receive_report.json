@@ -1,0 +1,248 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-09-01 13:39:54.855502",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2025-09-01 13:39:54.855502",
+ "modified_by": "mamata_yad@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Employee Issue Receive Report",
+ "owner": "mamata_yad@gkexport.com",
+ "prepared_report": 0,
+ "ref_doctype": "Employee IR",
+ "report_name": "Employee Issue Receive Report",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Computer Operator - ST - GE"
+  },
+  {
+   "role": "Computer Operator - ST - KG"
+  },
+  {
+   "role": "Executive - ST - GE"
+  },
+  {
+   "role": "QC Doctype"
+  },
+  {
+   "role": "GK Sub Contracting"
+  },
+  {
+   "role": "Waxing Executive - ST"
+  },
+  {
+   "role": "Central Executive - ST"
+  },
+  {
+   "role": "Waxing 2 Executive - ST"
+  },
+  {
+   "role": "close waxing Executive - ST"
+  },
+  {
+   "role": "Model Making Executive - ST"
+  },
+  {
+   "role": "Close Model Making Executive - ST"
+  },
+  {
+   "role": "Pre polish Executive - ST"
+  },
+  {
+   "role": "Close Pre polish Executive - ST"
+  },
+  {
+   "role": "Diamond Setting Executive - ST"
+  },
+  {
+   "role": "Close Diamond Setting Executive - ST"
+  },
+  {
+   "role": "Final Polish Executive - ST"
+  },
+  {
+   "role": "Close Final Polish Executive - ST"
+  },
+  {
+   "role": "Sub Contracting Executive - ST"
+  },
+  {
+   "role": "Tagging Executive - ST"
+  },
+  {
+   "role": "Gemstone Bagging Executive - ST"
+  },
+  {
+   "role": "Refinery Executive -ST"
+  },
+  {
+   "role": "Refinery Manager - ST"
+  },
+  {
+   "role": "Gemstone Bagging Manager - ST"
+  },
+  {
+   "role": "Diamond Bagging Manager - ST"
+  },
+  {
+   "role": "Tagging Manager - ST"
+  },
+  {
+   "role": "Sub Contracting Manager - ST"
+  },
+  {
+   "role": "Close Final Polish Manager - ST"
+  },
+  {
+   "role": "Final Polish Manager - ST"
+  },
+  {
+   "role": "Close Diamond Setting Manager - ST"
+  },
+  {
+   "role": "Diamond Setting Manager - ST"
+  },
+  {
+   "role": "Close Model Making Manager - ST"
+  },
+  {
+   "role": "Model Making Manager - ST"
+  },
+  {
+   "role": "close waxing Manager - ST"
+  },
+  {
+   "role": "Waxing 2 Manager - ST"
+  },
+  {
+   "role": "Central Manager - ST"
+  },
+  {
+   "role": "Waxing Manager - ST"
+  },
+  {
+   "role": "Manufacturing Plan & Management Manager - ST"
+  },
+  {
+   "role": "Manufacturing Plan & Management Executive - ST"
+  },
+  {
+   "role": "Computer Aided Designing Manager - ST"
+  },
+  {
+   "role": "Computer Aided Designing Executive - ST"
+  },
+  {
+   "role": "Manufacturing Manager - MUM"
+  },
+  {
+   "role": "Computer Aided Designing \u2013 South Zone Manager - MUM"
+  },
+  {
+   "role": "Computer Aided Designing \u2013 PAN India Manager - MUM"
+  },
+  {
+   "role": "Sketch Designer - MUM"
+  },
+  {
+   "role": "Waxing Executive - MUM"
+  },
+  {
+   "role": "Central Executive - MUM"
+  },
+  {
+   "role": "Model Making Manager - MUM"
+  },
+  {
+   "role": "Diamond Setting Executive - MUM"
+  },
+  {
+   "role": "Final Polish Executive - MUM"
+  },
+  {
+   "role": "Sub Contracting Manager - MUM"
+  },
+  {
+   "role": "Sub Contracting Executive - MUM"
+  },
+  {
+   "role": "Tagging Executive - MUM"
+  },
+  {
+   "role": "Central Manager - KGJPL"
+  },
+  {
+   "role": "Central Executive - KGJPL"
+  },
+  {
+   "role": "Diamond Bagging Executive - KGJPL"
+  },
+  {
+   "role": "Diamond Setting Manager - KGJPL"
+  },
+  {
+   "role": "Diamond Setting Executive - KGJPL"
+  },
+  {
+   "role": "Final Polish Manager - KGJPL"
+  },
+  {
+   "role": "Final Polish Executive - KGJPL"
+  },
+  {
+   "role": "Model Making Manager - KGJPL"
+  },
+  {
+   "role": "Model Making Executive - KGJPL"
+  },
+  {
+   "role": "Pre Polish Executive - KGJPL"
+  },
+  {
+   "role": "Tagging Executive - KGJPL"
+  },
+  {
+   "role": "Waxing Manager - KGJPL"
+  },
+  {
+   "role": "Waxing Executive - KGJPL"
+  },
+  {
+   "role": "Computer Aided Manufacturing Executive - MU"
+  },
+  {
+   "role": "Computer Aided Designing Executive - KGJPL"
+  },
+  {
+   "role": "Product Repair Center Executive - CH"
+  },
+  {
+   "role": "Product Repair Center Manager - CH"
+  },
+  {
+   "role": "Computer Aided Manufacturing Executive - ST"
+  },
+  {
+   "role": "Computer Aided Manufacturing Manager- ST"
+  },
+  {
+   "role": "Sales Executive - ST"
+  },
+  {
+   "role": "Nandi Executive - ST"
+  }
+ ],
+ "timeout": 0
+}
