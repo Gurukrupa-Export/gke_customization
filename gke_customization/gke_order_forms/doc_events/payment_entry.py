@@ -166,10 +166,10 @@ import frappe
 import erpnext.accounts.doctype.payment_entry.payment_entry as pe_module
 import erpnext.accounts.party as party_module
 
-def skip_party_account_check(self):
-    pass  # no validation = bypassed
+# def skip_party_account_check(self):
+#     pass  # no validation = bypassed
 
-party_module.validate_account_party_type = skip_party_account_check
+# party_module.validate_account_party_type = skip_party_account_check
 def on_submit(self, method):
     if self.custom_unsecured_loan and self.payment_type == 'Receive':
         bussiness_patner = frappe.db.get_value("Unsecured Loan",self.custom_unsecured_loan,"lender")
