@@ -20,7 +20,6 @@
   "diamond_type",
   "stone_shape",
   "diamond_quality",
-  "stone_code",
   "handling_charges_for_outwork",
   "outwork_handling_charges_in_percentage",
   "outwork_handling_charges_rate",
@@ -130,11 +129,6 @@
    "label": "Outright Handling Charges Rate"
   },
   {
-   "fieldname": "stone_code",
-   "fieldtype": "Date",
-   "label": "Stone Code"
-  },
-  {
    "depends_on": "eval:doc.handling_charges_for_outwork_handling_rate",
    "fieldname": "outwork_handling_charges_in_percentage",
    "fieldtype": "Percent",
@@ -174,25 +168,13 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-24 16:18:10.644858",
- "modified_by": "Administrator",
+ "modified": "2025-08-30 15:57:38.622044",
+ "modified_by": "shruti_b@gkexport.com",
  "module": "Gke Price List",
  "name": "Revise Diamond Price  List",
  "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
+ "permissions": [],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
