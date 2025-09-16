@@ -52,6 +52,7 @@ class Order(Document):
 			check_finding_code(self)
 		
 	def on_update_after_submit(self):
+		create_timesheet_copy_paste_item_bom(self)
 		if self.workflow_state == "Creating BOM" and self.docstatus == 1:
 			bom_creation(self)
 		if self.is_repairing == 0 and (self.design_type == 'Mod - Old Stylebio & Tag No' and self.bom_type != 'Duplicate BOM'):
@@ -724,6 +725,52 @@ def calculate_total(self):
 			
 # 			frappe.msgprint("Timesheets Cancelled for each designer assignment")
 
+
+import frappe
+from frappe.utils import now_datetime, add_to_date
+
+def create_timesheet_copy_paste_item_bom(self):
+    if (
+        self.workflow_state == "Approved"
+        and self.docstatus == 1
+        and self.bom_or_cad == "Check"
+        and self.item_remark == "Copy Paste Item"
+        and (self.design_type == "New Design" or self.design_type == "Sketch Design")
+    ):
+        for row in self.bom_assignment:
+            if row.designer:
+                
+                exists = frappe.db.exists(
+                    "Timesheet",
+                    {
+                        "employee": row.designer,
+                        "order": self.name,
+                        "docstatus": 1,  
+                    },
+                )
+                if exists:
+                    continue  
+
+                # Create new Timesheet
+                timesheet = frappe.new_doc("Timesheet")
+                timesheet.employee = row.designer
+                timesheet.order = self.name
+
+                # Add activity log
+                from_time = now_datetime()
+                to_time = add_to_date(from_time, seconds=1)
+
+                timesheet.append("time_logs", {
+                    "activity_type": "Updating BOM",
+                    "from_time": from_time,
+                    "to_time": to_time,
+                    "hours": (to_time - from_time).total_seconds() / 3600,
+                })
+
+                timesheet.insert(ignore_permissions=True)
+                timesheet.submit()
+
+        frappe.msgprint("Timesheet(s) created successfully for Copy Paste Item BOM.")
 
 
 
