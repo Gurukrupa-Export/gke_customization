@@ -42,9 +42,9 @@ class OTRequest(Document):
 					frappe.throw(f"Invalid time format for ot_hours: {child.ot_hours}")
 
 @frappe.whitelist()
-def fill_employee_details(department,department_head,branch=None, gender=None):
+def fill_employee_details(department_head,branch=None, gender=None):
 	filters = {
-		'department': department,
+		# 'department': department,
 		'reports_to': department_head,
 		'status': 'Active'
 	}

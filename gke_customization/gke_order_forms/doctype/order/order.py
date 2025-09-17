@@ -52,6 +52,7 @@ class Order(Document):
 			check_finding_code(self)
 		
 	def on_update_after_submit(self):
+		create_timesheet_copy_paste_item_bom(self)
 		if self.workflow_state == "Creating BOM" and self.docstatus == 1:
 			bom_creation(self)
 		if self.is_repairing == 0 and (self.design_type == 'Mod - Old Stylebio & Tag No' and self.bom_type != 'Duplicate BOM'):
@@ -724,6 +725,52 @@ def calculate_total(self):
 			
 # 			frappe.msgprint("Timesheets Cancelled for each designer assignment")
 
+
+import frappe
+from frappe.utils import now_datetime, add_to_date
+
+def create_timesheet_copy_paste_item_bom(self):
+    if (
+        self.workflow_state == "Approved"
+        and self.docstatus == 1
+        and self.bom_or_cad == "Check"
+        and self.item_remark == "Copy Paste Item"
+        and (self.design_type == "New Design" or self.design_type == "Sketch Design")
+    ):
+        for row in self.bom_assignment:
+            if row.designer:
+                
+                exists = frappe.db.exists(
+                    "Timesheet",
+                    {
+                        "employee": row.designer,
+                        "order": self.name,
+                        "docstatus": 1,  
+                    },
+                )
+                if exists:
+                    continue  
+
+                # Create new Timesheet
+                timesheet = frappe.new_doc("Timesheet")
+                timesheet.employee = row.designer
+                timesheet.order = self.name
+
+                # Add activity log
+                from_time = now_datetime()
+                to_time = add_to_date(from_time, seconds=1)
+
+                timesheet.append("time_logs", {
+                    "activity_type": "Updating BOM",
+                    "from_time": from_time,
+                    "to_time": to_time,
+                    "hours": (to_time - from_time).total_seconds() / 3600,
+                })
+
+                timesheet.insert(ignore_permissions=True)
+                timesheet.submit()
+
+        frappe.msgprint("Timesheet(s) created successfully for Copy Paste Item BOM.")
 
 
 
@@ -1426,68 +1473,101 @@ def cerate_bom_timesheet(self):
 					frappe.throw("Timesheets is not created for each designer assignment")
 			# frappe.msgprint("Timesheets Created for each bom designer assignment")
 
-# def create_line_items(self):
-# 	# if not self.customer_order_form: 
-# 	item_variant = ''
-# 	if self.item_type == 'Template and Variant':
-# 		# if self.design_type != 'Sketch Design':
-# 		if self.subcategory != frappe.db.get_value("Item",self.design_id,"item_subcategory"):
-# 			if self.design_type != 'New Design':
-# 				design_id = frappe.db.get_value('Order',self.name,'design_id')
-# 				variant_of = frappe.db.get_value("Item",design_id,"variant_of")
-# 				attribute_list = make_atribute_list(self.name)
-# 				validate_variant_attributes(variant_of,attribute_list)
 
-# 			item_template = create_item_template_from_order(self)
-# 			updatet_item_template(item_template)
-# 			item_variant = create_variant_of_template_from_order(item_template,self.name)
-# 			update_item_variant(item_variant,item_template)
-# 			frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant))))
-# 			frappe.db.set_value(self.doctype, self.name, "item", item_variant)
-# 			self.reload()
-# 		# else:
-# 		# 	frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
-# 		# 	self.reload()
+
+# def create_line_items(self):
+# 	sketch_order_form_id = frappe.db.get_value("Item", self.design_id, "custom_sketch_order_id")
+# 	custom_sketch_order_form_id = frappe.db.get_value("Item", self.design_id, "custom_sketch_order_form_id")
+
+# 	item_variant = ''
+# 	new_item_created = False
+# 	supplier_for_design = None
+# 	purchase_type_for_design = None
+# 	if self.cad_order_form:
+# 		order_type = frappe.db.get_value("Order Form", self.cad_order_form, "order_type")
+# 		if order_type == "Purchase":
+# 			purchase_type_for_design = frappe.db.get_value("Order Form", self.cad_order_form, "purchase_type")
+# 			supplier_for_design = frappe.db.get_value("Order Form", self.cad_order_form, "supplier")
+# 	if self.item_type == 'Template and Variant':
+# 		item_template = create_item_template_from_order(self)
+# 		updatet_item_template(item_template)
+# 		item_variant = create_variant_of_template_from_order(item_template, self.name)
+# 		update_item_variant(item_variant, item_template)
+
+# 		frappe.db.set_value("Item", item_variant, "custom_sketch_order_id", sketch_order_form_id)
+# 		frappe.db.set_value("Item", item_variant, "custom_sketch_order_form_id", custom_sketch_order_form_id)
+# 		if purchase_type_for_design:
+# 			frappe.db.set_value("Item", item_variant, "custom_purchase_type", purchase_type_for_design)
+# 		if supplier_for_design:
+# 			frappe.db.set_value("Item", item_variant, "design_supplier", supplier_for_design)
+# 		frappe.db.set_value(self.doctype, self.name, "item", item_variant)
+# 		self.reload()
+# 		new_item_created = True
+# 		frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item", item_variant))))
 
 # 	elif self.item_type == 'Only Variant':
-# 		# if self.subcategory != frappe.db.get_value("Item","design_id","item_subcategory"):
+# 		design_id = self.design_id
+# 		template = frappe.db.get_value("Item", design_id, "variant_of")
 
-# 		design_id = frappe.db.get_value('Order',self.name,'design_id')
-# 		# variant_of = frappe.db.get_value("Item",design_id,"variant_of")
-# 		# attribute_list = make_atribute_list(self.name)
-# 		# validate_variant_attributes(variant_of,attribute_list)
+# 		if template:
+# 			args = make_atribute_list(self.name)
+# 			possible_variants = get_item_codes_by_attributes(args, template)
 
-# 		item_variant = create_only_variant_from_order(self,self.name)
-# 		frappe.db.set_value('Item',item_variant[0],{
-# 			"is_design_code":1,
-# 			"variant_of" : item_variant[1]
+# 			# Exclude the template itself from variants
+# 			actual_variants = [code for code in possible_variants if code != template]
+
+# 			for variant_code in actual_variants:
+# 				variant = frappe.get_doc("Item", variant_code)
+# 				if variant:
+# 					frappe.throw(f"Already available <a href='/app/item/{variant.name}'>{variant.name}</a>")
+
+# 		# Create new variant only if no exact match found
+# 		item_variant = create_only_variant_from_order(self, self.name)
+
+# 		frappe.db.set_value('Item', item_variant[0], {
+# 			"is_design_code": 1,
+# 			"variant_of": item_variant[1],
+# 			"custom_sketch_order_id": sketch_order_form_id,
+# 			"custom_sketch_order_form_id": custom_sketch_order_form_id
 # 		})
-# 		frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item",item_variant[0]))))
+# 		if purchase_type_for_design:
+# 			frappe.db.set_value("Item", item_variant, "custom_purchase_type", purchase_type_for_design)
+# 		if supplier_for_design:
+# 			frappe.db.set_value("Item", item_variant, "design_supplier", supplier_for_design)
 # 		frappe.db.set_value(self.doctype, self.name, "item", item_variant[0])
 # 		self.reload()
-# 		# else:
-# 		# 	frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
-# 		# 	self.reload()
-		
+# 		new_item_created = True
+# 		frappe.msgprint(_("New Item Created: {0}".format(get_link_to_form("Item", item_variant[0]))))
+
 # 	elif self.item_type == 'No Variant No Suffix':
 # 		if not self.is_finding_order:
 # 			item_variant = self.design_id
 # 			frappe.db.set_value(self.doctype, self.name, "item", self.design_id)
 # 			frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
 # 			self.reload()
-# 			if self.bom_or_cad in ['New BOM','CAD'] and self.is_repairing == 1 :
-# 				new_bom = create_bom(self,item_variant)
-# 				frappe.db.set_value("Order",self.name,"new_bom",new_bom)
+
+# 			if self.bom_or_cad in ['New BOM', 'CAD'] and self.is_repairing == 1:
+# 				new_bom = create_bom(self, item_variant)
+# 				frappe.db.set_value("Order", self.name, "new_bom", new_bom)
+
 # 			elif self.design_type == 'Sketch Design':
 # 				update_variant_attributes(self)
-# 				frappe.db.set_value("Item",self.design_id,"custom_cad_order_id",self.name)
-# 				frappe.db.set_value("Item",self.design_id,"custom_cad_order_form_id",self.cad_order_form)
-# 			# else:
-# 			# 	frappe.db.set_value(self.doctype, self.name, "new_bom", self.bom)
+# 				frappe.db.set_value("Item", self.design_id, "custom_cad_order_id", self.name)
+# 				frappe.db.set_value("Item", self.design_id, "custom_cad_order_form_id", self.cad_order_form)
+
+# 			if purchase_type_for_design:
+# 				frappe.db.set_value("Item", item_variant, "custom_purchase_type", purchase_type_for_design)
+# 			if supplier_for_design:
+# 				frappe.db.set_value("Item", item_variant, "design_supplier", supplier_for_design)
+				
+# 			frappe.db.set_value("Item", self.design_id, "custom_sketch_order_id", sketch_order_form_id)
+# 			frappe.db.set_value("Item", item_variant, "custom_sketch_order_form_id", custom_sketch_order_form_id)
 # 		else:
 # 			item_variant = self.item
 
-# 	return	item_variant
+# 	frappe.db.set_value(self.doctype, self.name, "item_remark", "New Item" if new_item_created else "Copy Paste Item")
+
+# 	return item_variant
 
 
 def create_line_items(self):
@@ -1498,11 +1578,18 @@ def create_line_items(self):
 	new_item_created = False
 	supplier_for_design = None
 	purchase_type_for_design = None
+
 	if self.cad_order_form:
 		order_type = frappe.db.get_value("Order Form", self.cad_order_form, "order_type")
 		if order_type == "Purchase":
 			purchase_type_for_design = frappe.db.get_value("Order Form", self.cad_order_form, "purchase_type")
 			supplier_for_design = frappe.db.get_value("Order Form", self.cad_order_form, "supplier")
+
+	#block item creation
+	if self.design_type in ["Sketch Design", "New Design"] and self.item_remark == "Copy Paste Item":
+		frappe.msgprint(_("Item creation skipped because Design Type is {0} and Item Remark is Copy Paste Item").format(self.design_type))
+		return self.item or self.design_id
+
 	if self.item_type == 'Template and Variant':
 		item_template = create_item_template_from_order(self)
 		updatet_item_template(item_template)
@@ -1515,6 +1602,7 @@ def create_line_items(self):
 			frappe.db.set_value("Item", item_variant, "custom_purchase_type", purchase_type_for_design)
 		if supplier_for_design:
 			frappe.db.set_value("Item", item_variant, "design_supplier", supplier_for_design)
+
 		frappe.db.set_value(self.doctype, self.name, "item", item_variant)
 		self.reload()
 		new_item_created = True
@@ -1527,8 +1615,6 @@ def create_line_items(self):
 		if template:
 			args = make_atribute_list(self.name)
 			possible_variants = get_item_codes_by_attributes(args, template)
-
-			# Exclude the template itself from variants
 			actual_variants = [code for code in possible_variants if code != template]
 
 			for variant_code in actual_variants:
@@ -1549,6 +1635,7 @@ def create_line_items(self):
 			frappe.db.set_value("Item", item_variant, "custom_purchase_type", purchase_type_for_design)
 		if supplier_for_design:
 			frappe.db.set_value("Item", item_variant, "design_supplier", supplier_for_design)
+
 		frappe.db.set_value(self.doctype, self.name, "item", item_variant[0])
 		self.reload()
 		new_item_created = True
@@ -1574,7 +1661,7 @@ def create_line_items(self):
 				frappe.db.set_value("Item", item_variant, "custom_purchase_type", purchase_type_for_design)
 			if supplier_for_design:
 				frappe.db.set_value("Item", item_variant, "design_supplier", supplier_for_design)
-				
+
 			frappe.db.set_value("Item", self.design_id, "custom_sketch_order_id", sketch_order_form_id)
 			frappe.db.set_value("Item", item_variant, "custom_sketch_order_form_id", custom_sketch_order_form_id)
 		else:
@@ -1583,6 +1670,8 @@ def create_line_items(self):
 	frappe.db.set_value(self.doctype, self.name, "item_remark", "New Item" if new_item_created else "Copy Paste Item")
 
 	return item_variant
+
+
 
 
 def get_item_codes_by_attributes(attribute_filters, template_item_code=None):

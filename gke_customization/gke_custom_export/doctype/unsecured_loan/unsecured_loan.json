@@ -12,6 +12,7 @@
   "loan_date",
   "column_break_rwcd",
   "company",
+  "branch",
   "repayment_period",
   "interest_rate",
   "monthly_interest",
@@ -176,6 +177,12 @@
    "fieldname": "payment_entry_created",
    "fieldtype": "Check",
    "label": "Payment Entry Created"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -185,8 +192,8 @@
    "link_fieldname": "custom_unsecured_loan"
   }
  ],
- "modified": "2025-07-22 17:44:23.167903",
- "modified_by": "Administrator",
+ "modified": "2025-09-03 12:48:54.870616",
+ "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE Custom Export",
  "name": "Unsecured Loan",
  "owner": "Administrator",
@@ -204,6 +211,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

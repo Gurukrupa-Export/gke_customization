@@ -95,6 +95,7 @@ def crate_price_list(self,row):
     diamond_price_list_doc.diamond_type = self.diamond_type
     diamond_price_list_doc.diamond_quality = self.diamond_quality
     diamond_price_list_doc.stone_shape = self.stone_shape
+    diamond_price_list_doc.custom_stone_code = row.stone_code
 
     if self.handling_charges_for_outright:
         diamond_price_list_doc.custom_outright_handling_charges_in_percentage = self.outright_handling_charges_in_percentage

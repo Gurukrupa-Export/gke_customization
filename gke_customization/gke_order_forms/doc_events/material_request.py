@@ -44,8 +44,7 @@ def get_department_wise_items(user_id=None, item_group=None):
             item_filters['item_group'] = item_group
         else:
             item_filters['item_group'] = ['in', [
-                # 'Tools & Accessories', 
-                'Chemicals', 'Machinery', 'Office Supplies', 'Electric Accessories'
+                'Tools & Accessories', 'Chemicals', 'Machinery', 'Office Supplies', 'Electric Accessories'
             ]]
 
         item_detail = frappe.db.get_all(
