@@ -1,4 +1,4 @@
-// Copyright (c) 2025, Frappe Technologies Pvt. Ltd. and contributors
+// Copyright (c) 2025, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
 frappe.query_reports["Sales order without manufacturing plan"] = {
@@ -57,6 +57,3 @@ frappe.query_reports["Sales order without manufacturing plan"] = {
         }
     ]
 };
-
-
-
