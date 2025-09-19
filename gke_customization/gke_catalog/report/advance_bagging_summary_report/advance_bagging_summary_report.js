@@ -1,7 +1,7 @@
 // Copyright (c) 2025, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
-frappe.query_reports["Advance Bagging Report From MR"] = {
+frappe.query_reports["Advance Bagging Summary Report"] = {
     filters: [
         {
             fieldname: "from_date",
@@ -35,7 +35,6 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
                     fields: ["distinct workflow_state as value"],
                     filters: {
                         "material_request_type": "Manufacture",
-                        "workflow_state": ["is", "set"],
                         "workflow_state": ["!=", "Material Transferred to MOP"]
                     },
                     order_by: "workflow_state"
@@ -48,79 +47,6 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
                                 description: ""
                             }
                         });
-                });
-            }
-        },
-        {
-            fieldname: "warehouse",
-            label: __("Warehouse"),
-            fieldtype: "MultiSelectList",
-            options: [],
-            reqd: 0,
-            get_data: function(txt) {
-                return frappe.db.get_list("Warehouse", {
-                    fields: ["name as value", "warehouse_name"],
-                    filters: {
-                        "disabled": 0
-                    },
-                    order_by: "name"
-                }).then(r => {
-                    return r
-                        .filter(d => d.value && d.value.trim() !== "")
-                        .map(d => {
-                            return {
-                                value: d.value,
-                                description: d.warehouse_name || ""
-                            }
-                        });
-                });
-            }
-        },
-        {
-            fieldname: "department",
-            label: __("Department"),
-            fieldtype: "MultiSelectList",
-            options: [],
-            reqd: 0,
-            get_data: function(txt) {
-                let departments = new Set();
-                
-                return Promise.all([
-                    frappe.db.get_list("Material Request", {
-                        fields: ["distinct custom_department as value"],
-                        filters: {
-                            "material_request_type": "Manufacture",
-                            "custom_department": ["is", "set"],
-                            "workflow_state": ["!=", "Material Transferred to MOP"]
-                        }
-                    }),
-                    frappe.db.get_list("Parent Manufacturing Order", {
-                        fields: ["distinct department as value"],
-                        filters: {
-                            "department": ["is", "set"]
-                        }
-                    }),
-                    frappe.db.get_list("Department", {
-                        fields: ["name as value"],
-                        filters: {
-                            "disabled": 0
-                        }
-                    })
-                ]).then(results => {
-                    results.forEach(result => {
-                        result.forEach(item => {
-                            if (item.value && item.value.trim() !== "") {
-                                departments.add(item.value);
-                            }
-                        });
-                    });
-                    
-                    return Array.from(departments).sort().map(dept => {
-                        return {
-                            value: dept,
-                            description: ""
-                        }
-                    });
                 });
             }
         },
@@ -180,19 +106,7 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
     ],
     
     onload: function(report) {
-        // **View Summary Report Button - Passes ALL current filters**
-        report.page.add_inner_button(__("View Summary Report"), function () {
-            // Get ALL current filter values
-            let current_filters = report.get_filter_values();
-            
-            // Log filters to console for debugging (optional)
-            console.log("Passing filters to summary report:", current_filters);
-            
-            // Navigate to summary report with ALL filters
-            frappe.set_route("query-report", "Advance Bagging Summary Report", current_filters);
-        });
-        
-        // Clear Filter Button
+        // Clear filters button
         report.page.add_inner_button(__("Clear Filter"), function () {
             report.filters.forEach(function (filter) {
                 let field = report.get_filter(filter.fieldname);
@@ -205,6 +119,11 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
                 }
             });
             report.refresh();
+        });
+        
+        // Link to detailed report
+        report.page.add_inner_button(__("View Detailed Report"), function () {
+            frappe.set_route("query-report", "Advance Bagging Report From MR", report.get_filter_values());
         });
     }
 }
