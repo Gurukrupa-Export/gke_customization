@@ -6,9 +6,7 @@ from datetime import datetime, timedelta, time
 def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
-    totals_row = calculate_totals(data)
-    data.append(totals_row)
-    return columns, data
+    return columns, data 
 
 def get_columns():
     return [
@@ -22,20 +20,19 @@ def get_columns():
         {"label": _("Department Receive Status"), "fieldname": "department_ir_status", "fieldtype": "Data", "width": 190},
         {"label": _("Department Received ID"), "fieldname": "department_receive", "fieldtype": "Link", "options": "Department IR", "width": 200},
         {"label": _("MWO Count"), "fieldname": "mwo_count", "fieldtype": "Int", "width": 120},
-        {"label": _("Gross Weight"), "fieldname": "gross_wt", "fieldtype": "Data", "width": 150},
-        {"label": _("Net Weight"), "fieldname": "net_wt", "fieldtype": "Data", "width": 150},
-        {"label": _("Finding Weight"), "fieldname": "finding_wt", "fieldtype": "Data", "width": 150},
-        {"label": _("Metal Weight"), "fieldname": "metal_wt", "fieldtype": "Data", "width": 150},
-        {"label": _("Diamond Weight"), "fieldname": "diamond_wt", "fieldtype": "Data", "width": 150},
-        {"label": _("Diamond Pcs"), "fieldname": "diamond_pcs", "fieldtype": "Data", "width": 150},
-        {"label": _("Gemstone Weight"), "fieldname": "gemstone_wt", "fieldtype": "Data", "width": 150},
-        {"label": _("Gemstone Pcs"), "fieldname": "gemstone_pcs", "fieldtype": "Data", "width": 150},
+        {"label": _("Gross Weight"), "fieldname": "gross_wt", "fieldtype": "Float", "width": 150, "precision": 3},
+        {"label": _("Net Weight"), "fieldname": "net_wt", "fieldtype": "Float", "width": 150, "precision": 3},
+        {"label": _("Finding Weight"), "fieldname": "finding_wt", "fieldtype": "Float", "width": 150, "precision": 3},
+        {"label": _("Metal Weight"), "fieldname": "metal_wt", "fieldtype": "Float", "width": 150, "precision": 3},
+        {"label": _("Diamond Weight"), "fieldname": "diamond_wt", "fieldtype": "Float", "width": 150, "precision": 3},
+        {"label": _("Diamond Pcs"), "fieldname": "diamond_pcs", "fieldtype": "Int", "width": 150},
+        {"label": _("Gemstone Weight"), "fieldname": "gemstone_wt", "fieldtype": "Float", "width": 150, "precision": 3},
+        {"label": _("Gemstone Pcs"), "fieldname": "gemstone_pcs", "fieldtype": "Int", "width": 150},
         {"label": _("Issued Date"), "fieldname": "issued_date", "fieldtype": "Datetime", "width": 180},
         {"label": _("Issued By"), "fieldname": "issued_by", "fieldtype": "Data", "width": 180},
         {"label": _("Received Date and Time"), "fieldname": "received_date", "fieldtype": "Datetime", "width": 180},
         {"label": _("Received By"), "fieldname": "receive_by", "fieldtype": "Data", "width": 180},
         {"label": _("Time Between IR"), "fieldname": "time_diff", "fieldtype": "Data", "width": 180},
-        {"label": _("Item Category"), "fieldname": "item_category", "fieldtype": "Data", "width": 180},
     ]
 
 def get_data(filters):
@@ -108,7 +105,6 @@ def get_data(filters):
         fields=["name", "current_department", "owner", "date_time"]
     )
 
-    received_dict = {rec["receive_against"]: rec for rec in received_ir}
     mo_dict = {mo["department_issue_id"]: mo for mo in manufacturing_operations}
     dep_rec_dict = {rec["name"]: rec for rec in department_receive_records}
 
@@ -135,7 +131,7 @@ def get_data(filters):
         metal_wt = round(op.get("net_wt", 0) + op.get("finding_wt", 0), 4)
 
         data.append({
-            "company": dr["company"],
+           "company": dr["company"],
             "branch": mwo.get("branch", "") if mwo else "",
             "manufacturer": dr["manufacturer"],
             "issued_date": dr["issued_date"],
@@ -147,17 +143,16 @@ def get_data(filters):
             "current_department": dr["current_department"],
             "next_department": dr["next_department"],
             "manufacturing_operation": op.get("manufacturing_operation", "N/A"),
-            "gross_wt": round(op.get("gross_wt", 0), 4),
-            "net_wt": round(op.get("net_wt", 0), 4),
+            "gross_wt": round(op.get("gross_wt", 0), 3),
+            "net_wt": round(op.get("net_wt", 0), 3),
             "diamond_pcs": op.get("diamond_pcs", 0),
-            "diamond_wt": round(op.get("diamond_wt", 0), 4),
+            "diamond_wt": round(op.get("diamond_wt", 0), 3),
             "gemstone_pcs": op.get("gemstone_pcs", 0),
-            "gemstone_wt": round(op.get("gemstone_wt", 0), 4),
-            "other_wt": round(op.get("other_wt", 0), 4),
-            "finding_wt": round(op.get("finding_wt", 0), 4),
+            "gemstone_wt": round(op.get("gemstone_wt", 0), 3),
+            "other_wt": round(op.get("other_wt", 0), 3),
+            "finding_wt": round(op.get("finding_wt", 0), 3),
             "metal_wt": metal_wt,
             "item_code": mwo.get("item_code", "") if mwo else "",
-            "item_category": mwo.get("item_category", "") if mwo else "",  # Item Category from MWO
             "received_date": final_received_date,
             "receive_from": dr["current_department"] if mo.get("department_ir_status") == "Received" else "",
             "received_department": received_department,
@@ -167,7 +162,6 @@ def get_data(filters):
             "department_receive": mo.get("department_receive_id"),
             "receive_against": mo.get("department_issue_id"),
         })
- 
     data.sort(key=lambda x: (x["department_ir_status"] != "Pending", -x["issued_date"].timestamp()))
     return data
 
@@ -193,6 +187,13 @@ def build_conditions(filters):
         date = parse_date(filters["from_date"])
         start_date = datetime.combine(date, time.min)
         conditions["date_time"] = ["between", [start_date, datetime.combine(date, time.max)]]
+    else:
+        # If no from_date filter, default to last 10 days data
+        today = datetime.today().date()
+        from_date = today - timedelta(days=10)
+        start_date = datetime.combine(from_date, time.min)
+        end_date = datetime.combine(today, time.max)
+        conditions["date_time"] = ["between", [start_date, end_date]]
 
     # to_date handled in get_data
 
@@ -205,40 +206,41 @@ def build_conditions(filters):
 
     return conditions
 
-def calculate_totals(data):
-    total_gross_wt = 0
-    total_net_wt = 0
-    total_finding_wt = 0
-    total_metal_wt = 0
-    total_diamond_wt = 0
-    total_gemstone_wt = 0
-    total_diamond_pcs = 0
-    total_gemstone_pcs = 0
-    total_other_wt = 0
-    total_mwo_count = 0
+# def calculate_totals(data):
+#     total_gross_wt = 0
+#     total_net_wt = 0
+#     total_finding_wt = 0
+#     total_metal_wt = 0
+#     total_diamond_wt = 0
+#     total_gemstone_wt = 0
+#     total_diamond_pcs = 0
+#     total_gemstone_pcs = 0
+#     total_other_wt = 0
+#     total_mwo_count = 0
 
-    for row in data:
-        total_gross_wt += float(row.get('gross_wt', 0))
-        total_net_wt += float(row.get('net_wt', 0))
-        total_finding_wt += float(row.get('finding_wt', 0))
-        total_metal_wt += float(row.get('metal_wt', 0))
-        total_diamond_wt += float(row.get('diamond_wt', 0))
-        total_gemstone_wt += float(row.get('gemstone_wt', 0))
-        total_diamond_pcs += int(row.get('diamond_pcs', 0))
-        total_gemstone_pcs += int(row.get('gemstone_pcs', 0))
-        total_other_wt += float(row.get('other_wt', 0))
-        total_mwo_count += int(row.get('mwo_count', 0))
+#     for row in data:
+#         total_gross_wt += float(row.get('gross_wt', 0))
+#         total_net_wt += float(row.get('net_wt', 0))
+#         total_finding_wt += float(row.get('finding_wt', 0))
+#         total_metal_wt += float(row.get('metal_wt', 0))
+#         total_diamond_wt += float(row.get('diamond_wt', 0))
+#         total_gemstone_wt += float(row.get('gemstone_wt', 0))
+#         total_diamond_pcs += int(row.get('diamond_pcs', 0))
+#         total_gemstone_pcs += int(row.get('gemstone_pcs', 0))
+#         total_other_wt += float(row.get('other_wt', 0))
+#         total_mwo_count += int(row.get('mwo_count', 0))
 
-    return {
-        "company": "<span style='color:green; font-weight:bold;'>TOTAL</span>",
-        "mwo_count": f"<span style='color:green; font-weight:bold;'>{total_mwo_count}</span>",
-        "gross_wt": f"<span style='color:green; font-weight:bold;'>{round(total_gross_wt, 4)}</span>",
-        "net_wt": f"<span style='color:green; font-weight:bold;'>{round(total_net_wt, 4)}</span>",
-        "finding_wt": f"<span style='color:green; font-weight:bold;'>{round(total_finding_wt, 4)}</span>",
-        "metal_wt": f"<span style='color:green; font-weight:bold;'>{round(total_metal_wt, 4)}</span>",
-        "diamond_wt": f"<span style='color:green; font-weight:bold;'>{round(total_diamond_wt, 4)}</span>",
-        "gemstone_wt": f"<span style='color:green; font-weight:bold;'>{round(total_gemstone_wt, 4)}</span>",
-        "diamond_pcs": f"<span style='color:green; font-weight:bold;'>{total_diamond_pcs}</span>",
-        "gemstone_pcs": f"<span style='color:green; font-weight:bold;'>{total_gemstone_pcs}</span>",
-        "other_wt": f"<span style='color:green; font-weight:bold;'>{round(total_other_wt, 4)}</span>",
-    }
+#     return {
+#         "company": "<span style='color:green; font-weight:bold;'>TOTAL</span>",
+#         "mwo_count": "<font-weight:bold;'>{total_mwo_count}</span>",
+#         "gross_wt": f"<span style='color:green; font-weight:bold;'>{round(total_gross_wt, 3)}</span>",     # 3 decimals only
+#         "net_wt": f"<span style='color:green; font-weight:bold;'>{round(total_net_wt, 3)}</span>",         # 3 decimals only
+#         "finding_wt": f"<span style='color:green; font-weight:bold;'>{round(total_finding_wt, 3)}</span>", # 3 decimals only
+#         "metal_wt": f"<span style='color:green; font-weight:bold;'>{round(total_metal_wt, 3)}</span>",     # 3 decimals only
+#         "diamond_wt": f"<span style='color:green; font-weight:bold;'>{round(total_diamond_wt, 3)}</span>", # 3 decimals only
+#         "gemstone_wt": f"<span style='color:green; font-weight:bold;'>{round(total_gemstone_wt, 3)}</span>", # 3 decimals only
+#         "diamond_pcs": f"<span style='color:green; font-weight:bold;'>{total_diamond_pcs}</span>",
+#         "gemstone_pcs": f"<span style='color:green; font-weight:bold;'>{total_gemstone_pcs}</span>",
+#         "other_wt": f"<span style='color:green; font-weight:bold;'>{round(total_other_wt, 3)}</span>",      # 3 decimals only
+#         "is_total_row": 1,  # Can be used by Frappe/ERPNext report view for freezing/styling
+#     }
