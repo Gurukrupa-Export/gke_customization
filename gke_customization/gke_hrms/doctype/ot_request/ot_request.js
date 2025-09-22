@@ -6,10 +6,10 @@ frappe.ui.form.on("OT Request", {
             frappe.call({
                 method: "gke_customization.gke_hrms.doctype.ot_request.ot_request.fill_employee_details",
                 args: {
-                    'department': frm.doc.department,
+                    // 'department': frm.doc.department,
                     'gender': frm.doc.gender || null,
                     'department_head': frm.doc.department_head,
-                    'branch': frm.doc.branch
+                    'branch': frm.doc.branch || null
                 },
                 callback: function(r) {
                     if (!r.exc) {                        
