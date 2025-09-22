@@ -1,0 +1,138 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-09-13 16:16:49.188473",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2025-09-13 17:03:53.410999",
+ "modified_by": "sahil_g@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Daily Cash Flow",
+ "owner": "sahil_g@gkexport.com",
+ "prepared_report": 0,
+ "query": "SELECT \r\n    ROW_NUMBER() OVER (ORDER BY gle.posting_date DESC, gle.creation DESC) as sr_no,\r\n    CONCAT(gle.posting_date, ' ', TIME(gle.creation)) as date_time,\r\n    gle.voucher_no,\r\n    CASE \r\n        WHEN gle.voucher_type = 'Purchase Invoice' THEN 'Purchase'\r\n        WHEN gle.voucher_type = 'Sales Invoice' THEN 'Sales'\r\n        WHEN gle.voucher_type = 'Payment Entry' AND gle.debit > 0 THEN 'Receipt'\r\n        WHEN gle.voucher_type = 'Payment Entry' AND gle.credit > 0 THEN 'Payment'\r\n        WHEN gle.voucher_type = 'Journal Entry' THEN 'Transfer'\r\n        ELSE gle.voucher_type\r\n    END as account_type,\r\n    CASE \r\n        WHEN gle.voucher_type = 'Purchase Invoice' THEN \r\n            CONCAT('Purchase ', IFNULL(pi.remarks, ''))\r\n        WHEN gle.voucher_type = 'Sales Invoice' THEN \r\n            CONCAT('Sales ', IFNULL(si.remarks, ''))\r\n        WHEN gle.voucher_type = 'Payment Entry' THEN \r\n            CASE WHEN pe.payment_type = 'Receive' THEN 'Receipt' \r\n                 WHEN pe.payment_type = 'Pay' THEN 'Payment' \r\n                 ELSE 'Transfer' END\r\n        WHEN gle.voucher_type = 'Journal Entry' THEN \r\n            IFNULL(je.user_remark, 'Bank Transfer')\r\n        ELSE IFNULL(gle.remarks, '')\r\n    END as particulars,\r\n    gle.party_type as party,\r\n    CASE \r\n        WHEN gle.party_type = 'Customer' THEN c.customer_name\r\n        WHEN gle.party_type = 'Supplier' THEN s.supplier_name\r\n        WHEN gle.party_type = 'Employee' THEN e.employee_name\r\n        WHEN gle.party IS NOT NULL THEN gle.party\r\n        ELSE ''\r\n    END as party_name,\r\n    CASE \r\n        WHEN gle.party_type = 'Supplier' THEN gle.party\r\n        ELSE ''\r\n    END as supplier,\r\n    CASE \r\n        WHEN gle.party_type = 'Supplier' THEN s.supplier_name\r\n        ELSE ''\r\n    END as supplier_name,\r\n    CASE WHEN gle.debit > 0 THEN gle.debit ELSE 0 END as inflow,\r\n    CASE WHEN gle.credit > 0 THEN gle.credit ELSE 0 END as outflow,\r\n    (CASE WHEN gle.debit > 0 THEN gle.debit ELSE 0 END - \r\n     CASE WHEN gle.credit > 0 THEN gle.credit ELSE 0 END) as net_cash_flow,\r\n    CASE \r\n        WHEN gle.voucher_type = 'Payment Entry' THEN pe.mode_of_payment\r\n        ELSE ''\r\n    END as mode_of_payment,\r\n    CASE \r\n        WHEN gle.voucher_type = 'Payment Entry' THEN pe.reference_no\r\n        WHEN gle.voucher_type = 'Journal Entry' THEN je.cheque_no\r\n        ELSE ''\r\n    END as reference_no,\r\n    CASE \r\n        WHEN gle.voucher_type = 'Purchase Invoice' THEN pi.remarks\r\n        WHEN gle.voucher_type = 'Sales Invoice' THEN si.remarks\r\n        WHEN gle.voucher_type = 'Payment Entry' THEN IFNULL(pe.custom_remarks, pe.remarks)\r\n        WHEN gle.voucher_type = 'Journal Entry' THEN je.user_remark\r\n        ELSE gle.remarks\r\n    END as remarks\r\nFROM \r\n    `tabGL Entry` gle\r\nLEFT JOIN \r\n    `tabPurchase Invoice` pi ON gle.voucher_no = pi.name AND gle.voucher_type = 'Purchase Invoice'\r\nLEFT JOIN \r\n    `tabSales Invoice` si ON gle.voucher_no = si.name AND gle.voucher_type = 'Sales Invoice'\r\nLEFT JOIN \r\n    `tabPayment Entry` pe ON gle.voucher_no = pe.name AND gle.voucher_type = 'Payment Entry'\r\nLEFT JOIN \r\n    `tabJournal Entry` je ON gle.voucher_no = je.name AND gle.voucher_type = 'Journal Entry'\r\nLEFT JOIN \r\n    `tabCustomer` c ON gle.party = c.name AND gle.party_type = 'Customer'\r\nLEFT JOIN \r\n    `tabSupplier` s ON gle.party = s.name AND gle.party_type = 'Supplier'\r\nLEFT JOIN \r\n    `tabEmployee` e ON gle.party = e.name AND gle.party_type = 'Employee'\r\nWHERE \r\n    gle.account IN (\r\n        SELECT name FROM `tabAccount` \r\n        WHERE account_type IN ('Bank', 'Cash') \r\n        AND is_group = 0\r\n        AND company = 'Gurukrupa Export Private Limited'\r\n    )\r\nORDER BY \r\n    gle.posting_date DESC, gle.creation DESC;",
+ "ref_doctype": "Payment Entry",
+ "report_name": "Daily Cash Flow",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Acc. Exec. - GK"
+  },
+  {
+   "role": "Sr. Acc. Exec. - SD"
+  },
+  {
+   "role": "Account Supervisor GK"
+  },
+  {
+   "role": "GK Store"
+  },
+  {
+   "role": "Acc. Exec. - KG"
+  },
+  {
+   "role": "Account Supervisor KG"
+  },
+  {
+   "role": "GK Chennai Sales"
+  },
+  {
+   "role": "Chartered Accountant -ST - GK"
+  },
+  {
+   "role": "Store Executive - ST"
+  },
+  {
+   "role": "Store Manager - ST"
+  },
+  {
+   "role": "Product Allocation Executive - KGJPL"
+  },
+  {
+   "role": "Store Executive - KGJPL"
+  },
+  {
+   "role": "Account Executive - KGJPL"
+  },
+  {
+   "role": "Sales Manager - CH"
+  },
+  {
+   "role": "Account Manager - BL"
+  },
+  {
+   "role": "Product Allocation Manager - CH"
+  },
+  {
+   "role": "Product Allocation Executive - CH"
+  },
+  {
+   "role": "Product Allocation Executive - ST"
+  },
+  {
+   "role": "Product Allocation Manager - ST"
+  },
+  {
+   "role": "Account Executive - CH"
+  },
+  {
+   "role": "Account Manager - CH"
+  },
+  {
+   "role": "Account Executive - MUM"
+  },
+  {
+   "role": "Account Manager - MUM"
+  },
+  {
+   "role": "Account Executive - CB"
+  },
+  {
+   "role": "Account Executive - ST"
+  },
+  {
+   "role": "Account Coordinator - ST"
+  },
+  {
+   "role": "Account Senior Executive - ST"
+  },
+  {
+   "role": "Account Manager - ST"
+  },
+  {
+   "role": "Account Senior Manager - ST"
+  },
+  {
+   "role": "Sales & Marketing Manager - CH"
+  },
+  {
+   "role": "Account Executive - SD"
+  },
+  {
+   "role": "Sales Manager - ST"
+  },
+  {
+   "role": "Account Manager - CB"
+  },
+  {
+   "role": "Sr. Acc. Exec. - GK"
+  },
+  {
+   "role": "Acc. Exec. - SD"
+  }
+ ],
+ "timeout": 0
+}
