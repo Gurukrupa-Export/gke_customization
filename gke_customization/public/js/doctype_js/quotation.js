@@ -20,6 +20,7 @@ frappe.ui.form.on('Quotation', {
                   default: frm.doc.party_name || undefined
                 },
               ],
+              add_filters_group: 1,
               get_query() {
                 return {
                   filters: {

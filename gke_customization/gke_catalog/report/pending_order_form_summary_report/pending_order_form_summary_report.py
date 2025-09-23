@@ -8,11 +8,7 @@ def execute(filters=None):
     filters = filters or {}
     columns = get_columns()
     data = get_data(filters)
-    summary = get_summary(data)
-    total_row = get_total_row(data)
-    if total_row:
-        data.append(total_row)
-    return columns, data, None, None, summary
+    return columns, data
 
 def get_columns():
     return [
@@ -20,12 +16,12 @@ def get_columns():
         {"label": _("Delivery Date"), "fieldname": "delivery_date", "fieldtype": "Date", "width": 120},
         {"label": _("Order No."), "fieldname": "erp_order_no", "fieldtype": "Link", "options": "Order Form", "width": 150},
         {"label": _("Customer PO No."), "fieldname": "customer_po_no", "fieldtype": "Data", "width": 140},
-        {"label": _("No. of Orders"), "fieldname": "no_of_orders", "fieldtype": "Data", "width": 120},
+        {"label": _("No. of Orders"), "fieldname": "no_of_orders", "fieldtype": "Int", "width": 120},
         {"label": _("No. of Designs"), "fieldname": "no_of_designs", "fieldtype": "Int", "width": 120},
-        {"label": _("No. of Orders Approved"), "fieldname": "no_of_orders_approved", "fieldtype": "Data", "width": 140},
-        {"label": _("No. of Orders Pending"), "fieldname": "no_of_orders_pending", "fieldtype": "Data", "width": 140},
-        {"label": _("CAD Pending"), "fieldname": "cad_pending", "fieldtype": "Data", "width": 120},
-        {"label": _("IBM Pending"), "fieldname": "bom_pending", "fieldtype": "Data", "width": 120}
+        {"label": _("No. of Orders Approved"), "fieldname": "no_of_orders_approved", "fieldtype": "Int", "width": 140},
+        {"label": _("No. of Orders Pending"), "fieldname": "no_of_orders_pending", "fieldtype": "Int", "width": 140},
+        {"label": _("CAD Pending"), "fieldname": "cad_pending", "fieldtype": "Int", "width": 120},
+        {"label": _("IBM Pending"), "fieldname": "bom_pending", "fieldtype": "Int", "width": 120}
     ]
 
 def get_data(filters):
@@ -90,15 +86,17 @@ def get_data(filters):
     ) bom_pending_count ON bom_pending_count.parent = of.name
 
     WHERE 
-        of.workflow_state IN ('Pending', 'Approved') 
-        AND of.workflow_state != 'Cancelled'
-        AND of.docstatus = 1
+        of.docstatus IN (0, 1)
+        AND of.workflow_state NOT IN ('Cancelled')
         AND (
-            of.workflow_state = 'Pending'
-            OR EXISTS (
-                SELECT 1 FROM `tabOrder` o_check 
-                WHERE o_check.cad_order_form = of.name 
-                AND o_check.workflow_state NOT IN ('Approved', 'Cancelled')
+            of.workflow_state IN ('Draft', 'Creating Item & BOM', 'On Hold', 'Send For Approval')
+            OR (
+                of.workflow_state = 'Approved' 
+                AND EXISTS (
+                    SELECT 1 FROM `tabOrder` o_check 
+                    WHERE o_check.cad_order_form = of.name 
+                    AND o_check.workflow_state NOT IN ('Approved', 'Cancelled')
+                )
             )
         )
       {conditions}
@@ -108,42 +106,6 @@ def get_data(filters):
     """
     
     return frappe.db.sql(query, as_dict=1)
-
-def get_summary(data):
-    if not data:
-        return []
-    
-    total_order_forms = len([d for d in data if d.get('erp_order_no') != 'SUMMARY'])
-    total_orders = sum(d.get('no_of_orders', 0) for d in data if d.get('erp_order_no') != 'SUMMARY')
-    total_pending_orders = sum(d.get('no_of_orders_pending', 0) for d in data if d.get('erp_order_no') != 'SUMMARY')
-    total_cad_pending = sum(d.get('cad_pending', 0) for d in data if d.get('erp_order_no') != 'SUMMARY')
-    total_ibm_pending = sum(d.get('bom_pending', 0) for d in data if d.get('erp_order_no') != 'SUMMARY')
-    
-    return [
-        {"label": "Total Order Forms", "value": total_order_forms, "indicator": "Blue"},
-        {"label": "Total Orders", "value": total_orders, "indicator": "Green"},
-        {"label": "Total Pending Orders", "value": total_pending_orders, "indicator": "Orange"},
-        {"label": "Total CAD Pending", "value": total_cad_pending, "indicator": "Yellow"},
-        {"label": "Total IBM Pending", "value": total_ibm_pending, "indicator": "Red"},
-    ]
-
-def get_total_row(data):
-    if not data:
-        return None
-    
-    total_row = {
-        'order_date': 'SUMMARY',
-        'delivery_date': '',
-        'erp_order_no': f'Total Order Forms: {len(data)}',
-        'customer_po_no': '',
-        'no_of_orders': sum(d.get('no_of_orders', 0) for d in data),
-        'no_of_designs': sum(d.get('no_of_designs', 0) for d in data),
-        'no_of_orders_approved': sum(d.get('no_of_orders_approved', 0) for d in data),
-        'no_of_orders_pending': sum(d.get('no_of_orders_pending', 0) for d in data),
-        'cad_pending': sum(d.get('cad_pending', 0) for d in data),
-        'bom_pending': sum(d.get('bom_pending', 0) for d in data),
-    }
-    return total_row
 
 def get_conditions(filters):
     conditions = []

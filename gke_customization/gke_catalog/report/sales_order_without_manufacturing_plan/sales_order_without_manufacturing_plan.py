@@ -1,8 +1,5 @@
-# Copyright (c) 2025, Frappe Technologies Pvt. Ltd. and contributors
+# Copyright (c) 2025, Gurukrupa Export and contributors
 # For license information, please see license.txt
-
-# import frappe
-
 
 import frappe
 
@@ -100,4 +97,3 @@ def get_conditions(filters):
         values["date"] = filters["date"]
 
     return " AND " + " AND ".join(conditions) if conditions else "", values
-
