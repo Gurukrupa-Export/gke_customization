@@ -1,16 +1,16 @@
 import frappe
 
+
 def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
     return columns, data
 
+
 def get_columns():
     return [
-        {"label": "No.", "fieldname": "idx", "fieldtype": "Int", "width": 50},
         {"label": "Manufacturing Work Order", "fieldname": "work_order_id", "fieldtype": "Link", "options": "Manufacturing Work Order", "width": 180},
         {"label": "Department", "fieldname": "department", "fieldtype": "Data", "width": 120},
-        {"label": "Department Process", "fieldname": "department_process", "fieldtype": "Data", "width": 120},
         {"label": "Manufacturing Operation", "fieldname": "operation_id", "fieldtype": "Link", "options": "Manufacturing Operation", "width": 150},
         {"label": "Operation", "fieldname": "operation_name", "fieldtype": "Data", "width": 120},
         {"label": "Manufacturing Operation Status", "fieldname": "operation_status", "fieldtype": "Data", "width": 160},
@@ -34,6 +34,7 @@ def get_columns():
         {"label": "Time (hour)", "fieldname": "time_hour", "fieldtype": "Data", "width": 90},
         {"label": "Time (day)", "fieldname": "time_day", "fieldtype": "Float", "width": 90},
     ]
+
 
 def get_data(filters):
     conditions = ""
@@ -60,8 +61,8 @@ def get_data(filters):
             CASE WHEN mop.for_subcontracting = 1 THEN 'Yes' ELSE 'No' END AS for_subcontracting,
             CASE WHEN mop.is_finding = 1 THEN 'Yes' ELSE 'No' END AS is_finding,
             
-            -- Fields from Employee IR Operation
-            COALESCE(eiro.gross_wt, 0) AS gross_wt,
+            -- Fixed: Get latest Employee IR Operation data
+            COALESCE(mop.gross_wt, 0) AS gross_wt,
             COALESCE(eiro.received_gross_wt, 0) AS received_gross_wt,
             
             -- Fields from Manufacturing Operation
@@ -79,10 +80,15 @@ def get_data(filters):
         FROM `tabManufacturing Work Order` mwo
         INNER JOIN `tabManufacturing Operation` mop ON mop.manufacturing_work_order = mwo.name
         LEFT JOIN `tabEmployee` emp ON mop.employee = emp.name
-        LEFT JOIN `tabEmployee IR Operation` eiro ON eiro.manufacturing_operation = mop.name 
-            AND eiro.docstatus = 1 
-            AND eiro.gross_wt > 0 
-            AND eiro.received_gross_wt > 0
+        LEFT JOIN (
+            SELECT 
+                manufacturing_operation,
+                gross_wt,
+                received_gross_wt,
+                ROW_NUMBER() OVER (PARTITION BY manufacturing_operation ORDER BY modified DESC) as rn
+            FROM `tabEmployee IR Operation`
+            WHERE docstatus = 1
+        ) eiro ON eiro.manufacturing_operation = mop.name AND eiro.rn = 1
         LEFT JOIN (
             SELECT 
                 parent,
