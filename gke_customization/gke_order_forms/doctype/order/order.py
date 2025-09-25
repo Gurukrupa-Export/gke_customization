@@ -2393,7 +2393,7 @@ def make_quotation_batch(order_names, target_doc=None):
 	else:
 		target_doc = frappe.get_doc(target_doc)
 
-	target_doc.items = []
+	# target_doc.items = []
 	for name in order_names:
 		order = frappe.db.get_value("Order", name, "*", as_dict=True)
 		if not order:

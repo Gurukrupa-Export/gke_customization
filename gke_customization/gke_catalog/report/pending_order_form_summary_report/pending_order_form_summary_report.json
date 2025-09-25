@@ -18,7 +18,7 @@
  "owner": "sahil_g@gkexport.com",
  "prepared_report": 0,
  "ref_doctype": "Order Form",
- "report_name": "Pending Order Form Summary",
+ "report_name": "Pending Order Form Summary Report",
  "report_type": "Script Report",
  "roles": [
   {
