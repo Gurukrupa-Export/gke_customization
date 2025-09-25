@@ -90,9 +90,9 @@ class CustomerMasterUpdate(Document):
                         "bypass_credit_limit_check": row.get("bypass_credit_limit_check"),
                     })
 
-            if self.sales_team_data:
+            if self.sales_team:
                 customer_doc.sales_team = []
-                for row in self.sales_team_data:
+                for row in self.sales_team:
                     customer_doc.append("sales_team", {
                         "sales_person": row.get("sales_person"),
                         "contact_no": row.get("contact_no"),
