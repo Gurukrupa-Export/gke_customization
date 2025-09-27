@@ -45,6 +45,7 @@ def get_data(filters):
         WHERE
             i.item_group IN ('Finding - V') 
             AND i.item_group NOT IN ('Finding DNU')
+            and i.disabled = 0
         GROUP BY
             i.item_code
     )
