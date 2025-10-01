@@ -21,6 +21,7 @@ class ItemRequest(Document):
 			'Diamond': 'D',
 			'Metal': 'M',
 			'Gemstone': 'G',
+			'Alloy': 'A',
 			'Other': 'O'
 		}
 
