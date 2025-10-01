@@ -10,8 +10,11 @@
   "user_id",
   "company",
   "is_consumable",
+  "is_consumable_update",
   "column_break_kuin",
   "select_raw_material",
+  "item_code",
+  "item_code_2",
   "section_break_raw6",
   "item_name",
   "item_size",
@@ -23,6 +26,7 @@
   "section_break_5qrb",
   "item_group",
   "gst",
+  "update_gst",
   "multiple_tax",
   "tax_1",
   "status",
@@ -33,8 +37,6 @@
   "hsn_code",
   "cons_hsn_code",
   "uom",
-  "item_code",
-  "item_code_2",
   "remarks",
   "reason_for_hold",
   "item_section",
@@ -102,7 +104,7 @@
  ],
  "fields": [
   {
-   "depends_on": "eval:doc.is_consumable == 1",
+   "depends_on": "eval: doc.is_consumable_update || doc.is_consumable",
    "fieldname": "section_break_raw6",
    "fieldtype": "Section Break"
   },
@@ -123,7 +125,7 @@
    "label": "Item Name",
    "mandatory_depends_on": "eval:doc.is_consumable == 1",
    "read_only": 1,
-   "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'"
+   "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail' || doc.is_consumable_update"
   },
   {
    "allow_on_submit": 1,
@@ -154,7 +156,7 @@
    "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'"
   },
   {
-   "depends_on": "eval:doc.is_consumable == 1",
+   "depends_on": "eval:doc.is_consumable == 1 || doc.is_consumable_update==1",
    "fieldname": "section_break_5qrb",
    "fieldtype": "Section Break"
   },
@@ -190,7 +192,7 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval: (in_list(['Approved','Completed'], doc.workflow_state))",
+   "depends_on": "eval:  doc.is_consumable_update",
    "fieldname": "item_code",
    "fieldtype": "Link",
    "label": "Item Code",
@@ -278,6 +280,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval:doc.is_consumable_update",
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
@@ -293,6 +296,7 @@
   },
   {
    "allow_on_submit": 1,
+   "depends_on": "eval:doc.is_consumable_update",
    "fieldname": "reason_for_hold",
    "fieldtype": "Data",
    "label": "Reason For Hold"
@@ -323,6 +327,7 @@
   },
   {
    "allow_on_submit": 1,
+   "depends_on": "eval:doc.is_consumable_update",
    "fieldname": "cons_hsn_code",
    "fieldtype": "Int",
    "label": "HSN Code",
@@ -335,99 +340,10 @@
    "options": "UOM"
   },
   {
-   "allow_on_submit": 1,
-   "fieldname": "workflow_state",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "Workflow State",
-   "no_copy": 1,
-   "options": "Workflow State"
-  },
-  {
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "label": "Company",
-   "options": "Company",
-   "read_only": 1
-  },
-  {
-   "allow_on_submit": 1,
-   "default": "0",
-   "fieldname": "is_consumable",
-   "fieldtype": "Check",
-   "hidden": 1,
-   "label": "Is Consumable"
-  },
-  {
-   "fieldname": "column_break_kuin",
-   "fieldtype": "Column Break"
-  },
-  {
-   "depends_on": "eval: doc.is_consumable == 0",
-   "fieldname": "select_raw_material",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Select Raw Material",
-   "options": "\nFinding\nGemstone\nDiamond\nMetal\nAlloy\nOther"
-  },
-  {
-   "fieldname": "mr_by_department",
-   "fieldtype": "Select",
-   "label": "MR By Department",
-   "options": "\nYes\nNo"
-  },
-  {
-   "depends_on": "eval: doc.mr_by_department == 'Yes'",
-   "fieldname": "department_detail",
-   "fieldtype": "Table",
-   "label": "Department Detail",
-   "options": "Department Table"
-  },
-  {
    "depends_on": "eval: doc.is_consumable == 0",
    "fieldname": "raw_material_tab",
    "fieldtype": "Tab Break",
    "label": "Raw Material"
-  },
-  {
-   "fieldname": "raw_item_code",
-   "fieldtype": "Link",
-   "label": "Item Code",
-   "options": "Item"
-  },
-  {
-   "depends_on": "eval: doc.select_raw_material=='Finding' || doc.select_raw_material=='Metal'",
-   "fieldname": "metal_section",
-   "fieldtype": "Section Break",
-   "label": "Metal"
-  },
-  {
-   "fieldname": "metal_type",
-   "fieldtype": "Link",
-   "label": "Metal Type",
-   "options": "Attribute Value"
-  },
-  {
-   "fieldname": "metal_touch",
-   "fieldtype": "Link",
-   "label": "Metal Touch",
-   "options": "Attribute Value"
-  },
-  {
-   "fieldname": "column_break_igde",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "metal_colour",
-   "fieldtype": "Link",
-   "label": "Metal Colour",
-   "options": "Attribute Value"
-  },
-  {
-   "fieldname": "metal_purity",
-   "fieldtype": "Link",
-   "label": "Metal Purity",
-   "options": "Attribute Value"
   },
   {
    "depends_on": "eval: doc.select_raw_material=='Finding'",
@@ -436,17 +352,30 @@
    "label": "Finding"
   },
   {
-   "depends_on": "eval:doc.is_new_finding_category == 0",
-   "fieldname": "finding_category",
+   "fieldname": "metal_type",
    "fieldtype": "Link",
-   "label": "Finding Category",
+   "label": "Metal Type",
    "options": "Attribute Value"
   },
   {
-   "depends_on": "eval:doc.is_new_f_subcategory == 0",
-   "fieldname": "finding_subcategory",
+   "allow_on_submit": 1,
+   "fieldname": "metal_touch",
    "fieldtype": "Link",
-   "label": "Finding Sub-Category",
+   "label": "Metal Touch",
+   "options": "Attribute Value"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "metal_colour",
+   "fieldtype": "Link",
+   "label": "Metal Colour",
+   "options": "Attribute Value"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "metal_purity",
+   "fieldtype": "Link",
+   "label": "Metal Purity",
    "options": "Attribute Value"
   },
   {
@@ -454,6 +383,23 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
+   "depends_on": "eval:doc.is_new_finding_category == 0",
+   "fieldname": "finding_category",
+   "fieldtype": "Link",
+   "label": "Finding Category",
+   "options": "Attribute Value"
+  },
+  {
+   "allow_on_submit": 1,
+   "depends_on": "eval:doc.is_new_f_subcategory == 0",
+   "fieldname": "finding_subcategory",
+   "fieldtype": "Link",
+   "label": "Finding Sub-Category",
+   "options": "Attribute Value"
+  },
+  {
+   "allow_on_submit": 1,
    "description": "Finding Size should be only in MM or INCH (e.x. [2.40 MM, 1.00 INCH])",
    "fieldname": "finding_size",
    "fieldtype": "Data",
@@ -471,6 +417,7 @@
    "label": "Gemstone"
   },
   {
+   "allow_on_submit": 1,
    "depends_on": "eval: doc.is_new_gemstone_type == 0",
    "fieldname": "gemstone_type",
    "fieldtype": "Link",
@@ -478,6 +425,7 @@
    "options": "Attribute Value"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "stone_shape",
    "fieldtype": "Link",
    "label": "Stone Shape",
@@ -490,6 +438,7 @@
    "options": "Attribute Value"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "gemstone_grade",
    "fieldtype": "Link",
    "label": "Gemstone Grade",
@@ -500,6 +449,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "description": "Size should be only in MM or INCH (e.x. [1.00 MM, 1.00 INCH])",
    "fieldname": "gemstone_size",
    "fieldtype": "Data",
@@ -529,18 +479,21 @@
    "label": "Diamond"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "diamond_type",
    "fieldtype": "Link",
    "label": "Diamond Type",
    "options": "Attribute Value"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "diamond_stone_shape",
    "fieldtype": "Link",
    "label": "Stone Shape",
    "options": "Attribute Value"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "diamond_grade",
    "fieldtype": "Link",
    "label": "Diamond Grade",
@@ -551,6 +504,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "depends_on": "eval: doc.select_diamond_size == 'Diamond Sieve Size'",
    "description": "Size should be only in (e.x. [1.00 MM, +9-14, 2.00 MM] )",
    "fieldname": "diamond_sieve_size",
@@ -558,6 +512,7 @@
    "label": "Diamond Sieve Size"
   },
   {
+   "allow_on_submit": 1,
    "depends_on": "eval: doc.select_diamond_size == 'Diamond Sieve Size Range'",
    "fieldname": "diamond_sieve_size_range",
    "fieldtype": "Link",
@@ -570,6 +525,63 @@
    "label": "Diamond Weight"
   },
   {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fieldname": "is_consumable",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Is Consumable"
+  },
+  {
+   "fieldname": "column_break_kuin",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "mr_by_department",
+   "fieldtype": "Select",
+   "label": "MR By Department",
+   "options": "\nYes\nNo"
+  },
+  {
+   "depends_on": "eval: doc.mr_by_department == 'Yes'",
+   "fieldname": "department_detail",
+   "fieldtype": "Table",
+   "label": "Department Detail",
+   "options": "Department Table"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: doc.select_raw_material=='Finding' || doc.select_raw_material=='Metal'",
+   "fieldname": "metal_section",
+   "fieldtype": "Section Break",
+   "label": "Metal"
+  },
+  {
+   "fieldname": "column_break_igde",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: (in_list(['Approved','Completed'], doc.workflow_state)) || doc.is_consumable == 0",
+   "fieldname": "select_raw_material",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Select Raw Material",
+   "options": "\nFinding\nGemstone\nDiamond\nMetal\nAlloy\nOther"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "raw_item_code",
+   "fieldtype": "Link",
+   "label": "Item Code",
+   "options": "Item"
+  },
+  {
    "depends_on": "eval: doc.select_raw_material=='Other'",
    "fieldname": "other_section",
    "fieldtype": "Section Break",
@@ -579,6 +591,29 @@
    "fieldname": "other_materials",
    "fieldtype": "Data",
    "label": "Other Materials"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Workflow State",
+   "no_copy": 1,
+   "options": "Workflow State"
+  },
+  {
+   "fieldname": "raw_image",
+   "fieldtype": "Attach",
+   "label": "Image"
+  },
+  {
+   "fieldname": "column_break_jy5p",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "box_no",
+   "fieldtype": "Data",
+   "label": "Box No"
   },
   {
    "default": "0",
@@ -605,15 +640,6 @@
    "label": "New Finding Sub-Category"
   },
   {
-   "fieldname": "column_break_jy5p",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "box_no",
-   "fieldtype": "Data",
-   "label": "Box No"
-  },
-  {
    "fieldname": "required_by",
    "fieldtype": "Select",
    "label": "Required By",
@@ -638,15 +664,15 @@
    "label": "Is Customer Grade"
   },
   {
-   "fieldname": "customer_code",
-   "fieldtype": "Data",
-   "label": "Customer Code"
-  },
-  {
    "depends_on": "eval:doc.is_customer_grade == 1",
    "fieldname": "customer_grade",
    "fieldtype": "Data",
    "label": "Customer Grade"
+  },
+  {
+   "fieldname": "customer_code",
+   "fieldtype": "Data",
+   "label": "Customer Code"
   },
   {
    "default": "0",
@@ -661,6 +687,12 @@
    "label": "Customer Diamond Grade"
   },
   {
+   "fieldname": "select_diamond_size",
+   "fieldtype": "Select",
+   "label": "Select Diamond Size",
+   "options": "\nDiamond Sieve Size\nDiamond Sieve Size Range"
+  },
+  {
    "depends_on": "eval:doc.select_raw_material =='Alloy'",
    "fieldname": "alloy_section",
    "fieldtype": "Section Break",
@@ -672,22 +704,22 @@
    "label": "Alloy Type"
   },
   {
-   "fieldname": "select_diamond_size",
-   "fieldtype": "Select",
-   "label": "Select Diamond Size",
-   "options": "\nDiamond Sieve Size\nDiamond Sieve Size Range"
+   "default": "0",
+   "fieldname": "is_consumable_update",
+   "fieldtype": "Check",
+   "label": "Is Consumable Update"
   },
   {
-   "fieldname": "raw_image",
-   "fieldtype": "Attach",
-   "label": "Image"
+   "fieldname": "update_gst",
+   "fieldtype": "Select",
+   "label": "Update Item Tax (GST %)"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-26 16:30:08.236599",
- "modified_by": "Administrator",
+ "modified": "2025-09-29 14:56:50.991777",
+ "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Item Request",
  "naming_rule": "By \"Naming Series\" field",
@@ -707,6 +739,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
