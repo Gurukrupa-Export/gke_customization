@@ -46,6 +46,16 @@ class SecuredLoan(Document):
 
             due_date += relativedelta(months=1)
 
+    def on_submit(self):
+        total_supllier_amount = 0
+        if not self.secured_loan_supplier_details:
+            frappe.throw("Add Deatils of Supplier")
+        for i in self.secured_loan_supplier_details:
+            total_supllier_amount += i.amount
+        if self.loan_amount != total_supllier_amount:
+            frappe.throw("Loan Amount and Supllier amount is not match")
+            
+
 @frappe.whitelist()
 def add_row(name, lender, loan_amount, company):
   
