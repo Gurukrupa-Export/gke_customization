@@ -109,13 +109,22 @@ class EmployeeAnnexure(Document):
 
 	def validate(self):
 		if self.get("__islocal") or not self.name:
-			existing = frappe.db.exists(
-				"Employee Annexure",
-				{
-					"employee": self.employee,
-					"name": ["!=", self.name]  
-				}
-			)
+			if self.employee:
+				existing = frappe.db.exists(
+					"Employee Annexure",
+					{
+						"employee": self.employee,
+						"name": ["!=", self.name]  
+					}
+				)
+			else:
+				existing = frappe.db.exists(
+					"Employee Annexure",
+					{
+						"employee_job_offer": self.employee_job_offer,
+						"name": ["!=", self.name]  
+					}
+				)
 			if existing:
 
 				link = frappe.utils.get_link_to_form("Employee Annexure", existing)
@@ -191,6 +200,6 @@ class EmployeeAnnexure(Document):
 					except ValueError:
 						pass  
 			return frappe.safe_eval(formula, context)
-		except Exception as e:
+		except Exception as e:	
 			# frappe.msgprint(f"Error evaluating formula '{formula}': {e}")
 			return 0
