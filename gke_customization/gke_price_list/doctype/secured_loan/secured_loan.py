@@ -45,3 +45,44 @@ class SecuredLoan(Document):
             })
 
             due_date += relativedelta(months=1)
+
+@frappe.whitelist()
+def add_row(name, lender, loan_amount, company):
+  
+    bp = frappe.get_doc("Business Partner", lender)
+
+  
+    je = frappe.new_doc("Journal Entry")
+    je.company = company
+    je.posting_date = frappe.utils.nowdate()
+
+    # bp_sup = frappe.get_doc("Supplier", bp.supplier)
+
+    je.custom_secure_loan = name
+    sl_doc = frappe.get_doc("Secured Loan",name)
+    for i in sl_doc.secured_loan_supplier_details:
+        bp_sup = frappe.get_doc("Supplier", i.supplier)
+        for row in bp_sup.accounts:
+            if row.company == company:
+                je.append("accounts", {
+                    "account": row.account,
+                    "debit_in_account_currency": i.amount or 0,
+                    "party_type": "Supplier",
+                    "party": i.supplier
+                })
+                
+    for row in bp.loan_accounts:
+        if row.company == company:
+            je.append("accounts", {
+                "account": row.secured_loan_account,
+                "credit_in_account_currency": loan_amount or 0,
+                # "party_type": "Customer",
+                # "party": bp.customer
+            })
+
+   
+    je.insert(ignore_permissions=True)
+    frappe.db.commit()
+
+    return je.name
+
