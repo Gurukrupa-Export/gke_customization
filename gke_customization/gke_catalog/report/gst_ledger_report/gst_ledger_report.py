@@ -368,38 +368,113 @@ def get_accounts_with_children(accounts):
 
     return frappe.qb.from_(doctype).select(doctype.name).where(Criterion.any(conditions)).run(pluck=True)
 
+def get_customer_gstin_details():
+    customer_details = {}
+    for d in frappe.db.sql(
+        """ select name, gstin from `tabCustomer`
+        where disabled = 0 """,
+        as_dict=1,
+    ):
+        customer_details[d.name] = {
+            "gstin": d.gstin or ""
+        }
+    return customer_details
+
+def get_supplier_gstin_details():
+    supplier_details = {}
+    for d in frappe.db.sql(
+        """ select name, gstin from `tabSupplier`
+        where disabled = 0 """,
+        as_dict=1,
+    ):
+        supplier_details[d.name] = {
+            "gstin": d.gstin or ""
+        }
+    return supplier_details
+
 def set_bill_no(gl_entries):
+    # Get all voucher details
     purchase_inv_details = get_purchase_invoice_details()
     sales_inv_details = get_sales_invoice_details()
     payment_entry_details = get_payment_entry_details()
     journal_entry_details = get_journal_entry_details()
+    delivery_note_details = get_delivery_note_details()
+    expense_claim_details = get_expense_claim_details()
+    purchase_receipt_details = get_purchase_receipt_details()
+    stock_entry_details = get_stock_entry_details()
+    stock_reconciliation_details = get_stock_reconciliation_details()
+    loan_disbursement_details = get_loan_disbursement_details()
+    loan_repayment_details = get_loan_repayment_details()
+    
+    # Get party master GST details as fallback
+    customer_gstin_details = get_customer_gstin_details()
+    supplier_gstin_details = get_supplier_gstin_details()
     
     for gl in gl_entries:
-        against_voucher = gl.get("against_voucher")
+        voucher_no = gl.get("voucher_no")
+        voucher_type = gl.get("voucher_type")
         party_type = gl.get("party_type")
+        party = gl.get("party")
         
         # Initialize fields
         gl["bill_no"] = ""
         gl["party_gstin"] = ""
         
-        # Skip if no against_voucher
-        if not against_voucher:
+        if not voucher_no:
             continue
             
-        # For Supplier - use Purchase Invoice
-        if party_type == "Supplier" and against_voucher in purchase_inv_details:
-            details = purchase_inv_details[against_voucher]
+        # Purchase Invoice
+        if voucher_type == "Purchase Invoice" and voucher_no in purchase_inv_details:
+            details = purchase_inv_details[voucher_no]
             gl["bill_no"] = details.get("bill_no", "")
             gl["party_gstin"] = details.get("supplier_gstin", "")
+            
+        # Purchase Receipt
+        elif voucher_type == "Purchase Receipt" and voucher_no in purchase_receipt_details:
+            gl["party_gstin"] = purchase_receipt_details[voucher_no].get("supplier_gstin", "")
+            
+        # Sales Invoice
+        elif voucher_type == "Sales Invoice" and voucher_no in sales_inv_details:
+            gl["party_gstin"] = sales_inv_details[voucher_no].get("billing_address_gstin", "")
+            
+        # Delivery Note
+        elif voucher_type == "Delivery Note" and voucher_no in delivery_note_details:
+            gl["party_gstin"] = delivery_note_details[voucher_no].get("billing_address_gstin", "")
+            
+        # Payment Entry
+        elif voucher_type == "Payment Entry" and voucher_no in payment_entry_details:
+            gl["party_gstin"] = payment_entry_details[voucher_no].get("billing_address_gstin", "")
+            
+        # Journal Entry
+        elif voucher_type == "Journal Entry" and voucher_no in journal_entry_details:
+            gl["party_gstin"] = journal_entry_details[voucher_no].get("company_gstin", "")
+            
+        # Stock Entry
+        elif voucher_type == "Stock Entry" and voucher_no in stock_entry_details:
+            gl["party_gstin"] = ""  # Stock entries typically don't have GST
+            
+        # Stock Reconciliation
+        elif voucher_type == "Stock Reconciliation" and voucher_no in stock_reconciliation_details:
+            gl["party_gstin"] = ""  # Stock reconciliation typically don't have GST
+            
+        # Expense Claim
+        elif voucher_type == "Expense Claim" and voucher_no in expense_claim_details:
+            gl["party_gstin"] = ""  # Expense claims typically don't have GST
+            
+        # Loan Disbursement
+        elif voucher_type == "Loan Disbursement" and voucher_no in loan_disbursement_details:
+            gl["party_gstin"] = ""  # Loan transactions typically don't have GST
+            
+        # Loan Repayment
+        elif voucher_type == "Loan Repayment" and voucher_no in loan_repayment_details:
+            gl["party_gstin"] = ""  # Loan transactions typically don't have GST
         
-        # For Customer - try Sales Invoice, Payment Entry, Journal Entry
-        elif party_type == "Customer":
-            if against_voucher in sales_inv_details:
-                gl["party_gstin"] = sales_inv_details[against_voucher].get("billing_address_gstin", "")
-            elif against_voucher in payment_entry_details:
-                gl["party_gstin"] = payment_entry_details[against_voucher].get("billing_address_gstin", "")
-            elif against_voucher in journal_entry_details:
-                gl["party_gstin"] = ""  # Journal Entry doesn't have customer GSTIN
+        # Fallback: If party_gstin is empty, fetch from party master
+        if not gl["party_gstin"] and party:
+            if party_type == "Customer" and party in customer_gstin_details:
+                gl["party_gstin"] = customer_gstin_details[party].get("gstin", "")
+            elif party_type == "Supplier" and party in supplier_gstin_details:
+                gl["party_gstin"] = supplier_gstin_details[party].get("gstin", "")
 
 def get_supplier_invoice_details():
     inv_details = {}
@@ -437,6 +512,80 @@ def get_sales_invoice_details():
         inv_details[d.name] = {
             "billing_address_gstin": d.billing_address_gstin or ""
         }
+    return inv_details
+
+def get_delivery_note_details():
+    inv_details = {}
+    for d in frappe.db.sql(
+        """ select name, billing_address_gstin from `tabDelivery Note`
+        where docstatus = 1 """,
+        as_dict=1,
+    ):
+        inv_details[d.name] = {
+            "billing_address_gstin": d.billing_address_gstin or ""
+        }
+    return inv_details
+
+def get_expense_claim_details():
+    inv_details = {}
+    for d in frappe.db.sql(
+        """ select name from `tabExpense Claim`
+        where docstatus = 1 """,
+        as_dict=1,
+    ):
+        inv_details[d.name] = {}
+    return inv_details
+
+def get_purchase_receipt_details():
+    inv_details = {}
+    for d in frappe.db.sql(
+        """ select name, supplier_gstin from `tabPurchase Receipt`
+        where docstatus = 1 """,
+        as_dict=1,
+    ):
+        inv_details[d.name] = {
+            "supplier_gstin": d.supplier_gstin or ""
+        }
+    return inv_details
+
+def get_stock_entry_details():
+    inv_details = {}
+    for d in frappe.db.sql(
+        """ select name from `tabStock Entry`
+        where docstatus = 1 """,
+        as_dict=1,
+    ):
+        inv_details[d.name] = {}
+    return inv_details
+
+def get_stock_reconciliation_details():
+    inv_details = {}
+    for d in frappe.db.sql(
+        """ select name from `tabStock Reconciliation`
+        where docstatus = 1 """,
+        as_dict=1,
+    ):
+        inv_details[d.name] = {}
+    return inv_details
+
+def get_loan_disbursement_details():
+    inv_details = {}
+    for d in frappe.db.sql(
+        """ select name from `tabLoan Disbursement`
+        where docstatus = 1 """,
+        as_dict=1,
+    ):
+        inv_details[d.name] = {}
+    return inv_details
+
+def get_loan_repayment_details():
+    inv_details = {}
+    for d in frappe.db.sql(
+        """ select name from `tabLoan Repayment`
+        where docstatus = 1 """,
+        as_dict=1,
+    ):
+        inv_details[d.name] = {}
     return inv_details
 
 def get_payment_entry_details():
