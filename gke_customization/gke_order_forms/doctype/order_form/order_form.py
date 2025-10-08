@@ -53,15 +53,14 @@ class OrderForm(Document):
 	# def on_cancel(self):
 	# 	delete_auto_created_cad_order(self)
 	def on_cancel(self):
-		if frappe.db.get_list("Order",filters={"cad_order_form":self.name},fields="name"):
-			for order in frappe.db.get_list("Order",filters={"cad_order_form":self.name},fields="name"):
-				frappe.db.set_value("Order",order["name"],"workflow_state","Cancelled")
-				# frappe.throw(f"{order}")
-				if frappe.db.get_list("Timesheet",filters={"order":order["name"]},fields="name"):
-					for timesheet in frappe.db.get_list("Timesheet",filters={"order":order["name"]},fields="name"):
-						frappe.db.set_value("Timesheet",timesheet["name"],"docstatus","2")
-
-		frappe.db.set_value("Order Form",self.name,"workflow_state","Cancelled")
+		orders = frappe.db.get_list("Order", filters={"cad_order_form": self.name}, fields="name")
+		if orders:
+			for order in orders:
+				timesheets = frappe.db.get_list("Timesheet", filters={"order": order["name"]}, fields="name")
+				frappe.db.set_value("Order", order["name"], "workflow_state", "Cancelled")
+				for ts in timesheets:
+					frappe.db.set_value("Timesheet", ts["name"], "workflow_state", "Cancelled")
+		frappe.db.set_value("Order Form", self.name, "workflow_state", "Cancelled")
 		self.reload()
 
 	def validate(self):
