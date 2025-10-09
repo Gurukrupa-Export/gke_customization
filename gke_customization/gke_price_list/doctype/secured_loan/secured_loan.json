@@ -19,9 +19,11 @@
   "start_date",
   "end_date",
   "outstanding_amount",
+  "secured_loan_supplier_details",
   "section_break_dusv",
   "secured_loan_repayment_schedule",
   "payment_entry_created",
+  "journal_entry_created",
   "section_break_ke4x",
   "principal_gl_account"
  ],
@@ -85,11 +87,11 @@
    "label": "Loan Amount"
   },
   {
-   "depends_on": "eval:doc.payment_entry_created",
    "fieldname": "section_break_dusv",
    "fieldtype": "Section Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "secured_loan_repayment_schedule",
    "fieldtype": "Table",
    "label": "Secured Loan Repayment Schedule",
@@ -118,9 +120,11 @@
    "options": "Branch"
   },
   {
+   "allow_on_submit": 1,
    "default": "0",
    "fieldname": "payment_entry_created",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Payment Entry Created"
   },
   {
@@ -135,6 +139,18 @@
    "fieldtype": "Link",
    "label": "Principal GL Account",
    "options": "Account"
+  },
+  {
+   "default": "0",
+   "fieldname": "journal_entry_created",
+   "fieldtype": "Check",
+   "label": "Journal Entry Created"
+  },
+  {
+   "fieldname": "secured_loan_supplier_details",
+   "fieldtype": "Table",
+   "label": "Secured Loan Supplier Details",
+   "options": "Secured Loan Supplier Details"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -143,9 +159,13 @@
   {
    "link_doctype": "Payment Entry",
    "link_fieldname": "custom_secured_loan"
+  },
+  {
+   "link_doctype": "Journal Entry",
+   "link_fieldname": "custom_secure_loan"
   }
  ],
- "modified": "2025-07-22 11:24:54.093327",
+ "modified": "2025-09-30 16:47:40.982919",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Secured Loan",
@@ -165,6 +185,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

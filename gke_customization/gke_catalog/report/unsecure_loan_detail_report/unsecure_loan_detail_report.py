@@ -30,17 +30,18 @@ def execute(filters=None):
 
     for loan in loans:
         # Get display names with better error handling
-        try:
-            branch_display = ""
-            if loan.get('branch'):
-                branch_name = frappe.db.get_value("Branch", loan.branch, "branch_name")
-                branch_display = branch_name if branch_name else loan.branch
-        except:
-            branch_display = loan.branch or ""
-
+        # try:
+        #     branch_display = ""
+        #     if loan.get('branch'):
+        #         branch_name = frappe.db.get_value("Branch", loan.branch, "branch_name")
+        #         branch_display = branch_name if branch_name else loan.branch
+        # except:
+        #     branch_display = loan.branch or ""
+        branch_display = loan.get('branch')
         company_display = loan.company or ""
-        lender_display = loan.lender_name or loan.lender or ""
-
+        # lender_display = loan.lender_name or loan.lender or ""
+        lender_display = loan.lender
+        lender_name = frappe.db.get_value("Business Partner",loan.lender,"business_partner")
         # Get repayment schedule lines - only those with payment_type
         repayments = frappe.db.sql("""
             SELECT 
@@ -101,6 +102,7 @@ def execute(filters=None):
                 company_display,
                 branch_display,
                 lender_display,
+                lender_name,
                 balance,
                 txn_date,
                 period_end,
@@ -116,7 +118,7 @@ def execute(filters=None):
 
     # Add footer for total interest
     if total_interest > 0:
-        data.append(["", "", "", "", "", "", "", "", "**Total Interest**", total_interest, "", "", ""])
+        data.append(["", "", "", "", "", "", "", "", "", "**Total Interest**", total_interest, "", "", ""])
     
     return columns, data
 
@@ -126,6 +128,7 @@ def get_columns():
         {"label": "Company", "fieldname": "company", "fieldtype": "Data", "width": 290},
         {"label": "Branch", "fieldname": "branch", "fieldtype": "Data", "width": 120},
         {"label": "Lender", "fieldname": "lender", "fieldtype": "Data", "width": 150},
+        {"label": "Lender name", "fieldname": "lender_name", "fieldtype": "Data", "width": 150},
         {"label": "Balance", "fieldname": "balance", "fieldtype": "Currency", "width": 120},
         {"label": "From Date", "fieldname": "from_date", "fieldtype": "Date", "width": 150},
         {"label": "To Date", "fieldname": "to_date", "fieldtype": "Date", "width": 150},
