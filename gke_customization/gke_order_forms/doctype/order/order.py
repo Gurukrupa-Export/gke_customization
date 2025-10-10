@@ -16,9 +16,38 @@ from frappe.desk.form.assign_to import add as add_assignment
 
 
 class Order(Document):
+	# def on_update(self):
+	# 	if self.workflow_state == "Assigned":
+	# 		create_timesheet(self)
+
+
 	def on_update(self):
 		if self.workflow_state == "Assigned":
 			create_timesheet(self)
+
+		if self.workflow_state == "Cancelled":
+			timesheets = frappe.get_all(
+				"Timesheet",
+				filters={"order": self.name},
+				fields=["name", "docstatus"]
+			)
+
+			if not timesheets:
+				frappe.msgprint("No Timesheets found for this Order")
+				return
+
+			for ts in timesheets:
+				ts_doc = frappe.get_doc("Timesheet", ts.name)
+
+				if ts_doc.docstatus == 1:
+					ts_doc.cancel()
+				elif ts_doc.docstatus == 0:
+					
+					frappe.db.set_value("Timesheet", ts.name, "docstatus", 2)
+
+				frappe.db.set_value("Timesheet", ts.name, "workflow_state", "Cancelled")
+
+			frappe.msgprint(f"All linked Timesheets for Order {self.name} have been cancelled.")
 
 	def on_submit(self):
 		item_variant = create_line_items(self)
@@ -77,6 +106,7 @@ class Order(Document):
 
 		frappe.db.set_value("Order",self.name,"workflow_state","Cancelled")
 		self.reload()
+
 
 
 
