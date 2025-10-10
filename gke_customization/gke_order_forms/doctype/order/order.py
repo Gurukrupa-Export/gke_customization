@@ -35,6 +35,7 @@ class Order(Document):
 				self.reload()
 
 	def validate(self):
+		update_new_designer_timesheet(self)
 		if self.workflow_state in ["Update Item", "Design Rework in Progress"]:
 			timesheet_validation(self)
 		if self.order_type != 'Purchase' and self.workflow_state == "Assigned":
@@ -1201,6 +1202,25 @@ def timesheet_validation(self):
 				if not_approved:
 					message = f"The following Timesheets are not Approved for Order {self.name}, cannot start Design Rework: {', '.join(not_approved)}"
 					frappe.throw(message)
+
+
+
+def update_new_designer_timesheet(self):
+	if self.workflow_state == "Update Designer":
+		
+		for row in self.designer_assignment:
+			if row.designer:  
+				timesheets = frappe.db.get_list(
+					"Timesheet",
+					filters={
+						"order": self.name,
+						"employee": row.designer 
+					},
+					fields=["name"]
+				)
+				for ts in timesheets:
+					frappe.db.set_value("Timesheet", ts["name"], "docstatus", "2")
+					frappe.db.set_value("Timesheet",ts["name"],"workflow_state","Cancelled")
 
 
 
