@@ -106,6 +106,33 @@ frappe.query_reports["GST Ledger Report"] = {
             },
         },
         {
+            fieldname: "party_gstin",
+            label: __("Party GSTIN"),
+            fieldtype: "MultiSelectList",
+            get_data: function (txt) {
+                let party_type = frappe.query_report.get_filter_value("party_type");
+                let parties = frappe.query_report.get_filter_value("party");
+                
+                if (!party_type) return [];
+                
+                let filters = {disabled: 0};
+                if (parties && parties.length > 0) {
+                    filters.name = ["in", parties];
+                }
+                
+                return frappe.db.get_list(party_type, {
+                    fields: ["gstin"],
+                    filters: filters,
+                    or_filters: txt ? [
+                        ["gstin", "like", `%${txt}%`]
+                    ] : []
+                }).then(function(data) {
+                    return data.map(d => ({label: d.gstin, value: d.gstin})).filter(d => d.value);
+                });
+            },
+            depends_on: "eval: doc.party_type"
+        },
+        {
             fieldname: "party_name",
             label: __("Party Name"),
             fieldtype: "Data",
