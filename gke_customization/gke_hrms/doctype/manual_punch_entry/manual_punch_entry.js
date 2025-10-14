@@ -67,6 +67,7 @@ frappe.ui.form.on('Manual Punch Entry', {
 			doc: frm.doc,
 			callback: function(r) {
 				var checkins = r.message
+				console.log(checkins)
 				$.each(checkins || [], function(i,d) {
 					if (!d.source) {
 						d.source = "Employee Checkin"
