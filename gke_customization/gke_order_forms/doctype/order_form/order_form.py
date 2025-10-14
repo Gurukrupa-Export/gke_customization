@@ -53,15 +53,14 @@ class OrderForm(Document):
 	# def on_cancel(self):
 	# 	delete_auto_created_cad_order(self)
 	def on_cancel(self):
-		if frappe.db.get_list("Order",filters={"cad_order_form":self.name},fields="name"):
-			for order in frappe.db.get_list("Order",filters={"cad_order_form":self.name},fields="name"):
-				frappe.db.set_value("Order",order["name"],"workflow_state","Cancelled")
-				# frappe.throw(f"{order}")
-				if frappe.db.get_list("Timesheet",filters={"order":order["name"]},fields="name"):
-					for timesheet in frappe.db.get_list("Timesheet",filters={"order":order["name"]},fields="name"):
-						frappe.db.set_value("Timesheet",timesheet["name"],"docstatus","2")
-
-		frappe.db.set_value("Order Form",self.name,"workflow_state","Cancelled")
+		orders = frappe.db.get_list("Order", filters={"cad_order_form": self.name}, fields="name")
+		if orders:
+			for order in orders:
+				timesheets = frappe.db.get_list("Timesheet", filters={"order": order["name"]}, fields="name")
+				frappe.db.set_value("Order", order["name"], "workflow_state", "Cancelled")
+				for ts in timesheets:
+					frappe.db.set_value("Timesheet", ts["name"], "workflow_state", "Cancelled")
+		frappe.db.set_value("Order Form", self.name, "workflow_state", "Cancelled")
 		self.reload()
 
 	def validate(self):
@@ -324,16 +323,20 @@ class OrderForm(Document):
 
 
 
-from datetime import datetime, timedelta, time
 import frappe
 from frappe.utils import now_datetime, get_datetime
 from frappe.utils import get_link_to_form
 from frappe import _
+from datetime import datetime, time, timedelta
 
 def create_cad_orders(self):
+    
+    if self.docstatus == 0 or self.workflow_state in ["Draft","Send For Approval", "Cancelled"]:
+        frappe.msgprint(_("Order creation skipped because document is in Draft or Cancelled state."))
+        return
+
     doclist = []
 
-    # Fetch Order Criteria once
     order_criteria = frappe.get_single("Order Criteria")
     criteria_rows = order_criteria.get("order")
     enabled_criteria = next((row for row in criteria_rows if not row.disable), None)
@@ -341,10 +344,8 @@ def create_cad_orders(self):
     if not enabled_criteria:
         frappe.throw("No enabled Order Criteria found.")
 
-    # Parse CAD and IBM times
     cad_days = int(enabled_criteria.cad_approval_day or 0)
 
-    # Parse cad_submission_time
     cad_time_raw = enabled_criteria.cad_submission_time
     if isinstance(cad_time_raw, time):
         cad_time = cad_time_raw
@@ -359,7 +360,6 @@ def create_cad_orders(self):
     else:
         cad_time = time(0, 0, 0)
 
-    # Parse IBM approval time
     ibm_time_raw = enabled_criteria.cad_appoval_timefrom_ibm_team
     if isinstance(ibm_time_raw, time):
         ibm_timedelta = timedelta(hours=ibm_time_raw.hour, minutes=ibm_time_raw.minute, seconds=ibm_time_raw.second)
@@ -375,32 +375,25 @@ def create_cad_orders(self):
         ibm_timedelta = timedelta()
 
     for row in self.order_details:
-        # Create Order
         docname = make_cad_order(row.name, parent_doc=self)
 
-        # Link Pre Order Form Details
         if row.pre_order_form_details:
             frappe.db.set_value("Pre Order Form Details", row.pre_order_form_details, "order_form_id", self.name)
 
-        # Set order_date to now
         order_datetime = now_datetime()
         frappe.db.set_value("Order", docname, "order_date", order_datetime)
 
-        # Set delivery_date if available
         if self.delivery_date:
             frappe.db.set_value("Order", docname, "delivery_date", self.delivery_date)
 
-        # Calculate CAD & IBM delivery dates
         cad_delivery_datetime = datetime.combine(order_datetime.date() + timedelta(days=cad_days), cad_time)
         ibm_delivery_datetime = cad_delivery_datetime + ibm_timedelta
 
         frappe.db.set_value("Order", docname, "cad_delivery_date", cad_delivery_datetime)
         frappe.db.set_value("Order", docname, "ibm_delivery_date", ibm_delivery_datetime)
 
-        # Collect links for message
         doclist.append(get_link_to_form("Order", docname))
 
-    # Final message
     if doclist:
         msg = _("The following {0} were created: {1}").format(
             frappe.bold(_("Orders")), "<br>" + ", ".join(doclist)
