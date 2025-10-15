@@ -1187,7 +1187,7 @@ def timesheet_validation(self):
 			"Order Form", self.cad_order_form, "required_customer_approval"
 		)
 
-		# Get all Timesheets for this Order
+		
 		timesheets = frappe.get_all(
 			"Timesheet",
 			filters={"order": self.name},
@@ -1197,41 +1197,34 @@ def timesheet_validation(self):
 		
 		if self.workflow_state == "Update Item":
 			if required_approval:
-				# Auto-approve all Timesheets not yet Approved (skip Cancelled)
 				for ts in timesheets:
 					if ts["workflow_state"] != "Approved" and ts["docstatus"] != 2:
 						timesheet_doc = frappe.get_doc("Timesheet", ts["name"])
 						timesheet_doc.workflow_state = "Approved"
 						timesheet_doc.save(ignore_permissions=True)
-						if timesheet_doc.docstatus == 0:  # Only submit if not already submitted
+						if timesheet_doc.docstatus == 0:
 							timesheet_doc.submit()
 				frappe.db.commit()
 				frappe.msgprint(f"All relevant Timesheets are now auto-approved for Order {self.name}. Proceeding.")
 			else:
-				# Check for Timesheets not Approved (ignore Cancelled)
-				not_approved = [ts["name"] for ts in timesheets if ts["workflow_state"] != "Approved" and ts["docstatus"] != 2]
+				not_approved = [
+					ts["name"]
+					for ts in timesheets
+					if ts["workflow_state"] != "Approved" and ts["docstatus"] != 2
+				]
 				if not_approved:
 					message = f"The following Timesheets are not Approved for Order {self.name}: {', '.join(not_approved)}"
 					frappe.throw(message)
 
-		
 		elif self.workflow_state == "Design Rework in Progress":
-			if required_approval:
-				# Only update Timesheets currently in Approved state to Rework (skip Cancelled)
-				for ts in timesheets:
-					if ts["workflow_state"] == "Approved" and ts["docstatus"] != 2:
-						frappe.db.set_value("Timesheet", ts["name"], {
-							"workflow_state": "Design Rework in Progress",
-							"docstatus": 0
-						})
-				frappe.db.commit()
-				frappe.msgprint(f"Relevant Timesheets for Order {self.name} updated to 'Design Rework in Progress'.")
-			else:
-				# Cannot start rework if Timesheets are not Approved (ignore Cancelled)
-				not_approved = [ts["name"] for ts in timesheets if ts["workflow_state"] != "Approved" and ts["docstatus"] != 2]
-				if not_approved:
-					message = f"The following Timesheets are not Approved for Order {self.name}, cannot start Design Rework: {', '.join(not_approved)}"
-					frappe.throw(message)
+			for ts in timesheets:
+				if ts["workflow_state"] == "Approved" and ts["docstatus"] != 2:
+					frappe.db.set_value("Timesheet", ts["name"], {
+						"workflow_state": "Design Rework in Progress",
+						"docstatus": 0
+					})
+			frappe.db.commit()
+			frappe.msgprint(f"Relevant Timesheets for Order {self.name} updated to 'Design Rework in Progress'.")
 
 
 
