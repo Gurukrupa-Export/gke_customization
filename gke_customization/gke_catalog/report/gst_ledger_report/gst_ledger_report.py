@@ -229,7 +229,7 @@ def get_conditions(filters):
     if filters.get("against_voucher_no"):
         conditions.append("against_voucher=%(against_voucher_no)s")
 
-    # Removed party_gstin condition - will filter after processing
+    # Party GSTIN filtering removed from here - will filter after processing
 
     if filters.get("ignore_err"):
         err_journals = frappe.db.get_all(
@@ -478,19 +478,6 @@ def set_bill_no(gl_entries):
             elif party_type == "Supplier" and party in supplier_gstin_details:
                 gl["party_gstin"] = supplier_gstin_details[party].get("gstin", "")
 
-def get_supplier_invoice_details():
-    inv_details = {}
-    for d in frappe.db.sql(
-        """ select name, bill_no, supplier_gstin from `tabPurchase Invoice`
-        where docstatus = 1 """,
-        as_dict=1,
-    ):
-        inv_details[d.name] = {
-            "bill_no": d.bill_no or "",
-            "supplier_gstin": d.supplier_gstin or ""
-        }
-    return inv_details
-
 def get_purchase_invoice_details():
     inv_details = {}
     for d in frappe.db.sql(
@@ -611,18 +598,6 @@ def get_journal_entry_details():
     ):
         inv_details[d.name] = {
             "company_gstin": d.company_gstin or ""
-        }
-    return inv_details
-
-def get_customer_invoice_details():
-    inv_details = {}
-    for d in frappe.db.sql(
-        """ select name, billing_address_gstin from `tabSales Invoice`
-        where docstatus = 1 """,
-        as_dict=1,
-    ):
-        inv_details[d.name] = {
-            "billing_address_gstin": d.billing_address_gstin or ""
         }
     return inv_details
 
@@ -942,6 +917,7 @@ def get_columns(filters):
             "options": "voucher_type",
             "width": 180,
         },
+        {"label": _("Bill No"), "fieldname": "bill_no", "fieldtype": "Data", "width": 120},
         {"label": _("Against Account"), "fieldname": "against", "width": 120},
         {"label": _("Party Type"), "fieldname": "party_type", "width": 100},
         {"label": _("Party"), "fieldname": "party", "width": 100},
