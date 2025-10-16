@@ -113,24 +113,79 @@ frappe.query_reports["GST Ledger Report"] = {
                 let party_type = frappe.query_report.get_filter_value("party_type");
                 let parties = frappe.query_report.get_filter_value("party");
                 
-                if (!party_type) return [];
+                // If no party type selected, search all Customer & Supplier GSTINs
+                if (!party_type) {
+                    if (!txt || txt.length < 2) return Promise.resolve([]);
+                    
+                    return Promise.all([
+                        // Search Customers
+                        frappe.db.get_list("Customer", {
+                            fields: ["gstin", "name", "customer_name"],
+                            filters: {
+                                disabled: 0,
+                                gstin: ["like", `%${txt}%`]
+                            },
+                            limit: 10
+                        }),
+                        // Search Suppliers  
+                        frappe.db.get_list("Supplier", {
+                            fields: ["gstin", "name", "supplier_name"],
+                            filters: {
+                                disabled: 0,
+                                gstin: ["like", `%${txt}%`]
+                            },
+                            limit: 10
+                        })
+                    ]).then(function([customers, suppliers]) {
+                        let results = [];
+                        
+                        // Add customer GSTINs
+                        customers.forEach(d => {
+                            if (d.gstin) {
+                                results.push({
+                                    label: `${d.gstin} (${d.customer_name})`,
+                                    value: d.gstin
+                                });
+                            }
+                        });
+                        
+                        // Add supplier GSTINs
+                        suppliers.forEach(d => {
+                            if (d.gstin) {
+                                results.push({
+                                    label: `${d.gstin} (${d.supplier_name})`,
+                                    value: d.gstin
+                                });
+                            }
+                        });
+                        
+                        return results;
+                    });
+                }
                 
+                // If party type selected, use contextual filtering
                 let filters = {disabled: 0};
                 if (parties && parties.length > 0) {
                     filters.name = ["in", parties];
                 }
                 
+                if (txt) {
+                    filters.gstin = ["like", `%${txt}%`];
+                }
+                
+                let name_field = party_type === "Customer" ? "customer_name" : "supplier_name";
+                
                 return frappe.db.get_list(party_type, {
-                    fields: ["gstin"],
+                    fields: ["gstin", "name", name_field],
                     filters: filters,
-                    or_filters: txt ? [
-                        ["gstin", "like", `%${txt}%`]
-                    ] : []
+                    limit: 20
                 }).then(function(data) {
-                    return data.map(d => ({label: d.gstin, value: d.gstin})).filter(d => d.value);
+                    return data.map(d => ({
+                        label: d.gstin ? `${d.gstin} (${d[name_field]})` : "",
+                        value: d.gstin
+                    })).filter(d => d.value);
                 });
-            },
-            depends_on: "eval: doc.party_type"
+            }
         },
         {
             fieldname: "party_name",
