@@ -1,7 +1,3 @@
-
-
-
-
 import frappe
 from frappe.utils import now_datetime, time_diff_in_hours
 
@@ -181,6 +177,7 @@ def on_submit(doc, method):
 def on_update(doc, method):
     if doc.order:
         update_order_status_from_timesheets(doc.order)
+
 
 
 
