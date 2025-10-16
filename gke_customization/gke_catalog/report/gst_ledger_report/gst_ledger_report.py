@@ -229,6 +229,8 @@ def get_conditions(filters):
     if filters.get("against_voucher_no"):
         conditions.append("against_voucher=%(against_voucher_no)s")
 
+    # Removed party_gstin condition - will filter after processing
+
     if filters.get("ignore_err"):
         err_journals = frappe.db.get_all(
             "Journal Entry",
@@ -629,6 +631,11 @@ def get_data_with_opening_closing(filters, account_details, accounting_dimension
     totals_dict = get_totals_dict()
 
     set_bill_no(gl_entries)
+    
+    # Filter by party_gstin after processing
+    if filters.get("party_gstin"):
+        party_gstin_filter = frappe.parse_json(filters.get("party_gstin"))
+        gl_entries = [gl for gl in gl_entries if gl.get("party_gstin") in party_gstin_filter]
 
     gle_map = initialize_gle_map(gl_entries, filters, totals_dict)
 
