@@ -12,12 +12,6 @@ frappe.query_reports["Production Report"] = {
             "default": frappe.defaults.get_user_default("Company")
         },
         {
-            "fieldname": "branch",
-            "label": __("Branch"),
-            "fieldtype": "Link",
-            "options": "Branch"
-        },
-        {
             "fieldname": "from_date",
             "label": __("From Date"),
             "fieldtype": "Date",
@@ -40,8 +34,10 @@ frappe.query_reports["Production Report"] = {
         {
             "fieldname": "manufacturer",
             "label": __("Manufacturer"),
-            "fieldtype": "Link",
-            "options": "Manufacturer"
+            "fieldtype": "MultiSelectList",
+            "get_data": function(txt) {
+                return frappe.db.get_link_options('Manufacturer', txt);
+            }
         }
     ],
 
@@ -135,7 +131,7 @@ function show_serial_details_modal_with_raw_materials(details) {
                     <h6>Product Image</h6>
                     <div class="text-center">
                         <img src="${details.product_image}" 
-                             style="height:100px; border-radius:6px; cursor:pointer; object-fit:contain; border: 1px solid #ddd;" 
+                             style="height:200px; max-width:250px; border-radius:6px; cursor:pointer; object-fit:contain; border: 1px solid #ddd;" 
                              onclick="show_full_image('${details.product_image}')">
                     </div>
                 ` : ''}
