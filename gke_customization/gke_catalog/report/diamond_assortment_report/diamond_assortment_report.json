@@ -1,0 +1,41 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-10-10 12:08:39.257795",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2025-10-11 09:30:48.766129",
+ "modified_by": "sahil_g@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Diamond Assortment Report",
+ "owner": "sahil_g@gkexport.com",
+ "prepared_report": 0,
+ "ref_doctype": "Diamond Conversion",
+ "report_name": "Diamond Assortment Report",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "GK Diamond Bagging"
+  },
+  {
+   "role": "Diamond Bagging Executive - ST"
+  },
+  {
+   "role": "Diamond Bagging Manager - ST"
+  },
+  {
+   "role": "Diamond Bagging Executive - KGJPL"
+  }
+ ],
+ "timeout": 0
+}
