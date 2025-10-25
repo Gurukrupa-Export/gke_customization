@@ -53,14 +53,14 @@ def get_departments_list(filters):
         WHERE mwo.company = '{company}' AND mwo.docstatus = 1 AND mop.department IS NOT NULL AND mop.department != '' {excluded_condition}{manufacturer_dept_condition}"""
     
     if branch: dept_query += f" AND mwo.branch = '{branch}'"
-    if department: dept_query += f" AND mop.department LIKE '%{department}%'"
+    if department: dept_query += f" AND mop.department LIKE %{department}%"
     dept_query += " ORDER BY mop.department LIMIT 20"
     
     try: return frappe.db.sql(dept_query, as_dict=True)
     except Exception as e: frappe.log_error(f"Department query error: {str(e)}"); return []
 
 def build_department_section_simplified(dept_name, stock_values):
-    section_data = [{"section_name": f"'{dept_name}'", "parent_section": None, "indent": 0.0, "section": dept_name, "quantity": "", "view_details": "", "is_department_header": True}]
+    section_data = [{"section_name": f"{dept_name}", "parent_section": None, "indent": 0.0, "section": dept_name, "quantity": "", "view_details": "", "is_department_header": True}]
     
     stock_types = [{"key": "work_order_stock", "label": "Work Order Stock"}, {"key": "employee_wip_stock", "label": "Employee WIP Stock"},
         {"key": "supplier_wip_stock", "label": "Supplier WIP Stock"}, {"key": "employee_msl_stock", "label": "Employee MSL Stock"},
@@ -413,13 +413,13 @@ def add_department_total_row_simplified(data, section_data, label, summary_data)
     # FIXED: Show blank if total is 0
     display_total = "" if total_quantity == 0 else total_quantity
     
-    data.extend([{"section_name": f"'{label}'", "section": label, "parent_section": None, "indent": 0.0, "quantity": display_total, "view_details": "", "is_department_total": True}, {}])
+    data.extend([{"section_name": f"{label}", "section": label, "parent_section": None, "indent": 0.0, "quantity": display_total, "view_details": "", "is_department_total": True}, {}])
 
 def add_grand_total_row_simplified(data, summary_data):
     grand_total = summary_data.get("total_quantity", 0.0)
     # FIXED: Show blank if grand total is 0
     display_grand_total = "" if grand_total == 0 else grand_total
-    data.append({"section_name": "'Grand Total'", "section": "Grand Total", "parent_section": None, "indent": 0.0, "quantity": display_grand_total, "view_details": "", "is_grand_total": True})
+    data.append({"section_name": "Grand Total", "section": "Grand Total", "parent_section": None, "indent": 0.0, "quantity": display_grand_total, "view_details": "", "is_grand_total": True})
 
 @frappe.whitelist()
 def get_stock_details(department, stock_type, stock_key, filters=None):
