@@ -144,6 +144,7 @@
 "column_break_dmyy",
 "design_image_5",
 "section_break_74",
+"design_complexity",
 "designer",
 "designer_assignment",
 "section_break_znhs",
@@ -1716,6 +1717,12 @@
 "fieldname": "jewelex_design_id",
 "fieldtype": "Data",
 "label": "Jewelex Design ID"
+},
+{
+  "fieldname": "design_complexity",
+  "fieldtype": "Select",
+  "label": "Design Complexity",
+  "options": "\nLow\nMedium\nHigh"
 }
 ],
 "index_web_pages_for_search": 1,

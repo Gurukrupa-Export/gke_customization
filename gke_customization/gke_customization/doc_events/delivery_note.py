@@ -10,21 +10,20 @@ from frappe.utils import cint, flt
 from erpnext.controllers.accounts_controller import get_taxes_and_charges, merge_taxes
 
 def validate(self,method=None):
+	for r in self.items :
+		if not r.against_sales_order:
+					frappe.throw(
+						"Row {0} : Delivery can be created from Delivery Note Company".format(r.idx)
+					)
 	if self.company=='Sadguru Diamond':
 		for r in self.items :
-			# if r.against_sales_order:
-			# 	Diamond_grade=frappe.db.get_value('Sales Order',r.against_sales_order,'items.diamond_grade')
-			# 	Batch_no=frappe.db.get_value('Sales Order',r.against_sales_order,'items.batch_no')
-			# 	r.diamond_grade=Diamond_grade
-			# 	r.batch_no = Batch_no
-			
 			if not r.batch_no and not r.diamond_grade:
 				frappe.throw("Batch no and Diamond grade are mandatory")
 			elif not r.batch_no:
 				frappe.throw("Batch no is mandatory")
 			elif not r.diamond_grade:
 				frappe.throw("Diamond grade is mandatory")
-
+				
 @frappe.whitelist()
 def make_sales_invoice(source_name, target_doc=None, args=None):
 	doc = frappe.get_doc("Delivery Note", source_name)

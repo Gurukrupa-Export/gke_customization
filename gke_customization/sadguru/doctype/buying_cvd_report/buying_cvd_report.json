@@ -118,7 +118,6 @@
    "fieldname": "cvd_wt",
    "fieldtype": "Float",
    "label": "C.V.D Wt",
-   "length": 2,
    "precision": "2"
   },
   {

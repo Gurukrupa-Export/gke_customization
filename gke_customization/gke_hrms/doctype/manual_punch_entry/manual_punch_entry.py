@@ -12,8 +12,13 @@ import itertools
 from hrms.hr.doctype.employee_checkin.employee_checkin import mark_attendance_and_link_log
 from gurukrupa_customizations.gurukrupa_customizations.doctype.personal_out_gate_pass.personal_out_gate_pass import create_prsnl_out_logs
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift_timings
+from frappe.model.workflow import apply_workflow
 
 class ManualPunchEntry(Document):
+	def after_insert(self):
+		if self.miss_punch and self.workflow_state == "Draft":
+			apply_workflow(self, "Send to Manager") 
+
 	def on_update(self):
 		if self.workflow_state == "Create Attendance":
 			if self.employee:
@@ -83,8 +88,11 @@ class ManualPunchEntry(Document):
 		self.validate_filters()
 		self.details = []
 		shift_datetime = datetime.combine(getdate(self.date), get_time(self.start_time))
-		return get_checkins(self.employee, shift_datetime)
-
+		data = get_checkins(self.employee, shift_datetime)
+		return data
+	
+	
+	
 	def delete_checkin(self):
 		if self.to_be_deleted:
 			to_be_deleted = self.to_be_deleted.split(",")
@@ -217,6 +225,13 @@ def get_checkins(employee, shift_datetime):
 		return []
 	return data
 
+@frappe.whitelist()
+def get_emp_checkin(date, employee=None,shift_name=None):
+	shift_start_time = frappe.db.get_value("Shift Type", shift_name, 'start_time')
+	shift_datetime = datetime.combine(getdate(date), get_time(shift_start_time))
+	data = get_checkins(employee, shift_datetime)
+	# frappe.throw(f"{data}")
+	return data
 
 ###############################################################################################################
 

@@ -1,7 +1,3 @@
-
-
-
-
 import frappe
 from frappe.utils import now_datetime, time_diff_in_hours
 
@@ -183,38 +179,73 @@ def on_update(doc, method):
         update_order_status_from_timesheets(doc.order)
 
 
-def update_order_status_from_timesheets(order_name): 
-    workflow_type = frappe.db.get_value("Order", order_name, "workflow_type")
-    if workflow_type != "CAD":
-        return  
 
+
+import frappe
+
+def update_order_status_from_timesheets(order_name):
+    workflow_type = frappe.db.get_value("Order", order_name, "workflow_type")
+    bom_or_cad = frappe.db.get_value("Order", order_name, "bom_or_cad")
+
+    if workflow_type != "CAD":
+        return
+
+    # Fetch all timesheets linked to this order excluding cancelled
     timesheets = frappe.get_all(
         "Timesheet",
-        filters={"order": order_name},
-        fields=["name", "workflow_state"]
+        filters={"order": order_name, "docstatus": ("!=", 2)},
+        fields=["name", "workflow_state", "creation"],
+        order_by="creation asc"
     )
 
     if not timesheets:
-        return  
-
-    workflow_states = list(set(ts["workflow_state"] for ts in timesheets))
-
-    # Get current order workflow_state
-    current_order_state = frappe.db.get_value("Order", order_name, "workflow_state")
-
-    # All timesheets are Approved
-    if all(ts["workflow_state"] == "Approved" for ts in timesheets):
-        if current_order_state != "Approved":
-            frappe.db.set_value("Order", order_name, "workflow_state", "Update Item")
-            frappe.db.commit()
         return
 
-    # If all timesheets are in the same non-approved state, update the order state
-    if len(workflow_states) == 1:
-        common_state = workflow_states[0]
-        if current_order_state != common_state:
-            frappe.db.set_value("Order", order_name, "workflow_state", common_state)
+  
+    current_order_state = frappe.db.get_value("Order", order_name, "workflow_state")
+    if current_order_state == "Update Designer" and len(timesheets) > 1:
+      
+        first_ts = timesheets[0]["name"]
+        try:
+            ts_doc = frappe.get_doc("Timesheet", first_ts)
+            if ts_doc.docstatus != 2: 
+                ts_doc.cancel()
+        except Exception as e:
+            frappe.log_error(f"Failed to cancel old timesheet {first_ts}: {str(e)}")
+
+       
+        timesheets = frappe.get_all(
+            "Timesheet",
+            filters={"order": order_name, "docstatus": ("!=", 2)},
+            fields=["name", "workflow_state", "creation"],
+            order_by="creation asc"
+        )
+        if not timesheets:
+            return
+
+    
+    states = {ts["workflow_state"] for ts in timesheets}
+
+    
+    if len(states) == 1:
+        latest_state = list(states)[0]
+
+      
+        if latest_state == "Approved":
+            if bom_or_cad == "Check":
+                new_state = "Approved"
+            else:
+                new_state = "Update Item"
+        else:
+            new_state = latest_state
+
+        
+        if current_order_state != new_state:
+            frappe.db.set_value("Order", order_name, "workflow_state", new_state)
             frappe.db.commit()
+    else:
+       
+        return
 
 
 def validate_workflow(doc):
