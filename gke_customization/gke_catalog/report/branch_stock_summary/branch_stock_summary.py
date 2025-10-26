@@ -1,932 +1,902 @@
-# Copyright (c) 2025, Your Company and contributors  
+# Copyright (c) 2025, Your Company and contributors
 # For license information, please see license.txt
 
 import frappe
 from frappe import _
-import re
-from frappe.utils import flt, cint
+from frappe.utils import flt, cint, getdate
 
 def execute(filters=None):
-    # Validate required filters
-    if not filters.get("company"):
-        frappe.throw(_("Company is required"))
-    if not filters.get("branch"):
+    if not filters.get("company"): frappe.throw(_("Company is required"))
+    if filters.get("company") != "KG GK Jewellers Private Limited" and not filters.get("branch"): 
         frappe.throw(_("Branch is required"))
-    
-    columns, data = get_matrix_data(filters)
-    return columns, data
+    if not filters.get("raw_material_type"): frappe.throw(_("Raw Material Type is required"))
+    return get_branch_stock_summary_simplified(filters)
 
-def get_matrix_data(filters=None):
-    # Get departments based on manufacturer selection
-    departments = get_departments_for_report(filters)
-    
-    # Create dynamic columns
-    columns = [{"fieldname": "stock_type", "label": "Stock Type", "fieldtype": "Data", "width": 200}]
-    
-    # Store field mappings for data population
-    dept_field_mapping = {}
-    dept_db_mapping = {}  # Map display names to database names
-    
-    # Determine column width based on number of departments
-    dept_count = len(departments)
-    dept_column_width = 100 if dept_count > 10 else 120
-    
-    # Add department columns based on selection
-    for dept in departments:
-        dept_name = dept['department']  # Display name (without suffix)
-        db_dept_name = dept.get('db_department', dept_name)  # Database name (with suffix)
-        
-        # Create safe fieldname
-        safe_name = re.sub(r'[^a-zA-Z0-9_]', '_', dept_name.lower().replace(' ', '_'))
-        safe_name = f"dept_{safe_name}"
-        
-        dept_field_mapping[dept_name] = safe_name
-        dept_db_mapping[dept_name] = db_dept_name  # Store mapping for queries
-        
-        columns.append({
-            "fieldname": safe_name,
-            "label": dept_name,
-            "fieldtype": "Float",
-            "width": dept_column_width,
-            "precision": 2
-        })
-    
-    # Add view details column (NO TOTAL WEIGHT COLUMN)
-    columns.append({
-        "fieldname": "view_details", 
-        "label": "View Details", 
-        "fieldtype": "Button", 
-        "width": 100
-    })
-    
-    # Define all 12 stock types
-    stock_types = [
-        {"key": "work_order_stock", "name": "Work Order Stock"},
-        {"key": "employee_wip_stock", "name": "Employee WIP Stock"},
-        {"key": "supplier_wip_stock", "name": "Supplier WIP Stock"},
-        {"key": "employee_msl_stock", "name": "Employee MSL Stock"},
-        {"key": "supplier_msl_stock", "name": "Supplier MSL Stock"},
-        {"key": "employee_msl_hold_stock", "name": "Employee MSL Hold Stock"},
-        {"key": "supplier_msl_hold_stock", "name": "Supplier MSL Hold Stock"},  
-        {"key": "raw_material_stock", "name": "Raw Material Stock"},
-        {"key": "reserve_stock", "name": "Reserve Stock"},
-        {"key": "transit_stock", "name": "Transit Stock"},
-        {"key": "scrap_stock", "name": "Scrap Stock"},
-        {"key": "finished_goods", "name": "Finished Goods"}
+def get_branch_stock_summary_simplified(filters=None):
+    columns = [
+        {"fieldname": "section_name", "label": "Department", "fieldtype": "Data", "width": 400},
+        {"fieldname": "quantity", "label": "Quantity", "fieldtype": "Float", "width": 150, "precision": 3},
+        {"fieldname": "view_details", "label": "View Details", "fieldtype": "Data", "width": 120}
     ]
     
-    # Get all stock weights with department filtering
-    dept_stock_data = get_all_stock_weights_batch(departments, dept_db_mapping, filters)
+    departments = get_departments_list(filters)
+    if not departments:
+        return columns, [], {}
     
-    # Build data rows
     data = []
-    for stock_type in stock_types:
-        row = {"stock_type": stock_type["name"]}
-        
-        # Add weight for each department
-        for dept in departments:
-            dept_name = dept['department']  # Display name
-            field_name = dept_field_mapping[dept_name]
-            weight = dept_stock_data.get(dept_name, {}).get(stock_type["key"], 0.0)
-            row[field_name] = flt(weight, 2)
-        
-        row["view_details"] = f'<button class="btn btn-xs btn-primary view-details" data-stock-type="{stock_type["name"]}" data-stock-key="{stock_type["key"]}">View</button>'
-        data.append(row)
+    summary_data = {"total_quantity": 0.0}
+    raw_material_types = [filters.get("raw_material_type")] if filters.get("raw_material_type") else ["Metal"]
     
+    for dept_info in departments:
+        dept_name, dept_with_suffix = dept_info["department"], dept_info["db_department"]
+        
+        stock_values = get_department_stock_values(
+            dept_with_suffix, filters.get("company"), filters.get("branch", ""), 
+            filters.get("manufacturer", ""), raw_material_types
+        )
+        
+        section_data = build_department_section_simplified(dept_name, stock_values)
+        data.extend(section_data)
+        
+        add_department_total_row_simplified(data, section_data, f"{dept_name} Total", summary_data)
+    
+    add_grand_total_row_simplified(data, summary_data)
     return columns, data
 
-def get_departments_for_report(filters=None):
-    """Get departments - FIXED to handle company suffix properly"""
+def get_departments_list(filters):
+    company, branch, manufacturer, department = (
+        filters.get("company"), filters.get("branch", ""), 
+        filters.get("manufacturer", ""), filters.get("department")
+    )
     
-    manufacturer = filters.get("manufacturer")
-    department = filters.get("department")
+    excluded_departments = ["Canteen", "HR", "Admin", "Security", "Housekeeping", "IT", "Transport", "Maintenance", "Computer Aided Designing"]
+    excluded_condition = " AND " + " AND ".join([f"mop.department NOT LIKE '%{dept}%'" for dept in excluded_departments])
+    
+    manufacturer_dept_condition = ""
+    if manufacturer:
+        allowed_departments = get_manufacturer_departments(manufacturer, company)
+        if allowed_departments:
+            dept_filter = "', '".join(allowed_departments)
+            manufacturer_dept_condition = f" AND mop.department IN ('{dept_filter}')"
+    
+    dept_query = f"""
+        SELECT DISTINCT 
+            REPLACE(REPLACE(mop.department, ' - GEPL', ''), ' - KGJPL', '') as department,
+            mop.department as db_department
+        FROM `tabManufacturing Operation` mop
+        LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
+        WHERE mwo.company = '{company}'
+          AND mwo.docstatus = 1
+          AND mop.department IS NOT NULL
+          AND mop.department != ''
+          {excluded_condition}{manufacturer_dept_condition}
+    """
+    
+    if branch:
+        dept_query += f" AND mwo.branch = '{branch}'"
+    
+    if department:
+        dept_query += f" AND mop.department LIKE '%{department}%'"
+    
+    dept_query += " ORDER BY mop.department LIMIT 20"
     
     try:
-        company = filters.get("company")
-        branch = filters.get("branch")
-        
-        # Get actual departments from database (with company suffix)
-        dept_query = """
-            SELECT DISTINCT mop.department
-            FROM `tabManufacturing Operation` mop
-            INNER JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-            WHERE mwo.company = %(company)s 
-            AND mwo.branch = %(branch)s
-            AND mop.department IS NOT NULL 
-            AND mop.department != ''
-            ORDER BY mop.department
-            LIMIT 15
-        """
-        
-        db_departments = frappe.db.sql(dept_query, {"company": company, "branch": branch}, as_dict=True)
-        
-        if db_departments:
-            # Convert database departments to display format
-            result = []
-            for dept in db_departments:
-                db_name = dept['department']  # e.g., "Casting - GEPL"
-                display_name = db_name.replace(' - GEPL', '').replace(' - KGJPL', '')  # e.g., "Casting"
-                
-                result.append({
-                    "department": display_name,  # For display in columns
-                    "db_department": db_name     # For database queries
-                })
-            
-            # Filter by manufacturer if specified
-            if manufacturer:
-                manufacturer_departments = {
-                    "Labh": [
-                        "Accounts", "Central", "Diamond Bagging", "Diamond Setting", "Dispatch", 
-                        "Final Polish", "Gemstone Bagging", "Manufacturing Plan & Management", 
-                        "Model Making", "Order Management", "Pre Polish", "Product Allocation", 
-                        "Product Certification", "Production", "Purchase", "Refinery", "Sales", 
-                        "Selling", "Sub Contracting", "Tagging", "Waxing"
-                    ],
-                    "Shubh": [
-                        "Accounts", "Casting", "Central", "Dispatch", "Final Polish", 
-                        "Gemstone Bagging", "Manufacturing Plan & Management", "Purchase", 
-                        "Sub Contracting", "Sudarshan", "Swastik", "Tagging", "Trishul"
-                    ],
-                    "Mangal": [
-                        "Central", "Computer Aided Designing", "Manufacturing Plan & Management", 
-                        "Dispatch", "Final Polish", "Gemstone Bagging", "Sudarshan", "Swastik", 
-                        "Tagging", "Trishul"
-                    ],
-                    "Amrut": ["Rudraksha", "Close Waxing", "Close Model Making"],
-                    "Service Center": ["Product Repair Center"],
-                    "Siddhi": ["Nandi"]
-                }
-                
-                if manufacturer in manufacturer_departments:
-                    # Filter to only show departments for this manufacturer
-                    allowed_depts = manufacturer_departments[manufacturer]
-                    result = [r for r in result if r['department'] in allowed_depts]
-            
-            # Filter by specific department if selected
-            if department:
-                result = [r for r in result if r['department'] == department]
-            
-            return result
-        
-        else:
-            # Fallback to common departments without suffix
-            return [
-                {"department": "Casting", "db_department": "Casting - GEPL"}, 
-                {"department": "Central", "db_department": "Central - GEPL"}, 
-                {"department": "Waxing", "db_department": "Waxing - GEPL"},
-                {"department": "Tagging", "db_department": "Tagging - GEPL"},
-                {"department": "Trishul", "db_department": "Trishul - GEPL"},
-                {"department": "Manufacturing Plan & Management", "db_department": "Manufacturing Plan & Management - GEPL"}
-            ]
-            
+        return frappe.db.sql(dept_query, as_dict=True)
     except Exception as e:
         frappe.log_error(f"Department query error: {str(e)}")
-        # Final fallback
-        return [
-            {"department": "Casting", "db_department": "Casting - GEPL"}, 
-            {"department": "Central", "db_department": "Central - GEPL"}, 
-            {"department": "Waxing", "db_department": "Waxing - GEPL"}
-        ]
+        return []
 
-def get_all_stock_weights_batch(departments, dept_db_mapping, filters):
-    """Get all stock weights from actual database queries - FIXED DEPARTMENT MAPPING"""
+def build_department_section_simplified(dept_name, stock_values):
+    section_data = [{
+        "section_name": f"{dept_name}",
+        "parent_section": None,
+        "indent": 0.0,
+        "section": dept_name,
+        "quantity": "",
+        "view_details": "",
+        "is_department_header": True
+    }]
+    
+    stock_types = [
+        {"key": "work_order_stock", "label": "Work Order Stock"},
+        {"key": "employee_wip_stock", "label": "Employee WIP Stock"},
+        {"key": "supplier_wip_stock", "label": "Supplier WIP Stock"},
+        {"key": "employee_msl_stock", "label": "Employee MSL Stock"},
+        {"key": "supplier_msl_stock", "label": "Supplier MSL Stock"},
+        {"key": "employee_msl_hold_stock", "label": "Employee MSL Hold Stock"},
+        {"key": "supplier_msl_hold_stock", "label": "Supplier MSL Hold Stock"},
+        {"key": "raw_material_stock", "label": "Raw Material Stock"},
+        {"key": "reserve_stock", "label": "Reserve Stock"},
+        {"key": "transit_stock", "label": "Transit Stock"},
+        {"key": "scrap_stock", "label": "Scrap Stock"},
+        {"key": "finished_goods", "label": "Finished Goods"}
+    ]
+    
+    for stock_type in stock_types:
+        stock_value = stock_values.get(stock_type["key"], 0.0)
+        display_value = "" if stock_value == 0 else stock_value
+        
+        section_data.append({
+            "section_name": stock_type["label"],
+            "section": stock_type["label"],
+            "parent_section": dept_name,
+            "indent": 1.0,
+            "quantity": display_value,
+            "view_details": f'<button class="btn btn-xs btn-primary view-stock-details" data-department="{dept_name}" data-stock-type="{stock_type["label"]}" data-stock-key="{stock_type["key"]}">View</button>',
+            "is_stock_type": True
+        })
+    
+    return section_data
+
+def get_manufacturer_departments(manufacturer, company):
+    dept_mapping = {
+        "Siddhi": ["Nandi"],
+        "Service Center": ["Product Repair Center"],
+        "Amrut": ["Close Diamond Bagging", "Close Diamond Setting", "Close Final Polish", "Close Gemstone Bagging", "Close Model Making", "Close Pre Polish", "Close Waxing", "Rudraksha"],
+        "Mangal": ["Central MU", "Computer Aided Designing MU", "Manufacturing Plan Management MU", "Om MU", "Serial Number MU", "Sub Contracting MU", "Tagging MU"],
+        "Labh": ["Accounts", "Administration", "Canteen", "Casting", "Central", "Computer Aided Designing", "Computer Aided Manufacturing", "Computer Hardware Networking", "Customer Service", "D2D Marketing", "Diamond Bagging", "Diamond Setting", "Digital Marketing", "Dispatch", "Final Polish", "Gemstone Bagging", "Housekeeping", "Human Resources", "Information Technology", "Information Technology Data Analysis", "Item Bom Management", "Learning Development - KGJPL", "Legal", "Management", "Manufacturing", "Manufacturing Plan Management", "Marketing", "Merchandise", "Model Making", "Operations", "Order Management", "Pre Polish", "Product Allocation", "Product Certification", "Product Development", "Production", "Purchase", "Quality Assessment", "Quality Management", "Refinery", "Research Development", "Sales", "Sales Marketing", "Security - KGJPL", "Selling", "Serial Number", "Sketch", "Sketch/Computer Aided Designing", "Stores", "Studio - GEPL", "Sub Contracting", "Tagging", "Waxing"],
+        "Shubh": ["Accounts", "Administration", "BL - Purchase", "Canteen", "Casting", "CB - Purchase", "Central", "CH - Purchase", "Close Diamond Setting", "Close Final Polish", "Close Model Making", "Close Pre Polish", "Close Waxing", "Computer Aided Designing", "Sketch/Computer Aided Designing", "Computer Aided Manufacturing", "Computer Hardware Networking", "Customer Service", "D2D Marketing", "Diamond Bagging", "Diamond Setting", "Digital Marketing", "Dispatch", "Final Polish", "Gemstone Bagging", "HD - Purchase", "Housekeeping", "Human Resources", "Information Technology", "Information Technology Data Analysis", "Item Bom Management", "Learning Development - GEPL", "Legal", "Management", "Manufacturing", "Manufacturing Plan Management", "Marketing", "Merchandise", "Model Making", "MU - Purchase", "Om", "Operations", "Order Management", "Pre Polish", "Product Allocation", "Product Certification", "Product Development", "Production", "Purchase", "Quality Assessment", "Quality Management", "Refinery", "Research Development", "Rhodium", "Rudraksha", "Sales", "Sales Marketing", "Security - GEPL", "Selling", "Serial Number", "Stores", "Studio - GEPL", "Sub Contracting", "Sudarshan", "Swastik", "Tagging", "Trishul", "Waxing", "Waxing 2"]
+    }
+    
+    base_departments = dept_mapping.get(manufacturer, [])
+    if not base_departments:
+        return []
+    
+    if company == "Gurukrupa Export Private Limited":
+        return [f"{dept} - GEPL" for dept in base_departments]
+    elif company == "KG GK Jewellers Private Limited":
+        return [f"{dept} - KGJPL" for dept in base_departments]
+    
+    return base_departments
+
+def get_stock_balance_using_sle_logic(company, dept_with_suffix, item_groups, to_date, warehouse_type):
+    """Uses the exact same approach as Stock Balance report for accurate calculations"""
+    if not item_groups:
+        return 0.0
+    
+    float_precision = cint(frappe.db.get_default("float_precision")) or 3
+    item_group_str = "', '".join(item_groups)
+    
+    sle_query = f"""
+        SELECT sle.item_code, sle.warehouse, sle.posting_date, sle.actual_qty,
+               sle.qty_after_transaction, sle.stock_value_difference,
+               sle.voucher_type, sle.voucher_no, sle.posting_datetime, sle.creation
+        FROM `tabStock Ledger Entry` sle
+        LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name  
+        LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+        WHERE sle.company = '{company}'
+          AND w.department = '{dept_with_suffix}'
+          AND w.warehouse_type = '{warehouse_type}'
+          AND i.item_group IN ('{item_group_str}')
+          AND sle.posting_date <= '{to_date}'
+          AND sle.docstatus < 2 AND sle.is_cancelled = 0
+        ORDER BY sle.item_code, sle.warehouse, sle.posting_datetime, sle.creation
+    """
+    
     try:
-        company = filters.get("company")
-        branch = filters.get("branch")
-        raw_material_types = filters.get("raw_material_type", [])
-        manufacturer = filters.get("manufacturer")
+        sle_entries = frappe.db.sql(sle_query, as_dict=True)
         
-        # Get list of database department names (with suffix)
-        dept_list = [dept_db_mapping.get(d['department'], d['department']) for d in departments]
-        weight_field = get_weight_field_selection(raw_material_types)
+        # Process entries using Stock Balance report logic
+        item_warehouse_map = {}
+        for entry in sle_entries:
+            group_by_key = (entry.item_code, entry.warehouse)
+            
+            if group_by_key not in item_warehouse_map:
+                item_warehouse_map[group_by_key] = {
+                    'item_code': entry.item_code,
+                    'warehouse': entry.warehouse,
+                    'bal_qty': 0.0,
+                    'bal_val': 0.0
+                }
+            
+            qty_dict = item_warehouse_map[group_by_key]
+            qty_diff = flt(entry.actual_qty)
+            value_diff = flt(entry.stock_value_difference or 0)
+            
+            # Same calculation logic as Stock Balance report
+            qty_dict['bal_qty'] += qty_diff
+            qty_dict['bal_val'] += value_diff
         
-        # Initialize result structure using DISPLAY names
-        result = {}
-        for dept in departments:
-            display_name = dept['department']  # Use display name as key
-            result[display_name] = {
-                'work_order_stock': 0.0, 'employee_wip_stock': 0.0, 'supplier_wip_stock': 0.0,
-                'employee_msl_stock': 0.0, 'supplier_msl_stock': 0.0, 'employee_msl_hold_stock': 0.0,
-                'supplier_msl_hold_stock': 0.0, 'raw_material_stock': 0.0, 'reserve_stock': 0.0,
-                'transit_stock': 0.0, 'scrap_stock': 0.0, 'finished_goods': 0.0
-            }
+        # Filter items with no transactions - Same as Stock Balance report
+        filtered_map = {}
+        for group_by_key, qty_dict in item_warehouse_map.items():
+            bal_qty = flt(qty_dict['bal_qty'], float_precision)
+            if bal_qty > 0:
+                filtered_map[group_by_key] = qty_dict
         
-        # QUERY 1: Manufacturing Operation Stock (Work Order + WIP)
-        try:
-            dept_placeholders = ','.join(['%s'] * len(dept_list))
-            base_params = [company, branch] + dept_list
-            
-            manufacturing_query = f"""
-                SELECT 
-                    mop.department,
-                    mop.status,
-                    COALESCE(mop.for_subcontracting, 0) as for_subcontracting,
-                    SUM({weight_field}) as total_weight
-                FROM `tabManufacturing Operation` mop
-                INNER JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-                WHERE mwo.company = %s
-                AND mwo.branch = %s
-                AND mop.department IN ({dept_placeholders})
-                AND mwo.docstatus = 1
-                AND mop.status IN ('Not Started', 'WIP')
-                GROUP BY mop.department, mop.status, mop.for_subcontracting
-            """
-            
-            manufacturing_results = frappe.db.sql(manufacturing_query, base_params, as_dict=True)
-            
-            for row in manufacturing_results:
-                db_dept = row['department']  # e.g., "Casting - GEPL"
-                # Convert to display name
-                display_dept = db_dept.replace(' - GEPL', '').replace(' - KGJPL', '')
-                
-                if display_dept in result:
-                    if row['status'] == 'Not Started':
-                        result[display_dept]['work_order_stock'] += flt(row['total_weight'], 2)
-                    elif row['status'] == 'WIP':
-                        if row['for_subcontracting'] == 0:
-                            result[display_dept]['employee_wip_stock'] += flt(row['total_weight'], 2)
-                        else:
-                            result[display_dept]['supplier_wip_stock'] += flt(row['total_weight'], 2)
-                            
-        except Exception as e:
-            frappe.log_error(f"Manufacturing query error: {str(e)}")
-        
-        # QUERY 2: Main Slip Stock (MSL Stock types) - WITH MANUFACTURER FILTER
-        try:
-            msl_manufacturer_filter = ""
-            msl_params = base_params.copy()
-            
-            if manufacturer:
-                msl_manufacturer_filter = "AND ms.manufacturer = %s"
-                msl_params.append(manufacturer)
-            
-            msl_query = f"""
-                SELECT 
-                    mop.department,
-                    ms.workflow_state,
-                    COALESCE(mop.for_subcontracting, 0) as for_subcontracting,
-                    SUM(CASE WHEN ms.workflow_state = 'In Use' THEN {weight_field} ELSE 0 END) as in_use_weight,
-                    SUM(CASE WHEN ms.workflow_state = 'On Hold' THEN COALESCE(ms.pending_metal, 0) ELSE 0 END) as hold_weight
-                FROM `tabMain Slip` ms
-                INNER JOIN `tabMain Slip Operation` mso ON ms.name = mso.parent
-                INNER JOIN `tabManufacturing Operation` mop ON mso.manufacturing_operation = mop.name
-                INNER JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-                WHERE mwo.company = %s
-                AND mwo.branch = %s
-                AND mop.department IN ({dept_placeholders})
-                {msl_manufacturer_filter}
-                AND ms.workflow_state IN ('In Use', 'On Hold')
-                GROUP BY mop.department, ms.workflow_state, mop.for_subcontracting
-            """
-            
-            msl_results = frappe.db.sql(msl_query, msl_params, as_dict=True)
-            
-            for row in msl_results:
-                db_dept = row['department']  # e.g., "Casting - GEPL"
-                # Convert to display name
-                display_dept = db_dept.replace(' - GEPL', '').replace(' - KGJPL', '')
-                
-                if display_dept in result:
-                    if row['workflow_state'] == 'In Use':
-                        if row['for_subcontracting'] == 0:
-                            result[display_dept]['employee_msl_stock'] += flt(row['in_use_weight'], 2)
-                        else:
-                            result[display_dept]['supplier_msl_stock'] += flt(row['in_use_weight'], 2)
-                    elif row['workflow_state'] == 'On Hold':
-                        if row['for_subcontracting'] == 0:
-                            result[display_dept]['employee_msl_hold_stock'] += flt(row['hold_weight'], 2)
-                        else:
-                            result[display_dept]['supplier_msl_hold_stock'] += flt(row['hold_weight'], 2)
-                            
-        except Exception as e:
-            frappe.log_error(f"MSL query error: {str(e)}")
-        
-        # QUERY 3: Warehouse Stock (Raw Material, Reserve, Scrap)
-        try:
-            material_filter = get_material_filter_for_item_groups(raw_material_types)
-            
-            warehouse_query = f"""
-                SELECT 
-                    w.department,
-                    w.warehouse_type,
-                    SUM(sle.actual_qty) as total_qty
-                FROM `tabStock Ledger Entry` sle
-                INNER JOIN `tabWarehouse` w ON sle.warehouse = w.name
-                INNER JOIN `tabItem` i ON sle.item_code = i.item_code
-                WHERE sle.company = %s
-                AND w.department IN ({dept_placeholders})
-                AND w.warehouse_type IN ('Raw Material', 'Reserve', 'Scrap')
-                AND i.is_stock_item = 1
-                {material_filter}
-                GROUP BY w.department, w.warehouse_type
-            """
-            
-            warehouse_params = [company] + dept_list
-            warehouse_results = frappe.db.sql(warehouse_query, warehouse_params, as_dict=True)
-            
-            for row in warehouse_results:
-                db_dept = row['department']  # e.g., "Casting - GEPL"
-                # Convert to display name
-                display_dept = db_dept.replace(' - GEPL', '').replace(' - KGJPL', '')
-                
-                if display_dept in result:
-                    if row['warehouse_type'] == 'Raw Material':
-                        result[display_dept]['raw_material_stock'] += flt(row['total_qty'], 2)
-                    elif row['warehouse_type'] == 'Reserve':
-                        result[display_dept]['reserve_stock'] += flt(row['total_qty'], 2)
-                    elif row['warehouse_type'] == 'Scrap':
-                        result[display_dept]['scrap_stock'] += flt(row['total_qty'], 2)
-                        
-        except Exception as e:
-            frappe.log_error(f"Warehouse query error: {str(e)}")
-        
-        # QUERY 4: Transit Stock
-        try:
-            material_filter = get_material_filter_for_item_groups(raw_material_types)
-            
-            transit_query = f"""
-                SELECT 
-                    se.department,
-                    SUM(sed.qty) as total_qty
-                FROM `tabStock Entry` se
-                INNER JOIN `tabStock Entry Detail` sed ON se.name = sed.parent
-                INNER JOIN `tabItem` i ON sed.item_code = i.item_code
-                WHERE se.company = %s
-                AND se.department IN ({dept_placeholders})
-                AND se.stock_entry_type LIKE '%Transfer%'
-                AND se.docstatus = 1
-                {material_filter}
-                GROUP BY se.department
-            """
-            
-            transit_params = [company] + dept_list
-            transit_results = frappe.db.sql(transit_query, transit_params, as_dict=True)
-            
-            for row in transit_results:
-                db_dept = row['department']  # e.g., "Casting - GEPL"
-                # Convert to display name
-                display_dept = db_dept.replace(' - GEPL', '').replace(' - KGJPL', '')
-                
-                if display_dept in result:
-                    result[display_dept]['transit_stock'] += flt(row['total_qty'], 2)
-                    
-        except Exception as e:
-            frappe.log_error(f"Transit query error: {str(e)}")
-        
-        # QUERY 5: Finished Goods
-        try:
-            material_filter = get_material_filter_for_item_groups(raw_material_types)
-            
-            finished_query = f"""
-                SELECT 
-                    w.department,
-                    COUNT(*) as total_count
-                FROM `tabSerial Number` sn
-                INNER JOIN `tabWarehouse` w ON sn.warehouse = w.name
-                INNER JOIN `tabItem` i ON sn.item_code = i.item_code
-                WHERE sn.company = %s
-                AND w.department IN ({dept_placeholders})
-                {material_filter}
-                GROUP BY w.department
-            """
-            
-            finished_params = [company] + dept_list
-            finished_results = frappe.db.sql(finished_query, finished_params, as_dict=True)
-            
-            for row in finished_results:
-                db_dept = row['department']  # e.g., "Casting - GEPL"
-                # Convert to display name
-                display_dept = db_dept.replace(' - GEPL', '').replace(' - KGJPL', '')
-                
-                if display_dept in result:
-                    result[display_dept]['finished_goods'] += flt(row['total_count'], 2)
-                    
-        except Exception as e:
-            frappe.log_error(f"Finished goods query error: {str(e)}")
-        
-        return result
+        # Sum all positive balances
+        total_qty = sum(flt(data['bal_qty'], float_precision) for data in filtered_map.values())
+        return total_qty
         
     except Exception as e:
-        frappe.log_error(f"Stock weights batch error: {str(e)}")
-        # Return empty data if queries fail
-        result = {}
-        for dept in departments:
-            display_name = dept['department']
-            result[display_name] = {
-                'work_order_stock': 0.0, 'employee_wip_stock': 0.0, 'supplier_wip_stock': 0.0,
-                'employee_msl_stock': 0.0, 'supplier_msl_stock': 0.0, 'employee_msl_hold_stock': 0.0,
-                'supplier_msl_hold_stock': 0.0, 'raw_material_stock': 0.0, 'reserve_stock': 0.0,
-                'transit_stock': 0.0, 'scrap_stock': 0.0, 'finished_goods': 0.0
-            }
-        return result
+        frappe.log_error(f"Stock balance calculation error: {str(e)}")
+        return 0.0
 
-def get_weight_field_selection(raw_material_types):
-    """Build weight field selection based on Raw Material Type filter"""
+def get_work_order_stock_by_warehouse_name(company, dept_with_suffix, item_groups, to_date):
+    """Get Work Order Stock by matching warehouse name pattern like 'Casting WO - GEPL'"""
+    if not item_groups:
+        return 0.0
     
+    float_precision = cint(frappe.db.get_default("float_precision")) or 3
+    item_group_str = "', '".join(item_groups)
+    
+    # Extract department name without company suffix for warehouse matching
+    dept_name = dept_with_suffix.replace(" - GEPL", "").replace(" - KGJPL", "")
+    company_suffix = "GEPL" if "GEPL" in dept_with_suffix else "KGJPL"
+    
+    sle_query = f"""
+        SELECT sle.item_code, sle.warehouse, sle.posting_date, sle.actual_qty,
+               sle.qty_after_transaction, sle.stock_value_difference,
+               sle.voucher_type, sle.voucher_no, sle.posting_datetime, sle.creation
+        FROM `tabStock Ledger Entry` sle
+        LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name  
+        LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+        WHERE sle.company = '{company}'
+          AND (w.name LIKE '%{dept_name} WO - {company_suffix}%' 
+               OR w.name LIKE '%{dept_name} Work Order - {company_suffix}%')
+          AND i.item_group IN ('{item_group_str}')
+          AND sle.posting_date <= '{to_date}'
+          AND sle.docstatus < 2 AND sle.is_cancelled = 0
+        ORDER BY sle.item_code, sle.warehouse, sle.posting_datetime, sle.creation
+    """
+    
+    try:
+        sle_entries = frappe.db.sql(sle_query, as_dict=True)
+        
+        # Process entries using Stock Balance report logic
+        item_warehouse_map = {}
+        for entry in sle_entries:
+            group_by_key = (entry.item_code, entry.warehouse)
+            
+            if group_by_key not in item_warehouse_map:
+                item_warehouse_map[group_by_key] = {
+                    'item_code': entry.item_code,
+                    'warehouse': entry.warehouse,
+                    'bal_qty': 0.0,
+                    'bal_val': 0.0
+                }
+            
+            qty_dict = item_warehouse_map[group_by_key]
+            qty_diff = flt(entry.actual_qty)
+            value_diff = flt(entry.stock_value_difference or 0)
+            
+            # Same calculation logic as Stock Balance report
+            qty_dict['bal_qty'] += qty_diff
+            qty_dict['bal_val'] += value_diff
+        
+        # Filter items with no transactions - Same as Stock Balance report
+        filtered_map = {}
+        for group_by_key, qty_dict in item_warehouse_map.items():
+            bal_qty = flt(qty_dict['bal_qty'], float_precision)
+            if bal_qty > 0:
+                filtered_map[group_by_key] = qty_dict
+        
+        # Sum all positive balances
+        total_qty = sum(flt(data['bal_qty'], float_precision) for data in filtered_map.values())
+        return total_qty
+        
+    except Exception as e:
+        frappe.log_error(f"Work Order stock calculation error: {str(e)}")
+        return 0.0
+
+def get_department_stock_values(dept_with_suffix, company, branch, manufacturer, raw_material_types=None):
     if not raw_material_types:
-        return "COALESCE(mop.gross_wt, 0)"
+        raw_material_types = ["Metal"]
     
-    if isinstance(raw_material_types, str):
-        raw_material_types = [raw_material_types]
+    stock_values = {
+        "work_order_stock": 0.0,
+        "employee_wip_stock": 0.0,
+        "supplier_wip_stock": 0.0,
+        "employee_msl_stock": 0.0,
+        "supplier_msl_stock": 0.0,
+        "employee_msl_hold_stock": 0.0,
+        "supplier_msl_hold_stock": 0.0,
+        "raw_material_stock": 0.0,
+        "reserve_stock": 0.0,
+        "transit_stock": 0.0,
+        "scrap_stock": 0.0,
+        "finished_goods": 0.0
+    }
     
+    # Get item groups based on raw material types
+    item_groups = []
+    if "Metal" in raw_material_types:
+        item_groups.append("Metal - V")
+    if "Diamond" in raw_material_types:
+        item_groups.append("Diamond - V")
+    if "Gemstone" in raw_material_types:
+        item_groups.append("Gemstone - V")
+    if "Finding" in raw_material_types:
+        item_groups.append("Finding - V")
+    
+    # Weight fields for Manufacturing Operation queries
     weight_fields = []
+    if "Metal" in raw_material_types:
+        weight_fields.append("COALESCE(mop.net_wt, 0)")
+    if "Diamond" in raw_material_types:
+        weight_fields.append("COALESCE(mop.diamond_wt, 0)")
+    if "Gemstone" in raw_material_types:
+        weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
+    if "Finding" in raw_material_types:
+        weight_fields.append("COALESCE(mop.finding_wt, 0)")
     
-    for material_type in raw_material_types:
-        if material_type.lower() == "metal":
-            weight_fields.append("COALESCE(mop.net_wt, 0)")
-        elif material_type.lower() == "diamond":
-            weight_fields.append("COALESCE(mop.diamond_wt, 0)")
-        elif material_type.lower() == "gemstone":
-            weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
-        elif material_type.lower() == "finding":
-            weight_fields.append("COALESCE(mop.finding_wt, 0)")
-        elif material_type.lower() == "other":
-            weight_fields.append("COALESCE(mop.other_wt, 0)")
+    weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
     
-    if weight_fields:
-        return f"({' + '.join(weight_fields)})"
-    else:
-        return "COALESCE(mop.gross_wt, 0)"
+    # Variant codes for Main Slip Loss Details queries
+    variant_codes = []
+    if "Metal" in raw_material_types:
+        variant_codes.append("M")
+    if "Diamond" in raw_material_types:
+        variant_codes.append("D")
+    if "Gemstone" in raw_material_types:
+        variant_codes.append("G")
+    if "Finding" in raw_material_types:
+        variant_codes.append("F")
+    
+    today = getdate()
+    branch_condition = f"AND mwo.branch = '{branch}'" if branch else ""
+    
+    if item_groups:
+        # FIXED: Use Stock Balance logic for all warehouse-based stock types
+        stock_values['work_order_stock'] = get_work_order_stock_by_warehouse_name(
+            company, dept_with_suffix, item_groups, today
+        )
+        stock_values['raw_material_stock'] = get_stock_balance_using_sle_logic(
+            company, dept_with_suffix, item_groups, today, "Raw Material"
+        )
+        stock_values['reserve_stock'] = get_stock_balance_using_sle_logic(
+            company, dept_with_suffix, item_groups, today, "Reserve"
+        )
+        stock_values['scrap_stock'] = get_stock_balance_using_sle_logic(
+            company, dept_with_suffix, item_groups, today, "Scrap"
+        )
+        
+        # FIXED: Transit Stock - Use Stock Balance logic instead of Stock Entry
+        stock_values['transit_stock'] = get_stock_balance_using_sle_logic(
+            company, dept_with_suffix, item_groups, today, "Transit"
+        )
+        
+        # FIXED: Supplier Stock - Use Stock Balance logic for Sub Contracting warehouses
+        stock_values['supplier_wip_stock'] = get_stock_balance_using_sle_logic(
+            company, dept_with_suffix, item_groups, today, "Sub Contracting WO"
+        )
+        supplier_rm_stock = get_stock_balance_using_sle_logic(
+            company, dept_with_suffix, item_groups, today, "Sub Contracting RM"
+        )
+        supplier_transit_stock = get_stock_balance_using_sle_logic(
+            company, dept_with_suffix, item_groups, today, "Sub Contracting Transit"
+        )
+        # Combine RM and Transit as supplier MSL stock types
+        stock_values['supplier_msl_stock'] = supplier_rm_stock
+        stock_values['supplier_msl_hold_stock'] = supplier_transit_stock
+        
+        # Finished Goods - Serial Number count
+        try:
+            finished_result = frappe.db.sql(f"""
+                SELECT COUNT(*) as total_count 
+                FROM `tabSerial No` sn
+                LEFT JOIN `tabWarehouse` w ON sn.warehouse = w.name
+                WHERE sn.company = '{company}'
+                  AND sn.status = 'Active'
+                  AND w.department = '{dept_with_suffix}'
+            """, as_dict=True)
+            if finished_result and finished_result[0].get("total_count"):
+                stock_values['finished_goods'] = flt(finished_result[0]['total_count'], 3)
+        except Exception as e:
+            frappe.log_error(f"Finished goods error: {str(e)}")
+    
+    # Employee WIP/MSL queries remain unchanged - use Manufacturing Operation logic
+    if weight_sum and weight_fields:
+        wip_queries = {
+            'employee_wip_stock': f"""
+                SELECT SUM({weight_sum}) as total_weight 
+                FROM `tabMain Slip` ms
+                LEFT JOIN `tabMain Slip Operation` mso ON ms.name = mso.parent
+                LEFT JOIN `tabManufacturing Work Order` mwo ON mwo.name = mso.manufacturing_work_order
+                LEFT JOIN `tabManufacturing Operation` mop ON mop.name = mso.manufacturing_operation
+                WHERE mop.status = 'WIP' 
+                  AND ms.employee IS NOT NULL 
+                  AND ms.for_subcontracting = 0
+                  AND ms.department = '{dept_with_suffix}'
+                  AND mwo.company = '{company}' {branch_condition}
+                  AND mwo.docstatus = 1
+                  AND mop.department = '{dept_with_suffix}'
+            """
+        }
+        
+        for key, query in wip_queries.items():
+            try:
+                result = frappe.db.sql(query, as_dict=True)
+                if result and result[0].get('total_weight'):
+                    stock_values[key] = flt(result[0]['total_weight'], 3)
+            except Exception as e:
+                frappe.log_error(f"WIP query error for {key}: {str(e)}")
+    
+    # Employee MSL queries remain unchanged
+    if variant_codes:
+        variant_code_str = "', '".join(variant_codes)
+        msl_queries = {
+            'employee_msl_stock': f"""
+                SELECT SUM(ld.msl_qty) as total_qty 
+                FROM `tabMain Slip` ms
+                LEFT JOIN `tabLoss Details` ld ON ms.name = ld.parent
+                WHERE ms.workflow_state = 'In Use' 
+                  AND ms.employee IS NOT NULL 
+                  AND ms.department = '{dept_with_suffix}'
+                  AND ld.variant_of IN ('{variant_code_str}')
+            """,
+            'employee_msl_hold_stock': f"""
+                SELECT SUM(ld.msl_qty) as total_qty 
+                FROM `tabMain Slip` ms
+                LEFT JOIN `tabLoss Details` ld ON ms.name = ld.parent
+                WHERE ms.workflow_state = 'On Hold' 
+                  AND ms.employee IS NOT NULL 
+                  AND ms.department = '{dept_with_suffix}'
+                  AND ld.variant_of IN ('{variant_code_str}')
+            """
+        }
+        
+        for key, query in msl_queries.items():
+            try:
+                result = frappe.db.sql(query, as_dict=True)
+                if result and result[0].get('total_qty'):
+                    stock_values[key] = flt(result[0]['total_qty'], 3)
+            except Exception as e:
+                frappe.log_error(f"MSL query error for {key}: {str(e)}")
+    
+    return stock_values
 
-def get_material_filter_for_item_groups(raw_material_types):
-    """Build material filter for item groups"""
-    if not raw_material_types:
-        return ""
+def add_department_total_row_simplified(data, section_data, label, summary_data):
+    total_quantity = sum(flt(row.get("quantity"), 0.0) for row in section_data if row.get("parent_section") and row.get("quantity") != "")
+    display_total = "" if total_quantity == 0 else total_quantity
     
-    material_groups = []
-    for material_type in raw_material_types:
-        if material_type.lower() == "metal":
-            material_groups.extend(["'Metal'", "'Gold'", "'Silver'", "'Platinum'", "'Copper'"])
-        elif material_type.lower() == "diamond":
-            material_groups.extend(["'Diamond'", "'CVD Diamond'", "'Natural Diamond'", "'Lab Grown Diamond'"])
-        elif material_type.lower() == "gemstone":
-            material_groups.extend(["'Gemstone'", "'Ruby'", "'Sapphire'", "'Emerald'", "'Pearl'"])
-        elif material_type.lower() == "finding":
-            material_groups.extend(["'Finding'", "'Chain'", "'Clasp'", "'Hook'", "'Pin'"])
-        elif material_type.lower() == "other":
-            material_groups.extend(["'Other'", "'Consumable'", "'Tool'", "'Packaging'"])
+    data.extend([{
+        "section_name": f"{label}",
+        "section": label,
+        "parent_section": None,
+        "indent": 0.0,
+        "quantity": display_total,
+        "view_details": "",
+        "is_department_total": True,
+    }])
     
-    if material_groups:
-        return f"AND i.item_group IN ({','.join(set(material_groups))})"
-    else:
-        return ""
+    summary_data["total_quantity"] += total_quantity
+
+def add_grand_total_row_simplified(data, summary_data):
+    grand_total = summary_data.get("total_quantity", 0.0)
+    display_grand_total = "" if grand_total == 0 else grand_total
+    
+    data.append({
+        "section_name": "Grand Total",
+        "section": "Grand Total",
+        "parent_section": None,
+        "indent": 0.0,
+        "quantity": display_grand_total,
+        "view_details": "",
+        "is_grand_total": True
+    })
+
+# Detail functions for View buttons
+def get_weight_sum(raw_material_types):
+    weight_fields = []
+    if "Metal" in raw_material_types:
+        weight_fields.append("COALESCE(mop.net_wt, 0)")
+    if "Diamond" in raw_material_types:
+        weight_fields.append("COALESCE(mop.diamond_wt, 0)")
+    if "Gemstone" in raw_material_types:
+        weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
+    if "Finding" in raw_material_types:
+        weight_fields.append("COALESCE(mop.finding_wt, 0)")
+    return " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
+
+def get_item_groups(raw_material_types):
+    item_groups = []
+    if "Metal" in raw_material_types:
+        item_groups.append("Metal - V")
+    if "Diamond" in raw_material_types:
+        item_groups.append("Diamond - V")
+    if "Gemstone" in raw_material_types:
+        item_groups.append("Gemstone - V")
+    if "Finding" in raw_material_types:
+        item_groups.append("Finding - V")
+    return item_groups
+
+def get_variant_codes(raw_material_types):
+    variant_codes = []
+    if "Metal" in raw_material_types:
+        variant_codes.append("M")
+    if "Diamond" in raw_material_types:
+        variant_codes.append("D")
+    if "Gemstone" in raw_material_types:
+        variant_codes.append("G")
+    if "Finding" in raw_material_types:
+        variant_codes.append("F")
+    return variant_codes
+
+def get_work_order_details(department, company, branch, dept_display_name, raw_material_types):
+    try:
+        item_groups = get_item_groups(raw_material_types)
+        if item_groups:
+            today = getdate()
+            dept_name = department.replace(" - GEPL", "").replace(" - KGJPL", "")
+            company_suffix = "GEPL" if "GEPL" in department else "KGJPL"
+            item_group_str = "', '".join(item_groups)
+            
+            return frappe.db.sql(f"""
+                SELECT finaldata.item_code as 'Item Code', finaldata.bal_qty as 'Weight'
+                FROM (
+                    SELECT sle.item_code, sle.warehouse, SUM(sle.actual_qty) as bal_qty
+                    FROM `tabStock Ledger Entry` sle
+                    LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name  
+                    LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+                    WHERE sle.company = '{company}'
+                      AND (w.name LIKE '%{dept_name} WO - {company_suffix}%' 
+                           OR w.name LIKE '%{dept_name} Work Order - {company_suffix}%')
+                      AND i.item_group IN ('{item_group_str}')
+                      AND sle.posting_date <= '{today}'
+                      AND sle.docstatus < 2 AND sle.is_cancelled = 0
+                    GROUP BY sle.item_code, sle.warehouse
+                    HAVING SUM(sle.actual_qty) > 0
+                ) as finaldata
+                ORDER BY finaldata.bal_qty DESC
+            """, as_dict=True)
+        else:
+            return []
+    except:
+        return []
+
+def get_employee_wip_details(department, company, branch, dept_display_name, raw_material_types):
+    try:
+        weight_sum = get_weight_sum(raw_material_types)
+        branch_condition = f"AND mwo.branch = '{branch}'" if branch else ""
+        
+        return frappe.db.sql(f"""
+            SELECT 
+                mwo.name as 'Manufacturing Work Order',
+                {weight_sum} as 'Weight',
+                mop.name as 'Operation',
+                COALESCE(emp.employee_name, 'Not Assigned') as 'Employee Name'
+            FROM `tabMain Slip` ms
+            LEFT JOIN `tabMain Slip Operation` mso ON ms.name = mso.parent
+            LEFT JOIN `tabManufacturing Work Order` mwo ON mwo.name = mso.manufacturing_work_order
+            LEFT JOIN `tabManufacturing Operation` mop ON mop.name = mso.manufacturing_operation
+            LEFT JOIN `tabEmployee` emp ON ms.employee = emp.name
+            WHERE mop.status = 'WIP' 
+              AND ms.employee IS NOT NULL 
+              AND ms.for_subcontracting = 0
+              AND ms.department = '{department}'
+              AND mwo.company = '{company}' {branch_condition}
+              AND mwo.docstatus = 1
+              AND mop.department = '{department}'
+            ORDER BY {weight_sum} DESC
+        """, as_dict=True)
+    except:
+        return []
+
+def get_supplier_wip_details(department, company, branch, dept_display_name, raw_material_types):
+    try:
+        item_groups = get_item_groups(raw_material_types)
+        if item_groups:
+            today = getdate()
+            item_group_str = "', '".join(item_groups)
+            
+            return frappe.db.sql(f"""
+                SELECT finaldata.item_code as 'Item Code', finaldata.bal_qty as 'Weight'
+                FROM (
+                    SELECT sle.item_code, sle.warehouse, SUM(sle.actual_qty) as bal_qty
+                    FROM `tabStock Ledger Entry` sle
+                    LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name  
+                    LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+                    WHERE sle.company = '{company}'
+                      AND w.department = '{department}'
+                      AND w.warehouse_type = 'Sub Contracting WO'
+                      AND i.item_group IN ('{item_group_str}')
+                      AND sle.posting_date <= '{today}'
+                      AND sle.docstatus < 2 AND sle.is_cancelled = 0
+                    GROUP BY sle.item_code, sle.warehouse
+                    HAVING SUM(sle.actual_qty) > 0
+                ) as finaldata
+                ORDER BY finaldata.bal_qty DESC
+            """, as_dict=True)
+        else:
+            return []
+    except:
+        return []
+
+def get_employee_msl_details(department, company, branch, dept_display_name, raw_material_types):
+    try:
+        variant_codes = get_variant_codes(raw_material_types)
+        if variant_codes:
+            return frappe.db.sql(f"""
+                SELECT 
+                    ms.name as 'Main Slip',
+                    COALESCE(emp.employee_name, 'Not Assigned') as 'Employee Name',
+                    ld.msl_qty as 'Weight',
+                    ld.variant_of as 'Material Type'
+                FROM `tabMain Slip` ms
+                LEFT JOIN `tabLoss Details` ld ON ms.name = ld.parent
+                LEFT JOIN `tabEmployee` emp ON ms.employee = emp.name
+                WHERE ms.workflow_state = 'In Use' 
+                  AND ms.employee IS NOT NULL 
+                  AND ms.department = '{department}'
+                  AND ld.variant_of IN ('{"', '".join(variant_codes)}')
+                ORDER BY ld.msl_qty DESC
+            """, as_dict=True)
+        else:
+            return []
+    except:
+        return []
+
+def get_supplier_msl_details(department, company, branch, dept_display_name, raw_material_types):
+    try:
+        item_groups = get_item_groups(raw_material_types)
+        if item_groups:
+            today = getdate()
+            item_group_str = "', '".join(item_groups)
+            
+            return frappe.db.sql(f"""
+                SELECT finaldata.item_code as 'Item Code', finaldata.bal_qty as 'Weight'
+                FROM (
+                    SELECT sle.item_code, sle.warehouse, SUM(sle.actual_qty) as bal_qty
+                    FROM `tabStock Ledger Entry` sle
+                    LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name  
+                    LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+                    WHERE sle.company = '{company}'
+                      AND w.department = '{department}'
+                      AND w.warehouse_type = 'Sub Contracting RM'
+                      AND i.item_group IN ('{item_group_str}')
+                      AND sle.posting_date <= '{today}'
+                      AND sle.docstatus < 2 AND sle.is_cancelled = 0
+                    GROUP BY sle.item_code, sle.warehouse
+                    HAVING SUM(sle.actual_qty) > 0
+                ) as finaldata
+                ORDER BY finaldata.bal_qty DESC
+            """, as_dict=True)
+        else:
+            return []
+    except:
+        return []
+
+def get_employee_msl_hold_details(department, company, branch, dept_display_name, raw_material_types):
+    try:
+        variant_codes = get_variant_codes(raw_material_types)
+        if variant_codes:
+            return frappe.db.sql(f"""
+                SELECT 
+                    ms.name as 'Main Slip',
+                    COALESCE(emp.employee_name, 'Not Assigned') as 'Employee Name',
+                    ld.msl_qty as 'Weight',
+                    ld.variant_of as 'Material Type'
+                FROM `tabMain Slip` ms
+                LEFT JOIN `tabLoss Details` ld ON ms.name = ld.parent
+                LEFT JOIN `tabEmployee` emp ON ms.employee = emp.name
+                WHERE ms.workflow_state = 'On Hold' 
+                  AND ms.employee IS NOT NULL 
+                  AND ms.department = '{department}'
+                  AND ld.variant_of IN ('{"', '".join(variant_codes)}')
+                ORDER BY ld.msl_qty DESC
+            """, as_dict=True)
+        else:
+            return []
+    except:
+        return []
+
+def get_supplier_msl_hold_details(department, company, branch, dept_display_name, raw_material_types):
+    try:
+        item_groups = get_item_groups(raw_material_types)
+        if item_groups:
+            today = getdate()
+            item_group_str = "', '".join(item_groups)
+            
+            return frappe.db.sql(f"""
+                SELECT finaldata.item_code as 'Item Code', finaldata.bal_qty as 'Weight'
+                FROM (
+                    SELECT sle.item_code, sle.warehouse, SUM(sle.actual_qty) as bal_qty
+                    FROM `tabStock Ledger Entry` sle
+                    LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name  
+                    LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+                    WHERE sle.company = '{company}'
+                      AND w.department = '{department}'
+                      AND w.warehouse_type = 'Sub Contracting Transit'
+                      AND i.item_group IN ('{item_group_str}')
+                      AND sle.posting_date <= '{today}'
+                      AND sle.docstatus < 2 AND sle.is_cancelled = 0
+                    GROUP BY sle.item_code, sle.warehouse
+                    HAVING SUM(sle.actual_qty) > 0
+                ) as finaldata
+                ORDER BY finaldata.bal_qty DESC
+            """, as_dict=True)
+        else:
+            return []
+    except:
+        return []
+
+def get_raw_material_details(department, company, branch, dept_display_name, raw_material_types):
+    try:
+        item_groups = get_item_groups(raw_material_types)
+        if item_groups:
+            today = getdate()
+            item_group_str = "', '".join(item_groups)
+            
+            return frappe.db.sql(f"""
+                SELECT finaldata.item_code as 'Item Code', finaldata.bal_qty as 'Weight'
+                FROM (
+                    SELECT sle.item_code, sle.warehouse, SUM(sle.actual_qty) as bal_qty
+                    FROM `tabStock Ledger Entry` sle
+                    LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name  
+                    LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+                    WHERE sle.company = '{company}'
+                      AND w.department = '{department}'
+                      AND w.warehouse_type = 'Raw Material'
+                      AND i.item_group IN ('{item_group_str}')
+                      AND sle.posting_date <= '{today}'
+                      AND sle.docstatus < 2 AND sle.is_cancelled = 0
+                    GROUP BY sle.item_code, sle.warehouse
+                    HAVING SUM(sle.actual_qty) > 0
+                ) as finaldata
+                ORDER BY finaldata.bal_qty DESC
+            """, as_dict=True)
+        else:
+            return []
+    except:
+        return []
+
+def get_reserve_stock_details(department, company, branch, dept_display_name, raw_material_types):
+    try:
+        item_groups = get_item_groups(raw_material_types)
+        if item_groups:
+            today = getdate()
+            item_group_str = "', '".join(item_groups)
+            
+            return frappe.db.sql(f"""
+                SELECT finaldata.item_code as 'Item Code', finaldata.bal_qty as 'Weight'
+                FROM (
+                    SELECT sle.item_code, sle.warehouse, SUM(sle.actual_qty) as bal_qty
+                    FROM `tabStock Ledger Entry` sle
+                    LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name  
+                    LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+                    WHERE sle.company = '{company}'
+                      AND w.department = '{department}'
+                      AND w.warehouse_type = 'Reserve'
+                      AND i.item_group IN ('{item_group_str}')
+                      AND sle.posting_date <= '{today}'
+                      AND sle.docstatus < 2 AND sle.is_cancelled = 0
+                    GROUP BY sle.item_code, sle.warehouse
+                    HAVING SUM(sle.actual_qty) > 0
+                ) as finaldata
+                ORDER BY finaldata.bal_qty DESC
+            """, as_dict=True)
+        else:
+            return []
+    except:
+        return []
+
+def get_transit_stock_details(department, company, branch, dept_display_name, raw_material_types):
+    try:
+        item_groups = get_item_groups(raw_material_types)
+        if item_groups:
+            today = getdate()
+            item_group_str = "', '".join(item_groups)
+            
+            return frappe.db.sql(f"""
+                SELECT finaldata.item_code as 'Item Code', finaldata.bal_qty as 'Weight'
+                FROM (
+                    SELECT sle.item_code, sle.warehouse, SUM(sle.actual_qty) as bal_qty
+                    FROM `tabStock Ledger Entry` sle
+                    LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name  
+                    LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+                    WHERE sle.company = '{company}'
+                      AND w.department = '{department}'
+                      AND w.warehouse_type = 'Transit'
+                      AND i.item_group IN ('{item_group_str}')
+                      AND sle.posting_date <= '{today}'
+                      AND sle.docstatus < 2 AND sle.is_cancelled = 0
+                    GROUP BY sle.item_code, sle.warehouse
+                    HAVING SUM(sle.actual_qty) > 0
+                ) as finaldata
+                ORDER BY finaldata.bal_qty DESC
+            """, as_dict=True)
+        else:
+            return []
+    except:
+        return []
+
+def get_scrap_stock_details(department, company, branch, dept_display_name, raw_material_types):
+    try:
+        item_groups = get_item_groups(raw_material_types)
+        if item_groups:
+            today = getdate()
+            item_group_str = "', '".join(item_groups)
+            
+            return frappe.db.sql(f"""
+                SELECT finaldata.item_code as 'Item Code', finaldata.bal_qty as 'Weight'
+                FROM (
+                    SELECT sle.item_code, sle.warehouse, SUM(sle.actual_qty) as bal_qty
+                    FROM `tabStock Ledger Entry` sle
+                    LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name  
+                    LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+                    WHERE sle.company = '{company}'
+                      AND w.department = '{department}'
+                      AND w.warehouse_type = 'Scrap'
+                      AND i.item_group IN ('{item_group_str}')
+                      AND sle.posting_date <= '{today}'
+                      AND sle.docstatus < 2 AND sle.is_cancelled = 0
+                    GROUP BY sle.item_code, sle.warehouse
+                    HAVING SUM(sle.actual_qty) > 0
+                ) as finaldata
+                ORDER BY finaldata.bal_qty DESC
+            """, as_dict=True)
+        else:
+            return []
+    except:
+        return []
+
+def get_finished_goods_details(department, company, branch, dept_display_name, raw_material_types):
+    try:
+        return frappe.db.sql(f"""
+            SELECT 
+                sn.name as 'Serial No',
+                sn.item_code as 'Item Code',
+                1 as 'Quantity'
+            FROM `tabSerial No` sn
+            LEFT JOIN `tabWarehouse` w ON sn.warehouse = w.name
+            WHERE sn.company = '{company}'
+              AND sn.status = 'Active'
+              AND w.department = '{department}'
+            ORDER BY sn.creation DESC
+        """, as_dict=True)
+    except:
+        return []
 
 @frappe.whitelist()
-def get_stock_details(stock_type, stock_key, filters=None):
-    """Get detailed breakdown for each stock type"""
+def get_departments_by_manufacturer(manufacturer):
+    """Database-driven department mapping - matches actual system data"""
+    dept_mapping = {
+        "Siddhi": ["Nandi"],
+        "Service Center": ["Product Repair Center"],
+        "Amrut": ["Close Diamond Bagging", "Close Diamond Setting", "Close Final Polish", "Close Gemstone Bagging", "Close Model Making", "Close Pre Polish", "Close Waxing", "Rudraksha"],
+        "Mangal": ["Central MU", "Computer Aided Designing MU", "Manufacturing Plan Management MU", "Om MU", "Serial Number MU", "Sub Contracting MU", "Tagging MU"],
+        "Labh": ["Accounts", "Administration", "Canteen", "Casting", "Central", "Computer Aided Designing", "Computer Aided Manufacturing", "Computer Hardware Networking", "Customer Service", "D2D Marketing", "Diamond Bagging", "Diamond Setting", "Digital Marketing", "Dispatch", "Final Polish", "Gemstone Bagging", "Housekeeping", "Human Resources", "Information Technology", "Information Technology Data Analysis", "Item Bom Management", "Learning Development - KGJPL", "Legal", "Management", "Manufacturing", "Manufacturing Plan Management", "Marketing", "Merchandise", "Model Making", "Operations", "Order Management", "Pre Polish", "Product Allocation", "Product Certification", "Product Development", "Production", "Purchase", "Quality Assessment", "Quality Management", "Refinery", "Research Development", "Sales", "Sales Marketing", "Security - KGJPL", "Selling", "Serial Number", "Sketch", "Sketch/Computer Aided Designing", "Stores", "Studio - GEPL", "Sub Contracting", "Tagging", "Waxing"],
+        "Shubh": ["Accounts", "Administration", "BL - Purchase", "Canteen", "Casting", "CB - Purchase", "Central", "CH - Purchase", "Close Diamond Setting", "Close Final Polish", "Close Model Making", "Close Pre Polish", "Close Waxing", "Computer Aided Designing", "Sketch/Computer Aided Designing", "Computer Aided Manufacturing", "Computer Hardware Networking", "Customer Service", "D2D Marketing", "Diamond Bagging", "Diamond Setting", "Digital Marketing", "Dispatch", "Final Polish", "Gemstone Bagging", "HD - Purchase", "Housekeeping", "Human Resources", "Information Technology", "Information Technology Data Analysis", "Item Bom Management", "Learning Development - GEPL", "Legal", "Management", "Manufacturing", "Manufacturing Plan Management", "Marketing", "Merchandise", "Model Making", "MU - Purchase", "Om", "Operations", "Order Management", "Pre Polish", "Product Allocation", "Product Certification", "Product Development", "Production", "Purchase", "Quality Assessment", "Quality Management", "Refinery", "Research Development", "Rhodium", "Rudraksha", "Sales", "Sales Marketing", "Security - GEPL", "Selling", "Serial Number", "Stores", "Studio - GEPL", "Sub Contracting", "Sudarshan", "Swastik", "Tagging", "Trishul", "Waxing", "Waxing 2"]
+    }
+    return dept_mapping.get(manufacturer, [])
+
+@frappe.whitelist()
+def get_stock_details(department, stock_type, stock_key, filters=None):
     try:
         if isinstance(filters, str):
             import json
             filters = json.loads(filters)
         
-        company = filters.get("company")
-        branch = filters.get("branch")
-        department = filters.get("department")
-        manufacturer = filters.get("manufacturer")
-        raw_material_types = filters.get("raw_material_type", [])
+        company, branch, raw_material_types = (
+            filters.get("company"), 
+            filters.get("branch", ""), 
+            [filters.get("raw_material_type")] if filters.get("raw_material_type") else ["Metal"]
+        )
         
-        weight_field = get_weight_field_selection(raw_material_types)
+        dept_with_suffix = f"{department} - GEPL" if company == "Gurukrupa Export Private Limited" else f"{department} - KGJPL"
         
-        # Route to appropriate detail function
-        if stock_key in ["work_order_stock", "employee_wip_stock", "supplier_wip_stock"]:
-            return get_manufacturing_stock_details(stock_key, weight_field, company, branch, department, manufacturer)
-        elif "msl" in stock_key:
-            if "hold" in stock_key:
-                return get_msl_hold_details(stock_key, company, branch, department, manufacturer)
-            else:
-                return get_msl_details(stock_key, weight_field, company, branch, department, manufacturer)
-        elif stock_key == "raw_material_stock":
-            return get_raw_material_details(company, branch, department, manufacturer, raw_material_types)
-        elif stock_key == "scrap_stock":
-            return get_scrap_stock_details(company, branch, department, manufacturer, raw_material_types)
-        elif stock_key == "finished_goods":
-            return get_finished_goods_details(company, branch, department, manufacturer, raw_material_types)
-        elif stock_key == "reserve_stock":
-            return get_reserve_stock_details(company, branch, department, manufacturer, raw_material_types)
-        elif stock_key == "transit_stock":
-            return get_transit_stock_details(company, branch, department, manufacturer, raw_material_types)
-        else:
-            return get_general_stock_details(company, branch, department, stock_type, raw_material_types)
-            
-    except Exception as e:
-        frappe.log_error(f"Stock details error for {stock_key}: {str(e)}")
-        return [{"Error": f"Error loading {stock_type}: {str(e)}"}]
-
-def get_manufacturing_stock_details(stock_key, weight_field, company, branch, department, manufacturer):
-    """Get Manufacturing stock details - FIXED DEPARTMENT SUFFIX"""
-    try:
-        conditions = {
-            "work_order_stock": ("'Not Started'", ""),
-            "employee_wip_stock": ("'WIP'", "AND COALESCE(mop.for_subcontracting, 0) = 0"),
-            "supplier_wip_stock": ("'WIP'", "AND mop.for_subcontracting = 1")
+        detail_functions = {
+            'work_order_stock': get_work_order_details,
+            'employee_wip_stock': get_employee_wip_details,
+            'supplier_wip_stock': get_supplier_wip_details,
+            'employee_msl_stock': get_employee_msl_details,
+            'supplier_msl_stock': get_supplier_msl_details,
+            'employee_msl_hold_stock': get_employee_msl_hold_details,
+            'supplier_msl_hold_stock': get_supplier_msl_hold_details,
+            'raw_material_stock': get_raw_material_details,
+            'reserve_stock': get_reserve_stock_details,
+            'transit_stock': get_transit_stock_details,
+            'scrap_stock': get_scrap_stock_details,
+            'finished_goods': get_finished_goods_details
         }
         
-        status, subcontract_condition = conditions.get(stock_key, ("'Not Started'", ""))
+        result = detail_functions.get(stock_key, lambda *args: [])(
+            dept_with_suffix, company, branch, department, raw_material_types
+        )
         
-        # Handle department suffix for filtering
-        dept_filter = ""
-        if department:
-            dept_with_suffix = f"{department} - GEPL"  # Add suffix for database query
-            dept_filter = "AND mop.department = %(department)s"
+        return [row for row in result if any(isinstance(v, (int, float)) and v > 0 for v in row.values())]
         
-        query = f"""
-            SELECT 
-                mwo.name as "Work Order",
-                mop.name as "Operation", 
-                mwo.item_code as "Item Code",
-                {weight_field} as "Weight",
-                mop.department as "Department",
-                mop.status as "Status",
-                COALESCE(emp.employee_name, sup.supplier_name, 'Not Assigned') as "Assigned To",
-                mwo.creation as "Created Date"
-            FROM `tabManufacturing Operation` mop
-            INNER JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-            LEFT JOIN `tabEmployee` emp ON mop.employee = emp.name
-            LEFT JOIN `tabSupplier` sup ON mop.subcontractor = sup.name
-            WHERE mop.status = {status}
-            {subcontract_condition}
-            AND mwo.docstatus = 1
-            AND mwo.company = %(company)s
-            AND mwo.branch = %(branch)s
-            {dept_filter}
-            ORDER BY mwo.creation DESC
-            LIMIT 50
-        """
-        
-        params = {"company": company, "branch": branch}
-        if department:
-            params["department"] = f"{department} - GEPL"  # Use department with suffix
-        
-        return frappe.db.sql(query, params, as_dict=True)
     except Exception as e:
-        frappe.log_error(f"Manufacturing stock details error: {str(e)}")
+        frappe.log_error(f"Stock details error: {str(e)}")
         return []
-
-def get_msl_details(stock_key, weight_field, company, branch, department, manufacturer):
-    """Get Main Slip details (In Use) - WITH MANUFACTURER FILTER"""
-    try:
-        subcontract_condition = ""
-        if "employee" in stock_key:
-            subcontract_condition = "AND COALESCE(mop.for_subcontracting, 0) = 0"
-        elif "supplier" in stock_key:
-            subcontract_condition = "AND mop.for_subcontracting = 1"
-        
-        dept_filter = ""
-        if department:
-            dept_filter = "AND mop.department = %(department)s"
-            
-        manufacturer_filter = ""
-        if manufacturer:
-            manufacturer_filter = "AND ms.manufacturer = %(manufacturer)s"
-            
-        query = f"""
-            SELECT 
-                ms.name as "Main Slip",
-                mop.department as "Department",
-                {weight_field} as "Weight",
-                COALESCE(emp.employee_name, sup.supplier_name, 'Not Assigned') as "Assigned To",
-                ms.workflow_state as "Status",
-                ms.modified as "Last Modified",
-                ms.manufacturer as "Manufacturer"
-            FROM `tabMain Slip` ms
-            INNER JOIN `tabMain Slip Operation` mso ON ms.name = mso.parent
-            INNER JOIN `tabManufacturing Operation` mop ON mso.manufacturing_operation = mop.name
-            INNER JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-            LEFT JOIN `tabEmployee` emp ON ms.employee = emp.name
-            LEFT JOIN `tabSupplier` sup ON ms.subcontractor = sup.name
-            WHERE ms.workflow_state = 'In Use'
-            {subcontract_condition}
-            AND mwo.company = %(company)s
-            AND mwo.branch = %(branch)s
-            {dept_filter}
-            {manufacturer_filter}
-            ORDER BY ms.modified DESC
-            LIMIT 50
-        """
-        
-        params = {"company": company, "branch": branch}
-        if department:
-            params["department"] = f"{department} - GEPL"
-        if manufacturer:
-            params["manufacturer"] = manufacturer
-        
-        return frappe.db.sql(query, params, as_dict=True)
-    except Exception as e:
-        frappe.log_error(f"MSL details error: {str(e)}")
-        return []
-
-def get_msl_hold_details(stock_key, company, branch, department, manufacturer):
-    """Get Main Slip Hold details (On Hold) - WITH MANUFACTURER FILTER"""
-    try:
-        subcontract_condition = ""
-        if "employee" in stock_key:
-            subcontract_condition = "AND COALESCE(mop.for_subcontracting, 0) = 0"
-        elif "supplier" in stock_key:
-            subcontract_condition = "AND mop.for_subcontracting = 1"
-        
-        dept_filter = ""
-        if department:
-            dept_filter = "AND mop.department = %(department)s"
-            
-        manufacturer_filter = ""
-        if manufacturer:
-            manufacturer_filter = "AND ms.manufacturer = %(manufacturer)s"
-        
-        query = f"""
-            SELECT 
-                ms.name as "Main Slip",
-                mop.department as "Department",
-                COALESCE(ms.pending_metal, 0) as "Pending Qty",
-                COALESCE(emp.employee_name, sup.supplier_name, 'Not Assigned') as "Assigned To",
-                ms.workflow_state as "Status",
-                ms.modified as "Last Modified",
-                ms.manufacturer as "Manufacturer"
-            FROM `tabMain Slip` ms
-            INNER JOIN `tabMain Slip Operation` mso ON ms.name = mso.parent
-            INNER JOIN `tabManufacturing Operation` mop ON mso.manufacturing_operation = mop.name
-            INNER JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-            LEFT JOIN `tabEmployee` emp ON ms.employee = emp.name
-            LEFT JOIN `tabSupplier` sup ON ms.subcontractor = sup.name
-            WHERE ms.workflow_state = 'On Hold'
-            {subcontract_condition}
-            AND mwo.company = %(company)s
-            AND mwo.branch = %(branch)s
-            {dept_filter}
-            {manufacturer_filter}
-            ORDER BY ms.modified DESC
-            LIMIT 50
-        """
-        
-        params = {"company": company, "branch": branch}
-        if department:
-            params["department"] = f"{department} - GEPL"
-        if manufacturer:
-            params["manufacturer"] = manufacturer
-        
-        return frappe.db.sql(query, params, as_dict=True)
-    except Exception as e:
-        frappe.log_error(f"MSL hold details error: {str(e)}")
-        return []
-
-def get_raw_material_details(company, branch, department, manufacturer, raw_material_types):
-    """Get Raw Material Stock details"""
-    try:
-        material_filter = get_material_filter_for_item_groups(raw_material_types)
-        dept_filter = ""
-        if department:
-            dept_filter = "AND w.department = %(department)s"
-        
-        query = f"""
-            SELECT 
-                sle.item_code as "Item Code",
-                i.item_name as "Item Name",
-                i.item_group as "Material Type",
-                i.stock_uom as "UOM",
-                SUM(sle.actual_qty) as "Quantity",
-                w.department as "Department",
-                w.warehouse_name as "Warehouse",
-                sle.posting_date as "Date"
-            FROM `tabStock Ledger Entry` sle
-            INNER JOIN `tabWarehouse` w ON sle.warehouse = w.name
-            INNER JOIN `tabItem` i ON sle.item_code = i.item_code
-            WHERE w.warehouse_type = 'Raw Material'
-            AND sle.company = %(company)s
-            AND i.is_stock_item = 1
-            {material_filter}
-            {dept_filter}
-            GROUP BY sle.item_code, w.department
-            HAVING SUM(sle.actual_qty) > 0
-            ORDER BY SUM(sle.actual_qty) DESC
-            LIMIT 50
-        """
-        
-        params = {"company": company}
-        if department:
-            params["department"] = f"{department} - GEPL"
-        
-        return frappe.db.sql(query, params, as_dict=True)
-    except Exception as e:
-        frappe.log_error(f"Raw material details error: {str(e)}")
-        return []
-
-def get_scrap_stock_details(company, branch, department, manufacturer, raw_material_types):
-    """Get Scrap Stock details"""
-    try:
-        material_filter = get_material_filter_for_item_groups(raw_material_types)
-        dept_filter = ""
-        if department:
-            dept_filter = "AND w.department = %(department)s"
-        
-        query = f"""
-            SELECT 
-                sle.item_code as "Item Code",
-                i.item_name as "Item Name", 
-                i.item_group as "Material Type",
-                SUM(sle.actual_qty) as "Scrap Qty",
-                w.department as "Department",
-                w.warehouse_type as "Warehouse Type",
-                sle.posting_date as "Date"
-            FROM `tabStock Ledger Entry` sle
-            INNER JOIN `tabWarehouse` w ON sle.warehouse = w.name
-            INNER JOIN `tabItem` i ON sle.item_code = i.item_code
-            WHERE w.warehouse_type = 'Scrap'
-            AND sle.company = %(company)s
-            {material_filter}
-            {dept_filter}
-            GROUP BY sle.item_code, w.department
-            HAVING SUM(sle.actual_qty) > 0
-            ORDER BY sle.posting_date DESC
-            LIMIT 50
-        """
-        
-        params = {"company": company}
-        if department:
-            params["department"] = f"{department} - GEPL"
-        
-        return frappe.db.sql(query, params, as_dict=True)
-    except Exception as e:
-        frappe.log_error(f"Scrap stock details error: {str(e)}")
-        return []
-
-def get_finished_goods_details(company, branch, department, manufacturer, raw_material_types):
-    """Get Finished Goods details"""
-    try:
-        material_filter = get_material_filter_for_item_groups(raw_material_types)
-        dept_filter = ""
-        if department:
-            dept_filter = "AND w.department = %(department)s"
-        
-        query = f"""
-            SELECT 
-                sn.name as "Serial No",
-                sn.item_code as "Item Code",
-                i.item_name as "Item Name",
-                i.item_group as "Item Category",
-                w.department as "Department",
-                sn.warehouse as "Warehouse"
-            FROM `tabSerial Number` sn
-            INNER JOIN `tabWarehouse` w ON sn.warehouse = w.name
-            INNER JOIN `tabItem` i ON sn.item_code = i.item_code
-            WHERE sn.company = %(company)s
-            {material_filter}
-            {dept_filter}
-            ORDER BY sn.creation DESC
-            LIMIT 50
-        """
-        
-        params = {"company": company}
-        if department:
-            params["department"] = f"{department} - GEPL"
-        
-        return frappe.db.sql(query, params, as_dict=True)
-    except Exception as e:
-        frappe.log_error(f"Finished goods details error: {str(e)}")
-        return []
-
-def get_reserve_stock_details(company, branch, department, manufacturer, raw_material_types):
-    """Get Reserve Stock details"""
-    try:
-        material_filter = get_material_filter_for_item_groups(raw_material_types)
-        dept_filter = ""
-        if department:
-            dept_filter = "AND w.department = %(department)s"
-        
-        query = f"""
-            SELECT 
-                sle.item_code as "Item Code",
-                i.item_name as "Item Name",
-                i.item_group as "Material Type",
-                SUM(sle.actual_qty) as "Reserved Qty",
-                w.department as "Department",
-                w.warehouse_type as "Warehouse Type",
-                sle.posting_date as "Date"
-            FROM `tabStock Ledger Entry` sle
-            INNER JOIN `tabWarehouse` w ON sle.warehouse = w.name
-            INNER JOIN `tabItem` i ON sle.item_code = i.item_code
-            WHERE w.warehouse_type = 'Reserve'
-            AND sle.company = %(company)s
-            {material_filter}
-            {dept_filter}
-            GROUP BY sle.item_code, w.department
-            HAVING SUM(sle.actual_qty) > 0
-            ORDER BY sle.posting_date DESC
-            LIMIT 50
-        """
-        
-        params = {"company": company}
-        if department:
-            params["department"] = f"{department} - GEPL"
-        
-        return frappe.db.sql(query, params, as_dict=True)
-    except Exception as e:
-        frappe.log_error(f"Reserve stock details error: {str(e)}")
-        return []
-
-def get_transit_stock_details(company, branch, department, manufacturer, raw_material_types):
-    """Get Transit Stock details"""
-    try:
-        material_filter = get_material_filter_for_item_groups(raw_material_types)
-        dept_filter = ""
-        if department:
-            dept_filter = "AND se.department = %(department)s"
-        
-        query = f"""
-            SELECT 
-                sed.item_code as "Item Code",
-                i.item_name as "Item Name",
-                i.item_group as "Material Type",
-                SUM(sed.qty) as "Transit Qty",
-                se.department as "Department",
-                se.stock_entry_type as "Entry Type",
-                se.posting_date as "Date"
-            FROM `tabStock Entry` se
-            INNER JOIN `tabStock Entry Detail` sed ON se.name = sed.parent
-            INNER JOIN `tabItem` i ON sed.item_code = i.item_code
-            WHERE se.stock_entry_type LIKE '%Transfer%'
-            AND se.docstatus = 1
-            AND se.company = %(company)s
-            {material_filter}
-            {dept_filter}
-            GROUP BY sed.item_code, se.department
-            ORDER BY se.posting_date DESC
-            LIMIT 50
-        """
-        
-        params = {"company": company}
-        if department:
-            params["department"] = f"{department} - GEPL"
-        
-        return frappe.db.sql(query, params, as_dict=True)
-    except Exception as e:
-        frappe.log_error(f"Transit stock details error: {str(e)}")
-        return []
-
-def get_general_stock_details(company, branch, department, stock_type, raw_material_types):
-    """Get general stock details"""
-    material_type_str = ", ".join(raw_material_types) if raw_material_types else "All Materials"
-    return [
-        {"Item": f"{stock_type} Item 1", "Material Type": material_type_str, "Quantity": 10, "Department": department or "General"},
-        {"Item": f"{stock_type} Item 2", "Material Type": material_type_str, "Quantity": 15, "Department": department or "General"},
-        {"Item": f"{stock_type} Item 3", "Material Type": material_type_str, "Quantity": 8, "Department": department or "General"}
-    ]
-
-@frappe.whitelist()
-def get_company_branches(company):
-    """Get branches for a company"""
-    try:
-        branches = frappe.db.sql("""
-            SELECT DISTINCT branch as branch_name
-            FROM `tabManufacturing Work Order`
-            WHERE company = %(company)s AND branch IS NOT NULL AND branch != ''
-            ORDER BY branch
-            LIMIT 20
-        """, {"company": company}, as_dict=True)
-        
-        if branches and len(branches) > 0:
-            return branches
-        elif "Gurukrupa" in company:
-            return [
-                {"branch_name": "GEPL-BL-0003"}, {"branch_name": "GEPL-CB-0006"},
-                {"branch_name": "GEPL-CH-0004"}, {"branch_name": "GEPL-HD-0005"},
-                {"branch_name": "GEPL-HO-0001"}, {"branch_name": "GEPL-KL-0010"},
-                {"branch_name": "GEPL-MU-0009"}, {"branch_name": "GEPL-NV-0011"},
-                {"branch_name": "GEPL-ST-0002"}, {"branch_name": "GEPL-TH-0008"},
-                {"branch_name": "GEPL-VD-0007"}
-            ]
-        elif "KG GK" in company:
-            return [
-                {"branch_name": "KGJPL-ST-0001"}, {"branch_name": "KGJPL-ST-0002"},
-                {"branch_name": "KGJPL-HO-0001"}, {"branch_name": "KGJPL-MU-0001"}
-            ]
-        else:
-            return [{"branch_name": "ST-0001"}, {"branch_name": "ST-0002"}]
-    except:
-        return [{"branch_name": "ST-0001"}, {"branch_name": "ST-0002"}]
-
-@frappe.whitelist()
-def get_departments_by_manufacturer(manufacturer):
-    """Get departments for a manufacturer"""
-    manufacturer_departments = {
-        "Labh": [
-            "Accounts", "Central", "Diamond Bagging", "Diamond Setting", "Dispatch", 
-            "Final Polish", "Gemstone Bagging", "Manufacturing Plan & Management", 
-            "Model Making", "Order Management", "Pre Polish", "Product Allocation", 
-            "Product Certification", "Production", "Purchase", "Refinery", "Sales", 
-            "Selling", "Sub Contracting", "Tagging", "Waxing"
-        ],
-        "Shubh": [
-            "Accounts", "Casting", "Central", "Dispatch", "Final Polish", 
-            "Gemstone Bagging", "Manufacturing Plan & Management", "Purchase", 
-            "Sub Contracting", "Sudarshan", "Swastik", "Tagging", "Trishul"
-        ],
-        "Mangal": [
-            "Central", "Computer Aided Designing", "Manufacturing Plan & Management", 
-            "Dispatch", "Final Polish", "Gemstone Bagging", "Sudarshan", "Swastik", 
-            "Tagging", "Trishul"
-        ],
-        "Amrut": ["Rudraksha", "Close Waxing", "Close Model Making"],
-        "Service Center": ["Product Repair Center"],
-        "Siddhi": ["Nandi"]
-    }
-    
-    return manufacturer_departments.get(manufacturer, [])
