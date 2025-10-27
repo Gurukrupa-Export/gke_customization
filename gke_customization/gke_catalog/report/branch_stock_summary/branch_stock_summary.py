@@ -231,26 +231,26 @@ def get_department_stock_values(dept_with_suffix, company, branch, manufacturer,
         except:
             pass
     
-    if variant_codes:
-        variant_code_str = "', '".join(variant_codes)
+    # FIXED: MSL Stock calculation - Use SLE logic instead of Loss Details
+    if item_groups:
         try:
+            # FIXED: Employee MSL Stock using SLE logic
             msl_result = frappe.db.sql(f"""
-                SELECT SUM(ld.msl_qty) as total_qty FROM `tabMain Slip` ms
-                LEFT JOIN `tabLoss Details` ld ON ms.name = ld.parent
-                WHERE ms.workflow_state = 'In Use' AND ms.employee IS NOT NULL AND ms.department = '{dept_with_suffix}'
-                  AND ld.variant_of IN ('{variant_code_str}')
+                SELECT SUM(sle.actual_qty) as total_qty
+                FROM `tabStock Ledger Entry` sle
+                LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name
+                LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+                WHERE sle.company = '{company}' 
+                  AND w.department = '{dept_with_suffix}'
+                  AND w.warehouse_type = 'Employee WIP'
+                  AND i.item_group IN ('{item_group_str}')
+                  AND sle.posting_date <= '{today}'
+                  AND sle.docstatus < 2 
+                  AND sle.is_cancelled = 0
+                HAVING SUM(sle.actual_qty) > 0
             """, as_dict=True)
             if msl_result and msl_result[0].get('total_qty'):
                 stock_values['employee_msl_stock'] = flt(msl_result[0]['total_qty'], 3)
-                
-            msl_hold_result = frappe.db.sql(f"""
-                SELECT SUM(ld.msl_qty) as total_qty FROM `tabMain Slip` ms
-                LEFT JOIN `tabLoss Details` ld ON ms.name = ld.parent
-                WHERE ms.workflow_state = 'On Hold' AND ms.employee IS NOT NULL AND ms.department = '{dept_with_suffix}'
-                  AND ld.variant_of IN ('{variant_code_str}')
-            """, as_dict=True)
-            if msl_hold_result and msl_hold_result[0].get('total_qty'):
-                stock_values['employee_msl_hold_stock'] = flt(msl_hold_result[0]['total_qty'], 3)
         except:
             pass
     
@@ -288,29 +288,31 @@ def get_variant_codes(raw_material_types):
         elif rm_type == "Finding": variant_codes.append("F")
     return variant_codes
 
+# FIXED: Work Order Details - Now shows operations properly
 def get_work_order_details(department, company, branch, dept_display_name, raw_material_types):
     try:
-        item_groups = get_item_groups(raw_material_types)
-        if item_groups:
-            weight_sum = get_weight_sum(raw_material_types)
-            branch_condition = f"AND mwo.branch = '{branch}'" if company == "Gurukrupa Export Private Limited" and branch else ""
-            
-            return frappe.db.sql(f"""
-                SELECT 
-                    mwo.name as 'Manufacturing Work Order',
-                    {weight_sum} as 'Weight',
-                    mop.operation as 'Operation'
-                FROM `tabManufacturing Operation` mop
-                LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-                WHERE mop.status IN ('Open', 'Not Started') 
-                  AND mop.department = '{department}' 
-                  AND mwo.company = '{company}' {branch_condition}
-                  AND mwo.docstatus = 1 
-                  AND ({weight_sum}) > 0
-                ORDER BY {weight_sum} DESC
-            """, as_dict=True)
+        weight_sum = get_weight_sum(raw_material_types)
+        branch_condition = f"AND mwo.branch = '{branch}'" if company == "Gurukrupa Export Private Limited" and branch else ""
+        
+        return frappe.db.sql(f"""
+            SELECT 
+                mwo.name as 'Manufacturing Work Order',
+                ({weight_sum}) as 'Weight',
+                mop.operation as 'Operation'
+            FROM `tabManufacturing Operation` mop
+            LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
+            WHERE mop.status IN ('Open', 'Not Started') 
+              AND mop.department = '{department}' 
+              AND mwo.company = '{company}' {branch_condition}
+              AND mwo.docstatus = 1 
+              AND ({weight_sum}) > 0
+              AND mop.operation IS NOT NULL
+              AND mop.operation != ''
+            ORDER BY ({weight_sum}) DESC
+        """, as_dict=True)
+    except Exception as e:
+        frappe.log_error(f"Work order details error: {str(e)}")
         return []
-    except: return []
 
 def get_employee_wip_details(department, company, branch, dept_display_name, raw_material_types):
     try:
@@ -320,7 +322,7 @@ def get_employee_wip_details(department, company, branch, dept_display_name, raw
         return frappe.db.sql(f"""
             SELECT 
                 mwo.name as 'Manufacturing Work Order',
-                {weight_sum} as 'Weight',
+                ({weight_sum}) as 'Weight',
                 mop.operation as 'Operation',
                 COALESCE(emp.employee_name, 'Not Assigned') as 'Employee Name'
             FROM `tabMain Slip` ms
@@ -335,7 +337,8 @@ def get_employee_wip_details(department, company, branch, dept_display_name, raw
               AND mwo.company = '{company}' {branch_condition}
               AND mwo.docstatus = 1
               AND mop.department = '{department}'
-            ORDER BY {weight_sum} DESC
+              AND ({weight_sum}) > 0
+            ORDER BY ({weight_sum}) DESC
         """, as_dict=True)
     except: return []
 
@@ -347,7 +350,7 @@ def get_supplier_wip_details(department, company, branch, dept_display_name, raw
         return frappe.db.sql(f"""
             SELECT 
                 mwo.name as 'Manufacturing Work Order',
-                {weight_sum} as 'Weight',
+                ({weight_sum}) as 'Weight',
                 mop.operation as 'Operation',
                 COALESCE(sup.supplier_name, 'Not Assigned') as 'Supplier Name'
             FROM `tabMain Slip` ms
@@ -362,57 +365,68 @@ def get_supplier_wip_details(department, company, branch, dept_display_name, raw
               AND mwo.company = '{company}' {branch_condition}
               AND mwo.docstatus = 1
               AND mop.department = '{department}'
-            ORDER BY {weight_sum} DESC
+              AND ({weight_sum}) > 0
+            ORDER BY ({weight_sum}) DESC
         """, as_dict=True)
     except: return []
 
+# FIXED: Employee MSL Details - Use SLE logic for correct values
 def get_employee_msl_details(department, company, branch, dept_display_name, raw_material_types):
     try:
-        variant_codes = get_variant_codes(raw_material_types)
-        if variant_codes:
-            variant_code_str = "', '".join(variant_codes)
+        item_groups = get_item_groups(raw_material_types)
+        if item_groups:
+            item_group_str = "', '".join(item_groups)
             return frappe.db.sql(f"""
                 SELECT 
-                    ms.name as 'Main Slip',
+                    sle.voucher_no as 'Main Slip',
                     COALESCE(emp.employee_name, 'Not Assigned') as 'Employee Name',
-                    ms.department as 'Department',
-                    COALESCE(mso.operation, 'N/A') as 'Operation',
-                    ld.msl_qty as 'Weight'
-                FROM `tabMain Slip` ms
-                LEFT JOIN `tabLoss Details` ld ON ms.name = ld.parent
-                LEFT JOIN `tabEmployee` emp ON ms.employee = emp.name
-                LEFT JOIN `tabMain Slip Operation` mso ON ms.name = mso.parent
-                WHERE ms.workflow_state = 'In Use' 
-                  AND ms.employee IS NOT NULL 
-                  AND ms.department = '{department}'
-                  AND ld.variant_of IN ('{variant_code_str}')
-                ORDER BY ld.msl_qty DESC
+                    w.department as 'Department',
+                    'MSL Operation' as 'Operation',
+                    SUM(sle.actual_qty) as 'Weight'
+                FROM `tabStock Ledger Entry` sle
+                LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name
+                LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+                LEFT JOIN `tabEmployee` emp ON sle.voucher_no LIKE CONCAT('%', emp.name, '%')
+                WHERE sle.company = '{company}'
+                  AND w.department = '{department}'
+                  AND w.warehouse_type = 'Employee WIP'
+                  AND i.item_group IN ('{item_group_str}')
+                  AND sle.actual_qty > 0
+                  AND sle.docstatus < 2 
+                  AND sle.is_cancelled = 0
+                GROUP BY sle.voucher_no, emp.employee_name, w.department
+                ORDER BY SUM(sle.actual_qty) DESC
             """, as_dict=True)
         return []
-    except: return []
+    except Exception as e:
+        frappe.log_error(f"Employee MSL details error: {str(e)}")
+        return []
 
 def get_supplier_msl_details(department, company, branch, dept_display_name, raw_material_types):
     try:
-        variant_codes = get_variant_codes(raw_material_types)
-        if variant_codes:
-            variant_code_str = "', '".join(variant_codes)
+        item_groups = get_item_groups(raw_material_types)
+        if item_groups:
+            item_group_str = "', '".join(item_groups)
             return frappe.db.sql(f"""
                 SELECT 
-                    ms.name as 'Main Slip',
+                    sle.voucher_no as 'Main Slip',
                     COALESCE(sup.supplier_name, 'Not Assigned') as 'Supplier Name',
-                    ms.department as 'Department',
-                    COALESCE(mso.operation, 'N/A') as 'Operation',
-                    ld.msl_qty as 'Weight'
-                FROM `tabMain Slip` ms
-                LEFT JOIN `tabLoss Details` ld ON ms.name = ld.parent
-                LEFT JOIN `tabSupplier` sup ON ms.supplier = sup.name
-                LEFT JOIN `tabMain Slip Operation` mso ON ms.name = mso.parent
-                WHERE ms.workflow_state = 'In Use' 
-                  AND ms.supplier IS NOT NULL 
-                  AND ms.for_subcontracting = 1
-                  AND ms.department = '{department}'
-                  AND ld.variant_of IN ('{variant_code_str}')
-                ORDER BY ld.msl_qty DESC
+                    w.department as 'Department',
+                    'MSL Operation' as 'Operation',
+                    SUM(sle.actual_qty) as 'Weight'
+                FROM `tabStock Ledger Entry` sle
+                LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name
+                LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+                LEFT JOIN `tabSupplier` sup ON sle.voucher_no LIKE CONCAT('%', sup.name, '%')
+                WHERE sle.company = '{company}'
+                  AND w.department = '{department}'
+                  AND w.warehouse_type = 'Sub Contracting RM'
+                  AND i.item_group IN ('{item_group_str}')
+                  AND sle.actual_qty > 0
+                  AND sle.docstatus < 2 
+                  AND sle.is_cancelled = 0
+                GROUP BY sle.voucher_no, sup.supplier_name, w.department
+                ORDER BY SUM(sle.actual_qty) DESC
             """, as_dict=True)
         return []
     except: return []
@@ -427,16 +441,20 @@ def get_employee_msl_hold_details(department, company, branch, dept_display_name
                     ms.name as 'Main Slip',
                     COALESCE(emp.employee_name, 'Not Assigned') as 'Employee Name',
                     ms.department as 'Department',
-                    COALESCE(mso.operation, 'N/A') as 'Operation',
+                    COALESCE(
+                        (SELECT mso.operation FROM `tabMain Slip Operation` mso 
+                         WHERE mso.parent = ms.name AND mso.operation IS NOT NULL LIMIT 1), 
+                        'N/A'
+                    ) as 'Operation',
                     ld.msl_qty as 'Weight'
                 FROM `tabMain Slip` ms
                 LEFT JOIN `tabLoss Details` ld ON ms.name = ld.parent
                 LEFT JOIN `tabEmployee` emp ON ms.employee = emp.name
-                LEFT JOIN `tabMain Slip Operation` mso ON ms.name = mso.parent
                 WHERE ms.workflow_state = 'On Hold' 
                   AND ms.employee IS NOT NULL 
                   AND ms.department = '{department}'
                   AND ld.variant_of IN ('{variant_code_str}')
+                  AND ld.msl_qty > 0
                 ORDER BY ld.msl_qty DESC
             """, as_dict=True)
         return []
@@ -452,17 +470,21 @@ def get_supplier_msl_hold_details(department, company, branch, dept_display_name
                     ms.name as 'Main Slip',
                     COALESCE(sup.supplier_name, 'Not Assigned') as 'Supplier Name',
                     ms.department as 'Department',
-                    COALESCE(mso.operation, 'N/A') as 'Operation',
+                    COALESCE(
+                        (SELECT mso.operation FROM `tabMain Slip Operation` mso 
+                         WHERE mso.parent = ms.name AND mso.operation IS NOT NULL LIMIT 1), 
+                        'N/A'
+                    ) as 'Operation',
                     ld.msl_qty as 'Weight'
                 FROM `tabMain Slip` ms
                 LEFT JOIN `tabLoss Details` ld ON ms.name = ld.parent
                 LEFT JOIN `tabSupplier` sup ON ms.supplier = sup.name
-                LEFT JOIN `tabMain Slip Operation` mso ON ms.name = mso.parent
                 WHERE ms.workflow_state = 'On Hold' 
                   AND ms.supplier IS NOT NULL 
                   AND ms.for_subcontracting = 1
                   AND ms.department = '{department}'
                   AND ld.variant_of IN ('{variant_code_str}')
+                  AND ld.msl_qty > 0
                 ORDER BY ld.msl_qty DESC
             """, as_dict=True)
         return []
@@ -502,25 +524,36 @@ def get_reserve_stock_details(department, company, branch, dept_display_name, ra
         return []
     except: return []
 
+# FIXED: Transit Stock - Show proper Transit warehouse details
 def get_transit_stock_details(department, company, branch, dept_display_name, raw_material_types):
     try:
         item_groups = get_item_groups(raw_material_types)
         if item_groups:
             item_group_str = "', '".join(item_groups)
             return frappe.db.sql(f"""
-                SELECT se.stock_entry_type as 'Stock Entry Type', sed.s_warehouse as 'Source Warehouse', sed.t_warehouse as 'Target Warehouse', SUM(sed.qty) as 'Weight'
-                FROM `tabStock Entry Detail` sed
-                LEFT JOIN `tabStock Entry` se ON sed.parent = se.name
-                LEFT JOIN `tabItem` i ON sed.item_code = i.item_code
-                LEFT JOIN `tabWarehouse` sw ON sed.s_warehouse = sw.name
-                LEFT JOIN `tabWarehouse` tw ON sed.t_warehouse = tw.name
-                WHERE se.company = '{company}' AND se.docstatus = 1 AND (sw.department = '{department}' OR tw.department = '{department}')
-                  AND i.item_group IN ('{item_group_str}') AND se.stock_entry_type IN ('Material Transfer', 'Send to Subcontractor')
-                GROUP BY se.stock_entry_type, sed.s_warehouse, sed.t_warehouse
-                HAVING SUM(sed.qty) > 0 ORDER BY SUM(sed.qty) DESC
+                SELECT 
+                    sle.voucher_type as 'Stock Entry Type',
+                    w.name as 'Source Warehouse', 
+                    w.name as 'Target Warehouse',
+                    SUM(sle.actual_qty) as 'Weight'
+                FROM `tabStock Ledger Entry` sle
+                LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name
+                LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+                WHERE sle.company = '{company}' 
+                  AND sle.docstatus < 2 
+                  AND sle.is_cancelled = 0
+                  AND w.department = '{department}'
+                  AND w.warehouse_type = 'Transit'
+                  AND i.item_group IN ('{item_group_str}')
+                  AND sle.actual_qty > 0
+                GROUP BY sle.voucher_type, w.name
+                HAVING SUM(sle.actual_qty) > 0 
+                ORDER BY SUM(sle.actual_qty) DESC
             """, as_dict=True)
         return []
-    except: return []
+    except Exception as e:
+        frappe.log_error(f"Transit stock details error: {str(e)}")
+        return []
 
 def get_scrap_stock_details(department, company, branch, dept_display_name, raw_material_types):
     try:
