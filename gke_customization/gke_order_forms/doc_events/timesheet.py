@@ -184,36 +184,38 @@ def on_update(doc, method):
 import frappe
 
 def update_order_status_from_timesheets(order_name):
+   
     workflow_type = frappe.db.get_value("Order", order_name, "workflow_type")
     bom_or_cad = frappe.db.get_value("Order", order_name, "bom_or_cad")
+    item_remark = frappe.db.get_value("Order", order_name, "item_remark")  
+    bom_type = frappe.db.get_value("Order", order_name, "bom_type")  # ✅ added line
 
     if workflow_type != "CAD":
         return
 
-    # Fetch all timesheets linked to this order excluding cancelled
+    #  Fetch all timesheets linked to this order excluding cancelled
     timesheets = frappe.get_all(
         "Timesheet",
         filters={"order": order_name, "docstatus": ("!=", 2)},
         fields=["name", "workflow_state", "creation"],
         order_by="creation asc"
     )
-
+    # frappe.throw(f"{timesheets}")
     if not timesheets:
         return
 
-  
     current_order_state = frappe.db.get_value("Order", order_name, "workflow_state")
+
+    #  Handle Update Designer case
     if current_order_state == "Update Designer" and len(timesheets) > 1:
-      
         first_ts = timesheets[0]["name"]
         try:
             ts_doc = frappe.get_doc("Timesheet", first_ts)
-            if ts_doc.docstatus != 2: 
+            if ts_doc.docstatus != 2:
                 ts_doc.cancel()
         except Exception as e:
             frappe.log_error(f"Failed to cancel old timesheet {first_ts}: {str(e)}")
 
-       
         timesheets = frappe.get_all(
             "Timesheet",
             filters={"order": order_name, "docstatus": ("!=", 2)},
@@ -223,28 +225,28 @@ def update_order_status_from_timesheets(order_name):
         if not timesheets:
             return
 
-    
+    #  Get unique workflow states from timesheets
     states = {ts["workflow_state"] for ts in timesheets}
 
-    
     if len(states) == 1:
         latest_state = list(states)[0]
 
-      
+        #  Your existing + new condition
         if latest_state == "Approved":
-            if bom_or_cad == "Check":
+            if bom_type == "New BOM":  
                 new_state = "Approved"
+            elif bom_or_cad == "Check" and item_remark == "Copy Paste Item":
+                new_state = "Approved" 
             else:
                 new_state = "Update Item"
         else:
             new_state = latest_state
 
-        
+        #  Update Order only if state actually changed
         if current_order_state != new_state:
             frappe.db.set_value("Order", order_name, "workflow_state", new_state)
             frappe.db.commit()
     else:
-       
         return
 
 
