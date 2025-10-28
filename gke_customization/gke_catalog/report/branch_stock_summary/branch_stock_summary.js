@@ -84,7 +84,7 @@ frappe.query_reports["Branch Stock Summary"] = {
             report.run();
         });
 
-        // Auto-fill user's company and department
+        // Fetch logged-in user's employee Company + Department
         frappe.call({
             method: "frappe.client.get_value",
             args: {
@@ -158,8 +158,10 @@ frappe.query_reports["Branch Stock Summary"] = {
     "formatter": function(value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
         
-        if (data && data.is_grand_total) {
-            return `<div style="font-weight: bold; text-align: center; font-size: 14px; padding: 5px; border: 1px solid #ccc;">${value}</div>`;
+        if (data && data.is_department_header) {
+            return `<div style="font-weight: bold; background-color: #f8f9fa; padding: 8px; border-left: 4px solid #007bff;">${value}</div>`;
+        } else if (data && data.is_department_total) {
+            return `<div style="font-weight: bold; color: #2e7d32; background-color: #e8f5e8; padding: 4px;">${value}</div>`;
         }
         
         return value;
@@ -241,16 +243,23 @@ function get_company_specific_branches(company) {
 }
 
 function detect_manufacturer_from_department(department) {
+    // Strip extra spaces first - CRITICAL FIX for KG GK
     department = department.trim();
     
     const dept_to_manufacturer = {
         "Nandi": "Siddhi", 
         "Product Repair Center": "Service Center",
+        
+        // Amrut departments
         "Close Diamond Bagging": "Amrut", "Close Diamond Setting": "Amrut", "Close Final Polish": "Amrut",
         "Close Gemstone Bagging": "Amrut", "Close Model Making": "Amrut", "Close Pre Polish": "Amrut",
         "Close Waxing": "Amrut", "Rudraksha": "Amrut",
+        
+        // Mangal departments
         "Central MU": "Mangal", "Computer Aided Designing MU": "Mangal", "Manufacturing Plan Management MU": "Mangal",
         "Om MU": "Mangal", "Serial Number MU": "Mangal", "Sub Contracting MU": "Mangal", "Tagging MU": "Mangal",
+        
+        // FIXED: KG GK specific departments for Labh
         "Manufacturing Plan & Management": "Labh", "Casting": "Labh", "Central": "Labh", 
         "Computer Aided Designing": "Labh", "Computer Aided Manufacturing": "Labh", "Diamond Setting": "Labh",
         "Final Polish": "Labh", "Model Making": "Labh", "Pre Polish": "Labh", "Product Certification": "Labh",
@@ -353,16 +362,17 @@ function build_stock_details_table(data, stock_type, department, raw_material_ty
     
     let html = `
         <div style="padding: 15px;">
-            <div style="margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
-                <h4 style="margin: 0 0 5px; color: #333; font-size: 16px;">${stock_type} Details</h4>
-                <p style="margin: 0; color: #666; font-size: 12px;">
-                    <strong>${department}</strong> Department${material_filter_text} • ${data.length} records found
+            <div style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h4 style="margin: 0 0 5px; color: #2e7d32; font-size: 18px;">${stock_type} Details</h4>
+                <p style="margin: 0; color: #666; font-size: 13px;">
+                    <strong>${department}</strong> Department${material_filter_text} • 
+                    <span style="color: #2e7d32; font-weight: bold;">${data.length}</span> records found
                 </p>
             </div>
-            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd;">
+            <div style="max-height: 450px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                     <thead>
-                        <tr style="background-color: #f5f5f5;">`;
+                        <tr style="background: linear-gradient(to bottom, #f8f9fa, #e9ecef); position: sticky; top: 0; z-index: 10;">`;
     
     headers.forEach((header) => {
         let headerText = frappe.model.unscrub(header);
@@ -370,19 +380,23 @@ function build_stock_details_table(data, stock_type, department, raw_material_ty
             header.toLowerCase().includes(keyword));
         
         html += `<th style="
-            padding: 8px; 
+            padding: 12px 8px; 
             text-align: ${isNumeric ? 'right' : 'left'}; 
             border: 1px solid #ddd;
             font-weight: bold;
+            background: #f8f9fa;
+            color: #495057;
             font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         ">${headerText}</th>`;
     });
     
     html += `</tr></thead><tbody>`;
     
     data.forEach((row, rowIndex) => {
-        let bgColor = rowIndex % 2 === 0 ? '#ffffff' : '#f9f9f9';
-        html += `<tr style="background-color: ${bgColor};">`;
+        let bgColor = rowIndex % 2 === 0 ? '#ffffff' : '#f8f9fa';
+        html += `<tr style="background-color: ${bgColor}; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e3f2fd'" onmouseout="this.style.backgroundColor='${bgColor}'">`;
         
         headers.forEach((header) => {
             let value = row[header] || '';
@@ -397,14 +411,19 @@ function build_stock_details_table(data, stock_type, department, raw_material_ty
                 padding: 6px;
                 border: 1px solid #ddd;
                 text-align: ${isNumeric ? 'right' : 'left'};
+                color: #495057;
+                ${isNumeric ? 'font-weight: 500;' : ''}
             ">${value}</td>`;
         });
         html += '</tr>';
     });
     
     html += `</tbody></table></div>
-        <div style="margin-top: 10px; padding: 10px; background-color: #f9f9f9; border: 1px solid #ddd; font-size: 11px; color: #666;">
-            ${data.length} record${data.length !== 1 ? 's' : ''} found • Material Type: ${raw_material_type || 'All'} • Department: ${department}
+        <div style="padding: 15px 0; color: #666; font-size: 11px; text-align: center; border-top: 1px solid #eee; margin-top: 10px; background-color: #f8f9fa; border-radius: 4px;">
+            <i class="fa fa-info-circle" style="margin-right: 5px;"></i>
+            <strong>${data.length}</strong> record${data.length !== 1 ? 's' : ''} found • 
+            Material Type: <strong>${raw_material_type || 'All'}</strong> • 
+            Department: <strong>${department}</strong>
         </div></div>`;
     
     return html;
@@ -420,12 +439,14 @@ function export_stock_details_to_excel(data, stock_type, department) {
         return;
     }
 
+    // Create CSV content
     let headers = Object.keys(data[0]);
     let csv_content = headers.map(h => frappe.model.unscrub(h)).join(',') + '\n';
     
     data.forEach(row => {
         let row_data = headers.map(header => {
             let value = row[header] || '';
+            // Escape commas and quotes in CSV
             if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
                 value = '"' + value.replace(/"/g, '""') + '"';
             }
@@ -434,6 +455,7 @@ function export_stock_details_to_excel(data, stock_type, department) {
         csv_content += row_data.join(',') + '\n';
     });
 
+    // Create and download file
     let filename = `${stock_type.replace(/\s+/g, '_')}_${department.replace(/\s+/g, '_')}_${frappe.datetime.now_date()}.csv`;
     
     let blob = new Blob([csv_content], { type: 'text/csv;charset=utf-8;' });
@@ -446,10 +468,5 @@ function export_stock_details_to_excel(data, stock_type, department) {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
-        frappe.show_alert({
-            message: __(`Successfully exported ${data.length} records to ${filename}`),
-            indicator: 'green'
-        });
     }
 }
