@@ -21,10 +21,8 @@ frappe.query_reports["Branch Stock Summary"] = {
             "fieldname": "branch",
             "label": __("Branch"),
             "fieldtype": "Select",
-            "reqd": function() {
-                return frappe.query_report.get_filter_value('company') !== "KG GK Jewellers Private Limited";
-            },
-            "depends_on": "eval:doc.company && doc.company !== 'KG GK Jewellers Private Limited'",
+            "reqd": 0,
+            "depends_on": "eval:doc.company && doc.company === 'Gurukrupa Export Private Limited'",
             "on_change": function() {
                 frappe.query_report.refresh();
             }
@@ -33,15 +31,7 @@ frappe.query_reports["Branch Stock Summary"] = {
             "fieldname": "manufacturer",
             "label": __("Manufacturer"),
             "fieldtype": "Select",
-            "options": [
-                "",
-                "Shubh",
-                "Mangal", 
-                "Labh",
-                "Amrut",
-                "Service Center",
-                "Siddhi"
-            ].join('\n'),
+            "options": ["", "Shubh", "Mangal", "Labh", "Amrut", "Service Center", "Siddhi"].join('\n'),
             "reqd": 0,
             "on_change": function() {
                 frappe.query_report.set_filter_value('department', '');
@@ -53,14 +43,7 @@ frappe.query_reports["Branch Stock Summary"] = {
             "fieldname": "raw_material_type",
             "label": __("Raw Material Type"),
             "fieldtype": "Select",
-            "options": [
-                "",
-                "Metal",
-                "Diamond",
-                "Gemstone",
-                "Finding",
-                "Other"
-            ].join('\n'),
+            "options": ["", "Metal", "Diamond", "Gemstone", "Finding", "Other"].join('\n'),
             "default": "Metal",
             "reqd": 1,
             "on_change": function() {
@@ -81,22 +64,27 @@ frappe.query_reports["Branch Stock Summary"] = {
     ],
 
     "onload": function(report) {
-        // ✅ Clear Filter button
+        // Clear Filter button
         report.page.add_inner_button(__("Clear Filter"), function () {
             report.filters.forEach(function (filter) {
                 let field = report.get_filter(filter.fieldname);
-                if (field.df.fieldtype === "MultiSelectList") {
-                    field.set_value([]);
-                } else if (field.df.default) {
-                    field.set_value(field.df.default);
-                } else {
-                    field.set_value("");
+                if (field && field.df) {
+                    if (field.df.fieldtype === "MultiSelectList") {
+                        field.set_value([]);
+                    } else if (field.df.default) {
+                        field.set_value(field.df.default);
+                    } else {
+                        field.set_value("");
+                    }
                 }
             });
+            frappe.query_report.set_filter_value('manufacturer', '');
+            frappe.query_report.set_filter_value('department', '');
+            frappe.query_report.set_filter_value('branch', '');
             report.run();
         });
 
-        // ✅ Fetch logged-in user's employee Company + Department
+        // Auto-fill user's company and department
         frappe.call({
             method: "frappe.client.get_value",
             args: {
@@ -106,7 +94,6 @@ frappe.query_reports["Branch Stock Summary"] = {
             },
             callback: function (r) {
                 if (r.message) {
-                    // Set default Company
                     if (r.message.company) {
                         let company_filter = report.get_filter("company");
                         if (company_filter) {
@@ -114,28 +101,21 @@ frappe.query_reports["Branch Stock Summary"] = {
                         }
                     }
 
-                    // Set default Department based on user's employee department
                     if (r.message.department) {
-                        // First update branch and manufacturer options
                         setTimeout(function() {
                             update_branch_options();
                         }, 500);
                         
-                        // Detect manufacturer from department and set it
                         setTimeout(function() {
-                            let clean_dept = r.message.department
-                                .replace(" - GEPL", "")
-                                .replace(" - KGJPL", "");
-                            
+                            let clean_dept = r.message.department.replace(" - GEPL", "").replace(" - KGJPL", "").trim();
                             let manufacturer = detect_manufacturer_from_department(clean_dept);
+                            
                             if (manufacturer) {
                                 frappe.query_report.set_filter_value('manufacturer', manufacturer);
                                 
-                                // Update department options after setting manufacturer
                                 setTimeout(function() {
                                     update_department_options();
                                     
-                                    // Set department after options are loaded
                                     setTimeout(function() {
                                         frappe.query_report.set_filter_value('department', clean_dept);
                                     }, 500);
@@ -144,7 +124,6 @@ frappe.query_reports["Branch Stock Summary"] = {
                         }, 1000);
                     }
 
-                    // ✅ Auto load report after setting defaults
                     setTimeout(function() {
                         report.refresh();
                     }, 2500);
@@ -152,17 +131,15 @@ frappe.query_reports["Branch Stock Summary"] = {
             }
         });
 
-        // Initialize branch options
         setTimeout(function() {
             update_branch_options();
         }, 500);
         
-        // Initialize department options  
         setTimeout(function() {
             update_department_options();
         }, 1000);
 
-        // Stock details modal click handler
+        // View Details button handler
         $(document).off('click', '.view-stock-details');
         $(document).on('click', '.view-stock-details', function(e) {
             e.preventDefault();
@@ -181,12 +158,8 @@ frappe.query_reports["Branch Stock Summary"] = {
     "formatter": function(value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
         
-        if (data && data.is_department_header) {
-            return `<div style="font-weight: bold; background-color: #f8f9fa; padding: 8px;">${value}</div>`;
-        } else if (data && data.is_department_total) {
-            return `<div style="font-weight: bold; color: #2e7d32;">${value}</div>`;
-        } else if (data && data.is_grand_total) {
-            return `<div style="font-weight: bold; color: #d32f2f; background-color: #fff3e0; padding: 8px;">${value}</div>`;
+        if (data && data.is_grand_total) {
+            return `<div style="font-weight: bold; text-align: center; font-size: 14px; padding: 5px; border: 1px solid #ccc;">${value}</div>`;
         }
         
         return value;
@@ -197,26 +170,29 @@ function update_branch_options() {
     let company = frappe.query_report.get_filter_value('company');
     if (!company) return;
 
-    // For KG GK Jewellers - No branches required
     if (company === "KG GK Jewellers Private Limited") {
-        frappe.query_report.page.fields_dict.branch.df.options = "";
-        frappe.query_report.page.fields_dict.branch.refresh();
-        frappe.query_report.set_filter_value('branch', '');
+        if (frappe.query_report.page.fields_dict.branch) {
+            frappe.query_report.page.fields_dict.branch.df.options = "";
+            frappe.query_report.page.fields_dict.branch.refresh();
+            frappe.query_report.set_filter_value('branch', '');
+        }
         return;
     }
 
-    // For Gurukrupa Export - Show branch options
     if (company === "Gurukrupa Export Private Limited") {
         let company_branches = get_company_specific_branches(company);
-        let options = [""].concat(company_branches).join('\n');
-        frappe.query_report.page.fields_dict.branch.df.options = options;
-        frappe.query_report.page.fields_dict.branch.refresh();
-        
-        // Auto-select default branch (Surat Factory for manufacturing)
-        if (company_branches.includes("GEPL-ST-0002")) {
-            frappe.query_report.set_filter_value('branch', 'GEPL-ST-0002');
-        } else if (company_branches.length > 0) {
-            frappe.query_report.set_filter_value('branch', company_branches[0]);
+        if (company_branches.length > 0) {
+            let options = [""].concat(company_branches).join('\n');
+            if (frappe.query_report.page.fields_dict.branch) {
+                frappe.query_report.page.fields_dict.branch.df.options = options;
+                frappe.query_report.page.fields_dict.branch.refresh();
+                
+                if (company_branches.includes("GEPL-ST-0002")) {
+                    frappe.query_report.set_filter_value('branch', 'GEPL-ST-0002');
+                } else if (company_branches.length > 0) {
+                    frappe.query_report.set_filter_value('branch', company_branches[0]);
+                }
+            }
         }
     }
 }
@@ -225,22 +201,29 @@ function update_department_options() {
     let manufacturer = frappe.query_report.get_filter_value('manufacturer');
     
     if (!manufacturer) {
-        frappe.query_report.page.fields_dict.department.df.options = "";
-        frappe.query_report.page.fields_dict.department.refresh();
+        if (frappe.query_report.page.fields_dict.department) {
+            frappe.query_report.page.fields_dict.department.df.options = "";
+            frappe.query_report.page.fields_dict.department.refresh();
+        }
         return;
     }
 
+    // FIXED: Correct app path
     frappe.call({
         method: "gke_customization.gke_catalog.report.branch_stock_summary.branch_stock_summary.get_departments_by_manufacturer",
         args: { manufacturer: manufacturer },
         callback: function(r) {
             if (r.message && r.message.length > 0) {
                 let options = [""].concat(r.message);
-                frappe.query_report.page.fields_dict.department.df.options = options.join('\n');
-                frappe.query_report.page.fields_dict.department.refresh();
+                if (frappe.query_report.page.fields_dict.department) {
+                    frappe.query_report.page.fields_dict.department.df.options = options.join('\n');
+                    frappe.query_report.page.fields_dict.department.refresh();
+                }
             } else {
-                frappe.query_report.page.fields_dict.department.df.options = "";
-                frappe.query_report.page.fields_dict.department.refresh();
+                if (frappe.query_report.page.fields_dict.department) {
+                    frappe.query_report.page.fields_dict.department.df.options = "";
+                    frappe.query_report.page.fields_dict.department.refresh();
+                }
             }
         }
     });
@@ -249,66 +232,49 @@ function update_department_options() {
 function get_company_specific_branches(company) {
     const company_branch_map = {
         "Gurukrupa Export Private Limited": [
-            "GEPL-BL-0003", 
-            "GEPL-CB-0006", 
-            "GEPL-CH-0004", 
-            "GEPL-HD-0005", 
-            "GEPL-HO-0001", 
-            "GEPL-KL-0010", 
-            "GEPL-MU-0009", 
-            "GEPL-NV-0011", 
-            "GEPL-ST-0002", 
-            "GEPL-TH-0008", 
-            "GEPL-VD-0007"  
+            "GEPL-BL-0003", "GEPL-CB-0006", "GEPL-CH-0004", "GEPL-HD-0005",
+            "GEPL-HO-0001", "GEPL-KL-0010", "GEPL-MU-0009", "GEPL-NV-0011",
+            "GEPL-ST-0002", "GEPL-TH-0008", "GEPL-VD-0007"
         ]
-        // KG GK Jewellers Private Limited - No branches needed
     };
     return company_branch_map[company] || [];
 }
 
 function detect_manufacturer_from_department(department) {
-    // Department patterns to manufacturer mapping
+    department = department.trim();
+    
     const dept_to_manufacturer = {
-        "Nandi": "Siddhi",
+        "Nandi": "Siddhi", 
         "Product Repair Center": "Service Center",
-        
-        // Amrut departments
-        "Close Diamond Bagging": "Amrut",
-        "Close Diamond Setting": "Amrut", 
-        "Close Final Polish": "Amrut",
-        "Close Gemstone Bagging": "Amrut",
-        "Close Model Making": "Amrut",
-        "Close Pre Polish": "Amrut",
-        "Close Waxing": "Amrut",
-        "Rudraksha": "Amrut",
-        
-        // Mangal departments  
-        "Central MU": "Mangal",
-        "Computer Aided Designing MU": "Mangal",
-        "Manufacturing Plan Management MU": "Mangal",
-        "Om MU": "Mangal",
-        "Serial Number MU": "Mangal",
-        "Sub Contracting MU": "Mangal",
-        "Tagging MU": "Mangal"
+        "Close Diamond Bagging": "Amrut", "Close Diamond Setting": "Amrut", "Close Final Polish": "Amrut",
+        "Close Gemstone Bagging": "Amrut", "Close Model Making": "Amrut", "Close Pre Polish": "Amrut",
+        "Close Waxing": "Amrut", "Rudraksha": "Amrut",
+        "Central MU": "Mangal", "Computer Aided Designing MU": "Mangal", "Manufacturing Plan Management MU": "Mangal",
+        "Om MU": "Mangal", "Serial Number MU": "Mangal", "Sub Contracting MU": "Mangal", "Tagging MU": "Mangal",
+        "Manufacturing Plan & Management": "Labh", "Casting": "Labh", "Central": "Labh", 
+        "Computer Aided Designing": "Labh", "Computer Aided Manufacturing": "Labh", "Diamond Setting": "Labh",
+        "Final Polish": "Labh", "Model Making": "Labh", "Pre Polish": "Labh", "Product Certification": "Labh",
+        "Sub Contracting": "Labh", "Tagging": "Labh", "Waxing": "Labh"
     };
     
-    // Check exact match first
     if (dept_to_manufacturer[department]) {
         return dept_to_manufacturer[department];
     }
     
-    // Check for partial matches (for Shubh/Labh departments)
-    if (department.includes("MU") || department.includes("Purchase")) {
-        return department.includes("Purchase") ? "Shubh" : "Mangal";
+    if (department.includes("MU") && !department.includes("Purchase")) {
+        return "Mangal";
     }
     
-    // Default to Shubh for most departments, Labh for specific ones
+    if (department.includes("Purchase")) {
+        return "Shubh";
+    }
+    
     const labh_keywords = ["Administration", "Accounts", "Computer", "IT", "Information Technology"];
     if (labh_keywords.some(keyword => department.includes(keyword))) {
         return "Labh";
     }
     
-    return "Shubh"; // Default manufacturer
+    return "Shubh";
 }
 
 function show_stock_details(department, stock_type, stock_key) {
@@ -325,6 +291,7 @@ function show_stock_details(department, stock_type, stock_key) {
     
     frappe.show_progress(__('Loading Stock Details'), 10, 100, 'Please wait...');
     
+    // FIXED: Correct app path
     frappe.call({
         method: "gke_customization.gke_catalog.report.branch_stock_summary.branch_stock_summary.get_stock_details",
         args: {
@@ -346,9 +313,12 @@ function show_stock_details(department, stock_type, stock_key) {
                             fieldname: "details_html",
                             options: build_stock_details_table(r.message, stock_type, department, current_filters.raw_material_type)
                         }
-                    ]
+                    ],
+                    primary_action_label: __('Export to Excel'),
+                    primary_action: function() {
+                        export_stock_details_to_excel(r.message, stock_type, department);
+                    }
                 });
-
                 dialog.show();
                 
             } else {
@@ -361,7 +331,6 @@ function show_stock_details(department, stock_type, stock_key) {
         },
         error: function(err) {
             frappe.hide_progress();
-            console.error("Stock details error:", err);
             frappe.msgprint({
                 title: __('Error'),
                 message: __('Failed to load stock details. Please try again.'),
@@ -374,8 +343,8 @@ function show_stock_details(department, stock_type, stock_key) {
 function build_stock_details_table(data, stock_type, department, raw_material_type) {
     if (!data || data.length === 0) {
         return `<div style="padding: 30px; text-align: center;">
-                    <h4>No Data Found</h4>
-                    <p>No ${stock_type.toLowerCase()} records found for ${department} department.</p>
+                    <h4 style="color: #666;">No Data Found</h4>
+                    <p style="color: #999;">No ${stock_type.toLowerCase()} records found for ${department} department.</p>
                 </div>`;
     }
 
@@ -384,36 +353,38 @@ function build_stock_details_table(data, stock_type, department, raw_material_ty
     
     let html = `
         <div style="padding: 15px;">
-            <div style="margin-bottom: 15px;">
-                <h4 style="margin: 0 0 5px; color: #2e7d32;">${stock_type} Details</h4>
-                <p style="margin: 0; color: #666; font-size: 13px;">${department} Department${material_filter_text} • ${data.length} records</p>
+            <div style="margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+                <h4 style="margin: 0 0 5px; color: #333; font-size: 16px;">${stock_type} Details</h4>
+                <p style="margin: 0; color: #666; font-size: 12px;">
+                    <strong>${department}</strong> Department${material_filter_text} • ${data.length} records found
+                </p>
             </div>
-            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px;">
+            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd;">
                 <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                     <thead>
-                        <tr style="background: #f5f5f5; position: sticky; top: 0;">`;
+                        <tr style="background-color: #f5f5f5;">`;
     
-    headers.forEach((header, index) => {
+    headers.forEach((header) => {
         let headerText = frappe.model.unscrub(header);
         let isNumeric = ['weight', 'quantity', 'qty', 'amount', 'count'].some(keyword => 
             header.toLowerCase().includes(keyword));
         
         html += `<th style="
-            padding: 10px 8px; 
+            padding: 8px; 
             text-align: ${isNumeric ? 'right' : 'left'}; 
             border: 1px solid #ddd;
             font-weight: bold;
-            background: #f8f9fa;
+            font-size: 11px;
         ">${headerText}</th>`;
     });
     
     html += `</tr></thead><tbody>`;
     
     data.forEach((row, rowIndex) => {
-        let bgColor = rowIndex % 2 === 0 ? '#ffffff' : '#f8f9fa';
+        let bgColor = rowIndex % 2 === 0 ? '#ffffff' : '#f9f9f9';
         html += `<tr style="background-color: ${bgColor};">`;
         
-        headers.forEach((header, cellIndex) => {
+        headers.forEach((header) => {
             let value = row[header] || '';
             let isNumeric = ['weight', 'quantity', 'qty', 'amount', 'count'].some(keyword => 
                 header.toLowerCase().includes(keyword));
@@ -423,7 +394,7 @@ function build_stock_details_table(data, stock_type, department, raw_material_ty
             }
             
             html += `<td style="
-                padding: 8px;
+                padding: 6px;
                 border: 1px solid #ddd;
                 text-align: ${isNumeric ? 'right' : 'left'};
             ">${value}</td>`;
@@ -432,9 +403,53 @@ function build_stock_details_table(data, stock_type, department, raw_material_ty
     });
     
     html += `</tbody></table></div>
-        <div style="padding: 15px 0; color: #666; font-size: 11px; text-align: center; border-top: 1px solid #eee; margin-top: 10px;">
-            <strong>${data.length}</strong> record${data.length !== 1 ? 's' : ''} found • Filtered by: <strong>${raw_material_type || 'All'}</strong>
+        <div style="margin-top: 10px; padding: 10px; background-color: #f9f9f9; border: 1px solid #ddd; font-size: 11px; color: #666;">
+            ${data.length} record${data.length !== 1 ? 's' : ''} found • Material Type: ${raw_material_type || 'All'} • Department: ${department}
         </div></div>`;
     
     return html;
+}
+
+function export_stock_details_to_excel(data, stock_type, department) {
+    if (!data || data.length === 0) {
+        frappe.msgprint({
+            title: __('No Data'),
+            message: __('No data available to export'),
+            indicator: 'yellow'
+        });
+        return;
+    }
+
+    let headers = Object.keys(data[0]);
+    let csv_content = headers.map(h => frappe.model.unscrub(h)).join(',') + '\n';
+    
+    data.forEach(row => {
+        let row_data = headers.map(header => {
+            let value = row[header] || '';
+            if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                value = '"' + value.replace(/"/g, '""') + '"';
+            }
+            return value;
+        });
+        csv_content += row_data.join(',') + '\n';
+    });
+
+    let filename = `${stock_type.replace(/\s+/g, '_')}_${department.replace(/\s+/g, '_')}_${frappe.datetime.now_date()}.csv`;
+    
+    let blob = new Blob([csv_content], { type: 'text/csv;charset=utf-8;' });
+    let link = document.createElement('a');
+    if (link.download !== undefined) {
+        let url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        frappe.show_alert({
+            message: __(`Successfully exported ${data.length} records to ${filename}`),
+            indicator: 'green'
+        });
+    }
 }
