@@ -74,6 +74,7 @@ def get_departments_list(filters):
         frappe.log_error(f"Department query error: {str(e)}")
         return []
 
+# FIXED: Show blank for zero values
 def build_department_section_simplified(dept_name, stock_values):
     section_data = [{"section_name": f"{dept_name}", "parent_section": None, "indent": 0.0, "section": dept_name, "quantity": "", "view_details": "", "is_department_header": True}]
     
@@ -170,6 +171,7 @@ def get_work_order_stock_by_warehouse_name(company, dept_with_suffix, item_group
     except:
         return 0.0
 
+# UPDATED: Get department stock values - No rounding
 def get_department_stock_values(dept_with_suffix, company, branch, manufacturer, raw_material_types=None):
     if not raw_material_types:
         raw_material_types = ["Metal"]
@@ -313,8 +315,9 @@ def get_work_order_details(department, company, branch, dept_display_name, raw_m
     except Exception as e:
         frappe.log_error(f"Work order details error: {str(e)}")
         return []
+    except: return []
 
-def get_employee_wip_details(department, company, branch, dept_display_name, raw_material_types):
+def get_reserve_stock_details(department, company, branch, manufacturer, raw_material_types):
     try:
         weight_sum = get_weight_sum(raw_material_types)
         branch_condition = f"AND mwo.branch = '{branch}'" if company == "Gurukrupa Export Private Limited" and branch else ""
@@ -342,7 +345,7 @@ def get_employee_wip_details(department, company, branch, dept_display_name, raw
         """, as_dict=True)
     except: return []
 
-def get_supplier_wip_details(department, company, branch, dept_display_name, raw_material_types):
+def get_supplier_wip_details(department, company, branch, manufacturer, raw_material_types):
     try:
         weight_sum = get_weight_sum(raw_material_types)
         branch_condition = f"AND mwo.branch = '{branch}'" if company == "Gurukrupa Export Private Limited" and branch else ""
@@ -402,7 +405,7 @@ def get_employee_msl_details(department, company, branch, dept_display_name, raw
         frappe.log_error(f"Employee MSL details error: {str(e)}")
         return []
 
-def get_supplier_msl_details(department, company, branch, dept_display_name, raw_material_types):
+def get_supplier_msl_details(department, company, branch, manufacturer, raw_material_types):
     try:
         item_groups = get_item_groups(raw_material_types)
         if item_groups:
@@ -431,7 +434,7 @@ def get_supplier_msl_details(department, company, branch, dept_display_name, raw
         return []
     except: return []
 
-def get_employee_msl_hold_details(department, company, branch, dept_display_name, raw_material_types):
+def get_employee_msl_hold_details(department, company, branch, manufacturer, raw_material_types):
     try:
         variant_codes = get_variant_codes(raw_material_types)
         if variant_codes:
@@ -448,7 +451,7 @@ def get_employee_msl_hold_details(department, company, branch, dept_display_name
                     ) as 'Operation',
                     ld.msl_qty as 'Weight'
                 FROM `tabMain Slip` ms
-                LEFT JOIN `tabLoss Details` ld ON ms.name = ld.parent
+                INNER JOIN `tabLoss Details` ld ON ms.name = ld.parent
                 LEFT JOIN `tabEmployee` emp ON ms.employee = emp.name
                 WHERE ms.workflow_state = 'On Hold' 
                   AND ms.employee IS NOT NULL 
@@ -460,7 +463,7 @@ def get_employee_msl_hold_details(department, company, branch, dept_display_name
         return []
     except: return []
 
-def get_supplier_msl_hold_details(department, company, branch, dept_display_name, raw_material_types):
+def get_supplier_msl_hold_details(department, company, branch, manufacturer, raw_material_types):
     try:
         variant_codes = get_variant_codes(raw_material_types)
         if variant_codes:
@@ -490,7 +493,9 @@ def get_supplier_msl_hold_details(department, company, branch, dept_display_name
         return []
     except: return []
 
-def get_raw_material_details(department, company, branch, dept_display_name, raw_material_types):
+# FIXED: Transit Stock Details - Show current stock items in Transit warehouse (matches SLE balance)
+def get_transit_stock_details(department, company, branch, manufacturer, raw_material_types):
+    """FIXED: Show current stock items in Transit warehouse (matches SLE balance)"""
     try:
         item_groups = get_item_groups(raw_material_types)
         if item_groups:
@@ -583,7 +588,7 @@ def get_scrap_stock_details(department, company, branch, dept_display_name, raw_
         return []
     except: return []
 
-def get_finished_goods_details(department, company, branch, dept_display_name, raw_material_types):
+def get_finished_goods_details(department, company, branch, manufacturer, raw_material_types):
     try:
         return frappe.db.sql(f"""
             SELECT sn.name as 'Serial No', sn.item_code as 'Item Code', 1 as 'Quantity', COALESCE(i.gross_wt, 0) as 'Gross Wt'
@@ -593,6 +598,7 @@ def get_finished_goods_details(department, company, branch, dept_display_name, r
             WHERE sn.company = '{company}' AND sn.status = 'Active' AND w.department = '{department}'
               AND i.item_group IN ('Finished Goods', 'Semi Finished Goods')
             ORDER BY sn.creation DESC
+            LIMIT 100
         """, as_dict=True)
     except: return []
 
@@ -616,6 +622,7 @@ def get_stock_details(department, stock_type, stock_key, filters=None):
         
         company, branch, raw_material_types = (filters.get("company"), filters.get("branch", ""), [filters.get("raw_material_type")] if filters.get("raw_material_type") else ["Metal"])
         dept_with_suffix = f"{department} - GEPL" if company == "Gurukrupa Export Private Limited" else f"{department} - KGJPL"
+        manufacturer = filters.get("manufacturer", "")
         
         detail_functions = {
             'work_order_stock': get_work_order_details, 'employee_wip_stock': get_employee_wip_details, 'supplier_wip_stock': get_supplier_wip_details,

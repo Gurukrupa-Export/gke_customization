@@ -139,7 +139,7 @@ frappe.query_reports["Branch Stock Summary"] = {
             update_department_options();
         }, 1000);
 
-        // Stock details modal click handler
+        // View Details button handler
         $(document).off('click', '.view-stock-details');
         $(document).on('click', '.view-stock-details', function(e) {
             e.preventDefault();
@@ -210,6 +210,7 @@ function update_department_options() {
         return;
     }
 
+    // FIXED: Correct app path
     frappe.call({
         method: "gke_customization.gke_catalog.report.branch_stock_summary.branch_stock_summary.get_departments_by_manufacturer",
         args: { manufacturer: manufacturer },
@@ -299,6 +300,7 @@ function show_stock_details(department, stock_type, stock_key) {
     
     frappe.show_progress(__('Loading Stock Details'), 10, 100, 'Please wait...');
     
+    // FIXED: Correct app path
     frappe.call({
         method: "gke_customization.gke_catalog.report.branch_stock_summary.branch_stock_summary.get_stock_details",
         args: {
@@ -406,7 +408,7 @@ function build_stock_details_table(data, stock_type, department, raw_material_ty
             }
             
             html += `<td style="
-                padding: 8px;
+                padding: 6px;
                 border: 1px solid #ddd;
                 text-align: ${isNumeric ? 'right' : 'left'};
                 color: #495057;
