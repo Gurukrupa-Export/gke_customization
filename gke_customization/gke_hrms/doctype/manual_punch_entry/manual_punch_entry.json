@@ -150,13 +150,13 @@
   },
   {
    "fieldname": "miss_punch",
-   "fieldtype": "Time",
+   "fieldtype": "Datetime",
    "label": "Miss Punch"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-14 12:16:41.067797",
+ "modified": "2025-10-29 18:13:55.270595",
  "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE HRMS",
  "name": "Manual Punch Entry",
