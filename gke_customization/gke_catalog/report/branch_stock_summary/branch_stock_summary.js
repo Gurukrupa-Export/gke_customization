@@ -208,7 +208,6 @@ function update_department_options() {
         return;
     }
 
-    // FIXED: Correct app path
     frappe.call({
         method: "gke_customization.gke_catalog.report.branch_stock_summary.branch_stock_summary.get_departments_by_manufacturer",
         args: { manufacturer: manufacturer },
@@ -291,7 +290,6 @@ function show_stock_details(department, stock_type, stock_key) {
     
     frappe.show_progress(__('Loading Stock Details'), 10, 100, 'Please wait...');
     
-    // FIXED: Correct app path
     frappe.call({
         method: "gke_customization.gke_catalog.report.branch_stock_summary.branch_stock_summary.get_stock_details",
         args: {
@@ -340,6 +338,7 @@ function show_stock_details(department, stock_type, stock_key) {
     });
 }
 
+// SIMPLIFIED: Build stock details table with clean, simple formatting
 function build_stock_details_table(data, stock_type, department, raw_material_type) {
     if (!data || data.length === 0) {
         return `<div style="padding: 30px; text-align: center;">
@@ -364,40 +363,28 @@ function build_stock_details_table(data, stock_type, department, raw_material_ty
                     <thead>
                         <tr style="background-color: #f5f5f5;">`;
     
+    // SIMPLIFIED: Basic header formatting without complex styling
     headers.forEach((header) => {
         let headerText = frappe.model.unscrub(header);
-        let isNumeric = ['weight', 'quantity', 'qty', 'amount', 'count'].some(keyword => 
-            header.toLowerCase().includes(keyword));
-        
-        html += `<th style="
-            padding: 8px; 
-            text-align: ${isNumeric ? 'right' : 'left'}; 
-            border: 1px solid #ddd;
-            font-weight: bold;
-            font-size: 11px;
-        ">${headerText}</th>`;
+        html += `<th style="padding: 8px; border: 1px solid #ddd; font-weight: bold; font-size: 11px; text-align: left;">${headerText}</th>`;
     });
     
     html += `</tr></thead><tbody>`;
     
+    // SIMPLIFIED: Basic row formatting without complex color coding
     data.forEach((row, rowIndex) => {
         let bgColor = rowIndex % 2 === 0 ? '#ffffff' : '#f9f9f9';
         html += `<tr style="background-color: ${bgColor};">`;
         
         headers.forEach((header) => {
             let value = row[header] || '';
-            let isNumeric = ['weight', 'quantity', 'qty', 'amount', 'count'].some(keyword => 
-                header.toLowerCase().includes(keyword));
             
+            // Simple number formatting
             if (typeof value === 'number' && value !== 0) {
                 value = frappe.format(value, {fieldtype: "Float", precision: 3});
             }
             
-            html += `<td style="
-                padding: 6px;
-                border: 1px solid #ddd;
-                text-align: ${isNumeric ? 'right' : 'left'};
-            ">${value}</td>`;
+            html += `<td style="padding: 6px; border: 1px solid #ddd;">${value}</td>`;
         });
         html += '</tr>';
     });
