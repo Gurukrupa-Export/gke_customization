@@ -38,14 +38,14 @@ def get_branch_stock_summary_simplified(filters=None):
         dept_total = add_department_total_row_simplified(data, section_data, f"{dept_name} Total")
         grand_total += dept_total
     
-    # FIXED: ADD GRAND TOTAL ROW - No rounding
+    # ADD GRAND TOTAL ROW
     if grand_total > 0:
         data.append({
             "section_name": "Grand Total", 
             "section": "Grand Total", 
             "parent_section": None, 
             "indent": 0.0, 
-            "quantity": grand_total,  # FIXED: No flt() rounding
+            "quantity": grand_total,
             "view_details": "", 
             "is_grand_total": True
         })
@@ -165,19 +165,20 @@ def get_stock_balance_using_sle_logic(company, dept_with_suffix, item_groups, to
     except:
         return 0.0
 
-# FIXED: WO Stock using Manufacturing Operations - No rounding
+# FIXED: Work Order Stock - Use net_wt only for Metal
 def get_work_order_stock_by_manufacturing_operations(company, dept_with_suffix, raw_material_types, to_date):
     if not raw_material_types:
         return 0.0
     
+    # FIXED: Use specific weight fields based on actual raw material type
     weight_fields = []
     for rm_type in raw_material_types:
         if rm_type == "Metal": 
-            weight_fields.append("COALESCE(mop.net_wt, 0)")
+            weight_fields.append("COALESCE(mop.net_wt, 0)")  # Only net_wt for Metal
         elif rm_type == "Diamond": 
-            weight_fields.append("COALESCE(mop.diamond_wt, 0)")  # CARATS
+            weight_fields.append("COALESCE(mop.diamond_wt, 0)")
         elif rm_type == "Gemstone": 
-            weight_fields.append("COALESCE(mop.gemstone_wt, 0)")  # CARATS
+            weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
         elif rm_type == "Finding": 
             weight_fields.append("COALESCE(mop.finding_wt, 0)")
     
@@ -194,24 +195,28 @@ def get_work_order_stock_by_manufacturing_operations(company, dept_with_suffix, 
               AND mwo.docstatus = 1 
               AND ({weight_sum}) > 0
         """, as_dict=True)
-        return result[0]['total_weight'] if result and result[0].get('total_weight') else 0.0  # REMOVED flt()
+        return result[0]['total_weight'] if result and result[0].get('total_weight') else 0.0
     except:
         return 0.0
 
-# FIXED: Employee WIP Stock - Use ALL weight fields to match Manufacturing Operations Report
+# FIXED: Employee WIP Stock - Use net_wt for Metal, proper warehouse detection
 def get_employee_wip_stock_from_operations_or_warehouses(company, dept_with_suffix, item_groups, raw_material_types, to_date):
-    """FIXED: Use ALL weight fields for comprehensive WIP calculation to match Manufacturing Operations Report"""
+    """FIXED: Use net_wt for Metal + proper warehouse detection"""
     
-    # First check if department has WIP warehouses
-    wip_warehouses = frappe.db.sql(f"""
-        SELECT COUNT(*) as count
-        FROM `tabWarehouse`
-        WHERE department = '{dept_with_suffix}' 
-          AND warehouse_type = 'WIP'
-          AND disabled = 0
-    """, as_dict=True)
-    
-    has_wip_warehouses = wip_warehouses[0]['count'] > 0 if wip_warehouses else False
+    # FIXED: Better warehouse detection query
+    try:
+        wip_warehouses = frappe.db.sql(f"""
+            SELECT COUNT(*) as count
+            FROM `tabWarehouse`
+            WHERE department = '{dept_with_suffix}' 
+              AND warehouse_type = 'WIP'
+              AND disabled = 0
+              AND (company = '{company}' OR company IS NULL OR company = '')
+        """, as_dict=True)
+        
+        has_wip_warehouses = (wip_warehouses[0]['count'] if wip_warehouses else 0) > 0
+    except:
+        has_wip_warehouses = False
     
     # If department has WIP warehouses, use warehouse logic
     if has_wip_warehouses:
@@ -246,21 +251,19 @@ def get_employee_wip_stock_from_operations_or_warehouses(company, dept_with_suff
         if not raw_material_types:
             return 0.0
         
-        # FIXED: For Metal raw material type, use ALL weight fields to match Manufacturing Operations Report exactly
-        if "Metal" in raw_material_types:
-            # Use ALL weight fields like Manufacturing Operations Report does
-            weight_sum = "COALESCE(mop.net_wt, 0) + COALESCE(mop.diamond_wt, 0) + COALESCE(mop.gemstone_wt, 0) + COALESCE(mop.finding_wt, 0)"
-        else:
-            # For other specific types, use individual fields
-            weight_fields = []
-            for rm_type in raw_material_types:
-                if rm_type == "Diamond": 
-                    weight_fields.append("COALESCE(mop.diamond_wt, 0)")
-                elif rm_type == "Gemstone": 
-                    weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
-                elif rm_type == "Finding": 
-                    weight_fields.append("COALESCE(mop.finding_wt, 0)")
-            weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
+        # FIXED: Use specific weight fields based on raw material type (net_wt for Metal)
+        weight_fields = []
+        for rm_type in raw_material_types:
+            if rm_type == "Metal": 
+                weight_fields.append("COALESCE(mop.net_wt, 0)")  # Only net_wt for Metal
+            elif rm_type == "Diamond": 
+                weight_fields.append("COALESCE(mop.diamond_wt, 0)")
+            elif rm_type == "Gemstone": 
+                weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
+            elif rm_type == "Finding": 
+                weight_fields.append("COALESCE(mop.finding_wt, 0)")
+        
+        weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
         
         try:
             result = frappe.db.sql(f"""
@@ -279,7 +282,7 @@ def get_employee_wip_stock_from_operations_or_warehouses(company, dept_with_suff
             frappe.log_error(f"Employee WIP operations error: {str(e)}")
             return 0.0
 
-# FIXED: Transit Stock Balance - REVERTED to SLE Balance Logic (Net Balance)
+# FIXED: Transit Stock Balance - Use SLE Balance Logic
 def get_transit_stock_balance(company, dept_with_suffix, item_groups, to_date):
     if not item_groups:
         return 0.0
@@ -304,7 +307,7 @@ def get_transit_stock_balance(company, dept_with_suffix, item_groups, to_date):
     except:
         return 0.0
 
-# UPDATED: Get department stock values - FIXED Employee WIP to use ALL WEIGHT FIELDS logic
+# UPDATED: Get department stock values - Use net_wt for Metal everywhere
 def get_department_stock_values(dept_with_suffix, company, branch, manufacturer, raw_material_types=None):
     if not raw_material_types:
         raw_material_types = ["Metal"]
@@ -326,10 +329,10 @@ def get_department_stock_values(dept_with_suffix, company, branch, manufacturer,
     today = getdate()
     branch_condition = f"AND mwo.branch = '{branch}'" if company == "Gurukrupa Export Private Limited" and branch else ""
     
-    # FIXED: All stock calculations with correct logic
+    # FIXED: All stock calculations with net_wt for Metal
     stock_values['work_order_stock'] = get_work_order_stock_by_manufacturing_operations(company, dept_with_suffix, raw_material_types, today)
-    stock_values['employee_wip_stock'] = get_employee_wip_stock_from_operations_or_warehouses(company, dept_with_suffix, item_groups, raw_material_types, today)  # FIXED: ALL WEIGHT FIELDS logic
-    stock_values['transit_stock'] = get_transit_stock_balance(company, dept_with_suffix, item_groups, today)  # FIXED: SLE balance
+    stock_values['employee_wip_stock'] = get_employee_wip_stock_from_operations_or_warehouses(company, dept_with_suffix, item_groups, raw_material_types, today)
+    stock_values['transit_stock'] = get_transit_stock_balance(company, dept_with_suffix, item_groups, today)
     
     if item_groups:
         item_group_str = "', '".join(item_groups)
@@ -340,7 +343,7 @@ def get_department_stock_values(dept_with_suffix, company, branch, manufacturer,
         stock_values['supplier_msl_stock'] = get_stock_balance_using_sle_logic(company, dept_with_suffix, item_groups, today, "Sub Contracting RM")
         stock_values['supplier_msl_hold_stock'] = get_stock_balance_using_sle_logic(company, dept_with_suffix, item_groups, today, "Sub Contracting Transit")
         
-        # Finished goods calculation - No rounding
+        # Finished goods calculation
         try:
             finished_result = frappe.db.sql(f"""
                 SELECT COUNT(*) as total_count 
@@ -351,11 +354,11 @@ def get_department_stock_values(dept_with_suffix, company, branch, manufacturer,
                   AND w.department = '{dept_with_suffix}'
             """, as_dict=True)
             if finished_result and finished_result[0].get("total_count"):
-                stock_values['finished_goods'] = float(finished_result[0]['total_count'])  # REMOVED flt()
+                stock_values['finished_goods'] = float(finished_result[0]['total_count'])
         except:
             pass
     
-    # MSL Stock calculation - No rounding
+    # MSL Stock calculation
     if variant_codes:
         variant_code_str = "', '".join(variant_codes)
         try:
@@ -366,7 +369,7 @@ def get_department_stock_values(dept_with_suffix, company, branch, manufacturer,
                   AND ld.variant_of IN ('{variant_code_str}') AND ld.msl_qty > 0
             """, as_dict=True)
             if msl_result and msl_result[0].get('total_qty'):
-                stock_values['employee_msl_stock'] = float(msl_result[0]['total_qty'])  # REMOVED flt()
+                stock_values['employee_msl_stock'] = float(msl_result[0]['total_qty'])
                 
             msl_hold_result = frappe.db.sql(f"""
                 SELECT SUM(ld.msl_qty) as total_qty FROM `tabMain Slip` ms
@@ -375,7 +378,7 @@ def get_department_stock_values(dept_with_suffix, company, branch, manufacturer,
                   AND ld.variant_of IN ('{variant_code_str}') AND ld.msl_qty > 0
             """, as_dict=True)
             if msl_hold_result and msl_hold_result[0].get('total_qty'):
-                stock_values['employee_msl_hold_stock'] = float(msl_hold_result[0]['total_qty'])  # REMOVED flt()
+                stock_values['employee_msl_hold_stock'] = float(msl_hold_result[0]['total_qty'])
         except:
             pass
     
@@ -401,8 +404,8 @@ def get_weight_sum(raw_material_types):
     weight_fields = []
     for rm_type in raw_material_types:
         if rm_type == "Metal": weight_fields.append("COALESCE(mop.net_wt, 0)")
-        elif rm_type == "Diamond": weight_fields.append("COALESCE(mop.diamond_wt, 0)")  # CARATS
-        elif rm_type == "Gemstone": weight_fields.append("COALESCE(mop.gemstone_wt, 0)")  # CARATS
+        elif rm_type == "Diamond": weight_fields.append("COALESCE(mop.diamond_wt, 0)")
+        elif rm_type == "Gemstone": weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
         elif rm_type == "Finding": weight_fields.append("COALESCE(mop.finding_wt, 0)")
     return " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
 
@@ -466,14 +469,15 @@ def get_reserve_stock_details(department, company, branch, manufacturer, raw_mat
 
 def get_work_order_details(department, company, branch, manufacturer, raw_material_types):
     try:
+        # FIXED: Use net_wt for Metal (not all weights)
         weight_fields = []
         for rm_type in raw_material_types:
             if rm_type == "Metal": 
-                weight_fields.append("COALESCE(mop.net_wt, 0)")
+                weight_fields.append("COALESCE(mop.net_wt, 0)")  # Only net_wt for Metal
             elif rm_type == "Diamond": 
-                weight_fields.append("COALESCE(mop.diamond_wt, 0)")  # CARATS
+                weight_fields.append("COALESCE(mop.diamond_wt, 0)")
             elif rm_type == "Gemstone": 
-                weight_fields.append("COALESCE(mop.gemstone_wt, 0)")  # CARATS
+                weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
             elif rm_type == "Finding": 
                 weight_fields.append("COALESCE(mop.finding_wt, 0)")
         
@@ -497,37 +501,40 @@ def get_work_order_details(department, company, branch, manufacturer, raw_materi
         frappe.log_error(f"Work order details error: {str(e)}")
         return []
 
-# FIXED: Employee WIP Details - Use ALL weight fields to match summary calculation
+# FIXED: Employee WIP Details - Use net_wt for Metal, proper warehouse detection  
 def get_employee_wip_details(department, company, branch, manufacturer, raw_material_types):
-    """FIXED: Use ALL weight fields to match summary calculation exactly"""
+    """FIXED: Use net_wt for Metal + proper warehouse detection"""
     try:
-        # First check if department has WIP warehouses
-        wip_warehouses = frappe.db.sql(f"""
-            SELECT COUNT(*) as count
-            FROM `tabWarehouse`
-            WHERE department = '{department}' 
-              AND warehouse_type = 'WIP'
-              AND disabled = 0
-        """, as_dict=True)
-        
-        has_wip_warehouses = wip_warehouses[0]['count'] > 0 if wip_warehouses else False
+        # FIXED: Better warehouse detection
+        try:
+            wip_warehouses = frappe.db.sql(f"""
+                SELECT COUNT(*) as count
+                FROM `tabWarehouse`
+                WHERE department = '{department}' 
+                  AND warehouse_type = 'WIP'
+                  AND disabled = 0
+                  AND (company = '{company}' OR company IS NULL OR company = '')
+            """, as_dict=True)
+            
+            has_wip_warehouses = (wip_warehouses[0]['count'] if wip_warehouses else 0) > 0
+        except:
+            has_wip_warehouses = False
         
         # If NO WIP warehouses, use WIP Manufacturing Operations (Model Making case)
         if not has_wip_warehouses:
-            # FIXED: For Metal raw material type, use ALL weight fields
-            if "Metal" in raw_material_types:
-                weight_sum = "COALESCE(mop.net_wt, 0) + COALESCE(mop.diamond_wt, 0) + COALESCE(mop.gemstone_wt, 0) + COALESCE(mop.finding_wt, 0)"
-            else:
-                weight_fields = []
-                for rm_type in raw_material_types:
-                    if rm_type == "Diamond": 
-                        weight_fields.append("COALESCE(mop.diamond_wt, 0)")
-                    elif rm_type == "Gemstone": 
-                        weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
-                    elif rm_type == "Finding": 
-                        weight_fields.append("COALESCE(mop.finding_wt, 0)")
-                weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
+            # FIXED: Use net_wt for Metal (not all weights)
+            weight_fields = []
+            for rm_type in raw_material_types:
+                if rm_type == "Metal": 
+                    weight_fields.append("COALESCE(mop.net_wt, 0)")  # Only net_wt for Metal
+                elif rm_type == "Diamond": 
+                    weight_fields.append("COALESCE(mop.diamond_wt, 0)")
+                elif rm_type == "Gemstone": 
+                    weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
+                elif rm_type == "Finding": 
+                    weight_fields.append("COALESCE(mop.finding_wt, 0)")
             
+            weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
             branch_condition = f"AND mwo.branch = '{branch}'" if company == "Gurukrupa Export Private Limited" and branch else ""
             
             return frappe.db.sql(f"""
@@ -560,7 +567,7 @@ def get_employee_wip_details(department, company, branch, manufacturer, raw_mate
                 SELECT 
                     sle.item_code as 'Item Code',
                     SUM(sle.actual_qty) as 'Qty',
-                    w.department as 'Department',
+                    w.warehouse_name as 'Warehouse',
                     'WIP Warehouse' as 'Source Type',
                     'Employee WIP' as 'Employee'
                 FROM `tabStock Ledger Entry` sle
@@ -572,7 +579,7 @@ def get_employee_wip_details(department, company, branch, manufacturer, raw_mate
                   AND i.item_group IN ('{item_group_str}')
                   AND sle.docstatus < 2 
                   AND sle.is_cancelled = 0
-                GROUP BY sle.item_code, sle.warehouse, w.department
+                GROUP BY sle.item_code, sle.warehouse
                 HAVING SUM(sle.actual_qty) > 0
                 ORDER BY SUM(sle.actual_qty) DESC
             """, as_dict=True)
@@ -588,9 +595,9 @@ def get_supplier_wip_details(department, company, branch, manufacturer, raw_mate
             if rm_type == "Metal": 
                 weight_fields.append("COALESCE(mop.net_wt, 0)")
             elif rm_type == "Diamond": 
-                weight_fields.append("COALESCE(mop.diamond_wt, 0)")  # CARATS
+                weight_fields.append("COALESCE(mop.diamond_wt, 0)")
             elif rm_type == "Gemstone": 
-                weight_fields.append("COALESCE(mop.gemstone_wt, 0)")  # CARATS
+                weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
             elif rm_type == "Finding": 
                 weight_fields.append("COALESCE(mop.finding_wt, 0)")
         
@@ -744,9 +751,9 @@ def get_supplier_msl_hold_details(department, company, branch, manufacturer, raw
         return []
     except: return []
 
-# FIXED: Transit Stock Details - Show current stock items in Transit warehouse (matches SLE balance)
+# FIXED: Transit Stock Details - Show current stock items in Transit warehouse
 def get_transit_stock_details(department, company, branch, manufacturer, raw_material_types):
-    """FIXED: Show current stock items in Transit warehouse (matches SLE balance)"""
+    """FIXED: Show current stock items in Transit warehouse"""
     try:
         item_groups = get_item_groups(raw_material_types)
         if item_groups:
