@@ -1,8 +1,8 @@
 {
- "add_total_row": 0,
+ "add_total_row": 1,
  "add_translate_data": 0,
  "columns": [],
- "creation": "2025-09-30 10:59:29.937995",
+ "creation": "2025-10-11 11:30:46.338939",
  "disabled": 0,
  "docstatus": 0,
  "doctype": "Report",
@@ -11,48 +11,33 @@
  "is_standard": "Yes",
  "letter_head": "Sadguru Diamond",
  "letterhead": null,
- "modified": "2025-10-03 17:27:29.516127",
+ "modified": "2025-10-11 12:09:13.686272",
  "modified_by": "sahil_g@gkexport.com",
  "module": "GKE Catalog",
- "name": "Branch Stock Summary",
+ "name": "Metal Conversion Report",
  "owner": "sahil_g@gkexport.com",
  "prepared_report": 0,
- "ref_doctype": "Main Slip",
- "report_name": "Branch Stock Summary",
+ "ref_doctype": "Metal Conversions",
+ "report_name": "Metal Conversion Report",
  "report_type": "Script Report",
  "roles": [
   {
    "role": "System Manager"
   },
   {
-   "role": "Computer Operator Casting - ST - GE"
-  },
-  {
-   "role": "Computer Operator Casting - ST - KG"
-  },
-  {
-   "role": "GK Job Work"
+   "role": "Computer Operator - ST - GE"
   },
   {
    "role": "GK Sub Contracting"
   },
   {
-   "role": "Computer Operator - ST - GE"
+   "role": "Central Executive"
   },
   {
    "role": "Waxing Executive - ST"
   },
   {
-   "role": "Central Executive - ST"
-  },
-  {
    "role": "Waxing 2 Executive - ST"
-  },
-  {
-   "role": "Waxing 2 Executive - ST"
-  },
-  {
-   "role": "close waxing Executive - ST"
   },
   {
    "role": "close waxing Executive - ST"
@@ -82,28 +67,13 @@
    "role": "close waxing Manager - ST"
   },
   {
-   "role": "close waxing Manager - ST"
-  },
-  {
    "role": "Waxing 2 Manager - ST"
-  },
-  {
-   "role": "Waxing 2 Manager - ST"
-  },
-  {
-   "role": "Central Manager - ST"
-  },
-  {
-   "role": "Waxing Manager - ST"
   },
   {
    "role": "Waxing Manager - ST"
   },
   {
    "role": "Waxing Executive - MUM"
-  },
-  {
-   "role": "Central Executive - MUM"
   },
   {
    "role": "Model Making Manager - MUM"
@@ -115,19 +85,16 @@
    "role": "Sub Contracting Executive - MUM"
   },
   {
-   "role": "Model Making Manager - KGJPL"
-  },
-  {
    "role": "Waxing Manager - KGJPL"
   },
   {
+   "role": "Model Making Executive - KGJPL"
+  },
+  {
+   "role": "Model Making Manager - KGJPL"
+  },
+  {
    "role": "Waxing Executive - KGJPL"
-  },
-  {
-   "role": "Central Executive - KGJPL"
-  },
-  {
-   "role": "Central Manager - KGJPL"
   },
   {
    "role": "Product Repair Center Executive - CH"
@@ -136,7 +103,10 @@
    "role": "Product Repair Center Manager - CH"
   },
   {
-   "role": "Model Making Executive - KGJPL"
+   "role": "Central Executive - ST"
+  },
+  {
+   "role": "Central Executive - KGJPL"
   },
   {
    "role": "Nandi Executive - ST"
