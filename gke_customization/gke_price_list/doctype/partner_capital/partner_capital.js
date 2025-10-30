@@ -89,7 +89,8 @@ frappe.ui.form.on("Partner Capital Repayment Schedule", {
                     paid_amount: row.total_payment,
                     company: frm.doc.company,
                     custom_partner_capital: frm.doc.name,
-                    custom_partner_capital_repayment_schedule: row.name
+                    custom_partner_capital_repayment_schedule: row.name,
+                    branch: frm.doc.branch
                 });
             
                 // Set party after a short delay
@@ -114,7 +115,8 @@ frappe.ui.form.on("Partner Capital Repayment Schedule", {
                     paid_amount: row.total_payment,
                     company: frm.doc.company,
                     custom_partner_capital: frm.doc.name,
-                    custom_partner_capital_repayment_schedule: row.name
+                    custom_partner_capital_repayment_schedule: row.name,
+                    branch: frm.doc.branch
                 });
             
                 // Set party after a short delay
