@@ -43,7 +43,7 @@ frappe.query_reports["Branch Stock Summary"] = {
             "fieldname": "raw_material_type",
             "label": __("Raw Material Type"),
             "fieldtype": "Select",
-            "options": ["", "Metal", "Diamond", "Gemstone", "Finding", "Other"].join('\n'),
+            "options": ["", "Metal", "Diamond", "Gemstone", "Finding", "Alloy", "Other"].join('\n'), // FIXED: Added Aloy
             "default": "Metal",
             "reqd": 1,
             "on_change": function() {
@@ -139,19 +139,18 @@ frappe.query_reports["Branch Stock Summary"] = {
             update_department_options();
         }, 1000);
 
-        // View Details button handler
-        $(document).off('click', '.view-stock-details');
-        $(document).on('click', '.view-stock-details', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            let department = $(this).attr('data-department');
-            let stock_type = $(this).attr('data-stock-type');
-            let stock_key = $(this).attr('data-stock-key');
-            
-            if (department && stock_type && stock_key) {
-                show_stock_details(department, stock_type, stock_key);
-            }
+        // FIXED: View Details button handler - following Serial No Detail Report pattern
+        frappe.after_ajax(() => {
+            $(document).off("click", ".view-stock-details");
+            $(document).on("click", ".view-stock-details", function () {
+                let department = $(this).data("department");
+                let stock_type = $(this).data("stock-type");
+                let stock_key = $(this).data("stock-key");
+                
+                if (department && stock_type && stock_key) {
+                    show_stock_details(department, stock_type, stock_key);
+                }
+            });
         });
     },
 
