@@ -177,39 +177,75 @@ def get_department_stock_values(dept_with_suffix, company, branch, manufacturer,
         # FIXED: Use combined approach for all stock calculations
         stock_values['work_order_stock'] = get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_material_types, today, "work_order")
         stock_values['employee_wip_stock'] = get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_material_types, today, "employee_wip")
+        stock_values['supplier_wip_stock'] = get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_material_types, today, "supplier_wip")
         stock_values['transit_stock'] = get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_material_types, today, "transit")
         stock_values['raw_material_stock'] = get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_material_types, today, "raw_material")
         stock_values['reserve_stock'] = get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_material_types, today, "reserve")
         stock_values['scrap_stock'] = get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_material_types, today, "scrap")
-        
-        # FIXED: Supplier stocks with new for_subcontracting approach
-        stock_values['supplier_wip_stock'] = get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_material_types, today, "supplier_wip")
-        stock_values['supplier_msl_stock'] = get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_material_types, today, "supplier_msl")
-        stock_values['supplier_msl_hold_stock'] = get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_material_types, today, "supplier_msl_hold")
     
-    # FIXED: Enhanced MSL data from Main Slip with better variant code handling
+    # FIXED: Correct MSL calculations using proper table structure
     if variant_codes:
         variant_code_str = "', '".join(variant_codes)
         try:
-            # Employee MSL Stock
+            # Employee MSL Stock - workflow_state = 'In Use' AND employee IS NOT NULL AND subcontractor IS NULL
             msl_result = frappe.db.sql(f"""
-                SELECT SUM(ld.msl_qty) as total_qty FROM `tabMain Slip` ms
-                LEFT JOIN `tabLoss Details` ld ON ms.name = ld.parent
-                WHERE ms.workflow_state = 'In Use' AND ms.employee IS NOT NULL AND ms.department = '{dept_with_suffix}'
-                  AND ld.variant_of IN ('{variant_code_str}') AND ld.msl_qty > 0 AND ms.docstatus = 1
+                SELECT SUM(mse.qty) as total_qty FROM `tabMain Slip` ms
+                LEFT JOIN `tabMain Slip SE Details` mse ON ms.name = mse.parent
+                WHERE ms.workflow_state = 'In Use' 
+                  AND ms.employee IS NOT NULL 
+                  AND ms.subcontractor IS NULL
+                  AND ms.department = '{dept_with_suffix}'
+                  AND mse.variant_of IN ('{variant_code_str}') 
+                  AND mse.qty > 0 
+                  AND ms.docstatus = 1
             """, as_dict=True)
             if msl_result and msl_result[0].get('total_qty'):
                 stock_values['employee_msl_stock'] += float(msl_result[0]['total_qty'])
                 
-            # Employee MSL Hold Stock
+            # Employee MSL Hold Stock - workflow_state = 'On Hold' AND employee IS NOT NULL AND subcontractor IS NULL
             msl_hold_result = frappe.db.sql(f"""
-                SELECT SUM(ld.msl_qty) as total_qty FROM `tabMain Slip` ms
-                LEFT JOIN `tabLoss Details` ld ON ms.name = ld.parent
-                WHERE ms.workflow_state = 'On Hold' AND ms.employee IS NOT NULL AND ms.department = '{dept_with_suffix}'
-                  AND ld.variant_of IN ('{variant_code_str}') AND ld.msl_qty > 0 AND ms.docstatus = 1
+                SELECT SUM(mse.qty) as total_qty FROM `tabMain Slip` ms
+                LEFT JOIN `tabMain Slip SE Details` mse ON ms.name = mse.parent
+                WHERE ms.workflow_state = 'On Hold' 
+                  AND ms.employee IS NOT NULL 
+                  AND ms.subcontractor IS NULL
+                  AND ms.department = '{dept_with_suffix}'
+                  AND mse.variant_of IN ('{variant_code_str}') 
+                  AND mse.qty > 0 
+                  AND ms.docstatus = 1
             """, as_dict=True)
             if msl_hold_result and msl_hold_result[0].get('total_qty'):
                 stock_values['employee_msl_hold_stock'] += float(msl_hold_result[0]['total_qty'])
+                
+            # FIXED: Supplier MSL Stock - workflow_state = 'In Use' AND subcontractor IS NOT NULL AND for_subcontracting = 1
+            supplier_msl_result = frappe.db.sql(f"""
+                SELECT SUM(mse.qty) as total_qty FROM `tabMain Slip` ms
+                LEFT JOIN `tabMain Slip SE Details` mse ON ms.name = mse.parent
+                WHERE ms.workflow_state = 'In Use' 
+                  AND ms.subcontractor IS NOT NULL 
+                  AND ms.for_subcontracting = 1
+                  AND ms.department = '{dept_with_suffix}'
+                  AND mse.variant_of IN ('{variant_code_str}') 
+                  AND mse.qty > 0 
+                  AND ms.docstatus = 1
+            """, as_dict=True)
+            if supplier_msl_result and supplier_msl_result[0].get('total_qty'):
+                stock_values['supplier_msl_stock'] += float(supplier_msl_result[0]['total_qty'])
+                
+            # FIXED: Supplier MSL Hold Stock - workflow_state = 'On Hold' AND subcontractor IS NOT NULL AND for_subcontracting = 1  
+            supplier_msl_hold_result = frappe.db.sql(f"""
+                SELECT SUM(mse.qty) as total_qty FROM `tabMain Slip` ms
+                LEFT JOIN `tabMain Slip SE Details` mse ON ms.name = mse.parent
+                WHERE ms.workflow_state = 'On Hold' 
+                  AND ms.subcontractor IS NOT NULL 
+                  AND ms.for_subcontracting = 1
+                  AND ms.department = '{dept_with_suffix}'
+                  AND mse.variant_of IN ('{variant_code_str}') 
+                  AND mse.qty > 0 
+                  AND ms.docstatus = 1
+            """, as_dict=True)
+            if supplier_msl_hold_result and supplier_msl_hold_result[0].get('total_qty'):
+                stock_values['supplier_msl_hold_stock'] += float(supplier_msl_hold_result[0]['total_qty'])
                 
         except Exception as e:
             frappe.log_error(f"MSL calculation error: {str(e)}")
@@ -259,6 +295,37 @@ def get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_m
                   AND sle.is_cancelled = 0
             """, as_dict=True)
             
+        elif stock_type == "supplier_wip":
+            # FIXED: Supplier WIP uses MOP for_subcontracting = 1 with status = WIP
+            weight_fields = []
+            for rm_type in raw_material_types:
+                if rm_type == "Metal": 
+                    weight_fields.append("COALESCE(mop.net_wt, 0)")
+                elif rm_type == "Diamond": 
+                    weight_fields.append("COALESCE(mop.diamond_wt, 0)")
+                elif rm_type == "Gemstone": 
+                    weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
+                elif rm_type == "Finding": 
+                    weight_fields.append("COALESCE(mop.finding_wt, 0)")
+                elif rm_type == "Aloy": 
+                    weight_fields.append("COALESCE(mop.alloy_wt, 0)")
+                elif rm_type == "Other":
+                    weight_fields.append("COALESCE(mop.other_wt, 0)")
+            
+            weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
+            
+            warehouse_result = frappe.db.sql(f"""
+                SELECT SUM({weight_sum}) as total_balance
+                FROM `tabManufacturing Operation` mop
+                LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
+                WHERE mop.status = 'WIP'
+                  AND mop.for_subcontracting = 1
+                  AND mop.department = '{dept_with_suffix}' 
+                  AND mwo.company = '{company}'
+                  AND mwo.docstatus = 1 
+                  AND ({weight_sum}) > 0
+            """, as_dict=True)
+            
         elif stock_type == "transit":
             warehouse_result = frappe.db.sql(f"""
                 SELECT SUM(sle.actual_qty) as total_balance
@@ -288,83 +355,6 @@ def get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_m
                   AND sle.docstatus < 2 
                   AND sle.is_cancelled = 0
             """, as_dict=True)
-            
-        elif stock_type in ["supplier_wip", "supplier_msl", "supplier_msl_hold"]:
-            # FIXED: Use Manufacturing Operation for_subcontracting = 1 approach for supplier departments
-            if ('sub contracting' in dept_with_suffix.lower() or 'product repair' in dept_with_suffix.lower()):
-                
-                weight_fields = []
-                for rm_type in raw_material_types:
-                    if rm_type == "Metal": 
-                        weight_fields.append("COALESCE(mop.net_wt, 0)")
-                    elif rm_type == "Diamond": 
-                        weight_fields.append("COALESCE(mop.diamond_wt, 0)")
-                    elif rm_type == "Gemstone": 
-                        weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
-                    elif rm_type == "Finding": 
-                        weight_fields.append("COALESCE(mop.finding_wt, 0)")
-                    elif rm_type == "Aloy": 
-                        weight_fields.append("COALESCE(mop.alloy_wt, 0)")
-                    elif rm_type == "Other":
-                        weight_fields.append("COALESCE(mop.other_wt, 0)")
-                
-                weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
-                
-                if stock_type == "supplier_wip":
-                    # Supplier WIP Stock → MOP with for_subcontracting=1 and status='WIP'
-                    warehouse_result = frappe.db.sql(f"""
-                        SELECT SUM({weight_sum}) as total_balance
-                        FROM `tabManufacturing Operation` mop
-                        LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-                        WHERE mop.for_subcontracting = 1 
-                          AND mop.main_slip_no IS NOT NULL
-                          AND mop.status = 'WIP'
-                          AND mop.department = '{dept_with_suffix}' 
-                          AND mwo.company = '{company}'
-                          AND mwo.docstatus = 1 
-                          AND ({weight_sum}) > 0
-                    """, as_dict=True)
-                    
-                elif stock_type == "supplier_msl":
-                    # Supplier MSL Stock → MOP with for_subcontracting=1 and status='Finished' (80% of finished)
-                    base_result = frappe.db.sql(f"""
-                        SELECT SUM({weight_sum}) as total_balance
-                        FROM `tabManufacturing Operation` mop
-                        LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-                        WHERE mop.for_subcontracting = 1 
-                          AND mop.main_slip_no IS NOT NULL
-                          AND mop.status = 'Finished'
-                          AND mop.department = '{dept_with_suffix}' 
-                          AND mwo.company = '{company}'
-                          AND mwo.docstatus = 1 
-                          AND ({weight_sum}) > 0
-                    """, as_dict=True)
-                    
-                    base_qty = base_result[0]['total_balance'] if base_result and base_result[0].get('total_balance') else 0
-                    # 80% for MSL Stock
-                    warehouse_result = [{"total_balance": base_qty * 0.8}]
-                    
-                else:  # supplier_msl_hold
-                    # Supplier MSL Hold Stock → MOP with for_subcontracting=1 and status='Finished' (20% of finished)
-                    base_result = frappe.db.sql(f"""
-                        SELECT SUM({weight_sum}) as total_balance
-                        FROM `tabManufacturing Operation` mop
-                        LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-                        WHERE mop.for_subcontracting = 1 
-                          AND mop.main_slip_no IS NOT NULL
-                          AND mop.status = 'Finished'
-                          AND mop.department = '{dept_with_suffix}' 
-                          AND mwo.company = '{company}'
-                          AND mwo.docstatus = 1 
-                          AND ({weight_sum}) > 0
-                    """, as_dict=True)
-                    
-                    base_qty = base_result[0]['total_balance'] if base_result and base_result[0].get('total_balance') else 0
-                    # 20% for MSL Hold Stock
-                    warehouse_result = [{"total_balance": base_qty * 0.2}]
-            else:
-                # For non-supplier departments, return 0
-                warehouse_result = [{"total_balance": 0}]
         
         if warehouse_result and warehouse_result[0].get('total_balance'):
             warehouse_stock = warehouse_result[0]['total_balance']
@@ -372,7 +362,7 @@ def get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_m
         frappe.log_error(f"Warehouse stock calculation error for {stock_type}: {str(e)}")
         pass
     
-    # MOP-based calculations for work_order and employee_wip
+    # FIXED: MOP-based calculations for work_order and employee_wip - separate employee and supplier
     if stock_type in ["work_order", "employee_wip"] and warehouse_stock == 0:
         try:
             weight_fields = []
@@ -388,7 +378,7 @@ def get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_m
                 elif rm_type == "Aloy": 
                     weight_fields.append("COALESCE(mop.alloy_wt, 0)")
                 elif rm_type == "Other":
-                    weight_fields.append("COALESCE(mop.other_wt, 0)")  # Assuming other_wt field exists
+                    weight_fields.append("COALESCE(mop.other_wt, 0)")
             
             weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
             
@@ -404,11 +394,13 @@ def get_combined_stock_calculation(company, dept_with_suffix, item_groups, raw_m
                       AND ({weight_sum}) > 0
                 """, as_dict=True)
             elif stock_type == "employee_wip":
+                # FIXED: Only include employee WIP (for_subcontracting = 0)
                 mop_result = frappe.db.sql(f"""
                     SELECT SUM({weight_sum}) as total_weight
                     FROM `tabManufacturing Operation` mop
                     LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
                     WHERE mop.status = 'WIP'
+                      AND mop.for_subcontracting = 0
                       AND mop.department = '{dept_with_suffix}' 
                       AND mwo.company = '{company}'
                       AND mwo.docstatus = 1 
@@ -491,7 +483,7 @@ def get_variant_codes(raw_material_types):
         elif rm_type == "Other": variant_codes.append("O")
     return variant_codes
 
-# UPDATED VIEW DETAILS FUNCTIONS WITH BETTER ERROR HANDLING
+# VIEW DETAILS FUNCTIONS - ALL CORRECTED
 
 def get_raw_material_details(department, company, branch, manufacturer, raw_material_types):
     """🔹 Raw Material Stock: Item Code, Weight"""
@@ -540,32 +532,6 @@ def get_reserve_stock_details(department, company, branch, manufacturer, raw_mat
 def get_work_order_details(department, company, branch, manufacturer, raw_material_types):
     """🔹 Work Order Stock: Manufacturing Work Order, Weight (raw material type wise)"""
     try:
-        # First try warehouse approach
-        item_groups = get_item_groups(raw_material_types)
-        if item_groups:
-            item_group_str = "', '".join(item_groups)
-            dept_clean = department.split(' - ')[0]
-            
-            warehouse_data = frappe.db.sql(f"""
-                SELECT 
-                    'Warehouse Stock' as 'Manufacturing Work Order',
-                    SUM(sle.actual_qty) as 'Weight'
-                FROM `tabStock Ledger Entry` sle
-                LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name  
-                LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
-                WHERE sle.company = '{company}' 
-                  AND w.warehouse_name = '{dept_clean} WO - GEPL'
-                  AND i.item_group IN ('{item_group_str}') 
-                  AND sle.docstatus < 2 
-                  AND sle.is_cancelled = 0
-                GROUP BY w.warehouse_name
-                HAVING SUM(sle.actual_qty) > 0
-            """, as_dict=True, debug=0)
-            
-            if warehouse_data:
-                return warehouse_data
-        
-        # Fallback to MOP approach
         weight_fields = []
         for rm_type in raw_material_types:
             if rm_type == "Metal": 
@@ -583,10 +549,11 @@ def get_work_order_details(department, company, branch, manufacturer, raw_materi
         
         weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
         
+        # FIXED: Get actual Manufacturing Work Order details with proper grouping
         return frappe.db.sql(f"""
             SELECT 
                 mwo.name as 'Manufacturing Work Order',
-                ({weight_sum}) as 'Weight'
+                SUM({weight_sum}) as 'Weight'
             FROM `tabManufacturing Operation` mop
             LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
             WHERE mop.status IN ('Not Started', 'WIP', 'Completed')
@@ -594,7 +561,8 @@ def get_work_order_details(department, company, branch, manufacturer, raw_materi
               AND mwo.company = '{company}'
               AND mwo.docstatus = 1 
               AND ({weight_sum}) > 0
-            ORDER BY ({weight_sum}) DESC
+            GROUP BY mwo.name
+            ORDER BY SUM({weight_sum}) DESC
         """, as_dict=True, debug=0)
     except Exception as e:
         frappe.log_error(f"Work order details error: {str(e)}")
@@ -603,34 +571,6 @@ def get_work_order_details(department, company, branch, manufacturer, raw_materi
 def get_employee_wip_details(department, company, branch, manufacturer, raw_material_types):
     """🔹 Employee WIP Stock: Manufacturing Work Order, Weight (raw material type wise), Operation, Employee Name"""
     try:
-        # First try warehouse approach
-        item_groups = get_item_groups(raw_material_types)
-        if item_groups:
-            item_group_str = "', '".join(item_groups)
-            
-            warehouse_data = frappe.db.sql(f"""
-                SELECT 
-                    'Warehouse Stock' as 'Manufacturing Work Order',
-                    SUM(sle.actual_qty) as 'Weight',
-                    'Warehouse Operation' as 'Operation',
-                    'Various Employees' as 'Employee Name'
-                FROM `tabStock Ledger Entry` sle
-                LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name
-                LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
-                WHERE sle.company = '{company}' 
-                  AND w.department = '{department}'
-                  AND w.warehouse_type = 'WIP'
-                  AND i.item_group IN ('{item_group_str}')
-                  AND sle.docstatus < 2 
-                  AND sle.is_cancelled = 0
-                GROUP BY w.warehouse_name
-                HAVING SUM(sle.actual_qty) > 0
-            """, as_dict=True, debug=0)
-            
-            if warehouse_data:
-                return warehouse_data
-        
-        # Fallback to MOP approach
         weight_fields = []
         for rm_type in raw_material_types:
             if rm_type == "Metal": 
@@ -658,6 +598,7 @@ def get_employee_wip_details(department, company, branch, manufacturer, raw_mate
             LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
             LEFT JOIN `tabEmployee` emp ON mop.employee = emp.name
             WHERE mop.status = 'WIP'
+              AND mop.for_subcontracting = 0
               AND mop.department = '{department}' 
               AND mwo.company = '{company}'
               AND mwo.docstatus = 1 
@@ -670,45 +611,42 @@ def get_employee_wip_details(department, company, branch, manufacturer, raw_mate
         return []
 
 def get_supplier_wip_details(department, company, branch, manufacturer, raw_material_types):
-    """🔹 Supplier WIP Stock: Manufacturing Work Order, Weight, Operation, Main Slip"""
+    """🔹 Supplier WIP Stock: Manufacturing Work Order, Weight (raw material type wise), Operation, Supplier Name"""
     try:
-        if 'sub contracting' in department.lower() or 'product repair' in department.lower():
-            weight_fields = []
-            for rm_type in raw_material_types:
-                if rm_type == "Metal": 
-                    weight_fields.append("COALESCE(mop.net_wt, 0)")
-                elif rm_type == "Diamond": 
-                    weight_fields.append("COALESCE(mop.diamond_wt, 0)")
-                elif rm_type == "Gemstone": 
-                    weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
-                elif rm_type == "Finding": 
-                    weight_fields.append("COALESCE(mop.finding_wt, 0)")
-                elif rm_type == "Aloy": 
-                    weight_fields.append("COALESCE(mop.alloy_wt, 0)")
-                elif rm_type == "Other":
-                    weight_fields.append("COALESCE(mop.other_wt, 0)")
-            
-            weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
-            
-            return frappe.db.sql(f"""
-                SELECT 
-                    mwo.name as 'Manufacturing Work Order',
-                    ({weight_sum}) as 'Weight',
-                    COALESCE(mop.operation, 'N/A') as 'Operation',
-                    mop.main_slip_no as 'Main Slip'
-                FROM `tabManufacturing Operation` mop
-                LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-                WHERE mop.for_subcontracting = 1 
-                  AND mop.main_slip_no IS NOT NULL
-                  AND mop.status = 'WIP'
-                  AND mop.department = '{department}' 
-                  AND mwo.company = '{company}'
-                  AND mwo.docstatus = 1 
-                  AND ({weight_sum}) > 0
-                ORDER BY ({weight_sum}) DESC
-            """, as_dict=True)
+        weight_fields = []
+        for rm_type in raw_material_types:
+            if rm_type == "Metal": 
+                weight_fields.append("COALESCE(mop.net_wt, 0)")
+            elif rm_type == "Diamond": 
+                weight_fields.append("COALESCE(mop.diamond_wt, 0)")
+            elif rm_type == "Gemstone": 
+                weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
+            elif rm_type == "Finding": 
+                weight_fields.append("COALESCE(mop.finding_wt, 0)")
+            elif rm_type == "Aloy": 
+                weight_fields.append("COALESCE(mop.alloy_wt, 0)")
+            elif rm_type == "Other":
+                weight_fields.append("COALESCE(mop.other_wt, 0)")
         
-        return []
+        weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
+        
+        return frappe.db.sql(f"""
+            SELECT 
+                mwo.name as 'Manufacturing Work Order',
+                ({weight_sum}) as 'Weight',
+                COALESCE(mop.operation, 'N/A') as 'Operation',
+                'Supplier Operation' as 'Supplier Name'
+            FROM `tabManufacturing Operation` mop
+            LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
+            WHERE mop.status = 'WIP'
+              AND mop.for_subcontracting = 1
+              AND mop.department = '{department}' 
+              AND mwo.company = '{company}'
+              AND mwo.docstatus = 1 
+              AND ({weight_sum}) > 0
+            ORDER BY ({weight_sum}) DESC
+        """, as_dict=True)
+        
     except Exception as e:
         frappe.log_error(f"Supplier WIP details error: {str(e)}")
         return []
@@ -730,17 +668,18 @@ def get_employee_msl_details(department, company, branch, manufacturer, raw_mate
                          WHERE mso.parent = ms.name LIMIT 1), 
                         'N/A'
                     ) as 'Operation',
-                    ld.msl_qty as 'Weight'
+                    mse.qty as 'Weight'
                 FROM `tabMain Slip` ms
-                INNER JOIN `tabLoss Details` ld ON ms.name = ld.parent
+                INNER JOIN `tabMain Slip SE Details` mse ON ms.name = mse.parent
                 LEFT JOIN `tabEmployee` emp ON ms.employee = emp.name
                 WHERE ms.workflow_state = 'In Use' 
                   AND ms.employee IS NOT NULL 
+                  AND ms.subcontractor IS NULL
                   AND ms.department = '{department}'
-                  AND ld.variant_of IN ('{variant_code_str}')
-                  AND ld.msl_qty > 0
+                  AND mse.variant_of IN ('{variant_code_str}')
+                  AND mse.qty > 0
                   AND ms.docstatus = 1
-                ORDER BY ld.msl_qty DESC
+                ORDER BY mse.qty DESC
             """, as_dict=True, debug=0)
         return []
     except Exception as e:
@@ -748,46 +687,34 @@ def get_employee_msl_details(department, company, branch, manufacturer, raw_mate
         return []
 
 def get_supplier_msl_details(department, company, branch, manufacturer, raw_material_types):
-    """🔹 Supplier MSL Stock: Manufacturing Work Order, Weight (80% of Finished), Operation, Main Slip"""
+    """🔹 Supplier MSL Stock: Main Slip, Supplier Name, Department, Operation, Weight (raw material type wise)"""
     try:
-        if 'sub contracting' in department.lower() or 'product repair' in department.lower():
-            weight_fields = []
-            for rm_type in raw_material_types:
-                if rm_type == "Metal": 
-                    weight_fields.append("COALESCE(mop.net_wt, 0)")
-                elif rm_type == "Diamond": 
-                    weight_fields.append("COALESCE(mop.diamond_wt, 0)")
-                elif rm_type == "Gemstone": 
-                    weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
-                elif rm_type == "Finding": 
-                    weight_fields.append("COALESCE(mop.finding_wt, 0)")
-                elif rm_type == "Aloy": 
-                    weight_fields.append("COALESCE(mop.alloy_wt, 0)")
-                elif rm_type == "Other":
-                    weight_fields.append("COALESCE(mop.other_wt, 0)")
-            
-            weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
-            
-            result = frappe.db.sql(f"""
+        variant_codes = get_variant_codes(raw_material_types)
+        if variant_codes:
+            variant_code_str = "', '".join(variant_codes)
+            return frappe.db.sql(f"""
                 SELECT 
-                    mwo.name as 'Manufacturing Work Order',
-                    (({weight_sum}) * 0.8) as 'Weight',
-                    COALESCE(mop.operation, 'N/A') as 'Operation',
-                    mop.main_slip_no as 'Main Slip'
-                FROM `tabManufacturing Operation` mop
-                LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-                WHERE mop.for_subcontracting = 1 
-                  AND mop.main_slip_no IS NOT NULL
-                  AND mop.status = 'Finished'
-                  AND mop.department = '{department}' 
-                  AND mwo.company = '{company}'
-                  AND mwo.docstatus = 1 
-                  AND ({weight_sum}) > 0
-                ORDER BY ({weight_sum}) DESC
-                LIMIT 100
-            """, as_dict=True)
-            
-            return result
+                    ms.name as 'Main Slip',
+                    COALESCE(ms.subcontractor, 'Not Assigned') as 'Supplier Name',
+                    ms.department as 'Department',
+                    COALESCE(
+                        (SELECT mop.operation FROM `tabMain Slip Operation` mso 
+                         INNER JOIN `tabManufacturing Operation` mop ON mso.manufacturing_operation = mop.name
+                         WHERE mso.parent = ms.name LIMIT 1), 
+                        'N/A'
+                    ) as 'Operation',
+                    mse.qty as 'Weight'
+                FROM `tabMain Slip` ms
+                INNER JOIN `tabMain Slip SE Details` mse ON ms.name = mse.parent
+                WHERE ms.workflow_state = 'In Use' 
+                  AND ms.subcontractor IS NOT NULL 
+                  AND ms.for_subcontracting = 1
+                  AND ms.department = '{department}'
+                  AND mse.variant_of IN ('{variant_code_str}')
+                  AND mse.qty > 0
+                  AND ms.docstatus = 1
+                ORDER BY mse.qty DESC
+            """, as_dict=True, debug=0)
         return []
     except Exception as e:
         frappe.log_error(f"Supplier MSL details error: {str(e)}")
@@ -810,17 +737,18 @@ def get_employee_msl_hold_details(department, company, branch, manufacturer, raw
                          WHERE mso.parent = ms.name LIMIT 1), 
                         'N/A'
                     ) as 'Operation',
-                    ld.msl_qty as 'Weight'
+                    mse.qty as 'Weight'
                 FROM `tabMain Slip` ms
-                INNER JOIN `tabLoss Details` ld ON ms.name = ld.parent
+                INNER JOIN `tabMain Slip SE Details` mse ON ms.name = mse.parent
                 LEFT JOIN `tabEmployee` emp ON ms.employee = emp.name
                 WHERE ms.workflow_state = 'On Hold' 
                   AND ms.employee IS NOT NULL 
+                  AND ms.subcontractor IS NULL
                   AND ms.department = '{department}'
-                  AND ld.variant_of IN ('{variant_code_str}')
-                  AND ld.msl_qty > 0
+                  AND mse.variant_of IN ('{variant_code_str}')
+                  AND mse.qty > 0
                   AND ms.docstatus = 1
-                ORDER BY ld.msl_qty DESC
+                ORDER BY mse.qty DESC
             """, as_dict=True, debug=0)
         return []
     except Exception as e:
@@ -828,46 +756,34 @@ def get_employee_msl_hold_details(department, company, branch, manufacturer, raw
         return []
 
 def get_supplier_msl_hold_details(department, company, branch, manufacturer, raw_material_types):
-    """🔹 Supplier MSL Hold Stock: Manufacturing Work Order, Weight (20% of Finished), Operation, Main Slip"""
+    """🔹 Supplier MSL Hold Stock: Main Slip, Supplier Name, Department, Operation, Weight (raw material type wise)"""
     try:
-        if 'sub contracting' in department.lower() or 'product repair' in department.lower():
-            weight_fields = []
-            for rm_type in raw_material_types:
-                if rm_type == "Metal": 
-                    weight_fields.append("COALESCE(mop.net_wt, 0)")
-                elif rm_type == "Diamond": 
-                    weight_fields.append("COALESCE(mop.diamond_wt, 0)")
-                elif rm_type == "Gemstone": 
-                    weight_fields.append("COALESCE(mop.gemstone_wt, 0)")
-                elif rm_type == "Finding": 
-                    weight_fields.append("COALESCE(mop.finding_wt, 0)")
-                elif rm_type == "Aloy": 
-                    weight_fields.append("COALESCE(mop.alloy_wt, 0)")
-                elif rm_type == "Other":
-                    weight_fields.append("COALESCE(mop.other_wt, 0)")
-            
-            weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
-            
-            result = frappe.db.sql(f"""
+        variant_codes = get_variant_codes(raw_material_types)
+        if variant_codes:
+            variant_code_str = "', '".join(variant_codes)
+            return frappe.db.sql(f"""
                 SELECT 
-                    mwo.name as 'Manufacturing Work Order',
-                    (({weight_sum}) * 0.2) as 'Weight',
-                    COALESCE(mop.operation, 'N/A') as 'Operation',
-                    mop.main_slip_no as 'Main Slip'
-                FROM `tabManufacturing Operation` mop
-                LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-                WHERE mop.for_subcontracting = 1 
-                  AND mop.main_slip_no IS NOT NULL
-                  AND mop.status = 'Finished'
-                  AND mop.department = '{department}' 
-                  AND mwo.company = '{company}'
-                  AND mwo.docstatus = 1 
-                  AND ({weight_sum}) > 0
-                ORDER BY ({weight_sum}) DESC
-                LIMIT 100
-            """, as_dict=True)
-            
-            return result
+                    ms.name as 'Main Slip',
+                    COALESCE(ms.subcontractor, 'Not Assigned') as 'Supplier Name',
+                    ms.department as 'Department',
+                    COALESCE(
+                        (SELECT mop.operation FROM `tabMain Slip Operation` mso 
+                         INNER JOIN `tabManufacturing Operation` mop ON mso.manufacturing_operation = mop.name
+                         WHERE mso.parent = ms.name LIMIT 1), 
+                        'N/A'
+                    ) as 'Operation',
+                    mse.qty as 'Weight'
+                FROM `tabMain Slip` ms
+                INNER JOIN `tabMain Slip SE Details` mse ON ms.name = mse.parent
+                WHERE ms.workflow_state = 'On Hold' 
+                  AND ms.subcontractor IS NOT NULL 
+                  AND ms.for_subcontracting = 1
+                  AND ms.department = '{department}'
+                  AND mse.variant_of IN ('{variant_code_str}')
+                  AND mse.qty > 0
+                  AND ms.docstatus = 1
+                ORDER BY mse.qty DESC
+            """, as_dict=True, debug=0)
         return []
     except Exception as e:
         frappe.log_error(f"Supplier MSL Hold details error: {str(e)}")
@@ -881,7 +797,6 @@ def get_transit_stock_details(department, company, branch, manufacturer, raw_mat
             item_group_str = "', '".join(item_groups)
             dept_clean = department.split(' - ')[0]
             
-            # FIXED: Enhanced transit stock details with better error handling
             balance_details = frappe.db.sql(f"""
                 SELECT 
                     'Current Balance' as 'Stock Entry Type',
@@ -901,21 +816,22 @@ def get_transit_stock_details(department, company, branch, manufacturer, raw_mat
                 HAVING SUM(sle.actual_qty) > 0
                 ORDER BY SUM(sle.actual_qty) DESC
             """, as_dict=True, debug=0)
-            
+                
             return balance_details if balance_details else []
+            
         return []
     except Exception as e:
         frappe.log_error(f"Transit stock details error: {str(e)}")
         return []
 
 def get_scrap_stock_details(department, company, branch, manufacturer, raw_material_types):
-    """🔹 Scrap Stock: Item Code, Qty, Department, Operation, Employee"""
+    """🔹 Scrap Stock: Item Code, Qty, Department"""
     try:
         item_groups = get_item_groups(raw_material_types)
         if item_groups:
             item_group_str = "', '".join(item_groups)
             
-            scrap_data = frappe.db.sql(f"""
+            return frappe.db.sql(f"""
                 SELECT 
                     sle.item_code as 'Item Code',
                     SUM(sle.actual_qty) as 'Qty',
@@ -934,40 +850,6 @@ def get_scrap_stock_details(department, company, branch, manufacturer, raw_mater
                 ORDER BY SUM(sle.actual_qty) DESC
             """, as_dict=True, debug=0)
             
-            result = []
-            for item in scrap_data:
-                # Get latest employee and operation for this department
-                try:
-                    employee_data = frappe.db.sql(f"""
-                        SELECT 
-                            emp.employee_name,
-                            mop.operation
-                        FROM `tabMain Slip` ms
-                        INNER JOIN `tabMain Slip Operation` mso ON ms.name = mso.parent
-                        INNER JOIN `tabManufacturing Operation` mop ON mso.manufacturing_operation = mop.name
-                        LEFT JOIN `tabEmployee` emp ON ms.employee = emp.name
-                        WHERE ms.department = '{department}' 
-                          AND ms.employee IS NOT NULL
-                          AND mop.operation IS NOT NULL
-                        ORDER BY ms.creation DESC
-                        LIMIT 1
-                    """, as_dict=True)
-                    
-                    operation = employee_data[0]['operation'] if employee_data and employee_data[0].get('operation') else "N/A"
-                    employee = employee_data[0]['employee_name'] if employee_data and employee_data[0].get('employee_name') else "Not Assigned"
-                except:
-                    operation = "N/A"
-                    employee = "Not Assigned"
-                
-                result.append({
-                    'Item Code': item['Item Code'],
-                    'Qty': item['Qty'],
-                    'Department': item['Department'],
-                    'Operation': operation,
-                    'Employee': employee
-                })
-            
-            return result
         return []
     except Exception as e:
         frappe.log_error(f"Scrap stock details error: {str(e)}")
