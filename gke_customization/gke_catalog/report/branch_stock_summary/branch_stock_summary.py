@@ -159,16 +159,20 @@ def get_department_stock_values(dept_with_suffix, company, branch, manufacturer,
     today = getdate()
     
     # FIXED: Finished goods calculation - Look for FG warehouses specifically (FIX 1)
+    # FIXED: Finished goods calculation - Exclude MU branch warehouses
     try:
         dept_clean = dept_with_suffix.replace(' - GEPL', '').replace(' - KGJPL', '')
+        
+        # FIXED: Exclude MU (Mumbai branch) warehouses
         finished_result = frappe.db.sql(f"""
             SELECT COUNT(*) as total_count 
             FROM `tabSerial No` sn
             LEFT JOIN `tabWarehouse` w ON sn.warehouse = w.name
             WHERE sn.company = '{company}' 
-              AND sn.status = 'Active' 
-              AND w.warehouse_type = 'Finished Goods'
-              AND w.warehouse_name LIKE '%{dept_clean}%'
+            AND sn.status = 'Active' 
+            AND w.warehouse_type = 'Finished Goods'
+            AND w.warehouse_name LIKE '%{dept_clean}%'
+            AND w.warehouse_name NOT LIKE '%MU%'
         """, as_dict=True)
         if finished_result and finished_result[0].get("total_count"):
             stock_values['finished_goods'] = float(finished_result[0]['total_count'])
@@ -791,37 +795,31 @@ def get_supplier_msl_hold_details(department, company, branch, manufacturer, raw
         return []
 
 def get_transit_stock_details(department, company, branch, manufacturer, raw_material_types):
-    """🔹 Transit Stock: Stock Entry Type, Source Warehouse, Target Warehouse, Weight (raw material type wise)"""
+    """🔹 Transit Stock: Simple view with only Item Code & Weight (like Raw Material Stock)"""
     try:
         item_groups = get_item_groups(raw_material_types)
         if item_groups:
             item_group_str = "', '".join(item_groups)
             dept_clean = department.split(' - ')[0]
             
-            # FIXED: More precise transit warehouse matching (FIX 2)
-            balance_details = frappe.db.sql(f"""
+            query = f"""
                 SELECT 
-                    'Current Balance' as 'Stock Entry Type',
-                    w.warehouse_name as 'Source Warehouse',
-                    'In Transit' as 'Target Warehouse',
+                    sle.item_code as 'Item Code',
                     SUM(sle.actual_qty) as 'Weight'
                 FROM `tabStock Ledger Entry` sle
                 LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name
                 LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
                 WHERE sle.company = '{company}' 
-                  AND (w.warehouse_name = '{dept_clean} Transit - GEPL' 
-                       OR w.warehouse_name = '{dept_clean} Transit - KGJPL'
-                       OR w.warehouse_name = '{dept_clean} Transit')
+                  AND w.warehouse_name LIKE '%{dept_clean} Transit%'
                   AND i.item_group IN ('{item_group_str}')
-                  AND sle.posting_date <= '{getdate()}'
                   AND sle.docstatus < 2 
                   AND sle.is_cancelled = 0
-                GROUP BY w.warehouse_name
+                GROUP BY sle.item_code
                 HAVING SUM(sle.actual_qty) > 0
                 ORDER BY SUM(sle.actual_qty) DESC
-            """, as_dict=True, debug=0)
-                
-            return balance_details if balance_details else []
+            """
+            
+            return frappe.db.sql(query, as_dict=True, debug=0)
             
         return []
     except Exception as e:
@@ -860,9 +858,9 @@ def get_scrap_stock_details(department, company, branch, manufacturer, raw_mater
         return []
 
 def get_finished_goods_details(department, company, branch, manufacturer, raw_material_types):
-    """🔹 Finished Goods: Department, Item Category, Item Code, Item Sub Category, Quantity, Serial No - INDEPENDENT of raw material type AND manufacturer filter"""
+    """🔹 Finished Goods: Department, Item Category, Item Code, Item Sub Category, Quantity, Serial No - Exclude MU branch"""
     try:
-        # FIXED: Look for Finished Goods warehouses specifically (FIX 1)
+        # FIXED: Exclude MU (Mumbai branch) warehouses
         dept_clean = department.replace(' - GEPL', '').replace(' - KGJPL', '')
         
         return frappe.db.sql(f"""
@@ -880,6 +878,7 @@ def get_finished_goods_details(department, company, branch, manufacturer, raw_ma
               AND sn.status = 'Active' 
               AND w.warehouse_type = 'Finished Goods'
               AND w.warehouse_name LIKE '%{dept_clean}%'
+              AND w.warehouse_name NOT LIKE '%MU%'
             ORDER BY sn.creation DESC
         """, as_dict=True, debug=0)
     except Exception as e:
