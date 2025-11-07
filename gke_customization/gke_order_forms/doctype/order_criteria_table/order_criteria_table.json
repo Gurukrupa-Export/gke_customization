@@ -7,8 +7,8 @@
  "engine": "InnoDB",
  "field_order": [
   "section_break_ff3u",
-  "sketch_submission",
-  "cad_submission",
+  "sketch_submission_time",
+  "sketch_approval_day",
   "skecth_approval_timefrom_ibm_team",
   "cad_appoval_timefrom_ibm_team",
   "cad_approval_day",
@@ -19,11 +19,6 @@
   {
    "fieldname": "section_break_ff3u",
    "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "skecth_approval_timefrom_ibm_team",
-   "fieldtype": "Float",
-   "label": "Skecth Approval Time(From IBM Team)"
   },
   {
    "fieldname": "cad_appoval_timefrom_ibm_team",
@@ -37,16 +32,6 @@
    "label": "Cad Approval Day"
   },
   {
-   "fieldname": "sketch_submission",
-   "fieldtype": "Float",
-   "label": "Sketch Submission"
-  },
-  {
-   "fieldname": "cad_submission",
-   "fieldtype": "Float",
-   "label": "Cad Submission"
-  },
-  {
    "default": "0",
    "fieldname": "disable",
    "fieldtype": "Check",
@@ -57,17 +42,33 @@
    "fieldtype": "Time",
    "in_list_view": 1,
    "label": "Cad Submission Time"
+  },
+  {
+   "fieldname": "sketch_submission_time",
+   "fieldtype": "Time",
+   "label": "Sketch Submission Time"
+  },
+  {
+   "fieldname": "sketch_approval_day",
+   "fieldtype": "Float",
+   "label": "Sketch Approval Day"
+  },
+  {
+   "fieldname": "skecth_approval_timefrom_ibm_team",
+   "fieldtype": "Time",
+   "label": "Skecth Approval Time(From IBM Team)"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-25 23:25:14.727307",
- "modified_by": "Administrator",
+ "modified": "2025-10-18 14:14:00.292679",
+ "modified_by": "prachi_b@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Order Criteria Table",
  "owner": "Administrator",
  "permissions": [],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
