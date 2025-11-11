@@ -847,6 +847,53 @@ def create_timesheet(self):
             frappe.msgprint(f" Could not create timesheet for {row.designer}")
 
 
+def timesheet_validation(self):
+	if self.cad_order_form and self.workflow_state in ["Update Item", "Design Rework in Progress"]:
+		required_approval = frappe.db.get_value(
+			"Order Form", self.cad_order_form, "required_customer_approval"
+		)
+
+		
+		timesheets = frappe.get_all(
+			"Timesheet",
+			filters={"order": self.name},
+			fields=["name", "workflow_state", "docstatus"]
+		)
+
+		
+		if self.workflow_state == "Update Item":
+			if required_approval:
+				for ts in timesheets:
+					if ts["workflow_state"] != "Approved" and ts["docstatus"] != 2:
+						timesheet_doc = frappe.get_doc("Timesheet", ts["name"])
+						timesheet_doc.workflow_state = "Approved"
+						timesheet_doc.save(ignore_permissions=True)
+						if timesheet_doc.docstatus == 0:
+							timesheet_doc.submit()
+				frappe.db.commit()
+				frappe.msgprint(f"All relevant Timesheets are now auto-approved for Order {self.name}. Proceeding.")
+			else:
+				not_approved = [
+					ts["name"]
+					for ts in timesheets
+					if ts["workflow_state"] != "Approved" and ts["docstatus"] != 2
+				]
+				if not_approved:
+					message = f"The following Timesheets are not Approved for Order {self.name}: {', '.join(not_approved)}"
+					frappe.throw(message)
+
+		elif self.workflow_state == "Design Rework in Progress":
+			for ts in timesheets:
+				if ts["workflow_state"] == "Approved" and ts["docstatus"] != 2:
+					frappe.db.set_value("Timesheet", ts["name"], {
+						"workflow_state": "Design Rework in Progress",
+						"docstatus": 0
+					})
+			frappe.db.commit()
+			frappe.msgprint(f"Relevant Timesheets for Order {self.name} updated to 'Design Rework in Progress'.")
+
+
+
 def validate_timesheet(self):
 	if not self.customer_order_form:
 		if self.workflow_state == "Designing":
@@ -1181,52 +1228,6 @@ def validate_timesheet(self):
 				# 	frappe.throw("Timesheets is cancelled for each designer assignment")		
 			
 			frappe.msgprint("Timesheets Cancelled for each designer assignment")
-
-
-def timesheet_validation(self):
-	if self.cad_order_form and self.workflow_state in ["Update Item", "Design Rework in Progress"]:
-		required_approval = frappe.db.get_value(
-			"Order Form", self.cad_order_form, "required_customer_approval"
-		)
-
-		
-		timesheets = frappe.get_all(
-			"Timesheet",
-			filters={"order": self.name},
-			fields=["name", "workflow_state", "docstatus"]
-		)
-
-		
-		if self.workflow_state == "Update Item":
-			if required_approval:
-				for ts in timesheets:
-					if ts["workflow_state"] != "Approved" and ts["docstatus"] != 2:
-						timesheet_doc = frappe.get_doc("Timesheet", ts["name"])
-						timesheet_doc.workflow_state = "Approved"
-						timesheet_doc.save(ignore_permissions=True)
-						if timesheet_doc.docstatus == 0:
-							timesheet_doc.submit()
-				frappe.db.commit()
-				frappe.msgprint(f"All relevant Timesheets are now auto-approved for Order {self.name}. Proceeding.")
-			else:
-				not_approved = [
-					ts["name"]
-					for ts in timesheets
-					if ts["workflow_state"] != "Approved" and ts["docstatus"] != 2
-				]
-				if not_approved:
-					message = f"The following Timesheets are not Approved for Order {self.name}: {', '.join(not_approved)}"
-					frappe.throw(message)
-
-		elif self.workflow_state == "Design Rework in Progress":
-			for ts in timesheets:
-				if ts["workflow_state"] == "Approved" and ts["docstatus"] != 2:
-					frappe.db.set_value("Timesheet", ts["name"], {
-						"workflow_state": "Design Rework in Progress",
-						"docstatus": 0
-					})
-			frappe.db.commit()
-			frappe.msgprint(f"Relevant Timesheets for Order {self.name} updated to 'Design Rework in Progress'.")
 
 
 

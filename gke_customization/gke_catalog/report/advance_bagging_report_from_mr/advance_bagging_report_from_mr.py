@@ -1,20 +1,28 @@
 # Copyright (c) 2025, Gurukrupa Export and contributors
 # For license information, please see license.txt
 
-
 #  mr.name IN ('GE-MR-MF-25-27220', 'GE-MR-MF-25-27091', 'GE-MR-MF-24-00004')
-#  [http://192.168.200.207:8001/app/query-report/Advance%20Bagging%20Report%20From%20MR?prepared_report_name=28c359a0im](http://192.168.200.207:8001/app/query-report/Advance%20Bagging%20Report%20From%20MR?prepared_report_name=28c359a0im)
-
+#  http://192.168.200.207:8001/app/query-report/Advance%20Bagging%20Report%20From%20MR?prepared_report_name=28c359a0im
 
 import frappe
 import json
 
-
-
 def execute(filters=None):
+    # Always show department received date column now
+    show_department_date = True
+
+    # Base columns (always shown)
     columns = [
         {"label": "Material Req Id", "fieldname": "name", "fieldtype": "Link", "options": "Material Request", "width": 180},
         {"label": "Status", "fieldname": "workflow_state", "fieldtype": "Data","width": 220},
+    ]
+    
+    # Always add Department Received Date column with Datetime
+    if show_department_date:
+        columns.append({"label": "Reserved / Transfered Date", "fieldname": "department_received_date", "fieldtype": "Datetime", "width": 210})
+    
+    # Continue with remaining columns
+    columns.extend([
         {"label": "Department", "fieldname": "final_department", "fieldtype": "Data", "width": 150, "align": "left"},
         {"label": "Warehouse", "fieldname": "warehouse", "fieldtype": "Data", "width": 180, "align": "left"},
         {"label": "Purpose", "fieldname": "material_request_type", "fieldtype": "Data", "width": 130},
@@ -36,14 +44,12 @@ def execute(filters=None):
         {"label": "Item Category", "fieldname": "item_category", "fieldtype": "Data", "width": 150},
         {"label": "Item Sub Category", "fieldname": "item_sub_category", "fieldtype": "Data", "width": 150},
         {"label": "Setting Type", "fieldname": "setting_type", "fieldtype": "Data", "width": 150},
-    ]
-
+    ])
 
     filters_dict = {
         "material_request_type": "Manufacture",
         "workflow_state": ["!=", "Material Transferred to MOP"]
     }
-
 
     if filters.get("from_date") and filters.get("to_date"):
         filters_dict["creation"] = ["between", [filters["from_date"], filters["to_date"]]]
@@ -52,21 +58,19 @@ def execute(filters=None):
     elif filters.get("to_date"):
         filters_dict["creation"] = ["<=", filters["to_date"]]
 
-
     if filters.get("manufacturing_order") and filters["manufacturing_order"]:
         filters_dict["manufacturing_order"] = ["in", filters["manufacturing_order"]]
-
 
     if filters.get("workflow_state") and filters["workflow_state"]:
         filters_dict["workflow_state"] = ["in", filters["workflow_state"]]
 
-
     warehouse_name_map = get_warehouse_display_names()
     department_transfer_map = get_department_transfer_map()
-
+    
+    # Always get department received dates
+    department_received_map = get_department_received_date_map()
 
     data = []
-
 
     material_requests = frappe.get_all("Material Request", 
         fields=[
@@ -77,7 +81,6 @@ def execute(filters=None):
         ],
         filters=filters_dict,
     )
-
 
     if filters.get("warehouse") and filters["warehouse"]:
         filtered_mrs = []
@@ -115,14 +118,11 @@ def execute(filters=None):
         
         material_requests = filtered_mrs
 
-
     for mr in material_requests:
         material_type = get_material_type_from_title(mr.title)
 
-
         if filters.get("material_type") and filters["material_type"] != material_type:
             continue
-
 
         mr_items = frappe.get_all("Material Request Item",
             fields=[
@@ -136,22 +136,17 @@ def execute(filters=None):
             filters={"parent": mr.name}
         )
 
-
         pmo = frappe.get_value("Parent Manufacturing Order", mr.manufacturing_order,
             ["customer", "item_code", "item_category", "item_sub_category", "setting_type", "department"], as_dict=True
         ) if mr.manufacturing_order else {}
 
-
         if filters.get("item_category") and pmo and pmo.get("item_category") not in filters["item_category"]:
             continue
-
 
         if filters.get("setting_type") and pmo and pmo.get("setting_type") not in filters["setting_type"]:
             continue
 
-
         department = get_department(mr.manufacturing_order)
-
 
         for item in mr_items:
             warehouse = ""
@@ -200,7 +195,6 @@ def execute(filters=None):
                 warehouse = ""
                 final_department = ""
 
-
             if filters.get("department") and filters["department"]:
                 transfer_dept = department_transfer_map.get(mr.name, "")
                 if (final_department not in filters["department"] and 
@@ -208,9 +202,7 @@ def execute(filters=None):
                     transfer_dept not in filters["department"]):
                     continue
 
-
             attributes = get_item_attributes(item.item_code)
-
 
             row = {
                 "name": mr.name,
@@ -237,12 +229,93 @@ def execute(filters=None):
                 "department": department,
                 "item_attributes": attributes
             }
+            
+            # Always add department received date
+            if show_department_date:
+                row["department_received_date"] = department_received_map.get(mr.name, "")
+            
             data.append(row)
-
 
     return columns, data
 
-
+def get_department_received_date_map():
+    """Get dates with time for all Material Requests based on their workflow state"""
+    try:
+        # Get all Material Requests with their workflow states
+        mrs = frappe.get_all("Material Request", 
+            fields=["name", "workflow_state", "creation", "modified"],
+            filters={"material_request_type": "Manufacture"}
+        )
+        
+        department_date_map = {}
+        
+        for mr in mrs:
+            date_to_show = None
+            
+            if mr.workflow_state == 'Draft':
+                # Show creation datetime for Draft
+                date_to_show = mr.creation
+                
+            elif mr.workflow_state == 'Cancelled':
+                # Show when it was cancelled (modified datetime)
+                date_to_show = mr.modified
+                
+            elif mr.workflow_state == 'Material Reserved':
+                # Show Reserve transfer datetime
+                reserve_date = frappe.db.sql("""
+                    SELECT MIN(se.posting_date) as date
+                    FROM `tabStock Entry` se
+                    LEFT JOIN `tabStock Entry Detail` sde ON sde.parent = se.name
+                    WHERE sde.material_request = %s
+                    AND se.docstatus = 1
+                    AND se.purpose = 'Material transfer to Reserve'
+                """, mr.name)
+                if reserve_date and reserve_date[0][0]:
+                    date_to_show = reserve_date[0][0]
+                else:
+                    date_to_show = mr.modified
+                    
+            elif mr.workflow_state == 'Material Transferred to Department':
+                # Show department transfer datetime
+                dept_date = frappe.db.sql("""
+                    SELECT MIN(se.posting_date) as date
+                    FROM `tabStock Entry` se
+                    LEFT JOIN `tabStock Entry Detail` sde ON sde.parent = se.name
+                    WHERE sde.material_request = %s
+                    AND se.docstatus = 1
+                    AND se.purpose = 'Material Transfered to Department'
+                """, mr.name)
+                if dept_date and dept_date[0][0]:
+                    date_to_show = dept_date[0][0]
+                else:
+                    date_to_show = mr.modified
+                    
+            elif mr.workflow_state == 'Material Transferred':
+                # Show any transfer datetime
+                transfer_date = frappe.db.sql("""
+                    SELECT MIN(se.posting_date) as date
+                    FROM `tabStock Entry` se
+                    LEFT JOIN `tabStock Entry Detail` sde ON sde.parent = se.name
+                    WHERE sde.material_request = %s
+                    AND se.docstatus = 1
+                    AND se.stock_entry_type = 'Material Transfer'
+                """, mr.name)
+                if transfer_date and transfer_date[0][0]:
+                    date_to_show = transfer_date[0][0]
+                else:
+                    date_to_show = mr.modified
+                    
+            else:
+                # For other statuses, show modified datetime
+                date_to_show = mr.modified
+            
+            if date_to_show:
+                department_date_map[mr.name] = date_to_show
+        
+        return department_date_map
+    except Exception as e:
+        frappe.log_error(f"Error in get_department_received_date_map: {str(e)}")
+        return {}
 
 def get_reserved_target_warehouse(mr_name, item_code):
     """Get target warehouse from Stock Entry with type 'Material transfer to Reserve'"""
@@ -266,8 +339,6 @@ def get_reserved_target_warehouse(mr_name, item_code):
     except:
         return ""
 
-
-
 def get_rsv_warehouse_by_material_type(title):
     """Get RSV warehouse based on material type from MR title"""
     material_type = get_material_type_from_title(title)
@@ -281,8 +352,6 @@ def get_rsv_warehouse_by_material_type(title):
     }
     
     return rsv_warehouse_map.get(material_type, "")
-
-
 
 # **NEW FUNCTION: Get Summary Data for Modal**
 @frappe.whitelist()
@@ -334,13 +403,9 @@ def get_summary_data(filters=None):
     
     return result
 
-
-
 def get_warehouse_display_names():
     warehouses = frappe.get_all("Warehouse", fields=["name", "warehouse_name"])
     return {w.name: w.warehouse_name or w.name for w in warehouses}
-
-
 
 def get_department_transfer_map():
     try:
@@ -355,12 +420,9 @@ def get_department_transfer_map():
     except:
         return {}
 
-
-
 def get_material_type_from_title(title):
     if not title or len(title) < 3:
         return "Unknown"
-
 
     code = title[2]  # 3rd character :MRD-SH-(BR00159-001)-2
     return {
@@ -371,8 +433,6 @@ def get_material_type_from_title(title):
         "O": "Others"
     }.get(code, "Unknown")
 
-
-
 def get_item_attributes(item_code):
     attributes = frappe.get_all("Item Variant Attribute",
         filters={"parent": item_code},
@@ -381,12 +441,9 @@ def get_item_attributes(item_code):
     )
     return ",  ".join(f"•  {attr.attribute}: {attr.attribute_value}" for attr in attributes) if attributes else ""
 
-
-
 def get_department(manufacturing_order):
     if not manufacturing_order:
         return ""
-
 
     mwo = frappe.get_all("Manufacturing Work Order",
         filters={
@@ -399,7 +456,6 @@ def get_department(manufacturing_order):
     if not mwo:
         return ""
 
-
     mop = frappe.get_all("Manufacturing Operation",
         filters={
             "manufacturing_work_order": ["in", mwo],
@@ -409,8 +465,6 @@ def get_department(manufacturing_order):
         limit=1
     )
     return mop[0].department if mop else ""
-
-
 
 def get_warehouse_department(warehouse_id):
     if not warehouse_id:
