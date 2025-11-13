@@ -2,13 +2,16 @@ import frappe
 from frappe import _
 from datetime import datetime, timedelta
 
+
 def execute(filters=None):
-    columns = get_columns()
+    columns = get_columns(filters)
     data = get_data(filters)
     return columns, data
 
-def get_columns():
-    return [
+
+def get_columns(filters):
+    # Base columns
+    base_columns = [
         {"fieldname": "item_group", "label": _("Item Group"), "fieldtype": "Data", "width": 180},
         {"fieldname": "image", "label": _("Image"), "fieldtype": "HTML", "width": 100},
         {"fieldname": "name", "label": _("Item Name"), "fieldtype": "Link", "options":"Item", "width": 120},
@@ -16,14 +19,76 @@ def get_columns():
         {"fieldname": "gst_hsn_code", "label": _("HSN/SAC"), "fieldtype": "Data", "width": 100},
         {"fieldname": "stock_uom", "label": _("Default Unit of Measure"), "fieldtype": "Data", "width": 190},
         {"fieldname": "description", "label": _("Description"), "fieldtype": "Data", "width": 200},
+    ]
+    
+    # Get all unique attributes dynamically
+    conditions = get_conditions(filters)
+    attribute_query = f"""
+        SELECT DISTINCT iva.attribute
+        FROM `tabItem` i
+        LEFT JOIN `tabItem Group` ig ON i.item_group = ig.name
+        LEFT JOIN `tabConsumable Item Details` cim on i.name = cim.item_code
+        LEFT JOIN `tabConsumable Master` cm on cm.name = cim.parent
+        LEFT JOIN `tabItem Variant Attribute` iva ON i.name = iva.parent
+        WHERE ig.parent_item_group = 'Consumable' 
+        AND iva.attribute IS NOT NULL
+        {f"AND " + conditions if conditions else ""}
+        ORDER BY iva.attribute
+    """
+    attributes = frappe.db.sql(attribute_query, as_dict=0)
+    
+    # Add dynamic attribute columns
+    for attr in attributes:
+        if attr and attr[0]:
+            base_columns.append({
+                "fieldname": attr[0].lower().replace(" ", "_").replace("/", "_"),
+                "label": _(attr[0]),
+                "fieldtype": "Data",
+                "width": 150
+            })
+    
+    # Add remaining columns
+    base_columns.extend([
         {"fieldname": "tax_template_count", "label": _("Item Tax Template (Taxes)"), "fieldtype": "Int", "width": 200},
         {"fieldname": "mr_by_dept", "label": _("MR By Department"), "fieldtype": "Data", "width": 170},
         {"fieldname": "dept", "label": _("Used by Department"), "fieldtype": "Data", "width": 260},
         {"fieldname": "enabled", "label": _("Enabled"), "fieldtype": "Check", "width": 100},
-    ]
+    ])
+    
+    return base_columns
+
 
 def get_data(filters):
     conditions = get_conditions(filters)
+    
+    # Get all unique attributes first
+    attribute_query = f"""
+        SELECT DISTINCT iva.attribute
+        FROM `tabItem` i
+        LEFT JOIN `tabItem Group` ig ON i.item_group = ig.name
+        LEFT JOIN `tabConsumable Item Details` cim on i.name = cim.item_code
+        LEFT JOIN `tabConsumable Master` cm on cm.name = cim.parent
+        LEFT JOIN `tabItem Variant Attribute` iva ON i.name = iva.parent
+        WHERE ig.parent_item_group = 'Consumable' 
+        AND iva.attribute IS NOT NULL
+        {f"AND " + conditions if conditions else ""}
+        ORDER BY iva.attribute
+    """
+    attributes = frappe.db.sql(attribute_query, as_dict=0)
+    
+    # Build dynamic MAX(CASE...) for each attribute
+    attribute_selects = []
+    for attr in attributes:
+        if attr and attr[0]:
+            field_name = attr[0].lower().replace(" ", "_").replace("/", "_")
+            # Escape single quotes in attribute name for SQL
+            escaped_attr = attr[0].replace("'", "\\'")
+            attribute_selects.append(
+                f"""MAX(CASE WHEN iva.attribute = '{escaped_attr}' THEN iva.attribute_value END) AS `{field_name}`"""
+            )
+    
+    attribute_sql = ",\n            " + ",\n            ".join(attribute_selects) if attribute_selects else ""
+    
     query = f"""
         SELECT
             i.name AS name,
@@ -34,7 +99,7 @@ def get_data(filters):
             i.stock_uom AS stock_uom,
             i.description AS description,
             CASE WHEN i.disabled = 0 THEN 1 ELSE 0 END AS enabled,
-            GROUP_CONCAT(DISTINCT CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(tt.item_tax_template, ' ', 2), ' ', -1) AS DECIMAL(10))) AS tax_template_count,
+            GROUP_CONCAT(DISTINCT CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(tt.item_tax_template, ' ', 2), ' ', -1) AS DECIMAL(10))) AS tax_template_count{attribute_sql},
             CASE WHEN i.custom_mr_by_department IN ('Yes', 1) THEN 'Yes' ELSE 'No' END AS mr_by_dept,
             GROUP_CONCAT(DISTINCT cm.department) AS dept
         FROM `tabItem` i
@@ -42,6 +107,7 @@ def get_data(filters):
         LEFT JOIN `tabItem Group` ig ON i.item_group = ig.name
         LEFT JOIN `tabConsumable Item Details` cim on i.name = cim.item_code
         LEFT JOIN `tabConsumable Master` cm on cm.name = cim.parent
+        LEFT JOIN `tabItem Variant Attribute` iva ON i.name = iva.parent
         WHERE ig.parent_item_group = 'Consumable' and has_variants != 1
         {f"AND " + conditions if conditions else ""}
         GROUP BY i.item_code, i.custom_mr_by_department
@@ -49,20 +115,24 @@ def get_data(filters):
     """
     rows = frappe.db.sql(query, as_dict=1)
 
+
 # CASE WHEN mr.transfer_status = 'Completed' THEN se.to_department ELSE '-' END AS dept
 # GROUP_CONCAT(DISTINCT CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(tt.item_tax_template, ' ', 2), ' ', -1) AS DECIMAL(10)))
     
     data = []
 
+
     for row in rows:
       image_url = row.get("image")
       modal_id = "modal-{}".format(row["name"])
+
 
       if image_url:
         thumbnail_html = (
             '<img src="{0}" style="height:50px; border-radius:6px; cursor:pointer; object-fit:contain;" '
             'onclick="document.getElementById(\'{1}\').style.display=\'flex\'">'.format(image_url, modal_id)
         )
+
 
         modal_html = (
             '<div id="{0}" class="custom-image-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; '
@@ -73,29 +143,46 @@ def get_data(filters):
             '</div>'.format(modal_id, image_url)
         )
 
+
         row["image"] = thumbnail_html + modal_html
+
 
       else:
         row["image"] = "-"
 
+
+      # Handle empty attribute values
+      for attr in attributes:
+        if attr and attr[0]:
+            field_name = attr[0].lower().replace(" ", "_").replace("/", "_")
+            if not row.get(field_name):
+                row[field_name] = "-"
+
+
       data.append(row)
+
 
 
     return data
 
+
 def get_conditions(filters):
     conditions = []
 
+
     if filters.get("company"):
         conditions.append(f"""cm.company = "{filters['company']}" """)   
+
 
     if filters.get("branch"):
         branches = "', '".join(filters["branch"])
         conditions.append(f"cm.branch IN ('{branches}')")       
         # conditions.append(f"""mri.branch = "{filters['branch']}" """) 
 
+
     # if filters.get("item_group"):
     #     conditions.append(f"""i.item_group = "{filters['item_group']}" """)    
+
 
     if filters.get("item_group"):
         item_groups = "', '".join(filters["item_group"])
