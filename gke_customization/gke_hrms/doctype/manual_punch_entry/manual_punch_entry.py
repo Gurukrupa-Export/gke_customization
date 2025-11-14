@@ -17,7 +17,8 @@ from frappe.model.workflow import apply_workflow
 class ManualPunchEntry(Document):
 	def after_insert(self):
 		if self.miss_punch and self.workflow_state == "Draft":
-			apply_workflow(self, "Send to Manager") 
+			# apply_workflow(self, "Send to Manager") 
+			apply_workflow(self, "Send to HR")
 
 	def on_update(self):
 		if self.workflow_state == "Create Attendance":
