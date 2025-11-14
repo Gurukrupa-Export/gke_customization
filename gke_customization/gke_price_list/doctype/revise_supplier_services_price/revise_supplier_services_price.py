@@ -15,6 +15,8 @@ class ReviseSupplierServicesPrice(Document):
 			price_list_id = frappe.db.get_value("Supplier Services Price",filters)
 			# frappe.throw(f"{price_list_id}")
 			doc = frappe.get_doc("Supplier Services Price",price_list_id)
+			if not doc:
+				return
 			if len(self.revise_subcategory) != len(doc.subcategory):
 				if self.revise_subcategory==[]:
 					self.set("revise_subcategory", [])
