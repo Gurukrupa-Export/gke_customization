@@ -144,12 +144,16 @@ override_doctype_class = {
 
 scheduler_events = {
     "daily": [
-        "gke_customization.gke_hrms.utils.check",
+        "gke_customization.gke_hrms.utils.check_sadwitch_rule",
         "gke_customization.gke_hrms.doc_events.leave_allocation.get_earned_leave_allocation",
         "gke_customization.gke_hrms.doc_events.leave_allocation.infirmary_leave_allocation",
         "gke_customization.gke_hrms.doc_events.leave_allocation.compOff_leave_allocation"    
     ],
-
+    "cron": {
+        "0 6 * * *": [
+		    "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
+        ]
+    },
 }
 
 # Testing

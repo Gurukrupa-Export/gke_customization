@@ -36,7 +36,6 @@ def check_sadwitch_rule():
         },
         fields=["name", "employee", "attendance_date"]
     )
-
     # Group attendance records by employee
     employee_attendance_map = {}
     for attendance in absent_attendances:
@@ -60,8 +59,21 @@ def check_sadwitch_rule():
             order_by = "holiday_date asc"
         )
 
+        weekoff_holidays = frappe.get_all(
+            "Holiday",
+            filters={
+                "parent": holiday_list,
+                "holiday_date": ["between", [formatted_from_date, formatted_to_date]],
+                "weekly_off": 1
+            },
+            fields=["holiday_date"],
+            order_by = "holiday_date asc"
+        )
+
         holiday_dates = {getdate(holiday["holiday_date"]) for holiday in holidays}
-        
+        weekoff_dates = {getdate(holiday["holiday_date"]) for holiday in weekoff_holidays}
+        # sandwich_dates = attendance_dates | holiday_dates | weekoff_dates
+
         # Sort attendance records by date
         attendances.sort(key=lambda x: getdate(x['attendance_date']))
         attendance_dates = {getdate(a['attendance_date']) for a in attendances} 
@@ -74,26 +86,26 @@ def check_sadwitch_rule():
             prev_absent_days = set()
             next_absent_days = set()
 
-            # Check previous consecutive absent days
-            while prev_day in attendance_dates:
+            # Check previous consecutive absent days / holidays / weekoffs
+            while prev_day in attendance_dates or prev_day in holiday_dates or prev_day in weekoff_dates:
                 prev_absent_days.add(prev_day)
                 prev_day = add_days(prev_day, -1)
 
-            # Check next consecutive absent days and holiday dates
-            while next_day in attendance_dates or next_day in holiday_dates:
-                # if next_day in attendance_dates:
+            # Check next consecutive absent days / holidays / weekoffs
+            while next_day in attendance_dates or next_day in holiday_dates or next_day in weekoff_dates:
                 next_absent_days.add(next_day)
                 next_day = add_days(next_day, 1)
-
+            
             # Only mark LOP if absent exists on both sides of the holiday
             if prev_absent_days and next_absent_days:
                 all_lop_dates = prev_absent_days | {holiday} | next_absent_days
-
+                
                 # Insert all holidays in the range from prev_absent_days to next_absent_days
+                # Insert only holidays (not weekoffs) in the LOP list
                 for day in sorted(all_lop_dates):
-                    holidays_to_insert.append({"employee": employee, "date": day})
+                    if day not in weekoff_dates:   # 🚫 exclude weekoffs
+                        holidays_to_insert.append({"employee": employee, "date": day})        
 
-    # frappe.throw(f"{holidays_to_insert}")            
     # Insert new attendance records for holidays
     for holiday_entry in holidays_to_insert:
         holiday_date = holiday_entry["date"]
@@ -120,8 +132,6 @@ def check_sadwitch_rule():
     # Commit changes to the database
     frappe.db.commit()
     
-    
-
 # prachi
 @frappe.whitelist()
 def check():
