@@ -7,7 +7,8 @@
  "field_order": [
   "section_break_a7nq",
   "order",
-  "department_shift"
+  "department_shift",
+  "order_form_table"
  ],
  "fields": [
   {
@@ -25,13 +26,19 @@
    "fieldtype": "Table",
    "label": "Department Shift",
    "options": "Department Shift"
+  },
+  {
+   "fieldname": "order_form_table",
+   "fieldtype": "Table",
+   "label": "Order Form Table",
+   "options": "Order Form Table"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-07-29 15:36:30.651553",
- "modified_by": "Administrator",
+ "modified": "2025-10-03 17:42:27.222109",
+ "modified_by": "prachi_b@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Order Criteria",
  "owner": "Administrator",
@@ -47,6 +54,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
