@@ -14,7 +14,10 @@
   "column_break_auw4y",
   "employee",
   "employee_name",
+  "department",
+  "branch",
   "search",
+  "miss_punch",
   "section_break_buh6b",
   "new_punch",
   "column_break_2sjup",
@@ -86,6 +89,7 @@
    "label": "Search"
   },
   {
+   "depends_on": "eval:frappe.user_roles.includes(\"System Manager\") || frappe.user_roles.includes(\"GK HR\")",
    "fieldname": "section_break_buh6b",
    "fieldtype": "Section Break"
   },
@@ -110,6 +114,7 @@
    "label": "For OD"
   },
   {
+   "depends_on": "eval:frappe.user_roles.includes(\"System Manager\") || frappe.user_roles.includes(\"GK HR\")",
    "fieldname": "section_break_dn8t7",
    "fieldtype": "Section Break"
   },
@@ -144,12 +149,34 @@
    "hidden": 1,
    "label": "naming_series",
    "options": "MPE-"
+  },
+  {
+   "depends_on": "eval: doc.workflow_state != 'Draft'",
+   "fieldname": "miss_punch",
+   "fieldtype": "Datetime",
+   "label": "Miss Punch"
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-13 10:20:37.846068",
- "modified_by": "Administrator",
+ "modified": "2025-11-15 15:31:50.799316",
+ "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE HRMS",
  "name": "Manual Punch Entry",
  "naming_rule": "By \"Naming Series\" field",
@@ -168,6 +195,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

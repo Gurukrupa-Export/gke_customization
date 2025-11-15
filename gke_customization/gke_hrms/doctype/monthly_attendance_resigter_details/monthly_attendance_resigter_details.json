@@ -1,0 +1,122 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-09-20 16:39:20.948063",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_rrpg",
+  "employee",
+  "employee_name",
+  "department",
+  "column_break_lvue",
+  "branch",
+  "holiday",
+  "section_break_7ttn",
+  "in_time",
+  "out_time",
+  "status",
+  "column_break_lqwb",
+  "att_date",
+  "duration",
+  "count"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_rrpg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "holiday",
+   "fieldtype": "Link",
+   "label": "Holiday",
+   "options": "Holiday List"
+  },
+  {
+   "fieldname": "column_break_lvue",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_7ttn",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "in_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "In Time"
+  },
+  {
+   "fieldname": "out_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Out Time"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Status"
+  },
+  {
+   "fieldname": "column_break_lqwb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "duration",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Duration"
+  },
+  {
+   "fieldname": "count",
+   "fieldtype": "Float",
+   "label": "Count"
+  },
+  {
+   "fieldname": "att_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Attendance Date"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-09-23 09:28:26.976808",
+ "modified_by": "bhavika_patel@gkexport.com",
+ "module": "GKE HRMS",
+ "name": "Monthly Attendance Resigter Details",
+ "owner": "bhavika_patel@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

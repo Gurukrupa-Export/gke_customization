@@ -71,6 +71,8 @@ def get_data(filters):
     if conditions:
         base_query = base_query + " AND " + conditions
         # Add filter parameters in the same order as conditions
+        if filters.get("company"):
+            base_params.append(filters["company"])
         if filters.get("from_date"):
             base_params.append(filters["from_date"])
         if filters.get("to_date"):
@@ -95,32 +97,22 @@ def get_data(filters):
             if custom_bom_no:
                 pmo_data = get_correct_bom_snc_pmo_data(serial_no_val, custom_bom_no)
             
-            # Get manufacturer and company from SNC
+            # Get manufacturer and branch
             manufacturer = ''
-            company_from_snc = ''
+            branch = ''
             if pmo_data:
                 manufacturer = get_manufacturer_from_snc(serial_no_val, pmo_data.get('parent_manufacturing_order', ''))
-                company_from_snc = get_company_from_snc(serial_no_val, pmo_data.get('parent_manufacturing_order', ''))
+                branch = get_branch_from_pmo(pmo_data.get('parent_manufacturing_order', ''))
             
             # Apply filters at data level
-            # Manufacturer filter (multi-select support)
-            if filters.get("manufacturer"):
-                manufacturer_list = filters.get("manufacturer")
-                if isinstance(manufacturer_list, str):
-                    # Convert string to list if single value
-                    manufacturer_list = [manufacturer_list]
-                elif isinstance(manufacturer_list, list):
-                    # It's already a list
-                    pass
-                else:
-                    manufacturer_list = []
-                
-                if manufacturer_list and manufacturer not in manufacturer_list:
+            # Branch filter
+            if filters.get("branch"):
+                if branch != filters.get("branch"):
                     continue  # Skip this row
             
-            # Company filter (from SNC)
-            if filters.get("company"):
-                if company_from_snc != filters.get("company"):
+            # Manufacturer filter
+            if filters.get("manufacturer"):
+                if manufacturer != filters.get("manufacturer"):
                     continue  # Skip this row
             
             # Order type filter
@@ -314,6 +306,29 @@ def calculate_multi_purity_weights(purity_details):
     
     return touch_display, total_weight, total_pure_weight
 
+def get_branch_from_pmo(parent_manufacturing_order):
+    """Get branch from Parent Manufacturing Order table"""
+    try:
+        if not parent_manufacturing_order:
+            return ''
+        
+        # Get branch from PMO
+        pmo_query = """
+        SELECT COALESCE(pmo.branch, '') as branch
+        FROM `tabParent Manufacturing Order` pmo
+        WHERE pmo.name = %s
+        LIMIT 1
+        """
+        
+        result = frappe.db.sql(pmo_query, (parent_manufacturing_order,), as_dict=True)
+        if result and result[0].get('branch'):
+            return result[0]['branch']
+        
+        return ''
+        
+    except Exception as e:
+        return ''
+
 def get_manufacturer_from_snc(serial_no, parent_manufacturing_order):
     """Get manufacturer from Serial Number Creator table"""
     try:
@@ -341,39 +356,6 @@ def get_manufacturer_from_snc(serial_no, parent_manufacturing_order):
             result = frappe.db.sql(pmo_snc_query, (parent_manufacturing_order,), as_dict=True)
             if result and result[0].get('manufacturer'):
                 return result[0]['manufacturer']
-        
-        return ''
-        
-    except Exception as e:
-        return ''
-
-def get_company_from_snc(serial_no, parent_manufacturing_order):
-    """Get company from Serial Number Creator table"""
-    try:
-        # Method 1: Direct serial number match in Serial Number Creator
-        snc_query = """
-        SELECT COALESCE(snc.company, '') as company
-        FROM `tabSerial Number Creator` snc
-        WHERE snc.serial_no = %s
-        LIMIT 1
-        """
-        
-        result = frappe.db.sql(snc_query, (serial_no,), as_dict=True)
-        if result and result[0].get('company'):
-            return result[0]['company']
-        
-        # Method 2: Try via parent manufacturing order if available
-        if parent_manufacturing_order:
-            pmo_snc_query = """
-            SELECT COALESCE(snc.company, '') as company
-            FROM `tabSerial Number Creator` snc
-            WHERE snc.parent_manufacturing_order = %s
-            LIMIT 1
-            """
-            
-            result = frappe.db.sql(pmo_snc_query, (parent_manufacturing_order,), as_dict=True)
-            if result and result[0].get('company'):
-                return result[0]['company']
         
         return ''
         
@@ -905,7 +887,8 @@ def convert_metal_touch_to_percent(metal_touch):
 def get_conditions(filters):
     conditions = []
     
-    # Remove company filter from SQL level since we're getting it from SNC
+    if filters.get("company"):
+        conditions.append("sn.company = %s")
     
     if filters.get("from_date"):
         conditions.append("DATE(sn.creation) >= %s")
