@@ -1,185 +1,61 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2025-03-31 14:09:56.177058",
+ "creation": "2025-07-28 12:26:12.187868",
  "doctype": "DocType",
+ "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "is_bank",
-  "business_partner",
-  "section_break_fnx9",
-  "customer",
-  "customer_name",
-  "receivable_account",
-  "column_break_cwaz",
-  "supplier",
-  "supplier_name",
-  "payable_account",
-  "section_break_dakx",
+  "section_break_7i94",
+  "company",
   "unsecured_loan_account",
-  "column_break_jmkx",
   "secured_loan_account",
-  "section_break_sdom",
-  "loan_accounts",
-  "section_break_m3ej",
-  "pan_number",
-  "address",
-  "column_break_mbgj",
-  "aadhar_card_number",
-  "tax_withholding_category"
+  "partner_capital_account"
  ],
  "fields": [
   {
-   "fieldname": "section_break_fnx9",
+   "fieldname": "section_break_7i94",
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "customer",
+   "fieldname": "company",
    "fieldtype": "Link",
-   "label": "Customer",
-   "options": "Customer"
-  },
-  {
-   "fieldname": "supplier",
-   "fieldtype": "Link",
-   "label": "Supplier",
-   "options": "Supplier"
-  },
-  {
-   "fetch_from": "customer.customer_name",
-   "fieldname": "customer_name",
-   "fieldtype": "Data",
-   "label": "Customer Name",
-   "read_only": 1
-  },
-  {
-   "fetch_from": "supplier.supplier_name",
-   "fieldname": "supplier_name",
-   "fieldtype": "Data",
-   "label": "Supplier Name",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_cwaz",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "payable_account",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "Payable Account",
-   "options": "Account"
-  },
-  {
-   "fieldname": "receivable_account",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "Receivable Account",
-   "options": "Account"
-  },
-  {
-   "default": "0",
-   "fieldname": "is_bank",
-   "fieldtype": "Check",
-   "label": "Is Bank"
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company"
   },
   {
    "fieldname": "unsecured_loan_account",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Unsecured Loan Account",
    "options": "Account"
   },
   {
    "fieldname": "secured_loan_account",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Secured Loan Account",
    "options": "Account"
   },
   {
-   "fieldname": "section_break_dakx",
-   "fieldtype": "Section Break",
-   "hidden": 1
-  },
-  {
-   "fieldname": "column_break_jmkx",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "section_break_sdom",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "loan_accounts",
-   "fieldtype": "Table",
-   "label": "Loan Accounts",
-   "options": "Loan Accounts"
-  },
-  {
-   "fieldname": "section_break_m3ej",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "pan_number",
-   "fieldtype": "Data",
-   "label": "PAN Number"
-  },
-  {
-   "fieldname": "aadhar_card_number",
-   "fieldtype": "Data",
-   "label": "Aadhar Card Number"
-  },
-  {
-   "fieldname": "address",
+   "fieldname": "partner_capital_account",
    "fieldtype": "Link",
-   "label": "Address",
-   "options": "Address"
-  },
-  {
-   "fieldname": "tax_withholding_category",
-   "fieldtype": "Link",
-   "label": "Tax Withholding Category",
-   "options": "Tax Withholding Category"
-  },
-  {
-   "fieldname": "column_break_mbgj",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "business_partner",
-   "fieldtype": "Data",
-   "label": "Business Partner"
+   "in_list_view": 1,
+   "label": "Partner Capital Account",
+   "options": "Account"
   }
  ],
  "index_web_pages_for_search": 1,
- "links": [
-  {
-   "link_doctype": "Secured Loan",
-   "link_fieldname": "lender"
-  },
-  {
-   "link_doctype": "Unsecured Loan",
-   "link_fieldname": "lender"
-  }
- ],
- "modified": "2025-08-13 16:29:18.892525",
+ "istable": 1,
+ "links": [],
+ "modified": "2025-10-15 09:35:35.375024",
  "modified_by": "Administrator",
  "module": "GKE Custom Export",
- "name": "Business Partner",
+ "name": "Loan Accounts",
  "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
+ "permissions": [],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
