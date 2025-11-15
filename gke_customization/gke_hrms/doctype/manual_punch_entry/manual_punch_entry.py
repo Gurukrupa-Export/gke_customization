@@ -16,8 +16,11 @@ from frappe.model.workflow import apply_workflow
 
 class ManualPunchEntry(Document):
 	def after_insert(self):
+		# if frappe.user.has_role("GK HR"):
+		# 	return
+		
 		if self.miss_punch and self.workflow_state == "Draft":
-			# apply_workflow(self, "Send to Manager") 
+			# apply_workflow(self, "Send to Manager")
 			apply_workflow(self, "Send to HR")
 
 	def on_update(self):
@@ -31,6 +34,7 @@ class ManualPunchEntry(Document):
 				frappe.msgprint(_("Attendance Updated"))
 
 	def validate(self): 
+		# frappe.throw(f"hii")
 		self.locked_by = frappe.session.user
 		if self.workflow_state == "Create Attendance":
 			self.validate_od_punch()
@@ -46,6 +50,7 @@ class ManualPunchEntry(Document):
 					"employee": self.employee,
 					"date": self.date,
 					"name": ["!=", self.name],
+					"workflow_state": ["!=", "Rejected"]
 				},
 				fields=["name", "locked_by"]
 			)
@@ -58,6 +63,8 @@ class ManualPunchEntry(Document):
 						f"<a href='{form_link}' target='_blank'>View entry</a>"
 					)
 
+		if self.miss_punch:
+			self.validate_miss_punch()
 
 	@frappe.whitelist()
 	def validate_punch(self):
@@ -65,6 +72,13 @@ class ManualPunchEntry(Document):
 		shift_det = get_employee_shift_timings(self.employee, shift_datetime, True)[1]
 		if not (get_datetime(self.new_punch) > shift_det.actual_start and get_datetime(self.new_punch) < shift_det.actual_end):
 			frappe.throw(_("Punch must be in between {0} and {1}").format(shift_det.actual_start, shift_det.actual_end))
+	
+	def validate_miss_punch(self):
+		shift_datetime = datetime.combine(getdate(self.date), get_time(self.start_time))
+		shift_det = get_employee_shift_timings(self.employee, shift_datetime, True)[1]
+		if not (get_datetime(self.miss_punch) > shift_det.actual_start and get_datetime(self.miss_punch) < shift_det.actual_end):
+			frappe.throw(_("Punch must be in between {0} and {1}").format(shift_det.actual_start, shift_det.actual_end))
+		
 
 	def validate_od_punch(self):
 		if self.for_od or any([row.source for row in (self.details or []) if row.source == "Outdoor Duty"]):
@@ -136,6 +150,7 @@ def process_attendance(employee, shift_type, date):
 		attendance = frappe.get_doc("Attendance",attnd)
 		attendance.cancel()
 	doc = frappe.get_doc("Shift Type", shift_type)
+
 	if (
 		not cint(doc.enable_auto_attendance)
 		or not doc.process_attendance_after
@@ -159,7 +174,7 @@ def process_attendance(employee, shift_type, date):
 		logs, key=lambda x: (x["employee"], x["shift_actual_start"])
 	):
 		if not doc.should_mark_attendance(employee, date):
-				continue
+			continue
 
 		single_shift_logs = list(group)
 		(
@@ -186,7 +201,7 @@ def process_attendance(employee, shift_type, date):
 
 	for employee in doc.get_assigned_employees(doc.process_attendance_after, True):
 		doc.mark_absent_for_dates_with_no_attendance(employee)
-
+	
 @frappe.whitelist()
 def cancel_linked_records(employee, date):
 	ot = frappe.get_list("OT Log",{"employee":employee, "attendance_date":date, "is_cancelled":0},pluck="name")
