@@ -1,6 +1,7 @@
 // Copyright (c) 2025, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
+
 frappe.query_reports["Production Report"] = {
     "filters": [
         {
@@ -40,6 +41,7 @@ frappe.query_reports["Production Report"] = {
             }
         }
     ],
+
 
     "formatter": function(value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
@@ -82,6 +84,7 @@ frappe.query_reports["Production Report"] = {
     }
 };
 
+
 // Global function for View Details button - Updated to match Serial No Detail Report
 window.show_serial_details = function(serial_no) {
     frappe.call({
@@ -99,16 +102,25 @@ window.show_serial_details = function(serial_no) {
     });
 };
 
+
 function show_serial_details_modal_with_raw_materials(details) {
     let materials = details.raw_materials || [];
     let bom_name = details.bom_name || '';
     let item_image = details.product_image || '';
     
+    // Detect dark theme
+    const isDarkTheme = document.documentElement.getAttribute('data-theme-mode') === 'dark';
+    const headerBgColor = isDarkTheme ? '#2d2d2d' : '#f8f9fa';
+    const headerTextColor = isDarkTheme ? '#ffffff' : '#000000';
+    const tableHeaderBg = isDarkTheme ? '#3a3a3a' : '#f8f9fa';
+    const tableBorderColor = isDarkTheme ? '#4a4a4a' : '#dee2e6';
+    const strongTextColor = isDarkTheme ? '#ffffff' : '#000000';
+    
     // Build header exactly like Serial No Detail Report
     let html = `
-    <div style="margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #007bff;">
-        <div style="font-size: 16px; font-weight: 500; text-align: center;">
-            <strong>Serial No:</strong> ${details.serial_no} | <strong>Item:</strong> ${details.item_code} | <strong>BOM:</strong> ${bom_name || ""}
+    <div style="margin-bottom: 15px; padding: 15px; background: ${headerBgColor}; border-radius: 5px; border-left: 4px solid #007bff;">
+        <div style="font-size: 16px; font-weight: 500; text-align: center; color: ${headerTextColor};">
+            <strong style="color: ${headerTextColor};">Serial No:</strong> ${details.serial_no} | <strong style="color: ${headerTextColor};">Item:</strong> ${details.item_code} | <strong style="color: ${headerTextColor};">BOM:</strong> ${bom_name || ""}
         </div>
     </div>
     
@@ -116,19 +128,19 @@ function show_serial_details_modal_with_raw_materials(details) {
     <div style="margin-bottom: 20px;">
         <div class="row">
             <div class="col-md-6">
-                <h6>Basic Information</h6>
-                <table class="table table-bordered table-sm">
-                    <tr><td><strong>Customer:</strong></td><td>${details.customer || ''}</td></tr>
-                    <tr><td><strong>Category:</strong></td><td>${details.category || ''}</td></tr>
-                    <tr><td><strong>Sub Category:</strong></td><td>${details.sub_category || ''}</td></tr>
-                    <tr><td><strong>Setting Type:</strong></td><td>${details.setting_type || ''}</td></tr>
-                    <tr><td><strong>Customer PO No:</strong></td><td>${details.customer_po_no || ''}</td></tr>
+                <h6 style="color: ${headerTextColor}; font-weight: 600;">Basic Information</h6>
+                <table class="table table-bordered table-sm" style="border-color: ${tableBorderColor};">
+                    <tr><td style="color: ${headerTextColor};"><strong style="color: ${headerTextColor};">Customer:</strong></td><td style="color: ${headerTextColor};">${details.customer || ''}</td></tr>
+                    <tr><td style="color: ${headerTextColor};"><strong style="color: ${headerTextColor};">Category:</strong></td><td style="color: ${headerTextColor};">${details.category || ''}</td></tr>
+                    <tr><td style="color: ${headerTextColor};"><strong style="color: ${headerTextColor};">Sub Category:</strong></td><td style="color: ${headerTextColor};">${details.sub_category || ''}</td></tr>
+                    <tr><td style="color: ${headerTextColor};"><strong style="color: ${headerTextColor};">Setting Type:</strong></td><td style="color: ${headerTextColor};">${details.setting_type || ''}</td></tr>
+                    <tr><td style="color: ${headerTextColor};"><strong style="color: ${headerTextColor};">Customer PO No:</strong></td><td style="color: ${headerTextColor};">${details.customer_po_no || ''}</td></tr>
                 </table>
             </div>
             <div class="col-md-6">
                 
                 ${details.product_image ? `
-                    <h6>Product Image</h6>
+                    <h6 style="color: ${headerTextColor}; font-weight: 600;">Product Image</h6>
                     <div class="text-center">
                         <img src="${details.product_image}" 
                              style="height:200px; max-width:250px; border-radius:6px; cursor:pointer; object-fit:contain; border: 1px solid #ddd;" 
@@ -139,20 +151,22 @@ function show_serial_details_modal_with_raw_materials(details) {
         </div>
     </div>
 
+
     <!-- Raw Materials Table - REMOVED TYPE COLUMN -->
-    <h6>Raw Material Details</h6>
-    <table class="table table-bordered">
+    <h6 style="color: ${headerTextColor}; font-weight: 600;">Raw Material Details</h6>
+    <table class="table table-bordered" style="border-color: ${tableBorderColor};">
         <thead>
-            <tr style="background-color: #f8f9fa;">
-                <th style="width: 25%;">Raw Material Code</th>
-                <th style="width: 45%;">Attributes</th>
-                <th style="width: 10%;">Qty</th>
-                <th style="width: 10%;">Pcs</th>
-                <th style="width: 10%;">UOM</th>
+            <tr style="background-color: ${tableHeaderBg};">
+                <th style="width: 25%; color: ${headerTextColor}; background-color: ${tableHeaderBg}; border-color: ${tableBorderColor};">Raw Material Code</th>
+                <th style="width: 45%; color: ${headerTextColor}; background-color: ${tableHeaderBg}; border-color: ${tableBorderColor};">Attributes</th>
+                <th style="width: 10%; color: ${headerTextColor}; background-color: ${tableHeaderBg}; border-color: ${tableBorderColor};">Qty</th>
+                <th style="width: 10%; color: ${headerTextColor}; background-color: ${tableHeaderBg}; border-color: ${tableBorderColor};">Pcs</th>
+                <th style="width: 10%; color: ${headerTextColor}; background-color: ${tableHeaderBg}; border-color: ${tableBorderColor};">UOM</th>
             </tr>
         </thead>
         <tbody>
     `;
+
 
     if (materials && materials.length > 0) {
         materials.forEach(function (material) {
@@ -160,28 +174,30 @@ function show_serial_details_modal_with_raw_materials(details) {
             
             html += `
             <tr>
-                <td><strong>${parsedData.code}</strong></td>
-                <td style="font-size: 12px;">${parsedData.attributes}</td>
-                <td style="text-align: right;"><strong>${parsedData.qty}</strong></td>
-                <td style="text-align: right;"><strong>${parsedData.pcs}</strong></td>
-                <td style="text-align: center;">${parsedData.uom}</td>
+                <td style="color: ${headerTextColor}; border-color: ${tableBorderColor};"><strong style="color: ${headerTextColor};">${parsedData.code}</strong></td>
+                <td style="font-size: 12px; color: ${headerTextColor}; border-color: ${tableBorderColor};">${parsedData.attributes}</td>
+                <td style="text-align: right; color: ${headerTextColor}; border-color: ${tableBorderColor};"><strong style="color: ${headerTextColor};">${parsedData.qty}</strong></td>
+                <td style="text-align: right; color: ${headerTextColor}; border-color: ${tableBorderColor};"><strong style="color: ${headerTextColor};">${parsedData.pcs}</strong></td>
+                <td style="text-align: center; color: ${headerTextColor}; border-color: ${tableBorderColor};">${parsedData.uom}</td>
             </tr>
             `;
         });
     } else {
         html += `
         <tr>
-            <td colspan="5" style="text-align: center; color: #6c757d; padding: 20px;">
+            <td colspan="5" style="text-align: center; color: #6c757d; padding: 20px; border-color: ${tableBorderColor};">
                 No raw material data available
             </td>
         </tr>
         `;
     }
 
+
     html += `
         </tbody>
     </table>
     `;
+
 
     let dialog = new frappe.ui.Dialog({
         title: 'Serial No Details - ' + details.serial_no,
@@ -194,9 +210,11 @@ function show_serial_details_modal_with_raw_materials(details) {
         ]
     });
 
+
     dialog.fields_dict.serial_details_html.$wrapper.html(html);
     dialog.show();
 }
+
 
 // Helper function to parse material data into columns (EXACT COPY from Serial No Detail Report)
 function parseMaterialData(display) {
@@ -231,6 +249,7 @@ function parseMaterialData(display) {
         uom: uom
     };
 }
+
 
 // Function to show full image in overlay
 function show_full_image(image_url) {
