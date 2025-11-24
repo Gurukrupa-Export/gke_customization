@@ -150,57 +150,57 @@ def process_attendance(employee, shift_type, date):
 		attendance = frappe.get_doc("Attendance",attnd)
 		attendance.cancel()
 	doc = frappe.get_doc("Shift Type", shift_type)
+	doc.process_auto_attendance()
+	# if (
+	# 	not cint(doc.enable_auto_attendance)
+	# 	or not doc.process_attendance_after
+	# 	or not doc.last_sync_of_checkin
+	# ):
+	# 	return
 
-	if (
-		not cint(doc.enable_auto_attendance)
-		or not doc.process_attendance_after
-		or not doc.last_sync_of_checkin
-	):
-		return
+	# filters = {
+	# 	"skip_auto_attendance": 0,
+	# 	"attendance": ("is", "not set"),
+	# 	"time": (">=", doc.process_attendance_after),
+	# 	"shift_actual_end": ("<", doc.last_sync_of_checkin),
+	# 	"shift": doc.name,
+	# 	"employee": employee
+	# }
+	# logs = frappe.db.get_list(
+	# 	"Employee Checkin", fields="*", filters=filters, order_by="employee,time"
+	# )
 
-	filters = {
-		"skip_auto_attendance": 0,
-		"attendance": ("is", "not set"),
-		"time": (">=", doc.process_attendance_after),
-		"shift_actual_end": ("<", doc.last_sync_of_checkin),
-		"shift": doc.name,
-		"employee": employee
-	}
-	logs = frappe.db.get_list(
-		"Employee Checkin", fields="*", filters=filters, order_by="employee,time"
-	)
+	# for key, group in itertools.groupby(
+	# 	logs, key=lambda x: (x["employee"], x["shift_actual_start"])
+	# ):
+	# 	if not doc.should_mark_attendance(employee, date):
+	# 		continue
 
-	for key, group in itertools.groupby(
-		logs, key=lambda x: (x["employee"], x["shift_actual_start"])
-	):
-		if not doc.should_mark_attendance(employee, date):
-			continue
-
-		single_shift_logs = list(group)
-		(
-			attendance_status,
-			working_hours,
-			late_entry,
-			early_exit,
-			in_time,
-			out_time,
-		) = doc.get_attendance(single_shift_logs)
+	# 	single_shift_logs = list(group)
+	# 	(
+	# 		attendance_status,
+	# 		working_hours,
+	# 		late_entry,
+	# 		early_exit,
+	# 		in_time,
+	# 		out_time,
+	# 	) = doc.get_attendance(single_shift_logs)
 		
 
-		mark_attendance_and_link_log(
-			single_shift_logs,
-			attendance_status,
-			key[1].date(),
-			working_hours,
-			late_entry,
-			early_exit,
-			in_time,
-			out_time,
-			doc.name,
-		)
+	# 	mark_attendance_and_link_log(
+	# 		single_shift_logs,
+	# 		attendance_status,
+	# 		key[1].date(),
+	# 		working_hours,
+	# 		late_entry,
+	# 		early_exit,
+	# 		in_time,
+	# 		out_time,
+	# 		doc.name,
+	# 	)
 
-	for employee in doc.get_assigned_employees(doc.process_attendance_after, True):
-		doc.mark_absent_for_dates_with_no_attendance(employee)
+	# for employee in doc.get_assigned_employees(doc.process_attendance_after, True):
+	# 	doc.mark_absent_for_dates_with_no_attendance(employee)
 	
 @frappe.whitelist()
 def cancel_linked_records(employee, date):
