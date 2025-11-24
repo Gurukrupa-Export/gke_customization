@@ -1,9 +1,11 @@
 # Copyright (c) 2025, Gurukrupa Export and contributors
 # For license information, please see license.txt
 
+
 import frappe
 from frappe import _
 from frappe.utils import getdate, today, flt
+
 
 def execute(filters=None):
     if not filters:
@@ -13,6 +15,7 @@ def execute(filters=None):
     data = get_data(filters)
     
     return columns, data
+
 
 def get_columns():
     return [
@@ -29,20 +32,22 @@ def get_columns():
         {"fieldname": "manufacturer", "label": _("Manufacturer"), "fieldtype": "Link", "options": "Manufacturer", "width": 120},
         {"fieldname": "metal_touch", "label": _("Metal Touch"), "fieldtype": "Data", "width": 100},
         {"fieldname": "finding_touch", "label": _("Finding Touch"), "fieldtype": "Data", "width": 100},
+        # REORDERED WEIGHT COLUMNS TO MATCH SCREENSHOT
         {"fieldname": "gross_wt", "label": _("Gross Wt"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "diamond_wt", "label": _("Diamond Wt"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "diamond_pcs", "label": _("Diamond Pcs"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "gemstone_wt", "label": _("Gemstone Wt"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "gemstone_pcs", "label": _("Gemstone Pcs"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "other_wt", "label": _("Other Wt"), "fieldtype": "Data", "width": 100},
         {"fieldname": "metal_wt", "label": _("Metal Wt"), "fieldtype": "Data", "width": 100},
         {"fieldname": "finding_wt", "label": _("Finding Wt"), "fieldtype": "Data", "width": 100},
         {"fieldname": "net_wt", "label": _("Net Wt"), "fieldtype": "Data", "width": 100},
         {"fieldname": "pure_wt", "label": _("Pure Wt"), "fieldtype": "Data", "width": 100},
         {"fieldname": "alloy_wt", "label": _("Alloy Wt"), "fieldtype": "Data", "width": 100},
+        {"fieldname": "diamond_wt", "label": _("Diamond Wt"), "fieldtype": "Data", "width": 100},
+        {"fieldname": "diamond_pcs", "label": _("Diamond Pcs"), "fieldtype": "Data", "width": 100},
+        {"fieldname": "gemstone_wt", "label": _("Gemstone Wt"), "fieldtype": "Data", "width": 100},
+        {"fieldname": "gemstone_pcs", "label": _("Gemstone Pcs"), "fieldtype": "Data", "width": 100},
+        {"fieldname": "other_wt", "label": _("Other Wt"), "fieldtype": "Data", "width": 100},
         {"fieldname": "parent_manufacturing_order", "label": _("Parent Manufacturing Order"), "fieldtype": "Link", "options": "Parent Manufacturing Order", "width": 150},
         {"fieldname": "serial_no_status", "label": _("Serial No. Status"), "fieldtype": "Data", "width": 120}
     ]
+
 
 def get_data(filters):
     conditions = get_conditions(filters)
@@ -238,6 +243,7 @@ def get_data(filters):
         frappe.throw(_("Error fetching data: {0}").format(str(e)))
         return []
 
+
 def get_multi_purity_metal_data(bom_name):
     """Get metal details grouped by purity from BOM Metal Detail"""
     try:
@@ -257,6 +263,7 @@ def get_multi_purity_metal_data(bom_name):
     except Exception as e:
         return []
 
+
 def get_multi_purity_finding_data(bom_name):
     """Get finding details grouped by purity from BOM Finding Detail"""
     try:
@@ -275,6 +282,7 @@ def get_multi_purity_finding_data(bom_name):
         
     except Exception as e:
         return []
+
 
 def calculate_multi_purity_weights(purity_details):
     """Calculate total weight and touch display for multi-purity materials"""
@@ -315,6 +323,7 @@ def calculate_multi_purity_weights(purity_details):
     
     return touch_display, total_weight, total_pure_weight
 
+
 def get_manufacturer_from_snc(serial_no, parent_manufacturing_order):
     """Get manufacturer from Serial Number Creator table"""
     try:
@@ -347,6 +356,7 @@ def get_manufacturer_from_snc(serial_no, parent_manufacturing_order):
         
     except Exception as e:
         return ''
+
 
 def get_company_from_snc(serial_no, parent_manufacturing_order):
     """Get company from Serial Number Creator table"""
@@ -381,12 +391,14 @@ def get_company_from_snc(serial_no, parent_manufacturing_order):
     except Exception as e:
         return ''
 
+
 def format_weight_display(weight_val):
     """Format weight values - show blank if 0, otherwise show formatted value"""
     if weight_val is None or flt(weight_val) == 0:
         return ''
     else:
         return '{:.3f}'.format(round(flt(weight_val), 3))
+
 
 def get_serial_specific_bom_data(serial_no, custom_bom_no):
     """Get BOM data specific to the serial number - ENHANCED WITH MULTI-PURITY SUPPORT"""
@@ -461,6 +473,7 @@ def get_serial_specific_bom_data(serial_no, custom_bom_no):
         
     except Exception as e:
         return None
+
 
 def get_correct_bom_snc_pmo_data(serial_no, custom_bom_no):
     """Get PMO data via correct BOM-SNC join - FIXED using your working query"""
@@ -542,6 +555,7 @@ def get_correct_bom_snc_pmo_data(serial_no, custom_bom_no):
         
     except Exception as e:
         return None
+
 
 @frappe.whitelist()
 def get_serial_drill_down_details(serial_no):
@@ -627,6 +641,7 @@ def get_serial_drill_down_details(serial_no):
             "product_image": "",
             "bom_name": "Error"
         }
+
 
 @frappe.whitelist()
 def get_raw_material_details(serial_no, item_code=None):
@@ -718,81 +733,7 @@ def get_raw_material_details(serial_no, item_code=None):
                 "display": display
             })
         
-        # 4.2: Get Diamond Details
-        diamond_details = frappe.db.sql("""
-        SELECT 
-            bdd.item,
-            bdd.item_variant,
-            bdd.diamond_type,
-            bdd.stone_shape,
-            bdd.diamond_grade,
-            bdd.diamond_sieve_size,
-            bdd.pcs,
-            bdd.quantity,
-            bdd.stock_uom,
-            'Diamond' as material_type,
-            bdd.idx
-        FROM `tabBOM Diamond Detail` bdd
-        WHERE bdd.parent = %s
-        ORDER BY bdd.idx
-        """, (bom_name,), as_dict=True)
-        
-        for diamond in diamond_details:
-            display = "{0}<br>Diamond Type = {1}<br>Stone Shape = {2}<br>Diamond Grade = {3}<br>Diamond Sieve Size = {4}<br>Qty = {5:.3f}<br>Pcs = {6}<br>UOM = {7}".format(
-                diamond.get('item_variant') or diamond.get('item', ''),
-                diamond.get('diamond_type', 'Natural'),
-                diamond.get('stone_shape', 'Round'),
-                diamond.get('diamond_grade', 'N/A'),
-                diamond.get('diamond_sieve_size', 'N/A'),
-                flt(diamond.get('quantity', 0)),
-                int(diamond.get('pcs', 1)),
-                diamond.get('stock_uom', 'Carat')
-            )
-            raw_materials.append({
-                "type": "Diamond",
-                "display": display
-            })
-        
-        # 4.3: Get Gemstone Details
-        gemstone_details = frappe.db.sql("""
-        SELECT 
-            bgd.item,
-            bgd.item_variant,
-            bgd.gemstone_type,
-            bgd.stone_shape,
-            bgd.gemstone_grade,
-            bgd.gemstone_quality,
-            bgd.gemstone_size,
-            bgd.cut_or_cab as cut,
-            bgd.pcs,
-            bgd.quantity,
-            bgd.stock_uom,
-            'Gemstone' as material_type,
-            bgd.idx
-        FROM `tabBOM Gemstone Detail` bgd
-        WHERE bgd.parent = %s
-        ORDER BY bgd.idx
-        """, (bom_name,), as_dict=True)
-        
-        for gemstone in gemstone_details:
-            display = "{0}<br>Gemstone Type = {1}<br>Stone Shape = {2}<br>Gemstone Grade = {3}<br>Gemstone Size = {4}<br>Cut = {5}<br>Gemstone Quality = {6}<br>Qty = {7:.3f}<br>Pcs = {8}<br>UOM = {9}".format(
-                gemstone.get('item_variant') or gemstone.get('item', ''),
-                gemstone.get('gemstone_type', 'N/A'),
-                gemstone.get('stone_shape', 'N/A'),
-                gemstone.get('gemstone_grade', 'N/A'),
-                gemstone.get('gemstone_size', 'N/A'),
-                gemstone.get('cut', 'N/A'),
-                gemstone.get('gemstone_quality', 'N/A'),
-                flt(gemstone.get('quantity', 0)),
-                int(gemstone.get('pcs', 1)),
-                gemstone.get('stock_uom', 'Carat')
-            )
-            raw_materials.append({
-                "type": "Gemstone",
-                "display": display
-            })
-        
-        # 4.4: Get Finding Details
+        # 4.2: Get Finding Details
         finding_details = frappe.db.sql("""
         SELECT 
             bfd.item,
@@ -828,6 +769,80 @@ def get_raw_material_details(serial_no, item_code=None):
             )
             raw_materials.append({
                 "type": "Finding",
+                "display": display
+            })
+        
+        # 4.3: Get Diamond Details
+        diamond_details = frappe.db.sql("""
+        SELECT 
+            bdd.item,
+            bdd.item_variant,
+            bdd.diamond_type,
+            bdd.stone_shape,
+            bdd.diamond_grade,
+            bdd.diamond_sieve_size,
+            bdd.pcs,
+            bdd.quantity,
+            bdd.stock_uom,
+            'Diamond' as material_type,
+            bdd.idx
+        FROM `tabBOM Diamond Detail` bdd
+        WHERE bdd.parent = %s
+        ORDER BY bdd.idx
+        """, (bom_name,), as_dict=True)
+        
+        for diamond in diamond_details:
+            display = "{0}<br>Diamond Type = {1}<br>Stone Shape = {2}<br>Diamond Grade = {3}<br>Diamond Sieve Size = {4}<br>Qty = {5:.3f}<br>Pcs = {6}<br>UOM = {7}".format(
+                diamond.get('item_variant') or diamond.get('item', ''),
+                diamond.get('diamond_type', 'Natural'),
+                diamond.get('stone_shape', 'Round'),
+                diamond.get('diamond_grade', 'N/A'),
+                diamond.get('diamond_sieve_size', 'N/A'),
+                flt(diamond.get('quantity', 0)),
+                int(diamond.get('pcs', 1)),
+                diamond.get('stock_uom', 'Carat')
+            )
+            raw_materials.append({
+                "type": "Diamond",
+                "display": display
+            })
+        
+        # 4.4: Get Gemstone Details
+        gemstone_details = frappe.db.sql("""
+        SELECT 
+            bgd.item,
+            bgd.item_variant,
+            bgd.gemstone_type,
+            bgd.stone_shape,
+            bgd.gemstone_grade,
+            bgd.gemstone_quality,
+            bgd.gemstone_size,
+            bgd.cut_or_cab as cut,
+            bgd.pcs,
+            bgd.quantity,
+            bgd.stock_uom,
+            'Gemstone' as material_type,
+            bgd.idx
+        FROM `tabBOM Gemstone Detail` bgd
+        WHERE bgd.parent = %s
+        ORDER BY bgd.idx
+        """, (bom_name,), as_dict=True)
+        
+        for gemstone in gemstone_details:
+            display = "{0}<br>Gemstone Type = {1}<br>Stone Shape = {2}<br>Gemstone Grade = {3}<br>Gemstone Size = {4}<br>Cut = {5}<br>Gemstone Quality = {6}<br>Qty = {7:.3f}<br>Pcs = {8}<br>UOM = {9}".format(
+                gemstone.get('item_variant') or gemstone.get('item', ''),
+                gemstone.get('gemstone_type', 'N/A'),
+                gemstone.get('stone_shape', 'N/A'),
+                gemstone.get('gemstone_grade', 'N/A'),
+                gemstone.get('gemstone_size', 'N/A'),
+                gemstone.get('cut', 'N/A'),
+                gemstone.get('gemstone_quality', 'N/A'),
+                flt(gemstone.get('quantity', 0)),
+                int(gemstone.get('pcs', 1)),
+                gemstone.get('stock_uom', 'Carat')
+            )
+            raw_materials.append({
+                "type": "Gemstone",
                 "display": display
             })
         
@@ -870,6 +885,7 @@ def get_raw_material_details(serial_no, item_code=None):
             "item_image": ""
         }
 
+
 def convert_metal_touch_to_percent(metal_touch):
     """Convert metal touch values like 10KT, 14KT, 18KT, 22KT to percentage"""
     if not metal_touch:
@@ -902,6 +918,7 @@ def convert_metal_touch_to_percent(metal_touch):
         pass
     
     return 0
+
 
 def get_conditions(filters):
     conditions = []
