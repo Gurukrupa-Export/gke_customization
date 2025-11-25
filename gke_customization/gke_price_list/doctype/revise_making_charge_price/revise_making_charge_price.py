@@ -220,15 +220,14 @@ class ReviseMakingChargePrice(Document):
             making_charge_price_doc.setting_type = self.setting_type
             making_charge_price_doc.metal_type = self.metal_type
 			making_charge_price_doc.metal_type = self.metal_touch
+			for i in self.revise_making_charge_price_item_subcategory:
+				time_log = making_charge_price_doc.append("subcategory", {})
+				time_log.subcategory = i.subcategory
+				time_log.rate_per_gm = i.new_rate_per_gm
+				time_log.rate_per_pc = i.new_rate_per_pc
+				time_log.rate_per_diamond = i.new_rate_per_diamond
+				time_log.wastage = i.new_wastage
 			
-            for i in self.revise_making_charge_price_item_subcategory:
-               time_log = making_charge_price_doc.append("subcategory", {})
-               time_log.subcategory = i.subcategory
-               time_log.rate_per_gm = i.new_rate_per_gm
-               time_log.rate_per_pc = i.new_rate_per_pc
-               time_log.rate_per_diamond = i.new_rate_per_diamond
-               time_log.wastage = i.new_wastage
-
-            making_charge_price_doc.save()
-        frappe.msgprint("Price List Updated")
+			making_charge_price_doc.save()
+		frappe.msgprint("Price List Updated")
 
