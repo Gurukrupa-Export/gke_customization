@@ -7,12 +7,13 @@ import frappe
 from frappe.model.document import Document
 from frappe import _
 from frappe.utils import cint, add_to_date, get_datetime, get_datetime_str, getdate, get_time
-from datetime import datetime
+from datetime import datetime,timedelta
 import itertools
-from hrms.hr.doctype.employee_checkin.employee_checkin import mark_attendance_and_link_log
+from hrms.hr.doctype.employee_checkin.employee_checkin import (mark_attendance_and_link_log,calculate_working_hours)
 from gurukrupa_customizations.gurukrupa_customizations.doctype.personal_out_gate_pass.personal_out_gate_pass import create_prsnl_out_logs
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift_timings
 from frappe.model.workflow import apply_workflow
+from erpnext.setup.doctype.holiday_list.holiday_list import is_holiday
 
 class ManualPunchEntry(Document):
 	def after_insert(self):
@@ -28,7 +29,8 @@ class ManualPunchEntry(Document):
 			if self.employee:
 				if not self.shift_name:
 					frappe.throw(_('Shift type missing for Employee: {0}').format(self.employee))
-				process_attendance(self.employee, self.shift_name, self.date)
+				# process_attendance(self.employee, self.shift_name, self.date)
+				create_attendance_from_manual_punch(self)
 				cancel_linked_records(date=self.date, employee=self.employee)
 				create_prsnl_out_logs(from_date=self.date, to_date=self.date, employee=self.employee)
 				frappe.msgprint(_("Attendance Updated"))
@@ -144,63 +146,138 @@ class ManualPunchEntry(Document):
 		if not self.employee:
 			frappe.msgprint(_("Employee is Mandatory"))
 
+	def should_mark_attendance(self, employee: str, attendance_date: str) -> bool:
+		"""Determines whether attendance should be marked on holidays or not"""
+		shift_doc = frappe.get_doc("Shift Type", self.shift_name)
+		if shift_doc.mark_auto_attendance_on_holidays:
+			# no need to check if date is a holiday or not
+			# since attendance should be marked on all days
+			return True
 
+		holiday_list = shift_doc.get_holiday_list(employee)
+		if is_holiday(holiday_list, attendance_date):
+			return False
+		return True
+
+def create_attendance_from_manual_punch(self):
+	employee = self.employee
+	shift_type = self.shift_name
+	date = self.date
+		
+	if not self.should_mark_attendance(employee, date):
+		return
+
+	shift_start_time = frappe.db.get_value("Shift Type",{"name": shift_type}, "start_time")
+	shift_datetime = datetime.combine(getdate(date), get_time(shift_start_time))
+	
+	shift_timings = get_employee_shift_timings(employee, get_datetime(shift_datetime), True)[1] 	#for current shift
+	 
+	filters = {
+		"skip_auto_attendance": 0,
+		"attendance": ("is", "not set"),
+		"shift": shift_type,
+		"employee": employee,
+		"time": ["between", [ get_datetime_str(shift_timings.actual_start), 
+					   		get_datetime_str(shift_timings.actual_end) ]]
+	}
+
+	checkin_logs = frappe.db.get_list("Employee Checkin", 
+		fields=["*"], 
+		filters=filters, 
+		order_by="time"
+	)
+
+	if checkin_logs:
+		attendance = get_attendance(self, checkin_logs)
+
+		attnd_name = frappe.db.exists("Attendance",{"employee": employee, "attendance_date":date, "docstatus": 1})
+
+		attnd = ''
+		if attnd_name:
+			attnd = frappe.get_doc("Attendance", attnd_name)
+			attnd.db_set({
+				"status": attendance[0],
+				"working_hours": attendance[1],
+				"late_entry": attendance[2],
+				"early_exit": attendance[3],
+				"in_time": attendance[4],
+				"out_time": attendance[5],
+				"shift": self.shift_name,			
+			})
+			frappe.msgprint(_("Attendance updated : {0} ").format(attnd.name))
+
+		else:
+			attnd = frappe.get_doc({
+				"doctype": "Attendance",
+				"employee": employee,
+				"attendance_date": date,
+				"status": attendance[0],
+				"working_hours": attendance[1],
+				"late_entry": attendance[2],
+				"early_exit": attendance[3],
+				"in_time": attendance[4],
+				"out_time": attendance[5],
+				"shift": self.shift_name,
+			})
+			attnd.insert()
+			attnd.submit()
+			frappe.msgprint(_("Attendance created : {0} ").format(attnd.name))
+			
+		for log in checkin_logs:
+			frappe.db.set_value("Employee Checkin", log.name, "attendance", attnd.name)
+
+def get_attendance(self, logs):
+	"""Return attendance_status, working_hours, late_entry, early_exit, in_time, out_time
+	for a set of logs belonging to a single shift.	"""
+
+	shift_doc = frappe.get_doc("Shift Type", self.shift_name)
+
+	late_entry = early_exit = False
+	total_working_hours, in_time, out_time = calculate_working_hours(
+		logs, shift_doc.determine_check_in_and_check_out, shift_doc.working_hours_calculation_based_on
+	)
+	
+	shift_start = logs[0]["shift_start"]
+	shift_end = logs[0]["shift_end"]
+	
+	if (
+		cint(shift_doc.enable_late_entry_marking)
+		and in_time
+		and in_time > shift_start + timedelta(minutes=cint(shift_doc.late_entry_grace_period))
+	):
+		late_entry = True
+
+	if (
+		cint(shift_doc.enable_early_exit_marking)
+		and out_time
+		and out_time < shift_end - timedelta(minutes=cint(shift_doc.early_exit_grace_period))
+	):
+		early_exit = True
+
+	if (
+		shift_doc.working_hours_threshold_for_absent
+		and total_working_hours < shift_doc.working_hours_threshold_for_absent
+	):
+		return "Absent", total_working_hours, late_entry, early_exit, in_time, out_time
+
+	if (
+		shift_doc.working_hours_threshold_for_half_day
+		and total_working_hours < shift_doc.working_hours_threshold_for_half_day
+	):
+		return "Half Day", total_working_hours, late_entry, early_exit, in_time, out_time
+
+	return "Present", total_working_hours, late_entry, early_exit, in_time, out_time
+
+
+@frappe.whitelist()
 def process_attendance(employee, shift_type, date):
 	if attnd:=frappe.db.exists("Attendance",{"employee":employee, "attendance_date":date, "docstatus": 1}):
 		attendance = frappe.get_doc("Attendance",attnd)
 		attendance.cancel()
-	doc = frappe.get_doc("Shift Type", shift_type)
+
+	doc = frappe.get_doc("Shift Type", shift_type) 
+
 	doc.process_auto_attendance()
-	# if (
-	# 	not cint(doc.enable_auto_attendance)
-	# 	or not doc.process_attendance_after
-	# 	or not doc.last_sync_of_checkin
-	# ):
-	# 	return
-
-	# filters = {
-	# 	"skip_auto_attendance": 0,
-	# 	"attendance": ("is", "not set"),
-	# 	"time": (">=", doc.process_attendance_after),
-	# 	"shift_actual_end": ("<", doc.last_sync_of_checkin),
-	# 	"shift": doc.name,
-	# 	"employee": employee
-	# }
-	# logs = frappe.db.get_list(
-	# 	"Employee Checkin", fields="*", filters=filters, order_by="employee,time"
-	# )
-
-	# for key, group in itertools.groupby(
-	# 	logs, key=lambda x: (x["employee"], x["shift_actual_start"])
-	# ):
-	# 	if not doc.should_mark_attendance(employee, date):
-	# 		continue
-
-	# 	single_shift_logs = list(group)
-	# 	(
-	# 		attendance_status,
-	# 		working_hours,
-	# 		late_entry,
-	# 		early_exit,
-	# 		in_time,
-	# 		out_time,
-	# 	) = doc.get_attendance(single_shift_logs)
-		
-
-	# 	mark_attendance_and_link_log(
-	# 		single_shift_logs,
-	# 		attendance_status,
-	# 		key[1].date(),
-	# 		working_hours,
-	# 		late_entry,
-	# 		early_exit,
-	# 		in_time,
-	# 		out_time,
-	# 		doc.name,
-	# 	)
-
-	# for employee in doc.get_assigned_employees(doc.process_attendance_after, True):
-	# 	doc.mark_absent_for_dates_with_no_attendance(employee)
 	
 @frappe.whitelist()
 def cancel_linked_records(employee, date):
