@@ -10,7 +10,7 @@ class ReviseMakingChargePrice(Document):
 				"customer": self.customer,
 				"setting_type": self.setting_type,
 				"metal_type": self.metal_type,
-                "meta_touch":self.metal_touch
+                "metal_touch":self.metal_touch
 			}
                    
         name = frappe.db.get_value("Making Charge Price",filters,"name")
@@ -177,7 +177,7 @@ class ReviseMakingChargePrice(Document):
 				"customer": self.customer,
 				"setting_type": self.setting_type,
 				"metal_type": self.metal_type,
-                "meta_touch":self.metal_touch
+                "metal_touch":self.metal_touch
 			}
         name = frappe.db.get_value("Making Charge Price",filters,"name")
         if name:
