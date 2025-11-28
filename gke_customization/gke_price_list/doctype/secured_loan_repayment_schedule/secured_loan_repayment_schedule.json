@@ -15,7 +15,9 @@
   "outstanding_amount",
   "payment_status",
   "make_payment_entry",
-  "payment_entry_created"
+  "payment_entry_created",
+  "make_journal_entry",
+  "journal_entry_created"
  ],
  "fields": [
   {
@@ -84,6 +86,18 @@
    "fieldtype": "Date",
    "label": "Payment Date",
    "read_only_depends_on": "eval:doc.payment_status!='Paid'"
+  },
+  {
+   "fieldname": "make_journal_entry",
+   "fieldtype": "Button",
+   "label": "Make Journal Entry"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fieldname": "journal_entry_created",
+   "fieldtype": "Check",
+   "label": "Journal Entry Created"
   }
  ],
  "index_web_pages_for_search": 1,

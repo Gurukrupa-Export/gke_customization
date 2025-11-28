@@ -57,7 +57,8 @@ frappe.ui.form.on('Secured Loan Repayment Schedule', {
             frappe.new_doc('Payment Entry', {
                 payment_type: "Pay",
                 party_type: "Supplier",
-                posting_date: frappe.datetime.nowdate(),
+                pposting_date: row.payment_date,
+                reference_date: row.payment_date,
                 paid_amount: row.emi_amount,
                 received_amount: row.emi_amount,
                 company: frm.doc.company,
@@ -83,4 +84,44 @@ frappe.ui.form.on('Secured Loan Repayment Schedule', {
 
 
     },
+    make_journal_entry(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        if (row.journal_entry_created == 0) {
+            frappe.dom.freeze();
+            frappe.call({
+                method: "gke_customization.gke_price_list.doctype.secured_loan.secured_loan.get_loan_acccount",
+                args: { business_partner: frm.doc.lender },
+                callback: function(r) {
+                    frappe.dom.unfreeze();
+                    if (r.message && r.message.length > 0) {
+                        const secured_account = r.message[0].secured_loan_account;
+                        
+                        const je_doc = {
+                            doctype: "Journal Entry",
+                            posting_date: row.payment_date,
+                            company: frm.doc.company,
+                            custom_secured_loan: frm.doc.name,
+                            custom_secured_loan_repayment_schedule: row.name,
+                            branch: frm.doc.branch,
+                            accounts: [{
+                                account: secured_account,
+                                credit_in_account_currency: (row.emi_amount || 0) - (row.principal_amount || 0)
+                            }]
+                        };
+                        frappe.route_options = je_doc;
+                        frappe.set_route("Form", "Journal Entry", "new-journal-entry");
+                        frm.refresh_field(cdt);
+                    } else {
+                        frappe.msgprint("No secured loan account found");
+                    }
+                },
+                error: function() {
+                    frappe.dom.unfreeze();
+                    frappe.msgprint("Error fetching loan account");
+                }
+            });
+        } else {
+            frappe.msgprint("Journal Entry already processed for this row");
+        }
+    }
 });
