@@ -350,4 +350,96 @@ def on_submit(self, method):
             gl_entry.submit()
             frappe.flags.ignore_permissions = False
 
+    if self.custom_partner_capital and self.payment_type == 'Receive':
+        bussiness_patner = frappe.db.get_value("Partner Capital",self.custom_partner_capital,"lender")
+        unsecured_laon_account = frappe.db.sql(f"""select partner_capital_account from `tabLoan Accounts` where parent = '{bussiness_patner}' and company = '{self.company}'""",as_dict=1)
+        if not unsecured_laon_account:
+            frappe.throw("Partner Capital account is not available for this Company")
+
+        gl_entries = []
+    
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': self.paid_from, 
+            'debit': self.paid_amount,
+            'debit_in_account_currency': self.paid_amount,
+            'debit_in_transaction_currency': self.paid_amount,
+            'credit': 0,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': unsecured_laon_account[0]['partner_capital_account'],
+            'debit': 0,
+            'credit': self.paid_amount,
+            'credit_in_account_currency': self.paid_amount,
+            'credit_in_transaction_currency': self.paid_amount,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        for entry in gl_entries:
+            gl_entry = frappe.get_doc({
+                'doctype': 'GL Entry',
+                **entry
+            })
+            gl_entry.insert(ignore_permissions=True)
+            gl_entry.submit()
+            frappe.flags.ignore_permissions = False
+        frappe.msgprint("Payment Entry Created")
+
+    if self.custom_partner_capital and self.payment_type == 'Pay':
+        bussiness_patner = frappe.db.get_value("Partner Capital",self.custom_partner_capital,"lender")
+        unsecured_laon_account = frappe.db.sql(f"""select partner_capital_account from `tabLoan Accounts` where parent = '{bussiness_patner}' and company = '{self.company}'""",as_dict=1)
+        if not unsecured_laon_account:
+            frappe.throw("Partner Capital account is not available for this Company")
+
+        gl_entries = []
+    
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': self.paid_to, 
+            'debit': 0,
+            'credit': self.paid_amount,
+            'credit_in_account_currency': self.paid_amount,
+            'credit_in_transaction_currency': self.paid_amount,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        gl_entries.append({
+            'company':self.company,
+            'posting_date': self.posting_date,
+            'account': unsecured_laon_account[0]['partner_capital_account'], 
+            'debit': self.paid_amount,
+            'debit_in_account_currency': self.paid_amount,
+            'debit_in_transaction_currency': self.paid_amount,
+            'credit': 0,
+            'party_type': self.party_type,
+            'party': self.party,
+            'voucher_type': 'Payment Entry',
+            'voucher_no': self.name,
+        })
+
+        for entry in gl_entries:
+            gl_entry = frappe.get_doc({
+                'doctype': 'GL Entry',
+                **entry
+            })
+            gl_entry.insert(ignore_permissions=True)
+            gl_entry.submit()
+            frappe.flags.ignore_permissions = False
+        frappe.msgprint("Payment Entry Created")
+
 
