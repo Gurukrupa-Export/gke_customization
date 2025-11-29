@@ -96,3 +96,10 @@ def add_row(name, lender, loan_amount, company):
 
     return je.name
 
+@frappe.whitelist()
+def get_loan_acccount(business_partner):
+    loan_account = frappe.db.sql(f"""select secured_loan_account from `tabLoan Accounts` where parent='{business_partner}'""",as_dict=True)
+    if loan_account:
+        return loan_account
+
+
