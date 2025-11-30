@@ -1,0 +1,461 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-08-27 15:24:57.779316",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "address_and_contacts_tab",
+  "employee_details_section",
+  "employee",
+  "employee_update",
+  "column_break_pacl",
+  "employee_name",
+  "company",
+  "section_break_svv6",
+  "same_as_current_address",
+  "custom_city",
+  "custom_state",
+  "emergency_contact_details_table",
+  "salary_tab",
+  "employee_name_as_per_bank_account",
+  "personal_tab",
+  "health_insurance_section",
+  "health_insurance_provider",
+  "custom_health_insurance_status",
+  "custom_column_break_omq32",
+  "custom_sum_assured_",
+  "health_insurance_no",
+  "custom_accident_insurance",
+  "custom_accident_insurance_provider",
+  "custom_accident_insurance_status",
+  "custom_column_break_svzjc",
+  "custom_sum_assured_accident_insurance_",
+  "custom_accident_insurance_no",
+  "custom_languages",
+  "custom_employee_languages",
+  "custom_hobbies",
+  "custom_employees_hobbies",
+  "additional_info_tab",
+  "religon",
+  "column_break_9oy5o",
+  "employee_cast",
+  "reference",
+  "reference_type",
+  "reference_employee_code",
+  "reference_employee_name",
+  "column_break_t3xn9",
+  "reference_contact",
+  "reference_address",
+  "aadhar_details",
+  "aadhar_number",
+  "column_break_xmosj",
+  "name_as_per_aadhar",
+  "custom_linked_aadhar_contact",
+  "driving_licence_details",
+  "driving_licence_no",
+  "name_as_per_driving_license",
+  "column_break_rpqzb",
+  "driving_license_valid_upto_date",
+  "section_break_gqpqp",
+  "employee_family_background",
+  "section_break_qwaae",
+  "employee_relative_deails",
+  "relative_employee_code",
+  "relative_employee_name",
+  "employee_relative_relation",
+  "naming_series",
+  "employee_signature_tab",
+  "employee_signature"
+ ],
+ "fields": [
+  {
+   "fieldname": "address_and_contacts_tab",
+   "fieldtype": "Tab Break",
+   "label": "Address and Contacts"
+  },
+  {
+   "fieldname": "employee_details_section",
+   "fieldtype": "Section Break",
+   "label": "Employee Details"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Full Name"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "section_break_svv6",
+   "fieldtype": "Section Break",
+   "label": "Address and Contacts"
+  },
+  {
+   "default": "0",
+   "fieldname": "same_as_current_address",
+   "fieldtype": "Check",
+   "label": "Same as Current Address"
+  },
+  {
+   "fieldname": "custom_city",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "City",
+   "translatable": 1
+  },
+  {
+   "fieldname": "custom_state",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "State",
+   "options": "State List"
+  },
+  {
+   "fieldname": "salary_tab",
+   "fieldtype": "Tab Break",
+   "label": "Salary"
+  },
+  {
+   "depends_on": "eval:doc.salary_mode == 'Bank'",
+   "fieldname": "employee_name_as_per_bank_account",
+   "fieldtype": "Data",
+   "label": "Employee Name as per Bank Account",
+   "translatable": 1
+  },
+  {
+   "fieldname": "personal_tab",
+   "fieldtype": "Tab Break",
+   "label": "Personal"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "health_insurance_section",
+   "fieldtype": "Section Break",
+   "label": "Health Insurance"
+  },
+  {
+   "fieldname": "health_insurance_provider",
+   "fieldtype": "Link",
+   "label": "Health Insurance Provider",
+   "options": "Employee Health Insurance"
+  },
+  {
+   "fieldname": "custom_health_insurance_status",
+   "fieldtype": "Select",
+   "label": "Health Insurance Status",
+   "options": "\nPending\nComplete"
+  },
+  {
+   "fieldname": "custom_column_break_omq32",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_sum_assured_",
+   "fieldtype": "Select",
+   "label": "Sum Assured",
+   "options": "\n1 Lakh\n2 Lakh\n3 Lakh\n4 Lakh\n5 Lakh\n10 Lakh",
+   "translatable": 1
+  },
+  {
+   "depends_on": "eval:doc.custom_health_insurance_status == 'Complete'",
+   "fieldname": "health_insurance_no",
+   "fieldtype": "Data",
+   "label": "Health Insurance No",
+   "mandatory_depends_on": "eval:doc.custom_health_insurance_status == 'Complete'"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "custom_accident_insurance",
+   "fieldtype": "Section Break",
+   "label": "Accident Insurance"
+  },
+  {
+   "fieldname": "custom_accident_insurance_provider",
+   "fieldtype": "Link",
+   "label": "Accident Insurance Provider",
+   "options": "Employee Health Insurance"
+  },
+  {
+   "fieldname": "custom_accident_insurance_status",
+   "fieldtype": "Select",
+   "label": "Accident Insurance Status",
+   "options": "\nPending\nComplete"
+  },
+  {
+   "fieldname": "custom_column_break_svzjc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "custom_sum_assured_accident_insurance_",
+   "fieldtype": "Select",
+   "label": "Sum Assured Accident Insurance ",
+   "options": "\n10 Lakh",
+   "translatable": 1
+  },
+  {
+   "depends_on": "eval:doc.custom_accident_insurance_status == 'Complete'",
+   "fieldname": "custom_accident_insurance_no",
+   "fieldtype": "Data",
+   "label": "Accident Insurance No",
+   "mandatory_depends_on": "eval:doc.custom_accident_insurance_status == 'Complete'",
+   "translatable": 1
+  },
+  {
+   "fieldname": "custom_languages",
+   "fieldtype": "Section Break",
+   "label": "Languages"
+  },
+  {
+   "fieldname": "custom_employee_languages",
+   "fieldtype": "Table",
+   "label": "Employee Languages",
+   "options": "Employee Languages"
+  },
+  {
+   "fieldname": "custom_hobbies",
+   "fieldtype": "Section Break",
+   "label": "Hobbies"
+  },
+  {
+   "fieldname": "custom_employees_hobbies",
+   "fieldtype": "Table",
+   "label": "Employees Hobbies",
+   "options": "Employees Hobbies"
+  },
+  {
+   "fieldname": "additional_info_tab",
+   "fieldtype": "Tab Break",
+   "label": "Additional Info"
+  },
+  {
+   "fieldname": "religon",
+   "fieldtype": "Data",
+   "label": "Religon"
+  },
+  {
+   "fieldname": "column_break_9oy5o",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employee_cast",
+   "fieldtype": "Data",
+   "label": "Cast",
+   "translatable": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "reference",
+   "fieldtype": "Section Break",
+   "label": "Reference"
+  },
+  {
+   "fieldname": "reference_type",
+   "fieldtype": "Data",
+   "label": "Reference Type",
+   "translatable": 1
+  },
+  {
+   "fieldname": "reference_employee_code",
+   "fieldtype": "Link",
+   "label": "Reference Employee Code",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "reference_employee_code.employee_name",
+   "fieldname": "reference_employee_name",
+   "fieldtype": "Data",
+   "label": "Reference Employee Name",
+   "read_only": 1,
+   "translatable": 1
+  },
+  {
+   "fieldname": "column_break_t3xn9",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "reference_employee_code.cell_number",
+   "fieldname": "reference_contact",
+   "fieldtype": "Data",
+   "label": "Reference Contact"
+  },
+  {
+   "fetch_from": "reference_employee_code.current_address",
+   "fieldname": "reference_address",
+   "fieldtype": "Data",
+   "label": "Reference Address",
+   "translatable": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "aadhar_details",
+   "fieldtype": "Section Break",
+   "label": "Aadhar details"
+  },
+  {
+   "fieldname": "aadhar_number",
+   "fieldtype": "Data",
+   "label": "Aadhar Number",
+   "length": 12,
+   "translatable": 1
+  },
+  {
+   "fieldname": "column_break_xmosj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "name_as_per_aadhar",
+   "fieldtype": "Data",
+   "label": "Name as per Aadhar",
+   "translatable": 1
+  },
+  {
+   "fieldname": "custom_linked_aadhar_contact",
+   "fieldtype": "Data",
+   "label": "Linked Aadhar Contact"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "driving_licence_details",
+   "fieldtype": "Section Break",
+   "label": "Driving licence Details"
+  },
+  {
+   "fieldname": "driving_licence_no",
+   "fieldtype": "Data",
+   "label": "Driving licence No",
+   "translatable": 1
+  },
+  {
+   "fieldname": "name_as_per_driving_license",
+   "fieldtype": "Data",
+   "label": "Name as per driving license",
+   "translatable": 1
+  },
+  {
+   "fieldname": "column_break_rpqzb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "driving_license_valid_upto_date",
+   "fieldtype": "Date",
+   "label": "Driving license Valid Upto Date"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_gqpqp",
+   "fieldtype": "Section Break",
+   "label": "Employee Family Background"
+  },
+  {
+   "fieldname": "employee_family_background",
+   "fieldtype": "Table",
+   "label": "Employee Family Background",
+   "options": "Employee Family Background"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_qwaae",
+   "fieldtype": "Section Break",
+   "label": "Police Verification"
+  },
+  {
+   "fieldname": "employee_relative_deails",
+   "fieldtype": "Table",
+   "label": "Police Verification",
+   "options": "Employee Relative Deails"
+  },
+  {
+   "fieldname": "relative_employee_code",
+   "fieldtype": "Link",
+   "label": "Relative Employee Code",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "relative_employee_code.employee_name",
+   "fieldname": "relative_employee_name",
+   "fieldtype": "Data",
+   "label": "Relative Employee Name",
+   "translatable": 1
+  },
+  {
+   "fieldname": "employee_relative_relation",
+   "fieldtype": "Link",
+   "label": "Employee Relative Relation",
+   "options": "Employee Relations"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "naming_series",
+   "options": "EMP-EC-"
+  },
+  {
+   "fieldname": "emergency_contact_details_table",
+   "fieldtype": "Table",
+   "label": "Emergency Contact",
+   "options": "Emergency Contact"
+  },
+  {
+   "fieldname": "employee_update",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee Update",
+   "options": "Employee Update"
+  },
+  {
+   "fieldname": "column_break_pacl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employee_signature_tab",
+   "fieldtype": "Tab Break",
+   "label": "Employee Signature"
+  },
+  {
+   "fieldname": "employee_signature",
+   "fieldtype": "Signature",
+   "label": "Employee Signature"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-11-29 09:34:14.032878",
+ "modified_by": "bhavika_patel@gkexport.com",
+ "module": "GKE HRMS",
+ "name": "Employee Additional Details",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "shruti_b@gkexport.com",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

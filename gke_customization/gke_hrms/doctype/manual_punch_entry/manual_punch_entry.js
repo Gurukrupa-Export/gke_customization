@@ -11,17 +11,24 @@
 
 frappe.ui.form.on('Manual Punch Entry', {
 	refresh(frm){
-		frm.set_intro("Existing Personal Out and OT records will be cancelled on save")
+		// frm.set_intro("Existing Personal Out and OT records will be cancelled on save")
+		// frm.add_custom_button(__("Mark Attendance"), () => {
+
+		// 	frappe.call({ 
+        //         method: "gke_customization.gke_hrms.doctype.manual_punch_entry.manual_punch_entry.process_attendance",
+        //         args: {
+        //             employee: frm.doc.employee,
+        //             shift_type: frm.doc.shift_name,
+        //             date: frm.doc.date
+        //         },
+        //         freeze: true,
+        //         callback: () => {
+        //             frappe.msgprint("Attendance marked using manual punch entries.");
+        //         }
+        //     });
+		// });
 	},
-	onload(frm){
-		// frm.doc.date = null
-		// frm.trigger('date')
-		// frm.set_value({"employee":null, "shift_name": null, "start_time": null, "end_time": null, "for_od":0, "punch_id":null})
-	},
-	// after_save: function(frm) {
-	// 	frappe.throw(__("Filters missingssss"));
-	// 	frm.trigger("search")
-	// },
+	 
 	after_workflow_action(frm) { 
         if (frm.doc.workflow_state === "Create Attendance") {
 			frm.set_df_property('date', 'read_only', 1);
@@ -30,36 +37,90 @@ frappe.ui.form.on('Manual Punch Entry', {
 	date: function(frm) {
 		frm.set_value("new_punch", frm.doc.date)
 	},
+	// employee: function(frm) {
+	// 	if (frm.doc.employee) {
+	// 		frappe.db.get_value("Shift Assignment", {
+	// 			"employee": frm.doc.employee,
+	// 			"start_date": ["<=", frm.doc.date],
+	// 			// "end_date": [">=", frm.doc.date || null],
+	// 			"docstatus": 1
+	// 		}, ["name", "shift_type"]).then(shift_res => {
+	// 			console.log(shift_res);
+				
+	// 			if (shift_res && shift_res.message && shift_res.message.shift_type) {
+	// 				// Valid shift assignment found
+	// 				console.log("Shift Assignment:", shift_res.message.name);
+	// 				frm.set_value("shift_name", shift_res.message.shift_type);
+	// 			} else {
+	// 				// No shift assignment, fallback to default_shift
+	// 				frappe.db.get_value("Employee", frm.doc.employee, ["default_shift"])
+	// 					.then(emp_res => {
+	// 						console.log(emp_res);
+							
+	// 						if (emp_res && emp_res.message) {
+	// 							console.log("Fallback to default_shift:", emp_res.message.default_shift);
+	// 							frm.set_value("shift_name", emp_res.message.default_shift);
+	// 						}
+	// 					});
+	// 			}
+	// 		});
+			
+	// 		frappe.db.get_value("Employee",frm.doc.employee, ["attendance_device_id"], (r) => {
+	// 			frm.set_value("punch_id", r.attendance_device_id)  
+	// 			console.log("Shift attendance_device_id:", r.attendance_device_id);
+	// 		})
+			
+	// 	}
+	// },
 	employee: function(frm) {
 		if (frm.doc.employee) {
-			frappe.db.get_value("Shift Assignment", {
-				"employee": frm.doc.employee,
-				"start_date": ["<=", frm.doc.date],
-				"end_date": [">=", frm.doc.date],
-				"docstatus": 1
-			}, ["name", "shift_type"]).then(shift_res => {
-				if (shift_res && shift_res.message && shift_res.message.shift_type) {
-					// Valid shift assignment found
-					console.log("Shift Assignment:", shift_res.message.name);
-					frm.set_value("shift_name", shift_res.message.shift_type);
-				} else {
-					// No shift assignment, fallback to default_shift
-					frappe.db.get_value("Employee", frm.doc.employee, ["default_shift"])
-						.then(emp_res => {
-							if (emp_res && emp_res.message) {
-								console.log("Fallback to default_shift:", emp_res.message.default_shift);
-								frm.set_value("shift_name", emp_res.message.default_shift);
-							}
-						});
+
+			frappe.db.get_list("Shift Assignment", {
+				fields: ["name", "shift_type"],
+				filters: [
+					["employee", "=", frm.doc.employee],
+					["start_date", "<=", frm.doc.date],
+					["docstatus", "=", 1],
+					["end_date", "is", "not set"],
+					
+				],
+				limit: 1
+			}).then(assignments => {
+				
+				if (assignments.length > 0) {
+					frm.set_value("shift_name", assignments[0].shift_type);
+				} 
+				else {
+					// Second query: where end_date IS not NULL
+					frappe.db.get_list("Shift Assignment", {
+						fields: ["name", "shift_type"],
+						filters: [
+							["employee", "=", frm.doc.employee],
+							["start_date", "<=", frm.doc.date],
+							["end_date", "is", "set"],
+							["docstatus", "=", 1]
+						],
+						limit: 1
+					}).then(null_end_assign => {
+						if (null_end_assign.length > 0) {
+							frm.set_value("shift_name", null_end_assign[0].shift_type);
+						} 
+						else {
+							// Fallback to default shift
+							frappe.db.get_value("Employee", frm.doc.employee, ["default_shift"])
+								.then(emp_res => {
+									frm.set_value("shift_name", emp_res.message.default_shift);
+								});
+						}
+					});
 				}
 			});
-			
-			frappe.db.get_value("Employee",frm.doc.employee, ["attendance_device_id"], (r) => {
-				frm.set_value("punch_id", r.attendance_device_id)  
-				console.log("Shift attendance_device_id:", r.attendance_device_id);
-			})
-			
-		}
+
+			// Punch ID
+			frappe.db.get_value("Employee", frm.doc.employee, ["attendance_device_id"], r => {
+				frm.set_value("punch_id", r.attendance_device_id);
+			});
+		} 
 	},
 	search: function(frm) {
 		frm.call({
