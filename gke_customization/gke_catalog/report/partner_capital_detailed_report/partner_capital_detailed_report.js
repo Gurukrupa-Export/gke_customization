@@ -28,8 +28,8 @@ frappe.query_reports["Partner Capital Detailed Report"] = {
             }
         },
         {
-            "fieldname": "business_partner",
-            "label": __("Business Partner"),
+            "fieldname": "lender",
+            "label": __("Lender"),
             "fieldtype": "Link",
             "options": "Business Partner"
         },
@@ -41,13 +41,11 @@ frappe.query_reports["Partner Capital Detailed Report"] = {
             "get_query": function() {
                 var company = frappe.query_report.get_filter_value("company");
                 var branch = frappe.query_report.get_filter_value("branch");
-                var business_partner = frappe.query_report.get_filter_value("business_partner");
-
+                var lender = frappe.query_report.get_filter_value("lender");
                 var filters = { "docstatus": ["!=", 2] };
                 if (company) filters.company = company;
                 if (branch) filters.branch = branch;
-                if (business_partner) filters.business_partner = business_partner;
-
+                if (lender) filters.lender = lender;
                 return { "filters": filters };
             }
         },
