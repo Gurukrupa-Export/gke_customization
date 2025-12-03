@@ -13,16 +13,16 @@ def execute(filters=None):
     capital_conditions = ""
     if filters.get("name"):
         capital_conditions += " AND name = %(name)s"
-    if filters.get("business_partner"):
-        capital_conditions += " AND business_partner = %(business_partner)s"
+    if filters.get("lender"):
+        capital_conditions += " AND lender = %(lender)s"
     if filters.get("company"):
         capital_conditions += " AND company = %(company)s"
     if filters.get("branch"):
         capital_conditions += " AND branch = %(branch)s"
 
     capital_query = f"""
-        SELECT name, business_partner, business_partner_name, amount, date, interest_rate,
-               loan_amount, company, branch, lender, lender_name
+        SELECT name, lender, lender_name, date, interest_rate,
+               loan_amount, company, branch
         FROM `tabPartner Capital`
         WHERE docstatus != 2 {capital_conditions}
         ORDER BY date DESC
@@ -32,13 +32,8 @@ def execute(filters=None):
     for capital in capitals:
         branch_display = capital.get('branch') or ""
         company_display = capital.get("company") or ""
-        if capital.get("lender"):
-            partner_display = capital.lender
-            partner_name = capital.lender_name or ""
-        else:
-            partner_display = capital.business_partner or ""
-            partner_name = capital.business_partner_name or frappe.db.get_value(
-                "Business Partner", capital.business_partner, "business_partner") or ""
+        lender_display = capital.get('lender') or ""
+        lender_name = capital.get('lender_name') or ""
 
         repayments = frappe.db.sql(
             """
@@ -66,11 +61,11 @@ def execute(filters=None):
             r = repayments[i]
             txn_date = getdate(r.payment_date)
 
-            # Apply transaction for the current row, not next
+            # Apply transaction for the current row
             if r.payment_type == "Pay":
                 balance -= flt(r.total_payment)
             elif r.payment_type == "Receive":
-                # For receive, only add if not the initial loan receive (date/amount match)
+                # For receive, only add if not the initial capital receive (date/amount match)
                 if not (txn_date == initial_date and flt(r.total_payment) == flt(capital.loan_amount)):
                     balance += flt(r.total_payment)
 
@@ -90,8 +85,8 @@ def execute(filters=None):
                 capital.name,
                 company_display,
                 branch_display,
-                partner_display,
-                partner_name,
+                lender_display,
+                lender_name,
                 balance,
                 txn_date,
                 period_end,
@@ -118,8 +113,8 @@ def get_columns():
         {"label": "Partner Capital ID", "fieldname": "partner_capital_id", "fieldtype": "Link", "options": "Partner Capital", "width": 150},
         {"label": "Company", "fieldname": "company", "fieldtype": "Data", "width": 290},
         {"label": "Branch", "fieldname": "branch", "fieldtype": "Data", "width": 120},
-        {"label": "Partner", "fieldname": "partner", "fieldtype": "Data", "width": 150},
-        {"label": "Partner Name", "fieldname": "partner_name", "fieldtype": "Data", "width": 150},
+        {"label": "Lender", "fieldname": "lender", "fieldtype": "Data", "width": 150},
+        {"label": "Lender Name", "fieldname": "lender_name", "fieldtype": "Data", "width": 150},
         {"label": "Balance", "fieldname": "balance", "fieldtype": "Currency", "width": 120},
         {"label": "From Date", "fieldname": "from_date", "fieldtype": "Date", "width": 150},
         {"label": "To Date", "fieldname": "to_date", "fieldtype": "Date", "width": 150},
