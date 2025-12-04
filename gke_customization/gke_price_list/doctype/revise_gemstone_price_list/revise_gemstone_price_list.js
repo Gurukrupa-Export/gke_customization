@@ -2,21 +2,21 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Revise Gemstone Price List', {
-	// onload: function(frm) {
-	// 	if(frm.doc.name){
-	// 		frappe.call({
-	// 			method: 'gke_customization.gke_price_list.doctype.revise_gemstone_price_list.revise_gemstone_price_list.get_value',
-	// 			args: {
-	// 				'doc': frm.doc,
-	// 			},
-	// 			callback: function(r) {
-	// 				if (!r.exc) {
-	// 					// code snippet
-	// 				}
-	// 			}
-	// 		});
-	// 	}
-	// },
+	onload: function(frm) {
+		if(frm.doc.name){
+			frappe.call({
+				method: 'gke_customization.gke_price_list.doctype.revise_gemstone_price_list.revise_gemstone_price_list.get_value',
+				args: {
+					'doc': frm.doc,
+				},
+				callback: function(r) {
+					if (!r.exc) {
+						// code snippet
+					}
+				}
+			});
+		}
+	},
 	revised_rate: function(frm){
 		frm.set_value('difference',frm.doc.revised_rate-frm.doc.rate_per_carat)
 	}
