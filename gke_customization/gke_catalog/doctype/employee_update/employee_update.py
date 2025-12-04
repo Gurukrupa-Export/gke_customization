@@ -19,18 +19,9 @@ class EmployeeUpdate(Document):
 		if self.allowed_personal_hours:
 			self.allowed_personal_hours = timedelta(hours=3)
 
-		# if self.is_new_employee:
-		# 	if self.health_insurance_status:
-
-		# 		frappe.msgprint(f"{self.health_insurance_status}")
-		# if self.employee_onboarding:
-		# 	job_appliacnt=frappe.db.get_value('Employee Onboarding',self.employee_onboarding,'job_applicant')
-		# 	image=frappe.db.get_value('Job Applicant',job_appliacnt,'custom_image')
-		# 	self.image=image
-		# 	frappe.throw(f"{image}")
 	def on_submit(self):
 		field_list = [
-			"first_name", "middle_name", "last_name", "image", "date_of_birth", "grade","job_applicant",
+			"first_name", "middle_name", "last_name", "image", "date_of_birth", "grade","job_applicant","manufacturer",
 			"salutation","gender","custom_notice_dayes", "employment_type","custom_probation_period_days",
 			"date_of_joining","contract_end_date", "old_employee_code", "old_punch_id","status",
 			"company", "department", "designation","operation","branch","apprentice_contract_no",
@@ -38,21 +29,31 @@ class EmployeeUpdate(Document):
 			"prefered_contact_email","prefered_email","unsubscribed","expense_approver","leave_approver","salary_currency",
 			"branch_name","reports_to","reporting_employee_name_",
 			"cell_number", "personal_email", "company_email", "current_address", "current_accommodation_type",
-			"same_as_current_address", "permanent_address","permanent_accommodation_type","city", "state", 
+			"permanent_address","permanent_accommodation_type","city", "state", 
 			"health_insurance_status","sum_assured_","accident_insurance_provider","accident_insurance_status",
 			"sum_assured_accident_insurance_","accident_insurance_no","is_esic_applicable","_esic_number",
 			"attendance_device_id","allowed_personal_hours","product_incentive_applicable","default_shift",
 			"holiday_list","shift_request_approver","salary_mode","ctc",
-			"employee_name_as_per_bank_account", "bank_name", "bank_ac_no", "ifsc_code", "micr_code", "iban", "marital_status",
-			"family_background", "blood_group", "health_details", "health_insurance_provider", "health_insurance_no", "passport_number", 
-			"valid_upto", "date_of_issue", "place_of_issue","religon", "employee_cast", "reference_type", 
-			"reference_employee_code", "reference_employee_name", "reference_contact",
-			"reference_address", "aadhar_number", "name_as_per_aadhar", "driving_licence_no", "name_as_per_driving_license", 
-			"driving_license_valid_upto_date","relative_employee_code", "relative_employee_name",
-			"employee_relative_relation", "resignation_letter_date", "relieving_date", "held_on", "new_workplace", 
+			"bank_name", "bank_ac_no", "ifsc_code", "micr_code", "iban", "marital_status",
+			"family_background", "blood_group", "health_details", 
+			"health_insurance_provider", 
+			"passport_number", "valid_upto", "date_of_issue", "place_of_issue",
+			"resignation_letter_date", "relieving_date", "held_on", "new_workplace", 
 			"leave_encashed", "encashment_date", "reason_for_leaving", "feedback", "is_pf_applicable",
-			"pf_joining_date","pan_number", "name_as_pe_pan", "provident_fund_account", "handicap_certificate_date", 
-			"handicap_percenatge", "is_physical_handicap", "uan_number","variable_end_date","variable_start_date","variable_in"
+			"pf_joining_date", "pan_number", "name_as_pe_pan", "provident_fund_account", 
+			"handicap_certificate_date", "handicap_percenatge", "is_physical_handicap", "uan_number",
+			"variable_end_date", "variable_start_date","variable_in",
+			"aadhar_number", "name_as_per_aadhar","custom_linked_aadhar_contact",
+			# remove after adding evrything into additional doctype
+			"same_as_current_address", "employee_name_as_per_bank_account", 
+			"health_insurance_no",
+			"religon","employee_cast", "reference_type", 
+			"reference_employee_code", "reference_employee_name", "reference_contact",
+			"reference_address", 
+			"driving_licence_no", "name_as_per_driving_license", 
+			"driving_license_valid_upto_date",
+			"relative_employee_code", "relative_employee_name",
+			"employee_relative_relation",
 		]
 		
 		field_mapping = {
@@ -60,44 +61,61 @@ class EmployeeUpdate(Document):
 			"operation": "custom_operation",
 			"city": "custom_city",
 			"state": "custom_state",
+			"is_esic_applicable": "custom_is_esic_applicable",
+
+			# remove after adding evrything into additional doctype
 			"health_insurance_status": "custom_health_insurance_status",
 			"sum_assured_": "custom_sum_assured_",
 			"accident_insurance_provider": "custom_accident_insurance_provider",
 			"accident_insurance_status": "custom_accident_insurance_status",
 			"sum_assured_accident_insurance_": "custom_sum_assured_accident_insurance_",
 			"accident_insurance_no": "custom_accident_insurance_no",
-			"is_esic_applicable": "custom_is_esic_applicable",
-			
-			}
-		
-		if self.is_new_employee:
-			# Create new employee
-			emp_doc = frappe.get_doc({"doctype": "Employee"})
+		}
 
+		# previous code
+		# if self.is_new_employee:
+		# 	# Create new employee
+		# 	emp_doc = frappe.get_doc({"doctype": "Employee"})
+
+		# 	for field in field_list:
+		# 		source_field = field
+		# 		target_field = field_mapping.get(field, field)
+
+		# 		value = frappe.db.get_value("Employee Update", self.name, source_field)
+		# 		emp_doc.set(target_field, value)
+
+		# 	allowed_personal_hours = self.get("allowed_personal_hours")
+		# 	if allowed_personal_hours:
+		# 		emp_doc.set("allowed_personal_hours", timedelta(hours=3))
+		# 	# emp_doc.insert()
+		# 	doc_ = emp_doc
+
+		if self.is_new_employee:
+			emp_doc = frappe.get_doc({"doctype": "Employee"})
 			for field in field_list:
 				source_field = field
 				target_field = field_mapping.get(field, field)
-
 				value = frappe.db.get_value("Employee Update", self.name, source_field)
 				emp_doc.set(target_field, value)
-
 			allowed_personal_hours = self.get("allowed_personal_hours")
 			if allowed_personal_hours:
 				emp_doc.set("allowed_personal_hours", timedelta(hours=3))
-			# emp_doc.insert()
+			emp_doc.insert()
 			doc_ = emp_doc
+			self.custom_employee_id = emp_doc.name
+			
 		else:
 			# Update existing employee
 			for field in field_list:
 				target_field = field_mapping.get(field, field)
 				emp_value = frappe.db.get_value("Employee", self.employee, target_field)
 				update_value = frappe.db.get_value("Employee Update", {"employee": self.employee}, field)
+				# custom_emp = frappe.db.get_value("Employee Customs", {"employee": self.employee}, "name")
 
 				if emp_value != update_value:
 					frappe.db.set_value("Employee", self.employee, target_field, update_value)
 
 			doc_ = frappe.get_doc("Employee", self.employee)
-		
 
 		doc_.set("custom_employee_languages", [])
 		if self.employee_languages:
@@ -141,7 +159,7 @@ class EmployeeUpdate(Document):
 			internal_work_history.designation = iwh.designation
 			internal_work_history.from_date = iwh.from_date
 			internal_work_history.to_date = iwh.to_date
-		
+
 		doc_.set("employee_family_background", [])
 		for efb in self.employee_family_background:
 			employee_family_background = doc_.append("employee_family_background", {})
@@ -174,9 +192,8 @@ class EmployeeUpdate(Document):
 			emergency_contact_details_table.emergency_contact_name = ecdt.emergency_contact_name
 			emergency_contact_details_table.emergency_phone = ecdt.emergency_phone
 			emergency_contact_details_table.relation = ecdt.relation
-
-		doc_.save()
-		# frappe.throw(f"{doc_.name}")
+		
+		doc_.save() 
 		frappe.db.commit()
 
 		if not self.is_new_employee:
