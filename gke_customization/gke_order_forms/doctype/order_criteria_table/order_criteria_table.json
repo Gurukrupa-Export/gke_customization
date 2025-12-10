@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "section_break_ff3u",
+  "sketch_submission_time",
   "sketch_submission",
   "cad_submission",
   "skecth_approval_timefrom_ibm_team",
@@ -57,6 +58,11 @@
    "fieldtype": "Time",
    "in_list_view": 1,
    "label": "Cad Submission Time"
+  },
+  {
+   "fieldname": "sketch_submission_time",
+   "fieldtype": "Time",
+   "label": "Sketch Submission Time"
   }
  ],
  "index_web_pages_for_search": 1,
