@@ -193,7 +193,8 @@ def create_attendance_from_manual_punch(self):
 					# AND attendance IS NOT NULL
 					AND skip_auto_attendance = 0
 					AND shift = '{shift_type}'
-					AND DATE(time) = '{date}'   
+					AND DATE(time) = '{date}'
+				ORDER BY time ASC 
 		""",as_dict=1)
 
 		
@@ -205,12 +206,12 @@ def create_attendance_from_manual_punch(self):
 			if attnd_name:
 				attnd = frappe.get_doc("Attendance", attnd_name)
 				attnd.db_set({
-					"status": attendance[0],
-					"working_hours": attendance[1],
-					"late_entry": attendance[2],
-					"early_exit": attendance[3],
-					"in_time": attendance[4],
-					"out_time": attendance[5],
+					"status": attendance.get("status"),
+					"working_hours": attendance.get("working_hours"),
+					"late_entry": attendance.get("late_entry"),
+					"early_exit": attendance.get("early_exit"),
+					"in_time": attendance.get("in_time"),
+					"out_time": attendance.get("out_time"),
 					"shift": self.shift_name,			
 				})
 				frappe.msgprint(_("Attendance updated : {0} ").format(attnd.name))
@@ -220,12 +221,12 @@ def create_attendance_from_manual_punch(self):
 					"doctype": "Attendance",
 					"employee": employee,
 					"attendance_date": date,
-					"status": attendance[0],
-					"working_hours": attendance[1],
-					"late_entry": attendance[2],
-					"early_exit": attendance[3],
-					"in_time": attendance[4],
-					"out_time": attendance[5],
+					"status": attendance.get("status"),
+					"working_hours": attendance.get("working_hours"),
+					"late_entry": attendance.get("late_entry"),
+					"early_exit": attendance.get("early_exit"),
+					"in_time": attendance.get("in_time"),
+					"out_time": attendance.get("out_time"),
 					"shift": self.shift_name,
 				})
 				attnd.insert()
@@ -270,15 +271,39 @@ def get_attendance(self, logs):
 		shift_doc.working_hours_threshold_for_absent
 		and total_working_hours < shift_doc.working_hours_threshold_for_absent
 	):
-		return "Absent", total_working_hours, late_entry, early_exit, in_time, out_time
+		# return "Absent", total_working_hours, late_entry, early_exit, in_time, out_time
+		return {
+			"status": "Absent",
+			"working_hours": total_working_hours,
+			"late_entry": late_entry,
+			"early_exit": early_exit,
+			"in_time": in_time,
+			"out_time": out_time,
+		}
 
 	if (
 		shift_doc.working_hours_threshold_for_half_day
 		and total_working_hours < shift_doc.working_hours_threshold_for_half_day
 	):
-		return "Half Day", total_working_hours, late_entry, early_exit, in_time, out_time
+		# return "Half Day", total_working_hours, late_entry, early_exit, in_time, out_time
+		return {
+			"status": "Half Day",
+			"working_hours": total_working_hours,
+			"late_entry": late_entry,
+			"early_exit": early_exit,
+			"in_time": in_time,
+			"out_time": out_time,
+		}
 
-	return "Present", total_working_hours, late_entry, early_exit, in_time, out_time
+	# return "Present", total_working_hours, late_entry, early_exit, in_time, out_time
+	return {
+		"status": "Present",
+		"working_hours": total_working_hours,
+		"late_entry": late_entry,
+		"early_exit": early_exit,
+		"in_time": in_time,
+		"out_time": out_time,
+	}
 
 
 @frappe.whitelist()
