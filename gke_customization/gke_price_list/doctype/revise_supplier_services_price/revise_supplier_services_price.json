@@ -1,0 +1,111 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:RSSP-{supplier}-#####",
+ "creation": "2025-12-13 15:06:25.747049",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "amended_from",
+  "date",
+  "supplier",
+  "metal_type",
+  "column_break_x6me",
+  "company",
+  "purchase_type",
+  "type_of_subcontracting",
+  "section_break_elev",
+  "revise_making_charge_price_item_subcategory"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_elev",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Revise Supplier Services Price",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "column_break_x6me",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "purchase_type",
+   "fieldtype": "Link",
+   "label": "Purchase Type",
+   "options": "Purchase Type"
+  },
+  {
+   "fieldname": "metal_type",
+   "fieldtype": "Link",
+   "label": "Metal Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "type_of_subcontracting",
+   "fieldtype": "Link",
+   "label": "Type Of Subcontracting",
+   "options": "Department Operation"
+  },
+  {
+   "fieldname": "revise_making_charge_price_item_subcategory",
+   "fieldtype": "Table",
+   "label": "Revise Subcategory",
+   "options": "Revise Supplier Services Price Item Subcategory"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-12-13 15:53:52.459240",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Revise Supplier Services Price",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
