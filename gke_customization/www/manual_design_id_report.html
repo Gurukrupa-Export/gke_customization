@@ -22,31 +22,47 @@
         opacity: 0.1;
         z-index: -2;
     }
-
-    .background {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        z-index: -1;
-        overflow: hidden;
-        pointer-events: none;
+        /* .brand-highlight {
+        font-weight: 900;
+        color: #1a1a1a;
+        font-size: 2rem;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.20),
+                    0 1px 0 #fff,
+                    2px 4px 10px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: 'Inter', sans-serif;
     }
+    .brand-highlight img {
+        height: 50px;
+        vertical-align: middle;
+    }
+        .background {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        } */
 
     .diamond {
         position: absolute;
         font-size: 10rem;
-        opacity: 0.;
+        opacity: 0.2;
         animation: float 20s linear infinite;
     }
 
     @keyframes float {
         0% {
             transform: translateY(100vh) rotate(0deg);
-            opacity: 0.5;
+            opacity: 0.2;
         }
         100% {
             transform: translateY(-10vh) rotate(360deg);
-            opacity: 0.1;
+            opacity: 0.2;
         }
     }
 
@@ -94,6 +110,7 @@
         padding: 80px;
     }
 
+    
     #unauthorized-message h1 {
         color: #e74c3c;
     }
@@ -142,7 +159,7 @@
     </h5>
     <div id="dashboard-container">
         <iframe id="metabase-frame" 
-            src="https://www.gkexport.co/public/dashboard/7cf51291-357b-4485-8d68-baf32b730900"
+            src="https://www.gkexport.co/public/question/9597fd97-7f0c-4b89-8df2-e3a4b19e3acb"
             allowtransparency="true">
         </iframe>
         <div id="loading-message">
@@ -154,7 +171,7 @@
 </div>
 
 <div id="unauthorized-message">
-    <h1> 𖨆 HR Dashboard</h1>
+    <h1>🔒 Manual Design ID Report </h1>
     <p>This data is restricted. Redirecting you to safety...</p>
     <a href="/login">Login</a>
 </div>
@@ -163,6 +180,7 @@
     function updateStatus(message) {
         // console.log('Status:', message);
     }
+
 
     frappe.ready(function () {
         updateStatus('Page ready. Checking session...');
