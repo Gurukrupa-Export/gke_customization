@@ -1,5 +1,5 @@
 import frappe
-from frappe.utils import flt, getdate
+from frappe.utils import flt, getdate, add_days
 from datetime import timedelta, date
 
 def execute(filters=None):
@@ -59,26 +59,36 @@ def execute(filters=None):
 
         for i in range(n):
             r = repayments[i]
-            txn_date = getdate(r.payment_date)
+            payment_date = getdate(r.payment_date)
 
-            # Apply transaction for the current row
-            if r.payment_type == "Pay":
-                balance -= flt(r.total_payment)
-            elif r.payment_type == "Receive":
-                # For receive, only add if not the initial capital receive (date/amount match)
-                if not (txn_date == initial_date and flt(r.total_payment) == flt(capital.loan_amount)):
-                    balance += flt(r.total_payment)
-
-            # Period end calculation
-            if i + 1 < n:
-                period_end = getdate(repayments[i + 1]['payment_date']) - timedelta(days=1)
+            # From Date logic
+            if i == 0:
+                # First row: use first payment date
+                from_date = payment_date
             else:
-                period_end = getdate(filters.get("to_date")) if filters.get("to_date") else get_fy_end(txn_date)
-                if not filters.get("to_date") and period_end > date.today():
-                    period_end = get_fy_end(txn_date)
-            days = (period_end - txn_date).days + 1
+                # Subsequent rows: day after current payment date
+                from_date = add_days(payment_date, 1)
 
-            interest_amount = flt(balance) * flt(capital.interest_rate) * days / 36500 if days > 0 else 0
+            # Balance BEFORE the transaction
+            current_balance = balance
+
+            # To Date calculation
+            if i + 1 < n:
+                # Use next payment date as To Date
+                to_date = getdate(repayments[i + 1]['payment_date'])
+            else:
+                # Last entry: use filter to_date or FY end
+                to_date = getdate(filters.get("to_date")) if filters.get("to_date") else get_fy_end(payment_date)
+                if not filters.get("to_date") and to_date > date.today():
+                    to_date = get_fy_end(payment_date)
+
+            # Calculate days
+            days = (to_date - from_date).days + 1
+            if days < 0:
+                days = 0
+
+            # Interest calculation
+            interest_amount = flt(current_balance) * flt(capital.interest_rate) * days / 36500 if days > 0 else 0
             total_interest += interest_amount
 
             data.append([
@@ -87,16 +97,22 @@ def execute(filters=None):
                 branch_display,
                 lender_display,
                 lender_name,
-                balance,
-                txn_date,
-                period_end,
-                days if days > 0 else 0,
+                current_balance,
+                from_date,
+                to_date,
+                days,
                 capital.interest_rate,
                 interest_amount,
                 r.payment_type,
                 flt(r.total_payment),
                 r.payment_entry_created
             ])
+
+            # Apply transaction AFTER showing the row
+            if r.payment_type == "Pay":
+                balance -= flt(r.total_payment)
+            elif r.payment_type == "Receive":
+                balance += flt(r.total_payment)
 
         last_balances[capital.name] = balance
 
