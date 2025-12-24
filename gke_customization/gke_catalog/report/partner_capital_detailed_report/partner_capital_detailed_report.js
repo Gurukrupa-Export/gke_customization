@@ -1,6 +1,7 @@
 // Copyright (c) 2025, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
+
 frappe.query_reports["Partner Capital Detailed Report"] = {
     "filters": [
         {
@@ -43,10 +44,12 @@ frappe.query_reports["Partner Capital Detailed Report"] = {
                 var branch = frappe.query_report.get_filter_value("branch");
                 var business_partner = frappe.query_report.get_filter_value("business_partner");
 
+
                 var filters = { "docstatus": ["!=", 2] };
                 if (company) filters.company = company;
                 if (branch) filters.branch = branch;
                 if (business_partner) filters.business_partner = business_partner;
+
 
                 return { "filters": filters };
             }
