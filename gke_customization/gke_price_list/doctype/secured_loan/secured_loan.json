@@ -73,7 +73,8 @@
   {
    "fieldname": "interest_rate",
    "fieldtype": "Float",
-   "label": "Interest Rate"
+   "label": "Interest Rate",
+   "precision": "4"
   },
   {
    "fieldname": "asset_collateral",
@@ -91,6 +92,7 @@
    "fieldtype": "Section Break"
   },
   {
+   "allow_bulk_edit": 1,
    "allow_on_submit": 1,
    "fieldname": "secured_loan_repayment_schedule",
    "fieldtype": "Table",
@@ -165,7 +167,7 @@
    "link_fieldname": "custom_secure_loan"
   }
  ],
- "modified": "2025-09-30 16:47:40.982919",
+ "modified": "2025-11-25 16:32:10.213863",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Secured Loan",
