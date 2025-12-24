@@ -29,7 +29,7 @@ frappe.ui.form.on('Secured Loan', {
         if (frm.doc.journal_entry_created == 0 && frm.doc.docstatus == 1) {
             frm.add_custom_button(__('Create Journal Entry'), () => {
                 frappe.call({
-                    method: "gke_customization.gke_price_list.doctype.secured_loan.secured_loan.add_row",
+                    method: "gke_customization.gke_price_list.doctype.secured_loan.secured_loan.make_jv",
                     args: {
                         name : frm.doc.name,
                         lender: frm.doc.lender,
@@ -57,7 +57,8 @@ frappe.ui.form.on('Secured Loan Repayment Schedule', {
             frappe.new_doc('Payment Entry', {
                 payment_type: "Pay",
                 party_type: "Supplier",
-                posting_date: frappe.datetime.nowdate(),
+                posting_date: row.payment_date,
+                reference_date: row.payment_date,
                 paid_amount: row.emi_amount,
                 received_amount: row.emi_amount,
                 company: frm.doc.company,
@@ -73,7 +74,6 @@ frappe.ui.form.on('Secured Loan Repayment Schedule', {
                 frappe.db.get_value("Business Partner", frm.doc.lender, ["supplier", "payable_account"])
                     .then((r) => {
                         if (r.message) {
-                            console.log(r.message)
                             cur_frm.set_value("party", r.message.supplier);
                             // cur_frm.set_value("paid_to", r.message.payable_account);
                         }
@@ -83,4 +83,28 @@ frappe.ui.form.on('Secured Loan Repayment Schedule', {
 
 
     },
+    make_journal_entry(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        if (row.journal_entry_created == 0) {
+            frappe.call({
+                    method: "gke_customization.gke_price_list.doctype.secured_loan.secured_loan.make_jv_from_table",
+                    args: {
+                        name : frm.doc.name,
+                        row:row.name,
+                        due_date: row.due_date,
+                        lender: frm.doc.lender,
+                        credit_in_account_currency: (row.emi_amount || 0) - (row.principal_amount || 0),
+                        company: frm.doc.company,
+                    },
+                    callback: function (r) {
+                        if (!r.exc && r.message) {
+                            // open the new Journal Entry after creation
+                            frappe.set_route("Form", "Journal Entry", r.message);
+                        }
+                    }
+                });
+        } else {
+            frappe.msgprint("Journal Entry already processed for this row");
+        }
+    }
 });
