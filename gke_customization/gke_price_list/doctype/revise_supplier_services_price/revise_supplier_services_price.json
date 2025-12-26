@@ -1,91 +1,26 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:RSSP-{supplier}-{####}",
- "creation": "2025-09-16 15:08:55.822177",
+ "autoname": "format:RSSP-{supplier}-{#####}",
+ "creation": "2025-12-13 15:06:25.747049",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "amended_from",
   "date",
-  "column_break_5rvt",
-  "company",
-  "section_break_8xsu",
   "supplier",
-  "column_break_3s23",
-  "purchase_type",
-  "section_break_adzh",
   "metal_type",
-  "column_break_y8tq",
+  "column_break_x6me",
+  "company",
+  "purchase_type",
   "type_of_subcontracting",
-  "section_break_rjps",
-  "revise_subcategory",
-  "amended_from"
+  "section_break_elev",
+  "revise_making_charge_price_item_subcategory"
  ],
  "fields": [
   {
-   "fieldname": "date",
-   "fieldtype": "Date",
-   "label": "Date"
-  },
-  {
-   "fieldname": "column_break_5rvt",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "label": "Company",
-   "options": "Company"
-  },
-  {
-   "fieldname": "section_break_8xsu",
+   "fieldname": "section_break_elev",
    "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "supplier",
-   "fieldtype": "Link",
-   "label": "Supplier",
-   "options": "Supplier"
-  },
-  {
-   "fieldname": "column_break_3s23",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "purchase_type",
-   "fieldtype": "Link",
-   "label": "Purchase Type",
-   "options": "Purchase Type"
-  },
-  {
-   "fieldname": "section_break_adzh",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "metal_type",
-   "fieldtype": "Link",
-   "label": "Metal Type",
-   "options": "Attribute Value"
-  },
-  {
-   "fieldname": "column_break_y8tq",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "type_of_subcontracting",
-   "fieldtype": "Link",
-   "label": "Type Of Subcontracting",
-   "options": "Department Operation"
-  },
-  {
-   "fieldname": "section_break_rjps",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "revise_subcategory",
-   "fieldtype": "Table",
-   "label": "Revise Subcategory",
-   "options": "Revise Supplier Services Price Item Subcategory"
   },
   {
    "fieldname": "amended_from",
@@ -96,13 +31,58 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "column_break_x6me",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "purchase_type",
+   "fieldtype": "Link",
+   "label": "Purchase Type",
+   "options": "Purchase Type"
+  },
+  {
+   "fieldname": "metal_type",
+   "fieldtype": "Link",
+   "label": "Metal Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "type_of_subcontracting",
+   "fieldtype": "Link",
+   "label": "Type Of Subcontracting",
+   "options": "Department Operation"
+  },
+  {
+   "fieldname": "revise_making_charge_price_item_subcategory",
+   "fieldtype": "Table",
+   "label": "Revise Subcategory",
+   "options": "Revise Supplier Services Price Item Subcategory"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-16 16:15:32.723657",
+ "modified": "2025-12-13 17:28:11.224568",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Revise Supplier Services Price",
@@ -119,14 +99,13 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   }
  ],
  "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": [],
- "track_changes": 1,
- "track_seen": 1,
- "track_views": 1
+ "states": []
 }

@@ -1,0 +1,563 @@
+{
+ "_liked_by": "[\"Administrator\"]",
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:JC-{#####}",
+ "creation": "2025-12-15 21:59:33.534629",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_ddte",
+  "posting_date",
+  "customer_name",
+  "design_no",
+  "department",
+  "work_start_date",
+  "column_break_6m29",
+  "order_number",
+  "category",
+  "sub_category",
+  "worker_name",
+  "operation_stage",
+  "work_completion_date",
+  "section_break_o17s",
+  "waxing_department_qc_checklist",
+  "section_break_qhss",
+  "model_making_department_qc_checklist",
+  "section_break_dd8h",
+  "pre_polish_department_qc_checklist",
+  "section_break_okhd",
+  "diamond_and_stone_setting_qc_checklist",
+  "section_break_xrho",
+  "final_polish_department_qc_checklist",
+  "section_break_ab72",
+  "final_qc_master_checklist",
+  "section_break_v8ev",
+  "quality_assurance_post_qc_checklist",
+  "section_break_x2ui",
+  "design_not_as_per_approved_specification",
+  "dimension_mismatch_height_length_size",
+  "shape_mismatch_round_oval_symmetry_issue",
+  "left_right_orientation_mismatch",
+  "product_look_not_matching_approved_proto",
+  "gold_diamond_weight_out_of_tolerance",
+  "gold_colour_alloy_mismatch",
+  "porosity_detected",
+  "metal_cracking_brittleness",
+  "metal_unfilling",
+  "rhodium_plating_not_as_per_spec",
+  "diamond_broken",
+  "diamond_missing_fallen",
+  "diamond_loose_play",
+  "diamond_size_ratio_mismatch",
+  "diamond_quality_mismatch",
+  "colour_stone_mismatch",
+  "improper_stone_setting",
+  "diamond_overlapping",
+  "culet_projection_issue",
+  "prong_leveling_issue",
+  "pave_grain_roundness_issue",
+  "column_break_kwzi",
+  "channel_wall_uneven",
+  "locking_system_not_working",
+  "linking_type_incorrect",
+  "screw_size_type_incorrect",
+  "changeable_option_not_functioning",
+  "chain_type_gauge_incorrect",
+  "poor_polishing_scratches",
+  "dull_uneven_finish",
+  "enamel_colour_filling_issue",
+  "antique_finish_issue",
+  "inchise_engraving_unclear",
+  "product_finishing_not_acceptable",
+  "stamp_purity_marking_missing_wrong",
+  "tagging_issue",
+  "certificate_missing_mismatch",
+  "igi_certificate_number_mismatch",
+  "mto_special_marking_missing",
+  "damage_during_handling",
+  "late_submission",
+  "rework_not_properly_closed",
+  "customer_party_special_requirement_not_met",
+  "other",
+  "section_break_pqoj",
+  "qc_done_by",
+  "qc_status",
+  "column_break_3y3f",
+  "qc_date"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_ddte",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date"
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Link",
+   "label": "Customer Name",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "design_no",
+   "fieldtype": "Data",
+   "label": "Design No"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "work_start_date",
+   "fieldtype": "Date",
+   "label": "Work Start Date"
+  },
+  {
+   "fieldname": "column_break_6m29",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "order_number",
+   "fieldtype": "Data",
+   "label": "Order Number"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Data",
+   "label": "Category"
+  },
+  {
+   "fieldname": "sub_category",
+   "fieldtype": "Data",
+   "label": "Sub Category"
+  },
+  {
+   "fieldname": "worker_name",
+   "fieldtype": "Link",
+   "label": "Worker Name",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "worker_name.custom_operation",
+   "fetch_if_empty": 1,
+   "fieldname": "operation_stage",
+   "fieldtype": "Link",
+   "label": "Operation Stage",
+   "options": "Department Operation"
+  },
+  {
+   "fieldname": "work_completion_date",
+   "fieldtype": "Date",
+   "label": "Work Completion Date"
+  },
+  {
+   "fieldname": "section_break_o17s",
+   "fieldtype": "Section Break",
+   "label": "Waxing Department - QC Checklist"
+  },
+  {
+   "fieldname": "waxing_department_qc_checklist",
+   "fieldtype": "Table",
+   "label": "Waxing Department QC Checklist",
+   "options": "Waxing Department QC Checklist"
+  },
+  {
+   "fieldname": "section_break_qhss",
+   "fieldtype": "Section Break",
+   "label": "Model Making Department \u2013 QC Checklist"
+  },
+  {
+   "fieldname": "model_making_department_qc_checklist",
+   "fieldtype": "Table",
+   "label": "Model Making Department QC Checklist",
+   "options": "Model Making Department QC Checklist"
+  },
+  {
+   "fieldname": "section_break_dd8h",
+   "fieldtype": "Section Break",
+   "label": "Pre Polish Department \u2013 QC Checklist"
+  },
+  {
+   "fieldname": "pre_polish_department_qc_checklist",
+   "fieldtype": "Table",
+   "label": "Pre Polish Department QC Checklist",
+   "options": "Pre Polish Department QC Checklist"
+  },
+  {
+   "fieldname": "section_break_okhd",
+   "fieldtype": "Section Break",
+   "label": "Diamond & Stone Setting \u2013 QC Checklist"
+  },
+  {
+   "fieldname": "diamond_and_stone_setting_qc_checklist",
+   "fieldtype": "Table",
+   "label": "Diamond and Stone Setting QC Checklist",
+   "options": "Diamond and Stone Setting QC Checklist"
+  },
+  {
+   "fieldname": "section_break_xrho",
+   "fieldtype": "Section Break",
+   "label": "Final Polish Department \u2013 QC Checklist"
+  },
+  {
+   "fieldname": "final_polish_department_qc_checklist",
+   "fieldtype": "Table",
+   "label": "Final Polish Department QC Checklist",
+   "options": "Final Polish Department QC Checklist"
+  },
+  {
+   "fieldname": "section_break_ab72",
+   "fieldtype": "Section Break",
+   "label": "Final QC - Master Checklist"
+  },
+  {
+   "fieldname": "final_qc_master_checklist",
+   "fieldtype": "Table",
+   "label": "Final QC Master Checklist",
+   "options": "Final QC Master Checklist"
+  },
+  {
+   "fieldname": "section_break_v8ev",
+   "fieldtype": "Section Break",
+   "label": "Quality Assurance Post QC checklist"
+  },
+  {
+   "fieldname": "quality_assurance_post_qc_checklist",
+   "fieldtype": "Table",
+   "label": "Quality Assurance Post QC checklist",
+   "options": "Quality Assurance Post QC checklist"
+  },
+  {
+   "fieldname": "section_break_x2ui",
+   "fieldtype": "Section Break",
+   "label": "TPQC Rejection / Rework Reasons"
+  },
+  {
+   "default": "0",
+   "fieldname": "design_not_as_per_approved_specification",
+   "fieldtype": "Check",
+   "label": "Design not as per approved specification"
+  },
+  {
+   "default": "0",
+   "fieldname": "dimension_mismatch_height_length_size",
+   "fieldtype": "Check",
+   "label": "Dimension mismatch (Height / Length / Size)"
+  },
+  {
+   "default": "0",
+   "fieldname": "shape_mismatch_round_oval_symmetry_issue",
+   "fieldtype": "Check",
+   "label": "Shape mismatch (Round / Oval / Symmetry issue)"
+  },
+  {
+   "default": "0",
+   "fieldname": "left_right_orientation_mismatch",
+   "fieldtype": "Check",
+   "label": "Left\u2013Right orientation mismatch"
+  },
+  {
+   "default": "0",
+   "fieldname": "product_look_not_matching_approved_proto",
+   "fieldtype": "Check",
+   "label": "Product look not matching approved proto"
+  },
+  {
+   "default": "0",
+   "fieldname": "gold_diamond_weight_out_of_tolerance",
+   "fieldtype": "Check",
+   "label": "Gold Diamond weight out of tolerance"
+  },
+  {
+   "default": "0",
+   "fieldname": "gold_colour_alloy_mismatch",
+   "fieldtype": "Check",
+   "label": "Gold colour / alloy mismatch"
+  },
+  {
+   "default": "0",
+   "fieldname": "porosity_detected",
+   "fieldtype": "Check",
+   "label": "Porosity detected"
+  },
+  {
+   "default": "0",
+   "fieldname": "metal_cracking_brittleness",
+   "fieldtype": "Check",
+   "label": "Metal cracking / brittleness"
+  },
+  {
+   "default": "0",
+   "fieldname": "metal_unfilling",
+   "fieldtype": "Check",
+   "label": "Metal unfilling"
+  },
+  {
+   "default": "0",
+   "fieldname": "rhodium_plating_not_as_per_spec",
+   "fieldtype": "Check",
+   "label": "Rhodium / plating not as per spec"
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond_broken",
+   "fieldtype": "Check",
+   "label": "Diamond broken"
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond_missing_fallen",
+   "fieldtype": "Check",
+   "label": "Diamond missing / fallen"
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond_loose_play",
+   "fieldtype": "Check",
+   "label": "Diamond loose (play)"
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond_size_ratio_mismatch",
+   "fieldtype": "Check",
+   "label": "Diamond size / ratio mismatch"
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond_quality_mismatch",
+   "fieldtype": "Check",
+   "label": "Diamond quality mismatch"
+  },
+  {
+   "default": "0",
+   "fieldname": "colour_stone_mismatch",
+   "fieldtype": "Check",
+   "label": "Colour stone mismatch"
+  },
+  {
+   "default": "0",
+   "fieldname": "improper_stone_setting",
+   "fieldtype": "Check",
+   "label": "Improper stone setting"
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond_overlapping",
+   "fieldtype": "Check",
+   "label": "Diamond overlapping"
+  },
+  {
+   "default": "0",
+   "fieldname": "culet_projection_issue",
+   "fieldtype": "Check",
+   "label": "Culet projection issue"
+  },
+  {
+   "default": "0",
+   "fieldname": "prong_leveling_issue",
+   "fieldtype": "Check",
+   "label": "Prong leveling issue"
+  },
+  {
+   "default": "0",
+   "fieldname": "pave_grain_roundness_issue",
+   "fieldtype": "Check",
+   "label": "Pave grain roundness issue"
+  },
+  {
+   "fieldname": "column_break_kwzi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "channel_wall_uneven",
+   "fieldtype": "Check",
+   "label": "Channel wall uneven"
+  },
+  {
+   "default": "0",
+   "fieldname": "locking_system_not_working",
+   "fieldtype": "Check",
+   "label": "Locking system not working"
+  },
+  {
+   "default": "0",
+   "fieldname": "linking_type_incorrect",
+   "fieldtype": "Check",
+   "label": "Linking type incorrect"
+  },
+  {
+   "default": "0",
+   "fieldname": "screw_size_type_incorrect",
+   "fieldtype": "Check",
+   "label": "Screw size / type incorrect"
+  },
+  {
+   "default": "0",
+   "fieldname": "changeable_option_not_functioning",
+   "fieldtype": "Check",
+   "label": "Changeable option not functioning"
+  },
+  {
+   "default": "0",
+   "fieldname": "chain_type_gauge_incorrect",
+   "fieldtype": "Check",
+   "label": "Chain type / gauge incorrect"
+  },
+  {
+   "default": "0",
+   "fieldname": "poor_polishing_scratches",
+   "fieldtype": "Check",
+   "label": "Poor polishing / scratches"
+  },
+  {
+   "default": "0",
+   "fieldname": "dull_uneven_finish",
+   "fieldtype": "Check",
+   "label": "Dull / uneven finish"
+  },
+  {
+   "default": "0",
+   "fieldname": "enamel_colour_filling_issue",
+   "fieldtype": "Check",
+   "label": "Enamel colour / filling issue"
+  },
+  {
+   "default": "0",
+   "fieldname": "antique_finish_issue",
+   "fieldtype": "Check",
+   "label": "Antique finish issue"
+  },
+  {
+   "default": "0",
+   "fieldname": "inchise_engraving_unclear",
+   "fieldtype": "Check",
+   "label": "Inchise / engraving unclear"
+  },
+  {
+   "default": "0",
+   "fieldname": "product_finishing_not_acceptable",
+   "fieldtype": "Check",
+   "label": "Product finishing not acceptable"
+  },
+  {
+   "default": "0",
+   "fieldname": "stamp_purity_marking_missing_wrong",
+   "fieldtype": "Check",
+   "label": "Stamp / purity marking missing or wrong"
+  },
+  {
+   "default": "0",
+   "fieldname": "tagging_issue",
+   "fieldtype": "Check",
+   "label": "Tagging issue"
+  },
+  {
+   "default": "0",
+   "fieldname": "certificate_missing_mismatch",
+   "fieldtype": "Check",
+   "label": "Certificate missing / mismatch"
+  },
+  {
+   "default": "0",
+   "fieldname": "igi_certificate_number_mismatch",
+   "fieldtype": "Check",
+   "label": "IGI certificate number mismatch"
+  },
+  {
+   "default": "0",
+   "fieldname": "mto_special_marking_missing",
+   "fieldtype": "Check",
+   "label": "MTO / special marking missing"
+  },
+  {
+   "default": "0",
+   "fieldname": "damage_during_handling",
+   "fieldtype": "Check",
+   "label": "Damage during handling"
+  },
+  {
+   "default": "0",
+   "fieldname": "late_submission",
+   "fieldtype": "Check",
+   "label": "Late submission"
+  },
+  {
+   "default": "0",
+   "fieldname": "rework_not_properly_closed",
+   "fieldtype": "Check",
+   "label": "Rework not properly closed"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_party_special_requirement_not_met",
+   "fieldtype": "Check",
+   "label": "Customer / party special requirement not met"
+  },
+  {
+   "fieldname": "other",
+   "fieldtype": "Data",
+   "label": "Other"
+  },
+  {
+   "fieldname": "section_break_pqoj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "qc_done_by",
+   "fieldtype": "Data",
+   "label": "QC Done By"
+  },
+  {
+   "fieldname": "qc_status",
+   "fieldtype": "Select",
+   "label": "QC Status",
+   "options": "\nApproved\nRework\nRejected"
+  },
+  {
+   "fieldname": "column_break_3y3f",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "qc_date",
+   "fieldtype": "Date",
+   "label": "QC Date"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-12-16 17:08:33.389766",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Jewellery QC",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
