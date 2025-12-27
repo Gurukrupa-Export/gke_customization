@@ -26,6 +26,7 @@ frappe.query_reports["Monthly In - Out Report"] = {
 					"to_date": lastDayOfMonth,
 					"employee": null
 				});
+				fetch_employees(query_report);
 			}
 		},
 		{
@@ -59,63 +60,87 @@ frappe.query_reports["Monthly In - Out Report"] = {
 			"fieldtype": "Link",
 			"fieldname": "company",
 			"options": "Company",
-			"reqd": 1
+			"reqd": 1,
+			"on_change": fetch_employees
 		}, 
 		{
 			"label": __("Branch"),
 			"fieldtype": "Link",
 			"fieldname": "branch",
 			"options": "Branch",
+			"on_change": fetch_employees
 		}, 
 		{
 			"label": __("Department"),
-			"fieldtype": "MultiSelectList",
+			"fieldtype": "Link",
 			"fieldname": "department",
+			"options": "Department",
 			"reqd": 1,
-			get_data: function(txt) {
-				var company = frappe.query_report.get_filter_value('company');
-				var filters = {}
-				if (company) filters['company'] = company
-				return frappe.db.get_link_options('Department', txt, filters);
+			"get_query": function () {
+				let company = frappe.query_report.get_filter_value("company");
+				return {
+					filters: {
+						company: company
+					}
+				};
 			},
+			"on_change": fetch_employees
 		},
 		{
 			"label": __("Employee"),
 			"fieldtype": "Link",
 			"fieldname": "employee",
 			"options": "Employee",
-			// "depends_on": "eval: frappe.user.has_role('System Manager') || frappe.user.has_role('GK HR')",
-			
+			"depends_on": "eval: frappe.user.has_role('System Manager') || frappe.user.has_role('GK HR')",
+			"mandatory_depends_on": "eval: frappe.user.has_role('System Manager') || frappe.user.has_role('GK HR')",
+			"get_query": function () {
+				let company = frappe.query_report.get_filter_value("company");
+				let department = frappe.query_report.get_filter_value("department");
+				let filters = {};
+				if (company) filters.company = company;
+				if (department) filters.department = department;
+
+				return {
+					filters: filters
+				};
+			},
 		}, 
 
 	],
 	onload: (report) => {
 		fetch_month_list()
-		fetch_employees(report)
-		
+				
 		report.page.add_button("Clear Filters", function() {
 			window.open("/app/query-report/Monthly%20In%20-%20Out%20Report", "_self")
 		}).addClass("btn-info")
 
 		report.page.add_button("Generate", function() {
-			var company = frappe.query_report.get_filter_value('company');
+			// var company = frappe.query_report.get_filter_value('company');
 			var department = frappe.query_report.get_filter_value('department');
-			if (company){
+			// var employee = frappe.query_report.get_filter_value('employee');
+			if (!department) {
+				// frappe.query_report.set_filter_value({
+				// 	"company": company,
+				// 	"department": department,
+				// 	// "employee": employee
+				// });
+				frappe.msgprint(__("No department Selected"));
+			}
+			else {
 				frappe.query_report.set_filter_value({
-					"company": company,
 					"department": department
 				});
-			}
+			} 
 			report.refresh();
 		}).addClass("btn-primary") 
+		fetch_employees(report)
 	}
 };
 
 function fetch_employees(report) {
-	console.log('has role',frappe.user.has_role("System Manager"), frappe.user.has_role("GK HR"));
-	console.log('user', frappe.session.user);
+	const user = frappe.user.has_role("System Manager") || frappe.user.has_role("GK HR")
+	console.log('has role',user, 'user', frappe.session.user);
 
-	const user = frappe.user.has_role("System Manager") && frappe.user.has_role("GK HR")
 	if (!user) {
 		// Fetch employee linked to logged-in user
 		frappe.db.get_value("Employee", { user_id: frappe.session.user }, "name")

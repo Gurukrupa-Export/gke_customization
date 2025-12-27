@@ -18,11 +18,11 @@ def get_data(filters=None):
 	to_date = filters.get("to_date")
 	company = filters.get("company")
 	branch = filters.get("branch")
-	departments = filters.get("department")  # MultiSelect
+	department = filters.get("department")  # MultiSelect
 	employee = filters.get("employee")
 
 	# If required filters not selected → no data
-	if not (from_date and to_date and company and departments):
+	if not (from_date and to_date and company and department):
 		return []
 
 	conditions = []
@@ -36,21 +36,22 @@ def get_data(filters=None):
 	conditions.append("emp.company = %(company)s")
 
 	if employee:
-		conditions.append("emp.reports_to = %(employee)s")
+		conditions.append("""
+			(
+				emp.reports_to = %(employee)s
+				OR emp.name = %(employee)s
+			)
+		""")
 		values["employee"] = employee
+
 
 	if branch:
 		conditions.append("emp.branch = %(branch)s")
 		values["branch"] = branch
 
-	# MultiSelect department
-	if isinstance(departments, list):
-		dept_list = departments
-	else:
-		dept_list = departments.split(",")
-
-	conditions.append("emp.department IN %(departments)s")
-	values["departments"] = tuple(dept_list)
+	if department:
+		conditions.append("emp.department = %(department)s")
+		values["department"] = department
 
 	query = f"""
 		SELECT 
@@ -72,12 +73,18 @@ def get_data(filters=None):
 				WHEN att.status IS NOT NULL
 					THEN att.status
 
+				WHEN ec.in_time IS NOT NULL
+					THEN 'Present'
+
 				ELSE 'Absent'
 			END AS attendance_status,
 
 			att.shift AS shift,
-			TIME(att.in_time) AS in_time,
-			TIME(att.out_time) AS out_time,
+
+			/* ✅ Checkin first → Attendance fallback */
+			COALESCE(ec.in_time, att.in_time) AS in_time,
+			COALESCE(ec.out_time, att.out_time) AS out_time,
+
 			emp.department
 
 		FROM `tabEmployee` emp
@@ -104,6 +111,19 @@ def get_data(filters=None):
 			ON att.employee = emp.name
 			AND att.attendance_date = d.work_date
 			AND att.docstatus = 1
+
+		/* ✅ Aggregated Employee Checkin */
+		LEFT JOIN (
+			SELECT
+				employee,
+				DATE(time) AS checkin_date,
+				MIN(CASE WHEN log_type = 'IN' THEN time END)  AS in_time,
+				MAX(CASE WHEN log_type = 'OUT' THEN time END) AS out_time
+			FROM `tabEmployee Checkin`
+			GROUP BY employee, DATE(time)
+		) ec
+			ON ec.employee = emp.name
+			AND ec.checkin_date = d.work_date
 
 		WHERE {" AND ".join(conditions)}
 		ORDER BY emp.name, d.work_date
