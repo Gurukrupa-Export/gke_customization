@@ -306,15 +306,16 @@ def get_date_range(start_date, end_date):
 	return range
 
 @frappe.whitelist(allow_guest=True)
-def employee_details(company = None,department = None):
+def employee_details(branch=None,company = None,department = None):
 	company = frappe.form_dict["company"]
 	department = frappe.form_dict["department"]
+	branch = frappe.form_dict["branch"]
 
 	data = frappe.db.sql(f"""
 		select name as employee, employee_name, company, department,
-			default_shift as shift, designation, old_punch_id
+			default_shift as shift, designation, old_punch_id,branch
 		from `tabEmployee` 
-		where company ='{company}' and department = '{department}'
+		where company ='{company}' and department = '{department}' and branch = '{branch}' and status = 'Active'
 	""", as_dict=1)
 
 	return data
