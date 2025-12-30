@@ -1,28 +1,46 @@
-# Copyright (c) 2024, Gurukrupa Export and contributors
+# Copyright (c) 2024, Gurukrupa Export
 # For license information, please see license.txt
 
 import frappe
 from frappe import _
 
+
 def execute(filters=None):
-    columns = get_columns(filters)
+    if not filters:
+        filters = {}
+
+    if not filters.get("from_date") or not filters.get("to_date"):
+        frappe.throw(_("From Date and To Date are required"))
+
+    columns = get_columns()
     data = get_data(filters)
     return columns, data
 
-def get_columns(filters=None):
-    columns = [
+
+# -------------------------------------------------------
+# Columns
+# -------------------------------------------------------
+
+def get_columns():
+    return [
+        {
+            "label": _("Date"),
+            "fieldname": "attendance_date",
+            "fieldtype": "Date",
+            "width": 110,
+        },
         {
             "label": _("Employee"),
             "fieldname": "employee",
             "fieldtype": "Link",
             "options": "Employee",
-            "width": 220,
+            "width": 180,
         },
         {
             "label": _("Employee Name"),
             "fieldname": "employee_name",
             "fieldtype": "Data",
-            "width": 150,
+            "width": 160,
         },
         {
             "label": _("Company"),
@@ -50,68 +68,71 @@ def get_columns(filters=None):
             "fieldtype": "Data",
             "width": 100,
         },
-        {
-            "label": _("Last Check-in Date"),
-            "fieldname": "last_checkin_date",
-            "fieldtype": "Date",
-            "width": 130
-        }
     ]
-    return columns
+
+
+# -------------------------------------------------------
+# Data
+# -------------------------------------------------------
 
 def get_data(filters):
     conditions = get_conditions(filters)
 
     query = f"""
-    SELECT 
-        e.employee AS employee,
-        e.employee_name AS employee_name,
-        e.department AS department,
-        e.company AS company,
-        e.designation AS designation,
-        IF(ec_today.employee IS NOT NULL, 'Present', 'Absent') AS attendance,
-        MAX(DATE(ec_last.time)) AS last_checkin_date
-    FROM `tabEmployee` e
-    LEFT JOIN `tabEmployee Checkin` ec_today 
-        ON e.employee = ec_today.employee AND DATE(ec_today.time) = CURDATE()
-    LEFT JOIN `tabEmployee Checkin` ec_last 
-        ON e.employee = ec_last.employee
-    {conditions}
-    GROUP BY 
-        e.employee, e.employee_name, e.department, e.company, e.designation
-    HAVING 
-        last_checkin_date IS NOT NULL
-    ORDER BY 
-        e.department ASC;
+        WITH RECURSIVE date_series AS (
+            SELECT %(from_date)s AS attendance_date
+            UNION ALL
+            SELECT DATE_ADD(attendance_date, INTERVAL 1 DAY)
+            FROM date_series
+            WHERE attendance_date < %(to_date)s
+        )
+        SELECT
+            ds.attendance_date,
+            e.employee,
+            e.employee_name,
+            e.company,
+            e.department,
+            e.designation,
+            'Absent' AS attendance
+        FROM
+            date_series ds
+        CROSS JOIN tabEmployee e
+        LEFT JOIN `tabEmployee Checkin` ec
+            ON ec.employee = e.employee
+            AND DATE(ec.time) = ds.attendance_date
+        WHERE
+            ec.employee IS NULL
+            AND e.status = 'Active'
+            {conditions}
+        ORDER BY
+            ds.attendance_date,
+            e.department,
+            e.employee
     """
 
-    data = frappe.db.sql(query, as_dict=1)
-    return data
+    return frappe.db.sql(query, filters, as_dict=True)
+
+
+# -------------------------------------------------------
+# Conditions
+# -------------------------------------------------------
 
 def get_conditions(filters):
-    filter_list = []
+    conditions = []
 
     if filters.get("company"):
-        filter_list.append(f"""e.company = "{filters.get("company")}" """)
-
-    if filters.get("from_date"):
-        filter_list.append(f"""ec_last.time >= "{filters.get("from_date")}" """)
-
-    if filters.get("to_date"):
-        filter_list.append(f"""ec_last.time <= "{filters.get("to_date")}" """)
+        conditions.append("e.company = %(company)s")
 
     if filters.get("department"):
-        filter_list.append(f"""e.department = "{filters.get("department")}" """)
+        conditions.append("e.department = %(department)s")
 
     if filters.get("designation"):
-        filter_list.append(f"""e.designation = "{filters.get("designation")}" """)
+        conditions.append("e.designation = %(designation)s")
 
     if filters.get("employee"):
-        filter_list.append(f"""e.employee = "{filters.get("employee")}" """)
+        conditions.append("e.employee = %(employee)s")
 
-    # Construct the WHERE clause based on available filters
-    conditions = ""
-    if filter_list:
-        conditions = "WHERE " + " AND ".join(filter_list)
+    if conditions:
+        return " AND " + " AND ".join(conditions)
 
-    return conditions
+    return ""
