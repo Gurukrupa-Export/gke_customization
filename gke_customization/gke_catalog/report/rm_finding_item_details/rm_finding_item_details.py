@@ -1,13 +1,16 @@
 # Copyright (c) 2025, Gurukrupa Export and contributors
 # For license information, please see license.txt
 
+
 import frappe
 from frappe import _
+
 
 def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
     return columns, data
+
 
 def get_columns():
     return [
@@ -25,6 +28,7 @@ def get_columns():
         {"fieldname": "finding_size_thickness_x_width", "label": _("Size Thickness x Width"), "fieldtype": "Data", "width": 150}
     ]
 
+
 def get_data(filters):
     query = """
     WITH pivoted AS (
@@ -33,47 +37,51 @@ def get_data(filters):
             i.image,
             MAX(CASE WHEN iv.attribute = 'Finding Category' THEN iv.attribute_value END) AS finding_category,
             MAX(CASE WHEN iv.attribute = 'Finding Sub-Category' THEN iv.attribute_value END) AS finding_subcategory,
-            # MAX(CASE WHEN iv.attribute = 'Finding Size' THEN iv.attribute_value END) AS finding_size,
+            MAX(CASE WHEN iv.attribute = 'Finding Size' THEN iv.attribute_value END) AS finding_size,
             MAX(CASE WHEN iv.attribute = 'Metal Type' THEN iv.attribute_value END) AS metal_type,
             MAX(CASE WHEN iv.attribute = 'Metal Touch' THEN iv.attribute_value END) AS metal_touch,
             MAX(CASE WHEN iv.attribute = 'Metal Colour' THEN iv.attribute_value END) AS metal_colour,
             MAX(CASE WHEN iv.attribute = 'Metal Purity' THEN iv.attribute_value END) AS metal_purity
         FROM
             tabItem i
-        RIGHT JOIN
+        LEFT JOIN
             `tabItem Variant Attribute` iv ON i.item_code = iv.parent
         WHERE
             i.item_group IN ('Finding - V') 
             AND i.item_group NOT IN ('Finding DNU')
-            and i.disabled = 0
+            AND i.disabled = 0
         GROUP BY
-            i.item_code
+            i.item_code, i.image
+    ),
+    weight_data AS (
+        SELECT 
+            custom_metal_touch,
+            custom_metal_type,
+            custom_metal_colour,
+            custom_finding_size,
+            MAX(weight) as weight,
+            MAX(finding_size_thickness_x_width) as finding_size_thickness_x_width
+        FROM `tabAttribute Value Finding Type Weight`
+        GROUP BY custom_metal_touch, custom_metal_type, custom_metal_colour, custom_finding_size
     )
     SELECT
         p.item_code,
         p.image,
         p.finding_category,
         p.finding_subcategory,
-        # p.finding_size,
-        ftw.custom_finding_size,
+        p.finding_size as custom_finding_size,
         p.metal_type,
         p.metal_touch,
         p.metal_colour,
         p.metal_purity,
-        ftw.weight,
-        ftw.finding_size_thickness_x_width
+        wd.weight,
+        wd.finding_size_thickness_x_width
     FROM pivoted p
-    LEFT JOIN `tabAttribute Value Finding Type Weight` ftw
-       ON ftw.custom_metal_touch = p.metal_touch
-       AND ftw.custom_metal_type = p.metal_type
-       AND ftw.custom_metal_colour = p.metal_colour
-    GROUP BY
-      p.finding_category,
-      p.finding_subcategory,
-      p.metal_type,
-      p.metal_touch,
-      p.metal_colour,
-      p.metal_purity
+    LEFT JOIN weight_data wd
+       ON wd.custom_metal_touch = p.metal_touch
+       AND wd.custom_metal_type = p.metal_type
+       AND wd.custom_metal_colour = p.metal_colour
+       AND wd.custom_finding_size = p.finding_size
     ORDER BY p.item_code
     """
     rows = frappe.db.sql(query, as_dict=1)
@@ -99,4 +107,3 @@ def get_data(filters):
             row["image"] = "-"
         data.append(row)
     return data
-
