@@ -62,8 +62,7 @@ def attendance(from_date = None,to_date = None,employee = None):
 		frappe.qb.from_(Attendance)
 		.left_join(Employee).on(Attendance.employee == Employee.name)
 		# .left_join(ShiftType).on(Employee.default_shift == ShiftType.name)
-		.left_join(ShiftType).on(Attendance.shift == ShiftType.name)
-		.left_join(ShiftType).on(Employee.branch == ShiftType.custom_branch)
+		.left_join(ShiftType).on(Attendance.shift == ShiftType.name) 
 		.left_join(pol_subquery).on(
 			(Attendance.attendance_date == pol_subquery.date) &
 			(Attendance.employee == pol_subquery.employee)
@@ -134,15 +133,23 @@ def attendance(from_date = None,to_date = None,employee = None):
 	return data
     
   
-def get_conditions(from_date,to_date,employee):	
-	from_date = frappe.form_dict["from_date"]
-	to_date = frappe.form_dict["to_date"]
-	employee = frappe.form_dict["employee"]		
+def get_conditions(from_date, to_date, employee):
+    """Return a list of QB conditions instead of raw SQL string."""
+    Attendance = frappe.qb.DocType("Attendance")
 
-	if from_date and to_date and employee:
-		conditions = f"""and at.attendance_date Between '{from_date}' AND '{to_date}' and at.employee = '{employee}'"""
+    # fallback to frappe.form_dict if not passed explicitly
+    from_date = from_date or frappe.form_dict.get("from_date")
+    to_date = to_date or frappe.form_dict.get("to_date")
+    employee = employee or frappe.form_dict.get("employee")
 
-	return conditions
+    conditions = []
+
+    if from_date and to_date:
+        conditions.append(Attendance.attendance_date.between(from_date, to_date))
+    if employee:
+        conditions.append(Attendance.employee == employee)
+
+    return conditions
    
 def process_data(data,from_date,to_date, employee):
 	processed = {}
