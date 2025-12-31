@@ -169,9 +169,7 @@ def create_attendance_from_manual_punch(self):
 	mark_att = self.should_mark_attendance(employee, attendance_date)
 	# mark_att = self.should_mark_attendance(employee, date)
 
-	if mark_att:
-		# return
-	
+	if mark_att:	
 		shift_timings = get_employee_shift_timings(employee, get_datetime(shift_datetime), True)[1] 	#for current shift
 		
 		# filters = {
@@ -188,53 +186,63 @@ def create_attendance_from_manual_punch(self):
 		# 	order_by="time"
 		# )
 
-		checkin_logs = frappe.db.sql(f""" SELECT * FROM `tabEmployee Checkin`
-				WHERE employee = '{self.employee}' 
-					# AND attendance IS NOT NULL
-					AND skip_auto_attendance = 0
-					AND shift = '{shift_type}'
-					AND DATE(time) = '{date}'
-				ORDER BY time ASC 
-		""",as_dict=1)
+		checkin_logs = frappe.db.sql("""
+			SELECT *
+			FROM `tabEmployee Checkin`
+			WHERE employee = %s
+				AND skip_auto_attendance = 0
+				AND shift = %s
+				AND time BETWEEN %s AND %s
+			ORDER BY time ASC
+		""", (
+			employee,
+			shift_type,
+			shift_timings.actual_start,
+			shift_timings.actual_end
+		), as_dict=1)
 
-		
 		if checkin_logs:
 			attendance = get_attendance(self, checkin_logs)
-
 			attnd_name = frappe.db.exists("Attendance",{"employee": employee, "attendance_date":date, "docstatus": 1})
-			attnd = ''
 			if attnd_name:
-				attnd = frappe.get_doc("Attendance", attnd_name)
-				attnd.db_set({
-					"status": attendance.get("status"),
-					"working_hours": attendance.get("working_hours"),
-					"late_entry": attendance.get("late_entry"),
-					"early_exit": attendance.get("early_exit"),
-					"in_time": attendance.get("in_time"),
-					"out_time": attendance.get("out_time"),
-					"shift": self.shift_name,			
-				})
-				frappe.msgprint(_("Attendance updated : {0} ").format(attnd.name))
+				attnd = frappe.get_doc("Attendance",attnd_name)
+				attnd.cancel()
+				frappe.msgprint(_("Attendance cancelled : {0} ").format(attnd_name))
 
-			else:
-				attnd = frappe.get_doc({
-					"doctype": "Attendance",
-					"employee": employee,
-					"attendance_date": date,
-					"status": attendance.get("status"),
-					"working_hours": attendance.get("working_hours"),
-					"late_entry": attendance.get("late_entry"),
-					"early_exit": attendance.get("early_exit"),
-					"in_time": attendance.get("in_time"),
-					"out_time": attendance.get("out_time"),
-					"shift": self.shift_name,
-				})
-				attnd.insert()
-				attnd.submit()
-				frappe.msgprint(_("Attendance created : {0} ").format(attnd.name))
-				
+			# frappe.throw(f"attendance {attendance} || attnd_name{attnd_name} ")
+			# attnd = ''
+			# if attnd_name:
+			# 	attnd = frappe.get_doc("Attendance", attnd_name)
+			# 	attnd.db_set({
+			# 		"status": attendance.get("status"),
+			# 		"working_hours": attendance.get("working_hours"),
+			# 		"late_entry": attendance.get("late_entry"),
+			# 		"early_exit": attendance.get("early_exit"),
+			# 		"in_time": attendance.get("in_time"),
+			# 		"out_time": attendance.get("out_time"),
+			# 		"shift": self.shift_name,			
+			# 	})
+			# 	frappe.msgprint(_("Attendance updated : {0} ").format(attnd.name))
+
+			# else:
+			new_attnd = frappe.get_doc({
+				"doctype": "Attendance",
+				"employee": employee,
+				"attendance_date": date,
+				"status": attendance.get("status"),
+				"working_hours": attendance.get("working_hours"),
+				"late_entry": attendance.get("late_entry"),
+				"early_exit": attendance.get("early_exit"),
+				"in_time": attendance.get("in_time"),
+				"out_time": attendance.get("out_time"),
+				"shift": self.shift_name,
+			})
+			new_attnd.insert()
+			new_attnd.submit()
+			frappe.msgprint(_("Attendance created : {0} ").format(new_attnd.name))
+
 			for log in checkin_logs:
-				frappe.db.set_value("Employee Checkin", log.name, "attendance", attnd.name)
+				frappe.db.set_value("Employee Checkin", log.name, "attendance", new_attnd.name)
 		frappe.msgprint(_("Attendance marked on {0} for {1} ").format(employee, date))
 	else:
 		frappe.msgprint(_("Attendance not marked as {0} is holiday for {1} on {2}").format(shift_type, employee, date))
