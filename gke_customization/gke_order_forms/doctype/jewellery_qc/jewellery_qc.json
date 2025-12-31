@@ -84,7 +84,8 @@
   "qc_done_by",
   "qc_status",
   "column_break_3y3f",
-  "qc_date"
+  "qc_date",
+  "qc_rating"
  ],
  "fields": [
   {
@@ -530,6 +531,11 @@
    "fieldname": "qc_date",
    "fieldtype": "Date",
    "label": "QC Date"
+  },
+  {
+   "fieldname": "qc_rating",
+   "fieldtype": "Rating",
+   "label": "QC Rating"
   }
  ],
  "grid_page_length": 50,
