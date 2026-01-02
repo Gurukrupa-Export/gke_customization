@@ -1,0 +1,437 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-12-31 18:40:42.486214",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2025-12-31 18:40:42.486214",
+ "modified_by": "sahil_g@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "CAD Order Tracking Report",
+ "owner": "sahil_g@gkexport.com",
+ "prepared_report": 0,
+ "ref_doctype": "Order",
+ "report_name": "CAD Order Tracking Report",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Employee Self Service"
+  },
+  {
+   "role": "QC Doctype"
+  },
+  {
+   "role": "BOM HOD"
+  },
+  {
+   "role": "Computer Operator - ST - GE"
+  },
+  {
+   "role": "CAD Hod"
+  },
+  {
+   "role": "Model Making Executive - ST"
+  },
+  {
+   "role": "Close Model Making Executive - ST"
+  },
+  {
+   "role": "Pre polish Executive - ST"
+  },
+  {
+   "role": "Close Pre polish Executive - ST"
+  },
+  {
+   "role": "Diamond Setting Executive - ST"
+  },
+  {
+   "role": "Close Diamond Setting Executive - ST"
+  },
+  {
+   "role": "Final Polish Executive - ST"
+  },
+  {
+   "role": "Close Final Polish Executive - ST"
+  },
+  {
+   "role": "Close Model Making Manager - ST"
+  },
+  {
+   "role": "D2D Marketing Executive - MUM"
+  },
+  {
+   "role": "Model Making Manager - MUM"
+  },
+  {
+   "role": "Diamond Setting Executive - MUM"
+  },
+  {
+   "role": "Final Polish Executive - MUM"
+  },
+  {
+   "role": "Sales & Marketing Manager - HD"
+  },
+  {
+   "role": "Customer Order Approver"
+  },
+  {
+   "role": "Print Rights - Order Department"
+  },
+  {
+   "role": "Senior Partner"
+  },
+  {
+   "role": "Export Rights"
+  },
+  {
+   "role": "Sr. Mgr. Regional Sales & Marketing"
+  },
+  {
+   "role": "Operational Excellence Manager - ST"
+  },
+  {
+   "role": "Chairman"
+  },
+  {
+   "role": "Sales & Marketing Executive - MUM"
+  },
+  {
+   "role": "Product Certification Executive - ST"
+  },
+  {
+   "role": "D2D Marketing Manager - CB"
+  },
+  {
+   "role": "D2D Marketing Executive - CB"
+  },
+  {
+   "role": "Product Repair Center Manager - CH"
+  },
+  {
+   "role": "Product Repair Center Executive - CH"
+  },
+  {
+   "role": "Computer Aided Designing Executive - KGJPL"
+  },
+  {
+   "role": "Order Management Manager - CB"
+  },
+  {
+   "role": "Sales & Marketing Manager - VD"
+  },
+  {
+   "role": "Computer Aided Designing Executive - KL"
+  },
+  {
+   "role": "D2D Marketing Executive - BL"
+  },
+  {
+   "role": "Sales & Marketing Manager - BL"
+  },
+  {
+   "role": "Computer Aided Manufacturing Executive - MU"
+  },
+  {
+   "role": "Production Manager - MUM"
+  },
+  {
+   "role": "personal assistant"
+  },
+  {
+   "role": "Waxing Executive - KGJPL"
+  },
+  {
+   "role": "Waxing Manager - KGJPL"
+  },
+  {
+   "role": "Tagging Executive - KGJPL"
+  },
+  {
+   "role": "Pre Polish Executive - KGJPL"
+  },
+  {
+   "role": "Model Making Executive - KGJPL"
+  },
+  {
+   "role": "Model Making Manager - KGJPL"
+  },
+  {
+   "role": "Final Polish Executive - KGJPL"
+  },
+  {
+   "role": "Final Polish Manager - KGJPL"
+  },
+  {
+   "role": "Diamond Setting Executive - KGJPL"
+  },
+  {
+   "role": "Diamond Setting Manager - KGJPL"
+  },
+  {
+   "role": "Central Executive - KGJPL"
+  },
+  {
+   "role": "Central Manager - KGJPL"
+  },
+  {
+   "role": "Tagging Executive - MUM"
+  },
+  {
+   "role": "Tagging Executive - ST"
+  },
+  {
+   "role": "Tagging Manager - ST"
+  },
+  {
+   "role": "Sub Contracting Executive - MUM"
+  },
+  {
+   "role": "Sub Contracting Manager - MUM"
+  },
+  {
+   "role": "Sub Contracting Executive - ST"
+  },
+  {
+   "role": "Sub Contracting Manager - ST"
+  },
+  {
+   "role": "Close Final Polish Executive - ST"
+  },
+  {
+   "role": "Close Final Polish Manager - ST"
+  },
+  {
+   "role": "Final Polish Executive - MUM"
+  },
+  {
+   "role": "Final Polish Executive - ST"
+  },
+  {
+   "role": "Final Polish Manager - ST"
+  },
+  {
+   "role": "Close Diamond Setting Executive - ST"
+  },
+  {
+   "role": "Close Diamond Setting Manager - ST"
+  },
+  {
+   "role": "Diamond Setting Executive - MUM"
+  },
+  {
+   "role": "Diamond Setting Executive - ST"
+  },
+  {
+   "role": "Diamond Setting Manager - ST"
+  },
+  {
+   "role": "Close Pre polish Executive - ST"
+  },
+  {
+   "role": "Close Pre polish Manager - ST"
+  },
+  {
+   "role": "Pre polish Executive - ST"
+  },
+  {
+   "role": "Pre polish Manager - ST"
+  },
+  {
+   "role": "Close Model Making Executive - ST"
+  },
+  {
+   "role": "Close Model Making Manager - ST"
+  },
+  {
+   "role": "Model Making Manager - MUM"
+  },
+  {
+   "role": "Model Making Executive - ST"
+  },
+  {
+   "role": "Model Making Manager - ST"
+  },
+  {
+   "role": "close waxing Executive - ST"
+  },
+  {
+   "role": "close waxing Manager - ST"
+  },
+  {
+   "role": "Waxing Executive - MUM"
+  },
+  {
+   "role": "Waxing Manager - ST"
+  },
+  {
+   "role": "Waxing 2 Executive - ST"
+  },
+  {
+   "role": "Waxing 2 Manager - ST"
+  },
+  {
+   "role": "Waxing Executive - ST"
+  },
+  {
+   "role": "D2D Marketing Executive - VD"
+  },
+  {
+   "role": "D2D Marketing Executive - TH"
+  },
+  {
+   "role": "D2D Marketing Executive - HD"
+  },
+  {
+   "role": "D2D Marketing Executive - BL"
+  },
+  {
+   "role": "D2D Marketing Executive - CH"
+  },
+  {
+   "role": "D2D Marketing Manager - CH"
+  },
+  {
+   "role": "Order Management Executive - HD"
+  },
+  {
+   "role": "Order Management Executive - CH"
+  },
+  {
+   "role": "Order Management Manager - CH"
+  },
+  {
+   "role": "Sketch Designer - KL"
+  },
+  {
+   "role": "Sketch Manager - KL"
+  },
+  {
+   "role": "Computer Aided Designing Designer - KL"
+  },
+  {
+   "role": "Computer Aided Designing Manager - KL"
+  },
+  {
+   "role": "BOM Executive - KGJPL"
+  },
+  {
+   "role": "Computer Aided Designer - KGJPL"
+  },
+  {
+   "role": "Sales & Marketing Manager - MUM"
+  },
+  {
+   "role": "Central Executive - MUM"
+  },
+  {
+   "role": "Sketch Designer - MUM"
+  },
+  {
+   "role": "Computer Aided Designing \u2013 PAN India Executive - MUM"
+  },
+  {
+   "role": "Computer Aided Designing \u2013 PAN India Designer - MUM"
+  },
+  {
+   "role": "Computer Aided Designing \u2013 PAN India Manager - MUM"
+  },
+  {
+   "role": "Computer Aided Designing \u2013 South Zone Designer - MUM"
+  },
+  {
+   "role": "Computer Aided Designing \u2013 South Zone Manager - MUM"
+  },
+  {
+   "role": "Manufacturing Manager - MUM"
+  },
+  {
+   "role": "Order Management Executive - MUM"
+  },
+  {
+   "role": "Computer Aided Designing Designer - ST"
+  },
+  {
+   "role": "Computer Aided Designing Executive - ST"
+  },
+  {
+   "role": "Computer Aided Designing Manager - ST"
+  },
+  {
+   "role": "BOM Executive - ST"
+  },
+  {
+   "role": "Manufacturing Plan & Management Executive - ST"
+  },
+  {
+   "role": "Manufacturing Plan & Management Manager - ST"
+  },
+  {
+   "role": "Sales & Marketing Manager - ST"
+  },
+  {
+   "role": "Refinery Executive -ST"
+  },
+  {
+   "role": "Model Making Manager - ST"
+  },
+  {
+   "role": "Central Executive - ST"
+  },
+  {
+   "role": "Central Manager - ST"
+  },
+  {
+   "role": "Process Analyst Order Management"
+  },
+  {
+   "role": "Manufacturing Plan & Management MFG - ST - GE"
+  },
+  {
+   "role": "Manufacturing Plan & Management - CH - GE"
+  },
+  {
+   "role": "GK Order Form Approver"
+  },
+  {
+   "role": "MPM-Order"
+  },
+  {
+   "role": "Designer"
+  },
+  {
+   "role": "CAD QC"
+  },
+  {
+   "role": "MPM - ST - Executive"
+  },
+  {
+   "role": "Order QC"
+  },
+  {
+   "role": "CAD/CAM"
+  },
+  {
+   "role": "Manufacturing Plan & Management - ST - GE"
+  },
+  {
+   "role": "Computer Aided Designing Executive - ST - GE"
+  },
+  {
+   "role": "Computer Aided Designing Executive - KL - GE"
+  },
+  {
+   "role": "Nandi Executive - ST"
+  }
+ ],
+ "timeout": 0
+}
