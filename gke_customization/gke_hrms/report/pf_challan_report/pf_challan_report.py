@@ -41,6 +41,7 @@ def get_data(filters=None):
 			ss.designation AS designation,  
 			ss.employee AS employee_id, 
 			ss.employee_name AS employee_name,
+            ss.custom_gross_salary,
 			ss.absent_days,
 			e.date_of_birth,
 			/* Gross Pay counted once */
@@ -163,8 +164,65 @@ def get_columns(filters=None):
 	]
 	return columns
 
-
 @frappe.whitelist()
+def export_txt(filters=None):
+	if isinstance(filters, str):
+		filters = frappe.parse_json(filters)
+
+	data = get_data(filters)
+
+	lines = []
+	for row in data:
+	# skip total row if present
+		if row.get("company") == "Total":
+			continue
+
+		age = 0
+		dob = row.get("date_of_birth")
+		if dob:
+			today_date = getdate(today())
+			dob_date = getdate(dob)
+			age = today_date.year - dob_date.year - (
+				(today_date.month, today_date.day) < (dob_date.month, dob_date.day)
+			)
+
+		# only include employees with age < 58
+		if row.get("employee_id") and age < 58:
+			gross_pay = round(row.get("gross_pay") or 0)
+			uan_number = frappe.db.get_value("Employee", row["employee_id"], "uan_number")
+			name_as_per_aadhar = frappe.db.get_value("Employee", row["employee_id"], "name_as_per_aadhar")
+			epf_wages = round(row.get("epf_wages") or 0)
+			eps_wages = epf_wages
+			edli_wages = epf_wages
+			ctc = round(float(row.get("custom_gross_salary") or 0)) 
+
+			if ctc < 15000:
+				epf_contribution = round((epf_wages or 0) * 0.12)
+				eps_contribution = round((epf_wages or 0) * 0.0833)
+			else:	
+				epf_contribution = round(row.get("pf_amount") or 0)
+				eps_contribution = round(row.get("pf_amount") or 0)
+			contribution = (epf_contribution - eps_contribution) or 0
+			ncp = row.get("absent_days") or 0
+			refund_advance = row.get("refund_advance") or 0
+
+			lines.append(
+				f"{uan_number}#~#{name_as_per_aadhar}#~#{gross_pay}#~#{epf_wages}"
+				f"#~#{eps_wages}#~#{edli_wages}#~#{epf_contribution}"
+				f"#~#{eps_contribution}#~#{contribution}#~#{ncp}#~#{refund_advance}"
+			)
+
+	content = "\n".join(lines)
+
+	file_name = "pf_export.txt"
+	file_path = get_site_path("public", "files", file_name)
+
+	with open(file_path, "w", encoding="utf-8") as f:
+		f.write(content)
+
+	return f"/files/{file_name}"
+
+
 # def export_txt(filters=None):
 # 	if isinstance(filters, str):
 # 		filters = frappe.parse_json(filters)
@@ -211,53 +269,3 @@ def get_columns(filters=None):
 # 		f.write(content)
 
 # 	return f"/files/{file_name}"
-def export_txt(filters=None):
-    if isinstance(filters, str):
-        filters = frappe.parse_json(filters)
-
-    data = get_data(filters)
-
-    lines = []
-    for row in data:
-        # skip total row if present
-        if row.get("company") == "Total":
-            continue
-
-        age = 0
-        dob = row.get("date_of_birth")
-        if dob:
-            today_date = getdate(today())
-            dob_date = getdate(dob)
-            age = today_date.year - dob_date.year - (
-                (today_date.month, today_date.day) < (dob_date.month, dob_date.day)
-            )
-
-        # only include employees with age < 58
-        if row.get("employee_id") and age < 58:
-            gross_pay = round(row.get("gross_pay") or 0)
-            uan_number = frappe.db.get_value("Employee", row["employee_id"], "uan_number")
-            name_as_per_aadhar = frappe.db.get_value("Employee", row["employee_id"], "name_as_per_aadhar")
-            epf_wages = round(row.get("epf_wages") or 0)
-            eps_wages = epf_wages
-            edli_wages = epf_wages
-            epf_contribution = round((epf_wages or 0) * 0.12)
-            eps_contribution = round((epf_wages or 0) * 0.0833)
-            contribution = (epf_contribution - eps_contribution) or 0
-            ncp = row.get("absent_days") or 0
-            refund_advance = row.get("refund_advance") or 0
-
-            lines.append(
-                f"{uan_number}#~#{name_as_per_aadhar}#~#{gross_pay}#~#{epf_wages}"
-                f"#~#{eps_wages}#~#{edli_wages}#~#{epf_contribution}"
-                f"#~#{eps_contribution}#~#{contribution}#~#{ncp}#~#{refund_advance}"
-            )
-
-    content = "\n".join(lines)
-
-    file_name = "pf_export.txt"
-    file_path = get_site_path("public", "files", file_name)
-
-    with open(file_path, "w", encoding="utf-8") as f:
-        f.write(content)
-
-    return f"/files/{file_name}"
