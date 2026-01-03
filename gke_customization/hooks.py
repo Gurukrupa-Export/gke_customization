@@ -244,6 +244,10 @@ doc_events = {
 "Employee Advance": {
 	"validate": "gke_customization.gke_hrms.doc_events.employee_advance.calculate_working_days"
 },
+"Attendance": {
+    "on_submit": "gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log.create_monthly_in_out_log",
+    "on_cancel": "gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log.cancel_monthly_in_out_log",
+},
 "Attendance Request": {
 	"validate": "gke_customization.gke_hrms.doc_events.attendance_request.validate",
 	"on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit"	
