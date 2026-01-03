@@ -109,7 +109,7 @@ frappe.query_reports["Monthly Checkin Report"] = {
 	],
 	onload: (report) => {
 		fetch_month_list()
-	report.page.add_button("Clear Filters", function() {
+		report.page.add_button("Clear Filters", function() {
 			window.open("/app/query-report/Monthly%20Checkin%20Report", "_self")
 		}).addClass("btn-info")
 
