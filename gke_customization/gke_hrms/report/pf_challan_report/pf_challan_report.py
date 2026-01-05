@@ -190,20 +190,28 @@ def export_txt(filters=None):
 			gross_pay = round(row.get("gross_pay") or 0)
 			uan_number = frappe.db.get_value("Employee", row["employee_id"], "uan_number")
 			name_as_per_aadhar = frappe.db.get_value("Employee", row["employee_id"], "name_as_per_aadhar")
-			epf_wages = round(row.get("epf_wages") or 0)
-			eps_wages = epf_wages
-			edli_wages = epf_wages
+			# epf_wages = round(row.get("epf_wages") or 0)
+			
+			basic_ear = round(row.get("epf_wages") or 0)
+			epf_wages = 15000 if basic_ear > 15000 else basic_ear
+
+			eps_wages = 15000 if basic_ear > 15000 else basic_ear
+			edli_wages = 15000 if basic_ear > 15000 else basic_ear
 			ctc = round(float(row.get("custom_gross_salary") or 0)) 
 
-			if ctc < 15000:
-				epf_contribution = round((epf_wages or 0) * 0.12)
-				eps_contribution = round((epf_wages or 0) * 0.0833)
+			if basic_ear < 15000:
+				epf_contribution = round((basic_ear or 0) * 0.12)
+				eps_contribution = round((basic_ear or 0) * 0.0833)
 			else:	
 				epf_contribution = round(row.get("pf_amount") or 0)
-				eps_contribution = round(row.get("pf_amount") or 0)
+				eps_contribution = round(15000 * 0.0833)
 			contribution = (epf_contribution - eps_contribution) or 0
 			ncp = row.get("absent_days") or 0
 			refund_advance = row.get("refund_advance") or 0
+
+			# 100982928420#~#Bhikhubhai Maheshbhai Modi#~#22589#~#14065
+			# #~#14065#~#14065#~#1688
+			# #~#1688#~#0#~#0#~#0
 
 			lines.append(
 				f"{uan_number}#~#{name_as_per_aadhar}#~#{gross_pay}#~#{epf_wages}"
