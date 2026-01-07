@@ -206,12 +206,15 @@ def export_txt(filters=None):
 				epf_contribution = round(row.get("pf_amount") or 0)
 				eps_contribution = round(15000 * 0.0833)
 			contribution = (epf_contribution - eps_contribution) or 0
+			
 			ncp = 0
+			total_working_days = row.get("total_working_days") or 0
+			payment_days = row.get("payment_days") or 0
+
 			if row.get("absent_days"):
-				ncp = round(row.get("absent_days"))
+				ncp = round(row.get("absent_days") or 0)
 			else:
-				ncp = round(row.get("total_working_days") - row.get("payment_days"))
-			refund_advance = row.get("refund_advance") or 0
+				ncp = round(total_working_days - payment_days)
 
 			# 100982928420#~#Bhikhubhai Maheshbhai Modi#~#22589#~#14065
 			# #~#14065#~#14065#~#1688
