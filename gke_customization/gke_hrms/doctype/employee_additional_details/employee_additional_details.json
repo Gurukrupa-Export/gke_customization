@@ -18,6 +18,7 @@
   "custom_city",
   "custom_state",
   "emergency_contact_details_table",
+  "department_contact_details",
   "salary_tab",
   "employee_name_as_per_bank_account",
   "personal_tab",
@@ -429,6 +430,12 @@
    "fieldname": "employee_signature",
    "fieldtype": "Signature",
    "label": "Employee Signature"
+  },
+  {
+   "fieldname": "department_contact_details",
+   "fieldtype": "Table",
+   "label": "Department Contact Details",
+   "options": "Department Contact Details"
   }
  ],
  "grid_page_length": 50,
