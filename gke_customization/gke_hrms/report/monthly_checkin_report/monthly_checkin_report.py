@@ -6,7 +6,7 @@ from frappe import _
 from frappe.utils.dateutils import get_dates_from_timegrain, get_period
 from datetime import timedelta, datetime
 from frappe.utils import flt, getdate, add_days, format_time, today, add_to_date, get_time
-	
+
 
 def execute(filters=None):
 	columns = get_columns(filters)
@@ -18,7 +18,7 @@ def get_data(filters=None):
 	to_date = filters.get("to_date")
 	company = filters.get("company")
 	branch = filters.get("branch")
-	department = filters.get("department")  # MultiSelect
+	department = filters.get("department") 
 	employee = filters.get("employee")
 
 	# If required filters not selected → no data
@@ -32,7 +32,7 @@ def get_data(filters=None):
 		"company": company
 	}
 
-	conditions.append("emp.status = 'Active'")
+	conditions.append("emp.status = 'Active'") 
 	conditions.append("emp.company = %(company)s")
 
 	if employee:
@@ -52,82 +52,7 @@ def get_data(filters=None):
 	if department:
 		conditions.append("emp.department = %(department)s")
 		values["department"] = department
-
-	# query = f"""
-	# 	SELECT 
-	# 		emp.name AS employee,
-	# 		emp.employee_name AS employee_name,
-	# 		d.work_date AS date,
-
-	# 		CASE
-	# 			WHEN h.holiday_date IS NOT NULL
-	# 				THEN 'Holiday'
-
-	# 			WHEN hl.weekly_off IS NOT NULL
-	# 				AND FIND_IN_SET(
-	# 					DAYNAME(d.work_date),
-	# 					REPLACE(hl.weekly_off, ' ', '')
-	# 				) > 0
-	# 				THEN 'WO'
-
-	# 			WHEN att.status IS NOT NULL
-	# 				THEN att.status
-
-	# 			WHEN ec.in_time IS NOT NULL
-	# 				THEN 'Present'
-
-	# 			ELSE 'Absent'
-	# 		END AS attendance_status,
-
-	# 		att.shift AS shift,
-
-	# 		/* ✅ Checkin first → Attendance fallback */
-	# 		COALESCE(ec.in_time, att.in_time) AS in_time,
-	# 		COALESCE(ec.out_time, att.out_time) AS out_time,
-
-	# 		emp.department
-
-	# 	FROM `tabEmployee` emp
-
-	# 	JOIN (
-	# 		WITH RECURSIVE dates AS (
-	# 			SELECT %(from_date)s AS work_date
-	# 			UNION ALL
-	# 			SELECT DATE_ADD(work_date, INTERVAL 1 DAY)
-	# 			FROM dates
-	# 			WHERE work_date < %(to_date)s
-	# 		)
-	# 		SELECT work_date FROM dates
-	# 	) d
-
-	# 	LEFT JOIN `tabHoliday List` hl
-	# 		ON hl.name = emp.holiday_list
-
-	# 	LEFT JOIN `tabHoliday` h
-	# 		ON h.parent = emp.holiday_list
-	# 		AND h.holiday_date = d.work_date
-
-	# 	LEFT JOIN `tabAttendance` att
-	# 		ON att.employee = emp.name
-	# 		AND att.attendance_date = d.work_date
-	# 		AND att.docstatus = 1
-
-	# 	/* ✅ Aggregated Employee Checkin */
-	# 	LEFT JOIN (
-	# 		SELECT
-	# 			employee,
-	# 			DATE(time) AS checkin_date,
-	# 			MIN(CASE WHEN log_type = 'IN' THEN time END)  AS in_time,
-	# 			MAX(CASE WHEN log_type = 'OUT' THEN time END) AS out_time
-	# 		FROM `tabEmployee Checkin`
-	# 		GROUP BY employee, DATE(time)
-	# 	) ec
-	# 		ON ec.employee = emp.name
-	# 		AND ec.checkin_date = d.work_date
-
-	# 	WHERE {" AND ".join(conditions)}
-	# 	ORDER BY emp.name, d.work_date
-	# """
+	
 	query = f"""
 		SELECT 
 			emp.name AS employee,
@@ -148,7 +73,7 @@ def get_data(filters=None):
 				WHEN att.status IS NOT NULL
 					THEN att.status
 
-				ELSE 'Absent'
+				ELSE 'ERR'
 			END AS attendance_status,
 
 			att.shift AS shift,
@@ -164,7 +89,30 @@ def get_data(filters=None):
 				ELSE TIME(ec.out_time)
 			END AS out_time,
 
-			emp.department
+			/* Late - Early hours */
+			CASE
+				WHEN att.late_entry = 1 
+					AND att.in_time IS NOT NULL 
+					AND st.start_time IS NOT NULL
+				THEN TIMEDIFF(TIME(att.in_time), st.start_time)
+				ELSE NULL
+			END AS late_hrs,
+
+			CASE
+				WHEN att.early_exit = 1
+					AND att.out_time IS NOT NULL 
+					AND st.end_time IS NOT NULL
+				THEN TIMEDIFF(st.end_time, TIME(att.out_time))
+				ELSE NULL
+			END AS early_hrs,
+
+			emp.department,
+			CASE
+				WHEN att.late_entry = 1 THEN 'L'
+				ELSE ''
+			END AS late,
+    		ot.allowed_ot as ott_hrs
+
 
 		FROM `tabEmployee` emp
 
@@ -191,6 +139,15 @@ def get_data(filters=None):
 		AND att.attendance_date = d.work_date
 		AND att.docstatus = 1
 
+		/* Shift Type to get start/end time */
+		LEFT JOIN `tabShift Type` st
+			ON st.name = att.shift
+		
+		LEFT JOIN `tabOT Log` ot
+    		ON ot.employee = emp.name 
+			AND ot.attendance_date = att.attendance_date
+			AND ot.is_cancelled = 0
+
 		/*  Aggregated Employee Checkins */
 		LEFT JOIN (
 			SELECT
@@ -207,7 +164,6 @@ def get_data(filters=None):
 		WHERE {" AND ".join(conditions)}
 		ORDER BY emp.name, d.work_date
 	"""
-
 
 	data = frappe.db.sql(query, values, as_dict=True)
 
@@ -249,12 +205,36 @@ def get_columns(filters=None):
 		{
 			"label": "In Time",
 			"fieldname": "in_time",
-			"fieldtype": "Time",
+			"fieldtype": "Data",
 			"width": 100
 		},
 		{
 			"label": "Out Time",
 			"fieldname": "out_time",
+			"fieldtype": "Data",
+			"width": 100
+		},
+		{
+			"label": "Late",
+			"fieldname": "late",
+			"fieldtype": "Data",
+			"width": 100
+		},
+		{
+			"label": "Late Hrs",
+			"fieldname": "late_hrs",
+			"fieldtype": "Time",
+			"width": 100
+		},
+		{
+			"label": "Early Hrs",
+			"fieldname": "early_hrs",
+			"fieldtype": "Time",
+			"width": 100
+		},
+		{
+			"label": "OT Hrs",
+			"fieldname": "ott_hrs",
 			"fieldtype": "Time",
 			"width": 100
 		},
@@ -262,7 +242,7 @@ def get_columns(filters=None):
 			"label": "Attendance Status",
 			"fieldname": "attendance_status",
 			"fieldtype": "Data",
-			"width": 300
+			"width": 150
 		},
 	]
 	return columns
