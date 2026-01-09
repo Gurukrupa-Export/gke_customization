@@ -29,6 +29,9 @@ class ItemRequest(Document):
 		if self.is_consumable:
 			self.name = make_autoname('IRQ-.#####')
 			return
+		if self.is_asset:
+			self.name = make_autoname("IRQ-AS-.#####")
+			return
 
 		type_code = type_code_map.get(self.select_raw_material)
 		if not type_code:
