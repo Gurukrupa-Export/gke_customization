@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 from datetime import timedelta, datetime
-from frappe.utils import flt, getdate, add_days, format_time, today, add_to_date, get_time, get_datetime
+from frappe.utils import flt, getdate, add_days, format_time, get_time, get_datetime
 from gurukrupa_customizations.gurukrupa_customizations.doctype.manual_punch.manual_punch import get_checkins  # type: ignore
 from frappe.query_builder.functions import Count, Date, Concat, IfNull, Sum, Min, Max
 from frappe.query_builder import CustomFunction
@@ -130,7 +130,7 @@ def attendance(from_date = None,to_date = None,employee = None):
 	data = query.run(as_dict=1)
 	
 	if not data:
-		return
+		data = []
 	
 	data = process_data(data,from_date,to_date,employee)
 	
@@ -172,22 +172,20 @@ def process_data(data,from_date,to_date, employee):
 	EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
 	addition_day = add_days(to_date,1)
 
-	# checkins = (
-	# 	frappe.qb.from_(EmployeeCheckin)
-	# 	.select(
-	# 		Date(EmployeeCheckin.time).as_("login_date"),
-	# 		EmployeeCheckin.attendance,
-	# 		Count(EmployeeCheckin.name).as_("cnt")
-	# 	)
-	# 	.where(
-	# 		(EmployeeCheckin.time.between(from_date, addition_day)) &
-	# 		(EmployeeCheckin.employee == employee)
-	# 		&
-	# 		(EmployeeCheckin.attendance.isnotnull()) & 
-	# 		(EmployeeCheckin.attendance != "")
-	# 	)
-	# 	.groupby(EmployeeCheckin.attendance)
-	# ).run(as_dict=True)
+
+	all_checkins = frappe.get_all(
+		"Employee Checkin",
+		{
+			"employee": employee,
+			"time": ["between", [from_date, add_days(to_date, 1)]]
+		},
+		["time"]
+	)
+	# Build map: {date: [time1, time2, ...]}
+	checkin_time_map = {}
+	for row in all_checkins:
+		login_date = getdate(row.time)
+		checkin_time_map.setdefault(login_date, []).append(get_time(row.time))
 	
 	# Checkin query - first IN / last OUT per employee/date, only if no Attendance
 	checkins = (
@@ -279,7 +277,7 @@ def process_data(data,from_date,to_date, employee):
 	# Example: {date: {"hrs": timedelta, "allow": 0/1}}
 	ot_details_map = {
 		row.attendance_date: {
-			"hrs": row.attn_ot_hrs,
+			"hrs": row.allowed_ot,
 			"allow": row.allow
 		}
 		for row in ot_details
@@ -289,22 +287,41 @@ def process_data(data,from_date,to_date, employee):
 		# row = processed.get(date,ot_for_wo.get(date,{}))
 		row = processed.get(date)
 
+		# --------------------------------------------------
+		# Split check-ins into IN / OUT times (same date)
+		# --------------------------------------------------
+		times = sorted(checkin_time_map.get(date, []))
+		in_times = []
+		out_times = []
+
+		for idx, t in enumerate(times):
+			if idx % 2 == 0:
+				in_times.append(t.strftime("%H:%M:%S"))
+			else:
+				out_times.append(t.strftime("%H:%M:%S"))
+
+		tin_time_str = ", ".join(in_times) if in_times else None
+		out_time_str = ", ".join(out_times) if out_times else None
+
 		# 🔹 CASE 1: Attendance NOT available, but Check-in exists
 		if not row and date in checkins:
 			ci = checkins[date]
+			is_error = ci.cnt % 2 != 0  # odd punches → missing OUT
 
-			# CHANGE: Preserve existing status for non-attendance days
+			# If odd punch count, OUT is not valid
+			if is_error:
+				out_time = None
+			else:
+				out_time = get_time(ci.last_out) if ci.last_out else None
+
 			row = frappe._dict({
 				"attendance_date": date,
-				"in_time": get_time(ci.first_in) if ci.first_in else None,
-				"out_time": get_time(ci.last_out) if ci.last_out else None,
-				"spent_hours": (
-					ci.last_out - ci.first_in
-					if ci.first_in and ci.last_out else None
-				),
+				"in_time": tin_time_str,
+				"out_time": out_time_str,
+				"spent_hours": None if not out_time else (ci.last_out - ci.first_in),
 				"net_wrk_hrs": timedelta(0),
 				"total_pay_hrs": timedelta(0),
-				"status": "ERR"   # Check-in only
+				"status": "ERR"
 			})
 
 		# 🔹 CASE 2: No Attendance, no Check-in → fallback to OT
@@ -318,7 +335,6 @@ def process_data(data,from_date,to_date, employee):
 				if ot_hours:=row.get("ot_hours"):
 					row['total_pay_hrs'] = ot_hours
 			else:
-				# row["status"] = "OD"
 				row['total_pay_hrs'] = row.get("total_pay_hrs")
 		elif date in wo and (date >= getdate(emp_det.get("date_of_joining"))):
 			status = "WO" # weekly off
@@ -356,7 +372,7 @@ def process_data(data,from_date,to_date, employee):
 		if ot_detail and ot_detail.get("allow") == 1 and row.get("ot_hours"):
 			predefined_ot_hrs = row.get("ot_hours")
 
-		# # Call OT resolver
+		# Call OT resolver
 		ot_hours, ot_status = resolve_ot_hours(
 			attendance_date=date,
 			shift_end_time=get_time(shift_det.end_time),
@@ -391,6 +407,15 @@ def process_data(data,from_date,to_date, employee):
 		}
 		if not row.get("spent_hours"):
 			row["spent_hours"] = None
+
+		# --------------------------------------------------
+		# GLOBAL OVERRIDE: Show comma-separated IN/OUT
+		# for EVERY date if multiple check-ins exist
+		# --------------------------------------------------
+		if len(times) > 1:
+			row["in_time"] = tin_time_str
+			row["out_time"] = out_time_str
+
 		temp.update(row)
 		result.append(temp)
 	return result
@@ -458,8 +483,7 @@ def resolve_ot_hours(
 	out_dt = get_datetime(f"{attendance_date} {out_time}")
 		
 	# 3️⃣ If employee left before or at shift end → NO OT
-	if out_dt <= shift_end_dt:
-		return None, ""
+	if out_dt <= shift_end_dt: return None, ""
 
 	diff = out_dt - shift_end_dt
 
@@ -469,3 +493,4 @@ def resolve_ot_hours(
 
 	# 5️⃣ Valid OT
 	return diff, "Pending"
+
