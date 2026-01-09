@@ -14,7 +14,7 @@
   "punch_id",
   "designation",
   "section_break_nlsb",
-  "login_date",
+  "attendance_date",
   "shit_type",
   "column_break_twkn",
   "shift_hours",
@@ -32,6 +32,9 @@
   "early_hrs",
   "ot_hrs",
   "section_break_44ms",
+  "column_break_hexd",
+  "attendance",
+  "column_break_vipo",
   "amended_from"
  ],
  "fields": [
@@ -65,19 +68,11 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "login_date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Login Date",
-   "reqd": 1,
-   "search_index": 1
-  },
-  {
    "fetch_from": "employee.default_shift",
    "fetch_if_empty": 1,
    "fieldname": "shit_type",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Shit Type",
    "options": "Shift Type"
   },
@@ -145,8 +140,9 @@
   {
    "fieldname": "status",
    "fieldtype": "Select",
+   "in_standard_filter": 1,
    "label": "Status",
-   "options": "Present\nAbsent\nHalf Day\nPrivilege Leave\nCasual Leave\nSick Leave\nLeave Without Pay\nOutdoor Duty\nWork From Home\nMaternity Leave",
+   "options": "\nPresent\nAbsent\nOn Leave\nHalf Day\nWork From Home",
    "read_only": 1
   },
   {
@@ -183,6 +179,7 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "default": "00:00:00",
    "fieldname": "p_out_hrs",
    "fieldtype": "Time",
@@ -190,12 +187,14 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "net_wrk_hrs",
    "fieldtype": "Time",
    "label": "Net Wrk Hrs",
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "spent_hrs",
    "fieldtype": "Time",
    "label": "Spent Hrs",
@@ -221,18 +220,43 @@
    "reqd": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "ot_hrs",
    "fieldtype": "Time",
    "label": "OTHrs",
    "non_negative": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "attendance_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Attendance Date",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_hexd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "attendance",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Attendance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_vipo",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-01-03 13:10:30.089787",
+ "modified": "2026-01-08 09:51:25.474305",
  "modified_by": "aditya_r@gkexport.com",
  "module": "GKE HRMS",
  "name": "Monthly In-Out Log",

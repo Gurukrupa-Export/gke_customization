@@ -21,17 +21,13 @@ from frappe.query_builder import CustomFunction
 # ============================================================
 
 STATUS = {
-    "Absent": "A",
-    "Present": "P",
-    "Half Day": "HD",
-    "Privilege Leave": "PL",
-    "Casual Leave": "CL",
-    "Sick Leave": "SL",
-    "Leave Without Pay": "LWP",
-    "Outdoor Duty": "OD",
-    "Work From Home": "WFH",
-    "Maternity Leave": "ML",
+    "Absent": "Absent",
+    "Present": "Present",
+    "Half Day": "Half Day",
+    "On Leave": "On Leave",
+    "Work From Home": "Work From Home",
 }
+
 REVERSE_STATUS = {v: k for k, v in STATUS.items()}
 
 TOTAL_STATUS_ROWS = [
@@ -54,10 +50,15 @@ class MonthlyInOutLog(Document):
 
     def validate(self):
         """
-        By default populate on validate if employee + login_date present.
+        By default populate on validate if employee + attendance_date present.
         Change this behavior if you want manual button-based population instead.
         """
+        self.company = frappe.db.get_value("Employee", self.employee, "company")
+
         self.validate_duplicate_entry()
+        self.populate_from_attendance()
+    
+    def on_submit(self):
         self.populate_from_attendance()
 
     def validate_duplicate_entry(self):
@@ -65,16 +66,16 @@ class MonthlyInOutLog(Document):
         Prevent duplicate Monthly In-Out Log for same employee & date
         """
 
-        if not self.employee or not self.login_date:
+        if not self.employee or not self.attendance_date:
             return
 
-        login_date = getdate(self.login_date)
+        login_date = getdate(self.attendance_date)
 
         duplicate = frappe.db.exists(
             "Monthly In-Out Log",
             {
                 "employee": self.employee,
-                "login_date": login_date,
+                "attendance_date": login_date,
                 "docstatus": ["in", [0, 1]],
                 "name": ["!=", self.name],
             },
@@ -88,6 +89,7 @@ class MonthlyInOutLog(Document):
                 title=_("Duplicate Entry"),
             )
 
+    @frappe.whitelist()
     def populate_from_attendance(self):
         """
         Populate document fields using the service function.
@@ -95,7 +97,7 @@ class MonthlyInOutLog(Document):
         """
         try:
             # normalize
-            attendance_date = getdate(self.login_date)
+            attendance_date = getdate(self.attendance_date)
 
             # call the shared service function (module-level)
             res = get_attendance_details_by_date(self.company, self.employee, attendance_date)
@@ -113,38 +115,23 @@ class MonthlyInOutLog(Document):
                 if hasattr(self, f):
                     setattr(self, f, None)
 
-            # small helper to format timedelta/time-like to HH:MM:SS string
-            def _fmt_td_or_value(val):
-                if not val:
-                    return "00:00:00"
-                if isinstance(val, timedelta):
-                    secs = int(val.total_seconds())
-                    h = secs // 3600
-                    m = (secs % 3600) // 60
-                    s = secs % 60
-                    return f"{h:02d}:{m:02d}:{s:02d}"
-                if isinstance(val, datetime):
-                    # rarely expected, return date-time string
-                    return val.strftime("%Y-%m-%d %H:%M:%S")
-                return val
-
-            raw_status = record.get("status")
-            self.status = REVERSE_STATUS.get(raw_status, raw_status)
+            self.status =  record.get("status")
 
             # time/duration fields as HH:MM:SS
-            self.spent_hrs = _fmt_td_or_value(record.get("spent_hrs") or record.get("spent_hours"))
+            self.spent_hrs = fmt_td_or_value(record.get("spent_hrs") or record.get("spent_hours"))
             # net_wrk_hrs may be timedelta; keep as string
-            self.net_wrk_hrs = _fmt_td_or_value(record.get("net_wrk_hrs"))
+            self.net_wrk_hrs = fmt_td_or_value(record.get("net_wrk_hrs"))
 
-            self.in_time = _fmt_td_or_value(record.get("in_time"))
-            self.out_time = _fmt_td_or_value(record.get("out_time"))
+            self.in_time = fmt_td_or_value(record.get("in_time"))
+            self.out_time = fmt_td_or_value(record.get("out_time"))
 
-            self.p_out_hrs = _fmt_td_or_value(record.get("p_out_hrs"))
+            self.p_out_hrs = fmt_td_or_value(record.get("p_out_hrs"))
 
             self.late = record.get("late") or record.get("late_entry")
-            self.late_hrs = _fmt_td_or_value(record.get("late_hrs"))
-            self.early_hrs = _fmt_td_or_value(record.get("early_hrs"))
-            self.ot_hrs= _fmt_td_or_value(record.get("ot_hours") or record.get("othrs"))
+            self.late_hrs = fmt_td_or_value(record.get("late_hrs"))
+            self.early_hrs = fmt_td_or_value(record.get("early_hrs"))
+            self.ot_hrs= fmt_td_or_value(record.get("ot_hours") or record.get("othrs"))
+
         except Exception:
             frappe.log_error(title="MonthlyInOutLog.populate_from_attendance_error", message=frappe.get_traceback(with_context=True), reference_doctype=self.doctype)
 
@@ -389,6 +376,20 @@ def get_conditions(filters):
 
     return conditions
 
+# small helper to format timedelta/time-like to HH:MM:SS string
+def fmt_td_or_value(val):
+    if not val:
+        return "00:00:00"
+    if isinstance(val, timedelta):
+        secs = int(val.total_seconds())
+        h = secs // 3600
+        m = (secs % 3600) // 60
+        s = secs % 60
+        return f"{h:02d}:{m:02d}:{s:02d}"
+    if isinstance(val, datetime):
+        # rarely expected, return date-time string
+        return val.strftime("%Y-%m-%d %H:%M:%S")
+    return val
 
 def process_data(data, filters):
     employee = filters.get("employee")
@@ -482,7 +483,28 @@ def process_data(data, filters):
                 row["net_wrk_hrs"] = timedelta(hours=shift_hours)
 
         row["total_pay_hrs"] = row.get("net_wrk_hrs") + (row.get("ot_hours") or timedelta(0))
-        row["status"] = STATUS.get(row.get("status")) or row.get("status")
+        # row["status"] = STATUS.get(row.get("status")) or row.get("status")
+        status = row.get("status")
+
+        # Normalize all leave types to "On Leave"
+        if frappe.db.exists("Leave Type", status):
+            row["status"] = "On Leave"
+
+        elif status in (
+            "Present",
+            "Absent",
+            "Half Day",
+            "Work From Home",
+            "OD",
+            "WO",
+            "H",
+        ):
+            row["status"] = status
+
+        else:
+            # safety fallback
+            row["status"] = "Absent"
+
         processed[row.get("attendance_date")] = row
 
     ot_for_wo = frappe.get_all("OT Log", {"employee": employee, "attendance_date": ["between", [from_date, to_date]], "is_cancelled": 0}, ["attendance_date", "allowed_ot as ot_hours", "first_in as in_time", "last_out as out_time"])
@@ -642,8 +664,8 @@ def create_monthly_in_out_log(doc, method=None):
     if frappe.db.exists(
         "Monthly In-Out Log",
         {
-            "employee": doc.employee,
-            "login_date": attendance_date,
+            "attendance": doc.name,
+            "attendance_date": attendance_date,
             "docstatus": ["in", [0, 1]],  # only submitted,draft docs
         }
     ):return
@@ -651,7 +673,8 @@ def create_monthly_in_out_log(doc, method=None):
     # Create Monthly In-Out Log
     monthly_log = frappe.new_doc("Monthly In-Out Log")
     monthly_log.employee = doc.employee
-    monthly_log.login_date = attendance_date
+    monthly_log.attendance_date = attendance_date
+    monthly_log.attendance = doc.name
 
     monthly_log.insert(ignore_permissions=True)
     monthly_log.submit()
@@ -670,8 +693,8 @@ def cancel_monthly_in_out_log(doc, method=None):
     monthly_log_name = frappe.db.get_value(
         "Monthly In-Out Log",
         {
-            "employee": doc.employee,
-            "login_date": attendance_date,
+            "attendance": doc.name,
+            "attendance_date": attendance_date,
             "docstatus": 1,  # only submitted docs
         },
         "name",
