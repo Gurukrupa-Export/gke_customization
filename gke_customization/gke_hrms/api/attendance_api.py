@@ -284,8 +284,8 @@ def process_data(data,from_date,to_date, employee):
 	}
 
 	for date in date_range:
-		# row = processed.get(date,ot_for_wo.get(date,{}))
-		row = processed.get(date)
+		row = processed.get(date,ot_for_wo.get(date,{}))
+		# row = processed.get(date)
 
 		# --------------------------------------------------
 		# Split check-ins into IN / OUT times (same date)
