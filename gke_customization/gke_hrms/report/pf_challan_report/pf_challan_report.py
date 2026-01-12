@@ -188,26 +188,37 @@ def export_txt(filters=None):
 			)
 
 		# only include employees with age < 58
-		if row.get("employee_id") and age < 58:
+		if row.get("employee_id") :
+			# and age < 58:
 			gross_pay = round(row.get("gross_pay") or 0)
 			uan_number = frappe.db.get_value("Employee", row["employee_id"], "uan_number")
 			name_as_per_aadhar = frappe.db.get_value("Employee", row["employee_id"], "name_as_per_aadhar")
 			# epf_wages = round(row.get("epf_wages") or 0)
 			
 			basic_ear = round(row.get("epf_wages") or 0)
+			eps_wages = 0
+			
 			epf_wages = 15000 if basic_ear > 15000 else basic_ear
 
-			eps_wages = 15000 if basic_ear > 15000 else basic_ear
+			if age >= 58:
+				eps_wages = 0
+			else:
+				eps_wages = 15000 if basic_ear > 15000 else basic_ear
+
 			edli_wages = 15000 if basic_ear > 15000 else basic_ear
 			ctc = round(float(row.get("custom_gross_salary") or 0)) 
 
 			if basic_ear < 15000:
 				epf_contribution = round((basic_ear or 0) * 0.12)
-				eps_contribution = round((basic_ear or 0) * 0.0833)
+				if age >= 58:
+					eps_contribution = 0
+				else:
+					eps_contribution = round((basic_ear or 0) * 0.0833)
 			else:	
 				epf_contribution = round(row.get("pf_amount") or 0)
 				eps_contribution = round(15000 * 0.0833)
 			contribution = (epf_contribution - eps_contribution) or 0
+
 
 			ncp = 0
 			total_working_days = row.get("total_working_days") or 0
