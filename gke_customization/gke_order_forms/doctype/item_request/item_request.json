@@ -52,6 +52,8 @@
   "naming_series",
   "section_break_tbuj",
   "asset_category",
+  "asset_color",
+  "asset_size",
   "location",
   "is_fixed_asset",
   "auto_create_assests_on_purchase",
@@ -303,7 +305,7 @@
    "fieldname": "default_expense_account",
    "fieldtype": "Link",
    "label": "Default Expense Account",
-   "mandatory_depends_on": "eval:doc.workflow_state == 'Send to Account'",
+   "mandatory_depends_on": "eval:doc.workflow_state == 'Send to Account' && (doc.is_consumable_update || doc.is_consumable)",
    "options": "Account",
    "read_only_depends_on": "// eval:doc.workflow_state != 'Verify Detail'"
   },
@@ -790,13 +792,23 @@
    "fieldname": "asset_company",
    "fieldtype": "Data",
    "label": "Asset Company"
+  },
+  {
+   "fieldname": "asset_color",
+   "fieldtype": "Data",
+   "label": "Asset Color"
+  },
+  {
+   "fieldname": "asset_size",
+   "fieldtype": "Data",
+   "label": "Asset Size"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-01-09 09:44:24.648047",
- "modified_by": "bhavika_patel@gkexport.com",
+ "modified": "2026-01-12 16:07:06.048957",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Item Request",
  "naming_rule": "By \"Naming Series\" field",
