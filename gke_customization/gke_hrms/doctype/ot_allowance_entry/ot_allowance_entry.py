@@ -151,6 +151,10 @@ class OTAllowanceEntry(Document):
 		data = sorted(data, key=lambda x:x.get("attendance_date")) 
 
 		for row in data:
+			if self.branch:
+				if row.get("branch") != self.branch:
+					continue
+				
 			if not row.get("allowed_ot"):
 				row["allowed_ot"] = row.get("attn_ot_hrs") 
 			if row.get("allowed_ot") < timedelta(minutes=30):	# for excluding OT that are less than 30 min
@@ -317,6 +321,9 @@ class OTAllowanceEntry(Document):
 		else:
 			frappe.throw(_("Company is mandatory"))
 		
+		if self.branch:
+			sub_query_filter.append((Employee.branch == self.branch))
+
 		if self.department:
 			sub_query_filter.append((Employee.department == self.department))
 		

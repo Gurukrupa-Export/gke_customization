@@ -6,7 +6,7 @@ from frappe import _
 from frappe.utils.dateutils import get_dates_from_timegrain, get_period
 from datetime import timedelta, datetime
 from frappe.utils import flt, getdate, add_days, format_time, today, add_to_date, get_time
-	
+
 
 def execute(filters=None):
 	columns = get_columns(filters)
@@ -18,7 +18,7 @@ def get_data(filters=None):
 	to_date = filters.get("to_date")
 	company = filters.get("company")
 	branch = filters.get("branch")
-	department = filters.get("department")  # MultiSelect
+	department = filters.get("department") 
 	employee = filters.get("employee")
 
 	# If required filters not selected → no data
@@ -32,7 +32,7 @@ def get_data(filters=None):
 		"company": company
 	}
 
-	conditions.append("emp.status = 'Active'")
+	conditions.append("emp.status = 'Active'") 
 	conditions.append("emp.company = %(company)s")
 
 	if employee:
@@ -52,12 +52,13 @@ def get_data(filters=None):
 	if department:
 		conditions.append("emp.department = %(department)s")
 		values["department"] = department
-
+	
 	query = f"""
 		SELECT 
 			emp.name AS employee,
 			emp.employee_name AS employee_name,
 			d.work_date AS date,
+			COALESCE(att.shift, ec.shift, emp.default_shift) AS shift,
 
 			/* 📌 Attendance Status */
 			CASE
@@ -76,20 +77,7 @@ def get_data(filters=None):
 				ELSE 'ERR'
 			END AS attendance_status,
 
-			att.shift AS shift,
-			
-			/* IN - OUT TIME LOGIC */    
-			CASE
-				WHEN att.name IS NOT NULL THEN TIME(att.in_time)
-				ELSE TIME(ec.in_time)
-			END AS in_time,
-
-			CASE
-				WHEN att.name IS NOT NULL THEN TIME(att.out_time)
-				ELSE TIME(ec.out_time)
-			END AS out_time,
-
-			/* Late - Early hours */
+			/* Late - hours */
 			CASE
 				WHEN att.late_entry = 1 
 					AND att.in_time IS NOT NULL 
@@ -98,6 +86,7 @@ def get_data(filters=None):
 				ELSE NULL
 			END AS late_hrs,
 
+			/* Early hours */
 			CASE
 				WHEN att.early_exit = 1
 					AND att.out_time IS NOT NULL 
@@ -106,7 +95,18 @@ def get_data(filters=None):
 				ELSE NULL
 			END AS early_hrs,
 
-			emp.department
+			/* ALL IN TIMES */
+			ec.all_in_times AS in_time,
+
+			/* ALL OUT TIMES */
+			ec.all_out_times AS out_time,
+
+			emp.department,
+			CASE
+				WHEN att.late_entry = 1 THEN 'L'
+				ELSE ''
+			END AS late,
+    		ot.allowed_ot as ott_hrs
 
 		FROM `tabEmployee` emp
 
@@ -136,28 +136,46 @@ def get_data(filters=None):
 		/* Shift Type to get start/end time */
 		LEFT JOIN `tabShift Type` st
 			ON st.name = att.shift
+		
+		LEFT JOIN `tabOT Log` ot
+    		ON ot.employee = emp.name 
+			AND ot.attendance_date = att.attendance_date
+			AND ot.is_cancelled = 0
 
-		/*  Aggregated Employee Checkins */
+		/* 🔴 THIS IS THE KEY PART */
 		LEFT JOIN (
 			SELECT
-				employee,
+				employee,shift,
 				DATE(time) AS checkin_date,
-				MIN(CASE WHEN log_type = 'IN'  THEN time END)  AS in_time,
-				MAX(CASE WHEN log_type = 'OUT' THEN time END) AS out_time
+
+				GROUP_CONCAT(
+					CASE WHEN log_type = 'IN'
+						THEN TIME_FORMAT(time, '%%H:%%i:%%s')
+					END
+					ORDER BY time
+					SEPARATOR ', '
+				) AS all_in_times,
+
+				GROUP_CONCAT(
+					CASE WHEN log_type = 'OUT'
+						THEN TIME_FORMAT(time, '%%H:%%i:%%s')
+					END
+					ORDER BY time
+					SEPARATOR ', '
+				) AS all_out_times
+
 			FROM `tabEmployee Checkin`
 			GROUP BY employee, DATE(time)
 		) ec
 			ON ec.employee = emp.name
-		AND ec.checkin_date = d.work_date
+			AND ec.checkin_date = d.work_date
 
 		WHERE {" AND ".join(conditions)}
 		ORDER BY emp.name, d.work_date
 	"""
 
-
 	data = frappe.db.sql(query, values, as_dict=True)
 
-	# data = frappe.throw(f"{frappe.session.user}")
 	return data
 
 def get_columns(filters=None):
@@ -193,35 +211,48 @@ def get_columns(filters=None):
 			"width": 120
 		},
 		{
-			"label": "In Time",
-			"fieldname": "in_time",
-			"fieldtype": "Time",
-			"width": 100
-		},
-		{
-			"label": "Out Time",
-			"fieldname": "out_time",
-			"fieldtype": "Time",
-			"width": 100
-		},
-		{
-			"label": "Late Hours",
-			"fieldname": "late_hrs",
-			"fieldtype": "Time",
-			"width": 100
-		},
-		{
-			"label": "Early Hours",
-			"fieldname": "early_hrs",
-			"fieldtype": "Time",
-			"width": 100
-		},
-		{
 			"label": "Attendance Status",
 			"fieldname": "attendance_status",
 			"fieldtype": "Data",
 			"width": 150
 		},
+		{
+			"label": "In Time",
+			"fieldname": "in_time",
+			"fieldtype": "Data",
+			"width": 100
+		},
+		{
+			"label": "Out Time",
+			"fieldname": "out_time",
+			"fieldtype": "Data",
+			"width": 100
+		},
+		{
+			"label": "Late",
+			"fieldname": "late",
+			"fieldtype": "Data",
+			"width": 100
+		},
+		{
+			"label": "Late Hrs",
+			"fieldname": "late_hrs",
+			"fieldtype": "Time",
+			"width": 100
+		},
+		{
+			"label": "Early Hrs",
+			"fieldname": "early_hrs",
+			"fieldtype": "Time",
+			"width": 100
+		},
+		{
+			"label": "OT Hrs",
+			"fieldname": "ott_hrs",
+			"fieldtype": "Time",
+			"width": 100
+		},
+		
 	]
 	return columns
 
@@ -233,6 +264,3 @@ def get_month_range():
 	periods = [get_period(row) for row in periodic_range]
 	periods.reverse()
 	return periods
-
-
-	

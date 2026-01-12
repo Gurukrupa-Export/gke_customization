@@ -10,6 +10,7 @@
   "user_id",
   "company",
   "is_consumable",
+  "is_asset",
   "is_consumable_update",
   "column_break_kuin",
   "select_raw_material",
@@ -49,6 +50,15 @@
   "item_tac",
   "amended_from",
   "naming_series",
+  "section_break_tbuj",
+  "asset_category",
+  "location",
+  "is_fixed_asset",
+  "auto_create_assests_on_purchase",
+  "column_break_mqng",
+  "asset_type",
+  "asset_series",
+  "asset_company",
   "raw_material_tab",
   "raw_item_code",
   "raw_image",
@@ -104,7 +114,6 @@
  ],
  "fields": [
   {
-   "depends_on": "eval: doc.is_consumable_update || doc.is_consumable",
    "fieldname": "section_break_raw6",
    "fieldtype": "Section Break"
   },
@@ -119,16 +128,18 @@
   },
   {
    "allow_on_submit": 1,
+   "depends_on": "eval:doc.is_consumable_update || doc.is_consumable || doc.is_asset\r\n",
    "fieldname": "item_name",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Item Name",
-   "mandatory_depends_on": "eval:doc.is_consumable == 1",
+   "mandatory_depends_on": "eval:doc.is_consumable == 1 || doc.is_asset",
    "read_only": 1,
    "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail' || doc.is_consumable_update"
   },
   {
    "allow_on_submit": 1,
+   "depends_on": "eval: doc.is_consumable_update || doc.is_consumable",
    "fieldname": "item_size",
    "fieldtype": "Data",
    "label": "Item Size",
@@ -141,6 +152,7 @@
   },
   {
    "allow_on_submit": 1,
+   "depends_on": "eval: doc.is_consumable_update || doc.is_consumable",
    "fieldname": "item_color",
    "fieldtype": "Data",
    "label": "Item Color",
@@ -149,6 +161,7 @@
   },
   {
    "allow_on_submit": 1,
+   "depends_on": "eval: doc.is_consumable_update || doc.is_consumable",
    "fieldname": "item_weight",
    "fieldtype": "Data",
    "label": "Item Weight",
@@ -156,7 +169,7 @@
    "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'"
   },
   {
-   "depends_on": "eval:doc.is_consumable == 1 || doc.is_consumable_update==1",
+   "depends_on": "eval: (doc.is_consumable_update || doc.is_consumable) || doc.is_asset == \"1\"\r\n",
    "fieldname": "section_break_5qrb",
    "fieldtype": "Section Break"
   },
@@ -165,7 +178,7 @@
    "fieldname": "item_group",
    "fieldtype": "Link",
    "label": "Item Group",
-   "mandatory_depends_on": "eval:doc.is_consumable == 1",
+   "mandatory_depends_on": "eval:doc.is_consumable == 1 || doc.is_asset",
    "options": "Item Group",
    "read_only": 1,
    "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail' && doc.workflow_state != 'Send to Account'"
@@ -176,9 +189,8 @@
    "fieldname": "gst",
    "fieldtype": "Select",
    "label": "Item Tax (GST %)",
-   "mandatory_depends_on": "eval:doc.workflow_state == 'Send to Account'",
-   "read_only": 1,
-   "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'"
+   "mandatory_depends_on": "eval:doc.workflow_state == 'Send to Account' || doc.is_asset",
+   "read_only_depends_on": "eval: in_list([\"Send For Approval\",\"Approved\",\"Rejected\",\"Completed\",\"On Hold\",\"Approve - Hold\",\"Verify Detail - On Hold\"],doc.workflow_state)\r\n"
   },
   {
    "fieldname": "column_break_wbqs",
@@ -287,10 +299,11 @@
   },
   {
    "allow_on_submit": 1,
+   "depends_on": "eval: doc.is_consumable_update || doc.is_consumable",
    "fieldname": "default_expense_account",
    "fieldtype": "Link",
    "label": "Default Expense Account",
-   "mandatory_depends_on": "eval:doc.workflow_state == 'Send to Account'",
+   "mandatory_depends_on": "eval:doc.workflow_state == 'Send to Account' && (doc.is_consumable_update || doc.is_consumable)",
    "options": "Account",
    "read_only_depends_on": "// eval:doc.workflow_state != 'Verify Detail'"
   },
@@ -303,6 +316,7 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:doc.is_consumable_update",
    "fieldname": "multiple_tax",
    "fieldtype": "Check",
    "label": "Item has Multiple Tax"
@@ -327,7 +341,7 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:doc.is_consumable_update",
+   "depends_on": "eval:doc.is_consumable_update || doc.is_asset",
    "fieldname": "cons_hsn_code",
    "fieldtype": "Int",
    "label": "HSN Code",
@@ -537,6 +551,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval: doc.is_consumable_update || doc.is_consumable",
    "fieldname": "mr_by_department",
    "fieldtype": "Select",
    "label": "MR By Department",
@@ -567,7 +582,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval: (in_list(['Approved','Completed'], doc.workflow_state)) || doc.is_consumable == 0",
+   "depends_on": "eval: (in_list(['Approved','Completed'], doc.workflow_state)) || (doc.is_consumable == 0 && doc.is_asset == 0)",
    "fieldname": "select_raw_material",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -710,15 +725,77 @@
    "label": "Is Consumable Update"
   },
   {
+   "depends_on": "eval: doc.is_consumable_update",
    "fieldname": "update_gst",
    "fieldtype": "Select",
    "label": "Update Item Tax (GST %)"
+  },
+  {
+   "depends_on": "eval:doc.is_asset == \"1\"",
+   "fieldname": "section_break_tbuj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_fixed_asset",
+   "fieldtype": "Check",
+   "label": "Is Fixed Asset"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_asset",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Is Asset"
+  },
+  {
+   "default": "0",
+   "description": "Check this box if you want the system to automatically create the asset when the Purchase Receipt (PR) is submitted.",
+   "fieldname": "auto_create_assests_on_purchase",
+   "fieldtype": "Check",
+   "label": "Auto Create Assests on Purchase"
+  },
+  {
+   "fieldname": "asset_category",
+   "fieldtype": "Link",
+   "label": "Asset Category",
+   "options": "Asset Category"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Link",
+   "label": "Location",
+   "options": "Location"
+  },
+  {
+   "description": "FIll the type of asset, such as Chair, Computer, or Laptop.",
+   "fieldname": "asset_type",
+   "fieldtype": "Data",
+   "label": "Asset Type",
+   "mandatory_depends_on": "eval:doc.is_asset",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "column_break_mqng",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Enter the asset\u2019s model number or serial number.",
+   "fieldname": "asset_series",
+   "fieldtype": "Data",
+   "label": "Asset Series"
+  },
+  {
+   "description": "Enter the brand or manufacturer name of the asset, for example Apple or Samsung.",
+   "fieldname": "asset_company",
+   "fieldtype": "Data",
+   "label": "Asset Company"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-29 14:56:50.991777",
+ "modified": "2026-01-10 12:52:53.719686",
  "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Item Request",
