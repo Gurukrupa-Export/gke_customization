@@ -110,7 +110,6 @@ def get_data(filters=None):
 	
 	return data
 
-
 def get_totals(data, employee=None):
 	totals = {
 		"company": "Total",
@@ -121,6 +120,7 @@ def get_totals(data, employee=None):
 		"gross_pay": sum((row.get("gross_pay") or 0) for row in data),
 		"pf_amount": sum((row.get("pf_amount") or 0) for row in data),
 	}
+
 	return [totals]
 
 def get_columns(filters=None):
@@ -197,6 +197,7 @@ def export_txt(filters=None):
 			
 			basic_ear = round(row.get("epf_wages") or 0)
 			eps_wages = 0
+			eps_contribution = 0
 			
 			epf_wages = 15000 if basic_ear > 15000 else basic_ear
 
@@ -216,9 +217,12 @@ def export_txt(filters=None):
 					eps_contribution = round((basic_ear or 0) * 0.0833)
 			else:	
 				epf_contribution = round(row.get("pf_amount") or 0)
-				eps_contribution = round(15000 * 0.0833)
-			contribution = (epf_contribution - eps_contribution) or 0
+				if age >= 58:
+					eps_contribution = 0
+				else:
+					eps_contribution = round(15000 * 0.0833)
 
+			contribution = (epf_contribution - eps_contribution) or 0
 
 			ncp = 0
 			total_working_days = row.get("total_working_days") or 0
