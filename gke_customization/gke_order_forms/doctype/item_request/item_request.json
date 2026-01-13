@@ -52,6 +52,8 @@
   "naming_series",
   "section_break_tbuj",
   "asset_category",
+  "asset_color",
+  "asset_size",
   "location",
   "is_fixed_asset",
   "auto_create_assests_on_purchase",
@@ -790,13 +792,23 @@
    "fieldname": "asset_company",
    "fieldtype": "Data",
    "label": "Asset Company"
+  },
+  {
+   "fieldname": "asset_color",
+   "fieldtype": "Data",
+   "label": "Asset Color"
+  },
+  {
+   "fieldname": "asset_size",
+   "fieldtype": "Data",
+   "label": "Asset Size"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-01-10 12:52:53.719686",
- "modified_by": "bhavika_patel@gkexport.com",
+ "modified": "2026-01-12 16:07:06.048957",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Item Request",
  "naming_rule": "By \"Naming Series\" field",
