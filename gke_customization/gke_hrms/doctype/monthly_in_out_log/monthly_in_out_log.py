@@ -11,6 +11,7 @@ from frappe.utils import (
 )
 
 from gurukrupa_customizations.gurukrupa_customizations.doctype.manual_punch.manual_punch import get_checkins  # pyright: ignore[reportMissingImports]
+from gke_customization.gke_hrms.utils import get_employee_shift
 
 from frappe.query_builder.functions import Count, Date, IfNull, Sum, Concat
 from frappe.query_builder import CustomFunction
@@ -54,6 +55,8 @@ class MonthlyInOutLog(Document):
         Change this behavior if you want manual button-based population instead.
         """
         self.company = frappe.db.get_value("Employee", self.employee, "company")
+        self.shit_type = get_employee_shift(self.employee, self.attendance_date)
+        self.shift_hours = frappe.db.get_value("Shift Type", self.shit_type, "shift_hours")
 
         self.validate_duplicate_entry()
         self.populate_from_attendance()
@@ -99,9 +102,24 @@ class MonthlyInOutLog(Document):
             # normalize
             attendance_date = getdate(self.attendance_date)
 
+            if self.attendance:
+                attendance_doc = frappe.get_doc("Attendance", self.attendance)
+                if not attendance_doc.working_hours:
+                    self.net_wrk_hrs = timedelta(0)
+                    self.spent_hrs = timedelta(0)
+                    self.p_out_hrs = timedelta(0)
+                    self.ot_hrs = timedelta(0)
+                    self.in_time = timedelta(0)
+                    self.out_time = timedelta(0)
+                    self.early_hrs = timedelta(0)
+                    self.late_hrs = timedelta(0)
+                    self.late = 0
+                    return
+
+            # frappe.throw(f'{attendance_date}')
             # call the shared service function (module-level)
             res = get_attendance_details_by_date(self.company, self.employee, attendance_date)
-
+            # frappe.throw(f"{res}")
             records = res.get("records") or []
 
             if not records:
@@ -119,6 +137,7 @@ class MonthlyInOutLog(Document):
 
             # time/duration fields as HH:MM:SS
             self.spent_hrs = fmt_td_or_value(record.get("spent_hrs") or record.get("spent_hours"))
+            
             # net_wrk_hrs may be timedelta; keep as string
             self.net_wrk_hrs = fmt_td_or_value(record.get("net_wrk_hrs"))
 
@@ -163,6 +182,7 @@ def get_attendance_details_by_date(company, employee, attendance_date):
         "to_date": attendance_date,
     }
 
+
     return fetch_attendance_data(filters)
 
 
@@ -198,6 +218,7 @@ def fetch_attendance_data(filters):
     records = []
     totals = []
 
+    # frappe.throw(f'{raw_data}')
     for row in raw_data:
         # totals rows identified by status or by missing login_date + aggregate keys
         if row.get("status") in TOTAL_STATUS_ROWS:
@@ -675,8 +696,9 @@ def create_monthly_in_out_log(doc, method=None):
     monthly_log.employee = doc.employee
     monthly_log.attendance_date = attendance_date
     monthly_log.attendance = doc.name
+    monthly_log.status = doc.status
 
-    monthly_log.insert(ignore_permissions=True)
+    monthly_log.save()
     monthly_log.submit()
     frappe.db.commit()
 
@@ -699,7 +721,6 @@ def cancel_monthly_in_out_log(doc, method=None):
         },
         "name",
     )
-
     if not monthly_log_name: return
 
     monthly_log = frappe.get_doc("Monthly In-Out Log", monthly_log_name)

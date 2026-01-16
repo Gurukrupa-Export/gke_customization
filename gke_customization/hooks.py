@@ -149,6 +149,9 @@ scheduler_events = {
         "gke_customization.gke_hrms.doc_events.leave_allocation.infirmary_leave_allocation",
         "gke_customization.gke_hrms.doc_events.leave_allocation.compOff_leave_allocation"    
     ],
+    # "hourly": [
+    #     "gke_customization.gke_hrms.doc_events.shift_logout.logout_users_after_shift"
+    # ]
 
 }
 

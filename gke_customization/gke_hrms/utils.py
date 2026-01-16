@@ -1,7 +1,7 @@
 
 
 import frappe
-from frappe.utils import getdate, add_days, get_first_day
+from frappe.utils import getdate, add_days, get_first_day, today
 from datetime import date, timedelta
 import calendar
 from dateutil import relativedelta
@@ -207,3 +207,44 @@ def check():
     frappe.db.commit()
     return f"LOP holiday marking done for {employee_id} from {from_date} to {to_date}."
 
+@frappe.whitelist()
+def get_employee_shift(employee, for_date=None):
+    if not for_date:
+        for_date = today()
+
+    for_date = getdate(for_date)
+
+    # Shift Assignment takes priority
+    shift = frappe.db.get_value(
+        "Shift Assignment",
+        {
+            "employee": employee,
+            "docstatus": 1,
+            "start_date": ("<=", for_date),
+            "end_date": ("is", "not set"),
+        },
+        "shift_type"
+    )
+
+    if not shift:
+        # Try with end_date is set
+        shift = frappe.db.get_value(
+            "Shift Assignment",
+            {
+                "employee": employee,
+                "docstatus": 1,
+                "start_date": ("<=", for_date),
+                "end_date": ("is", "set"),
+            },
+            "shift_type"
+        )
+
+    if shift:
+        return shift
+
+    # Fallback to default shift
+    return frappe.db.get_value(
+        "Employee",
+        employee,
+        "default_shift"
+    )
