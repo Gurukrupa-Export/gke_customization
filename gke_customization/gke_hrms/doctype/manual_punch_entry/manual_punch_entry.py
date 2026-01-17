@@ -14,6 +14,7 @@ from gurukrupa_customizations.gurukrupa_customizations.doctype.personal_out_gate
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift_timings
 from frappe.model.workflow import apply_workflow
 from erpnext.setup.doctype.holiday_list.holiday_list import is_holiday
+from gke_customization.gke_hrms.utils import get_employee_shift
 
 class ManualPunchEntry(Document):
 	def after_insert(self):
@@ -27,6 +28,10 @@ class ManualPunchEntry(Document):
 	def on_update(self):
 		if self.workflow_state == "Create Attendance":
 			if self.employee:
+				shift_name = get_employee_shift(self.employee, self.date)
+				if self.shift_name != shift_name: 
+					frappe.throw(_('Shift type for Employee is {0}').format(shift_name))
+
 				if not self.shift_name:
 					frappe.throw(_('Shift type missing for Employee: {0}').format(self.employee))
 				# process_attendance(self.employee, self.shift_name, self.date)
@@ -121,19 +126,9 @@ class ManualPunchEntry(Document):
 			frappe.throw(_("Date is Mandatory"))
 		if self.punch_id:
 			emp = frappe.db.get_value("Employee",{"attendance_device_id": self.punch_id},['name','employee_name', 'default_shift'], as_dict=1)
-			shift_ass = frappe.db.get_value("Shift Assignment",
-					{"employee": self.employee,
-	  					"start_date": ["<=", self.date],
-						"end_date": [">=", self.date],
-						"docstatus": 1
-	  				},
-					['name','shift_type'], as_dict=1)
-			shift_type = ''
-			if shift_ass:
-				shift_type = shift_ass.shift_type
-			else: 
-				if emp:
-					shift_type = emp.get("default_shift")
+			
+			shift_type = get_employee_shift(self.employee, self.date)
+			
 			if emp:
 				self.employee = emp.get('name')
 				self.employee_name = emp.get("employee_name")

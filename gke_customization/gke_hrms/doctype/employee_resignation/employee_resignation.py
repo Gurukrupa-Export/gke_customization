@@ -8,9 +8,9 @@ from frappe.model.mapper import get_mapped_doc
 
 class EmployeeResignation(Document):
 	def validate(self):
-		workflow_state = frappe.db.get_value("Employee Resignation", {'employee': self.employee, 'workflow_state': 'Rejected' } , ['workflow_state'] )
-		if workflow_state == 'Rejected':
-			frappe.throw(f'{self.employee} can not fill the Resignation Form')
+		# workflow_state = frappe.db.get_value("Employee Resignation", {'employee': self.employee, 'workflow_state': 'Rejected' } , ['workflow_state'] )
+		# if workflow_state == 'Rejected':
+		# 	frappe.throw(f'{self.employee} can not fill the Resignation Form')
 			
 		if self.workflow_state == 'Send to Manager':
 			if self.reporting_manager_approval:
