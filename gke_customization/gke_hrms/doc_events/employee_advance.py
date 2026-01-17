@@ -61,13 +61,15 @@ def calculate_working_days(doc, method=None):
         frappe.throw("No default shift set for the employee.")
     
     # Calculate the hourly salary and validate the advance amount
-    if salary and shift_hours:
+    if (salary and shift_hours):
         monthly_salary = salary / working_days
         hourly_salary = monthly_salary / shift_hours
         
         total_amount = working_hours * hourly_salary
-        if doc.advance_amount > (85 * total_amount/100):
-            frappe.throw(f"You are not eligible for this advance amount of {doc.advance_amount}. The maximum eligible amount based on your working hours is {total_amount:.2f}.")
+        
+        allowed_amt = (85 * total_amount/100)
+        if doc.advance_amount > (allowed_amt):
+            frappe.throw(f"You are not eligible for this advance amount of {doc.advance_amount}. The maximum eligible amount based on your working hours is {allowed_amt:.2f}.")
         if posting_date > mid_of_month:
             if doc.advance_amount > salary: 
                 frappe.throw(f"Advance amount cannot be greater than the monthly salary. Monthly Salary: {salary}, Advance amount: {doc.advance_amount}")
