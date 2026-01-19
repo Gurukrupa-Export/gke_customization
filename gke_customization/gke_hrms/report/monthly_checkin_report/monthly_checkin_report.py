@@ -57,6 +57,7 @@ def get_data(filters=None):
 		SELECT 
 			emp.name AS employee,
 			emp.employee_name AS employee_name,
+			emp.old_punch_id,
 			d.work_date AS date,
 			COALESCE(att.shift, ec.shift, emp.default_shift) AS shift,
 
@@ -191,6 +192,12 @@ def get_columns(filters=None):
 			"fieldname": "employee_name",
 			"fieldtype": "Data",
 			"width": 200
+		},
+		{
+			"label": "Punch ID",
+			"fieldname": "old_punch_id",
+			"fieldtype": "Data",
+			"width": 100
 		},
 		{
 			"label": "Department",
