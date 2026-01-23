@@ -252,10 +252,10 @@ doc_events = {
 	"validate": "gke_customization.gke_hrms.doc_events.attendance_request.validate",
 	"on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit"	
 },
-"Leave Application":{
-    "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
-    "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit"
-},
+# "Leave Application":{
+#     "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
+#     "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit"
+# },
 "Loan Application":{
     "validate":"gke_customization.gke_hrms.doc_events.loan_application.validate"
 },
