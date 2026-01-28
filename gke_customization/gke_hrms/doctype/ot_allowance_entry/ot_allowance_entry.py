@@ -503,7 +503,7 @@ class OTAllowanceEntry(Document):
 			.select(
 				Attendance.name.as_("attendance"),
 				Attendance.employee,
-				Attendance.employee_name,
+				# Attendance.employee_name,
 				Employee.company,
 				Employee.designation,
 				Employee.department,
@@ -618,7 +618,7 @@ class OTAllowanceEntry(Document):
 					"employee": emp.name
 			}
 			fields = ["date(time) as date", "log_type as type", "time(time) as time", "time as date_time", "source","name as employee_checkin", 
-						f"date('{holiday.holiday_date}') as holiday", "employee", "employee_name","shift"]
+						f"date('{holiday.holiday_date}') as holiday", "employee", "shift"]
 
 			data = frappe.get_list("Employee Checkin", filters= filters, fields=fields, order_by='date_time')
 			checkin = {}
@@ -719,8 +719,8 @@ class OTAllowanceEntry(Document):
 				self.employee = frappe.db.get_value("Employee",{"attendance_device_id":self.punch_id},'name')
 			conditions.append((Attendance.employee == self.employee))
 
-		if self.employee_name:
-			conditions.append((Attendance.employee_name.like(f"%{self.employee_name}%")))
+		# if self.employee_name:
+		# 	conditions.append((Attendance.employee_name.like(f"%{self.employee_name}%")))
 		
 		sub_query_filter = [
 			(Employee.product_incentive_applicable == 1)
@@ -774,6 +774,11 @@ def create_ot_log(ref_doc):
 	for field in fields:
 		# field == 'ot_allowance_entry'
 		data[field] = ref_doc.get(field)
+	
+	################## Edited By Aditya at 27-01-2026 ##################
+	# update employe name as per attendance log
+	data["employee_name"] = frappe.db.get_value("Attendance", ref_doc.attendance, "employee_name")
+	data['ot_allowance_entry'] = ref_doc.get("parent", "")
 
 	doc.update(data)
 	doc.save()
