@@ -63,7 +63,7 @@ class OrderForm(Document):
 		frappe.db.set_value("Order Form", self.name, "workflow_state", "Cancelled")
 		self.reload()
 
-	def validate(self):
+	def validate(self, method=None):
 		self.validate_category_subcaegory()
 		self.validate_filed_value()
 		validate_design_id(self)
