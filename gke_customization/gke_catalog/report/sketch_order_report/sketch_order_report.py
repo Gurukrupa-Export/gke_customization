@@ -35,7 +35,7 @@ def get_columns():
         {"fieldname": "designer_final_sketch_cmo", "label": _("Designer (Final Sketch CMO)"), "fieldtype": "Data", "width": 180},
         {"fieldname": "branch", "label": _("Branch"), "fieldtype": "Link", "options": "Branch", "width": 150},
         {"fieldname": "flow_type", "label": _("Flow Type"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "owner", "label": _("Owner"), "fieldtype": "Link", "options": "User", "width": 180},
+        {"fieldname": "owner", "label": _("Owner"), "fieldtype": "Data", "width": 200},
         {"fieldname": "loc", "label": _("LOC"), "fieldtype": "Data", "width": 120},
         {"fieldname": "order_no", "label": _("Order No"), "fieldtype": "Link", "options": "Order", "width": 150},
         {"fieldname": "order_form_id", "label": _("Order Form ID"), "fieldtype": "Link", "options": "Order", "width": 150},
@@ -54,7 +54,11 @@ def get_data(filters):
         SELECT 
             so.name as sketch_order_id,
             so.sketch_order_form as sketch_order_form_id,
-            so.qty,
+            (
+                SELECT COUNT(DISTINCT COALESCE(NULLIF(variant_of, ''), name))
+                FROM `tabItem`
+                WHERE custom_sketch_order_id = so.name
+            ) as qty,
             CASE 
                 WHEN so.docstatus = 0 THEN 'Draft'
                 WHEN so.docstatus = 1 THEN 'Approved'
@@ -72,7 +76,7 @@ def get_data(filters):
             so.branch,
             so.flow_type,
             so.order_type as loc,
-            so.owner,
+            COALESCE(u.full_name, u.first_name, so.owner) as owner,
             (SELECT item FROM `tabFinal Sketch Approval CMO` WHERE parent = so.name AND parenttype = 'Sketch Order' LIMIT 1) as item_final_sketch_cmo,
             (SELECT diamond_wt_approx FROM `tabFinal Sketch Approval CMO` WHERE parent = so.name AND parenttype = 'Sketch Order' LIMIT 1) as diamond_wt_approx,
             (SELECT gold_wt_approx FROM `tabFinal Sketch Approval CMO` WHERE parent = so.name AND parenttype = 'Sketch Order' LIMIT 1) as gold_wt_approx,
@@ -129,7 +133,9 @@ def get_data(filters):
         FROM `tabSketch Order` so
         LEFT JOIN `tabSketch Order Form` sof ON so.sketch_order_form = sof.name
         LEFT JOIN `tabItem` i ON i.custom_sketch_order_id = so.name
-        WHERE so.workflow_state = 'Approved' and so.docstatus = 1
+        LEFT JOIN `tabUser` u ON u.name = so.owner
+        WHERE so.workflow_state = 'Approved'
+        AND so.docstatus = 1
         {conditions}
         GROUP BY so.name, COALESCE(NULLIF(i.variant_of, ''), i.name, so.item_code)
         ORDER BY so.creation DESC
