@@ -32,6 +32,77 @@ def get_data(filters=None):
 		condition_query = " AND " + " AND ".join(conditions)
 
 	# frappe.throw(f"{values}")
+	# query = f"""
+	# 	SELECT 
+	# 		ss.company AS company, 
+	# 		ss.branch AS branch, 
+	# 		ss.department AS department, 
+	# 		ss.designation AS designation,  
+	# 		ss.employee AS employee_id, 
+	# 		ss.employee_name AS employee_name,
+    #         ss.custom_gross_salary,
+	# 		ss.absent_days,
+	# 		e.date_of_birth,
+	# 		ss.payment_days,
+	# 		ss.total_working_days,
+	# 		/* Gross Pay counted once */
+	# 		MAX(ss.gross_pay) AS gross_pay,
+
+	# 		/* PF amount only if age < 58 */
+	# 		SUM(
+	# 			CASE 
+	# 				WHEN sd.salary_component = 'Provident Fund'
+	# 					#  AND TIMESTAMPDIFF(YEAR, e.date_of_birth, ss.end_date) < 58
+	# 				THEN sd.amount
+	# 				ELSE 0
+	# 			END
+	# 		) AS pf_amount,
+
+	# 		MAX(
+	# 		    CASE 
+	# 		        WHEN sd.salary_component = 'Basic' 
+	# 				THEN sd.amount
+	# 				ELSE 0
+	# 			END
+	# 		) AS epf_wages,
+			
+	# 		MAX(
+	# 		    CASE 
+	# 		        WHEN sd.salary_component = 'Advance' 
+	# 				THEN sd.amount
+	# 				ELSE 0
+	# 			END
+	# 		) AS refund_advance,
+
+	# 		e.gender AS gender
+
+	# 	FROM 
+	# 		`tabSalary Slip` ss
+	# 	JOIN 
+	# 		`tabSalary Detail` sd 
+	# 			ON ss.name = sd.parent
+	# 	JOIN 
+	# 		`tabEmployee` e 
+	# 			ON ss.employee = e.name
+
+	# 	WHERE 
+	# 		ss.company = %(company)s
+	# 		AND ss.start_date = %(from_date)s
+	# 		AND ss.end_date = %(to_date)s
+	# 		# AND ss.docstatus = 1
+	# 		# AND ss.status = 'Submitted'
+
+	# 		/* Only employees whose PF is deducted */
+	# 		AND EXISTS (
+	# 			SELECT 1
+	# 			FROM `tabSalary Detail` sd_pf
+	# 			WHERE sd_pf.parent = ss.name
+	# 			  AND sd_pf.salary_component = 'Provident Fund'
+	# 			  AND sd_pf.amount > 0
+	# 		)
+	# 		{condition_query}
+	# 	GROUP BY ss.employee
+	# """
 	query = f"""
 		SELECT 
 			ss.company AS company, 
@@ -40,35 +111,43 @@ def get_data(filters=None):
 			ss.designation AS designation,  
 			ss.employee AS employee_id, 
 			ss.employee_name AS employee_name,
-            ss.custom_gross_salary,
+			ss.custom_gross_salary,
 			ss.absent_days,
 			e.date_of_birth,
 			ss.payment_days,
 			ss.total_working_days,
+
 			/* Gross Pay counted once */
 			MAX(ss.gross_pay) AS gross_pay,
 
-			/* PF amount only if age < 58 */
-			SUM(
-				CASE 
-					WHEN sd.salary_component = 'Provident Fund'
-						#  AND TIMESTAMPDIFF(YEAR, e.date_of_birth, ss.end_date) < 58
-					THEN sd.amount
-					ELSE 0
-				END
+			/* PF Amount:
+			- If PF component exists → sum amount
+			- If PF component NOT exists but _is_pf_applicable = 1 → 0
+			*/
+			COALESCE(
+				SUM(
+					CASE 
+						WHEN sd.salary_component = 'Provident Fund'
+						THEN sd.amount
+						ELSE 0
+					END
+				),
+				0
 			) AS pf_amount,
 
+			/* EPF Wages */
 			MAX(
-			    CASE 
-			        WHEN sd.salary_component = 'Basic' 
+				CASE 
+					WHEN sd.salary_component = 'Basic' 
 					THEN sd.amount
 					ELSE 0
 				END
 			) AS epf_wages,
-			
+
+			/* Advance Refund */
 			MAX(
-			    CASE 
-			        WHEN sd.salary_component = 'Advance' 
+				CASE 
+					WHEN sd.salary_component = 'Advance' 
 					THEN sd.amount
 					ELSE 0
 				END
@@ -78,28 +157,27 @@ def get_data(filters=None):
 
 		FROM 
 			`tabSalary Slip` ss
-		JOIN 
+		LEFT JOIN 
 			`tabSalary Detail` sd 
 				ON ss.name = sd.parent
 		JOIN 
 			`tabEmployee` e 
 				ON ss.employee = e.name
 
+		# WHERE 
+		# 	ss.start_date = '2025-05-01'
+		# 	AND ss.end_date = '2025-05-31'
+		# 	AND ss.company = 'KG GK Jewellers Private Limited'
+		# 	AND ss._is_pf_applicable = 1   
+
 		WHERE 
 			ss.company = %(company)s
 			AND ss.start_date = %(from_date)s
 			AND ss.end_date = %(to_date)s
+			AND ss._is_pf_applicable = 1
 			# AND ss.docstatus = 1
 			# AND ss.status = 'Submitted'
 
-			/* Only employees whose PF is deducted */
-			AND EXISTS (
-				SELECT 1
-				FROM `tabSalary Detail` sd_pf
-				WHERE sd_pf.parent = ss.name
-				  AND sd_pf.salary_component = 'Provident Fund'
-				  AND sd_pf.amount > 0
-			)
 			{condition_query}
 		GROUP BY ss.employee
 	"""
@@ -192,7 +270,10 @@ def export_txt(filters=None):
 			# and age < 58:
 			gross_pay = round(row.get("gross_pay") or 0)
 			uan_number = frappe.db.get_value("Employee", row["employee_id"], "uan_number")
-			name_as_per_aadhar = frappe.db.get_value("Employee", row["employee_id"], "name_as_per_aadhar")
+			name_as_per_aadhar = ( 
+				frappe.db.get_value("Employee", row["employee_id"], "name_as_per_aadhar") or ""
+			).strip().upper()
+
 			# epf_wages = round(row.get("epf_wages") or 0)
 			
 			basic_ear = round(row.get("epf_wages") or 0)
@@ -226,7 +307,7 @@ def export_txt(filters=None):
 
 			ncp = 0
 			total_working_days = row.get("total_working_days") or 0
-			payment_days = row.get("payment_days") or 0
+			payment_days = round(row.get("payment_days") or 0)
 
 			if row.get("absent_days"):
 				ncp = round(row.get("absent_days") or 0)
