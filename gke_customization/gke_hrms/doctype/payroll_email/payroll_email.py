@@ -25,6 +25,10 @@ class PayrollEmail(Document):
 		self.name = make_autoname(naming_pattern)
 	
 	def validate(self):
+
+		if self.is_new():
+			self.status = "Draft"
+
 		self._validate_duplicate_employee_emails()
 		self._validate_duplicate_salary_slips()
 
@@ -323,6 +327,7 @@ def process_payroll_email(batch_name):
 					"attachments": [generated_file],
 					"reference_doctype": doc.doctype,
 					"reference_name": doc.name,
+					"now": True
 				}
 				# ------------------------------------------
 				# Send email
@@ -354,8 +359,13 @@ def process_payroll_email(batch_name):
 			row.status = "Failed"
 			row.retry_count = (row.retry_count or 0) + 1
 			row.error_detail = frappe.get_traceback()
-			frappe.log_error(title="Payroll Email Error", message=frappe.get_traceback())
 			failed_count += 1
+			frappe.log_error(
+				title="Payroll Email Error", 
+				message=frappe.get_traceback(),
+				ref_doctype=doc.doctype,
+				ref_name=doc.name
+			)
 
 	# ------------------------------------------
 	# Finalize batch

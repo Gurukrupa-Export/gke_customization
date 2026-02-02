@@ -3,8 +3,6 @@
 
 frappe.ui.form.on("Payroll Email", {
   refresh(frm) {
-    // Button visibility control
-    frm.toggle_display("fetch_employees", frm.doc.status === "Draft");
 
     // Show button only in valid states
     if (!frm.is_new() && frm.doc.status == "Draft") {
