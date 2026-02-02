@@ -1,0 +1,124 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-01-30 18:06:40.523550",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "employee_email",
+  "column_break_rsjc",
+  "salary_slip",
+  "status",
+  "salary_slip_pdf",
+  "section_break_riqx",
+  "retry_count",
+  "column_break_fand",
+  "sent_on",
+  "section_break_ttmt",
+  "error_detail"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "employee_email",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Email",
+   "options": "Email",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_rsjc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "salary_slip",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Salary Slip",
+   "link_filters": "[[\"Salary Slip\",\"docstatus\",\"=\",\"1\"]]",
+   "options": "Salary Slip",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "default": "Pending",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nSent\nFailed\nSkipped",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_riqx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "retry_count",
+   "fieldtype": "Int",
+   "label": "Retry Count",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_fand",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sent_on",
+   "fieldtype": "Datetime",
+   "label": "Sent On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_ttmt",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "error_detail",
+   "fieldtype": "Code",
+   "label": "Error Detail",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "salary_slip_pdf",
+   "fieldtype": "Attach",
+   "label": "Salary Slip PDF",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-01-31 16:19:14.206465",
+ "modified_by": "aditya_r@gkexport.com",
+ "module": "GKE HRMS",
+ "name": "Payroll Email Detail",
+ "owner": "aditya_r@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
