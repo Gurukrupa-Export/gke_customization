@@ -767,7 +767,7 @@ def create_ot_log(ref_doc):
 			return
 		
 		# check if ot log already exists
-		if frappe.db.exists("OT Log", {"attendance_date": ref_doc.attendance_date, "employee": ref_doc.employee}):
+		if frappe.db.exists("OT Log", {"attendance_date": ref_doc.attendance_date, "employee": ref_doc.employee, "is_cancelled": 0}):
 			frappe.throw(_("OT Log already exists for this employee on this date"))
 			return
 
