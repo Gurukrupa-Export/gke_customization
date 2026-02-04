@@ -24,7 +24,8 @@ def get_inactive_employees(docname):
 		date = doc.to_date + timedelta(days=7)
 		inactive_employees = frappe.get_all("Employee",
 			filters={
-				"status": "Inactive",
+				"status": ["in",['Left','Inactive']],
+				# "status": "Inactive",
 				"relieving_date": ["between", [doc.from_date, date]],
 				"company":doc.company,
 				"branch":doc.branch
@@ -50,7 +51,7 @@ def activate_employees(docname):
 	count = 0
 	for row in doc.employee:  
 		emp = frappe.get_doc("Employee", row.employee)
-		if emp.status == "Inactive":
+		if emp.status in ["Inactive", "Left"]:
 			emp.db_set('status', 'Active')
 			emp.save()
 			count += 1

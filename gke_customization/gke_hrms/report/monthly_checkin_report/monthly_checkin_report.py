@@ -57,19 +57,31 @@ def get_data(filters=None):
 		SELECT 
 			emp.name AS employee,
 			emp.employee_name AS employee_name,
+			emp.old_punch_id,
 			d.work_date AS date,
 			COALESCE(att.shift, ec.shift, emp.default_shift) AS shift,
 
 			/* 📌 Attendance Status */
 			CASE
-				/* 🎉 Holiday */
+				/* Holiday */
 				WHEN h.holiday_date IS NOT NULL AND h.weekly_off = 0
 					# THEN CONCAT('Holiday - ', h.description)
 					THEN 'Holiday'
 
-				/* 💤 Weekly Off */
+				/*  Weekly Off */
 				WHEN h.holiday_date IS NOT NULL AND h.weekly_off = 1
 					THEN 'WO'
+
+				/* ERR: Attendance exists BUT checkins incomplete (IN only or OUT only) */
+                WHEN att.name IS NOT NULL 
+                     AND ec.all_in_times IS NOT NULL 
+                     AND (ec.all_out_times IS NULL OR ec.all_out_times = '')
+                    THEN 'ERR'
+            
+                WHEN att.name IS NOT NULL 
+                     AND ec.all_out_times IS NOT NULL 
+                     AND (ec.all_in_times IS NULL OR ec.all_in_times = '')
+                    THEN 'ERR'
 
 				WHEN att.status IS NOT NULL
 					THEN att.status
@@ -191,6 +203,12 @@ def get_columns(filters=None):
 			"fieldname": "employee_name",
 			"fieldtype": "Data",
 			"width": 200
+		},
+		{
+			"label": "Punch ID",
+			"fieldname": "old_punch_id",
+			"fieldtype": "Data",
+			"width": 100
 		},
 		{
 			"label": "Department",
