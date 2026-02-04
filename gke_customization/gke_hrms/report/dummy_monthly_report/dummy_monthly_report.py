@@ -350,6 +350,12 @@ def get_data(filters=None):
 	# frappe.throw(f"{data}")
 
 	data += totals
+ 
+	frappe.log_error(
+		message=f"Data: {data}",
+		title=f"Dummy Monthly Report Data {frappe.utils.now()}"
+	)
+
 
 	return data
 
