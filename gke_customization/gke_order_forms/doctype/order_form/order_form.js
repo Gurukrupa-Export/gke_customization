@@ -5,7 +5,7 @@ frappe.ui.form.on('Order Form', {
 			set_11am_time_on_date(frm, 'delivery_date');
 		}
 	},
-	
+
 	delivery_date(frm) {
 		set_11am_time_on_date(frm, 'delivery_date');
 		validate_dates(frm, frm.doc, "delivery_date")
@@ -198,7 +198,7 @@ frappe.ui.form.on('Order Form', {
 				}
 			},
 		});
-		
+
 		// if (frm.doc.order_details) {
 		// 	frm.doc.order_details.forEach(function (d) {
 		// 		show_attribute_fields_for_subcategory(frm, d.doctype, d.name, d);
@@ -214,7 +214,7 @@ frappe.ui.form.on('Order Form', {
 	refresh(frm){
 		frm.add_custom_button(__("Get Customer Order Form"), function(){
             erpnext.utils.map_current_doc({
-                method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_customer_order_form",			
+                method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_customer_order_form",
 				source_doctype: "Customer Order Form",
                 target: frm,
                 setters: [
@@ -279,7 +279,7 @@ frappe.ui.form.on('Order Form', {
 				//   default: frm.doc.order_type || undefined
 				// }
 				],
-		
+
 				get_query_filters: {
 				// item: ['is', 'set'],
                 workflow_state:['in',['Approved','Creating Item & BOM']],
@@ -299,12 +299,12 @@ frappe.ui.form.on('Order Form', {
 					},
 					callback: function(response) {
 						if (response.message) {
-							
+
 							frm.set_value('gc_format_file' ,response.message)
 							frm.save('Update');
 
 							const a = document.createElement('a');
-							a.href = response.message; 
+							a.href = response.message;
 							let formatted_date = frm.doc.order_date.replace(/-/g, "_");
 							let filename = `${formatted_date}_GC_Format.xlsx`;
 							a.download = filename;
@@ -314,7 +314,7 @@ frappe.ui.form.on('Order Form', {
 				});
 			}, __("Get File"))
 		// }
-		
+
 		// if(frm.doc.customer_name.includes('Titan') && frm.doc.flow_type == 'PROTO' && !frm.doc.code_creation_file && frm.doc.docstatus == '1'){
 			frm.add_custom_button(__("Get Code Creation"), function(){
 				frappe.call({
@@ -325,12 +325,12 @@ frappe.ui.form.on('Order Form', {
 					},
 					callback: function(response) {
 						if (response.message) {
-							
+
 							frm.set_value('code_creation_file' ,response.message)
 							frm.save('Update');
 
 							const a = document.createElement('a');
-							a.href = response.message; 
+							a.href = response.message;
 							let formatted_date = frm.doc.order_date.replace(/-/g, "_");
 							let filename = `${formatted_date}_Code_Creation_File.xlsx`;
 							a.download = filename;
@@ -339,7 +339,7 @@ frappe.ui.form.on('Order Form', {
 					}
 				});
 			}, __("Get File"))
-			
+
 		// }
 
 		// if( (frm.doc.customer_name.includes('Caratlane')) && frm.doc.flow_type == 'PROTO'){
@@ -353,13 +353,13 @@ frappe.ui.form.on('Order Form', {
 				},
 				callback: function(response) {
 					if (response.message) {
-					
+
 					frm.set_value('proto_sheet_file' ,response.message)
 					frm.save('Update');
-		
+
 					const a = document.createElement('a');
-					a.href = response.message; 
-					
+					a.href = response.message;
+
 					let formatted_date = frm.doc.order_date.replace(/-/g, "_");
 					let filename = `${formatted_date}_Proto_Sheet.xlsx`;
 					a.download = filename;
@@ -381,13 +381,13 @@ frappe.ui.form.on('Order Form', {
 				},
 				callback: function(response) {
 					if (response.message) {
-					
+
 					// frm.set_value('variant_format_file' ,response.message)
 					// frm.save('Update');
-		
+
 					const a = document.createElement('a');
-					a.href = response.message; 
-					
+					a.href = response.message;
+
 					let formatted_date = frm.doc.order_date.replace(/-/g, "_");
 					let filename = `${formatted_date}_Variant_Format.xlsx`;
 					a.download = filename;
@@ -483,20 +483,20 @@ frappe.ui.form.on('Order Form Detail', {
 						d.diamond_target = r.message.diamond_target
 						d.product_size = r.message.product_size
 						d.sizer_type = r.message.sizer_type
-						
+
 						d.stone_changeable = r.message.stone_changeable
 						d.detachable = r.message.detachable
 
 						d.lock_type = r.message.lock_type
 						d.feature = r.message.feature
-						
+
 						d.back_chain = r.message.back_chain
 						d.back_chain_size = r.message.back_chain_size
 						d.back_belt = r.message.back_belt
 						d.back_belt_length = r.message.back_belt_length
 						d.black_beed_line = r.message.black_beed_line
 						d.back_side_size = r.message.back_side_size
-						
+
 						d.back_belt_patti = r.message.back_belt_patti
 						d.rhodium = r.message.rhodium
 
@@ -534,17 +534,17 @@ frappe.ui.form.on('Order Form Detail', {
 
 						d.charm = r.message.charm
 						d.capganthan = r.message.capganthan
-				
+
 						refresh_field('order_details');
 						// set_field_visibility(frm, cdt, cdn)
 					}
 				}
 			});
 
-		} 
+		}
 		else if(d.design_id && d.design_type=='Sketch Design'){
 			frappe.call({
-				method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_sketh_details",
+				method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_sketch_details",
 				args: {
 					"design_id": d.design_id,
 				},
@@ -589,17 +589,17 @@ frappe.ui.form.on('Order Form Detail', {
 						d.diamond_target = r.message.diamond_target
 						d.product_size = r.message.product_size
 						d.sizer_type = r.message.sizer_type
-		
+
 						d.length = r.message.length
 						d.height = r.message.height
 						d.width = r.message.width
-						
+
 						d.stone_changeable = r.message.stone_changeable
 						d.detachable = r.message.detachable
 
 						d.lock_type = r.message.lock_type
 						d.feature = r.message.feature
-						
+
 						d.back_chain = r.message.back_chain
 						d.back_chain_size = r.message.back_chain_size
 						d.back_belt = r.message.back_belt
@@ -607,7 +607,7 @@ frappe.ui.form.on('Order Form Detail', {
 						d.black_beed = r.message.black_beed
 						d.black_beed_line = r.message.black_beed_line
 						d.back_side_size = r.message.back_side_size
-						
+
 						d.back_belt_patti = r.message.back_belt_patti
 						d.vanki = r.message.vanki
 						d.rhodium = r.message.rhodium
@@ -632,7 +632,7 @@ frappe.ui.form.on('Order Form Detail', {
 
 						d.gemstone_type = r.message.gemstone_type1
 						d.gemstone_quality = r.message.gemstone_quality
-				
+
 						refresh_field('order_details');
 						// set_field_visibility(frm, cdt, cdn)
 					}
@@ -704,8 +704,8 @@ frappe.ui.form.on('Order Form Detail', {
 
 		let item_data = [];
 
-		const item_fields = [				
-			{ fieldtype: "Data", fieldname: "docname", read_only: 1, columns: 1,hidden:1 },			
+		const item_fields = [
+			{ fieldtype: "Data", fieldname: "docname", read_only: 1, columns: 1,hidden:1 },
 			{
 				fieldtype: "Link",
 				fieldname: "attribute",
@@ -769,7 +769,7 @@ frappe.ui.form.on('Order Form Detail', {
 					options: "Attribute Value",
 					read_only: 1,
 					default: row.subcategory,
-				},				
+				},
 				{
 					fieldtype: "Section Break",
 					// label: "Variants",
@@ -787,7 +787,7 @@ frappe.ui.form.on('Order Form Detail', {
 					},
 					fields: item_fields,
 				},
-								
+
 				{
 					fieldtype: "Section Break",
 				},
@@ -796,7 +796,7 @@ frappe.ui.form.on('Order Form Detail', {
 					label: "Setting Type",
 					fieldname: "setting_type",
 					fieldtype: "Data",
-					read_only: 1, 
+					read_only: 1,
 					in_list_view: 1,
 					default: row.setting_type,
 				},
@@ -804,7 +804,7 @@ frappe.ui.form.on('Order Form Detail', {
 					label: "Sub Setting Type1",
 					fieldname: "sub_setting_type1",
 					fieldtype: "Data",
-					read_only: 1, 
+					read_only: 1,
 					in_list_view: 1,
 					default: row.sub_setting_type1,
 					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "rhodium" })[0].depends_on
@@ -813,25 +813,25 @@ frappe.ui.form.on('Order Form Detail', {
 					label: "Sub Setting Type2",
 					fieldname: "sub_setting_type2",
 					fieldtype: "Data",
-					read_only: 1, 
+					read_only: 1,
 					in_list_view: 1,
 					default: row.sub_setting_type2,
 					depends_on: ' eval:doc.setting_type == "Open" '
 				},
 				{
 					fieldtype: "Column Break",
-				},				
+				},
 				{
 					label: "Metal Type",
 					fieldname: "metal_type",
 					fieldtype: "Data",
-					read_only: 1, 
+					read_only: 1,
 					in_list_view: 1,
 					default: row.metal_type,
 					// depends_on: ' eval: in_list(["Addigai Necklace", "Anklet", "Ball Mugappu", "Band Bracelet", "Belt", "Buttons", "Chain Armlet", "Chain Bracelet", "Chandbali", "Chandeliers", "Charm Bracelet", "Charm Necklace", "Charms", "Chik Chokar", "Choker Necklace", "Cocktail Chain", "Cocktail Chain Haram", "Cocktail Mugappu", "Cocktail Studs", "Collar Necklace", "Crown", "Cuban Bracelet", "Cuban Chain", "Cufflinks", "Dangler Earrings", "Drop Earrings", "Drop Nose Pin", "Earcuff Earrings", "Eternity Bangles", "Fancy Accessory", "Fancy Armlet", "Fancy Bangles", "Fancy Box", "Fancy Bracelet", "Fancy Earrings", "Fancy Mangalsutra", "Fancy Mugappu", "Fancy Necklace", "Fancy Nose Pin", "Fancy Oddiyanam", "Fancy Ring", "Flexible Bracelet", "Front Back Earrings", "God Bangles", "God Bracelet", "God Earrings", "God Mangalsutra", "God Mugappu", "God Oddiyanam", "God Pendant", "God Vanki", "God Vanki/Armlet", "Goggles", "Golusu Bangles", "Hair Pin", "Haram Necklace", "Hoops & Huggies Earrings", "J Nose Pin", "Jada", "Jada Billa", "Jumkhi", "Jumpring Earrings", "Kada Bangles", "Kantha/Hasli Necklace", "Kid Pendant", "Kids Bangles", "Kids Bracelet", "Kids Earrings", "Kids Hair Pin", "Kids Necklace", "Kids Oddiyanam", "Kids Ring", "Kids Vanki", "Kids Vanki/Armlet", "Kuppu Earrings", "Lariat Necklace", "Layered Necklace", "Locket Pendant", "Maang Tikka", "Magdi Necklace", "Mala Necklace", "Mangalsutra Bracelet", "Mangalsutra Chains", "Mangalsutra Pendant", "Mangalsutra Ring", "Matal-Sahara", "Matha Patti", "Mismatch Earrings", "Money Accessory", "Nakshi Armlet", "Nakshi Bangles", "Nakshi Bracelet", "Nakshi Chain", "Nakshi Chandbalis", "Nakshi Choker", "Nakshi Earrings", "Nakshi Haram", "Nakshi Jada", "Nakshi Jada Billa", "Nakshi Jumkhi", "Nakshi Maang Tikka", "Nakshi Mugappu", "Nakshi Necklace", "Nakshi Oddiyanam", "Nakshi Pendant", "Nakshi Ring", "Nakshi Thali/Tanmaniya", "O Nose Pin", "Oddiyanam", "Oval Bracelet", "Pacheli Bangles", "Padhakam Necklace", "Passa", "Pen", "Round Bangles", "Sculpture", "Short Necklace", "Slider Pendant", "Solitaire Bangles", "Solitaire Bracelet", "Solitaire Earrings", "Solitaire Mangalsutra", "Solitaire Mugappu", "Solitaire Necklace", "Solitaire Pendant", "Spiral Mugappu", "Spiral Ring", "Station Necklace", "Stud Nose Pin", "Tennis Bracelet", "Tennis Necklace", "Thali/Tanmaniya", "Threaders", "Tie Clip", "Tube Armlet", "V/U Vanki", "Vanki", "Watch Charms", "Watches"], doc.subcategory) '
 					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "lock_type" })[0].depends_on
-				},				
-				
+				},
+
 				{
 					fieldtype: "Column Break",
 				},
@@ -849,11 +849,11 @@ frappe.ui.form.on('Order Form Detail', {
 					label: "No. of Pcs",
 					fieldname: "qty",
 					fieldtype: "Data",
-					read_only: 1, 
+					read_only: 1,
 					in_list_view: 1,
 					default: row.qty,
-					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "diamond_target" })[0].depends_on					
-				},		
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "diamond_target" })[0].depends_on
+				},
 				{
 					fieldtype: "Section Break",
 				},
@@ -863,7 +863,7 @@ frappe.ui.form.on('Order Form Detail', {
 					fieldtype: "Data",
 					read_only: 1,
 					default: row.diamond_target,
-					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "diamond_target" })[0].depends_on					
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "diamond_target" })[0].depends_on
 				},
 				{
 					label: "Gemstone Type1",
@@ -952,14 +952,14 @@ frappe.ui.form.on('Order Form Detail', {
 				},
 				{
 					fieldtype: "Column Break",
-				},				
+				},
 				{
 					label: "Metal Target",
 					fieldname: "metal_target",
 					fieldtype: "Data",
 					read_only: 1,
 					default: row.metal_target,
-					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "metal_target" })[0].depends_on					
+					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "metal_target" })[0].depends_on
 				},
 				{
 					label: "Sizer Type",
@@ -968,8 +968,8 @@ frappe.ui.form.on('Order Form Detail', {
 					read_only: 1,
 					default: row.sizer_type,
 					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "sizer_type" })[0].depends_on
-					
-				},	
+
+				},
 				{
 					label: "Detachable",
 					fieldname: "detachable",
@@ -1033,16 +1033,16 @@ frappe.ui.form.on('Order Form Detail', {
 					depends_on: " eval:doc.back_belt == 'Yes' "
 					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "back_belt_length" })[0].depends_on
 				},
-				
+
 				{
 					fieldtype: "Column Break",
 				},
-				
+
 				{
 					label: "Metal Colour",
 					fieldname: "metal_colour",
 					fieldtype: "Data",
-					read_only: 1, 
+					read_only: 1,
 					default: row.metal_colour,
 					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "metal_colour" })[0].depends_on
 				},
@@ -1071,7 +1071,7 @@ frappe.ui.form.on('Order Form Detail', {
 					default: row.chain_length,
 					// depends_on: ' eval:in_list(["Kodi Chain", "Snake Chain", "Runway", "Box Chain (Big)", "Box Chain (Small)", "Anchor Chain", "Black Bead Chain", "Shiva Chain", "Sadak Chain", "Highway Chain", "Mesh Chain", "Milan Chain", "Flat Ghop Chain", "Round Ghop Chain", "Nakshi Chain", "Fancy Chain"], doc.chain_type) '
 					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "chain_length" })[0].depends_on
-				},	
+				},
 				{
 					label: "Product Size",
 					fieldname: "product_size",
@@ -1093,7 +1093,7 @@ frappe.ui.form.on('Order Form Detail', {
 					fieldname: "charm",
 					read_only: 1,
 					fieldtype: "Data",
-					default: row.charm,					
+					default: row.charm,
 					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "cap_ganthan" })[0].depends_on
 				},
 				{
@@ -1101,7 +1101,7 @@ frappe.ui.form.on('Order Form Detail', {
 					fieldname: "two_in_one",
 					read_only: 1,
 					fieldtype: "Data",
-					default: row.two_in_one,					
+					default: row.two_in_one,
 					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "cap_ganthan" })[0].depends_on
 				},
 				{
@@ -1109,7 +1109,7 @@ frappe.ui.form.on('Order Form Detail', {
 					fieldname: "capganthan",
 					read_only: 1,
 					fieldtype: "Data",
-					default: row.capganthan,					
+					default: row.capganthan,
 					// depends_on: frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": "cap_ganthan" })[0].depends_on
 				},
 				{
@@ -1128,29 +1128,29 @@ frappe.ui.form.on('Order Form Detail', {
 					fieldtype: "Data",
 					default: '0.0',
 				},
-								
+
 				{
 					fieldtype: "Section Break",
-				},	
-					
-				
-				
-				
-			],	
-			primary_action: function () {				
+				},
+
+
+
+
+			],
+			primary_action: function () {
 				refresh_field("order_details");
 			},
 			primary_action_label: (""),
-			
+
 		});
-				
+
 		if(dialog.get_value("item_code")) {
 			// set item_code variants value in the given dialog box
 			edit_item_documents(
 				row,
 				dialog,
 				dialog.get_value("item_code"),
-				item_data 
+				item_data
 			);
 		};
 
@@ -1162,7 +1162,7 @@ frappe.ui.form.on('Order Form Detail', {
 		// hide update button
 		if (cur_frm.doc.docstatus == 1) {
 			dialog.$wrapper.find(".btn-modal-primary").remove();
-		} 
+		}
 	},
 
 });
@@ -1197,9 +1197,9 @@ let set_edit_item_details = (row,doc,dialog) => {
 	// clearing all tables
 	dialog.fields_dict.item_detail.df.data = [];
 	dialog.fields_dict.item_detail.grid.refresh();
-	
+
 	$.each(doc.attributes, function (index, d) {
-				
+
 		let matchingValue = row[d.attribute.toLowerCase().replace(/\s+/g, '_')];
 
 		dialog.fields_dict.item_detail.df.data.push({
@@ -1207,7 +1207,7 @@ let set_edit_item_details = (row,doc,dialog) => {
 			attribute: d.attribute,
 			attribute_value: d.attribute_value,
 			new_attribute: matchingValue || ""
-			
+
 		});
 		item_data = dialog.fields_dict.item_detail.df.data;
 		dialog.fields_dict.item_detail.grid.refresh();
@@ -1293,7 +1293,7 @@ function set_filters_on_parent_table_fields(frm, fields) {
 	});
 };
 
-//public function to set order type 
+//public function to set order type
 function set_order_type_from_design_by(frm) {
 	if (cur_frm.doc.design_by == "Customer Design")
 		cur_frm.doc.order_type = "Customer Order";
@@ -1313,7 +1313,7 @@ function show_attribute_fields_for_subcategory(frm, cdt, cdn, order_detail) {
 							if (row.in_cad == 1){
 
 							}
-								// show_field(frm, cdt, cdn, row.item_attribute);					
+								// show_field(frm, cdt, cdn, row.item_attribute);
 					});
 				}
 			}
@@ -1322,7 +1322,7 @@ function show_attribute_fields_for_subcategory(frm, cdt, cdn, order_detail) {
 };
 
 //private function to hide all subcategory related fields in order details
-function hide_all_subcategory_attribute_fields(frm, cdt, cdn) {	
+function hide_all_subcategory_attribute_fields(frm, cdt, cdn) {
 	var subcategory_attribute_fields = ['Lock Type','Back Chain','Back Belt','Black Beed',
 		'Back Side Size','Hinges','Back Belt Patti','Chain Type',
 		'Vanki','Total Length','Number of Ant','Distance Between Kadi To Mugappu',
@@ -1347,7 +1347,7 @@ function show_hide_fields(frm, cdt, cdn, fields, hidden) {
 function show_hide_field(frm, cdt, cdn, field, hidden) {
 	var field_name = field.toLowerCase().replace(/\s+/g, '_')
 	var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": field_name })[0];
-		
+
 	if (df) {
 		df.hidden = hidden;
 	}
@@ -1360,15 +1360,15 @@ function show_field_attribute(frm, cdt, cdn, field) {
 		'Back Side Size','Hinges','Back Belt Patti','Chain Type',
 		'Vanki','Total Length','Number of Ant','Distance Between Kadi To Mugappu',
 		'Space between Mugappu','Two in One']
-	
+
 	subcategory_attribute_fields.map(function (f) {
 		var field_name = f.toLowerCase().replace(/\s+/g, '_')
 		var field_name1 = field.toLowerCase().replace(/\s+/g, '_')
 		if(field_name == field_name1){
 			var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": field_name })[0];
-			
+
 			if (df) {
-				df.hidden = 0; 
+				df.hidden = 0;
 			}
 			frm.refresh_field("order_details");
 
@@ -1382,24 +1382,24 @@ function show_field_attribute(frm, cdt, cdn, field) {
 			df.reqd = 1;
 		}
 	}
-	frm.refresh_field("order_details");	 
+	frm.refresh_field("order_details");
 };
 
 //private function to hide attribute value fields -b
 function hide_field_attribute(frm, cdt, cdn, field) {
-	
-	var field_name = field.toLowerCase().replace(/\s+/g, '_') 
+
+	var field_name = field.toLowerCase().replace(/\s+/g, '_')
 	if(field_name) {
 		var df = frappe.utils.filter_dict(cur_frm.fields_dict["order_details"].grid.grid_rows_by_docname[cdn].docfields, { "fieldname": field_name })[0];
 		if (df) {
-			df.reqd = 1;			
+			df.reqd = 1;
 		}
 	}
-	frm.refresh_field("order_details");	 
+	frm.refresh_field("order_details");
 
 };
 
-// Auto calculate due days from delivery date    
+// Auto calculate due days from delivery date
 function calculate_due_days(frm) {
 	if (frm.doc.delivery_date && frm.doc.order_date) {
 		const delivery = frappe.datetime.str_to_obj(frm.doc.delivery_date);
@@ -1452,7 +1452,7 @@ function update_fields_in_child_table(frm, fieldname) {
 
 function set_filter_for_sketch_design_n_serial(frm, fields) {
 	fields.map(function (field) {
-		
+
 		frm.set_query(field, "order_details", function (doc, cdt, cdn) {
 			let d = locals[cdt][cdn];
 			return {
@@ -1480,7 +1480,7 @@ function set_filter_for_sketch_design_n_serial(frm, fields) {
 
 function set_filter_for_design_n_serial(frm, fields) {
 	fields.map(function (field) {
-		
+
 		frm.set_query(field, "order_details", function (doc, cdt, cdn) {
 			let d = locals[cdt][cdn];
 			if(d.is_finding_order==1){
