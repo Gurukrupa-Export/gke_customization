@@ -355,8 +355,6 @@ def get_data(filters=None):
 		message=f"Data: {data}",
 		title=f"Dummy Monthly Report Data {frappe.utils.now()}"
 	)
-
-
 	return data
 
 def get_totals(data, employee):	
