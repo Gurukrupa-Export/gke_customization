@@ -574,6 +574,9 @@ class OTAllowanceEntry(Document):
 			if row["allowed_ot"].total_seconds() > 86399:  # OT > 23:59:59 it shows invalid date in ui 
 				continue
 
+			if row.get("attendance"):
+				row.update({"employee_name": frappe.db.get_value("Attendance", row["attendance"], "employee_name")})
+
 			self.append("ot_details", row)
 
 	def get_weekoffs_ot(self, from_log=False):
@@ -764,7 +767,7 @@ def create_ot_log(ref_doc):
 			return
 		
 		# check if ot log already exists
-		if frappe.db.exists("OT Log", {"attendance_date": ref_doc.attendance_date, "employee": ref_doc.employee}):
+		if frappe.db.exists("OT Log", {"attendance_date": ref_doc.attendance_date, "employee": ref_doc.employee, "is_cancelled": 0}):
 			frappe.throw(_("OT Log already exists for this employee on this date"))
 			return
 
