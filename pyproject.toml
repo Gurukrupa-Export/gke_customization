@@ -11,8 +11,7 @@ dependencies = [
     "forex-python~= 1.8",
 ]
 
-[tool.bench.frappe-dependencies]
-frappe = ">=15.0.0,<16.0.0"
+
 
 [build-system]
 requires = ["flit_core >=3.4,<4"]
@@ -28,3 +27,4 @@ sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FRAPPE", "ERPNEXT", "FIRSTPARTY",
 [tool.bench.dev-dependencies]
 parameterized = "~=0.8.1"
 time-machine = "~=2.10.0"
+frappe = ">=15.0.0,<16.0.0"
