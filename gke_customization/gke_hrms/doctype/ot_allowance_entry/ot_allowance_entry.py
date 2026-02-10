@@ -576,6 +576,8 @@ class OTAllowanceEntry(Document):
 
 			if row.get("attendance"):
 				row.update({"employee_name": frappe.db.get_value("Attendance", row["attendance"], "employee_name")})
+			else:
+				row.update({"employee_name": frappe.db.get_value("Employee", row["employee"], "employee_name")})
 
 			self.append("ot_details", row)
 

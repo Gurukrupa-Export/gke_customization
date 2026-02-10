@@ -416,6 +416,7 @@ def get_employee_shift(employee, for_date=None):
             "docstatus": 1,
             "start_date": ("<=", for_date),
             "end_date": ("is", "not set"),
+            "status": "Active"
         },
         "shift_type"
     )
@@ -429,6 +430,7 @@ def get_employee_shift(employee, for_date=None):
                 "docstatus": 1,
                 "start_date": ("<=", for_date),
                 "end_date": ("is", "set"),
+                "status": "Active"
             },
             "shift_type"
         )
