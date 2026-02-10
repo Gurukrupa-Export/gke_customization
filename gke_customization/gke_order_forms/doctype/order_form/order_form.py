@@ -849,7 +849,6 @@ def create_po(self):
 
     frappe.msgprint(msg)
 
-
 @frappe.whitelist()
 def make_from_pre_order_form(source_name, target_doc=None):
 
@@ -859,6 +858,7 @@ def make_from_pre_order_form(source_name, target_doc=None):
     target_doc = (
         frappe.new_doc("Order Form") if not target_doc else frappe.get_doc(target_doc)
     )
+
     pre_order = frappe.db.get_value(
         "Pre Order Form",
         source_name,
@@ -895,6 +895,7 @@ def make_from_pre_order_form(source_name, target_doc=None):
         filters={"parent": source_name, "status": "Done"},
         fields="*",
     )
+
     for st in frappe.db.get_values(
         "Service Type 2", {"parent": source_name}, "service_type1"
     ):
@@ -906,6 +907,7 @@ def make_from_pre_order_form(source_name, target_doc=None):
         target_doc.append("parcel_place", {"territory": tr[0]})
 
     design_ids = {i.item_variant for i in customer_order_form if i.item_variant}
+
     item_subcategories = set(
         frappe.db.get_values(
             "Item",
@@ -914,16 +916,20 @@ def make_from_pre_order_form(source_name, target_doc=None):
             as_dict=False,
         )
     )
-    attribute_rows = frappe.db.get_all(
-        "Attribute Value Item Attribute",
-        filters={"parent": ["in", list(item_subcategories)]},
-        fields=["parent", "item_attribute"],
-    )
 
     attribute_map = {}
-    for row in attribute_rows:
-        formatted = row.item_attribute.replace(" ", "_").replace("/", "").lower()
-        attribute_map.setdefault(row.parent, []).append(formatted)
+
+    for subcat in item_subcategories:
+        if not subcat:
+            continue
+        doc = frappe.get_doc("Attribute Value", subcat)
+        for row in doc.item_attributes:
+            formatted = (
+                row.item_attribute.replace(" ", "_")
+                .replace("/", "")
+                .lower()
+            )
+            attribute_map.setdefault(subcat, []).append(formatted)
 
     variant_attributes = frappe.db.get_all(
         "Item Variant Attribute",
@@ -941,6 +947,7 @@ def make_from_pre_order_form(source_name, target_doc=None):
         "BOM", filters={"name": ["in", list(bom_names)]}, fields="*"
     )
     bom_map = {b.name: b for b in bom_data}
+
     for i in customer_order_form:
 
         design_id = i.item_variant
@@ -960,7 +967,9 @@ def make_from_pre_order_form(source_name, target_doc=None):
                     fieldname = (
                         "category"
                         if attr == "item_category"
-                        else "subcategory" if attr == "item_subcategory" else attr
+                        else "subcategory"
+                        if attr == "item_subcategory"
+                        else attr
                     )
                     extra_fields[fieldname] = value
 
@@ -2067,3 +2076,95 @@ def set_tolerance(diamond_weight, customer):
                 data_json["min_diamond"] = round(min_diamond_weight, 3)
 
     return data_json
+@frappe.whitelist()
+def get_bom_details(design_id, doc):
+	doc = json.loads(doc)
+
+	if doc.get("is_finding_order"):
+		master_bom = frappe.db.get_value(
+			"BOM",
+			{"bom_type": "Template", "item": design_id},
+			"name",
+			order_by="creation desc"
+		)
+		frappe.throw(f"{master_bom}//{doc.get('is_finding_order')}")
+
+	item_data = frappe.db.get_value(
+		"Item",
+		design_id,
+		["item_subcategory", "master_bom"],
+		as_dict=True
+	)
+
+	item_subcategory = item_data.item_subcategory
+
+	fg_bom = frappe.db.get_value(
+		"BOM",
+		{"bom_type": "Finished Goods", "item": design_id},
+		"name",
+		order_by="creation desc"
+	)
+
+	master_bom = fg_bom or item_data.master_bom
+
+	if not master_bom:
+		frappe.throw(
+			f"Master BOM for Item <b>{get_link_to_form('Item', design_id)}</b> is not set"
+		)
+
+	attribute_pairs = []
+	attribute_keys = []
+
+	subcategory_doc = frappe.get_doc("Attribute Value", item_subcategory)
+	for attr in subcategory_doc.item_attributes:
+		formatted = (
+			attr.item_attribute
+			.replace(" ", "_")
+			.replace("/", "")
+			.lower()
+		)
+		attribute_pairs.append((attr.item_attribute, formatted))
+		attribute_keys.append(formatted)
+
+	variant_map = {
+		d.attribute.replace(" ", "_").replace("/", "").lower(): d.attribute_value
+		for d in frappe.db.get_all(
+			"Item Variant Attribute",
+			filters={"parent": design_id},
+			fields=["attribute", "attribute_value"]
+		)
+	}
+
+	bom_values = frappe.db.get_value(
+		"BOM",
+		master_bom,
+		attribute_keys,
+		as_dict=True
+	) or {}
+
+	with_value = {
+		formatted_key: variant_map.get(formatted_key) or bom_values.get(formatted_key)
+		for _, formatted_key in attribute_pairs
+	}
+
+	with_value["master_bom"] = master_bom
+	return with_value
+
+@frappe.whitelist()
+def item_attribute_query(doctype, txt, searchfield, start, page_len, filters):
+	args = {
+		'item_attribute': filters.get("item_attribute"),
+		"txt": "%{0}%".format(txt),
+	}
+	condition = ''
+	if filters.get("customer_code"):		
+		if filters.get("item_attribute") == "Metal Touch":
+			args["customer_code"] = filters.get("customer_code")
+			condition += "and attribute_value in (select metal_touch from `tabMetal Criteria`  where parent = %(customer_code)s)"
+
+	item_attribute = frappe.db.sql(f"""select attribute_value
+			from `tabItem Attribute Value`
+				where parent = %(item_attribute)s 
+				and attribute_value like %(txt)s {condition}
+			""",args)
+	return item_attribute if item_attribute else []
