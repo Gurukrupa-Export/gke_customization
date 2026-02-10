@@ -40,8 +40,7 @@ def attendance1(from_date = None,to_date = None,employee = None):
                 pol.hrs as p_out_hrs, 
                 sec_to_time(
                     if((at.attendance_request is not null or (at.status = "On Leave" and at.leave_type in (select name from `tabLeave Type` where is_lwp = 0))),
-                        # st.shift_hours,
-						0,
+                        st.shift_hours,
                     IF(at.out_time, time_to_sec(TIMEDIFF(at.out_time, at.in_time)), at.working_hours * 3600))
                     + if(at.late_entry=0 and time(at.in_time) > time(st.start_time),
                         time_to_sec(timediff(time(at.in_time), st.start_time)), 0)
@@ -278,8 +277,7 @@ def attendance(from_date = None,to_date = None,employee = None):
 					#    at.attendance_request is not null or 
 					   (at.status = "On Leave" and at.leave_type in (select name from `tabLeave Type` where is_lwp = 0))
 					   ),
-                        # st.shift_hours * 3600,
-						0,
+                        st.shift_hours * 3600,
                     IF(at.out_time, time_to_sec(TIMEDIFF(at.out_time, at.in_time)), at.working_hours * 3600))
                     + if(at.late_entry=0 and time(at.in_time) > time(st.start_time),
                         time_to_sec(timediff(time(at.in_time), st.start_time)), 0)
