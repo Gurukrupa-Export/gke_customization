@@ -2,18 +2,16 @@
 # For license information, please see license.txt
 # check push
 from __future__ import unicode_literals
-from frappe.utils import flt
+
 import frappe
-from frappe.utils.data import now_datetime, add_to_date
+from erpnext.controllers.item_variant import create_variant, get_variant
+from erpnext.setup.utils import get_exchange_rate
 from frappe import _
+from frappe.desk.form.assign_to import add as add_assignment
 from frappe.model.document import Document, json
 from frappe.model.mapper import get_mapped_doc
-from frappe.utils import get_link_to_form
-from erpnext.setup.utils import get_exchange_rate
-from erpnext.controllers.item_variant import create_variant, get_variant
-import frappe
-from frappe.desk.form.assign_to import add as add_assignment
-import json
+from frappe.utils import flt, get_link_to_form
+from frappe.utils.data import add_to_date, now_datetime
 
 
 class Order(Document):
@@ -31,7 +29,6 @@ class Order(Document):
                 return
 
             for ts in timesheets:
-
                 if ts.docstatus in (0, 1):
                     frappe.db.set_value(
                         "Timesheet",
@@ -411,30 +408,36 @@ def calculate_total(self):
         ratio_value = float(self.gold_to_diamond_ratio)
 
         # Fetch the single GC Ratio Master document
-        gc_ratio_master = frappe.get_single("GC Ratio Master")
-        for row in gc_ratio_master.gc_ratio:
-            range_text = row.metal_to_gold_ratio_group.strip()
+        result = frappe.db.sql(
+            """
+            SELECT rating
+            FROM `tabGC Ratio`
+            WHERE parent = %(parent)s
+            AND (
+                (type = 'Range' AND %(ratio)s BETWEEN range_1 AND range_2)
+                OR
+                (type = 'Above' AND %(ratio)s > range_1)
+                OR
+                (type = 'Below' AND %(ratio)s < range_1)
+            )
+            ORDER BY
+                CASE
+                    WHEN type = 'Range' THEN 1
+                    WHEN type = 'Above' THEN 2
+                    WHEN type = 'Below' THEN 3
+                END
+            LIMIT 1
+        """,
+            {"parent": "GC Ratio Master", "ratio": ratio_value},
+            as_dict=True,
+        )
 
-            try:
-                if "-" in range_text:
-                    lower, upper = [float(x.strip()) for x in range_text.split("-")]
-                    if lower <= ratio_value <= upper:
-                        self.rating = row.rating
-                        break
-
-                elif "Above" in range_text:
-                    threshold = float(range_text.replace("Above", "").strip())
-                    if ratio_value > threshold:
-                        self.rating = row.rating
-                        break
-
-                elif "Below" in range_text:
-                    threshold = float(range_text.replace("Below", "").strip())
-                    if ratio_value < threshold:
-                        self.rating = row.rating
-                        break
-            except ValueError:
-                frappe.msgprint(f"Skipping invalid range value: {range_text}")
+        if result and result[0].get("rating"):
+            self.rating = result[0]["rating"]
+        else:
+            frappe.msgprint(
+                f"Skipping invalid range value: {ratio_value} for GC Ratio Master."
+            )
 
 
 def create_timesheet_copy_paste_item_bom(self):
@@ -447,7 +450,6 @@ def create_timesheet_copy_paste_item_bom(self):
     ):
         for row in self.bom_assignment:
             if row.designer:
-
                 exists = frappe.db.exists(
                     "Timesheet",
                     {
@@ -598,9 +600,6 @@ def close_last_timelog(ts_name):
 
 def submit_timesheet(ts_name):
     frappe.db.set_value("Timesheet", ts_name, "docstatus", 1)
-
-
-from frappe.utils import now_datetime
 
 
 def validate_timesheet(self):
@@ -759,7 +758,6 @@ def validate_timesheet(self):
 
 def update_new_designer_timesheet(self):
     if self.workflow_state == "Update Designer":
-
         for row in self.designer_assignment:
             if row.designer:
                 timesheets = frappe.db.get_list(
@@ -1290,7 +1288,7 @@ def create_variant_of_template_from_order(item_template, source_name, target_doc
                 attribute_value = frappe.db.get_value(
                     "Order", source_name, attribute_with
                 )
-            except:
+            except Exception:
                 attribute_value = " "
 
             target.append(
@@ -1403,7 +1401,7 @@ def create_only_variant_from_order(self, source_name, target_doc=None):
                 attribute_value = frappe.db.get_value(
                     "Order", source_name, attribute_with
                 )
-            except:
+            except Exception:
                 attribute_value = " "
             target.append(
                 "attributes",
@@ -1472,7 +1470,7 @@ def create_only_variant_from_order(self, source_name, target_doc=None):
 
 def create_sufix_of_variant_template_from_order(source_name, target_doc=None):
     variant_of = frappe.db.get_value("Item", source_name.design_id, "variant_of")
-    if variant_of == None:
+    if not variant_of:
         frappe.throw(f"Template of {variant_of} is not available")
 
     def post_process(source, target):
