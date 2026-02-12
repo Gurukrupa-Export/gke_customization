@@ -267,23 +267,35 @@ def process_data(data, from_date, to_date, employee):
 	################################################
 
 
+	#########################################################
+
+	is_night_shift = get_time(shift_det.get('start_time')) > get_time(shift_det.get('end_time'))
+
+
 	all_checkins = frappe.get_all(
 		"Employee Checkin",
 		{
 			"employee": employee,
 			"time": ["between", [from_date_time, to_date_time]]
 		},
-		["time"]
+		["time"],
+		order_by="time asc"
 	)
 	# Build map: {date: [time1, time2, ...]}
 	checkin_time_map = {}
-	for row in all_checkins:
-		login_date = getdate(row.time)
-		checkin_time_map.setdefault(login_date, []).append(get_time(row.time))
+	# for row in all_checkins:
+	# 	login_date = getdate(row.time)
+	# 	checkin_time_map.setdefault(login_date, []).append(get_datetime(row.time))
 	
+	for row in all_checkins:
+		dt = get_datetime(row.time)
 
-	#########################################################
-	is_night_shift = get_time(shift_det.get('start_time')) > get_time(shift_det.get('end_time'))
+		login_date = getdate(dt)
+
+		if is_night_shift and get_time(dt) < get_time(shift_det.get('start_time')):
+			login_date = getdate(dt - timedelta(days=1))
+
+		checkin_time_map.setdefault(login_date, []).append(dt)
 
 	TIME = CustomFunction("TIME", ["time"])
 	IF = CustomFunction("IF", ["condition", "true_expr", "false_expr"])
@@ -545,7 +557,28 @@ def process_data(data, from_date, to_date, employee):
 				row['total_pay_hrs'] = timedelta(hours=shift_hours)
 				# row['status'] = status
 		else:
-			status = "XX"	
+			status = "XX"
+
+			################### Current Day Checkins #################################
+			date_time = datetime.combine(getdate(date), get_time(shift_det.start_time))
+			# frappe.throw(f"Current Day Checkins :: {date_time=} <br> {get_checkins(employee, date_time)}")
+			if first_in_last_out := get_checkins(employee, date_time):
+				valid_checkins = []
+				for ci in first_in_last_out:
+					if not frappe.db.get_value("Employee Checkin", {"name": ci.get("employee_checkin")}, "attendance"):
+						valid_checkins.append(ci)
+				
+				if valid_checkins:
+					row["in_time"] = get_time(valid_checkins[0].get("time"))
+					if len(valid_checkins) % 2 == 0: # len(valid_checkins) == 2,4,6 etc...
+						row["out_time"] = get_time(valid_checkins[-1].get("time"))
+					elif len(valid_checkins) > 1 and len(valid_checkins) % 2 != 0: # len(valid_checkins) == 3,5,7 etc...
+						row["status"] = "ERR"
+						row["out_time"] = get_time(valid_checkins[-2].get("time"))
+					else: # len(valid_checkins) == 1
+						row["status"] = "ERR"
+						row["out_time"] = None
+			################### Current Day Checkins #################################
 
 		# count = checkins.get(date)
 		# count = count.get("cnt") if isinstance(count, dict) else count
