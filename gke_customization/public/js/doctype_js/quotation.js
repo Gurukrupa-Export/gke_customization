@@ -23,11 +23,7 @@ frappe.ui.form.on('Quotation', {
               add_filters_group: 1,
               get_query() {
                 return {
-                  filters: {
-                    item: ['is', 'set'],
-                    workflow_state: 'Approved',
-                    docstatus: 1
-                  }
+                  query:"gke_customization.gke_order_forms.doctype.order.order.get_orders_for_quotation",
                 };
               },
               action(selections) {

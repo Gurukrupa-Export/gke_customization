@@ -1972,7 +1972,7 @@ def make_quotation_batch(order_names, target_doc=None):
     else:
         target_doc = frappe.get_doc(target_doc)
 
-    # target_doc.items = []
+    target_doc.items = []
     for name in order_names:
         order = frappe.db.get_value("Order", name, "*", as_dict=True)
         if not order:
@@ -2054,3 +2054,37 @@ def make_quotation_fill_defaults(quotation, order):
 
     quotation.run_method("set_missing_values")
     quotation.run_method("calculate_taxes_and_totals")
+
+@frappe.whitelist()
+def get_orders_for_quotation(doctype, txt, searchfield, start, page_len, filters):
+    conditions = """
+        o.workflow_state = 'Approved'
+        AND o.docstatus = 1
+        AND i.disabled = 0
+        AND o.name LIKE %(txt)s
+    """
+
+    values = {
+        "txt": f"%{txt}%",
+        "limit": page_len,
+        "offset": start
+    }
+
+    if filters.get("customer_code"):
+        conditions += " AND o.customer_code = %(customer_code)s"
+        values["customer_code"] = filters.get("customer_code")
+    return frappe.db.sql(f"""
+        SELECT
+            o.name,
+            o.item,
+            o.cad_order_form,
+            o.customer_code
+        FROM
+            `tabOrder` o
+        INNER JOIN
+            `tabItem` i ON i.name = o.item
+        WHERE
+            {conditions}
+        ORDER BY o.modified DESC
+        LIMIT %(limit)s OFFSET %(offset)s
+    """, values, as_dict=True)
