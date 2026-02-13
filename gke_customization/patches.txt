@@ -1,1 +1,5 @@
+[pre_model_sync]
+
+[post_model_sync]
+
 gke_customization.patches.gc_ration_master
