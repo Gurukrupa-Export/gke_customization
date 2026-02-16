@@ -98,15 +98,15 @@ def get_employee_shift(employee, date):
         shift_type = frappe.db.get_value("Employee", employee, "default_shift")
 
     if not shift_type:
-        return None, None
+        return None, None, None
 
     start_time, end_time = frappe.db.get_value("Shift Type", shift_type, ["start_time", "end_time"])
 
-    return start_time, end_time
+    return start_time, end_time, shift_type
 
 
 def get_employee_checkins(employee, date):
-    start_time, end_time = get_employee_shift(employee, date)
+    start_time, end_time, shift_type = get_employee_shift(employee, date)
 
     # fallback if shift not found
     if not start_time or not end_time:
@@ -334,6 +334,7 @@ def process_data(attendance_details, date_range, holiday_map):
                 all_in_times, all_out_times = [], []
 
             employee_details = frappe.db.get_value("Employee", emp, ["employee_name", "old_punch_id", "department", "default_shift"], as_dict=1)
+            start_time, end_time, assigned_shift_type = get_employee_shift(emp, date)
 
             row = {
                 "employee": record.get("employee") or emp,
@@ -341,7 +342,7 @@ def process_data(attendance_details, date_range, holiday_map):
                 "punch_id": record.get("punch_id") or employee_details.get("old_punch_id"),
                 "department": record.get("department") or employee_details.get("department"),
                 "login_date": record.get("login_date") or date,
-                "shift_type": record.get("shift_type") or employee_details.get("default_shift"),
+                "shift_type": record.get("shift_type") or assigned_shift_type or "",
                 "attendance_status": attendance_status,
                 "in_time": ", ".join(all_in_times) or "",
                 # "in_time": record.get("in_time") or "",
