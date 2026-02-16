@@ -907,7 +907,6 @@ def make_from_pre_order_form(source_name, target_doc=None):
         target_doc.append("parcel_place", {"territory": tr[0]})
 
     design_ids = {i.item_variant for i in customer_order_form if i.item_variant}
-
     item_subcategories = set(
         frappe.db.get_values(
             "Item",
@@ -919,17 +918,18 @@ def make_from_pre_order_form(source_name, target_doc=None):
 
     attribute_map = {}
 
-    for subcat in item_subcategories:
-        if not subcat:
-            continue
-        doc = frappe.get_doc("Attribute Value", subcat)
-        for row in doc.item_attributes:
-            formatted = (
-                row.item_attribute.replace(" ", "_")
-                .replace("/", "")
-                .lower()
-            )
-            attribute_map.setdefault(subcat, []).append(formatted)
+    attribute_rows = frappe.get_all(
+        "Attribute Value Item Attribute Detail",
+        filters={"parent": ["in", list(item_subcategories)]},
+        fields=["parent", "item_attribute"]
+    )
+    for row in attribute_rows:
+        formatted = (
+            row.item_attribute.replace(" ", "_")
+            .replace("/", "")
+            .lower()
+        )
+        attribute_map.setdefault(row.parent, []).append(formatted)
 
     variant_attributes = frappe.db.get_all(
         "Item Variant Attribute",
