@@ -18,6 +18,8 @@
   "metal_touch",
   "subcontracting_wastage",
   "amended_from",
+  "from_gold_rate",
+  "to_gold_rate",
   "section_break_okj7w",
   "revise_making_charge_price_item_subcategory",
   "section_break_6qxib",
@@ -103,6 +105,16 @@
    "fieldname": "subcontracting_wastage",
    "fieldtype": "Percent",
    "label": "Subcontracting Wastage"
+  },
+  {
+   "fieldname": "from_gold_rate",
+   "fieldtype": "Float",
+   "label": "From Gold Rate"
+  },
+  {
+   "fieldname": "to_gold_rate",
+   "fieldtype": "Float",
+   "label": "To Gold Rate"
   }
  ],
  "index_web_pages_for_search": 1,
