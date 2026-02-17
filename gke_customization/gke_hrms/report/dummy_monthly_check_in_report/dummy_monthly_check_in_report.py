@@ -108,8 +108,16 @@ def get_employee_shift(employee, date):
 def get_employee_checkins(employee, date):
     start_time, end_time, shift_type = get_employee_shift(employee, date)
 
+    attendance = frappe.db.exists("Attendance", {"employee": employee, "attendance_date": date, "docstatus": 1})
+    attendance_data = {}
+    if attendance:
+        attendance_data = frappe.db.get_value("Attendance", {"employee": employee, "attendance_date": date, "docstatus": 1}, ["name", "in_time", "out_time"], as_dict=1)
+
+    if attendance_data and attendance_data.get("in_time") and attendance_data.get("out_time"):
+        start_dt = get_datetime(attendance_data.in_time)
+        end_dt = get_datetime(attendance_data.out_time)
     # fallback if shift not found
-    if not start_time or not end_time:
+    elif not start_time or not end_time:
         start_dt = get_datetime(str(date) + " 00:00:00")
         end_dt = add_to_date(start_dt, days=1)
     else:
@@ -252,7 +260,6 @@ def get_holiday_weekoff_map(employee_list, company, from_date, to_date):
 			holiday_map[emp] = holiday_list_map[hl]
 
 	return holiday_map
-
 
 
 def get_data(filters):
