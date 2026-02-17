@@ -253,42 +253,42 @@ frappe.ui.form.on('Order Form', {
                 // }
             })
         }, __("Get Order"))
-		frm.add_custom_button(__("Pre Order Form"), function () {
-			erpnext.utils.map_current_doc({
-				method: "gke_customization.gke_order_forms.doctype.order_form.order_form.make_from_pre_order_form",
-				source_doctype: "Pre Order Form",
-				target: frm,
-				setters: [
-				{
-					label: "Pre Order Form",
-					fieldname: "name",
-					fieldtype: "Link",
-					options: "Pre Order Form"
-				},
-				{
-					label: "Date",
-					fieldname: "date",
-					fieldtype: "Date",
-				},
-				// {
-				//   label: "Order Type",
-				//   fieldname: "order_type",
-				//   fieldtype: "Select",
-				//   options: ["Sales", "Stock Order"],
-				//   reqd: 1,
-				//   default: frm.doc.order_type || undefined
-				// }
-				],
+		// frm.add_custom_button(__("Pre Order Form"), function () {
+		// 	erpnext.utils.map_current_doc({
+		// 		method: "gke_customization.gke_order_forms.doctype.order_form.order_form.make_from_pre_order_form",
+		// 		source_doctype: "Pre Order Form",
+		// 		target: frm,
+		// 		setters: [
+		// 		{
+		// 			label: "Pre Order Form",
+		// 			fieldname: "name",
+		// 			fieldtype: "Link",
+		// 			options: "Pre Order Form"
+		// 		},
+		// 		{
+		// 			label: "Date",
+		// 			fieldname: "date",
+		// 			fieldtype: "Date",
+		// 		},
+		// 		// {
+		// 		//   label: "Order Type",
+		// 		//   fieldname: "order_type",
+		// 		//   fieldtype: "Select",
+		// 		//   options: ["Sales", "Stock Order"],
+		// 		//   reqd: 1,
+		// 		//   default: frm.doc.order_type || undefined
+		// 		// }
+		// 		],
 
-				get_query_filters: {
-				// item: ['is', 'set'],
-                workflow_state:['in',['Approved','Creating Item & BOM']],
-				order_form_id:['is','not set'],
-                // docstatus: 1
-				}
-			})
-			frm.set_df_property('party_name', 'read_only', 1);
-			}, __("Get Order"))
+		// 		get_query_filters: {
+		// 		// item: ['is', 'set'],
+        //         workflow_state:['in',['Approved','Creating Item & BOM']],
+		// 		order_form_id:['is','not set'],
+        //         // docstatus: 1
+		// 		}
+		// 	})
+		// 	frm.set_df_property('party_name', 'read_only', 1);
+		// 	}, __("Get Order"))
 		// if(frm.doc.customer_name.includes('Titan') && frm.doc.flow_type == 'PROTO' && !frm.doc.gc_format_file && frm.doc.docstatus == '1'){
 			frm.add_custom_button(__("Get GC Format"), function(){
 				frappe.call({

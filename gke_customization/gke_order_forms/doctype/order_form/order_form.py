@@ -221,13 +221,13 @@ def create_cad_orders(self):
     for row in self.order_details:
         docname = make_cad_order(row.name, parent_doc=self)
 
-        if row.pre_order_form_details:
-            frappe.db.set_value(
-                "Pre Order Form Details",
-                row.pre_order_form_details,
-                "order_form_id",
-                self.name,
-            )
+        # if row.pre_order_form_details:
+        #     frappe.db.set_value(
+        #         "Pre Order Form Details",
+        #         row.pre_order_form_details,
+        #         "order_form_id",
+        #         self.name,
+        #     )
 
         order_datetime = now_datetime()
         frappe.db.set_value("Order", docname, "order_date", order_datetime)
@@ -849,156 +849,165 @@ def create_po(self):
 
     frappe.msgprint(msg)
 
+# @frappe.whitelist()
+# def make_from_pre_order_form(source_name, target_doc=None):
 
-@frappe.whitelist()
-def make_from_pre_order_form(source_name, target_doc=None):
+#     if isinstance(target_doc, str):
+#         target_doc = json.loads(target_doc)
 
-    if isinstance(target_doc, str):
-        target_doc = json.loads(target_doc)
+#     target_doc = (
+#         frappe.new_doc("Order Form") if not target_doc else frappe.get_doc(target_doc)
+#     )
 
-    target_doc = (
-        frappe.new_doc("Order Form") if not target_doc else frappe.get_doc(target_doc)
-    )
-    pre_order = frappe.db.get_value(
-        "Pre Order Form",
-        source_name,
-        [
-            "customer_code",
-            "order_date",
-            "sales_person",
-            "diamond_quality",
-            "branch",
-            "order_type",
-            "due_days",
-            "po_no",
-            "delivery_date",
-        ],
-        as_dict=True,
-    )
+#     pre_order = frappe.db.get_value(
+#         "Pre Order Form",
+#         source_name,
+#         [
+#             "customer_code",
+#             "order_date",
+#             "sales_person",
+#             "diamond_quality",
+#             "branch",
+#             "order_type",
+#             "due_days",
+#             "po_no",
+#             "delivery_date",
+#         ],
+#         as_dict=True,
+#     )
 
-    if not pre_order:
-        return target_doc
+#     if not pre_order:
+#         return target_doc
 
-    target_doc.customer_code = pre_order.customer_code
-    target_doc.order_date = pre_order.order_date
-    target_doc.salesman_name = pre_order.sales_person
-    target_doc.diamond_quality = pre_order.diamond_quality
-    target_doc.branch = pre_order.branch
-    target_doc.order_type = pre_order.order_type
-    target_doc.due_days = pre_order.due_days
-    target_doc.po_no = pre_order.po_no
-    target_doc.delivery_date = pre_order.delivery_date
-    target_doc.pre_order_form = source_name
+#     target_doc.customer_code = pre_order.customer_code
+#     target_doc.order_date = pre_order.order_date
+#     target_doc.salesman_name = pre_order.sales_person
+#     target_doc.diamond_quality = pre_order.diamond_quality
+#     target_doc.branch = pre_order.branch
+#     target_doc.order_type = pre_order.order_type
+#     target_doc.due_days = pre_order.due_days
+#     target_doc.po_no = pre_order.po_no
+#     target_doc.delivery_date = pre_order.delivery_date
+#     target_doc.pre_order_form = source_name
 
-    customer_order_form = frappe.db.get_all(
-        "Pre Order Form Details",
-        filters={"parent": source_name, "status": "Done"},
-        fields="*",
-    )
-    for st in frappe.db.get_values(
-        "Service Type 2", {"parent": source_name}, "service_type1"
-    ):
-        target_doc.append("service_type", {"service_type1": st[0]})
+#     customer_order_form = frappe.db.get_all(
+#         "Pre Order Form Details",
+#         filters={"parent": source_name, "status": "Done"},
+#         fields="*",
+#     )
 
-    for tr in frappe.db.get_values(
-        "Territory Multi Select", {"parent": source_name}, "territory"
-    ):
-        target_doc.append("parcel_place", {"territory": tr[0]})
+#     for st in frappe.db.get_values(
+#         "Service Type 2", {"parent": source_name}, "service_type1"
+#     ):
+#         target_doc.append("service_type", {"service_type1": st[0]})
 
-    design_ids = {i.item_variant for i in customer_order_form if i.item_variant}
-    item_subcategories = set(
-        frappe.db.get_values(
-            "Item",
-            {"name": ["in", list(design_ids)]},
-            "item_subcategory",
-            as_dict=False,
-        )
-    )
-    attribute_rows = frappe.db.get_all(
-        "Attribute Value Item Attribute",
-        filters={"parent": ["in", list(item_subcategories)]},
-        fields=["parent", "item_attribute"],
-    )
+#     for tr in frappe.db.get_values(
+#         "Territory Multi Select", {"parent": source_name}, "territory"
+#     ):
+#         target_doc.append("parcel_place", {"territory": tr[0]})
 
-    attribute_map = {}
-    for row in attribute_rows:
-        formatted = row.item_attribute.replace(" ", "_").replace("/", "").lower()
-        attribute_map.setdefault(row.parent, []).append(formatted)
+#     design_ids = {i.item_variant for i in customer_order_form if i.item_variant}
+#     item_subcategories = set(
+#         frappe.db.get_values(
+#             "Item",
+#             {"name": ["in", list(design_ids)]},
+#             "item_subcategory",
+#             as_dict=False,
+#         )
+#     )
 
-    variant_attributes = frappe.db.get_all(
-        "Item Variant Attribute",
-        filters={"parent": ["in", list(design_ids)]},
-        fields=["parent", "attribute", "attribute_value"],
-    )
+#     attribute_map = {}
 
-    variant_attr_map = {}
-    for v in variant_attributes:
-        key = v.attribute.replace(" ", "_").replace("/", "").lower()
-        variant_attr_map.setdefault(v.parent, {})[key] = v.attribute_value
+#     attribute_rows = frappe.get_all(
+#         "Attribute Value Item Attribute Detail",
+#         filters={"parent": ["in", list(item_subcategories)]},
+#         fields=["parent", "item_attribute"]
+#     )
+#     for row in attribute_rows:
+#         formatted = (
+#             row.item_attribute.replace(" ", "_")
+#             .replace("/", "")
+#             .lower()
+#         )
+#         attribute_map.setdefault(row.parent, []).append(formatted)
 
-    bom_names = {i.bom for i in customer_order_form if i.bom}
-    bom_data = frappe.db.get_all(
-        "BOM", filters={"name": ["in", list(bom_names)]}, fields="*"
-    )
-    bom_map = {b.name: b for b in bom_data}
-    for i in customer_order_form:
+#     variant_attributes = frappe.db.get_all(
+#         "Item Variant Attribute",
+#         filters={"parent": ["in", list(design_ids)]},
+#         fields=["parent", "attribute", "attribute_value"],
+#     )
 
-        design_id = i.item_variant
-        item_subcategory = frappe.db.get_value("Item", design_id, "item_subcategory")
-        master_bom = i.bom
+#     variant_attr_map = {}
+#     for v in variant_attributes:
+#         key = v.attribute.replace(" ", "_").replace("/", "").lower()
+#         variant_attr_map.setdefault(v.parent, {})[key] = v.attribute_value
 
-        extra_fields = {}
+#     bom_names = {i.bom for i in customer_order_form if i.bom}
+#     bom_data = frappe.db.get_all(
+#         "BOM", filters={"name": ["in", list(bom_names)]}, fields="*"
+#     )
+#     bom_map = {b.name: b for b in bom_data}
 
-        if item_subcategory and master_bom:
-            allowed_attrs = attribute_map.get(item_subcategory, [])
-            variant_vals = variant_attr_map.get(design_id, {})
-            bom_vals = bom_map.get(master_bom, {})
+#     for i in customer_order_form:
 
-            for attr in allowed_attrs:
-                value = variant_vals.get(attr) or getattr(bom_vals, attr, None)
-                if value:
-                    fieldname = (
-                        "category"
-                        if attr == "item_category"
-                        else "subcategory" if attr == "item_subcategory" else attr
-                    )
-                    extra_fields[fieldname] = value
+#         design_id = i.item_variant
+#         item_subcategory = frappe.db.get_value("Item", design_id, "item_subcategory")
+#         master_bom = i.bom
 
-        target_doc.append(
-            "order_details",
-            {
-                "design_by": i.design_by,
-                "design_type": i.design_type,
-                "order_type": i.order_type,
-                "delivery_date": pre_order.delivery_date,
-                "diamond_quality": pre_order.diamond_quality,
-                "design_id": design_id,
-                "mod_reason": i.mod_reason,
-                "bom": i.bom,
-                "category": i.new_category,
-                "subcategory": i.new_sub_category,
-                "metal_target": i.gold_target,
-                "diamond_target": i.diamond_target,
-                "setting_type": i.bom_setting_type,
-                "pre_order_form_details": i.name,
-                "diamond_type": "Natural",
-                "jewelex_batch_no": i.bulk_order_no,
-                "design_image_1": i.design_image,
-                **(
-                    {"metal_touch": i.metal_touch}
-                    if i.design_type == "New Design"
-                    else {}
-                ),
-                **(
-                    {"metal_colour": i.metal_color}
-                    if i.design_type == "New Design"
-                    else {}
-                ),
-                **extra_fields,
-            },
-        )
+#         extra_fields = {}
 
-    return target_doc
+#         if item_subcategory and master_bom:
+#             allowed_attrs = attribute_map.get(item_subcategory, [])
+#             variant_vals = variant_attr_map.get(design_id, {})
+#             bom_vals = bom_map.get(master_bom, {})
+
+#             for attr in allowed_attrs:
+#                 value = variant_vals.get(attr) or getattr(bom_vals, attr, None)
+#                 if value:
+#                     fieldname = (
+#                         "category"
+#                         if attr == "item_category"
+#                         else "subcategory"
+#                         if attr == "item_subcategory"
+#                         else attr
+#                     )
+#                     extra_fields[fieldname] = value
+
+#         target_doc.append(
+#             "order_details",
+#             {
+#                 "design_by": i.design_by,
+#                 "design_type": i.design_type,
+#                 "order_type": i.order_type,
+#                 "delivery_date": pre_order.delivery_date,
+#                 "diamond_quality": pre_order.diamond_quality,
+#                 "design_id": design_id,
+#                 "mod_reason": i.mod_reason,
+#                 "bom": i.bom,
+#                 "category": i.new_category,
+#                 "subcategory": i.new_sub_category,
+#                 "metal_target": i.gold_target,
+#                 "diamond_target": i.diamond_target,
+#                 "setting_type": i.bom_setting_type,
+#                 "pre_order_form_details": i.name,
+#                 "diamond_type": "Natural",
+#                 "jewelex_batch_no": i.bulk_order_no,
+#                 "design_image_1": i.design_image,
+#                 **(
+#                     {"metal_touch": i.metal_touch}
+#                     if i.design_type == "New Design"
+#                     else {}
+#                 ),
+#                 **(
+#                     {"metal_colour": i.metal_color}
+#                     if i.design_type == "New Design"
+#                     else {}
+#                 ),
+#                 **extra_fields,
+#             },
+#         )
+
+#     return target_doc
 
 
 @frappe.whitelist()
@@ -2067,3 +2076,95 @@ def set_tolerance(diamond_weight, customer):
                 data_json["min_diamond"] = round(min_diamond_weight, 3)
 
     return data_json
+@frappe.whitelist()
+def get_bom_details(design_id, doc):
+	doc = json.loads(doc)
+
+	if doc.get("is_finding_order"):
+		master_bom = frappe.db.get_value(
+			"BOM",
+			{"bom_type": "Template", "item": design_id},
+			"name",
+			order_by="creation desc"
+		)
+		frappe.throw(f"{master_bom}//{doc.get('is_finding_order')}")
+
+	item_data = frappe.db.get_value(
+		"Item",
+		design_id,
+		["item_subcategory", "master_bom"],
+		as_dict=True
+	)
+
+	item_subcategory = item_data.item_subcategory
+
+	fg_bom = frappe.db.get_value(
+		"BOM",
+		{"bom_type": "Finished Goods", "item": design_id},
+		"name",
+		order_by="creation desc"
+	)
+
+	master_bom = fg_bom or item_data.master_bom
+
+	if not master_bom:
+		frappe.throw(
+			f"Master BOM for Item <b>{get_link_to_form('Item', design_id)}</b> is not set"
+		)
+
+	attribute_pairs = []
+	attribute_keys = []
+
+	subcategory_doc = frappe.get_doc("Attribute Value", item_subcategory)
+	for attr in subcategory_doc.item_attributes:
+		formatted = (
+			attr.item_attribute
+			.replace(" ", "_")
+			.replace("/", "")
+			.lower()
+		)
+		attribute_pairs.append((attr.item_attribute, formatted))
+		attribute_keys.append(formatted)
+
+	variant_map = {
+		d.attribute.replace(" ", "_").replace("/", "").lower(): d.attribute_value
+		for d in frappe.db.get_all(
+			"Item Variant Attribute",
+			filters={"parent": design_id},
+			fields=["attribute", "attribute_value"]
+		)
+	}
+
+	bom_values = frappe.db.get_value(
+		"BOM",
+		master_bom,
+		attribute_keys,
+		as_dict=True
+	) or {}
+
+	with_value = {
+		formatted_key: variant_map.get(formatted_key) or bom_values.get(formatted_key)
+		for _, formatted_key in attribute_pairs
+	}
+
+	with_value["master_bom"] = master_bom
+	return with_value
+
+@frappe.whitelist()
+def item_attribute_query(doctype, txt, searchfield, start, page_len, filters):
+	args = {
+		'item_attribute': filters.get("item_attribute"),
+		"txt": "%{0}%".format(txt),
+	}
+	condition = ''
+	if filters.get("customer_code"):		
+		if filters.get("item_attribute") == "Metal Touch":
+			args["customer_code"] = filters.get("customer_code")
+			condition += "and attribute_value in (select metal_touch from `tabMetal Criteria`  where parent = %(customer_code)s)"
+
+	item_attribute = frappe.db.sql(f"""select attribute_value
+			from `tabItem Attribute Value`
+				where parent = %(item_attribute)s 
+				and attribute_value like %(txt)s {condition}
+			""",args)
+	return item_attribute if item_attribute else []
