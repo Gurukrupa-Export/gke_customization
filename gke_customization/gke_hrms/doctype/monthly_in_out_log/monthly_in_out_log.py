@@ -296,6 +296,8 @@ def get_data(filters):
     TIMESTAMP = CustomFunction("TIMESTAMP", ["date", "time"])
     TIME = CustomFunction("TIME", ["time"])
     ADDDATE = CustomFunction("ADDDATE", ["date", "days"])
+    ADDTIME = CustomFunction("ADDTIME", ["date", "time"])
+
 
     conditions = get_conditions(filters)
 
@@ -328,9 +330,15 @@ def get_data(filters):
 		TIMESTAMP(Attendance.attendance_date, ShiftType.end_time),
 		TIMESTAMP(ADDDATE(Attendance.attendance_date, 1), ShiftType.end_time)
 	)
+    
+    shift_start_with_grace = ADDTIME(
+		shift_start,
+		SEC_TO_TIME(ShiftType.late_entry_grace_period * 60)
+	)
+
 
     effective_in = IF(
-		Attendance.in_time < shift_start,
+		Attendance.in_time <= shift_start_with_grace,
 		shift_start,
 		Attendance.in_time
 	)
@@ -752,7 +760,7 @@ def process_data(data, filters):
             status = "XX"
 
         if has_checkin_error:
-            row["status"] = "ERR" 
+            # row["status"] = "ERR" 
             row['net_wrk_hrs'] = timedelta(0)
             row['total_pay_hrs'] = timedelta(0)
 
