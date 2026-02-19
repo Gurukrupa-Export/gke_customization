@@ -111,6 +111,7 @@ frappe.ui.form.on("Payroll Email", {
                 frm.set_value("payroll_email_details", r.message);
                 frm.set_value("total_slips", r.message.length);
                 frm.refresh_field("payroll_email_details");
+                frm.save()
               }
             }
           },
