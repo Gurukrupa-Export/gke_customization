@@ -86,6 +86,12 @@ def get_data(filters=None):
 		TIMESTAMP(Attendance.attendance_date, ShiftType.end_time),
 		TIMESTAMP(ADDDATE(Attendance.attendance_date, 1), ShiftType.end_time)
 	)
+ 
+	shift_start_with_grace = ADDTIME(
+		shift_start,
+		SEC_TO_TIME(ShiftType.late_entry_grace_period * 60)
+	)
+
 
 	shift_start_with_grace = ADDTIME(
 		shift_start,
