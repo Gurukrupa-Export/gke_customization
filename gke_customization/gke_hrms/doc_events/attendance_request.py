@@ -7,6 +7,7 @@ from hrms.hr.doctype.employee_checkin.employee_checkin import (
 	calculate_working_hours,
 	mark_attendance_and_link_log,
 )
+from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log import get_attendance_details_by_date, fmt_td_or_value
 
 from datetime import datetime
 
@@ -125,7 +126,7 @@ def on_submit(self, method):
             logs = frappe.db.get_list(
                 "Employee Checkin", fields=["*"], filters=filters, order_by="time"
             )
-
+            
             # Filter logs for the current `attendance_date`
             log_entries = [log for log in logs if log["time"].date() == attendance_date]
 
@@ -147,6 +148,11 @@ def on_submit(self, method):
 
                 for log in log_entries:
                     frappe.db.set_value("Employee Checkin", log.name, "attendance", doc.name)     
+
+    frappe.db.commit()
+    # Update Monthly in-out Log after attendance is processed
+    att_req_update_monthly_inout_log(self)
+
 
 def get_attendance(self, logs):
     """Return attendance_status, working_hours, late_entry, early_exit, in_time, out_time for a single date."""
@@ -195,7 +201,7 @@ def get_attendance(self, logs):
 
 def get_attendance_record(self, attendance_date: str) -> str | None:
     frappe.msgprint(_("Attendance Checking.."))
-    return frappe.db.exists(
+    attedance =  frappe.db.exists(
         "Attendance",
         {
             "employee": self.employee,
@@ -203,3 +209,80 @@ def get_attendance_record(self, attendance_date: str) -> str | None:
             "docstatus": ("!=", 2),
         },
     )
+    return attedance
+
+
+######################### Update Monthly in-out Log after Submit Attendance Req #################################
+##### 19 Feb 2026 ####
+
+
+def att_req_update_monthly_inout_log(doc, method=None):
+    """
+    Recalculate Monthly In-Out Log when Attendance Request is submitted
+    """
+    try:
+        if not doc.employee or not doc.company:
+            return
+
+        # Get attendance of Attendance Request
+        attendance_list = frappe.get_all(
+            "Attendance",
+            filters={
+                "employee": doc.employee,
+                "attendance_request": doc.name,
+                "docstatus": 1, 
+            },
+            fields=["name"],
+        )
+        
+        if not attendance_list:
+            return
+            
+        for att in attendance_list:
+            att_doc = frappe.db.get_value("Attendance", att.name, ["attendance_date", "name"], as_dict=True)
+            attendance_date = att_doc.attendance_date
+
+            mil_name = frappe.db.get_value(
+                "Monthly In-Out Log",
+                {
+                    "employee": doc.employee,
+                    "company": doc.company,
+                    "attendance_date": attendance_date,
+                    "docstatus": ["in", [0, 1]],
+                },
+                "name",
+            )
+
+            if not mil_name:
+                return
+
+            mil = frappe.db.get_value("Monthly In-Out Log", mil_name, ["company", "employee"], as_dict=True)
+
+            res = get_attendance_details_by_date(
+                mil.company,
+                mil.employee,
+                attendance_date
+            )
+
+            records = res.get("records") or []
+            if not records:
+                return
+
+            record = records[0]
+
+            frappe.db.set_value("Monthly In-Out Log", mil_name, "status", record.get("status"))
+            frappe.db.set_value("Monthly In-Out Log", mil_name, "in_time", record.get("in_time"))
+            frappe.db.set_value("Monthly In-Out Log", mil_name, "out_time", record.get("out_time"))
+            frappe.db.set_value("Monthly In-Out Log", mil_name, "spent_hrs", fmt_td_or_value(record.get("spent_hrs") or record.get("spent_hours")))
+            frappe.db.set_value("Monthly In-Out Log", mil_name, "net_wrk_hrs", fmt_td_or_value(record.get("net_wrk_hrs")))
+            frappe.db.set_value("Monthly In-Out Log", mil_name, "late", record.get("late", 0) or record.get("late_entry", 0))
+            frappe.db.set_value("Monthly In-Out Log", mil_name, "late_hrs", fmt_td_or_value(record.get("late_hrs")))
+            frappe.db.set_value("Monthly In-Out Log", mil_name, "early_hrs", fmt_td_or_value(record.get("early_hrs")))
+            frappe.db.set_value("Monthly In-Out Log", mil_name, "ot_hrs", fmt_td_or_value(record.get("ot_hours") or record.get("othrs")))
+            frappe.db.set_value("Monthly In-Out Log", mil_name, "p_out_hrs", fmt_td_or_value(record.get("p_out_hrs")))
+
+            frappe.db.commit()
+    except Exception as e:
+        frappe.log_error(message=f"Error updating Monthly In-Out Log: {e}", title="Monthly In-Out Log Update Error - Att Req")
+
+##############################################################################################
