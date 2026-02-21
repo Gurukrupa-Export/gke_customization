@@ -515,6 +515,7 @@ def fmt_td_or_value(val):
         return val.strftime("%Y-%m-%d %H:%M:%S")
     return val
 
+
 def process_data(data, filters):
     employee = filters.get("employee")
     from_date = filters.get("from_date")
@@ -649,7 +650,7 @@ def process_data(data, filters):
 
             # FIXED: Check if LWP specifically
             is_lwp = frappe.db.get_value('Leave Type', {'name': row.status, 'is_lwp': 1}, ['name'])
-            
+
             if is_lwp:
                 # Force LWP to 0 hours
                 row.status = STATUS.get(row.status) or row.status
@@ -665,7 +666,7 @@ def process_data(data, filters):
         status = row.get("status")
 
         # Normalize all leave types to "On Leave"
-        if frappe.db.exists("Leave Type", status):
+        if frappe.db.exists("Leave Type", status) or row.get("status") == "On Leave":
             row["status"] = "On Leave"
 
         elif status in (
@@ -759,7 +760,7 @@ def process_data(data, filters):
             status = "XX"
 
         if has_checkin_error:
-            # row["status"] = "ERR" 
+            #row["status"] = "ERR" 
             row['net_wrk_hrs'] = timedelta(0)
             row['total_pay_hrs'] = timedelta(0)
 
