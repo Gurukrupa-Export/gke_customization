@@ -759,7 +759,7 @@ def process_data(data, filters):
             status = "XX"
 
         if has_checkin_error:
-            row["status"] = "ERR" 
+            # row["status"] = "ERR" 
             row['net_wrk_hrs'] = timedelta(0)
             row['total_pay_hrs'] = timedelta(0)
 
