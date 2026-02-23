@@ -26,6 +26,10 @@ STATUS = {
     "Present": "Present",
     "Half Day": "Half Day",
     "On Leave": "On Leave",
+    "Leave Without Pay": "On Leave",
+    "Sick Leave": "On Leave",
+    "Casual Leave": "On Leave",
+    "Marriage Leave": "On Leave",
     "Work From Home": "Work From Home",
 }
 
@@ -58,8 +62,8 @@ class MonthlyInOutLog(Document):
         self.shit_type = get_employee_shift(self.employee, self.attendance_date)
         self.shift_hours = frappe.db.get_value("Shift Type", self.shit_type, "shift_hours")
 
-        self.validate_duplicate_entry()
-        self.populate_from_attendance()
+        if not self.validate_duplicate_entry():
+            self.populate_from_attendance()
     
     def on_submit(self):
         self.populate_from_attendance()
@@ -91,12 +95,7 @@ class MonthlyInOutLog(Document):
         )
 
         if duplicate:
-            frappe.throw(
-                _(
-                    "Monthly In-Out Log already exists for Employee <b>{0}</b> on <b>{1}</b>."
-                ).format(self.employee, login_date),
-                title=_("Duplicate Entry"),
-            )
+            return True
 
     @frappe.whitelist()
     def populate_from_attendance(self):
@@ -650,13 +649,13 @@ def process_data(data, filters):
 
             # FIXED: Check if LWP specifically
             is_lwp = frappe.db.get_value('Leave Type', {'name': row.status, 'is_lwp': 1}, ['name'])
-            
+
             if is_lwp:
                 # Force LWP to 0 hours
                 row.status = STATUS.get(row.status) or row.status
                 row.net_wrk_hrs = timedelta(0)
             elif leave_status or e_leave_status:
-                row["status"] = leave_status
+                row["status"] = STATUS.get(row.status) or row.status
                 row["net_wrk_hrs"] = timedelta(hours=shift_hours)
             else:
                 row["net_wrk_hrs"] = timedelta(0)
@@ -666,7 +665,7 @@ def process_data(data, filters):
         status = row.get("status")
 
         # Normalize all leave types to "On Leave"
-        if frappe.db.exists("Leave Type", status):
+        if frappe.db.exists("Leave Type", status) or row.get("status") == "On Leave":
             row["status"] = "On Leave"
 
         elif status in (
@@ -760,7 +759,7 @@ def process_data(data, filters):
             status = "XX"
 
         if has_checkin_error:
-            # row["status"] = "ERR" 
+            #row["status"] = "ERR" 
             row['net_wrk_hrs'] = timedelta(0)
             row['total_pay_hrs'] = timedelta(0)
 
