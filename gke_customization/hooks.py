@@ -149,9 +149,11 @@ scheduler_events = {
         "gke_customization.gke_hrms.doc_events.leave_allocation.infirmary_leave_allocation",
         "gke_customization.gke_hrms.doc_events.leave_allocation.compOff_leave_allocation"    
     ],
-    # "hourly": [
+    "hourly": [
     #     "gke_customization.gke_hrms.doc_events.shift_logout.logout_users_after_shift"
-    # ]
+    
+        "gke_customization.gke_hrms.sync_checkin.sync_biometric_checkins" # new script for Sync biometric checkins
+    ]
 
 }
 
