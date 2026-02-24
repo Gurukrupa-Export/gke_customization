@@ -3,8 +3,6 @@
 
 frappe.ui.form.on("Payroll Email", {
   refresh(frm) {
-    // Button visibility control
-    frm.toggle_display("fetch_employees", frm.doc.status === "Draft");
 
     // Show button only in valid states
     if (!frm.is_new() && frm.doc.status == "Draft") {
@@ -113,6 +111,7 @@ frappe.ui.form.on("Payroll Email", {
                 frm.set_value("payroll_email_details", r.message);
                 frm.set_value("total_slips", r.message.length);
                 frm.refresh_field("payroll_email_details");
+                frm.save()
               }
             }
           },

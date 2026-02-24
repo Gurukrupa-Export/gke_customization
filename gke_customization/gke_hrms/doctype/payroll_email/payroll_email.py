@@ -25,6 +25,10 @@ class PayrollEmail(Document):
 		self.name = make_autoname(naming_pattern)
 	
 	def validate(self):
+
+		if self.is_new():
+			self.status = "Draft"
+
 		self._validate_duplicate_employee_emails()
 		self._validate_duplicate_salary_slips()
 
@@ -246,6 +250,9 @@ def process_payroll_email(batch_name):
 
 	doc = frappe.get_doc("Payroll Email", batch_name)
 
+	payroll_settings = frappe.get_single("Payroll Settings")
+	payroll_email_template = payroll_settings.get("email_template")
+
 	sent_count = 0
 	failed_count = 0
 
@@ -292,12 +299,11 @@ def process_payroll_email(batch_name):
 			# ------------------------------------------
 			# Generate PDF
 			# ------------------------------------------
-			payroll_settings = frappe.get_single("Payroll Settings")
 			employee_doc = frappe.get_doc("Employee", row.employee)
 			subject = f"Salary Slip - from {doc.from_date} to {doc.to_date}"
 			message = "Please see attachment"
-			if payroll_settings.email_template:
-				email_template = frappe.get_doc("Email Template", payroll_settings.email_template)
+			if payroll_email_template:
+				email_template = frappe.get_doc("Email Template", payroll_email_template)
 				context = salary_slip.as_dict()
 				subject = frappe.render_template(email_template.subject, context)
 				message = frappe.render_template(email_template.response, context)
@@ -305,7 +311,7 @@ def process_payroll_email(batch_name):
 			password = None
 			if payroll_settings.encrypt_salary_slips_in_emails:
 				password = payroll_settings.password_policy.format(**employee_doc.as_dict())
-				if not payroll_settings.email_template:
+				if not payroll_email_template:
 					message += "<br>" + "Note: Your salary slip is password protected, the password to unlock the PDF is of the format {0}.".format(payroll_settings.password_policy)
 
 			# salary slip file method
@@ -323,6 +329,7 @@ def process_payroll_email(batch_name):
 					"attachments": [generated_file],
 					"reference_doctype": doc.doctype,
 					"reference_name": doc.name,
+					"now": True
 				}
 				# ------------------------------------------
 				# Send email
@@ -354,8 +361,13 @@ def process_payroll_email(batch_name):
 			row.status = "Failed"
 			row.retry_count = (row.retry_count or 0) + 1
 			row.error_detail = frappe.get_traceback()
-			frappe.log_error(title="Payroll Email Error", message=frappe.get_traceback())
 			failed_count += 1
+			frappe.log_error(
+				title="Payroll Email Error", 
+				message=frappe.get_traceback(),
+				ref_doctype=doc.doctype,
+				ref_name=doc.name
+			)
 
 	# ------------------------------------------
 	# Finalize batch
