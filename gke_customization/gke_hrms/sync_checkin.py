@@ -53,7 +53,6 @@ def sync_biometric_checkins():
     }
 
     try:
-        print(f"URL : {url}")
         response = requests.get(url, headers=headers, timeout=60)
     except requests.exceptions.RequestException as exc:
         _log_error(
@@ -87,10 +86,10 @@ def sync_biometric_checkins():
 
     for log in data:
         try:
-            if not log.get("userid", "") == "71372":
+            # if not log.get("userid", "") == "71372":
             # if log.get("userid", "") not in ["4445", "2714", "4220", "2305"]:
             # if log.get("userid", "") not in ["50007", "50014", "67196",]:
-                continue
+                # continue
             result = _process_single_log(log, existing, last_punch_map, time_threshold)
             if result == "created":
                 created += 1
