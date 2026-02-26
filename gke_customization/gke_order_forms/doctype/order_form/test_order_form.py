@@ -2,13 +2,12 @@
 # See license.txt
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
 from frappe.model.workflow import apply_workflow
-from frappe.utils import now, add_days
+from frappe.tests.utils import FrappeTestCase
+from frappe.utils import add_days, now
 
 
 class TestOrderForm(FrappeTestCase):
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -30,6 +29,26 @@ class TestOrderForm(FrappeTestCase):
             "Order", filters={"cad_order_form": order_form.name, "docstatus": 0}
         )
         self.assertEqual(len(order), len(order_form.order_details))
+        for i in range(len(order_form.order_details)):
+            row = order_form.order_details[i]
+            order_doc = frappe.get_doc("Order", order[i])
+            self.assertEqual(
+                (self.name, order_doc.cad_order_form),
+                (row.category, order_doc.category),
+                (row.setting_type, order_doc.setting_type),
+                (row.metal_type, order_doc.metal_type),
+                (row.metal_touch, order_doc.metal_touch),
+                (row.metal_colour, order_doc.metal_colour),
+                (row.metal_target, order_doc.metal_target),
+                (row.diamond_target, order_doc.diamond_target),
+                (row.number_of_ant, order_doc.number_of_ant),
+                (
+                    row.distance_between_kadi_to_mugappu,
+                    order_doc.distance_between_kadi_to_mugappu,
+                ),
+                (row.space_between_mugappu, order_doc.space_between_mugappu),
+                (row.count_of_spiral_turns, order_doc.count_of_spiral_turns),
+            )
 
         purchase_order = frappe.get_all(
             "Purchase Order",
@@ -38,34 +57,82 @@ class TestOrderForm(FrappeTestCase):
         self.assertEqual(len(purchase_order), 1)
 
     def test_order_created_mod(self):
+        item = frappe.db.get_value(
+            "Item", {"has_variants": 0}, "name", order_by="creation desc"
+        )
         order_form = make_order_form(
             department=self.department,
             branch=self.branch,
             order_type="Sales",
             design_by="Our Design",
             design_type="Mod - Old Stylebio & Tag No",
-            design_code="RI05086-001",
+            design_code=item,
         )
 
         order = frappe.get_all(
             "Order", filters={"cad_order_form": order_form.name, "docstatus": 0}
         )
         self.assertEqual(len(order), len(order_form.order_details))
+        for i in range(len(order_form.order_details)):
+            row = order_form.order_details[i]
+            order_doc = frappe.get_doc("Order", order[i])
+            self.assertEqual(
+                (self.name, order_doc.cad_order_form),
+                (row.design_id, order_doc.design_id),
+                (row.category, order_doc.category),
+                (row.setting_type, order_doc.setting_type),
+                (row.metal_type, order_doc.metal_type),
+                (row.metal_touch, order_doc.metal_touch),
+                (row.metal_colour, order_doc.metal_colour),
+                (row.metal_target, order_doc.metal_target),
+                (row.diamond_target, order_doc.diamond_target),
+                (row.number_of_ant, order_doc.number_of_ant),
+                (
+                    row.distance_between_kadi_to_mugappu,
+                    order_doc.distance_between_kadi_to_mugappu,
+                ),
+                (row.space_between_mugappu, order_doc.space_between_mugappu),
+                (row.count_of_spiral_turns, order_doc.count_of_spiral_turns),
+            )
 
     def test_order_created_sketch_design(self):
+        item = frappe.db.get_value(
+            "Item", {"has_variants": 0}, "name", order_by="creation desc"
+        )
         order_form = make_order_form(
             department=self.department,
             branch=self.branch,
             order_type="Sales",
             design_by="Our Design",
             design_type="Sketch Design",
-            design_code="EA05120-001",
+            design_code=item,
         )
 
         order = frappe.get_all(
             "Order", filters={"cad_order_form": order_form.name, "docstatus": 0}
         )
         self.assertEqual(len(order), len(order_form.order_details))
+        for i in range(len(order_form.order_details)):
+            row = order_form.order_details[i]
+            order_doc = frappe.get_doc("Order", order[i])
+            self.assertEqual(
+                (self.name, order_doc.cad_order_form),
+                (row.design_id, order_doc.design_id),
+                (row.category, order_doc.category),
+                (row.setting_type, order_doc.setting_type),
+                (row.metal_type, order_doc.metal_type),
+                (row.metal_touch, order_doc.metal_touch),
+                (row.metal_colour, order_doc.metal_colour),
+                (row.metal_target, order_doc.metal_target),
+                (row.diamond_target, order_doc.diamond_target),
+                (row.number_of_ant, order_doc.number_of_ant),
+                (
+                    row.distance_between_kadi_to_mugappu,
+                    order_doc.distance_between_kadi_to_mugappu,
+                ),
+                (row.space_between_mugappu, order_doc.space_between_mugappu),
+                (row.count_of_spiral_turns, order_doc.count_of_spiral_turns),
+            )
 
     def test_order_created_customer_design(self):
         order_form = make_order_form(
@@ -80,6 +147,26 @@ class TestOrderForm(FrappeTestCase):
             "Order", filters={"cad_order_form": order_form.name, "docstatus": 0}
         )
         self.assertEqual(len(order), len(order_form.order_details))
+        for i in range(len(order_form.order_details)):
+            row = order_form.order_details[i]
+            order_doc = frappe.get_doc("Order", order[i])
+            self.assertEqual(
+                (self.name, order_doc.cad_order_form),
+                (row.category, order_doc.category),
+                (row.setting_type, order_doc.setting_type),
+                (row.metal_type, order_doc.metal_type),
+                (row.metal_touch, order_doc.metal_touch),
+                (row.metal_colour, order_doc.metal_colour),
+                (row.metal_target, order_doc.metal_target),
+                (row.diamond_target, order_doc.diamond_target),
+                (row.number_of_ant, order_doc.number_of_ant),
+                (
+                    row.distance_between_kadi_to_mugappu,
+                    order_doc.distance_between_kadi_to_mugappu,
+                ),
+                (row.space_between_mugappu, order_doc.space_between_mugappu),
+                (row.count_of_spiral_turns, order_doc.count_of_spiral_turns),
+            )
 
     def tearDown(self):
         frappe.db.rollback()
