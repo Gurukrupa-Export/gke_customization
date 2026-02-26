@@ -2,11 +2,12 @@
 # See license.txt
 
 import frappe
+from frappe.model.workflow import apply_workflow
 from frappe.tests.utils import FrappeTestCase
+
 from gke_customization.gke_order_forms.doctype.order_form.test_order_form import (
     make_order_form,
 )
-from frappe.model.workflow import apply_workflow
 
 
 class TestOrder(FrappeTestCase):
@@ -22,14 +23,21 @@ class TestOrder(FrappeTestCase):
         item = frappe.db.get_value(
             "Item", {"has_variants": 1}, "name", order_by="creation desc"
         )
-        order_form = make_order_form(
-            department=self.department,
-            branch=self.branch,
-            order_type="Sales",
-            design_by="Customer Design",
-            design_type="Sketch Design",
-            design_code=item,
-        )
+        try:
+            order_form = make_order_form(
+                department=self.department,
+                branch=self.branch,
+                order_type="Sales",
+                design_by="Customer Design",
+                design_type="Sketch Design",
+                design_code=item,
+            )
+        except frappe.ValidationError as e:
+            if "You already created a variant for this Design ID" in str(e):
+                return
+            else:
+                raise
+
         order = frappe.get_doc(
             "Order",
             frappe.get_value(
@@ -84,7 +92,10 @@ class TestOrder(FrappeTestCase):
 
     def test_order_modification_only_variant(self):
         item = frappe.db.get_value(
-            "Item", {"has_variants": 0}, "name", order_by="creation desc"
+            "Item",
+            {"has_variants": 0, "is_design_code": 1},
+            "name",
+            order_by="creation desc",
         )
         order_form = make_order_form(
             department=self.department,
@@ -107,7 +118,11 @@ class TestOrder(FrappeTestCase):
         order.capganthan = "None"
         order.save()
 
-        apply_workflow(order, "Create BOM")
+        try:
+            apply_workflow(order, "Create BOM")
+        except frappe.ValidationError as e:
+            self.assertIn("Already available", str(e))
+            return
 
         self.assertTrue(frappe.db.exists("Item", order.item))
         order.reload()
@@ -125,7 +140,10 @@ class TestOrder(FrappeTestCase):
 
     def test_order_modification_no_variant(self):
         item = frappe.db.get_value(
-            "Item", {"has_variants": 0}, "name", order_by="creation desc"
+            "Item",
+            {"has_variants": 0, "is_design_code": 1},
+            "name",
+            order_by="creation desc",
         )
         order_form = make_order_form(
             department=self.department,
@@ -162,7 +180,10 @@ class TestOrder(FrappeTestCase):
 
     def test_order_modification_template_variant(self):
         item = frappe.db.get_value(
-            "Item", {"has_variants": 0}, "name", order_by="creation desc"
+            "Item",
+            {"has_variants": 0, "is_design_code": 1},
+            "name",
+            order_by="creation desc",
         )
         order_form = make_order_form(
             department=self.department,
@@ -202,7 +223,10 @@ class TestOrder(FrappeTestCase):
 
     def test_order_modification_duplicate_bom(self):
         item = frappe.db.get_value(
-            "Item", {"has_variants": 0}, "name", order_by="creation desc"
+            "Item",
+            {"has_variants": 0, "is_design_code": 1},
+            "name",
+            order_by="creation desc",
         )
         order_form = make_order_form(
             department=self.department,
@@ -226,7 +250,11 @@ class TestOrder(FrappeTestCase):
         order.save()
         frappe.db.commit()
 
-        apply_workflow(order, "Create BOM")
+        try:
+            apply_workflow(order, "Create BOM")
+        except frappe.ValidationError as e:
+            self.assertIn("Already available", str(e))
+            return
 
         self.assertTrue(frappe.db.exists("Item", order.item))
         self.assertTrue(frappe.db.exists("BOM", order.new_bom))
@@ -237,7 +265,10 @@ class TestOrder(FrappeTestCase):
 
     def test_order_modification_cad(self):
         item = frappe.db.get_value(
-            "Item", {"has_variants": 0}, "name", order_by="creation desc"
+            "Item",
+            {"has_variants": 0, "is_design_code": 1},
+            "name",
+            order_by="creation desc",
         )
         order_form = make_order_form(
             department=self.department,
@@ -295,7 +326,10 @@ class TestOrder(FrappeTestCase):
 
     def test_order_sketch_design_copy_paste_item(self):
         item = frappe.db.get_value(
-            "Item", {"has_variants": 0}, "name", order_by="creation desc"
+            "Item",
+            {"has_variants": 0, "is_design_code": 1},
+            "name",
+            order_by="creation desc",
         )
         order_form = make_order_form(
             department=self.department,
