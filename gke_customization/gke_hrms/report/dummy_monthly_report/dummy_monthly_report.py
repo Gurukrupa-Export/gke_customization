@@ -93,6 +93,12 @@ def get_data(filters=None):
 	)
 
 
+	shift_start_with_grace = ADDTIME(
+		shift_start,
+		SEC_TO_TIME(ShiftType.late_entry_grace_period * 60)
+	)
+
+
 	effective_in = IF(
 		Attendance.in_time <= shift_start_with_grace,
 		shift_start,
