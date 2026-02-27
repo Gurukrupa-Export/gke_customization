@@ -36,6 +36,7 @@
    "in_list_view": 1,
    "label": "Employee Email",
    "options": "Email",
+   "read_only": 1,
    "reqd": 1
   },
   {
