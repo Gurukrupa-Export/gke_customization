@@ -9,11 +9,12 @@
   "company",
   "payroll_entry",
   "column_break_nbnq",
-  "department",
-  "branch",
-  "column_break_dwaw",
   "from_date",
   "to_date",
+  "section_break_ewou",
+  "department",
+  "column_break_cstw",
+  "branch",
   "section_break_pewr",
   "email_account",
   "column_break_iqbt",
@@ -43,10 +44,6 @@
    "options": "Company",
    "reqd": 1,
    "search_index": 1
-  },
-  {
-   "fieldname": "column_break_dwaw",
-   "fieldtype": "Column Break"
   },
   {
    "fieldname": "from_date",
@@ -87,6 +84,7 @@
    "in_standard_filter": 1,
    "label": "Status",
    "options": "Draft\nSending\nSent\nPartial Failed\nFailed",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -101,8 +99,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Department",
-   "options": "Department",
-   "reqd": 1
+   "options": "Department"
   },
   {
    "fieldname": "section_break_xyuf",
@@ -178,18 +175,29 @@
   {
    "fieldname": "column_break_nbnq",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_ewou",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_cstw",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2026-01-31 15:54:40.884518",
+ "modified": "2026-02-02 12:38:36.858279",
  "modified_by": "aditya_r@gkexport.com",
  "module": "GKE HRMS",
  "name": "Payroll Email",
  "owner": "aditya_r@gkexport.com",
  "permissions": [
   {
+   "amend": 1,
+   "cancel": 1,
    "create": 1,
    "delete": 1,
    "email": 1,
@@ -199,6 +207,7 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   }
  ],
