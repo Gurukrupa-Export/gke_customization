@@ -25,10 +25,10 @@ class EmployeeMediclaimEnrollment(Document):
 
                 "gender": employee_details.get("gender"),
                 "date_of_birth": employee_details.get("date_of_birth"),
-                "date_of_joining": employee_details.get("date_of_joining"),
+                # "date_of_joining": employee_details.get("date_of_joining"),
                 "marital_status": employee_details.get("marital_status"),
-                "aadhaar_number": employee_details.get("aadhar_number"),
-                "name_as_per_aadhaar": employee_details.get("name_as_per_aadhar"),
+                # "aadhaar_number": employee_details.get("aadhar_number"),
+                # "name_as_per_aadhaar": employee_details.get("name_as_per_aadhar"),
                 "address": employee_details.get("current_address")
             })
 
@@ -74,9 +74,9 @@ class EmployeeMediclaimEnrollment(Document):
     def set_gender(self):
         for row in self.family_details:
             if row.relation in ["Son", "Father", "Father In Law"]:
-                    row.gender = "Male"
+                row.gender = "Male"
             if row.relation in ["Daughter", "Mother", "Mother In Law"]:
-                    row.gender = "Female"
+                row.gender = "Female"
     
     def set_total(self):
         """
