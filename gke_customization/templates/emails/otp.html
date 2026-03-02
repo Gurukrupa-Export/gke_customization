@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Your One-Time Password (OTP)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .otp {
+      font-size: 32px;
+      font-weight: bold;
+      letter-spacing: 6px;
+      text-align: center;
+      margin: 20px 0;
+      color: #2c3e50;
+    }
+    .footer {
+      font-size: 12px;
+      color: #888888;
+      text-align: center;
+      margin-top: 30px;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+      color: #333333;
+    }
+    .message {
+      font-size: 16px;
+      text-align: center;
+      color: #555555;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">Your OTP Code</div>
+    <div class="message">Use the OTP below to proceed with your login or verification.</div>
+    <div class="otp">{{ otp }}</div>
+    <div class="footer">
+      This OTP is valid for 2 minutes.<br>
+      If you did not request this, please ignore this email.
+    </div>
+  </div>
+</body>
+</html>
