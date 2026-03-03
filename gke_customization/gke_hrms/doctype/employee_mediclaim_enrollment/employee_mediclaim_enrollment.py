@@ -24,8 +24,8 @@ class EmployeeMediclaimEnrollment(Document):
                 "branch": employee_details.get("branch"),
 
                 "gender": employee_details.get("gender"),
-                "date_of_birth": employee_details.get("date_of_birth"),
-                # "date_of_joining": employee_details.get("date_of_joining"),
+                # "date_of_birth": employee_details.get("date_of_birth"),
+                "date_of_joining": employee_details.get("date_of_joining"),
                 "marital_status": employee_details.get("marital_status"),
                 # "aadhaar_number": employee_details.get("aadhar_number"),
                 # "name_as_per_aadhaar": employee_details.get("name_as_per_aadhar"),
