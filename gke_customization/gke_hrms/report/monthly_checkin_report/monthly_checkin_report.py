@@ -30,7 +30,7 @@ def get_date_range(filters):
 
     return date_list
 
-def get_employee_list(employee):
+def get_employee_list(employee, department=None):
     """
     Return a list of Employee IDs that report to the given employee, including the employee itself.
 
@@ -40,9 +40,12 @@ def get_employee_list(employee):
     if not employee:
         return []
 
+    filters={"reports_to": employee, "status": "Active"}
+    if department:
+        filters["department"] = department
     employees = frappe.get_all(
     	"Employee",
-    	filters={"reports_to": employee, "status": "Active"},
+    	filters=filters,
     	fields=["name"]
     )
     # frappe.throw(str(employees))
@@ -267,13 +270,14 @@ def get_data(filters):
 	company = filters.get("company")
 	from_date = filters.get("from_date")
 	to_date = filters.get("to_date")
+	department = filters.get("department")
 
 	if not employee or not from_date or not to_date:
 		frappe.throw("Please select Employee, From Date and To Date")
 		return []
 
 	date_range = get_date_range(filters)
-	employee_list = get_employee_list(employee)
+	employee_list = get_employee_list(employee, department)
 	holiday_map = get_holiday_weekoff_map(employee_list, company, from_date, to_date)
 
 	attendance_details = {}
