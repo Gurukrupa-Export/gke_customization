@@ -25,6 +25,9 @@ def get_user_secret(username):
 @frappe.whitelist(allow_guest=True)
 def generate_token_from_data(data):
 
+    login_manager = LoginManager()
+    login_manager.authenticate(username, password)
+
     method = "POST"
     url = "/api/method/frappe.integrations.oauth2.get_token"
 
@@ -162,7 +165,7 @@ def verify_otp_using_customer_name(username, password, otp):
             "password": password
         }
 
-        result = generate_token_from_data(token_data)
+        result = generate_token_from_data(token_data, username, password)
         
 
         if "access_token" in result:
