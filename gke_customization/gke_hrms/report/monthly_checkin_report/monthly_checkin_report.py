@@ -164,6 +164,10 @@ def get_employee_checkins(employee, date):
     if len(checkins) % 2 != 0:
         error_status = "ERR"
 
+    if (not in_times or not out_times) and attendance_data and attendance_data.get("in_time") and attendance_data.get("out_time"):
+        in_times.append(attendance_data.in_time.strftime("%H:%M:%S"))
+        out_times.append(attendance_data.out_time.strftime("%H:%M:%S"))
+
     return in_times, out_times, error_status
 
 
