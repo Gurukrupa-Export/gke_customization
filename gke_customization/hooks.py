@@ -168,7 +168,8 @@ scheduler_events = {
 override_whitelisted_methods = {
 	"hrms.hr.doctype.job_offer.job_offer.make_employee": "gke_customization.gke_hrms.doc_events.job_offer.make_employee",
     "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note":"gke_customization.gke_customization.doc_events.sales_order.make_delivery_note",
-    "erpnext.selling.doctype.delivery_note.delivery_note.make_sales_invoice":"gke_customization.gke_customization.doc_events.delivery_note.make_sales_invoice"
+    "erpnext.selling.doctype.delivery_note.delivery_note.make_sales_invoice":"gke_customization.gke_customization.doc_events.delivery_note.make_sales_invoice",
+    "hrms.hr.doctype.employee_attendance_tool.employee_attendance_tool.mark_employee_attendance":"gke_customization.gke_hrms.api.attendance_tool.mark_employee_attendance"
 }
 #
 # each overriding function accepts a `data` argument;
