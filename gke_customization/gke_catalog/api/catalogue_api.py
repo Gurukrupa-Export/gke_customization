@@ -254,7 +254,7 @@ def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, m
     return db_data
 
 @frappe.whitelist(allow_guest=True)
-def customer_wise_item(customer,selectedSubcategory, metalType = None):
+def customer_wise_item(selectedSubcategory, customer = None, user = None,  metalType = None):
     selectedSubcategory = frappe.form_dict.get("selectedSubcategory")
     itemCode = frappe.form_dict.get("itemCode")
     itemCategory = frappe.form_dict.get("itemCategory")
@@ -274,6 +274,9 @@ def customer_wise_item(customer,selectedSubcategory, metalType = None):
         where_clause = where_clause + f" AND bom.metal_type = '{metalType}' AND (bom.bom_type = 'Finish Goods'  OR bom.bom_type = 'Template') "
     if customer:
         where_clause = where_clause + f" AND tcm.customer = '{customer}' "
+
+    if user:
+        where_clause = where_clause + f" AND icm.user = '{user}' "
     
     if itemCode:
         where_clause = where_clause + f" AND item.item_code = '{itemCode}' "
@@ -288,6 +291,8 @@ def customer_wise_item(customer,selectedSubcategory, metalType = None):
                 tci.trending,
                 tci.folder,
                 tci.wishlist,
+                uid.folder as internal_catalog_folder,
+                uid.wishlist as internal_catalog_wishlist,
                 item.creation,
                 item.item_code,
                 item.item_category,
@@ -299,7 +304,6 @@ def customer_wise_item(customer,selectedSubcategory, metalType = None):
                     WHEN item.front_view = item.image THEN 'CAD Image'
                     ELSE 'FG Image'
                 END AS image_remark,
-                # item.`3d_videos_1` ,
                 item.item_subcategory,
                 bom.tag_no,
                 bom.diamond_quality,
@@ -364,6 +368,15 @@ def customer_wise_item(customer,selectedSubcategory, metalType = None):
                 `tabCataloge Master` AS tcm 
             ON 
                 tcm.name = tci.parent
+
+            LEFT JOIN 
+                `tabUser Item Details` AS uid 
+            ON 
+                uid.item_code = item.name
+            LEFT JOIN 
+                `tabInternal Catalog Master` AS icm 
+            ON 
+                icm.name = uid.parent
             LEFT JOIN
                 `tabBOM` AS bom
             ON
@@ -412,6 +425,8 @@ def customer_wise_item(customer,selectedSubcategory, metalType = None):
 
     d = {}
 
+    int_c_f = {}
+
     for row in db_data:
         if row.folder:
             folder = row.folder.split(",")
@@ -419,11 +434,20 @@ def customer_wise_item(customer,selectedSubcategory, metalType = None):
                 if fd not in d:
                     d[fd] = []
                 d[fd].append(row)
+    
+    for row in db_data:
+        if row.internal_catalog_folder:
+            internal_catalog_folder = row.internal_catalog_folder.split(",")
+            for fd in internal_catalog_folder:
+                if fd not in int_c_f:
+                    int_c_f[fd] = []
+                int_c_f[fd].append(row)
 
     # frappe.throw(f"{d}")
     return {
         "db_data" : db_data,
-        "folder": d
+        "folder": d,
+        "internal_catalog_folder" : int_c_f
     } 
 
 @frappe.whitelist(allow_guest=True)
