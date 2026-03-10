@@ -86,11 +86,11 @@ class OTAllowanceEntry(Document):
 		ot_hours = (
 			# Late OT (ONLY if OUT > Shift End)
 			ifelse(
-				Attendance.out_time > Timestamp(Date(Attendance.in_time), ShiftType.end_time),
+				Attendance.out_time > Timestamp(Date(Attendance.out_time), ShiftType.end_time), ################
 				To_Seconds(
 					Time_Diff(
 						Attendance.out_time,
-						Timestamp(Date(Attendance.in_time), ShiftType.end_time)
+						Timestamp(Date(Attendance.out_time), ShiftType.end_time) #################
 					)
 				),
 				0
@@ -197,7 +197,50 @@ class OTAllowanceEntry(Document):
 			else:
 				row.update({"employee_name": frappe.db.get_value("Employee", row["employee"], "employee_name")})
 
+
+			# Lookup OT Request Hours (optional)
+			row["ot_request_hrs"] = self.get_ot_request_hrs(
+				row.get("employee"),
+				row.get("attendance_date")
+			)
+			frappe.msgprint(f"Row: {row}")
+
 			self.append("ot_details", row)
+
+	def get_ot_request_hrs(self, employee, attendance_date):
+		"""Fetch ot_hours from Overtime Request Details child table of a submitted OT Request.
+
+		Conditions:
+		- Parent OT Request: workflow_state = 'Create Checkin', docstatus = 1 (submitted)
+		- Child Overtime Request Details: enable_ot_duration = 1
+		- Child: employee_id matches the given employee
+		- Child: DATE(work_start_date) matches attendance_date
+		"""
+		if not employee or not attendance_date:
+			return None
+
+		OTRequest = frappe.qb.DocType("OT Request")
+		OTRequestDetail = frappe.qb.DocType("Overtime Request Details")
+		DateFunc = CustomFunction("DATE", ["dt"])
+
+		result = (
+			frappe.qb.from_(OTRequestDetail)
+			.inner_join(OTRequest).on(OTRequestDetail.parent == OTRequest.name)
+			.select(OTRequestDetail.ot_hours)
+			.where(
+				(OTRequest.docstatus == 1)
+				& (OTRequest.workflow_state == "Create Checkin")
+				& (OTRequestDetail.enable_ot_duration == 1)
+				& (OTRequestDetail.employee_id == employee)
+				& (DateFunc(OTRequestDetail.work_start_date) == getdate(attendance_date))
+			)
+			.limit(1)
+			.run(as_dict=True)
+		)
+
+		if result:
+			return result[0].get("ot_hours")
+		return None
 
 	def get_weekoffs_ot(self, from_log=False):
 		holidays = self.get_emp_list()
@@ -205,7 +248,7 @@ class OTAllowanceEntry(Document):
 
 		for holiday_list, emp_list in holidays.items():
 			holidays_list = frappe.get_all("Holiday", {"parent": holiday_list,
-					"holiday_date":["between",[self.from_date, self.to_date]]}, ["holiday_date","weekly_off"])
+					"holiday_date":["between",[getdate(self.from_date), getdate(self.to_date)]]}, ["holiday_date","weekly_off"])
 			for emp in emp_list:
 				res += self.get_weekoffs_ot_per_employee(from_log, emp, holidays_list)
 		return res
@@ -402,6 +445,7 @@ def create_ot_log(ref_doc):
 	# update employe name as per attendance log
 	data["employee_name"] = frappe.db.get_value("Attendance", ref_doc.attendance, "employee_name")
 	data['ot_allowance_entry'] = ref_doc.get("parent", "")
+	################## Edited By Aditya at 27-01-2026 ##################
 
 	doc.update(data)
 	doc.save()
