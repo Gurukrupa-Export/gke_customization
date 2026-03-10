@@ -27,7 +27,7 @@
     "serial_no_bom",
     "diamond_quality",
     "jewelex_batch_no",
-
+    "jewelex_design_id",
     "section_break_f9sk",
     "customer_order_form",
     "titan_code",
@@ -873,7 +873,13 @@
     "fieldtype": "Select",
     "label": "Status",
     "options": "Pending\nDone"
-    }
+    },
+    {
+    "fieldname": "jewelex_design_id",
+    "fieldtype": "Data",
+    "label": "Jewelex Design ID",
+    "mandatory_depends_on": "eval:doc.design_type=='Sketch Design'"
+  }
 ],
 "index_web_pages_for_search": 1,
 "istable": 1,
