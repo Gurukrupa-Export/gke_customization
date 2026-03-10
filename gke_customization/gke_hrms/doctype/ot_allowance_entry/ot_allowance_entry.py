@@ -50,15 +50,10 @@ class OTAllowanceEntry(Document):
 
 	def make_ot_logs(self):
 		for log in self.ot_details:
-			if get_timedelta(log.allowed_ot) > get_timedelta(log.attn_ot_hrs):
+			if not log.allow_excess_ot and get_timedelta(log.allowed_ot) > get_timedelta(log.attn_ot_hrs):
 				frappe.throw(_("Allowed OT cannot be greater than Attendance OT Hours"))
-			# if log.attendance_date and log.employee and log.allow:
-			# 	exit_ot = frappe.db.get_value("OT Log",{'employee': log.employee, 'attendance_date': log.attendance_date},['name'])
-			# 	if exit_ot:
-			# 		continue
-			# 	else:
-			create_ot_log(log)
-		# self.ot_details=[]
+
+			create_ot_log(ref_doc=log)
 		frappe.msgprint(_("Records Updated"))
 
 	@frappe.whitelist()
@@ -89,21 +84,32 @@ class OTAllowanceEntry(Document):
 		)
 
 		ot_hours = (
-			To_Seconds(
-				Time_Diff(
-					Attendance.out_time,
-					Timestamp(Date(Attendance.in_time), ShiftType.end_time)
-				)
+			# Late OT (ONLY if OUT > Shift End)
+			ifelse(
+				Attendance.out_time > Timestamp(Date(Attendance.in_time), ShiftType.end_time),
+				To_Seconds(
+					Time_Diff(
+						Attendance.out_time,
+						Timestamp(Date(Attendance.in_time), ShiftType.end_time)
+					)
+				),
+				0
 			)
-			+ ifelse(
+
+			+
+
+			# Early OT (ONLY if IN < Shift Start)
+			ifelse(
 				Timestamp(Date(Attendance.in_time), ShiftType.start_time) > Attendance.in_time,
 				To_Seconds(
 					Time_Diff(
-						Timestamp(Date(Attendance.in_time), ShiftType.start_time), Attendance.in_time
+						Timestamp(Date(Attendance.in_time), ShiftType.start_time),
+						Attendance.in_time
 					)
-				), 
+				),
 				0
 			)
+			# Personal Out deduction 
 			- sub_query_personal_out_log
 		).as_("attn_ot_hrs")
 		
@@ -115,7 +121,7 @@ class OTAllowanceEntry(Document):
 			.select(
 				Attendance.name.as_("attendance"),
 				Attendance.employee,
-				Attendance.employee_name,
+				# Attendance.employee_name,
 				Employee.company,
 				Employee.designation,
 				Employee.department,
@@ -130,9 +136,26 @@ class OTAllowanceEntry(Document):
 				OTLog.allowed_ot,
 				OTLog.remarks
 			)
+			# .where(
+			# 	(Attendance.docstatus == 1) 
+			# 	&
+			# 	(To_Seconds(Time_Diff(Attendance.out_time, Timestamp(Date(Attendance.in_time), ShiftType.end_time))) > 0)
+			# )
 			.where(
-				(Attendance.docstatus == 1) &
-				(To_Seconds(Time_Diff(Attendance.out_time, Timestamp(Date(Attendance.in_time), ShiftType.end_time))) > 0)
+				(Attendance.docstatus == 1)
+				&
+				(
+					(Timestamp(Date(Attendance.in_time), ShiftType.start_time) > Attendance.in_time)
+					|
+					(
+						To_Seconds(
+							Time_Diff(
+								Attendance.out_time,
+								Timestamp(Date(Attendance.in_time), ShiftType.end_time)
+							)
+						) > 0
+					)
+				)
 			)
 		)
 
@@ -151,12 +174,28 @@ class OTAllowanceEntry(Document):
 		data = sorted(data, key=lambda x:x.get("attendance_date")) 
 
 		for row in data:
+			if self.branch:
+				if row.get("branch") != self.branch:
+					continue
+
+			shift_start = frappe.db.get_value("Shift Type", row["shift"], "start_time")
+			
+			# If employee came early → FULL early OT must be allowed
+			if row.get("first_in") and shift_start and row["first_in"] < shift_start:
+				row["allowed_ot"] = row["attn_ot_hrs"]
+
+			# Fallback: if allowed_ot still empty
 			if not row.get("allowed_ot"):
-				row["allowed_ot"] = row.get("attn_ot_hrs") 
+				row["allowed_ot"] = row["attn_ot_hrs"]
 			if row.get("allowed_ot") < timedelta(minutes=30):	# for excluding OT that are less than 30 min
 				continue
 			if row["allowed_ot"].total_seconds() > 86399:  # OT > 23:59:59 it shows invalid date in ui 
 				continue
+
+			if row.get("attendance"):
+				row.update({"employee_name": frappe.db.get_value("Attendance", row["attendance"], "employee_name")})
+			else:
+				row.update({"employee_name": frappe.db.get_value("Employee", row["employee"], "employee_name")})
 
 			self.append("ot_details", row)
 
@@ -193,8 +232,6 @@ class OTAllowanceEntry(Document):
 				shift_start_date = holiday_date
 			shift = get_shift(emp.name, holiday.holiday_date, default_shift) 
 			
-			start_time = get_time(shift.start_time)
-
 			# date_time = datetime.combine(shift_start_date, start_time)	
 			date_time = datetime.combine(getdate(holiday.holiday_date), get_time(shift.start_time))
 
@@ -204,7 +241,7 @@ class OTAllowanceEntry(Document):
 					"employee": emp.name
 			}
 			fields = ["date(time) as date", "log_type as type", "time(time) as time", "time as date_time", "source","name as employee_checkin", 
-						f"date('{holiday.holiday_date}') as holiday", "employee", "employee_name","shift"]
+						f"date('{holiday.holiday_date}') as holiday", "employee", "shift"]
 
 			data = frappe.get_list("Employee Checkin", filters= filters, fields=fields, order_by='date_time')
 			checkin = {}
@@ -305,8 +342,8 @@ class OTAllowanceEntry(Document):
 				self.employee = frappe.db.get_value("Employee",{"attendance_device_id":self.punch_id},'name')
 			conditions.append((Attendance.employee == self.employee))
 
-		if self.employee_name:
-			conditions.append((Attendance.employee_name.like(f"%{self.employee_name}%")))
+		# if self.employee_name:
+		# 	conditions.append((Attendance.employee_name.like(f"%{self.employee_name}%")))
 		
 		sub_query_filter = [
 			(Employee.product_incentive_applicable == 1)
@@ -317,6 +354,9 @@ class OTAllowanceEntry(Document):
 		else:
 			frappe.throw(_("Company is mandatory"))
 		
+		if self.branch:
+			sub_query_filter.append((Employee.branch == self.branch))
+			
 		if self.department:
 			sub_query_filter.append((Employee.department == self.department))
 		
@@ -338,23 +378,35 @@ def create_ot_log(ref_doc):
 	if ref_doc.ot_log:
 		doc = frappe.get_doc("OT Log",ref_doc.ot_log)
 		if doc.allow and not ref_doc.allow:
+			ref_doc.ot_log = None
 			doc.delete()
+			frappe.msgprint(f"OT Log {doc.name} deleted")
 			return
-		# if ref_doc.attendance_date == doc.attendance_date:
 	else:
 		if not ref_doc.allow:
 			return
+		
+		# check if ot log already exists
+		if frappe.db.exists("OT Log", {"attendance_date": ref_doc.attendance_date, "employee": ref_doc.employee, "is_cancelled": 0}):
+			frappe.throw(_("OT Log already exists for this employee on this date"))
+			return
+
 		doc = frappe.new_doc("OT Log")
 	fields = ["employee","employee_name","attendance_date","attn_ot_hrs","allow","allowed_ot","first_in","last_out","attendance","remarks", "weekly_off","ot_allowance_entry"]
 	data = {}
 	for field in fields:
 		# field == 'ot_allowance_entry'
 		data[field] = ref_doc.get(field)
+	
+	################## Edited By Aditya at 27-01-2026 ##################
+	# update employe name as per attendance log
+	data["employee_name"] = frappe.db.get_value("Attendance", ref_doc.attendance, "employee_name")
+	data['ot_allowance_entry'] = ref_doc.get("parent", "")
 
 	doc.update(data)
 	doc.save()
+	ref_doc.ot_log = doc.name
 	return doc.name
-
 
 def get_shift(employee, date, default_shift):
 	shift = frappe.db.get_value("Shift Assignment", 
