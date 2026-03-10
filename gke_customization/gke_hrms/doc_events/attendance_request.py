@@ -7,200 +7,192 @@ from hrms.hr.doctype.employee_checkin.employee_checkin import (
 	calculate_working_hours,
 	mark_attendance_and_link_log,
 )
-from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log import get_attendance_details_by_date, fmt_td_or_value
-
 from datetime import datetime
 
-def validate(self, method):
-    if not (self.custom_in_time and self.custom_out_time):
-        # Parse time strings if necessary
-        in_time = (
-            datetime.strptime(self.custom_in_time, "%H:%M:%S").time()
-            if isinstance(self.custom_in_time, str)
-            else self.custom_in_time
-        )
-        out_time = (
-            datetime.strptime(self.custom_out_time, "%H:%M:%S").time()
-            if isinstance(self.custom_out_time, str)
-            else self.custom_out_time
-        )
 
-        if out_time < in_time:
-            frappe.throw(
-                _("Out Time ({0}) cannot be earlier than In Time ({1})").format(
-                    out_time.strftime("%H:%M:%S"), in_time.strftime("%H:%M:%S")
-                )
-            )
+def validate(self, method):
+    validate_attendance_request(self, method)
+
+    shift_doc = frappe.get_doc("Shift Type", self.shift)
+    shift_start = shift_doc.start_time
+    shift_end = shift_doc.end_time
+    is_night_shift = shift_end <= shift_start # Night shift detection
+
+    # ----------------------------
+    # Validate In / Out Time Order
+    # ----------------------------
+    if self.custom_in_time and self.custom_out_time:
+
+        in_time = get_time(self.custom_in_time)
+        out_time = get_time(self.custom_out_time)
+
+        if not is_night_shift and out_time <= in_time:
+            frappe.throw(_(f"Out Time ({out_time}) cannot be earlier than or equal to In Time ({in_time})"))
+
+    # ----------------------------
+    # Process Checkin Creation
+    # ----------------------------
+    if self.workflow_state != "Create Checkin":
+        return
 
     request_days = date_diff(self.to_date, self.from_date) + 1
-    
+    status = "Outdoor Duty" if self.reason == "On Duty" else self.reason
+
     for day in range(request_days):
         checkin_date = getdate(add_days(self.from_date, day))
 
-        if self.workflow_state == 'Create Checkin':
-            if not self.should_mark_attendance(checkin_date):
-                continue
+        if not self.should_mark_attendance(checkin_date):
+            continue
 
-            if self.reason == 'On Duty':
-                status = 'Outdoor Duty'
-            else:
-                status = self.reason
+        # Create IN and OUT logs
+        create_employee_checkin(self, checkin_date, "IN", self.custom_in_time, status)
 
-            if self.custom_in_time:
-                formatted_time = self.custom_in_time            
-                in_datetime_combined = f"{checkin_date} {formatted_time}" # Format as "DD-MM-YYYY HH:MM:SS"
+        if is_night_shift:
+            checkin_date = add_days(checkin_date, 1)
 
-                checkin_doc = frappe.db.sql(f""" SELECT name FROM `tabEmployee Checkin`
-                        WHERE employee = '{self.employee}' 
-                        AND log_type = 'IN' 
-                        AND shift = '{self.shift}'
-                        AND DATE(time) = '{checkin_date}';
-                            
-                """,as_dict=1)
-                
-                if checkin_doc:
-                    checkin_name = checkin_doc[0].get("name")
-                    frappe.throw(
-                        _("Employee Checkin exists for {0} {1})")
-                        .format(self.employee, get_link_to_form("Employee Checkin", checkin_name)
-                        )
-                    )
-                    #   continue
-                    # update_checkin = frappe.get_doc("Employee Checkin", checkin_name)
+        create_employee_checkin(self, checkin_date, "OUT", self.custom_out_time, status)
 
-                in_doc = frappe.new_doc("Employee Checkin")
-                in_doc.employee = self.employee
-                in_doc.skip_auto_attendance = 0
-                in_doc.source = status
-                in_doc.log_type = 'IN'
-                in_doc.time = in_datetime_combined  
-                in_doc.custom_attendance_request = self.name  
-                in_doc.save()
-            
-            if self.custom_out_time:
-                formatted_time = self.custom_out_time 
-                out_datetime_combined = f"{checkin_date} {formatted_time}" # Format as "DD-MM-YYYY HH:MM:SS"
-                
-                # checkin_doc = frappe.db.sql(f""" SELECT name FROM `tabEmployee Checkin`
-                #         WHERE employee = '{self.employee}' 
-                #         AND log_type = 'OUT' 
-                #         AND shift = '{self.shift}'
-                #         AND DATE(time) = '{checkin_date}';
-                            
-                # """,as_dict=1)                
+    frappe.msgprint(_("Employee Checkin(s) created successfully"))
 
-                # if checkin_doc:
-                #     continue
-                    # checkin_name = checkin_doc[0].get("name")
-                    # update_checkin = frappe.get_doc("Employee Checkin", checkin_name)
 
-                out_doc = frappe.new_doc("Employee Checkin")
-                out_doc.employee = self.employee
-                out_doc.skip_auto_attendance = 0
-                out_doc.log_type = 'OUT'
-                out_doc.source = status
-                out_doc.time = out_datetime_combined  
-                out_doc.custom_attendance_request = self.name  
-                out_doc.save()
-        
-            frappe.msgprint(_("Employee Checkin created"))
-         
+def create_employee_checkin(doc, checkin_date, log_type, time_value, status):
+    if not time_value:
+        return
+
+    # Combine date & time safely
+    combined_datetime = get_datetime(f"{checkin_date} {time_value}")
+
+    # Check duplicate using frappe.db.exists (safe)
+    exists = frappe.db.exists(
+        "Employee Checkin",
+        {
+            "employee": doc.employee,
+            "log_type": log_type,
+            "shift": doc.shift,
+            "time": combined_datetime,
+        },
+    )
+
+    if exists:
+        frappe.throw(
+            _("Employee Checkin already exists for {0} ({1})")
+            .format(
+                doc.employee,
+                frappe.utils.get_link_to_form("Employee Checkin", exists),
+            )
+        )
+
+    # Create new checkin
+    checkin = frappe.new_doc("Employee Checkin")
+    checkin.employee = doc.employee
+    checkin.shift = doc.shift
+    checkin.log_type = log_type
+    checkin.source = status
+    checkin.time = combined_datetime
+    checkin.skip_auto_attendance = 0
+    checkin.custom_attendance_request = doc.name
+    checkin.insert(ignore_permissions=True)
+
+
+
 def on_submit(self, method):
     request_days = date_diff(self.to_date, self.from_date) + 1
-    attendance_results = []
 
     for day in range(request_days):
         attendance_date = add_days(self.from_date, day)
         attendance_name = get_attendance_record(self, attendance_date)
 
-        if attendance_name:
-            doc = frappe.get_doc("Attendance", attendance_name)
-            filters = {
-                "skip_auto_attendance": 0,
-                "attendance": ("is", "not set"),
-                "custom_attendance_request": self.name,
+        if not attendance_name:
+            continue
+
+        attendance_doc = frappe.get_doc("Attendance", attendance_name)
+
+        # Get proper shift window (handles OT + night shift)
+        shift_start, shift_end = get_shift_window(self, attendance_date)
+
+        logs = frappe.db.get_list(
+            "Employee Checkin",
+            fields=["name", "time", "log_type", "source"],
+            filters={
+                "employee": self.employee,
                 "shift": self.shift,
-                "employee": self.employee
-            }
+                "skip_auto_attendance": 0,
+                "custom_attendance_request": self.name,
+                # "time": ["between", [shift_start, shift_end]],
+            },
+            order_by="time asc"
+        )
 
-            logs = frappe.db.get_list(
-                "Employee Checkin", fields=["*"], filters=filters, order_by="time"
-            )
-            
-            # Filter logs for the current `attendance_date`
-            log_entries = [log for log in logs if log["time"].date() == attendance_date]
+        if not logs:
+            continue
 
-            if log_entries:
-                attendance_data = get_attendance(self, log_entries)
-                attendance_data["attendance_date"] = str(attendance_date)
-    #             attendance_results.append(attendance_data)
+        attendance_data = get_attendance(self, logs, attendance_date)
 
-                doc.db_set({
-                    "status": attendance_data["status"],
-                    "working_hours": attendance_data["working_hours"],
-                    "in_time": attendance_data["in_time"],
-                    "out_time": attendance_data["out_time"],  
-                    "attendance_request": self.name,
-                    "shift": self.shift,
-                    "early_exit": attendance_data["early_exit"],
-                    "late_entry": attendance_data["late_entry"]
-                })
+        attendance_doc.db_set({
+            "status": attendance_data["status"],
+            "working_hours": attendance_data["working_hours"],
+            "in_time": attendance_data["in_time"],
+            "out_time": attendance_data["out_time"],
+            "attendance_request": self.name,
+            "shift": self.shift,
+            "early_exit": attendance_data["early_exit"],
+            "late_entry": attendance_data["late_entry"]
+        })
 
-                for log in log_entries:
-                    frappe.db.set_value("Employee Checkin", log.name, "attendance", doc.name)     
+        # Link all logs to this attendance
+        for log in logs:
+            frappe.db.set_value("Employee Checkin", log["name"], "attendance", attendance_doc.name)
 
     frappe.db.commit()
-    # Update Monthly in-out Log after attendance is processed
     att_req_update_monthly_inout_log(self)
 
 
-def get_attendance(self, logs):
-    """Return attendance_status, working_hours, late_entry, early_exit, in_time, out_time for a single date."""
+# def get_attendance(self, logs):
+#     """Return attendance_status, working_hours, late_entry, early_exit, in_time, out_time for a single date."""
 
-    shift_doc = frappe.get_doc("Shift Type", self.shift)
+#     shift_doc = frappe.get_doc("Shift Type", self.shift)
 
-    late_entry = early_exit = False
-    total_working_hours, in_time, out_time = calculate_working_hours(
-        logs, shift_doc.determine_check_in_and_check_out, shift_doc.working_hours_calculation_based_on
-    )
+#     late_entry = early_exit = False
+#     total_working_hours, in_time, out_time = calculate_working_hours(
+#         logs, shift_doc.determine_check_in_and_check_out, shift_doc.working_hours_calculation_based_on
+#     )
 
-    shift_start = logs[0]["shift_start"]
-    shift_end = logs[0]["shift_end"]
+#     shift_start = logs[0]["shift_start"]
+#     shift_end = logs[0]["shift_end"]
 
-    if (
-        cint(shift_doc.enable_late_entry_marking)
-        and in_time
-        and in_time > shift_start + timedelta(minutes=cint(shift_doc.late_entry_grace_period))
-    ):
-        late_entry = True
+#     if (
+#         cint(shift_doc.enable_late_entry_marking)
+#         and in_time
+#         and in_time > shift_start + timedelta(minutes=cint(shift_doc.late_entry_grace_period))
+#     ):
+#         late_entry = True
 
-    if (
-        cint(shift_doc.enable_early_exit_marking)
-        and out_time
-        and out_time < shift_end - timedelta(minutes=cint(shift_doc.early_exit_grace_period))
-    ):
-        early_exit = True
+#     if (
+#         cint(shift_doc.enable_early_exit_marking)
+#         and out_time
+#         and out_time < shift_end - timedelta(minutes=cint(shift_doc.early_exit_grace_period))
+#     ):
+#         early_exit = True
 
-    # Determine attendance status based on source (reason)
-    source = logs[0].get("source", "")
+#     # Determine attendance status based on source (reason)
+#     source = logs[0].get("source", "")
 
-    if source == "Work From Home":
-        status = "Work From Home"
-    elif source in ("Outdoor Duty","Manual Punch"):
-        status = "Present"
-    # frappe.throw(f"{status}")
+#     if source == "Work From Home":
+#         status = "Work From Home"
+#     elif source in ("Outdoor Duty","Manual Punch"):
+#         status = "Present"
+#     # frappe.throw(f"{status}")
 
-    return {
-        "status": status,
-        "working_hours": total_working_hours,
-        "late_entry": late_entry,
-        "early_exit": early_exit,
-        "in_time": in_time,
-        "out_time": out_time
-    }
+#     return {
+#         "status": status,
+#         "working_hours": total_working_hours,
+#         "late_entry": late_entry,
+#         "early_exit": early_exit,
+#         "in_time": in_time,
+#         "out_time": out_time
+#     }
 
 def get_attendance_record(self, attendance_date: str) -> str | None:
-    frappe.msgprint(_("Attendance Checking.."))
     attedance =  frappe.db.exists(
         "Attendance",
         {
@@ -212,9 +204,193 @@ def get_attendance_record(self, attendance_date: str) -> str | None:
     return attedance
 
 
+def get_attendance(self, logs, attendance_date):
+    """
+    Calculate attendance based on:
+    - First IN
+    - Last OUT
+    - Shift Type settings
+    - Late entry / Early exit rules
+    """
+
+    shift_doc = frappe.get_doc("Shift Type", self.shift)
+
+    total_working_hours, first_in_time, last_out_time = calculate_working_hours(
+        logs, shift_doc.determine_check_in_and_check_out, shift_doc.working_hours_calculation_based_on
+    )
+
+    # --------------------------------------------------
+    # Late Entry & Early Exit (Using Your Exact Logic)
+    # --------------------------------------------------
+
+    shift_start = get_datetime(f"{attendance_date} {shift_doc.start_time}")
+    shift_end = get_datetime(f"{attendance_date} {shift_doc.end_time}")
+
+    # Handle night shift
+    if shift_end <= shift_start:
+        shift_end = add_days(shift_end, 1)
+
+    late_entry = False
+    early_exit = False
+
+    if (
+        cint(shift_doc.enable_late_entry_marking)
+        and first_in_time
+        and first_in_time > shift_start + timedelta(
+            minutes=cint(shift_doc.late_entry_grace_period)
+        )
+    ):
+        late_entry = True
+
+    if (
+        cint(shift_doc.enable_early_exit_marking)
+        and last_out_time
+        and last_out_time < shift_end - timedelta(
+            minutes=cint(shift_doc.early_exit_grace_period)
+        )
+    ):
+        early_exit = True
+
+    # --------------------------------------------------
+    # Determine Status
+    # --------------------------------------------------
+
+    source = logs[0].get("source", "")
+
+    if source == "Work From Home":
+        status = "Work From Home"
+    else:
+        status = "Present"
+
+    return {
+        "status": status,
+        "working_hours": total_working_hours,
+        "late_entry": late_entry,
+        "early_exit": early_exit,
+        "in_time": first_in_time,
+        "out_time": last_out_time
+    }
+
+
+def get_shift_window(self, attendance_date):
+    shift_doc = frappe.get_doc("Shift Type", self.shift)
+
+    shift_start = get_datetime(f"{attendance_date} {shift_doc.start_time}")
+    shift_end = get_datetime(f"{attendance_date} {shift_doc.end_time}")
+
+    # Handle night shift
+    if shift_end <= shift_start:
+        shift_end = add_days(shift_end, 1)
+
+    # Apply official shift settings
+    shift_start -= timedelta(
+        minutes=shift_doc.begin_check_in_before_shift_start_time or 0
+    )
+
+    shift_end += timedelta(
+        minutes=shift_doc.allow_check_out_after_shift_end_time or 0
+    )
+
+    return shift_start, shift_end
+
+
+######## Edited by Aditya at 27/01/2026 #################
+
+from frappe.utils import today, get_time, add_to_date, get_datetime, time_diff_in_seconds
+
+def validate_attendance_request(doc, method):
+    if not doc.employee:
+        return
+
+    employee = frappe.get_doc("Employee", doc.employee)
+
+    shift_type = doc.shift or employee.default_shift
+    if not shift_type:
+        return
+
+    shift = frappe.get_doc("Shift Type", shift_type)
+
+    if not shift.start_time or not shift.end_time:
+        return
+
+    base_date = today()
+
+    shift_start = get_time(shift.start_time)
+    shift_end = get_time(shift.end_time)
+
+    is_night_shift = shift_start > shift_end
+
+    shift_start_dt = get_datetime(f"{base_date} {shift_start}")
+    shift_end_dt = get_datetime(f"{base_date} {shift_end}")
+
+    in_time = get_time(doc.custom_in_time) if doc.custom_in_time else None
+    out_time = get_time(doc.custom_out_time) if doc.custom_out_time else None
+
+    # Early check-in window (minutes before shift start)
+    early_entry_minutes = shift.begin_check_in_before_shift_start_time or 0
+    
+
+    allowed_in_start_dt = add_to_date(
+        shift_start_dt,
+        minutes=-early_entry_minutes,
+        as_datetime=True
+    )
+
+    allowed_in_end_dt = shift_end_dt  if not is_night_shift else shift_end_dt + timedelta(days=1)  # strictly shift end
+
+    # Grace period for checkout (30 mins after shift end)
+    out_grace_minutes = 30
+    
+    allowed_out_start_dt = shift_start_dt 
+    # allowed_out_end_dt = add_to_date(
+    #     shift_end_dt,
+    #     minutes=out_grace_minutes,
+    #     as_datetime=True
+    # )
+    allowed_out_end_dt = shift_end_dt if not is_night_shift else shift_end_dt + timedelta(days=1) 
+
+
+    # --------------------
+    # IN TIME VALIDATION
+    # --------------------
+    if in_time:
+        in_time_dt = get_datetime(f"{base_date} {in_time}")
+
+        if in_time_dt < allowed_in_start_dt or in_time_dt > allowed_in_end_dt:
+            frappe.throw(
+                f"Check-in time must be between "
+                f"{allowed_in_start_dt.time()} and {allowed_in_end_dt.time()}."
+            )
+
+    # --------------------
+    # OUT TIME VALIDATION
+    # --------------------
+    if out_time:
+        out_time_dt = get_datetime(f"{base_date} {out_time}") if not is_night_shift else get_datetime(f"{base_date} {out_time}") + timedelta(days=1)
+
+        # frappe.throw(f"Out Time DT: {out_time_dt} , Allowed Out Start DT: {allowed_out_start_dt} , Allowed Out End DT: {allowed_out_end_dt} <br><br> out_time_dt < allowed_out_start_dt : {out_time_dt < allowed_out_start_dt} <br> out_time_dt > allowed_out_end_dt : {out_time_dt > allowed_out_end_dt}")
+        if out_time_dt < allowed_out_start_dt or out_time_dt > allowed_out_end_dt:
+            frappe.throw(
+                f"Check-out time must be between "
+                f"{allowed_out_start_dt.time()} and {allowed_out_end_dt.time()}."
+            )
+
+    # --------------------
+    # IN < OUT VALIDATION
+    # --------------------
+    if in_time and out_time:
+        in_time_dt = get_datetime(f"{base_date} {in_time}")
+        out_time_dt = get_datetime(f"{base_date} {out_time}") if not is_night_shift else get_datetime(f"{base_date} {out_time}") + timedelta(days=1)
+
+        if time_diff_in_seconds(out_time_dt, in_time_dt) <= 0:
+            frappe.throw("Check-out time must be after check-in time.")
+
+###### End of Edited by Aditya at 27/01/2026 #################
+
 ######################### Update Monthly in-out Log after Submit Attendance Req #################################
 ##### 19 Feb 2026 ####
 
+from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log import get_attendance_details_by_date, fmt_td_or_value
 
 def att_req_update_monthly_inout_log(doc, method=None):
     """
