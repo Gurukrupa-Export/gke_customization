@@ -1,0 +1,66 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-12-15 22:05:35.835534",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "checklist_parameter",
+  "qc_point",
+  "qc_status",
+  "result",
+  "other"
+ ],
+ "fields": [
+  {
+   "fieldname": "checklist_parameter",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Checklist Parameter",
+   "options": "Checklist Parameter"
+  },
+  {
+   "fieldname": "qc_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "QC Status",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "result",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Result",
+   "options": "\nPass\nFail"
+  },
+  {
+   "depends_on": "eval:doc.qc_point == 'Any Other Problem'",
+   "fieldname": "other",
+   "fieldtype": "Data",
+   "label": "Other"
+  },
+  {
+   "fetch_from": "checklist_parameter.param_name",
+   "fieldname": "qc_point",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "QC Point"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-12-15 23:32:56.025459",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Model Making Department QC Checklist",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

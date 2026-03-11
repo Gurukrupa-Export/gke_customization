@@ -144,12 +144,19 @@ override_doctype_class = {
 
 scheduler_events = {
     "daily": [
-        "gke_customization.gke_hrms.utils.check",
+        "gke_customization.gke_hrms.utils.check_sadwitch_rule",
         "gke_customization.gke_hrms.doc_events.leave_allocation.get_earned_leave_allocation",
         "gke_customization.gke_hrms.doc_events.leave_allocation.infirmary_leave_allocation",
         "gke_customization.gke_hrms.doc_events.leave_allocation.compOff_leave_allocation"    
     ],
-
+    "hourly": [
+        "gke_customization.gke_hrms.sync_checkin.sync_biometric_checkins" # new script for Sync biometric checkins
+    ],
+    "cron": {
+        "0 6 * * *": [
+		    "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
+        ]
+    },
 }
 
 # Testing
@@ -163,7 +170,8 @@ scheduler_events = {
 override_whitelisted_methods = {
 	"hrms.hr.doctype.job_offer.job_offer.make_employee": "gke_customization.gke_hrms.doc_events.job_offer.make_employee",
     "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note":"gke_customization.gke_customization.doc_events.sales_order.make_delivery_note",
-    "erpnext.selling.doctype.delivery_note.delivery_note.make_sales_invoice":"gke_customization.gke_customization.doc_events.delivery_note.make_sales_invoice"
+    "erpnext.selling.doctype.delivery_note.delivery_note.make_sales_invoice":"gke_customization.gke_customization.doc_events.delivery_note.make_sales_invoice",
+    "hrms.hr.doctype.employee_attendance_tool.employee_attendance_tool.mark_employee_attendance":"gke_customization.gke_hrms.api.attendance_tool.mark_employee_attendance"
 }
 #
 # each overriding function accepts a `data` argument;
@@ -248,10 +256,10 @@ doc_events = {
 	"validate": "gke_customization.gke_hrms.doc_events.attendance_request.validate",
 	"on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit"	
 },
-"Leave Application":{
-    "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
-    "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit"
-},
+# "Leave Application":{
+#     "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
+#     "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit"
+# },
 "Loan Application":{
     "validate":"gke_customization.gke_hrms.doc_events.loan_application.validate"
 },

@@ -34,7 +34,7 @@ class CustomJobRequisition(JobRequisition):
                 "designation": self.designation,
                 "department": self.department,
                 "requested_by": self.requested_by,
-                "custom_branch": self.custom_branch,
+                "custom_branch": self.custom_branch  or "",
                 "status": ("not in", ["Cancelled", "Filled"]),
                 "name": ("!=", self.name),
             },

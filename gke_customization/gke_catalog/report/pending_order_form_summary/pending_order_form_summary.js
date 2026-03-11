@@ -1,7 +1,7 @@
 // Copyright (c) 2025, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
-frappe.query_reports["Pending Order Form Summary Report"] = {
+frappe.query_reports["Pending Order Form Summary"] = {
     "filters": [
         {
             "fieldname": "company",

@@ -21,13 +21,16 @@ class ItemRequest(Document):
 			'Diamond': 'D',
 			'Metal': 'M',
 			'Gemstone': 'G',
-			'Other': 'O',
-			'Alloy': 'A'
+			'Alloy': 'A',
+			'Other': 'O'
 		}
 
 		# Separate series for consumables
 		if self.is_consumable:
 			self.name = make_autoname('IRQ-.#####')
+			return
+		if self.is_asset:
+			self.name = make_autoname("IRQ-AS-.#####")
 			return
 
 		type_code = type_code_map.get(self.select_raw_material)
@@ -42,5 +45,3 @@ class ItemRequest(Document):
 
 		# Final name with type code
 		self.name = series
-
-

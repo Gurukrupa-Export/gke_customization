@@ -1,0 +1,61 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-12-15 13:54:47.172648",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_gkm1",
+  "contact_no",
+  "internal_phone",
+  "employee",
+  "sortcut_no"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_gkm1",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "contact_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Contact No"
+  },
+  {
+   "fieldname": "internal_phone",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Internal Phone"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "sortcut_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Short Cut No"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-12-31 10:09:33.212046",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Department Contact Details",
+ "owner": "bhavika_patel@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

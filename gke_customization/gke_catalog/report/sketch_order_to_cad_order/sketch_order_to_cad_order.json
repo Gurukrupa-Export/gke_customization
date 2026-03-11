@@ -1,0 +1,191 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2026-01-30 10:53:50.779641",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2026-01-30 11:00:14.980692",
+ "modified_by": "sahil_g@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Sketch Order to Cad Order",
+ "owner": "sahil_g@gkexport.com",
+ "prepared_report": 0,
+ "ref_doctype": "Sketch Order",
+ "report_name": "Sketch Order to Cad Order",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Computer Aided Designing Executive - ST - GE"
+  },
+  {
+   "role": "Computer Aided Designing Executive - KL - GE"
+  },
+  {
+   "role": "Sketch QC"
+  },
+  {
+   "role": "Manufacturing Plan & Management - ST - GE"
+  },
+  {
+   "role": "Manufacturing Plan & Management - CH - GE"
+  },
+  {
+   "role": "Sales & Marketing Manager - ST"
+  },
+  {
+   "role": "Computer Aided Designing Executive - ST"
+  },
+  {
+   "role": "Order Management Executive - MUM"
+  },
+  {
+   "role": "Product Development Manager - MUM"
+  },
+  {
+   "role": "Experience Executive - MUM"
+  },
+  {
+   "role": "Creative Lab Executive - MUM"
+  },
+  {
+   "role": "Manufacturing Manager - MUM"
+  },
+  {
+   "role": "Computer Aided Designing \u2013 PAN India Manager - MUM"
+  },
+  {
+   "role": "Sketch Executive - MUM"
+  },
+  {
+   "role": "Sales & Marketing Manager - MUM"
+  },
+  {
+   "role": "Order Management Executive - CH"
+  },
+  {
+   "role": "Order Management Executive - HD"
+  },
+  {
+   "role": "D2D Marketing Manager - CH"
+  },
+  {
+   "role": "D2D Marketing Executive - CH"
+  },
+  {
+   "role": "D2D Marketing Executive - BL"
+  },
+  {
+   "role": "D2D Marketing Executive - HD"
+  },
+  {
+   "role": "D2D Marketing Executive - VD"
+  },
+  {
+   "role": "Sales & Marketing Manager - BL"
+  },
+  {
+   "role": "D2D Marketing Executive - MUM"
+  },
+  {
+   "role": "Managing Partner"
+  },
+  {
+   "role": "Senior Partner"
+  },
+  {
+   "role": "Sales & Marketing Executive - MUM"
+  },
+  {
+   "role": "Chairman"
+  },
+  {
+   "role": "Export Rights"
+  },
+  {
+   "role": "Sr. Mgr. Regional Sales & Marketing"
+  },
+  {
+   "role": "Operational Excellence Manager - ST"
+  },
+  {
+   "role": "D2D Marketing Manager - CB"
+  },
+  {
+   "role": "D2D Marketing Executive - CB"
+  },
+  {
+   "role": "Order Management Manager - CB"
+  },
+  {
+   "role": "Sales & Marketing Manager - VD"
+  },
+  {
+   "role": "Sales & Marketing Manager - HD"
+  },
+  {
+   "role": "Computer Aided Designing Executive - KL"
+  },
+  {
+   "role": "Sales & Marketing Manager - HD"
+  },
+  {
+   "role": "D2D Marketing Executive - BL"
+  },
+  {
+   "role": "personal assistant"
+  },
+  {
+   "role": "D2D Marketing Executive - TH"
+  },
+  {
+   "role": "Order Management Manager - CH"
+  },
+  {
+   "role": "Sketch Manager - KL"
+  },
+  {
+   "role": "Computer Aided Designing Manager - KL"
+  },
+  {
+   "role": "BOM Executive - KGJPL"
+  },
+  {
+   "role": "Sketch Designer - MUM"
+  },
+  {
+   "role": "Sketch Manager - MUM"
+  },
+  {
+   "role": "Creative Lab Manager - MUM"
+  },
+  {
+   "role": "Computer Aided Designing Executive - ST"
+  },
+  {
+   "role": "Computer Aided Designing Manager - ST"
+  },
+  {
+   "role": "BOM Executive - ST"
+  },
+  {
+   "role": "Manufacturing Plan & Management Executive - ST"
+  },
+  {
+   "role": "Manufacturing Plan & Management Manager - ST"
+  },
+  {
+   "role": "Process Analyst Order Management"
+  }
+ ],
+ "timeout": 0
+}

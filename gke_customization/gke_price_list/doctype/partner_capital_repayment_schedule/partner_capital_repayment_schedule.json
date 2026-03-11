@@ -1,0 +1,157 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-10 09:51:44.122806",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "payment_type",
+  "section_break_plhh",
+  "payment_date",
+  "column_break_furm",
+  "number_of_days",
+  "section_break_hhxl",
+  "repay_loan_amount",
+  "column_break_9lur",
+  "interest_rate",
+  "column_break_mxvb",
+  "interest_amount",
+  "section_break_3q6s",
+  "total_payment",
+  "column_break_963y",
+  "balance_loan_amount",
+  "section_break_8beq",
+  "payment_entry_created",
+  "column_break_wn1c",
+  "make_payment_entry"
+ ],
+ "fields": [
+  {
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:true",
+   "fieldname": "section_break_plhh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "payment_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Payment Type",
+   "options": "\nPay\nReceive",
+   "reqd": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "payment_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Payment Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "number_of_days",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Number Of Days"
+  },
+  {
+   "fieldname": "repay_loan_amount",
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Repay Loan Amount"
+  },
+  {
+   "fieldname": "interest_rate",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Interest Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "interest_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Interest Amount",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_payment",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Payment",
+   "reqd": 1
+  },
+  {
+   "fieldname": "balance_loan_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Balance Loan Amount"
+  },
+  {
+   "default": "0",
+   "fieldname": "payment_entry_created",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Payment Entry Created"
+  },
+  {
+   "fieldname": "make_payment_entry",
+   "fieldtype": "Button",
+   "label": "Make Payment Entry"
+  },
+  {
+   "fieldname": "column_break_furm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_hhxl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:true",
+   "fieldname": "section_break_3q6s",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_963y",
+   "fieldtype": "Column Break"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_8beq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_wn1c",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_9lur",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_mxvb",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-10-15 17:09:03.708581",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Partner Capital Repayment Schedule",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

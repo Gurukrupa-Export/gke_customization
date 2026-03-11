@@ -55,7 +55,7 @@ class PersonalOutEntry(Document):
 			create_prsnl_out_log(log)
 
 		frappe.msgprint(_("Personal Out Records Created/Updated"))
-		self.checkin_details = []
+		# self.checkin_details = []
 
 	@frappe.whitelist()
 	def get_checkin_details(self, from_log=False):

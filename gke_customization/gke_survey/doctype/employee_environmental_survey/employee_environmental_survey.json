@@ -1,0 +1,2796 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-10-03 12:19:54.928960",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "section_break_btkc",
+  "title",
+  "imp",
+  "imp_sub",
+  "imp_attp",
+  "imp_help",
+  "imp_will",
+  "basic_information_section",
+  "employee",
+  "user_id",
+  "punch_id",
+  "name_q1",
+  "column_break_2te6",
+  "company",
+  "department_q1",
+  "branch_q1",
+  "section_break_elhd",
+  "email_q1",
+  "number_q1",
+  "column_break_y7ws",
+  "section_break_vqbj",
+  "organisation_environment_section",
+  "comfort_q2",
+  "comfort1_q2",
+  "comfort2_q2",
+  "comfort3_q2",
+  "comfort4_q2",
+  "comfort5_q2",
+  "column_break_vf0c",
+  "work_q3",
+  "work1_q3",
+  "work2_q3",
+  "work3_q3",
+  "work4_q3",
+  "work5_q3",
+  "section_break_xcru",
+  "tools_q4",
+  "tools1_q4",
+  "tools2_q4",
+  "tools3_q4",
+  "tools4_q4",
+  "tools5_q4",
+  "column_break_zb8o",
+  "current_q5",
+  "current1_q5",
+  "current2_q5",
+  "current3_q5",
+  "current4_q5",
+  "current5_q5",
+  "section_break_ozak",
+  "workiship_q6",
+  "workiship1_q6",
+  "workiship2_q6",
+  "workiship3_q6",
+  "workiship4_q6",
+  "workiship5_q6",
+  "column_break_ajxf",
+  "safe_q7",
+  "safe1_q7",
+  "safe2_q7",
+  "safe3_q7",
+  "safe4_q7",
+  "safe5_q7",
+  "department_support_section",
+  "senior_q8",
+  "senior1_q8",
+  "senior2_q8",
+  "senior3_q8",
+  "senior4_q8",
+  "senior5_q8",
+  "column_break_dfje",
+  "active_q9",
+  "active1_q9",
+  "active2_q9",
+  "active3_q9",
+  "active4_q9",
+  "active5_q9",
+  "section_break_3igp",
+  "clarity_q10",
+  "clarity1_q10",
+  "clarity2_q10",
+  "clarity3_q10",
+  "clarity4_q10",
+  "clarity5_q10",
+  "column_break_5ikk",
+  "senior_q11",
+  "senior1_q11",
+  "senior2_q11",
+  "senior3_q11",
+  "senior4_q11",
+  "senior5_q11",
+  "section_break_wuoe",
+  "help_q12",
+  "help1_q12",
+  "help2_q12",
+  "help3_q12",
+  "help4_q12",
+  "help5_q12",
+  "column_break_bn99",
+  "across_13",
+  "across1_13",
+  "across2_13",
+  "across3_13",
+  "across4_13",
+  "across5_13",
+  "section_break_bcjq",
+  "delays_q14",
+  "delays1_q14",
+  "delays2_q14",
+  "delays3_q14",
+  "delays4_q14",
+  "delays5_q14",
+  "column_break_yzwn",
+  "department_qes",
+  "department1_qes",
+  "section_break_2oa4",
+  "comfort_q15",
+  "comfort1_q15",
+  "comfort2_q15",
+  "comfort3_q15",
+  "comfort4_q15",
+  "comfort5_q15",
+  "column_break_pa9i",
+  "policies_q16",
+  "policies1_q16",
+  "policies2_q16",
+  "policies3_q16",
+  "policies4_q16",
+  "policies5_q16",
+  "section_break_0orw",
+  "team_q17",
+  "team1_q17",
+  "team2_q17",
+  "team3_q17",
+  "team4_q17",
+  "team5_q17",
+  "training_and_development_tab",
+  "training_q18",
+  "training1_q18",
+  "training2_q18",
+  "training3_q18",
+  "training4_q18",
+  "training5_q18",
+  "column_break_t3v4",
+  "provide_q19",
+  "provide1_q19",
+  "provide2_q19",
+  "provide3_q19",
+  "provide4_q19",
+  "provide5_q19",
+  "section_break_iekc",
+  "know_q20",
+  "know1_q20",
+  "know2_q20",
+  "know3_q20",
+  "know4_q20",
+  "know5_q20",
+  "column_break_p7t8",
+  "offered_q21",
+  "offered1_q21",
+  "offered2_q21",
+  "offered3_q21",
+  "offered4_q21",
+  "offered5_q21",
+  "section_break_kwtl",
+  "apply_q22",
+  "apply1_q22",
+  "apply2_q22",
+  "apply3_q22",
+  "apply4_q22",
+  "apply5_q22",
+  "role_clarity_section",
+  "fully_q23",
+  "fully1_q23",
+  "fully2_q23",
+  "fully3_q23",
+  "fully4_q23",
+  "fully5_q23",
+  "column_break_qa3v",
+  "receivr_q24",
+  "receivr1_q24",
+  "receivr2_q24",
+  "receivr3_q24",
+  "receivr4_q24",
+  "receivr5_q24",
+  "section_break_cwax",
+  "job_q25",
+  "job1_q25",
+  "job2_q25",
+  "job3_q25",
+  "job4_q25",
+  "job5_q25",
+  "column_break_jhpe",
+  "daily_q26",
+  "daily1_q26",
+  "daily2_q26",
+  "daily3_q26",
+  "daily4_q26",
+  "daily5_q26",
+  "section_break_yulv",
+  "working_q27",
+  "working1_q27",
+  "working2_q27",
+  "working3_q27",
+  "working4_q27",
+  "working5_q27",
+  "job_satisfacttion_section",
+  "over_q28",
+  "over1_q28",
+  "over2_q28",
+  "over3_q28",
+  "over4_q28",
+  "over5_q28",
+  "column_break_cifb",
+  "salary_q29",
+  "salary1_q29",
+  "salary2_q29",
+  "salary3_q29",
+  "salary4_q29",
+  "salary5_q29",
+  "section_break_8cws",
+  "provide_q30",
+  "provide1_q30",
+  "provide2_q30",
+  "provide3_q30",
+  "provide4_q30",
+  "provide5_q30",
+  "column_break_sx1v",
+  "your_q31",
+  "your1_q31",
+  "your2_q31",
+  "your3_q31",
+  "your4_q31",
+  "your5_q31",
+  "section_break_p67v",
+  "health_q32",
+  "health1_q32",
+  "health2_q32",
+  "health3_q32",
+  "health4_q32",
+  "health5_q32",
+  "column_break_mqae",
+  "clear_q33",
+  "clear1_q33",
+  "clear2_q33",
+  "clear3_q33",
+  "clear4_q33",
+  "clear5_q33",
+  "work_life_balance_section",
+  "balance_q34",
+  "balance1_q34",
+  "balance2_q34",
+  "balance3_q34",
+  "balance4_q34",
+  "balance5_q34",
+  "column_break_6xvl",
+  "respect_q35",
+  "respect1_q35",
+  "respect2_q35",
+  "respect3_q35",
+  "respect4_q35",
+  "respect5_q35",
+  "section_break_l7yf",
+  "personal_q36",
+  "personal1_q36",
+  "personal2_q36",
+  "personal3_q36",
+  "personal4_q36",
+  "personal5_q36",
+  "safety_protocols_section",
+  "main_q37",
+  "main1_q37",
+  "main2_q37",
+  "main3_q37",
+  "main4_q37",
+  "main5_q37",
+  "column_break_wc53",
+  "protocol_q38",
+  "protocol1_q38",
+  "protocol2_q38",
+  "protocol3_q38",
+  "protocol4_q38",
+  "protocol5_q38",
+  "section_break_awpq",
+  "step_q39",
+  "step1_q39",
+  "step2_q39",
+  "step3_q39",
+  "step4_q39",
+  "step5_q39",
+  "communication_section",
+  "available_q40",
+  "available1_q40",
+  "available2_q40",
+  "available3_q40",
+  "available4_q40",
+  "available5_q40",
+  "column_break_sulc",
+  "undate_q41",
+  "undate1_q41",
+  "undate2_q41",
+  "undate3_q41",
+  "undate4_q41",
+  "undate5_q41",
+  "section_break_bxh6",
+  "goals_q42",
+  "goals1_q42",
+  "goals2_q42",
+  "goals3_q42",
+  "goals4_q42",
+  "goals5_q42",
+  "teamwork_section",
+  "achieve_q43",
+  "achieve1_q43",
+  "achieve2_q43",
+  "achieve3_q43",
+  "achieve4_q43",
+  "achieve5_q43",
+  "column_break_7adq",
+  "workr_q44",
+  "workr1_q44",
+  "workr2_q44",
+  "workr3_q44",
+  "workr4_q44",
+  "workr5_q44",
+  "workplace_facilities_section",
+  "floor_q45",
+  "floor1_q45",
+  "floor2_q45",
+  "floor3_q45",
+  "floor4_q45",
+  "floor5_q45",
+  "column_break_atrm",
+  "drink_q46",
+  "drink1_q46",
+  "drink2_q46",
+  "drink3_q46",
+  "drink4_q46",
+  "drink5_q46",
+  "section_break_waac",
+  "food_q47",
+  "food1_q47",
+  "food2_q47",
+  "food3_q47",
+  "food4_q47",
+  "food5_q47",
+  "career_growth_section",
+  "career_q48",
+  "career1_q48",
+  "career2_q48",
+  "career3_q48",
+  "career4_q48",
+  "career5_q48",
+  "column_break_u0ui",
+  "next_q49",
+  "next1_q49",
+  "next2_q49",
+  "next3_q49",
+  "next4_q49",
+  "next5_q49",
+  "section_break_xecx",
+  "rate_q50",
+  "rate1_q50",
+  "rate2_q50",
+  "rate3_q50",
+  "rate4_q50",
+  "rate5_q50",
+  "section_break_en0s",
+  "value_q51",
+  "value1_q51",
+  "value2_q51",
+  "value3_q51",
+  "value4_q51",
+  "value5_q51",
+  "column_break_mgjr",
+  "goods_q52",
+  "goods1_q52",
+  "goods2_q52",
+  "goods3_q52",
+  "goods4_q52",
+  "goods5_q52",
+  "section_break_qdqv",
+  "central_q53",
+  "central1_q53",
+  "central2_q53",
+  "central3_q53",
+  "central4_q53",
+  "central5_q53",
+  "overall_company_rating_section",
+  "overall_q54",
+  "overall1_q54",
+  "overall2_q54",
+  "overall3_q54",
+  "overall4_q54",
+  "overall5_q54",
+  "column_break_wrvt",
+  "box_q55",
+  "box1_q55",
+  "box2_q55",
+  "box3_q55",
+  "box4_q55",
+  "box5_q55",
+  "section_break_iar1",
+  "find_q56",
+  "find1_q56",
+  "find2_q56",
+  "find3_q56",
+  "find4_q56",
+  "find5_q56",
+  "column_break_if1n",
+  "part_56",
+  "part1_56",
+  "part2_56",
+  "part3_56",
+  "part4_56",
+  "part5_56",
+  "section_break_x4jv",
+  "feedback",
+  "last"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_btkc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "HTML",
+   "options": "<h3>Employee Environmental Survey</h3>"
+  },
+  {
+   "fieldname": "imp",
+   "fieldtype": "HTML",
+   "options": "<p>Important Guidelines before starting the survey.</p>"
+  },
+  {
+   "fieldname": "imp_sub",
+   "fieldtype": "HTML",
+   "options": "<li>Take a moment to fully understand the intent of each question. Read them carefully to grasp the context and subject matter</li>"
+  },
+  {
+   "fieldname": "imp_attp",
+   "fieldtype": "HTML",
+   "options": "<li>Please attempt all questions.</li>"
+  },
+  {
+   "fieldname": "imp_help",
+   "fieldtype": "HTML",
+   "options": "<li>Share your genuine opinions and insights to help us make informed decisions.</li>"
+  },
+  {
+   "fieldname": "imp_will",
+   "fieldtype": "HTML",
+   "options": "<li>Your individual answers will remain anonymous and will only be used for aggregated analysis.</li>"
+  },
+  {
+   "fieldname": "basic_information_section",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "fieldname": "name_q1",
+   "fieldtype": "Data",
+   "label": "Full name"
+  },
+  {
+   "fieldname": "email_q1",
+   "fieldtype": "Data",
+   "label": "Email"
+  },
+  {
+   "fieldname": "number_q1",
+   "fieldtype": "Data",
+   "label": "Phone number"
+  },
+  {
+   "fieldname": "department_q1",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "branch_q1",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "organisation_environment_section",
+   "fieldtype": "Section Break",
+   "label": "Organisation Environment"
+  },
+  {
+   "fieldname": "comfort_q2",
+   "fieldtype": "HTML",
+   "options": "<p>6. How satisfied are you with your overall work environment, including, equipment, and comfort?<br>\u0906\u092a \u0905\u092a\u0928\u0947 \u0915\u093e\u092e \u0915\u0947 \u092e\u093e\u0939\u094c\u0932, \u0909\u092a\u0915\u0930\u0923\u094b\u0902 \u0914\u0930 \u0906\u0930\u093e\u092e \u0915\u094b \u0932\u0947\u0915\u0930 \u0915\u093f\u0924\u0928\u0947 \u0938\u0902\u0924\u0941\u0937\u094d\u091f \u0939\u0948?<br>(1-Satisfied, 3-Neutral, 5 - Dissatisfied)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "comfort1_q2",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "comfort2_q2",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "comfort3_q2",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "comfort4_q2",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "comfort5_q2",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_vf0c",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "work_q3",
+   "fieldtype": "HTML",
+   "options": "<p>7. How well does the work environment promote teamwork among employees? <br>\u0915\u093e\u092e \u0915\u093e \u092e\u093e\u0939\u094c\u0932 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u093f\u092f\u094b\u0902 \u0915\u0947 \u092c\u0940\u091a \u091f\u0940\u092e\u0935\u0930\u094d\u0915 \u0915\u094b \u0915\u093f\u0924\u0928\u093e \u092c\u0922\u093c\u093e\u0935\u093e \u0926\u0947\u0924\u093e \u0939\u0948?<br>(1-Excellently. 3-Neutral, 5-Poorly)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "work1_q3",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "work2_q3",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "work3_q3",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "work4_q3",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "work5_q3",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_xcru",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "tools_q4",
+   "fieldtype": "HTML",
+   "options": "<p>8. How satisfied are you with the availability of necessary resources and tools to perform your job effectively?<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u094b \u0905\u092a\u0928\u0947 \u0915\u093e\u092e \u0915\u0947 \u0932\u093f\u090f \u091c\u093c\u0930\u0942\u0930\u0940 \u0938\u0902\u0938\u093e\u0927\u0928 \u0914\u0930 \u0909\u092a\u0915\u0930\u0923 \u0906\u0938\u093e\u0928\u0940 \u0938\u0947 \u092e\u093f\u0932 \u091c\u093e\u0924\u0947 \u0939\u0948\u0902, \u091c\u093f\u0938\u0938\u0947 \u0906\u092a \u0905\u092a\u0928\u093e \u0915\u093e\u092e \u0905\u091a\u094d\u091b\u0947 \u0938\u0947 \u0915\u0930 \u0938\u0915\u0947\u0902?<br>(1-Dissatisfied, 3-Neutral, 5- Satisfied)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "tools1_q4",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "tools2_q4",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "tools3_q4",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "tools4_q4",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "tools5_q4",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_zb8o",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "current_q5",
+   "fieldtype": "HTML",
+   "options": "<p>9. Are you satisfied with the company's current managemental support?<br>\u0915\u094d\u092f\u093e \u0906\u092a \u0915\u0902\u092a\u0928\u0940 \u0915\u0947 \u092e\u094c\u091c\u0942\u0926\u093e \u092a\u094d\u0930\u092c\u0902\u0927\u0928 \u0915\u0947 \u0938\u0939\u092f\u094b\u0917 \u0938\u0947 \u0916\u0941\u0936 \u0939\u0948\u0902?<br>(1-Satisfied, 3-Neutral, 5-Dissatisfied) </p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "current1_q5",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "current2_q5",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "current3_q5",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "current4_q5",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "current5_q5",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_ozak",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "workiship_q6",
+   "fieldtype": "HTML",
+   "options": "<p>10. How satisfied are you with the level of comfort in your workstation (lighting, ventilation, noise levels,etc.)<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u093e \u0935\u0930\u094d\u0915\u0938\u094d\u091f\u0947\u0936\u0928 (\u091c\u0948\u0938\u0947 \u0930\u094b\u0936\u0928\u0940, \u0939\u0935\u093e, \u0936\u094b\u0930 \u0935\u0917\u0948\u0930\u0939) \u0906\u0930\u093e\u092e\u0926\u093e\u092f\u0915 \u0939\u0948?<br>(1-Yes, 3-Neutral, 5-No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "workiship1_q6",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "workiship2_q6",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "workiship3_q6",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "workiship4_q6",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "workiship5_q6",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_ajxf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "safe_q7",
+   "fieldtype": "HTML",
+   "options": "<p>11. Do You feel safe and respected in your work Environment?<br>\u0915\u094d\u092f\u093e \u0906\u092a \u0905\u092a\u0928\u0947 \u0915\u093e\u0930\u094d\u092f \u0935\u093e\u0924\u093e\u0935\u0930\u0923 \u092e\u0947\u0902 \u0938\u0941\u0930\u0915\u094d\u0937\u093f\u0924 \u0914\u0930 \u0938\u092e\u094d\u092e\u093e\u0928\u093f\u0924 \u092e\u0939\u0938\u0942\u0938 \u0915\u0930\u0924\u0947 \u0939\u0948\u0902?<br>(1-Yes, 3-Sometimes, 5- No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "safe1_q7",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "safe2_q7",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "safe3_q7",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "safe4_q7",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "safe5_q7",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "department_support_section",
+   "fieldtype": "Tab Break",
+   "label": "Department Support"
+  },
+  {
+   "fieldname": "senior_q8",
+   "fieldtype": "HTML",
+   "options": "<p>12. How clearly does your Senior explain policies when needed?<br>\u091c\u092c \u091c\u093c\u0930\u0942\u0930\u0924 \u092a\u0921\u093c\u0924\u0940 \u0939\u0948, \u0924\u094b \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u093e Senior \u0906\u092a\u0915\u094b \u0915\u0902\u092a\u0928\u0940 \u0915\u0940 \u0928\u0940\u0924\u093f\u092f\u093e\u0901 \u0920\u0940\u0915 \u0938\u0947 \u0938\u092e\u091d\u093e\u0924\u0947 \u0939\u0948\u0902?<br>(1-Yes, 3- Sometimes, 5-No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "senior1_q8",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "senior2_q8",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "senior3_q8",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "senior4_q8",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "senior5_q8",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_dfje",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "active_q9",
+   "fieldtype": "HTML",
+   "options": "<p>13. How actively does your Senior helps you in solving your work problems? <br>\u0915\u093e\u092e \u0938\u0947 \u091c\u0941\u0921\u093c\u0940 \u0926\u093f\u0915\u094d\u0915\u0924\u094b\u0902 \u0915\u094b \u0939\u0932 \u0915\u0930\u0928\u0947 \u092e\u0947\u0902 \u0906\u092a\u0915\u093e Senior \u0915\u093f\u0924\u0928\u0940 \u092e\u0926\u0926 \u0915\u0930\u0924\u0947 \u0939\u0948\u0902?<br>(1-Always Help, 3-Sometimes Help, 5-Never Help)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "active1_q9",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "active2_q9",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "active3_q9",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "active4_q9",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "active5_q9",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_3igp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "clarity_q10",
+   "fieldtype": "HTML",
+   "options": "<p>14. Do you receive sufficient role clarity from your senior when required? <br>\u0915\u094d\u092f\u093e \u091c\u093c\u0930\u0942\u0930\u0924 \u092a\u0921\u093c\u0928\u0947 \u092a\u0930 \u0906\u092a\u0915\u0947 \u0938\u0940\u0928\u093f\u092f\u0930 \u0906\u092a\u0915\u094b \u0906\u092a\u0915\u0940 \u092d\u0942\u092e\u093f\u0915\u093e \u0938\u092e\u091d\u093e\u0924\u0947 \u0939\u0948\u0902<br>(1-Yes, 3-Sometimes, 5-No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "clarity1_q10",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "clarity2_q10",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "clarity3_q10",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "clarity4_q10",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "clarity5_q10",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_5ikk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "senior_q11",
+   "fieldtype": "HTML",
+   "options": "<p>15. Do you feel your senior is fair in dealing with everyone on the team?<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u094b \u0932\u0917\u0924\u093e \u0939\u0948 \u0915\u093f \u0906\u092a\u0915\u0947 \u0938\u0940\u0928\u093f\u092f\u0930 \u0938\u092d\u0940 \u091f\u0940\u092e \u0938\u0926\u0938\u094d\u092f\u094b\u0902 \u0915\u0947 \u0938\u093e\u0925 \u092c\u0930\u093e\u092c\u0930\u0940 \u0914\u0930 \u0928\u094d\u092f\u093e\u092f\u092a\u0942\u0930\u094d\u0923 \u0935\u094d\u092f\u0935\u0939\u093e\u0930 \u0915\u0930\u0924\u0947 \u0939\u0948\u0902?<br>(1-Yes, 3-Sometimes, 5-No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "senior1_q11",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "senior2_q11",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "senior3_q11",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "senior4_q11",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "senior5_q11",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_wuoe",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "help_q12",
+   "fieldtype": "HTML",
+   "options": "<p>16. Is your senior helpful in keeping you motivated during deadlines and workload?<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u0947 \u0938\u0940\u0928\u093f\u092f\u0930 \u0938\u092e\u092f-\u0938\u0940\u092e\u093e \u0914\u0930 \u0915\u093e\u092e \u0915\u0947 \u0926\u092c\u093e\u0935 \u0915\u0947 \u0926\u094c\u0930\u093e\u0928 \u0906\u092a\u0915\u094b \u092a\u094d\u0930\u0947\u0930\u093f\u0924 \u0930\u0916\u0928\u0947 \u092e\u0947\u0902 \u092e\u0926\u0926\u0917\u093e\u0930 \u0939\u094b\u0924\u0947 \u0939\u0948\u0902? <br>(1-Yes, 3-Sometimes, 5- No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "help1_q12",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "help2_q12",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "help3_q12",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "help4_q12",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "help5_q12",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_bn99",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "across_13",
+   "fieldtype": "HTML",
+   "options": "<p>17. Do you feel sense of unity across departments in the organization?<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u094b \u0938\u0902\u0917\u0920\u0928 \u092e\u0947\u0902 \u0935\u093f\u092d\u093f\u0928\u094d\u0928 \u0935\u093f\u092d\u093e\u0917\u094b\u0902 \u0915\u0947 \u092c\u0940\u091a \u090f\u0915\u0924\u093e \u0915\u0940 \u092d\u093e\u0935\u0928\u093e \u092e\u0939\u0938\u0942\u0938 \u0939\u094b\u0924\u0940 \u0939\u0948?<br>(1-Yes, 3-Sometimes, 5- No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "across1_13",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "across2_13",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "across3_13",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "across4_13",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "across5_13",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_bcjq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "delays_q14",
+   "fieldtype": "HTML",
+   "options": "<p>18. Do you Experience Unnecessary delays due to dependency on other departments?<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u094b \u0926\u0942\u0938\u0930\u0947 \u0935\u093f\u092d\u093e\u0917\u094b\u0902 \u092a\u0930 \u0928\u093f\u0930\u094d\u092d\u0930 \u0930\u0939\u0928\u0947 \u0915\u0940 \u0935\u091c\u0939 \u0938\u0947 \u0915\u093e\u092e \u092e\u0947\u0902 \u092c\u0947\u0935\u091c\u0939 \u0926\u0947\u0930\u0940 \u0915\u093e \u0938\u093e\u092e\u0928\u093e \u0915\u0930\u0928\u093e \u092a\u0921\u093c\u0924\u093e \u0939\u0948? <br> (1-Yes, 3-Sometimes,5- No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "delays1_q14",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "delays2_q14",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "delays3_q14",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "delays4_q14",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "delays5_q14",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_yzwn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "department_qes",
+   "fieldtype": "HTML",
+   "options": "<p>19. Specify Department if any (As per the question 18)</p>"
+  },
+  {
+   "fieldname": "section_break_2oa4",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "comfort_q15",
+   "fieldtype": "HTML",
+   "options": "<p>20. Do you feel comfortable approaching colleagues from other departments for support?<br>\u0915\u094d\u092f\u093e \u0906\u092a \u0926\u0942\u0938\u0930\u0947 \u0935\u093f\u092d\u093e\u0917\u094b\u0902 \u0915\u0947 \u0938\u093e\u0925\u093f\u092f\u094b\u0902 \u0938\u0947 \u092e\u0926\u0926 \u092e\u093e\u0901\u0917\u0928\u0947 \u092e\u0947\u0902 \u0938\u0939\u091c \u092e\u0939\u0938\u0942\u0938 \u0915\u0930\u0924\u0947 \u0939\u0948\u0902?<br>(1-Yes, 3- Sometimes, 5- No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "comfort1_q15",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "comfort2_q15",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "comfort3_q15",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "comfort4_q15",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "comfort5_q15",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_pa9i",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "policies_q16",
+   "fieldtype": "HTML",
+   "options": "<p>21. Do you feel that HR communicates company policies clearly and effectively?<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u094b \u0932\u0917\u0924\u093e \u0939\u0948 \u0915\u093f \u090f\u091a\u0906\u0930 \u0915\u0902\u092a\u0928\u0940 \u0915\u0940 \u0928\u0940\u0924\u093f\u092f\u094b\u0902 \u0915\u094b \u0938\u094d\u092a\u0937\u094d\u091f \u0914\u0930 \u092a\u094d\u0930\u092d\u093e\u0935\u0940 \u0924\u0930\u0940\u0915\u0947 \u0938\u0947 \u092c\u0924\u093e\u0924\u093e \u0939\u0948? <br>(1-Very Well, 3-Neutral, 5-Very Poorly)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "policies1_q16",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "policies2_q16",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "policies3_q16",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "policies4_q16",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "policies5_q16",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_0orw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "team_q17",
+   "fieldtype": "HTML",
+   "options": "<p>22. How approachable is the HR team when you need to raise a concern or seek assistance?<br>\u091c\u092c \u0906\u092a\u0915\u094b \u0915\u094b\u0908 \u091a\u093f\u0902\u0924\u093e \u0935\u094d\u092f\u0915\u094d\u0924 \u0915\u0930\u0928\u0940 \u0939\u094b \u092f\u093e \u092e\u0926\u0926 \u091a\u093e\u0939\u093f\u090f \u0939\u094b\u0924\u0940 \u0939\u0948, \u0924\u094b \u0915\u094d\u092f\u093e \u090f\u091a\u0906\u0930 \u091f\u0940\u092e \u0938\u0947 \u0938\u0902\u092a\u0930\u094d\u0915 \u0915\u0930\u0928\u093e \u0906\u0938\u093e\u0928 \u0932\u0917\u0924\u093e \u0939\u0948?<br>(1-Very Approachable, 3- Neutral. 5- Not Approachable)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "team1_q17",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "team2_q17",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "team3_q17",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "team4_q17",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "team5_q17",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "training_and_development_tab",
+   "fieldtype": "Tab Break",
+   "label": "Training And Development"
+  },
+  {
+   "fieldname": "training_q18",
+   "fieldtype": "HTML",
+   "options": "<p>23. How useful do you find the training programs for your job tasks?<br>\u0906\u092a\u0915\u094b \u0905\u092a\u0928\u0947 \u0915\u093e\u092e \u0938\u0947 \u091c\u0941\u0921\u093c\u0940 \u091c\u093f\u092e\u094d\u092e\u0947\u0926\u093e\u0930\u093f\u092f\u094b\u0902 \u0915\u0947 \u0932\u093f\u090f \u091f\u094d\u0930\u0947\u0928\u093f\u0902\u0917 \u092a\u094d\u0930\u094b\u0917\u094d\u0930\u093e\u092e \u0915\u093f\u0924\u0928\u0947 \u092b\u093e\u092f\u0926\u0947\u092e\u0902\u0926 \u0932\u0917\u0924\u0947 \u0939\u0948\u0902?<br>(1-Useful, 3-Neutral, 5-Not Useful)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "training1_q18",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "training2_q18",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "training3_q18",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "training4_q18",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "training5_q18",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_t3v4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "provide_q19",
+   "fieldtype": "HTML",
+   "options": "<p>24. Does the company provide enough training that is relevant to your job role?<br>\u0915\u094d\u092f\u093e \u0915\u0902\u092a\u0928\u0940 \u0906\u092a\u0915\u0947 \u0915\u093e\u092e \u0938\u0947 \u091c\u0941\u0921\u093c\u0940 \u092d\u0942\u092e\u093f\u0915\u093e \u0915\u0947 \u0932\u093f\u090f \u091c\u0930\u0942\u0930\u0940 \u091f\u094d\u0930\u0947\u0928\u093f\u0902\u0917 \u0926\u0947\u0924\u0940 \u0939\u0948 \u091c\u094b \u0906\u092a\u0915\u0947 \u0915\u093e\u092e \u092e\u0947\u0902 \u092e\u0926\u0926 \u0915\u0930\u0947?<br>(1-Yes, 3-Neutral, 5 - No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "provide1_q19",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "provide2_q19",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "provide3_q19",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "provide4_q19",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "provide5_q19",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_iekc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "know_q20",
+   "fieldtype": "HTML",
+   "options": "<p>25. How satisfied are you with the knowledge and professionalism of the trainers or facilitators in the training programs?<br>\u091f\u094d\u0930\u0947\u0928\u093f\u0902\u0917 \u092a\u094d\u0930\u094b\u0917\u094d\u0930\u093e\u092e \u092e\u0947\u0902 \u091c\u094b \u091f\u094d\u0930\u0947\u0928\u0930 \u092f\u093e \u0938\u093f\u0916\u093e\u0928\u0947 \u0935\u093e\u0932\u0947 \u0939\u094b\u0924\u0947 \u0939\u0948\u0902, \u0909\u0928\u0915\u0947 \u091c\u094d\u091e\u093e\u0928 \u0914\u0930 \u092a\u094d\u0930\u094b\u092b\u0947\u0936\u0928\u0932 \u0924\u0930\u0940\u0915\u0947 \u0938\u0947 \u0915\u093e\u092e \u0915\u0930\u0928\u0947 \u0915\u094b \u0932\u0947\u0915\u0930 \u0906\u092a \u0915\u093f\u0924\u0928\u0947 \u0938\u0902\u0924\u0941\u0937\u094d\u091f \u0939\u0948\u0902?<br>(1-Very Dissatisfied, 3- Neutral, 5-Very Satisfied) </p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "know1_q20",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "know2_q20",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "know3_q20",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "know4_q20",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "know5_q20",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_p7t8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "offered_q21",
+   "fieldtype": "HTML",
+   "options": "<p>26. How motivated are you to participate in training programs offered by the company?<br>\u0915\u0902\u092a\u0928\u0940 \u0926\u094d\u0935\u093e\u0930\u093e \u0926\u0940 \u091c\u093e\u0928\u0947 \u0935\u093e\u0932\u0940 \u091f\u094d\u0930\u0947\u0928\u093f\u0902\u0917 \u092e\u0947\u0902 \u0939\u093f\u0938\u094d\u0938\u093e \u0932\u0947\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0906\u092a \u0915\u093f\u0924\u0928\u0947 \u0909\u0924\u094d\u0938\u093e\u0939\u093f\u0924 \u0930\u0939\u0924\u0947 \u0939\u0948\u0902?<br>(1-Motivated, 3-Neutral, 5-Not Motivated) </p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "offered1_q21",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "offered2_q21",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "offered3_q21",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "offered4_q21",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "offered5_q21",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_kwtl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "apply_q22",
+   "fieldtype": "HTML",
+   "options": "<p>27. How confident do you feel in applying the skills learned in training sessions to your job tasks?<br>\u091f\u094d\u0930\u0947\u0928\u093f\u0902\u0917 \u0938\u0947 \u0938\u0940\u0916\u0940 \u0917\u0908 \u091a\u0940\u091c\u094b\u0902 \u0915\u094b \u0905\u092a\u0928\u0947 \u0915\u093e\u092e \u092e\u0947\u0902 \u0907\u0938\u094d\u0924\u0947\u092e\u093e\u0932 \u0915\u0930\u0928\u0947 \u0915\u094b \u0932\u0947\u0915\u0930 \u0906\u092a\u0915\u094b \u0915\u093f\u0924\u0928\u093e \u092d\u0930\u094b\u0938\u093e \u092e\u0939\u0938\u0942\u0938 \u0939\u094b\u0924\u093e \u0939\u0948?<br>(1-Confident, 3-Neutral, 5-Not Confident)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "apply1_q22",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "apply2_q22",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "apply3_q22",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "apply4_q22",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "apply5_q22",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "role_clarity_section",
+   "fieldtype": "Tab Break",
+   "label": "Role Clarity"
+  },
+  {
+   "fieldname": "fully_q23",
+   "fieldtype": "HTML",
+   "options": "<p>28. Do you fully understand your roles and responsibilities within the company?<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u094b \u0915\u0902\u092a\u0928\u0940 \u092e\u0947\u0902 \u0905\u092a\u0928\u0940 \u092d\u0942\u092e\u093f\u0915\u093e \u0914\u0930 \u091c\u093f\u092e\u094d\u092e\u0947\u0926\u093e\u0930\u093f\u092f\u094b\u0902 \u0915\u0940 \u092a\u0942\u0930\u0940 \u0938\u092e\u091d \u0939\u0948?\n<br>(1-Yes, 3-Neutral, 5 - No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "fully1_q23",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "fully2_q23",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "fully3_q23",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "fully4_q23",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "fully5_q23",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_qa3v",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "receivr_q24",
+   "fieldtype": "HTML",
+   "options": "<p>29. Do you receive sufficient feedback regarding your performance and role?<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u094b \u0906\u092a\u0915\u0947 \u0915\u093e\u092e \u0914\u0930 \u092d\u0942\u092e\u093f\u0915\u093e \u0915\u094b \u0932\u0947\u0915\u0930 \u092a\u0930\u094d\u092f\u093e\u092a\u094d\u0924 \u092b\u0940\u0921\u092c\u0948\u0915 \u092e\u093f\u0932\u0924\u093e \u0939\u0948?<br>(1-Yes, 3-Sometimes, 5-No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "receivr1_q24",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "receivr2_q24",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "receivr3_q24",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "receivr4_q24",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "receivr5_q24",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_cwax",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "job_q25",
+   "fieldtype": "HTML",
+   "options": "<p>30. How clearly defined are your job responsibilities?<br>\u0906\u092a\u0915\u0940 \u0928\u094c\u0915\u0930\u0940 \u0938\u0947 \u091c\u0941\u0921\u093c\u0940 \u091c\u093f\u092e\u094d\u092e\u0947\u0926\u093e\u0930\u093f\u092f\u093e\u0901 \u0915\u093f\u0924\u0928\u0940 \u0938\u094d\u092a\u0937\u094d\u091f \u0930\u0942\u092a \u0938\u0947 \u0924\u092f \u0915\u0940 \u0917\u0908 \u0939\u0948\u0902?<br>(1-Clearly Defined, 3- Neutral, 5 - Not Defined)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "job1_q25",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "job2_q25",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "job3_q25",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "job4_q25",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "job5_q25",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_jhpe",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "daily_q26",
+   "fieldtype": "HTML",
+   "options": "<p>31. Do you feel your daily tasks are aligned with your professional skills and expertise?<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u094b \u0932\u0917\u0924\u093e \u0939\u0948 \u0915\u093f \u0906\u092a\u0915\u0947 \u0930\u094b\u091c\u093c \u0915\u0947 \u0915\u093e\u092e \u0906\u092a\u0915\u0947 \u092a\u094d\u0930\u094b\u092b\u0947\u0936\u0928\u0932 \u0915\u094c\u0936\u0932 \u0914\u0930 \u0905\u0928\u0941\u092d\u0935 \u0915\u0947 \u0905\u0928\u0941\u0938\u093e\u0930 \u0939\u0948? <br>(1-Yes, 3Sometimes, 5-No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "daily1_q26",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "daily2_q26",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "daily3_q26",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "daily4_q26",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "daily5_q26",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_yulv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "working_q27",
+   "fieldtype": "HTML",
+   "options": "<p>32. How would you describe your experience working with ERP software?<br>ERP \u0938\u0949\u092b\u094d\u091f\u0935\u0947\u092f\u0930 \u0915\u0947 \u0938\u093e\u0925 \u0915\u093e\u092e \u0915\u0930\u0928\u0947 \u0915\u093e \u0906\u092a\u0915\u093e \u0905\u0928\u0941\u092d\u0935 \u0915\u0948\u0938\u093e \u0930\u0939\u093e \u0939\u0948?<br>(1-Positive, 3-Neutral, 5-Negative) </p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "working1_q27",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "working2_q27",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "working3_q27",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "working4_q27",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "working5_q27",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "job_satisfacttion_section",
+   "fieldtype": "Tab Break",
+   "label": "Job Satisfacttion"
+  },
+  {
+   "fieldname": "over_q28",
+   "fieldtype": "HTML",
+   "options": "<p>33. How satisfied are you with your overall job at the company?<br>\u0915\u0902\u092a\u0928\u0940 \u092e\u0947\u0902 \u0905\u092a\u0928\u0940 \u0928\u094c\u0915\u0930\u0940 \u0915\u094b \u0932\u0947\u0915\u0930 \u0906\u092a \u0915\u093f\u0924\u0928\u0947 \u0938\u0902\u0924\u0941\u0937\u094d\u091f \u0939\u0948\u0902?<br>(1-Satisfied, 3-Neutral, 5-Dissatisfied)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "over1_q28",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "over2_q28",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "over3_q28",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "over4_q28",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "over5_q28",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_cifb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "salary_q29",
+   "fieldtype": "HTML",
+   "options": "<p>34. How satisfied are you with the salary and compensation in relation to your job responsibilities?<br>\u0906\u092a \u0905\u092a\u0928\u0940 \u0928\u094c\u0915\u0930\u0940 \u0915\u0940 \u091c\u093f\u092e\u094d\u092e\u0947\u0926\u093e\u0930\u093f\u092f\u094b\u0902 \u0915\u0947 \u0939\u093f\u0938\u093e\u092c \u0938\u0947 \u092e\u093f\u0932\u0928\u0947 \u0935\u093e\u0932\u0940 \u0938\u0948\u0932\u0930\u0940 \u0914\u0930 \u0905\u0928\u094d\u092f \u0932\u093e\u092d\u094b\u0902 \u0938\u0947 \u0938\u0902\u0924\u0941\u0937\u094d\u091f \u0939\u0948\u0902? <br>(1-Satisfied, 3-Neutral, 5-Dissatisfied)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "salary1_q29",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "salary2_q29",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "salary3_q29",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "salary4_q29",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "salary5_q29",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_8cws",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "provide_q30",
+   "fieldtype": "HTML",
+   "options": "<p>35. How satisfied are you with the benefits provided by the company (e.g, health insurance, PF, ESIC, bonuses, etc.)?<br>\u0915\u0902\u092a\u0928\u0940 \u0926\u094d\u0935\u093e\u0930\u093e \u0926\u093f\u090f \u091c\u093e\u0928\u0947 \u0935\u093e\u0932\u0947 \u0932\u093e\u092d\u094b\u0902 (\u091c\u0948\u0938\u0947 \u0915\u093f \u0939\u0947\u0932\u094d\u0925 \u0907\u0902\u0936\u094d\u092f\u094b\u0930\u0947\u0902\u0938, \u092a\u0940\u090f\u092b, \u0908\u090f\u0938\u0906\u0908\u0938\u0940, \u092c\u094b\u0928\u0938 \u0906\u0926\u093f) \u0938\u0947 \u0906\u092a \u0915\u093f\u0924\u0928\u0947 \u0938\u0902\u0924\u0941\u0937\u094d\u091f \u0939\u0948\u0902?<br>(1-Satisfied, 3-Neutral, 5-Dissatisfied)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "provide1_q30",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "provide2_q30",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "provide3_q30",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "provide4_q30",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "provide5_q30",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_sx1v",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "your_q31",
+   "fieldtype": "HTML",
+   "options": "<p>36. Are you satisfied with the Employee Provident Fund (PF) benefits provided by the company?<br>\u0915\u094d\u092f\u093e \u0906\u092a \u0915\u0902\u092a\u0928\u0940 \u0926\u094d\u0935\u093e\u0930\u093e \u0926\u093f\u090f \u0917\u090f \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940 \u092d\u0935\u093f\u0937\u094d\u092f \u0928\u093f\u0927\u093f (\u092a\u0940\u090f\u092b) \u0932\u093e\u092d\u094b\u0902 \u0938\u0947 \u0938\u0902\u0924\u0941\u0937\u094d\u091f \u0939\u0948\u0902?<br>(1-Satisfied, 3-Neutral, 5- Dissatisfied)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "your1_q31",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "your2_q31",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "your3_q31",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "your4_q31",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "your5_q31",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_p67v",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "health_q32",
+   "fieldtype": "HTML",
+   "options": "<p>37. Are you satisfied with the health insurance and ESIC benefits provided by the company?<br>\u0915\u094d\u092f\u093e \u0906\u092a \u0915\u0902\u092a\u0928\u0940 \u0926\u094d\u0935\u093e\u0930\u093e \u0926\u093f\u090f \u0917\u090f ESIC \u0932\u093e\u092d\u094b\u0902 \u0938\u0947 \u0938\u0902\u0924\u0941\u0937\u094d\u091f \u0939\u0948\u0902?<br>(1-Satisfied, 3-Neutral, 5-Dissatisfied)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "health1_q32",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "health2_q32",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "health3_q32",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "health4_q32",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "health5_q32",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_mqae",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "clear_q33",
+   "fieldtype": "HTML",
+   "options": "<p>38. How clear is the company's communication regarding compensation and benefits policies?<br>\u0915\u0902\u092a\u0928\u0940 \u0915\u0940 \u0938\u0948\u0932\u0930\u0940 \u0914\u0930 \u092b\u093e\u092f\u0926\u0947 \u0935\u093e\u0932\u0940 \u0928\u0940\u0924\u093f\u092f\u094b\u0902 \u0915\u094b \u0932\u0947\u0915\u0930 \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u0915\u093f\u0924\u0928\u0940 \u0938\u093e\u092b\u093c \u0914\u0930 \u0938\u092e\u091d \u092e\u0947\u0902 \u0906\u0928\u0947 \u0935\u093e\u0932\u0940 \u0939\u0948? <br>(1-Very dear, 3-Neutral, 5- Very Unclear)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "clear1_q33",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "clear2_q33",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "clear3_q33",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "clear4_q33",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "clear5_q33",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "work_life_balance_section",
+   "fieldtype": "Tab Break",
+   "label": "Work Life Balance"
+  },
+  {
+   "fieldname": "balance_q34",
+   "fieldtype": "HTML",
+   "options": "<p>39. How satisfied are you with your work-life balance at the company?<br>\u0915\u0902\u092a\u0928\u0940 \u092e\u0947\u0902 \u0915\u093e\u092e \u0914\u0930 \u0928\u093f\u091c\u0940 \u091c\u093c\u093f\u0902\u0926\u0917\u0940 \u0915\u0947 \u0938\u0902\u0924\u0941\u0932\u0928 \u0915\u094b \u0932\u0947\u0915\u0930 \u0906\u092a \u0915\u093f\u0924\u0928\u0947 \u0938\u0902\u0924\u0941\u0937\u094d\u091f \u0939\u0948\u0902?<br>(1 -Satisfied, 3 - Neutral, 5 - Dissatisfied) </p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "balance1_q34",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "balance2_q34",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "balance3_q34",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "balance4_q34",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "balance5_q34",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_6xvl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "respect_q35",
+   "fieldtype": "HTML",
+   "options": "<p>40. Does the company respect your personal time and encourage a healthy balance between work\nand personal life?<br>\u0915\u094d\u092f\u093e \u0915\u0902\u092a\u0928\u0940 \u0906\u092a\u0915\u0947 \u0928\u093f\u091c\u0940 \u0938\u092e\u092f \u0915\u093e \u0938\u092e\u094d\u092e\u093e\u0928 \u0915\u0930\u0924\u0940 \u0939\u0948 \u0914\u0930 \u0915\u093e\u092e \u0935 \u0928\u093f\u091c\u0940 \u091c\u0940\u0935\u0928 \u0915\u0947 \u092c\u0940\u091a \u0905\u091a\u094d\u091b\u0947 \u0938\u0902\u0924\u0941\u0932\u0928 \u0915\u094b \u092c\u0922\u093c\u093e\u0935\u093e \u0926\u0947\u0924\u0940\n\u0939\u0948?<br>(1-Yes, 3-Neutral, 5 - No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "respect1_q35",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "respect2_q35",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "respect3_q35",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "respect4_q35",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "respect5_q35",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_l7yf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "personal_q36",
+   "fieldtype": "HTML",
+   "options": "<p>41. How often do you feel your work is impacting your personal life?<br>\u0906\u092a\u0915\u094b \u0915\u093f\u0924\u0928\u0940 \u092c\u093e\u0930 \u0932\u0917\u0924\u093e \u0939\u0948 \u0915\u093f \u0906\u092a\u0915\u093e \u0915\u093e\u092e \u0906\u092a\u0915\u0940 \u0928\u093f\u091c\u0940 \u091c\u093f\u0902\u0926\u0917\u0940 \u0915\u094b \u092a\u094d\u0930\u092d\u093e\u0935\u093f\u0924 \u0915\u0930 \u0930\u0939\u093e \u0939\u0948? <br>(1-Always, 3-Sometimes, 5-Never)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "personal1_q36",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "personal2_q36",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "personal3_q36",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "personal4_q36",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "personal5_q36",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "safety_protocols_section",
+   "fieldtype": "Tab Break",
+   "label": "Safety Protocols"
+  },
+  {
+   "fieldname": "main_q37",
+   "fieldtype": "HTML",
+   "options": "<p>42. How confident are you that the company maintains a safe working environment?<br>\u0906\u092a\u0915\u094b \u0915\u093f\u0924\u0928\u0940 \u092d\u0930\u094b\u0938\u093e \u0939\u0948 \u0915\u093f \u0915\u0902\u092a\u0928\u0940 \u090f\u0915 \u0938\u0941\u0930\u0915\u094d\u0937\u093f\u0924 \u0915\u093e\u0930\u094d\u092f \u0935\u093e\u0924\u093e\u0935\u0930\u0923 \u092c\u0928\u093e\u090f \u0930\u0916\u0924\u0940 \u0939\u0948?<br>(1-Very Confident, 3-Neutral 5-Not Confident)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "main1_q37",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "main2_q37",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "main3_q37",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "main4_q37",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "main5_q37",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_wc53",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "protocol_q38",
+   "fieldtype": "HTML",
+   "options": "<p>43. How aware are you of the safety protocols and procedures at work?<br>\u0906\u092a\u0915\u094b \u0905\u092a\u0928\u0947 \u0915\u093e\u092e \u0915\u0940 \u091c\u0917\u0939 \u092a\u0930 \u0938\u0941\u0930\u0915\u094d\u0937\u093e \u0928\u093f\u092f\u092e\u094b\u0902 \u0914\u0930 \u092a\u094d\u0930\u0915\u094d\u0930\u093f\u092f\u093e\u0913\u0902 \u0915\u0940 \u0915\u093f\u0924\u0928\u0940 \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u0939\u0948? <br>(1-Fully Aware, 3-Neutral, 5- Not Aware)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "protocol1_q38",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "protocol2_q38",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "protocol3_q38",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "protocol4_q38",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "protocol5_q38",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_awpq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "step_q39",
+   "fieldtype": "HTML",
+   "options": "<p>44. Do you believe the company takes necessary steps to ensure the safety and well-being of its employees?<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u094b \u0932\u0917\u0924\u093e \u0939\u0948 \u0915\u093f \u0915\u0902\u092a\u0928\u0940 \u0905\u092a\u0928\u0947 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u093f\u092f\u094b\u0902 \u0915\u0940 \u0938\u0941\u0930\u0915\u094d\u0937\u093e \u0914\u0930 \u092d\u0932\u093e\u0908 \u0938\u0941\u0928\u093f\u0936\u094d\u091a\u093f\u0924 \u0915\u0930\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u091c\u093c\u0930\u0942\u0930\u0940 \u0915\u0926\u092e \u0909\u0920\u093e\u0924\u0940 \u0939\u0948?<br>(1-Yes, 3-Neutral, 5 - No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "step1_q39",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "step2_q39",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "step3_q39",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "step4_q39",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "step5_q39",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "communication_section",
+   "fieldtype": "Tab Break",
+   "label": "Communication"
+  },
+  {
+   "fieldname": "available_q40",
+   "fieldtype": "HTML",
+   "options": "<p>45. How satisfied are you with the communication channels available with management?<br>\u092a\u094d\u0930\u092c\u0902\u0927\u0928 \u0938\u0947 \u092c\u093e\u0924\u091a\u0940\u0924 \u0915\u0930\u0928\u0947 \u0915\u0947 \u091c\u094b \u0924\u0930\u0940\u0915\u0947 \u0909\u092a\u0932\u092c\u094d\u0927 \u0939\u0948\u0902, \u0909\u0928\u0915\u0947 \u092c\u093e\u0930\u0947 \u092e\u0947\u0902 \u0906\u092a \u0915\u093f\u0924\u0928\u0947 \u0938\u0902\u0924\u0941\u0937\u094d\u091f \u092e\u0939\u0938\u0942\u0938 \u0915\u0930\u0924\u0947 \u0939\u0948\u0902?<br>(1-Very Satisfied, 3- Neutral, 5-Very dissatisfied)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "available1_q40",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "available2_q40",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "available3_q40",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "available4_q40",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "available5_q40",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_sulc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "undate_q41",
+   "fieldtype": "HTML",
+   "options": "<p>46. Do you receive timely updates regarding company changes, policies, or initiatives?<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u094b \u0915\u0902\u092a\u0928\u0940 \u092e\u0947\u0902 \u0939\u094b\u0928\u0947 \u0935\u093e\u0932\u0947 \u092c\u0926\u0932\u093e\u0935\u094b\u0902, \u0928\u0940\u0924\u093f\u092f\u094b\u0902 \u092f\u093e \u092a\u0939\u0932\u094b\u0902 \u0915\u0940 \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u0938\u092e\u092f \u092a\u0930 \u092e\u093f\u0932\u0924\u0940 \u0939\u0948? <br>(1-Always, 3-Occasionally, 5- Never)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "undate1_q41",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "undate2_q41",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "undate3_q41",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "undate4_q41",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "undate5_q41",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_bxh6",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "goals_q42",
+   "fieldtype": "HTML",
+   "options": "<p>47. How effective is the communication regarding goals and objectives within your team?<br>\u0906\u092a\u0915\u0940 \u091f\u0940\u092e \u092e\u0947\u0902 \u0932\u0915\u094d\u0937\u094d\u092f\u094b\u0902 \u0914\u0930 \u0909\u0926\u094d\u0926\u0947\u0936\u094d\u092f\u094b\u0902 \u0915\u094b \u0932\u0947\u0915\u0930 \u092c\u093e\u0924\u091a\u0940\u0924 \u0915\u093f\u0924\u0928\u0940 \u092a\u094d\u0930\u092d\u093e\u0935\u0940 \u0939\u094b\u0924\u0940 \u0939\u0948? <br>(1-Very Effective, 3-Neutral, 5-Very Ineffective)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "goals1_q42",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "goals2_q42",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "goals3_q42",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "goals4_q42",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "goals5_q42",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "teamwork_section",
+   "fieldtype": "Section Break",
+   "label": "Teamwork"
+  },
+  {
+   "fieldname": "achieve_q43",
+   "fieldtype": "HTML",
+   "options": "<p>48. How well do you collaborate with your teammates to achieve shared goals?<br>\u0938\u093e\u091d\u093e \u0932\u0915\u094d\u0937\u094d\u092f\u094b\u0902 \u0915\u094b \u092a\u093e\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0906\u092a \u0905\u092a\u0928\u0940 \u091f\u0940\u092e \u0915\u0947 \u0938\u093e\u0925 \u0915\u093f\u0924\u0928\u093e \u0905\u091a\u094d\u091b\u093e \u092e\u093f\u0932\u0915\u0930 \u0915\u093e\u092e \u0915\u0930\u0924\u0947 \u0939\u0948\u0902?<br>(1-Very Well, 3-Neutral, 5-Poorly)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "achieve1_q43",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "achieve2_q43",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "achieve3_q43",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "achieve4_q43",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "achieve5_q43",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_7adq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "workr_q44",
+   "fieldtype": "HTML",
+   "options": "<p>49. How often do you share work-related advice or knowledge with your teammates?<br>\u0906\u092a \u0905\u092a\u0928\u0947 \u0938\u093e\u0925\u093f\u092f\u094b\u0902 \u0915\u0947 \u0938\u093e\u0925 \u0915\u093e\u092e \u0938\u0947 \u091c\u0941\u0921\u093c\u0940 \u0938\u0932\u093e\u0939 \u092f\u093e \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u0915\u093f\u0924\u0928\u0940 \u092c\u093e\u0930 \u0938\u093e\u091d\u093e \u0915\u0930\u0924\u0947 \u0939\u0948\u0902? <br>(1-Always, 3-Occasionally, 5 - Never)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "workr1_q44",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "workr2_q44",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "workr3_q44",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "workr4_q44",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "workr5_q44",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "workplace_facilities_section",
+   "fieldtype": "Section Break",
+   "label": "Workplace Facilities"
+  },
+  {
+   "fieldname": "floor_q45",
+   "fieldtype": "HTML",
+   "options": "<p>50. How satisfied are you with the cleanliness of office floors and workstations?<br>\u0906\u092a \u0911\u092b\u093f\u0938 \u0915\u0947 \u095e\u0930\u094d\u0936 \u0914\u0930 \u0935\u0930\u094d\u0915\u0938\u094d\u091f\u0947\u0936\u0928 \u0915\u0940 \u0938\u092b\u093c\u093e\u0908 \u0938\u0947 \u0915\u093f\u0924\u0928\u0947 \u0938\u0902\u0924\u0941\u0937\u094d\u091f \u0939\u0948\u0902?<br>(1-Satisfied, 3-Neutral, 5 Dissatisfied)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "floor1_q45",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "floor2_q45",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "floor3_q45",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "floor4_q45",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "floor5_q45",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_atrm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "drink_q46",
+   "fieldtype": "HTML",
+   "options": "<p>51. How would you rate the quality of drinking water provided at the workplace?<br>\u0906\u092a \u0915\u093e\u0930\u094d\u092f\u0938\u094d\u0925\u0932 \u092a\u0930 \u0909\u092a\u0932\u092c\u094d\u0927 \u092a\u0940\u0928\u0947 \u0915\u0947 \u092a\u093e\u0928\u0940 \u0915\u0940 \u0917\u0941\u0923\u0935\u0924\u094d\u0924\u093e \u0915\u094b \u0915\u093f\u0938 \u092a\u094d\u0930\u0915\u093e\u0930 \u0906\u0902\u0915\u0947\u0902\u0917\u0947?<br>(1-Excellent, 3-Neutral, 5-Poor)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "drink1_q46",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "drink2_q46",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "drink3_q46",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "drink4_q46",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "drink5_q46",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_waac",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "food_q47",
+   "fieldtype": "HTML",
+   "options": "<p>52. How would you rate the food offered in the company canteen?<br>\u0915\u0902\u092a\u0928\u0940 \u0915\u0940 \u0915\u0948\u0902\u091f\u0940\u0928 \u092e\u0947\u0902 \u092e\u093f\u0932\u0928\u0947 \u0935\u093e\u0932\u0947 \u0916\u093e\u0928\u0947 \u0915\u094b \u0906\u092a \u0915\u0948\u0938\u0947 \u0906\u0902\u0915\u0947\u0902\u0917\u0947?<br>(1-Excellent, 3-Neutral, 5-Poor)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "food1_q47",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "food2_q47",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "food3_q47",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "food4_q47",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "food5_q47",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "career_growth_section",
+   "fieldtype": "Tab Break",
+   "label": "Career Growth"
+  },
+  {
+   "fieldname": "career_q48",
+   "fieldtype": "HTML",
+   "options": "<p>53. How satisfied are you with the career growth opportunities within the company?<br>\u0915\u0902\u092a\u0928\u0940 \u092e\u0947\u0902 \u0915\u0930\u093f\u092f\u0930 \u092c\u0922\u093c\u093e\u0928\u0947 \u0915\u0947 \u0905\u0935\u0938\u0930\u094b\u0902 \u0938\u0947 \u0906\u092a \u0915\u093f\u0924\u0928\u0947 \u0938\u0902\u0924\u0941\u0937\u094d\u091f \u0939\u0948\u0902? <br>(1-Very Satisfied, 3-Neutral, 5-Very Dissatisfied) </p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "career1_q48",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "career2_q48",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "career3_q48",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "career4_q48",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "career5_q48",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_u0ui",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "next_q49",
+   "fieldtype": "HTML",
+   "options": "<p>54. Do you see yourself working at this company for the next 2-3 years?<br>\u0915\u094d\u092f\u093e \u0906\u092a \u0916\u0941\u0926 \u0915\u094b \u0905\u0917\u0932\u0947 2-3 \u0938\u093e\u0932\u094b\u0902 \u0924\u0915 \u0907\u0938 \u0915\u0902\u092a\u0928\u0940 \u092e\u0947\u0902 \u0915\u093e\u092e \u0915\u0930\u0924\u0947 \u0939\u0941\u090f \u0926\u0947\u0916\u0924\u0947 \u0939\u0948\u0902? <br>(1- Yes, 3- Unsure, 5-No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "next1_q49",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "next2_q49",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "next3_q49",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "next4_q49",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "next5_q49",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_xecx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "rate_q50",
+   "fieldtype": "HTML",
+   "options": "<p>55. How would you rate your overall experience working at Gurukrupa Export Pvt Ltd?<br>\u0917\u0941\u0930\u0941\u0915\u0943\u092a\u093e \u090f\u0915\u094d\u0938\u092a\u094b\u0930\u094d\u091f \u092a\u094d\u0930\u093e\u0907\u0935\u0947\u091f \u0932\u093f\u092e\u093f\u091f\u0947\u0921 \u092e\u0947\u0902 \u0915\u093e\u092e \u0915\u0930\u0928\u0947 \u0915\u093e \u0906\u092a\u0915\u093e \u0915\u0941\u0932 \u0905\u0928\u0941\u092d\u0935 \u0915\u0948\u0938\u093e \u0930\u0939\u093e? <br>(1-Excellent, 3-Average, 5-Poor)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "rate1_q50",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "rate2_q50",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "rate3_q50",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "rate4_q50",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "rate5_q50",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_en0s",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "value_q51",
+   "fieldtype": "HTML",
+   "options": "<p>56. Do you feel valued and appreciated by the company?<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u094b \u0932\u0917\u0924\u093e \u0939\u0948 \u0915\u093f \u0915\u0902\u092a\u0928\u0940 \u0906\u092a\u0915\u0940 \u0915\u0926\u094d\u0930 \u0915\u0930\u0924\u0940 \u0939\u0948 \u0914\u0930 \u0906\u092a\u0915\u0947 \u0915\u093e\u092e \u0915\u0940 \u0938\u0930\u093e\u0939\u0928\u093e \u0915\u0930\u0924\u0940 \u0939\u0948? <br>(1-Yes, 3-Neutral, 5 - No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "value1_q51",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "value2_q51",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "value3_q51",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "value4_q51",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "value5_q51",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_mgjr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "goods_q52",
+   "fieldtype": "HTML",
+   "options": "<p>57. Would you recommend the company as a good place to work to your friends or Relatives?<br>\u0915\u094d\u092f\u093e \u0906\u092a \u0907\u0938 \u0915\u0902\u092a\u0928\u0940 \u0915\u094b \u0905\u092a\u0928\u0947 \u0926\u094b\u0938\u094d\u0924\u094b\u0902 \u092f\u093e \u0930\u093f\u0936\u094d\u0924\u0947\u0926\u093e\u0930\u094b\u0902 \u0915\u0947 \u0932\u093f\u090f \u0915\u093e\u092e \u0915\u0930\u0928\u0947 \u0915\u0940 \u0905\u091a\u094d\u091b\u0940 \u091c\u0917\u0939 \u0915\u0947 \u0930\u0942\u092a \u092e\u0947\u0902 \u0938\u0941\u091d\u093e\u090f\u0902\u0917\u0947?<br>(1-Completely, 3-Confused, 5-Never)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "goods1_q52",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "goods2_q52",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "goods3_q52",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "goods4_q52",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "goods5_q52",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_qdqv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "central_q53",
+   "fieldtype": "HTML",
+   "options": "<p>58. Do you think it is necessary to have a central prayer session involving all departments and staff at\nthe workplace<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u094b \u0932\u0917\u0924\u093e \u0939\u0948 \u0915\u093f \u0915\u093e\u0930\u094d\u092f\u0938\u094d\u0925\u0932 \u092a\u0930 \u0938\u092d\u0940 \u0935\u093f\u092d\u093e\u0917\u094b\u0902 \u0914\u0930 \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u093f\u092f\u094b\u0902 \u0915\u094b \u0936\u093e\u092e\u093f\u0932 \u0915\u0930\u0915\u0947 \u090f\u0915 \u0938\u093e\u092e\u0942\u0939\u093f\u0915 \u092a\u094d\u0930\u093e\u0930\u094d\u0925\u0928\u093e \u0938\u0924\u094d\u0930\n\u0939\u094b\u0928\u093e \u091c\u093c\u0930\u0942\u0930\u0940 \u0939\u0948?<br>(1-Yes, 3-May be, 5 Not Required)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "central1_q53",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "central2_q53",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "central3_q53",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "central4_q53",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "central5_q53",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "overall_company_rating_section",
+   "fieldtype": "Tab Break",
+   "label": "Overall Company Rating"
+  },
+  {
+   "fieldname": "overall_q54",
+   "fieldtype": "HTML",
+   "options": "<p>59. How would you rate the company overall in terms of employee engagement?<br>\u0907\u0938 \u0915\u0902\u092a\u0928\u0940 \u0915\u094b \u0915\u0930\u094d\u092e\u091a\u093e\u0930\u0940 \u091c\u0941\u0921\u093c\u093e\u0935 \u0915\u0947 \u092e\u093e\u092e\u0932\u0947 \u092e\u0947\u0902 \u0906\u092a \u0915\u0941\u0932 \u092e\u093f\u0932\u093e\u0915\u0930 \u0915\u0948\u0938\u0947 \u0913\u0915\u0947\u0902\u0917\u0947?<br>(1-Excellent, 3-Average, 5-Poor)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "overall1_q54",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "overall2_q54",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "overall3_q54",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "overall4_q54",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "overall5_q54",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_wrvt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "box_q55",
+   "fieldtype": "HTML",
+   "options": "<p>60. Would a physical suggestion box on each floor make it easier for you to share feedback?<br>\u0905\u0917\u0930 \u0939\u0930 \u092e\u0902\u091c\u093c\u093f\u0932 \u092a\u0930 \u090f\u0915 \u0938\u0941\u091d\u093e\u0935 \u092c\u0949\u0915\u094d\u0938 \u0930\u0916\u093e \u091c\u093e\u090f, \u0924\u094b \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u094b \u0905\u092a\u0928\u0940 \u092c\u093e\u0924 \u0915\u0939\u0928\u093e \u0906\u0938\u093e\u0928 \u0932\u0917\u0947\u0917\u093e?<br>(1-Yes, 3-May be 5 Not Required)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "box1_q55",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "box2_q55",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "box3_q55",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "box4_q55",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "box5_q55",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_iar1",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "find_q56",
+   "fieldtype": "HTML",
+   "options": "<p>61. Do you Find Existing Communities in Gurukurpa is useful?<br>\u0915\u094d\u092f\u093e \u0906\u092a\u0915\u094b \u0932\u0917\u0924\u093e \u0939\u0948 \u0915\u093f \u0917\u0941\u0930\u0941\u0915\u0943\u092a\u093e \u092e\u0947\u0902 \u091c\u094b \u092e\u094c\u091c\u0942\u0926\u093e \u0915\u092e\u094d\u092f\u0941\u0928\u093f\u091f\u0940\u091c\u093c \u0939\u0948, \u0935\u094b \u0906\u092a\u0915\u0947 \u0932\u093f\u090f \u092b\u093e\u092f\u0926\u0947\u092e\u0902\u0926 \u0939\u0948\u0902?<br>(1-Yes, 3- May be, 5 - No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "find1_q56",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "find2_q56",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "find3_q56",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "find4_q56",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "find5_q56",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "column_break_if1n",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "part_56",
+   "fieldtype": "HTML",
+   "options": "<p>62. Would you be interested in being a part of our internal committees such as Festival celebration, trainings etc?<br>\u0915\u094d\u092f\u093e \u0906\u092a \u0924\u094d\u092f\u094b\u0939\u093e\u0930 \u092e\u0928\u093e\u0928\u0947 \u092f\u093e \u091f\u094d\u0930\u0947\u0928\u093f\u0902\u0917 \u091c\u0948\u0938\u0940 \u0939\u092e\u093e\u0930\u0940 \u091f\u0940\u092e\u094b\u0902 \u092e\u0947\u0902 \u0936\u093e\u092e\u093f\u0932 \u0939\u094b\u0928\u093e \u091a\u093e\u0939\u0947\u0902 ?<br>(1-Yes, 3-May be, 5-No)</p>"
+  },
+  {
+   "default": "0",
+   "fieldname": "part1_56",
+   "fieldtype": "Check",
+   "label": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "part2_56",
+   "fieldtype": "Check",
+   "label": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "part3_56",
+   "fieldtype": "Check",
+   "label": "3"
+  },
+  {
+   "default": "0",
+   "fieldname": "part4_56",
+   "fieldtype": "Check",
+   "label": "4"
+  },
+  {
+   "default": "0",
+   "fieldname": "part5_56",
+   "fieldtype": "Check",
+   "label": "5"
+  },
+  {
+   "fieldname": "section_break_x4jv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "feedback",
+   "fieldtype": "HTML",
+   "options": "<p>63. Please share any feedback or suggestions you have regarding the company's working style.<br>\u0915\u0902\u092a\u0928\u0940 \u0915\u0947 \u0915\u093e\u092e \u0915\u0930\u0928\u0947 \u0915\u0947 \u0924\u0930\u0940\u0915\u0947 \u0915\u094b \u0932\u0947\u0915\u0930 \u0906\u092a\u0915\u0947 \u092a\u093e\u0938 \u0915\u094b\u0908 \u0938\u0941\u091d\u093e\u0935 \u092f\u093e \u0930\u093e\u092f \u0939\u094b \u0924\u094b \u0915\u0943\u092a\u092f\u093e \u0938\u093e\u091d\u093e \u0915\u0930\u0947\u0902\u0964</p>"
+  },
+  {
+   "fieldname": "last",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "department1_qes",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "column_break_2te6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_elhd",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_y7ws",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_vqbj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "user_id",
+   "fieldtype": "Link",
+   "label": "User ID",
+   "options": "User"
+  },
+  {
+   "fieldname": "punch_id",
+   "fieldtype": "Data",
+   "label": "Punch ID"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "naming_series",
+   "options": "EES - "
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-10-04 15:41:51.353902",
+ "modified_by": "bhavika_patel@gkexport.com",
+ "module": "GKE SURVEY",
+ "name": "Employee Environmental Survey",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "bhavika_patel@gkexport.com",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}
