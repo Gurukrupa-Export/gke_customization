@@ -23,7 +23,7 @@ def get_user_secret(username):
 
 
 @frappe.whitelist(allow_guest=True)
-def generate_token_from_data(data):
+def generate_token_from_data(data,username, password):
 
     login_manager = LoginManager()
     login_manager.authenticate(username, password)
