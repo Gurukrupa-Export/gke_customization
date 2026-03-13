@@ -44,38 +44,59 @@ def generate_token_from_data(username, password):
 
     # return frappe._dict(json.loads(body))
     # Step 1: Login user
+
+
+    # login_manager = LoginManager()
+    # login_manager.authenticate(username, password)
+    # login_manager.post_login()
+
+    # # Step 2: Prepare OAuth request
+    # url = frappe.utils.get_url("/api/method/frappe.integrations.oauth2.get_token")
+
+    # payload = {
+    #     "grant_type": "password",
+    #     "client_id": "e3cktidb7o",
+    #     "client_secret": "6ae38cbd32",
+    #     "username": username,
+    #     "password": password
+    # }
+
+    # headers = {
+    #     "Content-Type": "application/x-www-form-urlencoded"
+    # }
+
+    # # Step 3: Call OAuth API
+    # response = requests.post(url, data=payload, headers=headers)
+
+    # token_data = response.json()
+
+    # if "access_token" not in token_data:
+    #     frappe.throw("Token generation failed")
+
+    # return {
+    #     "access_token": token_data.get("access_token"),
+    #     "refresh_token": token_data.get("refresh_token"),
+    #     "expires_in": token_data.get("expires_in"),
+    #     "user": frappe.session.user
+    # }
+
     login_manager = LoginManager()
     login_manager.authenticate(username, password)
     login_manager.post_login()
 
-    # Step 2: Prepare OAuth request
-    url = frappe.utils.get_url("/api/method/frappe.integrations.oauth2.get_token")
+    user = frappe.get_doc("User", username)
 
-    payload = {
-        "grant_type": "password",
-        "client_id": "e3cktidb7o",
-        "client_secret": "6ae38cbd32",
-        "username": username,
-        "password": password
-    }
+    if not user.api_key:
+        user.api_key = frappe.generate_hash(length=15)
 
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
+    api_secret = frappe.generate_hash(length=15)
+    user.set("api_secret", api_secret)
 
-    # Step 3: Call OAuth API
-    response = requests.post(url, data=payload, headers=headers)
-
-    token_data = response.json()
-
-    if "access_token" not in token_data:
-        frappe.throw("Token generation failed")
+    user.save(ignore_permissions=True)
 
     return {
-        "access_token": token_data.get("access_token"),
-        "refresh_token": token_data.get("refresh_token"),
-        "expires_in": token_data.get("expires_in"),
-        "user": frappe.session.user
+        "api_key": user.api_key,
+        "api_secret": api_secret
     }
 
 
@@ -203,10 +224,10 @@ def verify_otp_using_customer_name(username, password, otp):
         result = generate_token_from_data(username, password)
         
 
-        if "access_token" in result:
-            expires_at_utc = datetime.now(timezone.utc) + timedelta(seconds=result["expires_in"])
-            local_tz = pytz.timezone("Asia/Kolkata")
-            expires_at_local = expires_at_utc.astimezone(local_tz).replace(tzinfo=None)
+        if "api_key" in result:
+            # expires_at_utc = datetime.now(timezone.utc) + timedelta(seconds=result["expires_in"])
+            # local_tz = pytz.timezone("Asia/Kolkata")
+            # expires_at_local = expires_at_utc.astimezone(local_tz).replace(tzinfo=None)
 
             # 🔍 Fetch Customer linked to this username (email_id) using customer id
 
@@ -256,33 +277,46 @@ def verify_otp_using_customer_name(username, password, otp):
 
                 customer_names = [row["customer"] for row in user_customers]
 
-                # Fetch name of each customer properly
-                customer_map = frappe.db.sql("""
-                    SELECT name, customer_name, email_id
-                    FROM `tabCustomer`
-                    WHERE name IN (%s)
-                """ % (", ".join(["%s"] * len(customer_names))), customer_names, as_dict=True)
+                if customer_names:
+                        # Fetch name of each customer properly
+                        customer_map = frappe.db.sql("""
+                            SELECT name, customer_name, email_id
+                            FROM `tabCustomer`
+                            WHERE name IN (%s)
+                        """ % (", ".join(["%s"] * len(customer_names))), customer_names, as_dict=True)
 
-                # Convert list to dictionary {id: name}
-                customer_dict = {
-                    row["name"]: {
-                        "email_id": row.get("email_id"),
-                        "customer_name": row["customer_name"]
-                    }
-                    for row in customer_map
-                }
+                        # Convert list to dictionary {id: name}
+                        customer_dict = {
+                            row["name"]: {
+                                "email_id": row.get("email_id"),
+                                "customer_name": row["customer_name"]
+                            }
+                            for row in customer_map
+                        }
+                    
+                        for record in data:
+                            record["user_type"] = "Customer"
+                            record['name'] = customer_dict
 
-                for record in data:
-                    record["user_type"] = "Customer"
-                    record['name'] = customer_dict
-
-                for record in data:
-                    record["user_type"] = "User"
-
+                        for record in data:
+                            record["user_type"] = "User"
+                else:
+                    query_3 = """
+                    SELECT
+                        u.full_name,
+                        u.email as user_email
+                    FROM `tabUser` AS u
+                    WHERE u.email = %s
+                    """
+                    data = frappe.db.sql(query_3, (username,), as_dict=True)
+                    for row in data:
+                        row["user_type"] = "User"
+                    
+                    # frappe.throw(f"{data, }")
             try:
                 # row = frappe.db.sql(query, (username,), as_dict=True)
-                if not data:
-                    return {"status": "failed", "message": "Customer not found"}
+                # if not data:
+                #     return {"status": "failed", "message": "Customer not found"}
                 
                 # frappe.throw(f"{data}")
                 
@@ -313,10 +347,9 @@ def verify_otp_using_customer_name(username, password, otp):
                 return {
                         "status": "success",
                         "message": "OTP verified successfully",
-                        "access_token": result["access_token"],
-                        "refresh_token": result.get("refresh_token"),
-                        "expires_in": result.get("expires_in"),
-                        "customer": data[0]
+                        "api_key": result["api_key"],
+                        "api_secret": result.get("api_secret"),
+                        "customer": data[0] if data else []
                 }
                
             except Exception as e:
@@ -324,12 +357,17 @@ def verify_otp_using_customer_name(username, password, otp):
                 return {"status": "failed", "message": "Database error while fetching customer"}
 
         else:
+            frappe.log_error(
+                title="Token Generation Failed",
+                message=f"OAuth response: {result}"
+            )
             frappe.throw("Token generation failed", title="Login Failed")
 
     else:
         frappe.throw("Failed to verify OTP", title="Login Failed")
 
     return {"status": "failed", "message": "Invalid or expired OTP"}
+
 
 
 
