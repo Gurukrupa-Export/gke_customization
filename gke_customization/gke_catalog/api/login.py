@@ -22,7 +22,7 @@ def get_user_secret(username):
     return base64.b32encode(h.digest()).decode('utf-8')
 
 
-@frappe.whitelist(allow_guest=True)
+# @frappe.whitelist(allow_guest=True)
 def generate_token_from_data(data,username, password):
 
     login_manager = LoginManager()
