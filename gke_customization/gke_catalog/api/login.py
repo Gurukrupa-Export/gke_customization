@@ -22,27 +22,62 @@ def get_user_secret(username):
     return base64.b32encode(h.digest()).decode('utf-8')
 
 
-@frappe.whitelist(allow_guest=True)
-def generate_token_from_data(data,username, password):
+def generate_token_from_data(username, password):
+    
+    # login_manager = LoginManager()
+    # login_manager.authenticate(username, password)
 
+
+    # method = "POST"
+    # url = "/api/method/frappe.integrations.oauth2.get_token"
+
+    # headers = {
+    #     "Content-Type": "application/x-www-form-urlencoded"
+    # }
+
+    # oauth_server = get_oauth_server()
+   
+
+    # _, body, _ = oauth_server.create_token_response(
+    #     url, method, data, headers, frappe.flags.oauth_credentials
+    # )
+
+    # return frappe._dict(json.loads(body))
+    # Step 1: Login user
     login_manager = LoginManager()
     login_manager.authenticate(username, password)
+    login_manager.post_login()
 
-    method = "POST"
-    url = "/api/method/frappe.integrations.oauth2.get_token"
+    # Step 2: Prepare OAuth request
+    url = frappe.utils.get_url("/api/method/frappe.integrations.oauth2.get_token")
+
+    payload = {
+        "grant_type": "password",
+        "client_id": "e3cktidb7o",
+        "client_secret": "6ae38cbd32",
+        "username": username,
+        "password": password
+    }
 
     headers = {
         "Content-Type": "application/x-www-form-urlencoded"
     }
 
-    oauth_server = get_oauth_server()
-   
+    # Step 3: Call OAuth API
+    response = requests.post(url, data=payload, headers=headers)
 
-    _, body, _ = oauth_server.create_token_response(
-        url, method, data, headers, frappe.flags.oauth_credentials
-    )
+    token_data = response.json()
 
-    return frappe._dict(json.loads(body))
+    if "access_token" not in token_data:
+        frappe.throw("Token generation failed")
+
+    return {
+        "access_token": token_data.get("access_token"),
+        "refresh_token": token_data.get("refresh_token"),
+        "expires_in": token_data.get("expires_in"),
+        "user": frappe.session.user
+    }
+
 
 @frappe.whitelist(allow_guest=True)
 def send_otp_for_login_user(username, password):
@@ -157,15 +192,15 @@ def verify_otp_using_customer_name(username, password, otp):
         frappe.cache().delete_value(otp_key)
 
         # Generate token
-        token_data = {
-            "grant_type": "password",
-            "client_id": "e3cktidb7o",
-            "client_secret": "6ae38cbd32",
-            "username": username,
-            "password": password
-        }
+        # token_data = {
+        #     "grant_type": "password",
+        #     "client_id": "e3cktidb7o",
+        #     "client_secret": "6ae38cbd32",
+        #     "username": username,
+        #     "password": password
+        # }
 
-        result = generate_token_from_data(token_data, username, password)
+        result = generate_token_from_data(username, password)
         
 
         if "access_token" in result:
