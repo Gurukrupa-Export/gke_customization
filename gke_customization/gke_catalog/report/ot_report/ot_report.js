@@ -1,6 +1,3 @@
-// Copyright (c) 2024, Gurukrupa and contributors
-/* eslint-disable */
-
 frappe.query_reports["OT Report"] = {
     onload: function (report) {
         frappe.call({
@@ -109,4 +106,3 @@ frappe.query_reports["OT Report"] = {
         },
     ]
 };
-
