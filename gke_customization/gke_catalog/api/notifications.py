@@ -49,7 +49,7 @@ def notify_user(for_user, subject, message=None, action_label=None, action_url=N
     frappe.db.commit()
     return {"status": "success"}
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_notifications_of_customer(for_user):
     """
     Fetch Notification Log entries for a specific user.

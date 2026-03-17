@@ -371,7 +371,7 @@ def verify_otp_using_customer_name(username, password, otp):
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_address_by_link_name(user_type, link_name):
     try:
         if not user_type or not link_name:
