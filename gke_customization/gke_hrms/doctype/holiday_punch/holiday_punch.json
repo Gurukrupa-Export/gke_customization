@@ -11,13 +11,17 @@
   "company",
   "date",
   "search",
+  "department",
   "column_break_xgkf",
   "shift_name",
   "start_time",
   "end_time",
-  "section_break_buh6b",
+  "section_break_nbag",
+  "column_break_padw",
   "add_new_punch",
   "for_od",
+  "section_break_buh6b",
+  "employees",
   "section_break_dn8t7",
   "details",
   "to_be_deleted",
@@ -28,19 +32,22 @@
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
-   "options": "Company"
+   "options": "Company",
+   "reqd": 1
   },
   {
    "fieldname": "date",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Attendance Date"
+   "label": "Attendance Date",
+   "reqd": 1
   },
   {
    "fieldname": "shift_name",
    "fieldtype": "Link",
    "label": "Shift Name",
-   "options": "Shift Type"
+   "options": "Shift Type",
+   "reqd": 1
   },
   {
    "fieldname": "search",
@@ -105,13 +112,35 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "employees",
+   "fieldtype": "Table",
+   "label": "Employees",
+   "options": "Employee Multiselect"
+  },
+  {
+   "fieldname": "column_break_padw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_nbag",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
   }
  ],
+ "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-03-28 15:46:58.483861",
- "modified_by": "Administrator",
+ "modified": "2026-03-18 11:11:44.746780",
+ "modified_by": "aditya_r@gkexport.com",
  "module": "GKE HRMS",
  "name": "Holiday Punch",
  "naming_rule": "Expression",
@@ -128,6 +157,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
