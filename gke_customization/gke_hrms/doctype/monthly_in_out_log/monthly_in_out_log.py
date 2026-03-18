@@ -144,7 +144,11 @@ class MonthlyInOutLog(Document):
             self.spent_hrs = fmt_td_or_value(record.get("spent_hrs") or record.get("spent_hours"))
             
             # net_wrk_hrs may be timedelta; keep as string
-            self.net_wrk_hrs = fmt_td_or_value(record.get("net_wrk_hrs"))
+            # if net_wrk_hrs is negative then convert into positive
+            net_wrk_hrs = record.get("net_wrk_hrs")
+            if net_wrk_hrs and net_wrk_hrs < timedelta(0):
+                net_wrk_hrs = -net_wrk_hrs
+            self.net_wrk_hrs = fmt_td_or_value(net_wrk_hrs)
 
             self.in_time = fmt_td_or_value(record.get("in_time"))
             self.out_time = fmt_td_or_value(record.get("out_time"))
@@ -514,7 +518,6 @@ def fmt_td_or_value(val):
         # rarely expected, return date-time string
         return val.strftime("%Y-%m-%d %H:%M:%S")
     return val
-
 
 def process_data(data, filters):
     employee = filters.get("employee")
