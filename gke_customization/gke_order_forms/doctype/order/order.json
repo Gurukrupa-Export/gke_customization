@@ -169,6 +169,7 @@
 "total_metal_weight",
 "column_break_2n5j",
 "casting_pcs",
+"rpt_capture_wt",
 "bom_finding_detail_section",
 "finding_detail",
 "section_break_xkjh",
@@ -223,7 +224,9 @@
 "column_break_wodq",
 "rpt_file",
 "column_break_zgjt",
-"cad_image"
+"cad_image",
+"column_break_jlsm",
+"rpt_numbering_images"
 ],
 "fields": [
 {
@@ -1700,6 +1703,22 @@
 "mandatory_depends_on": "eval:(in_list(['BOM QC', 'BOM QC - On-Hold', 'Approved'], doc.workflow_state))"
 },
 {
+"depends_on": "eval:doc.bom_or_cad=='CAD'",
+"fieldname": "rpt_capture_wt",
+"fieldtype": "Float",
+"label": "RPT Capture WT"
+},
+{
+"depends_on": "eval:doc.bom_or_cad=='CAD'",
+"fieldname": "rpt_numbering_images",
+"fieldtype": "Attach Image",
+"label": "RPT Numbering Images"
+},
+{
+"fieldname": "column_break_jlsm",
+"fieldtype": "Column Break"
+},
+{
 "fetch_from": "cad_order_form.pre_order_form",
 "fieldname": "pre_order_form",
 "fieldtype": "Link",
@@ -1716,7 +1735,8 @@
 {
 "fieldname": "jewelex_design_id",
 "fieldtype": "Data",
-"label": "Jewelex Design ID"
+"label": "Jewelex Design ID",
+"read_only": 1
 },
 {
   "fieldname": "design_complexity",
