@@ -8,6 +8,7 @@ from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift
 from gke_customization.gke_hrms.utils import get_employees_by_shift
 
 
+
 class HolidayPunch(Document):
 	def on_submit(self):
 
@@ -285,7 +286,8 @@ def check_employee_punch(employee_details, shift_date, start_time, end_time):
 	else:
 
 		employee_details.append(
-			make_row(employee_details, "IN", add_to_date(last_dt, minutes=1))
+			make_row(employee_details, "IN", add_to_date(last_dt))
+			# make_row(employee_details, "IN", add_to_date(last_dt, minutes=1))
 		)
 
 		employee_details.append(
