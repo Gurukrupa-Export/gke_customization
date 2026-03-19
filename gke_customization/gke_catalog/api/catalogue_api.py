@@ -1360,3 +1360,244 @@ def get_wishlist_item_for_customer_by_user(items, user_type, customers):
         "results": results
     }
 
+@frappe.whitelist(allow_guest=True)
+def add_item_in_folder(status=None, name=None, item=None, customer=None):
+
+    if not customer:
+        frappe.throw("Customer is required")
+
+    # Only required for ADD and REMOVE
+    if status in ["ADD", "REMOVE"] and not item:
+        frappe.throw("Item list is required")
+
+    # Convert JSON string to list safely
+    if isinstance(item, str):
+        item = frappe.parse_json(item)
+
+    item = item or []
+    items = tuple(item)
+
+    sql_query = """
+        SELECT 
+            citm.folder, 
+            citm.item_code, 
+            citm.wishlist,
+            ctm.name as parent_name
+        FROM `tabCataloge Master` AS ctm
+        LEFT JOIN `tabCataloge Item Details` AS citm
+            ON citm.parent = ctm.name
+        WHERE ctm.customer = %(customer)s
+    """
+
+    # Add condition only for ADD and REMOVE
+    if status in ["ADD", "REMOVE"]:
+        sql_query += " AND citm.item_code IN %(items)s"
+
+
+    values = {
+        "customer": customer,
+        "items": items if items else None
+    }
+
+    result = frappe.db.sql(sql_query, values=values, as_dict=True)
+
+    if not result:
+        frappe.throw("No matching records found")
+
+    parent_name = result[0]["parent_name"]
+
+    catalog_doc = frappe.get_doc(
+        "Cataloge Master",
+        parent_name,
+        ignore_permissions=True
+    )
+
+    # ---------------- ADD ----------------
+    if status == "ADD":
+        for row in catalog_doc.cataloge_item_details:
+            if row.wishlist == 1 and row.item_code in item:
+
+                if not row.folder:
+                    row.folder = name
+                else:
+                    folders = row.folder.split(",")
+                    if name not in folders:
+                        folders.append(name)
+                        row.folder = ",".join(folders)
+
+    # ---------------- REMOVE ----------------
+    if status == "REMOVE":
+        for row in catalog_doc.cataloge_item_details:
+            if row.wishlist == 1 and row.item_code in item and row.folder:
+
+                folders = row.folder.split(",")
+
+                if name in folders:
+                    folders.remove(name)
+
+                    if folders:
+                        row.folder = ",".join(folders)
+                    else:
+                        row.folder = None
+
+    # ---------------- DELETE ----------------
+    if status == "DELETE" and name:
+        for row in catalog_doc.cataloge_item_details:
+
+            if row.wishlist == 1 and row.folder:
+
+                folders = row.folder.split(",")
+
+                if name in folders:
+                    folders.remove(name)
+
+                    if folders:
+                        row.folder = ",".join(folders)
+                    else:
+                        row.folder = None
+
+    catalog_doc.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    return {"message": "Updated successfully"}
+
+
+@frappe.whitelist(allow_guest=True)
+def get_similar_item(item_code):
+
+    if not item_code:
+        return []
+
+    # Step 1: Get similar item codes
+    similar_item_codes = frappe.db.sql("""
+        SELECT sit.item_code
+        FROM `tabItem` i
+        LEFT JOIN `tabSimilar Item Table` sit
+            ON sit.parent = i.name
+            AND sit.parenttype = 'Item'
+            AND sit.parentfield = 'custom_similar_item_table'
+        WHERE i.name = %s
+        AND i.custom_is_similar_item = 1
+    """, (item_code,), pluck=True)
+
+    if not similar_item_codes:
+        return []
+
+    # Convert to tuple for IN condition
+    codes_tuple = tuple(similar_item_codes)
+
+    # Step 2: Get all item details in single query
+    items = frappe.db.sql("""
+        SELECT item_code, image
+        FROM `tabItem`
+        WHERE name IN %(codes)s
+    """, {
+        "codes": codes_tuple
+    }, as_dict=True)
+
+    return items
+
+
+
+@frappe.whitelist(allow_guest=True)
+def get_item_of_customer_by_user(customer):
+    if not customer:
+        return {"message": "Customer not found"}
+
+    catalog_names = frappe.get_all(
+        "Cataloge Master",
+        filters={"customer": customer},
+        pluck="name"
+    )
+
+    items = frappe.get_all(
+        "Cataloge Item Details",
+        filters={"parent": ["in", catalog_names]},
+        fields=["parent", "item_code", "item_name", "trending", "folder", "wishlist"]
+    )
+
+    return items
+
+
+@frappe.whitelist(allow_guest=True)
+def remove_item_of_customer_by_user(customer, item_code):
+
+    if not customer:
+        return {"message": "Customer not found"}
+
+    # convert item_code to list
+    if isinstance(item_code, str):
+        try:
+            item_code = json.loads(item_code)
+        except:
+            item_code = [item_code]
+
+    catalog_names = frappe.get_all(
+        "Cataloge Master",
+        filters={"customer": customer},
+        pluck="name"
+    )
+
+    if not catalog_names:
+        return {"message": "No catalog found for customer"}
+
+    deleted_items = []
+
+    for catalog in catalog_names:
+
+        doc = frappe.get_doc("Cataloge Master", catalog)
+
+        new_rows = []
+
+        for row in doc.cataloge_item_details:
+
+            if row.item_code not in item_code:
+                new_rows.append(row)
+            else:
+                deleted_items.append(row.item_code)
+
+        doc.set("cataloge_item_details", [])
+        doc.set("cataloge_item_details", new_rows)
+        doc.save(ignore_permissions=True)
+
+    frappe.db.commit()
+
+    return {
+        "deleted_items": deleted_items
+    }
+
+
+import frappe
+
+@frappe.whitelist(allow_guest=True)
+def get_wishlist_item_customer_wise(customer):
+
+    if not customer:
+        return {"message": "Customer not found"}
+
+    catalog_name = frappe.db.get_value(
+        "Cataloge Master",
+        {"customer": customer},
+        "name"
+    )
+
+    if not catalog_name:
+        return {"message": "No catalog found for customer"}
+
+    doc = frappe.get_doc("Cataloge Master", catalog_name)
+
+    new_rows = []
+
+    for row in doc.cataloge_item_details:
+        if row.wishlist == 1:
+            new_rows.append({
+                "item_code": row.item_code,
+                "item_name": row.item_name,
+                "trending": row.trending,
+                "folder": row.folder,
+                "wishlist": row.wishlist
+            })
+
+    return {
+        "new_rows": new_rows
+    }
