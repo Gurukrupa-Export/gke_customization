@@ -1,0 +1,375 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-01-09 16:20:07.700173",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "edit_bom",
+  "item_code",
+  "serial_no",
+  "hsn_sac",
+  "item_group",
+  "column_break_kfci",
+  "tag_no",
+  "item_name",
+  "bom",
+  "item_category",
+  "diamond_quality",
+  "description_section",
+  "description",
+  "image_section",
+  "image",
+  "image_view",
+  "section_break_hxqp",
+  "qty",
+  "column_break_rcim",
+  "uom",
+  "section_break_zutr",
+  "rate",
+  "amount",
+  "column_break_xurv",
+  "base_rate",
+  "base_amount",
+  "section_break_bynu",
+  "metal_amount",
+  "diamond_amount",
+  "finding_amount",
+  "making_amount",
+  "certification_amount",
+  "freight_amount",
+  "column_break_mjav",
+  "gemstone_amount",
+  "other_material_amount",
+  "hallmarking_amount",
+  "custom_duty_amount",
+  "other_amount",
+  "section_break_cdba",
+  "total_weight",
+  "column_break_bvln",
+  "warehouse",
+  "references_section",
+  "sales_invoice",
+  "column_break_pzba",
+  "return_sales_invoice",
+  "sales_invoice_item"
+ ],
+ "fields": [
+  {
+   "fieldname": "edit_bom",
+   "fieldtype": "Button",
+   "label": "Edit BOM"
+  },
+  {
+   "fieldname": "column_break_kfci",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "item_code.item_name",
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "print_hide": 1
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Link",
+   "label": "Serial No",
+   "options": "Serial No"
+  },
+  {
+   "fieldname": "bom",
+   "fieldtype": "Link",
+   "label": "BOM",
+   "options": "BOM"
+  },
+  {
+   "fetch_from": "item_code.item_category",
+   "fieldname": "item_category",
+   "fieldtype": "Link",
+   "label": "Item Category",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "diamond_quality",
+   "fieldtype": "Link",
+   "label": "Diamond Quality",
+   "options": "Attribute Value"
+  },
+  {
+   "fetch_from": "item_code.description",
+   "fetch_if_empty": 1,
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description",
+   "width": "200px"
+  },
+  {
+   "fetch_from": "item_code.item_group",
+   "fetch_if_empty": 1,
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Item Group",
+   "options": "Item Group"
+  },
+  {
+   "fieldname": "description_section",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "fieldname": "image_section",
+   "fieldtype": "Section Break",
+   "label": "Image"
+  },
+  {
+   "fetch_from": "item_code.image",
+   "fetch_if_empty": 1,
+   "fieldname": "image",
+   "fieldtype": "Attach",
+   "label": "Image"
+  },
+  {
+   "fieldname": "image_view",
+   "fieldtype": "Image",
+   "label": "Image View",
+   "options": "image"
+  },
+  {
+   "fieldname": "section_break_hxqp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_rcim",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Nos",
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_zutr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Rate",
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_xurv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "base_rate",
+   "fieldtype": "Currency",
+   "label": "Rate (Company Currency)",
+   "options": "Company:company:default_currency",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "base_amount",
+   "fieldtype": "Currency",
+   "label": "Amount (Company Currency)",
+   "options": "Company:company:default_currency",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_bynu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "metal_amount",
+   "fieldtype": "Currency",
+   "label": "Metal Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond_amount",
+   "fieldtype": "Currency",
+   "label": "Diamond Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "finding_amount",
+   "fieldtype": "Currency",
+   "label": "Finding Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "making_amount",
+   "fieldtype": "Currency",
+   "label": "Making Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "certification_amount",
+   "fieldtype": "Currency",
+   "label": "Certification Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "freight_amount",
+   "fieldtype": "Currency",
+   "label": "Freight Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_mjav",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "gemstone_amount",
+   "fieldtype": "Currency",
+   "label": "Gemstone Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "other_material_amount",
+   "fieldtype": "Currency",
+   "label": "Other Material Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "hallmarking_amount",
+   "fieldtype": "Currency",
+   "label": "Hallmarking Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_duty_amount",
+   "fieldtype": "Currency",
+   "label": "Custom Duty Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "other_amount",
+   "fieldtype": "Currency",
+   "label": "Other Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_cdba",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_weight",
+   "fieldtype": "Float",
+   "label": "Total Weight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_bvln",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "references_section",
+   "fieldtype": "Section Break",
+   "label": "References"
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_pzba",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sales_invoice_item",
+   "fieldtype": "Data",
+   "label": "Sales Invoice Item",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "columns": 4,
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "bold": 1,
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity"
+  },
+  {
+   "fetch_from": "item_code.gst_hsn_code",
+   "fetch_if_empty": 1,
+   "fieldname": "hsn_sac",
+   "fieldtype": "Data",
+   "label": "HSN/SAC"
+  },
+  {
+   "fieldname": "tag_no",
+   "fieldtype": "Data",
+   "label": "Tag No"
+  },
+  {
+   "fieldname": "return_sales_invoice",
+   "fieldtype": "Link",
+   "label": "Return Sales Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-20 16:49:59.880417",
+ "modified_by": "aditya_r@gkexport.com",
+ "module": "Gke Price List",
+ "name": "Product Return Form Item",
+ "owner": "aditya_r@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,335 @@
+{
+ "actions": [],
+ "autoname": "format:PRF-{YYYY}-{#####}",
+ "creation": "2026-01-09 14:15:44.504200",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "basic_information_section",
+  "customer",
+  "customer_name",
+  "is_jewlex_credit_note",
+  "column_break_pcxn",
+  "company",
+  "branch",
+  "sales_type",
+  "column_break_fmev",
+  "date",
+  "posting_time",
+  "status",
+  "section_break_khlv",
+  "credit_note_type",
+  "credit_note_subtype",
+  "column_break_zfrc",
+  "credit_note_rate_type",
+  "making_charges_type",
+  "return_material_type",
+  "section_break_pgcn",
+  "gold_rate_with_gst",
+  "column_break_wlwn",
+  "gold_rate",
+  "section_break_igyp",
+  "scan_barcode",
+  "items",
+  "section_break_gwzd",
+  "credit_note_invoice_item",
+  "section_break_rnmy",
+  "tax_category",
+  "sales_taxes_and_charges",
+  "section_break_hbmo",
+  "total_taxes_and_charges",
+  "column_break_ryza",
+  "grand_total",
+  "in_words",
+  "amended_from",
+  "section_break_xbxj",
+  "jwelex_credit_note_data"
+ ],
+ "fields": [
+  {
+   "fieldname": "basic_information_section",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_fmev",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "default": "Now",
+   "fieldname": "posting_time",
+   "fieldtype": "Time",
+   "label": "Posting Time",
+   "read_only": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nItem & BOM Creation\nSend to Pricing\nVerified\nApproved\nIssued\nCancelled",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_pcxn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_khlv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "credit_note_type",
+   "fieldtype": "Link",
+   "label": "Credit Note Type",
+   "options": "Credit Note Type",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_zfrc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "credit_note_subtype",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Credit Note SubType",
+   "options": "Credit Note Subtype",
+   "reqd": 1
+  },
+  {
+   "default": "With",
+   "fieldname": "making_charges_type",
+   "fieldtype": "Select",
+   "label": "Making Charges Type",
+   "options": "With\nWithout\nHalf",
+   "read_only_depends_on": "eval: doc.credit_note_subtype == \"Raw Material-Consignment\" || doc.credit_note_subtype == \"QC Fail-Repair\""
+  },
+  {
+   "depends_on": "eval: doc.credit_note_rate_type == 'Current Rate'",
+   "fieldname": "section_break_pgcn",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Product Return Form Item"
+  },
+  {
+   "fieldname": "section_break_gwzd",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_rnmy",
+   "fieldtype": "Section Break",
+   "label": "Taxs"
+  },
+  {
+   "fieldname": "sales_taxes_and_charges",
+   "fieldtype": "Table",
+   "label": "Sales Taxes and Charges",
+   "options": "Sales Taxes and Charges"
+  },
+  {
+   "fieldname": "section_break_hbmo",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_taxes_and_charges",
+   "fieldtype": "Currency",
+   "label": "Total Taxes and Charges",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ryza",
+   "fieldtype": "Column Break"
+  },
+  {
+   "bold": 1,
+   "default": "0",
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Grand Total",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "in_words",
+   "fieldtype": "Small Text",
+   "label": "In Words",
+   "read_only": 1
+  },
+  {
+   "fieldname": "credit_note_invoice_item",
+   "fieldtype": "Table",
+   "label": "Credit Note Invoice Item",
+   "options": "Product Return Form E Invoice Item"
+  },
+  {
+   "default": "0",
+   "fieldname": "gold_rate_with_gst",
+   "fieldtype": "Currency",
+   "label": "Metal Rate With GST",
+   "mandatory_depends_on": "eval: doc.credit_note_rate_type == 'Current Rate'",
+   "precision": "2"
+  },
+  {
+   "fieldname": "column_break_wlwn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "gold_rate",
+   "fieldtype": "Currency",
+   "label": "Metal Rate",
+   "mandatory_depends_on": "eval: doc.credit_note_rate_type == 'Current Rate'",
+   "precision": "2"
+  },
+  {
+   "fieldname": "section_break_igyp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "credit_note_subtype.rate_type",
+   "fetch_if_empty": 1,
+   "fieldname": "credit_note_rate_type",
+   "fieldtype": "Select",
+   "label": "Credit Note Rate Type",
+   "options": "\nInvoice Rate\nCurrent Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "scan_barcode",
+   "fieldtype": "Data",
+   "label": "Scan Barcode",
+   "options": "Barcode"
+  },
+  {
+   "depends_on": "eval: doc.credit_note_subtype == \"Raw Material-Consignment\"",
+   "fieldname": "return_material_type",
+   "fieldtype": "Select",
+   "label": "Return Material Type",
+   "options": "\nMetal-Finding\nDiamond-Gemstone",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_type",
+   "fieldtype": "Link",
+   "label": "Sales Type",
+   "options": "Sales Type",
+   "reqd": 1
+  },
+  {
+   "fieldname": "tax_category",
+   "fieldtype": "Link",
+   "label": "Tax Category",
+   "options": "Tax Category"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Product Return Form",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_jewlex_credit_note",
+   "fieldtype": "Check",
+   "label": "Is Jewlex Credit Note"
+  },
+  {
+   "fieldname": "section_break_xbxj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "jwelex_credit_note_data",
+   "fieldtype": "Code",
+   "hidden": 1,
+   "label": "Jwelex Credit Note Data",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-03-18 11:55:13.766560",
+ "modified_by": "aditya_r@gkexport.com",
+ "module": "Gke Price List",
+ "name": "Product Return Form",
+ "naming_rule": "Expression",
+ "owner": "aditya_r@gkexport.com",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
