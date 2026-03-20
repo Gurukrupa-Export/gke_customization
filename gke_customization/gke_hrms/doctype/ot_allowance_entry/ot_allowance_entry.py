@@ -585,7 +585,7 @@ class OTAllowanceEntry(Document):
 				row.get("employee"),
 				row.get("attendance_date")
 			)
-			frappe.msgprint(f"Row: {row}")
+			#frappe.msgprint(f"Row: {row}")
 
 			self.append("ot_details", row)
 
