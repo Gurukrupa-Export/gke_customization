@@ -109,7 +109,7 @@ def on_submit(self, method):
             continue
 
         attendance_doc = frappe.get_doc("Attendance", attendance_name)
-        frappe.msgprint(f"Attendance Doc: {attendance_doc.name}")
+        #frappe.msgprint(f"Attendance Doc: {attendance_doc.name}")
 
         # Get proper shift window (handles OT + night shift)
         shift_start, shift_end = get_shift_window(self, attendance_date)
@@ -122,17 +122,17 @@ def on_submit(self, method):
                 # "shift": self.shift,
                 "skip_auto_attendance": 0,
                 "custom_attendance_request": self.name,
-                # "time": ["between", [shift_start, shift_end]],
+                "time": ["between", [shift_start, shift_end]],
             },
             order_by="time asc"
         )
 
         if not logs:
-            frappe.msgprint(f"No logs found for {attendance_date}")
+            #frappe.msgprint(f"No logs found for {attendance_date}")
             continue
 
         attendance_data = get_attendance(self, logs, attendance_date)
-        frappe.msgprint(f"Attndance Data : {attendance_data}")
+        #frappe.msgprint(f"Attndance Data : {attendance_data}")
 
         attendance_doc.db_set({
             "status": attendance_data["status"],
@@ -146,7 +146,7 @@ def on_submit(self, method):
         })
 
         attendance_doc.reload()
-        frappe.msgprint(f"Updated Attendance: {attendance_doc.as_dict()}")
+        #frappe.msgprint(f"Updated Attendance: {attendance_doc.as_dict()}")
 
         # Link all logs to this attendance
         for log in logs:
