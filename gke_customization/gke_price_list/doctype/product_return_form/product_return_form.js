@@ -14,11 +14,11 @@ frappe.ui.form.on("Product Return Form", {
 	},
 	refresh(frm) {
 
-		frm.add_custom_button(__("Create Return"), function () {
-			frm.call("create_return_sales_invoices").then(() => {
-				frm.msgprint(__("Return Sales Invoices created successfully"));
-			});
-		});
+		// frm.add_custom_button(__("Create Return"), function () {
+		// 	frm.call("create_return_sales_invoices").then(() => {
+		// 		frm.msgprint(__("Return Sales Invoices created successfully"));
+		// 	});
+		// });
 
 		set_tag_no_mandatory(frm);
 
