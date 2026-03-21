@@ -35,8 +35,7 @@ frappe.ui.form.on("Holiday Punch", {
       args: {
         details: frm.doc.details,
         date: frm.doc.date,
-        start_time: frm.doc.start_time,
-        end_time: frm.doc.end_time,
+        shift_name: frm.doc.shift_name,
       },
       callback: function (r) {
         if (!r.exc) {
