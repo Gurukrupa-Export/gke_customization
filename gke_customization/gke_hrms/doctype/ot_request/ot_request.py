@@ -104,7 +104,7 @@ class OTRequest(Document):
 						f"{child.employee_id} on {work_date} was at {last_checkin_time}."
 					)
 
-		self.check_attendance_request_exists()
+		# self.check_attendance_request_exists()
 		self.set_max_ot_hrs()
 	
 	def set_max_ot_hrs(self):
