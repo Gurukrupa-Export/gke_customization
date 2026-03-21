@@ -3,12 +3,14 @@
 
 import frappe
 from frappe.model.document import Document
+from datetime import datetime, timedelta
 from frappe.utils import get_datetime, get_datetime_str, getdate, get_time, add_to_date
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift_timings
 from gke_customization.gke_hrms.utils import get_employees_by_shift
 
 
 class HolidayPunch(Document):
+
 	def on_submit(self):
 
 		try:
@@ -109,7 +111,6 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
 
 	# if row doest have checkins then skip it
 	if not any(row.get("employee_checkin") is None for row in rows):
-		# frappe.msgprint(f"Employee {employee} Skipped..........")
 		return
 
 	# -------------------------
@@ -188,7 +189,7 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
 
 
 @frappe.whitelist()
-def add_checkins(details, date, start_time, end_time):
+def add_checkins(details, date, shift_name):
 
 	if isinstance(details, str):
 		details = frappe.json.loads(details)
@@ -208,8 +209,7 @@ def add_checkins(details, date, start_time, end_time):
 		one_data = check_employee_punch(
 			emp_rows,
 			date,
-			start_time,
-			end_time
+			shift_name
 		)
 
 		merged_data.extend(one_data)
@@ -221,26 +221,30 @@ def add_checkins(details, date, start_time, end_time):
 	return merged_data
 
 
-def check_employee_punch(employee_details, shift_date, start_time, end_time):
+def check_employee_punch(employee_details, shift_date, shift_name):
 
 	if not employee_details:
 		return employee_details
 
-	start_time_obj = get_time(start_time)
-	end_time_obj = get_time(end_time)
+	shift_doc = frappe.get_doc("Shift Type", shift_name)
+
+	start_time_obj = get_time(shift_doc.start_time)
+	end_time_obj = get_time(shift_doc.end_time)
 
 	is_night_shift = start_time_obj > end_time_obj
 
 	employee_details.sort(key=lambda x: x["time"])
 
-	shift_start_dt = get_datetime(f"{shift_date} {start_time}")
+	shift_start_dt = get_datetime(f"{shift_date} {start_time_obj}")
+	actual_start_dt = shift_start_dt - timedelta(minutes=shift_doc.get("begin_check_in_before_shift_start_time", 0))
+
 
 	if is_night_shift:
 		shift_end_date = add_to_date(shift_date, days=1)
 	else:
 		shift_end_date = shift_date
 
-	shift_end_dt = get_datetime(f"{shift_end_date} {end_time}")
+	shift_end_dt = get_datetime(f"{shift_end_date} {end_time_obj}")
 
 	# -------------------------
 	# check if any punch after shift end
@@ -261,7 +265,7 @@ def check_employee_punch(employee_details, shift_date, start_time, end_time):
 	for d in employee_details:
 		dt = get_datetime(d["time"])
 
-		if shift_start_dt <= dt <= shift_end_dt:
+		if actual_start_dt <= dt <= shift_end_dt:
 			punches.append(dt)
 
 	if not punches:
