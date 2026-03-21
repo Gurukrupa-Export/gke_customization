@@ -55,8 +55,10 @@
    "label": "Search"
   },
   {
+   "collapsible": 1,
    "fieldname": "section_break_buh6b",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Employees"
   },
   {
    "fieldname": "add_new_punch",
@@ -117,7 +119,6 @@
    "allow_bulk_edit": 1,
    "fieldname": "employees",
    "fieldtype": "Table",
-   "label": "Employees",
    "options": "Employee Multiselect"
   },
   {
@@ -139,7 +140,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-03-18 11:11:44.746780",
+ "modified": "2026-03-21 15:39:55.883740",
  "modified_by": "aditya_r@gkexport.com",
  "module": "GKE HRMS",
  "name": "Holiday Punch",

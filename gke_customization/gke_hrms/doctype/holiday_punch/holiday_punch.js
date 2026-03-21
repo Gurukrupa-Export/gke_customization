@@ -35,8 +35,7 @@ frappe.ui.form.on("Holiday Punch", {
       args: {
         details: frm.doc.details,
         date: frm.doc.date,
-        start_time: frm.doc.start_time,
-        end_time: frm.doc.end_time,
+        shift_name: frm.doc.shift_name,
       },
       callback: function (r) {
         if (!r.exc) {
@@ -59,54 +58,3 @@ frappe.ui.form.on("Holiday Punch", {
     });
   },
 });
-
-
-// function add_punch(frm) {
-// 	const dateField = frm.doc.date;
-// 	const timeField = frm.doc.end_time;
-// 	const [year, month, day] = dateField.split('-');
-// 	const [hour, minute, second] = timeField.split(':');
-// 	const dateTime = new Date(year, month - 1, day, hour, minute, second);
-// 	const addLeadingZero = num => num < 10 ? '0' + num : num;
-// 	const formattedDateTime = `${addLeadingZero(dateTime.getFullYear())}-${addLeadingZero(dateTime.getMonth() + 1)}-${addLeadingZero(dateTime.getDate())} ${addLeadingZero(dateTime.getHours())}:${addLeadingZero(dateTime.getMinutes())}:${addLeadingZero(dateTime.getSeconds())}`;
-
-// 	let new_punches = [];
-
-// 	if (frm.doc.details.length % 2 == 0) {
-// 		new_punches.push({
-// 			"date": frm.doc.date,
-// 			"time": cur_frm.doc.details[1].time,
-// 			"source": frm.doc.for_od ? "Outdoor Duty" : "Manual Punch"
-// 		});
-// 		new_punches.push({
-// 			"date": frm.doc.date,
-// 			"time": formattedDateTime,
-// 			"source": frm.doc.for_od ? "Outdoor Duty" : "Manual Punch"
-// 		});
-// 	} else {
-// 		new_punches.push({
-// 			"date": frm.doc.date,
-// 			"time": formattedDateTime,
-// 			"source": frm.doc.for_od ? "Outdoor Duty" : "Manual Punch"
-// 		});
-// 	}
-	
-// 	// new_punches.push({
-// 	// 	"date": frm.doc.date,
-// 	// 	"time": time,
-// 	// 	"source": frm.doc.for_od ? "Outdoor Duty" : "Manual Punch"
-// 	// });
-
-// 	var checkins = frm.doc.details || [];
-// 	new_punches.forEach(punch => {
-// 		checkins.push(punch);
-// 	});
-// 	checkins.sort((a, b) => moment(a.time).diff(b.time, 'second'));
-
-// 	frm.doc.details = [];
-// 	$.each(checkins || [], function(i, d) {
-// 		d.type = i % 2 == 0 ? "IN" : "OUT";
-// 		frm.add_child("details", d);
-// 	});
-
-// }
