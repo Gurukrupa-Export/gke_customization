@@ -16,7 +16,7 @@ class HolidayPunch(Document):
 		For large datasets (100+ rows), offload to a background job to avoid
 		request timeouts. For small datasets, process inline as before.
 		"""
-		ROW_THRESHOLD = 100
+		ROW_THRESHOLD = 50
 
 		if len(self.details) >= ROW_THRESHOLD:
 			# Enqueue a background job — returns immediately to the browser
