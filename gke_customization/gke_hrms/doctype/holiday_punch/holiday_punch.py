@@ -12,6 +12,37 @@ from gke_customization.gke_hrms.utils import get_employees_by_shift
 class HolidayPunch(Document):
 
 	def on_submit(self):
+		"""
+		For large datasets (100+ rows), offload to a background job to avoid
+		request timeouts. For small datasets, process inline as before.
+		"""
+		ROW_THRESHOLD = 50
+
+		if len(self.details) >= ROW_THRESHOLD:
+			# Enqueue a background job — returns immediately to the browser
+			frappe.enqueue(
+				method=process_holiday_punch_bg,
+				queue="long",          # use the 'long' queue for heavy jobs
+				timeout=1800,          # 30 minutes max
+				job_id=f"holiday_punch_{self.name}",  # deduplicate re-submits
+				is_async=True,
+				now=True,
+				docname=self.name,
+			)
+			frappe.msgprint(
+				"Processing in background. You will be notified once attendance is updated.",
+				alert=True,
+			)
+		else:
+			# Small batch — process synchronously as before
+			try:
+				self._process_all()
+				frappe.msgprint("Attendance Updated")
+			except Exception as e:
+				frappe.db.rollback()
+				frappe.throw(str(e))
+
+	def _process_all(self):
 
 		try:
 			self.update_emp_checkin()
@@ -42,10 +73,23 @@ class HolidayPunch(Document):
 
 	@frappe.whitelist()
 	def validate_punch(self):
-		shift_datetime = get_datetime(f"{getdate(self.date)} {get_time(self.start_time)}")
-		shift_det = get_employee_shift_timings(self.employee, shift_datetime, True)[1]
-		if not (get_datetime(self.new_punch) > shift_det.actual_start and get_datetime(self.new_punch) < shift_det.actual_end):
-			frappe.throw((f"Punch must be in between {shift_det.actual_start} and {shift_det.actual_end}"))
+
+		shift_datetime = get_datetime(
+			f"{getdate(self.date)} {get_time(self.start_time)}"
+		)
+
+		shift_det = get_employee_shift_timings(
+			self.employee,
+			shift_datetime,
+			True,
+		)[1]
+
+		if not (
+			get_datetime(self.new_punch) > shift_det.actual_start
+			and get_datetime(self.new_punch) < shift_det.actual_end
+		):
+
+			frappe.throw(f"Punch must be between {shift_det.actual_start} and {shift_det.actual_end}")
 
 	def update_emp_checkin(self):
 		for punch in self.details:
@@ -316,3 +360,24 @@ def make_row(employee_details, punch_type, dt):
 	}
 
 
+def process_holiday_punch_bg(docname):
+    """Called by the Frappe background worker."""
+    try:
+        doc = frappe.get_doc("Holiday Punch", docname)
+        doc._process_all()
+        frappe.db.commit()
+
+        # Notify the submitter
+        frappe.msgprint(
+            msg=f"Holiday Punch {docname} — Attendance Updated",
+            alert=True,
+            indicator="green"
+        )
+    except Exception:
+        frappe.db.rollback()
+        frappe.log_error(message=frappe.get_traceback(), title=f"Holiday Punch BG Error: {docname}")
+        frappe.msgprint(
+            msg=f"Holiday Punch {docname} — Error",
+            alert=True,
+            indicator="red",
+        )
