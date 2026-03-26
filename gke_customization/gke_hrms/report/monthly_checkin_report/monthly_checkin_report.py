@@ -114,7 +114,7 @@ def get_employee_checkins(employee, date):
     attendance = frappe.db.exists("Attendance", {"employee": employee, "attendance_date": date, "docstatus": 1})
     attendance_data = {}
     if attendance:
-        attendance_data = frappe.db.get_value("Attendance", {"employee": employee, "attendance_date": date, "docstatus": 1}, ["name", "in_time", "out_time"], as_dict=1)
+        attendance_data = frappe.db.get_value("Attendance", {"employee": employee, "attendance_date": date, "docstatus": 1}, ["name", "in_time", "out_time", "custom_is_employee_attendance_tool"], as_dict=1)
 
     if attendance_data and attendance_data.get("in_time") and attendance_data.get("out_time"):
         start_dt = get_datetime(attendance_data.in_time)
@@ -163,6 +163,10 @@ def get_employee_checkins(employee, date):
     error_status = ""
     if len(checkins) % 2 != 0:
         error_status = "ERR"
+
+    if (not in_times or not out_times) and attendance_data and attendance_data.get("custom_is_employee_attendance_tool") and attendance_data.get("in_time") and attendance_data.get("out_time"):
+        in_times.append(attendance_data.in_time.strftime("%H:%M:%S"))
+        out_times.append(attendance_data.out_time.strftime("%H:%M:%S"))
 
     return in_times, out_times, error_status
 
