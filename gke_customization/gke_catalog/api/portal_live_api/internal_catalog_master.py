@@ -13,7 +13,7 @@ import requests
 import json
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_wishlist_item_by_user(items, customers):
     """
     Save selected items to 'Cataloge Master' for one or more customers.
@@ -132,7 +132,7 @@ def get_wishlist_item_by_user(items, customers):
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def add_item_in_folder_user(status=None, name=None, item=None, customer=None):
 
     if not customer:
@@ -234,7 +234,7 @@ def add_item_in_folder_user(status=None, name=None, item=None, customer=None):
     return {"message": "Updated successfully"}
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_attribute_data_for_user():
     Sizer_Type = frappe.get_doc("Item Attribute", "Sizer Type")
     
@@ -340,7 +340,7 @@ def get_attribute_data_for_user():
     }
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def user_wise_item(user, company=None):
 
     conditions = []
