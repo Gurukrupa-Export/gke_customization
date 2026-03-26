@@ -110,15 +110,15 @@ def on_submit(self, method):
         # Get proper shift window (handles OT + night shift)
         shift_start, shift_end = get_shift_window(self, attendance_date)
 
-        logs = frappe.db.get_list(
+        logs = frappe.db.get_all(
             "Employee Checkin",
             fields=["name", "time", "log_type", "source"],
             filters={
                 "employee": self.employee,
-                "shift": self.shift,
+                # "shift": self.shift,
                 "skip_auto_attendance": 0,
                 "custom_attendance_request": self.name,
-                # "time": ["between", [shift_start, shift_end]],
+                "time": ["between", [shift_start, shift_end]],
             },
             order_by="time asc"
         )
@@ -138,6 +138,8 @@ def on_submit(self, method):
             "early_exit": attendance_data["early_exit"],
             "late_entry": attendance_data["late_entry"]
         })
+
+        attendance_doc.reload()
 
         # Link all logs to this attendance
         for log in logs:
