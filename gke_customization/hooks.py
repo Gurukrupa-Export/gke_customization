@@ -153,7 +153,18 @@ scheduler_events = {
     #     "gke_customization.gke_hrms.doc_events.shift_logout.logout_users_after_shift"
     
         "gke_customization.gke_hrms.sync_checkin.sync_biometric_checkins" # new script for Sync biometric checkins
-    ]
+    ],
+     "cron": {
+         "30 9 * * *": [
+        "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
+        ],
+        "0 15 * * *": [
+            "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
+        ],
+        "0 23 * * *": [
+            "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
+        ]
+    }
 
 }
 
