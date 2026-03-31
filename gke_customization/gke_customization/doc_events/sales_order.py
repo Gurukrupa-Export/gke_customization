@@ -51,6 +51,21 @@ def make_delivery_note(source_name, target_doc=None, kwargs=None):
 		"Sales Order": {"doctype": "Delivery Note", "validation": {"docstatus": ["=", 1]}},
 		"Sales Taxes and Charges": {"doctype": "Sales Taxes and Charges", "reset_value": True},
 		"Sales Team": {"doctype": "Sales Team", "add_if_empty": True},
+		"Sales Order E Invoice Item": {
+	        "doctype": "Delivery Note E Invoice Item",  # target child doctype
+	        "add_if_empty": True,
+	        "field_map": {
+	            "item_code": "item_code",
+	            "item_name": "item_name",
+	            "uom": "uom",
+	            "qty": "qty",
+	            "rate": "rate",
+	            "amount": "amount",
+	            "tax_amount": "tax_amount",
+	            "amount_with_tax": "amount_with_tax",
+	            "tax_rate": "tax_rate",
+	        }
+	    },
 	}
 
 	def set_missing_values(source, target):
