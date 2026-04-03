@@ -134,10 +134,10 @@ def _process_single_log(log, existing, last_punch_map, time_threshold):
     )
 
     if not employee:
-        _log_error(
-            title="Biometric Sync — Employee not found",
-            message=f"No active employee with attendance_device_id='{userid}' (username={log.get('username')})",
-        )
+        # _log_error(
+        #     title="Biometric Sync — Employee not found",
+        #     message=f"No active employee with attendance_device_id='{userid}' (username={log.get('username')})",
+        # )
         return "skipped"
 
     # ── Duplicate check ───────────────────────────────────────────────
