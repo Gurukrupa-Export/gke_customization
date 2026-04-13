@@ -382,7 +382,6 @@
 # Copyright (c) 2025, Gurukrupa Export and contributors
 # For license information, please see license.txt
 
-# 22-01-2026
 import frappe
 from frappe.model.document import Document
 from frappe.utils import getdate, add_to_date, get_datetime, get_datetime_str, time_diff, getdate, get_timedelta, get_time
@@ -390,6 +389,7 @@ from frappe import _
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift_timings
 from datetime import timedelta, datetime
 from frappe.query_builder import DocType
+from pypika.terms import Case
 from frappe.query_builder.functions import IfNull, Sum, Timestamp, Date
 from frappe.query_builder import CustomFunction
 from collections import defaultdict
@@ -454,6 +454,25 @@ class OTAllowanceEntry(Document):
 		Time = CustomFunction("Time", ["time"])
 		Sec_To_Time = CustomFunction("SEC_TO_TIME", ["date"])
 
+
+		shift_start_ts = Timestamp(
+			Date(Attendance.in_time),
+			ShiftType.start_time
+		)
+		shift_end_ts = Case() \
+			.when(
+				ShiftType.end_time < ShiftType.start_time,
+				Timestamp(
+					Date(Attendance.in_time) + 1,
+					ShiftType.end_time
+				)
+			).else_(
+				Timestamp(
+					Date(Attendance.in_time),
+					ShiftType.end_time
+				)
+			)
+
 		sub_query_personal_out_log = (
 			frappe.qb.from_(PersonalOutLog)
 			.select(IfNull(Sum(To_Seconds(PersonalOutLog.total_hours)), 0))
@@ -465,35 +484,73 @@ class OTAllowanceEntry(Document):
 			)
 		)
 
+		# ot_hours = (
+		# 	# Late OT (ONLY if OUT > Shift End)
+		# 	ifelse(
+		# 		Attendance.out_time > Timestamp(Date(Attendance.in_time), ShiftType.end_time), ################
+		# 		To_Seconds(
+		# 			Time_Diff(
+		# 				Attendance.out_time,
+		# 				Timestamp(Date(Attendance.in_time), ShiftType.end_time) #################
+		# 			)
+		# 		),
+		# 		0
+		# 	)
+
+		# 	+
+
+		# 	# Early OT (ONLY if IN < Shift Start)
+		# 	ifelse(
+		# 		Timestamp(Date(Attendance.in_time), ShiftType.start_time) > Attendance.in_time,
+		# 		To_Seconds(
+		# 			Time_Diff(
+		# 				Timestamp(Date(Attendance.in_time), ShiftType.start_time),
+		# 				Attendance.in_time
+		# 			)
+		# 		),
+		# 		0
+		# 	)
+
+		# 	# Personal Out deduction 
+		# 	- sub_query_personal_out_log
+		# ).as_("attn_ot_hrs")
+
 		ot_hours = (
-			# Late OT (ONLY if OUT > Shift End)
-			ifelse(
-				Attendance.out_time > Timestamp(Date(Attendance.in_time), ShiftType.end_time),
-				To_Seconds(
-					Time_Diff(
-						Attendance.out_time,
-						Timestamp(Date(Attendance.in_time), ShiftType.end_time)
-					)
-				),
-				0
-			)
+				# Late OT
+				ifelse(
+					Attendance.out_time > shift_end_ts,
 
-			+
+					To_Seconds(
+						Time_Diff(
+							Attendance.out_time,
+							shift_end_ts
+						)
+					),
 
-			# Early OT (ONLY if IN < Shift Start)
-			ifelse(
-				Timestamp(Date(Attendance.in_time), ShiftType.start_time) > Attendance.in_time,
-				To_Seconds(
-					Time_Diff(
-						Timestamp(Date(Attendance.in_time), ShiftType.start_time),
-						Attendance.in_time
-					)
-				),
-				0
-			)
-			# Personal Out deduction 
-			- sub_query_personal_out_log
-		).as_("attn_ot_hrs")
+					0
+				)
+
+				+
+
+				# Early OT
+				ifelse(
+					shift_start_ts > Attendance.in_time,
+
+					To_Seconds(
+						Time_Diff(
+							shift_start_ts,
+							Attendance.in_time
+						)
+					),
+
+					0
+				)
+
+				-
+
+				sub_query_personal_out_log
+
+			).as_("attn_ot_hrs")
 		
 		query = (
 			frappe.qb.from_(Attendance)
@@ -523,17 +580,34 @@ class OTAllowanceEntry(Document):
 			# 	&
 			# 	(To_Seconds(Time_Diff(Attendance.out_time, Timestamp(Date(Attendance.in_time), ShiftType.end_time))) > 0)
 			# )
+			# .where(
+			# 	(Attendance.docstatus == 1)
+			# 	&
+			# 	(
+			# 		(Timestamp(Date(Attendance.in_time), ShiftType.start_time) > Attendance.in_time)
+			# 		|
+			# 		(
+			# 			To_Seconds(
+			# 				Time_Diff(
+			# 					Attendance.out_time,
+			# 					Timestamp(Date(Attendance.in_time), ShiftType.end_time)
+			# 				)
+			# 			) > 0
+			# 		)
+			# 	)
+			# )
+
 			.where(
 				(Attendance.docstatus == 1)
 				&
 				(
-					(Timestamp(Date(Attendance.in_time), ShiftType.start_time) > Attendance.in_time)
+					(shift_start_ts > Attendance.in_time)
 					|
 					(
 						To_Seconds(
 							Time_Diff(
 								Attendance.out_time,
-								Timestamp(Date(Attendance.in_time), ShiftType.end_time)
+								shift_end_ts
 							)
 						) > 0
 					)
@@ -576,8 +650,53 @@ class OTAllowanceEntry(Document):
 
 			if row.get("attendance"):
 				row.update({"employee_name": frappe.db.get_value("Attendance", row["attendance"], "employee_name")})
+			else:
+				row.update({"employee_name": frappe.db.get_value("Employee", row["employee"], "employee_name")})
+
+
+			# Lookup OT Request Hours (optional)
+			row["ot_request_hrs"] = self.get_ot_request_hrs(
+				row.get("employee"),
+				row.get("attendance_date")
+			)
+			#frappe.msgprint(f"Row: {row}")
 
 			self.append("ot_details", row)
+
+	def get_ot_request_hrs(self, employee, attendance_date):
+		"""Fetch ot_hours from Overtime Request Details child table of a submitted OT Request.
+
+		Conditions:
+		- Parent OT Request: workflow_state = 'Create Checkin', docstatus = 1 (submitted)
+		- Child Overtime Request Details: enable_ot_duration = 1
+		- Child: employee_id matches the given employee
+		- Child: DATE(work_start_date) matches attendance_date
+		"""
+		if not employee or not attendance_date:
+			return None
+
+		OTRequest = frappe.qb.DocType("OT Request")
+		OTRequestDetail = frappe.qb.DocType("Overtime Request Details")
+		DateFunc = CustomFunction("DATE", ["dt"])
+
+		result = (
+			frappe.qb.from_(OTRequestDetail)
+			.inner_join(OTRequest).on(OTRequestDetail.parent == OTRequest.name)
+			.select(OTRequestDetail.ot_hours)
+			.where(
+				(OTRequest.docstatus == 1)
+				& (OTRequest.workflow_state == "Create Checkin")
+				& (OTRequestDetail.enable_ot_duration == 1)
+				& (OTRequestDetail.employee_id == employee)
+				& (DateFunc(OTRequestDetail.work_start_date) == getdate(attendance_date))
+			)
+			.limit(1)
+			.run(as_dict=True)
+		)
+
+		if result:
+			return result[0].get("ot_hours")
+		return None
 
 	def get_weekoffs_ot(self, from_log=False):
 		holidays = self.get_emp_list()
@@ -585,7 +704,7 @@ class OTAllowanceEntry(Document):
 
 		for holiday_list, emp_list in holidays.items():
 			holidays_list = frappe.get_all("Holiday", {"parent": holiday_list,
-					"holiday_date":["between",[self.from_date, self.to_date]]}, ["holiday_date","weekly_off"])
+					"holiday_date":["between",[getdate(self.from_date), getdate(self.to_date)]]}, ["holiday_date","weekly_off"])
 			for emp in emp_list:
 				res += self.get_weekoffs_ot_per_employee(from_log, emp, holidays_list)
 		return res
@@ -622,6 +741,7 @@ class OTAllowanceEntry(Document):
 			}
 			fields = ["date(time) as date", "log_type as type", "time(time) as time", "time as date_time", "source","name as employee_checkin", 
 						f"date('{holiday.holiday_date}') as holiday", "employee", "shift"]
+						# f"date('{holiday.holiday_date}') as holiday", "employee", "employee_name","shift"]
 
 			data = frappe.get_list("Employee Checkin", filters= filters, fields=fields, order_by='date_time')
 			checkin = {}
@@ -777,16 +897,18 @@ def create_ot_log(ref_doc):
 	for field in fields:
 		# field == 'ot_allowance_entry'
 		data[field] = ref_doc.get(field)
-	
+
 	################## Edited By Aditya at 27-01-2026 ##################
 	# update employe name as per attendance log
 	data["employee_name"] = frappe.db.get_value("Attendance", ref_doc.attendance, "employee_name")
 	data['ot_allowance_entry'] = ref_doc.get("parent", "")
+	################## Edited By Aditya at 27-01-2026 ##################
 
 	doc.update(data)
 	doc.save()
 	ref_doc.ot_log = doc.name
 	return doc.name
+
 
 def get_shift(employee, date, default_shift):
 	shift = frappe.db.get_value("Shift Assignment", 

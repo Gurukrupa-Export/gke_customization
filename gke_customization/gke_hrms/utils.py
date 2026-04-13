@@ -1,8 +1,8 @@
 
-
 import frappe
 from frappe.utils import getdate, add_days, get_first_day, today
 from datetime import date, timedelta
+from typing import Optional, List
 import calendar
 from dateutil import relativedelta
 
@@ -416,6 +416,7 @@ def get_employee_shift(employee, for_date=None):
             "docstatus": 1,
             "start_date": ("<=", for_date),
             "end_date": ("is", "not set"),
+            "status": "Active"
         },
         "shift_type"
     )
@@ -429,6 +430,7 @@ def get_employee_shift(employee, for_date=None):
                 "docstatus": 1,
                 "start_date": ("<=", for_date),
                 "end_date": ("is", "set"),
+                "status": "Active"
             },
             "shift_type"
         )
@@ -442,3 +444,75 @@ def get_employee_shift(employee, for_date=None):
         employee,
         "default_shift"
     )
+    
+
+def get_employees_by_shift(
+    shift_type: str, 
+    date: Optional[date] = None
+) -> List[str]:
+	"""
+	Returns a list of Employees assigned to a given Shift Type.
+	
+	Logic Rules:
+	1. Check Shift Assignment:
+	   - Must match: shift_type
+	   - start_date <= today
+	   - end_date is null OR end_date >= today
+	   - status == "Active"
+	   - docstatus == 1 (Submitted)
+	2. Fallback to Employee:
+	   - Only if no active Shift Assignment exists for the employee today.
+	   - Must match: Employee.default_shift == shift_type
+	   - Employee.status == "Active"
+	"""
+	if not shift_type:
+		return []
+
+	current_date = date or today()
+
+	# 1. Find all active shift assignments for today
+	# We include 'creation' and 'start_date' to handle deduplication later
+	active_assignments = frappe.get_all("Shift Assignment", filters={
+		"status": "Active",
+		"start_date": ["<=", current_date],
+		"docstatus": 1
+	}, or_filters=[
+		["end_date", ">=", current_date],
+		["end_date", "is", "not set"]
+	], fields=["employee", "shift_type", "start_date", "creation"], order_by="start_date desc, creation desc")
+
+	# Map to identify the PRIMARY active assignment for each employee
+	# Since it's sorted by start_date desc, creation desc, the first one seen per employee is the latest.
+	primary_assigned_shift_map = {}
+	for d in active_assignments:
+		if d.employee not in primary_assigned_shift_map:
+			primary_assigned_shift_map[d.employee] = d.shift_type
+
+	# Employees whose primary assignment matches the requested shift_type
+	employees_matching_assignment = [
+		emp for emp, s_type in primary_assigned_shift_map.items() 
+		if s_type == shift_type
+	]
+
+	# 2. Fallback: Find employees with matching default_shift who have NO active assignment today
+	employees_with_any_assignment = list(primary_assigned_shift_map.keys())
+	
+	fallback_employees = frappe.get_all("Employee", filters={
+		"status": "Active",
+		"default_shift": shift_type,
+		"name": ["not in", employees_with_any_assignment] if employees_with_any_assignment else ["!=", ""]
+	}, pluck="name")
+
+	# Final check: Ensure employees matching via assignment are also Active
+	# (Though assignments usually imply active status, this is safer)
+	active_matching_assignment = []
+	if employees_matching_assignment:
+		active_matching_assignment = frappe.get_all("Employee", filters={
+			"status": "Active",
+			"name": ["in", employees_matching_assignment]
+		}, pluck="name")
+
+	# Combine results and remove duplicates
+	result = list(set(active_matching_assignment + fallback_employees))
+
+	return result
