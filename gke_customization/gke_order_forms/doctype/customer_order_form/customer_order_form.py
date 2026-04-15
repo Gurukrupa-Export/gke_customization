@@ -9,7 +9,58 @@ class CustomerOrderForm(Document):
 	def before_save(self):
 		if self.docstatus == 'Draft' or  not self.customer_order_form_detail:
 			frappe.throw('Fill atleast one row in table')
-	
+		
+		for weight in self.customer_order_form_detail:
+			weight.setting_type = frappe.db.get_value("BOM", weight.design_code_bom, "setting_type")
+			if weight.metal_and_finding_weight:
+				tolerance_data = frappe.db.get_all(
+					'Metal Tolerance Table',
+					filters={
+						'weight_type': 'Net Weight',
+						'parent': weight.customer_code
+					},
+					fields=[
+						'from_weight',
+						'to_weight',
+						'tolerance_range'
+					]
+				)
+
+				for row in tolerance_data:
+					if row['from_weight'] <= weight.metal_and_finding_weight <= row['to_weight']:
+						net_tolerance = row['tolerance_range']
+
+						tolerance = (weight.metal_and_finding_weight * net_tolerance) / 100
+
+						max_weight = weight.metal_and_finding_weight + tolerance
+						min_weight = weight.metal_and_finding_weight - tolerance
+
+						weight.max_net = max_weight
+						weight.min_net = min_weight
+
+
+				#Diamond Weight
+				dia_tolerance = frappe.db.get_value('Customer Attributes',{'name': weight.customer_code}, 'diamond_tolerance' )
+				if weight.diamond_weight:
+					dia_wgt = weight.diamond_weight
+					if dia_tolerance:
+						tolerance = (dia_wgt * dia_tolerance) / 100
+						
+						weight.max_diamond = dia_wgt + tolerance
+						weight.min_diamond = dia_wgt - tolerance
+
+
+				#Gross Weight
+				# gross tolerance
+				gross_tolerance = frappe.db.get_value('Metal Tolerance Table',{'weight_type': 'Gross Weight', 'parent': weight.customer_code}, 'tolerance_range' )
+				if weight.gross_weight:
+					gross_wgt = weight.gross_weight
+					tolerance = (gross_wgt * gross_tolerance) / 100
+					weight.max_weight = gross_wgt + tolerance if tolerance else 0
+					weight.min_weight = gross_wgt - tolerance if tolerance else 0
+     
+     
+		
 	def validate(self):
 		set_data(self)
 		# calculate_qty(self)
@@ -461,6 +512,7 @@ def get_15code_detail(digit15_code, customer):
 		data_json['theme_code'] = theme_code
 
 		design_code = frappe.db.get_value('Item Theme Code Detail', {'customer': customer, 'theme_code': theme_code}, 'parent')
+		# frappe.throw(f"{design_code} here")
 		if design_code:
 			data_json['design_code'] = design_code
 		else:
