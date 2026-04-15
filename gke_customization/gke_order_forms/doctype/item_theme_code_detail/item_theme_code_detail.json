@@ -11,6 +11,7 @@
   "customer_name",
   "section_break_tbxu",
   "theme_code",
+  "description",
   "column_break_ox3o",
   "digit_14code",
   "digit_18code",
@@ -72,6 +73,11 @@
    "fieldname": "digit_15code",
    "fieldtype": "Data",
    "label": "15 Digit Code"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "label": "Description"
   }
  ],
  "index_web_pages_for_search": 1,
