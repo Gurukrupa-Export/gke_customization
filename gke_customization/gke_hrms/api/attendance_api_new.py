@@ -451,7 +451,8 @@ def process_data(attendance_details, date_range, holiday_map, employee_details, 
 											"Leave Without Pay", "Privilege Leave",
 											"Casual Leave", "Sick Leave",
 											"Maternity Leave", "Work From Home"]:
-					pass  # Keep leave status as-is
+					if attendance_status == "Leave Without Pay":
+						total_pay_hrs = timedelta(0)
 				else:
 					attendance_status = "H"
 					net_wrk_hrs_val = timedelta(hours=flt(shift_hours))
