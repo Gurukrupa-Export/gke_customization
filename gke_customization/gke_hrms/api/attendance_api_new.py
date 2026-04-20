@@ -446,6 +446,7 @@ def process_data(attendance_details, date_range, holiday_map, employee_details, 
 			# ------------------------------------------------------------------
 			# Rule: Holiday logic
 			# ------------------------------------------------------------------
+			net_wrk_hrs_val = 0
 			if date in emp_holidays:
 				if attendance_status in ["LWP", "PL", "CL", "SL", "ML", "WFH",
 											"Leave Without Pay", "Privilege Leave",
