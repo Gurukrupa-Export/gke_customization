@@ -450,7 +450,7 @@ def customer_wise_item(selectedSubcategory, customer = None, user = None,  metal
         "internal_catalog_folder" : int_c_f
     } 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def subcategory_count(categoryName, user_type, customer=None):
     try:
         if user_type == "Customer":
@@ -586,7 +586,7 @@ def subcategory_count(categoryName, user_type, customer=None):
         frappe.log_error(f"subcategory_count error: {str(e)}")
         return {"error": str(e)}
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def category_count(user_type, customer=None):
     try:
         if user_type == "Customer":
@@ -948,7 +948,7 @@ def get_selected_item_for_customer_by_user(items, customers):
     }
 
 # //shubham
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def catalogue_data_with_trending_item(selectedSubcategory, customer, metalType = None):
     selectedSubcategory = frappe.form_dict.get("selectedSubcategory")
     itemCode = frappe.form_dict.get("itemCode")
