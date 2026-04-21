@@ -1648,7 +1648,6 @@ def gc_export_to_excel(order_form, doc):
 					bom_diamond = frappe.db.get_all("BOM Diamond Detail", 
 									filters={'parent': bom_list[0].get('name')}, fields=['*'])
 					max_rows = len(bom_diamond) or 1
-
 					for i in range(max_rows):
 						diamond = bom_diamond[i] if i < len(bom_diamond) else {}
 
@@ -1656,6 +1655,7 @@ def gc_export_to_excel(order_form, doc):
 						diamond_pcs = []
 						set_item =  frappe.db.get_all("Set Item Table",filters={'parent': row.get('design_id')},fields=['item_code'])
 						item_sub = ''
+						metal_weight = 0
 						if set_item:
 							for item in set_item:
 								set_item_bom =  frappe.db.get_value("Item",item.get('item_code'),'master_bom')
@@ -1733,42 +1733,62 @@ def gc_export_to_excel(order_form, doc):
 
 							rows_data.append(row_data)
 					else:	
-						customer_code_list = []
-						stone_value = frappe.db.sql("""
-							SELECT *
-							FROM `tabBOM Diamond Detail`
-							WHERE parent = %s
-						""", bom_list[0].get("name"), as_dict=True)
+						# customer_code_list = []
+						# stone_value = frappe.db.sql("""
+						# 	SELECT *
+						# 	FROM `tabBOM Diamond Detail`
+						# 	WHERE parent = %s
+						# """, bom_list[0].get("name"), as_dict=True)
 
-						# frappe.throw(str(stone))
-						for stone in stone_value:
-							stone_code = frappe.db.sql("""
-								SELECT rm.customer_code
-								FROM `tabCustomer RM Code Detail` rm
-								LEFT JOIN `tabCustomer RM Code` rmc ON rm.parent = rmc.name
-								WHERE 
-									IFNULL(rm.stone_shape, '') = IFNULL(%s, '')
-									AND rmc.customer = %s
-									AND IFNULL(rm.diamond_type, '') = IFNULL(%s, '')
-									AND IFNULL(rm.diamond_quality, '') = IFNULL(%s, '')
-									AND CAST(IFNULL(rm.size_in_mm, 0) AS DECIMAL(10,3)) = CAST(%s AS DECIMAL(10,3))
+						# # frappe.throw(str(stone))
+						# for stone in stone_value:
+						# 	stone_code = frappe.db.sql("""
+						# 		SELECT rm.customer_code
+						# 		FROM `tabCustomer RM Code Detail` rm
+						# 		LEFT JOIN `tabCustomer RM Code` rmc ON rm.parent = rmc.name
+						# 		WHERE 
+						# 			IFNULL(rm.stone_shape, '') = IFNULL(%s, '')
+						# 			AND rmc.customer = %s
+						# 			AND IFNULL(rm.diamond_type, '') = IFNULL(%s, '')
+						# 			AND IFNULL(rm.diamond_quality, '') = IFNULL(%s, '')
+						# 			AND CAST(IFNULL(rm.size_in_mm, 0) AS DECIMAL(10,3)) = CAST(%s AS DECIMAL(10,3))
 									
-							""",
-							(
-								stone.get("stone_shape"),
-								order_form_doc.customer_code,
-								stone.get("diamond_type"),
-								order_form_doc.diamond_quality,
-								stone.get("size_in_mm"),
-							),
-							as_dict=1)
-							if stone_code:
-								for code_row in stone_code:
-									customer_code_list.append(code_row.customer_code)
+						# 	""",
+						# 	(
+						# 		stone.get("stone_shape"),
+						# 		order_form_doc.customer_code,
+						# 		stone.get("diamond_type"),
+						# 		order_form_doc.diamond_quality,
+						# 		stone.get("size_in_mm"),
+						# 	),
+						# 	as_dict=1)
+						# 	if stone_code:
+						# 		for code_row in stone_code:
+						# 			customer_code_list.append(code_row.customer_code)
 						# frappe.throw(str(customer_code_list))
 						stylebio =  frappe.db.get_value("Item",row.get('design_id'),'stylebio')
 						multiplier = 2 if row.get('category', '') == "Bangles" else 1
 						for diamond in bom_diamond:
+							stone_code = frappe.db.sql("""
+							SELECT rm.customer_code
+							FROM `tabCustomer RM Code Detail` rm
+							LEFT JOIN `tabCustomer RM Code` rmc ON rm.parent = rmc.name
+							WHERE 
+								IFNULL(rm.stone_shape, '') = IFNULL(%s, '')
+								AND rmc.customer = %s
+								AND IFNULL(rm.diamond_type, '') = IFNULL(%s, '')
+								AND IFNULL(rm.diamond_quality, '') = IFNULL(%s, '')
+								AND CAST(IFNULL(rm.size_in_mm, 0) AS DECIMAL(10,3)) = CAST(%s AS DECIMAL(10,3))
+									
+							""",
+							(
+								diamond.get("stone_shape"),
+								order_form_doc.customer_code,
+								diamond.get("diamond_type"),
+								order_form_doc.diamond_quality,
+								diamond.get("size_in_mm"),
+							),
+							as_dict=1)
 							row_data = [
 								'-',
 								'-', 
@@ -1778,7 +1798,7 @@ def gc_export_to_excel(order_form, doc):
 								'GURU',
 								'TANISHQ',
 								'-',
-								','.join(customer_code_list),
+								stone_code[0].get('customer_code'),
 								f"{(diamond.get('pcs', 0)) * multiplier}",
 								f"{(bom_list[0].get('total_metal_weight', 0)) * multiplier:0.3f}",
 								row.get('metal_touch', ''),
@@ -1809,7 +1829,6 @@ def gc_export_to_excel(order_form, doc):
 	)
 	
 	return file_doc.file_url
-
 
 
 @frappe.whitelist()
