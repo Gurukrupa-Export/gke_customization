@@ -1981,7 +1981,7 @@ def creation_export_to_excel(order_form, doc):
 							'-',
 							'GO' if row.get('metal_type') == 'Gold' else '',
 							metal_touch,
-							product_size_item[0].get('code')if child_1 else '',
+							product_size_item[0].get('code')if product_size_item else '',
 							'NA',
 							'NA',
 							'Round'if row.get('category') == 'Bangles' else 'NA',
