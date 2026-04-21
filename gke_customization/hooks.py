@@ -293,9 +293,9 @@ doc_events = {
 "Sales Order":{
     "validate":"gke_customization.gke_customization.doc_events.sales_order.validate",
 },
-"Sales Invoice":{
-    "validate":"gke_customization.gke_customization.doc_events.sales_invoice.validate",
-},
+# "Sales Invoice":{
+#     "validate":"gke_customization.gke_customization.doc_events.sales_invoice.validate",
+# },
 "Delivery Note":{
     "validate":"gke_customization.gke_customization.doc_events.delivery_note.validate",
 },
