@@ -62,27 +62,50 @@ class PersonalOutEntry(Document):
 		EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
 		Employee = frappe.qb.DocType("Employee")
 		PersonalOutLog = frappe.qb.DocType("Personal Out Log")
+		ShiftType = frappe.qb.DocType("Shift Type")
+
 
 		# To_Seconds = CustomFunction("TIME_TO_SEC", ["date"])
 		ifelse = CustomFunction("IF", ["condition", "then", "else"])
 		Time_Diff = CustomFunction("TIMEDIFF", ["cur_date", "due_date"])
 		Time = CustomFunction("Time", ["time"])
+		Date = CustomFunction("DATE", ["dt"])
 		# Sec_To_Time = CustomFunction("SEC_TO_TIME", ["date"])
+
+		# emp_det = (
+		# 	frappe.qb.from_(EmployeeCheckin)
+		# 	.select(
+		# 		EmployeeCheckin.employee,
+		# 		EmployeeCheckin.employee_name,
+		# 		Date(EmployeeCheckin.time).as_('at_date'),
+		# 		Sum(ifelse(EmployeeCheckin.log_type == 'OUT', 1, 0)).as_('cnt'),
+		# 		EmployeeCheckin.shift_start,
+		# 		EmployeeCheckin.shift_end
+		# 		)
+		# 	.where(EmployeeCheckin.log_type == 'OUT')
+		# 	.groupby(EmployeeCheckin.employee, EmployeeCheckin.shift_start)
+		# 	.having(frappe.qb.Field("cnt") > 1)
+		# ).as_('emp_det')
 
 		emp_det = (
 			frappe.qb.from_(EmployeeCheckin)
+			.left_join(ShiftType).on(EmployeeCheckin.shift == ShiftType.name)
 			.select(
 				EmployeeCheckin.employee,
 				EmployeeCheckin.employee_name,
 				Date(EmployeeCheckin.time).as_('at_date'),
 				Sum(ifelse(EmployeeCheckin.log_type == 'OUT', 1, 0)).as_('cnt'),
-				EmployeeCheckin.shift_start
-				)
-			.where(
-				(EmployeeCheckin.log_type == 'OUT')
+				ShiftType.start_time.as_('shift_start'),
+				ShiftType.end_time.as_('shift_end'),
 			)
-			.groupby(EmployeeCheckin.employee, EmployeeCheckin.shift_start)
-			.having(frappe.qb.Field("cnt") > 1)
+			.where(EmployeeCheckin.log_type == 'OUT')
+			.groupby(
+				EmployeeCheckin.employee,
+				Date(EmployeeCheckin.time),
+				ShiftType.start_time,
+				ShiftType.end_time,
+			)
+			.having(frappe.qb.Field("cnt") >= 1)
 		).as_('emp_det')
 
 		check_out = (
@@ -91,7 +114,8 @@ class PersonalOutEntry(Document):
 				EmployeeCheckin.time.as_('checkout'),
 				EmployeeCheckin.employee.as_('emp'),
 				Date(EmployeeCheckin.time).as_('co_date'),
-				EmployeeCheckin.shift_start
+				# EmployeeCheckin.shift.as_('shift'),  # optional
+
 			)
 			.where(EmployeeCheckin.log_type == 'OUT')
 		).as_('check_out')
@@ -99,9 +123,10 @@ class PersonalOutEntry(Document):
 		check_in = (
 			frappe.qb.from_(EmployeeCheckin)
 			.select(
-				EmployeeCheckin.time,
+				EmployeeCheckin.time.as_('checkin_time'),
 				EmployeeCheckin.employee,
 				Date(EmployeeCheckin.time).as_('ci_date'),
+				# EmployeeCheckin.shift.as_('shift'),  # optional
 			)
 			.where(EmployeeCheckin.log_type == 'IN')
 		).as_('check_in')
@@ -119,21 +144,67 @@ class PersonalOutEntry(Document):
 			.where(PersonalOutLog.is_cancelled == 0)
 		).as_('pol')
 
+		########################################################
+		# alias for time of checkout (SQL Time)
+		checkout_time = Time(check_out.checkout)
+
+		# SQL expression for outside_shift:
+		# normal shift (start < end): checkout < start OR checkout > end
+		# night shift  (start > end): checkout > end AND checkout < start
+		normal_shift = (
+			(emp_det.shift_start < emp_det.shift_end)
+			&
+			(
+				(checkout_time > emp_det.shift_start)
+				&
+				(checkout_time < emp_det.shift_end)
+			)
+		)
+
+		night_shift = (
+			(emp_det.shift_start > emp_det.shift_end)
+			&
+			(
+				(checkout_time > emp_det.shift_start)
+				|
+				(checkout_time < emp_det.shift_end)
+			)
+		)
+
+		inside_shift_condition = normal_shift | night_shift
+
+		########################################################
+
+
+
 		query = (
 			frappe.qb.from_(emp_det)
-			.left_join(check_out).on((emp_det.employee == check_out.emp) & (emp_det.at_date == check_out.co_date) & (emp_det.shift_start == check_out.shift_start))
-			.left_join(check_in).on((emp_det.employee == check_in.employee) & (emp_det.at_date == check_in.ci_date) & (check_out.checkout < check_in.time))
-			.left_join(pol).on((emp_det.employee == pol.employee) & (emp_det.at_date == pol.date) & (Time(check_out.checkout) == pol.out_time))
+			.left_join(check_out).on(
+				(emp_det.employee == check_out.emp)
+				& (emp_det.at_date == check_out.co_date)
+			)
+			.left_join(check_in).on(
+				(emp_det.employee == check_in.employee)
+				& (emp_det.at_date == check_in.ci_date)
+				& (check_out.checkout < check_in.checkin_time)   # ensure IN is after this OUT
+			)
+			.left_join(pol).on(
+				(emp_det.employee == pol.employee)
+				& (emp_det.at_date == pol.date)
+				& (Time(check_out.checkout) == pol.out_time)
+			)
+			.where(inside_shift_condition) ################
+
 			.select(
 				emp_det.employee,
 				emp_det.employee_name,
 				emp_det.at_date.as_('date'),
 				Time(check_out.checkout).as_('out_time'),
-				Time(Min(check_in.time)).as_('in_time'),
-				Time(Time_Diff(Min(check_in.time),check_out.checkout)).as_('total_hours'),
+				Time(Min(check_in.checkin_time)).as_('in_time'),
+				Time(Time_Diff(Min(check_in.checkin_time), check_out.checkout)).as_('total_hours'),
 				pol.name.as_('po_log'),
 				ifelse(pol.name.isnull(), 1, 0).as_('approve'),
-				pol.total_hours.as_('approved_hours')
+				pol.total_hours.as_('approved_hours'),
 			)
 			.groupby(emp_det.employee, emp_det.at_date, check_out.checkout)
 			.having(frappe.qb.Field("in_time").isnotnull())
@@ -145,7 +216,6 @@ class PersonalOutEntry(Document):
 			query = query.where(condition)
 	
 		data = query.run(as_dict=True)
-		# frappe.throw(f"{data}")
 		
 		self.checkin_details = []
 		if not data and not from_log:

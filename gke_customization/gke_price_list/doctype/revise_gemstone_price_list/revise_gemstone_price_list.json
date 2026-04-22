@@ -10,6 +10,7 @@
  "field_order": [
   "date",
   "customer",
+  "effective_from",
   "customer_name",
   "price_list",
   "price_list_type",
@@ -22,13 +23,22 @@
   "column_break_ha7fp",
   "stone_type",
   "cut_or_cab",
+  "gemstone_grade",
   "stone_shape",
   "stone_quality",
   "stone_size",
+  "handling_charges_in_percentage",
   "handling_charges_for_outwork",
   "outwork_handling_charges_in_percentage",
+  "section_break_pviq",
+  "handling_charges_rate",
+  "column_break_4nuz",
   "outwork_handling_charges_rate",
+  "from_gemstone_pr_rate",
+  "to_gemstone_pr_rate",
   "amended_from",
+  "supplier_fg_multiplier",
+  "gemstone_multiplier",
   "section_break_8njhb",
   "revise_gemstone_price_list_details",
   "section_break_pzvtv",
@@ -210,6 +220,62 @@
    "fieldname": "handling_charges_for_outwork",
    "fieldtype": "Check",
    "label": "Handling Charges For Outwork (Handling Rate)"
+  },
+  {
+   "depends_on": "eval:doc.price_list_type==\"Multiplier\"",
+   "fieldname": "gemstone_multiplier",
+   "fieldtype": "Table",
+   "label": "Gemstone Multiplier",
+   "options": "Gemstone Multiplier"
+  },
+  {
+   "depends_on": "eval:doc.price_list_type==\"Multiplier\"",
+   "fieldname": "supplier_fg_multiplier",
+   "fieldtype": "Table",
+   "label": "Supplier FG Multiplier",
+   "options": "Gemstone Multiplier"
+  },
+  {
+   "fieldname": "handling_charges_in_percentage",
+   "fieldtype": "Percent",
+   "label": "Handling Charges %"
+  },
+  {
+   "fieldname": "handling_charges_rate",
+   "fieldtype": "Currency",
+   "label": "Handling Charges Rate"
+  },
+  {
+   "fieldname": "from_gemstone_pr_rate",
+   "fieldtype": "Link",
+   "label": "From Gemstone PR Rate",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.price_list_type==\"Multiplier\"\r\n",
+   "fieldname": "effective_from",
+   "fieldtype": "Date",
+   "label": "Effective From"
+  },
+  {
+   "fieldname": "gemstone_grade",
+   "fieldtype": "Link",
+   "label": "Gemstone Grade",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "to_gemstone_pr_rate",
+   "fieldtype": "Link",
+   "label": "To Gemstone PR Rate",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "section_break_pviq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_4nuz",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
