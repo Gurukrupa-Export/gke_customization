@@ -1831,6 +1831,7 @@ def gc_export_to_excel(order_form, doc):
 	return file_doc.file_url
 
 
+
 @frappe.whitelist()
 def creation_export_to_excel(order_form, doc):
 	order_form_doc = frappe.get_doc('Order Form', order_form)
@@ -1931,10 +1932,20 @@ def creation_export_to_excel(order_form, doc):
 						set_item =  frappe.db.get_all("Set Item Table",filters={'parent': row.get('design_id')},fields=['item_code'])
 						item_sub = None
 						item_sub_bom = None
+						# if set_item:
+						# 	item_sub =  frappe.db.get_value("Item",set_item[0].get('item_code'),'item_subcategory')
+						# 	item_sub_bom =  frappe.db.get_value('Item',set_item[0].get('item_code'),'master_bom')
+						# 	design_item.append(set_item[0].get('item_code'))
+						item_sub = ''
+						metal_weight = 0
 						if set_item:
-							item_sub =  frappe.db.get_value("Item",set_item[0].get('item_code'),'item_subcategory')
-							item_sub_bom =  frappe.db.get_value('Item',set_item[0].get('item_code'),'master_bom')
-							design_item.append(set_item[0].get('item_code'))
+							for item in set_item:
+								item_sub_bom =  frappe.db.get_value("Item",item.get('item_code'),'master_bom')
+								item_sub =  frappe.db.get_value("Item",item.get('item_code'),'item_subcategory')
+								metal_weight =  frappe.db.get_value("BOM",item_sub_bom ,'total_metal_weight')
+								
+								# diamond_no =  frappe.db.get_all("BOM Diamond Detail",filters={'parent': item_sub_bom},fields=['diamond_sieve_size','pcs','sub_setting_type','diamond_type','size_in_mm','stone_shape'])
+								design_item.append(item.get('item_code'))
 						child_1 =  frappe.db.get_all("Customer Category Detail",
 									filters = {
 										'parent':order_form_doc.customer_code,
@@ -1967,6 +1978,14 @@ def creation_export_to_excel(order_form, doc):
 								fields=['code']
 							)
 						code_ctg = ['N&J','N&D','N&C','E&D']
+						finding =  frappe.get_all("BOM Finding Detail",filters={'parent':row.get('bom')},fields=['finding_type'])
+						finding_code = []
+						if finding:
+							for fnd in finding:
+								fnd_code = frappe.db.get_value("Customer Finding Detail",
+										{'parent':order_form_doc.customer_code,'gk_finding_sub_category':fnd.get('finding_type')},['code_finding'])
+								if fnd_code:
+									finding_code.append(fnd_code)
 						row_data = [
 							'-',
 							'-',
@@ -1982,9 +2001,9 @@ def creation_export_to_excel(order_form, doc):
 							'GO' if row.get('metal_type') == 'Gold' else '',
 							metal_touch,
 							product_size_item[0].get('code')if product_size_item else '',
-							'NA',
-							'NA',
-							'Round'if row.get('category') == 'Bangles' else 'NA',
+							", ".join(finding_code) if finding_code else '',
+							'N/A',
+							'Round' if row.get('category') in ['Bangles', 'Ring'] else 'Oval' if row.get('category') == 'Bracelet' else 'N/A',
 							row.get('uomset_of',''),
 							row.get('gender',''),
 							'YEL' if row.get('metal_colour','') == 'Yellow' else 'ROS',
@@ -2020,6 +2039,28 @@ def creation_export_to_excel(order_form, doc):
 						gemstone = frappe.db.get_value('BOM',row.get('bom'),'total_gemstone_pcs')
 						diamond = frappe.db.get_value('BOM',row.get('bom'),'total_diamond_pcs')
 						order_date = frappe.utils.formatdate(order_form_doc.order_date, "dd.MM.yyyy")
+						# product_size =  frappe.db.get_value("Item",row.get('design_id'),'master_bom')
+						# size =  frappe.db.get_value('BOM',product_size,'product_size')
+						product_size = frappe.db.get_value(
+								"Item Variant Attribute",
+								{
+									"parent": row.get("design_id"),
+									"attribute": "Product Size",
+								},
+								['attribute_value']
+							)
+						product_size_item = None
+
+						if product_size:
+							product_size_item = frappe.db.get_all(
+									"Titan Size Master",
+									filters={
+										"item_category": row.get("category"),
+										"customer": order_form_doc.customer_code,
+										"gk_product_size": ["like", f"%{product_size}%"]
+									},
+									fields=['code']
+								)
 
 						set_item =  frappe.db.get_all("Set Item Table",filters={'parent': row.get('design_id')},fields=['item_code'])
 						item_sub = None
@@ -2037,6 +2078,14 @@ def creation_export_to_excel(order_form, doc):
 											'parent':order_form_doc.customer_code,
 											'gk_sub_category':item_sub
 										},fields=['customer_category'])
+						finding =  frappe.get_all("BOM Finding Detail",filters={'parent':row.get('bom')},fields=['finding_type'])
+						finding_code = []
+						if finding:
+							for fnd in finding:
+								fnd_code = frappe.db.get_value("Customer Finding Detail",
+										{'parent':order_form_doc.customer_code,'gk_finding_sub_category':fnd.get('finding_type')},['code_finding'])
+								if fnd_code:
+									finding_code.append(fnd_code)
 						row_data = [
 							'-',
 							'-',
@@ -2051,10 +2100,10 @@ def creation_export_to_excel(order_form, doc):
 							'-',
 							'GO' if row.get('metal_type') == 'Gold' else '',
 							metal_touch,
-							'-',
-							'NA',
-							'NA',
-							'Round'if row.get('category') == 'Bangles' else 'NA',
+							product_size_item[0].get('code')if product_size_item else '',
+							", ".join(finding_code) if finding_code else '',
+							'N/A',
+							'Round' if row.get('category') in ['Bangles', 'Ring'] else 'Oval' if row.get('category') == 'Bracelet' else 'N/A',
 							row.get('uomset_of',''),
 							row.get('gender',''),
 							'YEL' if row.get('metal_colour','') == 'Yellow' else 'ROS',
@@ -2083,7 +2132,8 @@ def creation_export_to_excel(order_form, doc):
 							'STUDDED'
 							
 						]
-						rows_data.append(row_data) 
+						rows_data.append(row_data)
+       
 
 	# Write all rows to the Excel sheet at once
 	if rows_data:
@@ -2104,6 +2154,7 @@ def creation_export_to_excel(order_form, doc):
 	)
 	
 	return file_doc.file_url
+
 
 @frappe.whitelist()
 def proto_export_to_excel(order_form, doc):
