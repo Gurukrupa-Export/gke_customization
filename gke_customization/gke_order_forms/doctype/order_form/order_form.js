@@ -443,6 +443,36 @@ frappe.ui.form.on('Order Form', {
 
 
 
+		if(frm.doc.docstatus == '1' && frm.doc.customer_name === "MBMG Diamonds Private Limited"){
+			frm.add_custom_button(__("BOM Format"), function(){
+				frappe.call({
+				method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.bom_format',
+				args: {
+					order_form: frm.doc.name,
+					doc: frm.doc
+				},
+				callback: function(response) {
+					if (response.message) {
+					
+					frm.set_value('design_quotation_file' ,response.message)
+					frm.save('Update');
+		
+					const a = document.createElement('a');
+					a.href = response.message; 
+					
+					let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+					let filename = `${formatted_date}_bom_format.xlsx`;
+					a.download = filename;
+					console.log(filename);
+					a.click();
+					}
+				}
+				});
+			}, __("Get File"))
+		}
+
+
+
 
 
 
