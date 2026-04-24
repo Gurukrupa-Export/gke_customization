@@ -3791,7 +3791,7 @@ def bom_format(order_form, doc):
 			for m in final_bom.get("metal_detail", []):
 				row_data = common_row_data + [
 					"METAL",
-					m.get("metal_type") + " " + m.get("metal_colour"),
+					"RAW GOLD",
 					"",#Shape
 					"",#Size
 					"",#PCs
@@ -3816,6 +3816,65 @@ def bom_format(order_form, doc):
 
 					
 				]
+				rows_data.append(row_data)
+
+
+			
+			diamond_grouped = {}
+			for g in final_bom.get("diamond_detail", []):
+
+				diamond_code = frappe.db.get_value(
+					"Customer Diamond Shape Detail",
+					{
+						"gk_diamond_shape": g.get("stone_shape"),
+						"parent": order_form_doc.customer_code
+					},
+					"data"
+				)
+
+				diamond_size = frappe.db.get_value(
+					"Customer Diamond Size Details",
+					{
+						"gk_diamond_shape": g.get("stone_shape"),
+						"gk_diamond_size_in_mm": ["like", f"%{g.get('size_in_mm')}%"],
+						"parent": order_form_doc.customer_code
+					},
+					"customer_diamond_group_size"
+				)
+
+				if not diamond_size:
+					diamond_size = g.get("size_in_mm")  # fallback if not found
+
+				# Group Key (same diamond_size means same row)
+				key = (diamond_code or "", diamond_size)
+
+				if key not in diamond_grouped:
+					diamond_grouped[key] = {
+						"pcs": 0,
+						"weight_in_gms": 0,
+						"quantity": 0,
+						"diamond_code": diamond_code or "",
+						"diamond_size": diamond_size
+					}
+
+				diamond_grouped[key]["pcs"] += flt(g.get("pcs"))
+				diamond_grouped[key]["weight_in_gms"] += flt(g.get("weight_in_gms"))
+				diamond_grouped[key]["quantity"] += flt(g.get("quantity"))
+
+
+			# Now append only one row per group
+			for key, values in diamond_grouped.items():
+
+				row_data = common_row_data + [
+					"STONE",
+					"Diamond",
+					values["diamond_code"],
+					values["diamond_size"],
+					values["pcs"],
+					values["weight_in_gms"],
+					values["quantity"]
+				]
+
 				rows_data.append(row_data)
 
 			# ---------------------------
@@ -3892,62 +3951,6 @@ def bom_format(order_form, doc):
     
     
     
-			diamond_grouped = {}
-			for g in final_bom.get("diamond_detail", []):
-
-				diamond_code = frappe.db.get_value(
-					"Customer Diamond Shape Detail",
-					{
-						"gk_diamond_shape": g.get("stone_shape"),
-						"parent": order_form_doc.customer_code
-					},
-					"data"
-				)
-
-				diamond_size = frappe.db.get_value(
-					"Customer Diamond Size Details",
-					{
-						"gk_diamond_shape": g.get("stone_shape"),
-						"gk_diamond_size_in_mm": ["like", f"%{g.get('size_in_mm')}%"],
-						"parent": order_form_doc.customer_code
-					},
-					"customer_diamond_group_size"
-				)
-
-				if not diamond_size:
-					diamond_size = g.get("size_in_mm")  # fallback if not found
-
-				# Group Key (same diamond_size means same row)
-				key = (diamond_code or "", diamond_size)
-
-				if key not in diamond_grouped:
-					diamond_grouped[key] = {
-						"pcs": 0,
-						"weight_in_gms": 0,
-						"quantity": 0,
-						"diamond_code": diamond_code or "",
-						"diamond_size": diamond_size
-					}
-
-				diamond_grouped[key]["pcs"] += flt(g.get("pcs"))
-				diamond_grouped[key]["weight_in_gms"] += flt(g.get("weight_in_gms"))
-				diamond_grouped[key]["quantity"] += flt(g.get("quantity"))
-
-
-			# Now append only one row per group
-			for key, values in diamond_grouped.items():
-
-				row_data = common_row_data + [
-					"STONE",
-					"Diamond",
-					values["diamond_code"],
-					values["diamond_size"],
-					values["pcs"],
-					values["weight_in_gms"],
-					values["quantity"]
-				]
-
-				rows_data.append(row_data)
 
 			# ---------------------------
 			# OTHER DETAIL ROWS
