@@ -1034,12 +1034,17 @@ def get_customer_order_form(source_name, target_doc=None):
 	if isinstance(target_doc, str):
 		target_doc = json.loads(target_doc)
 	target_doc = frappe.new_doc("Order Form") if not target_doc else frappe.get_doc(target_doc)
+ 
+	customer_code = ""
+	if source_name:
+		customer_code = frappe.db.get_value("Customer Order Form", source_name, "customer_code")
+		target_doc.customer_code = customer_code  # Set in Order Form (Parent)
 
 	if source_name:
 		customer_order_form = frappe.db.sql(f"""SELECT * FROM `tabCustomer Order Form Detail` 
 							WHERE parent = '{source_name}' AND docstatus = 1""", as_dict=1)
 	if not customer_order_form:
-		frappe.msgprint(_("Please submit the Customer Order Form"))
+		frappe.throw(_("Please submit the Customer Order Form"))
 		return target_doc
 
 	for i in customer_order_form:
@@ -1065,8 +1070,8 @@ def get_customer_order_form(source_name, target_doc=None):
 			for j in data_source:
 				target_doc.append("order_details", {
 					"delivery_date": target_doc.delivery_date,
-					"design_by": j.get('design_by'),
-					"design_type": j.get('design_type'),
+					"design_by": "Our Design",
+					"design_type": "As Per Design Type",
 					"qty": i.get('no_of_pcs'),
 					"design_id": j.get("item", item),
 					"bom": j.get("new_bom", i.get('design_code_bom')),
@@ -1109,6 +1114,7 @@ def get_customer_order_form(source_name, target_doc=None):
 					"chain_type": j.get("chain_type"),
 					"customer_chain": j.get("customer_chain"),
 					"nakshi_weght": j.get("nakshi_weght"),
+					"diamond_type":"Natural"
 				})
 		else: 
 			frappe.throw(f"{item} has master bom {item_bom}")
@@ -3390,7 +3396,7 @@ def design_quotation_file(order_form, doc):
 
 	workbook = openpyxl.Workbook()
 	sheet = workbook.active
-	sheet.title = 'Design Quotation'
+	sheet.title = 'Quotation File'
 	
 	# Store all rows in a list before writing to the sheet
 	rows_data = []
@@ -3480,6 +3486,20 @@ def design_quotation_file(order_form, doc):
 									  	"gk_metal_color":row.get('metal_colour'),
 										"parent":order_form_doc.customer_code
 								  },fields=['code_color'])
+
+				inr_amount = final_bom.get("total_bom_amount") or 0
+				exchange_rate = frappe.db.get_value(
+					"Currency Exchange",
+					filters={
+						"from_currency": "USD",
+						"to_currency": "INR"
+					},
+					fieldname="exchange_rate",
+					order_by="date desc"
+				)
+				usd_amount = 0
+				if exchange_rate:
+					usd_amount = round(inr_amount/exchange_rate,3)
 			
 				row_data = [
 					row.get('idx') ,
@@ -3501,7 +3521,7 @@ def design_quotation_file(order_form, doc):
 					final_bom.get("diamond_weight" or 0),
 					order_form_doc.diamond_quality,
 					final_bom.get("gemstone_weight" or ''),
-					final_bom.get("total_bom_amount" or 0),
+					usd_amount,
 					"",
 					"",
 					]
