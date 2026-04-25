@@ -13,13 +13,13 @@ import requests
 import json
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def get_wishlist_item_by_user(items, customers):
     """
     Save selected items to 'Cataloge Master' for one or more customers.
     Supports trending value updates.
     """
-
+    
     # Parse JSON if string
     if isinstance(items, str):
         items = json.loads(items)
@@ -37,7 +37,6 @@ def get_wishlist_item_by_user(items, customers):
     items_dict = items[0]
 
     results = []
-
 
     for customer in customers:
 
@@ -131,7 +130,8 @@ def get_wishlist_item_by_user(items, customers):
     }
 
 
-@frappe.whitelist()
+
+@frappe.whitelist(allow_guest=True)
 def add_item_in_folder_user(status=None, name=None, item=None, customer=None):
 
     if not customer:
@@ -339,7 +339,7 @@ def get_attribute_data_for_user():
     }
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def user_wise_item(user, company=None):
 
     conditions = []
@@ -486,4 +486,4 @@ def user_wise_item(user, company=None):
     return {
         "db_data": db_data,
         "internal_catalog_folder": int_c_f
-    }
+    }   

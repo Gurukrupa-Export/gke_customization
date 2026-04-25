@@ -137,7 +137,7 @@ def send_otp_for_login_user(username, password):
         recipients = recipient,
         # recipients = fallback_email,
         # recipients = "mitali_s@gkexport.com",
-        sender = "shubham_s@gkexport.com",  #"customer_portal@gkexport.com",
+        sender = "customer_portal@gkexport.com",  #"customer_portal@gkexport.com",
         subject= "Your One Time Password",
         template="otp",  # corresponds to otp_email.html
         args={"otp": otp},
@@ -148,7 +148,7 @@ def send_otp_for_login_user(username, password):
         recipients = "mansi_g@gkexport.com",
         # recipients = fallback_email,
         # recipients = "mitali_s@gkexport.com", 
-        sender = "shubham_s@gkexport.com",
+        sender = "customer_portal@gkexport.com",
         subject= "Your One Time Password",
         template="user_otp",  # corresponds to otp_email.html
         args={"otp": otp, "login_id": recipient},
@@ -159,7 +159,6 @@ def send_otp_for_login_user(username, password):
         "status": "success",
         "otp": otp  # In production, don't send this to frontend
     }
-
 
 @frappe.whitelist()
 def sent_alert_email_for_screen_shot(username):
@@ -330,7 +329,7 @@ def verify_otp_using_customer_name(username, password, otp):
 
                 login_after = get_login_time[0] 
                 login_before = get_login_time[1]
-
+ 
                 login_after = int(login_after)    
                 login_before = int(login_before)   
                 # dict = {1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10, 11:11, 12:12, 13:1, 14:2, 15: 3, 16: 4, 17: 5, 18: 6 , 19: 7, 20: 8, 21: 9, 22:10, 23:11, 24: 12 }
@@ -339,7 +338,7 @@ def verify_otp_using_customer_name(username, password, otp):
                 current_time = datetime.now()
                 total_hours = (current_time.hour + 5) + (current_time.minute + 30) / 60 + (current_time.second / 3600)
                 # frappe.throw(f"{login_after}, {   new_hour}, {login_before}")
-#
+
                 # if not(login_after <= total_hours <= login_before):
                 #     return {
                 #         "status": "failed",
