@@ -474,8 +474,8 @@ def get_pr_return_rows(filters, pr):
 
 def get_total_row(totals):
     return {
-        "mr_date": _("Total"),
-        "material_request_id": "",
+        "mr_date": None,
+        "material_request_id": _("Total"),
         "item": "",
         "qty": totals["mr_qty"],
 
