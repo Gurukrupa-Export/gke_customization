@@ -1,6 +1,3 @@
-# Copyright (c) 2026, Your Company and contributors
-# For license information, please see license.txt
-
 import frappe
 from frappe import _
 
@@ -31,25 +28,22 @@ def get_columns():
         {"label": _("PO AMOUNT"), "fieldname": "po_amount", "fieldtype": "Currency", "width": 110},
         {"label": _("PO Status"), "fieldname": "po_status", "fieldtype": "Data", "width": 110},
 
-        {"label": _("DATE"), "fieldname": "pr_date", "fieldtype": "Date", "width": 95},
+        {"label": _("PR DATE"), "fieldname": "pr_date", "fieldtype": "Date", "width": 95},
         {"label": _("PR IDs"), "fieldname": "pr_id", "fieldtype": "Data", "width": 160},
-        {"label": _("Item Code"), "fieldname": "item", "fieldtype": "Link", "options": "Item", "width": 170},
         {"label": _("BATCH NO"), "fieldname": "batch_no", "fieldtype": "Data", "width": 140},
         {"label": _("PR QTY"), "fieldname": "pr_qty", "fieldtype": "Float", "width": 90},
         {"label": _("PR RATE"), "fieldname": "pr_rate", "fieldtype": "Currency", "width": 100},
         {"label": _("PR AMOUNT"), "fieldname": "pr_amount", "fieldtype": "Currency", "width": 110},
         {"label": _("PR Status"), "fieldname": "pr_status", "fieldtype": "Data", "width": 110},
 
-        {"label": _("DATE"), "fieldname": "pr_return_date", "fieldtype": "Date", "width": 95},
+        {"label": _("PR RETURN DATE"), "fieldname": "pr_return_date", "fieldtype": "Date", "width": 95},
         {"label": _("PR RETURN ID"), "fieldname": "pr_return_id", "fieldtype": "Data", "width": 160},
         {"label": _("PR RETURN QTY"), "fieldname": "pr_return_qty", "fieldtype": "Float", "width": 100},
         {"label": _("PR RETURN RATE"), "fieldname": "pr_return_rate", "fieldtype": "Currency", "width": 110},
         {"label": _("PR RETURN AMOUNT"), "fieldname": "pr_return_amount", "fieldtype": "Currency", "width": 130},
 
-        {"label": _("DATE"), "fieldname": "pi_date", "fieldtype": "Date", "width": 95},
+        {"label": _("PI DATE"), "fieldname": "pi_date", "fieldtype": "Date", "width": 95},
         {"label": _("PI IDs"), "fieldname": "pi_id", "fieldtype": "Data", "width": 160},
-        {"label": _("Item Code"), "fieldname": "item", "fieldtype": "Link", "options": "Item", "width": 170},
-        {"label": _("BATCH NO"), "fieldname": "batch_no", "fieldtype": "Data", "width": 140},
         {"label": _("PI QTY"), "fieldname": "pi_qty", "fieldtype": "Float", "width": 90},
         {"label": _("PI RATE"), "fieldname": "pi_rate", "fieldtype": "Currency", "width": 100},
         {"label": _("PI AMOUNT"), "fieldname": "pi_amount", "fieldtype": "Currency", "width": 110},
@@ -69,396 +63,326 @@ def get_columns():
 def get_data(filters):
     params = dict(filters)
 
-    mr_conditions = ["mr.docstatus = 1", "mr.material_request_type = 'Purchase'"]
+    pr_conditions = ["pr.docstatus = 1", "IFNULL(pr.is_return, 0) = 0"]
+
     if filters.get("company"):
-        mr_conditions.append("mr.company = %(company)s")
+        pr_conditions.append("pr.company = %(company)s")
     if filters.get("from_date"):
-        mr_conditions.append("mr.transaction_date >= %(from_date)s")
+        pr_conditions.append("pr.posting_date >= %(from_date)s")
     if filters.get("to_date"):
-        mr_conditions.append("mr.transaction_date <= %(to_date)s")
-    if filters.get("material_request_id"):
-        mr_conditions.append("mr.name = %(material_request_id)s")
+        pr_conditions.append("pr.posting_date <= %(to_date)s")
+    if filters.get("pr_id"):
+        pr_conditions.append("pr.name = %(pr_id)s")
+    if filters.get("batch_no"):
+        pr_conditions.append("pri.batch_no = %(batch_no)s")
     if filters.get("item"):
-        mr_conditions.append("mri.item_code = %(item)s")
+        pr_conditions.append("pri.item_code = %(item)s")
 
     if filters.get("po_id"):
-        mr_conditions.append("""
+        pr_conditions.append("""
             EXISTS (
                 SELECT 1
-                FROM `tabPurchase Order Item` poi
-                INNER JOIN `tabPurchase Order` po ON po.name = poi.parent
-                WHERE poi.material_request = mr.name
-                  AND poi.material_request_item = mri.name
-                  AND po.name = %(po_id)s
-                  AND po.docstatus = 1
+                FROM `tabPurchase Order Item` poi_filter
+                INNER JOIN `tabPurchase Order` po_filter ON po_filter.name = poi_filter.parent
+                WHERE poi_filter.name = pri.purchase_order_item
+                  AND po_filter.name = %(po_id)s
             )
         """)
 
-    if filters.get("pr_id"):
-        mr_conditions.append("""
+    if filters.get("material_request_id"):
+        pr_conditions.append("""
             EXISTS (
                 SELECT 1
-                FROM `tabPurchase Receipt Item` pri
-                INNER JOIN `tabPurchase Receipt` pr ON pr.name = pri.parent
-                WHERE pri.purchase_order_item IN (
-                    SELECT poi.name
-                    FROM `tabPurchase Order Item` poi
-                    WHERE poi.material_request = mr.name
-                      AND poi.material_request_item = mri.name
-                )
-                  AND pr.name = %(pr_id)s
-                  AND pr.docstatus = 1
-                  AND IFNULL(pr.is_return, 0) = 0
-            )
-        """)
-
-    if filters.get("batch_no"):
-        mr_conditions.append("""
-            EXISTS (
-                SELECT 1
-                FROM `tabPurchase Receipt Item` pri
-                INNER JOIN `tabPurchase Receipt` pr ON pr.name = pri.parent
-                WHERE pri.purchase_order_item IN (
-                    SELECT poi.name
-                    FROM `tabPurchase Order Item` poi
-                    WHERE poi.material_request = mr.name
-                      AND poi.material_request_item = mri.name
-                )
-                  AND pri.batch_no = %(batch_no)s
-                  AND pr.docstatus = 1
-                  AND IFNULL(pr.is_return, 0) = 0
+                FROM `tabPurchase Order Item` poi_mr
+                WHERE poi_mr.name = pri.purchase_order_item
+                  AND poi_mr.material_request = %(material_request_id)s
             )
         """)
 
     if filters.get("pi_id"):
-        mr_conditions.append("""
+        pr_conditions.append("""
             EXISTS (
                 SELECT 1
                 FROM `tabPurchase Invoice Item` pii
                 INNER JOIN `tabPurchase Invoice` pi ON pi.name = pii.parent
-                WHERE pi.name = %(pi_id)s
-                  AND pi.docstatus = 1
-                  AND (
-                      pii.po_detail IN (
-                          SELECT poi.name
-                          FROM `tabPurchase Order Item` poi
-                          WHERE poi.material_request = mr.name
-                            AND poi.material_request_item = mri.name
-                      )
-                      OR pii.pr_detail IN (
-                          SELECT pri.name
-                          FROM `tabPurchase Receipt Item` pri
-                          WHERE pri.purchase_order_item IN (
-                              SELECT poi.name
-                              FROM `tabPurchase Order Item` poi
-                              WHERE poi.material_request = mr.name
-                                AND poi.material_request_item = mri.name
-                          )
-                      )
-                  )
+                WHERE pi.docstatus = 1
+                  AND pi.name = %(pi_id)s
+                  AND (pii.pr_detail = pri.name OR pii.po_detail = pri.purchase_order_item)
             )
         """)
 
-    mr_items = frappe.db.sql(f"""
+    rows = frappe.db.sql(f"""
         SELECT
-            mr.transaction_date AS mr_date,
-            mr.name AS material_request_id,
-            mri.name AS mri_name,
-            mri.item_code AS item,
-            mri.qty AS qty,
-            mri.schedule_date AS required_by
-        FROM `tabMaterial Request` mr
-        INNER JOIN `tabMaterial Request Item` mri
-            ON mri.parent = mr.name
-        WHERE {" AND ".join(mr_conditions)}
-        ORDER BY mr.transaction_date DESC, mr.name DESC, mri.idx ASC
+            pr.posting_date AS pr_date,
+            pr.name AS pr_id,
+            pr.status AS pr_status,
+            pr.company,
+            pri.name AS pr_item_id,
+            pri.idx,
+            pri.item_code AS item,
+            pri.batch_no,
+            pri.qty AS pr_qty,
+            pri.rate AS pr_rate,
+            pri.amount AS pr_amount,
+            pri.purchase_order_item
+        FROM `tabPurchase Receipt` pr
+        INNER JOIN `tabPurchase Receipt Item` pri
+            ON pri.parent = pr.name
+        WHERE {" AND ".join(pr_conditions)}
+        ORDER BY pr.posting_date, pr.name, pri.idx
     """, params, as_dict=1)
 
-    rows = []
+    out = []
     totals = {
         "mr_qty": 0,
-        "po_qty": 0, "po_amount": 0,
-        "pr_qty": 0, "pr_amount": 0,
-        "pr_return_qty": 0, "pr_return_amount": 0,
-        "pi_qty": 0, "pi_amount": 0,
+        "po_qty": 0,
+        "po_amount": 0,
+        "pr_qty": 0,
+        "pr_amount": 0,
+        "pr_return_qty": 0,
+        "pr_return_amount": 0,
+        "pi_qty": 0,
+        "pi_amount": 0,
         "difference_pr_vs_pi": 0,
         "difference_rate_pr_vs_pi": 0,
         "difference_amount_pr_vs_pi": 0,
     }
 
-    seen_mr = set()
-    seen_po = set()
-    seen_pi = set()
-    seen_rows = set()
-    seen_pr_total_rows = set()
-    seen_pr_return_total_rows = set()
+    seen_qty_rows = set()
+    seen_po_items = set()
+    seen_pr_items = set()
+    seen_pr_return_items = set()
+    seen_pi_items = set()
 
-    for mr_item in mr_items:
-        if mr_item.mri_name not in seen_mr:
-            seen_mr.add(mr_item.mri_name)
-            totals["mr_qty"] += mr_item.qty or 0
+    for r in rows:
+        mr = get_mr_row(r, filters)
+        po = get_po_row(r, filters)
+        rfq = get_rfq_row(r, filters)
+        pi_rows = get_pi_rows(r, filters)
+        ret_rows = get_pr_return_rows(r, filters)
 
-        rfqs = frappe.db.sql("""
-            SELECT DISTINCT
-                rfq.name,
-                rfq.status,
-                DATE(rfq.creation) AS creation_date
-            FROM `tabRequest for Quotation Item` rfqi
-            INNER JOIN `tabRequest for Quotation` rfq ON rfq.name = rfqi.parent
-            WHERE rfqi.material_request = %(mr)s
-              AND rfqi.material_request_item = %(mri)s
-              AND rfq.docstatus = 1
-            ORDER BY rfq.creation
-        """, {"mr": mr_item.material_request_id, "mri": mr_item.mri_name}, as_dict=1)
+        if r.pr_item_id not in seen_qty_rows:
+            seen_qty_rows.add(r.pr_item_id)
+            totals["mr_qty"] += r.pr_qty or 0
 
-        rfq_status = ", ".join(sorted({d.status for d in rfqs if d.status})) if rfqs else ""
-        rfq_id = ", ".join([d.name for d in rfqs]) if rfqs else ""
-        rfq_creation_date = rfqs[0].creation_date if rfqs else None
+        if r.pr_item_id not in seen_pr_items:
+            seen_pr_items.add(r.pr_item_id)
+            totals["pr_qty"] += r.pr_qty or 0
+            totals["pr_amount"] += r.pr_amount or 0
 
-        po_conditions = ["poi.material_request = %(mr)s", "poi.material_request_item = %(mri)s", "po.docstatus = 1"]
-        if filters.get("po_id"):
-            po_conditions.append("po.name = %(po_id)s")
-        if filters.get("batch_no"):
-            po_conditions.append("""
-                EXISTS (
-                    SELECT 1
-                    FROM `tabPurchase Receipt Item` pri_x
-                    INNER JOIN `tabPurchase Receipt` pr_x ON pr_x.name = pri_x.parent
-                    WHERE pri_x.purchase_order_item = poi.name
-                      AND pri_x.batch_no = %(batch_no)s
-                      AND IFNULL(pr_x.is_return, 0) = 0
-                )
-            """)
+        po_key = r.purchase_order_item or po.get("po_ids")
+        if po_key and po_key not in seen_po_items:
+            seen_po_items.add(po_key)
+            totals["po_qty"] += po.get("po_qty") or 0
+            totals["po_amount"] += po.get("po_amount") or 0
 
-        po_list = frappe.db.sql(f"""
-            SELECT DISTINCT
-                po.name,
-                po.status,
-                po.transaction_date,
-                poi.qty,
-                poi.rate,
-                poi.amount,
-                poi.name AS poi_name
-            FROM `tabPurchase Order Item` poi
-            INNER JOIN `tabPurchase Order` po ON po.name = poi.parent
-            WHERE {" AND ".join(po_conditions)}
-            ORDER BY po.transaction_date, po.name
-        """, {**params, "mr": mr_item.material_request_id, "mri": mr_item.mri_name}, as_dict=1)
+        if not pi_rows:
+            pi_rows = [{
+                "name": "",
+                "posting_date": None,
+                "status": "",
+                "qty": 0,
+                "rate": 0,
+                "amount": 0,
+                "pii_name": ""
+            }]
 
-        for po in po_list:
-            if po.name not in seen_po:
-                seen_po.add(po.name)
-                totals["po_qty"] += po.qty or 0
-                totals["po_amount"] += po.amount or 0
+        if not ret_rows:
+            ret_rows = [{
+                "name": "",
+                "posting_date": None,
+                "qty": 0,
+                "rate": 0,
+                "amount": 0,
+                "pri_name": ""
+            }]
 
-            pr_conditions = [
-                "pri.purchase_order_item = %(poi_name)s",
-                "pr.docstatus = 1",
-                "IFNULL(pr.is_return, 0) = 0"
-            ]
-            if filters.get("pr_id"):
-                pr_conditions.append("pr.name = %(pr_id)s")
-            if filters.get("batch_no"):
-                pr_conditions.append("pri.batch_no = %(batch_no)s")
+        for ret in ret_rows:
+            ret_key = ret.get("pri_name") or ret.get("name")
+            if ret.get("name") and ret_key not in seen_pr_return_items:
+                seen_pr_return_items.add(ret_key)
+                totals["pr_return_qty"] += abs(ret.get("qty") or 0)
+                totals["pr_return_amount"] += abs(ret.get("amount") or 0)
 
-            pr_list = frappe.db.sql(f"""
-                SELECT
-                    pr.name,
-                    pr.status,
-                    pr.posting_date,
-                    pri.name AS pri_name,
-                    pri.batch_no,
-                    pri.qty,
-                    pri.rate,
-                    pri.amount
-                FROM `tabPurchase Receipt Item` pri
-                INNER JOIN `tabPurchase Receipt` pr ON pr.name = pri.parent
-                WHERE {" AND ".join(pr_conditions)}
-                ORDER BY pr.posting_date, pr.name, pri.idx
-            """, {**params, "poi_name": po.poi_name}, as_dict=1)
+            for pi in pi_rows:
+                pi_key = pi.get("pii_name") or pi.get("name")
+                if pi.get("name") and pi_key not in seen_pi_items:
+                    seen_pi_items.add(pi_key)
+                    totals["pi_qty"] += pi.get("qty") or 0
+                    totals["pi_amount"] += pi.get("amount") or 0
 
-            for pr in pr_list:
-                pr_total_key = (pr.pri_name, pr.batch_no)
-                if pr_total_key not in seen_pr_total_rows:
-                    seen_pr_total_rows.add(pr_total_key)
-                    totals["pr_qty"] += pr.qty or 0
-                    totals["pr_amount"] += pr.amount or 0
+                out.append({
+                    "mr_date": mr.get("mr_date"),
+                    "material_request_id": mr.get("material_request_id"),
+                    "item": r.item,
+                    "qty": r.pr_qty,
 
-                pi_rows = get_pi_rows(filters, po, pr)
-                pr_return_rows = get_pr_return_rows(filters, pr)
+                    "rfq_creation_date": rfq.get("rfq_creation_date"),
+                    "rfq_id": rfq.get("rfq_id"),
+                    "rfq_status": rfq.get("rfq_status"),
 
-                if not pi_rows:
-                    pi_rows = [{
-                        "name": "",
-                        "status": "",
-                        "posting_date": None,
-                        "qty": 0,
-                        "rate": 0,
-                        "amount": 0,
-                    }]
+                    "po_date": po.get("po_date"),
+                    "po_ids": po.get("po_ids"),
+                    "po_qty": po.get("po_qty"),
+                    "po_rate": po.get("po_rate"),
+                    "po_amount": po.get("po_amount"),
+                    "po_status": po.get("po_status"),
 
-                if not pr_return_rows:
-                    pr_return_rows = [{
-                        "name": "",
-                        "posting_date": None,
-                        "qty": 0,
-                        "rate": 0,
-                        "amount": 0,
-                    }]
+                    "pr_date": r.pr_date,
+                    "pr_id": r.pr_id,
+                    "batch_no": r.batch_no,
+                    "pr_qty": r.pr_qty,
+                    "pr_rate": r.pr_rate,
+                    "pr_amount": r.pr_amount,
+                    "pr_status": r.pr_status,
 
-                for ret in pr_return_rows:
-                    if ret.get("name"):
-                        ret_total_key = (ret.get("pri_name"), ret.get("batch_no"), ret.get("name"))
-                        if ret_total_key not in seen_pr_return_total_rows:
-                            seen_pr_return_total_rows.add(ret_total_key)
-                            totals["pr_return_qty"] += abs(ret.get("qty") or 0)
-                            totals["pr_return_amount"] += abs(ret.get("amount") or 0)
+                    "pr_return_date": ret.get("posting_date"),
+                    "pr_return_id": ret.get("name") or "",
+                    "pr_return_qty": abs(ret.get("qty") or 0),
+                    "pr_return_rate": abs(ret.get("rate") or 0),
+                    "pr_return_amount": abs(ret.get("amount") or 0),
 
-                    for pi in pi_rows:
-                        if pi.get("name") and pi.name not in seen_pi:
-                            seen_pi.add(pi.name)
-                            totals["pi_qty"] += pi.qty or 0
-                            totals["pi_amount"] += pi.amount or 0
+                    "pi_date": pi.get("posting_date"),
+                    "pi_id": pi.get("name") or "",
+                    "pi_qty": pi.get("qty") or 0,
+                    "pi_rate": pi.get("rate") or 0,
+                    "pi_amount": pi.get("amount") or 0,
+                    "pi_status": pi.get("status") or "",
 
-                        row_key = (
-                            mr_item.material_request_id,
-                            po.name,
-                            pr.name,
-                            pr.pri_name,
-                            pr.batch_no,
-                            ret.get("name") or "",
-                            pi.get("name") or "",
-                        )
+                    "pi_return_id": "",
+                    "pi_return_qty": 0,
+                    "pi_return_rate": 0,
+                    "pi_return_amount": 0,
 
-                        if row_key in seen_rows:
-                            continue
-                        seen_rows.add(row_key)
-
-                        difference_pr_vs_pi = (pr.qty or 0) - (abs(ret.get("qty") or 0)) - (pi.get("qty") or 0)
-                        difference_rate_pr_vs_pi = (pr.rate or 0) - (abs(ret.get("rate") or 0)) - (pi.get("rate") or 0)
-                        difference_amount_pr_vs_pi = (pr.amount or 0) - (abs(ret.get("amount") or 0)) - (pi.get("amount") or 0)
-
-                        rows.append({
-                            "mr_date": mr_item.mr_date,
-                            "material_request_id": mr_item.material_request_id,
-                            "item": mr_item.item,
-                            "qty": mr_item.qty,
-
-                            "rfq_creation_date": rfq_creation_date,
-                            "rfq_id": rfq_id,
-                            "rfq_status": rfq_status,
-
-                            "po_date": po.transaction_date,
-                            "po_ids": po.name,
-                            "po_qty": po.qty,
-                            "po_rate": po.rate,
-                            "po_amount": po.amount,
-                            "po_status": po.status,
-
-                            "pr_date": pr.posting_date,
-                            "pr_id": pr.name,
-                            "batch_no": pr.batch_no,
-                            "pr_qty": pr.qty,
-                            "pr_rate": pr.rate,
-                            "pr_amount": pr.amount,
-                            "pr_status": pr.status,
-
-                            "pr_return_date": ret.get("posting_date"),
-                            "pr_return_id": ret.get("name") or "",
-                            "pr_return_qty": abs(ret.get("qty") or 0),
-                            "pr_return_rate": abs(ret.get("rate") or 0),
-                            "pr_return_amount": abs(ret.get("amount") or 0),
-
-                            "pi_date": pi.get("posting_date"),
-                            "pi_id": pi.get("name") or "",
-                            "pi_qty": pi.get("qty") or 0,
-                            "pi_rate": pi.get("rate") or 0,
-                            "pi_amount": pi.get("amount") or 0,
-                            "pi_status": pi.get("status") or "",
-
-                            "pi_return_id": "",
-                            "pi_return_qty": 0,
-                            "pi_return_rate": 0,
-                            "pi_return_amount": 0,
-
-                            "difference_pr_vs_pi": difference_pr_vs_pi,
-                            "difference_rate_pr_vs_pi": difference_rate_pr_vs_pi,
-                            "difference_amount_pr_vs_pi": difference_amount_pr_vs_pi,
-                        })
+                    "difference_pr_vs_pi": (r.pr_qty or 0) - (abs(ret.get("qty") or 0)) - (pi.get("qty") or 0),
+                    "difference_rate_pr_vs_pi": (r.pr_rate or 0) - (abs(ret.get("rate") or 0)) - (pi.get("rate") or 0),
+                    "difference_amount_pr_vs_pi": (r.pr_amount or 0) - (abs(ret.get("amount") or 0)) - (pi.get("amount") or 0),
+                })
 
     totals["difference_pr_vs_pi"] = (totals["pr_qty"] - totals["pr_return_qty"]) - totals["pi_qty"]
     totals["difference_amount_pr_vs_pi"] = (totals["pr_amount"] - totals["pr_return_amount"]) - totals["pi_amount"]
 
-    return rows, totals
+    return out, totals
 
 
-def get_pi_rows(filters, po, pr):
-    params = {
-        "poi_name": po.poi_name,
-        "pri_name": pr.pri_name,
-    }
+def get_mr_row(r, filters):
+    if not r.purchase_order_item:
+        return {"mr_date": None, "material_request_id": "", "qty": 0}
 
+    conditions = ["poi.name = %(poi)s"]
+    params = {"poi": r.purchase_order_item}
+
+    if filters.get("material_request_id"):
+        conditions.append("mr.name = %(material_request_id)s")
+        params["material_request_id"] = filters.get("material_request_id")
+
+    mr = frappe.db.sql(f"""
+        SELECT
+            mr.transaction_date AS mr_date,
+            mr.name AS material_request_id,
+            mri.qty
+        FROM `tabPurchase Order Item` poi
+        LEFT JOIN `tabMaterial Request Item` mri ON mri.name = poi.material_request_item
+        LEFT JOIN `tabMaterial Request` mr ON mr.name = poi.material_request
+        WHERE {" AND ".join(conditions)}
+        LIMIT 1
+    """, params, as_dict=1)
+
+    return mr[0] if mr else {"mr_date": None, "material_request_id": "", "qty": 0}
+
+
+def get_po_row(r, filters):
+    if not r.purchase_order_item:
+        return {"po_date": None, "po_ids": "", "po_qty": 0, "po_rate": "", "po_amount": 0, "po_status": ""}
+
+    conditions = ["poi.name = %(poi)s"]
+    params = {"poi": r.purchase_order_item}
+
+    if filters.get("po_id"):
+        conditions.append("po.name = %(po_id)s")
+        params["po_id"] = filters.get("po_id")
+
+    po = frappe.db.sql(f"""
+        SELECT
+            po.transaction_date AS po_date,
+            po.name AS po_ids,
+            poi.qty AS po_qty,
+            poi.rate AS po_rate,
+            poi.amount AS po_amount,
+            po.status AS po_status
+        FROM `tabPurchase Order Item` poi
+        INNER JOIN `tabPurchase Order` po ON po.name = poi.parent
+        WHERE {" AND ".join(conditions)}
+        LIMIT 1
+    """, params, as_dict=1)
+
+    return po[0] if po else {"po_date": None, "po_ids": "", "po_qty": 0, "po_rate": "", "po_amount": 0, "po_status": ""}
+
+
+def get_rfq_row(r, filters):
+    if not r.purchase_order_item:
+        return {"rfq_creation_date": None, "rfq_id": "", "rfq_status": ""}
+
+    rfq = frappe.db.sql("""
+        SELECT
+            MIN(DATE(rfq.creation)) AS rfq_creation_date,
+            GROUP_CONCAT(DISTINCT rfq.name ORDER BY rfq.creation SEPARATOR ', ') AS rfq_id,
+            GROUP_CONCAT(DISTINCT rfq.status ORDER BY rfq.creation SEPARATOR ', ') AS rfq_status
+        FROM `tabRequest for Quotation Item` rfqi
+        INNER JOIN `tabRequest for Quotation` rfq ON rfq.name = rfqi.parent
+        WHERE rfqi.material_request_item IN (
+            SELECT poi.material_request_item
+            FROM `tabPurchase Order Item` poi
+            WHERE poi.name = %(poi)s
+        )
+        AND rfq.docstatus = 1
+    """, {"poi": r.purchase_order_item}, as_dict=1)
+
+    return rfq[0] if rfq else {"rfq_creation_date": None, "rfq_id": "", "rfq_status": ""}
+
+
+def get_pi_rows(r, filters):
+    params = {"poi": r.purchase_order_item, "pri": r.pr_item_id}
     pi_filter_sql = ""
+
     if filters.get("pi_id"):
-        pi_filter_sql = " AND pi.name = %(pi_id)s "
+        pi_filter_sql += " AND pi.name = %(pi_id)s "
         params["pi_id"] = filters.get("pi_id")
 
-    pr_linked = frappe.db.sql(f"""
+    if filters.get("item"):
+        pi_filter_sql += " AND pii.item_code = %(item)s "
+        params["item"] = filters.get("item")
+
+    linked = frappe.db.sql(f"""
         SELECT DISTINCT
             pi.name,
-            pi.status,
             pi.posting_date,
+            pi.status,
+            pii.name AS pii_name,
             pii.qty,
             pii.rate,
             pii.amount
         FROM `tabPurchase Invoice Item` pii
         INNER JOIN `tabPurchase Invoice` pi ON pi.name = pii.parent
         WHERE pi.docstatus = 1
-          AND pii.pr_detail = %(pri_name)s
+          AND (
+              pii.pr_detail = %(pri)s
+              OR pii.po_detail = %(poi)s
+          )
           {pi_filter_sql}
         ORDER BY pi.posting_date, pi.name, pii.idx
     """, params, as_dict=1)
 
-    if pr_linked:
-        return pr_linked
-
-    po_linked = frappe.db.sql(f"""
-        SELECT DISTINCT
-            pi.name,
-            pi.status,
-            pi.posting_date,
-            pii.qty,
-            pii.rate,
-            pii.amount
-        FROM `tabPurchase Invoice Item` pii
-        INNER JOIN `tabPurchase Invoice` pi ON pi.name = pii.parent
-        WHERE pi.docstatus = 1
-          AND pii.po_detail = %(poi_name)s
-          AND (pii.pr_detail IS NULL OR pii.pr_detail = '')
-          {pi_filter_sql}
-        ORDER BY pi.posting_date, pi.name, pii.idx
-    """, params, as_dict=1)
-
-    return po_linked
+    return linked
 
 
-def get_pr_return_rows(filters, pr):
-    params = {"return_against": pr.name}
-
-    pr_return_filter = ""
-    if filters.get("from_date"):
-        pr_return_filter += " AND ret.posting_date >= %(from_date)s "
-        params["from_date"] = filters.get("from_date")
-    if filters.get("to_date"):
-        pr_return_filter += " AND ret.posting_date <= %(to_date)s "
-        params["to_date"] = filters.get("to_date")
-
-    return frappe.db.sql(f"""
+def get_pr_return_rows(r, filters):
+    params = {"return_against": r.pr_id}
+    sql = """
         SELECT
             ret.name,
             ret.posting_date,
             reti.name AS pri_name,
-            reti.batch_no,
             reti.qty,
             reti.rate,
             reti.amount
@@ -467,9 +391,9 @@ def get_pr_return_rows(filters, pr):
         WHERE ret.docstatus = 1
           AND IFNULL(ret.is_return, 0) = 1
           AND ret.return_against = %(return_against)s
-          {pr_return_filter}
         ORDER BY ret.posting_date, ret.name, reti.idx
-    """, params, as_dict=1)
+    """
+    return frappe.db.sql(sql, params, as_dict=1)
 
 
 def get_total_row(totals):
