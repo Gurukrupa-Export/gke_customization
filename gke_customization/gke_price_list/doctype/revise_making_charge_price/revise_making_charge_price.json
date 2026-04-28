@@ -1,132 +1,136 @@
 {
  "actions": [],
- "allow_import": 1,
  "allow_rename": 1,
- "creation": "2024-01-12 12:20:16.739182",
+ "creation": "2024-01-12 18:27:43.424993",
  "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "date",
-  "customer",
-  "customer_name",
-  "setting_type",
-  "subcontracting_rate",
-  "column_break_qywjr",
-  "metal_type",
-  "metal_touch",
-  "subcontracting_wastage",
-  "amended_from",
-  "section_break_okj7w",
-  "revise_making_charge_price_item_subcategory",
-  "section_break_6qxib",
-  "revise_making_charge_price_finding_subcategory"
+  "category",
+  "subcategory",
+  "rate_per_gm",
+  "rate_per_pc",
+  "rate_per_diamond",
+  "column_break_4",
+  "wastage",
+  "rate_per_gm_threshold",
+  "section_break_hmzwl",
+  "new_rate_per_gm",
+  "new_rate_per_pc",
+  "new_rate_per_diamond",
+  "column_break_blesy",
+  "new_wastage",
+  "new_rate_per_gm_threshold",
+  "section_break_g7dd1",
+  "making_charge_price_finding_subcategory"
  ],
  "fields": [
   {
-   "fieldname": "customer",
+   "fieldname": "subcategory",
    "fieldtype": "Link",
-   "label": "Customer",
-   "options": "Customer"
-  },
-  {
-   "fieldname": "setting_type",
-   "fieldtype": "Link",
-   "label": "Setting Type",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "label": "Subcategory",
    "options": "Attribute Value"
   },
   {
-   "fieldname": "metal_type",
-   "fieldtype": "Link",
-   "label": "Metal Type",
-   "options": "Attribute Value"
+   "fieldname": "rate_per_gm",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Rate per gm"
   },
   {
-   "fieldname": "column_break_qywjr",
+   "fieldname": "rate_per_pc",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Rate per pc"
+  },
+  {
+   "fieldname": "rate_per_diamond",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Rate per diamond"
+  },
+  {
+   "fieldname": "column_break_4",
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "metal_touch",
+   "fieldname": "wastage",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Wastage"
+  },
+  {
+   "description": "Enter weight in gms after which rate per gm will be applicable. Before the threshold rate per pc will be selected for making charge calculation of the design. eg: if you enter 2 in rate per gm threshold and the net wt plus finding wt in BOM of the item is less than 2 then rate per pc will be selected for computation of making charge. if the net wt plus finding wt is greater than 2 then rate per gm will be used for computation of making charge",
+   "fieldname": "rate_per_gm_threshold",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "label": "Rate per gm Threshold"
+  },
+  {
+   "fieldname": "section_break_hmzwl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "new_rate_per_gm",
+   "fieldtype": "Float",
+   "label": "New Rate per gm"
+  },
+  {
+   "fieldname": "new_rate_per_pc",
+   "fieldtype": "Float",
+   "label": "New Rate per pc"
+  },
+  {
+   "fieldname": "new_rate_per_diamond",
+   "fieldtype": "Float",
+   "label": "New Rate per diamond"
+  },
+  {
+   "fieldname": "column_break_blesy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "new_wastage",
+   "fieldtype": "Float",
+   "label": "New Wastage"
+  },
+  {
+   "fieldname": "new_rate_per_gm_threshold",
+   "fieldtype": "Float",
+   "label": "New Rate per gm Threshold"
+  },
+  {
+   "fieldname": "section_break_g7dd1",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "making_charge_price_finding_subcategory",
    "fieldtype": "Link",
-   "label": "Metal Touch",
+   "hidden": 1,
+   "label": "Making Charge Price Item Subcategory",
+   "options": "Making Charge Price Finding Subcategory"
+  },
+  {
+   "fetch_from": "subcategory.parent_attribute_value",
+   "fieldname": "category",
+   "fieldtype": "Link",
+   "label": "Category",
    "options": "Attribute Value"
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Revise Making Charge Price",
-   "print_hide": 1,
-   "read_only": 1
-  },
-  {
-   "fieldname": "section_break_okj7w",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "revise_making_charge_price_item_subcategory",
-   "fieldtype": "Table",
-   "label": "Revise Making Charge Price Item Subcategory",
-   "options": "Revise Making Charge Price Item Subcategory"
-  },
-  {
-   "default": "Today",
-   "fieldname": "date",
-   "fieldtype": "Date",
-   "label": "Date"
-  },
-  {
-   "fieldname": "section_break_6qxib",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "revise_making_charge_price_finding_subcategory",
-   "fieldtype": "Table",
-   "label": "Revise Making Charge Price Finding Subcategory",
-   "options": "Revise Making Charge Price Finding Subcategory"
-  },
-  {
-   "fetch_from": "customer.customer_name",
-   "fieldname": "customer_name",
-   "fieldtype": "Data",
-   "label": "Customer Name",
-   "read_only": 1
-  },
-  {
-   "fieldname": "subcontracting_rate",
-   "fieldtype": "Currency",
-   "label": "Subcontracting Rate"
-  },
-  {
-   "fieldname": "subcontracting_wastage",
-   "fieldtype": "Percent",
-   "label": "Subcontracting Wastage"
   }
  ],
  "index_web_pages_for_search": 1,
- "is_submittable": 1,
+ "istable": 1,
  "links": [],
- "modified": "2025-07-23 18:40:34.223420",
+ "modified": "2024-07-29 19:16:55.584155",
  "modified_by": "Administrator",
  "module": "Gke Price List",
- "name": "Revise Making Charge Price",
+ "name": "Revise Making Charge Price Finding Subcategory",
  "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
+ "permissions": [],
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
