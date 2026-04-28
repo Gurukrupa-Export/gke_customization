@@ -11,7 +11,6 @@
   "design_code_bom",
   "serial_no",
   "serial_no_bom",
-  "flow_type",
   "column_break_uqoj",
   "customer_code",
   "customer_name",
@@ -49,6 +48,10 @@
   "finding",
   "gemstone_quality",
   "product_weight_section",
+  "gross_weight",
+  "max_weight",
+  "min_weight",
+  "column_break_paof",
   "diamond_weight",
   "max_diamond",
   "min_diamond",
@@ -62,12 +65,10 @@
   "line_no",
   "sku_no",
   "uom",
-  "min_weight",
   "column_break_mhsm",
   "target_date",
   "indent_type",
   "vendor_site",
-  "max_weight",
   "section_break_xkmt",
   "customer_product_size",
   "product_size",
@@ -104,7 +105,7 @@
    "options": "BOM"
   },
   {
-   "fetch_from": "design_code.setting_type",
+   "fetch_from": "design_code_bom.setting_type",
    "fieldname": "setting_type",
    "fieldtype": "Data",
    "label": "Setting Type"
@@ -501,17 +502,28 @@
    "fieldname": "stone_code",
    "fieldtype": "Data",
    "label": "Stone Code"
+  },
+  {
+   "fetch_from": "design_code_bom.gross_weight",
+   "fieldname": "gross_weight",
+   "fieldtype": "Float",
+   "label": "Gross Weight"
+  },
+  {
+   "fieldname": "column_break_paof",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-03-27 15:40:18.210043",
- "modified_by": "Administrator",
+ "modified": "2026-03-05 10:25:48.672601",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Customer Order Form Detail",
  "owner": "Administrator",
  "permissions": [],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
