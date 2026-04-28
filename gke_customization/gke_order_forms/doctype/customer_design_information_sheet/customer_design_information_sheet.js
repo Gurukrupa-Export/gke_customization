@@ -65,6 +65,22 @@ frappe.ui.form.on('Customer Design Information Sheet', {
 				frappe.throw(`<b>${arr[0]}</b> already available`)
 			}   
 		});
+
+		 if (frm.doc.design_code) {
+
+            frappe.call({
+                method: "gke_customization.gke_order_forms.doctype.customer_design_information_sheet.customer_design_information_sheet.get_bom_from_design",
+                args: {
+                    design_code: frm.doc.design_code
+                },
+                callback: function(r) {
+                    if (r.message) {
+                        frm.set_value("bom", r.message);
+                    }
+                }
+            });
+
+        }
 		
 		// frappe.db.get_value("Item", frm.doc.design_code, "master_bom", (r)=> {
 		// 	if (r.master_bom){
@@ -88,6 +104,63 @@ frappe.ui.form.on('Customer Design Information Sheet', {
 		// 	} 
 		// })
 	},
+	 theme_code(frm) {
+
+    if (!frm.doc.theme_code) return;
+
+    frappe.call({
+        method: "frappe.client.get_list",
+        args: {
+            doctype: "Item",
+            fields: ["name"],
+            filters: {
+                disabled: 0
+            },
+            or_filters: [
+                ["Item Theme Code Detail", "theme_code", "like", "%" + frm.doc.theme_code + "%"]
+            ],
+            limit_page_length: 1
+        },
+        callback: function(r) {
+
+            if (r.message && r.message.length) {
+                frm.set_value("design_code", r.message[0].name);
+                console.log(r.message[0].name)
+            } else {
+                frm.set_value("design_code", "");
+                frappe.msgprint("No Item found for this Theme Code");
+            }
+        }
+    });},
+    
+    product_code(frm){
+      if (!frm.doc.product_code) return;
+
+    frappe.call({
+        method: "frappe.client.get_list",
+        args: {
+            doctype: "Item",
+            fields: ["name"],
+            filters: {
+                disabled: 0
+            },
+            or_filters: [
+                ["Item Theme Code Detail", "digit_14code", "like", "%" + frm.doc.product_code + "%"]
+            ],
+            limit_page_length: 1
+        },
+        callback: function(r) {
+
+            if (r.message && r.message.length) {
+                frm.set_value("design_code", r.message[0].name);
+                console.log(r.message[0].name)
+            } else {
+                frm.set_value("design_code", "");
+                frappe.msgprint("No Item found for this Theme Code");
+            }
+        }
+    });   
+    }
 	// is_set:function(frm){
 	// 	// if (frm.doc.is_set==0){
 

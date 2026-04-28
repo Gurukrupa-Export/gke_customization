@@ -1,0 +1,72 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-03-28 14:20:29.655230",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "code",
+  "customer_diamond_group_size",
+  "gk_diamond_size_in_mm",
+  "gk_diamond_sieve_size",
+  "gk_diamond_shape"
+ ],
+ "fields": [
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Code"
+  },
+  {
+   "fieldname": "customer_diamond_group_size",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer Diamond Group Size"
+  },
+  {
+   "fieldname": "gk_diamond_size_in_mm",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "GK Diamond Size in MM",
+   "link_filters": "[]",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "gk_diamond_sieve_size",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "GK Diamond Sieve Size",
+   "link_filters": "[[\"Attribute Value\",\"is_diamond_sieve_size\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "gk_diamond_shape",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "GK Diamond Shape",
+   "options": "Attribute Value"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-02 10:30:27.403889",
+ "modified_by": "shubham_k@gkexport.com",
+ "module": "GKE Order Forms",
+ "name": "Customer Diamond Size Details",
+ "owner": "shubham_k@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
