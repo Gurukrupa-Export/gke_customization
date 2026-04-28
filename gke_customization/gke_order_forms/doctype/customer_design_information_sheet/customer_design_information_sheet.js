@@ -65,7 +65,6 @@ frappe.ui.form.on('Customer Design Information Sheet', {
 				frappe.throw(`<b>${arr[0]}</b> already available`)
 			}   
 		});
-
 		 if (frm.doc.design_code) {
 
             frappe.call({
@@ -81,6 +80,7 @@ frappe.ui.form.on('Customer Design Information Sheet', {
             });
 
         }
+		
 		
 		// frappe.db.get_value("Item", frm.doc.design_code, "master_bom", (r)=> {
 		// 	if (r.master_bom){
@@ -104,7 +104,7 @@ frappe.ui.form.on('Customer Design Information Sheet', {
 		// 	} 
 		// })
 	},
-	 theme_code(frm) {
+		 theme_code(frm) {
 
     if (!frm.doc.theme_code) return;
 
@@ -248,6 +248,7 @@ frappe.ui.form.on('Customer Design Information Sheet', {
 	// 	});
 	// }
 });
+
 
 function set_filters_on_parent_table_fields(frm, fields) {
 	fields.map(function (field) {

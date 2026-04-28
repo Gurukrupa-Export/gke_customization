@@ -58,9 +58,7 @@ class CustomerOrderForm(Document):
 					tolerance = (gross_wgt * gross_tolerance) / 100
 					weight.max_weight = gross_wgt + tolerance if tolerance else 0
 					weight.min_weight = gross_wgt - tolerance if tolerance else 0
-     
-     
-		
+	
 	def validate(self):
 		set_data(self)
 		# calculate_qty(self)
@@ -512,7 +510,6 @@ def get_15code_detail(digit15_code, customer):
 		data_json['theme_code'] = theme_code
 
 		design_code = frappe.db.get_value('Item Theme Code Detail', {'customer': customer, 'theme_code': theme_code}, 'parent')
-		# frappe.throw(f"{design_code} here")
 		if design_code:
 			data_json['design_code'] = design_code
 		else:

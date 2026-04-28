@@ -7,7 +7,7 @@ frappe.ui.form.on('Customer Order Form', {
 		if (frm.doc.customer_order_form_detail) {
             let count = frm.doc.customer_order_form_detail.length;
             frm.set_value("product_qty", count);
-        }	
+        }		
 		set_item_attribute_filters_in_child_table(frm);
 		// frm.add_custom_button(__("Get Quotation"), function(){
         //     erpnext.utils.map_current_doc({
@@ -117,11 +117,12 @@ frappe.ui.form.on('Customer Order Form Detail', {
 			row.flow_type = frm.doc.flow_type;
 		}
 		refresh_field("customer_order_form_detail");
-
 		if (frm.doc.flow_type) {
             frappe.model.set_value(cdt, cdn, "indent_type", frm.doc.flow_type);
         }
 	},
+
+
 	 design_code: function(frm, cdt, cdn) {
 
         let row = locals[cdt][cdn];
@@ -207,9 +208,7 @@ frappe.ui.form.on('Customer Order Form Detail', {
             }
         });
     },
-    
-    
-    
+       
     
     digit18_code: function(frm, cdt, cdn) {
 
@@ -242,9 +241,6 @@ frappe.ui.form.on('Customer Order Form Detail', {
         });
     },
     
-    
-    
-    
     digit15_code: function(frm, cdt, cdn) {
 
         let row = locals[cdt][cdn];
@@ -275,6 +271,7 @@ frappe.ui.form.on('Customer Order Form Detail', {
             }
         });
     },
+		
 		
 });
 

@@ -63,7 +63,6 @@ class CustomerDesignInformationSheet(Document):
                         if bom_detail.get("quantity"):
                             titan_detail.quantity = bom_detail.quantity
 
-           
                         if bom_detail.get("size_in_mm"):
                             titan_detail.size_in_mm = bom_detail.size_in_mm
 
@@ -213,16 +212,16 @@ def set_tolerance(weight, customer, is_net_tolerance = None, edit_net_tolerance 
                 net_tolerance = row['tolerance_range']
                 cust_net_tolerance = row['customer_tolerance']
 
-                # tolerance = ''
-                # if edit_net_tolerance:
-                #     tolerance = (weight * edit_net_tolerance) / 100
-                # else:
-                tolerance = (weight * net_tolerance) / 100
+                tolerance = ''
+                if edit_net_tolerance:
+                    tolerance = (weight * edit_net_tolerance) / 100
+                else:
+                    tolerance = (weight * net_tolerance) / 100
                 
                 cust_min_weight = ''
                 cust_max_weight = ''
-                if is_net_tolerance:
-                    cust_tolerance = (weight * edit_net_tolerance) / 100
+                if cust_net_tolerance:
+                    cust_tolerance = (weight * cust_net_tolerance) / 100
                     cust_max_weight = weight + cust_tolerance
                     cust_min_weight = weight - cust_tolerance
                     
