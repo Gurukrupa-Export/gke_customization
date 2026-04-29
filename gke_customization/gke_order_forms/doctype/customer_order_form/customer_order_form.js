@@ -3,7 +3,11 @@
 
 frappe.ui.form.on('Customer Order Form', {
 	// get quotation button for proto type
-	refresh(frm){		
+	refresh(frm){	
+		if (frm.doc.customer_order_form_detail) {
+            let count = frm.doc.customer_order_form_detail.length;
+            frm.set_value("product_qty", count);
+        }		
 		set_item_attribute_filters_in_child_table(frm);
 		// frm.add_custom_button(__("Get Quotation"), function(){
         //     erpnext.utils.map_current_doc({
@@ -112,9 +116,162 @@ frappe.ui.form.on('Customer Order Form Detail', {
 			row.customer_code = frm.doc.customer_code;
 			row.flow_type = frm.doc.flow_type;
 		}
-		
 		refresh_field("customer_order_form_detail");
+		if (frm.doc.flow_type) {
+            frappe.model.set_value(cdt, cdn, "indent_type", frm.doc.flow_type);
+        }
 	},
+
+
+	 design_code: function(frm, cdt, cdn) {
+
+        let row = locals[cdt][cdn];
+
+        if (!row.design_code || !row.customer_code) return;
+
+        frappe.call({
+            method: "frappe.client.get_value",
+            args: {
+                doctype: "Customer Design Information Sheet",
+                filters: {
+                    customer_code: row.customer_code,
+                    design_code: row.design_code
+                },
+                fieldname: "bom"
+            },
+            callback: function(r) {
+                if (r.message) {
+                    frappe.model.set_value(cdt, cdn, "design_code_bom", r.message.bom);
+                }
+            }
+        });
+
+    },
+	 theme_code: function(frm, cdt, cdn) {
+
+        let row = locals[cdt][cdn];
+
+        if (!row.theme_code) return;
+
+        frappe.call({
+            method: "frappe.client.get_list",
+            args: {
+                doctype: "Item",
+                fields: ["name"],
+                filters: {
+                    disabled: 0
+                },
+                or_filters: [
+                    ["Item Theme Code Detail", "theme_code", "like", "%" + row.theme_code + "%"]
+                ],
+                limit_page_length: 1
+            },
+            callback: function(r) {
+
+                if (r.message && r.message.length) {
+                    frappe.model.set_value(cdt, cdn, "design_code", r.message[0].name);
+                } else {
+                    frappe.model.set_value(cdt, cdn, "design_code", "");
+                    frappe.msgprint("No Item found for this Theme Code");
+                }
+            }
+        });
+    },
+
+    digit14_code: function(frm, cdt, cdn) {
+
+        let row = locals[cdt][cdn];
+
+        if (!row.digit14_code) return;
+
+        frappe.call({
+            method: "frappe.client.get_list",
+            args: {
+                doctype: "Item",
+                fields: ["name"],
+                filters: {
+                    disabled: 0
+                },
+                or_filters: [
+                    ["Item Theme Code Detail", "digit_14code", "like", "%" + row.digit14_code + "%"]
+                ],
+                limit_page_length: 1
+            },
+            callback: function(r) {
+
+                if (r.message && r.message.length) {
+                    frappe.model.set_value(cdt, cdn, "design_code", r.message[0].name);
+                } else {
+                    frappe.model.set_value(cdt, cdn, "design_code", "");
+                    frappe.msgprint("No Item found for this Product Code");
+                }
+            }
+        });
+    },
+       
+    
+    digit18_code: function(frm, cdt, cdn) {
+
+        let row = locals[cdt][cdn];
+
+        if (!row.digit18_code) return;
+
+        frappe.call({
+            method: "frappe.client.get_list",
+            args: {
+                doctype: "Item",
+                fields: ["name"],
+                filters: {
+                    disabled: 0
+                },
+                or_filters: [
+                    ["Item Theme Code Detail", "digit18_code", "like", "%" + row.digit18_code + "%"]
+                ],
+                limit_page_length: 1
+            },
+            callback: function(r) {
+
+                if (r.message && r.message.length) {
+                    frappe.model.set_value(cdt, cdn, "design_code", r.message[0].name);
+                } else {
+                    frappe.model.set_value(cdt, cdn, "design_code", "");
+                    frappe.msgprint("No Item found for this Product Code");
+                }
+            }
+        });
+    },
+    
+    digit15_code: function(frm, cdt, cdn) {
+
+        let row = locals[cdt][cdn];
+
+        if (!row.digit15_code) return;
+
+        frappe.call({
+            method: "frappe.client.get_list",
+            args: {
+                doctype: "Item",
+                fields: ["name"],
+                filters: {
+                    disabled: 0
+                },
+                or_filters: [
+                    ["Item Theme Code Detail", "digit15_code", "like", "%" + row.digit15_code + "%"]
+                ],
+                limit_page_length: 1
+            },
+            callback: function(r) {
+
+                if (r.message && r.message.length) {
+                    frappe.model.set_value(cdt, cdn, "design_code", r.message[0].name);
+                } else {
+                    frappe.model.set_value(cdt, cdn, "design_code", "");
+                    frappe.msgprint("No Item found for this Product Code");
+                }
+            }
+        });
+    },
+		
 		
 });
 

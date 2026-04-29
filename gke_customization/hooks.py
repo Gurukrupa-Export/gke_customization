@@ -152,6 +152,17 @@ scheduler_events = {
     "cron": {
         "0 6 * * *": [
 		    "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
+        ],
+         "0 9 * * *": [
+            "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
+        ],
+
+        "0 15 * * *": [
+            "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
+        ],
+
+        "0 23 * * *": [
+            "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
         ]
     },
 }

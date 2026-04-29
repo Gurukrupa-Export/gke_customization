@@ -1,0 +1,61 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-03-28 14:24:10.235413",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "code",
+  "customer_setting_size",
+  "gk_setting_type",
+  "gk_sub_setting_type"
+ ],
+ "fields": [
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Code"
+  },
+  {
+   "fieldname": "customer_setting_size",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer Setting size"
+  },
+  {
+   "fieldname": "gk_setting_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "GK Setting type",
+   "link_filters": "[[\"Attribute Value\",\"is_setting_type\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "gk_sub_setting_type",
+   "fieldtype": "Link",
+   "label": "GK Sub Setting type",
+   "link_filters": "[[\"Attribute Value\",\"is_sub_setting_type\",\"=\",1]]",
+   "options": "Attribute Value"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-01 11:13:56.485330",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Customer Setting Detail",
+ "owner": "shubham_k@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -234,3 +234,38 @@ def set_tolerance(weight, customer, is_net_tolerance = None, edit_net_tolerance 
                 data_json['cust_max_weight'] = cust_max_weight if cust_max_weight else 0
         
     return data_json
+
+
+
+
+@frappe.whitelist()
+def get_bom_from_design(design_code):
+    
+    master_bom = frappe.db.get_value(
+        "BOM",
+        {
+            "item": design_code,
+            "bom_type": "Finish Goods",
+            "is_default": 1,
+            "is_active": 1
+        },
+        "name"
+    )
+
+    if not master_bom:
+        master_bom = frappe.db.get_value("Item", design_code, "master_bom")
+
+        item_bom = frappe.db.get_value(
+            "BOM",
+            {
+                "name": master_bom,
+                "item": design_code,
+                "bom_type": "Template"
+            },
+            "name"
+        )
+
+        if not item_bom:
+            frappe.throw(f"{design_code} has master_bom {master_bom}")
+
+    return master_bom
