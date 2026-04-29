@@ -1,0 +1,113 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-03-13 14:24:02.573916",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "category",
+  "subcategory",
+  "high",
+  "low",
+  "medium",
+  "column_break_mzzn",
+  "new_high",
+  "new_low",
+  "new_medium",
+  "diff_high",
+  "diff_low",
+  "diff_medium"
+ ],
+ "fields": [
+  {
+   "fieldname": "category",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Category",
+   "link_filters": "[[\"Attribute Value\",\"is_category\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "subcategory",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Subcategory",
+   "link_filters": "[[\"Attribute Value\",\"is_subcategory\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "high",
+   "fieldtype": "Float",
+   "label": "High",
+   "read_only": 1
+  },
+  {
+   "fieldname": "low",
+   "fieldtype": "Float",
+   "label": "Low",
+   "read_only": 1
+  },
+  {
+   "fieldname": "medium",
+   "fieldtype": "Float",
+   "label": "Medium",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_mzzn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "new_high",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "New High"
+  },
+  {
+   "fieldname": "new_low",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "New Low"
+  },
+  {
+   "fieldname": "new_medium",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "New Medium"
+  },
+  {
+   "fieldname": "diff_high",
+   "fieldtype": "Float",
+   "label": "Diff High",
+   "read_only": 1
+  },
+  {
+   "fieldname": "diff_low",
+   "fieldtype": "Float",
+   "label": "Diff Low",
+   "read_only": 1
+  },
+  {
+   "fieldname": "diff_medium",
+   "fieldtype": "Attach",
+   "label": "Diff Medium",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-27 13:02:46.486488",
+ "modified_by": "shubham_k@gkexport.com",
+ "module": "GKE Order Forms",
+ "name": "Revise CAD Designing Pricing Item",
+ "owner": "shubham_k@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

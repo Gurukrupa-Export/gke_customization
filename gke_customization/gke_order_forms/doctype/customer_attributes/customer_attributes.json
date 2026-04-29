@@ -20,7 +20,14 @@
   "tolerance_section",
   "metal_tolerance_table",
   "diamond_tolerance",
-  "diamond_tolerance_table"
+  "diamond_tolerance_table",
+  "section_break_bezl",
+  "customer_gemstone_detail",
+  "customer_diamond_shape_detail",
+  "customer_setting_detail",
+  "customer_diamond_size_details",
+  "section_break_rcnn",
+  "metal_ratio"
  ],
  "fields": [
   {
@@ -94,12 +101,14 @@
    "label": "Tolerance"
   },
   {
+   "allow_bulk_edit": 1,
    "fieldname": "metal_tolerance_table",
    "fieldtype": "Table",
    "label": "Metal Tolerance Table",
    "options": "Metal Tolerance Table"
   },
   {
+   "allow_bulk_edit": 1,
    "fieldname": "diamond_tolerance_table",
    "fieldtype": "Table",
    "label": "Diamond Tolerance Table",
@@ -109,12 +118,56 @@
    "fieldname": "diamond_tolerance",
    "fieldtype": "Percent",
    "label": "Diamond Tolerance"
+  },
+  {
+   "depends_on": "eval: (doc.customer_name==\"Malabar Gold And Diamonds Fzco\") || (doc.customer_name==\"MBMG Diamonds Private Limited\")",
+   "fieldname": "section_break_bezl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "customer_gemstone_detail",
+   "fieldtype": "Table",
+   "label": "Customer Gemstone Detail",
+   "options": "Customer Gemstone Detail"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "customer_diamond_shape_detail",
+   "fieldtype": "Table",
+   "label": "Customer Diamond Shape Detail",
+   "options": "Customer Diamond Shape Detail"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "customer_setting_detail",
+   "fieldtype": "Table",
+   "label": "Customer Setting Detail",
+   "options": "Customer Setting Detail"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "customer_diamond_size_details",
+   "fieldtype": "Table",
+   "label": "Customer Diamond Size Details",
+   "options": "Customer Diamond Size Details"
+  },
+  {
+   "fieldname": "section_break_rcnn",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "metal_ratio",
+   "fieldtype": "Table",
+   "label": "Metal Ratio",
+   "options": "Metal Ratio"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-14 12:13:23.854578",
- "modified_by": "Administrator",
+ "modified": "2026-04-10 14:09:58.002390",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Customer Attributes",
  "naming_rule": "Expression (old style)",
@@ -133,6 +186,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
