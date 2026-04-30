@@ -17,17 +17,25 @@ def validate(self,method=None):
 					)
 	if self.company=='Sadguru Diamond':
 		for r in self.items :
+			
+
+			# if r.against_sales_order:
+			# 	Diamond_grade=frappe.db.get_value('Sales Order',r.against_sales_order,'items.diamond_grade')
+			# 	Batch_no=frappe.db.get_value('Sales Order',r.against_sales_order,'items.batch_no')
+			# 	r.diamond_grade=Diamond_grade
+			# 	r.batch_no = Batch_no
+			
 			if not r.batch_no and not r.diamond_grade:
 				frappe.throw("Batch no and Diamond grade are mandatory")
 			elif not r.batch_no:
 				frappe.throw("Batch no is mandatory")
 			elif not r.diamond_grade:
 				frappe.throw("Diamond grade is mandatory")
-				
+
 @frappe.whitelist()
 def make_sales_invoice(source_name, target_doc=None, args=None):
 	doc = frappe.get_doc("Delivery Note", source_name)
-
+	# frappe.msgprint(f"jjiih")
 	to_make_invoice_qty_map = {}
 	returned_qty_map = get_returned_qty_map(source_name)
 	invoiced_qty_map = get_invoiced_qty_map(source_name)
@@ -35,7 +43,18 @@ def make_sales_invoice(source_name, target_doc=None, args=None):
 	def set_missing_values(source, target):
 		target.run_method("set_missing_values")
 		target.run_method("set_po_nos")
+		for item in source.get("items") or []:
+			if item.against_sales_order:
+				sales_order = item.against_sales_order
+				break
 
+		if sales_order:
+			target.gold_rate = frappe.db.get_value(
+				"Sales Order",
+				sales_order,
+				"gold_rate"
+		)
+		# frappe.msgprint(f"{target.gold_rate},jjiih")
 		if len(target.get("items")) == 0:
 			frappe.throw(_("All these items have already been Invoiced/Returned"))
 
