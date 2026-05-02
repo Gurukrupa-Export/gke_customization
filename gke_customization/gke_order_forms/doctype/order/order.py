@@ -1375,7 +1375,7 @@ def create_only_variant_from_order(self, source_name, target_doc=None):
             target.sequence = suffix
         else:
             target.item_group = (
-                frappe.db.get_value("Order", source_name, "subcategory") + " - V",
+                frappe.db.get_value("Order", source_name, "subcategory") + " - V"
             )
             target.sequence = item_code[2:7]
         target.item_code = item_code
@@ -1476,7 +1476,7 @@ def create_sufix_of_variant_template_from_order(source_name, target_doc=None):
     def post_process(source, target):
         target.is_design_code = 1
         target.has_variants = 1
-        target.item_group = (source.subcategory + " - T",)
+        target.item_group = source.subcategory + " - T"
 
         if source.designer_assignment:
             target.designer = source.designer_assignment[0].designer
@@ -1522,7 +1522,7 @@ def create_variant_of_sufix_of_variant_from_order(
     def post_process(source, target):
         target.order_form_type = "Order"
         target.item_group = (
-            frappe.db.get_value("Order", source_name, "subcategory") + " - V",
+            frappe.db.get_value("Order", source_name, "subcategory") + " - V"
         )
         target.custom_cad_order_id = source_name
         target.custom_cad_order_form_id = frappe.db.get_value(
