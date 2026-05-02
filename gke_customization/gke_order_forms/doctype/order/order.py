@@ -1232,7 +1232,7 @@ def create_item_template_from_order(source_name, target_doc=None):
                     "User", frappe.session.user, "full_name"
                 )
 
-        target.item_group = (source.subcategory + " - T",)
+        target.item_group = source.subcategory + " - T"
 
     doc = get_mapped_doc(
         "Order",
@@ -1264,7 +1264,7 @@ def create_variant_of_template_from_order(item_template, source_name, target_doc
     def post_process(source, target):
         target.order_form_type = "Order"
         target.item_group = (
-            frappe.db.get_value("Order", source_name, "subcategory") + " - V",
+            frappe.db.get_value("Order", source_name, "subcategory") + " - V"
         )
         target.custom_cad_order_id = source_name
         target.custom_cad_order_form_id = frappe.db.get_value(
@@ -1375,7 +1375,7 @@ def create_only_variant_from_order(self, source_name, target_doc=None):
             target.sequence = suffix
         else:
             target.item_group = (
-                frappe.db.get_value("Order", source_name, "subcategory") + " - V",
+                frappe.db.get_value("Order", source_name, "subcategory") + " - V"
             )
             target.sequence = item_code[2:7]
         target.item_code = item_code
@@ -1476,7 +1476,7 @@ def create_sufix_of_variant_template_from_order(source_name, target_doc=None):
     def post_process(source, target):
         target.is_design_code = 1
         target.has_variants = 1
-        target.item_group = (source.subcategory + " - T",)
+        target.item_group = source.subcategory + " - T"
 
         if source.designer_assignment:
             target.designer = source.designer_assignment[0].designer
@@ -1522,7 +1522,7 @@ def create_variant_of_sufix_of_variant_from_order(
     def post_process(source, target):
         target.order_form_type = "Order"
         target.item_group = (
-            frappe.db.get_value("Order", source_name, "subcategory") + " - V",
+            frappe.db.get_value("Order", source_name, "subcategory") + " - V"
         )
         target.custom_cad_order_id = source_name
         target.custom_cad_order_form_id = frappe.db.get_value(
@@ -2055,6 +2055,7 @@ def make_quotation_fill_defaults(quotation, order):
     quotation.run_method("set_missing_values")
     quotation.run_method("calculate_taxes_and_totals")
 
+
 @frappe.whitelist()
 def get_orders_for_quotation(doctype, txt, searchfield, start, page_len, filters):
     conditions = """
@@ -2064,16 +2065,13 @@ def get_orders_for_quotation(doctype, txt, searchfield, start, page_len, filters
         AND o.name LIKE %(txt)s
     """
 
-    values = {
-        "txt": f"%{txt}%",
-        "limit": page_len,
-        "offset": start
-    }
+    values = {"txt": f"%{txt}%", "limit": page_len, "offset": start}
 
     if filters.get("customer_code"):
         conditions += " AND o.customer_code = %(customer_code)s"
         values["customer_code"] = filters.get("customer_code")
-    return frappe.db.sql(f"""
+    return frappe.db.sql(
+        f"""
         SELECT
             o.name,
             o.item,
@@ -2087,4 +2085,7 @@ def get_orders_for_quotation(doctype, txt, searchfield, start, page_len, filters
             {conditions}
         ORDER BY o.modified DESC
         LIMIT %(limit)s OFFSET %(offset)s
-    """, values, as_dict=True)
+    """,
+        values,
+        as_dict=True,
+    )
