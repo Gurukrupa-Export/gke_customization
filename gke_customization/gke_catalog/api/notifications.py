@@ -14,7 +14,6 @@ import json
 from frappe.utils import validate_email_address
 
 
-
 @frappe.whitelist(allow_guest=True)
 def notify_user(for_user, subject, message=None, action_label=None, action_url=None):
     """
@@ -48,6 +47,7 @@ def notify_user(for_user, subject, message=None, action_label=None, action_url=N
 
     frappe.db.commit()
     return {"status": "success"}
+
 
 @frappe.whitelist(allow_guest=True)
 def get_notifications_of_customer(for_user):
