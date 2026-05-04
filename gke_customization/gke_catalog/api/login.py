@@ -22,30 +22,85 @@ def get_user_secret(username):
     return base64.b32encode(h.digest()).decode('utf-8')
 
 
-@frappe.whitelist(allow_guest=True)
-def generate_token_from_data(data, username, password):
-
-    # frappe.set_user("Administrator")
-    login_manager = LoginManager()
-    login_manager.authenticate(username, password)
-    # login_manager.post_login()
+# @frappe.whitelist(allow_guest=True)
+def generate_token_from_data(username, password):
+    
+    # login_manager = LoginManager()
+    # login_manager.authenticate(username, password)
 
 
-    method = "POST"
-    url = "/api/method/frappe.integrations.oauth2.get_token"
+    # method = "POST"
+    # url = "/api/method/frappe.integrations.oauth2.get_token"
 
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
+    # headers = {
+    #     "Content-Type": "application/x-www-form-urlencoded"
+    # }
 
-    oauth_server = get_oauth_server()
+    # oauth_server = get_oauth_server()
    
 
-    _, body, _ = oauth_server.create_token_response(
-        url, method, data, headers, frappe.flags.oauth_credentials
-    )
+    # _, body, _ = oauth_server.create_token_response(
+    #     url, method, data, headers, frappe.flags.oauth_credentials
+    # )
 
-    return frappe._dict(json.loads(body))
+    # return frappe._dict(json.loads(body))
+    # Step 1: Login user
+
+
+    # login_manager = LoginManager()
+    # login_manager.authenticate(username, password)
+    # login_manager.post_login()
+
+    # # Step 2: Prepare OAuth request
+    # url = frappe.utils.get_url("/api/method/frappe.integrations.oauth2.get_token")
+
+    # payload = {
+    #     "grant_type": "authorization_code",
+    #     "client_id": "4ntn3kjtkh",
+    #     "client_secret": "62d531627d",
+    #     "code": AUTH_CODE,
+    #     "redirect_uri": "http://ec2-13-234-27-130.ap-south-1.compute.amazonaws.com:8001/"
+    # }
+
+    # headers = {
+    #     "Content-Type": "application/x-www-form-urlencoded"
+    # }
+
+    # # Step 3: Call OAuth API
+    # response = requests.post(url, data=payload, headers=headers)
+
+    # token_data = response.json()
+
+    # if "access_token" not in token_data:
+    #     frappe.log_error(f"{token_data}")
+    #     frappe.throw("Token generation failed")
+
+    # return {
+    #     "access_token": token_data.get("access_token"),
+    #     "refresh_token": token_data.get("refresh_token"),
+    #     "expires_in": token_data.get("expires_in"),
+    #     "user": frappe.session.user
+    # }
+
+    login_manager = LoginManager()
+    login_manager.authenticate(username, password)
+    login_manager.post_login()
+
+    user = frappe.get_doc("User", username)
+
+    if not user.api_key:
+        user.api_key = frappe.generate_hash(length=15)
+
+    api_secret = frappe.generate_hash(length=15)
+    user.set("api_secret", api_secret)
+
+    user.save(ignore_permissions=True)
+
+    return {
+        "api_key": user.api_key,
+        "api_secret": api_secret
+    }
+
 
 @frappe.whitelist(allow_guest=True)
 def send_otp_for_login_user(username, password):
@@ -83,7 +138,7 @@ def send_otp_for_login_user(username, password):
         recipients = recipient,
         # recipients = fallback_email,
         # recipients = "mitali_s@gkexport.com",
-        sender = "shubham_s@gkexport.com",  #"customer_portal@gkexport.com",
+        sender = "customer_portal@gkexport.com",  #"customer_portal@gkexport.com",
         subject= "Your One Time Password",
         template="otp",  # corresponds to otp_email.html
         args={"otp": otp},
@@ -94,7 +149,7 @@ def send_otp_for_login_user(username, password):
         recipients = "mansi_g@gkexport.com",
         # recipients = fallback_email,
         # recipients = "mitali_s@gkexport.com", 
-        sender = "shubham_s@gkexport.com",
+        sender = "customer_portal@gkexport.com",
         subject= "Your One Time Password",
         template="user_otp",  # corresponds to otp_email.html
         args={"otp": otp, "login_id": recipient},
@@ -119,6 +174,32 @@ def sent_alert_email_for_screen_shot(username):
         "status": "success"
     }
 
+
+import requests
+
+def set_gold_value():
+    URL = "http://bcast.jainbullion.in:7767/VOTSBroadcastStreaming/Services/xml/GetLiveRateByTemplateID/jain"
+
+    try:
+        response = requests.get(URL, timeout=10)
+        response.raise_for_status()
+        response_text = response.text
+    except Exception:
+        return None
+
+    gold_value = None
+
+    for line in response_text.strip().splitlines():
+        parts = line.split()
+
+        if len(parts) >= 8 and parts[0] == "4972":
+            try:
+                gold_value = float(parts[7])
+                break
+            except ValueError:
+                continue
+
+    return gold_value
 
 @frappe.whitelist(allow_guest=True)
 def verify_otp_using_customer_name(username, password, otp):
@@ -161,21 +242,21 @@ def verify_otp_using_customer_name(username, password, otp):
         frappe.cache().delete_value(otp_key)
 
         # Generate token
-        token_data = {
-            "grant_type": "password",
-            "client_id": "e3cktidb7o",
-            "client_secret": "6ae38cbd32",
-            "username": username,
-            "password": password
-        }
+        # token_data = {
+        #     "grant_type": "password",
+        #     "client_id": "e3cktidb7o",
+        #     "client_secret": "6ae38cbd32",
+        #     "username": username,
+        #     "password": password
+        # }
 
-        result = generate_token_from_data(token_data, username, password)
+        result = generate_token_from_data(username, password)
         
 
-        if "access_token" in result:
-            expires_at_utc = datetime.now(timezone.utc) + timedelta(seconds=result["expires_in"])
-            local_tz = pytz.timezone("Asia/Kolkata")
-            expires_at_local = expires_at_utc.astimezone(local_tz).replace(tzinfo=None)
+        if "api_key" in result:
+            # expires_at_utc = datetime.now(timezone.utc) + timedelta(seconds=result["expires_in"])
+            # local_tz = pytz.timezone("Asia/Kolkata")
+            # expires_at_local = expires_at_utc.astimezone(local_tz).replace(tzinfo=None)
 
             # 🔍 Fetch Customer linked to this username (email_id) using customer id
 
@@ -291,14 +372,16 @@ def verify_otp_using_customer_name(username, password, otp):
                 #         "status": "failed",
                 #         "message": f"Access not allowed: current time is outside allowed login window."
                 #     }
-                        
+                       
+                gold_value = set_gold_value()
+                 
                 return {
                         "status": "success",
                         "message": "OTP verified successfully",
-                        "access_token": result["access_token"],
-                        "refresh_token": result.get("refresh_token"),
-                        "expires_in": result.get("expires_in"),
-                        "customer": data[0] if data else []
+                        "api_key": result["api_key"],
+                        "api_secret": result.get("api_secret"),
+                        "customer": data[0] if data else [],
+                        "gold_value" : gold_value
                 }
                
             except Exception as e:
@@ -306,13 +389,16 @@ def verify_otp_using_customer_name(username, password, otp):
                 return {"status": "failed", "message": "Database error while fetching customer"}
 
         else:
+            frappe.log_error(
+                title="Token Generation Failed",
+                message=f"OAuth response: {result}"
+            )
             frappe.throw("Token generation failed", title="Login Failed")
 
     else:
         frappe.throw("Failed to verify OTP", title="Login Failed")
 
     return {"status": "failed", "message": "Invalid or expired OTP"}
-
 
 
 @frappe.whitelist(allow_guest=True)
@@ -373,10 +459,15 @@ def get_address_by_link_name(user_type, link_name):
 
             customer_info = []
             for cus in customer_represent:
-                cust_details = frappe.db.get_value("Customer", cus.parent, ["name as customer", "customer_name","email_id"], as_dict=True)
+                cust_details = frappe.db.get_value(
+                    "Customer",
+                    filters={"name": cus.parent, "disabled": 0},
+                    fieldname=["name as customer", "customer_name", "email_id"],
+                    as_dict=True
+                )
                 if cust_details:
                     customer_info.append(cust_details)
-    
+
             merged_data = {**emp_info, "customer_representatives": customer_info}
 
             return merged_data

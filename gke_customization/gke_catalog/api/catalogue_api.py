@@ -14,8 +14,8 @@ import json
 from gke_customization.gke_catalog.api.notifications import notify_user
 
 
-@frappe.whitelist(allow_guest = True)
-def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, metalType = None, company = None):
+@frappe.whitelist()
+def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, metalType = None, company = None, customer = None):
     # selectedSubcategory = frappe.form_dict.get("selectedSubcategory")
     # itemCode = frappe.form_dict.get("itemCode")
     # itemCategory = frappe.form_dict.get("itemCategory")
@@ -33,14 +33,6 @@ def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, m
 
     if itemCategory is None:
         itemCategory = frappe.form_dict.get("itemCategory")
-
-    # where_clause = """        
-    #     idf.company = 'Gurukrupa Export Private Limited'  
-
-    #     AND bom.bom_type = 'Finish Goods'
-    #     #   OR bom.bom_type = 'Template'
-    # """
-
    
     where_clause = ""
 
@@ -49,13 +41,36 @@ def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, m
 
     if metalType:
         where_clause += f" AND bom.metal_type = '{metalType}'"
-
+ 
     if company:
         where_clause += f" AND idf.company = '{company}'"
     else:
         where_clause += " AND idf.company = 'Gurukrupa Export Private Limited'"
 
+
     where_clause += " AND bom.bom_type = 'Finish Goods'"
+
+    if itemCode:
+        where_clause = where_clause + f" AND item.item_code = '{itemCode}' "
+    if itemCategory:
+        where_clause = where_clause + f" AND item.item_category = '{itemCategory}' "
+        
+    values = {}
+
+    if customer:
+        wishlist_case = "MAX(CASE WHEN tci.wishlist = 1 AND tcm.customer IS NOT NULL THEN 1 ELSE 0 END) AS wishlist"
+        trending_case = "MAX(CASE WHEN tci.trending = 1 AND tcm.customer IS NOT NULL THEN 1 ELSE 0 END) AS trending"
+        customer_join = "AND tcm.customer = %(customer)s"
+    else:
+        wishlist_case = "0 AS wishlist"
+        trending_case = "0 AS trending"
+        customer_join = ""  
+
+
+    if customer:
+        values["customer"] = customer
+        
+
     # where_clause += " AND item.item_code = 'EA01809-001'"
     # frappe.throw(repr(where_clause))
 
@@ -66,12 +81,6 @@ def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, m
     # if metalType == 'Silver':
     #     where_clause = where_clause + f" AND bom.metal_type = '{metalType}' AND (bom.bom_type = 'Finish Goods'  OR bom.bom_type = 'Template') "
     
-
-    if itemCode:
-        where_clause = where_clause + f" AND item.item_code = '{itemCode}' "
-    if itemCategory:
-        where_clause = where_clause + f" AND item.item_category = '{itemCategory}' "
-
     # frappe.throw(f"{where_clause}")
 
     db_data = frappe.db.sql(
@@ -80,7 +89,8 @@ def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, m
                 bom.name,
                 idf.company,
                 tci.trending,
-                tci.wishlist,
+                # {trending_case},
+                {wishlist_case},
                 item.creation,
                 item.item_code,
                 item.item_category,
@@ -138,6 +148,41 @@ def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, m
                 GROUP_CONCAT(DISTINCT item.name) as variant_name,
                 GROUP_CONCAT(DISTINCT td.design_attributes) AS design_attributes,
                 GROUP_CONCAT(DISTINCT td.design_attribute_value_1) AS design_attributes_1,
+                GROUP_CONCAT(
+                        DISTINCT CASE 
+                            WHEN td.design_attributes = 'Collection' 
+                            THEN td.design_attribute_value_1 
+                        END
+                ) AS custom_collection,
+
+                GROUP_CONCAT(
+                        DISTINCT CASE 
+                            WHEN td.design_attributes = 'Language' 
+                            THEN td.design_attribute_value_1 
+                        END
+                ) AS custom_language,
+
+                GROUP_CONCAT(
+                        DISTINCT CASE 
+                            WHEN td.design_attributes = 'Zodiac' 
+                            THEN td.design_attribute_value_1 
+                        END
+                ) AS custom_zodiac,
+                
+                GROUP_CONCAT(
+                        DISTINCT CASE 
+                            WHEN td.design_attributes = 'Animal/Birds' 
+                            THEN td.design_attribute_value_1 
+                        END
+                ) AS custom_animalbirds,
+                
+                GROUP_CONCAT(
+                        DISTINCT CASE 
+                            WHEN td.design_attributes = 'Alphabet/Number' 
+                            THEN td.design_attribute_value_1 
+                        END
+                ) AS custom_alphabetnumber,
+                
                 GROUP_CONCAT(DISTINCT mt.metal_type) AS metal_types,
                 GROUP_CONCAT(DISTINCT mt.metal_colour) AS metal_color,
                 GROUP_CONCAT(DISTINCT mt.metal_purity) AS metal_purities,
@@ -162,6 +207,7 @@ def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, m
                 `tabCataloge Master` AS tcm 
             ON 
                 tcm.name = tci.parent
+                {customer_join}  
             LEFT JOIN
                 `tabBOM` AS bom
             ON
@@ -210,23 +256,27 @@ def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, m
                 item.name DESC 
             # limit 200
     """,
+    values,
     as_dict=True)
 
     item_codes = [row.item_code for row in db_data]
 
-    db_res = frappe.db.sql(
-        """
-        SELECT 
-            parent,
-            parentfield,
-            GROUP_CONCAT(design_attribute ORDER BY design_attribute SEPARATOR ', ') AS design_attributes
-        FROM `tabDesign Attribute - Multiselect`
-        WHERE parent IN %(data)s
-        GROUP BY parent, parentfield
-        """,
-        {"data": tuple(item_codes)},
-        as_dict=True
-    )
+    if item_codes:
+        db_res = frappe.db.sql(
+            """
+            SELECT 
+                parent,
+                parentfield,
+                GROUP_CONCAT(design_attribute ORDER BY design_attribute SEPARATOR ', ') AS design_attributes
+            FROM `tabDesign Attribute - Multiselect`
+            WHERE parent IN %(data)s
+            GROUP BY parent, parentfield
+            """,
+            {"data": tuple(item_codes)},
+            as_dict=True
+        )
+    else:
+        db_res = []
 
     attr_map = {}
 
@@ -252,6 +302,7 @@ def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, m
             row[key] = value
 
     return db_data
+
 
 @frappe.whitelist(allow_guest=True)
 def customer_wise_item(selectedSubcategory, customer = None, user = None,  metalType = None):
@@ -282,6 +333,7 @@ def customer_wise_item(selectedSubcategory, customer = None, user = None,  metal
         where_clause = where_clause + f" AND item.item_code = '{itemCode}' "
     if itemCategory:
         where_clause = where_clause + f" AND item.item_category = '{itemCategory}' "
+    
 
     db_data = frappe.db.sql(
         f""" SELECT
@@ -344,6 +396,7 @@ def customer_wise_item(selectedSubcategory, customer = None, user = None,  metal
                 GROUP_CONCAT(DISTINCT item.name) as variant_name,
                 GROUP_CONCAT(DISTINCT td.design_attributes) AS design_attributes,
                 GROUP_CONCAT(DISTINCT td.design_attribute_value_1) AS design_attributes_1,
+
                 GROUP_CONCAT(DISTINCT mt.metal_type) AS metal_types,
                 GROUP_CONCAT(DISTINCT mt.metal_colour) AS metal_color,
                 GROUP_CONCAT(DISTINCT mt.metal_purity) AS metal_purities,
@@ -377,6 +430,7 @@ def customer_wise_item(selectedSubcategory, customer = None, user = None,  metal
                 `tabInternal Catalog Master` AS icm 
             ON 
                 icm.name = uid.parent
+
             LEFT JOIN
                 `tabBOM` AS bom
             ON
@@ -450,142 +504,347 @@ def customer_wise_item(selectedSubcategory, customer = None, user = None,  metal
         "internal_catalog_folder" : int_c_f
     } 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def subcategory_count(categoryName, user_type, customer=None):
     try:
         if user_type == "Customer":
             sql_query = """
                 SELECT 
-                    ti.item_category, ti.item_subcategory, tb.metal_type,
-                    COUNT(
-                        DISTINCT CASE
-                            WHEN tav.is_subcategory = 1  
-                                AND ti.item_subcategory IS NOT NULL
-                                AND fbom.bom_type = 'Finish Goods' 
-                                AND fbom.is_active = 1  
-                            THEN ti.name
-                        END
-                    ) AS item_count,
-                    COUNT(
-                        DISTINCT CASE
-                            WHEN tav.is_subcategory = 1 
-                                AND ti.item_subcategory IS NOT NULL 
-                                AND fbom.bom_type = 'Finish Goods' 
-                                AND fbom.is_active = 1 
-                            THEN ti.name
-                        END
-                    ) AS serial_count
+                    ti.item_category,
+                    ti.item_subcategory,
+                    tb.metal_type,
+                    COUNT(DISTINCT ti.name) AS item_count,
+                    COUNT(DISTINCT ti.name) AS serial_count,
+                    MIN(ti.image) AS first_image
+                    
                 FROM `tabCataloge Item Details` AS tci
-                LEFT JOIN `tabCataloge Master` AS tcm 
+        
+                JOIN `tabCataloge Master` AS tcm 
                     ON tcm.name = tci.parent
-                LEFT JOIN `tabItem` AS ti 
-                    ON ti.name = tci.item_code
-                LEFT JOIN `tabBOM` AS tb 
-                    ON ti.name = tb.item
-                LEFT JOIN `tabBOM` AS fbom 
-                    ON fbom.item = ti.name  -- For serial_count
-                JOIN `tabAttribute Value` AS tav 
-                    ON ti.item_subcategory = tav.name  -- ✅ Changed to subcategory join
-                WHERE  
-                    (
-                    (tav.is_subcategory = 1 AND ti.item_subcategory IS NOT NULL)
-                    OR 
-                    (fbom.bom_type = 'Finish Goods' AND fbom.is_active = 1)
-                    )
                     AND tcm.customer = %s
-                    AND tb.is_active = 1
+        
+                JOIN `tabItem` AS ti 
+                    ON ti.name = tci.item_code
                     AND ti.item_category = %s
+        
+                JOIN `tabAttribute Value` AS tav 
+                    ON tav.name = ti.item_subcategory
+                    AND tav.is_subcategory = 1
+        
+                JOIN `tabBOM` AS tb 
+                    ON tb.item = ti.name
+                    AND tb.is_active = 1
+                    AND tb.bom_type = 'Finish Goods'
+        
+                -- Serial count: count actual serial nos linked to this item
+                LEFT JOIN `tabSerial No` AS se
+                    ON se.item_code = ti.name
+                    AND se.status = 'Active'
+        
+                WHERE 
+                    ti.item_subcategory IS NOT NULL
+        
                 GROUP BY 
-                    ti.item_category, ti.item_subcategory , tb.metal_type
+                    ti.item_category,
+                    ti.item_subcategory,
+                    tb.metal_type
+        
                 ORDER BY 
-                    ti.item_category, ti.item_subcategory ,tb.metal_type
-                    # , ti.item_code, ti.variant_of
+                    ti.item_category,
+                    ti.item_subcategory,
+                    tb.metal_type
             """
             result = frappe.db.sql(sql_query, (customer, categoryName), as_dict=True)
 
         else:
-            # sql_query = """
-            #     SELECT
-            #         item.item_subcategory,
-            #         COUNT(
-            #             DISTINCT CASE
-            #                 WHEN tav.is_subcategory = 1 
-            #                      AND item.item_subcategory IS NOT NULL 
-            #                 THEN item.name
-            #             END
-            #         ) AS item_count,
-            #         COUNT(
-            #             DISTINCT CASE
-            #                 WHEN tav.is_subcategory = 1 
-            #                      AND item.item_subcategory IS NOT NULL
-            #                      AND bom.bom_type = 'Finish Goods' 
-            #                      AND bom.is_active = 1 
-            #                 THEN item.name
-            #             END
-            #         ) AS serial_count
-            #     FROM 
-            #         `tabItem` AS item
-            #     JOIN 
-            #         `tabAttribute Value` AS tav 
-            #             ON item.item_subcategory = tav.name
-            #     LEFT JOIN 
-            #         `tabBOM` AS bom 
-            #             ON item.item_code = bom.item
-            #     WHERE 
-            #         (
-            #           (tav.is_subcategory = 1 AND item.item_subcategory IS NOT NULL)
-            #           OR 
-            #           (bom.bom_type = 'Finish Goods' AND bom.is_active = 1)
-            #         )
-            #         AND item.item_category = %s
-            #     GROUP BY 
-            #         item.item_subcategory
-            # """
             sql_query = """
                 SELECT
                     item.item_subcategory,
-                    COALESCE(tbm.metal_type, 'Unknown') AS metal_type,
-                    # COUNT(DISTINCT item.name) AS item_count,
-                    COUNT(
-                        DISTINCT CASE
-                            WHEN bom.bom_type = 'Finish Goods' AND bom.is_active = 1 THEN item.name
-                        END
-                    ) AS item_count,
-                    COUNT(
-                        DISTINCT CASE
-                            WHEN bom.bom_type = 'Finish Goods' AND bom.is_active = 1 THEN item.name
-                        END
-                    ) AS serial_count
+
+                    COUNT(DISTINCT CASE
+                        WHEN bom.bom_type = 'Finish Goods' AND bom.is_active = 1 
+                        THEN item.name
+                    END) AS item_count,
+
+                    COUNT(DISTINCT CASE
+                        WHEN bom.bom_type = 'Finish Goods' AND bom.is_active = 1 
+                        THEN item.name
+                    END) AS serial_count,
+
+                    (
+                        SELECT item2.image
+                        FROM `tabItem` AS item2
+                        INNER JOIN (
+                            SELECT
+                                IFNULL(i.variant_of, i.item_code) AS group_key,
+                                MIN(i.item_code) AS first_item_code
+                            FROM `tabItem` AS i
+                            INNER JOIN `tabBOM` AS b 
+                                ON i.item_code = b.item 
+                                AND b.bom_type = 'Finish Goods'
+                            INNER JOIN `tabItem Default` AS idf3 
+                                ON i.item_name = idf3.parent
+                                AND idf3.company = 'Gurukrupa Export Private Limited'
+                            GROUP BY IFNULL(i.variant_of, i.item_code)
+                        ) AS first_variant
+                            ON item2.item_code = first_variant.first_item_code
+                        WHERE 
+                            item2.item_subcategory = item.item_subcategory
+                            AND item2.image IS NOT NULL
+                            AND (item2.front_view IS NULL OR item2.image != item2.front_view)
+                        ORDER BY item2.creation DESC
+                        LIMIT 1
+                    ) AS first_image
+
                 FROM `tabItem` AS item
+
                 JOIN `tabAttribute Value` AS tav 
                     ON item.item_subcategory = tav.name
+
                 LEFT JOIN `tabBOM` AS bom 
                     ON item.item_code = bom.item
-                LEFT JOIN `tabBOM Metal Detail` AS tbm 
-                    ON tbm.parent = bom.name
+
                 WHERE 
                     tav.is_subcategory = 1
                     AND item.item_subcategory IS NOT NULL
                     AND item.item_category = %s
-                    AND tbm.metal_type IN ('Gold', 'Silver')
+
                 GROUP BY 
-                    item.item_subcategory,
-                    tbm.metal_type
-                    # ,item.item_code, item.variant_of
+                    item.item_subcategory
 
                 ORDER BY 
-                    item.item_subcategory,
-                    tbm.metal_type;
-                    
-                """
+                    item.item_subcategory
+            """
+
             result = frappe.db.sql(sql_query, (categoryName,), as_dict=True)
 
         return result
 
     except Exception as e:
-        frappe.log_error(f"subcategory_count error: {str(e)}")
         return {"error": str(e)}
 
+# @frappe.whitelist(allow_guest=True)
+# def subcategory_count(categoryName, user_type, customer=None):
+#     try:
+#         if user_type == "Customer":
+#             sql_query = """
+#                 SELECT 
+#                     ti.item_category, ti.item_subcategory, tb.metal_type,
+#                     COUNT(
+#                         DISTINCT CASE
+#                             WHEN tav.is_subcategory = 1  
+#                                 AND ti.item_subcategory IS NOT NULL
+#                                 AND fbom.bom_type = 'Finish Goods' 
+#                                 AND fbom.is_active = 1  
+#                             THEN ti.name
+#                         END
+#                     ) AS item_count,
+#                     COUNT(
+#                         DISTINCT CASE
+#                             WHEN tav.is_subcategory = 1 
+#                                 AND ti.item_subcategory IS NOT NULL 
+#                                 AND fbom.bom_type = 'Finish Goods' 
+#                                 AND fbom.is_active = 1 
+#                             THEN ti.name
+#                         END
+#                     ) AS serial_count,
+                    
+#                      MIN(ti.image) AS first_image
+                    
+#                 FROM `tabCataloge Item Details` AS tci
+#                 LEFT JOIN `tabCataloge Master` AS tcm 
+#                     ON tcm.name = tci.parent
+#                 LEFT JOIN `tabItem` AS ti 
+#                     ON ti.name = tci.item_code
+#                 LEFT JOIN `tabBOM` AS tb 
+#                     ON ti.name = tb.item
+#                 LEFT JOIN `tabBOM` AS fbom 
+#                     ON fbom.item = ti.name  -- For serial_count
+#                 JOIN `tabAttribute Value` AS tav 
+#                     ON ti.item_subcategory = tav.name  -- Changed to subcategory join
+#                 WHERE  
+#                     (
+#                     (tav.is_subcategory = 1 AND ti.item_subcategory IS NOT NULL)
+#                     OR 
+#                     (fbom.bom_type = 'Finish Goods' AND fbom.is_active = 1)
+#                     )
+#                     AND tcm.customer = %s
+#                     AND tb.is_active = 1
+#                     AND ti.item_category = %s
+#                 GROUP BY 
+#                     ti.item_category, ti.item_subcategory , tb.metal_type
+#                 ORDER BY 
+#                     ti.item_category, ti.item_subcategory ,tb.metal_type
+#                     # , ti.item_code, ti.variant_of
+#             """
+#             result = frappe.db.sql(sql_query, (customer, categoryName), as_dict=True)
+
+#         else:
+#             sql_query = """
+#                 SELECT
+#                     item.item_subcategory,
+
+#                     COUNT(DISTINCT CASE
+#                         WHEN bom.bom_type = 'Finish Goods' AND bom.is_active = 1 
+#                         THEN item.name
+#                     END) AS item_count,
+
+#                     COUNT(DISTINCT CASE
+#                         WHEN bom.bom_type = 'Finish Goods' AND bom.is_active = 1 
+#                         THEN item.name
+#                     END) AS serial_count,
+
+#                     (
+#                         SELECT item2.image
+#                         FROM `tabItem` AS item2
+#                         INNER JOIN (
+#                             SELECT
+#                                 IFNULL(i.variant_of, i.item_code) AS group_key,
+#                                 MIN(i.item_code) AS first_item_code
+#                             FROM `tabItem` AS i
+#                             INNER JOIN `tabBOM` AS b 
+#                                 ON i.item_code = b.item 
+#                                 AND b.bom_type = 'Finish Goods'
+#                             INNER JOIN `tabItem Default` AS idf3 
+#                                 ON i.item_name = idf3.parent
+#                                 AND idf3.company = 'Gurukrupa Export Private Limited'
+#                             GROUP BY IFNULL(i.variant_of, i.item_code)
+#                         ) AS first_variant
+#                             ON item2.item_code = first_variant.first_item_code
+#                         WHERE 
+#                             item2.item_subcategory = item.item_subcategory
+#                             AND item2.image IS NOT NULL
+#                             AND (item2.front_view IS NULL OR item2.image != item2.front_view)
+#                         ORDER BY item2.creation DESC
+#                         LIMIT 1
+#                     ) AS first_image
+
+#                 FROM `tabItem` AS item
+
+#                 JOIN `tabAttribute Value` AS tav 
+#                     ON item.item_subcategory = tav.name
+
+#                 LEFT JOIN `tabBOM` AS bom 
+#                     ON item.item_code = bom.item
+
+#                 WHERE 
+#                     tav.is_subcategory = 1
+#                     AND item.item_subcategory IS NOT NULL
+#                     AND item.item_category = %s
+
+#                 GROUP BY 
+#                     item.item_subcategory
+
+#                 ORDER BY 
+#                     item.item_subcategory
+#             """
+
+#             result = frappe.db.sql(sql_query, (categoryName,), as_dict=True)
+
+#         return result
+
+#     except Exception as e:
+#         return {"error": str(e)}
+
+# @frappe.whitelist(allow_guest=True)
+# def subcategory_count(categoryName, user_type, customer=None):
+#     try:
+#         if user_type == "Customer":
+#             sql_query = """
+#                 SELECT 
+#                     ti.item_category, ti.item_subcategory, tb.metal_type,
+#                     COUNT(
+#                         DISTINCT CASE
+#                             WHEN tav.is_subcategory = 1  
+#                                 AND ti.item_subcategory IS NOT NULL
+#                                 AND fbom.bom_type = 'Finish Goods' 
+#                                 AND fbom.is_active = 1  
+#                             THEN ti.name
+#                         END
+#                     ) AS item_count,
+#                     COUNT(
+#                         DISTINCT CASE
+#                             WHEN tav.is_subcategory = 1 
+#                                 AND ti.item_subcategory IS NOT NULL 
+#                                 AND fbom.bom_type = 'Finish Goods' 
+#                                 AND fbom.is_active = 1 
+#                             THEN ti.name
+#                         END
+#                     ) AS serial_count
+#                 FROM `tabCataloge Item Details` AS tci
+#                 LEFT JOIN `tabCataloge Master` AS tcm 
+#                     ON tcm.name = tci.parent
+#                 LEFT JOIN `tabItem` AS ti 
+#                     ON ti.name = tci.item_code
+#                 LEFT JOIN `tabBOM` AS tb 
+#                     ON ti.name = tb.item
+#                 LEFT JOIN `tabBOM` AS fbom 
+#                     ON fbom.item = ti.name  -- For serial_count
+#                 JOIN `tabAttribute Value` AS tav 
+#                     ON ti.item_subcategory = tav.name  -- Changed to subcategory join
+#                 WHERE  
+#                     (
+#                     (tav.is_subcategory = 1 AND ti.item_subcategory IS NOT NULL)
+#                     OR 
+#                     (fbom.bom_type = 'Finish Goods' AND fbom.is_active = 1)
+#                     )
+#                     AND tcm.customer = %s
+#                     AND tb.is_active = 1
+#                     AND ti.item_category = %s
+#                 GROUP BY 
+#                     ti.item_category, ti.item_subcategory , tb.metal_type
+#                 ORDER BY 
+#                     ti.item_category, ti.item_subcategory ,tb.metal_type
+#                     # , ti.item_code, ti.variant_of
+#             """
+#             result = frappe.db.sql(sql_query, (customer, categoryName), as_dict=True)
+
+#         else:
+#             sql_query = """
+#                 SELECT
+#                     item.item_subcategory,
+#                     # COALESCE(tbm.metal_type, 'Unknown') AS metal_type,
+#                     # COUNT(DISTINCT item.name) AS item_count,
+#                     COUNT(
+#                         DISTINCT CASE
+#                             WHEN bom.bom_type = 'Finish Goods' AND bom.is_active = 1 THEN item.name
+#                         END
+#                     ) AS item_count,
+#                     COUNT(
+#                         DISTINCT CASE
+#                             WHEN bom.bom_type = 'Finish Goods' AND bom.is_active = 1 THEN item.name
+#                         END
+#                     ) AS serial_count
+#                 FROM `tabItem` AS item
+#                 JOIN `tabAttribute Value` AS tav 
+#                     ON item.item_subcategory = tav.name
+#                 LEFT JOIN `tabBOM` AS bom 
+#                     ON item.item_code = bom.item
+#                 LEFT JOIN `tabBOM Metal Detail` AS tbm 
+#                     ON tbm.parent = bom.name
+#                 WHERE 
+#                     tav.is_subcategory = 1
+#                     AND item.item_subcategory IS NOT NULL
+#                     AND item.item_category = %s
+#                     # AND tbm.metal_type IN ('Gold', 'Silver')
+#                 GROUP BY 
+#                     item.item_subcategory
+#                     # tbm.metal_type
+#                     # ,item.item_code, item.variant_of
+
+#                 ORDER BY 
+#                     item.item_subcategory,
+#                     tbm.metal_type;
+                    
+#                 """
+#             result = frappe.db.sql(sql_query, (categoryName,), as_dict=True)
+
+#         return result
+
+#     except Exception as e:
+#         return {"error": str(e)}
+
+       
 @frappe.whitelist()
 def category_count(user_type, customer=None):
     try:
@@ -712,21 +971,22 @@ def category_count(user_type, customer=None):
             sql_query = """
             SELECT
                     item.item_category,
-                    COUNT(DISTINCT item.name) AS item_count
-                FROM 
+                    COUNT(DISTINCT CASE WHEN bom.item_code IS NOT NULL THEN item.name END) AS item_count
+                FROM
                     `tabItem` AS item
-                JOIN 
-                    `tabAttribute Value` AS tav 
-                    ON item.item_category = tav.name
-                LEFT JOIN 
-                    `tabBOM` AS bom 
-                    ON item.item_code = bom.item
-                WHERE 
+                JOIN
+                    `tabAttribute Value` AS tav
+                        ON item.item_category = tav.name
+                LEFT JOIN (
+                    SELECT DISTINCT item AS item_code
+                    FROM `tabBOM`
+                    WHERE bom_type = 'Finish Goods'
+                    AND is_active = 1
+                ) AS bom ON item.item_code = bom.item_code
+                WHERE
                     tav.is_category = 1
                     AND item.item_category IS NOT NULL
-                    AND bom.bom_type = 'Finish Goods'
-                    AND bom.is_active = 1
-                GROUP BY 
+                GROUP BY
                     item.item_category
             """
             values = {}
@@ -783,7 +1043,33 @@ def get_attribute_data():
     diamond_sieve_size = frappe.get_all("Attribute Value", filters={"is_diamond_sieve_size": 1}, pluck="name")
     diamond_sieve_size = sorted(diamond_sieve_size)
     diamond_sieve_size_data = [{"sieve_size": name} for name in diamond_sieve_size ]
-   
+    
+   # Get occasion values from Item Attribute child table    
+    occasion = frappe.get_all(
+        "Item Attribute Value",
+        filters={"parent":"Occasion"},
+        pluck="attribute_value"
+    )
+    occasion = sorted(occasion)
+    occasion_data = [{"occasion":name} for name in occasion]
+    
+    
+    # occasion = frappe.get_all(
+    #     "Item Attribute Value",
+    #     filters={"parent": "Occasion"},
+    #     pluck="attribute_value"
+    # )
+
+    # # Clean + remove null + strip spaces
+    # occasion = [o.strip() for o in occasion if o]
+
+    # # Remove duplicates + sort
+    # occasion = sorted(list(set(occasion)))
+
+    # # Convert to dict format
+    # occasion_data = [{"occasion": name} for name in occasion]
+    
+    
     finding_sub_category = frappe.get_all("Attribute Value", filters={"is_finding_type": 1}, pluck="name")
     finding_sub_category = sorted(finding_sub_category)
     finding_subcategory_data = [{"finding_sub_category": name} for name in finding_sub_category ]
@@ -796,8 +1082,9 @@ def get_attribute_data():
         "diamond_quality": diamond_quality_data,
         "metal_color": metal_color_data,
         "stone_shape": diamond_stone_shape,
-    "gemstone_shape": gemstone_stone_data,
+        "gemstone_shape": gemstone_stone_data,
         "sieve_size_range": diamond_sieve_size_range_data,
+        "occasion": occasion_data,
         # "sieve_size": diamond_sieve_size_data,
         "finding_sub_category": finding_subcategory_data
     }
@@ -817,19 +1104,46 @@ def get_customers_attribute_data(customer):
     diamond_quality = frappe.get_all("Customer Diamond Grade", filters={"parent": customer}, pluck="diamond_quality")
     diamond_quality = sorted(diamond_quality)
     diamond_quality_data = [{"diamond_quality": name} for name in diamond_quality ]
+    
+    stone_excluded_values = ["1 Mukhi","2 Mukhi","3 Mukhi","4 Mukhi","5 Mukhi","6 Mukhi","7 Mukhi","8 Mukhi","9 Mukhi","10 Mukhi", "Beeds", "Trillion"]
+    stone_shape = frappe.get_all("Attribute Value", filters={"is_stone_shape": 1}, pluck="name")
+    stone_shape = [name for name in stone_shape if name not in stone_excluded_values]
+    stone_shape = sorted(stone_shape)
+    diamond_stone_shape = [{"stone_shape": name} for name in stone_shape] 
+
+    gemstone_stone = frappe.get_all("Attribute Value", filters={"is_stone_shape": 1}, pluck="name")
+    gemstone_stone = sorted(gemstone_stone)
+    gemstone_stone_data = [{"gemstone_shape": name} for name in gemstone_stone ]
 
     metal_color = frappe.get_all("Attribute Value", filters={"is_metal_colour": 1}, pluck="name")
     metal_color = sorted(metal_color)
     metal_color_data = [{"metal_color": name} for name in metal_color ]
+    
+    finding_sub_category = frappe.get_all("Attribute Value", filters={"is_finding_type": 1}, pluck="name")
+    finding_sub_category = sorted(finding_sub_category)
+    finding_subcategory_data = [{"finding_sub_category": name} for name in finding_sub_category ]
+    
+       # Get occasion values from Item Attribute child table    
+    occasion = frappe.get_all(
+        "Item Attribute Value",
+        filters={"parent":"Occasion"},
+        pluck="attribute_value"
+    )
+    occasion = sorted(occasion)
+    occasion_data = [{"occasion":name} for name in occasion]
 
     return { 
         "setting_types": setting_type_data,
         "metal_touch": metal_touch_data,
         "diamond_quality": diamond_quality_data, 
-        "metal_color": metal_color_data
+        "metal_color": metal_color_data,
+        "diamond_stone_shape":diamond_stone_shape,
+        "gemstone_stone_data":gemstone_stone_data,
+        "occasion":occasion_data,
+        "finding_subcategory_data":finding_subcategory_data
     }
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_selected_item_for_customer_by_user(items, customers):
     """
     Save selected items to 'Cataloge Master' for one or more customers.
@@ -948,7 +1262,7 @@ def get_selected_item_for_customer_by_user(items, customers):
     }
 
 # //shubham
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def catalogue_data_with_trending_item(selectedSubcategory, customer, metalType = None):
     selectedSubcategory = frappe.form_dict.get("selectedSubcategory")
     itemCode = frappe.form_dict.get("itemCode")
@@ -1107,7 +1421,7 @@ def catalogue_data_with_trending_item(selectedSubcategory, customer, metalType =
     
 @frappe.whitelist(allow_guest=True)
 # def get_catalogue_collection_details(customers, collection, item_category=None, username=None):
-def get_catalogue_collection_details(customers, collection, username=None):
+def get_catalogue_collection_details(customers, collection=None, username=None):
     
     customer_list = []
 
@@ -1335,7 +1649,6 @@ def get_catalogue_collection_item_data(selectedSubcategory, itemCode):
 
 @frappe.whitelist(allow_guest=True)
 def get_selected_item_count_for_customet_wise(customer_id, collection):
-
     try:
         # Get all Catalogue Masters for this customer
         catalogue_master_names = frappe.get_all(
@@ -1387,7 +1700,7 @@ def get_wishlist_item_for_customer_by_user(items, user_type, customers):
 
     # Parse JSON if string
     if isinstance(items, str):
-        items = json.loads(items)
+        items = frappe.parse_json(items)
 
     if isinstance(customers, str):
         customers = json.loads(customers)
@@ -1490,6 +1803,7 @@ def get_wishlist_item_for_customer_by_user(items, user_type, customers):
             })
 
             # notify_user(customer_id[0].email_id, "Cataloge Master New Catloug Master Created For You", "Cataloge Master New Catloug Master Created For You")
+            
 
     return {
         "status": "success",
@@ -1632,3 +1946,1288 @@ def get_similar_item(item_code):
     }, as_dict=True)
 
     return items
+
+
+@frappe.whitelist(allow_guest=True)
+def get_item_of_customer_by_user(customer):
+    if not customer:
+        return {"message": "Customer not found"}
+
+    catalog_names = frappe.get_all(
+        "Cataloge Master",
+        filters={"customer": customer},
+        pluck="name"
+    )
+
+    items = frappe.get_all(
+        "Cataloge Item Details",
+        filters={"parent": ["in", catalog_names]},
+        fields=["parent", "item_code", "item_name", "trending", "folder", "wishlist"]
+    )
+
+    return items
+
+
+@frappe.whitelist(allow_guest=True)
+def remove_item_of_customer_by_user(customer, item_code):
+
+    if not customer:
+        return {"message": "Customer not found"}
+
+    # convert item_code to list
+    if isinstance(item_code, str):
+        try:
+            item_code = json.loads(item_code)
+        except:
+            item_code = [item_code]
+
+    catalog_names = frappe.get_all(
+        "Cataloge Master",
+        filters={"customer": customer},
+        pluck="name"
+    )
+
+    if not catalog_names:
+        return {"message": "No catalog found for customer"}
+
+    deleted_items = []
+
+    for catalog in catalog_names:
+
+        doc = frappe.get_doc("Cataloge Master", catalog)
+
+        new_rows = []
+
+        for row in doc.cataloge_item_details:
+
+            if row.item_code not in item_code:
+                new_rows.append(row)
+            else:
+                deleted_items.append(row.item_code)
+
+        doc.set("cataloge_item_details", [])
+        doc.set("cataloge_item_details", new_rows)
+        doc.save(ignore_permissions=True)
+
+    frappe.db.commit()
+
+    return {
+        "deleted_items": deleted_items
+    }
+
+
+@frappe.whitelist(allow_guest=True)
+def get_wishlist_item_customer_wise(customer):
+
+    if not customer:
+        return {"message": "Customer not found"}
+
+    catalog_name = frappe.db.get_value(
+        "Cataloge Master",
+        {"customer": customer},
+        "name"
+    )
+
+    if not catalog_name:
+        return {"message": "No catalog found for customer"}
+
+    doc = frappe.get_doc("Cataloge Master", catalog_name)
+
+    new_rows = []
+
+    for row in doc.cataloge_item_details:
+        if row.wishlist == 1:
+            new_rows.append({
+                "item_code": row.item_code,
+                "item_name": row.item_name,
+                "trending": row.trending,
+                "folder": row.folder,
+                "wishlist": row.wishlist
+            })
+
+    return {
+        "new_rows": new_rows
+    }
+    
+    # NE00968
+ 
+
+@frappe.whitelist(allow_guest=True)
+def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, metalType=None, company=None, customer=None):
+
+    if selectedSubcategory is None:
+        selectedSubcategory = frappe.form_dict.get("selectedSubcategory")
+
+    if itemCode is None:
+        itemCode = frappe.form_dict.get("itemCode")
+
+    if metalType is None:
+        metalType = frappe.form_dict.get("metalType")
+
+    if itemCategory is None:
+        itemCategory = frappe.form_dict.get("itemCategory")
+
+    values = {}
+
+    # ---------------- FILTERS ----------------
+    sub_where = "b.bom_type = 'Finish Goods'"
+    where_clause = "1=1 AND bom.bom_type = 'Finish Goods'"
+
+    if metalType:
+        sub_where += " AND b.metal_type = %(metalType)s"
+        where_clause += " AND bom.metal_type = %(metalType)s"
+        values["metalType"] = metalType
+
+    if selectedSubcategory:
+        sub_where += " AND i.item_subcategory = %(selectedSubcategory)s"
+        where_clause += " AND item.item_subcategory = %(selectedSubcategory)s"
+        values["selectedSubcategory"] = selectedSubcategory
+
+    if itemCategory:
+        sub_where += " AND i.item_category = %(itemCategory)s"
+        where_clause += " AND item.item_category = %(itemCategory)s"
+        values["itemCategory"] = itemCategory
+
+    if itemCode:
+        sub_where += " AND i.item_code = %(itemCode)s"
+        where_clause += " AND item.item_code = %(itemCode)s"
+        values["itemCode"] = itemCode
+
+    if company:
+        sub_where += " AND idf3.company = %(company)s"
+        where_clause += " AND idf.company = %(company)s"
+        values["company"] = company
+    else:
+        sub_where += " AND idf3.company = 'Gurukrupa Export Private Limited'"
+        where_clause += " AND idf.company = 'Gurukrupa Export Private Limited'"
+
+    # wishlist
+    if customer:
+        wishlist_case = "MAX(CASE WHEN tci.wishlist = 1 AND tcm.customer IS NOT NULL THEN 1 ELSE 0 END) AS wishlist"
+        customer_join = "AND tcm.customer = %(customer)s"
+        values["customer"] = customer
+    else:
+        wishlist_case = "0 AS wishlist"
+        customer_join = ""
+
+    db_data = frappe.db.sql(f"""
+        SELECT
+            item.name,
+            bom.name,
+            idf.company,
+            tci.trending,
+            {wishlist_case},
+            item.creation,
+            item.item_code,
+            item.item_category,
+            item.image,
+            item.sketch_image,
+            item.front_view AS cad_image,
+            CASE
+                WHEN item.front_view = item.image THEN 'CAD Image'
+                ELSE 'FG Image'
+            END AS image_remark,
+            item.item_subcategory,
+            item.stylebio,
+            bom.tag_no,
+            bom.diamond_quality,
+            item.setting_type,
+
+            FORMAT(bom.gross_weight,3) AS gross_metal_weight,
+            FORMAT(bom.metal_and_finding_weight,3) AS net_metal_finding_weight,
+            FORMAT(bom.total_diamond_weight_in_gms,3) AS total_diamond_weight_in_gms,
+            FORMAT(bom.other_weight,3) AS other_weight,
+            FORMAT(bom.finding_weight_,3) AS finding_weight_,
+
+            bom.metal_colour,
+            bom.metal_touch,
+            bom.metal_purity,
+            FORMAT(bom.total_gemstone_weight_in_gms,3) AS total_gemstone_weight_in_gms,
+
+            bom.total_diamond_pcs,
+            bom.total_gemstone_pcs,
+            FORMAT(bom.gemstone_weight,3) AS gemstone_weight,
+
+            FORMAT(bom.gold_to_diamond_ratio,3) AS gold_diamond_ratio,
+            FORMAT(bom.diamond_ratio,3) AS diamond_ratio,
+            FORMAT(bom.metal_to_diamond_ratio_excl_of_finding,3) AS metal_diamond_ratio,
+
+            bom.navratna,
+            bom.lock_type,
+            bom.feature,
+            bom.enamal,
+            bom.rhodium,
+            bom.sizer_type,
+
+            bom.height,
+            bom.length,
+            bom.width,
+            bom.breadth,
+            bom.product_size,
+
+            bom.design_style,
+            bom.nakshi_from,
+            bom.vanki_type,
+            bom.total_length,
+            bom.detachable,
+            bom.back_side_size,
+            bom.changeable,
+
+            item.variant_of,
+            
+            CASE 
+                WHEN vc.variant_count > 1 THEN 1 
+                ELSE 0 
+            END AS rn,
+            
+            bom.finding_pcs,
+            bom.total_other_pcs,
+            bom.total_other_weight,
+            bom.custom_rating AS rating, 
+
+            GROUP_CONCAT(DISTINCT item.name ORDER BY item.creation ASC) AS variant_name,
+
+            GROUP_CONCAT(DISTINCT td.design_attributes) AS design_attributes,
+            GROUP_CONCAT(DISTINCT td.design_attribute_value_1) AS design_attributes_1,
+
+            GROUP_CONCAT(DISTINCT mt.metal_type) AS metal_types,
+            GROUP_CONCAT(DISTINCT mt.metal_colour) AS metal_color,
+            GROUP_CONCAT(DISTINCT mt.metal_purity) AS metal_purities,
+            GROUP_CONCAT(DISTINCT mt.metal_touch) AS metal_touch,
+
+            GROUP_CONCAT(DISTINCT gd.stone_shape) AS gemstone_shape,
+            GROUP_CONCAT(DISTINCT gd.cut_or_cab) AS cut_or_cab,
+
+            GROUP_CONCAT(DISTINCT dd.stone_shape) AS diamond_stone_shape,
+            GROUP_CONCAT(DISTINCT dd.sub_setting_type) AS diamond_setting_type,
+            GROUP_CONCAT(DISTINCT dd.diamond_sieve_size) AS diamond_sieve_size,
+            GROUP_CONCAT(DISTINCT FORMAT(dd.size_in_mm,3)) AS size_in_mm,
+            GROUP_CONCAT(DISTINCT dd.sieve_size_range) AS sieve_size_range,
+
+            GROUP_CONCAT(DISTINCT fd.finding_type) AS finding_sub_category,
+            GROUP_CONCAT(DISTINCT fd.finding_category) AS finding_category,
+            GROUP_CONCAT(DISTINCT FORMAT(fd.finding_size,3)) AS finding_size
+
+        FROM `tabItem` AS item
+        
+        LEFT JOIN (
+            SELECT 
+                IFNULL(i.variant_of, i.item_code) AS group_key,
+                COUNT(DISTINCT i.item_code) AS variant_count
+            FROM `tabItem` AS i
+            INNER JOIN `tabBOM` AS b ON i.item_code = b.item AND b.bom_type = 'Finish Goods'
+            GROUP BY IFNULL(i.variant_of, i.item_code)
+        ) vc ON vc.group_key = IFNULL(item.variant_of, item.item_code)
+
+        INNER JOIN (
+            SELECT
+                IFNULL(i.variant_of, i.item_code) AS group_key,
+                MIN(i.item_code) AS first_item_code
+            FROM `tabItem` AS i
+            INNER JOIN `tabBOM` AS b ON i.item_code = b.item
+            INNER JOIN `tabItem Default` AS idf3 ON i.item_name = idf3.parent
+            WHERE {sub_where}
+            GROUP BY IFNULL(i.variant_of, i.item_code)
+        ) AS first_variant
+            ON item.item_code = first_variant.first_item_code
+
+        LEFT JOIN `tabCataloge Item Details` AS tci ON tci.item_code = item.name
+        LEFT JOIN `tabCataloge Master` AS tcm ON tcm.name = tci.parent {customer_join}
+        LEFT JOIN `tabBOM` AS bom ON item.item_code = bom.item
+        LEFT JOIN `tabDesign Attributes` AS td ON item.item_code = td.parent
+        LEFT JOIN `tabBOM Metal Detail` AS mt ON bom.name = mt.parent
+        LEFT JOIN `tabBOM Gemstone Detail` AS gd ON bom.name = gd.parent
+        LEFT JOIN `tabBOM Diamond Detail` AS dd ON bom.name = dd.parent
+        LEFT JOIN `tabBOM Finding Detail` AS fd ON bom.name = fd.parent
+        LEFT JOIN `tabBOM Other Detail` AS od ON bom.name = od.parent
+        LEFT JOIN `tabItem Default` AS idf ON item.item_name = idf.parent
+
+        WHERE {where_clause}
+        GROUP BY item.item_code, item.variant_of
+        ORDER BY item.creation DESC
+
+    """, values, as_dict=True)
+
+    # -------- MULTISELECT ATTRIBUTES --------
+    item_codes = [row.item_code for row in db_data]
+
+    if item_codes:
+        db_res = frappe.db.sql("""
+            SELECT parent, parentfield,
+            GROUP_CONCAT(design_attribute ORDER BY design_attribute SEPARATOR ', ') AS design_attributes
+            FROM `tabDesign Attribute - Multiselect`
+            WHERE parent IN %(data)s
+            GROUP BY parent, parentfield
+        """, {"data": tuple(item_codes)}, as_dict=True)
+    else:
+        db_res = []
+
+    attr_map = {}
+    for row in db_res:
+        parent = row["parent"]
+        field = row["parentfield"].replace("custom_", "")
+        value = row["design_attributes"]
+        if parent not in attr_map:
+            attr_map[parent] = {}
+        attr_map[parent][field] = value
+
+    for row in db_data:
+        attrs = attr_map.get(row.item_code, {})
+        for key, value in attrs.items():
+            row[key] = value
+
+        # ensure all fields present
+        row["custom_collection"] = row.get("custom_collection") or None
+        row["custom_language"] = row.get("custom_language") or None
+        row["custom_zodiac"] = row.get("custom_zodiac") or None
+        row["custom_animalbirds"] = row.get("custom_animalbirds") or None
+        row["custom_alphabetnumber"] = row.get("custom_alphabetnumber") or None
+        row["religious"] = row.get("religious") or None
+
+    # -------- SIMILAR ITEMS TABLE --------
+    # Step 1: Get all similar item_codes linked to main items (direct Item child)
+    if item_codes:
+        similar_links = frappe.db.sql("""
+            SELECT
+                sit.parent AS main_item_code,
+                sit.item_code AS similar_item_code
+            FROM `tabSimilar Item Table` AS sit
+            WHERE sit.parenttype = 'Item'
+            AND sit.parent IN %(item_codes)s
+        """, {"item_codes": tuple(item_codes)}, as_dict=True)
+    else:
+        similar_links = []
+
+    # Build map: { main_item_code -> [similar_item_codes] }
+    similar_link_map = {}
+    for row in similar_links:
+        main = row["main_item_code"]
+        if main not in similar_link_map:
+            similar_link_map[main] = []
+        similar_link_map[main].append(row["similar_item_code"])
+
+    # Collect all unique similar item codes
+    all_similar_codes = list({code for codes in similar_link_map.values() for code in codes})
+
+    # Step 2: Fetch full details for all similar items — NO BOM type filter (template + finish goods both)
+    if all_similar_codes:
+        similar_details_rows = frappe.db.sql("""
+            SELECT
+                item.name,
+                bom.name AS bom_name,
+                idf.company,
+                tci.trending,
+                0 AS wishlist,
+                item.creation,
+                item.item_code,
+                item.item_category,
+                item.image,
+                item.sketch_image,
+                item.front_view AS cad_image,
+                CASE
+                    WHEN item.front_view = item.image THEN 'CAD Image'
+                    ELSE 'FG Image'
+                END AS image_remark,
+                item.item_subcategory,
+                item.stylebio,
+                bom.tag_no,
+                bom.diamond_quality,
+                item.setting_type,
+
+                FORMAT(bom.gross_weight,3) AS gross_metal_weight,
+                FORMAT(bom.metal_and_finding_weight,3) AS net_metal_finding_weight,
+                FORMAT(bom.total_diamond_weight_in_gms,3) AS total_diamond_weight_in_gms,
+                FORMAT(bom.other_weight,3) AS other_weight,
+                FORMAT(bom.finding_weight_,3) AS finding_weight_,
+
+                bom.metal_colour,
+                bom.metal_touch,
+                bom.metal_purity,
+                FORMAT(bom.total_gemstone_weight_in_gms,3) AS total_gemstone_weight_in_gms,
+
+                bom.total_diamond_pcs,
+                bom.total_gemstone_pcs,
+                FORMAT(bom.gemstone_weight,3) AS gemstone_weight,
+
+                FORMAT(bom.gold_to_diamond_ratio,3) AS gold_diamond_ratio,
+                FORMAT(bom.diamond_ratio,3) AS diamond_ratio,
+                FORMAT(bom.metal_to_diamond_ratio_excl_of_finding,3) AS metal_diamond_ratio,
+
+                bom.navratna,
+                bom.lock_type,
+                bom.feature,
+                bom.enamal,
+                bom.rhodium,
+                bom.sizer_type,
+
+                bom.height,
+                bom.length,
+                bom.width,
+                bom.breadth,
+                bom.product_size,
+
+                bom.design_style,
+                bom.nakshi_from,
+                bom.vanki_type,
+                bom.total_length,
+                bom.detachable,
+                bom.back_side_size,
+                bom.changeable,
+
+                item.variant_of,
+                bom.finding_pcs,
+                bom.total_other_pcs,
+                bom.total_other_weight,
+                item.item_code AS variant_name,
+
+                GROUP_CONCAT(DISTINCT td.design_attributes) AS design_attributes,
+                GROUP_CONCAT(DISTINCT td.design_attribute_value_1) AS design_attributes_1,
+
+                GROUP_CONCAT(DISTINCT mt.metal_type) AS metal_types,
+                GROUP_CONCAT(DISTINCT mt.metal_colour) AS metal_color,
+                GROUP_CONCAT(DISTINCT mt.metal_purity) AS metal_purities,
+                GROUP_CONCAT(DISTINCT mt.metal_touch) AS metal_touch,
+
+                GROUP_CONCAT(DISTINCT gd.stone_shape) AS gemstone_shape,
+                GROUP_CONCAT(DISTINCT gd.cut_or_cab) AS cut_or_cab,
+
+                GROUP_CONCAT(DISTINCT dd.stone_shape) AS diamond_stone_shape,
+                GROUP_CONCAT(DISTINCT dd.sub_setting_type) AS diamond_setting_type,
+                GROUP_CONCAT(DISTINCT dd.diamond_sieve_size) AS diamond_sieve_size,
+                GROUP_CONCAT(DISTINCT FORMAT(dd.size_in_mm,3)) AS size_in_mm,
+                GROUP_CONCAT(DISTINCT dd.sieve_size_range) AS sieve_size_range,
+
+                GROUP_CONCAT(DISTINCT fd.finding_type) AS finding_sub_category,
+                GROUP_CONCAT(DISTINCT fd.finding_category) AS finding_category,
+                GROUP_CONCAT(DISTINCT FORMAT(fd.finding_size,3)) AS finding_size
+
+            FROM `tabItem` AS item
+            LEFT JOIN `tabBOM` AS bom ON item.item_code = bom.item
+            LEFT JOIN `tabCataloge Item Details` AS tci ON tci.item_code = item.name
+            LEFT JOIN `tabDesign Attributes` AS td ON item.item_code = td.parent
+            LEFT JOIN `tabBOM Metal Detail` AS mt ON bom.name = mt.parent
+            LEFT JOIN `tabBOM Gemstone Detail` AS gd ON bom.name = gd.parent
+            LEFT JOIN `tabBOM Diamond Detail` AS dd ON bom.name = dd.parent
+            LEFT JOIN `tabBOM Finding Detail` AS fd ON bom.name = fd.parent
+            LEFT JOIN `tabBOM Other Detail` AS od ON bom.name = od.parent
+            LEFT JOIN `tabItem Default` AS idf ON item.item_name = idf.parent
+
+            WHERE item.item_code IN %(similar_codes)s
+            GROUP BY item.item_code
+        """, {"similar_codes": tuple(all_similar_codes)}, as_dict=True)
+    else:
+        similar_details_rows = []
+
+    # Build map: { similar_item_code -> full detail dict }
+    similar_details_map = {row["item_code"]: row for row in similar_details_rows}
+
+    # Step 3: Attach full similar item details to each main row
+    for row in db_data:
+        linked_codes = similar_link_map.get(row.item_code, [])
+        row["similar_items"] = [
+            similar_details_map[code]
+            for code in linked_codes
+            if code in similar_details_map
+        ]
+
+    return db_data
+
+
+# @frappe.whitelist(allow_guest=True)
+# def catalogue_data_final(selectedSubcategory=None, itemCategory=None, itemCode=None, metalType=None, company=None, customer=None):
+
+#     if selectedSubcategory is None:
+#         selectedSubcategory = frappe.form_dict.get("selectedSubcategory")
+
+#     if itemCode is None:
+#         itemCode = frappe.form_dict.get("itemCode")
+
+#     if metalType is None:
+#         metalType = frappe.form_dict.get("metalType")
+
+#     if itemCategory is None:
+#         itemCategory = frappe.form_dict.get("itemCategory")
+
+#     values = {}
+
+#     # ---------------- FILTERS ----------------
+#     sub_where = "b.bom_type = 'Finish Goods'"
+#     where_clause = "1=1 AND bom.bom_type = 'Finish Goods'"
+
+#     if metalType:
+#         sub_where += " AND b.metal_type = %(metalType)s"
+#         where_clause += " AND bom.metal_type = %(metalType)s"
+#         values["metalType"] = metalType
+
+#     if selectedSubcategory:
+#         sub_where += " AND i.item_subcategory = %(selectedSubcategory)s"
+#         where_clause += " AND item.item_subcategory = %(selectedSubcategory)s"
+#         values["selectedSubcategory"] = selectedSubcategory
+
+#     if itemCategory:
+#         sub_where += " AND i.item_category = %(itemCategory)s"
+#         where_clause += " AND item.item_category = %(itemCategory)s"
+#         values["itemCategory"] = itemCategory
+
+#     if itemCode:
+#         sub_where += " AND i.item_code = %(itemCode)s"
+#         where_clause += " AND item.item_code = %(itemCode)s"
+#         values["itemCode"] = itemCode
+
+#     if company:
+#         sub_where += " AND idf3.company = %(company)s"
+#         where_clause += " AND idf.company = %(company)s"
+#         values["company"] = company
+#     else:
+#         sub_where += " AND idf3.company = 'Gurukrupa Export Private Limited'"
+#         where_clause += " AND idf.company = 'Gurukrupa Export Private Limited'"
+
+#     # wishlist
+#     if customer:
+#         wishlist_case = "MAX(CASE WHEN tci.wishlist = 1 AND tcm.customer IS NOT NULL THEN 1 ELSE 0 END) AS wishlist"
+#         customer_join = "AND tcm.customer = %(customer)s"
+#         values["customer"] = customer
+#     else:
+#         wishlist_case = "0 AS wishlist"
+#         customer_join = ""
+
+#     db_data = frappe.db.sql(f"""
+#         SELECT
+#             item.name,
+#             bom.name,
+#             idf.company,
+#             tci.trending,
+#             {wishlist_case},
+#             item.creation,
+#             item.item_code,
+#             item.item_category,
+#             item.image,
+#             item.sketch_image,
+#             item.front_view AS cad_image,
+#             CASE
+#                 WHEN item.front_view = item.image THEN 'CAD Image'
+#                 ELSE 'FG Image'
+#             END AS image_remark,
+#             item.item_subcategory,
+#             item.stylebio,
+#             bom.tag_no,
+#             bom.diamond_quality,
+#             item.setting_type,
+
+#             FORMAT(bom.gross_weight,3) AS gross_metal_weight,
+#             FORMAT(bom.metal_and_finding_weight,3) AS net_metal_finding_weight,
+#             FORMAT(bom.total_diamond_weight_in_gms,3) AS total_diamond_weight_in_gms,
+#             FORMAT(bom.other_weight,3) AS other_weight,
+#             FORMAT(bom.finding_weight_,3) AS finding_weight_,
+
+#             bom.metal_colour,
+#             bom.metal_touch,
+#             bom.metal_purity,
+#             FORMAT(bom.total_gemstone_weight_in_gms,3) AS total_gemstone_weight_in_gms,
+
+#             bom.total_diamond_pcs,
+#             bom.total_gemstone_pcs,
+#             FORMAT(bom.gemstone_weight,3) AS gemstone_weight,
+
+#             FORMAT(bom.gold_to_diamond_ratio,3) AS gold_diamond_ratio,
+#             FORMAT(bom.diamond_ratio,3) AS diamond_ratio,
+#             FORMAT(bom.metal_to_diamond_ratio_excl_of_finding,3) AS metal_diamond_ratio,
+
+#             bom.navratna,
+#             bom.lock_type,
+#             bom.feature,
+#             bom.enamal,
+#             bom.rhodium,
+#             bom.sizer_type,
+
+#             bom.height,
+#             bom.length,
+#             bom.width,
+#             bom.breadth,
+#             bom.product_size,
+
+#             bom.design_style,
+#             bom.nakshi_from,
+#             bom.vanki_type,
+#             bom.total_length,
+#             bom.detachable,
+#             bom.back_side_size,
+#             bom.changeable,
+
+#             item.variant_of,
+            
+#             CASE 
+#                 WHEN vc.variant_count > 1 THEN 1 
+#                 ELSE 0 
+#             END AS rn,
+            
+#             bom.finding_pcs,
+#             bom.total_other_pcs,
+#             bom.total_other_weight,
+
+#             GROUP_CONCAT(DISTINCT item.name ORDER BY item.creation ASC) AS variant_name,
+
+#             GROUP_CONCAT(DISTINCT td.design_attributes) AS design_attributes,
+#             GROUP_CONCAT(DISTINCT td.design_attribute_value_1) AS design_attributes_1,
+
+#             GROUP_CONCAT(DISTINCT mt.metal_type) AS metal_types,
+#             GROUP_CONCAT(DISTINCT mt.metal_colour) AS metal_color,
+#             GROUP_CONCAT(DISTINCT mt.metal_purity) AS metal_purities,
+#             GROUP_CONCAT(DISTINCT mt.metal_touch) AS metal_touch,
+
+#             GROUP_CONCAT(DISTINCT gd.stone_shape) AS gemstone_shape,
+#             GROUP_CONCAT(DISTINCT gd.cut_or_cab) AS cut_or_cab,
+
+#             GROUP_CONCAT(DISTINCT dd.stone_shape) AS diamond_stone_shape,
+#             GROUP_CONCAT(DISTINCT dd.sub_setting_type) AS diamond_setting_type,
+#             GROUP_CONCAT(DISTINCT dd.diamond_sieve_size) AS diamond_sieve_size,
+#             GROUP_CONCAT(DISTINCT FORMAT(dd.size_in_mm,3)) AS size_in_mm,
+#             GROUP_CONCAT(DISTINCT dd.sieve_size_range) AS sieve_size_range,
+
+#             GROUP_CONCAT(DISTINCT fd.finding_type) AS finding_sub_category,
+#             GROUP_CONCAT(DISTINCT fd.finding_category) AS finding_category,
+#             GROUP_CONCAT(DISTINCT FORMAT(fd.finding_size,3)) AS finding_size
+
+#         FROM `tabItem` AS item
+        
+#         LEFT JOIN (
+#             SELECT 
+#                 IFNULL(i.variant_of, i.item_code) AS group_key,
+#                 COUNT(DISTINCT i.item_code) AS variant_count
+#             FROM `tabItem` AS i
+#             INNER JOIN `tabBOM` AS b ON i.item_code = b.item AND b.bom_type = 'Finish Goods'
+#             GROUP BY IFNULL(i.variant_of, i.item_code)
+#         ) vc ON vc.group_key = IFNULL(item.variant_of, item.item_code)
+
+#         INNER JOIN (
+#             SELECT
+#                 IFNULL(i.variant_of, i.item_code) AS group_key,
+#                 MIN(i.item_code) AS first_item_code
+#             FROM `tabItem` AS i
+#             INNER JOIN `tabBOM` AS b ON i.item_code = b.item
+#             INNER JOIN `tabItem Default` AS idf3 ON i.item_name = idf3.parent
+#             WHERE {sub_where}
+#             GROUP BY IFNULL(i.variant_of, i.item_code)
+#         ) AS first_variant
+#             ON item.item_code = first_variant.first_item_code
+
+#         LEFT JOIN `tabCataloge Item Details` AS tci ON tci.item_code = item.name
+#         LEFT JOIN `tabCataloge Master` AS tcm ON tcm.name = tci.parent {customer_join}
+#         LEFT JOIN `tabBOM` AS bom ON item.item_code = bom.item
+#         LEFT JOIN `tabDesign Attributes` AS td ON item.item_code = td.parent
+#         LEFT JOIN `tabBOM Metal Detail` AS mt ON bom.name = mt.parent
+#         LEFT JOIN `tabBOM Gemstone Detail` AS gd ON bom.name = gd.parent
+#         LEFT JOIN `tabBOM Diamond Detail` AS dd ON bom.name = dd.parent
+#         LEFT JOIN `tabBOM Finding Detail` AS fd ON bom.name = fd.parent
+#         LEFT JOIN `tabBOM Other Detail` AS od ON bom.name = od.parent
+#         LEFT JOIN `tabItem Default` AS idf ON item.item_name = idf.parent
+
+#         WHERE {where_clause}
+#         GROUP BY item.item_code, item.variant_of
+#         ORDER BY item.creation DESC
+
+#     """, values, as_dict=True)
+
+#     # -------- MULTISELECT ATTRIBUTES --------
+#     item_codes = [row.item_code for row in db_data]
+
+#     if item_codes:
+#         db_res = frappe.db.sql("""
+#             SELECT parent, parentfield,
+#             GROUP_CONCAT(design_attribute ORDER BY design_attribute SEPARATOR ', ') AS design_attributes
+#             FROM `tabDesign Attribute - Multiselect`
+#             WHERE parent IN %(data)s
+#             GROUP BY parent, parentfield
+#         """, {"data": tuple(item_codes)}, as_dict=True)
+#     else:
+#         db_res = []
+
+#     attr_map = {}
+#     for row in db_res:
+#         parent = row["parent"]
+#         field = row["parentfield"].replace("custom_", "")
+#         value = row["design_attributes"]
+#         if parent not in attr_map:
+#             attr_map[parent] = {}
+#         attr_map[parent][field] = value
+
+#     for row in db_data:
+#         attrs = attr_map.get(row.item_code, {})
+#         for key, value in attrs.items():
+#             row[key] = value
+
+#         # ensure all fields present
+#         row["custom_collection"] = row.get("custom_collection") or None
+#         row["custom_language"] = row.get("custom_language") or None
+#         row["custom_zodiac"] = row.get("custom_zodiac") or None
+#         row["custom_animalbirds"] = row.get("custom_animalbirds") or None
+#         row["custom_alphabetnumber"] = row.get("custom_alphabetnumber") or None
+#         row["religious"] = row.get("religious") or None
+
+#     # -------- SIMILAR ITEMS TABLE --------
+#     # Step 1: Get all similar item_codes linked to main items (direct Item child)
+#     if item_codes:
+#         similar_links = frappe.db.sql("""
+#             SELECT
+#                 sit.parent AS main_item_code,
+#                 sit.item_code AS similar_item_code
+#             FROM `tabSimilar Item Table` AS sit
+#             WHERE sit.parenttype = 'Item'
+#             AND sit.parent IN %(item_codes)s
+#         """, {"item_codes": tuple(item_codes)}, as_dict=True)
+#     else:
+#         similar_links = []
+
+#     # Build map: { main_item_code -> [similar_item_codes] }
+#     similar_link_map = {}
+#     for row in similar_links:
+#         main = row["main_item_code"]
+#         if main not in similar_link_map:
+#             similar_link_map[main] = []
+#         similar_link_map[main].append(row["similar_item_code"])
+
+#     # Collect all unique similar item codes
+#     all_similar_codes = list({code for codes in similar_link_map.values() for code in codes})
+
+#     # Step 2: Fetch full details for all similar items — NO BOM type filter (template + finish goods both)
+#     if all_similar_codes:
+#         similar_details_rows = frappe.db.sql("""
+#             SELECT
+#                 item.name,
+#                 bom.name AS bom_name,
+#                 idf.company,
+#                 tci.trending,
+#                 0 AS wishlist,
+#                 item.creation,
+#                 item.item_code,
+#                 item.item_category,
+#                 item.image,
+#                 item.sketch_image,
+#                 item.front_view AS cad_image,
+#                 CASE
+#                     WHEN item.front_view = item.image THEN 'CAD Image'
+#                     ELSE 'FG Image'
+#                 END AS image_remark,
+#                 item.item_subcategory,
+#                 item.stylebio,
+#                 bom.tag_no,
+#                 bom.diamond_quality,
+#                 item.setting_type,
+
+#                 FORMAT(bom.gross_weight,3) AS gross_metal_weight,
+#                 FORMAT(bom.metal_and_finding_weight,3) AS net_metal_finding_weight,
+#                 FORMAT(bom.total_diamond_weight_in_gms,3) AS total_diamond_weight_in_gms,
+#                 FORMAT(bom.other_weight,3) AS other_weight,
+#                 FORMAT(bom.finding_weight_,3) AS finding_weight_,
+
+#                 bom.metal_colour,
+#                 bom.metal_touch,
+#                 bom.metal_purity,
+#                 FORMAT(bom.total_gemstone_weight_in_gms,3) AS total_gemstone_weight_in_gms,
+
+#                 bom.total_diamond_pcs,
+#                 bom.total_gemstone_pcs,
+#                 FORMAT(bom.gemstone_weight,3) AS gemstone_weight,
+
+#                 FORMAT(bom.gold_to_diamond_ratio,3) AS gold_diamond_ratio,
+#                 FORMAT(bom.diamond_ratio,3) AS diamond_ratio,
+#                 FORMAT(bom.metal_to_diamond_ratio_excl_of_finding,3) AS metal_diamond_ratio,
+
+#                 bom.navratna,
+#                 bom.lock_type,
+#                 bom.feature,
+#                 bom.enamal,
+#                 bom.rhodium,
+#                 bom.sizer_type,
+
+#                 bom.height,
+#                 bom.length,
+#                 bom.width,
+#                 bom.breadth,
+#                 bom.product_size,
+
+#                 bom.design_style,
+#                 bom.nakshi_from,
+#                 bom.vanki_type,
+#                 bom.total_length,
+#                 bom.detachable,
+#                 bom.back_side_size,
+#                 bom.changeable,
+
+#                 item.variant_of,
+#                 bom.finding_pcs,
+#                 bom.total_other_pcs,
+#                 bom.total_other_weight,
+#                 item.item_code AS variant_name,
+
+#                 GROUP_CONCAT(DISTINCT td.design_attributes) AS design_attributes,
+#                 GROUP_CONCAT(DISTINCT td.design_attribute_value_1) AS design_attributes_1,
+
+#                 GROUP_CONCAT(DISTINCT mt.metal_type) AS metal_types,
+#                 GROUP_CONCAT(DISTINCT mt.metal_colour) AS metal_color,
+#                 GROUP_CONCAT(DISTINCT mt.metal_purity) AS metal_purities,
+#                 GROUP_CONCAT(DISTINCT mt.metal_touch) AS metal_touch,
+
+#                 GROUP_CONCAT(DISTINCT gd.stone_shape) AS gemstone_shape,
+#                 GROUP_CONCAT(DISTINCT gd.cut_or_cab) AS cut_or_cab,
+
+#                 GROUP_CONCAT(DISTINCT dd.stone_shape) AS diamond_stone_shape,
+#                 GROUP_CONCAT(DISTINCT dd.sub_setting_type) AS diamond_setting_type,
+#                 GROUP_CONCAT(DISTINCT dd.diamond_sieve_size) AS diamond_sieve_size,
+#                 GROUP_CONCAT(DISTINCT FORMAT(dd.size_in_mm,3)) AS size_in_mm,
+#                 GROUP_CONCAT(DISTINCT dd.sieve_size_range) AS sieve_size_range,
+
+#                 GROUP_CONCAT(DISTINCT fd.finding_type) AS finding_sub_category,
+#                 GROUP_CONCAT(DISTINCT fd.finding_category) AS finding_category,
+#                 GROUP_CONCAT(DISTINCT FORMAT(fd.finding_size,3)) AS finding_size
+
+#             FROM `tabItem` AS item
+#             LEFT JOIN `tabBOM` AS bom ON item.item_code = bom.item
+#             LEFT JOIN `tabCataloge Item Details` AS tci ON tci.item_code = item.name
+#             LEFT JOIN `tabDesign Attributes` AS td ON item.item_code = td.parent
+#             LEFT JOIN `tabBOM Metal Detail` AS mt ON bom.name = mt.parent
+#             LEFT JOIN `tabBOM Gemstone Detail` AS gd ON bom.name = gd.parent
+#             LEFT JOIN `tabBOM Diamond Detail` AS dd ON bom.name = dd.parent
+#             LEFT JOIN `tabBOM Finding Detail` AS fd ON bom.name = fd.parent
+#             LEFT JOIN `tabBOM Other Detail` AS od ON bom.name = od.parent
+#             LEFT JOIN `tabItem Default` AS idf ON item.item_name = idf.parent
+
+#             WHERE item.item_code IN %(similar_codes)s
+#             GROUP BY item.item_code
+#         """, {"similar_codes": tuple(all_similar_codes)}, as_dict=True)
+#     else:
+#         similar_details_rows = []
+
+#     # Build map: { similar_item_code -> full detail dict }
+#     similar_details_map = {row["item_code"]: row for row in similar_details_rows}
+
+#     # Step 3: Attach full similar item details to each main row
+#     for row in db_data:
+#         linked_codes = similar_link_map.get(row.item_code, [])
+#         row["similar_items"] = [
+#             similar_details_map[code]
+#             for code in linked_codes
+#             if code in similar_details_map
+#         ]
+
+#     return db_data
+
+
+# @frappe.whitelist(allow_guest=True)
+# def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, metalType=None, company=None, customer=None):
+
+#     if selectedSubcategory is None:
+#         selectedSubcategory = frappe.form_dict.get("selectedSubcategory")
+
+#     if itemCode is None:
+#         itemCode = frappe.form_dict.get("itemCode")
+
+#     if metalType is None:
+#         metalType = frappe.form_dict.get("metalType")
+
+#     if itemCategory is None:
+#         itemCategory = frappe.form_dict.get("itemCategory")
+
+#     values = {}
+
+#     # ---------------- FILTERS ----------------
+#     sub_where = "b.bom_type = 'Finish Goods'"
+#     where_clause = "1=1 AND bom.bom_type = 'Finish Goods'"
+
+#     if metalType:
+#         sub_where += " AND b.metal_type = %(metalType)s"
+#         where_clause += " AND bom.metal_type = %(metalType)s"
+#         values["metalType"] = metalType
+
+#     if selectedSubcategory:
+#         sub_where += " AND i.item_subcategory = %(selectedSubcategory)s"
+#         where_clause += " AND item.item_subcategory = %(selectedSubcategory)s"
+#         values["selectedSubcategory"] = selectedSubcategory
+
+#     if itemCategory:
+#         sub_where += " AND i.item_category = %(itemCategory)s"
+#         where_clause += " AND item.item_category = %(itemCategory)s"
+#         values["itemCategory"] = itemCategory
+
+#     if itemCode:
+#         sub_where += " AND i.item_code = %(itemCode)s"
+#         where_clause += " AND item.item_code = %(itemCode)s"
+#         values["itemCode"] = itemCode
+
+#     if company:
+#         sub_where += " AND idf3.company = %(company)s"
+#         where_clause += " AND idf.company = %(company)s"
+#         values["company"] = company
+#     else:
+#         sub_where += " AND idf3.company = 'Gurukrupa Export Private Limited'"
+#         where_clause += " AND idf.company = 'Gurukrupa Export Private Limited'"
+
+#     # wishlist
+#     if customer:
+#         wishlist_case = "MAX(CASE WHEN tci.wishlist = 1 AND tcm.customer IS NOT NULL THEN 1 ELSE 0 END) AS wishlist"
+#         customer_join = "AND tcm.customer = %(customer)s"
+#         values["customer"] = customer
+#     else:
+#         wishlist_case = "0 AS wishlist"
+#         customer_join = ""
+
+#     db_data = frappe.db.sql(f"""
+#         SELECT
+#             item.name,
+#             bom.name,
+#             idf.company,
+#             tci.trending,
+#             {wishlist_case},
+#             item.creation,
+#             item.item_code,
+#             item.item_category,
+#             item.image,
+#             item.sketch_image,
+#             item.front_view AS cad_image,
+#             CASE
+#                 WHEN item.front_view = item.image THEN 'CAD Image'
+#                 ELSE 'FG Image'
+#             END AS image_remark,
+#             item.item_subcategory,
+#             item.stylebio,
+#             bom.tag_no,
+#             bom.diamond_quality,
+#             item.setting_type,
+
+#             FORMAT(bom.gross_weight,3) AS gross_metal_weight,
+#             FORMAT(bom.metal_and_finding_weight,3) AS net_metal_finding_weight,
+#             FORMAT(bom.total_diamond_weight_in_gms,3) AS total_diamond_weight_in_gms,
+#             FORMAT(bom.other_weight,3) AS other_weight,
+#             FORMAT(bom.finding_weight_,3) AS finding_weight_,
+
+#             bom.metal_colour,
+#             bom.metal_touch,
+#             bom.metal_purity,
+#             FORMAT(bom.total_gemstone_weight_in_gms,3) AS total_gemstone_weight_in_gms,
+
+#             bom.total_diamond_pcs,
+#             bom.total_gemstone_pcs,
+#             FORMAT(bom.gemstone_weight,3) AS gemstone_weight,
+
+#             FORMAT(bom.gold_to_diamond_ratio,3) AS gold_diamond_ratio,
+#             FORMAT(bom.diamond_ratio,3) AS diamond_ratio,
+#             FORMAT(bom.metal_to_diamond_ratio_excl_of_finding,3) AS metal_diamond_ratio,
+
+#             bom.navratna,
+#             bom.lock_type,
+#             bom.feature,
+#             bom.enamal,
+#             bom.rhodium,
+#             bom.sizer_type,
+
+#             bom.height,
+#             bom.length,
+#             bom.width,
+#             bom.breadth,
+#             bom.product_size,
+
+#             bom.design_style,
+#             bom.nakshi_from,
+#             bom.vanki_type,
+#             bom.total_length,
+#             bom.detachable,
+#             bom.back_side_size,
+#             bom.changeable,
+
+#             item.variant_of,
+            
+#             CASE 
+#                 WHEN vc.variant_count >1 THEN 1 
+#                 ELSE 0 
+#             END AS rn,
+            
+#             bom.finding_pcs,
+#             bom.total_other_pcs,
+#             bom.total_other_weight,
+
+#             GROUP_CONCAT(DISTINCT item.name ORDER BY item.creation ASC) AS variant_name,
+
+#             GROUP_CONCAT(DISTINCT td.design_attributes) AS design_attributes,
+#             GROUP_CONCAT(DISTINCT td.design_attribute_value_1) AS design_attributes_1,
+
+#             GROUP_CONCAT(DISTINCT mt.metal_type) AS metal_types,
+#             GROUP_CONCAT(DISTINCT mt.metal_colour) AS metal_color,
+#             GROUP_CONCAT(DISTINCT mt.metal_purity) AS metal_purities,
+#             GROUP_CONCAT(DISTINCT mt.metal_touch) AS metal_touch,
+
+#             GROUP_CONCAT(DISTINCT gd.stone_shape) AS gemstone_shape,
+#             GROUP_CONCAT(DISTINCT gd.cut_or_cab) AS cut_or_cab,
+
+#             GROUP_CONCAT(DISTINCT dd.stone_shape) AS diamond_stone_shape,
+#             GROUP_CONCAT(DISTINCT dd.sub_setting_type) AS diamond_setting_type,
+#             GROUP_CONCAT(DISTINCT dd.diamond_sieve_size) AS diamond_sieve_size,
+#             GROUP_CONCAT(DISTINCT FORMAT(dd.size_in_mm,3)) AS size_in_mm,
+#             GROUP_CONCAT(DISTINCT dd.sieve_size_range) AS sieve_size_range,
+
+#             GROUP_CONCAT(DISTINCT fd.finding_type) AS finding_sub_category,
+#             GROUP_CONCAT(DISTINCT fd.finding_category) AS finding_category,
+#             GROUP_CONCAT(DISTINCT FORMAT(fd.finding_size,3)) AS finding_size
+
+#         FROM `tabItem` AS item
+        
+#         LEFT JOIN (
+#             SELECT 
+#                 IFNULL(i.variant_of, i.item_code) AS group_key,
+#                 COUNT(DISTINCT i.item_code) AS variant_count
+#             FROM `tabItem` AS i
+#             INNER JOIN `tabBOM` AS b ON i.item_code = b.item AND b.bom_type = 'Finish Goods'
+#             GROUP BY IFNULL(i.variant_of, i.item_code)
+#         ) vc ON vc.group_key = IFNULL(item.variant_of, item.item_code)
+
+
+#         INNER JOIN (
+#             SELECT
+#                 IFNULL(i.variant_of, i.item_code) AS group_key,
+#                 MIN(i.item_code) AS first_item_code
+#             FROM `tabItem` AS i
+#             INNER JOIN `tabBOM` AS b ON i.item_code = b.item
+#             INNER JOIN `tabItem Default` AS idf3 ON i.item_name = idf3.parent
+#             WHERE {sub_where}
+#             GROUP BY IFNULL(i.variant_of, i.item_code)
+#         ) AS first_variant
+#             ON item.item_code = first_variant.first_item_code
+
+#         LEFT JOIN `tabCataloge Item Details` AS tci ON tci.item_code = item.name
+#         LEFT JOIN `tabCataloge Master` AS tcm ON tcm.name = tci.parent {customer_join}
+#         LEFT JOIN `tabBOM` AS bom ON item.item_code = bom.item
+#         LEFT JOIN `tabDesign Attributes` AS td ON item.item_code = td.parent
+#         LEFT JOIN `tabBOM Metal Detail` AS mt ON bom.name = mt.parent
+#         LEFT JOIN `tabBOM Gemstone Detail` AS gd ON bom.name = gd.parent
+#         LEFT JOIN `tabBOM Diamond Detail` AS dd ON bom.name = dd.parent
+#         LEFT JOIN `tabBOM Finding Detail` AS fd ON bom.name = fd.parent
+#         LEFT JOIN `tabBOM Other Detail` AS od ON bom.name = od.parent
+#         LEFT JOIN `tabItem Default` AS idf ON item.item_name = idf.parent
+
+#         WHERE {where_clause}
+#         GROUP BY item.item_code, item.variant_of
+#         ORDER BY item.creation DESC
+
+#     """, values, as_dict=True)
+
+#     # -------- MULTISELECT ATTRIBUTES --------
+#     item_codes = [row.item_code for row in db_data]
+
+#     if item_codes:
+#         db_res = frappe.db.sql("""
+#             SELECT parent, parentfield,
+#             GROUP_CONCAT(design_attribute ORDER BY design_attribute SEPARATOR ', ') AS design_attributes
+#             FROM `tabDesign Attribute - Multiselect`
+#             WHERE parent IN %(data)s
+#             GROUP BY parent, parentfield
+#         """, {"data": tuple(item_codes)}, as_dict=True)
+#     else:
+#         db_res = []
+
+#     attr_map = {}
+#     for row in db_res:
+#         parent = row["parent"]
+#         field = row["parentfield"].replace("custom_", "")
+#         value = row["design_attributes"]
+#         if parent not in attr_map:
+#             attr_map[parent] = {}
+#         attr_map[parent][field] = value
+
+#     for row in db_data:
+#         attrs = attr_map.get(row.item_code, {})
+#         for key, value in attrs.items():
+#             row[key] = value
+
+#         # ensure all 76 fields present
+#         row["custom_collection"] = row.get("custom_collection") or None
+#         row["custom_language"] = row.get("custom_language") or None
+#         row["custom_zodiac"] = row.get("custom_zodiac") or None
+#         row["custom_animalbirds"] = row.get("custom_animalbirds") or None
+#         row["custom_alphabetnumber"] = row.get("custom_alphabetnumber") or None
+#         row["religious"] = row.get("religious") or None
+
+#     return db_data
+
+
+@frappe.whitelist(allow_guest=True)
+def get_variants_by_itemcode(itemCode=None, customer=None):
+
+    itemCode = frappe.form_dict.get("itemCode") or itemCode
+    customer = frappe.form_dict.get("customer") or customer
+
+    if not itemCode:
+        return "Item Code Required"
+
+    base_code = itemCode.split("-")[0]
+    # base_code = itemCode
+
+    # wishlist
+    if customer:
+        wishlist_case = "MAX(CASE WHEN tci.wishlist = 1 AND tcm.customer IS NOT NULL THEN 1 ELSE 0 END) AS wishlist"
+        customer_join = "AND tcm.customer = %(customer)s"
+    else:
+        wishlist_case = "0 AS wishlist"
+        customer_join = ""
+
+    db_data = frappe.db.sql(f"""
+        SELECT
+            item.name,
+            bom.name,
+            tci.trending,
+            {wishlist_case},
+            item.creation,
+            item.item_code,
+            item.item_category,
+            item.image,
+            item.sketch_image,
+            item.front_view AS cad_image,
+
+            CASE
+                WHEN item.front_view = item.image THEN 'CAD Image'
+                ELSE 'FG Image'
+            END AS image_remark,
+
+            item.item_subcategory,
+            item.stylebio,
+            bom.tag_no,
+            bom.diamond_quality,
+            item.setting_type,
+
+            -- FIXED ATTRIBUTE SOURCE
+            GROUP_CONCAT(DISTINCT CASE WHEN td.design_attributes = 'Age Group' THEN td.design_attribute_value_1 END) AS age_group,
+            GROUP_CONCAT(DISTINCT CASE WHEN td.design_attributes = 'Gender' THEN td.design_attribute_value_1 END) AS gender,
+            GROUP_CONCAT(DISTINCT CASE WHEN td.design_attributes = 'Occasion' THEN td.design_attribute_value_1 END) AS occasion,
+            GROUP_CONCAT(DISTINCT CASE WHEN td.design_attributes = 'Shapes' THEN td.design_attribute_value_1 END) AS shapes,
+
+            FORMAT(bom.gross_weight,3) AS gross_metal_weight,
+            FORMAT(bom.metal_and_finding_weight,3) AS net_metal_finding_weight,
+            FORMAT(bom.total_diamond_weight_in_gms,3) AS total_diamond_weight_in_gms,
+            FORMAT(bom.other_weight,3) AS other_weight,
+            FORMAT(bom.finding_weight_,3) AS finding_weight_,
+
+            bom.metal_colour,
+            bom.metal_touch,
+            bom.metal_purity,
+            bom.metal_type,   
+            FORMAT(bom.total_gemstone_weight_in_gms,3) AS total_gemstone_weight_in_gms,
+
+            bom.total_diamond_pcs,
+            bom.total_gemstone_pcs,
+            FORMAT(bom.gemstone_weight,3) AS gemstone_weight,
+
+            FORMAT(bom.gold_to_diamond_ratio,3) AS gold_diamond_ratio,
+            FORMAT(bom.diamond_ratio,3) AS diamond_ratio,
+            FORMAT(bom.metal_to_diamond_ratio_excl_of_finding,3) AS metal_diamond_ratio,
+
+            bom.navratna,
+            bom.lock_type,
+            bom.feature,
+            bom.enamal,
+            bom.rhodium,
+            bom.sizer_type,
+
+            bom.height,
+            bom.length,
+            bom.width,
+            bom.breadth,
+            bom.product_size,
+
+            bom.design_style,
+            bom.nakshi_from,
+            bom.vanki_type,
+            bom.total_length,
+            bom.detachable,
+            bom.back_side_size,
+            bom.changeable,
+
+            item.variant_of,
+            bom.finding_pcs,
+            bom.total_other_pcs,
+            bom.total_other_weight,
+
+            item.item_code AS variant_name,
+
+            GROUP_CONCAT(DISTINCT td.design_attributes) AS design_attributes,
+            GROUP_CONCAT(DISTINCT td.design_attribute_value_1) AS design_attributes_1,
+
+            GROUP_CONCAT(DISTINCT mt.metal_type) AS metal_types,
+            GROUP_CONCAT(DISTINCT mt.metal_colour) AS metal_color,
+            GROUP_CONCAT(DISTINCT mt.metal_purity) AS metal_purities,
+            GROUP_CONCAT(DISTINCT mt.metal_touch) AS metal_detail_touch,  
+
+            GROUP_CONCAT(DISTINCT gd.stone_shape) AS gemstone_shape,
+            GROUP_CONCAT(DISTINCT gd.cut_or_cab) AS cut_or_cab,
+
+            GROUP_CONCAT(DISTINCT dd.stone_shape) AS diamond_stone_shape,
+            GROUP_CONCAT(DISTINCT dd.sub_setting_type) AS diamond_setting_type,
+            GROUP_CONCAT(DISTINCT dd.diamond_sieve_size) AS diamond_sieve_size,
+            GROUP_CONCAT(DISTINCT FORMAT(dd.size_in_mm,3)) AS size_in_mm,
+            GROUP_CONCAT(DISTINCT dd.sieve_size_range) AS sieve_size_range,
+
+            GROUP_CONCAT(DISTINCT fd.finding_type) AS finding_sub_category,
+            GROUP_CONCAT(DISTINCT fd.finding_category) AS finding_category,
+            GROUP_CONCAT(DISTINCT FORMAT(fd.finding_size,3)) AS finding_size
+
+        FROM `tabItem` AS item
+
+        LEFT JOIN `tabCataloge Item Details` AS tci ON tci.item_code = item.name
+        LEFT JOIN `tabCataloge Master` AS tcm ON tcm.name = tci.parent {customer_join}
+
+        INNER JOIN `tabBOM` bom
+            ON item.item_code = bom.item
+            AND bom.bom_type = 'Finish Goods'
+
+        LEFT JOIN `tabDesign Attributes` AS td ON item.item_code = td.parent
+        LEFT JOIN `tabBOM Metal Detail` AS mt ON bom.name = mt.parent
+        LEFT JOIN `tabBOM Gemstone Detail` AS gd ON bom.name = gd.parent
+        LEFT JOIN `tabBOM Diamond Detail` AS dd ON bom.name = dd.parent
+        LEFT JOIN `tabBOM Finding Detail` AS fd ON bom.name = fd.parent
+
+        LEFT JOIN `tabItem Default` AS idf ON item.item_name = idf.parent
+
+        # WHERE
+        #     item.item_code LIKE %(base_code)s
+        #     AND idf.company = 'Gurukrupa Export Private Limited'
+        WHERE
+            item.item_code LIKE %(base_code)s
+            AND item.item_code != %(itemCode)s
+            AND idf.company = 'Gurukrupa Export Private Limited'
+
+        GROUP BY item.item_code
+        ORDER BY item.creation ASC
+    """, {"base_code": base_code + "%", "customer": customer, "itemCode": itemCode} , as_dict=True)
+    # """, {"base_code": base_code + "%", "customer": customer}, as_dict=True)
+
+    # -------- MULTISELECT MERGE --------
+    item_codes = [row.item_code for row in db_data]
+
+    if item_codes:
+        db_res = frappe.db.sql("""
+            SELECT parent, parentfield,
+            GROUP_CONCAT(design_attribute SEPARATOR ', ') AS design_attributes
+            FROM `tabDesign Attribute - Multiselect`
+            WHERE parent IN %(data)s
+            GROUP BY parent, parentfield
+        """, {"data": tuple(item_codes)}, as_dict=True)
+    else:
+        db_res = []
+
+    attr_map = {}
+    for row in db_res:
+        parent = row["parent"]
+        field = row["parentfield"].replace("custom_", "")
+        value = row["design_attributes"]
+        attr_map.setdefault(parent, {})[field] = value
+
+    for row in db_data:
+        attrs = attr_map.get(row.item_code, {})
+        for key, value in attrs.items():
+            row[key] = value
+
+        row["custom_collection"] = row.get("custom_collection") or None
+        row["custom_language"] = row.get("custom_language") or None
+        row["custom_zodiac"] = row.get("custom_zodiac") or None
+        row["custom_animalbirds"] = row.get("custom_animalbirds") or None
+        row["custom_alphabetnumber"] = row.get("custom_alphabetnumber") or None
+        row["religious"] = row.get("religious") or None
+
+    return db_data
