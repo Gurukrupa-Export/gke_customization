@@ -1138,7 +1138,7 @@ def gc_export_to_excel(order_form, doc):
 								'GURU',
 								'TANISHQ',
 								'-',
-								stone_code[0].get('customer_code'),
+								stone_code[0].get('customer_code') if stone_code else '',
 								f"{(diamond.get('pcs', 0))}",
 								float(bom_list[0].get('total_metal_weight') or 0) + float(metal_weight or 0),
 								row.get('metal_touch', ''),
