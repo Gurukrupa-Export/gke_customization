@@ -62,7 +62,7 @@ def _serialize_items(items, status_filter=None):
             if row_status != status_filter:
                 continue
         else:
-            if row_status == "Cancelled":
+            if row_status == "Cancel Order":
                 continue
 
         item_data = frappe.db.get_value("Item", row.item_code, ["image", "name"], as_dict=True) or {}
@@ -230,6 +230,7 @@ def add_to_cart1(customer, item_code, quantity=1, rate=0, bom=None, user=None,
         if row.item_code == item_code:
             row.quantity += qty
             row.rate      = calculated_rate
+            row.amount    = row.quantity * calculated_rate  
             row.user      = current_user
             item_found    = True
             break
@@ -239,6 +240,7 @@ def add_to_cart1(customer, item_code, quantity=1, rate=0, bom=None, user=None,
             "item_code":   item_code,
             "quantity":    qty,
             "rate":        calculated_rate,
+            "amount":      qty * calculated_rate, 
             "bom":         bom or "",
             "image":       item_image,
             "user":        current_user,
@@ -370,7 +372,7 @@ def update_cart_item_qty(order_name, item_code, quantity, user=None):
 
     doc = frappe.get_doc("Portal Order", order_name)
 
-    if doc.status == "Cancelled":
+    if doc.status == "Cancel Order":
         frappe.throw(_("Cannot modify a cancelled order"))
 
     found = False
@@ -378,7 +380,7 @@ def update_cart_item_qty(order_name, item_code, quantity, user=None):
 
     for row in doc.items:
         if row.item_code == item_code:
-            if row.status == "Cancelled":
+            if row.status == "Cancel Order":
                 frappe.throw(_("Cannot modify a cancelled item"))
             
             old_qty = row.quantity  
@@ -419,7 +421,7 @@ def cancel_cart_item(order_name, item_code, user=None):
 
     for row in doc.items:
         if row.item_code == item_code:
-            row.status = "Cancelled"
+            row.status = "Cancel Order"
             break
 
     # Check karo - check there is any draft is here?
@@ -427,7 +429,7 @@ def cancel_cart_item(order_name, item_code, user=None):
     
     if not draft_items:
         # every items cancel → whole Order cancel 
-        doc.status = "Cancelled"
+        doc.status = "Cancel Order"
     
     _recalculate_totals_draft_only(doc)
     doc.save(ignore_permissions=True)
@@ -436,7 +438,7 @@ def cancel_cart_item(order_name, item_code, user=None):
     return {
         "success": True,
         "order": doc.name,
-        "order_cancelled": doc.status == "Cancelled",
+        "order_cancelled": doc.status == "Cancel Order",
         "remaining_draft_items": len(draft_items),
     }
 
@@ -447,7 +449,7 @@ def _recalculate_totals_draft_only(doc):
     total_amt = 0
     for row in doc.items:
         # Cancelled items skip 
-        if getattr(row, "status", "Draft") == "Cancelled":
+        if getattr(row, "status", "Draft") == "Cancel Order":
             continue
         total_qty += row.quantity or 0
         total_amt += (row.quantity or 0) * (row.rate or 0)
@@ -458,8 +460,59 @@ def _recalculate_totals_draft_only(doc):
 # ─────────────────────────────────────────────
 
 
+# @frappe.whitelist(allow_guest=True)
+# def confirm_cart_orders(customer, order_date=None, notes=None):
+#     if not customer:
+#         frappe.throw(_("Customer required"))
+
+#     active_cart = frappe.db.get_value(
+#         "Portal Order",
+#         {"customer": customer, "status": "Draft"},
+#         "name"
+#     )
+
+#     if not active_cart:
+#         frappe.throw(_("No active cart found"))
+
+#     cart = frappe.get_doc("Portal Order", active_cart)
+
+
+#     draft_items = [r for r in cart.items if getattr(r, "status", "Draft") == "Draft"]
+
+#     if not draft_items:
+#         frappe.throw(_("No active items in cart"))
+
+
+#     cart.status = "Ordered"
+#     cart.order_date = order_date or frappe.utils.today()
+#     if notes:
+#         cart.notes = notes
+        
+#     # for row in cart.items:
+#     #     if getattr(row, "status", "Draft") == "Draft":
+#     #         row.status = "Ordered"
+#     for row in cart.items:
+#         if row.status == "Draft":
+#             frappe.db.set_value(
+#                 "Portal Order Item",   
+#                 row.name,             
+#                 "status",
+#                 "Ordered"
+#             )
+
+#     cart.save(ignore_permissions=True)
+#     frappe.db.commit()
+
+#     return {
+#         "success": True,
+#         "ordered_cart": cart.name,
+#         "order_date": str(cart.order_date),
+#         "message": "Order placed successfully!",
+#     }
+
+
 @frappe.whitelist(allow_guest=True)
-def confirm_cart_orders(customer, order_date=None, notes=None):
+def confirm_cart_orders(customer, order_date=None, notes=None, user=None): 
     if not customer:
         frappe.throw(_("Customer required"))
 
@@ -474,38 +527,40 @@ def confirm_cart_orders(customer, order_date=None, notes=None):
 
     cart = frappe.get_doc("Portal Order", active_cart)
 
-
     draft_items = [r for r in cart.items if getattr(r, "status", "Draft") == "Draft"]
-
     if not draft_items:
         frappe.throw(_("No active items in cart"))
 
+    final_order_date = frappe.utils.getdate(order_date) if order_date else frappe.utils.today()
+    current_user = user or frappe.session.user   # ✅ who is confirming
 
-    cart.status = "Ordered"
-    cart.order_date = order_date or frappe.utils.today()
+    cart.status     = "Ordered"
+    cart.order_date = final_order_date
+    cart.order_by   = current_user               # ✅ your field name is order_by
+
     if notes:
         cart.notes = notes
-        
-    # for row in cart.items:
-    #     if getattr(row, "status", "Draft") == "Draft":
-    #         row.status = "Ordered"
+
     for row in cart.items:
         if row.status == "Draft":
-            frappe.db.set_value(
-                "Portal Order Item",   # child doctype name
-                row.name,              # child row name (primary key)
-                "status",
-                "Ordered"
-            )
+            row.status = "Ordered"
 
     cart.save(ignore_permissions=True)
+
+    
+    frappe.db.set_value("Portal Order", cart.name, {
+        "order_date": final_order_date,
+        "order_by":   current_user,             
+    }, update_modified=False)
+
     frappe.db.commit()
 
     return {
-        "success": True,
+        "success":      True,
         "ordered_cart": cart.name,
-        "order_date": str(cart.order_date),
-        "message": "Order placed successfully!",
+        "order_date":   str(final_order_date),
+        "order_by":     current_user,           
+        "message":      "Order placed successfully!",
     }
 
 
@@ -558,8 +613,9 @@ def get_placed_orders(customer=None, user=None):
         result.append({
             "name": doc.name,
             "customer": doc.customer,
-            "user": doc.user,
-            "user_full_name": _get_full_name(doc.user),
+            "order_by": doc.order_by,
+            # "order_by": getattr(doc, "order_by", "") or "",
+            # "user_full_name": _get_full_name(doc.user),
             "order_date": str(doc.order_date) if doc.order_date else "",
             "status": doc.status,
             "total_quantity": doc.total_quantity,
@@ -570,17 +626,18 @@ def get_placed_orders(customer=None, user=None):
 
     return {"success": True, "count": len(result), "orders": result}
 
+
 @frappe.whitelist(allow_guest=True)
 def cancel_order(order_name):
     """Whole Order cancel"""
     doc = frappe.get_doc("Portal Order", order_name)
 
-    if doc.status == "Cancelled":
+    if doc.status == "Cancel Order":
         frappe.throw(_("Order already cancelled"))
 
-    doc.status = "Cancelled"
+    doc.status = "Cancel Order"
     for row in doc.items:
-        row.status = "Cancelled"
+        row.status = "Cancel Order"
 
     _recalculate_totals_draft_only(doc)  
     doc.save()
@@ -597,15 +654,15 @@ def cancel_order_item(order_name, item_code):
     """Only one item cancel"""
     doc = frappe.get_doc("Portal Order", order_name)
 
-    if doc.status == "Cancelled":
+    if doc.status == "Cancel Order":
         frappe.throw(_("Order is already cancelled"))
 
     found = False
     for row in doc.items:
         if row.item_code == item_code:
-            if row.status == "Cancelled":
+            if row.status == "Cancel Order":
                 frappe.throw(_("Item already cancelled"))
-            row.status = "Cancelled"
+            row.status = "Cancel Order"
             found = True
             break
 
@@ -613,10 +670,10 @@ def cancel_order_item(order_name, item_code):
         frappe.throw(_("Item not found in order"))
 
     all_cancelled = all(
-        getattr(r, "status", "") == "Cancelled" for r in doc.items
+        getattr(r, "status", "") == "Cancel Order" for r in doc.items
     )
     if all_cancelled:
-        doc.status = "Cancelled"
+        doc.status = "Cancel Order"
 
     _recalculate_totals_draft_only(doc) 
     doc.save(ignore_permissions=True)
@@ -625,7 +682,7 @@ def cancel_order_item(order_name, item_code):
     return {
         "success": True,
         "order": doc.name,
-        "order_cancelled": doc.status == "Cancelled",
+        "order_cancelled": doc.status == "Cancel Order",
         "message": f"Item {item_code} cancelled successfully",
     }
     # -----------------------------------------
