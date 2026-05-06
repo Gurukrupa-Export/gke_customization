@@ -145,7 +145,7 @@ class GoldRates(Document):
 
 		# if gold_value and self.table_djrm:
 		if gold_value is not None and self.table_djrm:
-			self.table_djrm[0].set("live_.rate", gold_value)
+			self.table_djrm[0].set("live_rate", gold_value)
 			ist = pytz.timezone('Asia/Kolkata')
 			current_hour = datetime.now(ist).hour
 			if current_hour == 9:
