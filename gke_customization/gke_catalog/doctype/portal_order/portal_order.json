@@ -8,7 +8,7 @@
   "amended_from",
   "section_break_2lol",
   "customer",
-  "user",
+  "order_by",
   "order_date",
   "column_break_bvij",
   "posting_date",
@@ -40,19 +40,15 @@
   {
    "fieldname": "customer",
    "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Customer",
    "options": "Customer"
   },
   {
-   "fieldname": "user",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "User",
-   "options": "User"
-  },
-  {
    "fieldname": "order_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "Order Date"
   },
   {
@@ -66,7 +62,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "\nDraft\nOrdered\nCancelled"
+   "options": "\nDraft\nOrdered\nCancel Order\nCancelled"
   },
   {
    "fieldname": "company",
@@ -115,14 +111,20 @@
    "fieldtype": "Date",
    "hidden": 1,
    "label": "Posting Date"
+  },
+  {
+   "fieldname": "order_by",
+   "fieldtype": "Link",
+   "label": "Order By",
+   "options": "User"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-02 10:13:32.781844",
- "modified_by": "shubham_k@gkexport.com",
+ "modified": "2026-05-06 14:34:52.076946",
+ "modified_by": "bhavika_p@gkexport.com",
  "module": "GKE Catalog",
  "name": "Portal Order",
  "owner": "shubham_k@gkexport.com",

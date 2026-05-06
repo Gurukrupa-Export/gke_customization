@@ -246,35 +246,37 @@ def get_gem_price_list(customer,item_code, bom):
                 fields=["name", "price_list_type", "rate", "handling_rate","outwork_handling_charges_rate"],
             )
         
-        if gpc:
-            gpc_doc = frappe.get_doc("Gemstone Price List", gpc[0].name)
-            rate = gpc_doc.rate if gpc_doc else 0
-                       
-            total_gemstone_rate = round(rate, 2)
-            gemstone_rate_for_specified_quantity = (
-                float(rate) * float(gem.quantity)) if gem.per_pc_or_per_carat=='Per Carat' else (float(rate) * float(gem.pcs))
-            gemstone_rate_amt =round(gemstone_rate_for_specified_quantity , 2) 
-             
-            # dummy data for now, need to change once we finalize the data to be sent in response
-            a.append({
-                "gemstone_type": gem.gemstone_type,
-                "stone_shape": gem.stone_shape,
-                "gemstone_grade": gem.gemstone_grade,
-                "wgt_in_gms": gem.weight_in_gms,
-                "wgt_in_cts": gem.quantity,
-                "per_pc_or_per_carat": gem.per_pc_or_per_carat, 
-                "total_gemstone_rate": total_gemstone_rate,
-                "gemstone_rate_for_specified_quantity": gemstone_rate_amt
-            })
-            
-            gem_price_data.append({
-                # "diamond_quality": gem.quality,
-                "gemstone_grade": gem.gemstone_grade,
-                "total_weight_in_gms": gem.weight_in_gms,
-                "total_weight_in_cts": gem.quantity,
-                "total_gemstone_rate": total_gemstone_rate,
-                "gemstone_rate_for_specified_quantity": gemstone_rate_amt
-            })
+            if gpc:
+                gpc_doc = frappe.get_doc("Gemstone Price List", gpc[0].name)
+                rate = gpc_doc.rate if gpc_doc else 0
+                        
+                total_gemstone_rate = round(rate, 2)
+                gemstone_rate_for_specified_quantity = (
+                    float(rate) * float(gem.quantity)) if gem.per_pc_or_per_carat=='Per Carat' else (float(rate) * float(gem.pcs))
+                gemstone_rate_amt =round(gemstone_rate_for_specified_quantity , 2) 
+                
+                # dummy data for now, need to change once we finalize the data to be sent in response
+                a.append({
+                    "gemstone_type": gem.gemstone_type,
+                    "stone_shape": gem.stone_shape,
+                    "gemstone_grade": gem.gemstone_grade,
+                    "wgt_in_gms": gem.weight_in_gms,
+                    "wgt_in_cts": gem.quantity,
+                    "per_pc_or_per_carat": gem.per_pc_or_per_carat, 
+                    "total_gemstone_rate": total_gemstone_rate,
+                    "gemstone_rate_for_specified_quantity": gemstone_rate_amt
+                })
+                
+                gem_price_data.append({
+                    # "diamond_quality": gem.quality,
+                    "gemstone_grade": gem.gemstone_grade,
+                    "total_weight_in_gms": gem.weight_in_gms,
+                    "total_weight_in_cts": gem.quantity,
+                    "total_gemstone_rate": total_gemstone_rate,
+                    "gemstone_rate_for_specified_quantity": gemstone_rate_amt
+                })
+            else:
+                gpc = None
     
     return  gem_price_data
 
@@ -290,14 +292,16 @@ def get_making_charges(customer, item_code, bom,metal_touch):
     setting_type = bom_values[2]
     diamond_pcs = bom_values[3]
     item_subcategory = bom_values[4]
-    metal_precision = frappe.db.get_value("Customer", customer, "custom_precision_for_metal")
+    # metal_precision = frappe.db.get_value("Customer", customer, "custom_precision_for_metal")
+    # if metal_precision is None:
+    metal_precision = 3
 				
     bom_metal_details = frappe.db.get_all(
         'BOM Metal Detail',
         filters={'parent': bom},
         fields=['*']
     )
-    a = []
+    
     metal_price_data = []
     
     for s in bom_metal_details:
@@ -357,7 +361,7 @@ def get_making_charges(customer, item_code, bom,metal_touch):
         if not mc:
             frappe.throw(f"""Create a valid Making Charge Price for Customer: {customer}, Metal Type:{s.metal_type} "Setting Type":{s.setting_type} """)
         mc_name = mc[0]["name"]
-        # frappe.throw(f"{mc_name}")
+        
         if metal_and_finding_weight < threshold:
             # Use per piece rate, wastage might apply differently if needed
             making_rate = sub_info.get("rate_per_pc", 0)
