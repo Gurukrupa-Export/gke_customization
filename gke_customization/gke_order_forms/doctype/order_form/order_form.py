@@ -1489,12 +1489,12 @@ def creation_export_to_excel(order_form, doc):
 										'gk_category':row.get('category')
 									},fields=['customer_category'])
 						child_2 = []
-						if item_sub:
-							child_2 =  frappe.db.get_all("Customer Category Detail",
-										filters = {
-											'parent':order_form_doc.customer_code,
-											'gk_sub_category':item_sub
-										},fields=['customer_category'])
+						# if item_sub:
+						# 	child_2 =  frappe.db.get_all("Customer Category Detail",
+						# 				filters = {
+						# 					'parent':order_form_doc.customer_code,
+						# 					'gk_sub_category':item_sub
+						# 				},fields=['customer_category'])
 						finding =  frappe.get_all("BOM Finding Detail",filters={'parent':row.get('bom')},fields=['finding_type'])
 						finding_code = []
 						if finding:
