@@ -163,10 +163,8 @@ def get_data(filters):
     """, params, as_dict=1)
 
     # ── Pre-aggregate PR qty/rate/amount and PI qty/rate/amount keyed by (pr_id, batch_no) ──
-    # PR side: sum all PR item rows that share the same (pr_id, batch_no)
-    # PI side: sum all PI rows linked to any PR item under the same (pr_id, batch_no)
-    pr_totals_by_batch = {}   # (pr_id, batch_no) → {pr_qty, pr_rate, pr_amount}
-    pi_totals_by_batch = {}   # (pr_id, batch_no) → {pi_qty, pi_rate, pi_amount}
+    pr_totals_by_batch = {}
+    pi_totals_by_batch = {}
 
     for r in rows:
         key = (r.pr_id, r.batch_no or "")
@@ -174,7 +172,6 @@ def get_data(filters):
         if key not in pr_totals_by_batch:
             pr_totals_by_batch[key] = {"pr_qty": 0, "pr_rate": 0, "pr_amount": 0}
         pr_totals_by_batch[key]["pr_qty"]    += r.pr_qty or 0
-        # max rate across all PR items of the same (pr_id, batch_no)
         pr_totals_by_batch[key]["pr_rate"]    = max(pr_totals_by_batch[key]["pr_rate"], r.pr_rate or 0)
         pr_totals_by_batch[key]["pr_amount"] += r.pr_amount or 0
 
@@ -184,7 +181,6 @@ def get_data(filters):
             pi_totals_by_batch[key]["pi_qty"]    += pi.get("qty") or 0
             pi_totals_by_batch[key]["pi_rate"]   += pi.get("rate") or 0
             pi_totals_by_batch[key]["pi_amount"] += pi.get("amount") or 0
-    # ─────────────────────────────────────────────────────────────────────────────
 
     out = []
 
@@ -198,6 +194,8 @@ def get_data(filters):
         "pr_return_amount": 0,
         "pi_qty": 0,
         "pi_amount": 0,
+        "pi_return_qty": 0,
+        "pi_return_amount": 0,
         "difference_pr_vs_pi": 0,
         "difference_rate_pr_vs_pi": 0,
         "difference_amount_pr_vs_pi": 0,
@@ -208,10 +206,13 @@ def get_data(filters):
     seen_po_display        = set()
     seen_po_total          = set()
     seen_pr_total          = set()
-    seen_pr_return_display = set()
+    seen_pr_return_display = set()  # tracks which PR Return item row has been shown
     seen_pr_return_total   = set()
+    seen_pi_display        = set()  # tracks which PI item row has been shown (to prevent duplicate display)
     seen_pi_total          = set()
-    seen_batch_diff        = set()  # tracks which (pr_id, batch_no) has already shown its difference
+    seen_pi_return_display = set()  # tracks which PI Return item row has been shown
+    seen_pi_return_total   = set()  # tracks which PI Return item row has been counted in totals
+    seen_batch_diff        = set()
 
     for r in rows:
         mr  = get_mr_row(r)
@@ -257,8 +258,7 @@ def get_data(filters):
                 "match_type": "",
             }]
 
-        # ── PR Return rows fetched batch_no wise ──────────────────────────────
-        ret_rows = get_pr_return_rows(r)
+        ret_rows = get_pr_return_rows(r, filters)
         if not ret_rows:
             ret_rows = [{
                 "name": "",
@@ -268,7 +268,6 @@ def get_data(filters):
                 "amount": 0,
                 "pri_name": "",
             }]
-        # ─────────────────────────────────────────────────────────────────────
 
         po_key = r.purchase_order_item or po.get("po_ids")
         first_po_output = po_key and po_key not in seen_po_display
@@ -277,8 +276,7 @@ def get_data(filters):
 
         first_pr_output = True
 
-        # ── Difference computed batch_no wise: SUM(PR items for this batch) - SUM(PI items for this batch)
-        # Rate = max PR rate for this batch; shown only on the first output row of each (pr_id, batch_no)
+        # ── Difference computed batch_no wise ──────────────────────────────────
         batch_diff_key = (r.pr_id, r.batch_no or "")
         if batch_diff_key not in seen_batch_diff:
             seen_batch_diff.add(batch_diff_key)
@@ -286,18 +284,21 @@ def get_data(filters):
             _pi = pi_totals_by_batch.get(batch_diff_key, {})
             _pr_return_qty = sum(
                 abs(ret.get("qty") or 0)
-                for ret in get_pr_return_rows(r)
+                for ret in get_pr_return_rows(r, filters)
             )
             pr_diff_qty    = round(_pr.get("pr_qty", 0) - _pr_return_qty - _pi.get("pi_qty", 0), 9)
             if abs(pr_diff_qty) < 1e-9:
                 pr_diff_qty = 0
             pr_diff_rate   = _pr.get("pr_rate", 0) if pr_diff_qty != 0 else 0
-            pr_diff_amount = round(_pr.get("pr_amount", 0) - _pi.get("pi_amount", 0), 9)
+            pr_diff_amount = round(pr_diff_qty * pr_diff_rate, 9)
             if abs(pr_diff_amount) < 1e-9:
                 pr_diff_amount = 0
+
+            # FIX: accumulate difference amount into totals here (batch level, shown once)
+            totals["difference_amount_pr_vs_pi"] += pr_diff_amount
         else:
             pr_diff_qty = pr_diff_rate = pr_diff_amount = ""
-        # ─────────────────────────────────────────────────────────────────────
+        # ──────────────────────────────────────────────────────────────────────
 
         for ret in ret_rows:
             ret_key = ret.get("pri_name") or ret.get("name")
@@ -314,83 +315,166 @@ def get_data(filters):
 
             for pi in pi_rows:
                 pi_key = pi.get("pii_name") or pi.get("name")
+
+                first_pi_output = False
+                if pi.get("name") and pi_key not in seen_pi_display:
+                    seen_pi_display.add(pi_key)
+                    first_pi_output = True
+
                 if pi.get("name") and pi_key not in seen_pi_total:
                     seen_pi_total.add(pi_key)
                     totals["pi_qty"]    += pi.get("qty") or 0
                     totals["pi_amount"] += pi.get("amount") or 0
 
+                # ── Fetch actual PI Return (Credit Note) rows for this PI ──────
+                pi_return_rows = []
+                if pi.get("name"):
+                    pi_return_rows = get_pi_return_rows(pi.get("name"), pi.get("pii_name"), filters)
+                if not pi_return_rows:
+                    pi_return_rows = [{
+                        "name": "",
+                        "posting_date": None,
+                        "qty": 0,
+                        "rate": 0,
+                        "amount": 0,
+                        "pii_return_name": "",
+                    }]
+                # ─────────────────────────────────────────────────────────────
+
+                # PR Return values: show only on first occurrence of that return row
                 if first_ret_output:
                     pr_return_qty    = abs(ret.get("qty") or 0)
                     pr_return_rate   = abs(ret.get("rate") or 0)
                     pr_return_amount = abs(ret.get("amount") or 0)
+                    pr_return_date   = ret.get("posting_date")
+                    pr_return_id     = ret.get("name") or ""
                 else:
-                    pr_return_qty = pr_return_rate = pr_return_amount = 0
+                    pr_return_qty    = 0
+                    pr_return_rate   = 0
+                    pr_return_amount = 0
+                    pr_return_date   = None
+                    pr_return_id     = ""
 
-                pi_qty    = pi.get("qty") or 0
-                pi_rate   = pi.get("rate") or 0
-                pi_amount = pi.get("amount") or 0
+                # PI values: show only on first occurrence of that PI row
+                if first_pi_output:
+                    pi_qty    = pi.get("qty") or 0
+                    pi_rate   = pi.get("rate") or 0
+                    pi_amount = pi.get("amount") or 0
+                    pi_date   = pi.get("posting_date")
+                    pi_id     = pi.get("name") or ""
+                    pi_status = pi.get("status") or ""
+                else:
+                    pi_qty    = 0
+                    pi_rate   = 0
+                    pi_amount = 0
+                    pi_date   = None
+                    pi_id     = ""
+                    pi_status = ""
 
-                out.append({
-                    "mr_date":             mr.get("mr_date") if first_mr_output else None,
-                    "material_request_id": mr.get("material_request_id") if first_mr_output else "",
-                    "item":                r.item if first_mr_output else "",
-                    "qty":                 mr.get("mr_qty") if first_mr_output else "",
+                for pi_ret in pi_return_rows:
+                    pi_ret_key = pi_ret.get("pii_return_name") or pi_ret.get("name")
 
-                    "rfq_creation_date":   rfq.get("rfq_creation_date") if first_mr_output else None,
-                    "rfq_id":              rfq.get("rfq_id") if first_mr_output else "",
-                    "rfq_status":          rfq.get("rfq_status") if first_mr_output else "",
+                    # Show PI Return ID/values only on first occurrence
+                    first_pi_ret_output = False
+                    if pi_ret.get("name") and pi_ret_key not in seen_pi_return_display:
+                        seen_pi_return_display.add(pi_ret_key)
+                        first_pi_ret_output = True
 
-                    "po_date":   po.get("po_date") if first_po_output else None,
-                    "po_ids":    po.get("po_ids") if first_po_output else "",
-                    "po_qty":    po.get("po_qty") if first_po_output else "",
-                    "po_rate":   po.get("po_rate") if first_po_output else "",
-                    "po_amount": po.get("po_amount") if first_po_output else "",
-                    "po_status": po.get("po_status") if first_po_output else "",
+                    # Count PI Return in totals only once
+                    if pi_ret.get("name") and pi_ret_key not in seen_pi_return_total:
+                        seen_pi_return_total.add(pi_ret_key)
+                        totals["pi_return_qty"]    += abs(pi_ret.get("qty") or 0)
+                        totals["pi_return_amount"] += abs(pi_ret.get("amount") or 0)
 
-                    "pr_date":   r.pr_date if first_pr_output else None,
-                    "pr_id":     r.pr_id if first_pr_output else "",
-                    "batch_no":  r.batch_no,
-                    "pr_qty":    r.pr_qty if first_pr_output else "",
-                    "pr_rate":   r.pr_rate if first_pr_output else "",
-                    "pr_amount": r.pr_amount if first_pr_output else "",
-                    "pr_status": r.pr_status if first_pr_output else "",
+                    if first_pi_ret_output:
+                        pi_return_id     = pi_ret.get("name") or ""
+                        pi_return_qty    = abs(pi_ret.get("qty") or 0)
+                        pi_return_rate   = abs(pi_ret.get("rate") or 0)
+                        pi_return_amount = abs(pi_ret.get("amount") or 0)
+                    else:
+                        pi_return_id     = ""
+                        pi_return_qty    = 0
+                        pi_return_rate   = 0
+                        pi_return_amount = 0
 
-                    "pr_return_date":   ret.get("posting_date") if first_ret_output else None,
-                    "pr_return_id":     ret.get("name") if first_ret_output else "",
-                    "pr_return_qty":    pr_return_qty if first_ret_output else "",
-                    "pr_return_rate":   pr_return_rate if first_ret_output else "",
-                    "pr_return_amount": pr_return_amount if first_ret_output else "",
+                    out.append({
+                        "mr_date":             mr.get("mr_date") if first_mr_output else None,
+                        "material_request_id": mr.get("material_request_id") if first_mr_output else "",
+                        "item":                r.item if first_mr_output else "",
+                        "qty":                 mr.get("mr_qty") if first_mr_output else 0,
 
-                    "pi_date":   pi.get("posting_date"),
-                    "pi_id":     pi.get("name") or "",
-                    "pi_qty":    pi_qty if pi.get("name") else "",
-                    "pi_rate":   pi_rate if pi.get("name") else "",
-                    "pi_amount": pi_amount if pi.get("name") else "",
-                    "pi_status": pi.get("status") or "",
+                        "rfq_creation_date":   rfq.get("rfq_creation_date") if first_mr_output else None,
+                        "rfq_id":              rfq.get("rfq_id") if first_mr_output else "",
+                        "rfq_status":          rfq.get("rfq_status") if first_mr_output else "",
 
-                    "pi_return_id":     "",
-                    "pi_return_qty":    0,
-                    "pi_return_rate":   0,
-                    "pi_return_amount": 0,
+                        "po_date":   po.get("po_date") if first_po_output else None,
+                        "po_ids":    po.get("po_ids") if first_po_output else "",
+                        "po_qty":    po.get("po_qty") if first_po_output else 0,
+                        "po_rate":   po.get("po_rate") if first_po_output else 0,
+                        "po_amount": po.get("po_amount") if first_po_output else 0,
+                        "po_status": po.get("po_status") if first_po_output else "",
 
-                    # Shown once on the first row of each (pr_id, batch_no), blank on all others
-                    "difference_pr_vs_pi":        pr_diff_qty,
-                    "difference_rate_pr_vs_pi":   pr_diff_rate,
-                    "difference_amount_pr_vs_pi": (round(pr_diff_qty * pr_diff_rate, 9) if (pr_diff_qty != "" and pr_diff_rate != "") else ""),
-                })
+                        "pr_date":   r.pr_date if first_pr_output else None,
+                        "pr_id":     r.pr_id if first_pr_output else "",
+                        "batch_no":  r.batch_no,
+                        "pr_qty":    r.pr_qty if first_pr_output else 0,
+                        "pr_rate":   r.pr_rate if first_pr_output else 0,
+                        "pr_amount": r.pr_amount if first_pr_output else 0,
+                        "pr_status": r.pr_status if first_pr_output else "",
 
-                # After the very first cell of this batch, blank the diff out
-                pr_diff_qty = pr_diff_rate = pr_diff_amount = ""
-                first_pr_output = False
-                first_mr_output = False
-                first_po_output = False
+                        "pr_return_date":   pr_return_date,
+                        "pr_return_id":     pr_return_id,
+                        "pr_return_qty":    pr_return_qty,
+                        "pr_return_rate":   pr_return_rate,
+                        "pr_return_amount": pr_return_amount,
 
+                        "pi_date":   pi_date,
+                        "pi_id":     pi_id,
+                        "pi_qty":    pi_qty,
+                        "pi_rate":   pi_rate,
+                        "pi_amount": pi_amount,
+                        "pi_status": pi_status,
+
+                        # Actual PI Return values (Credit Note)
+                        "pi_return_id":     pi_return_id,
+                        "pi_return_qty":    pi_return_qty,
+                        "pi_return_rate":   pi_return_rate,
+                        "pi_return_amount": pi_return_amount,
+
+                        # Shown once per (pr_id, batch_no)
+                        "difference_pr_vs_pi":        pr_diff_qty,
+                        "difference_rate_pr_vs_pi":   pr_diff_rate,
+                        "difference_amount_pr_vs_pi": (
+                            round(pr_diff_qty * pr_diff_rate, 9)
+                            if (pr_diff_qty != "" and pr_diff_rate != "")
+                            else ""
+                        ),
+                    })
+
+                    # After first row of this batch, blank diff + header fields
+                    pr_diff_qty = pr_diff_rate = pr_diff_amount = ""
+                    first_pr_output  = False
+                    first_mr_output  = False
+                    first_po_output  = False
+                    # PI header shown only on its first sub-row (first pi_ret iteration)
+                    pi_qty    = 0
+                    pi_rate   = 0
+                    pi_amount = 0
+                    pi_date   = None
+                    pi_id     = ""
+                    pi_status = ""
+                    # PR Return header shown only on its first sub-row
+                    pr_return_qty    = 0
+                    pr_return_rate   = 0
+                    pr_return_amount = 0
+                    pr_return_date   = None
+                    pr_return_id     = ""
+
+    # FIX: Recompute totals for difference fields cleanly
     totals["difference_pr_vs_pi"] = (
         totals["pr_qty"] - totals["pr_return_qty"] - totals["pi_qty"]
     )
-    totals["difference_amount_pr_vs_pi"] = (
-        totals["difference_pr_vs_pi"] * totals["difference_rate_pr_vs_pi"]
-    )
+    # difference_amount_pr_vs_pi is already accumulated batch-by-batch above
 
     return out, totals
 
@@ -481,6 +565,12 @@ def get_pi_rows(r, filters):
     if filters.get("pi_id"):
         pi_filter_sql += " AND pi.name = %(pi_id)s "
         params["pi_id"] = filters.get("pi_id")
+    if filters.get("from_date"):
+        pi_filter_sql += " AND pi.posting_date >= %(from_date)s "
+        params["from_date"] = filters.get("from_date")
+    if filters.get("to_date"):
+        pi_filter_sql += " AND pi.posting_date <= %(to_date)s "
+        params["to_date"] = filters.get("to_date")
 
     exact_rows = frappe.db.sql(f"""
         SELECT DISTINCT
@@ -528,15 +618,32 @@ def get_pi_rows(r, filters):
     """, params, as_dict=1)
 
 
-def get_pr_return_rows(r):
+
+def get_pr_return_rows(r, filters=None):
     """
-    Fetch PR Return rows matched by batch_no (instead of PR ID only).
+    Fetch PR Return rows matched by batch_no.
     Matches returns where:
       - return_against = this PR
       - item_code matches
       - batch_no matches (batch-wise matching)
+    Date filters are applied to ret.posting_date when provided.
     """
-    return frappe.db.sql("""
+    filters = filters or {}
+    params = {
+        "return_against": r.pr_id,
+        "item_code": r.item,
+        "batch_no": r.batch_no or "",
+    }
+
+    date_sql = ""
+    if filters.get("from_date"):
+        date_sql += " AND ret.posting_date >= %(from_date)s "
+        params["from_date"] = filters.get("from_date")
+    if filters.get("to_date"):
+        date_sql += " AND ret.posting_date <= %(to_date)s "
+        params["to_date"] = filters.get("to_date")
+
+    return frappe.db.sql(f"""
         SELECT
             ret.name,
             ret.posting_date,
@@ -552,13 +659,52 @@ def get_pr_return_rows(r):
           AND ret.return_against = %(return_against)s
           AND reti.item_code = %(item_code)s
           AND IFNULL(reti.batch_no, '') = %(batch_no)s
+          {date_sql}
         ORDER BY ret.posting_date, ret.name, reti.idx
-    """, {
-        "return_against": r.pr_id,
-        "item_code": r.item,
-        "batch_no": r.batch_no or "",
-    }, as_dict=True)
+    """, params, as_dict=True)
 
+
+def get_pi_return_rows(pi_name, pii_name=None, filters=None):
+    """
+    Fetch Purchase Invoice Return (Credit Note) rows linked to a given PI.
+    A PI Return in ERPNext is a Purchase Invoice with is_return = 1
+    and return_against pointing to the original PI name.
+    ERPNext does not store a per-item back-link on the return document,
+    so we match all return item rows belonging to any Credit Note that
+    points back to this PI.
+    Date filters are applied to ret.posting_date when provided.
+    """
+    if not pi_name:
+        return []
+
+    filters = filters or {}
+    params = {"pi_name": pi_name}
+
+    date_sql = ""
+    if filters.get("from_date"):
+        date_sql += " AND ret.posting_date >= %(from_date)s "
+        params["from_date"] = filters.get("from_date")
+    if filters.get("to_date"):
+        date_sql += " AND ret.posting_date <= %(to_date)s "
+        params["to_date"] = filters.get("to_date")
+
+    return frappe.db.sql(f"""
+        SELECT
+            ret.name,
+            ret.posting_date,
+            ret_i.name AS pii_return_name,
+            ret_i.qty,
+            ret_i.rate,
+            ret_i.amount
+        FROM `tabPurchase Invoice` ret
+        INNER JOIN `tabPurchase Invoice Item` ret_i
+            ON ret_i.parent = ret.name
+        WHERE ret.docstatus = 1
+          AND IFNULL(ret.is_return, 0) = 1
+          AND ret.return_against = %(pi_name)s
+          {date_sql}
+        ORDER BY ret.posting_date, ret.name, ret_i.idx
+    """, params, as_dict=True)
 
 def get_total_row(totals):
     return {
@@ -600,9 +746,9 @@ def get_total_row(totals):
         "pi_status": "",
 
         "pi_return_id": "",
-        "pi_return_qty": 0,
-        "pi_return_rate": 0,
-        "pi_return_amount": 0,
+        "pi_return_qty": totals["pi_return_qty"],
+        "pi_return_rate": "",
+        "pi_return_amount": totals["pi_return_amount"],
 
         "difference_pr_vs_pi": totals["difference_pr_vs_pi"],
         "difference_rate_pr_vs_pi": "",
