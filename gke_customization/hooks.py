@@ -1,9 +1,9 @@
-from . import __version__ as app_version
-import gke_customization.overrides
+from . import __version__
+
 app_name = "gke_customization"
 app_title = "Gke Customization"
 app_publisher = "Gurukrupa Export"
-app_description = "App made for gurukrupa\'s internal development team"
+app_description = "App made for gurukrupa's internal development team"
 app_email = "vishal@gurukrupaexport.in"
 app_license = "MIT"
 
@@ -30,10 +30,10 @@ app_license = "MIT"
 
 # include js in doctype views
 doctype_js = {
-    "Quotation" : "public/js/doctype_js/quotation.js",
-    "Employee Onboarding" : "public/js/doctype_js/employee_onboarding.js",
-    "Payment Entry" : "public/js/doctype_js/payment_entry.js",
-    "Stock Entry" : "public/js/doctype_js/stock_entry.js",
+    "Quotation": "public/js/doctype_js/quotation.js",
+    "Employee Onboarding": "public/js/doctype_js/employee_onboarding.js",
+    "Payment Entry": "public/js/doctype_js/payment_entry.js",
+    "Stock Entry": "public/js/doctype_js/stock_entry.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -47,7 +47,7 @@ doctype_js = {
 
 # website user home page (by Role)
 # role_home_page = {
-#	"Role": "home_page"
+# "Role": "home_page"
 # }
 
 # Generators
@@ -61,8 +61,8 @@ doctype_js = {
 
 # add methods and filters to jinja environment
 # jinja = {
-#	"methods": "gke_customization.utils.jinja_methods",
-#	"filters": "gke_customization.utils.jinja_filters"
+# "methods": "gke_customization.utils.jinja_methods",
+# "filters": "gke_customization.utils.jinja_filters"
 # }
 
 # Installation
@@ -104,11 +104,11 @@ doctype_js = {
 # Permissions evaluated in scripted ways
 
 # permission_query_conditions = {
-#	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
+# "Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
 # }
 #
 has_permission = {
-	"Task": "gke_customization.gke_order_forms.doc_events.task.has_permission",
+    "Task": "gke_customization.gke_order_forms.doc_events.task.has_permission",
 }
 
 # DocType Class
@@ -116,9 +116,9 @@ has_permission = {
 # Override standard doctype classes
 
 override_doctype_class = {
-	"Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive",
-	"Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin",
-    "Job Requisition": "gke_customization.overrides.job_requisition.CustomJobRequisition"
+    "Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive",
+    "Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin",
+    "Job Requisition": "gke_customization.overrides.job_requisition.CustomJobRequisition",
     # "Parent Manufacturing Order": "gke_customization.overrides.parent_manufacturing_order.CustomParentManufacturingOrder"
 }
 
@@ -147,7 +147,7 @@ scheduler_events = {
         "gke_customization.gke_hrms.utils.check_sadwitch_rule",
         "gke_customization.gke_hrms.doc_events.leave_allocation.get_earned_leave_allocation",
         "gke_customization.gke_hrms.doc_events.leave_allocation.infirmary_leave_allocation",
-        "gke_customization.gke_hrms.doc_events.leave_allocation.compOff_leave_allocation"    
+        "gke_customization.gke_hrms.doc_events.leave_allocation.compOff_leave_allocation",
     ],
     "cron": {
         "0 6 * * *": [
@@ -176,9 +176,9 @@ scheduler_events = {
 # ------------------------------
 #
 override_whitelisted_methods = {
-	"hrms.hr.doctype.job_offer.job_offer.make_employee": "gke_customization.gke_hrms.doc_events.job_offer.make_employee",
-    "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note":"gke_customization.gke_customization.doc_events.sales_order.make_delivery_note",
-    "erpnext.selling.doctype.delivery_note.delivery_note.make_sales_invoice":"gke_customization.gke_customization.doc_events.delivery_note.make_sales_invoice"
+    "hrms.hr.doctype.job_offer.job_offer.make_employee": "gke_customization.gke_hrms.doc_events.job_offer.make_employee",
+    "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note": "gke_customization.gke_customization.doc_events.sales_order.make_delivery_note",
+    "erpnext.selling.doctype.delivery_note.delivery_note.make_sales_invoice": "gke_customization.gke_customization.doc_events.delivery_note.make_sales_invoice",
 }
 #
 # each overriding function accepts a `data` argument;
@@ -211,37 +211,37 @@ override_doctype_dashboards = {
 # --------------------
 
 # user_data_fields = [
-#	{
-#		"doctype": "{doctype_1}",
-#		"filter_by": "{filter_by}",
-#		"redact_fields": ["{field_1}", "{field_2}"],
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_2}",
-#		"filter_by": "{filter_by}",
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_3}",
-#		"strict": False,
-#	},
-#	{
-#		"doctype": "{doctype_4}"
-#	}
+# {
+# "doctype": "{doctype_1}",
+# "filter_by": "{filter_by}",
+# "redact_fields": ["{field_1}", "{field_2}"],
+# "partial": 1,
+# },
+# {
+# "doctype": "{doctype_2}",
+# "filter_by": "{filter_by}",
+# "partial": 1,
+# },
+# {
+# "doctype": "{doctype_3}",
+# "strict": False,
+# },
+# {
+# "doctype": "{doctype_4}"
+# }
 # ]
 
 # Authentication and authorization
 # --------------------------------
 
 # auth_hooks = [
-#	"gke_customization.auth.validate"
+# "gke_customization.auth.validate"
 # ]
 
 app_include_js = "gke_customization.gke_catalog.api.item_list.get_item_list"
 app_include_js = "gke_customization.gke_catalog.api.item_list.get_bom_list"
 
-app_include_js = "gke_customization.gke_catalog.api.attendance.attendance" 
+app_include_js = "gke_customization.gke_catalog.api.attendance.attendance"
 
 app_include_js = "gke_customization.gke_catalog.api.item_catalog.merge_data"
 
@@ -253,71 +253,67 @@ app_include_js = "gke_customization.gke_catalog.api.reposne.get_submited_data"
 app_include_js = "gke_customization.gke_catalog.api.price_list.diamond_price_list"
 
 doc_events = {
-"SolitaireCalculator": {
-    "validate": "gke_customization.gke_custom_export.doctype.solitaire_calculator.solitaire_calculator.calculate_rate"
-},
-"Employee Advance": {
-	"validate": "gke_customization.gke_hrms.doc_events.employee_advance.calculate_working_days"
-},
-"Attendance Request": {
-	"validate": "gke_customization.gke_hrms.doc_events.attendance_request.validate",
-	"on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit"	
-},
-# "Leave Application":{
-#     "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
-#     "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit"
-# },
-"Loan Application":{
-    "validate":"gke_customization.gke_hrms.doc_events.loan_application.validate"
-},
-"Share Transfer":{
-    "validate":"gke_customization.gke_customization.doc_events.share_transfer.validate",
-    "on_trash":"gke_customization.gke_customization.doc_events.share_transfer.on_trash",
-    "on_cancel":"gke_customization.gke_customization.doc_events.share_transfer.on_cancel",
-},
-# "Shareholder": {
-#     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
-# },
-"Payment Entry": {
-    # "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_update_after_submit"
-	"on_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_submit"
-},
-"Journal Entry": {
-    "on_submit": "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit"
-},
-# "Item": {
-#     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
-# },
-# "Department IR": {
-#     "autoname": "gke_customization.gke_order_forms.doc_events.department_ir.autoname"
-# },
-# "Employee IR": {
-#     "autoname": "gke_customization.gke_order_forms.doc_events.employee_ir.autoname"
-# },
-"Manufacturing Operation": {
-    "autoname": "gke_customization.gke_order_forms.doc_events.manufacturing_operation.autoname"
-},
-"Sales Order":{
-    "validate":"gke_customization.gke_customization.doc_events.sales_order.validate",
-},
-"Sales Invoice":{
-    "validate":"gke_customization.gke_customization.doc_events.sales_invoice.validate",
-},
-"Delivery Note":{
-    "validate":"gke_customization.gke_customization.doc_events.delivery_note.validate",
-},
-"Batch": {
-    "autoname": "jewellery_erpnext.jewellery_erpnext.customization.batch.batch.autoname",
-},
-"Timesheet": {
-    "validate": "gke_customization.gke_order_forms.doc_events.timesheet.validate",
-    "on_submit": "gke_customization.gke_order_forms.doc_events.timesheet.on_submit",
-    "on_update": "gke_customization.gke_order_forms.doc_events.timesheet.on_update"
-    
-},
-# "Stock Entry": {
-#     "before_validate": "gke_customization.gke_order_forms.doc_events.stock_entry.before_validate",
-# }
+    "SolitaireCalculator": {
+        "validate": "gke_customization.gke_custom_export.doctype.solitaire_calculator.solitaire_calculator.calculate_rate"
+    },
+    "Employee Advance": {
+        "validate": "gke_customization.gke_hrms.doc_events.employee_advance.calculate_working_days"
+    },
+    "Attendance Request": {
+        "validate": "gke_customization.gke_hrms.doc_events.attendance_request.validate",
+        "on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit",
+    },
+    # "Leave Application":{
+    #     "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
+    #     "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit"
+    # },
+    "Loan Application": {
+        "validate": "gke_customization.gke_hrms.doc_events.loan_application.validate"
+    },
+    "Share Transfer": {
+        "validate": "gke_customization.gke_customization.doc_events.share_transfer.validate",
+        "on_trash": "gke_customization.gke_customization.doc_events.share_transfer.on_trash",
+        "on_cancel": "gke_customization.gke_customization.doc_events.share_transfer.on_cancel",
+    },
+    # "Shareholder": {
+    #     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
+    # },
+    "Payment Entry": {
+        # "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_update_after_submit"
+        "on_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_submit"
+    },
+    "Journal Entry": {
+        "on_submit": "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit"
+    },
+    # "Item": {
+    #     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
+    # },
+    # "Department IR": {
+    #     "autoname": "gke_customization.gke_order_forms.doc_events.department_ir.autoname"
+    # },
+    # "Employee IR": {
+    #     "autoname": "gke_customization.gke_order_forms.doc_events.employee_ir.autoname"
+    # },
+    "Manufacturing Operation": {
+        "autoname": "gke_customization.gke_order_forms.doc_events.manufacturing_operation.autoname"
+    },
+    "Sales Order": {
+        "validate": "gke_customization.gke_customization.doc_events.sales_order.validate",
+    },
+    "Sales Invoice": {
+        "validate": "gke_customization.gke_customization.doc_events.sales_invoice.validate",
+    },
+    "Delivery Note": {
+        "validate": "gke_customization.gke_customization.doc_events.delivery_note.validate",
+    },
+    "Timesheet": {
+        "validate": "gke_customization.gke_order_forms.doc_events.timesheet.validate",
+        "on_submit": "gke_customization.gke_order_forms.doc_events.timesheet.on_submit",
+        "on_update": "gke_customization.gke_order_forms.doc_events.timesheet.on_update",
+    },
+    # "Stock Entry": {
+    #     "before_validate": "gke_customization.gke_order_forms.doc_events.stock_entry.before_validate",
+    # }
 }
 # app_include_js = [
 #     '/assets/gke_customization/js/solitaire_calculator.js'
@@ -325,11 +321,14 @@ doc_events = {
 
 fixtures = [
     {
-		"dt": "Custom Field", 
-		"filters": [["module", "in", ["GKE Order Forms", "GKE Catalog"]]]
-	},
+        "dt": "Custom Field",
+        "filters": [["module", "in", ["GKE Order Forms", "GKE Catalog"]]],
+    },
     {
-		"dt": "DocType", 
-		"filters": [["module", "in", ["GKE Order Forms", "GKE Catalog"]], ['custom', "=", 1]]
-	},
+        "dt": "DocType",
+        "filters": [
+            ["module", "in", ["GKE Order Forms", "GKE Catalog"]],
+            ["custom", "=", 1],
+        ],
+    },
 ]
