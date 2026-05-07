@@ -1055,178 +1055,181 @@ def gc_export_to_excel(order_form, doc):
 
 		else:
 			if row.get('design_id'):
-				bom_list = ''
-				if row.get('tag_no'): 
-					# frappe.throw(f"{row.get('tag_no')}")
-					bom_list = frappe.db.get_list("BOM", filters={'item': row["design_id"], 'bom_type': 'Finish Goods'}, fields=['*'])
-				else:  
-					bom_list = frappe.db.get_list("BOM", filters={'item': row["design_id"], 'name': row['bom']}, fields=['*'])
+				if row.get('category') == "Earrings" and  row.get('uomset_of') == 'SET':
+					continue
+				else:
+					bom_list = ''
+					if row.get('tag_no'): 
+						# frappe.throw(f"{row.get('tag_no')}")
+						bom_list = frappe.db.get_list("BOM", filters={'item': row["design_id"], 'bom_type': 'Finish Goods'}, fields=['*'])
+					else:  
+						bom_list = frappe.db.get_list("BOM", filters={'item': row["design_id"], 'name': row['bom']}, fields=['*'])
 
-				if bom_list:
-					bom_diamond = frappe.db.get_all("BOM Diamond Detail", 
-									filters={'parent': bom_list[0].get('name')}, fields=['*'])
-					max_rows = len(bom_diamond) or 1
-					for i in range(max_rows):
-						diamond = bom_diamond[i] if i < len(bom_diamond) else {}
+					if bom_list:
+						bom_diamond = frappe.db.get_all("BOM Diamond Detail", 
+										filters={'parent': bom_list[0].get('name')}, fields=['*'])
+						max_rows = len(bom_diamond) or 1
+						for i in range(max_rows):
+							diamond = bom_diamond[i] if i < len(bom_diamond) else {}
 
-					if row.get('uomset_of') == "SET":
-						diamond_pcs = []
-						set_item =  frappe.db.get_all("Set Item Table",filters={'parent': row.get('design_id')},fields=['item_code'])
-						item_sub = ''
-						metal_weight = 0
-						if set_item:
-							for item in set_item:
-								set_item_bom =  frappe.db.get_value("Item",item.get('item_code'),'master_bom')
-								item_sub =  frappe.db.get_value("Item",item.get('item_code'),'item_subcategory')
-								metal_weight =  frappe.db.get_value("BOM",set_item_bom ,'total_metal_weight')
+						if row.get('uomset_of') == "SET":
+							diamond_pcs = []
+							set_item =  frappe.db.get_all("Set Item Table",filters={'parent': row.get('design_id')},fields=['item_code'])
+							item_sub = ''
+							metal_weight = 0
+							if set_item:
+								for item in set_item:
+									set_item_bom =  frappe.db.get_value("Item",item.get('item_code'),'master_bom')
+									item_sub =  frappe.db.get_value("Item",item.get('item_code'),'item_subcategory')
+									metal_weight =  frappe.db.get_value("BOM",set_item_bom ,'total_metal_weight')
+									
+									diamond_no =  frappe.db.get_all("BOM Diamond Detail",filters={'parent': set_item_bom},fields=['diamond_sieve_size','pcs','sub_setting_type','diamond_type','size_in_mm','stone_shape'])
+									design_item.append(item.get('item_code'))
+									for pcs in diamond_no:
+										diamond_pcs.append(pcs)
+							design_item_code = frappe.db.get_all("Customer Category Detail",
+												filters={
+													'parent': order_form_doc.customer_code,
+													'gk_sub_category': row.get('subcategory')+ " + " + item_sub
+												},
+												fields=['article'])
+							code = design_item_code[0].get('article','') if design_item_code else ''
+							# frappe.throw(str(design_item_code))
+							diamond_count =  frappe.db.get_all("BOM Diamond Detail",filters={'parent': row.get('bom')},fields=['diamond_sieve_size','pcs','sub_setting_type','diamond_type','size_in_mm','stone_shape'])
+							for d in diamond_count:
+								found = False
+
+								for existing in diamond_pcs:
+									if existing.get('diamond_sieve_size') == d.get('diamond_sieve_size'):
+										existing['pcs'] = existing.get('pcs', 0) + d.get('pcs', 0)
+										found = True
+										break
+
+								if not found:
+									diamond_pcs.append(d)
 								
-								diamond_no =  frappe.db.get_all("BOM Diamond Detail",filters={'parent': set_item_bom},fields=['diamond_sieve_size','pcs','sub_setting_type','diamond_type','size_in_mm','stone_shape'])
-								design_item.append(item.get('item_code'))
-								for pcs in diamond_no:
-									diamond_pcs.append(pcs)
-						design_item_code = frappe.db.get_all("Customer Category Detail",
-											filters={
-												'parent': order_form_doc.customer_code,
-												'gk_sub_category': row.get('subcategory')+ " + " + item_sub
-											},
-											fields=['article'])
-						code = design_item_code[0].get('article','') if design_item_code else ''
-						# frappe.throw(str(design_item_code))
-						diamond_count =  frappe.db.get_all("BOM Diamond Detail",filters={'parent': row.get('bom')},fields=['diamond_sieve_size','pcs','sub_setting_type','diamond_type','size_in_mm','stone_shape'])
-						for d in diamond_count:
-							found = False
+							for diamond in diamond_pcs:
+								stone_code = frappe.db.sql("""
+								SELECT rm.customer_code
+								FROM `tabCustomer RM Code Detail` rm
+								LEFT JOIN `tabCustomer RM Code` rmc ON rm.parent = rmc.name
+								WHERE 
+									IFNULL(rm.stone_shape, '') = IFNULL(%s, '')
+									AND rmc.customer = %s
+									AND IFNULL(rm.diamond_type, '') = IFNULL(%s, '')
+									AND IFNULL(rm.diamond_quality, '') = IFNULL(%s, '')
+									AND CAST(IFNULL(rm.size_in_mm, 0) AS DECIMAL(10,3)) = CAST(%s AS DECIMAL(10,3))
+										
+								""",
+								(
+									diamond.get("stone_shape"),
+									order_form_doc.customer_code,
+									diamond.get("diamond_type"),
+									order_form_doc.diamond_quality,
+									diamond.get("size_in_mm"),
+								),
+								as_dict=1)
+								# frappe.throw(str(stone_code[0].get('customer_code')))
+								code_ctg = ['N&J','N&D','N&C','E&D']
 
-							for existing in diamond_pcs:
-								if existing.get('diamond_sieve_size') == d.get('diamond_sieve_size'):
-									existing['pcs'] = existing.get('pcs', 0) + d.get('pcs', 0)
-									found = True
-									break
+								row_data = [
+									'-',
+									'-', 
+									'-',
+									'-',
+									row.get('design_id','') + code,
+									'GURU',
+									'TANISHQ',
+									'-',
+									stone_code[0].get('customer_code') if stone_code else '',
+									f"{(diamond.get('pcs', 0))}",
+									float(bom_list[0].get('total_metal_weight') or 0) + float(metal_weight or 0),
+									row.get('metal_touch', ''),
+									# row.get('category',''),
+									'SET2' if code in code_ctg else 'SET1',
+									diamond.get('sub_setting_type' or ''),
+									'-',
+									'-',
+								]
 
-							if not found:
-								diamond_pcs.append(d)
-							
-						for diamond in diamond_pcs:
-							stone_code = frappe.db.sql("""
-							SELECT rm.customer_code
-							FROM `tabCustomer RM Code Detail` rm
-							LEFT JOIN `tabCustomer RM Code` rmc ON rm.parent = rmc.name
-							WHERE 
-								IFNULL(rm.stone_shape, '') = IFNULL(%s, '')
-								AND rmc.customer = %s
-								AND IFNULL(rm.diamond_type, '') = IFNULL(%s, '')
-								AND IFNULL(rm.diamond_quality, '') = IFNULL(%s, '')
-								AND CAST(IFNULL(rm.size_in_mm, 0) AS DECIMAL(10,3)) = CAST(%s AS DECIMAL(10,3))
-									
-							""",
-							(
-								diamond.get("stone_shape"),
-								order_form_doc.customer_code,
-								diamond.get("diamond_type"),
-								order_form_doc.diamond_quality,
-								diamond.get("size_in_mm"),
-							),
-							as_dict=1)
-							# frappe.throw(str(stone_code[0].get('customer_code')))
-							code_ctg = ['N&J','N&D','N&C','E&D']
+								rows_data.append(row_data)
+						else:	
+							# customer_code_list = []
+							# stone_value = frappe.db.sql("""
+							# 	SELECT *
+							# 	FROM `tabBOM Diamond Detail`
+							# 	WHERE parent = %s
+							# """, bom_list[0].get("name"), as_dict=True)
 
-							row_data = [
-								'-',
-								'-', 
-								'-',
-								'-',
-								row.get('design_id','') + code,
-								'GURU',
-								'TANISHQ',
-								'-',
-								stone_code[0].get('customer_code') if stone_code else '',
-								f"{(diamond.get('pcs', 0))}",
-								float(bom_list[0].get('total_metal_weight') or 0) + float(metal_weight or 0),
-								row.get('metal_touch', ''),
-								# row.get('category',''),
-								'SET2' if code in code_ctg else 'SET1',
-								diamond.get('sub_setting_type' or ''),
-								'-',
-								'-',
-							]
+							# # frappe.throw(str(stone))
+							# for stone in stone_value:
+							# 	stone_code = frappe.db.sql("""
+							# 		SELECT rm.customer_code
+							# 		FROM `tabCustomer RM Code Detail` rm
+							# 		LEFT JOIN `tabCustomer RM Code` rmc ON rm.parent = rmc.name
+							# 		WHERE 
+							# 			IFNULL(rm.stone_shape, '') = IFNULL(%s, '')
+							# 			AND rmc.customer = %s
+							# 			AND IFNULL(rm.diamond_type, '') = IFNULL(%s, '')
+							# 			AND IFNULL(rm.diamond_quality, '') = IFNULL(%s, '')
+							# 			AND CAST(IFNULL(rm.size_in_mm, 0) AS DECIMAL(10,3)) = CAST(%s AS DECIMAL(10,3))
+										
+							# 	""",
+							# 	(
+							# 		stone.get("stone_shape"),
+							# 		order_form_doc.customer_code,
+							# 		stone.get("diamond_type"),
+							# 		order_form_doc.diamond_quality,
+							# 		stone.get("size_in_mm"),
+							# 	),
+							# 	as_dict=1)
+							# 	if stone_code:
+							# 		for code_row in stone_code:
+							# 			customer_code_list.append(code_row.customer_code)
+							# frappe.throw(str(customer_code_list))
+							stylebio =  frappe.db.get_value("Item",row.get('design_id'),'stylebio')
+							multiplier = 2 if row.get('category', '') == "Bangles" else 1
+							for diamond in bom_diamond:
+								stone_code = frappe.db.sql("""
+								SELECT rm.customer_code
+								FROM `tabCustomer RM Code Detail` rm
+								LEFT JOIN `tabCustomer RM Code` rmc ON rm.parent = rmc.name
+								WHERE 
+									IFNULL(rm.stone_shape, '') = IFNULL(%s, '')
+									AND rmc.customer = %s
+									AND IFNULL(rm.diamond_type, '') = IFNULL(%s, '')
+									AND IFNULL(rm.diamond_quality, '') = IFNULL(%s, '')
+									AND CAST(IFNULL(rm.size_in_mm, 0) AS DECIMAL(10,3)) = CAST(%s AS DECIMAL(10,3))
+										
+								""",
+								(
+									diamond.get("stone_shape"),
+									order_form_doc.customer_code,
+									diamond.get("diamond_type"),
+									order_form_doc.diamond_quality,
+									diamond.get("size_in_mm"),
+								),
+								as_dict=1)
+								row_data = [
+									'-',
+									'-', 
+									'-',
+									'-',
+									row.get('design_id',''),
+									'GURU',
+									'TANISHQ',
+									'-',
+									stone_code[0].get('customer_code') if stone_code  else '',
+									f"{(diamond.get('pcs', 0)) * multiplier}",
+									f"{(bom_list[0].get('total_metal_weight', 0)) * multiplier:0.3f}",
+									row.get('metal_touch', ''),
+									row.get('category',''),
+									diamond.get('sub_setting_type' or ''),
+									'-',
+									'-',
+								]
 
-							rows_data.append(row_data)
-					else:	
-						# customer_code_list = []
-						# stone_value = frappe.db.sql("""
-						# 	SELECT *
-						# 	FROM `tabBOM Diamond Detail`
-						# 	WHERE parent = %s
-						# """, bom_list[0].get("name"), as_dict=True)
-
-						# # frappe.throw(str(stone))
-						# for stone in stone_value:
-						# 	stone_code = frappe.db.sql("""
-						# 		SELECT rm.customer_code
-						# 		FROM `tabCustomer RM Code Detail` rm
-						# 		LEFT JOIN `tabCustomer RM Code` rmc ON rm.parent = rmc.name
-						# 		WHERE 
-						# 			IFNULL(rm.stone_shape, '') = IFNULL(%s, '')
-						# 			AND rmc.customer = %s
-						# 			AND IFNULL(rm.diamond_type, '') = IFNULL(%s, '')
-						# 			AND IFNULL(rm.diamond_quality, '') = IFNULL(%s, '')
-						# 			AND CAST(IFNULL(rm.size_in_mm, 0) AS DECIMAL(10,3)) = CAST(%s AS DECIMAL(10,3))
-									
-						# 	""",
-						# 	(
-						# 		stone.get("stone_shape"),
-						# 		order_form_doc.customer_code,
-						# 		stone.get("diamond_type"),
-						# 		order_form_doc.diamond_quality,
-						# 		stone.get("size_in_mm"),
-						# 	),
-						# 	as_dict=1)
-						# 	if stone_code:
-						# 		for code_row in stone_code:
-						# 			customer_code_list.append(code_row.customer_code)
-						# frappe.throw(str(customer_code_list))
-						stylebio =  frappe.db.get_value("Item",row.get('design_id'),'stylebio')
-						multiplier = 2 if row.get('category', '') == "Bangles" else 1
-						for diamond in bom_diamond:
-							stone_code = frappe.db.sql("""
-							SELECT rm.customer_code
-							FROM `tabCustomer RM Code Detail` rm
-							LEFT JOIN `tabCustomer RM Code` rmc ON rm.parent = rmc.name
-							WHERE 
-								IFNULL(rm.stone_shape, '') = IFNULL(%s, '')
-								AND rmc.customer = %s
-								AND IFNULL(rm.diamond_type, '') = IFNULL(%s, '')
-								AND IFNULL(rm.diamond_quality, '') = IFNULL(%s, '')
-								AND CAST(IFNULL(rm.size_in_mm, 0) AS DECIMAL(10,3)) = CAST(%s AS DECIMAL(10,3))
-									
-							""",
-							(
-								diamond.get("stone_shape"),
-								order_form_doc.customer_code,
-								diamond.get("diamond_type"),
-								order_form_doc.diamond_quality,
-								diamond.get("size_in_mm"),
-							),
-							as_dict=1)
-							row_data = [
-								'-',
-								'-', 
-								'-',
-								'-',
-								row.get('design_id',''),
-								'GURU',
-								'TANISHQ',
-								'-',
-								stone_code[0].get('customer_code') if stone_code  else '',
-								f"{(diamond.get('pcs', 0)) * multiplier}",
-								f"{(bom_list[0].get('total_metal_weight', 0)) * multiplier:0.3f}",
-								row.get('metal_touch', ''),
-								row.get('category',''),
-								diamond.get('sub_setting_type' or ''),
-								'-',
-								'-',
-							]
-
-							rows_data.append(row_data)
+								rows_data.append(row_data)
 
 	if rows_data:
 		for row in rows_data:
@@ -1316,241 +1319,244 @@ def creation_export_to_excel(order_form, doc):
 		
 		else:
 			if row['design_id']:
-				finish_bom_list = frappe.db.get_list("BOM", filters={'item': row["design_id"], 'bom_type': 'Finish Goods'}, fields=['name'])
-				
-				finish_bom = ''
-				if len(finish_bom_list) > 1:
-					order = frappe.db.get_value("Order", 
-						{'cad_order_form': order_form, 'item': row['design_id']},'name')	
-					pmo = frappe.db.get_value("Parent Manufacturing Order",{'order_form_id': order}, 'name')
-					snc = frappe.db.get_value("Serial Number Creator",{'parent_manufacturing_order': pmo}, 'name')
-					fg_bom = frappe.db.get_value("BOM", {'custom_serial_number_creator': snc, 'item': row['design_id'], 'bom_type': 'Finish Goods'}, 'name')
-					finish_bom = fg_bom		
+				if row.get('category') == "Earrings" and  row.get('uomset_of') == 'SET':
+					continue
 				else:
-					for fg in finish_bom_list:
-						finish_bom = fg.get('name')
-				
-				final_bom = ''
-				if finish_bom:
-					final_bom = finish_bom
-				else:
-					final_bom = frappe.db.get_value("Item", {'name': row["design_id"],}, ['master_bom'])
-				
-				
-				if final_bom:
-					# item_bom = frappe.db.get_list("BOM", filters={'item': row["design_id"], 'name': final_bom}, fields=['*'])
-					if row.get('uomset_of') == "SET":
-						metal_touch = row.get('metal_touch', '')
-						metal_touch = metal_touch.replace('KT', '').replace('kt', '').strip()
-						gemstone = frappe.db.get_value('BOM',row.get('bom'),'total_gemstone_pcs')
-						diamond = frappe.db.get_value('BOM',row.get('bom'),'total_diamond_pcs')
-						order_date = frappe.utils.formatdate(order_form_doc.order_date, "dd.MM.yyyy")
+					finish_bom_list = frappe.db.get_list("BOM", filters={'item': row["design_id"], 'bom_type': 'Finish Goods'}, fields=['name'])
+					
+					finish_bom = ''
+					if len(finish_bom_list) > 1:
+						order = frappe.db.get_value("Order", 
+							{'cad_order_form': order_form, 'item': row['design_id']},'name')	
+						pmo = frappe.db.get_value("Parent Manufacturing Order",{'order_form_id': order}, 'name')
+						snc = frappe.db.get_value("Serial Number Creator",{'parent_manufacturing_order': pmo}, 'name')
+						fg_bom = frappe.db.get_value("BOM", {'custom_serial_number_creator': snc, 'item': row['design_id'], 'bom_type': 'Finish Goods'}, 'name')
+						finish_bom = fg_bom		
+					else:
+						for fg in finish_bom_list:
+							finish_bom = fg.get('name')
+					
+					final_bom = ''
+					if finish_bom:
+						final_bom = finish_bom
+					else:
+						final_bom = frappe.db.get_value("Item", {'name': row["design_id"],}, ['master_bom'])
+					
+					
+					if final_bom:
+						# item_bom = frappe.db.get_list("BOM", filters={'item': row["design_id"], 'name': final_bom}, fields=['*'])
+						if row.get('uomset_of') == "SET":
+							metal_touch = row.get('metal_touch', '')
+							metal_touch = metal_touch.replace('KT', '').replace('kt', '').strip()
+							gemstone = frappe.db.get_value('BOM',row.get('bom'),'total_gemstone_pcs')
+							diamond = frappe.db.get_value('BOM',row.get('bom'),'total_diamond_pcs')
+							order_date = frappe.utils.formatdate(order_form_doc.order_date, "dd.MM.yyyy")
 
-						set_item =  frappe.db.get_all("Set Item Table",filters={'parent': row.get('design_id')},fields=['item_code'])
-						item_sub = None
-						item_sub_bom = None
-						# if set_item:
-						# 	item_sub =  frappe.db.get_value("Item",set_item[0].get('item_code'),'item_subcategory')
-						# 	item_sub_bom =  frappe.db.get_value('Item',set_item[0].get('item_code'),'master_bom')
-						# 	design_item.append(set_item[0].get('item_code'))
-						item_sub = ''
-						metal_weight = 0
-						if set_item:
-							for item in set_item:
-								item_sub_bom =  frappe.db.get_value("Item",item.get('item_code'),'master_bom')
-								item_sub =  frappe.db.get_value("Item",item.get('item_code'),'item_subcategory')
-								metal_weight =  frappe.db.get_value("BOM",item_sub_bom ,'total_metal_weight')
-								
-								# diamond_no =  frappe.db.get_all("BOM Diamond Detail",filters={'parent': item_sub_bom},fields=['diamond_sieve_size','pcs','sub_setting_type','diamond_type','size_in_mm','stone_shape'])
-								design_item.append(item.get('item_code'))
-						child_1 =  frappe.db.get_all("Customer Category Detail",
-									filters = {
-										'parent':order_form_doc.customer_code,
-										'gk_category':row.get('category')
-									},fields=['customer_category'])
-						child_2 = []
-						if item_sub:
-							child_2 =  frappe.db.get_all("Customer Category Detail",
+							set_item =  frappe.db.get_all("Set Item Table",filters={'parent': row.get('design_id')},fields=['item_code'])
+							item_sub = None
+							item_sub_bom = None
+							# if set_item:
+							# 	item_sub =  frappe.db.get_value("Item",set_item[0].get('item_code'),'item_subcategory')
+							# 	item_sub_bom =  frappe.db.get_value('Item',set_item[0].get('item_code'),'master_bom')
+							# 	design_item.append(set_item[0].get('item_code'))
+							item_sub = ''
+							metal_weight = 0
+							if set_item:
+								for item in set_item:
+									item_sub_bom =  frappe.db.get_value("Item",item.get('item_code'),'master_bom')
+									item_sub =  frappe.db.get_value("Item",item.get('item_code'),'item_subcategory')
+									metal_weight =  frappe.db.get_value("BOM",item_sub_bom ,'total_metal_weight')
+									
+									# diamond_no =  frappe.db.get_all("BOM Diamond Detail",filters={'parent': item_sub_bom},fields=['diamond_sieve_size','pcs','sub_setting_type','diamond_type','size_in_mm','stone_shape'])
+									design_item.append(item.get('item_code'))
+							child_1 =  frappe.db.get_all("Customer Category Detail",
 										filters = {
 											'parent':order_form_doc.customer_code,
-											'gk_sub_category':item_sub
+											'gk_category':row.get('category')
 										},fields=['customer_category'])
+							child_2 = []
+							if item_sub:
+								child_2 =  frappe.db.get_all("Customer Category Detail",
+											filters = {
+												'parent':order_form_doc.customer_code,
+												'gk_sub_category':item_sub
+											},fields=['customer_category'])
 
-						design_item_code = frappe.db.get_all("Customer Category Detail",
-											filters={
-												'parent': order_form_doc.customer_code,
-												'gk_sub_category': row.get('subcategory')+ " + " + (item_sub or '')
-											},
-											fields=['article'])
-						code = design_item_code[0].get("article", "") if design_item_code else ""
-						product_size =  frappe.db.get_value("Item",row.get('design_id'),'master_bom')
-						size =  frappe.db.get_value('BOM',product_size,'product_size')
-						product_size_item = frappe.db.get_all(
-								"Titan Size Master",
-								filters={
-									"item_category": row.get("category"),
-									"customer": order_form_doc.customer_code,
-									"product_size": ["like", f"%{size}%"]
-								},
-								fields=['code']
-							)
-						code_ctg = ['N&J','N&D','N&C','E&D']
-						finding =  frappe.get_all("BOM Finding Detail",filters={'parent':row.get('bom')},fields=['finding_type'])
-						finding_code = []
-						if finding:
-							for fnd in finding:
-								fnd_code = frappe.db.get_value("Customer Finding Detail",
-										{'parent':order_form_doc.customer_code,'gk_finding_sub_category':fnd.get('finding_type')},['code_finding'])
-								if fnd_code:
-									finding_code.append(fnd_code)
-						row_data = [
-							'-',
-							'-',
-							'-',
-							row.get('design_id','') + code,
-							'-',
-							row.get('collection_name', '') ,
-							'-',
-							'STUDDED HIGH VALUE',
-							'SET2' if code in code_ctg else 'SET1',
-							'GURU',
-							'-',
-							'GO' if row.get('metal_type') == 'Gold' else '',
-							metal_touch,
-							product_size_item[0].get('code')if product_size_item else '',
-							", ".join(finding_code) if finding_code else '',
-							'N/A',
-							'Round' if row.get('category') in ['Bangles', 'Ring'] else 'Oval' if row.get('category') == 'Bracelet' else 'N/A',
-							row.get('uomset_of',''),
-							row.get('gender',''),
-							'YEL' if row.get('metal_colour','') == 'Yellow' else 'ROS',
-							child_1[0].get('customer_category')if child_1 else '',
-							child_2[0].get('customer_category') if child_2 else '', 
-							'-', 
-							'-', 
-							'-',
-							'-',
-							'-',
-							frappe.db.get_value('BOM',row.get('bom'),'metal_and_finding_weight'),
-							frappe.db.get_value('BOM',item_sub_bom,'metal_and_finding_weight'),
-							'-',
-							'-',
-							'-',
-							'-',
-							'-', 
-							(float(frappe.db.get_value("BOM", row.get("bom"), "metal_and_finding_weight") or 0) + float(frappe.db.get_value("BOM", item_sub_bom, "metal_and_finding_weight") or 0)),
-       						frappe.db.get_value('BOM',row.get('bom'),'diamond_weight'),
-							frappe.db.get_value('BOM',item_sub_bom,'diamond_weight'),
-							(frappe.db.get_value("BOM", row.get("bom"), "diamond_weight") or 0)+ (frappe.db.get_value("BOM", item_sub_bom, "diamond_weight") or 0),
-							row.get('diamond_quality', ''),
-							'DIMOND + COLOURSTONE' if(diamond and gemstone) else 'DIAMOND',
-							'0',
-							'0',
-							'STUDDED'
-							
-						]
-						rows_data.append(row_data) 
-					else:
-						metal_touch = row.get('metal_touch', '')
-						metal_touch = metal_touch.replace('KT', '').replace('kt', '').strip()
-						gemstone = frappe.db.get_value('BOM',row.get('bom'),'total_gemstone_pcs')
-						diamond = frappe.db.get_value('BOM',row.get('bom'),'total_diamond_pcs')
-						order_date = frappe.utils.formatdate(order_form_doc.order_date, "dd.MM.yyyy")
-						# product_size =  frappe.db.get_value("Item",row.get('design_id'),'master_bom')
-						# size =  frappe.db.get_value('BOM',product_size,'product_size')
-						product_size = frappe.db.get_value(
-								"Item Variant Attribute",
-								{
-									"parent": row.get("design_id"),
-									"attribute": "Product Size",
-								},
-								['attribute_value']
-							)
-						product_size_item = None
-
-						if product_size:
+							design_item_code = frappe.db.get_all("Customer Category Detail",
+												filters={
+													'parent': order_form_doc.customer_code,
+													'gk_sub_category': row.get('subcategory')+ " + " + (item_sub or '')
+												},
+												fields=['article'])
+							code = design_item_code[0].get("article", "") if design_item_code else ""
+							product_size =  frappe.db.get_value("Item",row.get('design_id'),'master_bom')
+							size =  frappe.db.get_value('BOM',product_size,'product_size')
 							product_size_item = frappe.db.get_all(
 									"Titan Size Master",
 									filters={
 										"item_category": row.get("category"),
 										"customer": order_form_doc.customer_code,
-										"gk_product_size": ["like", f"%{product_size}%"]
+										"product_size": ["like", f"%{size}%"]
 									},
 									fields=['code']
 								)
+							code_ctg = ['N&J','N&D','N&C','E&D']
+							finding =  frappe.get_all("BOM Finding Detail",filters={'parent':row.get('bom')},fields=['finding_type'])
+							finding_code = []
+							if finding:
+								for fnd in finding:
+									fnd_code = frappe.db.get_value("Customer Finding Detail",
+											{'parent':order_form_doc.customer_code,'gk_finding_sub_category':fnd.get('finding_type')},['code_finding'])
+									if fnd_code:
+										finding_code.append(fnd_code)
+							row_data = [
+								'-',
+								'-',
+								'-',
+								row.get('design_id','') + code,
+								'-',
+								row.get('collection_name', '') ,
+								'-',
+								'STUDDED HIGH VALUE',
+								'SET2' if code in code_ctg else 'SET1',
+								'GURU',
+								'-',
+								'GO' if row.get('metal_type') == 'Gold' else '',
+								metal_touch,
+								product_size_item[0].get('code')if product_size_item else '',
+								", ".join(finding_code) if finding_code else '',
+								'N/A',
+								'Round' if row.get('category') in ['Bangles', 'Ring'] else 'Oval' if row.get('category') == 'Bracelet' else 'N/A',
+								row.get('uomset_of',''),
+								row.get('gender',''),
+								'YEL' if row.get('metal_colour','') == 'Yellow' else 'ROS',
+								child_1[0].get('customer_category')if child_1 else '',
+								child_2[0].get('customer_category') if child_2 else '', 
+								'-', 
+								'-', 
+								'-',
+								'-',
+								'-',
+								frappe.db.get_value('BOM',row.get('bom'),'metal_and_finding_weight'),
+								frappe.db.get_value('BOM',item_sub_bom,'metal_and_finding_weight'),
+								'-',
+								'-',
+								'-',
+								'-',
+								'-', 
+								(float(frappe.db.get_value("BOM", row.get("bom"), "metal_and_finding_weight") or 0) + float(frappe.db.get_value("BOM", item_sub_bom, "metal_and_finding_weight") or 0)),
+								frappe.db.get_value('BOM',row.get('bom'),'diamond_weight'),
+								frappe.db.get_value('BOM',item_sub_bom,'diamond_weight'),
+								(frappe.db.get_value("BOM", row.get("bom"), "diamond_weight") or 0)+ (frappe.db.get_value("BOM", item_sub_bom, "diamond_weight") or 0),
+								row.get('diamond_quality', ''),
+								'DIMOND + COLOURSTONE' if(diamond and gemstone) else 'DIAMOND',
+								'0',
+								'0',
+								'STUDDED'
+								
+							]
+							rows_data.append(row_data) 
+						else:
+							metal_touch = row.get('metal_touch', '')
+							metal_touch = metal_touch.replace('KT', '').replace('kt', '').strip()
+							gemstone = frappe.db.get_value('BOM',row.get('bom'),'total_gemstone_pcs')
+							diamond = frappe.db.get_value('BOM',row.get('bom'),'total_diamond_pcs')
+							order_date = frappe.utils.formatdate(order_form_doc.order_date, "dd.MM.yyyy")
+							# product_size =  frappe.db.get_value("Item",row.get('design_id'),'master_bom')
+							# size =  frappe.db.get_value('BOM',product_size,'product_size')
+							product_size = frappe.db.get_value(
+									"Item Variant Attribute",
+									{
+										"parent": row.get("design_id"),
+										"attribute": "Product Size",
+									},
+									['attribute_value']
+								)
+							product_size_item = None
 
-						set_item =  frappe.db.get_all("Set Item Table",filters={'parent': row.get('design_id')},fields=['item_code'])
-						item_sub = None
-						if set_item:
-							item_sub =  frappe.db.get_value("Item",set_item[0].get('item_code'),'item_subcategory')
-						child_1 =  frappe.db.get_all("Customer Category Detail",
-									filters = {
-										'parent':order_form_doc.customer_code,
-										'gk_category':row.get('category')
-									},fields=['customer_category'])
-						child_2 = []
-						# if item_sub:
-						# 	child_2 =  frappe.db.get_all("Customer Category Detail",
-						# 				filters = {
-						# 					'parent':order_form_doc.customer_code,
-						# 					'gk_sub_category':item_sub
-						# 				},fields=['customer_category'])
-						finding =  frappe.get_all("BOM Finding Detail",filters={'parent':row.get('bom')},fields=['finding_type'])
-						finding_code = []
-						if finding:
-							for fnd in finding:
-								fnd_code = frappe.db.get_value("Customer Finding Detail",
-										{'parent':order_form_doc.customer_code,'gk_finding_sub_category':fnd.get('finding_type')},['code_finding'])
-								if fnd_code:
-									finding_code.append(fnd_code)
-						row_data = [
-							'-',
-							'-',
-							'-',
-							row.get('design_id',''),
-							'-',
-							row.get('collection_name', '') ,
-							'-',
-							'STUDDED HIGH VALUE',
-							row.get('category', ''),
-							'GURU',
-							'-',
-							'GO' if row.get('metal_type') == 'Gold' else '',
-							metal_touch,
-							product_size_item[0].get('code')if product_size_item else '',
-							", ".join(finding_code) if finding_code else '',
-							'N/A',
-							'Round' if row.get('category') in ['Bangles', 'Ring'] else 'Oval' if row.get('category') == 'Bracelet' else 'N/A',
-							row.get('uomset_of',''),
-							row.get('gender',''),
-							'YEL' if row.get('metal_colour','') == 'Yellow' else 'ROS',
-							child_1[0].get('customer_category')if child_1 else '',
-							child_2[0].get('customer_category') if child_2 else '', 
-							'-', 
-							'-', 
-							'-',
-							'-', 
-							'-',
-							'-',
-							'-',
-							'-',
-							'-',
-							'-',
-							'-',
-							'-', 
-							frappe.db.get_value('BOM',row.get('bom'),'metal_and_finding_weight'),
-							'-',
-							'-',
-							frappe.db.get_value('BOM',row.get('bom'),'diamond_weight'),
-							row.get('diamond_quality', ''),
-							'DIMOND + COLOURSTONE' if(diamond and gemstone) else 'DIAMOND',
-							'0',
-							'0',
-							'STUDDED'
-							
-						]
-						rows_data.append(row_data)
-       
+							if product_size:
+								product_size_item = frappe.db.get_all(
+										"Titan Size Master",
+										filters={
+											"item_category": row.get("category"),
+											"customer": order_form_doc.customer_code,
+											"gk_product_size": ["like", f"%{product_size}%"]
+										},
+										fields=['code']
+									)
+
+							set_item =  frappe.db.get_all("Set Item Table",filters={'parent': row.get('design_id')},fields=['item_code'])
+							item_sub = None
+							if set_item:
+								item_sub =  frappe.db.get_value("Item",set_item[0].get('item_code'),'item_subcategory')
+							child_1 =  frappe.db.get_all("Customer Category Detail",
+										filters = {
+											'parent':order_form_doc.customer_code,
+											'gk_category':row.get('category')
+										},fields=['customer_category'])
+							child_2 = []
+							# if item_sub:
+							# 	child_2 =  frappe.db.get_all("Customer Category Detail",
+							# 				filters = {
+							# 					'parent':order_form_doc.customer_code,
+							# 					'gk_sub_category':item_sub
+							# 				},fields=['customer_category'])
+							finding =  frappe.get_all("BOM Finding Detail",filters={'parent':row.get('bom')},fields=['finding_type'])
+							finding_code = []
+							if finding:
+								for fnd in finding:
+									fnd_code = frappe.db.get_value("Customer Finding Detail",
+											{'parent':order_form_doc.customer_code,'gk_finding_sub_category':fnd.get('finding_type')},['code_finding'])
+									if fnd_code:
+										finding_code.append(fnd_code)
+							row_data = [
+								'-',
+								'-',
+								'-',
+								row.get('design_id',''),
+								'-',
+								row.get('collection_name', '') ,
+								'-',
+								'STUDDED HIGH VALUE',
+								row.get('category', ''),
+								'GURU',
+								'-',
+								'GO' if row.get('metal_type') == 'Gold' else '',
+								metal_touch,
+								product_size_item[0].get('code')if product_size_item else '',
+								", ".join(finding_code) if finding_code else '',
+								'N/A',
+								'Round' if row.get('category') in ['Bangles', 'Ring'] else 'Oval' if row.get('category') == 'Bracelet' else 'N/A',
+								row.get('uomset_of',''),
+								row.get('gender',''),
+								'YEL' if row.get('metal_colour','') == 'Yellow' else 'ROS',
+								child_1[0].get('customer_category')if child_1 else '',
+								child_2[0].get('customer_category') if child_2 else '', 
+								'-', 
+								'-', 
+								'-',
+								'-', 
+								'-',
+								'-',
+								'-',
+								'-',
+								'-',
+								'-',
+								'-',
+								'-', 
+								frappe.db.get_value('BOM',row.get('bom'),'metal_and_finding_weight'),
+								'-',
+								'-',
+								frappe.db.get_value('BOM',row.get('bom'),'diamond_weight'),
+								row.get('diamond_quality', ''),
+								'DIMOND + COLOURSTONE' if(diamond and gemstone) else 'DIAMOND',
+								'0',
+								'0',
+								'STUDDED'
+								
+							]
+							rows_data.append(row_data)
+		
 
 	# Write all rows to the Excel sheet at once
 	if rows_data:
@@ -3388,7 +3394,7 @@ def bom_format(order_form, doc):
 			for g in final_bom.get("gemstone_detail", []):
 
 				gemstone_type = frappe.db.get_value(
-					"customer_gemstone_detail",
+					"Customer Gemstone Detail",
 					{
 						"gk_gemstone_type": g.get("gemstone_type"),
 						"parent": order_form_doc.customer_code
