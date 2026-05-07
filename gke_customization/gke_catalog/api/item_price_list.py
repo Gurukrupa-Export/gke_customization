@@ -405,7 +405,8 @@ def get_finding_charges(customer, item_code, bom,metal_touch):
     setting_type = bom_values[2]
     diamond_pcs = bom_values[3]
     item_subcategory = bom_values[4]
-    metal_precision = frappe.db.get_value("Customer", customer, "custom_precision_for_metal")
+    # metal_precision = frappe.db.get_value("Customer", customer, "custom_precision_for_metal")
+	metal_precision = 3
 				
     bom_finding_details = frappe.db.get_all(
         'BOM Finding Detail',
