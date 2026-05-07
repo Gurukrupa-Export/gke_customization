@@ -103,7 +103,7 @@ class Order(Document):
             and (self.is_repairing == 0)
             and self.bom_type != "Duplicate BOM"
         ):
-            timesheet = frappe.get_doc("Timesheet", {"order": self.name}, "name")
+            timesheet = frappe.get_doc("Timesheet", {"order": self.name})
             timesheet.run_method("submit")
         if self.workflow_state == "Update BOM" and self.design_type == "Sketch Design":
             update_variant_attributes(self)
