@@ -831,7 +831,13 @@ def create_bom_timesheet(self):
             ts = frappe.get_doc(
                 {"doctype": "Timesheet", "employee": designer, "order": self.name}
             )
-            ts.append("time_logs", {})
+            ts.append(
+                "time_logs",
+                {
+                    "activity_type": "Create BOM",
+                    "from_time": now,
+                },
+            )
             ts = ts.insert(ignore_permissions=True).name
 
         last_activity = frappe.db.get_value(
@@ -840,18 +846,6 @@ def create_bom_timesheet(self):
 
         if last_activity in ["BOM QC", "BOM QC - On-Hold"]:
             close_last_bom_timelog(ts)
-
-        if self.new_bom:
-            frappe.get_doc(
-                {
-                    "doctype": "Timesheet Detail",
-                    "parent": ts,
-                    "parenttype": "Timesheet",
-                    "parentfield": "time_logs",
-                    "activity_type": "Create BOM",
-                    "from_time": now,
-                }
-            ).insert(ignore_permissions=True)
 
             frappe.msgprint("Timesheets Created for BOM each designer assignment")
 
@@ -888,17 +882,16 @@ def create_bom_timesheet(self):
 
         close_last_bom_timelog(ts, mark_completed=True)
 
-        frappe.get_doc(
+        timesheet = frappe.get_doc("Timesheet", ts)
+        timesheet.append(
+            "time_logs",
             {
-                "doctype": "Timesheet Detail",
-                "parent": ts,
-                "parenttype": "Timesheet",
-                "parentfield": "time_logs",
                 "activity_type": "BOM QC",
                 "from_time": now,
                 "custom_cad_order_id": self.name,
-            }
-        ).insert(ignore_permissions=True)
+            },
+        )
+        timesheet.save(ignore_permissions=True)
 
         frappe.msgprint("Timesheets created for BOM QC for each designer assignment")
 
