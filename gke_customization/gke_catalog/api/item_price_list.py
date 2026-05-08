@@ -406,8 +406,13 @@ def get_finding_charges(customer, item_code, bom,metal_touch):
     diamond_pcs = bom_values[3]
     item_subcategory = bom_values[4]
     # metal_precision = frappe.db.get_value("Customer", customer, "custom_precision_for_metal")
-    metal_precision = 3		
-    bom_finding_details = frappe.db.get_all('BOM Finding Detail',filters={'parent': bom},fields=['*'])
+    metal_precision = 3
+    
+    bom_finding_details = frappe.db.get_all(
+        'BOM Finding Detail',
+        filters={'parent': bom},
+        fields=['*']
+    )
     a = []
     finding_price_data = [] 
     finding_cache = {}
@@ -435,10 +440,7 @@ def get_finding_charges(customer, item_code, bom,metal_touch):
             fields=[
                 "rate_per_gm",
                 "rate_per_pc",
-                "supplier_fg_purchase_rate",
-                "wastage",
-                "subcontracting_rate",
-                "subcontracting_wastage"
+                "wastage"
             ],
             limit=1
         )
@@ -449,11 +451,9 @@ def get_finding_charges(customer, item_code, bom,metal_touch):
                 "Making Charge Price Finding Subcategory",
                 filters={ "parent": mc_name, "subcategory": finding_type },
                 fields=[
-                    "rate_per_gm", "rate_per_pc",
-                    "wastage",
-                    "supplier_fg_purchase_rate",
-                    "subcontracting_rate",
-                    "subcontracting_wastage"
+                    "rate_per_gm", 
+                    "rate_per_pc",
+                    "wastage"
                 ],
                 limit=1
             )
@@ -468,11 +468,11 @@ def get_finding_charges(customer, item_code, bom,metal_touch):
                         "subcategory",
                         "rate_per_gm",
                         "rate_per_pc",
-                        "supplier_fg_purchase_rate",
                         "wastage",
-                        "subcontracting_rate",
-                        "subcontracting_wastage","name",
-                        "to_diamond","from_diamond","rate_per_gm_threshold"
+                        "name",
+                        "to_diamond",
+                        "from_diamond",
+                        "rate_per_gm_threshold"
                     ]
                 )
                 find_data= find[0] if find else {}
