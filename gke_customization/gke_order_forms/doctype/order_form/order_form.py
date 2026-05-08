@@ -2793,7 +2793,7 @@ def get_design_creation(order_form, doc):
 
 				chain_weight = frappe.get_all("BOM Finding Detail", filters={
 					"metal_type": row.get('metal_type'),
-					"parent": final_bom
+					"parent": final_bom.name
 				}, fields=['quantity'])
 
 				# Fetch setting ONCE per order row
