@@ -80,7 +80,8 @@ def _serialize_items(items, status_filter=None):
             "metal_touch":bom_data.get("metal_touch") or "",
             "user": getattr(row, "user", "") or "",
             "status": row_status,
-            # "metal_touch": getattr(row, "metal_touch", "") or "",
+            "design_portal": row.design_portal or "", 
+            "customized_data": row.customized_data or "",
             "weight": getattr(row, "weight", 0) or 0,
         })
     return result
@@ -94,28 +95,58 @@ def _recalculate_totals(doc):
 
 # ─────────────────────────────────────────────
 #  ADD TO CART
-# ─────────────────────────────────────────────
-
+# ───────────────────────────────────────────── 
 # @frappe.whitelist(allow_guest=True)
-# def add_to_cart1(customer, item_code, quantity=1, rate=0, bom=None, user=None):
+# def add_to_cart1(customer, item_code, quantity=1, rate=0, bom=None, user=None,
+#                   diamond_quality=None, metal_touch=None):
 #     if not customer:
 #         frappe.throw(_("Customer required"))
 
 #     qty = int(quantity or 0)
-#     rate = float(rate or 0)
+#     calculated_rate = float(rate or 0)
+
+#     # ── BOM auto-fetch (latest default) ───────────────────
+#     if not bom:
+#         bom = frappe.db.get_value(
+#             "BOM",
+#             {"item": item_code, "is_active": 1, "bom_type": "Finish Goods", "is_default": 1},
+#             "name",
+#             order_by="creation desc"  
+#         )
+
+#     # ── diamond_quality auto-fetch ─────────────────────────
+#     if bom and not diamond_quality:
+#         diamond_quality = frappe.db.get_value("BOM", bom, "diamond_quality")
+
+#     # ── metal_touch auto-fetch ─────────────────────────────
+#     if bom and not metal_touch:
+#         metal_touch = frappe.db.get_value("BOM", bom, "metal_touch")
+
+#     # ── Price calculate ────────────────────────────────────
+#     if bom and (not rate or float(rate) == 0):
+#         try:
+#             price_data = get_item_price(
+#                 customer=customer,
+#                 item_code=item_code,
+#                 bom=bom,
+#                 diamond_quality=diamond_quality,
+#                 metal_touch=metal_touch
+#             )
+#             dia_amount    = price_data["dia_overall_summary"]["total_amount"]
+#             gem_amount    = price_data["gem_summary"]["total_gemstone_amount"]
+#             metal_total   = sum(v.get("gold_amount", 0) + v.get("making_charge", 0) for v in price_data["metal_price_data"].values())
+#             finding_total = sum(v.get("finding_amount", 0) + v.get("finding_making_charge", 0) for v in price_data["finding_price_data"].values())
+#             calculated_rate = round(dia_amount + gem_amount + metal_total + finding_total, 2)
+#         except Exception as e:
+#             frappe.log_error(f"Price calc failed for {item_code}: {str(e)}", "Cart Price Error")
+#             calculated_rate = float(rate or 0)
 
 #     current_user = user or frappe.session.user
-
-#     # Item image
-#     item_image = frappe.db.get_value("Item", item_code, "image") or ""
+#     item_image   = frappe.db.get_value("Item", item_code, "image") or ""
 
 #     active_cart = frappe.db.get_value(
 #         "Portal Order",
-#         {
-#             "customer": customer,
-#             # "status": ["!=", "Ordered"]
-#             "status": "Draft" 
-#         },
+#         {"customer": customer, "status": "Draft"},
 #         "name",
 #         order_by="creation asc"
 #     )
@@ -125,28 +156,31 @@ def _recalculate_totals(doc):
 #     else:
 #         doc = frappe.new_doc("Portal Order")
 #         doc.customer = customer
-#         doc.status = "Draft"
-#         doc.company = frappe.defaults.get_user_default("Company")
+#         doc.status   = "Draft"
+#         doc.company  = frappe.defaults.get_user_default("Company")
 #         doc.currency = "INR"
 
-#     # Item already ? → quantity increment
 #     item_found = False
 #     for row in doc.items:
 #         if row.item_code == item_code:
 #             row.quantity += qty
-#             row.user = current_user
-#             item_found = True
+#             row.rate      = calculated_rate
+#             row.amount    = row.quantity * calculated_rate  
+#             row.user      = current_user
+#             item_found    = True
 #             break
 
 #     if not item_found:
 #         doc.append("items", {
-#             "item_code": item_code,
-#             "quantity": qty,
-#             "rate": rate,
-#             "bom": bom or "",
-#             "image": item_image,
-#             "user": current_user,
-#             "status": "Draft",
+#             "item_code":   item_code,
+#             "quantity":    qty,
+#             "rate":        calculated_rate,
+#             "amount":      qty * calculated_rate, 
+#             "bom":         bom or "",
+#             "image":       item_image,
+#             "user":        current_user,
+#             "status":      "Draft",
+#             "metal_touch": metal_touch or "",
 #         })
 
 #     _recalculate_totals(doc)
@@ -154,42 +188,98 @@ def _recalculate_totals(doc):
 #     frappe.db.commit()
 
 #     return {
-#         "success": True,
-#         "order": doc.name,
+#         "success":        True,
+#         "order":          doc.name,
 #         "total_quantity": doc.total_quantity,
-#         "total_amount": doc.total_amount,
+#         "total_amount":   doc.total_amount,
+#         "item_rate":      calculated_rate,
 #     }
 
-
 @frappe.whitelist(allow_guest=True)
-def add_to_cart1(customer, item_code, quantity=1, rate=0, bom=None, user=None,
-                  diamond_quality=None, metal_touch=None):
+def add_to_cart1(
+    customer,
+    item_code,
+    quantity=1,
+    rate=0,
+    bom=None,
+    user=None,
+    diamond_quality=None,
+    metal_touch=None,
+    design_portal=None,
+    customized_data=None
+):
+
     if not customer:
         frappe.throw(_("Customer required"))
 
+
     qty = int(quantity or 0)
+
     calculated_rate = float(rate or 0)
 
-    # ── BOM auto-fetch (latest default) ───────────────────
+
+    # ─────────────────────────────────────────────
+    # BOM AUTO FETCH
+    # ─────────────────────────────────────────────
+
     if not bom:
+
         bom = frappe.db.get_value(
             "BOM",
-            {"item": item_code, "is_active": 1, "bom_type": "Finish Goods", "is_default": 1},
+            {
+                "item": item_code,
+                "is_active": 1,
+                "bom_type": "Finish Goods",
+                "is_default": 1
+            },
             "name",
-            order_by="creation desc"  
+            order_by="creation desc"
         )
 
-    # ── diamond_quality auto-fetch ─────────────────────────
+
+    # ─────────────────────────────────────────────
+    # DIAMOND QUALITY AUTO FETCH
+    # ─────────────────────────────────────────────
+
     if bom and not diamond_quality:
-        diamond_quality = frappe.db.get_value("BOM", bom, "diamond_quality")
 
-    # ── metal_touch auto-fetch ─────────────────────────────
+        diamond_quality = frappe.db.get_value(
+            "BOM",
+            bom,
+            "diamond_quality"
+        )
+
+
+    # ─────────────────────────────────────────────
+    # METAL TOUCH AUTO FETCH
+    # ─────────────────────────────────────────────
+
     if bom and not metal_touch:
-        metal_touch = frappe.db.get_value("BOM", bom, "metal_touch")
 
-    # ── Price calculate ────────────────────────────────────
+        metal_touch = frappe.db.get_value(
+            "BOM",
+            bom,
+            "metal_touch"
+        )
+
+
+    # ─────────────────────────────────────────────
+    # DESIGN DEFAULT
+    # ─────────────────────────────────────────────
+
+    if not design_portal:
+
+        design_portal = "As Per Design"
+
+
+    # ─────────────────────────────────────────────
+    # PRICE CALCULATION
+    # ─────────────────────────────────────────────
+
     if bom and (not rate or float(rate) == 0):
+
         try:
+
             price_data = get_item_price(
                 customer=customer,
                 item_code=item_code,
@@ -197,68 +287,206 @@ def add_to_cart1(customer, item_code, quantity=1, rate=0, bom=None, user=None,
                 diamond_quality=diamond_quality,
                 metal_touch=metal_touch
             )
-            dia_amount    = price_data["dia_overall_summary"]["total_amount"]
-            gem_amount    = price_data["gem_summary"]["total_gemstone_amount"]
-            metal_total   = sum(v.get("gold_amount", 0) + v.get("making_charge", 0) for v in price_data["metal_price_data"].values())
-            finding_total = sum(v.get("finding_amount", 0) + v.get("finding_making_charge", 0) for v in price_data["finding_price_data"].values())
-            calculated_rate = round(dia_amount + gem_amount + metal_total + finding_total, 2)
+
+            dia_amount = (
+                price_data["dia_overall_summary"]["total_amount"]
+            )
+
+            gem_amount = (
+                price_data["gem_summary"]["total_gemstone_amount"]
+            )
+
+            metal_total = sum(
+                v.get("gold_amount", 0)
+                + v.get("making_charge", 0)
+                for v in price_data["metal_price_data"].values()
+            )
+
+            finding_total = sum(
+                v.get("finding_amount", 0)
+                + v.get("finding_making_charge", 0)
+                for v in price_data["finding_price_data"].values()
+            )
+
+            calculated_rate = round(
+                dia_amount
+                + gem_amount
+                + metal_total
+                + finding_total,
+                2
+            )
+
         except Exception as e:
-            frappe.log_error(f"Price calc failed for {item_code}: {str(e)}", "Cart Price Error")
+
+            frappe.log_error(
+                f"Price calc failed for {item_code}: {str(e)}",
+                "Cart Price Error"
+            )
+
             calculated_rate = float(rate or 0)
 
+
     current_user = user or frappe.session.user
-    item_image   = frappe.db.get_value("Item", item_code, "image") or ""
+
+    item_image = (
+        frappe.db.get_value("Item", item_code, "image")
+        or ""
+    )
+
+
+    # ─────────────────────────────────────────────
+    # FIND ACTIVE CART
+    # ─────────────────────────────────────────────
 
     active_cart = frappe.db.get_value(
         "Portal Order",
-        {"customer": customer, "status": "Draft"},
+        {
+            "customer": customer,
+            "status": "Draft"
+        },
         "name",
         order_by="creation asc"
     )
 
+
+    # ─────────────────────────────────────────────
+    # EXISTING CART OR NEW CART
+    # ─────────────────────────────────────────────
+
     if active_cart:
-        doc = frappe.get_doc("Portal Order", active_cart)
+
+        doc = frappe.get_doc(
+            "Portal Order",
+            active_cart
+        )
+
     else:
+
         doc = frappe.new_doc("Portal Order")
+
         doc.customer = customer
-        doc.status   = "Draft"
-        doc.company  = frappe.defaults.get_user_default("Company")
+
+        doc.status = "Draft"
+
+        doc.company = frappe.defaults.get_user_default(
+            "Company"
+        )
+
         doc.currency = "INR"
 
+
+    # ─────────────────────────────────────────────
+    # UPDATE EXISTING ITEM
+    # ─────────────────────────────────────────────
+
     item_found = False
+
     for row in doc.items:
-        if row.item_code == item_code:
+
+        row_status = getattr(row, "status", "Draft") 
+        if ( row.item_code == item_code and row_status == "Draft" ):
             row.quantity += qty
-            row.rate      = calculated_rate
-            row.amount    = row.quantity * calculated_rate  
-            row.user      = current_user
-            item_found    = True
+
+            row.rate = calculated_rate
+
+            row.amount = (
+                row.quantity * calculated_rate
+            )
+
+            row.user = current_user
+
+            row.metal_touch = (
+                metal_touch
+                or row.metal_touch
+                or ""
+            )
+
+            row.diamond_quality = (
+                diamond_quality
+                or row.diamond_quality
+                or ""
+            )
+
+            row.design_portal = design_portal
+
+            row.customized_data = (
+                customized_data or ""
+            )
+
+            item_found = True
+
             break
 
+
+    # ─────────────────────────────────────────────
+    # ADD NEW ITEM
+    # ─────────────────────────────────────────────
+
     if not item_found:
+
         doc.append("items", {
-            "item_code":   item_code,
-            "quantity":    qty,
-            "rate":        calculated_rate,
-            "amount":      qty * calculated_rate, 
-            "bom":         bom or "",
-            "image":       item_image,
-            "user":        current_user,
-            "status":      "Draft",
+
+            "item_code": item_code,
+
+            "quantity": qty,
+
+            "rate": calculated_rate,
+
+            "amount": qty * calculated_rate,
+
+            "bom": bom or "",
+
+            "image": item_image,
+
+            "user": current_user,
+
+            "status": "Draft",
+
             "metal_touch": metal_touch or "",
+
+            "diamond_quality": diamond_quality or "",
+
+            "design_portal": design_portal,
+
+            "customized_data": customized_data or "",
+
         })
 
+
+    # ─────────────────────────────────────────────
+    # RECALCULATE TOTALS
+    # ─────────────────────────────────────────────
+
     _recalculate_totals(doc)
+
     doc.save(ignore_permissions=True)
+
     frappe.db.commit()
 
+
+    # ─────────────────────────────────────────────
+    # RESPONSE
+    # ─────────────────────────────────────────────
+
     return {
-        "success":        True,
-        "order":          doc.name,
+
+        "success": True,
+
+        "order": doc.name,
+
         "total_quantity": doc.total_quantity,
-        "total_amount":   doc.total_amount,
-        "item_rate":      calculated_rate,
+
+        "total_amount": doc.total_amount,
+
+        "item_rate": calculated_rate,
+
+        "design_portal": design_portal,
+
+        "customized_data": customized_data or "",
+
     }
+
+
 
 # ─────────────────────────────────────────────
 #  GET CART ORDERS  (Draft)
