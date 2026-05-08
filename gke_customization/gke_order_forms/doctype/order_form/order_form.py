@@ -388,109 +388,201 @@ def get_customer_orderType(customer_code):
     return order_type
 
 
+# @frappe.whitelist()
+# def get_customer_order_form(source_name, target_doc=None):
+#     if isinstance(target_doc, str):
+#         target_doc = json.loads(target_doc)
+#     target_doc = (
+#         frappe.new_doc("Order Form") if not target_doc else frappe.get_doc(target_doc)
+#     )
+
+#     if source_name:
+#         customer_order_form = frappe.db.sql(
+#             f"""SELECT * FROM `tabCustomer Order Form Detail`
+# 							WHERE parent = '{source_name}' AND docstatus = 1""",
+#             as_dict=1,
+#         )
+#     if not customer_order_form:
+#         frappe.msgprint(_("Please submit the Customer Order Form"))
+#         return target_doc
+
+#     for i in customer_order_form:
+#         item, order_id, item_bom = (
+#             i.get("design_code"),
+#             i.get("order_id"),
+#             i.get("design_code_bom"),
+#         )
+#         order_data = frappe.db.sql(
+#             f"SELECT * FROM `tabOrder` WHERE name = '{order_id}'", as_dict=1
+#         )
+
+#         customer_design_code = frappe.db.sql(
+#             f"SELECT * FROM `tabBOM` WHERE item = '{item}' AND name = '{i.get('design_code_bom')}'",
+#             as_dict=1,
+#         )
+#         item_serial = frappe.db.get_value("Serial No", {"item_code": item}, "name")
+
+#         data_source = order_data if order_data else customer_design_code
+
+#         product_code = ""
+#         if i.get("digit14_code"):
+#             product_code = i.get("digit14_code")
+#         elif i.get("digit18_code"):
+#             product_code = i.get("digit18_code")
+#         elif i.get("digit15_code"):
+#             product_code = i.get("digit15_code")
+#         elif i.get("sku_code"):
+#             product_code = i.get("sku_code")
+#         if data_source:
+#             for j in data_source:
+#                 target_doc.append(
+#                     "order_details",
+#                     {
+#                         "delivery_date": target_doc.delivery_date,
+#                         "design_by": j.get("design_by"),
+#                         "design_type": j.get("design_type"),
+#                         "qty": i.get("no_of_pcs"),
+#                         "design_id": j.get("item", item),
+#                         "bom": j.get("new_bom", i.get("design_code_bom")),
+#                         "tag_no": item_serial or j.get("tag_no"),
+#                         "diamond_quality": i.get("diamond_quality"),
+#                         "customer_order_form": i.get("parent"),
+#                         "category": i.get("category"),
+#                         "subcategory": i.get("subcategory"),
+#                         "setting_type": i.get("setting_type"),
+#                         "product_code": product_code if product_code else "",
+#                         "theme_code": i.get("theme_code"),
+#                         "metal_type": i.get("metal_type"),
+#                         "metal_touch": i.get("metal_touch"),
+#                         "metal_colour": i.get("metal_colour"),
+#                         "metal_target": i.get("metal_target"),
+#                         "diamond_target": i.get("diamond_target"),
+#                         "feature": i.get("feature"),
+#                         "product_size": i.get("product_size"),
+#                         "rhodium": i.get("rhodium"),
+#                         "enamal": j.get("enamal"),
+#                         "sub_setting_type1": j.get("sub_setting_type1"),
+#                         "sub_setting_type2": j.get("sub_setting_type2"),
+#                         "sizer_type": j.get("sizer_type"),
+#                         "stone_changeable": j.get("stone_changeable"),
+#                         "detachable": j.get("detachable"),
+#                         "lock_type": j.get("lock_type"),
+#                         "capganthan": j.get("capganthan"),
+#                         "charm": j.get("charm"),
+#                         "back_chain": j.get("back_chain"),
+#                         "back_chain_size": j.get("back_chain_size"),
+#                         "back_belt": j.get("back_belt"),
+#                         "back_belt_length": j.get("back_belt_length"),
+#                         "black_beed_line": j.get("black_beed_line"),
+#                         "back_side_size": j.get("back_side_size"),
+#                         "back_belt_patti": j.get("back_belt_patti"),
+#                         "two_in_one": j.get("two_in_one"),
+#                         "number_of_ant": j.get("number_of_ant"),
+#                         "distance_between_kadi_to_mugappu": j.get(
+#                             "distance_between_kadi_to_mugappu"
+#                         ),
+#                         "space_between_mugappu": j.get("space_between_mugappu"),
+#                         "chain_type": j.get("chain_type"),
+#                         "customer_chain": j.get("customer_chain"),
+#                         "nakshi_weght": j.get("nakshi_weght"),
+#                     },
+#                 )
+#         else:
+#             frappe.throw(f"{item} has master bom {item_bom}")
+#     return target_doc
+
+
+
 @frappe.whitelist()
 def get_customer_order_form(source_name, target_doc=None):
-    if isinstance(target_doc, str):
-        target_doc = json.loads(target_doc)
-    target_doc = (
-        frappe.new_doc("Order Form") if not target_doc else frappe.get_doc(target_doc)
-    )
+	if isinstance(target_doc, str):
+		target_doc = json.loads(target_doc)
+	target_doc = frappe.new_doc("Order Form") if not target_doc else frappe.get_doc(target_doc)
+ 
+	customer_code = ""
+	if source_name:
+		customer_code = frappe.db.get_value("Customer Order Form", source_name, "customer_code")
+		target_doc.customer_code = customer_code  # Set in Order Form (Parent)
 
-    if source_name:
-        customer_order_form = frappe.db.sql(
-            f"""SELECT * FROM `tabCustomer Order Form Detail`
-							WHERE parent = '{source_name}' AND docstatus = 1""",
-            as_dict=1,
-        )
-    if not customer_order_form:
-        frappe.msgprint(_("Please submit the Customer Order Form"))
-        return target_doc
+	if source_name:
+		customer_order_form = frappe.db.sql(f"""SELECT * FROM `tabCustomer Order Form Detail` 
+							WHERE parent = '{source_name}' AND docstatus = 1""", as_dict=1)
+	if not customer_order_form:
+		frappe.throw(_("Please submit the Customer Order Form"))
+		return target_doc
 
-    for i in customer_order_form:
-        item, order_id, item_bom = (
-            i.get("design_code"),
-            i.get("order_id"),
-            i.get("design_code_bom"),
-        )
-        order_data = frappe.db.sql(
-            f"SELECT * FROM `tabOrder` WHERE name = '{order_id}'", as_dict=1
-        )
-
-        customer_design_code = frappe.db.sql(
-            f"SELECT * FROM `tabBOM` WHERE item = '{item}' AND name = '{i.get('design_code_bom')}'",
-            as_dict=1,
-        )
-        item_serial = frappe.db.get_value("Serial No", {"item_code": item}, "name")
-
-        data_source = order_data if order_data else customer_design_code
-
-        product_code = ""
-        if i.get("digit14_code"):
-            product_code = i.get("digit14_code")
-        elif i.get("digit18_code"):
-            product_code = i.get("digit18_code")
-        elif i.get("digit15_code"):
-            product_code = i.get("digit15_code")
-        elif i.get("sku_code"):
-            product_code = i.get("sku_code")
-        if data_source:
-            for j in data_source:
-                target_doc.append(
-                    "order_details",
-                    {
-                        "delivery_date": target_doc.delivery_date,
-                        "design_by": j.get("design_by"),
-                        "design_type": j.get("design_type"),
-                        "qty": i.get("no_of_pcs"),
-                        "design_id": j.get("item", item),
-                        "bom": j.get("new_bom", i.get("design_code_bom")),
-                        "tag_no": item_serial or j.get("tag_no"),
-                        "diamond_quality": i.get("diamond_quality"),
-                        "customer_order_form": i.get("parent"),
-                        "category": i.get("category"),
-                        "subcategory": i.get("subcategory"),
-                        "setting_type": i.get("setting_type"),
-                        "product_code": product_code if product_code else "",
-                        "theme_code": i.get("theme_code"),
-                        "metal_type": i.get("metal_type"),
-                        "metal_touch": i.get("metal_touch"),
-                        "metal_colour": i.get("metal_colour"),
-                        "metal_target": i.get("metal_target"),
-                        "diamond_target": i.get("diamond_target"),
-                        "feature": i.get("feature"),
-                        "product_size": i.get("product_size"),
-                        "rhodium": i.get("rhodium"),
-                        "enamal": j.get("enamal"),
-                        "sub_setting_type1": j.get("sub_setting_type1"),
-                        "sub_setting_type2": j.get("sub_setting_type2"),
-                        "sizer_type": j.get("sizer_type"),
-                        "stone_changeable": j.get("stone_changeable"),
-                        "detachable": j.get("detachable"),
-                        "lock_type": j.get("lock_type"),
-                        "capganthan": j.get("capganthan"),
-                        "charm": j.get("charm"),
-                        "back_chain": j.get("back_chain"),
-                        "back_chain_size": j.get("back_chain_size"),
-                        "back_belt": j.get("back_belt"),
-                        "back_belt_length": j.get("back_belt_length"),
-                        "black_beed_line": j.get("black_beed_line"),
-                        "back_side_size": j.get("back_side_size"),
-                        "back_belt_patti": j.get("back_belt_patti"),
-                        "two_in_one": j.get("two_in_one"),
-                        "number_of_ant": j.get("number_of_ant"),
-                        "distance_between_kadi_to_mugappu": j.get(
-                            "distance_between_kadi_to_mugappu"
-                        ),
-                        "space_between_mugappu": j.get("space_between_mugappu"),
-                        "chain_type": j.get("chain_type"),
-                        "customer_chain": j.get("customer_chain"),
-                        "nakshi_weght": j.get("nakshi_weght"),
-                    },
-                )
-        else:
-            frappe.throw(f"{item} has master bom {item_bom}")
-    return target_doc
-
+	for i in customer_order_form:
+		item, order_id, item_bom = i.get("design_code"), i.get("order_id"), i.get("design_code_bom")
+		order_data = frappe.db.sql(f"SELECT * FROM `tabOrder` WHERE name = '{order_id}'", as_dict=1)
+		customer_design_code = frappe.db.sql(f"SELECT * FROM `tabBOM` WHERE item = '{item}' AND name = '{i.get('design_code_bom')}'", as_dict=1)
+		item_serial = frappe.db.get_value("Serial No", {'item_code': item}, 'name')
+		
+		data_source = order_data if order_data else customer_design_code
+		
+		product_code = ''
+		# frappe.throw(f"111{item} {i.get('design_code_bom')} {customer_design_code}")
+		if i.get("digit14_code"):
+			product_code = i.get("digit14_code")
+		elif i.get("digit18_code"):
+			product_code = i.get("digit18_code")
+		elif i.get("digit15_code"):
+			product_code = i.get("digit15_code")
+		elif i.get("sku_code"):
+			product_code = i.get("sku_code")
+		# frappe.throw(f"{data_source}")
+		if data_source:
+			for j in data_source:
+				target_doc.append("order_details", {
+					"delivery_date": target_doc.delivery_date,
+					"design_by": "Our Design",
+					"design_type": "As Per Design Type",
+					"qty": i.get('no_of_pcs'),
+					"design_id": j.get("item", item),
+					"bom": j.get("new_bom", i.get('design_code_bom')),
+					"tag_no": item_serial or j.get('tag_no'),
+					"diamond_quality": i.get("diamond_quality"),
+					"customer_order_form": i.get("parent"),
+					"category": i.get("category"),
+					"subcategory": i.get("subcategory"),
+					"setting_type": i.get("setting_type"),
+					"product_code": product_code if product_code else '',
+					"theme_code": i.get("theme_code"),
+					"metal_type": i.get("metal_type"),
+					"metal_touch": i.get("metal_touch"),
+					"metal_colour": i.get("metal_colour"),
+					"metal_target": i.get("metal_target"),
+					"diamond_target": i.get("diamond_target"),
+					"feature": i.get("feature"),
+					"product_size": i.get("product_size"),
+					"rhodium": i.get("rhodium"),
+					"enamal": j.get("enamal"),
+					"sub_setting_type1": j.get("sub_setting_type1"),
+					"sub_setting_type2": j.get("sub_setting_type2"),
+					"sizer_type": j.get("sizer_type"),
+					"stone_changeable": j.get("stone_changeable"),
+					"detachable": j.get("detachable"),
+					"lock_type": j.get("lock_type"),
+					"capganthan": j.get("capganthan"),
+					"charm": j.get("charm"),
+					"back_chain": j.get("back_chain"),
+					"back_chain_size": j.get("back_chain_size"),
+					"back_belt": j.get("back_belt"),
+					"back_belt_length": j.get("back_belt_length"),
+					"black_beed_line": j.get("black_beed_line"),
+					"back_side_size": j.get("back_side_size"),
+					"back_belt_patti": j.get("back_belt_patti"),
+					"two_in_one": j.get("two_in_one"),
+					"number_of_ant": j.get("number_of_ant"),
+					"distance_between_kadi_to_mugappu": j.get("distance_between_kadi_to_mugappu"),
+					"space_between_mugappu": j.get("space_between_mugappu"),
+					"chain_type": j.get("chain_type"),
+					"customer_chain": j.get("customer_chain"),
+					"nakshi_weght": j.get("nakshi_weght"),
+					"diamond_type":"Natural"
+				})
+		else: 
+			frappe.throw(f"{item} has master bom {item_bom}")
+	return target_doc
 
 def validate_item_variant(self):
     for i in self.order_details:
