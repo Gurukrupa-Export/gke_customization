@@ -14,7 +14,9 @@
   "amount",
   "column_break_hlm1",
   "user",
-  "status"
+  "status",
+  "design_portal",
+  "customized_data"
  ],
  "fields": [
   {
@@ -80,15 +82,26 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "\nDraft\nOrdered\nCancelled"
+   "options": "\nDraft\nOrdered\nCancel Order\nCancelled"
+  },
+  {
+   "fieldname": "design_portal",
+   "fieldtype": "Select",
+   "label": "Design ",
+   "options": "\nAs Per Design\nAs Per Customized"
+  },
+  {
+   "fieldname": "customized_data",
+   "fieldtype": "Small Text",
+   "label": "Customized data"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-02 10:15:54.557951",
- "modified_by": "shubham_k@gkexport.com",
+ "modified": "2026-05-07 16:29:18.068946",
+ "modified_by": "mansi_g@gkexport.com",
  "module": "GKE Catalog",
  "name": "Portal Order Item",
  "owner": "shubham_k@gkexport.com",
