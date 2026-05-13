@@ -169,6 +169,7 @@
 "total_metal_weight",
 "column_break_2n5j",
 "casting_pcs",
+"rpt_capture_wt",
 "bom_finding_detail_section",
 "finding_detail",
 "section_break_xkjh",
@@ -223,7 +224,9 @@
 "column_break_wodq",
 "rpt_file",
 "column_break_zgjt",
-"cad_image"
+"cad_image",
+"column_break_jlsm",
+"rpt_numbering_images"
 ],
 "fields": [
 {
@@ -879,7 +882,6 @@
 },
 {
 "depends_on": "eval:((doc.design_type==\"New Design\")||(doc.design_type==\"Fusion\")||(doc.design_type==\"Similar\"))",
-"fetch_from": "cad_order_form_detail.design_image_1",
 "fieldname": "design_image_1",
 "fieldtype": "Attach Image",
 "label": "Design Image 1",
@@ -890,7 +892,6 @@
 "fieldtype": "Column Break"
 },
 {
-"fetch_from": "cad_order_form_detail.design_image2",
 "fieldname": "design_image_2",
 "fieldtype": "Attach Image",
 "label": "Design Image 2",
@@ -1103,7 +1104,6 @@
 "fieldtype": "Column Break"
 },
 {
-"fetch_from": "cad_order_form_detail.design_image_3",
 "fieldname": "design_image_3",
 "fieldtype": "Attach Image",
 "label": "Design Image 3",
@@ -1114,7 +1114,6 @@
 "fieldtype": "Column Break"
 },
 {
-"fetch_from": "cad_order_form_detail.design_image_4",
 "fieldname": "design_image_4",
 "fieldtype": "Attach Image",
 "label": "Design Image 4",
@@ -1125,7 +1124,6 @@
 "fieldtype": "Column Break"
 },
 {
-"fetch_from": "cad_order_form_detail.design_image_5",
 "fieldname": "design_image_5",
 "fieldtype": "Attach Image",
 "label": "Design Image 5",
@@ -1716,13 +1714,30 @@
 {
 "fieldname": "jewelex_design_id",
 "fieldtype": "Data",
-"label": "Jewelex Design ID"
+"label": "Jewelex Design ID",
+"read_only": 1
 },
 {
   "fieldname": "design_complexity",
   "fieldtype": "Select",
   "label": "Design Complexity",
   "options": "\nLow\nMedium\nHigh"
+},
+{
+"depends_on": "eval:doc.bom_or_cad=='CAD'",
+"fieldname": "rpt_capture_wt",
+"fieldtype": "Float",
+"label": "RPT Capture WT"
+},
+{
+"depends_on": "eval:doc.bom_or_cad=='CAD'",
+"fieldname": "rpt_numbering_images",
+"fieldtype": "Attach Image",
+"label": "RPT Numbering Images"
+},
+{
+"fieldname": "column_break_jlsm",
+"fieldtype": "Column Break"
 }
 ],
 "index_web_pages_for_search": 1,

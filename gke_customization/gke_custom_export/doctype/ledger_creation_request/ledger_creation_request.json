@@ -118,7 +118,7 @@
    "fieldname": "report_type",
    "fieldtype": "Select",
    "label": "Report Type",
-   "options": "Balance Sheet\nProfit And Loss",
+   "options": "Balance Sheet\nProfit and Loss",
    "read_only": 1,
    "reqd": 1
   },

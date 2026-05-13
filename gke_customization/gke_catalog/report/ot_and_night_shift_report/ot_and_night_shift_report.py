@@ -13,6 +13,7 @@ def get_columns():
     return [
         {"label": "Date", "fieldname": "date", "fieldtype": "Date", "width": 110},
         {"label": "Unit", "fieldname": "unit", "fieldtype": "Data", "width": 80},
+        {"label": "Department Head", "fieldname": "department_head", "fieldtype": "Data", "width": 200},
         {"label": "Department", "fieldname": "department", "fieldtype": "Data", "width": 220},
         {"label": "Shift End", "fieldname": "shift_end_time", "fieldtype": "Time", "width": 100},
         {"label": "OT Hours", "fieldname": "formatted_ot_hours", "fieldtype": "Data", "width": 125},
@@ -31,6 +32,7 @@ def get_data(filters):
         SELECT
             emp.manufacturer AS unit,
             otr.department AS department,
+            otr.department_head_name AS department_head,
             sf.end_time AS shift_end_time,
             otrd.reason_for_ot AS remark,
             otrd.ot_hours AS ot_hours,
