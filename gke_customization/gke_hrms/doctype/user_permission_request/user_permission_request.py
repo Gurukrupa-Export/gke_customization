@@ -86,17 +86,23 @@ def get_task_data(task_id):
     # last_name = onboarding.employee_name.split()[-1]
     
     employee = frappe.get_all(
-    'Employee',
-    filters={'job_applicant': onboarding.job_applicant},
-    fields=['name','first_name','last_name','employee_name']
-    # limit=1
-)       
+        'Employee',
+        filters={'job_applicant': onboarding.job_applicant},
+        fields=['name','first_name','last_name','middle_name','employee_name']
+        # limit=1
+    )       
     # frappe.throw(f"{employee}")
     if not employee:
         frappe.throw("No Employee found for this Job Applicant.")
     employee_id = employee[0].name
     first_name=employee[0].first_name
-    last_name=employee[0].last_name
+    
+    last_name=''
+    if employee[0].last_name:
+        last_name=employee[0].last_name
+    else:
+        last_name=employee[0].middle_name if employee[0].middle_name else ''
+
     employee_name=employee[0].employee_name
     username = f"{first_name.lower()}_{last_name[0].lower()}@gkexport.com"
     employee_doc = frappe.get_doc('Employee', employee_id)
