@@ -500,6 +500,34 @@ frappe.ui.form.on('Order Form', {
 				});
 			}, __("Get File"))
 		}
+
+	if(frm.doc.docstatus == '1' && frm.doc.customer_name === "Reliance Retail Limited"){
+			frm.add_custom_button(__("Get Cost Sheet"), function(){
+				frappe.call({
+				method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.get_cost_sheet',
+				args: {
+					order_form: frm.doc.name,
+					doc: frm.doc
+				},
+				callback: function(response) {
+					if (response.message) {
+					
+					frm.set_value('variant_format_file' ,response.message)
+					frm.save('Update');
+		
+					const a = document.createElement('a');
+					a.href = response.message; 
+					
+					let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+					let filename = `${formatted_date}_Variant_Format.xlsx`;
+					a.download = filename;
+					// console.log(filename);
+					a.click();
+					}
+				}
+				});
+			}, __("Get File"))
+		}
 	},
 	order_type(frm){
 		if(frm.doc.order_type=='Purchase'){
