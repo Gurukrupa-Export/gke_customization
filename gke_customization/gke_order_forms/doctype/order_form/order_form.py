@@ -2554,6 +2554,296 @@ def get_variant_format(order_form, doc):
 	return file_doc.file_url
 
 
+
+
+
+@frappe.whitelist()
+def get_cost_sheet(order_form, doc): 
+	import io
+	from openpyxl import Workbook
+	from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+	order_form_doc = frappe.get_doc('Order Form', order_form)
+	doc = json.loads(doc)
+
+	order_date_str = getdate(order_form_doc.order_date).strftime("%Y-%m-%d")
+	file_name = f"cost_sheet{order_date_str}.xlsx"
+
+	workbook = openpyxl.Workbook()
+	sheet = workbook.active
+	sheet.title = 'Cost Sheet'
+
+	rows_data = []
+
+	if 'Reliance Retail Limited' in order_form_doc.customer_name:
+		headers = [
+			"Sr no.","Design Image","DESIGNS","Vendor Design Code","Vendor Name","VENDOR CODE(As per Axepta)",
+			"Metal (Gold/Silver/Platinum)","Purity","Metal Color(White/Geru/Rose Gold/Black)",
+			"Product Category(Bangle/SET/MS/FingerRing)","Sub-product(bali, hanging, studs,Gents or ladies ring etc)",
+			"Article code(BAN/BLT/SET/MSR)","RJ ref size code","Finding type(70 / 71 / 72 / 75)",
+			"UOM (1/B1/B2/B4/B6)","COMPLEXITY CODE","Manufacturing code",
+			"Production route(handmade /Casting/Machinemade)","gross wt","net wt","Color Stone pcs",
+			"Color Stone Wt","Diamond Pcs","Diamond Wt","Stone Name",
+			"Shape(Round / Baguette / Princess / Tapers / MQ / Rose / Pear)","Item number","Code",
+			"Group Size","Child Sieve Size","Stone Pcs","Avg Wt","Stone Wt",
+			"UOM(Cts/Gms)","Plating","SettingType(As per Master)","Plating Type(As per Master)",
+			"Stone Rate/Cts","Making Charge per/gram","Wastage %","Hallmarking","TAG","GK-remark"
+		]
+		sheet.append(headers)
+		blue_fill = PatternFill(start_color="D9EAF7", end_color="D9EAF7", fill_type="solid")
+		yellow_fill = PatternFill(start_color="FFF200", end_color="FFF200", fill_type="solid")
+		orange_fill = PatternFill(start_color="F4B183", end_color="F4B183", fill_type="solid")
+
+		header_font = Font(bold=True, color="000000")
+		center_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+		thin_border = Border(
+			left=Side(style='thin'),
+			right=Side(style='thin'),
+			top=Side(style='thin'),
+			bottom=Side(style='thin')
+		)
+
+		for cell in sheet[1]:
+			cell.font = header_font
+			cell.fill = blue_fill
+			cell.alignment = center_alignment
+			cell.border = thin_border
+
+		yellow_columns = [19, 20, 21, 22]
+		for col in yellow_columns:
+			sheet.cell(row=1, column=col).fill = yellow_fill
+
+		orange_columns = [26, 27, 28, 29, 30]
+		for col in orange_columns:
+			sheet.cell(row=1, column=col).fill = orange_fill
+
+		sheet.row_dimensions[1].height = 40
+
+		# Loop through order details
+		for row in doc.get('order_details', []):
+			metal_type = frappe.db.get_value('BOM', row.get('bom'), 'metal_type')
+			metal_touch = frappe.db.get_value('BOM', row.get('bom'), 'metal_touch')
+			metal_color = frappe.db.get_value('BOM', row.get('bom'), 'metal_colour')
+			item_category = frappe.db.get_value('BOM', row.get('bom'), 'item_category')
+			item_sub_category = frappe.db.get_value('BOM', row.get('bom'), 'item_subcategory')
+			setting_type = frappe.db.get_value('BOM', row.get('bom'), 'setting_type')
+			
+
+
+
+			category = frappe.db.get_all(
+				"Customer Category Detail",
+				{
+					'gk_category': item_category,
+					'parent': order_form_doc.customer_code
+				},
+				['customer_category','code_category']
+			)
+
+			sub_category = frappe.db.get_all(
+				"Customer Category Detail",
+				{
+					# 'gk_category': item_category,
+					"gk_sub_category": item_sub_category,
+					'parent': order_form_doc.customer_code
+				},
+				['customer_subcategory']
+			)
+
+			diamond_pcs = frappe.db.get_all(
+				"BOM Diamond Detail",
+				filters={"parent": row.get("bom")},
+				fields=["*"]
+			)
+			finding_code = []
+			finding_pcs = frappe.db.get_all(
+				"BOM Finding Detail",
+				filters={"parent": row.get("bom")},
+				fields=["*"]
+			)
+			if finding_pcs:
+				for i in finding_pcs:
+					sub_category = frappe.db.get_all(
+						"Customer Finding Detail",
+						{
+							"gk_finding_sub_category": i.get('finding_type'),
+							'parent': order_form_doc.customer_code
+						},
+						[ 'code_finding']
+					)
+					if sub_category:
+						finding_code.append(sub_category[0].get('code_finding'))
+						
+
+			first_diamond = diamond_pcs[0] if diamond_pcs else None
+			diamond_price = None
+			if first_diamond:
+				diamond_price =  frappe.db.get_value('Diamond Price List',
+							{
+								'customer' : order_form_doc.customer_code,
+								'sieve_size_range': first_diamond.get('sieve_size_range'),
+								},'rate')
+			metal_touch_value = (metal_touch or "").replace("KT", "").strip()
+			complexity_code = frappe.db.get_all(
+				"Complexity Category",
+				filters={
+					"parent": order_form_doc.customer_code,
+					"complexity_code": row.get("mfg_complexity_code"),
+					"mfg_code": ["like", f"%{metal_touch_value}%"]
+				},
+				fields=["mfg_code", "complexity_name"]
+			)
+			mking_chrg = None
+			if complexity_code:
+				making_charge = frappe.db.get_value("Making Charge Price",
+										{
+											'customer':order_form_doc.customer_code,
+											'setting_type': setting_type,
+											'metal_touch':metal_touch,
+											'complexity_name':complexity_code[0].get('complexity_name'),
+											'mfgcode': complexity_code[0].get('mfg_code')
+											},'name')
+				if making_charge:
+					mking_chrg = frappe.db.get_all("Making Charge Price Item Subcategory",
+							filters = {
+								'mfg_complexity_code':row.get('mfg_complexity_code'),
+								'parent': making_charge,
+								'subcategory':item_sub_category
+								},fields = ['wastage','rate_per_gm'])
+			uom_code = None
+			if row.get('uomset_of') == 'PAIR':
+				uom_code =  "2"
+			elif row.get('uomset_of') == 'NOS' and row.get('category') == "Bangles":
+				uom_code = "B1"	
+			else:
+				uom_code = None
+       		# MAIN ROW (FIRST DIAMOND DETAIL IN SAME ROW)
+			row_data = [
+				row.get('idx'),
+				"",
+				"GK",
+				row.get('design_id'),
+				"GURUKRUPA EXPORT PRIVATE LIMITED",
+				"60450001",
+				metal_type or "",
+				metal_touch or "",
+				metal_color or "",
+				category[0].get('customer_category') if category else "",
+				sub_category[0].get('customer_subcategory') if sub_category else "",
+				category[0].get('code_category') if category else "",
+				"",
+				", ".join(finding_code) if finding_code else '',
+				uom_code if uom_code else "",
+				row.get('mfg_complexity_code'),
+				complexity_code[0].get('mfg_code') if complexity_code else "",
+				complexity_code[0].get('complexity_name') if complexity_code else "",
+				frappe.db.get_value('BOM', row.get('bom'), 'gross_weight') or "",
+				frappe.db.get_value('BOM', row.get('bom'), 'metal_and_finding_weight') or "",
+				"",  # Color Stone pcs
+				"",  # Color Stone Wt
+				first_diamond.get("pcs") if first_diamond else "",
+				first_diamond.get("quantity") if first_diamond else "",
+				"Diamond" if first_diamond else "",
+				first_diamond.get("stone_shape") if first_diamond else "",
+				"",
+				"",
+				first_diamond.get("diamond_sieve_size") if first_diamond else "",
+				first_diamond.get("sieve_size_range") if first_diamond else "",
+				first_diamond.get("pcs") if first_diamond else "",
+				first_diamond.get("weight_per_pcs") if first_diamond else "",
+				first_diamond.get("quantity") if first_diamond else "",
+				"CTS" if first_diamond else "",
+				"",
+				setting_type if setting_type else '',
+				"",
+				diamond_price if diamond_price else '',
+				mking_chrg[0].get('rate_per_gm') if mking_chrg else "",
+				mking_chrg[0].get('wastage') if mking_chrg else "",
+				"",
+				row.get('serial_no' or ''),
+				"",
+			]
+
+			sheet.append(row_data)
+
+			# REMAINING DIAMOND DETAILS IN NEXT ROWS (INDEX 1 ONWARDS)
+			for d in diamond_pcs[1:]:
+				diamond_price =  frappe.db.get_value('Diamond Price List',
+							{
+								'customer' : order_form_doc.customer_code,
+								'sieve_size_range': d.get('sieve_size_range'),
+								},'rate')
+				diamond_row = [
+					"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+					"Diamond",
+					d.get("stone_shape") or "",
+					"",
+					"",
+					d.get('diamond_sieve_size') or "",
+					d.get('sieve_size_range') or "",
+					d.get('pcs') or "",
+					d.get('weight_per_pcs') or "",
+					d.get('quantity') or "",
+					"CTS",
+					"",
+					setting_type or "",
+					"",
+					diamond_price if diamond_price else "",
+					"",
+					"",
+					"",
+					"",
+					"",
+					"",
+				]
+				sheet.append(diamond_row)
+
+		# Add blank row at end
+		blank_row = [""] * len(headers)
+		sheet.append(blank_row)
+
+		# last_row = sheet.max_row
+		# for col in range(1, len(headers) + 1):
+		# 	cell = sheet.cell(row=last_row, column=col)
+		# 	cell.alignment = center_alignment
+		# 	cell.border = thin_border
+		# 	if col in orange_columns:
+		# 		cell.fill = orange_fill
+
+		# # Save workbook
+		# output = io.BytesIO()
+		# workbook.save(output)
+		# output.seek(0)
+
+		# filename = f"COST_Sheet_{order_form_doc.name}.xlsx"
+
+		# frappe.response["filename"] = filename
+		# frappe.response["filecontent"] = output.getvalue()
+		# frappe.response["type"] = "download"
+		
+    
+
+	
+		# Add blank row at end
+	blank_row = [""] * len(headers)
+	sheet.append(blank_row)
+
+	# Save the workbook to a BytesIO stream
+	output = BytesIO()
+	workbook.save(output)
+	output.seek(0)
+
+	file_doc = save_file(
+		file_name,
+		output.getvalue(),
+		order_form_doc.doctype,
+		order_form_doc.name,
+		is_private=0
+	)
+
+	return file_doc.file_url
+
+
 def set_tolerance(diamond_weight, customer):
     data_json = {}
     if diamond_weight:

@@ -27,7 +27,8 @@
   "customer_setting_detail",
   "customer_diamond_size_details",
   "section_break_rcnn",
-  "metal_ratio"
+  "metal_ratio",
+  "complexity_category"
  ],
  "fields": [
   {
@@ -162,6 +163,13 @@
    "fieldtype": "Table",
    "label": "Metal Ratio",
    "options": "Metal Ratio"
+  },
+  {
+   "depends_on": "eval: doc.customer_name==\"Reliance Retail Limited\"",
+   "fieldname": "complexity_category",
+   "fieldtype": "Table",
+   "label": "Complexity Category",
+   "options": "Complexity Category"
   }
  ],
  "index_web_pages_for_search": 1,
