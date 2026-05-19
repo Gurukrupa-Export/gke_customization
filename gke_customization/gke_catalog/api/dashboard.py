@@ -75,7 +75,6 @@ def get_created_issue_by_customer_and_supplier(customer):
         return {"success": False, "message": "Failed to fetch Item"}
     
 
-
 @frappe.whitelist() 
 def get_quotation_form(customer, id=None):    
     if isinstance(customer, str):
@@ -196,7 +195,6 @@ def get_quotation_form(customer, id=None):
         frappe.log_error(f"Error in get_quotation_form: {str(e)}")
         return {"success": False, "message": "Failed to fetch Quotation"}
     
-
 
 @frappe.whitelist(allow_guest=True)
 def get_sales_order(customer, id=None):
@@ -409,4 +407,3 @@ def get_sales_invoice(customer, id=None):
     except Exception as e:
         frappe.log_error(f"Error in get_sales_invoice: {str(e)}")
         return {"success": False, "message": "Failed to fetch Sales Invoice"}
-    
