@@ -1,0 +1,597 @@
+import frappe
+
+
+# @frappe.whitelist(allow_guest=True)
+# def download_bom_pdf(items):
+    # items - bom / customer
+    # import json
+    # from frappe.utils.pdf import get_pdf
+
+    # if isinstance(items, str):
+    #     items = json.loads(items)
+
+    # all_rows_html = ""
+    # first_doc = None
+    # first_customer_na = ""
+    # first_gstin = ""
+    # first_company_add1 = ""
+    # row_number = 1
+
+    # for item_code in items:
+    #     bom_name = frappe.db.get_value("BOM", {"item": item_code}, "name")
+    #     if not bom_name:
+    #         continue
+
+    #     doc = frappe.get_doc("BOM", bom_name)
+
+    #     if not first_doc:
+    #         first_doc = doc
+
+    #     # Customer
+    #     customer = frappe.db.get_value('Customer', doc.customer, 'name')
+    #     customer_na = frappe.db.get_value('Customer', doc.customer, 'customer_name') or ''
+    #     customer_link = frappe.db.get_value('Dynamic Link', {
+    #         'parenttype': 'Address', 'link_doctype': 'Customer', 'link_name': customer
+    #     }, 'parent')
+    #     gst = frappe.db.get_value('Address', customer_link, 'gstin') or ''
+
+    #     # Company Address
+    #     company = doc.company
+    #     addresses = frappe.db.get_all('Dynamic Link', {
+    #         'parenttype': 'Address', 'link_doctype': 'Company', 'link_name': company
+    #     }, ['parent'])
+    #     company_address_name = ''
+    #     for addr in addresses:
+    #         if frappe.db.get_value('Address', addr.parent, 'city') == 'Chennai':
+    #             company_address_name = addr.parent
+    #             break
+    #     company_add1 = frappe.db.get_value('Address', company_address_name, 'address_line1') or ''
+    #     gstin = frappe.db.get_value('Address', company_address_name, 'gstin') or ''
+
+    #     if row_number == 1:
+    #         first_customer_na = customer_na
+    #         first_gstin = gstin
+    #         first_company_add1 = company_add1
+
+    #     # Metal
+    #     metal_amt = making_amt = metal_rate = wastage_amount = 0
+    #     for g in frappe.get_all('BOM Metal Detail', filters={'parent': doc.name},
+    #             fields=['rate', 'wastage_amount', 'making_rate', 'amount', 'making_amount']):
+    #         metal_amt   += g.amount or 0
+    #         making_amt  += g.making_amount or 0
+    #         metal_rate   = g.rate or 0
+    #         wastage_amount = g.wastage_amount or 0
+
+    #     # Findings
+    #     chain = chain_w = chain_making = chain_amt = 0
+    #     find_making_amt = find_making = find_wastage = 0
+    #     for f in frappe.get_all('BOM Finding Detail', filters={'parent': doc.name},
+    #             fields=['wastage_amount', 'making_amount', 'amount', 'making_rate', 'quantity', 'finding_category']):
+    #         if f.finding_category == "Chains":
+    #             chain        = f.quantity or 0
+    #             chain_w     += f.wastage_amount or 0
+    #             chain_making += f.making_amount or 0
+    #             chain_amt   += f.amount or 0
+    #         else:
+    #             find_making_amt += f.amount or 0
+    #             find_making     += f.making_amount or 0
+    #             find_wastage    += f.wastage_amount or 0
+
+    #     metal_amount = metal_amt + find_making_amt
+    #     metal_making = making_amt + find_making
+    #     meta_wastage = wastage_amount + find_wastage
+
+    #     # Diamonds grouped
+    #     grouped = {}
+    #     for d in frappe.db.get_all('BOM Diamond Detail', {'parent': doc.name},
+    #             ['weight_in_gms', 'pcs', 'quantity', 'total_diamond_rate', 'stone_shape']):
+    #         key = '%.2f' % (d.total_diamond_rate or 0)
+    #         if key in grouped:
+    #             grouped[key]['pcs']           += d.pcs or 0
+    #             grouped[key]['quantity']      += d.quantity or 0
+    #             grouped[key]['weight_in_gms'] += d.weight_in_gms or 0
+    #         else:
+    #             grouped[key] = {
+    #                 'pcs': d.pcs or 0,
+    #                 'quantity': d.quantity or 0,
+    #                 'weight_in_gms': d.weight_in_gms or 0,
+    #                 'stone_shape': d.stone_shape,
+    #                 'rate': d.total_diamond_rate or 0
+    #             }
+
+    #     diamond_details = list(grouped.values())
+    #     max_rows = len(diamond_details) if diamond_details else 1
+
+    #     for i in range(max_rows):
+    #         diamond     = diamond_details[i] if i < len(diamond_details) else None
+    #         rounded_qty = round(diamond['quantity'], 2) if diamond else 0
+    #         diamond_amo = round((diamond['rate'] * rounded_qty), 2) if diamond else 0
+
+    #         bg = '#ffffff' if row_number % 2 == 0 else '#fafafa'
+
+    #         if i == 0:
+    #             row_total = round(
+    #                 metal_amount + diamond_amo + chain_making + chain_w +
+    #                 metal_making + meta_wastage +
+    #                 (doc.total_gemstone_amount or 0) +
+    #                 (doc.certification_amount or 0) +
+    #                 (doc.hallmarking_amount or 0) + chain_amt, 2)
+    #         else:
+    #             row_total = diamond_amo
+
+    #         def c(val, show=True):
+    #             """Format cell - empty string if not show"""
+    #             if not show:
+    #                 return ''
+    #             if isinstance(val, float):
+    #                 return '%.2f' % val
+    #             return str(val) if val else '0'
+
+    #         def money(val):
+    #             if not val:
+    #                 return '0.00'
+    #             return '{:,.2f}'.format(float(val))
+
+    #         all_rows_html += f"""
+    #         <tr style='background:{bg}; text-align:center;'>
+    #             <td>{row_number if i == 0 else ''}</td>
+    #             <td>{c(doc.item, i==0)}</td>
+    #             <td>{c(doc.item_category, i==0)}</td>
+    #             <td>{c(doc.diamond_quality, i==0)}</td>
+    #             <td>{c(diamond['pcs']) if diamond else ''}</td>
+    #             <td>{'%.2f' % rounded_qty if diamond else ''}</td>
+    #             <td>{money(diamond['rate']) if diamond else ''}</td>
+    #             <td>{money(diamond_amo) if diamond else ''}</td>
+    #             <td>{c(doc.gross_weight, i==0)}</td>
+    #             <td>{c(doc.gemstone_weight, i==0)}</td>
+    #             <td>{c(doc.other_weight, i==0)}</td>
+    #             <td>{c(doc.metal_and_finding_weight, i==0)}</td>
+    #             <td>{money(metal_amount) if i==0 else ''}</td>
+    #             <td>{c(doc.metal_purity, i==0)}</td>
+    #             <td>{c(chain, i==0)}</td>
+    #             <td>{money(chain_amt) if i==0 else ''}</td>
+    #             <td>{c(doc.metal_purity, i==0)}</td>
+    #             <td>{money(chain_making) if i==0 else ''}</td>
+    #             <td>{money(chain_w) if i==0 else ''}</td>
+    #             <td>{money(metal_making) if i==0 else ''}</td>
+    #             <td>{money(meta_wastage) if i==0 else ''}</td>
+    #             <td>{money(doc.total_gemstone_amount) if i==0 else ''}</td>
+    #             <td>{money(doc.certification_amount) if i==0 else ''}</td>
+    #             <td>{money(doc.hallmarking_amount) if i==0 else ''}</td>
+    #             <td style='font-weight:bold'>{money(row_total)}</td>
+    #         </tr>
+    #         """
+
+    #     row_number += 1
+
+    # # date_str = frappe.utils.formatdate(first_doc.transaction_date, 'dd-mm-yyyy') if first_doc else ''
+
+    # final_html = f"""
+    # <!DOCTYPE html>
+    # <html>
+    # <head>
+    #     <meta name="pdfkit-orientation" content="Landscape"/>
+    #     <style>
+    #         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    #         body {{ font-family: Arial, sans-serif; font-size: 8px; padding: 10px; }}
+
+    #         h3 {{ text-align: center; font-size: 14px; margin-bottom: 4px; }}
+    #         h6 {{ text-align: center; font-size: 9px; margin-bottom: 2px; font-weight: normal; }}
+    #         h5 {{ text-align: center; font-size: 11px; margin-bottom: 10px; text-decoration: underline; }}
+
+    #         .info-block {{ margin-bottom: 6px; }}
+    #         .info-block p {{ margin: 2px 0; font-size: 9px; font-weight: bold; }}
+    #         .date-ref {{ text-align: right; font-size: 9px; font-weight: bold; margin-bottom: 8px; }}
+
+    #         table {{
+    #             width: 100%;
+    #             border-collapse: collapse;
+    #             table-layout: fixed;
+    #         }}
+
+    #         /* Header */
+    #         thead tr {{
+    #             background: #2c3e50;
+    #             color: white;
+    #         }}
+    #         thead td {{
+    #             padding: 5px 3px;
+    #             text-align: center;
+    #             font-size: 7.5px;
+    #             font-weight: bold;
+    #             border: 1px solid #1a252f;
+    #             word-wrap: break-word;
+    #             line-height: 1.3;
+    #         }}
+
+    #         /* Body rows */
+    #         tbody tr {{
+    #             border-bottom: 1px solid #ddd;
+    #         }}
+    #         tbody td {{
+    #             padding: 4px 3px;
+    #             border: 1px solid #ddd;
+    #             text-align: center;
+    #             font-size: 7.5px;
+    #             word-wrap: break-word;
+    #             vertical-align: middle;
+    #         }}
+    #         tbody tr:hover {{ background: #eaf4fb !important; }}
+
+    #         /* Last column highlight */
+    #         tbody td:last-child {{
+    #             background: #fffde7;
+    #             font-weight: bold;
+    #             color: #c0392b;
+    #         }}
+
+    #         /* Column widths */
+    #         col.no    {{ width: 2.5%; }}
+    #         col.code  {{ width: 3.5%; }}
+    #         col.name  {{ width: 6%; }}
+    #         col.qwa   {{ width: 4%; }}
+    #         col.std   {{ width: 3.5%; }}
+    #         col.total {{ width: 5%; }}
+    #     </style>
+    # </head>
+    # <body>
+    #     <h3>{first_doc.company if first_doc else ''}</h3>
+    #     <h6>{first_company_add1} &nbsp;&nbsp; GST NO: {first_gstin}</h6>
+    #     <h5>DETAILS FOR STUDDED DIAMOND JEWELLERY</h5>
+
+    #     <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
+    #         <p style='font-size:9px; font-weight:bold;'>To: {first_customer_na}</p>
+    #         <div style='text-align:right; font-size:9px; font-weight:bold;'>
+              
+    #             <p>REF.INV.No: ___________</p>
+    #         </div>
+    #     </div>
+
+    #     <table>
+    #         <colgroup>
+    #             <col class='no'><col class='code'><col class='name'><col class='qwa'>
+    #             <col class='std'><col class='std'><col class='std'><col class='std'>
+    #             <col class='std'><col class='std'><col class='std'><col class='std'>
+    #             <col class='std'><col class='std'><col class='std'><col class='std'>
+    #             <col class='std'><col class='std'><col class='std'><col class='std'>
+    #             <col class='std'><col class='std'><col class='std'><col class='std'>
+    #             <col class='total'>
+    #         </colgroup>
+    #         <thead>
+    #             <tr>
+    #                 <td>NO</td>
+    #                 <td>Code</td>
+    #                 <td>Item Name</td>
+    #                 <td>Qwa</td>
+    #                 <td>Dia Pcs</td>
+    #                 <td>Dia Wt</td>
+    #                 <td>Dia Rate</td>
+    #                 <td>Dia Amt</td>
+    #                 <td>Gr.Wt</td>
+    #                 <td>St.Wt</td>
+    #                 <td>Oth.Wt</td>
+    #                 <td>Nt.Wt</td>
+    #                 <td>Gold Amt</td>
+    #                 <td>Purity</td>
+    #                 <td>Ch.Wt</td>
+    #                 <td>Ch.Amt</td>
+    #                 <td>Touch</td>
+    #                 <td>Ch.M/c</td>
+    #                 <td>Chain Wastage</td>
+    #                 <td>Jwl M/c</td>
+    #                 <td>Jwl Wastage</td>
+    #                 <td>St.Amt</td>
+    #                 <td>Cert</td>
+    #                 <td>HM</td>
+    #                 <td>Total Amt</td>
+    #             </tr>
+    #         </thead>
+    #         <tbody>
+    #             {all_rows_html}
+    #         </tbody>
+    #     </table>
+    # </body>
+    # </html>
+    # """
+
+    # pdf = get_pdf(final_html)
+    # frappe.local.response.filename = "BOMs.pdf"
+    # frappe.local.response.filecontent = pdf
+    # frappe.local.response.type = "download"
+
+
+import json
+import frappe
+from frappe.utils.pdf import get_pdf
+
+
+import json
+import os
+
+import frappe
+from frappe.utils import flt, cint
+from frappe.utils.pdf import get_pdf
+
+@frappe.whitelist(allow_guest=True)
+def download_bom_pdf(boms, customer, company, customer_folder_name=None):
+
+    if isinstance(boms, str):
+        boms = json.loads(boms)
+
+    data = []
+    grand_total_amount = 0
+
+    for name in boms:
+        bom_name = frappe.db.get_value("BOM", {"name": name}, "name")
+        if not bom_name:
+            continue
+
+        bom = frappe.get_doc("BOM", bom_name)
+
+        # Group Diamond Detail by Rate
+        diamond_group = {}
+        diamond_total = 0
+
+        for row in bom.diamond_detail:
+            rate = flt(row.total_diamond_rate)
+            diamond_total += flt(row.diamond_rate_for_specified_quantity or 0)
+
+            if rate not in diamond_group:
+                diamond_group[rate] = {"pcs": 0, "cts": 0, "amount": 0, "rate": rate}
+
+            diamond_group[rate]["pcs"] += cint(row.pcs or 0)
+            diamond_group[rate]["cts"] = round(diamond_group[rate]["cts"] + flt(row.quantity or 0), 2)
+            diamond_group[rate]["amount"] = round(diamond_group[rate]["amount"] + flt(row.diamond_rate_for_specified_quantity or 0), 3)
+
+        diamond_rows = list(diamond_group.values())
+
+        total_amount = (
+            diamond_total
+            + flt(bom.total_gemstone_amount)
+            + flt(bom.certification_amount)
+            + flt(bom.hallmarking_amount)
+        )
+
+        grand_total_amount += total_amount
+
+        data.append({
+    "customer": bom.customer,
+    "company": bom.company,
+    "item": bom.item,
+    "bom": bom.name,
+    "item_category": bom.item_category,
+    "diamond_quality": bom.diamond_quality,
+    "gross_weight": flt(getattr(bom, "gross_weight", 0)),
+    "gemstone_weight": flt(getattr(bom, "gemstone_weight", 0)),
+    "other_weight": flt(getattr(bom, "other_weight", 0)),
+    "net_weight": flt(getattr(bom, "metal_and_finding_weight", 0)),
+    "metal_purity": getattr(bom, "metal_purity", ""),
+    "chain_wt": flt(getattr(bom, "chain_wt", 0)),          
+    "chain_amt": flt(getattr(bom, "chain_amt", 0)),        
+    "chain_making": flt(getattr(bom, "chain_making", 0)),   
+    "chain_wastage": flt(getattr(bom, "chain_wastage", 0)), 
+    "jewellery_making": flt(getattr(bom, "jewellery_making", 0)),   
+    "jewellery_wastage": flt(getattr(bom, "jewellery_wastage", 0)),  
+    "stone_amt": flt(getattr(bom, "total_gemstone_amount", 0)),
+    "certification_amount": flt(getattr(bom, "certification_amount", 0)),
+    "hallmarking_amount": flt(getattr(bom, "hallmarking_amount", 0)),
+    "gold_amt": flt(getattr(bom, "gold_amt", 0)),           
+    "total_diamond_pcs": sum(d["pcs"] for d in diamond_rows),
+    "total_diamond_cts": sum(d["cts"] for d in diamond_rows),
+    "total_diamond_amt": sum(d["amount"] for d in diamond_rows),
+    "total_amount": total_amount,
+    "diamond_rows": diamond_rows,
+})
+
+    # Calculate all column totals 
+    total_diamond_pcs      = sum(row.get("total_diamond_pcs") or 0 for row in data)
+    total_diamond_cts      = sum(row.get("total_diamond_cts") or 0 for row in data)
+    total_diamond_amt      = sum(row.get("total_diamond_amt") or 0 for row in data)
+    total_gross_weight     = round(sum(row.get("gross_weight") or 0 for row in data), 3)
+    total_gemstone_weight  = round(sum(row.get("gemstone_weight") or 0 for row in data), 3)
+    total_other_weight     = round(sum(row.get("other_weight") or 0 for row in data), 3)
+    total_net_weight       = round(sum(row.get("net_weight") or 0 for row in data), 3)
+    total_gold_amt         = sum(row.get("gold_amt") or 0 for row in data)
+    total_chain_wt         = round(sum(row.get("chain_wt") or 0 for row in data), 3)
+    total_chain_amt        = sum(row.get("chain_amt") or 0 for row in data)
+    total_chain_making     = sum(row.get("chain_making") or 0 for row in data)
+    total_chain_wastage    = sum(row.get("chain_wastage") or 0 for row in data)
+    total_jewellery_making = sum(row.get("jewellery_making") or 0 for row in data)
+    total_jewellery_wastage= sum(row.get("jewellery_wastage") or 0 for row in data)
+    total_stone_amt        = sum(row.get("stone_amt") or 0 for row in data)
+    total_certification    = sum(row.get("certification_amount") or 0 for row in data)
+    total_hallmarking      = sum(row.get("hallmarking_amount") or 0 for row in data)
+
+    #  GST & Grand Total calculations
+    igst_rate   = 3.0
+    igst_amount = round(grand_total_amount * (igst_rate / 100), 2)
+    g_total_raw = grand_total_amount + igst_amount
+    g_total     = round(g_total_raw, 2)
+    round_off   = round(g_total - g_total_raw, 2)
+
+    # Read HTML Template
+    template_path = os.path.join(
+        frappe.get_app_path("gke_customization"),
+        "templates",
+        "wishlist_download.html"
+    )
+
+    with open(template_path, "r", encoding="utf-8") as f:
+        template = f.read()
+
+    # all total
+    final_html = frappe.render_template(template, {
+        "data": data,
+        "company": company,
+        "customer": customer,
+        "grand_total_amount": grand_total_amount,
+        "total_diamond_pcs": total_diamond_pcs,
+        "total_diamond_cts": total_diamond_cts,
+        "total_diamond_amt": total_diamond_amt,
+        "total_gross_weight": total_gross_weight,
+        "total_gemstone_weight": total_gemstone_weight,
+        "total_other_weight": total_other_weight,
+        "total_net_weight": total_net_weight,
+        "total_gold_amt": total_gold_amt,
+        "total_chain_wt": total_chain_wt,
+        "total_chain_amt": total_chain_amt,
+        "total_chain_making": total_chain_making,
+        "total_chain_wastage": total_chain_wastage,
+        "total_jewellery_making": total_jewellery_making,
+        "total_jewellery_wastage": total_jewellery_wastage,
+        "total_stone_amt": total_stone_amt,
+        "total_certification": total_certification,
+        "total_hallmarking": total_hallmarking,
+        "igst_rate": igst_rate,
+        "igst_amount": igst_amount,
+        "round_off": round_off,
+        "g_total": g_total,
+    })
+
+    pdf = get_pdf(final_html)
+
+    folder_name = customer_folder_name or "BOMs"
+    frappe.local.response.filename = f"{folder_name}.pdf"
+    frappe.local.response.filecontent = pdf
+    frappe.local.response.type = "download"
+    
+    
+    
+# @frappe.whitelist(allow_guest=True)
+# def download_bom_pdf(boms, customer, company, customer_folder_name=None):
+
+#     if isinstance(boms, str):
+#         boms = json.loads(boms)
+
+#     data = []
+
+#     for name in boms:
+
+#         bom_name = frappe.db.get_value(
+#             "BOM",
+#             {"name": name},
+#             "name"
+#         )
+
+#         if not bom_name:
+#             continue
+
+#         bom = frappe.get_doc("BOM", bom_name)
+
+#         # Group Diamond Detail by Rate
+#         diamond_group = {}
+        
+#         grand_total_amount = 0
+#         diamond_total = 0
+#         for row in bom.diamond_detail:
+            
+#             # Grand Total
+            
+#             rate = flt(row.total_diamond_rate)
+            
+#             diamond_total += flt(row.diamond_rate_for_specified_quantity or 0)
+
+#             total_amount = (
+#                 diamond_total
+#                 + flt(bom.total_gemstone_amount)
+#                 + flt(bom.certification_amount)
+#                 + flt(bom.hallmarking_amount)
+#             )
+            
+#             grand_total_amount += total_amount
+            
+#             if rate not in diamond_group:
+#                 diamond_group[rate] = {
+#                     "pcs": 0,
+#                     "cts": 0,
+#                     "amount": 0,
+#                     "rate": rate
+#                 }
+
+#             diamond_group[rate]["pcs"] += cint(row.pcs or 0)
+
+#             diamond_group[rate]["cts"] = round(
+#                 diamond_group[rate]["cts"] + flt(row.quantity or 0),
+#                 2
+#             )
+
+#             diamond_group[rate]["amount"] = round(
+#                 diamond_group[rate]["amount"] + flt(row.diamond_rate_for_specified_quantity or 0),
+#                 3
+#             )
+
+#         diamond_rows = list(diamond_group.values())
+        
+#         # frappe.throw(f"{diamond_rows}")
+
+#         data.append({
+#             "customer": bom.customer,
+#             "company": bom.company,
+
+#             "item": bom.item,
+#             "bom":bom.name,
+#             "item_category": bom.item_category,
+#             "diamond_quality": bom.diamond_quality,
+
+#             "dia_pcs": "",
+#             "dia_wt": "",
+#             "dia_rate": "",
+#             "dia_amt": "",
+
+#             "gross_weight": bom.gross_weight,
+#             "gemstone_weight": bom.gemstone_weight,
+#             "other_weight": bom.other_weight,
+#             "net_weight": bom.metal_and_finding_weight,
+
+#             "gold_amt": "",
+#             "metal_purity": bom.metal_purity,
+
+#             "chain_wt": "",
+#             "chain_amt": "",
+#             "touch": bom.metal_purity,
+#             "chain_making": "",
+#             "chain_wastage": "",
+
+#             "jewellery_making": "",
+#             "jewellery_wastage": "",
+
+#             "stone_amt": bom.total_gemstone_amount,
+#             "certification_amount": bom.certification_amount,
+#             "hallmarking_amount": bom.hallmarking_amount,
+
+#             "total_amount": total_amount,
+
+#             # grouped diamond rows
+#             "diamond_rows": diamond_rows
+#         })
+
+#     # Read HTML Template
+#     template_path = os.path.join(
+#         frappe.get_app_path("gke_customization"),
+#         "templates",
+#         "wishlist_download.html"
+#     )
+
+#     with open(template_path, "r", encoding="utf-8") as f:
+#         template = f.read()
+
+#     # frappe.throw(f"{grand_total_amount}")
+#     # Render HTML
+#     final_html = frappe.render_template(
+#         template,
+#         {
+#             "data": data,
+#             "company": company,
+#             "customer": customer,
+#             "grand_total_amount": grand_total_amount
+#         }
+#     )
+
+#     # Generate PDF
+#     pdf = get_pdf(final_html)
+
+#     folder_name = customer_folder_name or "BOMs"
+
+#     frappe.local.response.filename = f"{folder_name}.pdf"
+#     frappe.local.response.filecontent = pdf
+#     frappe.local.response.type = "download"
