@@ -11,12 +11,19 @@
   "uom",
   "quantity",
   "rate",
-  "amount",
   "column_break_hlm1",
   "user",
   "status",
-  "design_portal",
-  "customized_data"
+  "amount",
+  "section_break_mvzm",
+  "as_per_design",
+  "as_per_customization",
+  "job_work",
+  "customized_data",
+  "column_break_rph7",
+  "customer_gold",
+  "customer_diamond",
+  "customer_stone"
  ],
  "fields": [
   {
@@ -85,23 +92,61 @@
    "options": "\nDraft\nOrdered\nCancel Order\nCancelled"
   },
   {
-   "fieldname": "design_portal",
-   "fieldtype": "Select",
-   "label": "Design ",
-   "options": "\nAs Per Design\nAs Per Customized"
-  },
-  {
    "fieldname": "customized_data",
    "fieldtype": "Small Text",
    "label": "Customized data"
+  },
+  {
+   "fieldname": "section_break_mvzm",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "as_per_design",
+   "fieldtype": "Check",
+   "label": "As Per Design"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_gold",
+   "fieldtype": "Check",
+   "label": "Customer Gold"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_diamond",
+   "fieldtype": "Check",
+   "label": "Customer Diamond"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_stone",
+   "fieldtype": "Check",
+   "label": "Customer Stone"
+  },
+  {
+   "fieldname": "column_break_rph7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "as_per_customization",
+   "fieldtype": "Check",
+   "label": "Customized"
+  },
+  {
+   "default": "0",
+   "fieldname": "job_work",
+   "fieldtype": "Check",
+   "label": "Outwork"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-07 16:29:18.068946",
- "modified_by": "mansi_g@gkexport.com",
+ "modified": "2026-05-20 16:44:09.838578",
+ "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE Catalog",
  "name": "Portal Order Item",
  "owner": "shubham_k@gkexport.com",

@@ -1,0 +1,410 @@
+
+
+
+<h2 style="text-align: center">
+  {{frappe.db.get_value("Customer", customer, "customer_name")}}
+</h2>
+
+<hr />
+
+<div id="report_details">
+  <div class="col">
+    <div><b>Company :</b> {{ company }}</div>
+    <div><b>Customer :</b> {{ customer }}</div>
+  </div>
+
+  <div class="col">
+    <div><b>Date :</b> {{ frappe.utils.today() }}</div>
+    <div><b>Total Items :</b> {{ data|length }}</div>
+  </div>
+</div>
+
+<hr />
+
+<table
+  class="table table-bordered"
+  width="100%"
+
+  
+>
+  <thead>
+    <tr style="text-align: center; font-weight: bold">
+      <th class="col-no">No</th>
+      
+      <th class="col-item">Item Code</th>
+      <th class="col-item">Item Name</th>
+      <th class="col-sm">Quality</th>
+      <th class="col-sm">Dia Pcs</th>
+      <th class="col-sm">Dia Wt</th>
+      <th class="col-md">Rate</th>
+      <th class="col-md">Dia Amt</th>
+      <th class="col-sm">Gross Wt</th>
+      <th class="col-sm">Stone Wt</th>
+      <th class="col-sm">Other Wt</th>
+      <th class="col-sm">Net Wt</th>
+      <th class="col-md">Gold Amt</th>
+      <th class="col-sm">Purity</th>
+      <th class="col-sm">Chain Wt</th>
+      <th class="col-md">Chain Amt</th>
+      <th class="col-md">Chain M/C</th>
+      <th class="col-md">Chain Wastage</th>
+      <th class="col-md">Jewellery M/C</th>
+      <th class="col-md">Jewellery Wastage</th>
+      <th class="col-md">Stone Amt</th>
+      <th class="col-md">Certification</th>
+      <th class="col-md">Hallmarking</th>
+      <th class="col-md">Total Amt</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    
+    {% for row in data %} 
+      {% set outer_index = loop.index %} 
+    {% if row.diamond_rows %} {% for diamond in
+    row.diamond_rows %}
+   
+    <tr>
+      {% if loop.first %}
+
+      <!-- BOM Details -->
+      <td>{{ outer_index }}</td>
+     
+      <td>{{ row.item }}</td>
+      <td>{{ row.item_category }}</td>
+      <td>{{ row.diamond_quality }}</td>
+
+      {% else %}
+
+      <!-- Same BOM ki next diamond rate row -->
+      <td></td>
+     
+      <td></td>
+      <td></td>
+      <td></td>
+
+      {% endif %}
+
+      <!-- Diamond Columns -->
+      <td>{{ diamond.pcs }}</td>
+      <td>{{ "%.2f"|format(diamond.cts) }}</td>
+      <td>{{ "%.2f"|format(diamond.rate) }}</td>
+      <td>{{ frappe.utils.fmt_money(diamond.amount) }}</td>
+
+      {% if loop.first %}
+
+      <!-- Remaining BOM Columns only once -->
+
+      <td>{{ row.gross_weight }}</td>
+
+      <td>{{ row.gemstone_weight }}</td>
+
+      <td>{{ row.other_weight }}</td>
+
+      <td>{{ row.net_weight }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.gold_amt or 0) }}</td>
+
+      <td>{{ row.metal_purity }}</td>
+
+      <td>{{ row.chain_wt }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.chain_amt or 0) }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.chain_making or 0) }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.chain_wastage or 0) }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.jewellery_making or 0) }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.jewellery_wastage or 0) }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.stone_amt or 0) }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.certification_amount or 0) }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.hallmarking_amount or 0) }}</td>
+
+      <td>
+        <b> {{ frappe.utils.fmt_money(row.total_amount or 0) }} </b>
+      </td>
+
+      {% else %}
+
+      <!-- Empty cells to keep alignment -->
+
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+
+      {% endif %}
+    </tr>
+
+    {% endfor %} {% else %}
+
+    <tr>
+      <td>{{ outer_index}}</td>
+      
+      <td>{{ row.item }}</td>
+      <td>{{ row.item_category }}</td>
+      <td>{{ row.diamond_quality }}</td>
+
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+
+      <td>{{ row.gross_weight }}</td>
+
+      <td>{{ row.gemstone_weight }}</td>
+
+      <td>{{ row.other_weight }}</td>
+
+      <td>{{ row.net_weight }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.gold_amt or 0) }}</td>
+
+      <td>{{ row.metal_purity }}</td>
+
+      <td>{{ row.chain_wt }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.chain_amt or 0) }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.chain_making or 0) }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.chain_wastage or 0) }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.jewellery_making or 0) }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.jewellery_wastage or 0) }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.stone_amt or 0) }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.certification_amount or 0) }}</td>
+
+      <td>{{ frappe.utils.fmt_money(row.hallmarking_amount or 0) }}</td>
+
+      <td>
+        <b> {{ frappe.utils.fmt_money(row.total_amount or 0) }} </b>
+      </td>
+    </tr>
+
+    {% endif %} {% endfor %}
+    
+  </tbody>
+ <tfoot>
+  <tr style="font-weight:bold; background:#f2f2f2;">
+    <td colspan="4" style="text-align:right;">Total</td>
+    <td>{{ total_diamond_pcs }}</td>
+    <td>{{ "%.2f"|format(total_diamond_cts) }}</td>
+    <td></td>
+    <td>{{ frappe.utils.fmt_money(total_diamond_amt) }}</td>
+    <td>{{ "%.3f"|format(total_gross_weight) }}</td>
+    <td>{{ "%.3f"|format(total_gemstone_weight) }}</td>
+    <td>{{ "%.3f"|format(total_other_weight) }}</td>
+    <td>{{ "%.3f"|format(total_net_weight) }}</td>
+    <td>{{ frappe.utils.fmt_money(total_gold_amt) }}</td>
+    <td></td>
+    <td>{{ "%.3f"|format(total_chain_wt) }}</td>
+    <td>{{ frappe.utils.fmt_money(total_chain_amt) }}</td>
+    <td>{{ frappe.utils.fmt_money(total_chain_making) }}</td>
+    <td>{{ frappe.utils.fmt_money(total_chain_wastage) }}</td>
+    <td>{{ frappe.utils.fmt_money(total_jewellery_making) }}</td>
+    <td>{{ frappe.utils.fmt_money(total_jewellery_wastage) }}</td>
+    <td>{{ frappe.utils.fmt_money(total_stone_amt) }}</td>
+    <td>{{ frappe.utils.fmt_money(total_certification) }}</td>
+    <td>{{ frappe.utils.fmt_money(total_hallmarking) }}</td>
+    <td><b>{{ frappe.utils.fmt_money(grand_total_amount or 0) }}</b></td>
+  </tr>
+</tfoot>
+
+</table>
+
+<div style="display:flex; justify-content:flex-end; margin-top:8mm;">
+  <table style="width:110mm; border-collapse:collapse; font-size:8px;">
+
+    <tr>
+      <td style="padding:2px 6px; border:none;">Total D.pcs</td>
+      <td style="padding:2px 6px; border:none; text-align:right;">{{ total_diamond_pcs }}</td>
+      <td style="padding:2px 6px; border:none; text-align:right;">{{ "%.2f"|format(total_diamond_cts) }}</td>
+    </tr>
+
+    <tr>
+      <td style="padding:2px 6px; border:none;">Total C.St.Wt.</td>
+      <td style="padding:2px 6px; border:none; text-align:right;">{{ "%.3f"|format(total_gemstone_weight) }}</td>
+      <td style="padding:2px 6px; border:none; text-align:right;">{{ "%.3f"|format(total_other_weight) }}</td>
+    </tr>
+
+    <tr>
+      <td style="padding:2px 6px; border:none;">Total N.Wt.</td>
+      <td style="padding:2px 6px; border:none; text-align:right;">{{ "%.3f"|format(total_net_weight) }}</td>
+      <td style="padding:2px 6px; border:none; text-align:right;">{{ frappe.utils.fmt_money(total_gold_amt) }}</td>
+    </tr>
+
+    <tr>
+      <td style="padding:2px 6px; border:none;">Total Jewellery M/C</td>
+      <td style="padding:2px 6px; border:none; text-align:right;">{{ "%.3f"|format(total_net_weight) }}</td>
+      <td style="padding:2px 6px; border:none; text-align:right;">{{ frappe.utils.fmt_money(total_jewellery_making) }}</td>
+    </tr>
+
+    <tr>
+      <td style="padding:2px 6px; border:none;">Total Chain Wt.</td>
+      <td style="padding:2px 6px; border:none; text-align:right;">{{ "%.3f"|format(total_chain_wt) }}</td>
+      <td style="padding:2px 6px; border:none; text-align:right;">{{ "%.3f"|format(total_chain_wt) }}</td>
+    </tr>
+
+    <tr>
+      <td style="padding:2px 6px; border:none;">Total Chain M/C</td>
+      <td style="padding:2px 6px; border:none; text-align:right;">{{ "%.2f"|format(total_chain_making) }}</td>
+      <td style="padding:2px 6px; border:none; text-align:right;">{{ frappe.utils.fmt_money(total_chain_making) }}</td>
+    </tr>
+
+    <tr>
+      <td style="padding:2px 6px; border:none;">Hallmarking Charge</td>
+      <td style="padding:2px 6px; border:none;"></td>
+      <td style="padding:2px 6px; border:none; text-align:right;">{{ frappe.utils.fmt_money(total_hallmarking) }}</td>
+    </tr>
+
+    <tr>
+      <td style="padding:2px 6px; border:none;">Certificate Charge</td>
+      <td style="padding:2px 6px; border:none;"></td>
+      <td style="padding:2px 6px; border:none; text-align:right;">{{ frappe.utils.fmt_money(total_certification) }}</td>
+    </tr>
+
+    <!-- Total row -->
+    <tr style="font-weight:bold; border-top:1.5px solid #000;">
+      <td colspan="2" style="padding:3px 6px; text-align:right;">Total</td>
+      <td style="padding:3px 6px; border:1.5px solid #000; text-align:right;">
+        {{ frappe.utils.fmt_money(grand_total_amount or 0) }}
+      </td>
+    </tr>
+
+    <!-- IGST -->
+    <tr>
+      <td colspan="2" style="padding:2px 6px; border:none; text-align:right;">
+        IGST @ {{ igst_rate }}%
+      </td>
+      <td style="padding:2px 6px; border:none; text-align:right;">
+        {{ frappe.utils.fmt_money(igst_amount or 0) }}
+      </td>
+    </tr>
+
+    <!-- Round Off -->
+    <tr>
+      <td colspan="2" style="padding:2px 6px; border:none; text-align:right;">Round Off</td>
+      <td style="padding:2px 6px; border:none; text-align:right;">
+        {{ frappe.utils.fmt_money(round_off or 0) }}
+      </td>
+    </tr>
+
+    <!-- G. Total -->
+    <tr style="font-weight:bold; border-top:1.5px solid #000; border-bottom:1.5px solid #000;">
+      <td colspan="2" style="padding:3px 6px; text-align:right;">G. Total</td>
+      <td style="padding:3px 6px; border:1.5px solid #000; text-align:right;">
+        {{ frappe.utils.fmt_money(g_total or 0) }}
+      </td>
+    </tr>
+
+  </table>
+</div>
+
+<style>
+
+/* =============================================
+   PAGE SETUP - A1 Landscape for 25 columns
+   A1 = 841mm x 594mm, landscape = 841 wide
+   ============================================= */
+@page {
+    size: A3 landscape;
+    margin: 4mm;
+}
+
+html, body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    font-size: 7px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 7px;
+    min-width: unset; /* ✅ remove fixed min-width */
+}
+
+/* ✅ Recalculated column widths to fit A3 landscape ~410mm */
+.col-no   { width: 8mm; }
+.col-bom  { width: 22mm; }
+.col-item { width: 20mm; }
+.col-sm   { width: 14mm; }
+.col-md   { width: 18mm; }
+
+th {
+    background: #e9e9e9;
+    font-weight: 700;
+    font-size: 7px;
+    padding: 2px 1px !important;
+    word-break: break-word;
+    line-height: 1.2;
+}
+
+td {
+    font-size: 7px;
+    padding: 2px 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+td, th {
+    border: 1px solid #000;
+    text-align: center;
+    vertical-align: middle;
+}
+
+#report_details {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 6px;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.col {
+    flex: 1;
+}
+
+thead {
+    display: table-header-group;
+}
+
+tfoot {
+    display: table-footer-group;
+}
+
+tr {
+    page-break-inside: avoid;
+}
+
+.print-format {
+    margin-left: 4mm;
+    margin-right:4mm;
+}
+</style>

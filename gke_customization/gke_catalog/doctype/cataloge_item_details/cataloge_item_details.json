@@ -11,7 +11,15 @@
   "item_name",
   "trending",
   "wishlist",
-  "folder"
+  "folder",
+  "design_type_section",
+  "as_per_design",
+  "as_per_customized",
+  "job_work",
+  "customized_data",
+  "customer_gold",
+  "customer_diamond",
+  "customer_stone"
  ],
  "fields": [
   {
@@ -49,14 +57,60 @@
    "fieldname": "folder",
    "fieldtype": "Text",
    "label": "Folder"
+  },
+  {
+   "fieldname": "customized_data",
+   "fieldtype": "Text",
+   "label": "Customized data"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_diamond",
+   "fieldtype": "Check",
+   "label": "Customer Diamond"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_stone",
+   "fieldtype": "Check",
+   "label": "Customer Stone"
+  },
+  {
+   "fieldname": "design_type_section",
+   "fieldtype": "Section Break",
+   "label": "Design Type"
+  },
+  {
+   "default": "0",
+   "fieldname": "as_per_design",
+   "fieldtype": "Check",
+   "label": "As Per Design"
+  },
+  {
+   "default": "0",
+   "fieldname": "job_work",
+   "fieldtype": "Check",
+   "label": "Job Work"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_gold",
+   "fieldtype": "Check",
+   "label": "Customer Gold"
+  },
+  {
+   "default": "0",
+   "fieldname": "as_per_customized",
+   "fieldtype": "Check",
+   "label": "Customized"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-02-17 12:01:25.012721",
- "modified_by": "shubham_s@gkexport.com",
+ "modified": "2026-05-23 09:18:12.271782",
+ "modified_by": "shubham_si@gkexport.com",
  "module": "GKE Catalog",
  "name": "Cataloge Item Details",
  "owner": "shubham_si@gkexport.com",

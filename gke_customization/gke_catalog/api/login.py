@@ -201,6 +201,8 @@ def set_gold_value():
 
     return gold_value
 
+
+
 @frappe.whitelist(allow_guest=True)
 def verify_otp_using_customer_name(username, password, otp):
     otp_key = f"otp_{username}"
@@ -366,7 +368,6 @@ def verify_otp_using_customer_name(username, password, otp):
                 current_time = datetime.now()
                 total_hours = (current_time.hour + 5) + (current_time.minute + 30) / 60 + (current_time.second / 3600)
                 # frappe.throw(f"{login_after}, {   new_hour}, {login_before}")
-#
                 # if not(login_after <= total_hours <= login_before):
                 #     return {
                 #         "status": "failed",

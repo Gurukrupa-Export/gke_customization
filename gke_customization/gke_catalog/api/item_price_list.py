@@ -2,13 +2,14 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 from gke_customization.gke_catalog.api.login import set_gold_value
-
+from frappe.utils import getdate, add_days, nowdate, cint
 
 @frappe.whitelist()
-def get_item_price(customer=None,item_code=None, bom=None, diamond_quality=None,metal_touch=None):
+def get_item_price(customer=None,item_code=None, bom=None, diamond_quality=None,metal_touch=None,gold_rate_value=0,
+        is_cust_diam=0,is_cust_stone=0 , is_cust_gold=0, cust_gold_wt=0):
     
     dia_quality_summary = {}
-    dia_price_data = get_dia_price_list(customer, item_code, bom, diamond_quality)
+    dia_price_data = get_dia_price_list(customer, item_code, bom, diamond_quality, int(is_cust_diam))
     dia_total_cts = dia_total_gms = dia_total_amount = 0
     
     gem_summary = {}
@@ -16,10 +17,10 @@ def get_item_price(customer=None,item_code=None, bom=None, diamond_quality=None,
     gem_total_cts = gem_total_gms = gem_total_amount = 0
     
     making_summary = {}
-    making_price_data = get_making_charges(customer, item_code, bom, metal_touch)
+    making_price_data = get_making_charges(customer, item_code, float(gold_rate_value), bom, metal_touch, int(is_cust_gold), float(cust_gold_wt))
     
     finding_summary = {}
-    finding_price_data = get_finding_charges(customer, item_code, bom, metal_touch)
+    finding_price_data = get_finding_charges(customer, item_code, float(gold_rate_value), bom, metal_touch)
 
     for row in dia_price_data:
         quality = row["diamond_quality"]
@@ -83,6 +84,7 @@ def get_item_price(customer=None,item_code=None, bom=None, diamond_quality=None,
         finding_summary[metal_touch]["finding_making_charge"] += met.get("finding_making_amount", 0)
     
     
+    # return dia_price_data
     return {
         "dia_quality_summary": dia_quality_summary,
         "dia_overall_summary": {
@@ -94,9 +96,8 @@ def get_item_price(customer=None,item_code=None, bom=None, diamond_quality=None,
         "metal_price_data": making_summary,
         "finding_price_data": finding_summary
     }
-    # return dia_price_data
 
-def get_dia_price_list(customer,item_code, bom, diamond_quality):
+def get_dia_price_list(customer,item_code, bom, diamond_quality, is_cust):
     bom_dia_details = frappe.db.get_all(
         'BOM Diamond Detail',
         filters={'parent': bom},
@@ -137,7 +138,7 @@ def get_dia_price_list(customer,item_code, bom, diamond_quality):
         if price_list_type == 'Sieve Size Range':
             sieve_filter = {**common_filters, "sieve_size_range": d.sieve_size_range}
             latest = frappe.db.get_value("Diamond Price List", sieve_filter,
-                                        ["rate",
+                                        ["rate",'name','price_list_type',
                                         "outright_handling_charges_rate",
                                         "outright_handling_charges_in_percentage",
                                         "outwork_handling_charges_rate",
@@ -148,7 +149,7 @@ def get_dia_price_list(customer,item_code, bom, diamond_quality):
             rate_result =  frappe.db.sql(
                             f"""
                                 SELECT 
-                                    rate,
+                                    rate,name,price_list_type,
                                     outright_handling_charges_rate,
                                     outright_handling_charges_in_percentage,
                                     outwork_handling_charges_rate,
@@ -166,27 +167,41 @@ def get_dia_price_list(customer,item_code, bom, diamond_quality):
         elif price_list_type == 'Size (in mm)':
             
             latest = frappe.db.get_value("Diamond Price List", {**common_filters, "diamond_size_in_mm": d.diamond_sieve_size},
-                                        ["rate",
+                                        ["rate",'name','price_list_type',
                                         "outright_handling_charges_rate",
                                         "outright_handling_charges_in_percentage",
                                         "outwork_handling_charges_rate",
                                         "outwork_handling_charges_in_percentage"], as_dict=True)
-            # frappe.throw(f"hii{latest}")
         else:
             latest = None
             
+        # frappe.throw(f"hii{latest}")
         if latest:
             base_rate = latest.get("rate", 0)
             out_rate = latest.get("outright_handling_charges_rate", 0)
             out_pct = latest.get("outright_handling_charges_in_percentage", 0)
+            work_rate = latest.get("outwork_handling_charges_rate", 0)
+            work_pct = latest.get("outwork_handling_charges_in_percentage", 0)
+            
+            # customer raw material
+            # is_cust = 0
             
             handling_rate = 0
-            if out_rate:
-                handling_rate = out_rate
-            elif out_pct:
-                handling_rate = base_rate + (base_rate * (out_pct / 100))
+            total_rate = 0
+            if is_cust:
+                if work_rate:
+                    total_rate = work_rate
+                else:
+                    total_rate = base_rate * (work_pct / 100)
             else:
-                handling_rate = 0
+                if out_rate:
+                    handling_rate = out_rate
+                elif out_pct:
+                    handling_rate = base_rate + (base_rate * (out_pct / 100))
+                else:
+                    handling_rate = 0
+                    
+            handling_rate = handling_rate if not is_cust else total_rate
             
             total_diamond_rate = round(base_rate, 2)
             diamond_rate_for_specified_quantity = round(d.quantity * (total_diamond_rate + handling_rate),2 )
@@ -207,7 +222,7 @@ def get_dia_price_list(customer,item_code, bom, diamond_quality):
             
             dia_price_data.append({
                 "diamond_quality": dia_quality,
-                "total_weight_in_gms": d.weight_in_gms,
+                "total_weight_in_gms": flt(d.quantity/5),
                 "total_weight_in_cts": d.quantity,
                 "base_rate": base_rate,
                 "diamond_rate_for_specified_quantity": diamond_rate_for_specified_quantity
@@ -270,7 +285,7 @@ def get_gem_price_list(customer,item_code, bom):
                 gem_price_data.append({
                     # "diamond_quality": gem.quality,
                     "gemstone_grade": gem.gemstone_grade,
-                    "total_weight_in_gms": gem.weight_in_gms,
+                    "total_weight_in_gms": flt(gem.quantity/5),
                     "total_weight_in_cts": gem.quantity,
                     "total_gemstone_rate": total_gemstone_rate,
                     "gemstone_rate_for_specified_quantity": gemstone_rate_amt
@@ -281,8 +296,8 @@ def get_gem_price_list(customer,item_code, bom):
     return  gem_price_data
 
 
-def get_making_charges(customer, item_code, bom,metal_touch):
-    gold_rate_value = set_gold_value()
+def get_making_charges(customer, item_code,gold_rate_value, bom,metal_touch, is_cust, cust_gold_wt):
+    gold_rate_value = gold_rate_value or set_gold_value()
     gold_rate = gold_rate_value / 10
     
     gold_gst_rate=frappe.db.get_single_value("Jewellery Settings", "gold_gst_rate")
@@ -326,6 +341,7 @@ def get_making_charges(customer, item_code, bom,metal_touch):
         )
         
         mc_name = mc[0]["name"] if mc else None
+        # frappe.throw(f"mc name {mc_name} {item_subcategory}")
         
         sub = frappe.db.get_all(
             "Making Charge Price Item Subcategory",
@@ -335,6 +351,7 @@ def get_making_charges(customer, item_code, bom,metal_touch):
                 "rate_per_pc",
                 "wastage",
                 "rate_per_gm_threshold",
+                "custom_subcontracting_rate",
                 "to_diamond","from_diamond"
             ]
         )
@@ -362,6 +379,7 @@ def get_making_charges(customer, item_code, bom,metal_touch):
             frappe.throw(f"""Create a valid Making Charge Price for Customer: {customer}, Metal Type:{s.metal_type} "Setting Type":{s.setting_type} """)
         mc_name = mc[0]["name"]
         
+        making_rate = 0
         if metal_and_finding_weight < threshold:
             # Use per piece rate, wastage might apply differently if needed
             making_rate = sub_info.get("rate_per_pc", 0)
@@ -370,16 +388,28 @@ def get_making_charges(customer, item_code, bom,metal_touch):
             making_rate = sub_info.get("rate_per_gm", 0)
                         
         base_rate=round(calculated_gold_rate , 2)
-        quantity = round(s.quantity, metal_precision)
-        metal_amount = round(base_rate * quantity,2 )
-        
-        making_rate = making_rate
-        if metal_and_finding_weight < 2:
-            making_amount = making_rate
+        quantity = 0
+        if cust_gold_wt:
+            quantity = float(cust_gold_wt)
         else:
-            making_amount = making_rate * quantity
+            quantity = round(s.quantity, metal_precision)
+        metal_amount = round(base_rate * quantity,2 )
+        subcontracting_rate = sub_info.get("custom_subcontracting_rate", 0)
+        making_rate = making_rate 
         
+        if is_cust:
+            base_rate=0
+            metal_amount=round(base_rate * quantity,2 )
+            making_rate= subcontracting_rate 
+            making_amount = making_rate * quantity
+        else:
+            if metal_and_finding_weight < 2:
+                making_amount = making_rate
+            else:
+                making_amount = making_rate * quantity
+            
         making_amount = making_amount
+        # frappe.throw(f"making_amount {making_amount}  {quantity} {making_rate} {base_rate}")
 		
         metal_price_data.append({
             "metal_type": s.metal_type,
@@ -394,8 +424,8 @@ def get_making_charges(customer, item_code, bom,metal_touch):
         
     return metal_price_data
 
-def get_finding_charges(customer, item_code, bom,metal_touch):
-    gold_rate_value = set_gold_value()
+def get_finding_charges(customer, item_code,gold_rate_value, bom,metal_touch):
+    gold_rate_value = gold_rate_value or set_gold_value()
     gold_rate = gold_rate_value / 10
     
     gold_gst_rate=frappe.db.get_single_value("Jewellery Settings", "gold_gst_rate")
@@ -521,3 +551,235 @@ def get_finding_charges(customer, item_code, bom,metal_touch):
         })
     
     return finding_price_data
+
+
+@frappe.whitelist()
+def get_item_price_as_per_payment_terms(customer=None,item_code=None, bom=None,is_cust_diam=0, is_cust_stone=0 , is_cust_gold=0, amount=None):
+    customer_payment_term_doc = frappe.get_doc("Customer Payment Terms",{"customer": customer} )
+    
+    e_invoice_items = []
+    e_invoice = []
+    current_date = getdate(nowdate())
+    
+    for row in customer_payment_term_doc.customer_payment_details:
+        item_type = row.item_type
+        payment_term = row.payment_term
+        e_invoice_item = frappe.get_doc("E Invoice Item", item_type)
+        delivery_date = add_days(current_date, cint(payment_term or 0))
+        if delivery_date == current_date:
+            continue
+        
+        e_invoice_items.append({
+            "item_type": item_type,
+            "payment_term": payment_term,
+            "delivery_date": delivery_date,
+            "is_for_metal": e_invoice_item.is_for_metal,
+            "is_for_labour": e_invoice_item.is_for_labour,
+            "is_for_diamond": e_invoice_item.is_for_diamond,
+            "diamond_type": e_invoice_item.diamond_type,
+            "is_for_making": e_invoice_item.is_for_making,
+            "is_for_finding": e_invoice_item.is_for_finding,
+            "is_for_finding_making": e_invoice_item.is_for_finding_making,
+            "is_for_gemstone": e_invoice_item.is_for_gemstone,
+            "metal_type": e_invoice_item.metal_type,
+            "metal_purity": e_invoice_item.metal_purity,
+            "uom": e_invoice_item.uom,
+            "finding_category": e_invoice_item.finding_category
+        })
+    # frappe.throw(f"customer_payment_term_doc {e_invoice_items}")
+    bom_doc = frappe.get_doc("BOM", bom)
+
+    for metal in bom_doc.metal_detail:
+        if not is_cust_gold:
+            for e_item in e_invoice_items:
+                if (
+                    e_item["is_for_metal"] and
+                    metal.metal_type == e_item["metal_type"] and
+                    metal.metal_touch == e_item["metal_purity"] and
+                    metal.stock_uom == e_item["uom"]
+                ):
+                    e_invoice.append({
+                        "type": "Metal",
+                        "item_type": e_item["item_type"],
+                        "uom": e_item["uom"],
+                        "payment_term": e_item["payment_term"],
+                        "delivery_date": e_item["delivery_date"]
+                    })
+                    break
+
+            # frappe.throw(f"customer_payment_term_doc {e_invoice}")
+            for e_item in e_invoice_items:
+                if (
+                    e_item["is_for_making"] and
+                    metal.metal_type == e_item["metal_type"] and
+                    metal.metal_touch == e_item["metal_purity"] and
+                    metal.stock_uom == e_item["uom"]
+                ):
+                    e_invoice.append({
+                        "type": "Metal Making Charge",
+                        "item_type": e_item["item_type"],
+                        "uom": e_item["uom"],
+                        "payment_term": e_item["payment_term"],
+                        "delivery_date": e_item["delivery_date"]
+                    })
+                    break
+
+    for diamond in bom_doc.diamond_detail:
+        if not is_cust_diam:
+
+            for e_item in e_invoice_items:
+                if (
+                    e_item["is_for_diamond"] and
+                    e_item["diamond_type"] == diamond.diamond_type and
+                    e_item["uom"] == diamond.stock_uom
+                ):
+                    e_invoice.append({
+                        "type": "Diamond",
+                        "item_type": e_item["item_type"],
+                        "uom": e_item["uom"],
+                        "payment_term": e_item["payment_term"],
+                        "delivery_date": e_item["delivery_date"]
+                    })
+                    break
+
+        break
+
+    for gemstone in bom_doc.gemstone_detail:
+        if not is_cust_stone:
+
+            for e_item in e_invoice_items:
+                if (
+                    e_item["is_for_gemstone"] and
+                    e_item["uom"] == gemstone.stock_uom
+                ):
+                    e_invoice.append({
+                        "type": "Gemstone",
+                        "item_type": e_item["item_type"],
+                        "uom": e_item["uom"],
+                        "payment_term": e_item["payment_term"],
+                        "delivery_date": e_item["delivery_date"]
+                    })
+                    break
+
+        break
+
+    for finding in bom_doc.finding_detail:
+
+        finding_handled = False
+
+        for e_item in e_invoice_items:
+            if (
+                e_item["is_for_finding"] and 
+                e_item["metal_type"] == finding.metal_type and
+                e_item["metal_purity"] == finding.metal_touch and
+                e_item["uom"] == finding.stock_uom and
+                e_item["finding_category"] == finding.finding_category
+            ):
+                finding_handled = True
+
+                e_invoice.append({
+                    "type": "Finding Chain",
+                    "item_type": e_item["item_type"],
+                    "uom": e_item["uom"],
+                    "payment_term": e_item["payment_term"],
+                    "delivery_date": e_item["delivery_date"]
+                })
+
+                break
+
+        if not finding_handled:
+
+            for e_item in e_invoice_items:
+                if (
+                    e_item["is_for_metal"] and 
+                    finding.metal_type == e_item["metal_type"] and
+                    finding.metal_touch == e_item["metal_purity"] and
+                    finding.stock_uom == e_item["uom"] and
+                    e_item["finding_category"] is None
+                ):
+                    e_invoice.append({
+                        "type": "Finding Metal",
+                        "item_type": e_item["item_type"],
+                        "uom": e_item["uom"],
+                        "payment_term": e_item["payment_term"],
+                        "delivery_date": e_item["delivery_date"]
+                    })
+
+                    break
+
+        finding_making_handled = False
+
+        for e_item in e_invoice_items:
+            if (
+                e_item["is_for_finding_making"] and 
+                e_item["metal_type"] == finding.metal_type and
+                e_item["metal_purity"] == finding.metal_touch and
+                e_item["uom"] == finding.stock_uom and
+                e_item["finding_category"] == finding.finding_category
+            ):
+                finding_making_handled = True
+
+                e_invoice.append({
+                    "type": "Finding Chain Making Charge",
+                    "item_type": e_item["item_type"],
+                    "uom": e_item["uom"],
+                    "payment_term": e_item["payment_term"],
+                    "delivery_date": e_item["delivery_date"]
+                })
+
+                break
+
+        if not finding_making_handled:
+
+            for e_item in e_invoice_items:
+                if (
+                    e_item["is_for_making"] and 
+                    e_item["metal_type"] == finding.metal_type and
+                    e_item["metal_purity"] == finding.metal_touch and
+                    e_item["uom"] == finding.stock_uom
+                ):
+                    e_invoice.append({
+                        "type": "Finding Making Charge",
+                        "item_type": e_item["item_type"],
+                        "uom": e_item["uom"],
+                        "payment_term": e_item["payment_term"],
+                        "delivery_date": e_item["delivery_date"]
+                    })
+
+                    break
+
+    # Remove duplicate item_type
+    unique_items = []
+    seen_item_types = set()
+
+    amount = float(amount) if amount is not None else 0
+
+    for item in e_invoice:
+        if item["item_type"] not in seen_item_types:
+            seen_item_types.add(item["item_type"])
+            unique_items.append(item)
+
+    # Total payment term
+    total_payment_term = sum(
+        cint(item.get("payment_term", 0))
+        for item in unique_items
+    ) 
+
+    # Append percentage and amount for each item
+    for item in unique_items:
+
+        payment_term = cint(item.get("payment_term", 0))
+
+        percentage = (
+            (payment_term / total_payment_term) * 100
+            if total_payment_term else 0
+        )
+
+        item_amount = ( amount * percentage / 100 )
+    
+        # item["total_payment_term"] = total_payment_term
+        item["percentage"] = round(percentage, 2)
+        item["amount"] = round(item_amount, 2)
+
+    return unique_items 
+    
