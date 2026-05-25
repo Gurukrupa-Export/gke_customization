@@ -1,0 +1,210 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-20 10:59:06.357630",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_yw43",
+  "amended_from",
+  "client_name",
+  "column_break_qork",
+  "location",
+  "customer_code",
+  "section_break_zmwn",
+  "csat_questionnaire_po",
+  "section_break_pvct",
+  "design_accuracy",
+  "finishing_setting",
+  "column_break_tvbc",
+  "diamond_quality",
+  "section_break_tfia",
+  "rate_following_services",
+  "on_time_delivery",
+  "repair_service",
+  "customization",
+  "column_break_ypmp",
+  "communication_throughout_sales_process",
+  "deadstock_liquidation_recrafting_service",
+  "section_break_jwzp",
+  "suggestion_for_improvement"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_yw43",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "CSAT Questionnaire",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "client_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Client Name"
+  },
+  {
+   "fieldname": "column_break_qork",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Location"
+  },
+  {
+   "fieldname": "csat_questionnaire_po",
+   "fieldtype": "Table",
+   "options": "CSAT Questionnaire for PO"
+  },
+  {
+   "fieldname": "design_accuracy",
+   "fieldtype": "Select",
+   "label": "Design & Accuracy",
+   "options": "\n1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "finishing_setting",
+   "fieldtype": "Select",
+   "label": "Finishing & Setting ",
+   "options": "\n1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "column_break_tvbc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "diamond_quality",
+   "fieldtype": "Select",
+   "label": "Diamond Quality",
+   "options": "\n1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "section_break_tfia",
+   "fieldtype": "Section Break",
+   "label": "Please rate the following services on a scale of 1 to 5 in Service."
+  },
+  {
+   "fieldname": "rate_following_services",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "on_time_delivery",
+   "fieldtype": "Select",
+   "label": "On-time Delivery ",
+   "options": "\n1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "repair_service",
+   "fieldtype": "Select",
+   "label": "Repair Service",
+   "options": "\n1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "customization",
+   "fieldtype": "Select",
+   "label": "Customization",
+   "options": "\n1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "column_break_ypmp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "communication_throughout_sales_process",
+   "fieldtype": "Select",
+   "label": "Communication throughout Sales Process ",
+   "options": "\n1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "deadstock_liquidation_recrafting_service",
+   "fieldtype": "Select",
+   "label": "Deadstock Liquidation & Jewellery Recrafting Service",
+   "options": "\n1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "suggestion_for_improvement",
+   "fieldtype": "Small Text",
+   "label": "Any other suggestion for improvement in our services & products?"
+  },
+  {
+   "fieldname": "section_break_zmwn",
+   "fieldtype": "Section Break",
+   "label": "Are you Satisfied with all PO received from Gurukrupa?"
+  },
+  {
+   "fieldname": "section_break_pvct",
+   "fieldtype": "Section Break",
+   "label": "Please rate the following parameters on a scale of 1 to 5 in Product."
+  },
+  {
+   "fieldname": "section_break_jwzp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "customer_code",
+   "fieldtype": "Data",
+   "label": "Customer Code"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-05-22 17:50:27.298232",
+ "modified_by": "devendra_p@gkexport.com",
+ "module": "GKE SURVEY",
+ "name": "CSAT Questionnaire",
+ "owner": "shubham_k@gkexport.com",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Guest",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "GK Guest",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
