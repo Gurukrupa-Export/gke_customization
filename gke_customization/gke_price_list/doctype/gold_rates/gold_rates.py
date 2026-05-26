@@ -10,12 +10,6 @@ import requests
 from datetime import datetime
 import pytz
 from frappe.model.document import Document
-# from selenium import webdriver
-# from selenium.webdriver.common.by import By
-# from selenium.webdriver.support.ui import WebDriverWait
-# from selenium.webdriver.support import expected_conditions as EC
-# from bs4 import BeautifulSoup
-# from frappe.utils import now_datetime
 
 def run_gold_rate_scheduler():
     try:
@@ -64,7 +58,6 @@ class GoldRates(Document):
 		self.set_gold_value_6()
 
 
-
 		
 	def add_default_rows(self):
 		if not self.table_djrm or len(self.table_djrm) == 0:
@@ -90,17 +83,17 @@ class GoldRates(Document):
 
 			rates = get_live_gold_rate()
 			ask  = rates.get("ask")
-			high = rates.get("high")
-			low  = rates.get("low")
+			# high = rates.get("high")
+			# low  = rates.get("low")
 
 			if not ask:
 				frappe.msgprint("⚠️ Could not fetch live gold rate", indicator="orange")
 				return
 			import pytz
 			from datetime import datetime
-
+			# frappe.throw(str(ask))
 			ist = pytz.timezone('Asia/Kolkata')
-			self.table_djrm[4].set("live_rate", high)
+			self.table_djrm[4].set("live_rate", ask)
 			current_hour = datetime.now(pytz.utc).astimezone(ist).hour
 
 			if current_hour == 9:
@@ -113,7 +106,7 @@ class GoldRates(Document):
 				field_name = None
 
 			if field_name:
-				self.table_djrm[4].set(field_name, high)
+				self.table_djrm[4].set(field_name, ask)
 
 
 
@@ -142,7 +135,7 @@ class GoldRates(Document):
 					break
 				except ValueError:
 					continue
-
+		# frappe.throw(str(gold_value))
 		# if gold_value and self.table_djrm:
 		if gold_value is not None and self.table_djrm:
 			self.table_djrm[0].set("live_rate", gold_value)
@@ -238,13 +231,14 @@ class GoldRates(Document):
 
 			name = " ".join(parts[1:-4]).strip().upper()
 
-			if name == "GOLD 999 WITH GST IMP-IND":
+			# if name == "GOLD 999 WITH GST IMP-IND":
+			if name == "GOLD 995 (1KG) IMPORTED T+0":
 				ask = parts[-3]   
 
 				if ask != "-":
 					gold_value = float(ask)
 				break
-
+		# frappe.throw(str(gold_value))
 		# if gold_value:
 		# 	if len(self.table_djrm) > 2:
 		# 		self.table_djrm[2].set("9_am", gold_value)
@@ -434,161 +428,182 @@ class GoldRates(Document):
 
 			if field_name and len(self.table_djrm) > 6:
 				self.table_djrm[6].set(field_name, gold_value*10 )
-
-
-
-
-
-
-
-# gold_rates_branch_wise.py
+    
+    
+    
+    # gold_rates_branch_wise.py
 
 import frappe
-import socket
-import base64
+import websocket
 import json
+import gzip
+import base64
 import time
-import os
-from frappe.model.document import Document
+from datetime import datetime
+import pytz
 
 
-def ws_handshake(host, port, path):
-	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	sock.settimeout(15)
-	sock.connect((host, port))
-	key = base64.b64encode(os.urandom(16)).decode()
-	handshake = (
-		f"GET {path} HTTP/1.1\r\n"
-		f"Host: {host}:{port}\r\n"
-		f"Upgrade: websocket\r\n"
-		f"Connection: Upgrade\r\n"
-		f"Sec-WebSocket-Key: {key}\r\n"
-		f"Sec-WebSocket-Version: 13\r\n"
-		f"Origin: http://ambicaaspot.com\r\n"
-		f"\r\n"
-	)
-	sock.send(handshake.encode())
-	response = sock.recv(4096).decode('utf-8', errors='ignore')
-	if "101 Switching Protocols" not in response:
-		raise Exception(f"WebSocket upgrade failed: {response[:200]}")
-	return sock
+# =========================================================
+# CONFIG
+# =========================================================
+
+HOST = "ws://ambicaaspot.com:1001/bullion?user=ambicaa&auth=1&type=web"
+
+RS = "\x1e"
+
+PRODUCT_NAME = "999-iMP-GOLD-1KG-today"
 
 
-def ws_send(sock, message):
-	msg = message.encode('utf-8')
-	length = len(msg)
-	mask = os.urandom(4)
-	frame = bytearray()
-	frame.append(0x81)
-	if length <= 125:
-		frame.append(0x80 | length)
-	elif length <= 65535:
-		frame.append(0x80 | 126)
-		frame.append((length >> 8) & 0xFF)
-		frame.append(length & 0xFF)
-	else:
-		frame.append(0x80 | 127)
-		for i in range(7, -1, -1):
-			frame.append((length >> (8 * i)) & 0xFF)
-	frame.extend(mask)
-	frame.extend(bytearray(b ^ mask[i % 4] for i, b in enumerate(msg)))
-	sock.send(bytes(frame))
+# =========================================================
+# SIGNALR SEND
+# =========================================================
+
+def sr_send(ws, obj):
+
+	payload = json.dumps(
+		obj,
+		separators=(",", ":")
+	) + RS
+
+	ws.send(payload)
 
 
-def ws_recv(sock):
-	try:
-		header = sock.recv(2)
-		if len(header) < 2:
-			return None
-		opcode = header[0] & 0x0F
-		if opcode == 0x8:
-			return None
-		payload_len = header[1] & 0x7F
-		if payload_len == 126:
-			payload_len = int.from_bytes(sock.recv(2), 'big')
-		elif payload_len == 127:
-			payload_len = int.from_bytes(sock.recv(8), 'big')
-		payload = b''
-		while len(payload) < payload_len:
-			chunk = sock.recv(payload_len - len(payload))
-			if not chunk:
-				break
-			payload += chunk
-		return payload.decode('utf-8', errors='ignore')
-	except socket.timeout:
-		return ""
+# =========================================================
+# DECODE GZIP DATA
+# =========================================================
 
+def decode_data(b64):
+
+	compressed = base64.b64decode(b64)
+
+	decompressed = gzip.decompress(compressed)
+
+	text = decompressed.decode()
+
+	return json.loads(text)
+
+
+# =========================================================
+# GET LIVE GOLD RATE
+# =========================================================
 
 def get_live_gold_rate():
-	host = "dashboard.ambicaaspot.com"
-	port = 10001
-	product_name = "IND-GOLD[999]-1KG --today"
-	result = {"ask": None, "bid": None, "high": None, "low": None}
-	sock = None
 
-	try:
-		# Step 1: HTTP poll to get SID
-		import urllib.request
-		url = f"http://{host}:{port}/socket.io/?EIO=4&transport=polling"
-		req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-		with urllib.request.urlopen(req, timeout=10) as r:
-			raw = r.read().decode()
-		sid = json.loads(raw[raw.index('{'):])["sid"]
+	result = {
+		"ask": None
+	}
 
-		# Step 2: Upgrade to WebSocket
-		sock = ws_handshake(host, port, f"/socket.io/?EIO=4&transport=websocket&sid={sid}")
+	def on_message(ws, message):
 
-		# Step 3: Probe + upgrade
-		ws_send(sock, "2probe")
-		time.sleep(0.2)
-		ws_recv(sock)       # expect "3probe"
-		ws_send(sock, "5")  # upgrade confirm
+		parts = message.split(RS)
 
-		# Step 4: Auth
-		ws_send(sock, '40' + json.dumps({"auth": {"type": "web", "token": "starline@123"}}))
-		time.sleep(0.3)
-		ws_recv(sock)       # expect 40{sid:...}
+		for part in parts:
 
-		# Step 5: Emit Client event
-		ws_send(sock, '42' + json.dumps(["Client", "ambicaaspot"]))
+			part = part.strip()
 
-		# Step 6: Read messages until we find gold rate
-		sock.settimeout(3)
-		for _ in range(20):
-			msg = ws_recv(sock)
-			if msg is None:
-				break
-			if msg == "" or msg == "2":
-				ws_send(sock, "2")  # pong
+			if not part:
 				continue
-			if product_name in msg:
-				prod_idx = msg.index(product_name)
-				obj_start = msg.rindex('{', 0, prod_idx)
-				depth = 0
-				obj_end = obj_start
-				for k in range(obj_start, len(msg)):
-					if msg[k] == '{':
-						depth += 1
-					elif msg[k] == '}':
-						depth -= 1
-						if depth == 0:
-							obj_end = k + 1
-							break
-				rate_obj = json.loads(msg[obj_start:obj_end])
-				result["ask"]  = rate_obj.get("Ask")
-				result["bid"]  = rate_obj.get("Bid")
-				result["high"] = rate_obj.get("High")
-				result["low"]  = rate_obj.get("Low")
-				return result
 
-	except Exception as e:
-		frappe.log_error(str(e), "Gold Rate Fetch Error")
-	finally:
-		if sock:
 			try:
-				sock.close()
+
+				msg = json.loads(part)
+
 			except Exception:
-				pass
+				continue
+
+			# -------------------------------------------------
+			# SIGNALR PING
+			# -------------------------------------------------
+
+			if msg.get("type") == 6:
+
+				sr_send(ws, {"type": 6})
+
+				continue
+
+			# -------------------------------------------------
+			# LIVE MARKET DATA
+			# -------------------------------------------------
+
+			if msg.get("target") == "workerPublish":
+
+				try:
+
+					data = decode_data(
+						msg["arguments"][0]
+					)
+
+					products = data.get("products", [])
+
+					gold_rate = next(
+						(
+							p for p in products
+							if p.get("name") == PRODUCT_NAME
+						),
+						None
+					)
+
+					if gold_rate:
+
+						result["ask"] = gold_rate.get("ask")
+
+						ws.close()
+
+				except Exception:
+
+					frappe.log_error(
+						frappe.get_traceback(),
+						"Gold Rate Decode Error"
+					)
+
+	def on_open(ws):
+
+		# -------------------------------------------------
+		# SIGNALR HANDSHAKE
+		# -------------------------------------------------
+
+		sr_send(ws, {
+			"protocol": "json",
+			"version": 1
+		})
+
+		time.sleep(1)
+
+		# -------------------------------------------------
+		# SUBSCRIBE
+		# -------------------------------------------------
+
+		sr_send(ws, {
+			"arguments": ["ambicaa"],
+			"invocationId": "0",
+			"target": "client",
+			"type": 1
+		})
+
+	def on_error(ws, error):
+
+		frappe.log_error(
+			str(error),
+			"Gold Rate Websocket Error"
+		)
+
+	ws = websocket.WebSocketApp(
+		HOST,
+		header=[
+			"Origin: http://ambicaaspot.com",
+			"User-Agent: Mozilla/5.0"
+		],
+		on_open=on_open,
+		on_message=on_message,
+		on_error=on_error
+	)
+
+	ws.run_forever(
+		ping_interval=20,
+		ping_timeout=10
+	)
 
 	return result
 
+
+	
