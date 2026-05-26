@@ -303,7 +303,7 @@ import frappe
 import json
 import frappe
 from frappe.utils.pdf import get_pdf
-
+import requests
 
 import json
 import os
@@ -311,6 +311,9 @@ import os
 import frappe
 from frappe.utils import flt, cint
 from frappe.utils.pdf import get_pdf
+from gke_customization.gke_catalog.api.item_price_list import get_item_price 
+
+
 
 @frappe.whitelist(allow_guest=True)
 def download_bom_pdf(boms, customer, company, customer_folder_name=None):
@@ -319,20 +322,23 @@ def download_bom_pdf(boms, customer, company, customer_folder_name=None):
         boms = json.loads(boms)
 
     data = []
-    grand_total_amount = 0
+    grand_total_amount = 0  
+    gold_amount_total = 0
+    finding_amount_total = 0
+    
 
-    for name in boms:
-        bom_name = frappe.db.get_value("BOM", {"name": name}, "name")
+    for bom, values in boms.items():
+        bom_name = frappe.db.get_value("BOM", {"name": bom}, "name")
         if not bom_name:
             continue
 
-        bom = frappe.get_doc("BOM", bom_name)
+        bom_doc = frappe.get_doc("BOM", bom_name)
 
-        # Group Diamond Detail by Rate
+        # Diamond grouping — same as before
         diamond_group = {}
         diamond_total = 0
 
-        for row in bom.diamond_detail:
+        for row in bom_doc.diamond_detail:
             rate = flt(row.total_diamond_rate)
             diamond_total += flt(row.diamond_rate_for_specified_quantity or 0)
 
@@ -347,43 +353,77 @@ def download_bom_pdf(boms, customer, company, customer_folder_name=None):
 
         total_amount = (
             diamond_total
-            + flt(bom.total_gemstone_amount)
-            + flt(bom.certification_amount)
-            + flt(bom.hallmarking_amount)
+            + flt(bom_doc.total_gemstone_amount)
+            + flt(bom_doc.certification_amount)
+            + flt(bom_doc.hallmarking_amount)
         )
 
         grand_total_amount += total_amount
 
-        data.append({
-    "customer": bom.customer,
-    "company": bom.company,
-    "item": bom.item,
-    "bom": bom.name,
-    "item_category": bom.item_category,
-    "diamond_quality": bom.diamond_quality,
-    "gross_weight": flt(getattr(bom, "gross_weight", 0)),
-    "gemstone_weight": flt(getattr(bom, "gemstone_weight", 0)),
-    "other_weight": flt(getattr(bom, "other_weight", 0)),
-    "net_weight": flt(getattr(bom, "metal_and_finding_weight", 0)),
-    "metal_purity": getattr(bom, "metal_purity", ""),
-    "chain_wt": flt(getattr(bom, "chain_wt", 0)),          
-    "chain_amt": flt(getattr(bom, "chain_amt", 0)),        
-    "chain_making": flt(getattr(bom, "chain_making", 0)),   
-    "chain_wastage": flt(getattr(bom, "chain_wastage", 0)), 
-    "jewellery_making": flt(getattr(bom, "jewellery_making", 0)),   
-    "jewellery_wastage": flt(getattr(bom, "jewellery_wastage", 0)),  
-    "stone_amt": flt(getattr(bom, "total_gemstone_amount", 0)),
-    "certification_amount": flt(getattr(bom, "certification_amount", 0)),
-    "hallmarking_amount": flt(getattr(bom, "hallmarking_amount", 0)),
-    "gold_amt": flt(getattr(bom, "gold_amt", 0)),           
-    "total_diamond_pcs": sum(d["pcs"] for d in diamond_rows),
-    "total_diamond_cts": sum(d["cts"] for d in diamond_rows),
-    "total_diamond_amt": sum(d["amount"] for d in diamond_rows),
-    "total_amount": total_amount,
-    "diamond_rows": diamond_rows,
-})
+        result = get_item_price(
+            customer=customer,
+            item_code=bom_doc.item,
+            bom=bom,
+            diamond_quality=values.get("diamond_quality") if values else None,
+            metal_touch=values.get("metal_touch") if values else None,
+            gold_rate_value=float(values.get("gold_rate_value") or 0) if values else 0.0,
+            is_cust_diam=int(values.get("is_cust_diam") or 0) if values else 0,
+            is_cust_stone=int(values.get("is_cust_stone") or 0) if values else 0,
+            is_cust_gold=int(values.get("is_cust_gold") or 0) if values else 0,
+            cust_gold_wt=float(values.get("cust_gold_wt") or 0) if values else 0.0,
+        )
 
-    # Calculate all column totals 
+
+        finding_price_data = result.get("finding_price_data", {})
+        metal_price_data = result.get("metal_price_data", {})
+
+        for purity, finding_data in finding_price_data.items():
+
+            finding_sub = (finding_data.get("finding_sub") or "").lower()
+            finding_amount = float(finding_data.get("finding_amount") or 0)
+
+            # Chain case
+            if "chain" in finding_sub:
+                finding_amount_total += finding_amount
+
+            # Other finding case
+            else:
+                gold_amount = float(
+                    metal_price_data.get(purity, {}).get("gold_amount") or 0
+                )
+
+                gold_amount_total += finding_amount + gold_amount
+
+        data.append({
+            "customer": bom_doc.customer,
+            "company": bom_doc.company,
+            "item": bom_doc.item,
+            "bom": bom_doc.name,
+            "item_category": bom_doc.item_category,
+            "diamond_quality": bom_doc.diamond_quality,
+            "gross_weight": flt(getattr(bom_doc, "gross_weight", 0)),
+            "gemstone_weight": flt(getattr(bom_doc, "gemstone_weight", 0)),
+            "other_weight": flt(getattr(bom_doc, "other_weight", 0)),
+            "net_weight": flt(getattr(bom_doc, "metal_and_finding_weight", 0)),
+            "metal_purity": getattr(bom_doc, "metal_purity", ""),
+            "chain_wt": flt(getattr(bom_doc, "chain_wt", 0)),
+            "chain_amt": finding_amount_total,        # ✅ item wise
+            "chain_making": flt(getattr(bom_doc, "chain_making", 0)),
+            "chain_wastage": flt(getattr(bom_doc, "chain_wastage", 0)),
+            "jewellery_making": flt(getattr(bom_doc, "jewellery_making", 0)),
+            "jewellery_wastage": flt(getattr(bom_doc, "jewellery_wastage", 0)),
+            "stone_amt": flt(getattr(bom_doc, "total_gemstone_amount", 0)),
+            "certification_amount": flt(getattr(bom_doc, "certification_amount", 0)),
+            "hallmarking_amount": flt(getattr(bom_doc, "hallmarking_amount", 0)),
+            "gold_amt": gold_amount_total,            # ✅ item wise
+            "total_diamond_pcs": sum(d["pcs"] for d in diamond_rows),
+            "total_diamond_cts": sum(d["cts"] for d in diamond_rows),
+            "total_diamond_amt": sum(d["amount"] for d in diamond_rows),
+            "total_amount": total_amount,
+            "diamond_rows": diamond_rows,
+        })
+
+    # all column totals 
     total_diamond_pcs      = sum(row.get("total_diamond_pcs") or 0 for row in data)
     total_diamond_cts      = sum(row.get("total_diamond_cts") or 0 for row in data)
     total_diamond_amt      = sum(row.get("total_diamond_amt") or 0 for row in data)
