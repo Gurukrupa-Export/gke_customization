@@ -1448,161 +1448,273 @@ def subcategory_count(categoryName, user_type, customer=None):
         frappe.log_error(frappe.get_traceback(), "subcategory_count Error")
         return {"error": str(e)}
 
-
        
+# @frappe.whitelist()
+# def category_count(user_type, customer=None):
+#     try:
+#         if user_type == "Customer":
+#             # sql_query = """
+#             #     SELECT 
+#             #         ti.item_category,
+#             #         ti.item_subcategory, 
+#             #         COUNT(
+#             #             DISTINCT CASE
+#             #                 WHEN fbom.bom_type = 'Finish Goods' 
+#             #                     AND fbom.is_active = 1 
+#             #                 THEN fbom.item
+#             #             END
+#             #         ) AS item_count,
+#             #         COUNT(
+#             #             DISTINCT CASE
+#             #                 WHEN fbom.bom_type = 'Finish Goods' 
+#             #                     AND fbom.is_active = 1 
+#             #                 THEN fbom.item
+#             #             END
+#             #         ) AS serial_count
+#             #         COUNT(
+#             #             DISTINCT CASE
+#             #                 WHEN fbom.bom_type = 'Finish Goods' 
+#             #                     AND fbom.is_active = 1 
+#             #                 THEN fbom.item
+#             #             END
+#             #         ) AS total_item_count
+#             #     FROM `tabCataloge Item Details` AS tci
+#             #     LEFT JOIN `tabCataloge Master` AS tcm ON tcm.name = tci.parent
+#             #     LEFT JOIN `tabItem` AS ti ON ti.name = tci.item_code
+#             #     LEFT JOIN `tabBOM` AS tb ON ti.name = tb.item
+#             #     LEFT JOIN `tabBOM` AS fbom ON fbom.item = ti.name  -- For serial_count
+#             #     JOIN `tabAttribute Value` AS tav ON ti.item_category = tav.name
+#             #     WHERE  
+#             #         ((tav.is_category = 1 AND ti.item_category IS NOT NULL)
+#             #         OR 
+#             #         (fbom.bom_type = 'Finish Goods' AND tb.is_active = 1))
+#             #         AND
+#             #         tcm.customer = %(customer)s
+#             #         AND tb.is_active = 1
+#             #     GROUP BY 
+#             #         ti.item_category,
+#             #         # ti.item_subcategory
+#             #     ORDER BY 
+#             #         ti.item_category,
+#             #         ti.item_subcategory
+        
+#             # """
+#             sql_query = """
+#                 SELECT 
+#                     ti.item_category,
+#                     COUNT(
+#                         DISTINCT CASE
+#                             WHEN fbom.bom_type = 'Finish Goods' 
+#                                 AND fbom.is_active = 1 
+#                             THEN fbom.item
+#                         END
+#                     ) AS item_count,
+#                     COUNT(
+#                         DISTINCT CASE
+#                             WHEN fbom.bom_type = 'Finish Goods' 
+#                                 AND fbom.is_active = 1 
+#                             THEN fbom.item
+#                         END
+#                     ) AS serial_count
+#                 FROM `tabCataloge Item Details` AS tci
+#                 LEFT JOIN `tabCataloge Master` AS tcm ON tcm.name = tci.parent
+#                 LEFT JOIN `tabItem` AS ti ON ti.name = tci.item_code
+#                 LEFT JOIN `tabBOM` AS tb ON ti.name = tb.item
+#                 LEFT JOIN `tabBOM` AS fbom ON fbom.item = ti.name
+#                 JOIN `tabAttribute Value` AS tav ON ti.item_category = tav.name
+#                 WHERE  
+#                     ((tav.is_category = 1 AND ti.item_category IS NOT NULL)
+#                     OR 
+#                     (fbom.bom_type = 'Finish Goods' AND tb.is_active = 1))
+#                     AND tcm.customer = %(customer)s
+#                     AND tb.is_active = 1
+#                 GROUP BY 
+#                     ti.item_category
+#                 ORDER BY 
+#                     ti.item_category
+#             """
+
+#             values = {"customer": customer}
+#         else:
+#             # sql_query = """
+#             #     SELECT
+#             #         item.item_category,
+#             #         # item.item_subcategory,
+#             #         COUNT(
+#             #             DISTINCT CASE
+#             #                 WHEN tav.is_category = 1 
+#             #                      AND item.item_category IS NOT NULL 
+#             #                      AND bom.bom_type = 'Finish Goods' 
+#             #                      AND bom.is_active = 1
+#             #                 THEN item.name
+#             #             END
+#             #         ) AS item_count,
+#             #         COUNT(
+#             #             DISTINCT CASE
+#             #                 WHEN tav.is_category = 1 
+#             #                      AND item.item_category IS NOT NULL
+#             #                      AND bom.bom_type = 'Finish Goods' 
+#             #                      AND bom.is_active = 1 
+#             #                 THEN item.name
+#             #             END
+#             #         ) AS serial_count
+#             #     FROM 
+#             #         `tabItem` AS item
+#             #     JOIN 
+#             #         `tabAttribute Value` AS tav ON item.item_category = tav.name
+#             #     LEFT JOIN 
+#             #         `tabBOM` AS bom ON item.item_code = bom.item
+#             #     WHERE 
+#             #         (tav.is_category = 1 AND item.item_category IS NOT NULL)
+#             #         OR 
+#             #         (bom.bom_type = 'Finish Goods' AND bom.is_active = 1)
+#             #     GROUP BY 
+#             #         item.item_category
+#             #         limit 5
+#             # """
+#             sql_query = """
+#             SELECT
+#                     item.item_category,
+#                     COUNT(DISTINCT CASE WHEN bom.item_code IS NOT NULL THEN item.name END) AS item_count
+#                 FROM
+#                     `tabItem` AS item
+#                 JOIN
+#                     `tabAttribute Value` AS tav
+#                         ON item.item_category = tav.name
+#                 LEFT JOIN (
+#                     SELECT DISTINCT item AS item_code
+#                     FROM `tabBOM`
+#                     WHERE bom_type = 'Finish Goods'
+#                     AND is_active = 1
+#                 ) AS bom ON item.item_code = bom.item_code
+#                 WHERE
+#                     tav.is_category = 1
+#                     AND item.item_category IS NOT NULL
+#                 GROUP BY
+#                     item.item_category
+#             """
+#             values = {}
+
+#         # Execute query safely
+#         result = frappe.db.sql(sql_query, values=values, as_dict=True)
+#         return result
+
+#     except Exception as e:
+#         frappe.log_error(f"Category Count Error: {str(e)}", "category_count")
+#         return {"error": str(e)}
+
+
 @frappe.whitelist()
 def category_count(user_type, customer=None):
     try:
+
         if user_type == "Customer":
-            # sql_query = """
-            #     SELECT 
-            #         ti.item_category,
-            #         ti.item_subcategory, 
-            #         COUNT(
-            #             DISTINCT CASE
-            #                 WHEN fbom.bom_type = 'Finish Goods' 
-            #                     AND fbom.is_active = 1 
-            #                 THEN fbom.item
-            #             END
-            #         ) AS item_count,
-            #         COUNT(
-            #             DISTINCT CASE
-            #                 WHEN fbom.bom_type = 'Finish Goods' 
-            #                     AND fbom.is_active = 1 
-            #                 THEN fbom.item
-            #             END
-            #         ) AS serial_count
-            #         COUNT(
-            #             DISTINCT CASE
-            #                 WHEN fbom.bom_type = 'Finish Goods' 
-            #                     AND fbom.is_active = 1 
-            #                 THEN fbom.item
-            #             END
-            #         ) AS total_item_count
-            #     FROM `tabCataloge Item Details` AS tci
-            #     LEFT JOIN `tabCataloge Master` AS tcm ON tcm.name = tci.parent
-            #     LEFT JOIN `tabItem` AS ti ON ti.name = tci.item_code
-            #     LEFT JOIN `tabBOM` AS tb ON ti.name = tb.item
-            #     LEFT JOIN `tabBOM` AS fbom ON fbom.item = ti.name  -- For serial_count
-            #     JOIN `tabAttribute Value` AS tav ON ti.item_category = tav.name
-            #     WHERE  
-            #         ((tav.is_category = 1 AND ti.item_category IS NOT NULL)
-            #         OR 
-            #         (fbom.bom_type = 'Finish Goods' AND tb.is_active = 1))
-            #         AND
-            #         tcm.customer = %(customer)s
-            #         AND tb.is_active = 1
-            #     GROUP BY 
-            #         ti.item_category,
-            #         # ti.item_subcategory
-            #     ORDER BY 
-            #         ti.item_category,
-            #         ti.item_subcategory
-        
-            # """
+
             sql_query = """
                 SELECT 
                     ti.item_category,
+
                     COUNT(
-                        DISTINCT CASE
-                            WHEN fbom.bom_type = 'Finish Goods' 
-                                AND fbom.is_active = 1 
-                            THEN fbom.item
-                        END
-                    ) AS item_count,
-                    COUNT(
-                        DISTINCT CASE
-                            WHEN fbom.bom_type = 'Finish Goods' 
-                                AND fbom.is_active = 1 
-                            THEN fbom.item
-                        END
-                    ) AS serial_count
+                        DISTINCT IFNULL(
+                            ti.variant_of,
+                            ti.name
+                        )
+                    ) AS item_count
+
                 FROM `tabCataloge Item Details` AS tci
-                LEFT JOIN `tabCataloge Master` AS tcm ON tcm.name = tci.parent
-                LEFT JOIN `tabItem` AS ti ON ti.name = tci.item_code
-                LEFT JOIN `tabBOM` AS tb ON ti.name = tb.item
-                LEFT JOIN `tabBOM` AS fbom ON fbom.item = ti.name
-                JOIN `tabAttribute Value` AS tav ON ti.item_category = tav.name
-                WHERE  
-                    ((tav.is_category = 1 AND ti.item_category IS NOT NULL)
-                    OR 
-                    (fbom.bom_type = 'Finish Goods' AND tb.is_active = 1))
+
+                INNER JOIN `tabCataloge Master` AS tcm
+                    ON tcm.name = tci.parent
                     AND tcm.customer = %(customer)s
-                    AND tb.is_active = 1
-                GROUP BY 
+
+                INNER JOIN `tabItem` AS ti
+                    ON ti.name = tci.item_code
+
+                INNER JOIN `tabAttribute Value` AS tav
+                    ON ti.item_category = tav.name
+                    AND tav.is_category = 1
+
+                INNER JOIN `tabBOM` AS bom
+                    ON ti.name = bom.item
+                    AND bom.is_active = 1
+                    AND bom.bom_type = 'Finish Goods'
+                    AND is_default=1
+
+                WHERE
+                    ti.item_category IS NOT NULL
+
+                GROUP BY
                     ti.item_category
-                ORDER BY 
+
+                ORDER BY
                     ti.item_category
             """
 
-            values = {"customer": customer}
+            values = {
+                "customer": customer
+            }
+
         else:
-            # sql_query = """
-            #     SELECT
-            #         item.item_category,
-            #         # item.item_subcategory,
-            #         COUNT(
-            #             DISTINCT CASE
-            #                 WHEN tav.is_category = 1 
-            #                      AND item.item_category IS NOT NULL 
-            #                      AND bom.bom_type = 'Finish Goods' 
-            #                      AND bom.is_active = 1
-            #                 THEN item.name
-            #             END
-            #         ) AS item_count,
-            #         COUNT(
-            #             DISTINCT CASE
-            #                 WHEN tav.is_category = 1 
-            #                      AND item.item_category IS NOT NULL
-            #                      AND bom.bom_type = 'Finish Goods' 
-            #                      AND bom.is_active = 1 
-            #                 THEN item.name
-            #             END
-            #         ) AS serial_count
-            #     FROM 
-            #         `tabItem` AS item
-            #     JOIN 
-            #         `tabAttribute Value` AS tav ON item.item_category = tav.name
-            #     LEFT JOIN 
-            #         `tabBOM` AS bom ON item.item_code = bom.item
-            #     WHERE 
-            #         (tav.is_category = 1 AND item.item_category IS NOT NULL)
-            #         OR 
-            #         (bom.bom_type = 'Finish Goods' AND bom.is_active = 1)
-            #     GROUP BY 
-            #         item.item_category
-            #         limit 5
-            # """
+
             sql_query = """
-            SELECT
+                SELECT
                     item.item_category,
-                    COUNT(DISTINCT CASE WHEN bom.item_code IS NOT NULL THEN item.name END) AS item_count
-                FROM
-                    `tabItem` AS item
-                JOIN
-                    `tabAttribute Value` AS tav
-                        ON item.item_category = tav.name
-                LEFT JOIN (
-                    SELECT DISTINCT item AS item_code
-                    FROM `tabBOM`
-                    WHERE bom_type = 'Finish Goods'
-                    AND is_active = 1
-                ) AS bom ON item.item_code = bom.item_code
+
+                    COUNT(
+                        DISTINCT IFNULL(
+                            item.variant_of,
+                            item.name
+                        )
+                    ) AS item_count
+
+                FROM `tabItem` AS item
+
+                INNER JOIN `tabAttribute Value` AS tav
+                    ON item.item_category = tav.name
+                    AND tav.is_category = 1
+
+                INNER JOIN `tabBOM` AS bom
+                    ON item.name = bom.item
+                    AND bom.is_active = 1
+                    AND bom.bom_type = 'Finish Goods'
+                    # AND bom.is_default = 1
+
+                INNER JOIN `tabItem Default` AS idf
+                    ON item.name = idf.parent
+                    AND idf.company = 'Gurukrupa Export Private Limited'
+
                 WHERE
-                    tav.is_category = 1
-                    AND item.item_category IS NOT NULL
+                    item.item_category IS NOT NULL
+
                 GROUP BY
                     item.item_category
+
+                ORDER BY
+                    item.item_category
             """
+
             values = {}
 
-        # Execute query safely
-        result = frappe.db.sql(sql_query, values=values, as_dict=True)
+        # ── Execute Query ─────────────────────────────────────
+        result = frappe.db.sql(
+            sql_query,
+            values=values,
+            as_dict=True
+        )
+
         return result
 
     except Exception as e:
-        frappe.log_error(f"Category Count Error: {str(e)}", "category_count")
-        return {"error": str(e)}
+
+        frappe.log_error(
+            frappe.get_traceback(),
+            "category_count Error"
+        )
+
+        return {
+            "error": str(e)
+        }
+
 
 @frappe.whitelist(allow_guest=True)
 def get_attribute_data():
@@ -4331,8 +4443,8 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
     values = {}
 
     # ---------------- FILTERS ----------------
-    sub_where = "b.bom_type = 'Finish Goods'"
-    where_clause = "1=1 AND bom.bom_type = 'Finish Goods'"
+    sub_where = "b.bom_type = 'Finish Goods' AND i.item_group != 'Design DNU'"
+    where_clause = "1=1 AND bom.bom_type = 'Finish Goods' AND item.item_group != 'Design DNU'"
 
     if metalType:
         sub_where += " AND b.metal_type = %(metalType)s"
@@ -4574,6 +4686,7 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
 
     # frappe.throw(f"Total Records: {len(db_data)}")
     return db_data
+
 
 # @frappe.whitelist(allow_guest=True)
 # def catalogue_data_final(selectedSubcategory=None, itemCategory=None, itemCode=None, metalType=None, company=None, customer=None):

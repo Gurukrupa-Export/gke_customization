@@ -74,6 +74,7 @@ def get_item_price(customer=None,item_code=None, bom=None, diamond_quality=None,
         if metal_touch not in finding_summary:
             finding_summary[metal_touch] = {
                 "setting_type": met["setting_type"],
+                "finding_sub": met["finding_sub"],
                 "gross_wt": 0,
                 "finding_amount": 0,
                 "finding_making_charge": 0
@@ -542,6 +543,7 @@ def get_finding_charges(customer, item_code,gold_rate_value, bom,metal_touch):
     
         finding_price_data.append({
             "setting_type": setting_type,
+            "finding_sub": finding_type,
             "metal_touch": touch,
             "gms": quantity,
             "gold_rate": base_rate,
