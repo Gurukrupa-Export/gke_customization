@@ -141,7 +141,7 @@ def get_data(filters):
             pri.batch_no,
             pri.qty         AS pr_qty,
             pri.rate        AS pr_rate,
-            pri.amount      AS pr_amount,
+            pri.base_amount      AS pr_amount,
             pri.purchase_order_item
         FROM `tabPurchase Receipt` pr
         INNER JOIN `tabPurchase Receipt Item` pri ON pri.parent = pr.name
@@ -496,7 +496,7 @@ def _get_standalone_pi_rows(filters):
             pii.item_code   AS item,
             pii.qty         AS pi_qty,
             pii.rate        AS pi_rate,
-            pii.amount      AS pi_amount,
+            pii.base_amount      AS pi_amount,
             pii.po_detail   AS purchase_order_item
         FROM `tabPurchase Invoice` pi
         INNER JOIN `tabPurchase Invoice Item` pii ON pii.parent = pi.name
