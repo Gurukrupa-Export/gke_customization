@@ -11,6 +11,7 @@
   "column_break_qork",
   "location",
   "customer_code",
+  "company_name",
   "section_break_zmwn",
   "csat_questionnaire_po",
   "section_break_pvct",
@@ -152,14 +153,19 @@
    "fieldname": "customer_code",
    "fieldtype": "Data",
    "label": "Customer Code"
+  },
+  {
+   "fieldname": "company_name",
+   "fieldtype": "Data",
+   "label": "Company Name"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-22 17:50:27.298232",
- "modified_by": "devendra_p@gkexport.com",
+ "modified": "2026-05-27 00:06:29.219943",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "GKE SURVEY",
  "name": "CSAT Questionnaire",
  "owner": "shubham_k@gkexport.com",
