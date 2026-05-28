@@ -32,7 +32,7 @@ def run_gold_rate_scheduler():
         doc.get_gold_rate_3()
         doc.get_gold_rate_4()
         doc.set_gold_rate_5()
-        doc.set_gold_value_6()
+        # doc.set_gold_value_6()
 
         
         doc.save(ignore_permissions=True)
@@ -55,7 +55,7 @@ class GoldRates(Document):
 		self.get_gold_rate_3()
 		self.get_gold_rate_4()
 		self.set_gold_rate_5()
-		self.set_gold_value_6()
+		# self.set_gold_value_6()
 
 
 		
@@ -77,36 +77,36 @@ class GoldRates(Document):
 
 
 
-	def set_gold_value_6(self):
-			if not (self.table_djrm and len(self.table_djrm) > 4):
-				return
+	# def set_gold_value_6(self):
+	# 		if not (self.table_djrm and len(self.table_djrm) > 4):
+	# 			return
 
-			rates = get_live_gold_rate()
-			ask  = rates.get("ask")
-			# high = rates.get("high")
-			# low  = rates.get("low")
+	# 		rates = get_live_gold_rate()
+	# 		ask  = rates.get("ask")
+	# 		# high = rates.get("high")
+	# 		# low  = rates.get("low")
 
-			if not ask:
-				frappe.msgprint("⚠️ Could not fetch live gold rate", indicator="orange")
-				return
-			import pytz
-			from datetime import datetime
-			# frappe.throw(str(ask))
-			ist = pytz.timezone('Asia/Kolkata')
-			self.table_djrm[4].set("live_rate", ask)
-			current_hour = datetime.now(pytz.utc).astimezone(ist).hour
+	# 		if not ask:
+	# 			frappe.msgprint("⚠️ Could not fetch live gold rate", indicator="orange")
+	# 			return
+	# 		import pytz
+	# 		from datetime import datetime
+	# 		# frappe.throw(str(ask))
+	# 		ist = pytz.timezone('Asia/Kolkata')
+	# 		self.table_djrm[4].set("live_rate", ask)
+	# 		current_hour = datetime.now(pytz.utc).astimezone(ist).hour
 
-			if current_hour == 9:
-				field_name = "9_am"
-			elif current_hour == 15:
-				field_name = "3_pm"
-			elif current_hour == 23:
-				field_name = "11_pm"
-			else:
-				field_name = None
+	# 		if current_hour == 9:
+	# 			field_name = "9_am"
+	# 		elif current_hour == 15:
+	# 			field_name = "3_pm"
+	# 		elif current_hour == 23:
+	# 			field_name = "11_pm"
+	# 		else:
+	# 			field_name = None
 
-			if field_name:
-				self.table_djrm[4].set(field_name, ask)
+	# 		if field_name:
+	# 			self.table_djrm[4].set(field_name, ask)
 
 
 
@@ -232,7 +232,7 @@ class GoldRates(Document):
 			name = " ".join(parts[1:-4]).strip().upper()
 
 			# if name == "GOLD 999 WITH GST IMP-IND":
-			if name == "GOLD 995 (1KG) IMPORTED T+0":
+			if name == "GOLD 999 WITH GST":
 				ask = parts[-3]   
 
 				if ask != "-":
@@ -433,177 +433,177 @@ class GoldRates(Document):
     
     # gold_rates_branch_wise.py
 
-import frappe
-import websocket
-import json
-import gzip
-import base64
-import time
-from datetime import datetime
-import pytz
+# import frappe
+# import websocket
+# import json
+# import gzip
+# import base64
+# import time
+# from datetime import datetime
+# import pytz
 
 
-# =========================================================
-# CONFIG
-# =========================================================
+# # =========================================================
+# # CONFIG
+# # =========================================================
 
-HOST = "ws://ambicaaspot.com:1001/bullion?user=ambicaa&auth=1&type=web"
+# HOST = "ws://ambicaaspot.com:1001/bullion?user=ambicaa&auth=1&type=web"
 
-RS = "\x1e"
+# RS = "\x1e"
 
-PRODUCT_NAME = "999-iMP-GOLD-1KG-today"
-
-
-# =========================================================
-# SIGNALR SEND
-# =========================================================
-
-def sr_send(ws, obj):
-
-	payload = json.dumps(
-		obj,
-		separators=(",", ":")
-	) + RS
-
-	ws.send(payload)
+# PRODUCT_NAME = "999-iMP-GOLD-1KG-today"
 
 
-# =========================================================
-# DECODE GZIP DATA
-# =========================================================
+# # =========================================================
+# # SIGNALR SEND
+# # =========================================================
 
-def decode_data(b64):
+# def sr_send(ws, obj):
 
-	compressed = base64.b64decode(b64)
+# 	payload = json.dumps(
+# 		obj,
+# 		separators=(",", ":")
+# 	) + RS
 
-	decompressed = gzip.decompress(compressed)
-
-	text = decompressed.decode()
-
-	return json.loads(text)
+# 	ws.send(payload)
 
 
-# =========================================================
-# GET LIVE GOLD RATE
-# =========================================================
+# # =========================================================
+# # DECODE GZIP DATA
+# # =========================================================
 
-def get_live_gold_rate():
+# def decode_data(b64):
 
-	result = {
-		"ask": None
-	}
+# 	compressed = base64.b64decode(b64)
 
-	def on_message(ws, message):
+# 	decompressed = gzip.decompress(compressed)
 
-		parts = message.split(RS)
+# 	text = decompressed.decode()
 
-		for part in parts:
+# 	return json.loads(text)
 
-			part = part.strip()
 
-			if not part:
-				continue
+# # =========================================================
+# # GET LIVE GOLD RATE
+# # =========================================================
 
-			try:
+# def get_live_gold_rate():
 
-				msg = json.loads(part)
+# 	result = {
+# 		"ask": None
+# 	}
 
-			except Exception:
-				continue
+# 	def on_message(ws, message):
 
-			# -------------------------------------------------
-			# SIGNALR PING
-			# -------------------------------------------------
+# 		parts = message.split(RS)
 
-			if msg.get("type") == 6:
+# 		for part in parts:
 
-				sr_send(ws, {"type": 6})
+# 			part = part.strip()
 
-				continue
+# 			if not part:
+# 				continue
 
-			# -------------------------------------------------
-			# LIVE MARKET DATA
-			# -------------------------------------------------
+# 			try:
 
-			if msg.get("target") == "workerPublish":
+# 				msg = json.loads(part)
 
-				try:
+# 			except Exception:
+# 				continue
 
-					data = decode_data(
-						msg["arguments"][0]
-					)
+# 			# -------------------------------------------------
+# 			# SIGNALR PING
+# 			# -------------------------------------------------
 
-					products = data.get("products", [])
+# 			if msg.get("type") == 6:
 
-					gold_rate = next(
-						(
-							p for p in products
-							if p.get("name") == PRODUCT_NAME
-						),
-						None
-					)
+# 				sr_send(ws, {"type": 6})
 
-					if gold_rate:
+# 				continue
 
-						result["ask"] = gold_rate.get("ask")
+# 			# -------------------------------------------------
+# 			# LIVE MARKET DATA
+# 			# -------------------------------------------------
 
-						ws.close()
+# 			if msg.get("target") == "workerPublish":
 
-				except Exception:
+# 				try:
 
-					frappe.log_error(
-						frappe.get_traceback(),
-						"Gold Rate Decode Error"
-					)
+# 					data = decode_data(
+# 						msg["arguments"][0]
+# 					)
 
-	def on_open(ws):
+# 					products = data.get("products", [])
 
-		# -------------------------------------------------
-		# SIGNALR HANDSHAKE
-		# -------------------------------------------------
+# 					gold_rate = next(
+# 						(
+# 							p for p in products
+# 							if p.get("name") == PRODUCT_NAME
+# 						),
+# 						None
+# 					)
 
-		sr_send(ws, {
-			"protocol": "json",
-			"version": 1
-		})
+# 					if gold_rate:
 
-		time.sleep(1)
+# 						result["ask"] = gold_rate.get("ask")
 
-		# -------------------------------------------------
-		# SUBSCRIBE
-		# -------------------------------------------------
+# 						ws.close()
 
-		sr_send(ws, {
-			"arguments": ["ambicaa"],
-			"invocationId": "0",
-			"target": "client",
-			"type": 1
-		})
+# 				except Exception:
 
-	def on_error(ws, error):
+# 					frappe.log_error(
+# 						frappe.get_traceback(),
+# 						"Gold Rate Decode Error"
+# 					)
 
-		frappe.log_error(
-			str(error),
-			"Gold Rate Websocket Error"
-		)
+# 	def on_open(ws):
 
-	ws = websocket.WebSocketApp(
-		HOST,
-		header=[
-			"Origin: http://ambicaaspot.com",
-			"User-Agent: Mozilla/5.0"
-		],
-		on_open=on_open,
-		on_message=on_message,
-		on_error=on_error
-	)
+# 		# -------------------------------------------------
+# 		# SIGNALR HANDSHAKE
+# 		# -------------------------------------------------
 
-	ws.run_forever(
-		ping_interval=20,
-		ping_timeout=10
-	)
+# 		sr_send(ws, {
+# 			"protocol": "json",
+# 			"version": 1
+# 		})
 
-	return result
+# 		time.sleep(1)
+
+# 		# -------------------------------------------------
+# 		# SUBSCRIBE
+# 		# -------------------------------------------------
+
+# 		sr_send(ws, {
+# 			"arguments": ["ambicaa"],
+# 			"invocationId": "0",
+# 			"target": "client",
+# 			"type": 1
+# 		})
+
+# 	def on_error(ws, error):
+
+# 		frappe.log_error(
+# 			str(error),
+# 			"Gold Rate Websocket Error"
+# 		)
+
+# 	ws = websocket.WebSocketApp(
+# 		HOST,
+# 		header=[
+# 			"Origin: http://ambicaaspot.com",
+# 			"User-Agent: Mozilla/5.0"
+# 		],
+# 		on_open=on_open,
+# 		on_message=on_message,
+# 		on_error=on_error
+# 	)
+
+# 	ws.run_forever(
+# 		ping_interval=20,
+# 		ping_timeout=10
+# 	)
+
+# 	return result
 
 
 	
