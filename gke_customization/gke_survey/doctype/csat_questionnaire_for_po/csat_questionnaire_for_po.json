@@ -6,40 +6,23 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "po_number",
-  "satisfied__dissatisfied",
-  "reason__remark"
+  "invoice_number"
  ],
  "fields": [
   {
-   "fieldname": "po_number",
+   "fieldname": "invoice_number",
    "fieldtype": "Data",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "PO Number"
-  },
-  {
-   "fieldname": "satisfied__dissatisfied",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Satisfied / Dissatisfied",
-   "options": "\nSatisfied\nDissatisfied"
-  },
-  {
-   "fieldname": "reason__remark",
-   "fieldtype": "Small Text",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Reason / Remark"
+   "label": "Invoice Number"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-20 11:12:25.343757",
- "modified_by": "Administrator",
+ "modified": "2026-05-30 11:06:27.145622",
+ "modified_by": "devendra_p@gkexport.com",
  "module": "GKE SURVEY",
  "name": "CSAT Questionnaire for PO",
  "owner": "shubham_k@gkexport.com",

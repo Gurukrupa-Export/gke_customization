@@ -15,10 +15,11 @@
   "section_break_zmwn",
   "csat_questionnaire_po",
   "section_break_pvct",
+  "satisfied_invoice",
   "design_accuracy",
-  "finishing_setting",
   "column_break_tvbc",
   "diamond_quality",
+  "finishing_setting",
   "section_break_tfia",
   "rate_following_services",
   "on_time_delivery",
@@ -138,7 +139,7 @@
   {
    "fieldname": "section_break_zmwn",
    "fieldtype": "Section Break",
-   "label": "Are you Satisfied with all PO received from Gurukrupa?"
+   "label": "Are you Satisfied with all invoice received from Gurukrupa?"
   },
   {
    "fieldname": "section_break_pvct",
@@ -158,14 +159,20 @@
    "fieldname": "company_name",
    "fieldtype": "Data",
    "label": "Company Name"
+  },
+  {
+   "fieldname": "satisfied_invoice",
+   "fieldtype": "Select",
+   "label": "Satisfied with Invoice",
+   "options": "\nYes\nNo"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-27 00:06:29.219943",
- "modified_by": "shubham_k@gkexport.com",
+ "modified": "2026-05-30 12:01:00.372752",
+ "modified_by": "devendra_p@gkexport.com",
  "module": "GKE SURVEY",
  "name": "CSAT Questionnaire",
  "owner": "shubham_k@gkexport.com",
