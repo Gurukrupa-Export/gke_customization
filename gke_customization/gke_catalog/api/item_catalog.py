@@ -1,7 +1,7 @@
 import frappe
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def merge_data():
     try:
         sql_query = """
@@ -916,7 +916,7 @@ def get_employee():
 #     return formatted_data
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_employee_permission():
     try:
         sql_query = """

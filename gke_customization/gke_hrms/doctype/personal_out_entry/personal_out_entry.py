@@ -151,13 +151,23 @@ class PersonalOutEntry(Document):
 		# SQL expression for outside_shift:
 		# normal shift (start < end): checkout < start OR checkout > end
 		# night shift  (start > end): checkout > end AND checkout < start
+		# normal_shift = (
+		# 	(emp_det.shift_start < emp_det.shift_end)
+		# 	&
+		# 	(
+		# 		(checkout_time > emp_det.shift_start)
+		# 		&
+		# 		(checkout_time < emp_det.shift_end)
+		# 	)
+		# )
+		#bhavika
 		normal_shift = (
 			(emp_det.shift_start < emp_det.shift_end)
 			&
 			(
-				(checkout_time > emp_det.shift_start)
-				&
-				(checkout_time < emp_det.shift_end)
+				( (checkout_time > emp_det.shift_start) & (checkout_time < emp_det.shift_end) )
+				| 
+				( checkout_time > emp_det.shift_end )
 			)
 		)
 

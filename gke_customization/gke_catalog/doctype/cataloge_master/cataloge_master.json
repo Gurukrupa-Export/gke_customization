@@ -15,7 +15,11 @@
   "cataloge_item_details",
   "amended_from",
   "catalogue_collection_details",
-  "naming_series"
+  "naming_series",
+  "permission_tab",
+  "allow_excel_permission",
+  "diamond_quality_section",
+  "diamond_quality"
  ],
  "fields": [
   {
@@ -79,12 +83,34 @@
   {
    "fieldname": "section_break_y49v",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "permission_tab",
+   "fieldtype": "Tab Break",
+   "label": "Permission"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow_excel_permission",
+   "fieldtype": "Check",
+   "label": "Allow Excel Permission"
+  },
+  {
+   "fieldname": "diamond_quality_section",
+   "fieldtype": "Section Break",
+   "label": "Diamond Quality"
+  },
+  {
+   "fieldname": "diamond_quality",
+   "fieldtype": "Table",
+   "label": "Diamond Quality",
+   "options": "Customer Diamond Grade"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-06 15:47:10.744539",
+ "modified": "2026-05-22 16:03:48.664481",
  "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE Catalog",
  "name": "Cataloge Master",

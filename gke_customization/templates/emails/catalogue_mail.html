@@ -1,0 +1,253 @@
+{# ─────────────────────────────────────────────────────────────────────────── #}
+{# FILE: gke_customization/templates/emails/catalogue_mail.html              #}
+{# Variables: customer_name, source_label, items, total_items,               #}
+{#            wishlist_count, trending_count                                  #}
+{# ─────────────────────────────────────────────────────────────────────────── #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Catalogue Items</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f0ea;
+             font-family:'Segoe UI',Arial,sans-serif;">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       OUTER WRAPPER
+  ════════════════════════════════════════════════════════════════════════ -->
+  <table width="100%" cellpadding="0" cellspacing="0"
+         style="background:#f5f0ea;padding:30px 0;">
+    <tr>
+      <td align="center">
+        <table width="660" cellpadding="0" cellspacing="0"
+               style="background:#ffffff;border-radius:16px;
+                      box-shadow:0 4px 20px rgba(0,0,0,0.10);
+                      overflow:hidden;max-width:660px;width:100%;">
+
+          <!-- ── HEADER ──────────────────────────────────────────────────── -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#c9954a 0%,#7a4a1e 100%);
+                       padding:32px 36px;text-align:center;">
+              <p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;
+                        color:#fde8c4;text-transform:uppercase;">
+                Gurukrupa Export Private Limited
+              </p>
+              <h1 style="margin:0;font-size:24px;color:#ffffff;font-weight:700;">
+                Catalogue Item Report
+              </h1>
+              <p style="margin:10px 0 0;font-size:13px;color:#fde8c4;">
+                Source: <strong>{{ source_label }}</strong>
+              </p>
+            </td>
+          </tr>
+
+          <!-- ── GREETING ─────────────────────────────────────────────────── -->
+          <tr>
+            <td style="padding:24px 36px 8px;">
+              <p style="margin:0;font-size:15px;color:#333;">
+                Dear <strong>{{ customer_name }}</strong>,
+              </p>
+              <p style="margin:10px 0 0;font-size:14px;color:#666;line-height:1.6;">
+                Please find below your
+                <strong>{{ total_items }}</strong> catalogue item(s)
+                from <em>{{ source_label }}</em>.
+                Each card contains complete weight, diamond, gemstone and metal details.
+              </p>
+            </td>
+          </tr>
+
+          <!-- ── SUMMARY STRIP ─────────────────────────────────────────────── -->
+          <tr>
+            <td style="padding:16px 36px;">
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:#fdf6ee;border-radius:10px;">
+                <tr>
+                  <td align="center" style="padding:14px 10px;
+                                            font-size:12px;color:#8B5E2E;">
+                    <span style="display:block;font-size:26px;font-weight:700;
+                                 color:#c9954a;">{{ total_items }}</span>
+                    Total Items
+                  </td>
+                  <td align="center"
+                      style="padding:14px 10px;font-size:12px;color:#8B5E2E;
+                             border-left:1px solid #e8d9c4;
+                             border-right:1px solid #e8d9c4;">
+                    <span style="display:block;font-size:26px;font-weight:700;
+                                 color:#c9954a;">{{ wishlist_count }}</span>
+                    Wishlisted
+                  </td>
+                  <td align="center" style="padding:14px 10px;
+                                            font-size:12px;color:#8B5E2E;">
+                    <span style="display:block;font-size:26px;font-weight:700;
+                                 color:#c9954a;">{{ trending_count }}</span>
+                    Trending
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ── ITEM CARDS ────────────────────────────────────────────────── -->
+          <tr>
+            <td style="padding:8px 24px 24px;">
+
+              {% for item in items %}
+
+              {# ── resolve fields with fallback ── #}
+              {% set item_code      = item.item_code or item.name or "N/A" %}
+              {% set item_category  = item.item_category or "N/A" %}
+              {% set item_subcat    = item.item_subcategory or "N/A" %}
+              {% set image_url      = item.image or "" %}
+              {% set gross_wt       = item.gross_metal_weight or "N/A" %}
+              {% set net_wt         = item.net_metal_finding_weight or "N/A" %}
+              {% set diamond_wt     = item.total_diamond_weight_in_gms or "N/A" %}
+              {% set diamond_pcs    = item.total_diamond_pcs or "N/A" %}
+              {% set diamond_q      = item.diamond_quality or "N/A" %}
+              {% set gemstone_wt    = item.total_gemstone_weight_in_gms or "N/A" %}
+              {% set gemstone_pcs   = item.total_gemstone_pcs or "N/A" %}
+              {% set metal_types    = item.metal_types or "N/A" %}
+              {% set metal_color    = item.metal_color or "N/A" %}
+              {% set metal_touch    = item.metal_touch or item.bom_touch or "N/A" %}
+              {% set setting_type   = item.setting_type or "N/A" %}
+              {% set tag_no         = item.tag_no or "N/A" %}
+              {% set folder         = item.folder or "—" %}
+              {% set is_wishlist    = item.wishlist == 1 %}
+              {% set is_trending    = item.trending == 1 %}
+
+              <table cellpadding="0" cellspacing="0"
+                     style="display:inline-table;vertical-align:top;
+                            width:175px;background:#ffffff;
+                            border:1px solid #e8e0d5;border-radius:12px;
+                            margin:8px;overflow:hidden;
+                            box-shadow:0 2px 8px rgba(0,0,0,0.07);">
+
+                {# ── image row ── #}
+                <tr>
+                  <td colspan="2" align="center"
+                      style="padding:12px 12px 6px;background:#fdf8f3;">
+                    {% if image_url %}
+                      <img src="{{ image_url }}" alt="Item Image"
+                           style="width:150px;height:140px;object-fit:cover;
+                                  border-radius:8px;" />
+                    {% else %}
+                      <div style="width:150px;height:140px;background:#f0ebe3;
+                                  border-radius:8px;line-height:140px;
+                                  text-align:center;color:#bbb;font-size:12px;">
+                        No Image
+                      </div>
+                    {% endif %}
+                  </td>
+                </tr>
+
+                {# ── item code heading ── #}
+                <tr>
+                  <td colspan="2"
+                      style="padding:8px 10px 6px;font-size:12px;font-weight:700;
+                             color:#2c2c2c;border-bottom:1px solid #f0ebe3;">
+                    {{ item_code }}
+                  </td>
+                </tr>
+
+                {# ── badges row ── #}
+                <tr>
+                  <td colspan="2" style="padding:4px 10px;">
+                    {% if is_wishlist %}
+                      <span style="background:#fff0f0;color:#d94f4f;font-size:10px;
+                                   padding:2px 7px;border-radius:20px;
+                                   margin-right:4px;">&#9829; Wishlist</span>
+                    {% endif %}
+                    {% if is_trending %}
+                      <span style="background:#fff7e6;color:#c9954a;font-size:10px;
+                                   padding:2px 7px;border-radius:20px;">&#128293; Trending</span>
+                    {% endif %}
+                  </td>
+                </tr>
+
+                {# ── detail rows helper macro ── #}
+                {% macro row(label, value) %}
+                <tr>
+                  <td style="padding:2px 10px;font-size:10.5px;color:#999;
+                             white-space:nowrap;">{{ label }}</td>
+                  <td style="padding:2px 10px 2px 4px;font-size:10.5px;
+                             color:#444;text-align:right;font-weight:600;">
+                    {{ value }}
+                  </td>
+                </tr>
+                {% endmacro %}
+
+                {# ── section header macro ── #}
+                {% macro section(title) %}
+                <tr>
+                  <td colspan="2"
+                      style="padding:6px 10px 2px;font-size:10px;font-weight:700;
+                             color:#b5895a;text-transform:uppercase;
+                             letter-spacing:0.5px;border-top:1px solid #f5ede0;">
+                    {{ title }}
+                  </td>
+                </tr>
+                {% endmacro %}
+
+                {{ section("Basic Info") }}
+                {{ row("Category",    item_category) }}
+                {{ row("Sub-Category",item_subcat) }}
+                {{ row("Tag No",      tag_no) }}
+                {{ row("Setting",     setting_type) }}
+
+                {{ section("Weight") }}
+                {{ row("Gross Metal", gross_wt ~ " g") }}
+                {{ row("Net Mtl+Find",net_wt  ~ " g") }}
+
+                {{ section("Diamond") }}
+                {{ row("Weight",  diamond_wt  ~ " g") }}
+                {{ row("Pieces",  diamond_pcs) }}
+                {{ row("Quality", diamond_q) }}
+
+                {{ section("Gemstone") }}
+                {{ row("Weight", gemstone_wt ~ " g") }}
+                {{ row("Pieces", gemstone_pcs) }}
+
+                {{ section("Metal") }}
+                {{ row("Type",   metal_types) }}
+                {{ row("Color",  metal_color) }}
+                {{ row("Touch",  metal_touch) }}
+
+                {% if folder and folder != "—" %}
+                {{ section("Folder") }}
+                {{ row("Folder", folder) }}
+                {% endif %}
+
+                <tr><td colspan="2" style="height:8px;"></td></tr>
+
+              </table>
+
+              {% else %}
+              <p style="padding:20px 36px;color:#999;font-size:14px;">
+                No items found.
+              </p>
+              {% endfor %}
+
+            </td>
+          </tr>
+
+          <!-- ── FOOTER ────────────────────────────────────────────────────── -->
+          <tr>
+            <td style="background:#f7f2ec;padding:20px 36px;
+                       border-top:1px solid #e8e0d5;text-align:center;">
+              <p style="margin:0;font-size:11px;color:#aaa;line-height:1.7;">
+                This is an auto-generated email from<br/>
+                <strong style="color:#c9954a;">
+                  Gurukrupa Export Private Limited
+                </strong><br/>
+                Please do not reply directly to this email.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

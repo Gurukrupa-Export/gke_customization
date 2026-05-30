@@ -234,7 +234,7 @@ def add_item_in_folder_user(status=None, name=None, item=None, customer=None):
     return {"message": "Updated successfully"}
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_attribute_data_for_user():
     Sizer_Type = frappe.get_doc("Item Attribute", "Sizer Type")
     
