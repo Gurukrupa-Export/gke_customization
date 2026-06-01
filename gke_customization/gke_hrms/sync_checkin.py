@@ -213,48 +213,105 @@ def _determine_log_type(employee, log_dt):
     actual_start = curr_shift.get("actual_start")
     actual_end = curr_shift.get("actual_end")
 
-    if actual_start and actual_end:
-        punch_dt = get_datetime(log_dt)
-        if not (actual_start <= punch_dt <= actual_end):
-            # Outside the shift window — treat as a standalone IN
-            return "IN"
-
+    # old
+    # if actual_start and actual_end:
+    #     punch_dt = get_datetime(log_dt)
+    #     if not (actual_start <= punch_dt <= actual_end):
+    #         # Outside the shift window — treat as a standalone IN
+    #         return "IN"
+    
     # ── Query last checkin within this shift's actual window ─────────
     # Use actual_start/actual_end (which include the grace period) so that
     # early-arrival punches (e.g. 20:59 for a 21:00 shift) are included
     # in the lookup.  This is critical for correct IN/OUT toggling.
+    # query_start = actual_start or curr_shift.get("start_datetime")
+    # query_end = actual_end or curr_shift.get("end_datetime")
+
+    # if query_start and query_end:
+    #     last_log = frappe.db.sql(
+    #         """
+    #         SELECT log_type
+    #         FROM `tabEmployee Checkin`
+    #         WHERE employee = %s
+    #           AND time >= %s
+    #           AND time <= %s
+    #           AND time < %s
+    #         ORDER BY time DESC
+    #         LIMIT 1
+    #         """,
+    #         (employee, query_start, query_end, log_dt),
+    #         as_dict=True,
+    #     )
+    # else:
+    #     # Fallback: look at same calendar day
+    #     log_date_str = log_dt.strftime("%Y-%m-%d")
+    #     last_log = frappe.db.sql(
+    #         """
+    #         SELECT log_type
+    #         FROM `tabEmployee Checkin`
+    #         WHERE employee = %s
+    #           AND DATE(time) = %s
+    #           AND time < %s
+    #         ORDER BY time DESC
+    #         LIMIT 1
+    #         """,
+    #         (employee, log_date_str, log_dt),
+    #         as_dict=True,
+    #     )
+    
+    # new 11-05-2026
+    punch_dt = get_datetime(log_dt)
+
+    # Do not force IN for outside-shift punches.
+    # Night shifts crossing midnight can legitimately
+    # have punches near boundary times.
+    outside_shift = False
+
+    if actual_start and actual_end:
+        outside_shift = not (actual_start <= punch_dt <= actual_end)
+        
     query_start = actual_start or curr_shift.get("start_datetime")
     query_end = actual_end or curr_shift.get("end_datetime")
 
-    if query_start and query_end:
+    last_log = []
+
+    # First try current shift window
+    if not outside_shift and query_start and query_end:
         last_log = frappe.db.sql(
             """
-            SELECT log_type
+            SELECT log_type, time
             FROM `tabEmployee Checkin`
             WHERE employee = %s
-              AND time >= %s
-              AND time <= %s
-              AND time < %s
+            AND time >= %s
+            AND time <= %s
+            AND time < %s
             ORDER BY time DESC
             LIMIT 1
             """,
             (employee, query_start, query_end, log_dt),
             as_dict=True,
         )
-    else:
-        # Fallback: look at same calendar day
-        log_date_str = log_dt.strftime("%Y-%m-%d")
+    # Detect night shift
+    is_night_shift = False
+
+    shift_start = curr_shift.get("start_datetime")
+    shift_end = curr_shift.get("end_datetime")
+
+    if shift_start and shift_end:
+        is_night_shift = shift_end.date() > shift_start.date()
+    
+    # Fallback to latest punch globally
+    if not last_log and is_night_shift:
         last_log = frappe.db.sql(
             """
-            SELECT log_type
+            SELECT log_type, time
             FROM `tabEmployee Checkin`
             WHERE employee = %s
-              AND DATE(time) = %s
-              AND time < %s
+            AND time < %s
             ORDER BY time DESC
             LIMIT 1
             """,
-            (employee, log_date_str, log_dt),
+            (employee, log_dt),
             as_dict=True,
         )
 
