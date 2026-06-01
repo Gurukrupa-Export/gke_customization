@@ -22,7 +22,8 @@
   "invoice_pending",
   "invoice_no",
   "invoice_date",
-  "month_name"
+  "month_name",
+  "attachment"
  ],
  "fields": [
   {
@@ -119,14 +120,19 @@
    "fieldtype": "Data",
    "hidden": 1,
    "label": "Month Name"
+  },
+  {
+   "fieldname": "attachment",
+   "fieldtype": "Attach Image",
+   "label": "Attachment"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-25 13:14:05.411868",
- "modified_by": "Administrator",
+ "modified": "2026-06-01 10:19:33.395228",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "GKE SURVEY",
  "name": "Gold Rate Cut",
  "naming_rule": "Expression",
