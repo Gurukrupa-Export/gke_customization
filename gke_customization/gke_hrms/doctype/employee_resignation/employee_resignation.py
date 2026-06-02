@@ -11,7 +11,9 @@ class EmployeeResignation(Document):
 		# workflow_state = frappe.db.get_value("Employee Resignation", {'employee': self.employee, 'workflow_state': 'Rejected' } , ['workflow_state'] )
 		# if workflow_state == 'Rejected':
 		# 	frappe.throw(f'{self.employee} can not fill the Resignation Form')
-			
+		
+		self.validate_duplicate_resignation() # shubham
+
 		if self.workflow_state == 'Send to Manager':
 			if self.reporting_manager_approval:
 				if self.reporting_manager_approval == 'Approved':
@@ -35,6 +37,23 @@ class EmployeeResignation(Document):
 			self.is_employee_on_probation = 'Yes'
 		else:
 			self.is_employee_on_probation = 'No'
+
+	def validate_duplicate_resignation(self): # shubham
+		existing = frappe.db.exists(
+			"Employee Resignation",
+			{
+				"employee": self.employee,
+				"docstatus": ["!=", 2],  
+				"workflow_state": ["not in", ["Rejected"]],
+				"name": ["!=", self.name]
+			}
+		)
+
+		if existing:
+			frappe.throw(
+				("Employee Resignation already exists for Employee {0}")
+				.format(self.employee)
+			)
 
 @frappe.whitelist()
 def create_employee_resignation(source_name, target_doc=None):

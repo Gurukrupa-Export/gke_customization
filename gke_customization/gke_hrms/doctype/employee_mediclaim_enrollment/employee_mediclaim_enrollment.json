@@ -1,0 +1,271 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "format:MED-{YYYY}-{punch_id}",
+ "creation": "2026-02-23 17:50:04.730245",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "employee_details_section",
+  "punch_id",
+  "employee",
+  "employee_name",
+  "old_employee_code",
+  "column_break_gxoh",
+  "company",
+  "department",
+  "designation",
+  "branch",
+  "section_break_poqa",
+  "date_of_birth",
+  "date_of_joining",
+  "age",
+  "column_break_wzir",
+  "gender",
+  "marital_status",
+  "employment_status",
+  "personal_details_section",
+  "address",
+  "column_break_rlyc",
+  "aadhaar_number",
+  "name_as_per_aadhaar",
+  "coverage_details_section",
+  "insured_by_company",
+  "column_break_joez",
+  "additional_insured",
+  "column_break_gpxi",
+  "total",
+  "dependents_section",
+  "family_details"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee_details_section",
+   "fieldtype": "Section Break",
+   "label": "Employee Details"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "punch_id",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Punch ID",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_gxoh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "section_break_poqa",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "employee.date_of_joining",
+   "fetch_if_empty": 1,
+   "fieldname": "date_of_joining",
+   "fieldtype": "Date",
+   "label": "Date of Joining"
+  },
+  {
+   "fieldname": "column_break_wzir",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.date_of_birth",
+   "fieldname": "date_of_birth",
+   "fieldtype": "Date",
+   "label": "Date of Birth"
+  },
+  {
+   "fetch_from": "employee.marital_status",
+   "fetch_if_empty": 1,
+   "fieldname": "marital_status",
+   "fieldtype": "Select",
+   "label": "Marital Status",
+   "options": "Single\nMarried"
+  },
+  {
+   "fieldname": "personal_details_section",
+   "fieldtype": "Section Break",
+   "label": "Personal Details"
+  },
+  {
+   "fetch_from": "employee.current_address",
+   "fetch_if_empty": 1,
+   "fieldname": "address",
+   "fieldtype": "Small Text",
+   "label": "Address"
+  },
+  {
+   "fieldname": "column_break_rlyc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.aadhar_number",
+   "fetch_if_empty": 1,
+   "fieldname": "aadhaar_number",
+   "fieldtype": "Data",
+   "label": "Aadhaar Number",
+   "length": 12
+  },
+  {
+   "fetch_from": "employee.name_as_per_aadhar",
+   "fetch_if_empty": 1,
+   "fieldname": "name_as_per_aadhaar",
+   "fieldtype": "Data",
+   "label": "Name as per Aadhaar"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "family_details",
+   "fieldtype": "Table",
+   "label": "Family Details",
+   "options": "Employee Mediclaim Table"
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fetch_from": "employee.gender",
+   "fieldname": "gender",
+   "fieldtype": "Link",
+   "label": "Gender",
+   "options": "Gender"
+  },
+  {
+   "fetch_from": "employee.old_employee_code",
+   "fieldname": "old_employee_code",
+   "fieldtype": "Data",
+   "label": "Old Employee Code"
+  },
+  {
+   "fieldname": "coverage_details_section",
+   "fieldtype": "Section Break",
+   "label": "Coverage Details"
+  },
+  {
+   "default": "100000",
+   "fieldname": "insured_by_company",
+   "fieldtype": "Currency",
+   "label": "Insured by Company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_joez",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "additional_insured",
+   "fieldtype": "Select",
+   "label": "Additional Insured",
+   "options": "\n1 Lakh\n2 Lakh\n3 Lakh\n4 Lakh\n5 Lakh\n6 Lakh\n7 Lakh\n8 Lakh\n9 Lakh\n10 Lakh\n11 Lakh\n12 Lakh\n13 Lakh\n14 Lakh\n15 Lakh",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_gpxi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "total",
+   "fieldtype": "Currency",
+   "label": "Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dependents_section",
+   "fieldtype": "Section Break",
+   "label": "Dependents"
+  },
+  {
+   "fetch_from": "employee.branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "age",
+   "fieldtype": "Int",
+   "label": "Age",
+   "length": 3,
+   "non_negative": 1,
+   "precision": "1"
+  },
+  {
+   "default": "Employed",
+   "fieldname": "employment_status",
+   "fieldtype": "Select",
+   "label": "Employment Status",
+   "options": "Employed\nUn-Employed"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-02-24 17:19:55.594146",
+ "modified_by": "aditya_r@gkexport.com",
+ "module": "GKE HRMS",
+ "name": "Employee Mediclaim Enrollment",
+ "naming_rule": "Expression",
+ "owner": "aditya_r@gkexport.com",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
