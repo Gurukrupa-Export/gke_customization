@@ -7,23 +7,22 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "category",
-  "subcategory",
-  "rate_per_gm",
-  "rate_per_pc",
-  "rate_per_diamond",
-  "column_break_4",
-  "wastage",
-  "rate_per_gm_threshold",
-  "section_break_hmzwl",
-  "new_rate_per_gm",
-  "new_rate_per_pc",
-  "new_rate_per_diamond",
-  "column_break_blesy",
-  "new_wastage",
-  "new_rate_per_gm_threshold",
-  "section_break_g7dd1",
-  "making_charge_price_finding_subcategory"
+  "date",
+  "customer",
+  "customer_name",
+  "setting_type",
+  "subcontracting_rate",
+  "column_break_qywjr",
+  "metal_type",
+  "metal_touch",
+  "subcontracting_wastage",
+  "amended_from",
+  "from_gold_rate",
+  "to_gold_rate",
+  "section_break_okj7w",
+  "revise_making_charge_price_item_subcategory",
+  "section_break_6qxib",
+  "revise_making_charge_price_finding_subcategory"
  ],
  "fields": [
   {
@@ -75,9 +74,12 @@
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "new_rate_per_gm",
-   "fieldtype": "Float",
-   "label": "New Rate per gm"
+   "allow_bulk_edit": 1,
+   "fieldname": "revise_making_charge_price_item_subcategory",
+   "fieldtype": "Table",
+   "label": "Revise Making Charge Price Item Subcategory",
+   "no_copy": 1,
+   "options": "Revise Making Charge Price Item Subcategory"
   },
   {
    "fieldname": "new_rate_per_pc",
@@ -90,8 +92,12 @@
    "label": "New Rate per diamond"
   },
   {
-   "fieldname": "column_break_blesy",
-   "fieldtype": "Column Break"
+   "allow_bulk_edit": 1,
+   "fieldname": "revise_making_charge_price_finding_subcategory",
+   "fieldtype": "Table",
+   "label": "Revise Making Charge Price Finding Subcategory",
+   "no_copy": 1,
+   "options": "Revise Making Charge Price Finding Subcategory"
   },
   {
    "fieldname": "new_wastage",
@@ -104,22 +110,19 @@
    "label": "New Rate per gm Threshold"
   },
   {
-   "fieldname": "section_break_g7dd1",
-   "fieldtype": "Section Break"
+   "fieldname": "subcontracting_wastage",
+   "fieldtype": "Percent",
+   "label": "Subcontracting Wastage"
   },
   {
-   "fieldname": "making_charge_price_finding_subcategory",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "Making Charge Price Item Subcategory",
-   "options": "Making Charge Price Finding Subcategory"
+   "fieldname": "from_gold_rate",
+   "fieldtype": "Float",
+   "label": "From Gold Rate"
   },
   {
-   "fetch_from": "subcategory.parent_attribute_value",
-   "fieldname": "category",
-   "fieldtype": "Link",
-   "label": "Category",
-   "options": "Attribute Value"
+   "fieldname": "to_gold_rate",
+   "fieldtype": "Float",
+   "label": "To Gold Rate"
   }
  ],
  "index_web_pages_for_search": 1,
