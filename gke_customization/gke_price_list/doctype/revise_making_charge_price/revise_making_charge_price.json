@@ -18,6 +18,8 @@
   "metal_touch",
   "subcontracting_wastage",
   "amended_from",
+  "from_gold_rate",
+  "to_gold_rate",
   "section_break_okj7w",
   "revise_making_charge_price_item_subcategory",
   "section_break_6qxib",
@@ -66,9 +68,11 @@
    "fieldtype": "Section Break"
   },
   {
+   "allow_bulk_edit": 1,
    "fieldname": "revise_making_charge_price_item_subcategory",
    "fieldtype": "Table",
    "label": "Revise Making Charge Price Item Subcategory",
+   "no_copy": 1,
    "options": "Revise Making Charge Price Item Subcategory"
   },
   {
@@ -82,9 +86,11 @@
    "fieldtype": "Section Break"
   },
   {
+   "allow_bulk_edit": 1,
    "fieldname": "revise_making_charge_price_finding_subcategory",
    "fieldtype": "Table",
    "label": "Revise Making Charge Price Finding Subcategory",
+   "no_copy": 1,
    "options": "Revise Making Charge Price Finding Subcategory"
   },
   {
@@ -103,13 +109,23 @@
    "fieldname": "subcontracting_wastage",
    "fieldtype": "Percent",
    "label": "Subcontracting Wastage"
+  },
+  {
+   "fieldname": "from_gold_rate",
+   "fieldtype": "Float",
+   "label": "From Gold Rate"
+  },
+  {
+   "fieldname": "to_gold_rate",
+   "fieldtype": "Float",
+   "label": "To Gold Rate"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-23 18:40:34.223420",
- "modified_by": "Administrator",
+ "modified": "2026-02-10 16:39:17.557602",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "Gke Price List",
  "name": "Revise Making Charge Price",
  "owner": "Administrator",
@@ -127,6 +143,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
