@@ -144,7 +144,11 @@ class MonthlyInOutLog(Document):
             self.spent_hrs = fmt_td_or_value(record.get("spent_hrs") or record.get("spent_hours"))
             
             # net_wrk_hrs may be timedelta; keep as string
-            self.net_wrk_hrs = fmt_td_or_value(record.get("net_wrk_hrs"))
+            # if net_wrk_hrs is negative then convert into positive
+            net_wrk_hrs = record.get("net_wrk_hrs")
+            if net_wrk_hrs and net_wrk_hrs < timedelta(0):
+                net_wrk_hrs = -net_wrk_hrs
+            self.net_wrk_hrs = fmt_td_or_value(net_wrk_hrs)
 
             self.in_time = fmt_td_or_value(record.get("in_time"))
             self.out_time = fmt_td_or_value(record.get("out_time"))
@@ -399,6 +403,47 @@ def get_data(filters):
 			################################################
 			
 			pol_subquery.hrs.as_('p_out_hrs'),
+
+			# SEC_TO_TIME(
+			# 	IF(
+			# 		# FIXED: Check for LWP first - force 0 hours
+			# 		(Attendance.status == "On Leave") & 
+			# 		(Attendance.leave_type == "Leave Without Pay"),
+			# 		0,
+			# 		IF(
+			# 			# Check for Absent - force 0 hours
+			# 			Attendance.status == "Absent",
+			# 			0,
+			# 			IF(
+			# 				# Check for paid leaves (not LWP) - use shift hours
+			# 				( (Attendance.status == "On Leave") & 
+			# 				(Attendance.leave_type.isin(frappe.db.get_list('Leave Type', filters={'is_lwp': 0}, pluck='name')) ) ),
+			# 				ShiftType.shift_hours * 3600,
+			# 				# For Present/WFH - calculate actual hours
+			# 				IF(Attendance.out_time, TIME_TO_SEC(TIMEDIFF(Attendance.out_time, Attendance.in_time)), Attendance.working_hours * 3600)
+			# 			)
+			# 		)
+			# 	)
+			# 	+ IF((Attendance.late_entry == 0) & (TIME(Attendance.in_time) > ShiftType.start_time),
+			# 		TIME_TO_SEC(TIMEDIFF(TIME(Attendance.in_time), ShiftType.start_time)), 0)
+			# 	- IF(TIME(Attendance.in_time) < ShiftType.start_time,
+			# 		TIME_TO_SEC(TIMEDIFF(ShiftType.start_time, TIME(Attendance.in_time))), 0)
+				
+			# 	- IF(Attendance.out_time > TIMESTAMP(Date(Attendance.in_time), ShiftType.end_time),
+			# 		TIME_TO_SEC(TIMEDIFF(Attendance.out_time, TIMESTAMP(Date(Attendance.in_time), ShiftType.end_time))), 0)
+				
+			# 	- IfNull(TIME_TO_SEC(pol_subquery.hrs), 0)
+			# 	+ (
+			# 		frappe.qb.from_(PersonalOutLog)
+			# 		.select(IfNull(Sum(TIME_TO_SEC(PersonalOutLog.total_hours)), 0))
+			# 		.where(
+			# 			(PersonalOutLog.is_cancelled == 0) &
+			# 			(PersonalOutLog.employee == Attendance.employee) &
+			# 			(PersonalOutLog.date == Attendance.attendance_date) &
+			# 			(PersonalOutLog.out_time >= ShiftType.end_time)
+			# 		)
+			# 	)
+			# ).as_('net_wrk_hrs'),
 
 			################################################
 			# ✅ FIXED NET WORKING HOURS -- Negative hours Issue solved
