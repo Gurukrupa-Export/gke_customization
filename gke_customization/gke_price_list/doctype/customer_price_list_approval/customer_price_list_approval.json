@@ -1,0 +1,196 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-01-03 14:26:29.943966",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "customer",
+  "customer_name",
+  "price_list_for",
+  "diamond_type",
+  "stone_shape",
+  "customer_diamond_quality",
+  "company_rate",
+  "customer_rate",
+  "customer_signature",
+  "column_break_ekhx",
+  "date",
+  "company",
+  "price_list_type",
+  "from_wt",
+  "to_wt",
+  "sieve_size_range",
+  "size_in_mm",
+  "section_break_uxfm",
+  "customer_price_list__details",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "price_list_for",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Price List For",
+   "options": "\nDiamond\nMaking\nGemstone\nPayment Term",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.price_list_for == \"Diamond\"",
+   "fieldname": "diamond_type",
+   "fieldtype": "Link",
+   "label": "Diamond Type",
+   "link_filters": "[[\"Attribute Value\",\"custom_is_diamond_type\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.price_list_for == \"Diamond\"",
+   "fieldname": "stone_shape",
+   "fieldtype": "Link",
+   "label": "Stone Shape",
+   "link_filters": "[[\"Attribute Value\",\"is_stone_shape\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.price_list_for == \"Diamond\"",
+   "fieldname": "customer_diamond_quality",
+   "fieldtype": "Data",
+   "label": "Customer Diamond Quality"
+  },
+  {
+   "fieldname": "company_rate",
+   "fieldtype": "Currency",
+   "label": "Company Rate",
+   "options": "currency"
+  },
+  {
+   "fieldname": "customer_rate",
+   "fieldtype": "Currency",
+   "label": "Customer Rate",
+   "options": "currency"
+  },
+  {
+   "fieldname": "customer_signature",
+   "fieldtype": "Signature",
+   "label": "Customer Signature"
+  },
+  {
+   "fieldname": "column_break_ekhx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Now",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "price_list_type",
+   "fieldtype": "Select",
+   "label": "Price List Type",
+   "options": "\nWt\nSieve Size range\nSize in MM"
+  },
+  {
+   "depends_on": "eval:doc.price_list_type == \"Wt\" && doc.price_list_for == \"Diamond\"",
+   "fieldname": "from_wt",
+   "fieldtype": "Float",
+   "label": "From Wt"
+  },
+  {
+   "depends_on": "eval:doc.price_list_type == \"Wt\" && doc.price_list_for == \"Diamond\"",
+   "fieldname": "to_wt",
+   "fieldtype": "Float",
+   "label": "To Wt"
+  },
+  {
+   "depends_on": "eval:doc.price_list_type == \"Sieve Size range\" && doc.price_list_for == \"Diamond\"\r\n",
+   "fieldname": "sieve_size_range",
+   "fieldtype": "Link",
+   "label": "Sieve Size range",
+   "link_filters": "[[\"Attribute Value\",\"is_diamond_sieve_size_range\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.price_list_type == \"Size in MM\" && doc.price_list_for == \"Diamond\"",
+   "fieldname": "size_in_mm",
+   "fieldtype": "Link",
+   "label": "Size in MM",
+   "link_filters": "[[\"Attribute Value\",\"is_diamond_size_in_mm\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "section_break_uxfm",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "customer_price_list__details",
+   "fieldtype": "Table",
+   "label": "Customer Price List  Details",
+   "options": "Customer Price List Approval Details",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Customer Price List Approval",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-01-06 17:52:04.292861",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Customer Price List Approval",
+ "owner": "shubham_k@gkexport.com",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
