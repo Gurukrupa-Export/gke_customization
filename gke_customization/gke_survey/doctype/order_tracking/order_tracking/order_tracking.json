@@ -1,0 +1,129 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:ODT-{DD}{MM}{YY}-{###}",
+ "creation": "2026-05-21 09:22:31.903356",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_1tat",
+  "amended_from",
+  "customer_code",
+  "customer_name",
+  "order_no",
+  "bulk_order_no",
+  "diamond_purity",
+  "po_no",
+  "main_po_no",
+  "customer_due_date",
+  "section_break_fqbj",
+  "order_details"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_1tat",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Order Tracking",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1,
+   "width": "100%"
+  },
+  {
+   "fieldname": "customer_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer Code",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer_code.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name"
+  },
+  {
+   "fieldname": "order_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Order No.",
+   "reqd": 1
+  },
+  {
+   "fieldname": "bulk_order_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Bulk Order No."
+  },
+  {
+   "fieldname": "diamond_purity",
+   "fieldtype": "Data",
+   "label": "Diamond Purity"
+  },
+  {
+   "fieldname": "po_no",
+   "fieldtype": "Data",
+   "label": "P.O. No."
+  },
+  {
+   "fieldname": "section_break_fqbj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "order_details",
+   "fieldtype": "Table",
+   "label": "Order Details",
+   "options": "Bulk Order Detail"
+  },
+  {
+   "fieldname": "main_po_no",
+   "fieldtype": "Data",
+   "label": "Main Po No"
+  },
+  {
+   "fieldname": "customer_due_date",
+   "fieldtype": "Data",
+   "label": "Customer Due Date"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-06-05 22:30:43.574843",
+ "modified_by": "shubham_k@gkexport.com",
+ "module": "GKE SURVEY",
+ "name": "Order Tracking",
+ "naming_rule": "Expression",
+ "owner": "shubham_k@gkexport.com",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
