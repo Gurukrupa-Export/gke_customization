@@ -505,3 +505,4 @@ $(document).ready(function() {
         attach_view_button_handlers();
     }, 3000);
 });
+
