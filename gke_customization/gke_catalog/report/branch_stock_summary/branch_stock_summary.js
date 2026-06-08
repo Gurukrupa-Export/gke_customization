@@ -1,6 +1,7 @@
 // Copyright (c) 2025, Your Company and contributors
 // For license information, please see license.txt
 
+
 frappe.query_reports["Branch Stock Summary"] = {
     "filters": [
         {
@@ -43,7 +44,7 @@ frappe.query_reports["Branch Stock Summary"] = {
             "fieldname": "raw_material_type",
             "label": __("Raw Material Type"),
             "fieldtype": "Select",
-            "options": ["", "Metal", "Diamond", "Gemstone", "Finding", "Other"].join('\n'),
+            "options": ["", "Metal", "Diamond", "Gemstone", "Finding", "Aloy", "Other"].join('\n'),
             "default": "Metal",
             "reqd": 1,
             "on_change": function() {
@@ -62,6 +63,7 @@ frappe.query_reports["Branch Stock Summary"] = {
             }
         }
     ],
+
 
     "onload": function(report) {
         // Clear Filter button
@@ -84,6 +86,7 @@ frappe.query_reports["Branch Stock Summary"] = {
             report.run();
         });
 
+
         // Auto-fill user's company and department
         frappe.call({
             method: "frappe.client.get_value",
@@ -100,6 +103,7 @@ frappe.query_reports["Branch Stock Summary"] = {
                             company_filter.set_value(r.message.company);
                         }
                     }
+
 
                     if (r.message.department) {
                         setTimeout(function() {
@@ -124,12 +128,14 @@ frappe.query_reports["Branch Stock Summary"] = {
                         }, 1000);
                     }
 
+
                     setTimeout(function() {
                         report.refresh();
                     }, 2500);
                 }
             }
         });
+
 
         setTimeout(function() {
             update_branch_options();
@@ -139,36 +145,67 @@ frappe.query_reports["Branch Stock Summary"] = {
             update_department_options();
         }, 1000);
 
-        // View Details button handler
-        $(document).off('click', '.view-stock-details');
-        $(document).on('click', '.view-stock-details', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            let department = $(this).attr('data-department');
-            let stock_type = $(this).attr('data-stock-type');
-            let stock_key = $(this).attr('data-stock-key');
-            
-            if (department && stock_type && stock_key) {
-                show_stock_details(department, stock_type, stock_key);
-            }
-        });
+
+        // FIXED: Attach button event handlers
+        attach_view_button_handlers();
     },
+
+
+    // FIXED: Call attach handlers after refresh
+    "refresh": function() {
+        setTimeout(function() {
+            attach_view_button_handlers();
+        }, 1000);
+    },
+
 
     "formatter": function(value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
         
         if (data && data.is_grand_total) {
-            return `<div style="font-weight: bold; text-align: center; font-size: 14px; padding: 5px; border: 1px solid #ccc;">${value}</div>`;
+            return `<div style="font-weight: bold; text-align: center; font-size: 14px; padding: 5px; border: 1px solid var(--border-color); color: var(--text-color); background-color: var(--card-bg);">${value}</div>`;
         }
         
         return value;
     }
 };
 
+
+// FIXED: Separate function to attach button event handlers
+function attach_view_button_handlers() {
+    // Remove existing handlers to prevent duplicates
+    $(document).off('click', '.view-stock-details');
+    
+    // Attach new handlers
+    $(document).on('click', '.view-stock-details', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        let $button = $(this);
+        let department = $button.data('department');
+        let stock_type = $button.data('stock-type');
+        let stock_key = $button.data('stock-key');
+        
+        console.log('Button clicked:', {department, stock_type, stock_key});
+        
+        if (department && stock_type && stock_key) {
+            show_stock_details(department, stock_type, stock_key);
+        } else {
+            console.error('Missing button data:', {department, stock_type, stock_key});
+            frappe.msgprint({
+                title: __('Error'),
+                message: __('Button data is missing. Please refresh the report.'),
+                indicator: 'red'
+            });
+        }
+    });
+}
+
+
 function update_branch_options() {
     let company = frappe.query_report.get_filter_value('company');
     if (!company) return;
+
 
     if (company === "KG GK Jewellers Private Limited") {
         if (frappe.query_report.page.fields_dict.branch) {
@@ -178,6 +215,7 @@ function update_branch_options() {
         }
         return;
     }
+
 
     if (company === "Gurukrupa Export Private Limited") {
         let company_branches = get_company_specific_branches(company);
@@ -197,6 +235,7 @@ function update_branch_options() {
     }
 }
 
+
 function update_department_options() {
     let manufacturer = frappe.query_report.get_filter_value('manufacturer');
     
@@ -207,6 +246,7 @@ function update_department_options() {
         }
         return;
     }
+
 
     frappe.call({
         method: "gke_customization.gke_catalog.report.branch_stock_summary.branch_stock_summary.get_departments_by_manufacturer",
@@ -228,6 +268,7 @@ function update_department_options() {
     });
 }
 
+
 function get_company_specific_branches(company) {
     const company_branch_map = {
         "Gurukrupa Export Private Limited": [
@@ -238,6 +279,7 @@ function get_company_specific_branches(company) {
     };
     return company_branch_map[company] || [];
 }
+
 
 function detect_manufacturer_from_department(department) {
     department = department.trim();
@@ -276,8 +318,11 @@ function detect_manufacturer_from_department(department) {
     return "Shubh";
 }
 
+
 function show_stock_details(department, stock_type, stock_key) {
     let current_filters = frappe.query_report.get_filter_values();
+    
+    console.log('show_stock_details called with:', {department, stock_type, stock_key, current_filters});
     
     if (!current_filters.raw_material_type) {
         frappe.msgprint({
@@ -300,8 +345,9 @@ function show_stock_details(department, stock_type, stock_key) {
         },
         callback: function(r) {
             frappe.hide_progress();
+            console.log('API Response:', r);
             
-            if (r.message && r.message.length > 0) {
+            if (r.message && Array.isArray(r.message) && r.message.length > 0) {
                 let dialog = new frappe.ui.Dialog({
                     title: `${stock_type} Details - ${department} Department`,
                     size: "large",
@@ -315,11 +361,13 @@ function show_stock_details(department, stock_type, stock_key) {
                     primary_action_label: __('Export to Excel'),
                     primary_action: function() {
                         export_stock_details_to_excel(r.message, stock_type, department);
+                        dialog.hide();
                     }
                 });
                 dialog.show();
                 
             } else {
+                console.log('No data found or empty response:', r);
                 frappe.msgprint({
                     title: __('No Data Found'),
                     message: __(`No ${stock_type.toLowerCase()} data found for ${department} department with the selected raw material type`),
@@ -329,51 +377,52 @@ function show_stock_details(department, stock_type, stock_key) {
         },
         error: function(err) {
             frappe.hide_progress();
+            console.error('API Error:', err);
             frappe.msgprint({
                 title: __('Error'),
-                message: __('Failed to load stock details. Please try again.'),
+                message: __('Failed to load stock details. Check console for details.'),
                 indicator: 'red'
             });
         }
     });
 }
 
-// SIMPLIFIED: Build stock details table with clean, simple formatting
+
 function build_stock_details_table(data, stock_type, department, raw_material_type) {
     if (!data || data.length === 0) {
-        return `<div style="padding: 30px; text-align: center;">
-                    <h4 style="color: #666;">No Data Found</h4>
-                    <p style="color: #999;">No ${stock_type.toLowerCase()} records found for ${department} department.</p>
-                </div>`;
+        return `
+            <div style="padding: 30px; text-align: center; color: var(--text-color); background-color: var(--card-bg);">
+                <h4 style="color: var(--text-muted);">No Data Found</h4>
+                <p style="color: var(--text-muted);">No ${stock_type.toLowerCase()} records found for ${department} department.</p>
+            </div>`;
     }
+
 
     let headers = Object.keys(data[0]);
     let material_filter_text = raw_material_type ? ` (${raw_material_type})` : '';
     
     let html = `
-        <div style="padding: 15px;">
-            <div style="margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
-                <h4 style="margin: 0 0 5px; color: #333; font-size: 16px;">${stock_type} Details</h4>
-                <p style="margin: 0; color: #666; font-size: 12px;">
+        <div style="padding: 15px; color: var(--text-color); background-color: var(--card-bg);">
+            <div style="margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                <h4 style="margin: 0 0 5px; color: var(--text-color); font-size: 16px;">${stock_type} Details</h4>
+                <p style="margin: 0; color: var(--text-muted); font-size: 12px;">
                     <strong>${department}</strong> Department${material_filter_text} • ${data.length} records found
                 </p>
             </div>
-            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); background-color: var(--card-bg);">
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px; color: var(--text-color); background-color: var(--card-bg);">
                     <thead>
-                        <tr style="background-color: #f5f5f5;">`;
+                        <tr style="background-color: var(--subtle-fg);">`;
     
-    // SIMPLIFIED: Basic header formatting without complex styling
     headers.forEach((header) => {
         let headerText = frappe.model.unscrub(header);
-        html += `<th style="padding: 8px; border: 1px solid #ddd; font-weight: bold; font-size: 11px; text-align: left;">${headerText}</th>`;
+        html += `<th style="padding: 8px; border: 1px solid var(--border-color); font-weight: bold; font-size: 11px; text-align: left; color: var(--text-color); background-color: var(--subtle-fg);">${headerText}</th>`;
     });
     
     html += `</tr></thead><tbody>`;
     
-    // SIMPLIFIED: Basic row formatting without complex color coding
     data.forEach((row, rowIndex) => {
-        let bgColor = rowIndex % 2 === 0 ? '#ffffff' : '#f9f9f9';
+        let bgColor = rowIndex % 2 === 0 ? 'var(--card-bg)' : 'var(--subtle-fg)';
         html += `<tr style="background-color: ${bgColor};">`;
         
         headers.forEach((header) => {
@@ -381,21 +430,26 @@ function build_stock_details_table(data, stock_type, department, raw_material_ty
             
             // Simple number formatting
             if (typeof value === 'number' && value !== 0) {
-                value = frappe.format(value, {fieldtype: "Float", precision: 3});
+                if (header.toLowerCase().includes('weight') || header.toLowerCase().includes('qty') || header.toLowerCase().includes('quantity')) {
+                    value = Number(value).toFixed(3);
+                } else {
+                    value = value.toString();
+                }
             }
             
-            html += `<td style="padding: 6px; border: 1px solid #ddd;">${value}</td>`;
+            html += `<td style="padding: 6px; border: 1px solid var(--border-color); color: var(--text-color); background-color: ${bgColor};">${value}</td>`;
         });
         html += '</tr>';
     });
     
     html += `</tbody></table></div>
-        <div style="margin-top: 10px; padding: 10px; background-color: #f9f9f9; border: 1px solid #ddd; font-size: 11px; color: #666;">
+        <div style="margin-top: 10px; padding: 10px; background-color: var(--subtle-fg); border: 1px solid var(--border-color); font-size: 11px; color: var(--text-muted);">
             ${data.length} record${data.length !== 1 ? 's' : ''} found • Material Type: ${raw_material_type || 'All'} • Department: ${department}
         </div></div>`;
     
     return html;
 }
+
 
 function export_stock_details_to_excel(data, stock_type, department) {
     if (!data || data.length === 0) {
@@ -406,6 +460,7 @@ function export_stock_details_to_excel(data, stock_type, department) {
         });
         return;
     }
+
 
     let headers = Object.keys(data[0]);
     let csv_content = headers.map(h => frappe.model.unscrub(h)).join(',') + '\n';
@@ -420,6 +475,7 @@ function export_stock_details_to_excel(data, stock_type, department) {
         });
         csv_content += row_data.join(',') + '\n';
     });
+
 
     let filename = `${stock_type.replace(/\s+/g, '_')}_${department.replace(/\s+/g, '_')}_${frappe.datetime.now_date()}.csv`;
     
@@ -440,3 +496,12 @@ function export_stock_details_to_excel(data, stock_type, department) {
         });
     }
 }
+
+
+// FIXED: Initialize handlers when document is ready
+$(document).ready(function() {
+    // Delay to ensure report is loaded
+    setTimeout(function() {
+        attach_view_button_handlers();
+    }, 3000);
+});
