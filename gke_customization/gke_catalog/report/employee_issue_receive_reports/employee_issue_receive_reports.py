@@ -102,13 +102,13 @@ def get_columns():
             "width": 150,
             "precision": 3
         },
-        {
-            "label": _("Allow Loss"),
-            "fieldname": "allow_loss",
-            "fieldtype": "Float",
-            "width": 110,
-            "precision": 2
-        },
+        # {
+        #     "label": _("Allow Loss"),
+        #     "fieldname": "allow_loss",
+        #     "fieldtype": "Float",
+        #     "width": 110,
+        #     "precision": 2
+        # },
         {
             "label": _("Loss Wt"),
             "fieldname": "loss_wt",
@@ -246,7 +246,6 @@ def get_main_data(filters):
             mo.received_gross_wt,
             mo.net_wt,
             (COALESCE(mo.net_wt, 0) + COALESCE(mo.finding_wt, 0)) as metal_wt,
-            mo.allowed_loss_percentage as allow_loss,
             CASE
                 WHEN mo.loss_wt < 0 THEN ABS(mo.loss_wt)
                 ELSE NULL
