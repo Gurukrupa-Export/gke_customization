@@ -78,14 +78,6 @@ def get_columns():
         {"label": _("PI RETURN AMOUNT"),  "fieldname": "pi_return_amount", "fieldtype": "Currency", "width": 130},
 
         # ── Difference ──────────────────────────────────────────────────────
-        # For PR-based rows:
-        #   Difference Qty    = PR QTY - PR Return QTY - PI QTY + PI Return QTY
-        #   Difference Rate   = PR Rate of that specific PR item row
-        #   Difference Amount = PR Amount - PR Return Amount - Repack Amount - PI Amount + PI Return Amount
-        # For standalone PI rows (no PR):
-        #   Difference Qty    = PO QTY - PI QTY
-        #   Difference Rate   = PO Rate - PI Rate
-        #   Difference Amount = PO Amount - PI Amount
         {"label": _("Difference Qty"),    "fieldname": "difference_qty",    "fieldtype": "Float",    "width": 130},
         {"label": _("Difference Rate"),   "fieldname": "difference_rate",   "fieldtype": "Currency", "width": 140},
         {"label": _("Difference Amount"), "fieldname": "difference_amount", "fieldtype": "Currency", "width": 160},
@@ -207,8 +199,12 @@ def get_data(filters):
     seen_pi_return_display = set()
     seen_pi_return_total   = set()
     seen_pii_via_pr        = set()
-    # track which pr_item_ids have already had their diff columns written
     seen_pr_item_diff      = set()
+
+    # sentinel for an empty pi_group used when padding the zip
+    _empty_pi_group_sentinel = {
+        "name": "", "posting_date": None, "status": "", "batches": []
+    }
 
     for r in rows:
         mr  = get_mr_row(r)
@@ -241,7 +237,7 @@ def get_data(filters):
             totals["po_qty"]    += po.get("po_qty") or 0
             totals["po_amount"] += po.get("po_amount") or 0
 
-        # ── fetch all child rows for this PR item ──────────────────────────────
+        # ── fetch all child rows for this PR item ─────────────────────────────
         ret_rows    = get_pr_return_rows(r, filters) or [_empty_pr_return()]
         repack_rows = get_repack_rows(r, filters)    or [_empty_repack()]
 
@@ -255,17 +251,13 @@ def get_data(filters):
         for repack in repack_rows:
             if repack.get("repack_id"):
                 repack_qty = repack.get("repack_qty") or 0
-
                 pi_rate = 0
                 if grouped_pi:
                     first_batch = grouped_pi[0]["batches"][0] if grouped_pi[0]["batches"] else {}
                     pi_rate = first_batch.get("rate") or 0
-
                 repack_rate = (r.pr_rate or 0) - pi_rate
-
                 total_repack_amount += repack_qty * repack_rate
 
-        # flatten all PI batches for this pr_item to get totals
         total_pi_qty    = 0
         total_pi_amount = 0
         total_pi_return_qty    = 0
@@ -282,11 +274,7 @@ def get_data(filters):
                         total_pi_return_qty    += abs(pi_ret.get("qty")    or 0)
                         total_pi_return_amount += abs(pi_ret.get("amount") or 0)
 
-        # ── difference calculations (shown only on first output row of this pr_item)
-        #    Difference Qty    = PR QTY - PR Return QTY - PI QTY + PI Return QTY
-        #    Difference Rate   = PR Rate of this specific PR item row
-        #    Difference Amount = PR Amount - PR Return Amount - Repack Amount
-        #                        - PI Amount + PI Return Amount
+        # ── difference calculations (shown only on first output row of this pr_item) ──
         if r.pr_item_id not in seen_pr_item_diff:
             seen_pr_item_diff.add(r.pr_item_id)
 
@@ -300,7 +288,6 @@ def get_data(filters):
             if abs(diff_qty) < 1e-9:
                 diff_qty = 0
 
-            # Difference Rate is only shown when Difference Qty is non-zero
             diff_rate = (r.pr_rate or 0) if diff_qty != 0 else 0
 
             diff_amount = round(
@@ -314,7 +301,6 @@ def get_data(filters):
             if abs(diff_amount) < 1e-9:
                 diff_amount = 0
 
-            # add to totals
             totals["difference_qty"]    += diff_qty
             totals["difference_rate"]   += diff_rate
             totals["difference_amount"] += diff_amount
@@ -328,9 +314,49 @@ def get_data(filters):
 
         first_pr_output = True
 
-        for ret in ret_rows:
-            ret_key = ret.get("pri_name") or ret.get("name")
+        # ── Flatten PI into (pi_group, batch, pi_ret) tuples ─────────────────
+        # This collapses what was previously four nested loops into a single
+        # indexed sequence so we can zip it with ret_rows and repack_rows,
+        # producing exactly max(len(ret), len(repack), len(pi_flat)) rows
+        # instead of len(ret) × len(repack) × len(pi_flat) rows.
+        pi_flat = []
+        for pi_group in grouped_pi:
+            batches = pi_group["batches"] or [_empty_pi_batch()]
+            for batch in batches:
+                pii_name_inner = batch.get("pii_name") or ""
+                pi_rets = []
+                if pi_group["name"]:
+                    pi_rets = get_pi_return_rows(
+                        pi_group["name"],
+                        pii_name_inner or None,
+                        filters,
+                        batch.get("pi_batch_no") or None,
+                    )
+                if not pi_rets:
+                    pi_rets = [_empty_pi_return()]
+                for pi_ret in pi_rets:
+                    pi_flat.append((pi_group, batch, pi_ret))
 
+        if not pi_flat:
+            pi_flat = [(_empty_pi_group_sentinel, _empty_pi_batch(), _empty_pi_return())]
+
+        n_rows = max(len(ret_rows), len(repack_rows), len(pi_flat))
+
+        for row_idx in range(n_rows):
+            ret    = ret_rows[row_idx]    if row_idx < len(ret_rows)    else _empty_pr_return()
+            repack = repack_rows[row_idx] if row_idx < len(repack_rows) else _empty_repack()
+            pi_group_z, batch_z, pi_ret_z = (
+                pi_flat[row_idx] if row_idx < len(pi_flat)
+                else (_empty_pi_group_sentinel, _empty_pi_batch(), _empty_pi_return())
+            )
+
+            pi_name_z  = pi_group_z.get("name") or ""
+            pii_name_z = batch_z.get("pii_name") or ""
+            ret_key    = ret.get("pri_name") or ret.get("name") or ""
+            rp_key     = repack.get("repack_id") or ""
+            pi_ret_key = pi_ret_z.get("pii_return_name") or pi_ret_z.get("name") or ""
+
+            # ── PR Return display / totals ────────────────────────────────────
             first_ret_output = False
             if ret.get("name") and ret_key not in seen_pr_return_display:
                 seen_pr_return_display.add(ret_key)
@@ -340,186 +366,150 @@ def get_data(filters):
                 totals["pr_return_qty"]    += abs(ret.get("qty") or 0)
                 totals["pr_return_amount"] += abs(ret.get("amount") or 0)
 
-            for rp_idx, repack in enumerate(repack_rows):
-                rp_key = repack.get("repack_id")
+            # ── Repack display / totals ───────────────────────────────────────
+            first_rp_output = False
+            if rp_key and rp_key not in seen_repack_display:
+                seen_repack_display.add(rp_key)
+                first_rp_output = True
+            if rp_key and rp_key not in seen_repack_total:
+                seen_repack_total.add(rp_key)
+                totals["repack_qty"]    += repack.get("repack_qty") or 0
+                totals["repack_amount"] += repack.get("repack_amount") or 0
 
-                first_rp_output = False
-                if rp_key and rp_key not in seen_repack_display:
-                    seen_repack_display.add(rp_key)
-                    first_rp_output = True
-                if rp_key and rp_key not in seen_repack_total:
-                    seen_repack_total.add(rp_key)
-                    totals["repack_qty"] += repack.get("repack_qty") or 0
-                    totals["repack_amount"] += repack.get("repack_amount") or 0
+            # ── PI display / totals ───────────────────────────────────────────
+            first_pi_output = False
+            if pi_name_z and pi_name_z not in seen_pi_display:
+                seen_pi_display.add(pi_name_z)
+                # mark every batch of this PI as reached via a PR
+                for _b in pi_group_z.get("batches") or []:
+                    if _b.get("pii_name"):
+                        seen_pii_via_pr.add(_b["pii_name"])
+                first_pi_output = True
+            if pii_name_z and pii_name_z not in seen_pi_total:
+                seen_pi_total.add(pii_name_z)
+                totals["pi_qty"]    += batch_z.get("qty") or 0
+                totals["pi_amount"] += batch_z.get("amount") or 0
 
-                for pi_group in grouped_pi:
-                    pi_name = pi_group["name"]
-                    pi_key  = pi_name
+            # ── PI Return display / totals ────────────────────────────────────
+            first_pi_ret_output = False
+            if pi_ret_z.get("name") and pi_ret_key not in seen_pi_return_display:
+                seen_pi_return_display.add(pi_ret_key)
+                first_pi_ret_output = True
+            if pi_ret_z.get("name") and pi_ret_key not in seen_pi_return_total:
+                seen_pi_return_total.add(pi_ret_key)
+                totals["pi_return_qty"]    += abs(pi_ret_z.get("qty") or 0)
+                totals["pi_return_amount"] += abs(pi_ret_z.get("amount") or 0)
 
-                    first_pi_output = False
-                    if pi_name and pi_key not in seen_pi_display:
-                        seen_pi_display.add(pi_key)
-                        for b in pi_group["batches"]:
-                            if b["pii_name"]:
-                                seen_pii_via_pr.add(b["pii_name"])
-                        first_pi_output = True
+            # ── Build column values ───────────────────────────────────────────
+            if first_ret_output:
+                pr_return_date_out   = ret.get("posting_date")
+                pr_return_id_out     = ret.get("name") or ""
+                pr_return_qty_out    = abs(ret.get("qty") or 0)
+                pr_return_rate_out   = abs(ret.get("rate") or 0)
+                pr_return_amount_out = abs(ret.get("amount") or 0)
+            else:
+                pr_return_date_out   = None
+                pr_return_id_out     = ""
+                pr_return_qty_out    = pr_return_rate_out = pr_return_amount_out = 0
 
-                    if pi_name:
-                        for b in pi_group["batches"]:
-                            pii_key = b.get("pii_name")
-                            if pii_key and pii_key not in seen_pi_total:
-                                seen_pi_total.add(pii_key)
-                                totals["pi_qty"]    += b["qty"] or 0
-                                totals["pi_amount"] += b["amount"] or 0
+            if first_rp_output:
+                repack_date_out   = repack.get("posting_date")
+                repack_id_out     = repack.get("repack_id") or ""
+                repack_batch_out  = repack.get("repack_batch") or ""
+                repack_qty_out    = repack.get("repack_qty") or 0
+                repack_rate_out   = (r.pr_rate or 0) - (batch_z.get("rate") or 0)
+                repack_amount_out = repack_qty_out * repack_rate_out
+            else:
+                repack_date_out   = None
+                repack_id_out     = repack_batch_out = ""
+                repack_qty_out    = repack_rate_out = repack_amount_out = 0
 
-                    batches = pi_group["batches"] or [_empty_pi_batch()]
+            if first_pi_output:
+                pi_date_out   = pi_group_z.get("posting_date")
+                pi_id_out     = pi_name_z
+                pi_status_out = pi_group_z.get("status") or ""
+            else:
+                pi_date_out = None
+                pi_id_out   = pi_status_out = ""
 
-                    for batch_idx, batch in enumerate(batches):
-                        pii_name = batch["pii_name"]
+            pi_batch_no_out = batch_z.get("pi_batch_no") or ""
+            pi_qty_out      = batch_z.get("qty") or 0
+            pi_rate_out     = batch_z.get("rate") or 0
+            pi_amount_out   = batch_z.get("amount") or 0
 
-                        pi_return_rows = []
-                        if pi_name:
-                            pi_return_rows = get_pi_return_rows(
-                                pi_name, pii_name, filters,
-                                batch.get("pi_batch_no") or None
-                            )
-                        if not pi_return_rows:
-                            pi_return_rows = [_empty_pi_return()]
+            if first_pi_ret_output:
+                pi_return_id_out     = pi_ret_z.get("name") or ""
+                pi_return_qty_out    = abs(pi_ret_z.get("qty") or 0)
+                pi_return_rate_out   = abs(pi_ret_z.get("rate") or 0)
+                pi_return_amount_out = abs(pi_ret_z.get("amount") or 0)
+            else:
+                pi_return_id_out = ""
+                pi_return_qty_out = pi_return_rate_out = pi_return_amount_out = 0
 
-                        if first_ret_output and batch_idx == 0 and rp_idx == 0:
-                            pr_return_date_out   = ret.get("posting_date")
-                            pr_return_id_out     = ret.get("name") or ""
-                            pr_return_qty_out    = abs(ret.get("qty") or 0)
-                            pr_return_rate_out   = abs(ret.get("rate") or 0)
-                            pr_return_amount_out = abs(ret.get("amount") or 0)
-                        else:
-                            pr_return_date_out = None
-                            pr_return_id_out   = ""
-                            pr_return_qty_out  = pr_return_rate_out = pr_return_amount_out = 0
+            out.append({
+                # MR
+                "mr_date":             mr.get("mr_date") if first_mr_output else None,
+                "material_request_id": mr.get("material_request_id") if first_mr_output else "",
+                "item":                r.item if first_mr_output else "",
+                "qty":                 mr.get("mr_qty") if first_mr_output else 0,
+                # RFQ
+                "rfq_creation_date": rfq.get("rfq_creation_date") if first_mr_output else None,
+                "rfq_id":            rfq.get("rfq_id") if first_mr_output else "",
+                "rfq_status":        rfq.get("rfq_status") if first_mr_output else "",
+                # PO
+                "po_date":   po.get("po_date") if first_po_output else None,
+                "po_ids":    po.get("po_ids") if first_po_output else "",
+                "po_qty":    po.get("po_qty") if first_po_output else 0,
+                "po_rate":   po.get("po_rate") if first_po_output else 0,
+                "po_amount": po.get("po_amount") if first_po_output else 0,
+                "po_status": po.get("po_status") if first_po_output else "",
+                # PR
+                "pr_date":   r.pr_date if first_pr_output else None,
+                "pr_id":     r.pr_id,
+                "batch_no":  r.batch_no,
+                "pr_qty":    r.pr_qty if first_pr_output else 0,
+                "pr_rate":   r.pr_rate if first_pr_output else 0,
+                "pr_amount": r.pr_amount if first_pr_output else 0,
+                "pr_status": r.pr_status if first_pr_output else "",
+                # PR Return
+                "pr_return_date":   pr_return_date_out,
+                "pr_return_id":     pr_return_id_out,
+                "pr_return_qty":    pr_return_qty_out,
+                "pr_return_rate":   pr_return_rate_out,
+                "pr_return_amount": pr_return_amount_out,
+                # Repack
+                "repack_date":   repack_date_out,
+                "repack_id":     repack_id_out,
+                "repack_batch":  repack_batch_out,
+                "repack_qty":    repack_qty_out,
+                "repack_rate":   repack_rate_out,
+                "repack_amount": repack_amount_out,
+                # PI
+                "pi_date":     pi_date_out,
+                "pi_id":       pi_id_out,
+                "pi_batch_no": pi_batch_no_out,
+                "pi_qty":      pi_qty_out,
+                "pi_rate":     pi_rate_out,
+                "pi_amount":   pi_amount_out,
+                "pi_status":   pi_status_out,
+                # PI Return
+                "pi_return_id":     pi_return_id_out,
+                "pi_return_qty":    pi_return_qty_out,
+                "pi_return_rate":   pi_return_rate_out,
+                "pi_return_amount": pi_return_amount_out,
+                # Difference (only on the first row of this pr_item)
+                "difference_qty":    diff_qty,
+                "difference_rate":   diff_rate,
+                "difference_amount": diff_amount,
+            })
 
-                        if first_rp_output and batch_idx == 0:
-                            repack_date_out   = repack.get("posting_date")
-                            repack_id_out     = repack.get("repack_id") or ""
-                            repack_batch_out  = repack.get("repack_batch") or ""
-                            repack_qty_out    = repack.get("repack_qty") or 0
-                            pr_rate = r.pr_rate or 0
-                            pi_rate = batch.get("rate") or 0
-                            repack_rate_out = pr_rate - pi_rate
-                            repack_amount_out = repack_qty_out * repack_rate_out
-                        else:
-                            repack_date_out   = None
-                            repack_id_out     = ""
-                            repack_batch_out  = ""
-                            repack_qty_out    = repack_rate_out = repack_amount_out = 0
+            # clear one-time flags after the first row is written
+            diff_qty        = diff_rate = diff_amount = ""
+            first_pr_output = False
+            first_mr_output = False
+            first_po_output = False
 
-                        if first_pi_output and batch_idx == 0:
-                            pi_date_out   = pi_group["posting_date"]
-                            pi_id_out     = pi_name
-                            pi_status_out = pi_group["status"]
-                        else:
-                            pi_date_out   = None
-                            pi_id_out     = ""
-                            pi_status_out = ""
-
-                        pi_batch_no_out = batch["pi_batch_no"]
-                        pi_qty_out      = batch["qty"] or 0
-                        pi_rate_out     = batch["rate"] or 0
-                        pi_amount_out   = batch["amount"] or 0
-
-                        for pi_ret in pi_return_rows:
-                            pi_ret_key = pi_ret.get("pii_return_name") or pi_ret.get("name")
-
-                            first_pi_ret_output = False
-                            if pi_ret.get("name") and pi_ret_key not in seen_pi_return_display:
-                                seen_pi_return_display.add(pi_ret_key)
-                                first_pi_ret_output = True
-                            if pi_ret.get("name") and pi_ret_key not in seen_pi_return_total:
-                                seen_pi_return_total.add(pi_ret_key)
-                                totals["pi_return_qty"]    += abs(pi_ret.get("qty") or 0)
-                                totals["pi_return_amount"] += abs(pi_ret.get("amount") or 0)
-
-                            if first_pi_ret_output:
-                                pi_return_id_out     = pi_ret.get("name") or ""
-                                pi_return_qty_out    = abs(pi_ret.get("qty") or 0)
-                                pi_return_rate_out   = abs(pi_ret.get("rate") or 0)
-                                pi_return_amount_out = abs(pi_ret.get("amount") or 0)
-                            else:
-                                pi_return_id_out = ""
-                                pi_return_qty_out = pi_return_rate_out = pi_return_amount_out = 0
-
-                            out.append({
-                                # MR
-                                "mr_date":             mr.get("mr_date") if first_mr_output else None,
-                                "material_request_id": mr.get("material_request_id") if first_mr_output else "",
-                                "item":                r.item if first_mr_output else "",
-                                "qty":                 mr.get("mr_qty") if first_mr_output else 0,
-                                # RFQ
-                                "rfq_creation_date": rfq.get("rfq_creation_date") if first_mr_output else None,
-                                "rfq_id":            rfq.get("rfq_id") if first_mr_output else "",
-                                "rfq_status":        rfq.get("rfq_status") if first_mr_output else "",
-                                # PO
-                                "po_date":   po.get("po_date") if first_po_output else None,
-                                "po_ids":    po.get("po_ids") if first_po_output else "",
-                                "po_qty":    po.get("po_qty") if first_po_output else 0,
-                                "po_rate":   po.get("po_rate") if first_po_output else 0,
-                                "po_amount": po.get("po_amount") if first_po_output else 0,
-                                "po_status": po.get("po_status") if first_po_output else "",
-                                # PR
-                                "pr_date":   r.pr_date if first_pr_output else None,
-                                "pr_id":     r.pr_id,
-                                "batch_no":  r.batch_no,
-                                "pr_qty":    r.pr_qty if first_pr_output else 0,
-                                "pr_rate":   r.pr_rate if first_pr_output else 0,
-                                "pr_amount": r.pr_amount if first_pr_output else 0,
-                                "pr_status": r.pr_status if first_pr_output else "",
-                                # PR Return
-                                "pr_return_date":   pr_return_date_out,
-                                "pr_return_id":     pr_return_id_out,
-                                "pr_return_qty":    pr_return_qty_out,
-                                "pr_return_rate":   pr_return_rate_out,
-                                "pr_return_amount": pr_return_amount_out,
-                                # Repack
-                                "repack_date":   repack_date_out,
-                                "repack_id":     repack_id_out,
-                                "repack_batch":  repack_batch_out,
-                                "repack_qty":    repack_qty_out,
-                                "repack_rate":   repack_rate_out,
-                                "repack_amount": repack_amount_out,
-                                # PI
-                                "pi_date":     pi_date_out,
-                                "pi_id":       pi_id_out,
-                                "pi_batch_no": pi_batch_no_out,
-                                "pi_qty":      pi_qty_out,
-                                "pi_rate":     pi_rate_out,
-                                "pi_amount":   pi_amount_out,
-                                "pi_status":   pi_status_out,
-                                # PI Return
-                                "pi_return_id":     pi_return_id_out,
-                                "pi_return_qty":    pi_return_qty_out,
-                                "pi_return_rate":   pi_return_rate_out,
-                                "pi_return_amount": pi_return_amount_out,
-                                # Difference
-                                "difference_qty":    diff_qty,
-                                "difference_rate":   diff_rate,
-                                "difference_amount": diff_amount,
-                            })
-
-                            diff_qty = diff_rate = diff_amount = ""
-                            first_pr_output  = False
-                            first_mr_output  = False
-                            first_po_output  = False
-                            first_rp_output  = False
-                            pi_date_out      = None
-                            pi_id_out        = pi_status_out = pi_batch_no_out = ""
-                            pi_qty_out       = pi_rate_out = pi_amount_out = 0
-                            pr_return_date_out = None
-                            pr_return_id_out   = ""
-                            pr_return_qty_out  = pr_return_rate_out = pr_return_amount_out = 0
-                            repack_date_out    = None
-                            repack_id_out      = repack_batch_out = ""
-                            repack_qty_out     = repack_rate_out = repack_amount_out = 0
-
-    # ── standalone PI rows (no PR) ─────────────────────────────────────────────
+    # ── standalone PI rows (no PR) ────────────────────────────────────────────
     if not filters.get("pr_id") and not filters.get("batch_no"):
         standalone_rows = _get_standalone_pi_rows(filters)
         standalone_rows = [r for r in standalone_rows if r.pii_name not in seen_pii_via_pr]
@@ -898,11 +888,7 @@ def _append_standalone_pi_rows(
             totals["po_qty"]    += po.get("po_qty") or 0
             totals["po_amount"] += po.get("po_amount") or 0
 
-        # ── standalone diff: PO qty/rate/amount - PI qty/rate/amount ──────────
-        # Computed once per POI; shown only on the first output row of that POI.
-        # diff_qty    = PO Qty    - PI Qty
-        # diff_rate   = PO Rate   - PI effective Rate  (pi_amount / pi_qty)
-        # diff_amount = PO Amount - PI Amount
+        # ── standalone diff ───────────────────────────────────────────────────
         if poi not in seen_poi_diff:
             seen_poi_diff.add(poi)
             _po = po_totals_by_poi.get(poi, {})
@@ -916,7 +902,6 @@ def _append_standalone_pi_rows(
             if abs(diff_amount) < 1e-9:
                 diff_amount = 0
 
-            # Difference Rate is only shown when Difference Qty is non-zero
             if diff_qty != 0:
                 _pi_qty      = _pi.get("pi_qty", 0)
                 _pi_eff_rate = (_pi.get("pi_amount", 0) / _pi_qty) if _pi_qty else 0
