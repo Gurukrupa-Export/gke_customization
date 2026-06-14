@@ -113,7 +113,8 @@ def make_sales_invoice(source_name, target_doc=None, args=None):
 					"so_detail": "so_detail",
 					"against_sales_order": "sales_order",
 					"cost_center": "cost_center",
-					"diamond_grade":"diamond_grade"
+					"diamond_grade":"diamond_grade",
+					"bom":"bom"
 				},
 				"postprocess": update_item,
 				"filter": lambda d: get_pending_qty(d) <= 0
