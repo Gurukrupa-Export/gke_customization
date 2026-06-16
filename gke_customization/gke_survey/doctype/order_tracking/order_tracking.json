@@ -12,9 +12,10 @@
   "customer_name",
   "order_no",
   "bulk_order_no",
-  "batch_date",
   "diamond_purity",
   "po_no",
+  "main_po_no",
+  "customer_due_date",
   "section_break_fqbj",
   "order_details"
  ],
@@ -36,10 +37,10 @@
   },
   {
    "fieldname": "customer_code",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Customer Code",
-   "options": "Customer",
    "reqd": 1
   },
   {
@@ -52,24 +53,21 @@
    "fieldname": "order_no",
    "fieldtype": "Data",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Order No.",
    "reqd": 1
   },
   {
    "fieldname": "bulk_order_no",
    "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Bulk Order No."
   },
   {
-   "fieldname": "batch_date",
-   "fieldtype": "Date",
-   "label": "Batch Date"
-  },
-  {
    "fieldname": "diamond_purity",
-   "fieldtype": "Link",
-   "label": "Diamond Purity",
-   "options": "Attribute Value"
+   "fieldtype": "Data",
+   "label": "Diamond Purity"
   },
   {
    "fieldname": "po_no",
@@ -85,14 +83,24 @@
    "fieldtype": "Table",
    "label": "Order Details",
    "options": "Bulk Order Detail"
+  },
+  {
+   "fieldname": "main_po_no",
+   "fieldtype": "Data",
+   "label": "Main Po No"
+  },
+  {
+   "fieldname": "customer_due_date",
+   "fieldtype": "Data",
+   "label": "Customer Due Date"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-25 13:13:50.187691",
- "modified_by": "Administrator",
+ "modified": "2026-06-05 22:30:43.574843",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "GKE SURVEY",
  "name": "Order Tracking",
  "naming_rule": "Expression",
@@ -116,5 +124,6 @@
  "rows_threshold_for_grid_search": 20,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }
