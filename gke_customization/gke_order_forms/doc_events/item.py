@@ -331,4 +331,65 @@ def get_same_ref_doc(self,table_name, type):
             on tsit.parent = trg.name and trg.item_code = tsit.item_code
         where trg.item_code = '{self.name}' and trg.item_reference_type = '{type}'
     """, as_dict=1)
+
+
+
+        
+import frappe
+
+@frappe.whitelist()
+def get_making_charge(
+    customer,
+    metal_type,
+    setting_type,
+    gold_rate,
+    metal_touch,
+    subcategory
+):
+    filters = {
+        "customer": customer,
+        "metal_type": metal_type,
+        "setting_type": setting_type,
+        "from_gold_rate": ["<=", gold_rate],
+        "to_gold_rate": [">=", gold_rate],
+        "metal_touch": metal_touch,
+    }
+
+    mc = frappe.get_all(
+        "Making Charge Price",
+        filters=filters,
+        fields=["name"],
+        limit=1,
+    )
+
+    if not mc:
+        return {}
+
+    mc_name = mc[0]["name"]
+
+    sub_rows = frappe.get_all(
+        "Making Charge Price Item Subcategory",
+        filters={
+            "parent": mc_name,
+            "subcategory": subcategory,
+        },
+        fields=[
+            "subcategory",
+            "rate_per_gm",
+            "rate_per_pc",
+            "supplier_fg_purchase_rate",
+            "wastage",
+            "wastage_per_pcs",
+            "subcontracting_rate",
+            "subcontracting_wastage",
+            "rate_per_gm_threshold",
+            "to_diamond",
+            "from_diamond",
+        ],
+    )
+
+    if not sub_rows:
+        return {}
+
+    return sub_rows[0]
  
