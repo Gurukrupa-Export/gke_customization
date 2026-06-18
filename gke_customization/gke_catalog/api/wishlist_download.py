@@ -314,6 +314,75 @@ from frappe.utils.pdf import get_pdf
 from gke_customization.gke_catalog.api.item_price_list import get_item_price 
 
 
+def calculate_finding_and_making_amounts(item, result):
+    finding_amount_total = 0
+    gold_amount_total = 0
+    making_charge = 0
+    chain_making = 0
+    
+    finding_price_data = result.get("finding_price_data", {})
+    metal_price_data = result.get("metal_price_data", {})
+    
+    # if item == "MA00975-004":
+    #     frappe.throw(f"{result}")
+    diamond = result.get("dia_quality_summary", {})
+
+    total_diamond_base_rate = 0
+    total_diamond_amount = 0
+
+    for key, values in diamond.items():
+
+        diamond_rate = float(
+            values.get("total_base_rate") or 0
+        )
+
+        diamond_amount = float(
+            values.get("total_diamond_amount") or 0
+        )
+
+        total_diamond_base_rate += diamond_rate
+        total_diamond_amount += diamond_amount
+        
+    for purity, finding_data in finding_price_data.items():
+        finding_sub = (finding_data.get("finding_sub") or "").lower()
+        finding_amount = float(finding_data.get("finding_amount") or 0)
+
+        
+        finding_making_charge = float(
+            finding_data.get("finding_making_charge") or 0
+        )
+
+        # Chain case
+        if "chain" in finding_sub:
+            # if item == "MU01130-006":
+            #     frappe.throw(f"{finding_amount}")
+            finding_amount_total += finding_amount
+            chain_making += finding_making_charge
+
+        # Other findings
+        else:
+            gold_amount = float(
+                metal_price_data.get(purity, {}).get("gold_amount") or 0
+            )
+
+            making_charge_amount = float(
+                metal_price_data.get(purity, {}).get("making_charge") or 0
+            )
+           
+            gold_amount_total += finding_amount + gold_amount
+            making_charge += making_charge_amount + finding_making_charge
+
+    # if item == "MA00975-004":
+    #     frappe.throw(f"{l,gold_amount_total}")
+        
+    return {
+        "finding_amount_total": finding_amount_total,
+        "diamond_rate": total_diamond_base_rate,
+        "diamond_amount": total_diamond_amount,
+        "gold_amount_total": gold_amount_total,
+        "making_charge": making_charge,
+        "chain_making": chain_making,
+    }
 
 @frappe.whitelist(allow_guest=True)
 def download_bom_pdf(boms, customer, company, customer_folder_name=None):
@@ -323,9 +392,7 @@ def download_bom_pdf(boms, customer, company, customer_folder_name=None):
 
     data = []
     grand_total_amount = 0  
-    gold_amount_total = 0
-    finding_amount_total = 0
-    
+   
 
     for bom, values in boms.items():
         bom_name = frappe.db.get_value("BOM", {"name": bom}, "name")
@@ -350,50 +417,40 @@ def download_bom_pdf(boms, customer, company, customer_folder_name=None):
             diamond_group[rate]["amount"] = round(diamond_group[rate]["amount"] + flt(row.diamond_rate_for_specified_quantity or 0), 3)
 
         diamond_rows = list(diamond_group.values())
-
-        total_amount = (
-            diamond_total
-            + flt(bom_doc.total_gemstone_amount)
-            + flt(bom_doc.certification_amount)
-            + flt(bom_doc.hallmarking_amount)
-        )
-
-        grand_total_amount += total_amount
-
+  
+                        
         result = get_item_price(
             customer=customer,
             item_code=bom_doc.item,
             bom=bom,
-            diamond_quality=values.get("diamond_quality") if values else None,
-            metal_touch=values.get("metal_touch") if values else None,
+            # diamond_quality=values.get("diamond_quality") if values else None,
+            # metal_touch=values.get("metal_touch") if values else None,
             gold_rate_value=float(values.get("gold_rate_value") or 0) if values else 0.0,
             is_cust_diam=int(values.get("is_cust_diam") or 0) if values else 0,
             is_cust_stone=int(values.get("is_cust_stone") or 0) if values else 0,
             is_cust_gold=int(values.get("is_cust_gold") or 0) if values else 0,
-            cust_gold_wt=float(values.get("cust_gold_wt") or 0) if values else 0.0,
+            # cust_gold_wt=float(values.get("cust_gold_wt") or 0) if values else 0.0,
         )
+        
 
-
-        finding_price_data = result.get("finding_price_data", {})
-        metal_price_data = result.get("metal_price_data", {})
-
-        for purity, finding_data in finding_price_data.items():
-
-            finding_sub = (finding_data.get("finding_sub") or "").lower()
-            finding_amount = float(finding_data.get("finding_amount") or 0)
-
-            # Chain case
-            if "chain" in finding_sub:
-                finding_amount_total += finding_amount
-
-            # Other finding case
-            else:
-                gold_amount = float(
-                    metal_price_data.get(purity, {}).get("gold_amount") or 0
-                )
-
-                gold_amount_total += finding_amount + gold_amount
-
+        amounts = calculate_finding_and_making_amounts(bom_doc.item, result)
+        # amounts["total_diamond_amount"] , amounts["total_diamond_base_rate"],
+        
+        total_amount = round(
+            amounts["diamond_amount"]
+            + amounts["gold_amount_total"]
+            + amounts["finding_amount_total"]
+            + amounts["chain_making"]
+        
+            + amounts["making_charge"]
+        
+            + flt(bom_doc.total_gemstone_amount)
+            + flt(bom_doc.certification_amount)
+            + flt(bom_doc.hallmarking_amount),
+            2
+        )
+        grand_total_amount += total_amount
+        
         data.append({
             "customer": bom_doc.customer,
             "company": bom_doc.company,
@@ -407,18 +464,19 @@ def download_bom_pdf(boms, customer, company, customer_folder_name=None):
             "net_weight": flt(getattr(bom_doc, "metal_and_finding_weight", 0)),
             "metal_purity": getattr(bom_doc, "metal_purity", ""),
             "chain_wt": flt(getattr(bom_doc, "chain_wt", 0)),
-            "chain_amt": finding_amount_total,        # ✅ item wise
-            "chain_making": flt(getattr(bom_doc, "chain_making", 0)),
+            "chain_amt": amounts["finding_amount_total"],        # ✅ item wise
+            "chain_making": amounts["chain_making"],
             "chain_wastage": flt(getattr(bom_doc, "chain_wastage", 0)),
-            "jewellery_making": flt(getattr(bom_doc, "jewellery_making", 0)),
+            "jewellery_making": amounts["making_charge"],
             "jewellery_wastage": flt(getattr(bom_doc, "jewellery_wastage", 0)),
             "stone_amt": flt(getattr(bom_doc, "total_gemstone_amount", 0)),
             "certification_amount": flt(getattr(bom_doc, "certification_amount", 0)),
             "hallmarking_amount": flt(getattr(bom_doc, "hallmarking_amount", 0)),
-            "gold_amt": gold_amount_total,            # ✅ item wise
+            "gold_amt": amounts["gold_amount_total"],            # ✅ item wise
             "total_diamond_pcs": sum(d["pcs"] for d in diamond_rows),
             "total_diamond_cts": sum(d["cts"] for d in diamond_rows),
-            "total_diamond_amt": sum(d["amount"] for d in diamond_rows),
+            "total_diamond_amt": amounts["diamond_amount"],
+            "total_diamond_base_rate": amounts["diamond_rate"],
             "total_amount": total_amount,
             "diamond_rows": diamond_rows,
         })
@@ -635,3 +693,152 @@ def download_bom_pdf(boms, customer, company, customer_folder_name=None):
 #     frappe.local.response.filename = f"{folder_name}.pdf"
 #     frappe.local.response.filecontent = pdf
 #     frappe.local.response.type = "download"
+
+
+
+
+@frappe.whitelist(allow_guest=True)
+
+def get_method(data):
+    filter_keys = [
+        "age_group",
+        "custom_language",
+        "custom_alphabetnumber",
+        "occasion",
+        "custom_animalbirds",
+        "rhodium",
+        "shapes",
+        "religious",
+        "design_style",
+        "custom_collection",
+        "custom_zodiac",
+        "gender",
+        "custom_lines__rows"
+    ]
+    
+    available_keys = set()
+
+    for item in data:
+
+        for key in filter_keys:
+
+            value = item.get(key)
+
+            if value:
+                available_keys.add(key)
+
+    return {
+        "design_attributes": sorted(list(available_keys))
+    }
+    
+    
+    
+@frappe.whitelist(allow_guest=True)
+def get_method1(data):
+    filter_keys = [
+        "age_group",
+        "custom_language",
+        "custom_alphabetnumber",
+        "occasion",
+        "custom_animalbirds",
+        "rhodium",
+        "shapes",
+        "religious",
+        "design_style",
+        "custom_collection",
+        "custom_zodiac",
+        "gender",
+        "custom_lines__rows"
+    ]
+
+    # Har key ke liye ek set banao unique values ke liye
+    filter_map = {key: set() for key in filter_keys}
+
+    for item in data:
+        for key in filter_keys:
+            value = item.get(key)
+            if value:
+                # Comma-separated values split karo
+                # e.g. "Anniversary, Birthday, Diwali" → 3 alag values
+                for v in str(value).split(","):
+                    v = v.strip()
+                    if v:
+                        filter_map[key].add(v)
+
+    # Sirf woh keys return karo jinmein kuch values hain
+    return {
+        key: sorted(list(values))
+        for key, values in filter_map.items()
+        if values  # empty lists mat bhejo
+    }
+    
+   
+   
+ 
+import pikepdf
+import io
+
+import frappe
+import io
+import pikepdf
+
+from frappe.utils.pdf import get_pdf
+
+@frappe.whitelist()
+def add_password_to_pdf(doctype, name, print_format, receiver):
+
+    # Generate PDF from Print Format
+    pdf_data = get_pdf(
+        frappe.get_print(
+            doctype,
+            name,
+            print_format=print_format
+        )
+    )
+
+
+    # Dynamic password = receiver mail ke first 5 letters
+    password = receiver.split("@")[0][:5]
+
+
+    # Encrypt PDF
+    pdf = pikepdf.open(io.BytesIO(pdf_data))
+
+    output = io.BytesIO()
+
+    pdf.save(
+        output,
+        encryption=pikepdf.Encryption(
+            user=password,
+            owner=password,
+            allow=pikepdf.Permissions(
+                extract=False,
+                modify_annotation=False,
+                modify_form=False
+            )
+        )
+    )
+
+
+    encrypted_pdf = output.getvalue()
+
+
+    # Send Mail
+    frappe.sendmail(
+        recipients=[receiver],
+        sender="customer_portal@gkexport.com",
+        subject="Protected PDF",
+        message=f"""
+        Dear User,
+
+        PDF attached.
+
+        Password: {password}
+        """,
+        attachments=[
+            {
+                "fname": f"{name}.pdf",
+                "fcontent": encrypted_pdf
+            }
+        ]
+    )
