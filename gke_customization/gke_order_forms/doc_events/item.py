@@ -392,4 +392,68 @@ def get_making_charge(
         return {}
 
     return sub_rows[0]
+
+
+
+@frappe.whitelist()
+def get_finding_charge(
+    parent,
+    subcategory
+):
+   
+    sub_rows = frappe.get_all(
+        "Making Charge Price Finding Subcategory",
+        filters={
+            "parent": parent,
+            "subcategory": subcategory,
+        },
+        fields=[
+            "rate_per_gm",
+            "rate_per_pc",
+            "wastage",
+            "wastage_per_pcs",
+            "supplier_fg_purchase_rate",
+            "subcontracting_rate",
+            "subcontracting_wastage",
+        ],
+        limit=1,
+    )
+
+    if not sub_rows:
+        return {}
+
+    return sub_rows[0]
+@frappe.whitelist()
+def get_making_charge_price(
+    parent,
+    subcategory
+):
+   
+    sub_rows = frappe.get_all(
+        "Making Charge Price Item Subcategory",
+        filters={
+            "parent": parent,
+            "subcategory": subcategory,
+        },
+        fields=[
+            "subcategory",
+            "rate_per_gm",
+            "rate_per_pc",
+            "supplier_fg_purchase_rate",
+            "wastage",
+            "subcontracting_rate",
+            "subcontracting_wastage",
+            "wastage_per_pcs",
+            "name",
+            "to_diamond",
+            "from_diamond",
+            "rate_per_gm_threshold",
+        ],
+        limit=1,
+    )
+
+    if not sub_rows:
+        return {}
+
+    return sub_rows[0]
  
