@@ -9,6 +9,7 @@ dynamic = ["version"]
 dependencies = [
     "qrcode~=7.4.2",
     "forex-python~=1.8",
+    "pyodbc>=5.0.1"
 ]
 
 [build-system]
