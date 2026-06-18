@@ -376,6 +376,7 @@ def get_making_charge(
         fields=[
             "subcategory",
             "rate_per_gm",
+            "parent",
             "rate_per_pc",
             "supplier_fg_purchase_rate",
             "wastage",
@@ -457,3 +458,85 @@ def get_making_charge_price(
 
     return sub_rows[0]
  
+
+
+ 
+@frappe.whitelist()
+def get_diamond_rate(
+    customer,
+    diamond_type,
+    stone_shape,
+    diamond_quality,
+    price_list_type,
+    sieve_size_range=None,
+    weight_per_pcs=None,
+    diamond_size_in_mm=None,
+):
+    filters = {
+        "price_list": "Standard Selling",
+        "price_list_type": price_list_type,
+        "customer": customer,
+        "diamond_type": diamond_type,
+        "stone_shape": stone_shape,
+        "diamond_quality": diamond_quality,
+    }
+
+    fields = [
+        "rate",
+        "outright_handling_charges_rate",
+        "outright_handling_charges_in_percentage",
+        "outwork_handling_charges_rate",
+        "outwork_handling_charges_in_percentage",
+        "supplier_fg_purchase_rate",
+    ]
+
+    # Sieve Size Range
+    if price_list_type == "Sieve Size Range":
+        if not sieve_size_range:
+            return {}
+
+        data = frappe.db.get_value(
+            "Diamond Price List",
+            {**filters, "sieve_size_range": sieve_size_range},
+            fields,
+            as_dict=True,
+        )
+
+        return data or {}
+
+    # Weight (in cts)
+    elif price_list_type == "Weight (in cts)":
+        if not weight_per_pcs:
+            return {}
+
+        conditions = " AND ".join(f"`{k}` = %s" for k in filters)
+
+        rows = frappe.db.sql(
+            f"""
+            SELECT {", ".join(fields)}
+            FROM `tabDiamond Price List`
+            WHERE {conditions}
+              AND %s BETWEEN from_weight AND to_weight
+            LIMIT 1
+            """,
+            list(filters.values()) + [weight_per_pcs],
+            as_dict=True,
+        )
+
+        return rows[0] if rows else {}
+
+    # Size (in mm)
+    elif price_list_type == "Size (in mm)":
+        if not diamond_size_in_mm:
+            return {}
+
+        data = frappe.db.get_value(
+            "Diamond Price List",
+            {**filters, "diamond_size_in_mm": diamond_size_in_mm},
+            fields,
+            as_dict=True,
+        )
+
+        return data or {}
+
+    return {}
