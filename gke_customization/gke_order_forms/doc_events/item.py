@@ -540,3 +540,91 @@ def get_diamond_rate(
         return data or {}
 
     return {}
+
+
+
+
+
+
+import frappe
+from frappe.utils import flt, cint
+
+@frappe.whitelist()
+def get_fixed_retail_rate(
+    customer=None,
+    customer_group=None,
+    price_list_type=None,
+    per_pc_or_per_carat=None,
+    cut_or_cab=None,
+    gemstone_type=None,
+    stone_shape=None,
+    gemstone_grade=None,
+):
+    # ---------------- Fixed ----------------
+    if price_list_type == "Fixed" and customer_group != "Retail":
+        row = frappe.get_all(
+            "Gemstone Price List",
+            filters={
+                "customer":            customer,
+                "price_list_type":     price_list_type,
+                "per_pc_or_per_carat": per_pc_or_per_carat,
+                "cut_or_cab":          cut_or_cab,
+                "gemstone_type":       gemstone_type,
+                "stone_shape":         stone_shape,
+                "gemstone_grade":      gemstone_grade,
+            },
+            fields=["name", "price_list_type", "rate", "handling_rate",
+                    "outwork_handling_charges_rate"],
+            limit=1,
+        )
+        return row[0] if row else {}
+
+    # ---------------- Retail ----------------
+    elif customer_group == "Retail":
+        row = frappe.get_all(
+            "Gemstone Price List",
+            filters={
+                "is_retail_customer":  1,
+                "price_list_type":     price_list_type,
+                "per_pc_or_per_carat": per_pc_or_per_carat,
+                "cut_or_cab":          cut_or_cab,
+                "gemstone_type":       gemstone_type,
+                "stone_shape":         stone_shape,
+            },
+            fields=["name", "price_list_type", "rate", "handling_rate",
+                    "outwork_handling_charges_rate"],
+            limit=1,
+        )
+        return row[0] if row else {}
+
+    return {}
+
+
+@frappe.whitelist()
+def get_diamond_range_rate(
+    customer=None,
+    cut_or_cab=None,
+    gemstone_grade=None,
+):
+    gpc = frappe.get_all(
+        "Gemstone Price List",
+        filters={
+            "customer":        customer,
+            "price_list_type": "Diamond Range",
+            "cut_or_cab":      cut_or_cab,
+            "gemstone_grade":  gemstone_grade,
+        },
+        fields=["name"],
+        limit=1,
+    )
+
+    if not gpc:
+        return {}
+
+    doc = frappe.get_doc("Gemstone Price List", gpc[0].name)
+
+    return {
+        "name": gpc[0].name,
+        "doc":  doc.as_dict(),
+    }
+
