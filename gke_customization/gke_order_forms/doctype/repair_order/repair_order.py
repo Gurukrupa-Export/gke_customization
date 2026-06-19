@@ -71,6 +71,7 @@ def create_cad(self,sketch_item_code):
 	order_form_doc.diamond_quality = self.diamond_quality
 	order_form_doc.service_type = self.service_type
 	order_form_doc.repair_order = self.name
+	order_form_doc.total_rows = 1
 	set_value_in_cad_child_table(order_form_doc,self,sketch_item_code)
 	
 	
@@ -105,10 +106,12 @@ def set_value_in_cad_child_table(order_form_doc,self,sketch_item_code):
 	if self.required_design == 'Manual':
 		order_details.design_type = 'Sketch Design'
 	elif self.required_design == 'CAD':
-		order_details.design_type = 'Mod - Old Stylebio & Tag No'
+		# order_details.design_type = 'Mod - Old Stylebio & Tag No'
+		order_details.design_type = 'New Design'
 
 	if self.product_type == 'Company Goods':
 		order_details.design_by = 'Our Design'
+		
 	else:
 		order_details.design_by = 'Customer Design'
 
@@ -157,8 +160,11 @@ def set_value_in_sketch_child_table(order_form_doc,self):
 	order_details.budget = 0
 	subcategory_attributes = frappe.db.sql(f"""select item_attribute from `tabAttribute Value Item Attribute Detail` where parent = '{self.subcategory}' and in_cad = 1""",as_dict=1)
 	for i in subcategory_attributes:
-		a = getattr(self, i['item_attribute'].replace(' ','_').lower().replace('item_subcategory','subcategory').replace('item_category','category').replace('custom_metal_target','metal_target'))
+		a = getattr(self, i['item_attribute'].replace(' ','_').lower().replace('item_subcategory','subcategory').replace('item_category','category').replace('custom_metal_target','metal_target').replace("/",""))
 		setattr(order_details, i['item_attribute'].replace(' ','_').lower(), a)
+		# try:
+		# except:
+		# 	pass
 	
 def workflow_state_maker(self):
 	if self.product_type in ['Company Goods','Customer Goods (Company Manufactured)']:
@@ -181,7 +187,9 @@ def create_item_template_from_order(source_name, target_doc=None):
 	def post_process(source, target):
 		target.is_design_code = 1
 		target.has_variants = 1
-		# frappe.throw(f"{}")
+		# target.subcategory = source.subcategory
+		# target.item_category = source.category
+	
 		try:
 		# if source.designer_assignment:
 			target.designer = source.designer_assignment[0].designer
@@ -192,6 +200,7 @@ def create_item_template_from_order(source_name, target_doc=None):
 				target.designer = frappe.db.get_value('User',frappe.session.user,'full_name')
 		target.item_group = source.subcategory + " - T",
 
+		
 	doc = get_mapped_doc(
 		"Repair Order",
 		source_name.name,
@@ -206,12 +215,13 @@ def create_item_template_from_order(source_name, target_doc=None):
 					"india_states":"india_states",
 					"usa":"usa",
 					"usa_states":"usa_states",
+					
 				} 
 			}
 		},target_doc, post_process
 	)
+	# frappe.throw(f"{doc.item_category}")
 
-	
 	doc.save()
 	return doc.name
 
@@ -391,7 +401,11 @@ def update_item_variant(item_variant,item_template):
 
 
 def create_bom(self,item_variant):
-	bom_doc = frappe.get_doc("BOM",self.bom)
+	if self.serial_no_bom:
+		bom_doc = frappe.get_doc("BOM",self.serial_no_bom)
+	# elif self.bom:
+	else:
+		bom_doc = frappe.get_doc("BOM",self.bom)
 	new_bom_doc = frappe.new_doc("BOM")
 	new_bom_doc = bom_doc
 	new_bom_doc.docstatus = 0

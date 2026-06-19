@@ -69,7 +69,7 @@ function show_attribute_fields_for_subcategory(frm) {
 function hide_all_subcategory_attribute_fields(frm) {
 	var fields = [
 		"metal_target", "diamond_target", "metal_colour", "product_size",
-		"length", "height", "sizer_type", "enamal", "rhodium", "stone_type",
+		"length", "height", "enamal", "rhodium", "stone_type",
 		"gemstone_type", "gemstone_quality", "stone_changeable",
 		"changeable", "hinges", "back_belt", "vanki_type", "black_beed",
 		"black_beed_line", "screw_type", "hook_type", "lock_type", "two_in_one",
