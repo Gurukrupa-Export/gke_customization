@@ -331,4 +331,300 @@ def get_same_ref_doc(self,table_name, type):
             on tsit.parent = trg.name and trg.item_code = tsit.item_code
         where trg.item_code = '{self.name}' and trg.item_reference_type = '{type}'
     """, as_dict=1)
+
+
+
+        
+import frappe
+
+@frappe.whitelist()
+def get_making_charge(
+    customer,
+    metal_type,
+    setting_type,
+    gold_rate,
+    metal_touch,
+    subcategory
+):
+    filters = {
+        "customer": customer,
+        "metal_type": metal_type,
+        "setting_type": setting_type,
+        "from_gold_rate": ["<=", gold_rate],
+        "to_gold_rate": [">=", gold_rate],
+        "metal_touch": metal_touch,
+    }
+
+    mc = frappe.get_all(
+        "Making Charge Price",
+        filters=filters,
+        fields=["name"],
+        limit=1,
+    )
+
+    if not mc:
+        return {}
+
+    mc_name = mc[0]["name"]
+
+    sub_rows = frappe.get_all(
+        "Making Charge Price Item Subcategory",
+        filters={
+            "parent": mc_name,
+            "subcategory": subcategory,
+        },
+        fields=[
+            "subcategory",
+            "rate_per_gm",
+            "parent",
+            "rate_per_pc",
+            "supplier_fg_purchase_rate",
+            "wastage",
+            "wastage_per_pcs",
+            "subcontracting_rate",
+            "subcontracting_wastage",
+            "rate_per_gm_threshold",
+            "to_diamond",
+            "from_diamond",
+        ],
+    )
+
+    if not sub_rows:
+        return {}
+
+    return sub_rows[0]
+
+
+
+@frappe.whitelist()
+def get_finding_charge(
+    parent,
+    subcategory
+):
+   
+    sub_rows = frappe.get_all(
+        "Making Charge Price Finding Subcategory",
+        filters={
+            "parent": parent,
+            "subcategory": subcategory,
+        },
+        fields=[
+            "rate_per_gm",
+            "rate_per_pc",
+            "wastage",
+            "wastage_per_pcs",
+            "supplier_fg_purchase_rate",
+            "subcontracting_rate",
+            "subcontracting_wastage",
+        ],
+        limit=1,
+    )
+
+    if not sub_rows:
+        return {}
+
+    return sub_rows[0]
+@frappe.whitelist()
+def get_making_charge_price(
+    parent,
+    subcategory
+):
+   
+    sub_rows = frappe.get_all(
+        "Making Charge Price Item Subcategory",
+        filters={
+            "parent": parent,
+            "subcategory": subcategory,
+        },
+        fields=[
+            "subcategory",
+            "rate_per_gm",
+            "rate_per_pc",
+            "supplier_fg_purchase_rate",
+            "wastage",
+            "subcontracting_rate",
+            "subcontracting_wastage",
+            "wastage_per_pcs",
+            "name",
+            "to_diamond",
+            "from_diamond",
+            "rate_per_gm_threshold",
+        ],
+        limit=1,
+    )
+
+    if not sub_rows:
+        return {}
+
+    return sub_rows[0]
  
+
+
+ 
+@frappe.whitelist()
+def get_diamond_rate(
+    customer,
+    diamond_type,
+    stone_shape,
+    diamond_quality,
+    price_list_type,
+    sieve_size_range=None,
+    weight_per_pcs=None,
+    diamond_size_in_mm=None,
+):
+    filters = {
+        "price_list": "Standard Selling",
+        "price_list_type": price_list_type,
+        "customer": customer,
+        "diamond_type": diamond_type,
+        "stone_shape": stone_shape,
+        "diamond_quality": diamond_quality,
+    }
+
+    fields = [
+        "rate",
+        "outright_handling_charges_rate",
+        "outright_handling_charges_in_percentage",
+        "outwork_handling_charges_rate",
+        "outwork_handling_charges_in_percentage",
+        "supplier_fg_purchase_rate",
+    ]
+
+    # Sieve Size Range
+    if price_list_type == "Sieve Size Range":
+        if not sieve_size_range:
+            return {}
+
+        data = frappe.db.get_value(
+            "Diamond Price List",
+            {**filters, "sieve_size_range": sieve_size_range},
+            fields,
+            as_dict=True,
+        )
+
+        return data or {}
+
+    # Weight (in cts)
+    elif price_list_type == "Weight (in cts)":
+        if not weight_per_pcs:
+            return {}
+
+        conditions = " AND ".join(f"`{k}` = %s" for k in filters)
+
+        rows = frappe.db.sql(
+            f"""
+            SELECT {", ".join(fields)}
+            FROM `tabDiamond Price List`
+            WHERE {conditions}
+              AND %s BETWEEN from_weight AND to_weight
+            LIMIT 1
+            """,
+            list(filters.values()) + [weight_per_pcs],
+            as_dict=True,
+        )
+
+        return rows[0] if rows else {}
+
+    # Size (in mm)
+    elif price_list_type == "Size (in mm)":
+        if not diamond_size_in_mm:
+            return {}
+
+        data = frappe.db.get_value(
+            "Diamond Price List",
+            {**filters, "diamond_size_in_mm": diamond_size_in_mm},
+            fields,
+            as_dict=True,
+        )
+
+        return data or {}
+
+    return {}
+
+
+
+
+
+
+import frappe
+from frappe.utils import flt, cint
+
+@frappe.whitelist()
+def get_fixed_retail_rate(
+    customer=None,
+    customer_group=None,
+    price_list_type=None,
+    per_pc_or_per_carat=None,
+    cut_or_cab=None,
+    gemstone_type=None,
+    stone_shape=None,
+    gemstone_grade=None,
+):
+    # ---------------- Fixed ----------------
+    if price_list_type == "Fixed" and customer_group != "Retail":
+        row = frappe.get_all(
+            "Gemstone Price List",
+            filters={
+                "customer":            customer,
+                "price_list_type":     price_list_type,
+                "per_pc_or_per_carat": per_pc_or_per_carat,
+                "cut_or_cab":          cut_or_cab,
+                "gemstone_type":       gemstone_type,
+                "stone_shape":         stone_shape,
+                "gemstone_grade":      gemstone_grade,
+            },
+            fields=["name", "price_list_type", "rate", "handling_rate",
+                    "outwork_handling_charges_rate"],
+            limit=1,
+        )
+        return row[0] if row else {}
+
+    # ---------------- Retail ----------------
+    elif customer_group == "Retail":
+        row = frappe.get_all(
+            "Gemstone Price List",
+            filters={
+                "is_retail_customer":  1,
+                "price_list_type":     price_list_type,
+                "per_pc_or_per_carat": per_pc_or_per_carat,
+                "cut_or_cab":          cut_or_cab,
+                "gemstone_type":       gemstone_type,
+                "stone_shape":         stone_shape,
+            },
+            fields=["name", "price_list_type", "rate", "handling_rate",
+                    "outwork_handling_charges_rate"],
+            limit=1,
+        )
+        return row[0] if row else {}
+
+    return {}
+
+
+@frappe.whitelist()
+def get_diamond_range_rate(
+    customer=None,
+    cut_or_cab=None,
+    gemstone_grade=None,
+):
+    gpc = frappe.get_all(
+        "Gemstone Price List",
+        filters={
+            "customer":        customer,
+            "price_list_type": "Diamond Range",
+            "cut_or_cab":      cut_or_cab,
+            "gemstone_grade":  gemstone_grade,
+        },
+        fields=["name"],
+        limit=1,
+    )
+
+    if not gpc:
+        return {}
+
+    doc = frappe.get_doc("Gemstone Price List", gpc[0].name)
+
+    return {
+        "name": gpc[0].name,
+        "doc":  doc.as_dict(),
+    }
+
