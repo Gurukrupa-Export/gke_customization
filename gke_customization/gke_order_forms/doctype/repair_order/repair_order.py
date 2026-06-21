@@ -41,11 +41,16 @@ class RepairOrder(Document):
 	def on_update_after_submit(self):
 		if self.required_design == 'Manual':
 			if self.workflow_state == 'Create CAD' and not self.order_form:
-				sketch_item_code = frappe.db.get_list('Item',filters={'custom_sketch_order_form_id': self.sketch_order_form},fields=['name'])[0]['name']
-				if not sketch_item_code:
-					frappe.throw("Sketch Order Form Item is not created")
-				order_form_id = create_cad(self,sketch_item_code)
-				frappe.msgprint("New Order Form Created: {0}".format(get_link_to_form("Order Form",order_form_id)))
+				sketch_items = frappe.db.get_list('Item', filters={'custom_sketch_order_form_id': self.sketch_order_form}, fields=['name'])
+				if not sketch_items:
+					frappe.throw(
+						f"Cannot create CAD: Sketch Order Form {frappe.bold(self.sketch_order_form)} "
+						"is not yet approved or no item has been created from it. "
+						"Please approve the Sketch Order Form first."
+					)
+				sketch_item_code = sketch_items[0]['name']
+				order_form_id = create_cad(self, sketch_item_code)
+				frappe.msgprint("New Order Form Created: {0}".format(get_link_to_form("Order Form", order_form_id)))
 		# if self.product_type not in ['Customer Goods (Company Manufactured)','Company Goods'] and self.required_design == 'No':
 		# 	cerate_bom_timesheet(self)
 		
@@ -133,6 +138,9 @@ def set_value_in_cad_child_table(order_form_doc,self,sketch_item_code):
 	order_details.diamond_target = self.diamond_target
 	order_details.product_size = self.product_size
 	order_details.gemstone_type1 = self.gemstone_type1
+	order_details.design_image_1 = self.design_image1
+	order_details.stone_changeable = self.stone_changeable
+	order_details.metal_colour = self.metal_colour
 	subcategory_attributes = frappe.db.sql(f"""select item_attribute from `tabAttribute Value Item Attribute Detail` where parent = '{self.subcategory}' and in_cad = 1""",as_dict=1)
 	for i in subcategory_attributes:
 		a = getattr(self, i['item_attribute'].replace(' ','_').lower().replace('item_subcategory','subcategory').replace('item_category','category').replace('custom_metal_target','metal_target').replace('/',''))
@@ -140,7 +148,7 @@ def set_value_in_cad_child_table(order_form_doc,self,sketch_item_code):
 
 def set_value_in_sketch_child_table(order_form_doc,self):
 	order_details = order_form_doc.append("order_details", {})
-	order_details.design_type = 'Mod - Old Stylebio & Tag No'
+	order_details.design_type = 'New Design'
 	# order_details.item_type = 'Only Variant'
 	order_details.is_repairing = 1
 	order_details.tag__design_id = self.item
@@ -158,6 +166,7 @@ def set_value_in_sketch_child_table(order_form_doc,self):
 	order_details.product_size = self.product_size
 	order_details.gemstone_type1 = self.gemstone_type1
 	order_details.budget = 0
+	order_details.stone_changeable = self.stone_changeable
 	subcategory_attributes = frappe.db.sql(f"""select item_attribute from `tabAttribute Value Item Attribute Detail` where parent = '{self.subcategory}' and in_cad = 1""",as_dict=1)
 	for i in subcategory_attributes:
 		a = getattr(self, i['item_attribute'].replace(' ','_').lower().replace('item_subcategory','subcategory').replace('item_category','category').replace('custom_metal_target','metal_target').replace("/",""))
@@ -180,7 +189,7 @@ def set_item_type(self):
 	elif self.product_type in ['Company Goods','Customer Goods (Company Manufactured)'] and self.repair_type =='Modified Raw Material':
 		item_type = 'Only Variant'
 	elif self.product_type in ['Company Goods','Customer Goods (Company Manufactured)'] and self.repair_type =='Modified Product':
-		item_type = 'Suffix Of Variant'
+		item_type = 'Template and Variant'
 	return item_type
 
 def create_item_template_from_order(source_name, target_doc=None):

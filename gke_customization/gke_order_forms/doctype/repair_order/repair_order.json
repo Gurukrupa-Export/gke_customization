@@ -560,9 +560,9 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.stone_changeable",
+   "fetch_if_empty": 1,
    "fieldname": "stone_changeable",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Stone Changeable",
    "options": "Attribute Value",
    "read_only": 1,
@@ -963,7 +963,8 @@
    "fetch_from": "serial_and_design_id_order_form_detail.design_image1",
    "fieldname": "design_image1",
    "fieldtype": "Attach Image",
-   "label": "Design Image1"
+   "label": "Design Image1",
+   "mandatory_depends_on": "eval:doc.workflow_state == 'Create CAD'"
   },
   {
    "fieldname": "column_break_35",
@@ -1260,7 +1261,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2026-06-18 12:48:48.627240",
+ "modified": "2026-06-21 17:10:06.908016",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order",

@@ -33,6 +33,16 @@ frappe.ui.form.on('Repair Order Form', {
 			});
 		}
 	},
+	refresh(frm) {
+		if (frm.doc.__islocal) {
+			frappe.db.get_value("Employee", { "user_id": frappe.session.user }, ["department", "branch"], function(r) {
+				if (r) {
+					if (r.department) frm.set_value("department", r.department);
+					if (r.branch) frm.set_value("branch", r.branch);
+				}
+			});
+		}
+	},
 	setup(frm,cdt,cdn) {
 		frm.set_query("diamond_quality", function (doc) {
 			if (!doc.customer_code) {
