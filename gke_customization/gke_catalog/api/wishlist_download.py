@@ -775,70 +775,70 @@ def get_method1(data):
    
    
  
-import pikepdf
-import io
+# import pikepdf
+# import io
 
-import frappe
-import io
-import pikepdf
+# import frappe
+# import io
+# import pikepdf
 
-from frappe.utils.pdf import get_pdf
+# from frappe.utils.pdf import get_pdf
 
-@frappe.whitelist()
-def add_password_to_pdf(doctype, name, print_format, receiver):
+# @frappe.whitelist()
+# def add_password_to_pdf(doctype, name, print_format, receiver):
 
-    # Generate PDF from Print Format
-    pdf_data = get_pdf(
-        frappe.get_print(
-            doctype,
-            name,
-            print_format=print_format
-        )
-    )
-
-
-    # Dynamic password = receiver mail ke first 5 letters
-    password = receiver.split("@")[0][:5]
+#     # Generate PDF from Print Format
+#     pdf_data = get_pdf(
+#         frappe.get_print(
+#             doctype,
+#             name,
+#             print_format=print_format
+#         )
+#     )
 
 
-    # Encrypt PDF
-    pdf = pikepdf.open(io.BytesIO(pdf_data))
-
-    output = io.BytesIO()
-
-    pdf.save(
-        output,
-        encryption=pikepdf.Encryption(
-            user=password,
-            owner=password,
-            allow=pikepdf.Permissions(
-                extract=False,
-                modify_annotation=False,
-                modify_form=False
-            )
-        )
-    )
+#     # Dynamic password = receiver mail ke first 5 letters
+#     password = receiver.split("@")[0][:5]
 
 
-    encrypted_pdf = output.getvalue()
+#     # Encrypt PDF
+#     pdf = pikepdf.open(io.BytesIO(pdf_data))
+
+#     output = io.BytesIO()
+
+#     pdf.save(
+#         output,
+#         encryption=pikepdf.Encryption(
+#             user=password,
+#             owner=password,
+#             allow=pikepdf.Permissions(
+#                 extract=False,
+#                 modify_annotation=False,
+#                 modify_form=False
+#             )
+#         )
+#     )
 
 
-    # Send Mail
-    frappe.sendmail(
-        recipients=[receiver],
-        sender="customer_portal@gkexport.com",
-        subject="Protected PDF",
-        message=f"""
-        Dear User,
+#     encrypted_pdf = output.getvalue()
 
-        PDF attached.
 
-        Password: {password}
-        """,
-        attachments=[
-            {
-                "fname": f"{name}.pdf",
-                "fcontent": encrypted_pdf
-            }
-        ]
-    )
+#     # Send Mail
+#     frappe.sendmail(
+#         recipients=[receiver],
+#         sender="customer_portal@gkexport.com",
+#         subject="Protected PDF",
+#         message=f"""
+#         Dear User,
+
+#         PDF attached.
+
+#         Password: {password}
+#         """,
+#         attachments=[
+#             {
+#                 "fname": f"{name}.pdf",
+#                 "fcontent": encrypted_pdf
+#             }
+#         ]
+#     )
