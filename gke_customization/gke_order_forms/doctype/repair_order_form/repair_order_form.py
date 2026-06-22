@@ -42,6 +42,8 @@ def make_serial_and_design_order(source_name, target_doc=None, parent_doc = None
 		if source.repair_type == 'Refresh & Replace Defective Material':
 			frappe.db.set_value("Repair Order Form Detail",source.name,"required_design","No")
 			target.required_design = "No"
+			# target.docstatus = 1
+			# frappe.db.set_value("Repair Order",target,"workflow_state","Approved")
 
 
 	doc = get_mapped_doc(
@@ -65,24 +67,32 @@ def make_serial_and_design_order(source_name, target_doc=None, parent_doc = None
 	# doc.due_days = parent_doc.due_days
 	# doc.form_remarks = parent_doc.remarks
 	doc.save()
+	# if doc.
 	return doc.name
 
 @frappe.whitelist()
-def get_bom_details(design_id,serial_no=None):
+def get_bom_details(design_id,serial_no):
 	item_subcategory = frappe.db.get_value("Item",design_id,"item_subcategory")
 	if serial_no:
 		master_bom = frappe.db.get_value("Serial No",serial_no,"custom_bom_no")
+		serial_no_bom = master_bom
+		bom = frappe.db.get_value("Item",design_id,"master_bom")
 	else:
 		master_bom = frappe.db.get_value("Item",design_id,"master_bom")
+		bom = master_bom
+
 	if not master_bom:
 		frappe.throw(f"Master BOM for Item <b>{get_link_to_form('Item',design_id)}</b> is not set")
 	all_item_attributes = []
 
 	for i in frappe.get_doc("Attribute Value",item_subcategory).item_attributes:
 		all_item_attributes.append(i.item_attribute.replace(' ','_').replace('/','').lower())
-	
+	all_item_attributes.append("diamond_quality")
+	# frappe.throw(f"{all_item_attributes}")
 	with_value = frappe.db.get_value("BOM",master_bom,all_item_attributes,as_dict=1)
 	with_value['master_bom'] = master_bom
+	with_value['serial_no_bom'] = serial_no_bom
+	with_value['bom'] = bom
 	with_value['gross_weight'] = frappe.db.get_value("BOM",master_bom,"gross_weight")
 	
 	return with_value

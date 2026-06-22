@@ -1,4 +1,7 @@
 import frappe
+import requests
+
+
 def before_validate(self,method):
     if self.custom_is_similar_item:
         create_group_for_similar(self)
