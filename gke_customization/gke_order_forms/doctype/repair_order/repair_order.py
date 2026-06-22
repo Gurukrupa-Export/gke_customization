@@ -209,7 +209,7 @@ def create_item_template_from_order(source_name, target_doc=None):
 				target.designer = frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name')
 			else:
 				target.designer = frappe.db.get_value('User',frappe.session.user,'full_name')
-		target.item_group = source.subcategory + " - T",
+		target.item_group = source.subcategory + " - T"
 
 		
 	doc = get_mapped_doc(
