@@ -1,0 +1,130 @@
+// Copyright (c) 2026, Gurukrupa Export and contributors
+// For license information, please see license.txt
+
+frappe.query_reports["Employee issue receive reports"] = {
+    "filters": [
+        {
+            "fieldname": "company",
+            "label": __("Company"),
+            "fieldtype": "Link",
+            "options": "Company",
+            "default": frappe.defaults.get_user_default("Company"),
+            "reqd": 1
+        },
+        {
+            "fieldname": "branch",
+            "label": __("Branch"),
+            "fieldtype": "Link",
+            "options": "Branch",
+            "get_query": function() {
+                return {
+                    "filters": {
+                        "company": frappe.query_report.get_filter_value("company")
+                    }
+                }
+            }
+        },
+        {
+            "fieldname": "manufacturer",
+            "label": __("Manufacturer"),
+            "fieldtype": "Link",
+            "options": "Manufacturer"
+        },
+        {
+            "fieldname": "department",
+            "label": __("Department"),
+            "fieldtype": "Link",
+            "options": "Department",
+            "get_query": function() {
+                return {
+                    "filters": {
+                        "company": frappe.query_report.get_filter_value("company")
+                    }
+                }
+            },
+            "on_change": function() {
+                frappe.query_report.set_filter_value("operation", "");
+                frappe.query_report.set_filter_value("employee_id", "");
+            }
+        },
+        {
+            "fieldname": "operation",
+            "label": __("Operation"),
+            "fieldtype": "Link",
+            "options": "Department Operation",
+            "get_query": function() {
+                var department = frappe.query_report.get_filter_value("department");
+                var company = frappe.query_report.get_filter_value("company");
+
+                var filters = {
+                    "docstatus": ["!=", 2]
+                };
+
+                if (department) {
+                    filters["department"] = department;
+                }
+                if (company) {
+                    filters["company"] = company;
+                }
+
+                return {
+                    "filters": filters
+                }
+            },
+            "on_change": function() {
+                frappe.query_report.set_filter_value("employee_id", "");
+            }
+        },
+        {
+            "fieldname": "employee_id",
+            "label": __("Employee"),
+            "fieldtype": "Link",
+            "options": "Employee",
+            "get_query": function() {
+                var company = frappe.query_report.get_filter_value("company");
+                var department = frappe.query_report.get_filter_value("department");
+                var operation = frappe.query_report.get_filter_value("operation");
+
+                if (operation && operation !== "") {
+                    return {
+                        "query": "gke_customization.gke_catalog.report.employee_issue_receive_reports.employee_issue_receive_reports.get_employees_by_operation",
+                        "filters": {
+                            "department": department,
+                            "operation": operation,
+                            "company": company
+                        }
+                    }
+                }
+
+                var filters = {
+                    "status": "Active"
+                };
+
+                if (company) {
+                    filters["company"] = company;
+                }
+                if (department) {
+                    filters["department"] = department;
+                }
+
+                return {
+                    "filters": filters
+                }
+            }
+        },
+        {
+            "fieldname": "from_date",
+            "label": __("From Date"),
+            "fieldtype": "Date",
+            "default": frappe.datetime.add_months(frappe.datetime.get_today(), -1),
+            "reqd": 1
+        },
+        {
+            "fieldname": "to_date",
+            "label": __("To Date"),
+            "fieldtype": "Date",
+            "default": frappe.datetime.get_today(),
+            "reqd": 1
+        }
+    ]
+};

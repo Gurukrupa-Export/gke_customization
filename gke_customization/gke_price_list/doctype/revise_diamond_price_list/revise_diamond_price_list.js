@@ -1,7 +1,7 @@
 // Copyright (c) 2024, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
-// frappe.ui.form.on('Revise Diamond Price  List', {
+// frappe.ui.form.on('Revise Diamond Price List', {
 // 	// refresh: function(frm) {
 
 // 	// }
