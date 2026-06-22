@@ -18,7 +18,7 @@ import json
 from gke_customization.gke_catalog.api.notifications import notify_user
 from gke_customization.gke_catalog.api.wishlist_download import get_method
 from gke_customization.gke_catalog.api.wishlist_download import get_method1
-from gke_customization.gke_catalog.api.encryption_response import encrypt_response
+# from gke_customization.gke_catalog.api.encryption_response import encrypt_response
 
 from cryptography.fernet import Fernet
 
@@ -4772,7 +4772,7 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
         }
     
     return {
-        "encrypted_data": encrypt_response(response_data)
+        "encrypted_data": response_data
     }
    
 
