@@ -408,10 +408,11 @@ def create_item_kggk(doc, method=None):
 
             try:
                 # Try update first
+                update_payload = {k: v for k, v in payload.items() if k not in ( "variant_of")}
                 response = requests.put(
                     f"{base_url}/api/resource/Item/{item_code}",
                     headers=headers,
-                    json=payload,
+                    json=update_payload,
                     timeout=15
                 )
 
