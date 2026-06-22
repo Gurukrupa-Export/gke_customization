@@ -111,8 +111,10 @@ def set_value_in_cad_child_table(order_form_doc,self,sketch_item_code):
 	if self.required_design == 'Manual':
 		order_details.design_type = 'Sketch Design'
 	elif self.required_design == 'CAD':
-		# order_details.design_type = 'Mod - Old Stylebio & Tag No'
-		order_details.design_type = 'New Design'
+		if self.tag_no:
+			order_details.design_type = 'Mod - Old Stylebio & Tag No'
+		else:
+			order_details.design_type = 'New Design'
 
 	if self.product_type == 'Company Goods':
 		order_details.design_by = 'Our Design'
