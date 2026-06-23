@@ -484,7 +484,7 @@ def create_bom_kggk(doc, method=None):
                 "bom_type": doc.bom_type,
                 "is_default": doc.is_default,
                 "is_active": doc.is_active,
-                "company": doc.company,
+                # "company": doc.company,
                 # "has_variants":doc.has_variants,
                 "selling_price_list": doc.selling_price_list,
                 "customer": doc.customer,
