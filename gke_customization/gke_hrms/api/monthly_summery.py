@@ -328,11 +328,11 @@ def attendance(from_date = None,to_date = None,employee = None):
 					ShiftType.shift_hours * 3600,
 					IF(Attendance.out_time, TIME_TO_SEC(TIMEDIFF(Attendance.out_time, Attendance.in_time)), Attendance.working_hours * 3600)
 				)
-				+ IF((Attendance.late_entry == 0) & (TIME(Attendance.in_time) > ShiftType.start_time),
+				+ IF((Attendance.status != 'Half Day') & (Attendance.late_entry == 0) & (TIME(Attendance.in_time) > ShiftType.start_time),
 					TIME_TO_SEC(TIMEDIFF(TIME(Attendance.in_time), ShiftType.start_time)), 0)
-				- IF(TIME(Attendance.in_time) < ShiftType.start_time,
+				- IF((Attendance.status != 'Half Day') & TIME(Attendance.in_time) < ShiftType.start_time,
 					TIME_TO_SEC(TIMEDIFF(ShiftType.start_time, TIME(Attendance.in_time))), 0)
-				- IF(Attendance.out_time > TIMESTAMP(Date(Attendance.in_time), ShiftType.end_time),
+				- IF((Attendance.status != 'Half Day') & Attendance.out_time > TIMESTAMP(Date(Attendance.in_time), ShiftType.end_time),
 					TIME_TO_SEC(TIMEDIFF(Attendance.out_time, TIMESTAMP(Date(Attendance.in_time), ShiftType.end_time))), 0)
 				- IfNull(TIME_TO_SEC(pol_subquery.hrs), 0)
 				+ (
@@ -437,7 +437,7 @@ def process_data1(data,from_date,to_date, employee):
 					row.total_pay_hrs = row.net_wrk_hrs + (row.ot_hours or timedelta(0))
 
 		if row.lh:
-			row.status = 'LH'
+			row.status = STATUS.get(row.status) or 'LH'
 		shift_hours_in_sec = ''
 		if row.shift_hours:
 			shift_hours_in_sec = row.shift_hours * 3600
@@ -665,7 +665,7 @@ def process_data(data,from_date,to_date, employee):
 					row.total_pay_hrs = row.net_wrk_hrs + (row.ot_hours or timedelta(0))
 
 		if row.lh:
-			row.status = 'LH'
+			row.status = STATUS.get(row.status) or 'LH'
 		shift_hours_in_sec = 0
 		if row.shift_hours:
 			shift_hours_in_sec = row.shift_hours * 3600
@@ -779,6 +779,8 @@ def get_totals(data, employee):
 	late_count = 0
 	penalty_days = 0 
 	totals["shift_hours"] = 0.0
+	half_day_count = 0
+	shift = ''
 
 	for row in data:
 		totals["net_wrk_hrs"] += (row.get("net_wrk_hrs") or timedelta(0))
@@ -788,13 +790,20 @@ def get_totals(data, employee):
 		totals["late_hrs"] += (row.get("late_hrs") or timedelta(0))
 		totals["p_out_hrs"] += (row.get("p_out_hrs") or timedelta(0))
 		totals["spent_hours"] += (row.get("spent_hours") or timedelta(0))
+		shift = row.get("shift_name")
 
 		if row.get("late_entry"):
 			late_count += 1
 		if not totals["shift_hours"] and row.get("shift_hours"):		
 			totals["shift_hours"] = flt(row.get("shift_hours"))
+		if row.get("lh"):
+			half_day_count += 1 
 
 	totals["late_count"] = late_count
+	totals["half_day_count"] = half_day_count
+ 
+	half_day_shift_hours = frappe.db.get_value("Shift Type", {'name': shift}, 'working_hours_threshold_for_half_day')
+	totals["half_day_days"] = flt((half_day_count * flt(half_day_shift_hours)) / flt(totals["shift_hours"] or 1), 2)
 
 	if late_count > 4 and late_count < 10:
 		penalty_days = 0.5

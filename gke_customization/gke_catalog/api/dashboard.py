@@ -407,3 +407,49 @@ def get_sales_invoice(customer, id=None):
     except Exception as e:
         frappe.log_error(f"Error in get_sales_invoice: {str(e)}")
         return {"success": False, "message": "Failed to fetch Sales Invoice"}
+
+@frappe.whitelist(allow_guest=True)
+def get_customer_wise_count(customer):
+
+    get_catalogue_data = frappe.get_all(
+        "Cataloge Master",
+        filters={"customer": customer},
+        fields=["name"]
+    )
+
+    parent_names = [d.name for d in get_catalogue_data]
+
+    assigned_items = frappe.get_all(
+        "Cataloge Item Details",
+        filters={
+            "parent": ["in", parent_names]
+        },
+        fields=["item_code"],
+        distinct=True
+    )
+
+    trending_items = frappe.get_all(
+        "Cataloge Item Details",
+        filters={
+            "parent": ["in", parent_names],
+            "trending": 1
+        },
+        fields=["item_code"],
+        distinct=True
+    )
+
+    wishlist_items = frappe.get_all(
+        "Cataloge Item Details",
+        filters={
+            "parent": ["in", parent_names],
+            "wishlist": 1
+        },
+        fields=["item_code"],
+        distinct=True
+    )
+
+    return {
+        "get_catalouge_item_details_count": len(assigned_items),
+        "trending_count": len(trending_items),
+        "wishlist_count": len(wishlist_items)
+    }
