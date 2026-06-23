@@ -239,7 +239,7 @@ def create_item_template_from_order(source_name, target_doc=None):
 def create_variant_of_template_from_order(item_template,source_name, target_doc=None):
 	def post_process(source, target):
 		target.order_form_type = 'Repair Order'
-		target.item_group = frappe.db.get_value('Repair Order',source_name,'subcategory') + " - V",
+		target.item_group = frappe.db.get_value('Repair Order',source_name,'subcategory') + " - V"
 		target.custom_repair_order = source_name
 		target.custom_repair_order_form = frappe.db.get_value('Repair Order',source_name,'order_form')
 		target.item_code = f'{item_template}-001'
