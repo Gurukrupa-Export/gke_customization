@@ -223,7 +223,9 @@
 "column_break_wodq",
 "rpt_file",
 "column_break_zgjt",
-"cad_image"
+"cad_image",
+"tab_break_y79z",
+"repair_order"
 ],
 "fields": [
 {
@@ -1723,6 +1725,17 @@
   "fieldtype": "Select",
   "label": "Design Complexity",
   "options": "\nLow\nMedium\nHigh"
+},
+{
+  "fieldname": "tab_break_y79z",
+  "fieldtype": "Tab Break"
+},
+{
+  "fetch_from": "cad_order_form.repair_order",
+  "fieldname": "repair_order",
+  "fieldtype": "Link",
+  "label": "Repair Order",
+  "options": "Repair Order"
 }
 ],
 "index_web_pages_for_search": 1,
