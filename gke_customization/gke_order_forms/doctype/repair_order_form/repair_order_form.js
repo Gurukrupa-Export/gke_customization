@@ -33,6 +33,16 @@ frappe.ui.form.on('Repair Order Form', {
 			});
 		}
 	},
+	refresh(frm) {
+		if (frm.doc.__islocal) {
+			frappe.db.get_value("Employee", { "user_id": frappe.session.user }, ["department", "branch"], function(r) {
+				if (r) {
+					if (r.department) frm.set_value("department", r.department);
+					if (r.branch) frm.set_value("branch", r.branch);
+				}
+			});
+		}
+	},
 	setup(frm,cdt,cdn) {
 		frm.set_query("diamond_quality", function (doc) {
 			if (!doc.customer_code) {
@@ -127,11 +137,42 @@ frappe.ui.form.on('Repair Order Form', {
 				},
 
 				callback: function (r) {
+					// console.log('hii',r.message);
 					if (r.message.item_code) {
+						console.log('hiiiiii');
 						let d = frm.add_child('order_details');
-						d.item = r.message.item_code;
-						d.delivery_date = frm.doc.delivery_date;
-						d.diamond_quality = frm.doc.diamond_quality;
+						// d.item = r.message.item_code;
+						// d.tag_no=r.message.serial_no;
+						// d.delivery_date = frm.doc.delivery_date;
+						// d.diamond_quality = frm.doc.diamond_quality;
+						frappe.model.set_value(d.doctype, d.name, "item", r.message.item_code);
+						frappe.model.set_value(d.doctype, d.name, "tag_no", r.message.serial_no);
+						frappe.model.set_value(d.doctype, d.name, "delivery_date", frm.doc.delivery_date);
+						frappe.model.set_value(d.doctype, d.name, "diamond_quality", frm.doc.diamond_quality);
+						if (d.tag_no) {frappe.db.get_value(
+								"Serial No",
+								d.tag_no,
+								"custom_bom_no"
+							).then(res => {
+								if (res.message) {
+									frappe.model.set_value(
+										d.doctype,
+										d.name,
+										"serial_no_bom",
+										res.message.custom_bom_no
+									);
+								}
+							});
+						}
+					
+						// let d = frm.add_child('order_details');
+
+						// frappe.model.set_value(
+						// 	d.doctype,
+						// 	d.name,
+						// 	"item",
+						// 	r.message.item_code
+						// );
 						frappe.model.with_doc("Item", r.message.item_code, function (m) {
 							var doc = frappe.model.get_doc("Item", r.message.item_code);
 							if (doc.attributes) {
@@ -150,6 +191,7 @@ frappe.ui.form.on('Repair Order Form', {
 			});
 		}
 	}
+	
 });
 
 frappe.ui.form.on('Repair Order Form Detail', {
@@ -158,16 +200,15 @@ frappe.ui.form.on('Repair Order Form Detail', {
 		fetch_item_from_serial(d, "tag_no", "item")
 		if (d.tag_no) {
 			frappe.db.get_value("Serial No", d.tag_no,'custom_bom_no', (r)=>{
-				frappe.model.set_value(cdt, cdn, 'bom', r.custom_bom_no)
-			})
-			frappe.db.get_value("Serial No",d.tag_no,'custom_gross_wt', (r)=>{
-				frappe.model.set_value(cdt, cdn, 'bom_weight', r.custom_bom_no)
+				frappe.model.set_value(cdt, cdn, 'serial_no_bom', r.custom_bom_no)
 			})
 		}
 	},
 	item: function (frm, cdt, cdn) {
 		var d = locals[cdt][cdn];
+		
 		if (d.item) {
+			console.log('hii');
 			frappe.call({
 				method: "gke_customization.gke_order_forms.doctype.repair_order_form.repair_order_form.get_bom_details",
 				args: {
@@ -176,22 +217,23 @@ frappe.ui.form.on('Repair Order Form Detail', {
 				},
 				callback(r) {
 					if(r.message) {
+						console.log('hii',r.message);
+						
 						d.bom_weight = r.message.gross_weight
+						d.diamond_quality = r.message.diamond_quality
 						d.category = r.message.item_category;
 						d.subcategory = r.message.item_subcategory;
 						d.setting_type = r.message.setting_type;
 						d.sub_setting_type1 = r.message.sub_setting_type1
 						d.sub_setting_type2 = r.message.sub_setting_type2
-						// if(!d.tag_no){
-						// }
-						d.bom = r.message.master_bom;
+						d.bom = r.message.bom;
 						d.qty = r.message.qty
 						d.metal_type = r.message.metal_type
 						d.metal_touch = r.message.metal_touch
 						d.metal_purity = r.message.metal_purity
 						d.metal_colour = r.message.metal_colour
 						d.metal_target = r.message.metal_target
-						d.metal_target = r.message.custom_metal_target
+						// d.metal_target = r.message.custom_metal_target
 						d.diamond_target = r.message.diamond_target
 						d.product_size = r.message.product_size
 						d.sizer_type = r.message.sizer_type

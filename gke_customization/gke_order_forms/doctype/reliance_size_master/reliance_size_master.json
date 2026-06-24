@@ -2,7 +2,7 @@
  "actions": [],
  "allow_import": 1,
  "allow_rename": 1,
- "autoname": "format:{category_abbr}-{product_size}",
+ "autoname": "format:{category_abbr}-{product_size}-{gk_abbr}",
  "creation": "2023-11-07 11:44:11.883416",
  "default_view": "List",
  "doctype": "DocType",
@@ -12,9 +12,12 @@
   "customer",
   "item_category",
   "category_abbr",
+  "item_subcategory",
   "column_break_qks7",
   "product_size",
-  "code"
+  "code",
+  "gurukrupa_size",
+  "gk_abbr"
  ],
  "fields": [
   {
@@ -53,12 +56,30 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Code"
+  },
+  {
+   "fieldname": "gurukrupa_size",
+   "fieldtype": "Data",
+   "label": "Gurukrupa Size"
+  },
+  {
+   "fieldname": "item_subcategory",
+   "fieldtype": "Link",
+   "label": "Item Subcategory",
+   "link_filters": "[[\"Attribute Value\",\"is_subcategory\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "gk_abbr",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "GK Abbr"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-12-18 11:17:22.525016",
- "modified_by": "Administrator",
+ "modified": "2026-04-14 10:56:25.063314",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Reliance Size Master",
  "naming_rule": "Expression",
@@ -77,6 +98,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

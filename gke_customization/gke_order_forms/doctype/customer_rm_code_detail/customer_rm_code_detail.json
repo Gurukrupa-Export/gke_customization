@@ -1,0 +1,171 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-02-20 09:55:44.871324",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "raw_material_type",
+  "customer_code",
+  "diamond_type",
+  "stone_shape",
+  "diamond_grade",
+  "diamond_sieve_size",
+  "item_code",
+  "column_break_scdb",
+  "gemstone_type",
+  "gemstone_quality",
+  "gemstone_grade",
+  "gemstone_size",
+  "cut_or_cab",
+  "gemstone_pr",
+  "per_pc_or_per_carat",
+  "size_in_mm",
+  "diamond_quality"
+ ],
+ "fields": [
+  {
+   "fieldname": "raw_material_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "label": "Raw Material Type",
+   "options": "\nFinding\nGemstone\nDiamond"
+  },
+  {
+   "fieldname": "customer_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "label": "Customer Code"
+  },
+  {
+   "depends_on": "eval:doc.raw_material_type == \"Diamond\"",
+   "fieldname": "diamond_type",
+   "fieldtype": "Link",
+   "label": "Diamond Type",
+   "link_filters": "[[\"Attribute Value\",\"custom_is_diamond_type\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.raw_material_type == \"Diamond\" || doc.raw_material_type == \"Gemstone\"",
+   "fieldname": "stone_shape",
+   "fieldtype": "Link",
+   "label": "Stone Shape",
+   "link_filters": "[[\"Attribute Value\",\"is_stone_shape\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.raw_material_type == \"Diamond\"",
+   "fieldname": "diamond_grade",
+   "fieldtype": "Link",
+   "label": "Diamond Grade",
+   "link_filters": "[[\"Attribute Value\",\"is_diamond_grade\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.raw_material_type == \"Diamond\"",
+   "fieldname": "diamond_sieve_size",
+   "fieldtype": "Link",
+   "label": "Diamond Sieve Size",
+   "link_filters": "[[\"Attribute Value\",\"is_diamond_sieve_size\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "column_break_scdb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.raw_material_type == \"Gemstone\"",
+   "fieldname": "gemstone_type",
+   "fieldtype": "Link",
+   "label": "Gemstone Type",
+   "link_filters": "[[\"Attribute Value\",\"is_gemstone_type\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.raw_material_type == \"Gemstone\"",
+   "fieldname": "gemstone_quality",
+   "fieldtype": "Link",
+   "label": "Gemstone Quality",
+   "link_filters": "[[\"Attribute Value\",\"custom_is_gemstone_quality\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.raw_material_type == \"Gemstone\"",
+   "fieldname": "gemstone_grade",
+   "fieldtype": "Link",
+   "label": "Gemstone Grade",
+   "link_filters": "[[\"Attribute Value\",\"custom_is_gemstone_grade\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.raw_material_type == \"Gemstone\"",
+   "fieldname": "gemstone_size",
+   "fieldtype": "Link",
+   "label": "Gemstone Size",
+   "link_filters": "[[\"Attribute Value\",\"is_gemstone_size\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.raw_material_type == \"Gemstone\"",
+   "fieldname": "cut_or_cab",
+   "fieldtype": "Link",
+   "label": "Cut or Cab",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.raw_material_type == \"Gemstone\"",
+   "fieldname": "gemstone_pr",
+   "fieldtype": "Link",
+   "label": "Gemstone Pr",
+   "link_filters": "[[\"Attribute Value\",\"custom_is_gemstone_pr\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.raw_material_type == \"Gemstone\"",
+   "fieldname": "per_pc_or_per_carat",
+   "fieldtype": "Link",
+   "label": "Per Pc or Per Carat",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item Code",
+   "options": "Item"
+  },
+  {
+   "depends_on": "eval:doc.raw_material_type == \"Diamond\"",
+   "fieldname": "size_in_mm",
+   "fieldtype": "Link",
+   "label": "Size In MM",
+   "link_filters": "[[\"Attribute Value\",\"is_diamond_size_in_mm\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval:doc.raw_material_type == \"Diamond\"",
+   "fieldname": "diamond_quality",
+   "fieldtype": "Link",
+   "label": "Diamond Quality",
+   "link_filters": "[[\"Attribute Value\",\"is_diamond_quality\",\"=\",1]]",
+   "options": "Attribute Value"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-11 17:24:10.954981",
+ "modified_by": "shubham_k@gkexport.com",
+ "module": "GKE Order Forms",
+ "name": "Customer RM Code Detail",
+ "owner": "shubham_k@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

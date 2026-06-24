@@ -5,11 +5,14 @@ import frappe,json
 from frappe.model.document import Document
 
 class ReviseMakingChargePrice(Document):
-    def before_save(self):
+    def before_insert(self):
         filters = {
 				"customer": self.customer,
 				"setting_type": self.setting_type,
 				"metal_type": self.metal_type,
+                "metal_touch":self.metal_touch,
+                "from_gold_rate":self.from_gold_rate,
+                "to_gold_rate":self.to_gold_rate
 			}
                    
         name = frappe.db.get_value("Making Charge Price",filters,"name")
@@ -172,18 +175,13 @@ class ReviseMakingChargePrice(Document):
 
                         
     def on_submit(self):
-        # filters = {
-		# 		"customer": self.customer,
-		# 		"setting_type": self.setting_type,
-		# 		"metal_type": self.metal_type,
-		# 		"making_charge_type": self.making_charge_type,
-		# 		"metal_touch": self.metal_touch,
-		# 		"metal_purity": self.metal_purity,
-		# 	}
         filters = {
 				"customer": self.customer,
 				"setting_type": self.setting_type,
 				"metal_type": self.metal_type,
+                "metal_touch":self.metal_touch,
+                "from_gold_rate":self.from_gold_rate,
+                "to_gold_rate":self.to_gold_rate
 			}
         name = frappe.db.get_value("Making Charge Price",filters,"name")
         if name:
@@ -202,22 +200,57 @@ class ReviseMakingChargePrice(Document):
                             subcategory_doc.rate_per_pc = i.new_rate_per_pc
                             subcategory_doc.rate_per_diamond = i.new_rate_per_diamond
                             subcategory_doc.wastage = i.new_wastage
+                            subcategory_doc.to_diamond = i.to_diamond
+                            subcategory_doc.from_diamond = i.from_diamond
                             # subcategory_doc.rate_per_gm_threshold = i.new_rate_per_gm_threshold
                             subcategory_doc.save()
-
+                        
                         else:
-                            making_charge_price_doc = frappe.get_doc("Making Charge Price", name)
-                            subcategory = making_charge_price_doc.append("subcategory", {})
-                            subcategory.subcategory = i.subcategory
-                            subcategory.rate_per_gm = i.new_rate_per_gm
-                            subcategory.rate_per_pc = i.new_rate_per_pc
-                            subcategory.rate_per_diamond = i.new_rate_per_diamond
-                            subcategory.wastage = i.new_wastage
-                            # subcategory.rate_per_gm_threshold = self.new_rate_per_gm_threshold
+                            making_charge_price_doc = frappe.get_doc("Making Charge Price", name) 
+                            existing_row = None
+                            for row in making_charge_price_doc.subcategory:
+                                if row.subcategory == i.subcategory:
+                                    existing_row = row
+                                    break
+
+                            if existing_row:
+                                existing_row.rate_per_gm = i.new_rate_per_gm
+                                existing_row.rate_per_pc = i.new_rate_per_pc
+                                existing_row.rate_per_diamond = i.new_rate_per_diamond
+                                existing_row.wastage = i.new_wastage
+                                existing_row.to_diamond = i.to_diamond
+                                existing_row.from_diamond = i.from_diamond
+
+                            else:
+                                subcategory = making_charge_price_doc.append("subcategory", {})
+                                subcategory.subcategory = i.subcategory
+                                subcategory.rate_per_gm = i.new_rate_per_gm
+                                subcategory.rate_per_pc = i.new_rate_per_pc
+                                subcategory.rate_per_diamond = i.new_rate_per_diamond
+                                subcategory.wastage = i.new_wastage
+                                subcategory.to_diamond = i.to_diamond
+                                subcategory.from_diamond = i.from_diamond
+
                             making_charge_price_doc.save()
+
+
+                        # else:
+                        #     making_charge_price_doc = frappe.get_doc("Making Charge Price", name)
+                        #     subcategory = making_charge_price_doc.append("subcategory", {})
+                        #     subcategory.subcategory = i.subcategory
+                        #     subcategory.rate_per_gm = i.new_rate_per_gm
+                        #     subcategory.rate_per_pc = i.new_rate_per_pc
+                        #     subcategory.rate_per_diamond = i.new_rate_per_diamond
+                        #     subcategory.wastage = i.new_wastage
+                        #     subcategory.to_diamond = i.to_diamond
+                        #     subcategory.from_diamond = i.from_diamond
+                        #     # subcategory.rate_per_gm_threshold = self.new_rate_per_gm_threshold
+                        #     making_charge_price_doc.save()
 
             if self.revise_making_charge_price_finding_subcategory:
                 for i in self.revise_making_charge_price_finding_subcategory:
+                        making_charge_price_doc = frappe.get_doc("Making Charge Price", name)
+                        # frappe.throw(str(name))
                         if i.making_charge_price_finding_subcategory:
                             frappe.db.set_value('Making Charge Price Finding Subcategory',i.making_charge_price_finding_subcategory,{
                                 'rate_per_gm':i.new_rate_per_gm,
@@ -226,12 +259,32 @@ class ReviseMakingChargePrice(Document):
                                 'wastage':i.new_wastage,
                                 })
                         else:
-                            a = ''
+                            existing_row = None
+                            for row in making_charge_price_doc.finding_subcategory:
+                                if row.subcategory == i.subcategory:
+                                    existing_row = row
+                                    break
+
+                            if existing_row:
+                                existing_row.rate_per_gm = i.new_rate_per_gm
+                                existing_row.rate_per_pc = i.new_rate_per_pc
+                                existing_row.rate_per_diamond = i.new_rate_per_diamond
+                                existing_row.wastage = i.new_wastage
+                            else:
+                                 making_charge_price_doc.append("finding_subcategory", {
+                                        "subcategory": i.subcategory,
+                                        "rate_per_gm": i.new_rate_per_gm,
+                                        "rate_per_pc": i.new_rate_per_pc,
+                                        "rate_per_diamond": i.new_rate_per_diamond,
+                                        "wastage": i.new_wastage
+                                    })
+                        making_charge_price_doc.save()
         else:
             making_charge_price_doc = frappe.new_doc("Making Charge Price")
             making_charge_price_doc.customer = self.customer
             making_charge_price_doc.setting_type = self.setting_type
             making_charge_price_doc.metal_type = self.metal_type
+            making_charge_price_doc.metal_type = self.metal_touch
             for i in self.revise_making_charge_price_item_subcategory:
                
                time_log = making_charge_price_doc.append("subcategory", {})
@@ -240,7 +293,11 @@ class ReviseMakingChargePrice(Document):
                time_log.rate_per_pc = i.new_rate_per_pc
                time_log.rate_per_diamond = i.new_rate_per_diamond
                time_log.wastage = i.new_wastage
+               time_log.to_diamond = i.to_diamond
+               time_log.from_diamond = i.from_diamond
 
             making_charge_price_doc.save()
         frappe.msgprint("Price List Updated")
+
+
 

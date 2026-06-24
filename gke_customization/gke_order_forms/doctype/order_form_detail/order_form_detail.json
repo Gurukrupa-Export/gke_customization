@@ -873,7 +873,25 @@
     "fieldtype": "Select",
     "label": "Status",
     "options": "Pending\nDone"
-    }
+    },
+    {
+   "fieldname": "jewelex_design_id",
+   "fieldtype": "Data",
+   "label": "Jewelex Design ID",
+   "mandatory_depends_on": "eval:doc.design_type=='Sketch Design'"
+  },
+  {
+   "fieldname": "design_sourceroute",
+   "fieldtype": "Select",
+   "label": "Design Source/Route",
+   "options": "\nCurated\nCo-Created\nDesigned"
+  },
+  {
+   "fieldname": "set_ref_pearl_color",
+   "fieldtype": "Select",
+   "label": "SET REF-PEARL COLOUR",
+   "options": "\nSTAND ALONE PRODUCTS\nNECKLACE SET (2 PCS)\nNECKLACE SET (3 pcs)\nNECKLACE SET (4 pcs)\nPENDANT SET (2 PCS)\nPENDANT SET (3 pcs)\nPENDANT SET (4 pcs)\nPAIR BANGLE\nCOUPLE BAND RING"
+  }
 ],
 "index_web_pages_for_search": 1,
 "istable": 1,

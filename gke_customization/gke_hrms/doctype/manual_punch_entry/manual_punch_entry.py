@@ -108,7 +108,7 @@ class ManualPunchEntry(Document):
 	def search_checkin(self):
 		self.validate_filters()
 		self.details = []
-		shift_datetime = datetime.combine(getdate(self.date), get_time(self.start_time))
+		shift_datetime = get_datetime(f"{getdate(self.date)} {get_time(self.start_time)}")
 		data = get_checkins(self.employee, shift_datetime)
 		return data
 	

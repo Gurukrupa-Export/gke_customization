@@ -98,7 +98,7 @@
    "fieldtype": "Link",
    "label": "Amended From",
    "no_copy": 1,
-   "options": "Revise Diamond Price  List",
+   "options": "Revise Diamond Price List",
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
@@ -171,7 +171,7 @@
  "modified": "2025-08-30 15:57:38.622044",
  "modified_by": "shruti_b@gkexport.com",
  "module": "Gke Price List",
- "name": "Revise Diamond Price  List",
+ "name": "Revise Diamond Price List",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",

@@ -1,0 +1,54 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-22 15:21:37.291595",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "from_site",
+  "column_break_mtqd",
+  "to_site"
+ ],
+ "fields": [
+  {
+   "fieldname": "from_site",
+   "fieldtype": "Data",
+   "label": "From Site"
+  },
+  {
+   "fieldname": "column_break_mtqd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "to_site",
+   "fieldtype": "Data",
+   "label": "To Site"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-06-22 18:54:24.064229",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Data Migration in KGGK",
+ "owner": "shubham_k@gkexport.com",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
