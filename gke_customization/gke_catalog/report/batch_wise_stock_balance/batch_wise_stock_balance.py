@@ -55,6 +55,19 @@ def get_columns(filters):
 				"options": "Batch",
 			},
 			{
+				"label": _("Source Document Type"),
+				"fieldname": "reference_doctype",
+				"fieldtype": "Data",
+				"width": 180,	
+			},
+			{
+				"label": _("Source Document Name"),
+				"fieldname": "reference_name",
+				"fieldtype": "Dynamic Link",
+				"options": "reference_doctype",
+				"width": 200,
+			},
+			{
 				"label": _("Expiry Date"),
 				"fieldname": "expiry_date",
 				"fieldtype": "Date",
@@ -123,6 +136,8 @@ def get_batchwise_data_from_stock_ledger(filters):
 			table.batch_no,
 			table.warehouse,
 			batch.expiry_date,
+			batch.reference_doctype,
+    		batch.reference_name,
 			Sum(table.actual_qty).as_("balance_qty"),
 		)
 		.where(table.is_cancelled == 0)
@@ -154,6 +169,8 @@ def get_batchwise_data_from_serial_batch_bundle(batchwise_data, filters):
 			ch_table.batch_no,
 			table.warehouse,
 			batch.expiry_date,
+			batch.reference_doctype,
+    		batch.reference_name,
 			ch_table.incoming_rate.as_("incoming_rate"),
 			Sum(ch_table.qty).as_("balance_qty"),
 		)
