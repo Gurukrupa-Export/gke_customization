@@ -7,7 +7,13 @@
  "field_order": [
   "from_site",
   "column_break_mtqd",
-  "to_site"
+  "to_site",
+  "get_pricing_details_section",
+  "from_site_1",
+  "user_details_section",
+  "api_key",
+  "column_break_qpnk",
+  "api_secret"
  ],
  "fields": [
   {
@@ -23,14 +29,43 @@
    "fieldname": "to_site",
    "fieldtype": "Data",
    "label": "To Site"
+  },
+  {
+   "fieldname": "get_pricing_details_section",
+   "fieldtype": "Section Break",
+   "label": "Get Pricing Details "
+  },
+  {
+   "fieldname": "from_site_1",
+   "fieldtype": "Data",
+   "label": "From Site"
+  },
+  {
+   "fieldname": "user_details_section",
+   "fieldtype": "Section Break",
+   "label": "User Details"
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Data",
+   "label": "API Key"
+  },
+  {
+   "fieldname": "column_break_qpnk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "api_secret",
+   "fieldtype": "Data",
+   "label": "API Secret"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-06-22 18:54:24.064229",
- "modified_by": "Administrator",
+ "modified": "2026-06-25 15:39:56.007667",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Data Migration in KGGK",
  "owner": "shubham_k@gkexport.com",
