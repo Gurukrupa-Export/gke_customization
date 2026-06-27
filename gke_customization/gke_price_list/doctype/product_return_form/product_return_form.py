@@ -158,6 +158,14 @@ class ProductReturnForm(Document):
 				return_doc.debit_to = original_si.debit_to
 				# return_doc.customer_address = original_si.customer_address
 				# return_doc.company_address = original_si.company_address
+				return_doc.company_address = frappe.db.get_value(
+					"Dynamic Link",
+					{
+						"link_doctype": "Company",
+						"link_name": return_doc.company
+					},
+					"parent"
+					)
 				# return_doc.shipping_address_name = original_si.shipping_address_name
 				return_doc.cost_center = original_si.cost_center
 				return_doc.tax_category = original_si.tax_category
