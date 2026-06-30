@@ -11,13 +11,15 @@
   "customer_code",
   "customer_name",
   "order_no",
+  "order_date",
   "bulk_order_no",
   "diamond_purity",
   "po_no",
   "main_po_no",
   "customer_due_date",
   "section_break_fqbj",
-  "order_details"
+  "order_details",
+  "batch_pdd_change_reason"
  ],
  "fields": [
   {
@@ -93,13 +95,24 @@
    "fieldname": "customer_due_date",
    "fieldtype": "Data",
    "label": "Customer Due Date"
+  },
+  {
+   "fieldname": "order_date",
+   "fieldtype": "Date",
+   "label": "Order Date"
+  },
+  {
+   "fieldname": "batch_pdd_change_reason",
+   "fieldtype": "Table",
+   "label": "Batch PDD Change Reason",
+   "options": "Batch PDD Change Reason"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-06-05 22:30:43.574843",
+ "modified": "2026-06-20 18:26:28.503143",
  "modified_by": "shubham_k@gkexport.com",
  "module": "GKE SURVEY",
  "name": "Order Tracking",
