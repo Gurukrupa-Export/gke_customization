@@ -379,8 +379,8 @@ def create_cad_orders(self):
     for row in self.order_details:
         docname = make_cad_order(row.name, parent_doc=self)
 
-        # if row.pre_order_form_details:
-        #     frappe.db.set_value("Pre Order Form Details", row.pre_order_form_details, "order_form_id", self.name)
+        if row.pre_order_form_details:
+            frappe.db.set_value("Pre Order Form Details", row.pre_order_form_details, "order_form_id", self.name)
 
         order_datetime = now_datetime()
         frappe.db.set_value("Order", docname, "order_date", order_datetime)

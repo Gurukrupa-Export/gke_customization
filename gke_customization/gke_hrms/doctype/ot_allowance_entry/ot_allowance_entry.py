@@ -473,14 +473,39 @@ class OTAllowanceEntry(Document):
 				)
 			)
 
+		# sub_query_personal_out_log = (
+		# 	frappe.qb.from_(PersonalOutLog)
+		# 	.select(IfNull(Sum(To_Seconds(PersonalOutLog.total_hours)), 0))
+		# 	.where(
+		# 		(PersonalOutLog.is_cancelled == 0) &
+		# 		(PersonalOutLog.employee == Attendance.employee) &
+		# 		(PersonalOutLog.date == Attendance.attendance_date) &
+		# 		(PersonalOutLog.out_time >= ShiftType.end_time)
+		# 	)
+		# )
+
+		# 22-06-2026
 		sub_query_personal_out_log = (
 			frappe.qb.from_(PersonalOutLog)
-			.select(IfNull(Sum(To_Seconds(PersonalOutLog.total_hours)), 0))
+			.select(IfNull(Sum(
+				To_Seconds(Time_Diff(
+					PersonalOutLog.in_time,   # when they returned (end of personal out)
+					# Clamp: only count portion after shift end
+					Case()
+					.when(
+						Time(PersonalOutLog.out_time) < Time(shift_end_ts),  # left before shift end
+						Time(shift_end_ts)          # start counting from shift end
+					).else_(
+						PersonalOutLog.out_time     # left after shift end, count full duration
+					)
+				))
+			), 0))
 			.where(
 				(PersonalOutLog.is_cancelled == 0) &
 				(PersonalOutLog.employee == Attendance.employee) &
 				(PersonalOutLog.date == Attendance.attendance_date) &
-				(PersonalOutLog.out_time >= ShiftType.end_time)
+				# Personal out must have RETURNED after shift end
+				(Time(PersonalOutLog.in_time) > Time(shift_end_ts))
 			)
 		)
 
@@ -601,16 +626,8 @@ class OTAllowanceEntry(Document):
 				(Attendance.docstatus == 1)
 				&
 				(
-					(shift_start_ts > Attendance.in_time)
-					|
-					(
-						To_Seconds(
-							Time_Diff(
-								Attendance.out_time,
-								shift_end_ts
-							)
-						) > 0
-					)
+					(shift_start_ts > Attendance.in_time) |
+					( To_Seconds( Time_Diff(Attendance.out_time,shift_end_ts) ) > 0 )
 				)
 			)
 		)
