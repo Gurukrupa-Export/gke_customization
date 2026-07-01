@@ -289,7 +289,7 @@ frappe.ui.form.on('Order Form', {
 			})
 			frm.set_df_property('party_name', 'read_only', 1);
 			}, __("Get Order"))
-		// if(frm.doc.customer_name.includes('Titan') && frm.doc.flow_type == 'PROTO' && !frm.doc.gc_format_file && frm.doc.docstatus == '1'){
+		if(frm.doc.docstatus == '1' && frm.doc.customer_name === "Titan Company Limited"){
 			frm.add_custom_button(__("Get GC Format"), function(){
 				frappe.call({
 					method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.gc_export_to_excel',
@@ -313,9 +313,9 @@ frappe.ui.form.on('Order Form', {
 					}
 				});
 			}, __("Get File"))
-		// }
-		
+		}
 		// if(frm.doc.customer_name.includes('Titan') && frm.doc.flow_type == 'PROTO' && !frm.doc.code_creation_file && frm.doc.docstatus == '1'){
+		if(frm.doc.docstatus == '1' && frm.doc.customer_name === "Titan Company Limited"){
 			frm.add_custom_button(__("Get Code Creation"), function(){
 				frappe.call({
 					method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.creation_export_to_excel',
@@ -340,8 +340,7 @@ frappe.ui.form.on('Order Form', {
 				});
 			}, __("Get File"))
 			
-		// }
-
+		}
 		// if( (frm.doc.customer_name.includes('Caratlane')) && frm.doc.flow_type == 'PROTO'){
 		if(frm.doc.docstatus == '1'){
 			frm.add_custom_button(__("Get Proto Sheet"), function(){
@@ -371,7 +370,93 @@ frappe.ui.form.on('Order Form', {
 			}, __("Get File"))
 		}
 
-		if(frm.doc.docstatus == '1'){
+
+
+	
+		if(frm.doc.docstatus == '1' && frm.doc.customer_name === "Malabar Gold And Diamonds Fzco"){
+			frm.add_custom_button(__("Get Design Creation"), function(){
+				frappe.call({
+				method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.get_design_creation',
+				args: {
+					order_form: frm.doc.name,
+					doc: frm.doc
+				},
+				callback: function(response) {
+					if (response.message) {
+					
+					frm.set_value('design_creation_file' ,response.message)
+					frm.save('Update');
+		
+					const a = document.createElement('a');
+					a.href = response.message; 
+					
+					let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+					let filename = `${formatted_date}_design_creation.xlsx`;
+					a.download = filename;
+					console.log(filename);
+					a.click();
+					}
+				}
+				});
+			}, __("Get File"))
+		}
+
+
+		if(frm.doc.docstatus == '1' && frm.doc.customer_name === "Malabar Gold And Diamonds Fzco"){
+			frm.add_custom_button(__("Get Design Quotaion File"), function(){
+				frappe.call({
+				method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.design_quotation_file',
+				args: {
+					order_form: frm.doc.name,
+					doc: frm.doc
+				},
+				callback: function(response) {
+					if (response.message) {
+					
+					frm.set_value('design_quotation_file' ,response.message)
+					frm.save('Update');
+		
+					const a = document.createElement('a');
+					a.href = response.message; 
+					
+					let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+					let filename = `${formatted_date}_design_creation.xlsx`;
+					a.download = filename;
+					console.log(filename);
+					a.click();
+					}
+				}
+				});
+			}, __("Get File"))
+		}
+		if(frm.doc.docstatus == '1' && frm.doc.customer_name === "MBMG Diamonds Private Limited"){
+			frm.add_custom_button(__("BOM Format"), function(){
+				frappe.call({
+				method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.bom_format',
+				args: {
+					order_form: frm.doc.name,
+					doc: frm.doc
+				},
+				callback: function(response) {
+					if (response.message) {
+					
+					frm.set_value('design_quotation_file' ,response.message)
+					frm.save('Update');
+		
+					const a = document.createElement('a');
+					a.href = response.message; 
+					
+					let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+					let filename = `${formatted_date}_bom_format.xlsx`;
+					a.download = filename;
+					console.log(filename);
+					a.click();
+					}
+				}
+				});
+			}, __("Get File"))
+		}
+		if(frm.doc.docstatus == '1' && frm.doc.customer_name === "Reliance Retail Limited"){
 			frm.add_custom_button(__("Get Variant Format"), function(){
 				frappe.call({
 				method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.get_variant_format',
@@ -382,8 +467,35 @@ frappe.ui.form.on('Order Form', {
 				callback: function(response) {
 					if (response.message) {
 					
-					// frm.set_value('variant_format_file' ,response.message)
-					// frm.save('Update');
+					frm.set_value('variant_format_file' ,response.message)
+					frm.save('Update');
+		
+					const a = document.createElement('a');
+					a.href = response.message; 
+					
+					let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+					let filename = `${formatted_date}_Variant_Format.xlsx`;
+					a.download = filename;
+					// console.log(filename);
+					a.click();
+					}
+				}
+				});
+			}, __("Get File"))
+		}
+		if(frm.doc.docstatus == '1' && frm.doc.customer_name === "Reliance Retail Limited"){
+			frm.add_custom_button(__("Get Cost Sheet"), function(){
+				frappe.call({
+				method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.get_cost_sheet',
+				args: {
+					order_form: frm.doc.name,
+					doc: frm.doc
+				},
+				callback: function(response) {
+					if (response.message) {
+					
+					frm.set_value('variant_format_file' ,response.message)
+					frm.save('Update');
 		
 					const a = document.createElement('a');
 					a.href = response.message; 
