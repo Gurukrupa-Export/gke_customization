@@ -93,6 +93,10 @@ class Order(Document):
         calculate_gemstone_weights(self)
         calculate_other_weights(self)
         calculate_total(self)
+        if self.workflow_state == 'Approved' and self.repair_order and self.is_repairing:
+            frappe.db.set_value("Repair Order",self.repair_order,"new_item_code",self.item)
+            frappe.db.set_value("Repair Order",self.repair_order,"new_bom",self.new_bom)
+            frappe.db.set_value("Repair Order",self.repair_order,"workflow_state","Approved")
         if (
             (
                 self.workflow_state == "Approved"
@@ -1210,7 +1214,7 @@ def create_item_template_from_order(source_name, target_doc=None):
     def post_process(source, target):
         target.is_design_code = 1
         target.has_variants = 1
-
+        # target.item_code = source.name
         if source.designer_assignment:
             target.designer = source.designer_assignment[0].designer
         else:
