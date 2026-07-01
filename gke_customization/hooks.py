@@ -64,11 +64,6 @@ doctype_js = {
 #	"methods": "gke_customization.utils.jinja_methods",
 #	"filters": "gke_customization.utils.jinja_filters"
 # }
-jinja = {
-    "methods": [
-        "gke_customization.gke_hrms.utils.get_account_total_summary_for_print"
-    ]
-}
 
 # Installation
 # ------------
