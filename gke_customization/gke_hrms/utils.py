@@ -3,17 +3,7 @@ from frappe.utils import getdate, add_days, get_first_day, today
 from datetime import date, timedelta
 from typing import Optional, List
 from dateutil import relativedelta
-from gke_customization.gke_hrms.report.pf_challan_report.pf_challan_report import get_account_total_summary
 
-@frappe.whitelist()
-def get_account_total_summary_for_print(company, from_date, to_date):
-    filters = {
-        "company": company,
-        "from_date": from_date,
-        "to_date": to_date
-    }
-    return get_account_total_summary(filters)
-    
 # @frappe.whitelist()
 # def check_sadwitch_rule():
 #     manual = int(frappe.db.get_value("Biometric Settings","Biometric Settings","manual"))
