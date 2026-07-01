@@ -244,7 +244,6 @@ def calculate_totals(data):
         total_serial_no += int(row.get("sn_serial_no") or 0)
         total_sales_order_qty += int(row.get("so_total_qty") or 0)
         total_diam_wt += float(row.get("mwo_diam_wt") or 0)
-        
         unique_mwo_count.add(row.get("mwo_id"))
         unique_mp_count.add(row.get("mwo_mp_id"))
         unique_serial_no_count.add(row.get("sn_serial_no"))
