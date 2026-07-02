@@ -74,7 +74,7 @@ def _recalculate_totals(doc):
 #  ADD TO CART
 # ───────────────────────────────────────────── 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def add_to_cart1(
     customer,
     item_code,
@@ -152,7 +152,7 @@ def add_to_cart1(
             frappe.log_error(f"Price calc failed for {item_code}: {str(e)}", "Cart Price Error")
             calculated_rate = float(rate or 0)
 
-    # ── Fix: validate user exists in Frappe User doctype ──
+    # validate user exists in Frappe User doctype ──
     raw_user = user or frappe.session.user
     user_exists = frappe.db.exists("User", raw_user)
     current_user = raw_user if user_exists else ""
@@ -263,7 +263,7 @@ def add_to_cart1(
 #  GET CART ORDERS  (Draft)
 # ─────────────────────────────────────────────
 
-@frappe.whitelist(allow_guest=True, methods=["GET", "POST"])
+@frappe.whitelist(methods=["GET", "POST"])
 def get_cart_orders(customer=None, user=None):
     
     if customer:
@@ -330,7 +330,7 @@ def get_cart_orders(customer=None, user=None):
 #  GET CART COUNT
 # ─────────────────────────────────────────────
 
-@frappe.whitelist(allow_guest=True, methods=["GET", "POST"])
+@frappe.whitelist(methods=["GET", "POST"])
 def get_cancelled_orders(customer=None, user=None):
     
     if customer:
@@ -395,7 +395,7 @@ def get_cancelled_orders(customer=None, user=None):
     frappe.throw(_("Customer or User required"))
 
 
-@frappe.whitelist(allow_guest=True, methods=["POST"])
+@frappe.whitelist(methods=["POST"])
 def add_back_cancelled_item(order_name=None, row_name=None):
     """
     Cancelled item ki status wapas Draft karo using exact row name
@@ -435,7 +435,7 @@ def add_back_cancelled_item(order_name=None, row_name=None):
 #  UPDATE CART ITEM QTY
 # ───────────────────────────────────────────── 
     
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def update_cart_item_qty(order_name, item_code, quantity, row_name=None, user=None):
     qty = float(quantity or 0)
     if qty < 1:
@@ -503,7 +503,7 @@ def update_cart_item_qty(order_name, item_code, quantity, row_name=None, user=No
 #  REMOVE CART ITEM
 # ─────────────────────────────────────────────
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def cancel_cart_item(order_name, item_code, row_name=None, user=None):
     doc = frappe.get_doc("Portal Order", order_name)
 
@@ -541,6 +541,9 @@ def cancel_cart_item(order_name, item_code, row_name=None, user=None):
         "remaining_draft_items": len(draft_items),
     }
 
+
+
+
 def _recalculate_totals_draft_only(doc):
     """Only Draft items total calculate """
     total_qty = 0
@@ -558,7 +561,7 @@ def _recalculate_totals_draft_only(doc):
 # ─────────────────────────────────────────────
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def confirm_cart_orders(customer, order_date=None, notes=None, user=None): 
     if not customer:
         frappe.throw(_("Customer required"))
@@ -610,11 +613,13 @@ def confirm_cart_orders(customer, order_date=None, notes=None, user=None):
         "message":      "Order placed successfully!",
     }
 
+
+
 # ─────────────────────────────────────────────
 #  GET PLACED ORDERS  (Ordered)
 # ─────────────────────────────────────────────
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_placed_orders(customer=None, user=None):
 
     # ── CASE 1: Customer login ──
@@ -681,6 +686,12 @@ def cancel_order(order_name):
     doc.status = "Cancel Order"
     for row in doc.items:
         row.status = "Cancel Order"
+        
+    send_customer_order_notification(
+        user=doc.customer,
+        order_id=order_name,
+        customer_item_array=doc.items
+    )
 
     _recalculate_totals_draft_only(doc)  
     doc.save()
@@ -693,43 +704,42 @@ def cancel_order(order_name):
     }
 
 
-    """Only one item cancel"""
-    doc = frappe.get_doc("Portal Order", order_name)
+    # """Only one item cancel"""
+    # doc = frappe.get_doc("Portal Order", order_name)
 
-    if doc.status == "Cancel Order":
-        frappe.throw(_("Order is already cancelled"))
+    # if doc.status == "Cancel Order":
+    #     frappe.throw(_("Order is already cancelled"))
 
-    found = False
-    for row in doc.items:
-        if row.item_code == item_code:
-            if row.status == "Cancel Order":
-                frappe.throw(_("Item already cancelled"))
-            row.status = "Cancel Order"
-            found = True
-            break
+    # found = False
+    # for row in doc.items:
+    #     if row.item_code == item_code:
+    #         if row.status == "Cancel Order":
+    #             frappe.throw(_("Item already cancelled"))
+    #         row.status = "Cancel Order"
+    #         found = True
+    #         break
 
-    if not found:
-        frappe.throw(_("Item not found in order"))
+    # if not found:
+    #     frappe.throw(_("Item not found in order"))
 
-    all_cancelled = all(
-        getattr(r, "status", "") == "Cancel Order" for r in doc.items
-    )
-    if all_cancelled:
-        doc.status = "Cancel Order"
+    # all_cancelled = all(
+    #     getattr(r, "status", "") == "Cancel Order" for r in doc.items
+    # )
+    # if all_cancelled:
+    #     doc.status = "Cancel Order"
 
-    _recalculate_totals_draft_only(doc) 
-    doc.save(ignore_permissions=True)
-    frappe.db.commit()
+    # _recalculate_totals_draft_only(doc) 
+    # doc.save(ignore_permissions=True)
+    # frappe.db.commit()
 
-    return {
-        "success": True,
-        "order": doc.name,
-        "order_cancelled": doc.status == "Cancel Order",
-        "message": f"Item {item_code} cancelled successfully",
-    }
+    # return {
+    #     "success": True,
+    #     "order": doc.name,
+    #     "order_cancelled": doc.status == "Cancel Order",
+    #     "message": f"Item {item_code} cancelled successfully",
+    # }    
     
-    
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def cancel_order_item(order_name, item_code, row_name=None):
     """Only one item cancel"""
     doc = frappe.get_doc("Portal Order", order_name)
@@ -737,6 +747,7 @@ def cancel_order_item(order_name, item_code, row_name=None):
     if doc.status == "Cancel Order":
         frappe.throw(_("Order is already cancelled"))
 
+    canc_item = []
     found = False
     for row in doc.items:
         if row.item_code != item_code:
@@ -746,14 +757,20 @@ def cancel_order_item(order_name, item_code, row_name=None):
         if row_status == "Cancel Order":
             continue
 
-        # ✅ row_name hai to exact row match karo
         if row_name and row.name != row_name:
             continue
 
         row.status = "Cancel Order"
         found = True
+        canc_item.append({row.item_code, row.bom, row.quantity})
         break
 
+    if len(canc_item) > 0:
+        send_customer_order_notification(
+            user=doc.customer,
+            order_id=order_name,
+            customer_item_array=canc_item
+        )
     if not found:
         frappe.throw(_("Item not found in order"))
 
@@ -775,14 +792,123 @@ def cancel_order_item(order_name, item_code, row_name=None):
     }
 
 
+def get_email_template(customer, order_id, items_html):
+    return f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+      
+      <!-- Header -->
+      <div style="background: #1a1a2e; padding: 32px 32px 24px; text-align: center;">
+        <span style="display: inline-block; background: #fee2e2; color: #b91c1c; font-size: 12px; font-weight: 600; padding: 4px 14px; border-radius: 99px; margin-bottom: 12px;">&#x2715; Order Cancelled</span>
+        <h2 style="color: #ffffff; font-size: 22px; font-weight: 600; margin: 0 0 4px;">Order Update</h2>
+      </div>
+
+      <!-- Body -->
+      <div style="padding: 32px;">
+        <p style="font-size: 15px; color: #111827; margin: 0 0 8px;">Hello,</p>
+        <p style="font-size: 14px; color: #6b7280; margin: 0 0 24px; line-height: 1.6;">
+          {customer} Your order <strong style="color: #111827;">{order_id}</strong> has been 
+          <strong style="color: #b91c1c;">cancelled successfully.</strong>
+        </p>
+
+        <!-- Order info strip -->
+        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; margin-bottom: 24px;">
+          <div>
+            <div style="font-size: 11px; color: #9ca3af;">Order ID</div>
+            <div style="font-size: 15px; font-weight: 600; color: #111827;">{order_id}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 11px; color: #9ca3af;">Status</div>
+            <div style="font-size: 15px; font-weight: 600; color: #b91c1c;">Cancelled</div>
+          </div>
+        </div>
+
+        <!-- Items heading -->
+        <div style="font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px;">Items in order</div>
+
+        <!-- Items table -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+          <thead>
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+              <th style="font-size: 11px; color: #9ca3af; text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">Item</th>
+              <th style="font-size: 11px; color: #9ca3af; text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">BOM</th>
+              <th style="font-size: 11px; color: #9ca3af; text-align: right; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">Qty</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items_html}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer -->
+      <div style="border-top: 1px solid #e5e7eb; background: #f9fafb; padding: 20px 32px; text-align: center;">
+        <p style="font-size: 13px; color: #9ca3af; margin: 0;">Thank you — <strong style="color: #6b7280;">GK Export</strong></p>
+      </div>
+
+    </div>
+    """
+    
+    
+def build_item_row(item_code, bom, qty):
+    return f"""
+    <tr style="border-bottom: 1px solid #f3f4f6;">
+      <td style="padding: 12px;">
+        <span style="font-family: monospace; font-size: 12px; color: #1d4ed8; background: #eff6ff; padding: 2px 8px; border-radius: 4px;">{item_code}</span>
+      </td>
+      <td style="padding: 12px; font-size: 13px; color: #6b7280;">{bom}</td>
+      <td style="padding: 12px; text-align: right;">
+        <span style="display: inline-block; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; font-weight: 600; padding: 2px 10px; color: #111827;">{qty}</span>
+      </td>
+    </tr>
+    """
+    
+    
+@frappe.whitelist(allow_guest=True)
+def send_customer_order_notification(user, order_id, customer_item_array):
+    """
+    Send order update mail notification to user
+
+    user: user email/id
+    order_id: order reference
+    customer_item_array: list of items
+    """
+
+    items_html = ""
+        
+    for item in customer_item_array:
+        
+        items_html += build_item_row(
+            item.get('item_code'),
+            item.get('bom'),
+            item.get('quantity')
+    )
 
 
+    # find representative of the customer
+    
+    customer = frappe.get_doc("Customer", user)
+    
+    representatives = customer.custom_customer_representatives
+    
+    customer = customer.customer_name
+
+    users = [u.user_id for u in representatives]
+
+    message = get_email_template(customer, order_id, items_html)
+    
+    frappe.sendmail(
+        recipients=users,
+        sender="customer_portal@gkexport.com",
+        subject=f"Order Update - {order_id}",
+        message=message
+    )
 
 
-
-
-
-
+    return {
+        "status": "sent",
+        "user": user,
+        "order_id": order_id
+    }
 
 
 
@@ -1033,7 +1159,7 @@ def cancel_order_item(order_name, item_code, row_name=None):
 
 # ----------------------------
 
-# @frappe.whitelist(allow_guest=True)
+# @frappe.whitelist()
 # def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, metalType=None, company=None, customer=None):
 
 #     if selectedSubcategory is None:
@@ -1377,7 +1503,7 @@ def cancel_order_item(order_name, item_code, row_name=None):
 #     return db_data
 
 # ---------------
-# @frappe.whitelist(allow_guest=True)
+# @frappe.whitelist()
 # def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, metalType=None, company=None, customer=None):
 
     # if selectedSubcategory is None:

@@ -10,34 +10,34 @@ frappe.ui.form.on("Cataloge Master", {
         //         }
         //     };
         // });
-        // if (!frm.doc.customer) return;
+        if (!frm.doc.customer) return;
 
         // agar table me data hai to kuch mat karo
-        // if (frm.doc.diamond_quality?.length) return;
+        if (frm.doc.diamond_quality?.length) return;
 
-        // frappe.call({
-        //     method: "frappe.client.get",
-        //     args: {
-        //         doctype: "Customer",
-        //         name: frm.doc.customer
-        //     },
-        //     callback: function(r) {
+        frappe.call({
+            method: "frappe.client.get",
+            args: {
+                doctype: "Customer",
+                name: frm.doc.customer
+            },
+            callback: function(r) {
 
-        //         if (!r.message) return;
+                if (!r.message) return;
 
-        //         (r.message.diamond_grades || []).forEach(row => {
+                (r.message.diamond_grades || []).forEach(row => {
 
-        //             let child = frm.add_child("diamond_quality");
+                    let child = frm.add_child("diamond_quality");
 
-        //             child.diamond_quality = row.diamond_quality;
-        //         });
+                    child.diamond_quality = row.diamond_quality;
+                });
 
-        //         frm.refresh_field("diamond_quality");
+                frm.refresh_field("diamond_quality");
 
-        //         // Not Saved badge hatane ke liye
-        //         frm.dirty(false);
-        //     }
-        // });
+                // Not Saved badge hatane ke liye
+                frm.dirty(false);
+            }
+        });
     }
     
     
