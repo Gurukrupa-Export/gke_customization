@@ -1,0 +1,249 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2026-06-18 15:48:53.110123",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2026-06-19 11:40:23.839047",
+ "modified_by": "arti@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Diamond Broken-Lost Report",
+ "owner": "arti@gkexport.com",
+ "prepared_report": 0,
+ "query": "SELECT\r\n    emp.employee_name AS 'Employee',\r\n\r\n    /* Broken WT */\r\n    IFNULL(SUM(\r\n        CASE\r\n            WHEN mbld.loss_type = 'Broken'\r\n            THEN mbld.proportionally_loss\r\n            ELSE 0\r\n        END\r\n    ), 0) AS 'Broken Wt',\r\n\r\n    /* Broken PCS */\r\n    IFNULL(SUM(\r\n        CASE\r\n            WHEN mbld.loss_type = 'Broken'\r\n            THEN mbld.pcs\r\n            ELSE 0\r\n        END\r\n    ), 0) AS 'Broken Pcs',\r\n\r\n    /* Broken Amount */\r\n    IFNULL(SUM(\r\n        CASE\r\n            WHEN mbld.loss_type = 'Broken'\r\n            THEN mbld.net_weight * IFNULL(dr.diamond_rate, 0)\r\n            ELSE 0\r\n        END\r\n    ), 0) AS 'Broken Amt',\r\n\r\n    /* Lost WT */\r\n    IFNULL(SUM(\r\n        CASE\r\n            WHEN mbld.loss_type = 'Loss'\r\n            THEN mbld.proportionally_loss\r\n            ELSE 0\r\n        END\r\n    ), 0) AS 'Lost Wt',\r\n\r\n    /* Lost PCS */\r\n    IFNULL(SUM(\r\n        CASE\r\n            WHEN mbld.loss_type = 'Loss'\r\n            THEN mbld.pcs\r\n            ELSE 0\r\n        END\r\n    ), 0) AS 'Lost Pcs',\r\n\r\n    /* Lost Amount */\r\n    IFNULL(SUM(\r\n        CASE\r\n            WHEN mbld.loss_type = 'Loss'\r\n            THEN mbld.net_weight * IFNULL(dr.diamond_rate, 0)\r\n            ELSE 0\r\n        END\r\n    ), 0) AS 'Lost Amt',\r\n\r\n    /* Total WT */\r\n    IFNULL(SUM(\r\n        CASE\r\n            WHEN mbld.loss_type IN ('Broken', 'Loss')\r\n            THEN mbld.proportionally_loss\r\n            ELSE 0\r\n        END\r\n    ), 0) AS 'Total Wt',\r\n\r\n    /* Total PCS */\r\n    IFNULL(SUM(\r\n        CASE\r\n            WHEN mbld.loss_type IN ('Broken', 'Loss')\r\n            THEN mbld.pcs\r\n            ELSE 0\r\n        END\r\n    ), 0) AS 'Total Pcs',\r\n\r\n    /* Total Amount */\r\n    IFNULL(SUM(\r\n        CASE\r\n            WHEN mbld.loss_type IN ('Broken', 'Loss')\r\n            THEN mbld.net_weight * IFNULL(dr.diamond_rate, 0)\r\n            ELSE 0\r\n        END\r\n    ), 0) AS 'Total Amt',\r\n\r\n    dop.department AS 'Lost Department'\r\n\r\nFROM `tabEmployee IR` eir\r\n\r\nLEFT JOIN `tabEmployee` emp\r\n    ON emp.name = eir.employee\r\n\r\nLEFT JOIN `tabManually Book Loss Details` mbld\r\n    ON mbld.parent = eir.name\r\n\r\nLEFT JOIN `tabDepartment Operation` dop\r\n    ON dop.operation = eir.operation\r\n\r\nLEFT JOIN `tabEmployee IR Operation` eiro\r\n    ON eiro.parent = eir.name\r\n\r\nLEFT JOIN (\r\n    SELECT\r\n        manufacturing_operation,\r\n        MAX(basic_rate) AS diamond_rate\r\n    FROM `tabMOP Balance Table`\r\n    WHERE item_code LIKE 'D-%%'\r\n    GROUP BY manufacturing_operation\r\n) dr\r\n    ON dr.manufacturing_operation = eiro.manufacturing_operation\r\n\r\nWHERE eir.docstatus = 1\r\n\r\nGROUP BY\r\n    emp.employee_name,\r\n    dop.department\r\n\r\nORDER BY\r\n    emp.employee_name;",
+ "ref_doctype": "Employee IR",
+ "report_name": "Diamond Broken-Lost Report",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Computer Operator - ST - GE"
+  },
+  {
+   "role": "Computer Operator - ST - KG"
+  },
+  {
+   "role": "Executive - ST - GE"
+  },
+  {
+   "role": "QC Doctype"
+  },
+  {
+   "role": "GK Sub Contracting"
+  },
+  {
+   "role": "Waxing Executive - ST"
+  },
+  {
+   "role": "Central Executive - ST"
+  },
+  {
+   "role": "Waxing 2 Executive - ST"
+  },
+  {
+   "role": "close waxing Executive - ST"
+  },
+  {
+   "role": "Model Making Executive - ST"
+  },
+  {
+   "role": "Close Model Making Executive - ST"
+  },
+  {
+   "role": "Pre polish Executive - ST"
+  },
+  {
+   "role": "Close Pre polish Executive - ST"
+  },
+  {
+   "role": "Diamond Setting Executive - ST"
+  },
+  {
+   "role": "Close Diamond Setting Executive - ST"
+  },
+  {
+   "role": "Final Polish Executive - ST"
+  },
+  {
+   "role": "Close Final Polish Executive - ST"
+  },
+  {
+   "role": "Sub Contracting Executive - ST"
+  },
+  {
+   "role": "Tagging Executive - ST"
+  },
+  {
+   "role": "Gemstone Bagging Executive - ST"
+  },
+  {
+   "role": "Refinery Executive -ST"
+  },
+  {
+   "role": "Refinery Manager - ST"
+  },
+  {
+   "role": "Gemstone Bagging Manager - ST"
+  },
+  {
+   "role": "Diamond Bagging Manager - ST"
+  },
+  {
+   "role": "Tagging Manager - ST"
+  },
+  {
+   "role": "Sub Contracting Manager - ST"
+  },
+  {
+   "role": "Close Final Polish Manager - ST"
+  },
+  {
+   "role": "Final Polish Manager - ST"
+  },
+  {
+   "role": "Close Diamond Setting Manager - ST"
+  },
+  {
+   "role": "Diamond Setting Manager - ST"
+  },
+  {
+   "role": "Close Model Making Manager - ST"
+  },
+  {
+   "role": "Model Making Manager - ST"
+  },
+  {
+   "role": "close waxing Manager - ST"
+  },
+  {
+   "role": "Waxing 2 Manager - ST"
+  },
+  {
+   "role": "Central Manager - ST"
+  },
+  {
+   "role": "Waxing Manager - ST"
+  },
+  {
+   "role": "Manufacturing Plan & Management Manager - ST"
+  },
+  {
+   "role": "Manufacturing Plan & Management Executive - ST"
+  },
+  {
+   "role": "Computer Aided Designing Manager - ST"
+  },
+  {
+   "role": "Computer Aided Designing Executive - ST"
+  },
+  {
+   "role": "Manufacturing Manager - MUM"
+  },
+  {
+   "role": "Computer Aided Designing \u2013 South Zone Manager - MUM"
+  },
+  {
+   "role": "Computer Aided Designing \u2013 PAN India Manager - MUM"
+  },
+  {
+   "role": "Sketch Designer - MUM"
+  },
+  {
+   "role": "Waxing Executive - MUM"
+  },
+  {
+   "role": "Central Executive - MUM"
+  },
+  {
+   "role": "Model Making Manager - MUM"
+  },
+  {
+   "role": "Diamond Setting Executive - MUM"
+  },
+  {
+   "role": "Final Polish Executive - MUM"
+  },
+  {
+   "role": "Sub Contracting Manager - MUM"
+  },
+  {
+   "role": "Sub Contracting Executive - MUM"
+  },
+  {
+   "role": "Tagging Executive - MUM"
+  },
+  {
+   "role": "Central Manager - KGJPL"
+  },
+  {
+   "role": "Central Executive - KGJPL"
+  },
+  {
+   "role": "Diamond Bagging Executive - KGJPL"
+  },
+  {
+   "role": "Diamond Setting Manager - KGJPL"
+  },
+  {
+   "role": "Diamond Setting Executive - KGJPL"
+  },
+  {
+   "role": "Final Polish Manager - KGJPL"
+  },
+  {
+   "role": "Final Polish Executive - KGJPL"
+  },
+  {
+   "role": "Model Making Manager - KGJPL"
+  },
+  {
+   "role": "Model Making Executive - KGJPL"
+  },
+  {
+   "role": "Pre Polish Executive - KGJPL"
+  },
+  {
+   "role": "Tagging Executive - KGJPL"
+  },
+  {
+   "role": "Waxing Manager - KGJPL"
+  },
+  {
+   "role": "Waxing Executive - KGJPL"
+  },
+  {
+   "role": "Computer Aided Manufacturing Executive - MU"
+  },
+  {
+   "role": "Computer Aided Designing Executive - KGJPL"
+  },
+  {
+   "role": "Product Repair Center Executive - CH"
+  },
+  {
+   "role": "Product Repair Center Manager - CH"
+  },
+  {
+   "role": "Computer Aided Manufacturing Executive - ST"
+  },
+  {
+   "role": "Computer Aided Manufacturing Manager- ST"
+  },
+  {
+   "role": "Sales Executive - ST"
+  },
+  {
+   "role": "Nandi Executive - ST"
+  }
+ ],
+ "timeout": 0
+}
