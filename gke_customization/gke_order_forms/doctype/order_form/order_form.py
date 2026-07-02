@@ -3,9 +3,12 @@
 
 import frappe,json
 from frappe import _
+from openpyxl.styles import Alignment, Font
 from frappe.utils import get_link_to_form
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
+from openpyxl.drawing.image import Image
+from frappe.utils.file_manager import get_file
 from erpnext.controllers.item_variant import (
 	ItemVariantExistsError,
 	copy_attributes_to_variant,
@@ -1465,7 +1468,7 @@ def gc_export_to_excel(order_form, doc):
 									'GURU',
 									'TANISHQ',
 									'-',
-									stone_code[0].get('customer_code'),
+									stone_code[0].get('customer_code') if stone_code else "",
 									f"{(diamond.get('pcs', 0))}",
 									float(bom_list[0].get('metal_and_finding_weight') or 0) + float(metal_weight or 0),
 									row.get('metal_touch', ''),
@@ -2425,14 +2428,14 @@ def proto_export_to_excel(order_form, doc):
 						"mfg_complexity_code":mg
 						},
 						fields=['name'])
-     
-     
-					making_charge = frappe.db.get_all("Making Charge Price Item Subcategory",filters={
-						"parent": making_charge_price[0].name,
-						# "mfg_complexity_code": row.get('mfg_complexity_code'),
-						"subcategory":row.get("subcategory")
-					},fields=['rate_per_gm'])
-     
+					making_charge = []
+					if making_charge_price:
+						making_charge = frappe.db.get_all("Making Charge Price Item Subcategory",filters={
+							"parent": making_charge_price[0].name,
+							# "mfg_complexity_code": row.get('mfg_complexity_code'),
+							"subcategory":row.get("subcategory")
+						},fields=['rate_per_gm'])
+		
      
      
 
@@ -2745,7 +2748,7 @@ def get_variant_format(order_form, doc):
 								rows_data.append(row_data)
 							rows_data.append([""] * len(row_data))
 						else:
-							code_size = size_row.get('code')  #
+							# code_size = size_row.get('code')  #
 							row_data = [
 								"60450001",
 								code_categories['code_category'],
@@ -2754,7 +2757,8 @@ def get_variant_format(order_form, doc):
 								"-",
 								f"{row.get('metal_colour', '')} {row.get('metal_type', '')}",
 								realiance_quality,
-								code_size,
+								# code_size,
+								"",
 								metal,
 								metal_18 if row.get('metal_touch') == '22KT' else item_bom[0].get('metal_and_finding_weight') ,
 								item_bom[0].get('total_diamond_pcs', '') ,
@@ -3065,8 +3069,8 @@ def get_cost_sheet(order_form, doc):
 
 	
 		# Add blank row at end
-	blank_row = [""] * len(headers)
-	sheet.append(blank_row)
+		# blank_row = [""] * len(headers)
+		# sheet.append(blank_row)
 
 	# Save the workbook to a BytesIO stream
 	output = BytesIO()

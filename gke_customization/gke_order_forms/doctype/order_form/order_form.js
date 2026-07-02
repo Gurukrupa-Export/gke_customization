@@ -440,7 +440,7 @@ frappe.ui.form.on('Order Form', {
 				callback: function(response) {
 					if (response.message) {
 					
-					frm.set_value('design_quotation_file' ,response.message)
+					frm.set_value('bom_format_file' ,response.message)
 					frm.save('Update');
 		
 					const a = document.createElement('a');
@@ -494,7 +494,7 @@ frappe.ui.form.on('Order Form', {
 				callback: function(response) {
 					if (response.message) {
 					
-					frm.set_value('variant_format_file' ,response.message)
+					frm.set_value('cost_sheet_file' ,response.message)
 					frm.save('Update');
 		
 					const a = document.createElement('a');
