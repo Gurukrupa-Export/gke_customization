@@ -323,24 +323,23 @@ def cancel_linked_records(employee, date):
 	# ot = frappe.get_list("OT Log",{"employee":employee, "attendance_date":date, "is_cancelled":0},pluck="name")
 	# po = frappe.get_list("Personal Out Log",{"employee":employee, "date":date, "is_cancelled":0},pluck="name")
 	OT_Log = frappe.qb.DocType("OT Log")
-    ot = (
-        frappe.qb.from_(OT_Log)
-        .select(OT_Log.name)
-        .where(OT_Log.employee == employee)
-        .where(OT_Log.attendance_date == date)
-        .where(OT_Log.is_cancelled == 0)
-        .run(pluck=True)
-    )
-
-    Personal_Out_Log = frappe.qb.DocType("Personal Out Log")
-    po = (
-        frappe.qb.from_(Personal_Out_Log)
-        .select(Personal_Out_Log.name)
-        .where(Personal_Out_Log.employee == employee)
-        .where(Personal_Out_Log.date == date)
-        .where(Personal_Out_Log.is_cancelled == 0)
-        .run(pluck=True)
-    )
+	ot = (
+		frappe.qb.from_(OT_Log)
+		.select(OT_Log.name)
+		.where(OT_Log.employee == employee)
+		.where(OT_Log.attendance_date == date)
+		.where(OT_Log.is_cancelled == 0)
+		.run(pluck=True)
+	)
+	Personal_Out_Log = frappe.qb.DocType("Personal Out Log")
+	po = (
+		frappe.qb.from_(Personal_Out_Log)
+		.select(Personal_Out_Log.name)
+		.where(Personal_Out_Log.employee == employee)
+		.where(Personal_Out_Log.date == date)
+		.where(Personal_Out_Log.is_cancelled == 0)
+		.run(pluck=True)
+	)
 	if ot:
 		OT_Log = frappe.qb.DocType("OT Log")
 		query_ot = (
