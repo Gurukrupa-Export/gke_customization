@@ -1,4 +1,5 @@
 {
+ "_liked_by": "[\"bhavika_patel@gkexport.com\"]",
  "add_total_row": 0,
  "add_translate_data": 0,
  "columns": [],
@@ -12,10 +13,10 @@
  "letter_head": "Sadguru Diamond",
  "letterhead": null,
  "modified": "2025-12-30 11:35:08.772784",
- "modified_by": "bhavika_p@gkexport.com",
+ "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE HRMS",
  "name": "PF Challan Report",
- "owner": "bhavika_p@gkexport.com",
+ "owner": "bhavika_patel@gkexport.com",
  "prepared_report": 0,
  "ref_doctype": "Salary Slip",
  "report_name": "PF Challan Report",

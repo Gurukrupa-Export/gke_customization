@@ -105,8 +105,8 @@ def generate_token_from_data(username, password):
 @frappe.whitelist(allow_guest=True)
 def send_otp_for_login_user(username, password):
 
-    # login_manager = LoginManager()
-    # login_manager.authenticate(username, password)
+    login_manager = LoginManager()
+    login_manager.authenticate(username, password)
     
     # verified_key = f"otp_verified_{username}"
     otp_key = f"otp_{username}"
@@ -156,6 +156,7 @@ def send_otp_for_login_user(username, password):
         now=True
     )
 
+
     return {
         "status": "success",
         "otp": otp  # In production, don't send this to frontend
@@ -174,7 +175,7 @@ def sent_alert_email_for_screen_shot(username):
         "status": "success"
     }
 
-
+    
 import requests
 
 def set_gold_value():
@@ -200,7 +201,6 @@ def set_gold_value():
                 continue
 
     return gold_value
-
 
 
 @frappe.whitelist(allow_guest=True)

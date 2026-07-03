@@ -659,8 +659,8 @@ def get_pr_return_rows(r, filters=None):
 
 def get_repack_rows(r, filters=None):
     """
-    Stock Entry (type=Repack) whose source item+batch matches this PR item.
-    Returns the finished-item (output) side: new batch, qty, valuation_rate, amount.
+    Match repack output batch to PR batch using positional rank sorted by (qty, batch_no).
+    This fixes the bug where same-qty batches got the same repack batch assigned to all of them.
     """
     filters = filters or {}
     if not r.batch_no:
@@ -670,32 +670,71 @@ def get_repack_rows(r, filters=None):
     date_sql = ""
     if filters.get("from_date"):
         date_sql += " AND se.posting_date >= %(from_date)s "
-        params["from_date"] = filters.get("from_date")
+        params["from_date"] = filters["from_date"]
     if filters.get("to_date"):
         date_sql += " AND se.posting_date <= %(to_date)s "
-        params["to_date"] = filters.get("to_date")
+        params["to_date"] = filters["to_date"]
 
-    return frappe.db.sql(f"""
-        SELECT
-            se.name                AS repack_id,
-            se.posting_date,
-            sed_out.batch_no       AS repack_batch,
-            sed_out.qty            AS repack_qty,
-            sed_out.amount         AS repack_amount
+    # Step 1: find all Repack SEs that used this batch as source
+    repack_ses = frappe.db.sql(f"""
+        SELECT DISTINCT se.name AS se_name, se.posting_date
         FROM `tabStock Entry` se
         INNER JOIN `tabStock Entry Detail` sed_in
             ON  sed_in.parent    = se.name
             AND sed_in.item_code = %(item_code)s
             AND IFNULL(sed_in.batch_no, '') = %(batch_no)s
             AND IFNULL(sed_in.t_warehouse, '') = ''
-        INNER JOIN `tabStock Entry Detail` sed_out
-            ON  sed_out.parent = se.name
-            AND IFNULL(sed_out.is_finished_item, 0) = 1
         WHERE se.docstatus = 1
           AND se.stock_entry_type = 'Repack'
           {date_sql}
-        ORDER BY se.posting_date, se.name, sed_out.idx
+        ORDER BY se.posting_date, se.name
     """, params, as_dict=True)
+
+    result = []
+
+    for se in repack_ses:
+        se_name = se["se_name"]
+
+        # Step 2: get ALL source batches of this SE sorted by (qty, batch_no)
+        all_src = frappe.db.sql("""
+            SELECT IFNULL(batch_no, '') AS batch_no, qty
+            FROM `tabStock Entry Detail`
+            WHERE parent    = %(se)s
+              AND item_code = %(item_code)s
+              AND IFNULL(t_warehouse, '') = ''
+            ORDER BY qty, batch_no
+        """, {"se": se_name, "item_code": r.item}, as_dict=True)
+
+        # Step 3: get ALL output (finished) batches sorted by (qty, batch_no)
+        all_out = frappe.db.sql("""
+            SELECT
+                IFNULL(batch_no, '') AS repack_batch,
+                qty                  AS repack_qty,
+                amount               AS repack_amount
+            FROM `tabStock Entry Detail`
+            WHERE parent = %(se)s
+              AND IFNULL(is_finished_item, 0) = 1
+            ORDER BY qty, batch_no
+        """, {"se": se_name}, as_dict=True)
+
+        # Step 4: find position of this PR batch in the sorted source list
+        rank = next(
+            (i for i, src in enumerate(all_src) if src["batch_no"] == r.batch_no),
+            None
+        )
+
+        # Step 5: pick the output batch at the same position
+        if rank is not None and rank < len(all_out):
+            out_row = all_out[rank]
+            result.append({
+                "repack_id":     se_name,
+                "posting_date":  se["posting_date"],
+                "repack_batch":  out_row["repack_batch"],
+                "repack_qty":    out_row["repack_qty"],
+                "repack_amount": out_row["repack_amount"],
+            })
+
+    return result
 
 
 def get_pi_return_rows(pi_name, pii_name=None, filters=None, pi_batch_no=None):

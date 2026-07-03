@@ -1,9 +1,7 @@
-
 import frappe
 from frappe.utils import getdate, add_days, get_first_day, today
 from datetime import date, timedelta
 from typing import Optional, List
-import calendar
 from dateutil import relativedelta
 
 # @frappe.whitelist()

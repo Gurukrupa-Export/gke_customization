@@ -19,6 +19,8 @@
   "as_per_design",
   "as_per_customization",
   "job_work",
+  "out_right",
+  "hybrid",
   "customized_data",
   "column_break_rph7",
   "customer_gold",
@@ -89,7 +91,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "\nDraft\nOrdered\nCancel Order\nCancelled"
+   "options": "\nDraft\nOrdered\nCancel Order\nCancelled\nAdd To Cart"
   },
   {
    "fieldname": "customized_data",
@@ -110,18 +112,21 @@
    "default": "0",
    "fieldname": "customer_gold",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Customer Gold"
   },
   {
    "default": "0",
    "fieldname": "customer_diamond",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Customer Diamond"
   },
   {
    "default": "0",
    "fieldname": "customer_stone",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Customer Stone"
   },
   {
@@ -139,14 +144,26 @@
    "fieldname": "job_work",
    "fieldtype": "Check",
    "label": "Outwork"
+  },
+  {
+   "default": "0",
+   "fieldname": "out_right",
+   "fieldtype": "Check",
+   "label": "Outright"
+  },
+  {
+   "default": "0",
+   "fieldname": "hybrid",
+   "fieldtype": "Check",
+   "label": "Hybrid"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-05-20 16:44:09.838578",
- "modified_by": "bhavika_patel@gkexport.com",
+ "modified": "2026-06-26 16:16:27.707238",
+ "modified_by": "shubham_si@gkexport.com",
  "module": "GKE Catalog",
  "name": "Portal Order Item",
  "owner": "shubham_k@gkexport.com",

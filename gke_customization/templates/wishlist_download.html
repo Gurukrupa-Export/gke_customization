@@ -99,8 +99,8 @@
       <!-- Diamond Columns -->
       <td>{{ diamond.pcs }}</td>
       <td>{{ "%.2f"|format(diamond.cts) }}</td>
-      <td>{{ "%.2f"|format(diamond.rate) }}</td>
-      <td>{{ frappe.utils.fmt_money(diamond.amount) }}</td>
+      <td>{{ "%.2f"|format(row.total_diamond_base_rate) }}</td>
+      <td>{{ frappe.utils.fmt_money(row.total_diamond_amt ) }}</td>
 
       {% if loop.first %}
 
@@ -114,7 +114,7 @@
 
       <td>{{ row.net_weight }}</td>
 
-      <td>{{ frappe.utils.fmt_money(row.gold_bom_amount or 0) }}</td>
+      <td>{{ frappe.utils.fmt_money(row.gold_amt or 0) }}</td>
 
       <td>{{ row.metal_purity }}</td>
 
