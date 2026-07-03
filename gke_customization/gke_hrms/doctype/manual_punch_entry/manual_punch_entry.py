@@ -320,8 +320,26 @@ def process_attendance(employee, shift_type, date):
 
 @frappe.whitelist()
 def cancel_linked_records(employee, date):
-	ot = frappe.get_list("OT Log",{"employee":employee, "attendance_date":date, "is_cancelled":0},pluck="name")
-	po = frappe.get_list("Personal Out Log",{"employee":employee, "date":date, "is_cancelled":0},pluck="name")
+	# ot = frappe.get_list("OT Log",{"employee":employee, "attendance_date":date, "is_cancelled":0},pluck="name")
+	# po = frappe.get_list("Personal Out Log",{"employee":employee, "date":date, "is_cancelled":0},pluck="name")
+	OT_Log = frappe.qb.DocType("OT Log")
+	ot = (
+		frappe.qb.from_(OT_Log)
+		.select(OT_Log.name)
+		.where(OT_Log.employee == employee)
+		.where(OT_Log.attendance_date == date)
+		.where(OT_Log.is_cancelled == 0)
+		.run(pluck=True)
+	)
+	Personal_Out_Log = frappe.qb.DocType("Personal Out Log")
+	po = (
+		frappe.qb.from_(Personal_Out_Log)
+		.select(Personal_Out_Log.name)
+		.where(Personal_Out_Log.employee == employee)
+		.where(Personal_Out_Log.date == date)
+		.where(Personal_Out_Log.is_cancelled == 0)
+		.run(pluck=True)
+	)
 	if ot:
 		OT_Log = frappe.qb.DocType("OT Log")
 		query_ot = (
@@ -341,20 +359,56 @@ def cancel_linked_records(employee, date):
 		query_po.run()
 	return {"ot":ot, "po": po}
 
+# def get_checkins(employee, shift_datetime):
+# 	if not (employee and shift_datetime):
+# 		return []
+# 	shift_timings = get_employee_shift_timings(employee, get_datetime(shift_datetime), True)[1] 	#for current shift
+# 	or_filter = {
+# 			"time":["between",[get_datetime_str(shift_timings.actual_start), get_datetime_str(shift_timings.actual_end)]]
+# 	}
+# 	fields = ["date(time) as date", "log_type as type", "time", "source", "name as employee_checkin"]
+# 	attendance = frappe.db.get_value("Attendance", {"employee": employee, "attendance_date": getdate(shift_datetime), "docstatus":1})
+# 	if attendance:
+# 		or_filter["attendance"] = attendance
+# 	data = frappe.get_list("Employee Checkin", filters= {"employee": employee}, or_filters = or_filter, fields=fields, order_by='time')
+# 	if not data:
+# 		return []
+# 	return data
 def get_checkins(employee, shift_datetime):
 	if not (employee and shift_datetime):
 		return []
 	shift_timings = get_employee_shift_timings(employee, get_datetime(shift_datetime), True)[1] 	#for current shift
-	or_filter = {
-			"time":["between",[get_datetime_str(shift_timings.actual_start), get_datetime_str(shift_timings.actual_end)]]
+
+	or_conditions = ["time BETWEEN %(start)s AND %(end)s"]
+	params = {
+		'employee': employee,
+		'start': get_datetime_str(shift_timings.actual_start),
+		'end': get_datetime_str(shift_timings.actual_end)
 	}
-	fields = ["date(time) as date", "log_type as type", "time", "source", "name as employee_checkin"]
+    
 	attendance = frappe.db.get_value("Attendance", {"employee": employee, "attendance_date": getdate(shift_datetime), "docstatus":1})
 	if attendance:
-		or_filter["attendance"] = attendance
-	data = frappe.get_list("Employee Checkin", filters= {"employee": employee}, or_filters = or_filter, fields=fields, order_by='time')
+		or_conditions.append("attendance = %(attendance)s")
+		params['attendance'] = attendance
+
+	or_clause = " OR ".join(or_conditions)
+
+	data = frappe.db.sql(f"""
+				SELECT
+					DATE(time) as date,
+					log_type as type,
+					time,
+					source,
+					name as employee_checkin
+				FROM `tabEmployee Checkin`
+				WHERE employee = %(employee)s
+					AND ({or_clause})
+				ORDER BY time
+	""", params, as_dict=1)
+
 	if not data:
 		return []
+
 	return data
 
 @frappe.whitelist()
