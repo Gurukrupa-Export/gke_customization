@@ -1,7 +1,7 @@
 import frappe
 
 
-# @frappe.whitelist(allow_guest=True)
+# @frappe.whitelist()
 # def download_bom_pdf(items):
     # items - bom / customer
     # import json
@@ -384,7 +384,7 @@ def calculate_finding_and_making_amounts(item, result):
         "chain_making": chain_making,
     }
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def download_bom_pdf(boms, customer, company, customer_folder_name=None):
 
     if isinstance(boms, str):
@@ -555,7 +555,7 @@ def download_bom_pdf(boms, customer, company, customer_folder_name=None):
     
     
     
-# @frappe.whitelist(allow_guest=True)
+# @frappe.whitelist()
 # def download_bom_pdf(boms, customer, company, customer_folder_name=None):
 
 #     if isinstance(boms, str):
@@ -697,7 +697,7 @@ def download_bom_pdf(boms, customer, company, customer_folder_name=None):
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 
 def get_method(data):
     filter_keys = [
@@ -733,7 +733,7 @@ def get_method(data):
     
     
     
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_method1(data):
     filter_keys = [
         "age_group",

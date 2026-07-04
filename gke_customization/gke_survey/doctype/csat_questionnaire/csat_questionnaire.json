@@ -8,6 +8,8 @@
   "section_break_yw43",
   "amended_from",
   "client_name",
+  "mail_id",
+  "mobile_number",
   "column_break_qork",
   "location",
   "customer_code",
@@ -28,6 +30,7 @@
   "column_break_ypmp",
   "communication_throughout_sales_process",
   "deadstock_liquidation_recrafting_service",
+  "attachment",
   "section_break_jwzp",
   "suggestion_for_improvement"
  ],
@@ -112,7 +115,7 @@
   {
    "fieldname": "customization",
    "fieldtype": "Select",
-   "label": "Customization",
+   "label": "Customization for Customer Order",
    "options": "\n1\n2\n3\n4\n5"
   },
   {
@@ -128,7 +131,7 @@
   {
    "fieldname": "deadstock_liquidation_recrafting_service",
    "fieldtype": "Select",
-   "label": "Deadstock Liquidation & Jewellery Recrafting Service",
+   "label": "Jewelry Remaking Service (Using Your Deadstock or Old Gold).",
    "options": "\n1\n2\n3\n4\n5"
   },
   {
@@ -165,14 +168,31 @@
    "fieldtype": "Select",
    "label": "Satisfied with Invoice",
    "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "mail_id",
+   "fieldtype": "Data",
+   "label": "Mail ID",
+   "options": "email"
+  },
+  {
+   "fieldname": "mobile_number",
+   "fieldtype": "Data",
+   "label": "Mobile Number",
+   "options": "phone"
+  },
+  {
+   "fieldname": "attachment",
+   "fieldtype": "Attach",
+   "label": "Attachment"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-30 12:01:00.372752",
- "modified_by": "devendra_p@gkexport.com",
+ "modified": "2026-06-30 18:38:59.023768",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "GKE SURVEY",
  "name": "CSAT Questionnaire",
  "owner": "shubham_k@gkexport.com",
