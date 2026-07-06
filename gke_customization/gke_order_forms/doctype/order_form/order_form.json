@@ -64,7 +64,7 @@
   "variant_format_file",
   "design_quotation_file",
   "tab_break_kio0",
-   "cost_sheet_file",
+  "cost_sheet_file",
   "bom_format_file",
   "repair_order"
  ],
@@ -413,7 +413,7 @@
    "fieldtype": "Attach",
    "label": "Design Quotation File"
   },
-   {
+  {
    "allow_on_submit": 1,
    "fieldname": "cost_sheet_file",
    "fieldtype": "Attach",
@@ -446,7 +446,7 @@
    "link_fieldname": "custom_form_id"
   }
  ],
- "modified": "2026-03-27 16:33:12.283389",
+ "modified": "2026-07-02 10:12:17.822381",
  "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Order Form",
