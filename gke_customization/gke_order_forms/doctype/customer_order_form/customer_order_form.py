@@ -59,9 +59,9 @@ class CustomerOrderForm(Document):
 					weight.max_weight = gross_wgt + tolerance if tolerance else 0
 					weight.min_weight = gross_wgt - tolerance if tolerance else 0
 	
-	def validate(self):
-		set_data(self)
-		# calculate_qty(self)
+	# def validate(self):
+	# 	set_data(self)
+	# 	# calculate_qty(self)
 
 def calculate_qty(self):
 	total_qty = 0
