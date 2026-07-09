@@ -1,7 +1,7 @@
-// Copyright (c) 2025, Gurukrupa Export and contributors
+// Copyright (c) 2026, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
-frappe.query_reports["ESIC Challan Report"] = {
+frappe.query_reports["PF Contribution Report"] = {
 	"filters": [
 		{
             "label": __("Month"),
@@ -63,68 +63,45 @@ frappe.query_reports["ESIC Challan Report"] = {
 			"default": frappe.datetime.month_end(frappe.datetime.get_today())
 		},
 		{
-			"label": __("Company"),
-			"fieldtype": "Link",
 			"fieldname": "company",
-			"options": "Company",
-			"reqd": 1,
-		},
-		{
-			"label": __("Branch"),
+			"label": "Company",
 			"fieldtype": "Link",
-			"fieldname": "branch",
-			"options": "Branch" 
-		}, 
+			"options": "Company",
+			// "default": frappe.defaults.get_user_default("Company"),
+			"reqd": 1
+		},
+		//{
+		//	"fieldname": "report_type",
+		//	"label": "Report Type",
+		//	"fieldtype": "Select",
+		//	"options": "Register Report\nPF File",
+		//	"default": "PF File",
+		//	"reqd": 1
+		//},
+		{
+			"fieldname": "employee",
+			"label": "Employee",
+			"fieldtype": "MultiSelectList",
+			"get_data": function(txt) {
+				var company = frappe.query_report.get_filter_value('company');
+				var filters = {}
+				if (company) filters['company'] = company
+				return frappe.db.get_link_options('Employee', txt, filters);
+			}
+		}
 	],
+	
 	onload: (report) => {
 		set_dates();
 		report.page.add_button("Clear Filters", function() {
-			window.open("/app/query-report/ESIC%20Challan%20Report", "_self")
-		}).addClass("btn-info")
-		
-		report.page.add_inner_button(__("ESIC File"), function () {
-			frappe.call({
-				method: "gke_customization.gke_hrms.report.esic_challan_report.esic_challan_report.export_txt", 
-				args: {
-					filters: report.get_values()
-				},
-				callback: function (r) {
-				if (r.message) {
-					// 🔽 Auto download
-					const link = document.createElement("a");
-					link.href = r.message;
-					link.download = "esic_export.xlsx";
-					document.body.appendChild(link);
-					link.click();
-					document.body.removeChild(link);
-				}
-			}
-			});
-		}).addClass("btn-secondary");
-		
-	},
-	"formatter": function(value, row, column, data, default_formatter) {
-        value = default_formatter(value, row, column, data);
-		if (data && ["gross_pay","employee_id"].includes(column.id) && value) {
-			value = $(`<span>${value}</span>`);
-			var $value = $(value).css("font-weight", "bold");
-			value = $value.wrap("<p></p>").parent().html();
-		}
-		var total_field = ["Total Employees", "Total Gross","Excepted Employees","Excepted Gross","ESIC Members","ESIC Wages","Employee Contribution","Employer Contribution","Total Contribution"];
-		if (["branch", "employee_name"].includes(column.id) && total_field.includes(data.employee_name)) {
-			value = $(`<span>${value}</span>`);
-			var $value = $(value).css("font-weight", "bold");
-			var $value = $(value).css("color", "blue");
-			value = $value.wrap("<p></p>").parent().html();
-		}
-
-        return value;
-    }
+			window.open("/app/query-report/PF%20Contribution%20Report", "_self")
+		}).addClass("btn-info")	
+	}
 };
 
 function fetch_month_list() {
 	frappe.call({
-		method: "gurukrupa_customizations.gurukrupa_customizations.report.monthly_in_out.monthly_in_out.get_month_range",
+		method: "gke_customization.gke_hrms.report.pf_contribution_report.pf_contribution_report.get_month_range",
 		freeze: false,
 		callback: function(r) {
 			var month = frappe.query_report.get_filter('month');
