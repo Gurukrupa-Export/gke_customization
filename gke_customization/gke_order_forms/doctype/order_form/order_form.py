@@ -812,18 +812,22 @@ def get_customer_order_form(source_name, target_doc=None):
 	if isinstance(target_doc, str):
 		target_doc = json.loads(target_doc)
 	target_doc = frappe.new_doc("Order Form") if not target_doc else frappe.get_doc(target_doc)
+ 
+	customer_code = ""
+	if source_name:
+		customer_code = frappe.db.get_value("Customer Order Form", source_name, "customer_code")
+		target_doc.customer_code = customer_code  # Set in Order Form (Parent)
 
 	if source_name:
 		customer_order_form = frappe.db.sql(f"""SELECT * FROM `tabCustomer Order Form Detail` 
 							WHERE parent = '{source_name}' AND docstatus = 1""", as_dict=1)
 	if not customer_order_form:
-		frappe.msgprint(_("Please submit the Customer Order Form"))
+		frappe.throw(_("Please submit the Customer Order Form"))
 		return target_doc
 
 	for i in customer_order_form:
 		item, order_id, item_bom = i.get("design_code"), i.get("order_id"), i.get("design_code_bom")
 		order_data = frappe.db.sql(f"SELECT * FROM `tabOrder` WHERE name = '{order_id}'", as_dict=1)
-		
 		customer_design_code = frappe.db.sql(f"SELECT * FROM `tabBOM` WHERE item = '{item}' AND name = '{i.get('design_code_bom')}'", as_dict=1)
 		item_serial = frappe.db.get_value("Serial No", {'item_code': item}, 'name')
 		
@@ -844,8 +848,8 @@ def get_customer_order_form(source_name, target_doc=None):
 			for j in data_source:
 				target_doc.append("order_details", {
 					"delivery_date": target_doc.delivery_date,
-					"design_by": j.get('design_by'),
-					"design_type": j.get('design_type'),
+					"design_by": "Our Design",
+					"design_type": "As Per Design Type",
 					"qty": i.get('no_of_pcs'),
 					"design_id": j.get("item", item),
 					"bom": j.get("new_bom", i.get('design_code_bom')),
@@ -888,10 +892,12 @@ def get_customer_order_form(source_name, target_doc=None):
 					"chain_type": j.get("chain_type"),
 					"customer_chain": j.get("customer_chain"),
 					"nakshi_weght": j.get("nakshi_weght"),
+					"diamond_type":"Natural"
 				})
 		else: 
 			frappe.throw(f"{item} has master bom {item_bom}")
 	return target_doc
+
 
 
 def validate_item_variant(self):
@@ -1908,6 +1914,7 @@ def creation_export_to_excel(order_form, doc):
 	return file_doc.file_url
 
 
+
 @frappe.whitelist()
 def proto_export_to_excel(order_form, doc):
 
@@ -2341,11 +2348,7 @@ def proto_export_to_excel(order_form, doc):
 					item_bom = frappe.db.get_list("BOM", filters={'item': row["design_id"], 'name': final_bom}, fields=['*'])
 					order_date_fmt = frappe.utils.formatdate(order_form_doc.order_date, "dd-MM-yyyy")
 					
-					novel_quality = frappe.db.get_value("Customer Prolif Detail", 
-						{'parent': order_form_doc.customer_code, 'gk_d': row.get('diamond_quality')  },
-						['customer_prolif']
-						) 
-					novel_quality if novel_quality else ''
+					
 					
 					product_size = row.get('product_size')
 					order_size = float(product_size)
@@ -2378,6 +2381,26 @@ def proto_export_to_excel(order_form, doc):
 							)
 						if rate_doc:
 							gemstone_amt += rate_doc*flt(weight.get("pcs"), 3)
+					novel_quality = None
+					gemstone_types = ", ".join(
+						sorted({
+							weight.get("gemstone_type")
+							for weight in gemstone_list
+							if weight.get("gemstone_type")
+						})
+					)
+					if gemstone_amt:
+						novel_quality = frappe.db.get_value("Customer Prolif Detail", 
+							{'parent': order_form_doc.customer_code, 'gk_d': row.get('diamond_quality'),'customer_prolif':"Diamond + Synthetic"},
+							['customer_prolif']
+							) 
+						# novel_quality if novel_quality else ''
+					else:
+						novel_quality = frappe.db.get_value("Customer Prolif Detail", 
+							{'parent': order_form_doc.customer_code, 'gk_d': row.get('diamond_quality')  },
+							['customer_prolif']
+							) 
+						# novel_quality if novel_quality else ''
 					
 					
 					finding_purity = frappe.db.get_all("BOM Finding Detail",
@@ -2400,7 +2423,7 @@ def proto_export_to_excel(order_form, doc):
 						{
 							'customer': order_form_doc.customer_code,
 							'item_category': row.get('category'),
-							'product_size_in': product_size
+							'product_size': product_size
 						},
 						['code', 'product_size','size_umo'],
 						as_dict=True
@@ -2444,13 +2467,15 @@ def proto_export_to_excel(order_form, doc):
 						"mfg_complexity_code":row.get('mfg_complexity_code')
 						},
 						fields=['name'])
-     
-     
-					making_charge = frappe.db.get_all("Making Charge Price Item Subcategory",filters={
-						"parent": making_charge_price[0].name,
-						# "mfg_complexity_code": row.get('mfg_complexity_code'),
-						"subcategory":row.get("subcategory")
-					},fields=['rate_per_gm'])
+					making_charge = None
+					if making_charge_price:
+						making_charge = frappe.db.get_all("Making Charge Price Item Subcategory",filters={
+							"parent": making_charge_price[0].name,
+							# "mfg_complexity_code": row.get('mfg_complexity_code'),
+							"subcategory":row.get("subcategory")
+						},fields=['rate_per_gm'])
+					set_item =  frappe.db.get_all("Set Item Table",filters={'parent': row.get('design_id')},fields=['item_code'])
+					item_codes = ", ".join([d["item_code"] for d in set_item])
      
      
      
@@ -2489,7 +2514,8 @@ def proto_export_to_excel(order_form, doc):
 						"",
 						"",
 						row.get('design_id', ''),
-						row.get('category', ''),
+						# row.get('category', ''),
+						item_codes,
 						"Studded",
 						"Studded-DIS",
 						code_categories.get('customer_category', '') if code_categories else '',
@@ -2510,9 +2536,9 @@ def proto_export_to_excel(order_form, doc):
 						item_bom[0].get('metal_and_finding_weight', 'metal_weight') , #gold wt
 						item_bom[0].get('diamond_weight', '') , #diam wt
 						"",
+						item_bom[0].get('gemstone_weight', ''),
 						"",
-						"",
-						row.get('gender', ''),
+						'Women' if row.get('gender') == 'Female' else 'Men' if row.get('gender') == 'Male' else '',
 						row.get('design_sourceroute',''),
 						making_charge[0].rate_per_gm * item_bom[0].get('metal_and_finding_weight', '') if making_charge else "", #labour amount
 						diamond_price[0].outright_handling_charges_rate * item_bom[0].get('diamond_weight', '') if diamond_price else "", #diam handling amt
@@ -2530,8 +2556,8 @@ def proto_export_to_excel(order_form, doc):
 						"",
 						"",
 						"",
-						"",
-						"",
+						gemstone_types,
+						"Synthetic" if gemstone_types else "",
 						"",
 						"",
 						"",
@@ -2588,6 +2614,7 @@ def proto_export_to_excel(order_form, doc):
 	)
 
 	return file_doc.file_url
+
 
 @frappe.whitelist()
 def get_variant_format(order_form, doc): 
