@@ -21,7 +21,7 @@ STATUS = {
 }
 
 @frappe.whitelist(allow_guest=True)
-def attendance(from_date = None,to_date = None,employee = None):
+def attendance1(from_date = None,to_date = None,employee = None):
 	Attendance = frappe.qb.DocType("Attendance")
 	Employee = frappe.qb.DocType("Employee")
 	ShiftType = frappe.qb.DocType("Shift Type")
@@ -90,11 +90,11 @@ def attendance(from_date = None,to_date = None,employee = None):
 					ShiftType.shift_hours * 3600,
 					IF(Attendance.out_time, TIME_TO_SEC(TIMEDIFF(Attendance.out_time, Attendance.in_time)), Attendance.working_hours * 3600)
 				)
-				+ IF((Attendance.late_entry == 0) & (TIME(Attendance.in_time) > ShiftType.start_time),
+				+ IF((Attendance.status != 'Half Day') & (Attendance.late_entry == 0) & (TIME(Attendance.in_time) > ShiftType.start_time),
 					TIME_TO_SEC(TIMEDIFF(TIME(Attendance.in_time), ShiftType.start_time)), 0)
-				- IF(TIME(Attendance.in_time) < ShiftType.start_time,
+				- IF((Attendance.status != 'Half Day') & TIME(Attendance.in_time) < ShiftType.start_time,
 					TIME_TO_SEC(TIMEDIFF(ShiftType.start_time, TIME(Attendance.in_time))), 0)
-				- IF(Attendance.out_time > TIMESTAMP(Date(Attendance.in_time), ShiftType.end_time),
+				- IF((Attendance.status != 'Half Day') & Attendance.out_time > TIMESTAMP(Date(Attendance.in_time), ShiftType.end_time),
 					TIME_TO_SEC(TIMEDIFF(Attendance.out_time, TIMESTAMP(Date(Attendance.in_time), ShiftType.end_time))), 0)
 				- IfNull(TIME_TO_SEC(pol_subquery.hrs), 0)
 				+ (
@@ -131,7 +131,198 @@ def attendance(from_date = None,to_date = None,employee = None):
 	data = process_data(data,from_date,to_date,employee)
 	
 	return data
-    
+
+# 17-06-2026 
+@frappe.whitelist(allow_guest=True)
+def attendance(from_date = None,to_date = None,employee = None):
+	Attendance = frappe.qb.DocType("Attendance")
+	Employee = frappe.qb.DocType("Employee")
+	ShiftType = frappe.qb.DocType("Shift Type")
+	ShiftAssignment = frappe.qb.DocType("Shift Assignment")
+	PersonalOutLog = frappe.qb.DocType("Personal Out Log")
+	OTLog = frappe.qb.DocType("OT Log")
+
+	conditions = get_conditions(from_date,to_date,employee)
+
+	TIME_FORMAT = CustomFunction('TIME_FORMAT', ['time', 'format'])
+	TIMEDIFF = CustomFunction('TIMEDIFF', ['time1', 'time2'])
+	SEC_TO_TIME = CustomFunction('SEC_TO_TIME', ['seconds'])
+	TIME_TO_SEC = CustomFunction('TIME_TO_SEC', ['time'])
+	IF = CustomFunction('IF', ['condition', 'true_expr', 'false_expr'])
+	TIMESTAMP = CustomFunction('TIMESTAMP', ['date', 'time'])
+	TIME = CustomFunction('TIME', ['time'])
+	ADDDATE = CustomFunction('ADDDATE', ['date', 'days'])
+	ADDTIME = CustomFunction("ADDTIME", ["date", "time"])  
+
+
+	# Personal Out Log subquery
+	pol_subquery = (
+		frappe.qb.from_(PersonalOutLog)
+		.select(
+			PersonalOutLog.employee, 
+			PersonalOutLog.date, 
+			SEC_TO_TIME(IfNull(Sum(TIME_TO_SEC(PersonalOutLog.total_hours)), 0)).as_('hrs')
+			)
+		.where(PersonalOutLog.is_cancelled == 0)
+		.groupby(PersonalOutLog.employee, PersonalOutLog.date)
+	).as_('pol')
+
+	# OT Log subquery
+	ot_subquery = (
+		frappe.qb.from_(OTLog)
+		.select('*')
+		.where(OTLog.is_cancelled == 0)	
+	).as_('ot')
+
+	# -----------------------------
+	# SHIFT WINDOW -- New Added 
+	# -----------------------------
+	shift_start = TIMESTAMP(Attendance.attendance_date, ShiftType.start_time)
+
+	shift_end = IF(
+		ShiftType.start_time < ShiftType.end_time,
+		TIMESTAMP(Attendance.attendance_date, ShiftType.end_time),
+		TIMESTAMP(ADDDATE(Attendance.attendance_date, 1), ShiftType.end_time)
+	)
+
+	shift_start_with_grace = ADDTIME(
+		shift_start,
+		SEC_TO_TIME(ShiftType.late_entry_grace_period * 60)
+	)
+
+	effective_in = IF(
+		Attendance.in_time <= shift_start_with_grace,
+		shift_start,
+		Attendance.in_time
+	)
+
+	effective_out = IF(
+		Attendance.out_time > shift_end,
+		shift_end,
+		Attendance.out_time
+	)
+	
+	query = (
+		frappe.qb.from_(Attendance)
+		.left_join(Employee).on(Attendance.employee == Employee.name)
+		# .left_join(ShiftType).on(Attendance.shift == ShiftType.name)
+		.left_join(ShiftAssignment).on(
+      		(Attendance.employee == ShiftAssignment.employee) &
+			(Attendance.attendance_date.between(ShiftAssignment.start_date, ShiftAssignment.end_date)) 
+   			# & (ShiftAssignment.shift_type == Attendance.shift)
+        )
+		.left_join(ShiftType).on(
+			( (ShiftAssignment.shift_type.isnotnull()) & (ShiftAssignment.shift_type == ShiftType.name) ) 
+   			|
+			( (ShiftAssignment.shift_type.isnull()) & (Attendance.shift == ShiftType.name) )
+		)
+		.left_join(pol_subquery).on(
+			(Attendance.attendance_date == pol_subquery.date) &
+			(Attendance.employee == pol_subquery.employee)
+		)
+		.left_join(ot_subquery).on(
+			(Attendance.attendance_date == ot_subquery.attendance_date) &
+			(Attendance.employee == ot_subquery.employee)
+		)
+		.select(
+			Attendance.attendance_date, Attendance.name,
+			# (Attendance.shift).as_('shift_name'),
+			IF(
+				ShiftAssignment.shift_type.isnotnull(),
+				ShiftAssignment.shift_type,
+				# Attendance.shift
+				Employee.default_shift
+			).as_("shift_name"),
+
+			Concat(TIME_FORMAT(ShiftType.start_time, "%H:%i:%s"), " TO ", TIME_FORMAT(ShiftType.end_time, "%H:%i:%s")).as_('shift'),
+			
+			TIME(Attendance.in_time).as_('in_time'),
+			TIME(Attendance.out_time).as_('out_time'),
+
+
+			Attendance.late_entry,
+			# IF(Attendance.late_entry, TIMEDIFF(TIME(Attendance.in_time), ShiftType.start_time), None).as_('late_hrs'),
+			IF(Attendance.late_entry, TIMEDIFF(Attendance.in_time, TIMESTAMP(Attendance.attendance_date, ShiftType.start_time)), None).as_('late_hrs'),
+			IF(Attendance.early_exit, TIMEDIFF(ShiftType.end_time, TIME(Attendance.out_time)), None).as_('early_hrs'),
+			
+			# TIMEDIFF(Attendance.out_time, Attendance.in_time).as_('spent_hours'),
+			
+			################################################
+			# ✅ FIXED SPENT HOURS (date aware)
+			SEC_TO_TIME(
+				IF(
+					Attendance.out_time.isnull(),
+					0,
+					TIME_TO_SEC(
+						TIMEDIFF(
+							IF(
+								Attendance.out_time < Attendance.in_time,
+								TIMESTAMP(
+									ADDDATE(Date(Attendance.in_time), 1),
+									TIME(Attendance.out_time),
+								),
+								Attendance.out_time,
+							),
+							Attendance.in_time,
+						)
+					),
+				)
+			).as_("spent_hours"),
+			################################################
+
+			
+			pol_subquery.hrs.as_('p_out_hrs'),
+
+	################################################
+			# ✅ FIXED NET WORKING HOURS -- Negative hours Issue solved
+			SEC_TO_TIME(
+				IfNull(
+					IF(
+						Attendance.status.isin(["A", "ERR"]),
+						0,
+						TIME_TO_SEC(
+							TIMEDIFF(effective_out, effective_in)
+						)
+						- IfNull(TIME_TO_SEC(pol_subquery.hrs), 0)
+					),
+					0
+				)
+			).as_("net_wrk_hrs"),
+			################################################
+
+
+
+			ShiftType.shift_hours,
+			IF((ShiftType.working_hours_threshold_for_half_day > Attendance.working_hours) & (Attendance.working_hours > 0), 1, 0).as_('lh'),
+			ot_subquery.allowed_ot.as_('ot_hours'),
+			IfNull(Attendance.leave_type, Attendance.status).as_('status'),
+			Attendance.attendance_request
+		)
+		.where((Attendance.docstatus == 1) 
+        #  & 
+        #  IF(ShiftAssignment.shift_type, ShiftAssignment.shift_type == Attendance.shift, 
+        #     Attendance.shift == ShiftType.name
+        #     # Employee.default_shift == ShiftType.name
+        #     )
+         )
+		.orderby(Attendance.attendance_date, order=frappe.qb.asc)
+	)
+
+	for condition in conditions:
+		query = query.where(condition)
+ 
+	data = query.run(as_dict=1)	
+	if not data:
+		return
+	
+	data = process_data(data,from_date,to_date,employee)
+	totals = get_totals(data, employee)
+
+	# return data
+	return {
+		"data": data,
+		"totals": totals
+	}
   
 def get_conditions(from_date, to_date, employee):
     """Return a list of QB conditions instead of raw SQL string."""
@@ -216,7 +407,7 @@ def process_data(data,from_date,to_date, employee):
 					row.total_pay_hrs = row.net_wrk_hrs + (row.ot_hours or timedelta(0))
 
 		if row.lh:
-			row.status = 'LH'
+			row.status = STATUS.get(row.status) or 'LH'
 		shift_hours_in_sec = ''
 		if row.shift_hours:
 			shift_hours_in_sec = row.shift_hours * 3600
@@ -328,3 +519,88 @@ def employee_details(branch=None,company = None,department = None):
 	""", as_dict=1)
 
 	return data
+
+def get_totals(data, employee):	 
+	totals = { 
+		"employee": data[0].get("employee") if data else "Unknown",
+		"employee_name": data[0].get("employee_name") if data else "Unknown",
+		"company": data[0].get("company") if data else "Unknown",
+		"department": data[0].get("department") if data else "Unknown",
+		"designation": data[0].get("designation") if data else "Unknown",
+		"old_punch_id": data[0].get("old_punch_id") if data else "Unknown",
+		"net_wrk_hrs": timedelta(0),
+		"spent_hours": timedelta(0),
+		"late_hrs": timedelta(0),
+		"early_hrs": timedelta(0),
+		"p_out_hrs": timedelta(0),
+		"ot_hours": timedelta(0),
+		"total_pay_hrs": timedelta(0),
+		"late_count": 0   
+	}
+
+	late_count = 0
+	penalty_days = 0 
+	totals["shift_hours"] = 0.0
+	half_day_count = 0
+	shift = ''
+
+	for row in data:
+		totals["net_wrk_hrs"] += (row.get("net_wrk_hrs") or timedelta(0))
+		totals["total_pay_hrs"] += (row.get("total_pay_hrs") or timedelta(0))
+		totals["ot_hours"] += (row.get("ot_hours") or timedelta(0))
+		totals["early_hrs"] += (row.get("early_hrs") or timedelta(0))
+		totals["late_hrs"] += (row.get("late_hrs") or timedelta(0))
+		totals["p_out_hrs"] += (row.get("p_out_hrs") or timedelta(0))
+		totals["spent_hours"] += (row.get("spent_hours") or timedelta(0))
+		shift = row.get("shift_name")
+
+		if row.get("late_entry"):
+			late_count += 1
+		if not totals["shift_hours"] and row.get("shift_hours"):		
+			totals["shift_hours"] = flt(row.get("shift_hours"))
+		if row.get("lh"):
+			half_day_count += 1 
+
+	totals["late_count"] = late_count
+	totals["half_day_count"] = half_day_count
+ 
+	half_day_shift_hours = frappe.db.get_value("Shift Type", {'name': shift}, 'working_hours_threshold_for_half_day')
+	totals["half_day_days"] = flt((half_day_count * flt(half_day_shift_hours)) / flt(totals["shift_hours"] or 1), 2)
+	 
+	if late_count > 4 and late_count < 10:
+		penalty_days = 0.5
+	if late_count >= 10 and late_count < 15:
+		penalty_days = 1
+	if late_count >= 15:
+		penalty_days = 1.5
+    
+	conversion_factor = 3600 * flt(totals.get("shift_hours", 1))  
+	conversion_factor = 0
+	con_factor = 3600 * flt(totals["shift_hours"])
+	if con_factor > 0:
+		conversion_factor = con_factor
+	else:
+		conversion_factor = 1
+
+	shift_hour_value = frappe.db.get_value("Shift Type", {'name': frappe.db.get_value("Employee", employee, 'default_shift')}, 'shift_hours') or timedelta(0)
+	if totals["shift_hours"]:
+		penalty_hrs = timedelta(hours=flt(totals["shift_hours"]) * penalty_days) or timedelta(0)
+	else:
+		penalty_hrs = timedelta(hours=flt(shift_hour_value) * penalty_days) or timedelta(0)
+
+	for key in ["net_wrk_hrs", "spent_hours", "late_hrs", "early_hrs", "p_out_hrs", "ot_hours", "total_pay_hrs"]:
+		totals[f"total_days_{key}"] = flt(totals[key].total_seconds() / conversion_factor, 2) if conversion_factor else 0
+
+	allowed_personal_hours = frappe.db.get_value("Employee", employee, 'allowed_personal_hours') or timedelta(0)
+	totals["refund"] = min(allowed_personal_hours, (totals["early_hrs"] + totals["late_hrs"] + totals["p_out_hrs"]))
+	totals["refund_days"] = flt(totals["refund"].total_seconds() / conversion_factor ,2) if conversion_factor else 0
+
+	totals["penalty_days"] = penalty_days
+
+	totals["net_pay_hrs"] = totals["net_wrk_hrs"] + totals["ot_hours"]  + totals["refund"] - penalty_hrs
+	totals["net_pay_days"] = flt(totals["net_pay_hrs"].total_seconds() / conversion_factor, 2) if conversion_factor else 0
+
+	totals["net_pay_hrs_wo_ot"] = totals["net_wrk_hrs"] + totals["refund"] - penalty_hrs
+	totals["net_pay_days_wo_ot"] = flt(totals["net_pay_hrs_wo_ot"].total_seconds() / conversion_factor, 2) if conversion_factor else 0
+
+	return totals

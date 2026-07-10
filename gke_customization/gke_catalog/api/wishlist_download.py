@@ -1,13 +1,318 @@
-import json
-import os
-import requests
-
 import frappe
 
+
+# @frappe.whitelist()
+# def download_bom_pdf(items):
+    # items - bom / customer
+    # import json
+    # from frappe.utils.pdf import get_pdf
+
+    # if isinstance(items, str):
+    #     items = json.loads(items)
+
+    # all_rows_html = ""
+    # first_doc = None
+    # first_customer_na = ""
+    # first_gstin = ""
+    # first_company_add1 = ""
+    # row_number = 1
+
+    # for item_code in items:
+    #     bom_name = frappe.db.get_value("BOM", {"item": item_code}, "name")
+    #     if not bom_name:
+    #         continue
+
+    #     doc = frappe.get_doc("BOM", bom_name)
+
+    #     if not first_doc:
+    #         first_doc = doc
+
+    #     # Customer
+    #     customer = frappe.db.get_value('Customer', doc.customer, 'name')
+    #     customer_na = frappe.db.get_value('Customer', doc.customer, 'customer_name') or ''
+    #     customer_link = frappe.db.get_value('Dynamic Link', {
+    #         'parenttype': 'Address', 'link_doctype': 'Customer', 'link_name': customer
+    #     }, 'parent')
+    #     gst = frappe.db.get_value('Address', customer_link, 'gstin') or ''
+
+    #     # Company Address
+    #     company = doc.company
+    #     addresses = frappe.db.get_all('Dynamic Link', {
+    #         'parenttype': 'Address', 'link_doctype': 'Company', 'link_name': company
+    #     }, ['parent'])
+    #     company_address_name = ''
+    #     for addr in addresses:
+    #         if frappe.db.get_value('Address', addr.parent, 'city') == 'Chennai':
+    #             company_address_name = addr.parent
+    #             break
+    #     company_add1 = frappe.db.get_value('Address', company_address_name, 'address_line1') or ''
+    #     gstin = frappe.db.get_value('Address', company_address_name, 'gstin') or ''
+
+    #     if row_number == 1:
+    #         first_customer_na = customer_na
+    #         first_gstin = gstin
+    #         first_company_add1 = company_add1
+
+    #     # Metal
+    #     metal_amt = making_amt = metal_rate = wastage_amount = 0
+    #     for g in frappe.get_all('BOM Metal Detail', filters={'parent': doc.name},
+    #             fields=['rate', 'wastage_amount', 'making_rate', 'amount', 'making_amount']):
+    #         metal_amt   += g.amount or 0
+    #         making_amt  += g.making_amount or 0
+    #         metal_rate   = g.rate or 0
+    #         wastage_amount = g.wastage_amount or 0
+
+    #     # Findings
+    #     chain = chain_w = chain_making = chain_amt = 0
+    #     find_making_amt = find_making = find_wastage = 0
+    #     for f in frappe.get_all('BOM Finding Detail', filters={'parent': doc.name},
+    #             fields=['wastage_amount', 'making_amount', 'amount', 'making_rate', 'quantity', 'finding_category']):
+    #         if f.finding_category == "Chains":
+    #             chain        = f.quantity or 0
+    #             chain_w     += f.wastage_amount or 0
+    #             chain_making += f.making_amount or 0
+    #             chain_amt   += f.amount or 0
+    #         else:
+    #             find_making_amt += f.amount or 0
+    #             find_making     += f.making_amount or 0
+    #             find_wastage    += f.wastage_amount or 0
+
+    #     metal_amount = metal_amt + find_making_amt
+    #     metal_making = making_amt + find_making
+    #     meta_wastage = wastage_amount + find_wastage
+
+    #     # Diamonds grouped
+    #     grouped = {}
+    #     for d in frappe.db.get_all('BOM Diamond Detail', {'parent': doc.name},
+    #             ['weight_in_gms', 'pcs', 'quantity', 'total_diamond_rate', 'stone_shape']):
+    #         key = '%.2f' % (d.total_diamond_rate or 0)
+    #         if key in grouped:
+    #             grouped[key]['pcs']           += d.pcs or 0
+    #             grouped[key]['quantity']      += d.quantity or 0
+    #             grouped[key]['weight_in_gms'] += d.weight_in_gms or 0
+    #         else:
+    #             grouped[key] = {
+    #                 'pcs': d.pcs or 0,
+    #                 'quantity': d.quantity or 0,
+    #                 'weight_in_gms': d.weight_in_gms or 0,
+    #                 'stone_shape': d.stone_shape,
+    #                 'rate': d.total_diamond_rate or 0
+    #             }
+
+    #     diamond_details = list(grouped.values())
+    #     max_rows = len(diamond_details) if diamond_details else 1
+
+    #     for i in range(max_rows):
+    #         diamond     = diamond_details[i] if i < len(diamond_details) else None
+    #         rounded_qty = round(diamond['quantity'], 2) if diamond else 0
+    #         diamond_amo = round((diamond['rate'] * rounded_qty), 2) if diamond else 0
+
+    #         bg = '#ffffff' if row_number % 2 == 0 else '#fafafa'
+
+    #         if i == 0:
+    #             row_total = round(
+    #                 metal_amount + diamond_amo + chain_making + chain_w +
+    #                 metal_making + meta_wastage +
+    #                 (doc.total_gemstone_amount or 0) +
+    #                 (doc.certification_amount or 0) +
+    #                 (doc.hallmarking_amount or 0) + chain_amt, 2)
+    #         else:
+    #             row_total = diamond_amo
+
+    #         def c(val, show=True):
+    #             """Format cell - empty string if not show"""
+    #             if not show:
+    #                 return ''
+    #             if isinstance(val, float):
+    #                 return '%.2f' % val
+    #             return str(val) if val else '0'
+
+    #         def money(val):
+    #             if not val:
+    #                 return '0.00'
+    #             return '{:,.2f}'.format(float(val))
+
+    #         all_rows_html += f"""
+    #         <tr style='background:{bg}; text-align:center;'>
+    #             <td>{row_number if i == 0 else ''}</td>
+    #             <td>{c(doc.item, i==0)}</td>
+    #             <td>{c(doc.item_category, i==0)}</td>
+    #             <td>{c(doc.diamond_quality, i==0)}</td>
+    #             <td>{c(diamond['pcs']) if diamond else ''}</td>
+    #             <td>{'%.2f' % rounded_qty if diamond else ''}</td>
+    #             <td>{money(diamond['rate']) if diamond else ''}</td>
+    #             <td>{money(diamond_amo) if diamond else ''}</td>
+    #             <td>{c(doc.gross_weight, i==0)}</td>
+    #             <td>{c(doc.gemstone_weight, i==0)}</td>
+    #             <td>{c(doc.other_weight, i==0)}</td>
+    #             <td>{c(doc.metal_and_finding_weight, i==0)}</td>
+    #             <td>{money(metal_amount) if i==0 else ''}</td>
+    #             <td>{c(doc.metal_purity, i==0)}</td>
+    #             <td>{c(chain, i==0)}</td>
+    #             <td>{money(chain_amt) if i==0 else ''}</td>
+    #             <td>{c(doc.metal_purity, i==0)}</td>
+    #             <td>{money(chain_making) if i==0 else ''}</td>
+    #             <td>{money(chain_w) if i==0 else ''}</td>
+    #             <td>{money(metal_making) if i==0 else ''}</td>
+    #             <td>{money(meta_wastage) if i==0 else ''}</td>
+    #             <td>{money(doc.total_gemstone_amount) if i==0 else ''}</td>
+    #             <td>{money(doc.certification_amount) if i==0 else ''}</td>
+    #             <td>{money(doc.hallmarking_amount) if i==0 else ''}</td>
+    #             <td style='font-weight:bold'>{money(row_total)}</td>
+    #         </tr>
+    #         """
+
+    #     row_number += 1
+
+    # # date_str = frappe.utils.formatdate(first_doc.transaction_date, 'dd-mm-yyyy') if first_doc else ''
+
+    # final_html = f"""
+    # <!DOCTYPE html>
+    # <html>
+    # <head>
+    #     <meta name="pdfkit-orientation" content="Landscape"/>
+    #     <style>
+    #         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    #         body {{ font-family: Arial, sans-serif; font-size: 8px; padding: 10px; }}
+
+    #         h3 {{ text-align: center; font-size: 14px; margin-bottom: 4px; }}
+    #         h6 {{ text-align: center; font-size: 9px; margin-bottom: 2px; font-weight: normal; }}
+    #         h5 {{ text-align: center; font-size: 11px; margin-bottom: 10px; text-decoration: underline; }}
+
+    #         .info-block {{ margin-bottom: 6px; }}
+    #         .info-block p {{ margin: 2px 0; font-size: 9px; font-weight: bold; }}
+    #         .date-ref {{ text-align: right; font-size: 9px; font-weight: bold; margin-bottom: 8px; }}
+
+    #         table {{
+    #             width: 100%;
+    #             border-collapse: collapse;
+    #             table-layout: fixed;
+    #         }}
+
+    #         /* Header */
+    #         thead tr {{
+    #             background: #2c3e50;
+    #             color: white;
+    #         }}
+    #         thead td {{
+    #             padding: 5px 3px;
+    #             text-align: center;
+    #             font-size: 7.5px;
+    #             font-weight: bold;
+    #             border: 1px solid #1a252f;
+    #             word-wrap: break-word;
+    #             line-height: 1.3;
+    #         }}
+
+    #         /* Body rows */
+    #         tbody tr {{
+    #             border-bottom: 1px solid #ddd;
+    #         }}
+    #         tbody td {{
+    #             padding: 4px 3px;
+    #             border: 1px solid #ddd;
+    #             text-align: center;
+    #             font-size: 7.5px;
+    #             word-wrap: break-word;
+    #             vertical-align: middle;
+    #         }}
+    #         tbody tr:hover {{ background: #eaf4fb !important; }}
+
+    #         /* Last column highlight */
+    #         tbody td:last-child {{
+    #             background: #fffde7;
+    #             font-weight: bold;
+    #             color: #c0392b;
+    #         }}
+
+    #         /* Column widths */
+    #         col.no    {{ width: 2.5%; }}
+    #         col.code  {{ width: 3.5%; }}
+    #         col.name  {{ width: 6%; }}
+    #         col.qwa   {{ width: 4%; }}
+    #         col.std   {{ width: 3.5%; }}
+    #         col.total {{ width: 5%; }}
+    #     </style>
+    # </head>
+    # <body>
+    #     <h3>{first_doc.company if first_doc else ''}</h3>
+    #     <h6>{first_company_add1} &nbsp;&nbsp; GST NO: {first_gstin}</h6>
+    #     <h5>DETAILS FOR STUDDED DIAMOND JEWELLERY</h5>
+
+    #     <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
+    #         <p style='font-size:9px; font-weight:bold;'>To: {first_customer_na}</p>
+    #         <div style='text-align:right; font-size:9px; font-weight:bold;'>
+              
+    #             <p>REF.INV.No: ___________</p>
+    #         </div>
+    #     </div>
+
+    #     <table>
+    #         <colgroup>
+    #             <col class='no'><col class='code'><col class='name'><col class='qwa'>
+    #             <col class='std'><col class='std'><col class='std'><col class='std'>
+    #             <col class='std'><col class='std'><col class='std'><col class='std'>
+    #             <col class='std'><col class='std'><col class='std'><col class='std'>
+    #             <col class='std'><col class='std'><col class='std'><col class='std'>
+    #             <col class='std'><col class='std'><col class='std'><col class='std'>
+    #             <col class='total'>
+    #         </colgroup>
+    #         <thead>
+    #             <tr>
+    #                 <td>NO</td>
+    #                 <td>Code</td>
+    #                 <td>Item Name</td>
+    #                 <td>Qwa</td>
+    #                 <td>Dia Pcs</td>
+    #                 <td>Dia Wt</td>
+    #                 <td>Dia Rate</td>
+    #                 <td>Dia Amt</td>
+    #                 <td>Gr.Wt</td>
+    #                 <td>St.Wt</td>
+    #                 <td>Oth.Wt</td>
+    #                 <td>Nt.Wt</td>
+    #                 <td>Gold Amt</td>
+    #                 <td>Purity</td>
+    #                 <td>Ch.Wt</td>
+    #                 <td>Ch.Amt</td>
+    #                 <td>Touch</td>
+    #                 <td>Ch.M/c</td>
+    #                 <td>Chain Wastage</td>
+    #                 <td>Jwl M/c</td>
+    #                 <td>Jwl Wastage</td>
+    #                 <td>St.Amt</td>
+    #                 <td>Cert</td>
+    #                 <td>HM</td>
+    #                 <td>Total Amt</td>
+    #             </tr>
+    #         </thead>
+    #         <tbody>
+    #             {all_rows_html}
+    #         </tbody>
+    #     </table>
+    # </body>
+    # </html>
+    # """
+
+    # pdf = get_pdf(final_html)
+    # frappe.local.response.filename = "BOMs.pdf"
+    # frappe.local.response.filecontent = pdf
+    # frappe.local.response.type = "download"
+
+
+import json
+import frappe
+from frappe.utils.pdf import get_pdf
+import requests
+
+import json
+import os
+
+import frappe
 from frappe.utils import flt, cint
 from frappe.utils.pdf import get_pdf
+from gke_customization.gke_catalog.api.item_price_list import get_item_price 
 
-from gke_customization.gke_catalog.api.item_price_list import get_item_price
 
 def calculate_finding_and_making_amounts(item, result):
     finding_amount_total = 0
@@ -79,7 +384,7 @@ def calculate_finding_and_making_amounts(item, result):
         "chain_making": chain_making,
     }
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def download_bom_pdf(boms, customer, company, customer_folder_name=None):
 
     if isinstance(boms, str):
@@ -250,7 +555,7 @@ def download_bom_pdf(boms, customer, company, customer_folder_name=None):
     
     
     
-# @frappe.whitelist(allow_guest=True)
+# @frappe.whitelist()
 # def download_bom_pdf(boms, customer, company, customer_folder_name=None):
 
 #     if isinstance(boms, str):
@@ -392,7 +697,7 @@ def download_bom_pdf(boms, customer, company, customer_folder_name=None):
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 
 def get_method(data):
     filter_keys = [
@@ -428,7 +733,7 @@ def get_method(data):
     
     
     
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_method1(data):
     filter_keys = [
         "age_group",
@@ -467,129 +772,73 @@ def get_method1(data):
         if values  # empty lists mat bhejo
     }
     
-    
-    
-import frappe
-from frappe.utils.global_search import search, update_global_search, rebuild_for_doctype
+   
+   
+ 
+# import pikepdf
+# import io
+
+# import frappe
+# import io
+# import pikepdf
+
+# from frappe.utils.pdf import get_pdf
+
+# @frappe.whitelist()
+# def add_password_to_pdf(doctype, name, print_format, receiver):
+
+#     # Generate PDF from Print Format
+#     pdf_data = get_pdf(
+#         frappe.get_print(
+#             doctype,
+#             name,
+#             print_format=print_format
+#         )
+#     )
 
 
-# ─────────────────────────────────────────────
-# Method 1 — Simple Global Search
-# ─────────────────────────────────────────────
-
-@frappe.whitelist(allow_guest=True)
-def search_global(search_text: str, doctype: str = "Item"):
-    """
-    Frappe ka built-in global search use karo.
-    Saare indexed fields mein search karta hai.
-    """
-    if not search_text or not search_text.strip():
-        return []
-
-    # Built-in search function
-    results = search(search_text, scope=doctype)
-
-    return results
+#     # Dynamic password = receiver mail ke first 5 letters
+#     password = receiver.split("@")[0][:5]
 
 
-# ─────────────────────────────────────────────
-# Method 2 — Custom Global Search (More Control)
-# ─────────────────────────────────────────────
+#     # Encrypt PDF
+#     pdf = pikepdf.open(io.BytesIO(pdf_data))
 
-@frappe.whitelist(allow_guest=True)
-def search_items(search_text: str):
-    """
-    Global search table se directly Item search karo.
-    __global_search table use karta hai jo Frappe maintain karta hai.
-    """
-    if not search_text or not search_text.strip():
-        return []
+#     output = io.BytesIO()
 
-    # Cache check
-    cache     = frappe.cache()
-    cache_key = f"gsearch:{search_text.lower().strip()}"
-    cached    = cache.get_value(cache_key)
-    if cached:
-        import json
-        return json.loads(cached)
-
-    # Global search table query
-    results = frappe.db.sql("""
-        SELECT
-            gs.doctype,
-            gs.name,
-            gs.content,
-            gs.route,
-            i.item_name,
-            i.item_code,
-            i.item_group,
-            i.standard_rate,
-            i.image
-        FROM
-            `__global_search` gs
-        JOIN
-            `tabItem` i ON i.name = gs.name
-        WHERE
-            gs.doctype = 'Item'
-            AND i.disabled = 0
-            AND i.is_sales_item = 1
-            AND gs.content LIKE %(text)s
-        LIMIT 20
-    """, {"text": f"%{search_text}%"}, as_dict=True)
-
-    import json
-    cache.set_value(cache_key, json.dumps(results), expires_in_sec=300)
-
-    return results
+#     pdf.save(
+#         output,
+#         encryption=pikepdf.Encryption(
+#             user=password,
+#             owner=password,
+#             allow=pikepdf.Permissions(
+#                 extract=False,
+#                 modify_annotation=False,
+#                 modify_form=False
+#             )
+#         )
+#     )
 
 
-# ─────────────────────────────────────────────
-# Method 3 — Multi-DocType Search
-# ─────────────────────────────────────────────
-
-@frappe.whitelist()
-def search_multiple(search_text: str):
-    """
-    Ek saath multiple doctypes mein search karo.
-    Item, Customer, Supplier sab mein.
-    """
-    if not search_text or not search_text.strip():
-        return {}
-
-    doctypes = ["Item", "Customer", "Supplier"]
-    output   = {}
-
-    for dt in doctypes:
-        results      = search(search_text, scope=dt)
-        output[dt]   = results[:5]  # har doctype se 5 results
-
-    return output
+#     encrypted_pdf = output.getvalue()
 
 
-# ─────────────────────────────────────────────
-# Global Search Index Rebuild Karo
-# ─────────────────────────────────────────────
+#     # Send Mail
+#     frappe.sendmail(
+#         recipients=[receiver],
+#         sender="customer_portal@gkexport.com",
+#         subject="Protected PDF",
+#         message=f"""
+#         Dear User,
 
-@frappe.whitelist()
-def rebuild_item_search_index():
-    """
-    Sirf Item doctype ka global search index rebuild karo.
-    Run karo agar search mein purana/missing data aaye.
+#         PDF attached.
 
-        bench execute your_app.global_search.rebuild_item_search_index
-    """
-    rebuild_for_doctype("Item")
-    return {"message": "Item search index rebuild ho gaya!"}
-
-
-@frappe.whitelist()
-def rebuild_all_index():
-    """
-    Saare doctypes ka global search index rebuild karo.
-    WARNING: Bohot time lagta hai agar data zyada ho.
-
-        bench execute your_app.global_search.rebuild_all_index
-    """
-    from frappe.utils.global_search import rebuild_for_all_doctypes
-    rebuild_for_all_doctypes()
-    return {"message": "Saare doctypes ka search index rebuild ho gaya!"}
+#         Password: {password}
+#         """,
+#         attachments=[
+#             {
+#                 "fname": f"{name}.pdf",
+#                 "fcontent": encrypted_pdf
+#             }
+#         ]
+#     )
