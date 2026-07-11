@@ -10,10 +10,7 @@ from datetime import date
 import json
 import calendar
 from datetime import date
-import json
-
-from frappe.utils import getdate, get_first_day, get_last_day, add_months
-
+import frappe
 
 
 def get_month_date_range(year, month):
@@ -38,38 +35,115 @@ def _build_filters(company=None, branch=None, department=None, design_by=None,
     params = []
 
     if company:
-        filters += " AND so.company=%s"
-        params.append(company)
+        if isinstance(company, str) and company.startswith("["):
+            company = frappe.parse_json(company)
+            
+        if isinstance(company, list):
+            placeholders = ", ".join(["%s"] * len(company))
+            filters += f" AND so.company IN ({placeholders})"
+            params.extend(company)
+        else:
+            filters += " AND so.company=%s"
+            params.append(company)
+
 
     if branch:
-        filters += " AND so.branch=%s"
-        params.append(branch)
+        if isinstance(branch, str) and branch.startswith("["):
+            branch = frappe.parse_json(branch)
+            
+        if isinstance(branch, list):
+            placeholders = ", ".join(["%s"] * len(branch))
+            filters += f" AND so.branch IN ({placeholders})"
+            params.extend(branch)
+        else:
+            filters += " AND so.branch=%s"
+            params.append(branch)
+
 
     if department:
-        filters += " AND so.department=%s"
-        params.append(department)
+        if isinstance(department, str) and department.startswith("["):
+            department = frappe.parse_json(department)
+            
+        if isinstance(department, list):
+            placeholders = ", ".join(["%s"] * len(department))
+            filters += f" AND so.department IN ({placeholders})"
+            params.extend(department)
+        else:
+            filters += " AND so.department=%s"
+            params.append(department)
+
 
     if merchandiser:
-        filters += " AND so.merchandiser=%s"
-        params.append(merchandiser)
+        if isinstance(merchandiser, str) and merchandiser.startswith("["):
+            merchandiser = frappe.parse_json(merchandiser)
+            
+        if isinstance(merchandiser, list):
+            placeholders = ", ".join(["%s"] * len(merchandiser))
+            filters += f" AND so.merchandiser IN ({placeholders})"
+            params.extend(merchandiser)
+        else:
+            filters += " AND so.merchandiser=%s"
+            params.append(merchandiser)
+
 
     if setting_type:
-        filters += " AND so.setting_type=%s"
-        params.append(setting_type)
+        if isinstance(setting_type, str) and setting_type.startswith("["):
+            setting_type = frappe.parse_json(setting_type)
+
+        if isinstance(setting_type, list):
+            placeholders = ", ".join(["%s"] * len(setting_type))
+            filters += f" AND so.setting_type IN ({placeholders})"
+            params.extend(setting_type)
+        else:
+            filters += " AND so.setting_type=%s"
+            params.append(setting_type)
 
     if year and month:
-        from_date, to_date = get_month_date_range(year, month)
-        filters += " AND DATE(so.creation) BETWEEN %s AND %s"
-        params.extend([from_date, to_date])
+        conditions = []
+
+        years = year if isinstance(year, list) else [year]
+        months = month if isinstance(month, list) else [month]
+
+        for y in years:
+            for m in months:
+                from_date, to_date = get_month_date_range(y, m)
+
+                conditions.append(
+                    "DATE(so.creation) BETWEEN %s AND %s"
+                )
+
+                params.extend([from_date, to_date])
+
+        if conditions:
+            filters += " AND (" + " OR ".join(conditions) + ")"
 
     if design_by:
-        designer_filters = {
-            "r":      (" AND r.designer=%s", [design_by]),
-            "h":      (" AND h.designer=%s", [design_by]),
-            "hod":    (" AND hod.designer=%s", [design_by]),
-            "design": (" AND design.designer=%s", [design_by]),
-            "emp":    (" AND emp.name=%s", [design_by]),
-        }
+        # agar JSON array aaya hai to list me convert karo
+        if isinstance(design_by, str) and design_by.startswith("["):
+            design_by = frappe.parse_json(design_by)
+
+        # multiple employees
+        if isinstance(design_by, list):
+            placeholders = ", ".join(["%s"] * len(design_by))
+
+            designer_filters = {
+                "r":      (f" AND r.designer IN ({placeholders})", design_by),
+                "h":      (f" AND h.designer IN ({placeholders})", design_by),
+                "hod":    (f" AND hod.designer IN ({placeholders})", design_by),
+                "design": (f" AND design.designer IN ({placeholders})", design_by),
+                "emp":    (f" AND emp.name IN ({placeholders})", design_by),
+            }
+
+        # single employee
+        else:
+            designer_filters = {
+                "r":      (" AND r.designer=%s", [design_by]),
+                "h":      (" AND h.designer=%s", [design_by]),
+                "hod":    (" AND hod.designer=%s", [design_by]),
+                "design": (" AND design.designer=%s", [design_by]),
+                "emp":    (" AND emp.name=%s", [design_by]),
+            }
+
     else:
         designer_filters = {
             "r": ("", []),
@@ -200,7 +274,7 @@ def get_category_wise(company=None, branch=None, department=None, design_by=None
     filters, params, designer_filters = _build_filters(
         company, branch, department, design_by, merchandiser, setting_type, year, month
     )
-
+    
     filter_r_sql, filter_r_params = designer_filters["r"]
     filter_h_sql, filter_h_params = designer_filters["h"]
     
@@ -305,8 +379,8 @@ def get_month_employee_gold(company=None, branch=None, department=None, design_b
         company, branch, department, design_by, merchandiser, setting_type, year, month
     )
 
-    filter_emp_sql, filter_emp_params = designer_filters["emp"]
-    # frappe.throw("lkjhgvhbj")
+    filter_hod_sql, filter_hod_params = designer_filters["hod"]
+    
     month_employee_gold = frappe.db.sql(f"""
         SELECT
             DATE_FORMAT(so.creation, '%%M %%Y') AS month,
@@ -319,12 +393,12 @@ def get_month_employee_gold(company=None, branch=None, department=None, design_b
         INNER JOIN `tabFinal Sketch Approval CMO` cmo ON cmo.parent = so.name
         WHERE hod.approved > 0
         AND cmo.gold_wt_approx > 0
-        {filters}{filter_emp_sql}
+        {filters}{filter_hod_sql}
         GROUP BY DATE_FORMAT(so.creation,'%%Y-%%m'),
                  COALESCE(emp.employee_name, emp.name)
         ORDER BY DATE_FORMAT(so.creation,'%%Y-%%m'),
                  employee_name
-    """, params + filter_emp_params, as_dict=True)
+    """, params + filter_hod_params, as_dict=True)
 
     # Cache for 5 minutes
     cache.set_value(cache_key, month_employee_gold, expires_in_sec=300)
@@ -343,7 +417,7 @@ def get_designer_daily_summary(company=None, branch=None, department=None, desig
         company, branch, department, design_by, merchandiser, setting_type, year, month
     )
 
-    filter_design_sql, filter_design_params = designer_filters["design"]
+    filter_hod_sql, filter_hod_params = designer_filters["hod"]
 
     designer_daily_summary = frappe.db.sql(f"""
         SELECT
@@ -373,16 +447,19 @@ def get_designer_daily_summary(company=None, branch=None, department=None, desig
         LEFT JOIN `tabEmployee` emp ON design.designer = emp.name
         WHERE 1=1
         AND emp.employee_name IS NOT NULL
-        {filters}{filter_design_sql}
+        {filters}{filter_hod_sql}
         GROUP BY DATE(so.creation), emp.employee_name
         ORDER BY DATE(so.creation) DESC
-    """, params + filter_design_params, as_dict=True)
+    """, params + filter_hod_params, as_dict=True)
 
     return designer_daily_summary
 
 
 
 # new cad api (single method for each query)
+import json
+import frappe
+from frappe.utils import getdate, get_first_day, get_last_day, add_months
 
 
 # ─────────────────────────────────────────────────────────────────────────

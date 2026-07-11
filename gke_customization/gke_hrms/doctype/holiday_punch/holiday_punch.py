@@ -305,13 +305,11 @@ def check_employee_punch(employee_details, shift_date, shift_name):
 
 	punches = []
 
-	emp = ''
+	# emp = ''
 	for d in employee_details:
 		dt = get_datetime(d["time"])
-		emp = d.get("employee")
+		# emp = d.get("employee")
 
-		if emp == "GEPL - 01975":
-			frappe.msgprint(f"DATE : {dt}")
 		if actual_start_dt <= dt <= shift_end_dt:
 			punches.append(dt)
 
@@ -321,8 +319,6 @@ def check_employee_punch(employee_details, shift_date, shift_name):
 	last_dt = punches[-1]
 
 	count = len(punches)
-	if emp == "GEPL - 01975":
-		frappe.msgprint(f"Employee: {emp}, Count: {count}", "Holiday Punch")
 
 	# -------------------------
 	# odd → need OUT
