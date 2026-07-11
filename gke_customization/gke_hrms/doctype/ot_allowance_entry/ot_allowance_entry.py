@@ -752,15 +752,43 @@ class OTAllowanceEntry(Document):
 			date_time = datetime.combine(getdate(holiday.holiday_date), get_time(shift.start_time))
 
 			shift_timings = get_employee_shift_timings(emp.name, get_datetime(date_time), True)[1]
-			filters = {
-					"time":["between",[get_datetime_str(shift_timings.actual_start), get_datetime_str(shift_timings.actual_end)]],
-					"employee": emp.name
-			}
-			fields = ["date(time) as date", "log_type as type", "time(time) as time", "time as date_time", "source","name as employee_checkin", 
-						f"date('{holiday.holiday_date}') as holiday", "employee", "shift"]
-						# f"date('{holiday.holiday_date}') as holiday", "employee", "employee_name","shift"]
+			# filters = {
+			# 		"time":["between",[get_datetime_str(shift_timings.actual_start), get_datetime_str(shift_timings.actual_end)]],
+			# 		"employee": emp.name
+			# }
+			# fields = ["date(time) as date", "log_type as type", "time(time) as time", "time as date_time", "source","name as employee_checkin", 
+			# 			f"date('{holiday.holiday_date}') as holiday", "employee", "shift"]
+			# 			# f"date('{holiday.holiday_date}') as holiday", "employee", "employee_name","shift"]
 
-			data = frappe.get_list("Employee Checkin", filters= filters, fields=fields, order_by='date_time')
+			# data = frappe.get_list("Employee Checkin", filters= filters, fields=fields, order_by='date_time')
+			Checkin = DocType("Employee Checkin")
+			Date = CustomFunction("DATE", ["time"])
+			Time = CustomFunction("TIME", ["time"])
+
+			query = (
+				frappe.qb.from_(Checkin)
+				.select(
+					Date(Checkin.time).as_("date"),
+					Checkin.log_type.as_("type"),
+					Time(Checkin.time).as_("time"),
+					Checkin.time.as_("date_time"),
+					Checkin.source,
+					Checkin.name.as_("employee_checkin"),
+					Date(frappe.utils.cstr(holiday.holiday_date)).as_("holiday"),
+					Checkin.employee,
+					Checkin.shift
+				)
+				.where(Checkin.employee == emp.name)
+				.where(
+					Checkin.time.between(
+						get_datetime_str(shift_timings.actual_start),
+						get_datetime_str(shift_timings.actual_end)
+					)
+				)
+				.orderby(Checkin.date_time)
+			)
+
+			data = query.run(as_dict=1)
 			checkin = {}
 			for row in data:
 				if not checkin and row.type == "IN":
