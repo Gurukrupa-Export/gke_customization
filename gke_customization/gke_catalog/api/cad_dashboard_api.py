@@ -99,6 +99,12 @@ def _build_filters(company=None, branch=None, department=None, design_by=None,
             params.append(setting_type)
 
     if year and month:
+        # agar JSON array string aaya hai to list me convert karo
+        if isinstance(year, str) and year.startswith("["):
+            year = frappe.parse_json(year)
+        if isinstance(month, str) and month.startswith("["):
+            month = frappe.parse_json(month)
+
         conditions = []
 
         years = year if isinstance(year, list) else [year]
@@ -106,7 +112,9 @@ def _build_filters(company=None, branch=None, department=None, design_by=None,
 
         for y in years:
             for m in months:
-                from_date, to_date = get_month_date_range(y, m)
+                date_value = get_month_date_range(y, m)
+                from_date = date_value[0]
+                to_date = date_value[1]
 
                 conditions.append(
                     "DATE(so.creation) BETWEEN %s AND %s"
@@ -381,6 +389,8 @@ def get_month_employee_gold(company=None, branch=None, department=None, design_b
 
     filter_hod_sql, filter_hod_params = designer_filters["hod"]
     
+    # frappe.throw(f"{filter_hod_sql, filter_hod_params}")
+    
     month_employee_gold = frappe.db.sql(f"""
         SELECT
             DATE_FORMAT(so.creation, '%%M %%Y') AS month,
@@ -402,7 +412,7 @@ def get_month_employee_gold(company=None, branch=None, department=None, design_b
 
     # Cache for 5 minutes
     cache.set_value(cache_key, month_employee_gold, expires_in_sec=300)
-
+    # frappe.throw(f"{month_employee_gold}")
     return month_employee_gold
 
 
@@ -883,6 +893,7 @@ def get_staff_salary(filters=None):
 @frappe.whitelist()
 def get_per_gram_cost(filters=None):
     filters = _get_filters(filters)
+    # frappe.throw(f"{filters}")
 
     designer_data = _compute_designer_salary(filters)
     designer = designer_data.get("designer_salary") or 0
