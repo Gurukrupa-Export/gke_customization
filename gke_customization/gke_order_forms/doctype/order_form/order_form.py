@@ -812,18 +812,22 @@ def get_customer_order_form(source_name, target_doc=None):
 	if isinstance(target_doc, str):
 		target_doc = json.loads(target_doc)
 	target_doc = frappe.new_doc("Order Form") if not target_doc else frappe.get_doc(target_doc)
+ 
+	customer_code = ""
+	if source_name:
+		customer_code = frappe.db.get_value("Customer Order Form", source_name, "customer_code")
+		target_doc.customer_code = customer_code  # Set in Order Form (Parent)
 
 	if source_name:
 		customer_order_form = frappe.db.sql(f"""SELECT * FROM `tabCustomer Order Form Detail` 
 							WHERE parent = '{source_name}' AND docstatus = 1""", as_dict=1)
 	if not customer_order_form:
-		frappe.msgprint(_("Please submit the Customer Order Form"))
+		frappe.throw(_("Please submit the Customer Order Form"))
 		return target_doc
 
 	for i in customer_order_form:
 		item, order_id, item_bom = i.get("design_code"), i.get("order_id"), i.get("design_code_bom")
 		order_data = frappe.db.sql(f"SELECT * FROM `tabOrder` WHERE name = '{order_id}'", as_dict=1)
-		
 		customer_design_code = frappe.db.sql(f"SELECT * FROM `tabBOM` WHERE item = '{item}' AND name = '{i.get('design_code_bom')}'", as_dict=1)
 		item_serial = frappe.db.get_value("Serial No", {'item_code': item}, 'name')
 		
@@ -844,8 +848,8 @@ def get_customer_order_form(source_name, target_doc=None):
 			for j in data_source:
 				target_doc.append("order_details", {
 					"delivery_date": target_doc.delivery_date,
-					"design_by": j.get('design_by'),
-					"design_type": j.get('design_type'),
+					"design_by": "Our Design",
+					"design_type": "As Per Design Type",
 					"qty": i.get('no_of_pcs'),
 					"design_id": j.get("item", item),
 					"bom": j.get("new_bom", i.get('design_code_bom')),
@@ -888,10 +892,12 @@ def get_customer_order_form(source_name, target_doc=None):
 					"chain_type": j.get("chain_type"),
 					"customer_chain": j.get("customer_chain"),
 					"nakshi_weght": j.get("nakshi_weght"),
+					"diamond_type":"Natural"
 				})
 		else: 
 			frappe.throw(f"{item} has master bom {item_bom}")
 	return target_doc
+
 
 
 def validate_item_variant(self):
@@ -1468,7 +1474,7 @@ def gc_export_to_excel(order_form, doc):
 									'GURU',
 									'TANISHQ',
 									'-',
-									stone_code[0].get('customer_code') if stone_code else "",
+									stone_code[0].get('customer_code'),
 									f"{(diamond.get('pcs', 0))}",
 									float(bom_list[0].get('metal_and_finding_weight') or 0) + float(metal_weight or 0),
 									row.get('metal_touch', ''),
@@ -1907,6 +1913,8 @@ def creation_export_to_excel(order_form, doc):
 	
 	return file_doc.file_url
 
+
+
 @frappe.whitelist()
 def proto_export_to_excel(order_form, doc):
 
@@ -2340,11 +2348,7 @@ def proto_export_to_excel(order_form, doc):
 					item_bom = frappe.db.get_list("BOM", filters={'item': row["design_id"], 'name': final_bom}, fields=['*'])
 					order_date_fmt = frappe.utils.formatdate(order_form_doc.order_date, "dd-MM-yyyy")
 					
-					novel_quality = frappe.db.get_value("Customer Prolif Detail", 
-						{'parent': order_form_doc.customer_code, 'gk_d': row.get('diamond_quality')  },
-						['customer_prolif']
-						) 
-					novel_quality if novel_quality else ''
+					
 					
 					product_size = row.get('product_size')
 					order_size = float(product_size)
@@ -2362,6 +2366,41 @@ def proto_export_to_excel(order_form, doc):
 							)
 						if rate_doc:
 							amount += rate_doc*flt(weight.get("quantity"), 3)
+					gemstone_list = frappe.db.get_all("BOM Gemstone Detail",filters ={"parent":final_bom},fields=["*"])
+					gemstone_amt = 0
+					for weight in gemstone_list:
+						rate_doc = frappe.db.get_value(
+								"Gemstone Price List",
+								{
+									"customer" :order_form_doc.customer_code,
+									"gemstone_quality":weight.get('gemstone_quality', ''),
+									"stone_shape":weight.get('stone_shape',''),
+									"gemstone_type":weight.get('gemstone_type', ''),
+								},
+								"rate"
+							)
+						if rate_doc:
+							gemstone_amt += rate_doc*flt(weight.get("pcs"), 3)
+					novel_quality = None
+					gemstone_types = ", ".join(
+						sorted({
+							weight.get("gemstone_type")
+							for weight in gemstone_list
+							if weight.get("gemstone_type")
+						})
+					)
+					if gemstone_amt:
+						novel_quality = frappe.db.get_value("Customer Prolif Detail", 
+							{'parent': order_form_doc.customer_code, 'gk_d': row.get('diamond_quality'),'customer_prolif':"Diamond + Synthetic"},
+							['customer_prolif']
+							) 
+						# novel_quality if novel_quality else ''
+					else:
+						novel_quality = frappe.db.get_value("Customer Prolif Detail", 
+							{'parent': order_form_doc.customer_code, 'gk_d': row.get('diamond_quality')  },
+							['customer_prolif']
+							) 
+						# novel_quality if novel_quality else ''
 					
 					
 					finding_purity = frappe.db.get_all("BOM Finding Detail",
@@ -2384,7 +2423,7 @@ def proto_export_to_excel(order_form, doc):
 						{
 							'customer': order_form_doc.customer_code,
 							'item_category': row.get('category'),
-							'product_size_in': product_size
+							'product_size': product_size
 						},
 						['code', 'product_size','size_umo'],
 						as_dict=True
@@ -2425,17 +2464,19 @@ def proto_export_to_excel(order_form, doc):
 						"customer" :order_form_doc.customer_code,
 						"setting_type" : row.get("setting_type"),
 						"metal_touch": row.get("metal_touch"),
-						"mfg_complexity_code":mg
+						"mfg_complexity_code":row.get('mfg_complexity_code')
 						},
 						fields=['name'])
-					making_charge = []
+					making_charge = None
 					if making_charge_price:
 						making_charge = frappe.db.get_all("Making Charge Price Item Subcategory",filters={
 							"parent": making_charge_price[0].name,
 							# "mfg_complexity_code": row.get('mfg_complexity_code'),
 							"subcategory":row.get("subcategory")
 						},fields=['rate_per_gm'])
-		
+					set_item =  frappe.db.get_all("Set Item Table",filters={'parent': row.get('design_id')},fields=['item_code'])
+					item_codes = ", ".join([d["item_code"] for d in set_item])
+     
      
      
 
@@ -2446,6 +2487,17 @@ def proto_export_to_excel(order_form, doc):
 									"diamond_quality" : order_form_doc.diamond_quality,
 									},
 									fields=['outright_handling_charges_rate'])
+					gemstone_tab = frappe.db.get_value("BOM Gemstone Detail",{'parent':item_bom[0].name},'stone_shape')
+					gemstone_price = None
+					if gemstone_tab:
+						gemstone_price = frappe.db.get_all("Gemstone Price List",filters={
+										"customer" :order_form_doc.customer_code,
+										"gemstone_quality":item_bom[0].get('gemstone_quality', ''),
+										"stone_shape":gemstone_tab,
+										"gemstone_type":item_bom[0].get('gemstone_type', ''),
+										},
+										fields=['outright_handling_charges_rate'])
+					
 					total_amt = (
 								(diamond_price[0].outright_handling_charges_rate * item_bom[0].get("diamond_weight", 0) if diamond_price else 0)
 								+ (making_charge[0].rate_per_gm * item_bom[0].get("metal_and_finding_weight", 0) if making_charge else 0)
@@ -2462,7 +2514,8 @@ def proto_export_to_excel(order_form, doc):
 						"",
 						"",
 						row.get('design_id', ''),
-						row.get('category', ''),
+						# row.get('category', ''),
+						item_codes,
 						"Studded",
 						"Studded-DIS",
 						code_categories.get('customer_category', '') if code_categories else '',
@@ -2483,19 +2536,19 @@ def proto_export_to_excel(order_form, doc):
 						item_bom[0].get('metal_and_finding_weight', 'metal_weight') , #gold wt
 						item_bom[0].get('diamond_weight', '') , #diam wt
 						"",
+						item_bom[0].get('gemstone_weight', ''),
 						"",
-						"",
-						row.get('gender', ''),
+						'Women' if row.get('gender') == 'Female' else 'Men' if row.get('gender') == 'Male' else '',
 						row.get('design_sourceroute',''),
 						making_charge[0].rate_per_gm * item_bom[0].get('metal_and_finding_weight', '') if making_charge else "", #labour amount
 						diamond_price[0].outright_handling_charges_rate * item_bom[0].get('diamond_weight', '') if diamond_price else "", #diam handling amt
 						amount, #diam amt
-						"", #colorstone handling amt
-						"", #colorstone amt
-						metal_rate + finding_rate , #gold amt
+						item_bom[0].get('total_gemstone_pcs') * gemstone_price[0].get('outright_handling_charges_rate') if gemstone_price else "" , #colorstone handling amt
+						gemstone_amt, #colorstone amt
+						round(metal_rate + finding_rate,2) , #gold amt
 						"", #loss amt
 						"", #additional charge
-						total_amt, #total value
+						round(total_amt,2), #total value
 						row.get('mfg_complexity_code', ''),
 						"",
 						"",
@@ -2503,8 +2556,8 @@ def proto_export_to_excel(order_form, doc):
 						"",
 						"",
 						"",
-						"",
-						"",
+						gemstone_types,
+						"Synthetic" if gemstone_types else "",
 						"",
 						"",
 						"",
@@ -2561,6 +2614,7 @@ def proto_export_to_excel(order_form, doc):
 	)
 
 	return file_doc.file_url
+
 
 @frappe.whitelist()
 def get_variant_format(order_form, doc): 
@@ -2780,7 +2834,7 @@ def get_variant_format(order_form, doc):
 		for row in rows_data:
 			sheet.append(row)
 	else:
-		frappe.throw("Proto Sheet Can Not Download")
+		frappe.throw("Variant Can Not Download")
 
 	# Save the workbook to a BytesIO stream
 	output = BytesIO()
@@ -2938,19 +2992,20 @@ def get_cost_sheet(order_form, doc):
 				fields=["mfg_code", "complexity_name"]
 			)
 			mking_chrg = None
+			# frappe.throw(str(complexity_code))
 			if complexity_code:
 				making_charge = frappe.db.get_value("Making Charge Price",
 										{
 											'customer':order_form_doc.customer_code,
 											'setting_type': setting_type,
 											'metal_touch':metal_touch,
-											'complexity_name':complexity_code[0].get('complexity_name'),
+											# 'complexity_name':complexity_code[0].get('complexity_name'),
 											'mfgcode': complexity_code[0].get('mfg_code')
 											},'name')
 				if making_charge:
 					mking_chrg = frappe.db.get_all("Making Charge Price Item Subcategory",
 							filters = {
-								'mfg_complexity_code':row.get('mfg_complexity_code'),
+								# 'mfg_complexity_code':row.get('mfg_complexity_code'),
 								'parent': making_charge,
 								'subcategory':item_sub_category
 								},fields = ['wastage','rate_per_gm'])
@@ -2962,6 +3017,7 @@ def get_cost_sheet(order_form, doc):
 			else:
 				uom_code = None
        		# MAIN ROW (FIRST DIAMOND DETAIL IN SAME ROW)
+			start_row = sheet.max_row + 1
 			row_data = [
 				row.get('idx'),
 				"",
@@ -3009,8 +3065,6 @@ def get_cost_sheet(order_form, doc):
 			]
 
 			sheet.append(row_data)
-
-			# REMAINING DIAMOND DETAILS IN NEXT ROWS (INDEX 1 ONWARDS)
 			for d in diamond_pcs[1:]:
 				diamond_price =  frappe.db.get_value('Diamond Price List',
 							{
@@ -3042,35 +3096,118 @@ def get_cost_sheet(order_form, doc):
 				]
 				sheet.append(diamond_row)
 
-		# Add blank row at end
-		blank_row = [""] * len(headers)
-		sheet.append(blank_row)
-
-		# last_row = sheet.max_row
-		# for col in range(1, len(headers) + 1):
-		# 	cell = sheet.cell(row=last_row, column=col)
-		# 	cell.alignment = center_alignment
-		# 	cell.border = thin_border
-		# 	if col in orange_columns:
-		# 		cell.fill = orange_fill
-
-		# # Save workbook
-		# output = io.BytesIO()
-		# workbook.save(output)
-		# output.seek(0)
-
-		# filename = f"COST_Sheet_{order_form_doc.name}.xlsx"
-
-		# frappe.response["filename"] = filename
-		# frappe.response["filecontent"] = output.getvalue()
-		# frappe.response["type"] = "download"
 		
+			# Last row for this item
+			end_row = sheet.max_row
+
+			# Merge Design Image column
+			# Columns whose values should span all rows of one item
+			merge_columns = list(range(1, 23))   # Merge columns A to V (1-22)
+
+			if end_row > start_row:
+				for col in merge_columns:
+					sheet.merge_cells(
+						start_row=start_row,
+						start_column=col,
+						end_row=end_row,
+						end_column=col
+					)
+     
+
+					cell = sheet.cell(row=start_row, column=col)
+					cell.alignment = Alignment(
+						horizontal="center",
+						vertical="center",
+						wrap_text=True
+					)
+
+			# Insert image
+			image_path = row.get("design_image_1")
+
+			if image_path:
+				full_path = frappe.get_site_path(
+					image_path.replace("/files/", "public/files/")
+				)
+
+				
+				if os.path.exists(full_path):
+					img = Image(full_path)
+					img.width = 140
+					img.height = 140
+
+					from openpyxl.drawing.spreadsheet_drawing import AnchorMarker, OneCellAnchor
+					from openpyxl.drawing.xdr import XDRPositiveSize2D
+					from openpyxl.utils.units import pixels_to_EMU
+
+					marker = AnchorMarker(
+						col=1,
+						row=start_row - 1,
+						colOff=pixels_to_EMU(20),
+						rowOff=pixels_to_EMU(20)
+					)
+
+					img.anchor = OneCellAnchor(
+						_from=marker,
+						ext=XDRPositiveSize2D(
+							cx=pixels_to_EMU(img.width),
+							cy=pixels_to_EMU(img.height)
+						)
+					)
+
+					sheet.add_image(img)
+						
+     
+			sheet.row_dimensions[start_row].height = 10
+			sheet.column_dimensions["B"].width = 28
+			sheet.row_dimensions[start_row].height = 140
+			# Add blank row at end
+			blank_row = [""] * len(headers)
+			sheet.append(blank_row)
+			# blank_row_no = sheet.max_row
+			# sheet.row_dimensions[blank_row_no].height = 25
+			from openpyxl.styles import Border, Side
+
+			thin = Side(style="thin")
+			thick = Side(style="medium")   # or "thick"
+
+			for r in range(start_row, end_row + 1):
+				for c in range(1, len(headers) + 1):
+					cell = sheet.cell(row=r, column=c)
+
+					left = thin
+					right = thin
+					top = thin
+					bottom = thin
+
+					# Top border of the group
+					if r == start_row:
+						top = thick
+
+					# Bottom border of the group
+					if r == end_row:
+						bottom = thick
+
+					# Left border of the group
+					if c == 1:
+						left = thick
+
+					# Right border of the group
+					if c == len(headers):
+						right = thick
+
+					cell.border = Border(
+						left=left,
+						right=right,
+						top=top,
+						bottom=bottom
+					)
+	
     
 
 	
 		# Add blank row at end
-		# blank_row = [""] * len(headers)
-		# sheet.append(blank_row)
+	# blank_row = [""] * len(headers)
+	# sheet.append(blank_row)
 
 	# Save the workbook to a BytesIO stream
 	output = BytesIO()
