@@ -25,10 +25,17 @@ frappe.query_reports["Manufacturing Operations Summary"] = {
             default: frappe.datetime.get_today(),
         },
         {
-            fieldname: "setting_type",
-            label: __("Setting Type"),
-            fieldtype: "Select",
-            options: [""],
+            fieldname: "department",
+            label: __("Department"),
+            fieldtype: "Link",
+            options: "Department",
+            get_query: function () {
+                return {
+                    filters: {
+                        company: frappe.query_report.get_filter_value("company")
+                    }
+                };
+            },
         },
         {
             fieldname: "item_category",
@@ -38,29 +45,29 @@ frappe.query_reports["Manufacturing Operations Summary"] = {
         },
     ],
 
-    onload: function (report) {
-        const load_options = () => {
-            const options = new Set([""]);
+    // onload: function (report) {
+    //     const load_options = () => {
+    //         const options = new Set([""]);
 
-            (report.data || []).forEach((row) => {
-                if (row.sub_setting_type && row.sub_setting_type !== "Grand Total") {
-                    options.add(row.sub_setting_type);
-                }
-            });
+    //         (report.data || []).forEach((row) => {
+    //             if (row.sub_setting_type && row.sub_setting_type !== "Grand Total") {
+    //                 options.add(row.sub_setting_type);
+    //             }
+    //         });
 
-            const f = report.get_filter("setting_type");
-            if (f) {
-                f.df.options = Array.from(options).join("\n");
-                f.refresh();
-            }
-        };
+    //         const f = report.get_filter("setting_type");
+    //         if (f) {
+    //             f.df.options = Array.from(options).join("\n");
+    //             f.refresh();
+    //         }
+    //     };
 
-        load_options();
+    //     load_options();
 
-        report.page.wrapper.on("click", ".btn-primary", function () {
-            setTimeout(load_options, 800);
-        });
-    },
+    //     report.page.wrapper.on("click", ".btn-primary", function () {
+    //         setTimeout(load_options, 800);
+    //     });
+    // },
 
     formatter: function (value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
