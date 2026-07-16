@@ -291,9 +291,17 @@ def _determine_log_type(employee, log_dt):
             (employee, query_start, query_end, log_dt),
             as_dict=True,
         )
+    # Detect night shift
+    is_night_shift = False
 
+    shift_start = curr_shift.get("start_datetime")
+    shift_end = curr_shift.get("end_datetime")
+
+    if shift_start and shift_end:
+        is_night_shift = shift_end.date() > shift_start.date()
+    
     # Fallback to latest punch globally
-    if not last_log:
+    if not last_log and is_night_shift:
         last_log = frappe.db.sql(
             """
             SELECT log_type, time

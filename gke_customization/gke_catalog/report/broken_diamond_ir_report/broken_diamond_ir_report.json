@@ -1,0 +1,249 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2026-06-22 14:24:21.107299",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2026-06-25 11:08:30.593334",
+ "modified_by": "arti@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Broken Diamond IR Report",
+ "owner": "arti@gkexport.com",
+ "prepared_report": 0,
+ "query": "SELECT\r\n    recv.name AS \"Jangad No\",\r\n    recv.creation AS \"Transaction Date\",\r\n    issue.department AS \"From Department\",\r\n    recv.department AS \"To Department\",\r\n    issue_emp.employee_name AS \"From Manager\",\r\n\r\n    shape.attribute_value AS \"Shape\",\r\n    purity.attribute_value AS \"Purity\",\r\n    size.attribute_value AS \"Size\",\r\n    size_mm.attribute_value AS \"Size MM\",\r\n\r\n    recv_eiro.diamond_pcs AS \"Pcs\",\r\n    recv_eiro.diamond_wt AS \"Weight\",\r\n\r\n    CASE\r\n        WHEN se_received.name IS NOT NULL THEN 'Received'\r\n        ELSE 'Transit'\r\n    END AS \"Status\",\r\n\r\n    issue_emp.employee_name AS \"Issue Confirm Employee\",\r\n    recv_emp.employee_name AS \"Receive Confirm Employee\",\r\n    issue.creation AS \"Issue Date\",\r\n    recv.creation AS \"Receive Date\"\r\n\r\nFROM `tabEmployee IR` recv\r\n\r\nINNER JOIN `tabEmployee IR Operation` recv_eiro\r\n    ON recv_eiro.parent = recv.name\r\n\r\nLEFT JOIN `tabStock Entry` se\r\n    ON se.employee_ir = recv.name\r\n   AND se.docstatus = 1\r\n\r\nLEFT JOIN `tabStock Entry` se_received\r\n    ON se_received.outgoing_stock_entry = se.name\r\n   AND se_received.docstatus = 1\r\n\r\nLEFT JOIN `tabEmployee` recv_emp\r\n    ON recv_emp.name = recv.employee\r\n\r\nLEFT JOIN `tabEmployee IR Operation` issue_eiro\r\n    ON issue_eiro.manufacturing_operation = recv_eiro.manufacturing_operation\r\n   AND issue_eiro.manufacturing_work_order = recv_eiro.manufacturing_work_order\r\n\r\nLEFT JOIN `tabEmployee IR` issue\r\n    ON issue.name = issue_eiro.parent\r\n   AND issue.type = 'Issue'\r\n\r\nLEFT JOIN `tabEmployee` issue_emp\r\n    ON issue_emp.name = issue.employee\r\n\r\nLEFT JOIN `tabManufacturing Work Order` mwo\r\n    ON mwo.name = recv_eiro.manufacturing_work_order\r\n\r\nLEFT JOIN `tabItem Variant Attribute` shape\r\n    ON shape.parent = mwo.item_code\r\n   AND shape.attribute LIKE CONCAT('%', 'Shape', '%')\r\n\r\nLEFT JOIN `tabItem Variant Attribute` purity\r\n    ON purity.parent = mwo.item_code\r\n   AND purity.attribute LIKE CONCAT('%', 'Purity', '%')\r\n\r\nLEFT JOIN `tabItem Variant Attribute` size\r\n    ON size.parent = mwo.item_code\r\n   AND size.attribute LIKE CONCAT('%', 'Size', '%')\r\n\r\nLEFT JOIN `tabItem Variant Attribute` size_mm\r\n    ON size_mm.parent = mwo.item_code\r\n   AND size_mm.attribute LIKE CONCAT('%', 'MM', '%')\r\n\r\nWHERE recv.type = 'Receive'\r\n\r\nORDER BY recv.creation DESC;",
+ "ref_doctype": "Employee IR",
+ "report_name": "Broken Diamond IR Report",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Computer Operator - ST - GE"
+  },
+  {
+   "role": "Computer Operator - ST - KG"
+  },
+  {
+   "role": "Executive - ST - GE"
+  },
+  {
+   "role": "QC Doctype"
+  },
+  {
+   "role": "GK Sub Contracting"
+  },
+  {
+   "role": "Waxing Executive - ST"
+  },
+  {
+   "role": "Central Executive - ST"
+  },
+  {
+   "role": "Waxing 2 Executive - ST"
+  },
+  {
+   "role": "close waxing Executive - ST"
+  },
+  {
+   "role": "Model Making Executive - ST"
+  },
+  {
+   "role": "Close Model Making Executive - ST"
+  },
+  {
+   "role": "Pre polish Executive - ST"
+  },
+  {
+   "role": "Close Pre polish Executive - ST"
+  },
+  {
+   "role": "Diamond Setting Executive - ST"
+  },
+  {
+   "role": "Close Diamond Setting Executive - ST"
+  },
+  {
+   "role": "Final Polish Executive - ST"
+  },
+  {
+   "role": "Close Final Polish Executive - ST"
+  },
+  {
+   "role": "Sub Contracting Executive - ST"
+  },
+  {
+   "role": "Tagging Executive - ST"
+  },
+  {
+   "role": "Gemstone Bagging Executive - ST"
+  },
+  {
+   "role": "Refinery Executive -ST"
+  },
+  {
+   "role": "Refinery Manager - ST"
+  },
+  {
+   "role": "Gemstone Bagging Manager - ST"
+  },
+  {
+   "role": "Diamond Bagging Manager - ST"
+  },
+  {
+   "role": "Tagging Manager - ST"
+  },
+  {
+   "role": "Sub Contracting Manager - ST"
+  },
+  {
+   "role": "Close Final Polish Manager - ST"
+  },
+  {
+   "role": "Final Polish Manager - ST"
+  },
+  {
+   "role": "Close Diamond Setting Manager - ST"
+  },
+  {
+   "role": "Diamond Setting Manager - ST"
+  },
+  {
+   "role": "Close Model Making Manager - ST"
+  },
+  {
+   "role": "Model Making Manager - ST"
+  },
+  {
+   "role": "close waxing Manager - ST"
+  },
+  {
+   "role": "Waxing 2 Manager - ST"
+  },
+  {
+   "role": "Central Manager - ST"
+  },
+  {
+   "role": "Waxing Manager - ST"
+  },
+  {
+   "role": "Manufacturing Plan & Management Manager - ST"
+  },
+  {
+   "role": "Manufacturing Plan & Management Executive - ST"
+  },
+  {
+   "role": "Computer Aided Designing Manager - ST"
+  },
+  {
+   "role": "Computer Aided Designing Executive - ST"
+  },
+  {
+   "role": "Manufacturing Manager - MUM"
+  },
+  {
+   "role": "Computer Aided Designing \u2013 South Zone Manager - MUM"
+  },
+  {
+   "role": "Computer Aided Designing \u2013 PAN India Manager - MUM"
+  },
+  {
+   "role": "Sketch Designer - MUM"
+  },
+  {
+   "role": "Waxing Executive - MUM"
+  },
+  {
+   "role": "Central Executive - MUM"
+  },
+  {
+   "role": "Model Making Manager - MUM"
+  },
+  {
+   "role": "Diamond Setting Executive - MUM"
+  },
+  {
+   "role": "Final Polish Executive - MUM"
+  },
+  {
+   "role": "Sub Contracting Manager - MUM"
+  },
+  {
+   "role": "Sub Contracting Executive - MUM"
+  },
+  {
+   "role": "Tagging Executive - MUM"
+  },
+  {
+   "role": "Central Manager - KGJPL"
+  },
+  {
+   "role": "Central Executive - KGJPL"
+  },
+  {
+   "role": "Diamond Bagging Executive - KGJPL"
+  },
+  {
+   "role": "Diamond Setting Manager - KGJPL"
+  },
+  {
+   "role": "Diamond Setting Executive - KGJPL"
+  },
+  {
+   "role": "Final Polish Manager - KGJPL"
+  },
+  {
+   "role": "Final Polish Executive - KGJPL"
+  },
+  {
+   "role": "Model Making Manager - KGJPL"
+  },
+  {
+   "role": "Model Making Executive - KGJPL"
+  },
+  {
+   "role": "Pre Polish Executive - KGJPL"
+  },
+  {
+   "role": "Tagging Executive - KGJPL"
+  },
+  {
+   "role": "Waxing Manager - KGJPL"
+  },
+  {
+   "role": "Waxing Executive - KGJPL"
+  },
+  {
+   "role": "Computer Aided Manufacturing Executive - MU"
+  },
+  {
+   "role": "Computer Aided Designing Executive - KGJPL"
+  },
+  {
+   "role": "Product Repair Center Executive - CH"
+  },
+  {
+   "role": "Product Repair Center Manager - CH"
+  },
+  {
+   "role": "Computer Aided Manufacturing Executive - ST"
+  },
+  {
+   "role": "Computer Aided Manufacturing Manager- ST"
+  },
+  {
+   "role": "Sales Executive - ST"
+  },
+  {
+   "role": "Nandi Executive - ST"
+  }
+ ],
+ "timeout": 0
+}
