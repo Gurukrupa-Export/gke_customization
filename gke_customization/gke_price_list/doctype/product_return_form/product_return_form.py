@@ -13,6 +13,76 @@ from gke_customization.gke_price_list.doctype.product_return_form.e_invoice_logi
 from gke_customization.gke_price_list.doctype.product_return_form.product_return_form_api import trigger_pricing_calculation
 
 class ProductReturnForm(Document):
+	def before_validate(self):
+		gold_gst_rate = frappe.db.get_single_value("Jewellery Settings", "gold_gst_rate")
+		# for row in self.items:
+		# 	row.rate = row.rate
+		# 	row.amount = row.amount
+		# 	row.base_rate=row.rate
+		# 	row.base_amount = row.amount
+		# for row in self.items:
+		# for row in self.items:
+		# 	bom_d = frappe.db.get_value("BOM", row.bom, "hallmarking_amount") or 0
+		# 	bom_c = frappe.db.get_value("BOM", row.bom, "certification_amount") or 0
+		# 	row.base_rate = row.rate
+		# 	row.rate = row.base_rate
+		# 	frappe.msgprint(f"{row.rate}")
+		# 	hall_rate= row.rate-bom_d
+		# 	certi_rate=row.rate-bom_c
+		# 	frappe.msgprint(f"{row.rate},{certi_rate}")
+		# 	if not self.product_hallmarking:
+		# 		row.rate = hall_rate
+		# 	else:
+		# 		row.rate += hall_rate
+
+		# 	if not self.product_certification:
+		# 		row.rate = certi_rate
+		# 	else:
+		# 		row.rate += certi_rate
+		for row in self.items:
+			hallmarking_amount = frappe.db.get_value(
+				"BOM", row.bom, "hallmarking_amount"
+			) or 0
+
+			certification_amount = frappe.db.get_value(
+				"BOM", row.bom, "certification_amount"
+			) or 0
+			# frappe.throw(f"{certification_amount}")
+			# Store original values only once
+			if not row.base_rate:
+				row.base_rate = row.rate
+			else:
+				row.rate=row.base_rate
+
+			if not row.base_amount:
+				row.base_amount = row.amount
+
+			rate = row.base_rate
+			amount = row.base_amount
+
+			# Remove unchecked charges
+			if not self.product_hallmarking:
+				rate -= hallmarking_amount
+				amount -= hallmarking_amount * row.qty
+
+			if not self.product_certification:
+				rate -= certification_amount
+				amount -= certification_amount * row.qty
+
+			row.rate = rate
+			row.amount = amount
+			# row.rate = rate
+			# row.amount = rate
+			# frappe.throw(f"{row.amount}")
+		# for row in self.items:
+			# # frappe.throw(f"fii{self.gold_rate_with_gst}")
+			# if not row.metal_purity:
+			# 	frappe.throw("Add Metal Purity")
+			# if row.metal_purity:
+			# 	row.rate=float(self.gold_rate_with_gst) *float( row.metal_purity)/((100 + int(gold_gst_rate)))
+			# 	row.amount= row.rate
+	
+
 
 	def validate(self):
 
@@ -51,6 +121,39 @@ class ProductReturnForm(Document):
 		validate_e_invoice_items(self)
 		self.calculate_taxes_and_totals()
 		self.set_total_in_words()
+
+		for row in self.items:
+			hallmarking_amount = frappe.db.get_value(
+				"BOM", row.bom, "hallmarking_amount"
+			) or 0
+
+			certification_amount = frappe.db.get_value(
+				"BOM", row.bom, "certification_amount"
+			) or 0
+			# frappe.throw(f"{certification_amount}")
+			# Store original values only once
+			if not row.base_rate:
+				row.base_rate = row.rate
+			else:
+				row.rate=row.base_rate
+
+			if not row.base_amount:
+				row.base_amount = row.amount
+
+			rate = row.base_rate
+			amount = row.base_amount
+
+			# Remove unchecked charges
+			if not self.product_hallmarking:
+				rate -= hallmarking_amount
+				amount -= hallmarking_amount * row.qty
+
+			if not self.product_certification:
+				rate -= certification_amount
+				amount -= certification_amount * row.qty
+
+			row.rate = rate
+			row.amount = amount
 
 	def on_submit(self):
 
@@ -1781,6 +1884,39 @@ class ProductReturnForm(Document):
 		
 		if not item_tax_template:
 			return
+		
+		for row in self.items:
+			hallmarking_amount = frappe.db.get_value(
+				"BOM", row.bom, "hallmarking_amount"
+			) or 0
+
+			certification_amount = frappe.db.get_value(
+				"BOM", row.bom, "certification_amount"
+			) or 0
+			# frappe.throw(f"{certification_amount}")
+			# Store original values only once
+			if not row.base_rate:
+				row.base_rate = row.rate
+			else:
+				row.rate=row.base_rate
+
+			if not row.base_amount:
+				row.base_amount = row.amount
+
+			rate = row.base_rate
+			amount = row.base_amount
+
+			# Remove unchecked charges
+			if not self.product_hallmarking:
+				rate -= hallmarking_amount
+				amount -= hallmarking_amount * row.qty
+
+			if not self.product_certification:
+				rate -= certification_amount
+				amount -= certification_amount * row.qty
+
+			row.rate = rate
+			row.amount = amount
 		
 		# Calculate Net Total from items
 		net_total = sum(flt(item.amount) for item in self.items)

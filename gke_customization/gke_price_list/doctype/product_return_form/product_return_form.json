@@ -30,6 +30,8 @@
   "gold_rate",
   "section_break_igyp",
   "scan_barcode",
+  "product_hallmarking",
+  "product_certification",
   "items",
   "section_break_gwzd",
   "credit_note_invoice_item",
@@ -297,6 +299,18 @@
    "hidden": 1,
    "label": "Jwelex Credit Note Data",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "product_hallmarking",
+   "fieldtype": "Check",
+   "label": "Product Hallmarking"
+  },
+  {
+   "default": "0",
+   "fieldname": "product_certification",
+   "fieldtype": "Check",
+   "label": "Product Certification"
   }
  ],
  "grid_page_length": 50,
