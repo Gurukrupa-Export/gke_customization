@@ -136,16 +136,23 @@ def get_account_total_summary(filters=None):
     filters = filters or {}
     
     data = get_data(filters)
-    
-    employee_count = sum(1 for row in data if (row.get("gross_pay") or 0) != 0)
     ac1_subscribers = len(data)
-    ac10_subscribers = employee_count
     ac21_subscribers = len(data)
     pf_totals = get_pf_data(filters)
     total_row = next(
 		(row for row in pf_totals if row.get("company") == "Total"),
 		{}
 	)
+    
+    employee_count = sum(1 for row in data if (row.get("gross_pay") or 0) != 0)
+    employee_count_raw = total_row.get("employee_name", 0)
+    if isinstance(employee_count_raw, str) and ":" in employee_count_raw:
+        employee_count = int(employee_count_raw.split(":")[-1].strip())
+    else:
+        employee_count = int(employee_count_raw or 0)
+    
+    ac10_subscribers = employee_count
+    
     total_epf_amount = total_row.get("epf_wage", 0)
     total_edli_amount = total_row.get("edli_wage", 0)
     total_eps_amount = total_row.get("eps_wage", 0)
