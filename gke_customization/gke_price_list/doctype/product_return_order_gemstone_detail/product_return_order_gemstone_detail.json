@@ -1,0 +1,258 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-20 20:15:38.106727",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item",
+  "price_list_type",
+  "gemstone_type",
+  "cut_or_cab",
+  "stone_shape",
+  "gemstone_quality",
+  "gemstone_grade",
+  "is_customer_item",
+  "total_gemstone_rate",
+  "fg_purchase_rate",
+  "item_category",
+  "column_break_8",
+  "gemstone_size",
+  "size_weight",
+  "size_height",
+  "gemstone_code",
+  "sub_setting_type",
+  "se_rate",
+  "pcs",
+  "quantity",
+  "quantity_3",
+  "actual_quantity",
+  "weight_in_gms",
+  "difference",
+  "stock_uom",
+  "item_variant",
+  "gemstone_rate_for_specified_quantity",
+  "fg_purchase_amount",
+  "gemstone_pr",
+  "per_pc_or_per_carat"
+ ],
+ "fields": [
+  {
+   "default": "G",
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Item ",
+   "options": "Item"
+  },
+  {
+   "fieldname": "price_list_type",
+   "fieldtype": "Select",
+   "label": "Price List Type",
+   "options": "\nFixed\nDiamond Range"
+  },
+  {
+   "fieldname": "gemstone_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Gemstone Type",
+   "options": "Attribute Value",
+   "reqd": 1
+  },
+  {
+   "fetch_if_empty": 1,
+   "fieldname": "cut_or_cab",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Cut and Cab",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "stone_shape",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Stone Shape",
+   "options": "Attribute Value",
+   "reqd": 1
+  },
+  {
+   "default": "Precious",
+   "fieldname": "gemstone_quality",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Gemstone Quality",
+   "options": "Attribute Value"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "gemstone_grade",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": " Gemstone Grade",
+   "options": "Attribute Value"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_customer_item",
+   "fieldtype": "Check",
+   "label": "Is Customer Item"
+  },
+  {
+   "fieldname": "total_gemstone_rate",
+   "fieldtype": "Currency",
+   "label": "Rate"
+  },
+  {
+   "fieldname": "fg_purchase_rate",
+   "fieldtype": "Currency",
+   "label": "FG Purchase RAte"
+  },
+  {
+   "fieldname": "item_category",
+   "fieldtype": "Link",
+   "label": "Item Category",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "column_break_8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gemstone_size",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Gemstone Size",
+   "options": "Attribute Value",
+   "reqd": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fetch_from": "gemstone_size.weight",
+   "fieldname": "size_weight",
+   "fieldtype": "Float",
+   "label": "Size Weight",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fetch_from": "gemstone_size.height",
+   "fieldname": "size_height",
+   "fieldtype": "Float",
+   "label": "Size Height",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gemstone_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Stone Code",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "sub_setting_type",
+   "fieldtype": "Link",
+   "label": "Sub Setting Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "se_rate",
+   "fieldtype": "Currency",
+   "label": "SE Rate",
+   "read_only": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "pcs",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Pcs"
+  },
+  {
+   "description": "Weight show Based on precision",
+   "fieldname": "quantity",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Weight in cts",
+   "reqd": 1
+  },
+  {
+   "fieldname": "quantity_3",
+   "fieldtype": "Float",
+   "label": "Weight in cts(2)"
+  },
+  {
+   "fieldname": "actual_quantity",
+   "fieldtype": "Float",
+   "label": "Weight in cts",
+   "read_only": 1
+  },
+  {
+   "fieldname": "weight_in_gms",
+   "fieldtype": "Float",
+   "label": "Weight in Gms",
+   "read_only": 1
+  },
+  {
+   "fieldname": "difference",
+   "fieldtype": "Float",
+   "label": "Difference(Based on Roundoff)",
+   "read_only": 1
+  },
+  {
+   "default": "Carat",
+   "fieldname": "stock_uom",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Stock UOM",
+   "options": "UOM",
+   "reqd": 1
+  },
+  {
+   "fieldname": "item_variant",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Item Variant"
+  },
+  {
+   "fieldname": "gemstone_rate_for_specified_quantity",
+   "fieldtype": "Currency",
+   "label": "Amount"
+  },
+  {
+   "fieldname": "fg_purchase_amount",
+   "fieldtype": "Currency",
+   "label": "FG Purchase Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gemstone_pr",
+   "fieldtype": "Link",
+   "label": "Gemstone PR",
+   "options": "Attribute Value"
+  },
+  {
+   "default": "Per Carat",
+   "fieldname": "per_pc_or_per_carat",
+   "fieldtype": "Link",
+   "label": "Per Pc or Per Carat",
+   "options": "Attribute Value"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-21 20:30:08.055823",
+ "modified_by": "shruti_b@gkexport.com",
+ "module": "Gke Price List",
+ "name": "Product Return Order Gemstone Detail",
+ "owner": "shruti_b@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
