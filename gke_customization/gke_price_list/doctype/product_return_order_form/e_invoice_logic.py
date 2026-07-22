@@ -69,29 +69,66 @@ def validate_e_invoice_items(doc):
 			continue
 
 		# Store configuration for easier access later
-		e_invoice_config_items.append({
-			"item_type": item_type,
-			"obj": e_invoice_item,
-			"tax_rate": matched_sales_type_row.tax_rate,
-			"uom": e_invoice_item.uom,
+		# e_invoice_config_items.append({
+		# 	"item_type": item_type,
+		# 	"obj": e_invoice_item,
+		# 	"tax_rate": matched_sales_type_row.tax_rate,
+		# 	"uom": e_invoice_item.uom,
 			
-			# Boolean Flags (what does this item represent?)
-			"is_for_metal": e_invoice_item.is_for_metal,
-			"is_for_hallmarking": e_invoice_item.is_for_hallmarking,
-			"is_for_labour": e_invoice_item.is_for_labour,
-			"is_for_diamond": e_invoice_item.is_for_diamond,
-			"is_for_gemstone": e_invoice_item.is_for_gemstone,
-			"is_for_finding": e_invoice_item.is_for_finding,
-			"is_for_making": e_invoice_item.is_for_making,
-			"is_for_finding_making": e_invoice_item.is_for_finding_making,
+		# 	# Boolean Flags (what does this item represent?)
+		# 	"is_for_metal": e_invoice_item.is_for_metal,
+   
+		# 	# "is_for_hallmarking": e_invoice_item.is_for_hallmarking,
+		# 	# "is_for_certification": e_invoice_item.is_for_certification,
+		# 	"is_for_labour": e_invoice_item.is_for_labour,
+		# 	"is_for_diamond": e_invoice_item.is_for_diamond,
+		# 	"is_for_gemstone": e_invoice_item.is_for_gemstone,
+		# 	"is_for_finding": e_invoice_item.is_for_finding,
+		# 	"is_for_making": e_invoice_item.is_for_making,
+		# 	"is_for_finding_making": e_invoice_item.is_for_finding_making,
 			
-			# Attributes for Matching
-			"metal_type": e_invoice_item.metal_type,
-			"metal_purity": e_invoice_item.metal_purity,
-			"diamond_type": e_invoice_item.diamond_type,
-			"finding_category": e_invoice_item.finding_category,
-		})
+		# 	# Attributes for Matching
+		# 	"metal_type": e_invoice_item.metal_type,
+		# 	"metal_purity": e_invoice_item.metal_purity,
+		# 	"diamond_type": e_invoice_item.diamond_type,
+		# 	"finding_category": e_invoice_item.finding_category,
+		# })
+		# if doc.product_hallmarking:
+		# 	e_invoice_config_items.append({
+		# 		"is_for_hallmarking": e_invoice_item.is_for_hallmarking })
+		# if doc.product_certification:
+		# 	e_invoice_config_items.append({
+		# 		"is_for_certification": e_invoice_item.is_for_certification })
+			
+		item_data = {
+		"item_type": item_type,
+		"obj": e_invoice_item,
+		"tax_rate": matched_sales_type_row.tax_rate,
+		"uom": e_invoice_item.uom,
 
+		# Boolean Flags
+		"is_for_metal": e_invoice_item.is_for_metal,
+		"is_for_labour": e_invoice_item.is_for_labour,
+		"is_for_diamond": e_invoice_item.is_for_diamond,
+		"is_for_gemstone": e_invoice_item.is_for_gemstone,
+		"is_for_finding": e_invoice_item.is_for_finding,
+		"is_for_making": e_invoice_item.is_for_making,
+		"is_for_finding_making": e_invoice_item.is_for_finding_making,
+
+		# Matching Attributes
+		"metal_type": e_invoice_item.metal_type,
+		"metal_purity": e_invoice_item.metal_purity,
+		"diamond_type": e_invoice_item.diamond_type,
+		"finding_category": e_invoice_item.finding_category,
+	}
+
+		if doc.product_hallmarking:
+			item_data["is_for_hallmarking"] = e_invoice_item.is_for_hallmarking
+
+		if doc.product_certification:
+			item_data["is_for_certification"] = e_invoice_item.is_for_certification
+
+		e_invoice_config_items.append(item_data)
 	# --- 3. Helper Functions ---
 
 	aggregated_data = {} # Stores final totals. Key: (item_code, uom)
@@ -152,11 +189,14 @@ def validate_e_invoice_items(doc):
 		bom_doc = frappe.get_doc("BOM", item.bom)
 		
 		# --- A. Hallmarking ---
-		# if bom_doc.hallmarking_amount:
-		# 	e_item = find_e_item_by_criteria(is_for_hallmarking=1)
-		# 	if e_item:
-		# 		add_to_aggregate(e_item, item.qty, flt(bom_doc.hallmarking_amount) * item.qty)
-
+		if bom_doc.hallmarking_amount:
+			e_item = find_e_item_by_criteria(is_for_hallmarking=1)
+			if e_item:
+				add_to_aggregate(e_item, item.qty, flt(bom_doc.hallmarking_amount) * item.qty)
+		if bom_doc.certification_amount:
+			e_item = find_e_item_by_criteria(is_for_certification=1)
+			if e_item:
+				add_to_aggregate(e_item, item.qty, flt(bom_doc.certification_amount) * item.qty)
 		# --- B. Metal Details ---
 		if hasattr(bom_doc, "metal_detail"):
 			for metal in bom_doc.metal_detail:
@@ -173,7 +213,8 @@ def validate_e_invoice_items(doc):
 					
 					if e_item:
 						# Special Rate Logic for specific company/customer
-						metal_rate = metal.se_rate if (doc.company == "KG GK Jewellers Private Limited" and doc.customer == "GJCU0009") else metal.rate
+						# metal_rate = metal.se_rate if (doc.company == "KG GK Jewellers Private Limited" and doc.customer == "GJCU0009") else metal.rate
+						metal_rate = metal.rate
 						add_to_aggregate(e_item, multiplied_qty, metal_rate * multiplied_qty)
 					
 					# 2. Making Charges (for Metal)
@@ -186,6 +227,7 @@ def validate_e_invoice_items(doc):
 						)
 						
 						if e_item_making:
+							# frappe.msgprint(f"iuuyft{metal.making_amount * item.qty}")
 							add_to_aggregate(e_item_making, multiplied_qty, metal.making_amount * item.qty * making_charges_multiplier)
 						
 				else:
@@ -210,6 +252,7 @@ def validate_e_invoice_items(doc):
 					
 					if e_item:
 						amt = flt(diamond.diamond_rate_for_specified_quantity) * item.qty
+						# frappe.msgprint(f"njhb{amt}")
 						add_to_aggregate(e_item, multiplied_qty, amt)
 				else:
 					# 2. Labour (Customer Diamond)
@@ -263,7 +306,8 @@ def validate_e_invoice_items(doc):
 					)
 					
 					if e_item:
-						finding_rate = finding.se_rate if (doc.company == "KG GK Jewellers Private Limited" and doc.customer == "GJCU0009") else finding.rate
+						finding_rate =finding.rate
+						# finding_rate = finding.se_rate if (doc.company == "KG GK Jewellers Private Limited" and doc.customer == "GJCU0009") else finding.rate
 						add_to_aggregate(e_item, multiplied_qty, finding_rate * multiplied_qty)
 						finding_handled = True
 					
@@ -278,7 +322,8 @@ def validate_e_invoice_items(doc):
 						)
 						
 						if e_item_metal:
-							finding_rate = finding.se_rate if (doc.company == "KG GK Jewellers Private Limited" and doc.customer == "GJCU0009") else finding.rate
+							finding_rate =finding.rate
+							# finding_rate = finding.se_rate if (doc.company == "KG GK Jewellers Private Limited" and doc.customer == "GJCU0009") else finding.rate
 							add_to_aggregate(e_item_metal, multiplied_qty, finding_rate * multiplied_qty)
 					
 					# 3. Finding Making Charges

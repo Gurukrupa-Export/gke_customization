@@ -1,7 +1,7 @@
 import frappe
 import requests, json
 from frappe.utils import flt
-
+from frappe.utils import now_datetime , add_days, get_datetime
 
 # ------------------------------------------------------------------
 # Stage 1: Send to Item & BOM Creation
@@ -20,7 +20,7 @@ def send_to_item_bom_creation(docname):
         - status = 'Item & BOM Creation'
         - Saves document
     """
-    doc = frappe.get_doc("Product Return Form", docname)
+    doc = frappe.get_doc("Product Return Order Form", docname)
 
     if doc.status != "Draft":
         frappe.throw(f"Status must be Draft to send to Item & BOM Creation. Current status: {frappe.bold(doc.status)}")
@@ -34,44 +34,47 @@ def send_to_item_bom_creation(docname):
 
     doc.status = "Item & BOM Creation"
 
-    error_dict = {}
-    success_dict = {}
+#     error_dict = {}
+#     success_dict = {}
+#     repair_order = frappe.new_doc("Repair Order Form")
 
-    for row in doc.items:
-        tag_no = row.tag_no if hasattr(row, 'tag_no') else None
-        row_idx = row.idx if hasattr(row, 'idx') else None
+#     repair_order.source_prf = doc.name
+#     repair_order.company = doc.company
+#     repair_order.branch = doc.branch
+#     repair_order.customer_code = doc.customer
+#     repair_order.department ='Information Technology - GEPL'
+#     repair_order.salesman_name='Chintankumar Dilipbhai Ramani'
+#     repair_order.order_date=now_datetime()
+#     repair_order.delivery_date = get_datetime(
+#     add_days(repair_order.order_date.date(), 1).strftime("%Y-%m-%d") + " 11:00:00"
+# )
+#     repair_order.due_days=1
+#     repair_order.status = "Draft"
+#     repair_order.items = []
 
-        if not tag_no:
-            error_key = row_idx or row.name or "unknown"
-            error_dict[error_key] = "Tag No is missing"
-            continue
-
-        try:
-            data = get_data_from_jwelex(tag_no)
+    
+#     for row in doc.items:   # Replace 'items' with your source child table fieldname
+#         repair_order.append("order_details", {
+#             "tag_no1": row.tag_no,
+#             "item_code": row.item_code,
+#             "category": row.item_category,
+#             "subcategory": row.item_subcategory,
+#             "metal_target": row.gold_rate,
+#             "diamond_target": row.diamond_weight,
+#             "metal_touch":row.metal_touch,
+#             "metal_purity":row.metal_purity,
+#             "metal_colour":row.metal_colour,
+#             "setting_type":row.setting_type
             
-            if data and data.get("customer_info", {}).get("customer_id"):  # assuming get_data_from_jwelex returns dict / None / falsy on failure
-                success_dict[tag_no] = data
-            else:
-                error_dict[tag_no] = "No data returned for this tag"
-                
-        except Exception as e:
-            # You can also do: frappe.log_error(...) here if you want traceability
-            error_key = tag_no if tag_no else (row_idx or "row-error")
-            error_dict[error_key] = f"Failed to fetch data: {str(e)}"
+#             # Add any other fields you want to copy
+#         })
+#     repair_order.flags.ignore_mandatory = True
+#     repair_order.insert(ignore_permissions=True)
 
-    if error_dict:
-        frappe.log_error(
-            message="Following items have errors: " + ", ".join([f"{k}: {v}" for k, v in error_dict.items()]), 
-            title="Product Return Form Item Errors",
-            reference_doctype="Product Return Form",
-            reference_name=docname,
-        )
-
-    doc.jwelex_credit_note_data = None
-    doc.jwelex_credit_note_data = frappe.as_json(success_dict)
     doc.save(ignore_permissions=True)
-    frappe.msgprint("Status updated to Item & BOM Creation.", indicator="yellow", alert=True)
-
+#     frappe.msgprint(
+#     f'Repair Order Form is Created <a href="/app/repair-order-form/{repair_order.name}" target="_blank">{repair_order.name}</a>'
+# )
     return doc.status
 
 
@@ -92,7 +95,7 @@ def update_items_from_tag(docname):
         - Document must be in 'Item & BOM Creation' status
         - Each tag_no must match exactly one enabled Item
     """
-    doc = frappe.get_doc("Product Return Form", docname)
+    doc = frappe.get_doc("Product Return  Order Form", docname)
 
     if doc.status != "Item & BOM Creation":
         frappe.throw(
@@ -1146,16 +1149,190 @@ def _calc_bom_raw_material_consignment(doc):
 @frappe.whitelist()
 def get_data_from_jwelex(tag_no):
 
-    url = f"http://3.108.219.130:8008/credit-note?tag_no={tag_no}"
+    url = f"http://3.108.219.130:8001//credit-note?tag_no={tag_no}"
     
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()  # raises exception for 4xx/5xx
         
         data = response.json()
+        # frappe.msgprint(frappe.as_json(data))
         return data
-        
     except requests.exceptions.RequestException:
         return None
     except ValueError:
         return None
+    
+    
+    
+import frappe
+
+@frappe.whitelist()
+def create_credit_note_orders(source_doctype, source_name, child_fieldname):
+    """
+    Loops through child rows of the source document, fetches Jwellex data
+    for each tag_no, and creates a Credit Note Order record per row.
+    """
+    source_doc = frappe.get_doc(source_doctype, source_name)
+    child_rows = source_doc.get(child_fieldname)
+
+    created = []
+    errors = []
+
+    for row in child_rows:
+        tag_no = row.get("tag_no")
+        if not tag_no:
+            continue
+
+        try:
+            data = get_data_from_jwelex(tag_no=tag_no)  # reuse existing function directly
+            if not data:
+                errors.append({"tag_no": tag_no, "error": "No data found"})
+                continue
+
+            cno = frappe.new_doc("Credit Note Order")
+
+            materials = data.get("materials", {})
+            totals = data.get("totals", {})
+            summary = data.get("summary_totals", {})
+
+            metal_details = materials.get("metal_details", [])
+            diamond_details = materials.get("diamond_details", [])
+            finding_details = materials.get("finding_details", [])
+            stone_details = materials.get("stone_details", [])
+            other_details = materials.get("other_details", [])
+
+            # --- Parent-level summary fields ---
+            cno.total_metal_weight = totals.get("metal_totals", {}).get("total_weight")
+
+            cno.total_finding_pcs = len(finding_details)
+            cno.total_finding_weightin_gms = totals.get("finding_totals", {}).get("total_weight")
+
+            total_dia_pcs = sum((d.get("Pcs") or 0) for d in diamond_details)
+            cno.total_diamond_pcs = total_dia_pcs
+            cno.total_diamond_weight = totals.get("diamond_totals", {}).get("total_weight")
+            cno.total_diamond_weightin_gms = totals.get("diamond_totals", {}).get("total_gross_wt")
+            cno.total_diamond_weight_in_gram = totals.get("diamond_totals", {}).get("total_gross_wt")
+
+            cno.total_gemstone_pcs = len(stone_details)
+            cno.total_gemstone_weight = totals.get("stone_totals", {}).get("total_weight")
+            cno.total_gemstone_weightin_gms = totals.get("stone_totals", {}).get("total_gross_wt")
+            cno.total_gemstone_weight_in_gram = totals.get("stone_totals", {}).get("total_gross_wt")
+
+            cno.total_other_pcs = len(other_details)
+            cno.total_other_weight = totals.get("other_totals", {}).get("total_weight")
+
+            cno.metal_weight_in_gram = summary.get("metal_weight")
+            cno.gross_weight_in_gram = summary.get("gross_wt")
+            cno.net_weight_in_gram = (summary.get("metal_weight") or 0) + (summary.get("chain_weight") or 0)
+            cno.diamond_weight_in_carat = summary.get("diamond_weight")
+            cno.gemstone_weight_in_carat = summary.get("stone_weight")
+            cno.other_weight_in_gram = summary.get("other_weight")
+            cno.finding_weight_in_gram = summary.get("chain_weight")
+            cno.avg_diamond_weightin_carat = (
+                (summary.get("diamond_weight") / total_dia_pcs) if total_dia_pcs else 0
+            )
+
+            # --- Child tables: mapped individually ---
+            _append_metal_detail(cno, metal_details)
+            _append_diamond_detail(cno, diamond_details)
+            _append_finding_detail(cno, finding_details)
+            _append_gemstone_detail(cno, stone_details)
+            _append_other_detail(cno, other_details)
+
+            cno.insert(ignore_permissions=True)
+            created.append({"tag_no": tag_no, "name": cno.name})
+
+        except Exception as e:
+            frappe.log_error(frappe.get_traceback(), f"Credit Note Order creation failed for {tag_no}")
+            errors.append({"tag_no": tag_no, "error": str(e)})
+
+    frappe.db.commit()
+    return {"created": created, "errors": errors}
+
+
+def _append_metal_detail(cno, items):
+    """Table: metal_detail -> Order BOM Metal Detail"""
+    for m in items:
+        cno.append("metal_detail", {
+            "metal_type": m.get("Meterial"),
+            "shape": m.get("Shape_Name"),
+            "metal_purity": "76.0",
+            "metal_colour": "Yellow",
+            "size": m.get("Size_Name"),
+            "code": m.get("Code_Name"),
+            "pcs": m.get("Pcs"),
+            "finish_product_weight": m.get("Weight"),
+            "gross_weight": m.get("Gross_Wt"),
+            "rate": m.get("Rate"),
+            "amount": m.get("Amount"),
+        })
+
+
+def _append_diamond_detail(cno, items):
+    """Table: diamond_detail -> Order BOM Diamond Detail"""
+    for d in items:
+        cno.append("diamond_detail", {
+            "material": d.get("Meterial"),
+            "stone_shape": d.get("Shape_Name"),
+            "sub_setting_type": "Prong Setting",
+            "purity": d.get("Purity_Name"),
+            "size": d.get("Size_Name"),
+            "code": d.get("Code_Name"),
+            "pcs": d.get("Pcs"),
+            "weight": d.get("Weight"),
+            "gross_weight": d.get("Gross_Wt"),
+            "rate": d.get("Rate"),
+            "amount": d.get("Amount"),
+        })
+
+
+def _append_finding_detail(cno, items):
+    """Table: finding_detail -> Order BOM Finding Detail"""
+    for f in items:
+        cno.append("finding_detail", {
+            "material": f.get("Meterial"),
+            "shape": f.get("Shape_Name"),
+            "purity": f.get("Purity_Name"),
+            "size": f.get("Size_Name"),
+            "code": f.get("Code_Name"),
+            "pcs": f.get("Pcs"),
+            "weight": f.get("Weight"),
+            "gross_weight": f.get("Gross_Wt"),
+            "rate": f.get("Rate"),
+            "amount": f.get("Amount"),
+        })
+
+
+def _append_gemstone_detail(cno, items):
+    """Table: gemstone_detail -> Order BOM Gemstone Detail (source: stone_details)"""
+    for s in items:
+        cno.append("gemstone_detail", {
+            "material": s.get("Meterial"),
+            "shape": s.get("Shape_Name"),
+            "purity": s.get("Purity_Name"),
+            "size": s.get("Size_Name"),
+            "code": s.get("Code_Name"),
+            "pcs": s.get("Pcs"),
+            "weight": s.get("Weight"),
+            "gross_weight": s.get("Gross_Wt"),
+            "rate": s.get("Rate"),
+            "amount": s.get("Amount"),
+        })
+
+
+def _append_other_detail(cno, items):
+    """Table: other_detail -> Order BOM Other Detail"""
+    for o in items:
+        cno.append("other_detail", {
+            "material": o.get("Meterial"),
+            "shape": o.get("Shape_Name"),
+            "purity": o.get("Purity_Name"),
+            "size": o.get("Size_Name"),
+            "code": o.get("Code_Name"),
+            "pcs": o.get("Pcs"),
+            "weight": o.get("Weight"),
+            "gross_weight": o.get("Gross_Wt"),
+            "rate": o.get("Rate"),
+            "amount": o.get("Amount"),
+        })

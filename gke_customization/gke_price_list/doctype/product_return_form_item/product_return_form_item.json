@@ -12,11 +12,24 @@
   "hsn_sac",
   "item_group",
   "column_break_kfci",
-  "tag_no",
   "item_name",
   "bom",
+  "net_weight",
+  "gross_weight",
+  "physical_gross_weight",
+  "physical_net_weight",
+  "section_break_mt4i",
+  "tag_no",
+  "metal_touch",
+  "metal_purity",
+  "metal_colour",
+  "setting_type",
+  "column_break_1w3e",
   "item_category",
+  "item_subcategory",
+  "gold_rate",
   "diamond_quality",
+  "diamond_weight",
   "description_section",
   "description",
   "image_section",
@@ -45,8 +58,8 @@
   "hallmarking_amount",
   "custom_duty_amount",
   "other_amount",
-  "section_break_cdba",
   "total_weight",
+  "section_break_cdba",
   "column_break_bvln",
   "warehouse",
   "references_section",
@@ -59,7 +72,8 @@
   {
    "fieldname": "edit_bom",
    "fieldtype": "Button",
-   "label": "Edit BOM"
+   "label": "Edit BOM",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_kfci",
@@ -70,32 +84,37 @@
    "fieldname": "item_name",
    "fieldtype": "Data",
    "label": "Item Name",
-   "print_hide": 1
+   "print_hide": 1,
+   "read_only": 1
   },
   {
    "fieldname": "serial_no",
    "fieldtype": "Link",
    "label": "Serial No",
-   "options": "Serial No"
+   "options": "Serial No",
+   "read_only": 1
   },
   {
    "fieldname": "bom",
    "fieldtype": "Link",
    "label": "BOM",
-   "options": "BOM"
+   "options": "BOM",
+   "read_only": 1
   },
   {
    "fetch_from": "item_code.item_category",
    "fieldname": "item_category",
    "fieldtype": "Link",
    "label": "Item Category",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
    "fieldname": "diamond_quality",
    "fieldtype": "Link",
    "label": "Diamond Quality",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "read_only": 1
   },
   {
    "fetch_from": "item_code.description",
@@ -103,6 +122,7 @@
    "fieldname": "description",
    "fieldtype": "Text Editor",
    "label": "Description",
+   "read_only": 1,
    "width": "200px"
   },
   {
@@ -111,30 +131,35 @@
    "fieldname": "item_group",
    "fieldtype": "Link",
    "label": "Item Group",
-   "options": "Item Group"
+   "options": "Item Group",
+   "read_only": 1
   },
   {
    "fieldname": "description_section",
    "fieldtype": "Section Break",
-   "label": "Description"
+   "label": "Description",
+   "read_only": 1
   },
   {
    "fieldname": "image_section",
    "fieldtype": "Section Break",
-   "label": "Image"
+   "label": "Image",
+   "read_only": 1
   },
   {
    "fetch_from": "item_code.image",
    "fetch_if_empty": 1,
    "fieldname": "image",
    "fieldtype": "Attach",
-   "label": "Image"
+   "label": "Image",
+   "read_only": 1
   },
   {
    "fieldname": "image_view",
    "fieldtype": "Image",
    "label": "Image View",
-   "options": "image"
+   "options": "image",
+   "read_only": 1
   },
   {
    "fieldname": "section_break_hxqp",
@@ -150,6 +175,7 @@
    "fieldtype": "Link",
    "label": "UOM",
    "options": "UOM",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -161,7 +187,7 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Rate",
-   "reqd": 1
+   "read_only": 1
   },
   {
    "bold": 1,
@@ -169,7 +195,7 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Amount",
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "column_break_xurv",
@@ -181,6 +207,7 @@
    "fieldtype": "Currency",
    "label": "Rate (Company Currency)",
    "options": "Company:company:default_currency",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -189,6 +216,7 @@
    "fieldtype": "Currency",
    "label": "Amount (Company Currency)",
    "options": "Company:company:default_currency",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -296,7 +324,8 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Warehouse",
-   "options": "Warehouse"
+   "options": "Warehouse",
+   "read_only": 1
   },
   {
    "fieldname": "references_section",
@@ -328,26 +357,30 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Item",
-   "options": "Item"
+   "options": "Item",
+   "read_only": 1
   },
   {
    "bold": 1,
    "fieldname": "qty",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Quantity"
+   "label": "Quantity",
+   "read_only": 1
   },
   {
    "fetch_from": "item_code.gst_hsn_code",
    "fetch_if_empty": 1,
    "fieldname": "hsn_sac",
    "fieldtype": "Data",
-   "label": "HSN/SAC"
+   "label": "HSN/SAC",
+   "read_only": 1
   },
   {
    "fieldname": "tag_no",
    "fieldtype": "Data",
-   "label": "Tag No"
+   "label": "Tag No",
+   "read_only": 1
   },
   {
    "fieldname": "return_sales_invoice",
@@ -355,14 +388,91 @@
    "label": "Return Sales Invoice",
    "options": "Sales Invoice",
    "read_only": 1
+  },
+  {
+   "fieldname": "gold_rate",
+   "fieldtype": "Float",
+   "label": "Stone Weight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item_subcategory",
+   "fieldtype": "Link",
+   "label": "Item Subcategory",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "diamond_weight",
+   "fieldtype": "Float",
+   "label": "Diamond Weight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_mt4i",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "setting_type",
+   "fieldtype": "Link",
+   "label": "Setting Type",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "metal_touch",
+   "fieldtype": "Link",
+   "label": "Metal Touch",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "metal_purity",
+   "fieldtype": "Link",
+   "label": "Metal Purity",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "metal_colour",
+   "fieldtype": "Link",
+   "label": "Metal Colour ",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1w3e",
+   "fieldtype": "Column Break",
+   "read_only": 1
+  },
+  {
+   "fieldname": "net_weight",
+   "fieldtype": "Data",
+   "label": "Net Weight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gross_weight",
+   "fieldtype": "Data",
+   "label": "Gross Weight"
+  },
+  {
+   "fieldname": "physical_gross_weight",
+   "fieldtype": "Float",
+   "label": "Physical Gross Weight"
+  },
+  {
+   "fieldname": "physical_net_weight",
+   "fieldtype": "Float",
+   "label": "Physical Net Weight"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-03-20 16:49:59.880417",
- "modified_by": "aditya_r@gkexport.com",
+ "modified": "2026-07-20 12:56:37.158550",
+ "modified_by": "shruti_b@gkexport.com",
  "module": "Gke Price List",
  "name": "Product Return Form Item",
  "owner": "aditya_r@gkexport.com",

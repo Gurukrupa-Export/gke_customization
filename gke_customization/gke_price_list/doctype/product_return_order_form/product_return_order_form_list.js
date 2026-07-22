@@ -2,7 +2,7 @@
 // For license information, please see license.txt
 
 
-frappe.listview_settings['Product Return Form'] = {
+frappe.listview_settings['Product Return Order Form'] = {
     // hide_name_column: true,
     get_indicator: function (doc) {
         if (doc.status === "Draft") {

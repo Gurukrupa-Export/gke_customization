@@ -2,9 +2,9 @@
 // For license information, please see license.txt
 frappe.provide("erpnext.item");
 
-frappe.ui.form.on("Product Return Form", {
+frappe.ui.form.on("Product Return Order Form", {
 	onload(frm) {
-		frm.set_query("credit_note_subtype", function () {
+		frm.set_query("return_subtype", function () {
 			return {
 				filters: {
 					"parent_type": frm.doc.credit_note_type
@@ -12,8 +12,8 @@ frappe.ui.form.on("Product Return Form", {
 			};
 		});
 	},
-	credit_note_subtype(frm){
-		if(frm.doc.credit_note_subtype == 'QC Fail' && frm.doc.credit_note_type == 'Repair'){
+	return_subtype(frm){
+		if(frm.doc.return_subtype == 'QC Fail' && frm.doc.credit_note_type == 'Repair'){
 			frm.set_value("making_charges_type","With")
 		}
 	},
@@ -66,7 +66,7 @@ frappe.ui.form.on("Product Return Form", {
 						__("This will move the document to Item & BOM Creation stage. Continue?"),
 						function () {
 							frappe.call({
-								method: "gke_customization.gke_price_list.doctype.product_return_form.product_return_form_api.send_to_item_bom_creation",
+								method: "gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form_api.send_to_item_bom_creation",
 								args: { docname: frm.doc.name },
 								freeze: true,
 								freeze_message: __("Updating status..."),
@@ -90,7 +90,7 @@ frappe.ui.form.on("Product Return Form", {
 						__("This will link Items using Tag No, update status to 'Send to Pricing', and run pricing calculation. Continue?"),
 						function () {
 							frappe.call({
-								method: "gke_customization.gke_price_list.doctype.product_return_form.product_return_form_api.update_items_from_tag",
+								method: "gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form_api.update_items_from_tag",
 								args: { docname: frm.doc.name },
 								freeze: true,
 								freeze_message: __("Updating items and calculating pricing..."),
@@ -118,8 +118,8 @@ frappe.ui.form.on("Product Return Form", {
 			}
 		})
 	},
-	credit_note_type: function (frm) {
-		frm.set_query("credit_note_subtype", function () {
+	return_subtype: function (frm) {
+		frm.set_query("return_subtype", function () {
 			return {
 				filters: {
 					"parent_type": frm.doc.credit_note_type
@@ -174,9 +174,9 @@ frappe.ui.form.on("Product Return Form Item", {
 		}
 
 		if (child.serial_no) {
-
+			console.log('hii');
 			frappe.call({
-				method: "gke_customization.gke_price_list.doctype.product_return_form.product_return_form.get_sales_bom_nd_invoice",
+				method: "gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form.get_sales_bom_nd_invoice",
 				args: {
 					serial_no: child.serial_no,
 					customer: frm.doc.customer,
@@ -184,9 +184,37 @@ frappe.ui.form.on("Product Return Form Item", {
 				},
 				callback: function (r) {
 					if (r.message && r.message.sales_invoice) {
+						console.log('hii',r.message);
 
 						frappe.model.set_value(cdt, cdn, "bom", r.message.bom);
 						frappe.model.set_value(cdt, cdn, "item_code", r.message.item_code);
+						frappe.model.set_value(cdt, cdn, "net_weight", r.message.net_weight);
+						frappe.model.set_value(cdt, cdn, "gross_weight", r.message.gross_weight);
+						frappe.model.set_value(cdt, cdn, "metal_purity", r.message.metal_purity);
+						frappe.model.set_value(cdt, cdn, "metal_touch", r.message.metal_touch);
+						frappe.model.set_value(cdt, cdn, "metal_colour", r.message.metal_colour);
+						frappe.model.set_value(cdt, cdn, "diamond_quality", r.message.diamond_quality);
+						frappe.model.set_value(cdt, cdn, "item_subcategory", r.message.item_subcategory);
+						frappe.model.set_value(cdt, cdn, "metal_purity", r.message.metal_purity);
+						frappe.model.set_value(cdt, cdn, "setting_type", r.message.setting_type);
+						frappe.model.set_value(cdt, cdn, "gold_rate", r.message.total_metal_weight);
+						frappe.model.set_value(cdt, cdn, "diamond_weight", r.message.total_diamond_weight_in_gms);
+						frappe.model.set_value(cdt, cdn, "gold_rate", r.message.total_gemstone_weight);
+						frappe.model.set_value(cdt, cdn, "wastage_amount", r.message.sales_invoice.wastage_amount);
+						frappe.model.set_value(cdt, cdn, "gemstone_amount", r.message.sales_invoice.gemstone_amount);
+						frappe.model.set_value(cdt, cdn, "hallmarking_amount", r.message.sales_invoice.custom_hallmarking_amount);
+						frappe.model.set_value(cdt, cdn, "certification_amount", r.message.sales_invoice.custom_certification_amount);
+						frappe.model.set_value(cdt, cdn, "making_amount", r.message.sales_invoice.making_amount);
+						frappe.model.set_value(cdt, cdn, "finding_amount", r.message.sales_invoice.finding_amount);
+						frappe.model.set_value(cdt, cdn, "diamond_amount", r.message.sales_invoice.diamond_amount);
+						frappe.model.set_value(cdt, cdn, "metal_amount", r.message.sales_invoice.metal_amount);
+						// frappe.model.set_value(cdt, cdn, "item_category", r.message.sales_invoice.item_category);
+						// frappe.model.set_value(cdt, cdn, "item_category", r.message.sales_invoice.item_category);
+						// frappe.model.set_value(cdt, cdn, "item_category", r.message.sales_invoice.item_category);
+
+
+						frappe.model.set_value(cdt, cdn, "item_category", r.message.sales_invoice.item_category);
+						frappe.model.set_value(cdt, cdn, "description", r.message.sales_invoice.description);
 						frappe.model.set_value(cdt, cdn, "item_name", r.message.sales_invoice.item_name);
 						frappe.model.set_value(cdt, cdn, "sales_invoice", r.message.sales_invoice.parent);
 						frappe.model.set_value(cdt, cdn, "sales_invoice_item", r.message.sales_invoice.name);
@@ -197,7 +225,7 @@ frappe.ui.form.on("Product Return Form Item", {
 						frappe.model.set_value(cdt, cdn, "total_weight", r.message.sales_invoice.total_weight);
 						frappe.model.set_value(cdt, cdn, "rate", r.message.sales_invoice.rate);
 
-						if (frm.doc.credit_note_subtype in ["Sale Without Payment-Actual", "QC Fail-Repair", "Finish Goods-Consignment"]) {
+						if (frm.doc.return_subtype in ["Sale Without Payment-Return", "QC Fail-Repair", "Finish Goods-Consignment"]) {
 							// Amount fields
 							frappe.model.set_value(cdt, cdn, "amount", r.message.sales_invoice.amount);
 							frappe.model.set_value(cdt, cdn, "base_rate", r.message.sales_invoice.base_rate);
@@ -1472,6 +1500,62 @@ frappe.ui.form.on("Product Return Form Item", {
 		let row = locals[cdt][cdn];
 		frappe.model.set_value(cdt, cdn, "amount", row.rate * row.qty);
 	},
+	tag_no(frm, cdt, cdn) {
+    let row = locals[cdt][cdn];
+    if (frm.doc.is_jewlex_credit_note) {
+        if (!row.tag_no) return;
+
+        frappe.call({
+            method: "gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form_api.get_data_from_jwelex",
+            args: {
+                tag_no: row.tag_no
+            },
+            callback: function(r) {
+                if (!r.message) {
+                    frappe.msgprint(__("No data found for this Tag No."));
+                    return;
+                }
+
+                let data = r.message;
+
+                // Metal details (first metal entry)
+                if (data.materials.metal_details.length) {
+                    let metal = data.materials.metal_details[0];
+                    row.metal_purity = metal.Purity_Name;
+                }
+
+                // Diamond details (first diamond entry)
+                if (data.materials.diamond_details.length) {
+                    let diamond = data.materials.diamond_details[0];
+                    row.diamond_quality = diamond.Code_Name;
+                }
+
+                // Weights
+                row.gold_rate = data.summary_totals.metal_weight;   // fieldname gold_rate, label "Metal Weight"
+                row.diamond_weight = data.summary_totals.diamond_weight;
+                row.total_weight = data.summary_totals.gross_wt;
+
+                // Amounts
+                row.metal_amount = data.summary_totals.metal_amount;
+                row.diamond_amount = data.summary_totals.diamond_amount;
+                row.gemstone_amount = data.totals.stone_totals.total_amount;
+                row.finding_amount = data.totals.finding_totals.total_amount;
+                row.other_material_amount = data.totals.other_totals.total_amount;
+
+                // Charges
+                row.making_amount = data.charges_info.metal_making_amount;
+                row.certification_amount = data.charges_info.certificate_charges;
+                row.hallmarking_amount = data.charges_info.hm_charges;
+                row.other_amount = data.charges_info.other_charges;
+
+                // Grand total
+                row.amount = data.summary_totals.grand_total_amount;
+
+                frm.refresh_field(cdt.parentfield);
+            }
+        });
+    }
+},
 
 	rate(frm, cdt, cdn) {
 		let row = locals[cdt][cdn];
@@ -1516,7 +1600,7 @@ let edit_bom_documents = (
 	row // current row
 ) => {
 	frappe.call({
-		method: "gke_customization.gke_price_list.doctype.product_return_form.product_return_form.get_credit_note_adjusted_bom",
+		method: "gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form.get_credit_note_adjusted_bom",
 		freeze: true,
 		args: {
 			doc: cur_frm.doc,

@@ -6,16 +6,34 @@ from collections import defaultdict
 import json
 import frappe
 import time
+import requests
+from pypika import Order
 from frappe.query_builder import DocType
 from frappe.model.document import Document
 from frappe.utils import flt
-from gke_customization.gke_price_list.doctype.product_return_form.e_invoice_logic import validate_e_invoice_items
-from gke_customization.gke_price_list.doctype.product_return_form.product_return_form_api import trigger_pricing_calculation
+from gke_customization.gke_price_list.doctype.product_return_order_form.e_invoice_logic import validate_e_invoice_items
+from gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form_api import trigger_pricing_calculation
 
-class ProductReturnForm(Document):
+class ProductReturnOrderForm(Document):
+	def get_data_from_jwelex(self,tag_no):
+		url = "http://3.108.219.130:8001/credit-note"
+
+		response = requests.get(
+			url,
+			params={"tag_no": tag_no},
+			timeout=30
+		)
+
+		response.raise_for_status()
+		return response.json()
 	def before_validate(self):
+		
 		gold_gst_rate = frappe.db.get_single_value("Jewellery Settings", "gold_gst_rate")
-		# for row in self.items:
+		for row in self.items:
+			if flt(row.physical_gross_weight) >flt(row.gross_weight):
+				frappe.throw("Physical  GrossWeight should not be greater than Gross weight ")
+			if flt(row.physical_net_weight) >flt(row.net_weight):
+				frappe.throw("Physical Net Weight should not be greater than Net weight ")
 		# 	row.rate = row.rate
 		# 	row.amount = row.amount
 		# 	row.base_rate=row.rate
@@ -82,38 +100,46 @@ class ProductReturnForm(Document):
 			# 	row.rate=float(self.gold_rate_with_gst) *float( row.metal_purity)/((100 + int(gold_gst_rate)))
 			# 	row.amount= row.rate
 	
-
-
 	def validate(self):
+		gold_gst_rate = frappe.db.get_single_value("Jewellery Settings", "gold_gst_rate")
+		# for row in self.items:
+		# 	row.rate = row.rate
+		# 	row.amount = row.amount
+		# 	frappe.throw(f"{row.amount}")
+		# for row in self.items:
+		# 	if not row.metal_purity:
+		# 		frappe.throw("Add Metal Purity")
+		# 	if row.metal_purity:
+		# 		row.rate=float(self.gold_rate_with_gst) *float( row.metal_purity)/((100 + int(gold_gst_rate)))
+		# 		row.amount= row.rate
+		# if not self.is_jewlex_credit_note:
 
-		if not self.is_jewlex_credit_note:
+		if self.credit_note_rate_type == "Current Rate":
+			if not self.gold_rate_with_gst or not self.gold_rate:
+				frappe.throw(
+					"Gold rate with GST and Gold rate are mandatory for Current Rate calculation"
+				)
 
-			if self.credit_note_rate_type == "Current Rate":
-				if not self.gold_rate_with_gst or not self.gold_rate:
-					frappe.throw(
-						"Gold rate with GST and Gold rate are mandatory for Current Rate calculation"
-					)
+		if not self.items: return
 
-			if not self.items: return
+		credit_note_mapping = {
+			("Return", "Sale Without Payment-Return"): self.apply_pcpm_manual_calculation,
+			("Return", "Sale With Payment-Return"): self.apply_bbpm_manual_calculation,
+			("Repair", "QC Fail-Repair"): self.apply_pcpm_manual_calculation,
+			("Repair", "Physical-Repair"): self.apply_physical_repair_manual_calculation,
+			("Consignment", "Finish Goods-Consignment"): self.apply_pcpm_manual_calculation,
+			("Consignment", "Raw Material-Consignment"): self.apply_consignment_raw_material_manual_calculation,
+		}
 
-			credit_note_mapping = {
-				("Actual", "Sale Without Payment-Actual"): self.apply_pcpm_manual_calculation,
-				("Actual", "Sale With Payment-Actual"): self.apply_bbpm_manual_calculation,
-				("Repair", "QC Fail-Repair"): self.apply_pcpm_manual_calculation,
-				("Repair", "Physical-Repair"): self.apply_physical_repair_manual_calculation,
-				("Consignment", "Finish Goods-Consignment"): self.apply_pcpm_manual_calculation,
-				("Consignment", "Raw Material-Consignment"): self.apply_consignment_raw_material_manual_calculation,
-			}
+		self.return_material_type = '' # set only raw material-Consignment while calculation
+		calculation_function = credit_note_mapping.get((self.credit_note_type, self.return_subtype))
 
-			self.return_material_type = '' # set only raw material-Consignment while calculation
-			calculation_function = credit_note_mapping.get((self.credit_note_type, self.credit_note_subtype))
-
-			if calculation_function:
-				calculation_function()
-			# else:
-			# 	frappe.throw(
-			# 		f"Invalid credit note type: {self.credit_note_type} / {self.credit_note_subtype}"
-			# 	)
+		if calculation_function:
+			calculation_function()
+		# else:
+		# 	frappe.throw(
+		# 		f"Invalid credit note type: {self.credit_note_type} / {self.return_subtype}"
+		# 	)
 
 		else:
 			trigger_pricing_calculation(self)
@@ -121,7 +147,6 @@ class ProductReturnForm(Document):
 		validate_e_invoice_items(self)
 		self.calculate_taxes_and_totals()
 		self.set_total_in_words()
-
 		for row in self.items:
 			hallmarking_amount = frappe.db.get_value(
 				"BOM", row.bom, "hallmarking_amount"
@@ -130,6 +155,10 @@ class ProductReturnForm(Document):
 			certification_amount = frappe.db.get_value(
 				"BOM", row.bom, "certification_amount"
 			) or 0
+			total_diamond_amount = frappe.db.get_value(
+				"BOM", row.bom, "total_diamond_amount"
+			) or 0
+			row.diamond_amount=total_diamond_amount
 			# frappe.throw(f"{certification_amount}")
 			# Store original values only once
 			if not row.base_rate:
@@ -154,17 +183,122 @@ class ProductReturnForm(Document):
 
 			row.rate = rate
 			row.amount = amount
+		# for row in self.items:
+		# 	bom_d = frappe.db.get_value("BOM", row.bom, "hallmarking_amount") or 0
+		# 	bom_c = frappe.db.get_value("BOM", row.bom, "certification_amount") or 0
 
+		# 	rate = row.base_rate
+
+		# 	if not self.product_hallmarking:
+		# 		rate -= bom_d
+		# 	else:
+		# 		rate += bom_d
+
+		# 	if not self.product_certification:
+		# 		rate -= bom_c
+		# 	else:
+		# 		rate += bom_c
+
+		# 	row.rate = rate
+		# 	row.amount = rate
+			# frappe.throw(f"{row.amount}")
+		# ===================================================================
+		# for row in self.items:
+		
+		# 	data = self.get_data_from_jwelex(row.tag_no)
+
+		# 	customer = data["customer_info"]["customer_name"]
+		# 	frappe.throw(f"{customer}")
+	
+
+	
 	def on_submit(self):
 
-		if self.is_jewlex_credit_note: return
+		# if self.is_jewlex_credit_note: return
 
 		# items reqd
 		if not self.items:
 			frappe.throw("Items are mandatory for credit note")
-			
+		index = self.idx + 1
+		
 		for item_row in self.items:
+			product_order = frappe.new_doc("Product Return Order")
+			product_order.customer = self.customer
+			product_order.company = self.company
+			product_order.branch = self.branch
+			product_order.sales_type = self.sales_type
+			product_order.credit_note_rate_type=self.credit_note_rate_type
+			product_order.product_return_order_form = self.name
+			product_order.gold_rate_with_gst = self.gold_rate_with_gst
+			product_order.gold_rate = self.gold_rate
+			product_order.making_charges = self.making_charges_type
+			product_order.making_charges=self.making_charges_type
+			product_order.custom_making_charges = self.custom_making_charges
+			product_order.gemstone_charges=self.gemstone_charges
+			product_order.custom_gemstones_charges = self.custom_gemstones_charges
+			product_order.index =index
+			index += 1
 
+			product_order.item_code = item_row.item_code
+			product_order.item_name = item_row.item_name
+			product_order.bom = item_row.bom
+			product_order.serial_no = item_row.serial_no
+			product_order.hsn_sac = item_row.hsn_sac
+			product_order.item_group = item_row.item_group
+			product_order.item_category = item_row.item_category
+			product_order.description = item_row.description
+			product_order.uom = item_row.uom
+			product_order.physical_net_weight = item_row.physical_net_weight
+			product_order.physical_gross_weight = item_row.physical_gross_weight
+			product_order.sales_invoice = item_row.sales_invoice
+			product_order.sales_invoice_item = item_row.sales_invoice_item
+			product_order.warehouse = item_row.warehouse
+			product_order.rate = item_row.rate
+			product_order.making_amount = item_row.making_amount
+			product_order.metal_amount = item_row.metal_amount
+			product_order.diamond_amount = item_row.diamond_amount
+			product_order.finding_amount = item_row.finding_amount
+			product_order.gemstone_amount = item_row.gemstone_amount
+			product_order.hallmarking_amount = item_row.hallmarking_amount
+			product_order.certification_amount = item_row.certification_amount
+			product_order.net_weight = item_row.net_weight
+			product_order.gross_weight = item_row.gross_weight
+			product_order.physical_gross_weight = item_row.physical_gross_weight
+			product_order.physical_net_weight = item_row.physical_net_weight
+			product_order.diamond_weight = item_row.diamond_weight
+			product_order.metal_touch = item_row.metal_touch
+			product_order.metal_colour = item_row.metal_colour
+			product_order.item_subcategory = item_row.item_subcategory
+			product_order.metal_purity = item_row.metal_purity
+			product_order.setting_type = item_row.setting_type
+			product_order.amount = item_row.amount
+			bom = frappe.get_doc("BOM", item_row.bom)
+			# frappe.throw(f"BOM Metal: {len(bom.metal_detail)}")
+			system_fields = {
+				"name", "parent", "parentfield", "parenttype",
+				"doctype", "idx", "owner", "creation",
+				"modified", "modified_by", "docstatus"
+			}
+			child_tables = [
+				"metal_detail",
+				"finding_detail",
+				"diamond_detail",
+				"gemstone_detail",
+				"other_detail"
+			]
+			for table in child_tables:
+				for src in getattr(bom, table):
+					dest = product_order.append(table, {})
+
+					for key, value in src.as_dict().items():
+						if key not in system_fields:
+							dest.set(key, value)
+			
+			product_order.total_finding_pcs=bom.finding_pcs
+			product_order.total_gemstone_pcs=bom.total_gemstone_pcs
+			product_order.total_diamond_pcs=bom.total_diamond_pcs
+			product_order.insert(ignore_permissions=True)
+			product_order.save()
 			# If Tag No then Skip
 			if item_row.tag_no:
 				continue
@@ -191,13 +325,13 @@ class ProductReturnForm(Document):
 				frappe.throw(f"Serial No not found for item {frappe.bold(item_row.item_code)}")
 
 			# Active Serial No
-			frappe.db.set_value("Serial No", item_row.get("serial_no"), {"status": "Active","warehouse": warehouse})
+			# frappe.db.set_value("Serial No", item_row.get("serial_no"), {"status": "Active","warehouse": warehouse})
 
 			# Update BOM
 			frappe.db.set_value("BOM", item_row.get("bom"), "is_active", 1)
 
 		self.db_set("status", "Approved")
-		self.create_return_sales_invoices()
+		# self.create_return_sales_invoices()
 
 	@frappe.whitelist()
 	def create_return_sales_invoices(self):
@@ -259,17 +393,9 @@ class ProductReturnForm(Document):
 				return_doc.price_list_currency = original_si.price_list_currency
 				return_doc.plc_conversion_rate = original_si.plc_conversion_rate
 				return_doc.debit_to = original_si.debit_to
-				# return_doc.customer_address = original_si.customer_address
-				# return_doc.company_address = original_si.company_address
-				return_doc.company_address = frappe.db.get_value(
-					"Dynamic Link",
-					{
-						"link_doctype": "Company",
-						"link_name": return_doc.company
-					},
-					"parent"
-					)
-				# return_doc.shipping_address_name = original_si.shipping_address_name
+				return_doc.customer_address = original_si.customer_address
+				return_doc.company_address = original_si.company_address
+				return_doc.shipping_address_name = original_si.shipping_address_name
 				return_doc.cost_center = original_si.cost_center
 				return_doc.tax_category = original_si.tax_category
 				return_doc.taxes_and_charges = original_si.taxes_and_charges
@@ -299,10 +425,12 @@ class ProductReturnForm(Document):
 						["income_account", "cost_center", "warehouse",
 						"expense_account", "conversion_factor", "uom",
 						"stock_uom", "description", "item_name",
-						"item_group", "gst_hsn_code", "serial_no"],
+						"item_group", "gst_hsn_code", "serial_no","sales_order"],
 						as_dict=True
 					)
-
+					si_item = frappe.get_doc("Sales Invoice Item", prf_row.sales_invoice_item)
+					# print(si_item.as_dict())
+					# frappe.throw(f"{si_item.as_dict()}")
 					# Populate and set accounting fields explicitly for GL entries
 					amount = flt(-1 * abs(flt(prf_row.amount)), return_doc.precision("amount", "items"))
 					rate = flt(prf_row.rate, return_doc.precision("rate", "items"))
@@ -330,6 +458,7 @@ class ProductReturnForm(Document):
 						"income_account": original_item.get("income_account"),
 						"expense_account": original_item.get("expense_account"),
 						"cost_center": original_item.get("cost_center"),
+						"sales_order": original_item.get("sales_order"),
 						"warehouse": original_item.get("warehouse") or prf_row.get("warehouse"),
 						"serial_no": prf_row.serial_no,
 						"bom": prf_row.bom,
@@ -412,7 +541,7 @@ class ProductReturnForm(Document):
 					return_doc.party_account_currency = get_account_currency(return_doc.debit_to) or return_doc.currency
 				
 				# Set custom field to link back to PRF
-				return_doc.custom_product_return_form_ref = self.name
+				return_doc.custom_product_return_order_form_ref = self.name
 
 				# Skip ERPNext standard validate (rate check in validate_returned_items
 				# doesn't allow PRF rates that differ from original SI rates)
@@ -444,7 +573,7 @@ class ProductReturnForm(Document):
 
 		except Exception as e:
 			frappe.db.rollback()
-			# frappe.log_error(f"Error creating return invoice: {str(e)}")
+			frappe.log_error(f"Error creating return invoice: {str(e)}")
 			frappe.throw(f"Error creating return invoice: {str(e)}")
 		if created_invoices:
 			invoice_links = ", ".join(
@@ -460,7 +589,7 @@ class ProductReturnForm(Document):
 
 	def set_total_in_words(self):
 		from frappe.utils import money_in_words
-		self.in_words = money_in_words(self.grand_total)
+		self.in_words = money_in_words(self.rounded_total)
 
 	def apply_pcpm_manual_calculation(self):
 		"""
@@ -565,7 +694,8 @@ class ProductReturnForm(Document):
 		# -------------------------------------------------
 		self.total_taxes_and_charges = total_gst
 		self.grand_total = total_taxable + total_gst
-
+		self.rounded_total=round(self.grand_total)
+		self.rounding_adjustment=abs(self.rounded_total - self.grand_total)
 	def apply_bbpm_manual_calculation(self):
 		"""
 		Apply BBPM (Sale with Payment) manual calculation.
@@ -622,11 +752,34 @@ class ProductReturnForm(Document):
 				fields=["name"],
 				limit=1,
 			)
+			# if not mc:
+			# 		frappe.throw(
+			# 			f"Create a valid Making Charge Price for "
+			# 			f"{bom_doc.metal_type} / {bom_doc.metal_touch},{self.gold_rate_with_gst}"
+			# 		)
+			# customer_metal_purity = frappe.db.get_value(
+			# 	"Metal Criteria",
+			# 	{
+			# 		"parent": self.customer,
+			# 		"metal_type": md_row.metal_type,
+			# 		"metal_touch": md_row.metal_touch,
+			# 	},
+			# 	"metal_purity",
+			# )
 
+			# if not customer_metal_purity:
+			# 	frappe.throw("Metal Purity not found for Customer")
+
+			# calculated_gold_rate = (
+			# 	flt(customer_metal_purity) * self.gold_rate_with_gst
+			# ) / (100 + gold_gst_rate)
+
+			# line_gold_amt = round(calculated_gold_rate * md_row.quantity, 2)
+			
 			if not mc:
 				frappe.throw(
 					f"Create a valid Making Charge Price for "
-					f"{bom_doc.metal_type} / {bom_doc.metal_touch}"
+					f"{bom_doc.metal_type} / {bom_doc.metal_touch},{self.gold_rate_with_gst}"
 				)
 
 			mc_name = mc[0]["name"]
@@ -651,7 +804,7 @@ class ProductReturnForm(Document):
 						],
 						as_dict=True,
 					)
-
+					
 					if not sub_info:
 						frappe.throw(
 							f"Making Charge Subcategory {bom_doc.item_subcategory} not found"
@@ -667,6 +820,13 @@ class ProductReturnForm(Document):
 						making_rate = flt(sub_info.rate_per_gm)
 						wastage_rate = flt(sub_info.wastage) / 100
 
+				
+
+					line_making_amt = (
+						making_rate
+						if weight_for_calc < threshold
+						else making_rate * md_row.quantity
+					)
 					customer_metal_purity = frappe.db.get_value(
 						"Metal Criteria",
 						{
@@ -685,13 +845,12 @@ class ProductReturnForm(Document):
 					) / (100 + gold_gst_rate)
 
 					line_gold_amt = round(calculated_gold_rate * md_row.quantity, 2)
-
-					line_making_amt = (
-						making_rate
-						if weight_for_calc < threshold
-						else making_rate * md_row.quantity
-					)
-
+					if (
+						self.company == "KG GK Jewellers Private Limited"
+						and customer_group == "Internal"
+					):
+						line_gold_amt = md_row.amount
+						
 					line_wastage_amt = line_gold_amt * wastage_rate
 
 					row_metal_amt_total += line_gold_amt
@@ -759,7 +918,7 @@ class ProductReturnForm(Document):
 			# DIAMOND AMOUNT CALCULATION
 			# =================================================
 			if hasattr(bom_doc, "diamond_detail"):
-				# frappe.msgprint("Diamond Detail Found")
+				
 
 				for diamond_row in bom_doc.diamond_detail:
 
@@ -778,7 +937,7 @@ class ProductReturnForm(Document):
 
 					if not customer_price_list:
 						continue
-					
+					# frappe.throw("Diamond Detail Found")
 					diamond_price_list = customer_price_list[0].diamond_price_list
 
 					common_filters = {
@@ -805,9 +964,16 @@ class ProductReturnForm(Document):
 					weight_per_piece = round(weight_per_piece, 3)
 					
 					# frappe.msgprint(f"Diamond type: {diamond_row.diamond_type} <br> Shape: {diamond_row.stone_shape} <br> Quality: {diamond_row.quality} <br> Quantity: {diamond_row.quantity} <br> Pcs: {diamond_row.pcs} <br> Weight per Piece: {weight_per_piece}")
-
-					diamond_price_row = None
-
+					# if (
+					# 	self.company == "KG GK Jewellers Private Limited"
+					# 	and customer_group == "Internal"
+					# ):
+					# 	diamond_rate = diamond_row.total_diamond_rate
+					# 	quantity = round(diamond_row.quantity, 3)
+					# 	diamond_amount = round(quantity * diamond_rate, 2)
+					# row_diamond_amt_total += diamond_amount
+					# diamond_price_row = None
+					# frappe.throw(f"{diamond_price_list}Diamond Detail Found")
 					# -------------------------------
 					# PRICE LIST TYPE LOGIC
 					# -------------------------------
@@ -871,7 +1037,7 @@ class ProductReturnForm(Document):
 					if not diamond_price_row:
 						# frappe.msgprint("Diamond Price Row Not Found")
 						continue
-
+					# frappe.throw("Diamond Detail Found")
 					# -------------------------------
 					# RATE CALCULATION
 					# -------------------------------
@@ -898,7 +1064,7 @@ class ProductReturnForm(Document):
 						self.company == "KG GK Jewellers Private Limited"
 						and customer_group == "Internal"
 					):
-						diamond_rate = diamond_row.se_rate
+						diamond_rate = diamond_row.total_diamond_rate
 						quantity = round(diamond_row.quantity, 3)
 						diamond_amount = round(quantity * diamond_rate, 2)
 
@@ -964,7 +1130,9 @@ class ProductReturnForm(Document):
 						)
 
 						if not price_list:
-							frappe.throw("No Gemstone Price List found")
+							
+							# frappe.throw("No Gemstone Price List found")
+							return
 
 						rate = price_list[0].rate
 						row_gemstone_amt_total += calculate_percentage_amount(rate, gs_row.quantity)
@@ -1019,7 +1187,8 @@ class ProductReturnForm(Document):
 						)
 
 						if not price_list:
-							frappe.throw("Gemstone Diamond Range price list not found")
+							return
+							# frappe.throw("Gemstone Diamond Range price list not found")
 
 						price_list_doc = frappe.get_doc("Gemstone Price List", price_list[0].name)
 
@@ -1091,6 +1260,7 @@ class ProductReturnForm(Document):
 			row.metal_amount = row_metal_amt_total
 			row.finding_amount = row_finding_amt_total
 			row.diamond_amount = row_diamond_amt_total
+			# row.diamond_amount= bom_doc.total_diamond_amount
 			row.gemstone_amount = row_gemstone_amt_total
 
 			# Making charges must be applied exactly as per the original invoice rate or as selected in the form
@@ -1109,13 +1279,16 @@ class ProductReturnForm(Document):
 			else:
 				row.making_amount = 0
 
-			row.rate = row.metal_amount + row.finding_amount + row.diamond_amount + row.gemstone_amount + row.making_amount
+			row.rate = row.metal_amount + row.finding_amount + row.diamond_amount + row.gemstone_amount + row.making_amount + row.hallmarking_amount + row.certification_amount
 			row.amount = row.rate * row.qty
+			# frappe.throw(f"{row.amount},{row.diamond_amount},{row.metal_amount}")
 
 			total_taxable += row.amount
 
 		self.total_taxes_and_charges = total_gst
 		self.grand_total = total_taxable + total_gst
+		self.rounded_total=round(self.grand_total)
+		self.rounding_adjustment=abs(self.rounded_total - self.grand_total)
 
 	def apply_physical_repair_manual_calculation(self):
 		"""
@@ -1661,7 +1834,8 @@ class ProductReturnForm(Document):
 
 		self.total_taxes_and_charges = total_gst
 		self.grand_total = total_taxable + total_gst
-
+		self.rounded_total=round(self.grand_total)
+		self.rounding_adjustment=abs(self.rounded_total - self.grand_total)
 	def apply_consignment_raw_material_manual_calculation(self):
 		"""
 		Apply manual calculation for Consignment: Raw Material credit notes.
@@ -1762,6 +1936,8 @@ class ProductReturnForm(Document):
 		# -------------------------------------------------
 		self.total_taxes_and_charges = total_gst
 		self.grand_total = total_taxable + total_gst
+		self.rounded_total=round(self.grand_total)
+		self.rounding_adjustment=abs(self.rounded_total - self.grand_total)
 	
 	def _get_customer_state(self):
 		"""
@@ -1835,7 +2011,7 @@ class ProductReturnForm(Document):
 		branch_state = None
 		if self.branch:
 			branch_state = frappe.db.get_value("Branch", self.branch, "state")
-
+		# frappe.throw(f"{customer_state},{branch_state}hii")
 		# Handle edge cases - if either state is missing, don't auto-set
 		if not customer_state or not branch_state:
 			return
@@ -1843,13 +2019,15 @@ class ProductReturnForm(Document):
 		# frappe.msgprint(f"Customer State: {customer_state} <br> Branch State: {branch_state}")
 		# Compare states and set tax category
 		if customer_state == branch_state:
+			# frappe.throw("hii")
 			self.tax_category = "In-State"
 		else:
+			# frappe.throw("hiie")
 			self.tax_category = "Out-State"
 
 	def calculate_sales_taxes_and_charges(self):
 		"""
-		Handle Finished Goods (3%) and Subcontracting (5%) GST calculation.
+		Handle Finished Goods Return (3%) and Subcontracting (5%) GST calculation.
 		Populates the sales_taxes_and_charges child table based on
 		the selected Item Tax Template.
 
@@ -1864,14 +2042,14 @@ class ProductReturnForm(Document):
 		8. Clear and rebuild taxes table
 		9. Add tax rows to sales_taxes_and_charges
 		"""
-		if self.sales_type not in ['Finished Goods', 'Subcontracting']:
+		if self.sales_type not in ['Finished Goods Return', 'Subcontracting']:
 			return
 		if not self.items:
 			return
 
 		# Map Sales Type + Company to appropriate Item Tax Template
 		template_map = {
-			'Finished Goods': {
+			'Finished Goods Return': {
 				'Gurukrupa Export Private Limited': 'GST 3% - GEPL',
 				'KG GK Jewellers Private Limited': 'GST 3% - KGJPL',
 			},
@@ -1884,7 +2062,9 @@ class ProductReturnForm(Document):
 		
 		if not item_tax_template:
 			return
-		
+		# for row in self.items:
+		# 	row.rate = row.base_rate
+		# 	row.amount = row.base_amount
 		for row in self.items:
 			hallmarking_amount = frappe.db.get_value(
 				"BOM", row.bom, "hallmarking_amount"
@@ -1917,7 +2097,7 @@ class ProductReturnForm(Document):
 
 			row.rate = rate
 			row.amount = amount
-		
+			# frappe.throw(f"{row.amount}")
 		# Calculate Net Total from items
 		net_total = sum(flt(item.amount) for item in self.items)
 
@@ -1983,6 +2163,8 @@ class ProductReturnForm(Document):
 		# Set totals
 		self.total_taxes_and_charges = sum(flt(d.tax_amount) for d in self.sales_taxes_and_charges)
 		self.grand_total = net_total + self.total_taxes_and_charges
+		self.rounded_total=round(self.grand_total)
+		self.rounding_adjustment=abs(self.rounded_total - self.grand_total)
 
 	def calculate_taxes_and_totals(self):
 		self.calculate_sales_taxes_and_charges()
@@ -2036,27 +2218,49 @@ def get_sales_bom_nd_invoice(serial_no, customer, sales_type):
 		.where(
 			(SalesInvoice.docstatus == 1)
 			& (SalesInvoice.is_return == False)
-			& (SalesInvoice.sales_type == sales_type)
+			# g& (SalesInvoice.sales_type == sales_type)
 			& (SalesInvoiceItem.serial_no == serial_no)
 		)
+		.orderby(SalesInvoice.creation, order=Order.desc)
 		.limit(1)
 		.run(as_dict=True)
 	)
-
+	# frappe.throw(f"{result}")
 	if not result:
 		frappe.throw(f"Serial No {serial_no} not found in any submitted Sales Invoice")
 
 	if result[0].customer != customer:
 		frappe.throw(
-			f"Serial No {serial_no} does not belong to Customer {frappe.bold(customer_name)}. "
+			f"Serial No {serial_no} does not belong to Customer {customer},{frappe.bold(customer_name)}. "
 		)
 
 	sales_invoice_item = frappe.db.get_value("Sales Invoice Item", {"name": result[0].sii_name}, "*",as_dict=True)
+	bom_details = {}
+	if sales_invoice_item.get("bom"):
+		bom_details = frappe.db.get_value(
+			"BOM",
+			sales_invoice_item.bom,
+			["metal_and_finding_weight", "gross_weight","metal_purity","metal_touch","diamond_quality","item_subcategory","metal_purity","setting_type","total_metal_weight","diamond_weight","metal_colour","total_gemstone_weight"],
+			as_dict=True
+		) or {}
 
+	# frappe.throw(f"gtf{sales_invoice_item}")
 	return {
 		"sales_invoice": sales_invoice_item,
 		"item_code": item_code,
-		"bom": sales_invoice_item.get("bom","")
+		"bom": sales_invoice_item.get("bom",""),
+		"net_weight": bom_details.get("metal_and_finding_weight"),
+    	"gross_weight": bom_details.get("gross_weight"),
+		"metal_purity": bom_details.get("metal_purity"),
+		"metal_touch": bom_details.get("metal_touch"),
+		"metal_colour": bom_details.get("metal_colour"),
+		"diamond_quality": bom_details.get("diamond_quality"),
+		"item_subcategory": bom_details.get("item_subcategory"),
+		"metal_purity": bom_details.get("metal_purity"),
+		"setting_type": bom_details.get("setting_type"),
+		"total_metal_weight": bom_details.get("total_metal_weight"),
+		"total_diamond_weight_in_gms": bom_details.get("diamond_weight"),
+		"total_gemstone_weight": bom_details.get("total_gemstone_weight")
 	}
 
 
@@ -2108,16 +2312,16 @@ def get_credit_note_adjusted_bom(doc, invoice_item, bom_name):
 		})
 
 	credit_note_type = doc.credit_note_type
-	credit_note_subtype = doc.credit_note_subtype
+	return_subtype = doc.return_subtype
 
 	rate_update_rules = {
 		# Sale without payment / QC fail repair / FG consignment
-		("Actual", "Sale Without Payment-Actual"): apply_invoice_rate_to_bom,
+		("Return", "Sale Without Payment-Return"): apply_invoice_rate_to_bom,
 		("Repair", "QC Fail-Repair"): apply_invoice_rate_to_bom,
 		("Consignment", "Finish Goods-Consignment"): apply_invoice_rate_to_bom,
 
 		# BBPM – Sale with payment
-		("Actual", "Sale With Payment-Actual"): apply_current_bbpm_rate_to_bom,
+		("Return", "Sale With Payment-Return"): apply_current_bbpm_rate_to_bom,
 
 		# Physical repair
 		("Repair", "Physical-Repair"): apply_current_physical_repair_rate_to_bom,
@@ -2128,7 +2332,7 @@ def get_credit_note_adjusted_bom(doc, invoice_item, bom_name):
 	}
 
 	bom_update_fn = rate_update_rules.get(
-		(credit_note_type, credit_note_subtype)
+		(credit_note_type, return_subtype)
 	)
 
 	if bom_update_fn:
@@ -2504,6 +2708,7 @@ def apply_current_bbpm_rate_to_bom(doc, bom_data: dict, invoice_item_doc: dict):
 			diamond_rate = dd_row.se_rate
 			quantity = round(dd_row.quantity, 3)
 			diamond_amount = round(quantity * diamond_rate, 2)
+			# frappe.throw(f"{diamond_amount}")
 
 		elif (
 			doc.company == "Gurukrupa Export Private Limited"

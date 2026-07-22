@@ -8,7 +8,6 @@
   "basic_information_section",
   "customer",
   "customer_name",
-  "is_jewlex_credit_note",
   "column_break_pcxn",
   "company",
   "branch",
@@ -20,9 +19,13 @@
   "section_break_khlv",
   "credit_note_type",
   "credit_note_subtype",
+  "return_subtype",
   "column_break_zfrc",
   "credit_note_rate_type",
   "making_charges_type",
+  "custom_making_charges",
+  "gemstone_charges",
+  "custom_gemstones_charges",
   "return_material_type",
   "section_break_pgcn",
   "gold_rate_with_gst",
@@ -42,10 +45,13 @@
   "total_taxes_and_charges",
   "column_break_ryza",
   "grand_total",
+  "rounding_adjustment",
+  "rounded_total",
   "in_words",
   "amended_from",
   "section_break_xbxj",
-  "jwelex_credit_note_data"
+  "jwelex_credit_note_data",
+  "connections_tab"
  ],
  "fields": [
   {
@@ -102,6 +108,7 @@
    "default": "Draft",
    "fieldname": "status",
    "fieldtype": "Select",
+   "hidden": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
@@ -116,8 +123,8 @@
    "fieldname": "branch",
    "fieldtype": "Link",
    "label": "Branch",
-   "options": "Branch",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.company == 'Gurukrupa Export Private Limited'",
+   "options": "Branch"
   },
   {
    "fieldname": "section_break_khlv",
@@ -126,7 +133,7 @@
   {
    "fieldname": "credit_note_type",
    "fieldtype": "Link",
-   "label": "Credit Note Type",
+   "label": "Return Type",
    "options": "Credit Note Type",
    "reqd": 1
   },
@@ -136,18 +143,18 @@
   },
   {
    "fieldname": "credit_note_subtype",
-   "fieldtype": "Link",
+   "fieldtype": "Select",
    "in_list_view": 1,
-   "label": "Credit Note SubType",
-   "options": "Credit Note Subtype",
+   "label": "Payment Reconcilliation Against Invoice",
+   "options": "Yes\nNo",
    "reqd": 1
   },
   {
    "default": "With",
    "fieldname": "making_charges_type",
    "fieldtype": "Select",
-   "label": "Making Charges Type",
-   "options": "With\nWithout\nHalf",
+   "label": "Making Charges",
+   "options": "With\nWithout\nHalf\nCustom",
    "read_only_depends_on": "eval: doc.credit_note_subtype == \"Raw Material-Consignment\" || doc.credit_note_subtype == \"QC Fail-Repair\""
   },
   {
@@ -210,7 +217,7 @@
   {
    "fieldname": "credit_note_invoice_item",
    "fieldtype": "Table",
-   "label": "Credit Note Invoice Item",
+   "label": "Return Invoice Item",
    "options": "Product Return Form E Invoice Item"
   },
   {
@@ -242,9 +249,8 @@
    "fetch_if_empty": 1,
    "fieldname": "credit_note_rate_type",
    "fieldtype": "Select",
-   "label": "Credit Note Rate Type",
-   "options": "\nInvoice Rate\nCurrent Rate",
-   "read_only": 1
+   "label": "Return Rate Type",
+   "options": "\nInvoice Rate\nCurrent Rate"
   },
   {
    "fieldname": "scan_barcode",
@@ -261,10 +267,10 @@
    "read_only": 1
   },
   {
+   "default": "Finished Goods Return",
    "fieldname": "sales_type",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "Sales Type",
-   "options": "Sales Type",
    "reqd": 1
   },
   {
@@ -278,16 +284,10 @@
    "fieldtype": "Link",
    "label": "Amended From",
    "no_copy": 1,
-   "options": "Product Return Form",
+   "options": "Product Return Order Form",
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "is_jewlex_credit_note",
-   "fieldtype": "Check",
-   "label": "Is Jewlex Credit Note"
   },
   {
    "fieldname": "section_break_xbxj",
@@ -311,16 +311,63 @@
    "fieldname": "product_certification",
    "fieldtype": "Check",
    "label": "Product Certification"
+  },
+  {
+   "fieldname": "rounding_adjustment",
+   "fieldtype": "Currency",
+   "label": "Rounding Adjustment (INR)"
+  },
+  {
+   "fieldname": "rounded_total",
+   "fieldtype": "Currency",
+   "label": "Rounded Total (INR)"
+  },
+  {
+   "fieldname": "gemstone_charges",
+   "fieldtype": "Select",
+   "label": "Gemstone Charges",
+   "options": "With\nWithout\nHalf\nCustom"
+  },
+  {
+   "fieldname": "custom_making_charges",
+   "fieldtype": "Data",
+   "label": "Custom Making Charges"
+  },
+  {
+   "fieldname": "custom_gemstones_charges",
+   "fieldtype": "Data",
+   "label": "Custom Gemstones Charges"
+  },
+  {
+   "fieldname": "return_subtype",
+   "fieldtype": "Link",
+   "label": "Return Subtype",
+   "options": "Credit Note Subtype"
+  },
+  {
+   "fieldname": "connections_tab",
+   "fieldtype": "Tab Break",
+   "label": "Connections",
+   "show_dashboard": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
- "links": [],
- "modified": "2026-03-18 11:55:13.766560",
- "modified_by": "aditya_r@gkexport.com",
+ "links": [
+  {
+   "link_doctype": "Product Return Order",
+   "link_fieldname": "product_return_order_form"
+  },
+  {
+   "link_doctype": "Sales Invoice",
+   "link_fieldname": "custom_product_return_form_ref"
+  }
+ ],
+ "modified": "2026-07-21 14:25:58.731295",
+ "modified_by": "shruti_b@gkexport.com",
  "module": "Gke Price List",
- "name": "Product Return Form",
+ "name": "Product Return Order Form",
  "naming_rule": "Expression",
  "owner": "aditya_r@gkexport.com",
  "permissions": [

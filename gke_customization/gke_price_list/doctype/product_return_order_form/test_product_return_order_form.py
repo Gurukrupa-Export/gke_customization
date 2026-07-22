@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestProductReturnForm(FrappeTestCase):
+class TestProductReturnOrderForm(FrappeTestCase):
 	pass
