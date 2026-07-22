@@ -1,0 +1,867 @@
+{
+ "actions": [],
+ "autoname": "format:{product_return_order_form}-{index}",
+ "creation": "2026-07-17 13:33:39.815849",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "basic_information_section",
+  "index",
+  "customer",
+  "customer_name",
+  "is_jewlex_credit_note",
+  "product_return_order_form",
+  "column_break_pcxn",
+  "company",
+  "branch",
+  "sales_type",
+  "column_break_fmev",
+  "date",
+  "posting_time",
+  "status",
+  "section_break_khlv",
+  "return_type",
+  "payment_reconcilliation_against_invoice",
+  "return_subtype",
+  "making_charges",
+  "custom_making_charges",
+  "credit_note_rate_type",
+  "return_material_type",
+  "gemstone_charges",
+  "custom_gemstone_charges",
+  "column_break_zfrc",
+  "section_break_pgcn",
+  "gold_rate_with_gst",
+  "column_break_wlwn",
+  "gold_rate",
+  "section_break_igyp",
+  "jwelex_credit_note_data",
+  "amended_from",
+  "item_code",
+  "serial_no",
+  "hsn_sac",
+  "item_group",
+  "column_break_kfci",
+  "item_name",
+  "bom",
+  "new_bom",
+  "section_break_mt4i",
+  "tag_no",
+  "metal_touch",
+  "metal_purity",
+  "metal_colour",
+  "setting_type",
+  "net_weight",
+  "gross_weight",
+  "column_break_1w3e",
+  "item_category",
+  "item_subcategory",
+  "gold_weight",
+  "diamond_quality",
+  "diamond_weight",
+  "physical_net_weight",
+  "physical_gross_weight",
+  "description_section",
+  "description",
+  "image_section",
+  "image",
+  "image_view",
+  "section_break_hxqp",
+  "qty",
+  "column_break_rcim",
+  "uom",
+  "section_break_zutr",
+  "rate",
+  "amount",
+  "column_break_xurv",
+  "base_rate",
+  "base_amount",
+  "section_break_bynu",
+  "metal_amount",
+  "diamond_amount",
+  "finding_amount",
+  "making_amount",
+  "certification_amount",
+  "freight_amount",
+  "column_break_mjav",
+  "gemstone_amount",
+  "other_material_amount",
+  "hallmarking_amount",
+  "custom_duty_amount",
+  "other_amount",
+  "section_break_cdba",
+  "total_weight",
+  "column_break_bvln",
+  "warehouse",
+  "references_section",
+  "sales_invoice",
+  "column_break_pzba",
+  "return_sales_invoice",
+  "sales_invoice_item",
+  "bom_tab",
+  "metal_tab",
+  "metal_detail",
+  "total_metal_weight",
+  "finding_tab",
+  "finding_detail",
+  "total_finding_pcs",
+  "finding_weight",
+  "gemstone_tab",
+  "gemstone_detail",
+  "total_gemstone_pcs",
+  "total_gemstone_weightin_gms",
+  "total_gemstone_amount",
+  "diamond_tab",
+  "diamond_detail",
+  "total_diamond_pcs",
+  "total_diamond_amount",
+  "total_diamond_weight_in_gram",
+  "other_section",
+  "other_detail",
+  "total_other_pcs",
+  "total_other_weight"
+ ],
+ "fields": [
+  {
+   "fieldname": "basic_information_section",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_jewlex_credit_note",
+   "fieldtype": "Check",
+   "label": "Is Jewlex Credit Note",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_pcxn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "mandatory_depends_on": "eval:doc.company == 'Gurukrupa Export Private Limited'",
+   "options": "Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sales Type",
+   "options": "Sales Type",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_fmev",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "default": "Now",
+   "fieldname": "posting_time",
+   "fieldtype": "Time",
+   "label": "Posting Time",
+   "read_only": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Status",
+   "options": "Draft\nItem & BOM Creation\nSend to Pricing\nVerified\nApproved\nIssued\nCancelled",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_khlv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_zfrc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "credit_note_subtype.rate_type",
+   "fieldname": "credit_note_rate_type",
+   "fieldtype": "Select",
+   "label": "Return Rate Type",
+   "options": "\nInvoice Rate\nCurrent Rate"
+  },
+  {
+   "fieldname": "return_material_type",
+   "fieldtype": "Select",
+   "label": "Return Material Type",
+   "options": "\nMetal-Finding\nDiamond-Gemstone",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval: doc.credit_note_rate_type == 'Current Rate'",
+   "fieldname": "section_break_pgcn",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "gold_rate_with_gst",
+   "fieldtype": "Currency",
+   "label": "Metal Rate With GST",
+   "mandatory_depends_on": "eval: doc.credit_note_rate_type == 'Current Rate'",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_wlwn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "gold_rate",
+   "fieldtype": "Currency",
+   "label": "Metal Rate",
+   "mandatory_depends_on": "eval: doc.credit_note_rate_type == 'Current Rate'"
+  },
+  {
+   "fieldname": "section_break_igyp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Product Return Order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "jwelex_credit_note_data",
+   "fieldtype": "Code",
+   "label": "Jwelex Credit Note Data",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Product Return Order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Link",
+   "label": "Serial No",
+   "options": "Serial No",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "item_code.gst_hsn_code",
+   "fetch_if_empty": 1,
+   "fieldname": "hsn_sac",
+   "fieldtype": "Data",
+   "label": "HSN/SAC",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "item_code.item_group",
+   "fetch_if_empty": 1,
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Item Group",
+   "options": "Item Group",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_kfci",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "item_code.item_name",
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bom",
+   "fieldtype": "Link",
+   "label": "BOM",
+   "options": "BOM",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_mt4i",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "tag_no",
+   "fieldtype": "Data",
+   "label": "Tag No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "metal_touch",
+   "fieldtype": "Link",
+   "label": "Metal Touch",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "metal_purity",
+   "fieldtype": "Link",
+   "label": "Metal Purity",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "metal_colour",
+   "fieldtype": "Link",
+   "label": "Metal Colour ",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "setting_type",
+   "fieldtype": "Link",
+   "label": "Setting Type",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1w3e",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "item_code.item_category",
+   "fieldname": "item_category",
+   "fieldtype": "Link",
+   "label": "Item Category",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item_subcategory",
+   "fieldtype": "Link",
+   "label": "Item Subcategory",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gold_weight",
+   "fieldtype": "Float",
+   "label": "Metal Weight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "diamond_quality",
+   "fieldtype": "Link",
+   "label": "Diamond Quality",
+   "options": "Attribute Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "diamond_weight",
+   "fieldtype": "Float",
+   "label": "Diamond Weight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "description_section",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "fetch_from": "item_code.description",
+   "fetch_if_empty": 1,
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description",
+   "read_only": 1
+  },
+  {
+   "fieldname": "image_section",
+   "fieldtype": "Section Break",
+   "label": "Image"
+  },
+  {
+   "fetch_from": "item_code.image",
+   "fetch_if_empty": 1,
+   "fieldname": "image",
+   "fieldtype": "Attach",
+   "label": "Image"
+  },
+  {
+   "fieldname": "image_view",
+   "fieldtype": "Image",
+   "label": "Image View",
+   "options": "image"
+  },
+  {
+   "fieldname": "section_break_hxqp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "label": "Quantity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_rcim",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Nos",
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_zutr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "label": "Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_xurv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "base_rate",
+   "fieldtype": "Currency",
+   "label": "Rate (Company Currency)",
+   "options": "Company:company:default_currency",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "base_amount",
+   "fieldtype": "Currency",
+   "label": "Amount (Company Currency)",
+   "options": "Company:company:default_currency",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_bynu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "metal_amount",
+   "fieldtype": "Currency",
+   "label": "Metal Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "diamond_amount",
+   "fieldtype": "Currency",
+   "label": "Diamond Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "finding_amount",
+   "fieldtype": "Currency",
+   "label": "Finding Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "making_amount",
+   "fieldtype": "Currency",
+   "label": "Making Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "certification_amount",
+   "fieldtype": "Currency",
+   "label": "Certification Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "freight_amount",
+   "fieldtype": "Currency",
+   "label": "Freight Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_mjav",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "gemstone_amount",
+   "fieldtype": "Currency",
+   "label": "Gemstone Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "other_material_amount",
+   "fieldtype": "Currency",
+   "label": "Other Material Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "hallmarking_amount",
+   "fieldtype": "Currency",
+   "label": "Hallmarking Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_duty_amount",
+   "fieldtype": "Currency",
+   "label": "Custom Duty Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "other_amount",
+   "fieldtype": "Currency",
+   "label": "Other Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_cdba",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_weight",
+   "fieldtype": "Float",
+   "label": "Total Weight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_bvln",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "references_section",
+   "fieldtype": "Section Break",
+   "label": "References"
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_pzba",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "return_sales_invoice",
+   "fieldtype": "Link",
+   "label": "Return Sales Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_invoice_item",
+   "fieldtype": "Data",
+   "label": "Sales Invoice Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "product_return_order_form",
+   "fieldtype": "Link",
+   "label": "Product Return Order Form",
+   "options": "Product Return Order Form",
+   "read_only": 1
+  },
+  {
+   "fieldname": "index",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Index",
+   "read_only": 1
+  },
+  {
+   "fieldname": "net_weight",
+   "fieldtype": "Data",
+   "label": "Net Weight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gross_weight",
+   "fieldtype": "Data",
+   "label": "Gross Weight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "physical_net_weight",
+   "fieldtype": "Float",
+   "label": "Physical Net Weight"
+  },
+  {
+   "fieldname": "physical_gross_weight",
+   "fieldtype": "Float",
+   "label": "Physical Gross Weight"
+  },
+  {
+   "fieldname": "metal_tab",
+   "fieldtype": "Section Break",
+   "label": "Metal"
+  },
+  {
+   "fieldname": "metal_detail",
+   "fieldtype": "Table",
+   "label": "Metal Detail",
+   "options": "Product Return Order Metal Detail"
+  },
+  {
+   "fieldname": "finding_tab",
+   "fieldtype": "Section Break",
+   "label": "Finding"
+  },
+  {
+   "fieldname": "finding_detail",
+   "fieldtype": "Table",
+   "label": "Finding Detail",
+   "options": "Product Return Order Finding Detail"
+  },
+  {
+   "fieldname": "gemstone_tab",
+   "fieldtype": "Section Break",
+   "label": "Gemstone"
+  },
+  {
+   "fieldname": "gemstone_detail",
+   "fieldtype": "Table",
+   "label": "Gemstone Detail",
+   "options": "Product Return Order Gemstone Detail"
+  },
+  {
+   "fieldname": "diamond_tab",
+   "fieldtype": "Section Break",
+   "label": "Diamond"
+  },
+  {
+   "fieldname": "diamond_detail",
+   "fieldtype": "Table",
+   "label": "Diamond Detail",
+   "options": "Product Return Order Diamond Detail"
+  },
+  {
+   "fieldname": "total_metal_weight",
+   "fieldtype": "Data",
+   "label": "Total Metal Weight"
+  },
+  {
+   "fieldname": "total_finding_pcs",
+   "fieldtype": "Data",
+   "label": "Total Finding Pcs"
+  },
+  {
+   "fieldname": "finding_weight",
+   "fieldtype": "Data",
+   "label": "Finding Weight"
+  },
+  {
+   "fieldname": "total_gemstone_pcs",
+   "fieldtype": "Data",
+   "label": "Total Gemstone Pcs"
+  },
+  {
+   "fieldname": "total_gemstone_weightin_gms",
+   "fieldtype": "Data",
+   "label": "Total Gemstone Weight(In gms)"
+  },
+  {
+   "fieldname": "total_gemstone_amount",
+   "fieldtype": "Data",
+   "label": "Total Gemstone Amount"
+  },
+  {
+   "fieldname": "total_diamond_pcs",
+   "fieldtype": "Data",
+   "label": "Total Diamond Pcs"
+  },
+  {
+   "fieldname": "total_diamond_amount",
+   "fieldtype": "Data",
+   "label": "Total Diamond Amount"
+  },
+  {
+   "fieldname": "total_diamond_weight_in_gram",
+   "fieldtype": "Data",
+   "label": "Total Diamond Weight (In Gram)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "new_bom",
+   "fieldtype": "Link",
+   "label": "New BOM",
+   "options": "BOM"
+  },
+  {
+   "fieldname": "other_detail",
+   "fieldtype": "Table",
+   "label": "Other Detail",
+   "options": "Product Return Order Other Detail"
+  },
+  {
+   "fieldname": "bom_tab",
+   "fieldtype": "Tab Break",
+   "label": "BOM"
+  },
+  {
+   "fieldname": "other_section",
+   "fieldtype": "Section Break",
+   "label": "Other"
+  },
+  {
+   "fieldname": "total_other_pcs",
+   "fieldtype": "Data",
+   "label": "Total Other Pcs"
+  },
+  {
+   "fieldname": "total_other_weight",
+   "fieldtype": "Data",
+   "label": "Total Other Weight"
+  },
+  {
+   "fieldname": "return_type",
+   "fieldtype": "Link",
+   "label": "Return Type",
+   "options": "Credit Note Type"
+  },
+  {
+   "fieldname": "payment_reconcilliation_against_invoice",
+   "fieldtype": "Data",
+   "label": "Payment Reconcilliation Against Invoice",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "return_subtype",
+   "fieldtype": "Link",
+   "label": "Return Subtype",
+   "options": "Credit Note Subtype"
+  },
+  {
+   "fieldname": "making_charges",
+   "fieldtype": "Select",
+   "label": "Making Charges",
+   "options": "With\nWithout\nHalf\nCustom"
+  },
+  {
+   "fieldname": "gemstone_charges",
+   "fieldtype": "Select",
+   "label": "Gemstone Charges",
+   "options": "With\nWithout\nHalf\nCustom"
+  },
+  {
+   "fieldname": "custom_making_charges",
+   "fieldtype": "Float",
+   "label": "Custom Making Charges"
+  },
+  {
+   "fieldname": "custom_gemstone_charges",
+   "fieldtype": "Float",
+   "label": "Custom Gemstone Charges"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-21 14:28:47.103558",
+ "modified_by": "shruti_b@gkexport.com",
+ "module": "Gke Price List",
+ "name": "Product Return Order",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
