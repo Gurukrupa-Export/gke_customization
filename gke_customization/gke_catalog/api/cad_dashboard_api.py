@@ -491,7 +491,7 @@ def _get_filters(filters):
 BASE_CONDITION = """
     `tabOrder`.bom_or_cad = 'CAD'
     AND `tabOrder`.workflow_type = 'CAD'
-    AND `tabOrder`.workflow_state IN ('Approved', 'Update Item')
+    AND `tabOrder`.workflow_state IN ('Approved', 'Update Item', 'Customer Approval')
     AND `tabTimesheet`.workflow_state = 'Approved'
 """
 
@@ -503,7 +503,7 @@ STAFF_BASE_CONDITION = """
     AND `tabEmployee`.department NOT LIKE '%%Sketch%%'
     AND `tabOrder`.bom_or_cad = 'CAD'
     AND `tabOrder`.workflow_type = 'CAD'
-    AND `tabOrder`.workflow_state IN ('Approved', 'Update Item')
+    AND `tabOrder`.workflow_state IN ('Approved', 'Update Item', 'Customer Approval')
     AND `tabTimesheet`.workflow_state = 'Approved'
 """
 
@@ -623,7 +623,7 @@ def _get_designer_salary_rows(filters):
           AND `tabEmployee`.department NOT LIKE '%%Sketch%%'
           AND `tabOrder`.bom_or_cad = 'CAD'
           AND `tabOrder`.workflow_type = 'CAD'
-          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item')
+          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item', 'Customer Approval')
           AND `tabTimesheet`.workflow_state = 'Approved'
           {extra} {dc}
     """
@@ -671,7 +671,7 @@ def _compute_staff_salary(filters):
               AND `tabEmployee`.designation <> 'Computer Aided Designer'
               AND `tabOrder`.bom_or_cad = 'CAD'
               AND `tabOrder`.workflow_type = 'CAD'
-              AND `tabOrder`.workflow_state IN ('Approved', 'Update Item')
+              AND `tabOrder`.workflow_state IN ('Approved', 'Update Item', 'Customer Approval')
               AND `tabTimesheet`.workflow_state = 'Approved'
               {extra} {dc}
         ) x
@@ -738,7 +738,7 @@ def get_designer_count(filters=None):
           AND `tabEmployee`.department NOT LIKE '%%Sketch%%'
           AND `tabOrder`.bom_or_cad = 'CAD'
           AND `tabOrder`.workflow_type = 'CAD'
-          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item')
+          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item', 'Customer Approval')
           AND `tabTimesheet`.workflow_state = 'Approved'
           {extra} {dc}
     """
@@ -836,7 +836,7 @@ def get_avg_days(filters=None):
           AND `tabTimesheet`.end_date IS NOT NULL
           AND `tabOrder`.bom_or_cad = 'CAD'
           AND `tabOrder`.workflow_type = 'CAD'
-          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item')
+          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item', 'Customer Approval')
           {extra} {dc}
     """
     return _run(sql, vals + dv)
@@ -861,7 +861,7 @@ def get_designer_count(filters=None):
           AND `tabEmployee`.department NOT LIKE '%%Sketch%%'
           AND `tabOrder`.bom_or_cad = 'CAD'
           AND `tabOrder`.workflow_type = 'CAD'
-          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item')
+          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item', 'Customer Approval')
           AND `tabTimesheet`.workflow_state = 'Approved'
           {extra} {dc}
     """
