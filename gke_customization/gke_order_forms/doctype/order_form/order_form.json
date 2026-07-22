@@ -30,6 +30,7 @@
   "column_break_4",
   "po_no",
   "order_type",
+  "sales_type",
   "flow_type",
   "due_days",
   "diamond_quality",
@@ -165,7 +166,7 @@
    "fieldname": "order_type",
    "fieldtype": "Select",
    "label": "Order Type",
-   "options": "\nSales\nStock Order\nPurchase",
+   "options": "\nSales\nStock Order\nPurchase\nRepair",
    "reqd": 1
   },
   {
@@ -269,7 +270,7 @@
    "fieldtype": "Select",
    "label": "Flow Type",
    "mandatory_depends_on": "eval:doc.order_type != 'Purchase'",
-   "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO"
+   "options": "\nMTO\nMTBI\nMTR\nFILLER\nGCC\nUS\nJWO\nRepair"
   },
   {
    "fetch_from": "customer_code.customer_name",
@@ -424,6 +425,12 @@
    "fieldname": "bom_format_file",
    "fieldtype": "Attach",
    "label": "BOM Format File"
+  },
+  {
+   "fieldname": "sales_type",
+   "fieldtype": "Link",
+   "label": "Sales Type",
+   "options": "Sales Type"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -446,7 +453,7 @@
    "link_fieldname": "custom_form_id"
   }
  ],
- "modified": "2026-07-02 10:12:17.822381",
+ "modified": "2026-07-22 09:33:21.698822",
  "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Order Form",
