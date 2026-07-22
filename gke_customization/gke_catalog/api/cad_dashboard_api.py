@@ -491,8 +491,8 @@ def _get_filters(filters):
 BASE_CONDITION = """
     `tabOrder`.bom_or_cad = 'CAD'
     AND `tabOrder`.workflow_type = 'CAD'
-    AND `tabOrder`.workflow_state IN ('Approved', 'Update Item', 'Customer Approval')
-    AND `tabTimesheet`.workflow_state = 'Approved'
+    AND `tabOrder`.workflow_state IN ('Approved', 'Update Item')
+    AND `tabTimesheet`.workflow_state IN ('Approved', 'Customer Approval')
 """
 
 # used by the 4 "active designer" style queries (design_by_employee, design_by_category,
@@ -504,7 +504,7 @@ STAFF_BASE_CONDITION = """
     AND `tabOrder`.bom_or_cad = 'CAD'
     AND `tabOrder`.workflow_type = 'CAD'
     AND `tabOrder`.workflow_state IN ('Approved', 'Update Item', 'Customer Approval')
-    AND `tabTimesheet`.workflow_state = 'Approved'
+    AND `tabTimesheet`.workflow_state IN ('Approved', 'Customer Approval')
 """
 
 
@@ -623,8 +623,8 @@ def _get_designer_salary_rows(filters):
           AND `tabEmployee`.department NOT LIKE '%%Sketch%%'
           AND `tabOrder`.bom_or_cad = 'CAD'
           AND `tabOrder`.workflow_type = 'CAD'
-          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item', 'Customer Approval')
-          AND `tabTimesheet`.workflow_state = 'Approved'
+          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item')
+          AND `tabTimesheet`.workflow_state IN ('Approved', 'Customer Approval')
           {extra} {dc}
     """
     return _run(sql, vals + dv)
@@ -671,8 +671,8 @@ def _compute_staff_salary(filters):
               AND `tabEmployee`.designation <> 'Computer Aided Designer'
               AND `tabOrder`.bom_or_cad = 'CAD'
               AND `tabOrder`.workflow_type = 'CAD'
-              AND `tabOrder`.workflow_state IN ('Approved', 'Update Item', 'Customer Approval')
-              AND `tabTimesheet`.workflow_state = 'Approved'
+              AND `tabOrder`.workflow_state IN ('Approved', 'Update Item')
+              AND `tabTimesheet`.workflow_state IN ('Approved', 'Customer Approval')
               {extra} {dc}
         ) x
     """
@@ -708,12 +708,25 @@ def get_total_updated(filters=None):
     filters = _get_filters(filters)
     extra, vals = _build_conditions(filters)
     dc, dv = _get_date_filter(filters)
+    # sql = f"""
+    #     SELECT COUNT(DISTINCT `tabOrder`.name) AS total_updated
+    #     FROM `tabOrder`
+    #     LEFT JOIN `tabTimesheet` ON `tabTimesheet`.`order` = `tabOrder`.name
+    #     LEFT JOIN `tabEmployee`  ON `tabEmployee`.name = `tabTimesheet`.employee
+    #     WHERE {BASE_CONDITION} {extra} {dc}
+    # """
     sql = f"""
-        SELECT COUNT(DISTINCT `tabOrder`.name) AS total_updated
-        FROM `tabOrder`
-        LEFT JOIN `tabTimesheet` ON `tabTimesheet`.`order` = `tabOrder`.name
-        LEFT JOIN `tabEmployee`  ON `tabEmployee`.name = `tabTimesheet`.employee
-        WHERE {BASE_CONDITION} {extra} {dc}
+            SELECT
+                COUNT(DISTINCT `tabTimesheet`.name) AS total_updated
+            FROM `tabTimesheet`
+            LEFT JOIN `tabOrder`
+                ON `tabTimesheet`.`order` = `tabOrder`.name
+            LEFT JOIN `tabEmployee`
+                ON `tabEmployee`.name = `tabTimesheet`.employee
+            WHERE
+                `tabTimesheet`.`workflow_state` = 'Approved'
+                {extra}
+                {dc}
     """
     return _run(sql, vals + dv)
 
@@ -738,8 +751,8 @@ def get_designer_count(filters=None):
           AND `tabEmployee`.department NOT LIKE '%%Sketch%%'
           AND `tabOrder`.bom_or_cad = 'CAD'
           AND `tabOrder`.workflow_type = 'CAD'
-          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item', 'Customer Approval')
-          AND `tabTimesheet`.workflow_state = 'Approved'
+          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item')
+          AND `tabTimesheet`.workflow_state IN ('Approved', 'Customer Approval')
           {extra} {dc}
     """
 
@@ -752,14 +765,31 @@ def get_total_design(filters=None):
     filters = _get_filters(filters)
     extra, vals = _build_conditions(filters)
     dc, dv = _get_date_filter(filters)
+    # sql = f"""
+    #     SELECT SUM(DISTINCT `tabOrder Form`.total_rows) AS total_design
+    #     FROM `tabOrder`
+    #     LEFT JOIN `tabTimesheet`  ON `tabTimesheet`.`order` = `tabOrder`.name
+    #     LEFT JOIN `tabEmployee`   ON `tabEmployee`.name = `tabTimesheet`.employee
+    #     LEFT JOIN `tabOrder Form` ON `tabOrder`.cad_order_form = `tabOrder Form`.name
+    #     WHERE {BASE_CONDITION} {extra} {dc}
+    # """
+    
     sql = f"""
-        SELECT SUM(DISTINCT `tabOrder Form`.total_rows) AS total_design
-        FROM `tabOrder`
-        LEFT JOIN `tabTimesheet`  ON `tabTimesheet`.`order` = `tabOrder`.name
-        LEFT JOIN `tabEmployee`   ON `tabEmployee`.name = `tabTimesheet`.employee
-        LEFT JOIN `tabOrder Form` ON `tabOrder`.cad_order_form = `tabOrder Form`.name
-        WHERE {BASE_CONDITION} {extra} {dc}
+        SELECT
+            COUNT(DISTINCT `tabTimesheet`.name) AS total_design
+        FROM `tabTimesheet`
+        LEFT JOIN `tabOrder`
+            ON `tabTimesheet`.`order` = `tabOrder`.name
+        LEFT JOIN `tabOrder Form`
+            ON `tabOrder`.`cad_order_form` = `tabOrder Form`.name
+        LEFT JOIN `tabEmployee`
+            ON `tabEmployee`.`name` = `tabTimesheet`.`employee`
+        WHERE 1=1
+            AND `tabTimesheet`.`workflow_state` NOT IN ('Approved')
+            {extra}
+            {dc}
     """
+
     return _run(sql, vals + dv)
 
 
@@ -831,12 +861,12 @@ def get_avg_days(filters=None):
         FROM `tabTimesheet`
         INNER JOIN `tabOrder`    ON `tabOrder`.name = `tabTimesheet`.`order`
         INNER JOIN `tabEmployee` ON `tabEmployee`.name = `tabTimesheet`.employee
-        WHERE `tabTimesheet`.workflow_state = 'Approved'
+        WHERE `tabTimesheet`.workflow_state IN ('Approved', 'Customer Approval')
           AND `tabTimesheet`.start_date IS NOT NULL
           AND `tabTimesheet`.end_date IS NOT NULL
           AND `tabOrder`.bom_or_cad = 'CAD'
           AND `tabOrder`.workflow_type = 'CAD'
-          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item', 'Customer Approval')
+          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item')
           {extra} {dc}
     """
     return _run(sql, vals + dv)
@@ -861,8 +891,8 @@ def get_designer_count(filters=None):
           AND `tabEmployee`.department NOT LIKE '%%Sketch%%'
           AND `tabOrder`.bom_or_cad = 'CAD'
           AND `tabOrder`.workflow_type = 'CAD'
-          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item', 'Customer Approval')
-          AND `tabTimesheet`.workflow_state = 'Approved'
+          AND `tabOrder`.workflow_state IN ('Approved', 'Update Item')
+          AND `tabTimesheet`.workflow_state IN ('Approved', 'Customer Approval')
           {extra} {dc}
     """
     return _run(sql, vals + dv)
