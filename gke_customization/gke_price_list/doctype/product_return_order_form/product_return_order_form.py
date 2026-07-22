@@ -214,7 +214,7 @@ class ProductReturnOrderForm(Document):
 	
 	def on_submit(self):
 
-		if self.is_jewlex_credit_note: return
+		# if self.is_jewlex_credit_note: return
 
 		# items reqd
 		if not self.items:
