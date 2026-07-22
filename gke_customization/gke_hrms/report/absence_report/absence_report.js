@@ -23,13 +23,30 @@ frappe.query_reports["Absence Report"] = {
             fieldtype: "Link",
             options: "Company",
             default: frappe.defaults.get_user_default("Company"),
+            on_change: function (report) {
+                let company = frappe.query_report.get_filter_value("company");
+                let branch_filter = frappe.query_report.get_filter("branch");
+                let department_filter = frappe.query_report.get_filter("department");
+
+                if (company === "KG GK Jewellers Private Limited") {
+                    branch_filter.df.read_only = 1;
+                    branch_filter.set_value("");
+                    branch_filter.refresh();
+                } else {
+                    branch_filter.df.read_only = 0;
+                    branch_filter.refresh();
+                }
+
+                department_filter.set_value("");
+                department_filter.refresh();
+            },
         },
         {
             fieldname: "branch",
             label: __("Branch"),
             fieldtype: "Link",
             options: "Branch",
-            depends_on: "eval:doc.company",
+            depends_on: "eval:doc.company && doc.company != 'KG GK Jewellers Private Limited'",
             get_query: function () {
                 let company = frappe.query_report.get_filter_value("company");
                 return company ? { filters: { company } } : {};
@@ -40,11 +57,14 @@ frappe.query_reports["Absence Report"] = {
             label: __("Department"),
             fieldtype: "Link",
             options: "Department",
+            get_query: function () {
+                let company = frappe.query_report.get_filter_value("company");
+                return company ? { filters: { company: company } } : {};
+            },
         },
     ],
 
     onload: function (report) {
-        // Auto refresh when loaded
         report.refresh();
     },
 };
