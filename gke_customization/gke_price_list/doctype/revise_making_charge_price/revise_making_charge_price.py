@@ -14,6 +14,15 @@ class ReviseMakingChargePrice(Document):
                 "from_gold_rate":self.from_gold_rate,
                 "to_gold_rate":self.to_gold_rate
 			}
+        if self.making_components:
+            filters["making_components"] = self.making_components
+
+        if self.complexity_name:
+            filters["complexity_name"] = self.complexity_name
+
+        if self.mfg_complexity_code:
+            filters["mfg_complexity_code"] = self.mfg_complexity_code
+                   
                    
         name = frappe.db.get_value("Making Charge Price",filters,"name")
         if name:
@@ -183,6 +192,15 @@ class ReviseMakingChargePrice(Document):
                 "from_gold_rate":self.from_gold_rate,
                 "to_gold_rate":self.to_gold_rate
 			}
+        if self.making_components:
+            filters["making_components"] = self.making_components
+
+        if self.complexity_name:
+            filters["complexity_name"] = self.complexity_name
+
+        if self.mfg_complexity_code:
+            filters["mfg_complexity_code"] = self.mfg_complexity_code
+                   
         name = frappe.db.get_value("Making Charge Price",filters,"name")
         if name:
             if self.revise_making_charge_price_item_subcategory:
