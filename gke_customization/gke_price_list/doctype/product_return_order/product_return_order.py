@@ -40,7 +40,7 @@ class ProductReturnOrder(Document):
 							"metal_purity",
 						)
 					if self.credit_note_rate_type=='Current Rate':
-						dest.rate=float(self.gold_rate or 0) * float(customer_metal_purity) /100
+						dest.rate=round(float(self.gold_rate or 0) * float(customer_metal_purity) /100,2)
 					if self.making_charges=='Without':
 						dest.making_rate=0
 					elif self.making_charges=='Half':
@@ -48,8 +48,8 @@ class ProductReturnOrder(Document):
 					elif self.making_charges=='Custom':
 						dest.making_rate=self.custom_making_charges
 					dest.customer_metal_purity=customer_metal_purity
-					dest.amount = dest.quantity * dest.rate
-					dest.making_amount = dest.making_rate*dest.quantity
+					dest.amount = round(dest.quantity * dest.rate,2)
+					dest.making_amount = round(dest.making_rate*dest.quantity,2)
 				if table == "finding_detail":
 					customer_metal_purity = frappe.db.get_value(
 							"Metal Criteria",
@@ -57,25 +57,25 @@ class ProductReturnOrder(Document):
 							"metal_purity",
 						)
 					if self.credit_note_rate_type=='Current Rate':
-						dest.rate=float(self.gold_rate or 0) * float(customer_metal_purity)/100
+						dest.rate=round(float(self.gold_rate or 0) * float(customer_metal_purity)/100,2)
 					if self.making_charges=='Without':
 						dest.making_rate=0
 					elif self.making_charges=='Half':
 						dest.making_rate=dest.making_rate/2
 					elif self.making_charges=='Custom':
 						dest.making_rate=self.custom_making_charges
-					dest.amount = dest.quantity * dest.rate
-					dest.making_amount = dest.making_rate*dest.quantity
+					dest.amount = round(dest.quantity * dest.rate,2)
+					dest.making_amount = round(dest.making_rate*dest.quantity,2)
 				if table == "diamond_detail":
-					dest.diamond_rate_for_specified_quantity=dest.quantity * dest.total_diamond_rate
+					dest.diamond_rate_for_specified_quantity=round(dest.quantity * dest.total_diamond_rate,2)
 				if table == "gemstone_detail":
-					dest.gemstone_rate_for_specified_quantity=dest.quantity * dest.total_gemstone_rate
+					dest.gemstone_rate_for_specified_quantity=round(dest.quantity * dest.total_gemstone_rate,2)
 					if self.gemstone_charges=='Without':
 						dest.gemstone_rate_for_specified_quantity=0
 					elif self.gemstone_charges=='Half':
-						dest.gemstone_rate_for_specified_quantity=dest.gemstone_rate_for_specified_quantity/2
+						dest.gemstone_rate_for_specified_quantity=round(dest.gemstone_rate_for_specified_quantity/2,2)
 					elif self.gemstone_charges=='Custom':
-						dest.gemstone_rate_for_specified_quantity=self.custom_gemstones_charges
+						dest.gemstone_rate_for_specified_quantity=round(self.custom_gemstones_charges,2)
 		
 		new_bom.total_metal_weight = self.total_metal_weight
 		new_bom.total_metal_amount = sum(row.amount for row in new_bom.metal_detail)
