@@ -785,7 +785,7 @@ def get_total_design(filters=None):
         LEFT JOIN `tabEmployee`
             ON `tabEmployee`.`name` = `tabTimesheet`.`employee`
         WHERE 1=1
-            AND `tabTimesheet`.`workflow_state` NOT IN ('Approved')
+            # AND `tabTimesheet`.`workflow_state` NOT IN ('Approved')
             {extra}
             {dc}
     """
