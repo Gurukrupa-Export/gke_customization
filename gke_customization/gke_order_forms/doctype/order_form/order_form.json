@@ -43,6 +43,16 @@
   "supplier_name",
   "column_break_wfgc",
   "purchase_type",
+  "section_break_aqhf",
+  "customer_gold",
+  "column_break_bpxj",
+  "customer_diamond",
+  "column_break_mgay",
+  "customer_stone",
+  "column_break_siqf",
+  "customer_good",
+  "column_break_nhak",
+  "customer_finding",
   "section_break_12",
   "order_details",
   "total_rows",
@@ -431,6 +441,61 @@
    "fieldtype": "Link",
    "label": "Sales Type",
    "options": "Sales Type"
+  },
+  {
+   "fieldname": "section_break_aqhf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "No",
+   "fieldname": "customer_gold",
+   "fieldtype": "Select",
+   "label": "Customer Gold",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "column_break_bpxj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "No",
+   "fieldname": "customer_diamond",
+   "fieldtype": "Select",
+   "label": "Customer Diamond",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "column_break_mgay",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "No",
+   "fieldname": "customer_stone",
+   "fieldtype": "Select",
+   "label": "Customer Stone",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "column_break_siqf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "No",
+   "fieldname": "customer_good",
+   "fieldtype": "Select",
+   "label": "Customer Good",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "column_break_nhak",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "No",
+   "fieldname": "customer_finding",
+   "fieldtype": "Select",
+   "label": "Customer Finding",
+   "options": "\nYes\nNo"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -453,7 +518,7 @@
    "link_fieldname": "custom_form_id"
   }
  ],
- "modified": "2026-07-22 09:33:21.698822",
+ "modified": "2026-07-24 10:43:54.510373",
  "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Order Form",
