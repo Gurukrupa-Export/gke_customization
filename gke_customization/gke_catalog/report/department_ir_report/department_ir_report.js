@@ -18,27 +18,22 @@ frappe.query_reports["Department IR Report"] = {
             // default: frappe.datetime.month_end()
         },
         {
-            fieldname: "company",
-            label: __("Company"),
+            fieldname: "current_department",
+            label: __("From Department"),
             fieldtype: "MultiSelectList",
             reqd: 0,
             get_data: function(txt) {
-                return frappe.db.get_link_options("Company", txt);
+                return frappe.db.get_link_options("Department", txt);
             }
-        },
-        {
-            fieldname: "current_department",
-            label: __("From Department"),
-            fieldtype: "Select",
-            options:[],
-            reqd: 0,
         },
         {
             fieldname: "next_department",
             label: __("To Department"),
-            fieldtype: "Select",
-            options:[],
+            fieldtype: "MultiSelectList",
             reqd: 0,
+            get_data: function(txt) {
+                return frappe.db.get_link_options("Department", txt);
+            }
         },
         // {
         //     fieldname: "manufacturing_work_order_id",
@@ -69,38 +64,6 @@ frappe.query_reports["Department IR Report"] = {
 
     onload: function(report) {
 
-        
-        
-        function fetchOptions(doctype, field, filterField, includeBlank = false) {
-                frappe.call({
-                    method: "frappe.client.get_list",
-                    args: {
-                        doctype: doctype,
-                        fields: [`distinct ${field}`],
-                        order_by: `${field} asc`,
-                        limit_page_length: 30000,
-                    },
-                    callback: function (r) {
-                        if (r.message) {
-                            let options = r.message
-                                .map(row => row[field])
-                                .filter(value => value && value.trim() !== "");
-                            if (includeBlank) {
-                                options.unshift(""); 
-                            }
-                            const filter = report.get_filter(filterField);
-                            filter.df.options = options;
-                            filter.refresh();
-                        }
-                    },
-                });
-            }
-        
-         
-        fetchOptions("Department IR", "current_department", "current_department",true);
-        fetchOptions("Department IR", "next_department", "next_department",true);
-
-
             report.page.add_inner_button(__("Clear Filter"), function () {
                 report.filters.forEach(function (filter) {
                     let field = report.get_filter(filter.fieldname);
@@ -128,4 +91,3 @@ frappe.query_reports["Department IR Report"] = {
 		toggleDateFilter(receiveDate, issueDate);
             
         }}
-
