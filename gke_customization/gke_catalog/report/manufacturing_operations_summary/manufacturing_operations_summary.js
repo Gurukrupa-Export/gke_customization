@@ -4,15 +4,6 @@
 frappe.query_reports["Manufacturing Operations Summary"] = {
     filters: [
         {
-            fieldname: "company",
-            label: __("Company"),
-            fieldtype: "Link",
-            options: "Company",
-            default: frappe.defaults.get_user_default("Company"),
-            reqd: 1,
-            read_only: 1,
-        },
-        {
             fieldname: "from_date",
             label: __("From Date"),
             fieldtype: "Date",
@@ -29,19 +20,31 @@ frappe.query_reports["Manufacturing Operations Summary"] = {
             label: __("Department"),
             fieldtype: "Link",
             options: "Department",
-            get_query: function () {
-                return {
-                    filters: {
-                        company: frappe.query_report.get_filter_value("company")
-                    }
-                };
-            },
         },
         {
             fieldname: "item_category",
             label: __("Item Category"),
             fieldtype: "Link",
             options: "Item Group",
+        },
+        {
+            fieldname: "setting_type",
+            label: __("Setting Type"),
+            fieldtype: "Select",
+            options: "\nOpen\nClose",
+        },
+        {
+            fieldname: "sub_setting_type",
+            label: __("Sub Setting Type"),
+            fieldtype: "Link",
+            options: "Attribute Value",
+            get_query: function () {
+                return {
+                    filters: {
+                        is_sub_setting_type: 1
+                    }
+                };
+            },
         },
     ],
 

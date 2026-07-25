@@ -4,11 +4,27 @@ from frappe import _
 
 def execute(filters=None):
     filters = filters or {}
+    filters = validate_department_access(filters)
 
     columns = get_columns()
     data = get_data(filters)
 
     return columns, data
+
+
+def validate_department_access(filters):
+    user = frappe.session.user
+    is_admin = user == "Administrator" or "System Manager" in frappe.get_roles(user)
+
+    if not is_admin:
+        user_department = frappe.defaults.get_user_default("department")
+
+        if not user_department:
+            frappe.throw(_("User default Department is not set."))
+
+        filters["department"] = user_department
+
+    return filters
 
 
 def get_columns():
@@ -18,8 +34,9 @@ def get_columns():
         {"label": _("Employee Code"), "fieldname": "employee_code", "fieldtype": "Link", "options": "Employee", "width": 130},
         {"label": _("Gross WT"), "fieldname": "gross_wt", "fieldtype": "Float", "width": 120},
         {"label": _("Gold WT"), "fieldname": "gold_wt", "fieldtype": "Float", "width": 120},
+        {"label": _("Pure WT"), "fieldname": "pure_wt", "fieldtype": "Float", "width": 120},
+        {"label": _("Total Loss(Pure)"), "fieldname": "total_loss_pure", "fieldtype": "Float", "width": 140},
         {"label": _("Total Loss"), "fieldname": "total_loss", "fieldtype": "Float", "width": 120},
-        {"label": _("Final Loss"), "fieldname": "final_loss", "fieldtype": "Float", "width": 120},
         {"label": _("Final Loss %"), "fieldname": "final_loss_percent", "fieldtype": "Percent", "width": 120},
         {"label": _("To Date"), "fieldname": "to_date", "fieldtype": "Date", "width": 120},
     ]
@@ -85,6 +102,7 @@ def get_data(filters):
 
             ROUND(SUM(IFNULL(op.gross_wt, 0)), 3) AS gross_wt,
             ROUND(SUM(IFNULL(op.net_wt, 0)), 3) AS gold_wt,
+            ROUND(SUM(IFNULL(op.pure_wt, 0)), 3) AS pure_wt,
 
             ROUND(
                 SUM(
@@ -95,16 +113,19 @@ def get_data(filters):
                     END
                 ), 3
             ) AS total_loss,
-
+            
             ROUND(
                 SUM(
-                    CASE
-                        WHEN IFNULL(eir.mop_loss_details_total, 0) > 0
-                            THEN eir.mop_loss_details_total
-                        ELSE IFNULL(eld.total_proportionally_loss, 0)
-                    END
+                    (
+                        CASE
+                            WHEN IFNULL(eir.mop_loss_details_total, 0) > 0
+                                THEN eir.mop_loss_details_total
+                            ELSE IFNULL(eld.total_proportionally_loss, 0)
+                        END
+                    ) *
+                    IFNULL(mp.metal_purity, 0) / 100
                 ), 3
-            ) AS final_loss,
+            ) AS total_loss_pure,
 
             ROUND(
                 (
@@ -130,11 +151,17 @@ def get_data(filters):
 
         LEFT JOIN (
             SELECT
-                parent,
-                SUM(IFNULL(gross_wt, 0)) AS gross_wt,
-                SUM(IFNULL(net_wt, 0)) AS net_wt
-            FROM `tabEmployee IR Operation`
-            GROUP BY parent
+                op.parent,
+                SUM(IFNULL(op.gross_wt, 0)) AS gross_wt,
+                SUM(IFNULL(op.net_wt, 0)) AS net_wt,
+                SUM(
+                    IFNULL(op.net_wt, 0) *
+                    CAST(IFNULL(mwo.metal_purity, 0) AS DECIMAL(10,3)) / 100
+                ) AS pure_wt
+            FROM `tabEmployee IR Operation` op
+            LEFT JOIN `tabManufacturing Work Order` mwo
+                ON mwo.name = op.manufacturing_work_order
+            GROUP BY op.parent
         ) op
             ON op.parent = eir.name
 
@@ -146,6 +173,30 @@ def get_data(filters):
             GROUP BY parent
         ) eld
             ON eld.parent = eir.name
+
+        LEFT JOIN (
+            SELECT parent, metal_purity
+            FROM (
+                SELECT
+                    eld2.parent,
+                    CAST(iva2.attribute_value AS DECIMAL(10,3)) AS metal_purity,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY eld2.parent
+                        ORDER BY CASE
+                            WHEN eld2.item_code LIKE 'M-%%' THEN 1
+                            WHEN eld2.item_code LIKE 'F-%%' THEN 2
+                            ELSE 3
+                        END
+                    ) AS rn
+                FROM `tabEmployee Loss Details` eld2
+                INNER JOIN `tabItem Variant Attribute` iva2
+                    ON iva2.parent = eld2.item_code
+                    AND iva2.attribute = 'Metal Purity'
+                WHERE eld2.item_code LIKE 'M-%%' OR eld2.item_code LIKE 'F-%%'
+            ) ranked
+            WHERE rn = 1
+        ) mp
+            ON mp.parent = eir.name
 
         WHERE
             eir.docstatus = 1

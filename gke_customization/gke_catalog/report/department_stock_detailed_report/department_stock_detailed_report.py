@@ -19,36 +19,42 @@ def get_columns():
     return [
         {"fieldname": "entry_date", "label": _("Entry Date"), "fieldtype": "Date", "width": 100},
         {"fieldname": "serial_no", "label": _("Serial No"), "fieldtype": "Link", "options": "Serial No", "width": 130},
-        {"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 120},
-        {"fieldname": "customer", "label": _("Customer"), "fieldtype": "Link", "options": "Customer", "width": 180},
-        {"fieldname": "bom", "label": _("BOM"), "fieldtype": "Link", "options": "BOM", "width": 150},
+        
         {"fieldname": "pmo", "label": _("PMO"), "fieldtype": "Link", "options": "Parent Manufacturing Order", "width": 150},
+        {"fieldname": "order_no", "label": _("Order No"), "fieldtype": "Data", "width": 150},
+        {"fieldname": "po_no", "label": _("Customer PO. No"), "fieldtype": "Data", "width": 150},
+        {"fieldname": "batch_no", "label": _("Jewelex Batch No"), "fieldtype": "Data", "width": 140},
+
+        {"fieldname": "customer", "label": _("Customer"), "fieldtype": "Link", "options": "Customer", "width": 180},
+        
         {"fieldname": "warehouse", "label": _("Warehouse"), "fieldtype": "Link", "options": "Warehouse", "width": 180},
+        {"fieldname": "item_code", "label": _("Item Code"), "fieldtype": "Link", "options": "Item", "width": 140},
         {"fieldname": "category", "label": _("Category"), "fieldtype": "Data", "width": 120},
         {"fieldname": "sub_category", "label": _("Sub Category"), "fieldtype": "Data", "width": 140},
-        {"fieldname": "item_code", "label": _("Item Code"), "fieldtype": "Link", "options": "Item", "width": 140},
+        {"fieldname": "bom", "label": _("BOM"), "fieldtype": "Link", "options": "BOM", "width": 150},
         {"fieldname": "finding_touch", "label": _("Finding Touch"), "fieldtype": "Data", "width": 110},
         {"fieldname": "metal_touch", "label": _("Metal Touch"), "fieldtype": "Data", "width": 110},
         {"fieldname": "setting_type", "label": _("Setting Type"), "fieldtype": "Data", "width": 130},
-        {"fieldname": "order_no", "label": _("Order No"), "fieldtype": "Data", "width": 150},
-        {"fieldname": "po_no", "label": _("P.O. No"), "fieldtype": "Data", "width": 150},
-        {"fieldname": "batch_no", "label": _("Batch No"), "fieldtype": "Data", "width": 140},
+        
         {"fieldname": "gold_wt", "label": _("Gold Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
         {"fieldname": "gross_wt", "label": _("Gross Wt."), "fieldtype": "Float", "precision": 3, "width": 100},
         {"fieldname": "chain_wt", "label": _("Chain Wt."), "fieldtype": "Float", "precision": 3, "width": 100},
         {"fieldname": "dia_wt", "label": _("Dia Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
         {"fieldname": "dia_pcs", "label": _("Dia Pcs"), "fieldtype": "Int", "width": 90},
-        {"fieldname": "diamond_purity", "label": _("Diamond Purity"), "fieldtype": "Data", "width": 120},
+        {"fieldname": "diamond_purity", "label": _("Diamond Grade"), "fieldtype": "Data", "width": 120},
         {"fieldname": "stone_wt", "label": _("Stone Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
         {"fieldname": "other_wt", "label": _("Other Wt."), "fieldtype": "Float", "precision": 3, "width": 100},
-        {"fieldname": "stone_amt", "label": _("Stone Amt."), "fieldtype": "Currency", "width": 120},
-        {"fieldname": "other_amt", "label": _("Other Amt."), "fieldtype": "Currency", "width": 120},
-        {"fieldname": "cert_no", "label": _("Cert. No"), "fieldtype": "Data", "width": 130},
+        # {"fieldname": "stone_amt", "label": _("Stone Amt."), "fieldtype": "Currency", "width": 120},
+        # {"fieldname": "other_amt", "label": _("Other Amt."), "fieldtype": "Currency", "width": 120},
+        
         {"fieldname": "customer_design_no", "label": _("Customer DesignNo"), "fieldtype": "Data", "width": 150},
+        {"fieldname": "cert_no", "label": _("Cert. No"), "fieldtype": "Data", "width": 130},
         {"fieldname": "hallmarking_no", "label": _("HallMarking No"), "fieldtype": "Data", "width": 140},
-        {"fieldname": "locker", "label": _("Locker"), "fieldtype": "Data", "width": 100},
+        # {"fieldname": "locker", "label": _("Locker"), "fieldtype": "Data", "width": 100},
+        {"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 120},
         {"fieldname": "current_dept", "label": _("Current Dept"), "fieldtype": "Link", "options": "Department", "width": 150},
-        {"fieldname": "current_mgr", "label": _("Current Mgr"), "fieldtype": "Data", "width": 180},
+        # {"fieldname": "current_mgr", "label": _("Current Mgr"), "fieldtype": "Data", "width": 180},
+        # {"fieldname": "remark", "label": _("Remark"), "fieldtype": "Data", "width": 200},
     ]
 
 
@@ -110,7 +116,8 @@ def get_data(filters):
              FROM `tabEmployee` e
              WHERE e.department = wh.department
                AND e.designation = 'Manager'
-             LIMIT 1) AS current_mgr
+             LIMIT 1) AS current_mgr,
+        sn._comments AS remark     
         FROM `tabSerial No` sn
         LEFT JOIN `tabItem` i
             ON i.name = sn.item_code

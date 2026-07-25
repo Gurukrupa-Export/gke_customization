@@ -3,13 +3,17 @@ frappe.query_reports["Worker Wise Performance Report"] = {
         {
             fieldname: "from_date",
             label: __("From Date"),
-            fieldtype: "Date"
+            fieldtype: "Date",
+            default: frappe.datetime.month_start()
         },
         {
             fieldname: "to_date",
             label: __("To Date"),
-            fieldtype: "Date"
+            fieldtype: "Date",
+            default: frappe.datetime.month_end()
         },
+
+        /*
         {
             fieldname: "company",
             label: __("Company"),
@@ -22,6 +26,9 @@ frappe.query_reports["Worker Wise Performance Report"] = {
                 report.refresh();
             }
         },
+        */
+
+        /*
         {
             fieldname: "branch",
             label: __("Branch"),
@@ -43,21 +50,17 @@ frappe.query_reports["Worker Wise Performance Report"] = {
                 report.refresh();
             }
         },
+        */
+
         {
             fieldname: "department",
             label: __("Department"),
             fieldtype: "Link",
             options: "Department",
+            default: frappe.defaults.get_user_default("department"),
             get_query: function() {
-                let company = frappe.query_report.get_filter_value("company");
-                let branch = frappe.query_report.get_filter_value("branch");
-
-                let filters = {};
-                if (company) filters.company = company;
-                if (branch) filters.branch = branch;
-
                 return {
-                    filters: filters
+                    filters: {}
                 };
             },
             on_change: function(report) {
@@ -65,31 +68,45 @@ frappe.query_reports["Worker Wise Performance Report"] = {
                 report.refresh();
             }
         },
+
         {
             fieldname: "employee",
             label: __("Employee"),
             fieldtype: "Link",
             options: "Employee",
             get_query: function() {
-                let company = frappe.query_report.get_filter_value("company");
-                let branch = frappe.query_report.get_filter_value("branch");
                 let department = frappe.query_report.get_filter_value("department");
 
                 let filters = {};
-                if (company) filters.company = company;
-                if (branch) filters.branch = branch;
                 if (department) filters.department = department;
 
                 return {
                     filters: filters
                 };
             }
-        }
-		,{
+        },
+
+        {
             fieldname: "touch",
             label: __("Touch"),
             fieldtype: "Select",
-			options:["","10KT","18KT","20KT","22KT","24KT"]
-        },
-    ]
+            options: ["", "10KT", "18KT", "20KT", "22KT", "24KT"]
+        }
+    ],
+
+    onload: function(report) {
+        const is_admin = frappe.user.has_role("System Manager") || frappe.session.user === "Administrator";
+
+        if (!is_admin) {
+            const user_department = frappe.defaults.get_user_default("department");
+
+            if (user_department) {
+                report.set_filter_value("department", user_department);
+            }
+
+            report.page.fields_dict.department.df.read_only = 1;
+            report.page.fields_dict.department.df.description = __("Department is locked as per user default");
+            report.page.fields_dict.department.refresh();
+        }
+    }
 };

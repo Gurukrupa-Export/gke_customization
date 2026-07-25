@@ -3,21 +3,21 @@
 
 frappe.query_reports["Department Stock Detailed Report"] = {
     "filters": [
-        {
-            "fieldname": "company",
-            "label": __("Company"),
-            "fieldtype": "Link",
-            "options": "Company",
-            "default": frappe.defaults.get_user_default("Company"),
-            "reqd": 0
-        },
-        {
-            "fieldname": "branch",
-            "label": __("Branch"),
-            "fieldtype": "Link",
-            "options": "Branch",
-            "reqd": 0
-        },
+        // {
+        //     "fieldname": "company",
+        //     "label": __("Company"),
+        //     "fieldtype": "Link",
+        //     "options": "Company",
+        //     "default": frappe.defaults.get_user_default("Company"),
+        //     "reqd": 0
+        // },
+        // {
+        //     "fieldname": "branch",
+        //     "label": __("Branch"),
+        //     "fieldtype": "Link",
+        //     "options": "Branch",
+        //     "reqd": 0
+        // },
         {
             "fieldname": "from_date",
             "label": __("From Date"),
@@ -69,65 +69,65 @@ frappe.query_reports["Department Stock Detailed Report"] = {
             "fieldname": "status",
             "label": __("Status"),
             "fieldtype": "Select",
-            "options": "\nStock\nTransfer\nLocker\nIssue to Lab\nApprove\nSalesman\nRepair",
+            "options": "\nStock\nTransfer\nApprove\nSalesman\nRepair",
             "reqd": 0
         }
     ],
 
-    onload(report) {
-        init_user_dept_permissions(report);
-    }
+    // onload(report) {
+    //     init_user_dept_permissions(report);
+    // }
 };
 
 // Auto‑apply branch/department for non‑management; keep full access for management
-function init_user_dept_permissions(report) {
-    frappe.call({
-        method: "frappe.client.get",
-        args: {
-            doctype: "User",
-            name: frappe.session.user
-        },
-        callback(user_res) {
-            const roles = (user_res.message && user_res.message.roles || []).map(r => r.role);
-            const management_roles = ["Director", "CEO", "System Manager", "Branch Manager", "Department Manager"];
-            const is_management = roles.some(r => management_roles.includes(r));
+// function init_user_dept_permissions(report) {
+//     frappe.call({
+//         method: "frappe.client.get",
+//         args: {
+//             doctype: "User",
+//             name: frappe.session.user
+//         },
+//         callback(user_res) {
+//             const roles = (user_res.message && user_res.message.roles || []).map(r => r.role);
+//             const management_roles = ["Director", "CEO", "System Manager", "Branch Manager", "Department Manager"];
+//             const is_management = roles.some(r => management_roles.includes(r));
 
-            frappe.call({
-                method: "frappe.client.get_value",
-                args: {
-                    doctype: "Employee",
-                    filters: { user_id: frappe.session.user },
-                    fieldname: ["company", "branch", "department"]
-                },
-                callback(r) {
-                    if (!r.message) return;
+//             frappe.call({
+//                 method: "frappe.client.get_value",
+//                 args: {
+//                     doctype: "Employee",
+//                     filters: { user_id: frappe.session.user },
+//                     fieldname: ["company", "branch", "department"]
+//                 },
+//                 callback(r) {
+//                     if (!r.message) return;
 
-                    // Company
-                    if (r.message.company && report.get_filter("company")) {
-                        report.get_filter("company").set_value(r.message.company);
-                    }
+//                     // Company
+//                     if (r.message.company && report.get_filter("company")) {
+//                         report.get_filter("company").set_value(r.message.company);
+//                     }
 
-                    // Branch
-                    if (r.message.branch && report.get_filter("branch")) {
-                        report.get_filter("branch").set_value(r.message.branch);
-                        if (!is_management) {
-                            report.get_filter("branch").df.read_only = 1;
-                            report.get_filter("branch").refresh();
-                        }
-                    }
+//                     // Branch
+//                     if (r.message.branch && report.get_filter("branch")) {
+//                         report.get_filter("branch").set_value(r.message.branch);
+//                         if (!is_management) {
+//                             report.get_filter("branch").df.read_only = 1;
+//                             report.get_filter("branch").refresh();
+//                         }
+//                     }
 
-                    // Department
-                    if (r.message.department && report.get_filter("department")) {
-                        report.get_filter("department").set_value(r.message.department);
-                        if (!is_management) {
-                            report.get_filter("department").df.read_only = 1;
-                            report.get_filter("department").refresh();
-                        }
-                    }
+//                     // Department
+//                     if (r.message.department && report.get_filter("department")) {
+//                         report.get_filter("department").set_value(r.message.department);
+//                         if (!is_management) {
+//                             report.get_filter("department").df.read_only = 1;
+//                             report.get_filter("department").refresh();
+//                         }
+//                     }
 
-                    setTimeout(() => report.refresh(), 500);
-                }
-            });
-        }
-    });
-}
+//                     setTimeout(() => report.refresh(), 500);
+//                 }
+//             });
+//         }
+//     });
+// }

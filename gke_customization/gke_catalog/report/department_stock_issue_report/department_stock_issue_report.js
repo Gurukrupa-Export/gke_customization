@@ -3,25 +3,25 @@
 
 frappe.query_reports["Department Stock Issue Report"] = {
     "filters": [
-        {
-            "fieldname": "company",
-            "label": __("Company"),
-            "fieldtype": "Link",
-            "options": "Company",
-            "default": frappe.defaults.get_user_default("Company"),
-            "reqd": 1,
-            "on_change": function() {
-                // Clear department filters when company changes
-                frappe.query_report.set_filter_value('from_department', '');
-                frappe.query_report.set_filter_value('to_department', '');
-            }
-        },
-        {
-            "fieldname": "branch",
-            "label": __("Branch"),
-            "fieldtype": "Link",
-            "options": "Branch"
-        },
+        // {
+        //     "fieldname": "company",
+        //     "label": __("Company"),
+        //     "fieldtype": "Link",
+        //     "options": "Company",
+        //     "default": frappe.defaults.get_user_default("Company"),
+        //     "reqd": 1,
+        //     "on_change": function() {
+        //         // Clear department filters when company changes
+        //         frappe.query_report.set_filter_value('from_department', '');
+        //         frappe.query_report.set_filter_value('to_department', '');
+        //     }
+        // },
+        // {
+        //     "fieldname": "branch",
+        //     "label": __("Branch"),
+        //     "fieldtype": "Link",
+        //     "options": "Branch"
+        // },
         {
             "fieldname": "from_date",
             "label": __("From Date"),
@@ -84,11 +84,33 @@ frappe.query_reports["Department Stock Issue Report"] = {
             "options": "Item"
         }
     ],
-    
+
     "tree": true,
     "parent_field": "stock_entry_id",
     "initial_depth": 1,
-    
+
+    onload: function (report) {
+        // Only System Manager / Administrator can view/change other departments.
+        // Everyone else is locked to their own default (Employee) department.
+        // Resolved server-side (not via a direct Employee lookup) since most report
+        // users don't have read permission on the Employee doctype.
+        frappe.call({
+            method: "gke_customization.gke_catalog.report.department_stock_issue_report.department_stock_issue_report.get_user_department_filter",
+            callback: function (r) {
+                var res = r.message || {};
+                if (res.can_change_department) return;
+
+                var filter = report.get_filter("from_department");
+                if (!filter) return;
+
+                filter.set_value(res.department || "");
+                filter.df.read_only = 1;
+                filter.df.get_query = null;
+                filter.refresh();
+            }
+        });
+    },
+
     "formatter": function (value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
         

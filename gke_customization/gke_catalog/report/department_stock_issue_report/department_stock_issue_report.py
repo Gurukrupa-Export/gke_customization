@@ -4,11 +4,35 @@
 import frappe
 from frappe import _
 
+DEPARTMENT_OVERRIDE_ROLES = {"System Manager", "Administrator"}
+
 def execute(filters=None):
+    filters = filters or {}
+    enforce_department_restriction(filters)
     columns, data = [], []
     columns = get_columns()
     data = get_data(filters)
     return columns, data
+
+def enforce_department_restriction(filters):
+    """Lock 'from_department' to the user's own department unless they hold an override role."""
+    if DEPARTMENT_OVERRIDE_ROLES & set(frappe.get_roles()):
+        return
+
+    filters["from_department"] = get_employee_department(frappe.session.user)
+
+def get_employee_department(user):
+    return frappe.db.get_value("Employee", {"user_id": user}, "department")
+
+@frappe.whitelist()
+def get_user_department_filter():
+    """Used by the report's JS to prefill/lock 'From Department' without requiring
+    the caller to have read permission on Employee (a plain Stock/report user usually won't)."""
+    can_change_department = bool(DEPARTMENT_OVERRIDE_ROLES & set(frappe.get_roles()))
+    return {
+        "can_change_department": can_change_department,
+        "department": None if can_change_department else get_employee_department(frappe.session.user),
+    }
 
 def get_columns():
     return [
@@ -187,11 +211,11 @@ def group_by_stock_entry(raw_data):
 def get_conditions(filters):
     conditions = []
     
-    if filters.get("company"):
-        conditions.append("AND se.company = %(company)s")
+    # if filters.get("company"):
+    #     conditions.append("AND se.company = %(company)s")
     
-    if filters.get("branch"):
-        conditions.append("AND se.branch = %(branch)s")
+    # if filters.get("branch"):
+    #     conditions.append("AND se.branch = %(branch)s")
     
     if filters.get("from_date"):
         conditions.append("AND se.posting_date >= %(from_date)s")
@@ -216,8 +240,12 @@ def get_conditions(filters):
     if filters.get("manufacturer"):
         conditions.append("AND se.manufacturer = %(manufacturer)s")
     
-    if filters.get("from_department"):
-        conditions.append("AND EXISTS (SELECT 1 FROM `tabWarehouse` WHERE name = sed.s_warehouse AND department = %(from_department)s)")
+    if "from_department" in filters:
+        if filters.get("from_department"):
+            conditions.append("AND EXISTS (SELECT 1 FROM `tabWarehouse` WHERE name = sed.s_warehouse AND department = %(from_department)s)")
+        else:
+            # Restricted user with no resolvable department: show nothing rather than everything.
+            conditions.append("AND 1=0")
     
     if filters.get("to_department"):
         conditions.append("AND EXISTS (SELECT 1 FROM `tabWarehouse` WHERE name = sed.t_warehouse AND department = %(to_department)s)")
