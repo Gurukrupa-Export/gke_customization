@@ -3,25 +3,25 @@
 
 frappe.query_reports["Order Detail Report"] = {
     filters: [
-        {
-            fieldname: "company",
-            label: __("Company"),
-            fieldtype: "MultiSelectList",
-            reqd: 0,
-            get_data: function(txt) {
-                return frappe.db.get_link_options("Company", txt);
-            }
-        },
-        {
-            fieldname: "branch",
-            label: __("Branch"),
-            fieldtype: "MultiSelectList",
-            options: "Branch",
-            reqd: 0,
-            get_data: function (txt) {
-                return frappe.db.get_link_options("Branch", txt);
-            },
-        },
+        // {
+        //     fieldname: "company",
+        //     label: __("Company"),
+        //     fieldtype: "MultiSelectList",
+        //     reqd: 0,
+        //     get_data: function(txt) {
+        //         return frappe.db.get_link_options("Company", txt);
+        //     }
+        // },
+        // {
+        //     fieldname: "branch",
+        //     label: __("Branch"),
+        //     fieldtype: "MultiSelectList",
+        //     options: "Branch",
+        //     reqd: 0,
+        //     get_data: function (txt) {
+        //         return frappe.db.get_link_options("Branch", txt);
+        //     },
+        // },
         {
             label: __("Manufacturing Work Order"),
             fieldname: "mp",
@@ -143,13 +143,20 @@ frappe.query_reports["Order Detail Report"] = {
         }
     });
 
-    // ✅ Fetch dynamic options (unchanged from before)
+    // ✅ Fetch dynamic options (fixed: use group_by instead of inline "distinct" in fields,
+    // for compatibility across v15/v16 and future versions)
     function fetchOptions(doctype, field, filterField) {
         frappe.call({
             method: "frappe.client.get_list",
             args: {
                 doctype: doctype,
-                fields: [`distinct ${field}`],
+
+                // IMPORTANT FIX
+                // Do not use:
+                // fields: [`distinct ${field}`]
+                fields: [field],
+                group_by: field,   // ✅ achieves same unique-values result, compatible with v15 & v16
+
                 order_by: `${field} asc`,
                 limit_page_length: 20000,
             },
