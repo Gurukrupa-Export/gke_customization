@@ -43,16 +43,22 @@ def get_setting_type_options():
 def get_columns():
     columns = [
         {
-            "label": _("Setting Type"),
-            "fieldname": "sub_setting_type",
-            "fieldtype": "Data",
-            "width": 160,
-        },
-        {
             "label": _("Item Category"),
             "fieldname": "item_category",
             "fieldtype": "Data",
             "width": 200,
+        },
+        {
+            "label": _("Setting Type"),
+            "fieldname": "setting_type",
+            "fieldtype": "Data",
+            "width": 120,
+        },
+        {
+            "label": _("Sub Setting Type"),
+            "fieldname": "sub_setting_type",
+            "fieldtype": "Data",
+            "width": 160,
         },
     ]
 
@@ -87,7 +93,8 @@ def get_data(filters):
 
     query = f"""
         SELECT
-            COALESCE(i.sub_setting_type, 'No Setting Type') AS setting_type,
+            COALESCE(i.setting_type, '') AS setting_type,
+            COALESCE(i.sub_setting_type, 'No Setting Type') AS sub_setting_type,
             COALESCE(i.item_category, 'No Category') AS item_category,
             mo.department,
             COUNT(*) AS qty
@@ -109,6 +116,7 @@ def get_data(filters):
         WHERE 1=1
             {conditions}
         GROUP BY
+            COALESCE(i.setting_type, ''),
             COALESCE(i.sub_setting_type, 'No Setting Type'),
             COALESCE(i.item_category, 'No Category'),
             mo.department
@@ -123,6 +131,7 @@ def get_data(filters):
 
     for row in raw_data:
         setting_type = row["setting_type"]
+        sub_setting_type = row["sub_setting_type"]
         item_category = row["item_category"]
         department = row["department"]
         qty = row["qty"] or 0
@@ -131,10 +140,11 @@ def get_data(filters):
         if dept_field not in grand_total:
             continue
 
-        detail_key = (setting_type, item_category)
+        detail_key = (sub_setting_type, item_category)
         if detail_key not in detail_map:
             detail_map[detail_key] = {
-                "sub_setting_type": setting_type,
+                "setting_type": setting_type,
+                "sub_setting_type": sub_setting_type,
                 "item_category": item_category,
                 "bold": 0,
                 "is_total": 0,
@@ -147,31 +157,28 @@ def get_data(filters):
         detail_map[detail_key][dept_field] += qty
         detail_map[detail_key]["row_total"] += qty
 
-        if setting_type not in subtotal_map:
-            subtotal_map[setting_type] = {
-                "sub_setting_type": setting_type,
-                "item_category": f"{setting_type} Total",
+        if sub_setting_type not in subtotal_map:
+            subtotal_map[sub_setting_type] = {
+                "setting_type": setting_type,
+                "sub_setting_type": sub_setting_type,
+                "item_category": f"{sub_setting_type} Total",
                 "bold": 1,
                 "is_total": 1,
                 "is_grand_total": 0,
                 "row_total": 0,
             }
             for d in DEPARTMENTS:
-                subtotal_map[setting_type][frappe.scrub(d)] = 0
+                subtotal_map[sub_setting_type][frappe.scrub(d)] = 0
 
-        subtotal_map[setting_type][dept_field] += qty
-        subtotal_map[setting_type]["row_total"] += qty
+        subtotal_map[sub_setting_type][dept_field] += qty
+        subtotal_map[sub_setting_type]["row_total"] += qty
 
         grand_total[dept_field] += qty
         grand_row_total += qty
 
     rows = []
 
-    setting_order = []
-    for r in raw_data:
-        st = r["setting_type"]
-        if st not in setting_order:
-            setting_order.append(st)
+    setting_order = list(subtotal_map.keys())
 
     for st in setting_order:
         for k, v in detail_map.items():
@@ -180,6 +187,7 @@ def get_data(filters):
         rows.append(subtotal_map[st])
 
     grand = {
+        "setting_type": "",
         "sub_setting_type": "",
         "item_category": "Grand Total",
         "bold": 1,
@@ -198,10 +206,6 @@ def get_conditions(filters):
     conditions = ""
     values = {}
 
-    company = filters.get("company") or frappe.defaults.get_user_default("Company")
-    conditions += " AND mo.company = %(company)s"
-    values["company"] = company
-
     if filters.get("from_date"):
         conditions += " AND DATE(mo.creation) >= %(from_date)s"
         values["from_date"] = filters["from_date"]
@@ -215,7 +219,11 @@ def get_conditions(filters):
         values["item_category"] = filters["item_category"]
 
     if filters.get("setting_type"):
-        conditions += " AND i.sub_setting_type = %(setting_type)s"
+        conditions += " AND i.setting_type = %(setting_type)s"
         values["setting_type"] = filters["setting_type"]
 
-    return conditions, values 
+    if filters.get("sub_setting_type"):
+        conditions += " AND i.sub_setting_type = %(sub_setting_type)s"
+        values["sub_setting_type"] = filters["sub_setting_type"]
+
+    return conditions, values
