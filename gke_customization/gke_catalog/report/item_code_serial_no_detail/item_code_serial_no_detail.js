@@ -2,7 +2,7 @@
 // For license information, please see license.txt
 
 
-frappe.query_reports["Serial No Detail Report"] = {
+frappe.query_reports["Item Code Serial No Detail"] = {
     "filters": [
         {
             fieldname: "item_code",
@@ -63,7 +63,7 @@ frappe.query_reports["Serial No Detail Report"] = {
                     
                     if (txt.length >= 1) {
                         frappe.call({
-                            method: "gke_customization.gke_catalog.report.serial_no_detail_report.serial_no_detail_report.get_autocomplete_options",
+                            method: "gke_customization.gke_catalog.report.item_code_serial_no_detail.item_code_serial_no_detail.get_autocomplete_options",
                             args: { txt: txt },
                             callback: function(r) {
                                 if (r.message && r.message.length > 0) {
@@ -145,7 +145,7 @@ frappe.query_reports["Serial No Detail Report"] = {
 
 
                 frappe.call({
-                    method: "gke_customization.gke_catalog.report.serial_no_detail_report.serial_no_detail_report.get_raw_material_details",
+                    method: "gke_customization.gke_catalog.report.item_code_serial_no_detail.item_code_serial_no_detail.get_raw_material_details",
                     args: { 
                         serial_no: serial_no,
                         item_code: item_code
@@ -192,7 +192,7 @@ frappe.query_reports["Serial No Detail Report"] = {
 // CATEGORY FETCH FUNCTION WITH SESSION STORAGE
 function fetchAndPopulateCategories(item_code) {
     frappe.call({
-        method: "gke_customization.gke_catalog.report.serial_no_detail_report.serial_no_detail_report.get_item_category_details",
+        method: "gke_customization.gke_catalog.report.item_code_serial_no_detail.item_code_serial_no_detail.get_item_category_details",
         args: { item_code: item_code },
         callback: function(r) {
             if (r.message) {

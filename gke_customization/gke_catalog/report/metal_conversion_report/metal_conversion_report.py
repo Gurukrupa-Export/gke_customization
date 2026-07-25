@@ -16,12 +16,6 @@ def execute(filters=None):
 def get_columns():
     return [
         {
-            "label": _("Creation Date & Time"),
-            "fieldname": "creation_datetime",
-            "fieldtype": "Datetime",
-            "width": 160
-        },
-        {
             "label": _("Metal Conversion ID"),
             "fieldname": "metal_conversion_id",
             "fieldtype": "Link",
@@ -29,19 +23,32 @@ def get_columns():
             "width": 160
         },
         {
-            "label": _("Company"),
-            "fieldname": "company",
+            "label": _("Stock Entry ID"),
+            "fieldname": "stock_entry",
             "fieldtype": "Link",
-            "options": "Company",
-            "width": 120
+            "options": "Stock Entry",
+            "width": 150
         },
         {
-            "label": _("Branch"),
-            "fieldname": "branch",
-            "fieldtype": "Link",
-            "options": "Branch",
-            "width": 120
+            "label": _("Creation Date & Time"),
+            "fieldname": "creation_datetime",
+            "fieldtype": "Datetime",
+            "width": 160
         },
+        # {
+        #     "label": _("Company"),
+        #     "fieldname": "company",
+        #     "fieldtype": "Link",
+        #     "options": "Company",
+        #     "width": 120
+        # },
+        # {
+        #     "label": _("Branch"),
+        #     "fieldname": "branch",
+        #     "fieldtype": "Link",
+        #     "options": "Branch",
+        #     "width": 120
+        # },
         {
             "label": _("Manufacturer"),
             "fieldname": "manufacturer",
@@ -109,14 +116,8 @@ def get_columns():
             "fieldname": "is_customer_metal",
             "fieldtype": "Data",
             "width": 130
-        },
-        {
-            "label": _("Stock Entry ID"),
-            "fieldname": "stock_entry",
-            "fieldtype": "Link",
-            "options": "Stock Entry",
-            "width": 150
         }
+        
     ]
 
 
@@ -163,29 +164,31 @@ def get_data(filters):
 
 def get_conditions(filters):
     conditions = ""
-    
-    if filters.get("company"):
-        conditions += " AND mc.company = %(company)s"
-    
-    if filters.get("branch"):
-        conditions += " AND mc.branch = %(branch)s"
-    
+
     if filters.get("manufacturer"):
         conditions += " AND mc.manufacturer = %(manufacturer)s"
-    
+
     if filters.get("department"):
         conditions += " AND mc.department = %(department)s"
-    
+
     if filters.get("is_customer_metal"):
         if filters.get("is_customer_metal") == "Yes":
             conditions += " AND mc.is_customer_metal = 1"
         elif filters.get("is_customer_metal") == "No":
             conditions += " AND (mc.is_customer_metal = 0 OR mc.is_customer_metal IS NULL)"
-    
+
+    if filters.get("conversion_type"):
+        if filters.get("conversion_type") == "Pure to Touch":
+            conditions += " AND mc.source_qty < mc.target_qty"
+        elif filters.get("conversion_type") == "Touch to Pure":
+            conditions += " AND mc.target_qty < mc.source_qty"
+        elif filters.get("conversion_type") == "Other Conversions":
+            conditions += " AND mc.source_qty = mc.target_qty"
+
     if filters.get("from_date"):
         conditions += " AND DATE(mc.creation) >= %(from_date)s"
-    
+
     if filters.get("to_date"):
         conditions += " AND DATE(mc.creation) <= %(to_date)s"
-    
+
     return conditions
