@@ -2,6 +2,10 @@ import frappe
 import requests, json
 from frappe.utils import flt
 from frappe.utils import now_datetime , add_days, get_datetime
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+from io import BytesIO
 
 # ------------------------------------------------------------------
 # Stage 1: Send to Item & BOM Creation
@@ -191,11 +195,11 @@ def trigger_pricing_calculation(doc):
     if doc.status in ["Draft", "Item & BOM Creation"]:
         return
 
-    credit_note_key = (doc.credit_note_type, doc.credit_note_subtype)
+    credit_note_key = (doc.credit_note_type, doc.return_subtype)
 
     calc_mapping = {
-        ("Actual", "Sale Without Payment-Actual"): _calc_bom_pcpm,
-        ("Actual", "Sale With Payment-Actual"): _calc_bom_bbpm,
+        ("Return", "Sale Without Payment-Return"): _calc_bom_pcpm,
+        ("Return", "Sale With Payment-Return"): _calc_bom_bbpm,
         ("Repair", "QC Fail-Repair"): _calc_bom_pcpm,
         ("Repair", "Physical-Repair"): _calc_bom_physical_repair,
         ("Consignment", "Finish Goods-Consignment"): _calc_bom_pcpm,
@@ -229,6 +233,59 @@ def _get_common_setup(doc):
         "Customer", doc.customer, "custom_gemstone_price_list_type"
     )
     return gold_gst_rate, customer_group, gemstone_price_list_type
+
+
+def _calc_jewelex_row_amounts(doc, row):
+    """
+    Populate a Jewelex-tag row's amount fields from a live Jwelex API fetch.
+    Triggers purely off `row.jewelex_tag` being set (works regardless of the
+    `is_jewelex_tag` checkbox) and needs no BOM.
+
+    Returns True if the row was a Jewelex row and was handled, so callers can
+    skip their BOM-based calculation for it; False otherwise.
+    """
+    if not row.get("jewelex_tag"):
+        return False
+
+    data = get_data_from_jwelex(row.jewelex_tag)
+    if not data:
+        frappe.throw(f"No JWELEX data found for Tag No {frappe.bold(row.jewelex_tag)}")
+
+    totals = data.get("totals", {})
+    charges_info = data.get("charges_info", {})
+    summary_totals = data.get("summary_totals", {})
+
+    making_amount = flt(charges_info.get("metal_making_amount")) + flt(charges_info.get("chain_making_amount"))
+    if doc.making_charges_type == "Without":
+        making_amount = 0
+    elif doc.making_charges_type == "Half":
+        making_amount = making_amount * 0.5
+    # "With" (or unset) keeps the full making_amount
+
+    row.metal_amount = flt(totals.get("metal_totals", {}).get("total_amount"))
+    row.diamond_amount = flt(totals.get("diamond_totals", {}).get("total_amount"))
+    row.gemstone_amount = flt(totals.get("stone_totals", {}).get("total_amount"))
+    row.finding_amount = flt(totals.get("finding_totals", {}).get("total_amount"))
+    row.other_material_amount = flt(totals.get("other_totals", {}).get("total_amount"))
+    row.making_amount = making_amount
+    row.certification_amount = flt(charges_info.get("certificate_charges"))
+    row.hallmarking_amount = flt(charges_info.get("hm_charges"))
+    row.gross_weight = summary_totals.get("gross_wt")
+
+    # Note: hallmarking_amount/certification_amount are set above but not
+    # folded into rate/amount here — validate() does that once, centrally,
+    # gated by product_hallmarking/product_certification, so they're never
+    # double-counted.
+    row.rate = (
+        row.metal_amount
+        + row.finding_amount
+        + row.diamond_amount
+        + row.gemstone_amount
+        + row.making_amount
+    )
+    row.amount = row.rate * flt(row.qty or 1)
+
+    return True
 
 
 def _calc_metal_amount(doc, bom_doc, mc_name, gold_gst_rate):
@@ -797,6 +854,10 @@ def _calc_bom_bbpm(doc):
     doc.sales_taxes_and_charges = []
 
     for row in doc.items:
+        if _calc_jewelex_row_amounts(doc, row):
+            total_taxable += row.amount
+            continue
+
         if not row.item_code or not row.bom:
             continue
 
@@ -812,37 +873,7 @@ def _calc_bom_bbpm(doc):
         row.finding_amount = row_finding_amt
         row.diamond_amount = row_diamond_amt
         row.gemstone_amount = row_gemstone_amt
-
-        # Making charges from original Sales Invoice
-        # Find matching item in jwelex_data
-        tag_no = row.get("tag_no")
         making_amount = 0
-        if tag_no:
-            jwelex_data = doc.get("jwelex_credit_note_data")
-            if not jwelex_data:
-                frappe.throw(f"JWELEX Data is required for {frappe.bold(doc.credit_note_subtype)} calculation")
-            jwelex_data = json.loads(jwelex_data)
-            matching_item = jwelex_data.get(tag_no)
-            
-            if not matching_item:
-                frappe.throw(f"Tag No {tag_no} not found in JWELEX Data")
-            
-            # frappe.throw(f"Matching Item: {matching_item}")
-
-            charges_info = matching_item.get("charges_info", {})
-            making_amount = charges_info.get("chain_making_amount", 0) + charges_info.get("metal_making_amount", 0)
-
-            # Making charges Type
-            if doc.making_charges_type == "Without":
-                making_amount = 0
-            elif doc.making_charges_type == "With":
-                making_amount = making_amount
-            elif doc.making_charges_type == "Half":
-                making_amount = making_amount * 0.5
-            else:
-                making_amount = 0
-
-            row.making_amount = making_amount
 
         row.rate = (
             row.metal_amount
@@ -866,89 +897,8 @@ def _calc_bom_pcpm(doc):
     same product rate mentioned in the invoice must be used
     No new or revised rates should be applied.
     """
-
-    jwelex_data = doc.get("jwelex_credit_note_data")
-    if not jwelex_data:
-        frappe.throw(f"JWELEX Data is required for {frappe.bold(doc.credit_note_subtype)} calculation")
-    
-    jwelex_data = json.loads(jwelex_data)
-
-    # TODO: Implement PCPM calculation logic
-    # Use jwelex_data to calculate rates
-    # Apply same product rate as invoice
-    # No new or revised rates
-    
     for row_item in doc.items:
-        tag_no = row_item.get("tag_no")
-        if not tag_no:
-            continue
-        
-        # Find matching item in jwelex_data
-        matching_item = jwelex_data.get(tag_no)
-        
-        if not matching_item:
-            frappe.throw(f"Tag No {tag_no} not found in JWELEX Data")
-        
-        # frappe.throw(f"Matching Item: {matching_item}")
-
-        charges_info = matching_item.get("charges_info", {})
-        making_amount = charges_info.get("chain_making_amount", 0) + charges_info.get("metal_making_amount", 0)
-        hm_charges = charges_info.get("hm_charges", 0)
-        certificate_charges = charges_info.get("certificate_charges", 0)
-
-        materials = matching_item.get("materials", {})
-        diamond_details = materials.get("diamond_details", [])
-        finding_details = materials.get("finding_details", [])
-        metal_details = materials.get("metal_details", [])
-        other_details = materials.get("other_details", [])
-        stone_details = materials.get("stone_details", [])
-
-
-        metal_amount = 0
-        for metal in metal_details:
-            metal_amount += metal.get("Amount", 0)
-            
-        diamon_amount = 0
-        for diamond in diamond_details:
-            diamon_amount += diamond.get("Amount", 0)
-        
-        finding_amount = 0
-        for finding in finding_details:
-            finding_amount += finding.get("Amount", 0)
-        
-        stone_amount = 0
-        for stone in stone_details:
-            stone_amount += stone.get("Amount", 0)
-        
-        other_amount = 0
-        for other in other_details:
-            other_amount += other.get("Amount", 0)
-
-
-        # Making charges Type
-        if doc.making_charges_type == "Without":
-            making_amount = 0
-        elif doc.making_charges_type == "With":
-            making_amount = making_amount
-        elif doc.making_charges_type == "Half":
-            making_amount = making_amount * 0.5
-        else:
-            making_amount = 0
-        
-        row_item.metal_amount = metal_amount
-        row_item.diamond_amount = diamon_amount
-        row_item.finding_amount = finding_amount
-        row_item.stone_amount = stone_amount
-        row_item.other_material_amount = other_amount
-        row_item.making_amount = making_amount
-        row_item.hallmarking_amount = hm_charges
-        row_item.certification_amount = certificate_charges
-        
-        total_amount = metal_amount + diamon_amount + finding_amount + stone_amount + other_amount + making_amount + hm_charges + certificate_charges
-        
-        row_item.rate = total_amount / row_item.get("qty", 1)
-        row_item.amount = total_amount
-        
+        _calc_jewelex_row_amounts(doc, row_item)
 
 # ==================================================================
 # CALCULATION TYPE: PHYSICAL REPAIR
@@ -1336,3 +1286,352 @@ def _append_other_detail(cno, items):
             "rate": o.get("Rate"),
             "amount": o.get("Amount"),
         })
+
+
+# ==================================================================
+# EXCEL PREVIEW — Product Return Order Form
+# ==================================================================
+@frappe.whitelist()
+def xl_preview_product_return_order_form(docname):
+    """
+    Excel Preview for Product Return Order Form, mirroring the Sales Order
+    "Excel Preview" button — one row per Product Return Order created
+    against this form. Every linked Product Return Order must be in the
+    "Send For Approval" workflow_state, or the whole export is blocked.
+    """
+    rows = frappe.get_all(
+        "Product Return Order",
+        filters={"product_return_order_form": docname},
+        fields=[
+            "name", "workflow_state", "index", "item_code", "serial_no", "jewelex_tag",
+            "bom", "item_category", "item_subcategory", "metal_touch", "metal_purity",
+            "metal_colour", "setting_type", "net_weight", "gross_weight", "diamond_weight",
+            "total_diamond_pcs", "total_gemstone_pcs", "total_finding_pcs",
+            "metal_amount", "diamond_amount", "finding_amount", "gemstone_amount",
+            "making_amount", "hallmarking_amount", "certification_amount", "rate", "amount",
+        ],
+        order_by="`index` asc",
+    )
+
+    if not rows:
+        frappe.throw(f"No Product Return Order found for {frappe.bold(docname)}")
+
+    for row in rows:
+        if row.workflow_state != "Send For Approval":
+            frappe.throw(
+                f"Product Return Order {frappe.bold(row.name)} is not in Send For Approval State"
+            )
+
+    columns = [
+        "Index", "Item Code", "Serial No", "Jewelex Tag", "BOM", "Item Category",
+        "Item Subcategory", "Metal Touch", "Metal Purity", "Metal Colour", "Setting Type",
+        "Net Weight", "Gross Weight", "Diamond Weight", "Diamond Pcs", "Gemstone Pcs",
+        "Finding Pcs", "Metal Amount", "Diamond Amount", "Finding Amount", "Gemstone Amount",
+        "Making Amount", "Hallmarking Amount", "Certification Amount", "Rate", "Amount",
+    ]
+
+    data_rows = []
+    for row in rows:
+        data_rows.append([
+            row.index, row.item_code, row.serial_no, row.jewelex_tag, row.bom,
+            row.item_category, row.item_subcategory, row.metal_touch, row.metal_purity,
+            row.metal_colour, row.setting_type,
+            flt(row.net_weight), flt(row.gross_weight), flt(row.diamond_weight),
+            flt(row.total_diamond_pcs), flt(row.total_gemstone_pcs), flt(row.total_finding_pcs),
+            flt(row.metal_amount), flt(row.diamond_amount), flt(row.finding_amount),
+            flt(row.gemstone_amount), flt(row.making_amount), flt(row.hallmarking_amount),
+            flt(row.certification_amount), flt(row.rate), flt(row.amount),
+        ])
+
+    sum_row = [""] * len(columns)
+    for idx in range(11, len(columns)):
+        sum_row[idx] = round(sum(flt(r[idx]) for r in data_rows), 3)
+    data_rows.append(sum_row)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Product Return Order"
+
+    company_name = frappe.db.get_value("Product Return Order Form", docname, "company") or ""
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(columns))
+    cell = ws.cell(row=1, column=1, value=company_name)
+    cell.font = Font(bold=True, size=15)
+    cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    for col_num, column_title in enumerate(columns, 1):
+        c = ws.cell(row=2, column=col_num, value=column_title)
+        c.font = Font(bold=True)
+        c.alignment = Alignment(horizontal="center", vertical="center")
+
+    for row_num, row_data in enumerate(data_rows, 3):
+        for col_num, cell_value in enumerate(row_data, 1):
+            ws.cell(row=row_num, column=col_num, value=cell_value)
+
+    for i in range(1, len(columns) + 1):
+        ws.column_dimensions[get_column_letter(i)].width = 15
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    frappe.local.response.filecontent = output.read()
+    frappe.local.response.filename = f"Product_Return_Order_{docname}.xlsx"
+    frappe.local.response.type = "download"
+
+
+# ==================================================================
+# EXCEL FROM PRINT FORMAT — renders whichever Print Format the user
+# picks, live, and converts that HTML into .xlsx. No hand-copied
+# calculation logic here — any edit to the Print Format is picked up
+# automatically the next time this is called, since it always renders
+# the current version.
+# ==================================================================
+@frappe.whitelist()
+def get_print_formats_for_product_return_order_form():
+    return frappe.get_all(
+        "Print Format",
+        filters={"doc_type": "Product Return Order Form", "disabled": 0},
+        fields=["name"],
+        order_by="name asc",
+    )
+
+
+_HEADING_SIZE = {"h1": 16, "h2": 15, "h3": 14, "h4": 13, "h5": 12, "h6": 11}
+_THIN_SIDE = Side(style="thin", color="999999")
+_CELL_BORDER = Border(left=_THIN_SIDE, right=_THIN_SIDE, top=_THIN_SIDE, bottom=_THIN_SIDE)
+_HEADER_FILL = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+
+
+def _is_bold_tag(tag):
+    if tag.name in ("b", "strong", "h1", "h2", "h3", "h4", "h5", "h6"):
+        return True
+    if tag.find(["b", "strong"]):
+        return True
+    style = (tag.get("style") or "").replace(" ", "").lower()
+    return "font-weight:bold" in style
+
+
+def _is_underline_tag(tag):
+    if tag.name == "u" or tag.find("u"):
+        return True
+    style = (tag.get("style") or "").replace(" ", "").lower()
+    return "text-decoration:underline" in style
+
+
+def _get_align(tag):
+    style = (tag.get("style") or "").replace(" ", "").lower()
+    if "text-align:center" in style:
+        return "center"
+    if "text-align:right" in style:
+        return "right"
+    return "left"
+
+
+def _clean_cell_value(text):
+    text = (text or "").strip()
+    if not text:
+        return None
+    cleaned = text.replace("₹", "").replace(",", "").strip()
+    try:
+        value = float(cleaned)
+        return int(value) if value == int(value) else value
+    except ValueError:
+        return text
+
+
+@frappe.whitelist()
+def xl_from_print_format(docname, print_format):
+    """
+    Render `print_format` against Product Return Order Form `docname` the
+    same way Frappe renders it for PDF/print, then convert that HTML into
+    an .xlsx download.
+    """
+    from bs4 import BeautifulSoup
+
+    pf = frappe.db.get_value(
+        "Print Format", print_format, ["name", "doc_type", "disabled"], as_dict=True
+    )
+    if not pf:
+        frappe.throw(f"Print Format {frappe.bold(print_format)} not found")
+    if pf.doc_type != "Product Return Order Form":
+        frappe.throw("This Print Format is not available for Product Return Order Form")
+    if pf.disabled:
+        frappe.throw(f"Print Format {frappe.bold(print_format)} is disabled")
+
+    html = frappe.get_print(
+        doctype="Product Return Order Form", name=docname, print_format=print_format, as_pdf=False
+    )
+    soup = BeautifulSoup(html, "html.parser")
+    # frappe.get_print(as_pdf=False) returns the full print-preview page
+    # (toolbar, huge CSS block, etc.), and the print format's own template
+    # can start with its own <html><body> — so the page ends up with two
+    # nested <body> tags. soup.body would grab the outer page shell, not
+    # the actual rendered content. The content is always wrapped in
+    # <div class="print-format">, regardless of how the format's own
+    # template is written, so anchor there instead.
+    body = soup.find("div", class_="print-format") or soup.body or soup
+
+    wb = Workbook()
+    ws = wb.active
+    safe_title = "".join(c for c in print_format if c not in '/\\?*[]:') or "Sheet1"
+    ws.title = safe_title[:31]
+
+    cursor = {"row": 1}
+    heading_rows = []   # (row_num, align) — merged/centered once we know sheet width
+    table_ranges = []   # (start_row, end_row, start_col, end_col)
+    table_counter = {"count": 0}
+    # The first table (item details) starts at column A. Any table after
+    # that (totals/summary) is positioned to the right of the page in the
+    # real print format via CSS, not by leading blank cells in the HTML —
+    # since that layout info is lost once we're just reading table
+    # structure, shift those later tables over to column P to approximate it.
+    SUMMARY_TABLE_COL_OFFSET = 15
+
+    def write_text_block(tag):
+        text = tag.get_text(" ", strip=True)
+        if not text:
+            return
+        r = cursor["row"]
+        cell = ws.cell(row=r, column=1, value=text)
+        cell.font = Font(
+            bold=_is_bold_tag(tag),
+            underline="single" if _is_underline_tag(tag) else None,
+            size=_HEADING_SIZE.get(tag.name, 10),
+        )
+        align = _get_align(tag)
+        cell.alignment = Alignment(horizontal=align, vertical="center", wrap_text=True)
+        heading_rows.append((r, align))
+        cursor["row"] += 1
+
+    def write_table(table):
+        start_row = cursor["row"]
+        # Some print formats emit "logic-only" <tr> rows with no <td>/<th> at
+        # all (Jinja {% set %} accumulators with nothing rendered inside) —
+        # skip those instead of letting them consume a blank grid row.
+        rows_html = [
+            tr for tr in table.find_all("tr")
+            if tr.find_all(["td", "th"], recursive=False)
+        ]
+        col_offset = SUMMARY_TABLE_COL_OFFSET if table_counter["count"] > 0 else 0
+        occupied = set()
+        max_rows_used = 0
+        max_col_used = 0
+        for r_idx, tr in enumerate(rows_html):
+            col_idx = 0
+            for cell_tag in tr.find_all(["td", "th"], recursive=False):
+                while (r_idx, col_idx) in occupied:
+                    col_idx += 1
+                colspan = int(cell_tag.get("colspan", 1) or 1)
+                rowspan = int(cell_tag.get("rowspan", 1) or 1)
+                value = _clean_cell_value(cell_tag.get_text(" ", strip=True))
+
+                target_row = start_row + r_idx
+                target_col = col_idx + 1 + col_offset
+                cell = ws.cell(row=target_row, column=target_col, value=value)
+
+                is_header_row = r_idx == 0
+                cell.font = Font(bold=_is_bold_tag(cell_tag) or is_header_row)
+                is_numeric = isinstance(value, (int, float))
+                if is_header_row:
+                    align = "center"
+                elif is_numeric:
+                    # Right-align single-width numeric cells (normal
+                    # spreadsheet convention), but left-align ones that span
+                    # multiple columns — different rows in the same table
+                    # can merge a different number of columns for what's
+                    # otherwise the same "value" position, and right-aligning
+                    # would drift each one to a different visual column even
+                    # though they all start at the same column.
+                    align = "left" if colspan > 1 else "right"
+                else:
+                    align = "left"
+                cell.alignment = Alignment(horizontal=align, vertical="center", wrap_text=True)
+                if is_numeric and not is_header_row:
+                    cell.number_format = "#,##0" if isinstance(value, int) else "#,##0.00"
+                if is_header_row:
+                    cell.fill = _HEADER_FILL
+
+                if colspan > 1 or rowspan > 1:
+                    ws.merge_cells(
+                        start_row=target_row, start_column=target_col,
+                        end_row=target_row + rowspan - 1, end_column=target_col + colspan - 1,
+                    )
+                for rr in range(rowspan):
+                    for cc in range(colspan):
+                        occupied.add((r_idx + rr, col_idx + cc))
+                col_idx += colspan
+            max_rows_used = max(max_rows_used, r_idx + 1)
+            max_col_used = max(max_col_used, col_idx)
+
+        end_row = start_row + max_rows_used - 1
+
+        # Weight columns/rows always show 3 decimals, regardless of the
+        # generic int/2-decimal formatting applied above — detected by
+        # "wt"/"weight" appearing in the column header (item table) or in
+        # the row's own label (row-oriented tables like the totals block).
+        weight_cols = set()
+        for c in range(1 + col_offset, max_col_used + 1 + col_offset):
+            header_text = str(ws.cell(row=start_row, column=c).value or "").lower()
+            if "wt" in header_text or "weight" in header_text:
+                weight_cols.add(c)
+        for r in range(start_row, end_row + 1):
+            label_text = str(ws.cell(row=r, column=1 + col_offset).value or "").lower()
+            row_is_weight = "wt" in label_text or "weight" in label_text
+            for c in range(1 + col_offset, max_col_used + 1 + col_offset):
+                if c not in weight_cols and not row_is_weight:
+                    continue
+                cell = ws.cell(row=r, column=c)
+                if isinstance(cell.value, (int, float)):
+                    cell.number_format = "0.000"
+
+        # Border every cell in the grid, including blanks, so it reads as
+        # an actual table instead of loose floating values.
+        for r in range(start_row, end_row + 1):
+            for c in range(1 + col_offset, max_col_used + 1 + col_offset):
+                ws.cell(row=r, column=c).border = _CELL_BORDER
+
+        table_ranges.append((start_row, end_row, 1 + col_offset, max_col_used + col_offset))
+        table_counter["count"] += 1
+        cursor["row"] = end_row + 2
+
+    def walk(node):
+        for child in node.find_all(recursive=False):
+            if child.name == "table":
+                write_table(child)
+            elif child.name in ("h1", "h2", "h3", "h4", "h5", "h6", "p"):
+                write_text_block(child)
+            elif child.name in ("div", "body", "section", "html"):
+                walk(child)
+            # skip <br>, <head>, <meta>, <script>, <style>, etc.
+
+    walk(body)
+
+    max_col = max((r[3] for r in table_ranges), default=10)
+
+    # Merge each heading/paragraph line across the sheet's full width so it
+    # reads as a banner instead of text stuck in column A.
+    for row_num, align in heading_rows:
+        if max_col > 1:
+            ws.merge_cells(start_row=row_num, start_column=1, end_row=row_num, end_column=max_col)
+        ws.cell(row=row_num, column=1).alignment = Alignment(horizontal=align, vertical="center", wrap_text=True)
+
+    # Auto-size columns to their content, capped so one long cell can't
+    # blow out the whole sheet.
+    col_widths = {}
+    for row in ws.iter_rows():
+        for cell in row:
+            if cell.value in (None, ""):
+                continue
+            length = len(str(cell.value))
+            col_widths[cell.column] = max(col_widths.get(cell.column, 0), length)
+    for col_num in range(1, max_col + 1):
+        width = col_widths.get(col_num, 10)
+        ws.column_dimensions[get_column_letter(col_num)].width = min(max(width + 2, 10), 35)
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    frappe.local.response.filecontent = output.read()
+    frappe.local.response.filename = f"{safe_title}_{docname}.xlsx"
+    frappe.local.response.type = "download"
+
+

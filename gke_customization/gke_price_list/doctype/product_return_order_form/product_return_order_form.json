@@ -15,15 +15,21 @@
   "column_break_fmev",
   "date",
   "posting_time",
+  "invoice_sales_type",
   "status",
   "section_break_khlv",
   "credit_note_type",
   "credit_note_subtype",
   "return_subtype",
-  "column_break_zfrc",
   "credit_note_rate_type",
+  "diamond_rate_type",
+  "column_break_zfrc",
   "making_charges_type",
   "custom_making_charges",
+  "handling_charges",
+  "custom_handling_charges",
+  "wastage_charges",
+  "custom_wastage_charges",
   "gemstone_charges",
   "custom_gemstones_charges",
   "return_material_type",
@@ -36,8 +42,21 @@
   "product_hallmarking",
   "product_certification",
   "items",
+  "section_break_2ysn",
+  "metal_weight",
+  "column_break_hnyw",
+  "diamond_weight",
+  "diamond_pcs",
+  "column_break_qvnm",
+  "finding_weight",
+  "column_break_qxxl",
+  "gemstone_weight",
+  "gemstone_pcs",
+  "column_break_jk1d",
+  "other_weight",
   "section_break_gwzd",
   "credit_note_invoice_item",
+  "total_amount",
   "section_break_rnmy",
   "tax_category",
   "sales_taxes_and_charges",
@@ -349,6 +368,100 @@
    "fieldtype": "Tab Break",
    "label": "Connections",
    "show_dashboard": 1
+  },
+  {
+   "fieldname": "diamond_rate_type",
+   "fieldtype": "Select",
+   "label": "Diamond Rate Type",
+   "options": "\nInvoice Rate\nCurrent Rate"
+  },
+  {
+   "fieldname": "handling_charges",
+   "fieldtype": "Select",
+   "label": "Handling Charges",
+   "options": "With\nWithout\nHalf\nCustom"
+  },
+  {
+   "fieldname": "custom_handling_charges",
+   "fieldtype": "Data",
+   "label": "Custom Handling Charges"
+  },
+  {
+   "fieldname": "wastage_charges",
+   "fieldtype": "Select",
+   "label": "Wastage Charges",
+   "options": "With\nWithout\nHalf\nCustom"
+  },
+  {
+   "fieldname": "custom_wastage_charges",
+   "fieldtype": "Data",
+   "label": "Custom Wastage Charges"
+  },
+  {
+   "fieldname": "invoice_sales_type",
+   "fieldtype": "Select",
+   "label": "Invoice Sales type",
+   "options": "\nHybrid\nOutright\nOutwork"
+  },
+  {
+   "fieldname": "section_break_2ysn",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "metal_weight",
+   "fieldtype": "Float",
+   "label": "Metal Weight"
+  },
+  {
+   "fieldname": "diamond_weight",
+   "fieldtype": "Float",
+   "label": "Diamond Weight"
+  },
+  {
+   "fieldname": "finding_weight",
+   "fieldtype": "Float",
+   "label": "Finding Weight"
+  },
+  {
+   "fieldname": "gemstone_weight",
+   "fieldtype": "Float",
+   "label": "Gemstone Weight"
+  },
+  {
+   "fieldname": "other_weight",
+   "fieldtype": "Float",
+   "label": "Other Weight"
+  },
+  {
+   "fieldname": "diamond_pcs",
+   "fieldtype": "Int",
+   "label": "Diamond Pcs"
+  },
+  {
+   "fieldname": "gemstone_pcs",
+   "fieldtype": "Int",
+   "label": "Gemstone Pcs"
+  },
+  {
+   "fieldname": "column_break_hnyw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_qvnm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_qxxl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_jk1d",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Total Amount"
   }
  ],
  "grid_page_length": 50,
@@ -364,8 +477,8 @@
    "link_fieldname": "custom_product_return_form_ref"
   }
  ],
- "modified": "2026-07-21 14:25:58.731295",
- "modified_by": "shruti_b@gkexport.com",
+ "modified": "2026-07-25 00:06:40.589896",
+ "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Product Return Order Form",
  "naming_rule": "Expression",
