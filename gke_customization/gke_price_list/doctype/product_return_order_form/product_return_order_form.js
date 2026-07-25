@@ -27,6 +27,46 @@ frappe.ui.form.on("Product Return Order Form", {
 
 		set_tag_no_mandatory(frm);
 
+		if (!frm.is_new()) {
+			frm.add_custom_button(__("Excel Preview"), function () {
+				let url = `/api/method/gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form_api.xl_preview_product_return_order_form?docname=${frm.doc.name}`;
+				window.open(url);
+			});
+
+			frm.add_custom_button(__("Customer Packing List"), function () {
+				frappe.call({
+					method: "gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form_api.get_print_formats_for_product_return_order_form",
+					callback: function (r) {
+						let formats = (r.message || []).map((d) => d.name);
+						if (!formats.length) {
+							frappe.msgprint(__("No active Print Formats found for Product Return Order Form"));
+							return;
+						}
+						let d = new frappe.ui.Dialog({
+							title: __("Select Print Format"),
+							fields: [
+								{
+									fieldname: "print_format",
+									fieldtype: "Select",
+									label: __("Print Format"),
+									options: formats,
+									default: formats[0],
+									reqd: 1,
+								},
+							],
+							primary_action_label: __("Download"),
+							primary_action(values) {
+								let url = `/api/method/gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form_api.xl_from_print_format?docname=${frm.doc.name}&print_format=${encodeURIComponent(values.print_format)}`;
+								window.open(url);
+								d.hide();
+							},
+						});
+						d.show();
+					},
+				});
+			});
+		}
+
 		if (frm.doc.docstatus == 1) {
 			frm.add_custom_button(__("Payment"), function () {
 				frappe.new_doc("Payment Entry", {
@@ -199,15 +239,20 @@ frappe.ui.form.on("Product Return Form Item", {
 						frappe.model.set_value(cdt, cdn, "setting_type", r.message.setting_type);
 						frappe.model.set_value(cdt, cdn, "gold_rate", r.message.total_metal_weight);
 						frappe.model.set_value(cdt, cdn, "diamond_weight", r.message.total_diamond_weight_in_gms);
-						frappe.model.set_value(cdt, cdn, "gold_rate", r.message.total_gemstone_weight);
+						frappe.model.set_value(cdt, cdn, "metal_weight", r.message.total_metal_weight);
+						frappe.model.set_value(cdt, cdn, "finding_weight", r.message.finding_weight);
+						frappe.model.set_value(cdt, cdn, "gemstone_weight", r.message.total_gemstone_weight);
+						frappe.model.set_value(cdt, cdn, "diamond_pcs", r.message.total_diamond_pcs);
+						frappe.model.set_value(cdt, cdn, "gemstone_pcs", r.message.total_gemstone_pcs);
 						frappe.model.set_value(cdt, cdn, "wastage_amount", r.message.sales_invoice.wastage_amount);
 						frappe.model.set_value(cdt, cdn, "gemstone_amount", r.message.sales_invoice.gemstone_amount);
 						frappe.model.set_value(cdt, cdn, "hallmarking_amount", r.message.sales_invoice.custom_hallmarking_amount);
 						frappe.model.set_value(cdt, cdn, "certification_amount", r.message.sales_invoice.custom_certification_amount);
-						frappe.model.set_value(cdt, cdn, "making_amount", r.message.sales_invoice.making_amount);
+						frappe.model.set_value(cdt, cdn, "making_amount", r.message.making_charge);
 						frappe.model.set_value(cdt, cdn, "finding_amount", r.message.sales_invoice.finding_amount);
 						frappe.model.set_value(cdt, cdn, "diamond_amount", r.message.sales_invoice.diamond_amount);
 						frappe.model.set_value(cdt, cdn, "metal_amount", r.message.sales_invoice.metal_amount);
+
 						// frappe.model.set_value(cdt, cdn, "item_category", r.message.sales_invoice.item_category);
 						// frappe.model.set_value(cdt, cdn, "item_category", r.message.sales_invoice.item_category);
 						// frappe.model.set_value(cdt, cdn, "item_category", r.message.sales_invoice.item_category);
@@ -1500,61 +1545,66 @@ frappe.ui.form.on("Product Return Form Item", {
 		let row = locals[cdt][cdn];
 		frappe.model.set_value(cdt, cdn, "amount", row.rate * row.qty);
 	},
-	tag_no(frm, cdt, cdn) {
+	jewelex_tag(frm, cdt, cdn) {
     let row = locals[cdt][cdn];
-    if (frm.doc.is_jewlex_credit_note) {
-        if (!row.tag_no) return;
+    if (!row.jewelex_tag) return;
 
-        frappe.call({
-            method: "gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form_api.get_data_from_jwelex",
-            args: {
-                tag_no: row.tag_no
-            },
-            callback: function(r) {
-                if (!r.message) {
-                    frappe.msgprint(__("No data found for this Tag No."));
-                    return;
-                }
-
-                let data = r.message;
-
-                // Metal details (first metal entry)
-                if (data.materials.metal_details.length) {
-                    let metal = data.materials.metal_details[0];
-                    row.metal_purity = metal.Purity_Name;
-                }
-
-                // Diamond details (first diamond entry)
-                if (data.materials.diamond_details.length) {
-                    let diamond = data.materials.diamond_details[0];
-                    row.diamond_quality = diamond.Code_Name;
-                }
-
-                // Weights
-                row.gold_rate = data.summary_totals.metal_weight;   // fieldname gold_rate, label "Metal Weight"
-                row.diamond_weight = data.summary_totals.diamond_weight;
-                row.total_weight = data.summary_totals.gross_wt;
-
-                // Amounts
-                row.metal_amount = data.summary_totals.metal_amount;
-                row.diamond_amount = data.summary_totals.diamond_amount;
-                row.gemstone_amount = data.totals.stone_totals.total_amount;
-                row.finding_amount = data.totals.finding_totals.total_amount;
-                row.other_material_amount = data.totals.other_totals.total_amount;
-
-                // Charges
-                row.making_amount = data.charges_info.metal_making_amount;
-                row.certification_amount = data.charges_info.certificate_charges;
-                row.hallmarking_amount = data.charges_info.hm_charges;
-                row.other_amount = data.charges_info.other_charges;
-
-                // Grand total
-                row.amount = data.summary_totals.grand_total_amount;
-
-                frm.refresh_field(cdt.parentfield);
+    frappe.call({
+        method: "gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form_api.get_data_from_jwelex",
+        args: {
+            tag_no: row.jewelex_tag
+        },
+        callback: function(r) {
+            if (!r.message) {
+                frappe.msgprint(__("No data found for this Tag No."));
+                return;
             }
-        });
-    }
+
+            let data = r.message;
+
+            // Metal details (first metal entry)
+            if (data.materials.metal_details.length) {
+                frappe.model.set_value(cdt, cdn, "metal_purity", data.materials.metal_details[0].Purity_Name);
+            }
+
+            // Diamond details (first diamond entry)
+            if (data.materials.diamond_details.length) {
+                frappe.model.set_value(cdt, cdn, "diamond_quality", data.materials.diamond_details[0].Code_Name);
+            }
+
+            // Weights
+            frappe.model.set_value(cdt, cdn, "gold_rate", data.summary_totals.metal_weight);   // fieldname gold_rate, label "Metal Weight"
+            frappe.model.set_value(cdt, cdn, "diamond_weight", data.summary_totals.diamond_weight);
+            frappe.model.set_value(cdt, cdn, "total_weight", data.summary_totals.gross_wt);
+            frappe.model.set_value(cdt, cdn, "gross_weight", data.summary_totals.gross_wt);
+            frappe.model.set_value(cdt, cdn, "metal_weight", data.totals.metal_totals.total_weight);
+            frappe.model.set_value(cdt, cdn, "finding_weight", data.totals.finding_totals.total_weight);
+            frappe.model.set_value(cdt, cdn, "gemstone_weight", data.totals.stone_totals.total_weight);
+
+            // Piece counts (materials.*_details carries a Pcs count per line)
+            let diamond_pcs = (data.materials.diamond_details || []).reduce((sum, d) => sum + flt(d.Pcs), 0);
+            let gemstone_pcs = (data.materials.stone_details || []).reduce((sum, s) => sum + flt(s.Pcs), 0);
+            frappe.model.set_value(cdt, cdn, "diamond_pcs", diamond_pcs);
+            frappe.model.set_value(cdt, cdn, "gemstone_pcs", gemstone_pcs);
+
+            // Amounts
+            frappe.model.set_value(cdt, cdn, "metal_amount", data.totals.metal_totals.total_amount);
+            frappe.model.set_value(cdt, cdn, "diamond_amount", data.totals.diamond_totals.total_amount);
+            frappe.model.set_value(cdt, cdn, "gemstone_amount", data.totals.stone_totals.total_amount);
+            frappe.model.set_value(cdt, cdn, "finding_amount", data.totals.finding_totals.total_amount);
+            frappe.model.set_value(cdt, cdn, "other_material_amount", data.totals.other_totals.total_amount);
+
+            // Charges
+            let making_amount = flt(data.charges_info.metal_making_amount) + flt(data.charges_info.chain_making_amount);
+            frappe.model.set_value(cdt, cdn, "making_amount", making_amount);
+            frappe.model.set_value(cdt, cdn, "certification_amount", data.charges_info.certificate_charges);
+            frappe.model.set_value(cdt, cdn, "hallmarking_amount", data.charges_info.hm_charges);
+            frappe.model.set_value(cdt, cdn, "other_amount", data.charges_info.other_charges);
+
+            // Grand total
+            frappe.model.set_value(cdt, cdn, "amount", data.summary_totals.grand_total_with_charges);
+        }
+    });
 },
 
 	rate(frm, cdt, cdn) {
