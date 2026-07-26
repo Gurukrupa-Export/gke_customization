@@ -305,10 +305,10 @@ def check_employee_punch(employee_details, shift_date, shift_name):
 
 	punches = []
 
-	emp = ''
+	# emp = ''
 	for d in employee_details:
 		dt = get_datetime(d["time"])
-		emp = d.get("employee")
+		# emp = d.get("employee")
 
 		if actual_start_dt <= dt <= shift_end_dt:
 			punches.append(dt)
