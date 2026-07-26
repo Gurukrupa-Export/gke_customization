@@ -4,6 +4,7 @@
 import copy
 from collections import defaultdict
 import json
+import re
 import frappe
 import time
 import requests
@@ -13,6 +14,114 @@ from frappe.model.document import Document
 from frappe.utils import flt
 from gke_customization.gke_price_list.doctype.product_return_order_form.e_invoice_logic import validate_e_invoice_items
 from gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form_api import trigger_pricing_calculation
+
+
+def resolve_attribute_value(text, flag_field):
+	"""Resolve a raw Jwelex label to an Attribute Value name. Returns None if not found."""
+	if not text:
+		return None
+	return frappe.db.get_value("Attribute Value", {"name": text.strip(), flag_field: 1}, "name")
+
+
+# Known Jwelex Purity_Name -> (metal_touch, metal_colour, metal_purity) overrides
+JWELEX_METAL_PURITY_MAP = {
+	"92 %": {"metal_touch": "22KT", "metal_colour": "Yellow", "metal_purity": "92.0"},
+}
+
+
+def append_metal_detail_from_jwelex(product_order, metal_details):
+	for m in metal_details:
+		dest = product_order.append("metal_detail", {})
+
+		metal_type = resolve_attribute_value(m.get("Meterial"), "is_metal_type")
+		if metal_type:
+			dest.metal_type = metal_type
+
+		purity_name = (m.get("Purity_Name") or "").strip()
+		purity_map = JWELEX_METAL_PURITY_MAP.get(purity_name)
+		if purity_map:
+			dest.metal_touch = purity_map["metal_touch"]
+			dest.metal_colour = purity_map["metal_colour"]
+			dest.metal_purity = purity_map["metal_purity"]
+		else:
+			metal_purity = resolve_attribute_value(purity_name, "is_metal_purity")
+			if metal_purity:
+				dest.metal_purity = metal_purity
+
+		dest.quantity = m.get("Weight")
+		dest.rate = m.get("Rate")
+		dest.amount = m.get("Amount")
+		dest.se_rate = m.get("Costing_Rate")
+
+
+def parse_float(text):
+	"""Extract the first number out of a raw Jwelex value like '2.20 MM'."""
+	if text is None or text == "":
+		return None
+	if isinstance(text, (int, float)):
+		return text
+	match = re.search(r"[-+]?\d*\.?\d+", str(text))
+	return float(match.group()) if match else None
+
+
+def append_diamond_detail_from_jwelex(product_order, diamond_details):
+	for d in diamond_details:
+		dest = product_order.append("diamond_detail", {})
+
+		dest.diamond_type = "Natural"
+
+		stone_shape = resolve_attribute_value(d.get("Shape_Name"), "is_stone_shape")
+		if stone_shape:
+			dest.stone_shape = stone_shape
+
+		dest.size_in_mm = parse_float(d.get("Code_Name"))
+		dest.pcs = d.get("Pcs")
+		dest.quantity = d.get("Weight")
+		dest.total_diamond_rate = d.get("Rate")
+		dest.diamond_rate_for_specified_quantity = d.get("Amount")
+		dest.se_rate = d.get("Costing_Amt")
+
+
+def append_finding_detail_from_jwelex(product_order, finding_details):
+	for f in finding_details:
+		dest = product_order.append("finding_detail", {})
+
+		metal_type = resolve_attribute_value(f.get("Meterial"), "is_metal_type")
+		if metal_type:
+			dest.metal_type = metal_type
+
+		finding_category = resolve_attribute_value(f.get("Shape_Name"), "is_finding_category")
+		if finding_category:
+			dest.finding_category = finding_category
+
+		metal_purity = resolve_attribute_value(f.get("Purity_Name"), "is_metal_purity")
+		if metal_purity:
+			dest.metal_purity = metal_purity
+
+		dest.quantity = f.get("Weight")
+		dest.rate = f.get("Rate")
+		dest.amount = f.get("Amount")
+		dest.se_rate = f.get("Costing_Rate")
+
+
+def append_gemstone_detail_from_jwelex(product_order, stone_details):
+	for s in stone_details:
+		dest = product_order.append("gemstone_detail", {})
+
+		stone_shape = resolve_attribute_value(s.get("Shape_Name"), "is_stone_shape")
+		if stone_shape:
+			dest.stone_shape = stone_shape
+
+		gemstone_size = resolve_attribute_value(s.get("Size_Name"), "is_gemstone_size")
+		if gemstone_size:
+			dest.gemstone_size = gemstone_size
+
+		dest.pcs = s.get("Pcs")
+		dest.quantity = s.get("Weight")
+		dest.total_gemstone_rate = s.get("Rate")
+		dest.gemstone_rate_for_specified_quantity = s.get("Amount")
+		dest.se_rate = s.get("Costing_Rate")
+
 
 class ProductReturnOrderForm(Document):
 	def get_data_from_jwelex(self,tag_no):
@@ -26,6 +135,7 @@ class ProductReturnOrderForm(Document):
 
 		response.raise_for_status()
 		return response.json()
+		
 	def before_validate(self):
 		
 		gold_gst_rate = frappe.db.get_single_value("Jewellery Settings", "gold_gst_rate")
@@ -99,9 +209,526 @@ class ProductReturnOrderForm(Document):
 			# if row.metal_purity:
 			# 	row.rate=float(self.gold_rate_with_gst) *float( row.metal_purity)/((100 + int(gold_gst_rate)))
 			# 	row.amount= row.rate
-	
+	def set_missing_tax_category_and_template(self):
+		 
+		# if self.sales_type not in ("Outright", "Outwork", "Branch Sales", "Hybrid"):
+		# 	return
+		# if self.tax_category and self.taxes_and_charges and self.get("taxes"):
+		# 	return
+
+		# customer_state = frappe.db.get_value("Address", self.customer_address, "gst_state_number")
+		# company_state = frappe.db.get_value("Address", self.company_address, "gst_state_number")
+		# if not customer_state or not company_state:
+		# 	return
+
+		# if not self.tax_category:
+		# 	self.tax_category = "In-State" if customer_state == company_state else "Out-State"
+		self.tax_category = "In-State"
+		if not self.taxes_and_charges:
+			taxes_and_charges = frappe.db.get_value(
+				"Sales Taxes and Charges Template",
+				{"company": self.company, "tax_category": self.tax_category, "disabled": 0},
+				"name",
+			)
+			if not taxes_and_charges:
+				frappe.log_error(
+					f"No Sales Taxes and Charges Template found for "
+					f"Company: {self.company}, Tax Category: {self.tax_category}",
+					"set_missing_tax_category_and_template",
+				)
+				return
+			self.taxes_and_charges = taxes_and_charges
+
+		if not self.get("taxes"):
+			tax_rows = frappe.get_all(
+				"Sales Taxes and Charges",
+				filters={"parent": self.taxes_and_charges},
+				fields=["charge_type", "account_head", "description", "rate", "cost_center"],
+				order_by="idx asc",
+			)
+			for t in tax_rows:
+				self.append("taxes", {
+					"charge_type": t.charge_type,
+					"account_head": t.account_head,
+					"description": t.description,
+					"rate": t.rate,
+					"cost_center": t.cost_center,
+				})
+	# def calculate_sales_taxes_and_charges(self):
+	# 	# if self.sales_type not in ("Outright", "Outwork", "Branch Sales", "Hybrid"):
+	# 	# 	return
+	# 	# frappe.throw("hii")
+	# 	company_state  = frappe.db.get_value("Address", self.company_address,  "gst_state_number")
+
+	# 	if not customer_state or not company_state:
+	# 		return
+
+	# 	self.tax_category = "In-State" if customer_state == company_state else "Out-State"
+
+	# 	item_template_map = {
+	# 		"Outright": {
+	# 			"Gurukrupa Export Private Limited": "GST 3% - GEPL",
+	# 			"KG GK Jewellers Private Limited":  "GST 3% - KGJPL",
+	# 		},
+	# 		"Branch Sales": {
+	# 		"Gurukrupa Export Private Limited": "GST 3% - GEPL"
+	# 		},
+	# 		"Outwork": {
+	# 			"Gurukrupa Export Private Limited": "GST 5% - GEPL",
+	# 			"KG GK Jewellers Private Limited":  "GST 5% - KGJPL",
+	# 		},
+	# 	}
+	# 	# Hybrid has no rate/template of its own — for account-head selection
+	# 	# only, it borrows the Outright template; the real 3%/5% rates
+	# 	# come from the customer's Outright / Outwork rows (see
+	# 	# _set_hybrid_gst_details below).
+	# 	item_template_map["Hybrid"] = item_template_map["Outright"]
+
+	# 	item_tax_template = item_template_map.get(self.sales_type, {}).get(self.company)
+	# 	# frappe.throw(f"{item_tax_template}")
+	# 	if not item_tax_template:
+	# 		return
+
+	# 	taxes_and_charges = frappe.db.get_value(
+	# 		"Sales Taxes and Charges Template",
+	# 		{
+	# 			"company":      self.company,
+	# 			"tax_category": self.tax_category,
+	# 			"disabled":     0,
+	# 		},
+	# 		"name"
+	# 	)
+
+	# 	if not taxes_and_charges:
+	# 		frappe.log_error(
+	# 			f"No Sales Taxes and Charges Template found for "
+	# 			f"Company: {self.company}, Tax Category: {self.tax_category}",
+	# 			"set_gst_details"
+	# 		)
+	# 		return
+
+	# 	self.taxes_and_charges = taxes_and_charges
+
+	# 	if self.sales_type == "Hybrid":
+	# 		_set_hybrid_gst_details(self, item_tax_template)
+	# 		return
+
+	# 	template_rates = frappe.get_all(
+	# 		"Item Tax Template Detail",
+	# 		filters={"parent": item_tax_template},
+	# 		fields=["tax_type", "tax_rate"]
+	# 	)
+
+	# 	tax_rate = frappe.db.get_value(
+	# 		"Sales Type Multiselect",
+	# 		{
+	# 			"parent": self.customer,
+	# 			"sales_type": self.sales_type
+	# 		},
+	# 		"tax_rate"
+	# 	)
+
+	# 	tax_rate_f = flt(tax_rate)
+	# 	cgst_rate = sgst_rate = igst_rate = 0.0
+	# 	for r in template_rates:
+	# 		tax_type = r.tax_type or ""
+	# 		if "Output" not in tax_type or "RCM" in tax_type:
+	# 			continue
+	# 		if "CGST" in tax_type:
+	# 			cgst_rate = flt(tax_rate_f)
+	# 		elif "SGST" in tax_type:
+	# 			sgst_rate = flt(tax_rate_f)
+	# 		elif "IGST" in tax_type:
+	# 			igst_rate = flt(tax_rate_f)
+
+	# 	account_rate_map = {}
+	# 	for r in template_rates:
+	# 		tax_type = r.tax_type or ""
+	# 		if "Output" not in tax_type or "RCM" in tax_type:
+	# 			continue
+	# 		account_rate_map[r.tax_type] = flt(tax_rate_f)
+
+	# 	self.taxes = []
+	# 	tax_rows = frappe.get_all(
+	# 		"Sales Taxes and Charges",
+	# 		filters={"parent": self.taxes_and_charges},
+	# 		fields=["charge_type", "account_head", "description", "rate", "cost_center"],
+	# 		order_by="idx asc"
+	# 	)
+	# 	for t in tax_rows:
+	# 		correct_rate = account_rate_map.get(t.account_head, t.rate)
+	# 		self.append("taxes", {
+	# 			"charge_type":  t.charge_type,
+	# 			"account_head": t.account_head,
+	# 			"description":  t.description,
+	# 			"rate":         correct_rate,
+	# 			"cost_center":  t.cost_center,
+	# 			"tax_amount":correct_rate * self.total /100
+	# 		})
+	# 	for item in self.items:
+	# 		if not item.item_code:
+	# 			continue
+
+	# 		item.item_tax_template = item_tax_template
+	# 		item.gst_treatment     = "Taxable"
+	# 		item.cgst_rate         = 0.0
+	# 		item.sgst_rate         = 0.0
+	# 		item.igst_rate         = 0.0
+	# 		item.cgst_amount       = 0.0
+	# 		item.sgst_amount       = 0.0
+	# 		item.igst_amount       = 0.0
+
+	# 		taxable_value = flt(item.taxable_value)
+
+	# 		if self.tax_category == "In-State":
+	# 			item.cgst_rate   = tax_rate/2
+	# 			item.sgst_rate   = tax_rate/2
+	# 			item.cgst_amount = flt(taxable_value * item.cgst_rate / 100, 2)
+	# 			item.sgst_amount = flt(taxable_value * item.sgst_rate / 100, 2)
+	# 		else:
+	# 			item.igst_rate   = tax_rate
+	# 			item.igst_amount = flt(taxable_value * item.igst_rate / 100, 2)
+
+	# def _set_hybrid_gst_details(self, item_tax_template):
+
+	# 	if self.company not in HYBRID_ENABLED_COMPANIES:
+	# 		frappe.throw(_("Hybrid Sales Type is not yet enabled for company {0}").format(self.company))
+
+	# 	fg_rate = flt(frappe.db.get_value(
+	# 		"Sales Type Multiselect",
+	# 		{"parent": self.customer, "sales_type": "Outright"},
+	# 		"tax_rate",
+	# 	))
+	# 	sc_rate = flt(frappe.db.get_value(
+	# 		"Sales Type Multiselect",
+	# 		{"parent": self.customer, "sales_type": "Outwork"},
+	# 		"tax_rate",
+	# 	))
+
+	# 	total_owned    = sum(flt(item.custom_company_owned_amount)     for item in self.items)
+	# 	total_supplied = sum(flt(item.custom_customer_supplied_amount) for item in self.items)
+
+	# 	self.taxes = []
+	# 	tax_rows = frappe.get_all(
+	# 		"Sales Taxes and Charges",
+	# 		filters={"parent": self.taxes_and_charges},
+	# 		fields=["charge_type", "account_head", "description", "rate", "cost_center"],
+	# 		order_by="idx asc",
+	# 	)
+
+	# 	# One template row per account head (CGST/SGST/IGST) — reused for both
+	# 	# the Outright and Outwork rows we append below.
+	# 	account_by_type = {}
+	# 	for t in tax_rows:
+	# 		head = t.account_head or ""
+	# 		if "IGST" in head:
+	# 			account_by_type.setdefault("IGST", t)
+	# 		elif "CGST" in head:
+	# 			account_by_type.setdefault("CGST", t)
+	# 		elif "SGST" in head:
+	# 			account_by_type.setdefault("SGST", t)
+
+	# 	def _append_tax_row(account_key, rate, amount, label):
+	# 		template = account_by_type.get(account_key)
+	# 		if not template:
+	# 			return
+	# 		self.append("taxes", {
+	# 			"charge_type":  template.charge_type,
+	# 			"account_head": template.account_head,
+	# 			"description":  f"{template.description} ({label})",
+	# 			"rate":         rate,
+	# 			"cost_center":  template.cost_center,
+	# 			"tax_amount":   amount,
+	# 		})
+
+	# 	if self.tax_category == "In-State":
+	# 		_append_tax_row("CGST", fg_rate / 2, round(total_owned * fg_rate / 2 / 100, 2), "Outright")
+	# 		_append_tax_row("SGST", fg_rate / 2, round(total_owned * fg_rate / 2 / 100, 2), "Outright")
+	# 		_append_tax_row("CGST", sc_rate / 2, round(total_supplied * sc_rate / 2 / 100, 2), "Outwork")
+	# 		_append_tax_row("SGST", sc_rate / 2, round(total_supplied * sc_rate / 2 / 100, 2), "Outwork")
+	# 	else:
+	# 		_append_tax_row("IGST", fg_rate, round(total_owned * fg_rate / 100, 2), "Outright")
+	# 		_append_tax_row("IGST", sc_rate, round(total_supplied * sc_rate / 100, 2), "Outwork")
+
+	# 	for item in self.items:
+	# 		if not item.item_code:
+	# 			continue
+
+	# 		item.item_tax_template = item_tax_template
+	# 		item.gst_treatment     = "Taxable"
+
+	# 		owned         = flt(item.custom_company_owned_amount)
+	# 		supplied      = flt(item.custom_customer_supplied_amount)
+	# 		taxable_value = owned + supplied
+
+	# 		if self.tax_category == "In-State":
+	# 			cgst_amount = round(owned * fg_rate / 2 / 100 + supplied * sc_rate / 2 / 100, 2)
+	# 			item.cgst_amount = cgst_amount
+	# 			item.sgst_amount = cgst_amount
+	# 			item.igst_amount = 0.0
+	# 			item.cgst_rate   = round(cgst_amount / taxable_value * 100, 4) if taxable_value else 0.0
+	# 			item.sgst_rate   = item.cgst_rate
+	# 			item.igst_rate   = 0.0
+	# 		else:
+	# 			igst_amount = round(owned * fg_rate / 100 + supplied * sc_rate / 100, 2)
+	# 			item.igst_amount = igst_amount
+	# 			item.cgst_amount = 0.0
+	# 			item.sgst_amount = 0.0
+	# 			item.cgst_rate   = 0.0
+	# 			item.sgst_rate   = 0.0
+	# 			item.igst_rate   = round(igst_amount / taxable_value * 100, 4) if taxable_value else 0.0
+
+	def calculate_sales_taxes_and_charges(self):
+		"""
+		Handle Outright / Outwork / Branch Sales / Hybrid GST for the
+		credit note, mirroring the Sales Order pattern
+		(sales_order/doc_events.set_gst_details / _set_hybrid_gst_details).
+		"""
+		# if self.sales_type not in ("Outright", "Outwork", "Branch Sales", "Hybrid"):
+		# 	return
+		# frappe.throw("hiii")
+		if not self.items:
+			return
+
+		# Row rate/amount (including the hallmarking/certification toggle)
+		# are already finalized by validate() before this runs — see the
+		# row-finalization loop there. Nothing to reapply here.
+
+		# --- tax category from customer/company state ---
+		# customer_state = frappe.db.get_value("Address", self.customer_address, "gst_state_number")
+		# company_state = frappe.db.get_value("Address", self.company_address, "gst_state_number")
+		# if not customer_state or not company_state:
+		# 	return
+
+		self.tax_category = "In-State" 
+		SALES_TYPE_ITEM_TAX_TEMPLATE = {
+					"Finished Goods Return": {
+						"Gurukrupa Export Private Limited": "GST 3% - GEPL",
+						"KG GK Jewellers Private Limited": "GST 3% - KGJPL",
+					},
+					"Outright": {
+											"Gurukrupa Export Private Limited": "GST 3% - GEPL",
+											"KG GK Jewellers Private Limited": "GST 3% - KGJPL",
+										},
+					"Outwork": {
+						"Gurukrupa Export Private Limited": "GST 5% - GEPL",
+						"KG GK Jewellers Private Limited": "GST 5% - KGJPL",
+					},
+				}
+		item_template_map = {
+			**SALES_TYPE_ITEM_TAX_TEMPLATE,
+			"Branch Sales": {"Gurukrupa Export Private Limited": "GST 3% - GEPL"},
+		}
+		# Hybrid borrows the Outright template for account-head selection only;
+		# the real 3%/5% split is done in _set_hybrid_gst_details below.
+		item_template_map["Hybrid"] = item_template_map["Outwork"]
+
+		item_tax_template = item_template_map.get(self.invoice_sales_type, {}).get(self.company)
+		# frappe.throw(f"{item_tax_template}")
+		if not item_tax_template:
+			return
+
+		exempted_templates = ["Exempted - GEPL", "Exempted - KGJPL", "Exempted - SHC", "Exempted - SD"]
+		if item_tax_template in exempted_templates:
+			return
+
+		taxes_and_charges = frappe.db.get_value(
+			"Sales Taxes and Charges Template",
+			{"company": self.company, "tax_category": self.tax_category, "disabled": 0},
+			"name",
+		)
+		if not taxes_and_charges:
+			frappe.log_error(
+				f"No Sales Taxes and Charges Template found for "
+				f"Company: {self.company}, Tax Category: {self.tax_category}",
+				"calculate_sales_taxes_and_charges",
+			)
+			return
+
+		self.taxes_and_charges = taxes_and_charges
+
+		if self.invoice_sales_type == "Hybrid":
+			self._set_hybrid_gst_details(item_tax_template)
+			return
+
+		# --- standard single-rate path (Outright / Outwork / Branch Sales) ---
+		net_total = sum(flt(item.amount) for item in self.items)
+
+		template_rates = frappe.get_all(
+			"Item Tax Template Detail",
+			filters={"parent": item_tax_template},
+			fields=["tax_type", "tax_rate"],
+		)
+
+		self.sales_taxes_and_charges = []
+		cumulative_total = net_total
+		processed = []
+
+		for r in template_rates:
+			tax_type = r.tax_type or ""
+			if "Output" not in tax_type or "RCM" in tax_type:
+				continue
+			if self.tax_category == "In-State" and "IGST" in tax_type:
+				continue
+			if self.tax_category != "In-State" and ("CGST" in tax_type or "SGST" in tax_type):
+				continue
+			if tax_type in processed:
+				continue
+			processed.append(tax_type)
+
+			tax_rate = flt(r.tax_rate)
+			tax_amount = net_total * (tax_rate / 100)
+			cumulative_total += tax_amount
+
+			self.append("sales_taxes_and_charges", {
+				"charge_type": "On Net Total",
+				"account_head": tax_type,
+				"description": tax_type.split(" - ")[0] if " - " in tax_type else tax_type,
+				"rate": tax_rate,
+				"tax_amount": tax_amount,
+				"total": cumulative_total,
+			})
+
+		self.total_taxes_and_charges = sum(flt(d.tax_amount) for d in self.sales_taxes_and_charges)
+		self.grand_total = net_total + self.total_taxes_and_charges
+		self.rounded_total = round(self.grand_total)
+		self.rounding_adjustment = abs(self.rounded_total - self.grand_total)
+
+	def _set_hybrid_gst_details(self, item_tax_template):
+		HYBRID_ENABLED_COMPANIES=("KG GK Jewellers Private Limited",)
+		if self.company not in HYBRID_ENABLED_COMPANIES:
+			frappe.throw(_("Hybrid Sales Type is not yet enabled for company {0}").format(self.company))
+
+		fg_rate = flt(frappe.db.get_value(
+			"Sales Type Multiselect", {"parent": self.customer, "sales_type": "Outright"}, "tax_rate",
+		))
+		sc_rate = flt(frappe.db.get_value(
+			"Sales Type Multiselect", {"parent": self.customer, "sales_type": "Outwork"}, "tax_rate",
+		))
+
+		total_owned = 0.0
+		total_supplied = 0.0
+		for item in self.items:
+			owned = (
+				flt(item.metal_amount) + flt(item.diamond_amount)
+				+ flt(item.gemstone_amount) + flt(item.finding_amount)
+				+ flt(item.hallmarking_amount) + flt(item.certification_amount)
+			)
+			supplied = flt(item.making_amount)
+			# frappe.throw(f"{supplied}")
+			item.custom_company_owned_amount = owned
+			item.custom_customer_supplied_amount = supplied
+			total_owned += owned
+			total_supplied += supplied
+
+		self.sales_taxes_and_charges = []
+		tax_rows = frappe.get_all(
+			"Sales Taxes and Charges",
+			filters={"parent": self.taxes_and_charges},
+			fields=["charge_type", "account_head", "description", "rate", "cost_center"],
+			order_by="idx asc",
+		)
+
+		account_by_type = {}
+		for t in tax_rows:
+			head = t.account_head or ""
+			if "IGST" in head:
+				account_by_type.setdefault("IGST", t)
+			elif "CGST" in head:
+				account_by_type.setdefault("CGST", t)
+			elif "SGST" in head:
+				account_by_type.setdefault("SGST", t)
+
+		# Accumulate Outright + Outwork portions per account head first, so
+		# each account head (CGST/SGST/IGST) ends up as exactly one row —
+		# same as a standard, non-Hybrid tax table — instead of one row per
+		# Outright/Outwork portion. The rupee tax_amount is the exact,
+		# correct combined total; the row's own "rate" is left at 0 rather
+		# than a blended figure — same convention Sales Order's Hybrid
+		# handling uses (clear_hybrid_header_tax_rate): a single row can't
+		# truthfully state two different real rates, and a blended number
+		# would just be a different kind of wrong one.
+		merged_tax = {}
+
+		def _add_tax_amount(account_key, amount):
+			if not amount:
+				return
+			merged_tax.setdefault(account_key, 0.0)
+			merged_tax[account_key] += amount
+
+		if self.tax_category == "In-State":
+			_add_tax_amount("CGST", round(total_owned * fg_rate / 2 / 100, 2))
+			_add_tax_amount("SGST", round(total_owned * fg_rate / 2 / 100, 2))
+			_add_tax_amount("CGST", round(total_supplied * sc_rate / 2 / 100, 2))
+			_add_tax_amount("SGST", round(total_supplied * sc_rate / 2 / 100, 2))
+		else:
+			_add_tax_amount("IGST", round(total_owned * fg_rate / 100, 2))
+			_add_tax_amount("IGST", round(total_supplied * sc_rate / 100, 2))
+
+		net_total = total_owned + total_supplied
+		for account_key, amount in merged_tax.items():
+			template = account_by_type.get(account_key)
+			if not template:
+				continue
+			self.append("sales_taxes_and_charges", {
+				"charge_type": template.charge_type,
+				"account_head": template.account_head,
+				"description": template.description,
+				"rate": 0,
+				"cost_center": template.cost_center,
+				"tax_amount": amount,
+			})
+		self.total_taxes_and_charges = sum(flt(d.tax_amount) for d in self.sales_taxes_and_charges)
+		self.grand_total = net_total + self.total_taxes_and_charges
+		self.rounded_total = round(self.grand_total)
+		self.rounding_adjustment = abs(self.rounded_total - self.grand_total)
+
+		# Blended per-item rate, same reasoning as the SO version: a single
+		# credit-note row can't carry two distinct legal GST rates, so the
+		# item shows a weighted-average rate while the header taxes table
+		# carries the clean real-rate breakdown.
+		for item in self.items:
+			item.item_tax_template = item_tax_template
+			owned = flt(item.custom_company_owned_amount)
+			supplied = flt(item.custom_customer_supplied_amount)
+			if self.tax_category == "In-State":
+				cgst_amount = round(owned * fg_rate / 2 / 100 + supplied * sc_rate / 2 / 100, 2)
+				item.cgst_amount = cgst_amount
+				item.sgst_amount = cgst_amount
+				item.igst_amount = 0.0
+			else:
+				igst_amount = round(owned * fg_rate / 100 + supplied * sc_rate / 100, 2)
+				item.igst_amount = igst_amount
+				item.cgst_amount = 0.0
+				item.sgst_amount = 0.0
+
+	# def calculate_taxes_and_totals(self):
+	# 	self.calculate_sales_taxes_and_charges()
 	def validate(self):
-		gold_gst_rate = frappe.db.get_single_value("Jewellery Settings", "gold_gst_rate")
+		# frappe.throw("hiii")
+		# self.calculate_taxes_and_totals()
+		gold_gst_rate = frappe.db.get_single_value(
+			"Jewellery Settings", "gold_gst_rate"
+		)
+
+		SALES_TYPE_ITEM_TAX_TEMPLATE = {
+			"Finished Goods Return": {
+				"Gurukrupa Export Private Limited": "GST 3% - GEPL",
+				"KG GK Jewellers Private Limited": "GST 3% - KGJPL",
+			},
+			"Outwork": {
+				"Gurukrupa Export Private Limited": "GST 5% - GEPL",
+				"KG GK Jewellers Private Limited": "GST 5% - KGJPL",
+			},
+		}
+
+		HYBRID_OUTWORK_ITEM = "Subcontracting Charges"
+		sc_template = SALES_TYPE_ITEM_TAX_TEMPLATE["Outwork"].get(self.company)
+
+		# self.items = [
+		# 	d for d in self.items
+		# 	if not d.custom_is_subcontracting_charge_row
+		# ]
 		# for row in self.items:
 		# 	row.rate = row.rate
 		# 	row.amount = row.amount
@@ -113,7 +740,7 @@ class ProductReturnOrderForm(Document):
 		# 		row.rate=float(self.gold_rate_with_gst) *float( row.metal_purity)/((100 + int(gold_gst_rate)))
 		# 		row.amount= row.rate
 		# if not self.is_jewlex_credit_note:
-
+		# self.set_gst_details
 		if self.credit_note_rate_type == "Current Rate":
 			if not self.gold_rate_with_gst or not self.gold_rate:
 				frappe.throw(
@@ -122,67 +749,134 @@ class ProductReturnOrderForm(Document):
 
 		if not self.items: return
 
-		credit_note_mapping = {
-			("Return", "Sale Without Payment-Return"): self.apply_pcpm_manual_calculation,
-			("Return", "Sale With Payment-Return"): self.apply_bbpm_manual_calculation,
-			("Repair", "QC Fail-Repair"): self.apply_pcpm_manual_calculation,
-			("Repair", "Physical-Repair"): self.apply_physical_repair_manual_calculation,
-			("Consignment", "Finish Goods-Consignment"): self.apply_pcpm_manual_calculation,
-			("Consignment", "Raw Material-Consignment"): self.apply_consignment_raw_material_manual_calculation,
-		}
+		# credit_note_mapping = {
+		# 	("Return", "Sale Without Payment-Return"): self.apply_pcpm_manual_calculation,
+		# 	("Return", "Sale With Payment-Return"): self.apply_bbpm_manual_calculation,
+		# 	("Repair", "QC Fail-Repair"): self.apply_pcpm_manual_calculation,
+		# 	("Repair", "Physical-Repair"): self.apply_physical_repair_manual_calculation,
+		# 	("Consignment", "Finish Goods-Consignment"): self.apply_pcpm_manual_calculation,
+		# 	("Consignment", "Raw Material-Consignment"): self.apply_consignment_raw_material_manual_calculation,
+		# }
 
 		self.return_material_type = '' # set only raw material-Consignment while calculation
-		calculation_function = credit_note_mapping.get((self.credit_note_type, self.return_subtype))
+		# calculation_function = credit_note_mapping.get((self.credit_note_type, self.return_subtype))
 
-		if calculation_function:
-			calculation_function()
+		# if calculation_function:
+		# 	calculation_function()
 		# else:
 		# 	frappe.throw(
 		# 		f"Invalid credit note type: {self.credit_note_type} / {self.return_subtype}"
 		# 	)
 
-		else:
-			trigger_pricing_calculation(self)
+		# else:
+		trigger_pricing_calculation(self)
+
+		# Backfill weight/pcs fields from the BOM for rows saved before these
+		# fields existed on the row (e.g. serial_no was set before this
+		# fetch was added) — only touches fields still at 0 on the row, and
+		# only when the BOM actually has a non-zero value for it.
+		for row in self.items:
+			if not row.bom:
+				continue
+			bom_weights = None
+			for field, bom_field in (
+				("metal_weight", "metal_weight"),
+				("finding_weight", "finding_weight"),
+				("gemstone_weight", "gemstone_weight"),
+				("diamond_pcs", "total_diamond_pcs"),
+				("gemstone_pcs", "total_gemstone_pcs"),
+			):
+				if flt(row.get(field)):
+					continue
+				if bom_weights is None:
+					bom_weights = frappe.db.get_value(
+						"BOM", row.bom,
+						["metal_weight", "finding_weight", "gemstone_weight", "total_diamond_pcs", "total_gemstone_pcs"],
+						as_dict=True,
+					) or {}
+				if flt(bom_weights.get(bom_field)):
+					row.set(field, bom_weights.get(bom_field))
+
+		self.metal_weight = sum(flt(row.metal_weight) for row in self.items)
+		self.diamond_weight = sum(flt(row.diamond_weight) for row in self.items)
+		self.finding_weight = sum(flt(row.finding_weight) for row in self.items)
+		self.gemstone_weight = sum(flt(row.gemstone_weight) for row in self.items)
+		self.diamond_pcs = sum(flt(row.diamond_pcs) for row in self.items)
+		self.gemstone_pcs = sum(flt(row.gemstone_pcs) for row in self.items)
+
+		if self.invoice_sales_type == "Hybrid":
+			gst_hsn_code = frappe.db.get_value("Item", HYBRID_OUTWORK_ITEM, "gst_hsn_code")
+
+			total_making_charge = 0
+			for row in self.items:
+				if row.item_code == HYBRID_OUTWORK_ITEM:
+					continue
+				total_making_charge += frappe.db.get_value("BOM", row.bom, "making_charge") or 0
+				# The making charge moves onto the Subcontracting Charges row
+				# below — zero it here so it isn't also counted a second time
+				# inside this row's own rate/amount (row finalization below
+				# sums row.making_amount into rate/amount for every row).
+				row.making_amount = 0
+
+			if self.making_charges_type == "Without":
+				total_making_charge = 0
+			elif self.making_charges_type == "Half":
+				total_making_charge = total_making_charge * 0.5
+
+			sc_row = next((d for d in self.items if d.item_code == HYBRID_OUTWORK_ITEM), None)
+			if not sc_row:
+				sc_row = self.append("items", {
+					"item_code": HYBRID_OUTWORK_ITEM,
+					"item_name": HYBRID_OUTWORK_ITEM,
+					"description": HYBRID_OUTWORK_ITEM,
+					"qty": 1,
+					"uom": "Nos",
+					"gst_hsn_code": gst_hsn_code,
+					"item_tax_template": sc_template,
+					"custom_is_subcontracting_charge_row": 1,
+				})
+
+			# Own making_amount (not just rate/amount) so _set_hybrid_gst_details
+			# picks this row up as the "supplied" (Outwork) portion — it sums
+			# item.making_amount across all rows, and this row is otherwise
+			# invisible to that total.
+			sc_row.rate = total_making_charge
+			sc_row.amount = total_making_charge
+			sc_row.making_amount = total_making_charge
+
+		# Finalize each row's rate/amount from its own component fields —
+		# metal/diamond/finding/gemstone/making are already set by
+		# trigger_pricing_calculation() above (or by the Hybrid block just
+		# above for the Subcontracting Charges row). Hallmarking/certification
+		# are pulled from BOM here (the one place they're set for BOM-based
+		# rows) and folded in only if the corresponding toggle is on. This
+		# runs BEFORE total_amount/e-invoice/tax so those are always computed
+		# from each row's final number, not a stale one.
+		for row in self.items:
+			if row.bom:
+				row.hallmarking_amount = frappe.db.get_value("BOM", row.bom, "hallmarking_amount") or 0
+				row.certification_amount = frappe.db.get_value("BOM", row.bom, "certification_amount") or 0
+
+			rate = (
+				flt(row.metal_amount)
+				+ flt(row.diamond_amount)
+				+ flt(row.finding_amount)
+				+ flt(row.gemstone_amount)
+				+ flt(row.making_amount)
+				+ (flt(row.hallmarking_amount) if self.product_hallmarking else 0)
+				+ (flt(row.certification_amount) if self.product_certification else 0)
+			)
+			row.rate = rate
+			row.amount = rate * flt(row.qty or 1)
+			row.base_rate = rate
+			row.base_amount = row.amount
+
+		self.total_amount = sum(flt(row.amount) for row in self.items)
 
 		validate_e_invoice_items(self)
+
 		self.calculate_taxes_and_totals()
 		self.set_total_in_words()
-		for row in self.items:
-			hallmarking_amount = frappe.db.get_value(
-				"BOM", row.bom, "hallmarking_amount"
-			) or 0
-
-			certification_amount = frappe.db.get_value(
-				"BOM", row.bom, "certification_amount"
-			) or 0
-			total_diamond_amount = frappe.db.get_value(
-				"BOM", row.bom, "total_diamond_amount"
-			) or 0
-			row.diamond_amount=total_diamond_amount
-			# frappe.throw(f"{certification_amount}")
-			# Store original values only once
-			if not row.base_rate:
-				row.base_rate = row.rate
-			else:
-				row.rate=row.base_rate
-
-			if not row.base_amount:
-				row.base_amount = row.amount
-
-			rate = row.base_rate
-			amount = row.base_amount
-
-			# Remove unchecked charges
-			if not self.product_hallmarking:
-				rate -= hallmarking_amount
-				amount -= hallmarking_amount * row.qty
-
-			if not self.product_certification:
-				rate -= certification_amount
-				amount -= certification_amount * row.qty
-
-			row.rate = rate
-			row.amount = amount
 		# for row in self.items:
 		# 	bom_d = frappe.db.get_value("BOM", row.bom, "hallmarking_amount") or 0
 		# 	bom_c = frappe.db.get_value("BOM", row.bom, "certification_amount") or 0
@@ -211,10 +905,398 @@ class ProductReturnOrderForm(Document):
 		# 	frappe.throw(f"{customer}")
 	
 
+	def update_einvoice_items(self, invoice_data, payment_terms_data,allowed_item_types):
+		frappe.throw("hii")
+		if not self.get("invoice_item"):
+			self.invoice_item = []
+		else:
+			self.set("invoice_item", [])
+		precision = frappe.db.get_value('Customer',self.customer,"custom_precision_variable")
+		for row in invoice_data:
+			if row not in allowed_item_types:
+				continue
+			if invoice_data[row]["amount"] >= 0:
+				if payment_terms_data.get(row):
+					payment_terms_data[row] += round(invoice_data[row]["amount"], precision)
+				else:
+					payment_terms_data[row] = round(invoice_data[row]["amount"], precision)
+				self.append(
+					"invoice_item",
+					{
+						"item_code": row,
+						"item_name": row,
+						"uom": invoice_data[row]["uom"] or "Nos",
+						"gst_hsn_code": invoice_data[row]["hsn_code"],
+						"conversion_factor": 1,
+						"qty": invoice_data[row]["qty"],
+						"rate": invoice_data[row].get("rate", 0),
+						"base_rate": invoice_data[row].get("rate", 0),
+						"amount": flt(invoice_data[row]["amount"], 3),
+						"base_amount": invoice_data[row]["amount"],
+						"income_account": invoice_data[row]["income_account"],
+						"cost_center": invoice_data[row]["cost_center"],
+					},
+				)
+
+	def update_bom_details(self, row, bom_doc, is_branch_customer, invoice_data, gold_rate_changed=True):
+		gold_item = None
+		gold_making_item = None
+		bom_doc.customer = self.customer
+		precision = frappe.db.get_value("Customer", self.customer, "custom_precision_variable")
+		so_doc = frappe.get_doc("Sales Order", row.sales_order)
+		so_item_map = {}
+		for item in so_doc.custom_invoice_item:
+			# frappe.throw("hiii")
+			so_item_map[item.item_code] = item
+
+		def add_to_invoice(item_code, so_item, fallback_amount=0, fallback_qty=0,fallback_rate=0, hsn=None, uom=None):
+
+			if so_item:
+				amount = so_item.amount
+				qty = so_item.qty
+				rate = so_item.rate
+			else:
+				amount = fallback_amount
+				qty = fallback_qty
+				rate = fallback_rate
+
+			if item_code in invoice_data:
+				if so_item:
+					frappe.throw(f"{qty}")
+					invoice_data[item_code]["amount"] = amount
+					invoice_data[item_code]["qty"] = qty
+					invoice_data[item_code]["rate"] = rate
+				else:
+					# fallback case → can accumulate
+					invoice_data[item_code]["amount"] += amount
+					invoice_data[item_code]["qty"] += qty
+					invoice_data[item_code]["rate"] = rate
+			else:
+				invoice_data[item_code] = {
+					"amount": amount,
+					"qty": qty,
+					"rate": rate,
+					"hsn_code": hsn,
+					"uom": uom,
+					"income_account": row.income_account,
+					"cost_center": row.cost_center,
+				}
+		for i in bom_doc.metal_detail:
+			update_making_charges(row, bom_doc, i, self.gold_rate_with_gst) 
+			einvoice_item, hsn_code, uom = frappe.db.get_value(
+				"E Invoice Item",
+				{
+					"is_for_metal": 1,
+					"metal_type": i.metal_type,
+					"metal_purity": i.metal_touch,
+				},
+				["name", "hsn_code", "uom"],
+			) or (None, None, None)
+
+			# Hybrid: making charge is always job-work value (Outwork rate),
+			# regardless of is_customer_item — same rule as validate_item_dharm()
+			# in sales_order.py.
+			filter_value = (
+				"is_for_labour"
+				if (i.is_customer_item or self.sales_type == "Hybrid")
+				else "is_for_making"
+			)
+
+			making_item, making_hsn, making_uom = frappe.db.get_value(
+				"E Invoice Item",
+				{
+					filter_value: 1,
+					"metal_type": i.metal_type,
+					"metal_purity": i.metal_touch,
+				},
+				["name", "hsn_code", "uom"],
+			) or (None, None, None)
+
+			so_metal = so_item_map.get(einvoice_item)
+			so_making = so_item_map.get(making_item)
+
+			if einvoice_item and not i.is_customer_item:
+				add_to_invoice(
+					einvoice_item,
+					so_metal,
+					fallback_amount=round(i.amount,precision),
+					fallback_qty=i.quantity,
+
+					fallback_rate=i.rate,
+					hsn=hsn_code,
+					uom=uom,
+				)
+
+			if making_item and not is_branch_customer:
+				is_metal_per_pc = (
+					flt(i.making_rate) > 0
+					and abs(flt(i.making_amount) - flt(i.making_rate)) < 0.01
+				)
+				making_amount_with_wastage = flt(i.making_amount) + flt(i.wastage_amount)
+				# metal_making_qty = 1 if is_metal_per_pc else i.quantity
+				add_to_invoice(
+					making_item,
+					so_making,
+					fallback_amount=round(making_amount_with_wastage,precision),
+					fallback_qty=i.quantity,
+					fallback_rate=i.making_rate,
+					hsn=making_hsn,
+					uom=making_uom,
+				)
+
+			if i.is_customer_item:
+				self.is_customer_metal = True
+
+
+		for i in bom_doc.finding_detail:
+			update_making_charges(row, bom_doc, i, self.gold_rate_with_gst)
+			einvoice_item = hsn_code = uom = None
+
+			# ---------------- Finding amount: category-specific match ----------------
+			result = frappe.db.get_value(
+				"E Invoice Item",
+				{
+					"is_for_finding": 1,
+					"metal_type": i.metal_type,
+					"metal_purity": i.metal_touch,
+					"finding_category": i.finding_category,
+				},
+				["name", "hsn_code", "uom"],
+			)
+			if result:
+				einvoice_item, hsn_code, uom = result
+			else:
+				# FIXED: fallback must only match a genuinely generic record
+				# (finding_category is unset) — not just any record sharing
+				# metal_type/metal_purity, which could accidentally be a
+				# different category's record.
+				result = frappe.db.get_value(
+					"E Invoice Item",
+					{
+						"is_for_metal": 1,
+						"metal_type": i.metal_type,
+						"metal_purity": i.metal_touch,
+						"finding_category": ["is", "not set"],
+					},
+					["name", "hsn_code", "uom"],
+				)
+				if result:
+					einvoice_item, hsn_code, uom = result
+
+			# Hybrid: making charge is always job-work value (Outwork rate),
+			# regardless of is_customer_item — same rule as validate_item_dharm()
+			# in sales_order.py.
+			filter_value = (
+				"is_for_labour"
+				if (i.is_customer_item or self.sales_type == "Hybrid")
+				else "is_for_finding_making"
+			)
+
+			making_item = making_hsn = making_uom = None
+
+			# ---------------- Making charge: category-specific match ----------------
+			result = frappe.db.get_value(
+				"E Invoice Item",
+				{
+					# "is_for_metal": 1,
+					filter_value:1,
+					"metal_type": i.metal_type,
+					"metal_purity": i.metal_touch,
+					"finding_category": i.finding_category,
+				},
+				["name", "hsn_code", "uom"],
+			)
+			if result:
+				making_item, making_hsn, making_uom = result
+			else:
+				# Fallback mirrors the SO's behavior — drop into the generic
+				# metal bucket for whichever filter_value we resolved above
+				# (is_for_labour for Hybrid/customer-supplied, is_for_making
+				# otherwise), not hardcoded to is_for_making, so Hybrid making
+				# charges don't fall back into the Outright-taxed bucket.
+				fallback_filter_value = (
+					"is_for_labour"
+					if (i.is_customer_item or self.sales_type == "Hybrid")
+					else "is_for_making"
+				)
+				result = frappe.db.get_value(
+					"E Invoice Item",
+					{
+						fallback_filter_value: 1,
+						"metal_type": i.metal_type,
+						"metal_purity": i.metal_touch,
+					},
+					["name", "hsn_code", "uom"],
+				)
+				if result:
+					making_item, making_hsn, making_uom = result
+
+			so_finding = so_item_map.get(einvoice_item)
+			so_making = so_item_map.get(making_item)
+
+			if einvoice_item and not i.is_customer_item:
+				add_to_invoice(
+					einvoice_item,
+					so_finding,
+					fallback_amount=round(i.amount,precision),
+					fallback_qty=i.quantity,
+					fallback_rate=i.rate,
+					hsn=hsn_code,
+					uom=uom,
+				)
+
+			if making_item:
+				making_amount_with_wastage = flt(i.making_amount) + flt(i.wastage_amount)
+				add_to_invoice(
+					making_item,
+					so_making,
+					fallback_amount=round(making_amount_with_wastage,precision),
+					fallback_qty=i.quantity,
+					fallback_rate=i.making_rate,
+					hsn=making_hsn,
+					uom=making_uom,
+				)
+			if i.is_customer_item:
+				self.is_customer_metal = True
+
+		for i in bom_doc.diamond_detail:		
+			einvoice_item = hsn_code = uom = None
+			result = frappe.db.get_value(
+				"E Invoice Item",
+				{
+					"is_for_diamond": 1,
+					"diamond_type": i.diamond_type
+				},
+				["name", "hsn_code", "uom"],
+			)
+
+			if result:
+				einvoice_item, hsn_code, uom = result
+			else:
+				continue  
+
+			so_item = so_item_map.get(einvoice_item)
+
+			if so_item:
+				amount = so_item.amount
+				qty = so_item.qty
+				rate = so_item.rate
+
+			else:
+				amount = _calculate_diamond_amount(bom_doc, i, {}, {})
+				if is_branch_customer:
+					amount = i.se_rate * i.quantity
+
+				qty = i.quantity
+				rate = 0
+
+			if not i.is_customer_item:
+				if einvoice_item in invoice_data:
+					invoice_data[einvoice_item]["amount"] = round(amount , precision)
+					invoice_data[einvoice_item]["qty"] = qty
+				else:
+					invoice_data[einvoice_item] = {
+						"amount": amount,
+						"qty": qty,
+						"rate": rate,
+						"hsn_code": hsn_code,
+						"uom": uom,
+						"income_account": row.income_account,
+						"cost_center": row.cost_center,
+					}
+
+			if self.sales_type == "Hybrid":
+				# Handling charge is always job-work value, whether the stone
+				# is company-owned or customer-supplied — route it to the same
+				# labour/Subcontracting bucket used for metal/finding making
+				# above (mirrors the diamond handling split added to
+				# validate_item_dharm() in sales_order.py). Not filtered by uom —
+				# "Subcontracting Income" is Gram-based even though diamonds
+				# are Carat, matching the existing is_for_labour convention
+				# elsewhere in this function.
+				labour_item, labour_hsn, labour_uom = frappe.db.get_value(
+					"E Invoice Item",
+					{"is_for_labour": 1},
+					["name", "hsn_code", "uom"],
+				) or (None, None, None)
+				if labour_item:
+					so_labour = so_item_map.get(labour_item)
+					handling_amount = round(flt(i.quantity) * flt(i.handling_rate), precision)
+					add_to_invoice(
+						labour_item,
+						so_labour,
+						fallback_amount=handling_amount,
+						fallback_qty=i.quantity,
+						fallback_rate=i.handling_rate,
+						hsn=labour_hsn,
+						uom=labour_uom,
+					)
+
+			if i.is_customer_item:
+				self.is_customer_diamond = True
+		for i in bom_doc.gemstone_detail:
+
+			einvoice_item, hsn_code, uom = frappe.db.get_value(
+				"E Invoice Item",
+				{"is_for_gemstone": 1},
+				["name", "hsn_code", "uom"],
+			) or (None, None, None)
+
+			if not einvoice_item:
+				continue
+
+			so_item = so_item_map.get(einvoice_item)
+
+			if so_item:
+				amount = so_item.amount
+				qty = so_item.qty
+				rate = so_item.rate
+			else:
+			
+				amount = i.gemstone_rate_for_specified_quantity
+				qty = i.quantity
+				rate = i.total_gemstone_rate
+
+				if is_branch_customer:
+					amount = i.se_rate * i.quantity
+					rate = i.se_rate
+
+		
+			if einvoice_item and not i.is_customer_item:
+				if so_item_map.get(einvoice_item):
+					invoice_data[f"{einvoice_item}"] = {
+						"amount": so_item_map[einvoice_item].amount,
+						"qty": so_item_map[einvoice_item].qty,
+						"rate": so_item_map[einvoice_item].rate,
+						"hsn_code": hsn_code,
+						"uom": uom,
+						"income_account": row.income_account,
+						"cost_center": row.cost_center,
+					}
+				else:
+					invoice_data[f"{einvoice_item}"] = {
+						"amount": amount,
+						"qty": i.quantity,
+						"rate": i.rate,
+						"hsn_code": hsn_code,
+						"uom": uom,
+						"income_account": row.income_account,
+						"cost_center": row.cost_center,
+					}
+
+			if i.is_customer_item:
+				self.is_customer_gemstone = True
 	
+		bom_doc.gold_rate_with_gst = self.gold_rate_with_gst
+		customer_group=frappe.db.get_value('Customer',self.customer,'customer_group')
+		if not (self.company == "KG GK Jewellers Private Limited" or customer_group == "Internal"):
+			bom_doc.validate()
+			bom_doc.save()
+			update_totals("BOM", bom_doc.name)
+
 	def on_submit(self):
 
-		if self.is_jewlex_credit_note: return
+		# if self.yu: return
 
 		# items reqd
 		if not self.items:
@@ -222,6 +1304,20 @@ class ProductReturnOrderForm(Document):
 		index = self.idx + 1
 		
 		for item_row in self.items:
+			jewelex_data = None
+			bom = None
+			if item_row.item_code == 'Subcontracting Charges':
+				continue
+			if item_row.jewelex_tag:
+				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag)
+			elif item_row.serial_no:
+				bom_name = frappe.db.get_value("Serial No", item_row.serial_no, "custom_bom_no")
+				if not bom_name:
+					frappe.throw(f"BOM not found against Serial No {frappe.bold(item_row.serial_no)}")
+				# bom = frappe.get_doc("BOM", bom_name)
+			# else:
+				bom = frappe.get_doc("BOM", item_row.bom)
+
 			product_order = frappe.new_doc("Product Return Order")
 			product_order.customer = self.customer
 			product_order.company = self.company
@@ -236,11 +1332,21 @@ class ProductReturnOrderForm(Document):
 			product_order.custom_making_charges = self.custom_making_charges
 			product_order.gemstone_charges=self.gemstone_charges
 			product_order.custom_gemstones_charges = self.custom_gemstones_charges
+
+			product_order.custom_wastage_charges = self.custom_wastage_charges
+			product_order.wastage_charges = self.wastage_charges
+			product_order.custom_handling_charges = self.custom_handling_charges
+			product_order.handling_charges = self.handling_charges
+			product_order.diamond_rate_type=self.diamond_rate_type
+
 			product_order.index =index
 			index += 1
 
 			product_order.item_code = item_row.item_code
 			product_order.item_name = item_row.item_name
+			product_order.is_jewelex_tag = item_row.is_jewelex_tag
+			product_order.jewelex_tag = item_row.jewelex_tag
+			# product_order.bom = bom.name if bom else item_row.bom
 			product_order.bom = item_row.bom
 			product_order.serial_no = item_row.serial_no
 			product_order.hsn_sac = item_row.hsn_sac
@@ -272,8 +1378,7 @@ class ProductReturnOrderForm(Document):
 			product_order.metal_purity = item_row.metal_purity
 			product_order.setting_type = item_row.setting_type
 			product_order.amount = item_row.amount
-			bom = frappe.get_doc("BOM", item_row.bom)
-			# frappe.throw(f"BOM Metal: {len(bom.metal_detail)}")
+
 			system_fields = {
 				"name", "parent", "parentfield", "parenttype",
 				"doctype", "idx", "owner", "creation",
@@ -286,49 +1391,92 @@ class ProductReturnOrderForm(Document):
 				"gemstone_detail",
 				"other_detail"
 			]
-			for table in child_tables:
-				for src in getattr(bom, table):
-					dest = product_order.append(table, {})
 
-					for key, value in src.as_dict().items():
-						if key not in system_fields:
-							dest.set(key, value)
-			
-			product_order.total_finding_pcs=bom.finding_pcs
-			product_order.total_gemstone_pcs=bom.total_gemstone_pcs
-			product_order.total_diamond_pcs=bom.total_diamond_pcs
+			if bom:
+				for table in child_tables:
+					for src in getattr(bom, table):
+						dest = product_order.append(table, {})
+
+						for key, value in src.as_dict().items():
+							if key not in system_fields:
+								dest.set(key, value)
+
+			if jewelex_data:
+				materials = jewelex_data.get("materials", {})
+				summary_totals = jewelex_data.get("summary_totals", {})
+				totals = jewelex_data.get("totals", {})
+				charges_info = jewelex_data.get("charges_info", {})
+
+				if summary_totals.get("gross_wt") is not None:
+					product_order.gross_weight = summary_totals.get("gross_wt")
+
+				product_order.metal_amount = totals.get("metal_totals", {}).get("total_amount")
+				product_order.diamond_amount = totals.get("diamond_totals", {}).get("total_amount")
+				product_order.gemstone_amount = totals.get("stone_totals", {}).get("total_amount")
+				product_order.finding_amount = totals.get("finding_totals", {}).get("total_amount")
+				product_order.other_material_amount = totals.get("other_totals", {}).get("total_amount")
+
+				product_order.making_amount = flt(charges_info.get("metal_making_amount")) + flt(charges_info.get("chain_making_amount"))
+				product_order.certification_amount = charges_info.get("certificate_charges")
+				product_order.hallmarking_amount = charges_info.get("hm_charges")
+
+				product_order.set("metal_detail", [])
+				append_metal_detail_from_jwelex(product_order, materials.get("metal_details", []))
+
+				product_order.set("diamond_detail", [])
+				append_diamond_detail_from_jwelex(product_order, materials.get("diamond_details", []))
+
+				product_order.set("finding_detail", [])
+				append_finding_detail_from_jwelex(product_order, materials.get("finding_details", []))
+
+				product_order.set("gemstone_detail", [])
+				append_gemstone_detail_from_jwelex(product_order, materials.get("stone_details", []))
+
+				product_order.total_finding_pcs = len(materials.get("finding_details", []))
+				product_order.total_gemstone_pcs = len(materials.get("stone_details", []))
+				product_order.total_diamond_pcs = sum(
+					(d.get("Pcs") or 0) for d in materials.get("diamond_details", [])
+				)
+			else:
+				product_order.total_finding_pcs = bom.finding_pcs
+				product_order.total_finding_pcs = 1
+				product_order.total_gemstone_pcs = bom.total_gemstone_pcs
+				product_order.total_diamond_pcs = bom.total_diamond_pcs
+
+
 			product_order.insert(ignore_permissions=True)
 			product_order.save()
 			# If Tag No then Skip
 			if item_row.tag_no:
 				continue
 
-			if not item_row.sales_invoice_item or not item_row.sales_invoice:
-				frappe.throw(f"Sales Invoice Item or Sales Invoice is mandatory for item {frappe.bold(item_row.item_code)}")
+			if not item_row.is_jewelex_tag and not item_row.jewelex_tag:
+				if not item_row.sales_invoice_item or not item_row.sales_invoice:
+					frappe.throw(f"Sales Invoice Item or Sales Invoice is mandatory for item {frappe.bold(item_row.item_code)}")
 
-			if not item_row.qty:
-				frappe.throw(f"Quantity is mandatory for item {frappe.bold(item_row.item_code)}")
+				if not item_row.qty:
+					frappe.throw(f"Quantity is mandatory for item {frappe.bold(item_row.item_code)}")
 
-			if not item_row.rate:
-				frappe.throw(f"Rate is mandatory for item {frappe.bold(item_row.item_code)}")
+				if not item_row.rate:
+					frappe.throw(f"Rate is mandatory for item {frappe.bold(item_row.item_code)}")
 
-			sales_invoice_item = frappe.db.get_value("Sales Invoice Item", item_row.sales_invoice_item, ["warehouse"], as_dict=1)
-			warehouse = sales_invoice_item.get("warehouse")
+				sales_invoice_item = frappe.db.get_value("Sales Invoice Item", item_row.sales_invoice_item, ["warehouse"], as_dict=1)
+				warehouse = sales_invoice_item.get("warehouse")
 
-			if not warehouse: # warning msg : Warehouse not found from Sales invoice so we can't create active BOM and serial no
-				frappe.throw(f"Ware house not found for item {frappe.bold(item_row.item_code)}")
+				if not warehouse: # warning msg : Warehouse not found from Sales invoice so we can't create active BOM and serial no
+					frappe.throw(f"Ware house not found for item {frappe.bold(item_row.item_code)}")
 
-			serial_no_doc = frappe.get_doc("Serial No", item_row.get("serial_no"))
-			bom_doc = frappe.get_doc("BOM", item_row.get("bom"))
+				serial_no_doc = frappe.get_doc("Serial No", item_row.get("serial_no"))
+				bom_doc = frappe.get_doc("BOM", item_row.get("bom"))
 
-			if not serial_no_doc:
-				frappe.throw(f"Serial No not found for item {frappe.bold(item_row.item_code)}")
+				if not serial_no_doc:
+					frappe.throw(f"Serial No not found for item {frappe.bold(item_row.item_code)}")
 
-			# Active Serial No
-			# frappe.db.set_value("Serial No", item_row.get("serial_no"), {"status": "Active","warehouse": warehouse})
+			# # Active Serial No
+			# # frappe.db.set_value("Serial No", item_row.get("serial_no"), {"status": "Active","warehouse": warehouse})
 
-			# Update BOM
-			frappe.db.set_value("BOM", item_row.get("bom"), "is_active", 1)
+			# # Update BOM
+			# frappe.db.set_value("BOM", item_row.get("bom"), "is_active", 1)
 
 		self.db_set("status", "Approved")
 		# self.create_return_sales_invoices()
@@ -2024,8 +3172,8 @@ class ProductReturnOrderForm(Document):
 		else:
 			# frappe.throw("hiie")
 			self.tax_category = "Out-State"
-
-	def calculate_sales_taxes_and_charges(self):
+# //////////////////////////====================shruti///////////////////////////
+	def calculate_sales_taxes_and_charges1(self):
 		"""
 		Handle Finished Goods Return (3%) and Subcontracting (5%) GST calculation.
 		Populates the sales_taxes_and_charges child table based on
@@ -2167,6 +3315,7 @@ class ProductReturnOrderForm(Document):
 		self.rounding_adjustment=abs(self.rounded_total - self.grand_total)
 
 	def calculate_taxes_and_totals(self):
+		# frappe.throw("hii")
 		self.calculate_sales_taxes_and_charges()
 
 
@@ -2240,7 +3389,7 @@ def get_sales_bom_nd_invoice(serial_no, customer, sales_type):
 		bom_details = frappe.db.get_value(
 			"BOM",
 			sales_invoice_item.bom,
-			["metal_and_finding_weight", "gross_weight","metal_purity","metal_touch","diamond_quality","item_subcategory","metal_purity","setting_type","total_metal_weight","diamond_weight","metal_colour","total_gemstone_weight"],
+			["metal_and_finding_weight", "gross_weight","metal_purity","metal_touch","diamond_quality","item_subcategory","metal_purity","setting_type","total_metal_weight","diamond_weight","metal_colour","total_gemstone_weight","making_charge","finding_weight","total_diamond_pcs","total_gemstone_pcs"],
 			as_dict=True
 		) or {}
 
@@ -2258,9 +3407,13 @@ def get_sales_bom_nd_invoice(serial_no, customer, sales_type):
 		"item_subcategory": bom_details.get("item_subcategory"),
 		"metal_purity": bom_details.get("metal_purity"),
 		"setting_type": bom_details.get("setting_type"),
+		"making_charge":bom_details.get("making_charge"),
 		"total_metal_weight": bom_details.get("total_metal_weight"),
 		"total_diamond_weight_in_gms": bom_details.get("diamond_weight"),
-		"total_gemstone_weight": bom_details.get("total_gemstone_weight")
+		"total_gemstone_weight": bom_details.get("total_gemstone_weight"),
+		"finding_weight": bom_details.get("finding_weight"),
+		"total_diamond_pcs": bom_details.get("total_diamond_pcs"),
+		"total_gemstone_pcs": bom_details.get("total_gemstone_pcs")
 	}
 
 
@@ -3442,3 +4595,5 @@ def calculate_percentage_amount(rate, base_value):
 
 def create_return_sales_invoice(doc):
 	pass
+
+

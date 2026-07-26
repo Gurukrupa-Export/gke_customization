@@ -1033,6 +1033,8 @@ def create_line_items(self):
             "custom_sketch_order_form_id",
             custom_sketch_order_form_id,
         )
+        frappe.db.set_value("Item", item_variant, "custom_is_photoshop_images", 1)
+
         if purchase_type_for_design:
             frappe.db.set_value(
                 "Item", item_variant, "custom_purchase_type", purchase_type_for_design
@@ -1076,6 +1078,7 @@ def create_line_items(self):
                 "variant_of": item_variant[1],
                 "custom_sketch_order_id": sketch_order_form_id,
                 "custom_sketch_order_form_id": custom_sketch_order_form_id,
+                "custom_is_photoshop_images":1
             },
         )
         if purchase_type_for_design:
@@ -1245,6 +1248,7 @@ def create_item_template_from_order(source_name, target_doc=None):
                     "india_states": "india_states",
                     "usa": "usa",
                     "usa_states": "usa_states",
+                    "custom_is_photoshop_images":1
                 },
             }
         },
@@ -1455,6 +1459,8 @@ def create_only_variant_from_order(self, source_name, target_doc=None):
                     "religious": "custom_shapes",
                     "zodiac": "custom_zodiac",
                     "has_serial_no": 1,
+					"custom_is_photoshop_images":1
+
                 },
             }
         },
@@ -2036,12 +2042,25 @@ def make_quotation_fill_defaults(quotation, order):
     )
     if taxes.get("taxes"):
         quotation.update(taxes)
+    cad_order_form = frappe.db.get_value(
+    "Order Form",
+    {"name": order.cad_order_form},
+    ["sales_type", "customer_gold", "customer_stone","customer_diamond","customer_good","customer_finding"],
+	as_dict=True
+	)
 
     quotation.quotation_to = "Customer"
     quotation.company = order.company
     quotation.party_name = order.customer_code
     quotation.order_type = order.order_type
     quotation.diamond_quality = order.diamond_quality
+    if cad_order_form:
+        quotation.custom_sales_type = cad_order_form.sales_type
+        quotation.custom_customer_gold = cad_order_form.customer_gold
+        quotation.custom_customer_diamond = cad_order_form.customer_diamond
+        quotation.custom_customer_stone = cad_order_form.customer_stone
+        quotation.custom_customer_good = cad_order_form.customer_good
+        quotation.custom_customer_finding = cad_order_form.customer_finding
 
     service_types = frappe.db.get_values(
         "Service Type 2", {"parent": order.name}, "service_type1"

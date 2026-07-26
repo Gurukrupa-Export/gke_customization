@@ -1,24 +1,23 @@
 {
- "add_total_row": 0,
+ "add_total_row": 1,
  "add_translate_data": 0,
  "columns": [],
- "creation": "2025-09-04 13:19:20.465737",
+ "creation": "2026-07-11 11:00:37.249784",
  "disabled": 0,
  "docstatus": 0,
  "doctype": "Report",
  "filters": [],
  "idx": 0,
  "is_standard": "Yes",
- "letter_head": "Sadguru Diamond",
  "letterhead": null,
- "modified": "2025-09-10 16:49:30.468724",
+ "modified": "2026-07-11 12:00:33.483144",
  "modified_by": "sahil_g@gkexport.com",
  "module": "GKE Catalog",
- "name": "Serial No Detail Report",
+ "name": "Serial No Search Summary",
  "owner": "sahil_g@gkexport.com",
  "prepared_report": 0,
  "ref_doctype": "Serial No",
- "report_name": "Serial No Detail Report",
+ "report_name": "Serial No Search Summary",
  "report_type": "Script Report",
  "roles": [
   {
@@ -401,6 +400,9 @@
   },
   {
    "role": "Nandi Executive - ST"
+  },
+  {
+   "role": "System Manager"
   }
  ],
  "timeout": 0

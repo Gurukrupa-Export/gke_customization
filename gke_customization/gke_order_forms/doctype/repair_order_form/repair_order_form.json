@@ -24,6 +24,7 @@
   "column_break_4",
   "po_no",
   "stock_type",
+  "sales_type",
   "flow_type",
   "due_days",
   "diamond_quality",
@@ -85,7 +86,7 @@
   {
    "default": "Today",
    "fieldname": "order_date",
-   "fieldtype": "Date",
+   "fieldtype": "Datetime",
    "in_list_view": 1,
    "label": "Order Date",
    "read_only": 1,
@@ -93,7 +94,7 @@
   },
   {
    "fieldname": "delivery_date",
-   "fieldtype": "Date",
+   "fieldtype": "Datetime",
    "label": "Delivery Date",
    "reqd": 1
   },
@@ -218,6 +219,13 @@
    "fieldname": "total_no_of_designs",
    "fieldtype": "Int",
    "label": "Total No of Designs"
+  },
+  {
+   "default": "Repair",
+   "fieldname": "sales_type",
+   "fieldtype": "Link",
+   "label": "Sales Type",
+   "options": "Sales Type"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -233,8 +241,8 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2026-03-25 12:33:36.284936",
- "modified_by": "Administrator",
+ "modified": "2026-07-22 15:42:38.373213",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Repair Order Form",
  "naming_rule": "Expression (old style)",

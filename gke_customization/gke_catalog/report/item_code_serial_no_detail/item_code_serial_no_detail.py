@@ -18,13 +18,11 @@ def execute(filters=None):
 def get_columns():
     return [
         {"fieldname": "action", "label": _(""), "fieldtype": "Data", "width": 150},
-        {"fieldname": "posting_date", "label": _("Posting Date"), "fieldtype": "Date", "width": 120},
+        {"fieldname": "serial_no", "label": _("Serial No."), "fieldtype": "Link", "options": "Serial No", "width": 150},
+        {"fieldname": "posting_date", "label": _("Date"), "fieldtype": "Date", "width": 120},
         {"fieldname": "sales_invoice", "label": _("Sales Invoice"), "fieldtype": "Link", "options": "Sales Invoice", "width": 140},
         {"fieldname": "customer", "label": _("Customer"), "fieldtype": "Link", "options": "Customer", "width": 140},
         {"fieldname": "item_code", "label": _("Item Code"), "fieldtype": "Link", "options": "Item", "width": 150},
-        {"fieldname": "serial_no", "label": _("Serial No."), "fieldtype": "Link", "options": "Serial No", "width": 150},
-        {"fieldname": "serial_no_status", "label": _("Serial No status"), "fieldtype": "Data", "width": 120},
-        {"fieldname": "warehouse", "label": _("Warehouse"), "fieldtype": "Link", "options": "Warehouse", "width": 150},
         {"fieldname": "item_category", "label": _("Item Category"), "fieldtype": "Data", "width": 120},
         {"fieldname": "item_subcategory", "label": _("Item Sub Category"), "fieldtype": "Data", "width": 140},
         {"fieldname": "gross_wt", "label": _("Gross Wt."), "fieldtype": "Float", "precision": 3, "width": 100},
@@ -33,15 +31,17 @@ def get_columns():
         {"fieldname": "net_wt", "label": _("Net Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
         {"fieldname": "finding_wt", "label": _("Finding Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
         {"fieldname": "diamond_wt_cts", "label": _("Diamond Wt(cts)"), "fieldtype": "Float", "precision": 3, "width": 150},
-        {"fieldname": "gemstone_wt_cts", "label": _("Gemstone Wt(cts)"), "fieldtype": "Float", "precision": 3, "width": 150},
         {"fieldname": "diamond_pcs", "label": _("Diamond Pcs"), "fieldtype": "Int", "width": 120},
+        {"fieldname": "gemstone_wt_cts", "label": _("Gemstone Wt(cts)"), "fieldtype": "Float", "precision": 3, "width": 150},
         {"fieldname": "gemstone_pcs", "label": _("Gemstone Pcs"), "fieldtype": "Int", "width": 120},
         {"fieldname": "other_wt", "label": _("Other Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
         {"fieldname": "product_size", "label": _("Product Size"), "fieldtype": "Float", "width": 150},
         {"fieldname": "chain_sub_category", "label": _("Chain Sub Category"), "fieldtype": "Data", "width": 180},
         {"fieldname": "setting_type", "label": _("Setting Type"), "fieldtype": "Data", "width": 130},
         {"fieldname": "diamond_grade", "label": _("Diamond Grade"), "fieldtype": "Data", "width": 130},
-        {"fieldname": "diamond_quality", "label": _("Diamond Quality"), "fieldtype": "Data", "width": 150}
+        {"fieldname": "diamond_quality", "label": _("Diamond Quality"), "fieldtype": "Data", "width": 150},
+        {"fieldname": "warehouse", "label": _("Warehouse"), "fieldtype": "Link", "options": "Warehouse", "width": 150},
+        {"fieldname": "serial_no_status", "label": _("Serial No status"), "fieldtype": "Data", "width": 120}
     ]
 
 
@@ -258,7 +258,7 @@ def get_data(filters):
         
         return unique_data
     except Exception as e:
-        frappe.log_error("Serial No Detail Report Error", str(e))
+        frappe.log_error("Item Code Serial No Detail Error", str(e))
         frappe.throw(_("Error fetching data: {0}").format(str(e)))
         return []
 

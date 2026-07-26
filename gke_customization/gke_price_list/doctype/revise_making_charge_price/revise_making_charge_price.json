@@ -20,6 +20,10 @@
   "amended_from",
   "from_gold_rate",
   "to_gold_rate",
+  "complexity_name",
+  "mfgcode",
+  "mfg_complexity_code",
+    "making_components",
   "section_break_okj7w",
   "revise_making_charge_price_item_subcategory",
   "section_break_6qxib",
@@ -119,6 +123,29 @@
    "fieldname": "to_gold_rate",
    "fieldtype": "Float",
    "label": "To Gold Rate"
+  },
+  {
+   "fieldname": "complexity_name",
+   "fieldtype": "Data",
+   "label": "Complexity Name"
+  },
+  {
+   "depends_on": "eval:doc.customer==\"MHCU0009\"",
+   "fieldname": "mfgcode",
+   "fieldtype": "Data",
+   "label": "Mfg.Code"
+  },
+  {
+   "fieldname": "mfg_complexity_code",
+   "fieldtype": "Select",
+   "label": "Mfg Complexity Code",
+   "options": "\nA\nB\nC\nD\nE\nF\nXXD-R\nXXD-M\nXXD-C\nXXD-H\nXXD-F\nXXD-N\n2B-SH-SUR\n2B-SM-SUR\n2B-SS-SUR\n2J-SH-SUR\n2J-SM-SUR\n2J-SS-SUR"
+  },
+  {
+   "fieldname": "making_components",
+   "fieldtype": "Select",
+   "label": "Making Components",
+   "options": "\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10"
   }
  ],
  "index_web_pages_for_search": 1,
