@@ -11,6 +11,8 @@
   "serial_no",
   "hsn_sac",
   "item_group",
+  "is_jewelex_tag",
+  "jewelex_tag",
   "column_break_kfci",
   "item_name",
   "bom",
@@ -465,6 +467,17 @@
    "fieldname": "physical_net_weight",
    "fieldtype": "Float",
    "label": "Physical Net Weight"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_jewelex_tag",
+   "fieldtype": "Check",
+   "label": "Is Jewelex Tag"
+  },
+  {
+   "fieldname": "jewelex_tag",
+   "fieldtype": "Data",
+   "label": "Jewelex Tag"
   }
  ],
  "grid_page_length": 50,
