@@ -35,7 +35,7 @@ def get_branch_stock_summary_optimized(filters=None):
     variant_codes = get_variant_codes(raw_material_types)
     item_group_str = "', '".join(item_groups) if item_groups else ""
     variant_code_str = "', '".join(variant_codes) if variant_codes else ""
-    today = getdate()
+    as_on_date = getdate(filters.get("as_on_date")) if filters.get("as_on_date") else getdate()
     company = filters.get("company")
     manufacturer = filters.get("manufacturer", "")
 
@@ -48,7 +48,7 @@ def get_branch_stock_summary_optimized(filters=None):
 
     bulk_stock_data = get_bulk_stock_data(
         company, dept_str, item_group_str, variant_code_str,
-        today, manufacturer, raw_material_types, dept_list
+        as_on_date, manufacturer, raw_material_types, dept_list
     )
 
     data = []
@@ -84,7 +84,7 @@ def get_branch_stock_summary_optimized(filters=None):
     return columns, data
 
 
-def get_bulk_stock_data(company, dept_str, item_group_str, variant_code_str, today, manufacturer, raw_material_types, dept_list):
+def get_bulk_stock_data(company, dept_str, item_group_str, variant_code_str, as_on_date, manufacturer, raw_material_types, dept_list):
     bulk_data = {
         "work_order": {},
         "employee_wip": {},
@@ -337,7 +337,7 @@ def get_bulk_stock_data(company, dept_str, item_group_str, variant_code_str, tod
                             OR w.warehouse_name = '{dept_clean} Transit'
                           )
                       AND i.item_group IN ('{item_group_str}')
-                      AND sle.posting_date <= '{today}'
+                      AND sle.posting_date <= '{as_on_date}'
                       AND sle.docstatus < 2
                       AND sle.is_cancelled = 0
                     GROUP BY sle.item_code
@@ -364,7 +364,7 @@ def get_bulk_stock_data(company, dept_str, item_group_str, variant_code_str, tod
                       AND w.department = '{dept_with_suffix}'
                       AND w.warehouse_type = 'Raw Material'
                       AND i.item_group IN ('{item_group_str}')
-                      AND sle.posting_date <= '{today}'
+                      AND sle.posting_date <= '{as_on_date}'
                       AND sle.docstatus < 2
                       AND sle.is_cancelled = 0
                     GROUP BY w.department, sle.item_code
@@ -394,7 +394,7 @@ def get_bulk_stock_data(company, dept_str, item_group_str, variant_code_str, tod
                             OR w.warehouse_name = '{dept_clean} Reserve'
                           )
                       AND i.item_group IN ('{item_group_str}')
-                      AND sle.posting_date <= '{today}'
+                      AND sle.posting_date <= '{as_on_date}'
                       AND sle.docstatus < 2
                       AND sle.is_cancelled = 0
                     GROUP BY sle.item_code
@@ -424,7 +424,7 @@ def get_bulk_stock_data(company, dept_str, item_group_str, variant_code_str, tod
                             OR w.warehouse_name = '{dept_clean} Scrap'
                           )
                       AND i.item_group IN ('{item_group_str}')
-                      AND sle.posting_date <= '{today}'
+                      AND sle.posting_date <= '{as_on_date}'
                       AND sle.docstatus < 2
                       AND sle.is_cancelled = 0
                     GROUP BY sle.item_code
@@ -656,7 +656,7 @@ def get_item_groups(raw_material_types):
             item_groups.extend(["Gemstone - V", "Gemstone DNU"])
         elif rm_type == "Finding":
             item_groups.extend(["Finding - V", "Finding DNU", "Finding - T"])
-        elif rm_type == "Aloy":
+        elif rm_type == "Alloy":
             item_groups.extend(["Alloy"])
         elif rm_type == "Other":
             item_groups.extend(["Other Material - V", "Other Material - T", "Other - V", "Other DNU", "Other Material"])
@@ -689,6 +689,7 @@ def get_stock_details(department, stock_type, stock_key, filters):
     branch = filters.get("branch", "")
     manufacturer = filters.get("manufacturer", "")
     raw_material_types = [filters.get("raw_material_type")]
+    as_on_date = getdate(filters.get("as_on_date")) if filters.get("as_on_date") else getdate()
 
     if company == "Gurukrupa Export Private Limited":
         dept_with_suffix = f"{department} - GEPL" if " - GEPL" not in department else department
@@ -714,7 +715,7 @@ def get_stock_details(department, stock_type, stock_key, filters):
 
     detail_func = detail_functions.get(stock_key)
     if detail_func:
-        return detail_func(dept_with_suffix, company, branch, manufacturer, raw_material_types)
+        return detail_func(dept_with_suffix, company, branch, manufacturer, raw_material_types, as_on_date)
     return []
 
 
@@ -731,8 +732,9 @@ def get_departments_by_manufacturer(manufacturer):
     return dept_mapping.get(manufacturer, [])
 
 
-def get_raw_material_details(department, company, branch, manufacturer, raw_material_types):
+def get_raw_material_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
     try:
+        as_on_date = as_on_date or getdate()
         item_groups = get_item_groups(raw_material_types)
         if item_groups:
             item_group_str = "', '".join(item_groups)
@@ -747,7 +749,7 @@ def get_raw_material_details(department, company, branch, manufacturer, raw_mate
                   AND w.department = '{department}'
                   AND w.warehouse_type = 'Raw Material'
                   AND i.item_group IN ('{item_group_str}')
-                  AND sle.posting_date <= '{getdate()}'
+                  AND sle.posting_date <= '{as_on_date}'
                   AND sle.docstatus < 2
                   AND sle.is_cancelled = 0
                 GROUP BY sle.item_code
@@ -760,8 +762,9 @@ def get_raw_material_details(department, company, branch, manufacturer, raw_mate
         return []
 
 
-def get_reserve_stock_details(department, company, branch, manufacturer, raw_material_types):
+def get_reserve_stock_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
     try:
+        as_on_date = as_on_date or getdate()
         item_groups = get_item_groups(raw_material_types)
         if item_groups:
             item_group_str = "', '".join(item_groups)
@@ -782,7 +785,7 @@ def get_reserve_stock_details(department, company, branch, manufacturer, raw_mat
                         OR w.warehouse_name = '{dept_clean} Reserve'
                       )
                   AND i.item_group IN ('{item_group_str}')
-                  AND sle.posting_date <= '{getdate()}'
+                  AND sle.posting_date <= '{as_on_date}'
                   AND sle.docstatus < 2
                   AND sle.is_cancelled = 0
                 GROUP BY sle.item_code
@@ -795,8 +798,9 @@ def get_reserve_stock_details(department, company, branch, manufacturer, raw_mat
         return []
 
 
-def get_transit_stock_details(department, company, branch, manufacturer, raw_material_types):
+def get_transit_stock_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
     try:
+        as_on_date = as_on_date or getdate()
         item_groups = get_item_groups(raw_material_types)
         if item_groups:
             item_group_str = "', '".join(item_groups)
@@ -816,7 +820,7 @@ def get_transit_stock_details(department, company, branch, manufacturer, raw_mat
                         OR w.warehouse_name = '{dept_clean} Transit'
                       )
                   AND i.item_group IN ('{item_group_str}')
-                  AND sle.posting_date <= '{getdate()}'
+                  AND sle.posting_date <= '{as_on_date}'
                   AND sle.docstatus < 2
                   AND sle.is_cancelled = 0
                 GROUP BY sle.item_code
@@ -829,8 +833,9 @@ def get_transit_stock_details(department, company, branch, manufacturer, raw_mat
         return []
 
 
-def get_scrap_stock_details(department, company, branch, manufacturer, raw_material_types):
+def get_scrap_stock_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
     try:
+        as_on_date = as_on_date or getdate()
         item_groups = get_item_groups(raw_material_types)
         if item_groups:
             item_group_str = "', '".join(item_groups)
@@ -851,7 +856,7 @@ def get_scrap_stock_details(department, company, branch, manufacturer, raw_mater
                         OR w.warehouse_name = '{dept_clean} Scrap'
                       )
                   AND i.item_group IN ('{item_group_str}')
-                  AND sle.posting_date <= '{getdate()}'
+                  AND sle.posting_date <= '{as_on_date}'
                   AND sle.docstatus < 2
                   AND sle.is_cancelled = 0
                 GROUP BY sle.item_code
@@ -864,7 +869,7 @@ def get_scrap_stock_details(department, company, branch, manufacturer, raw_mater
         return []
 
 
-def get_work_order_details(department, company, branch, manufacturer, raw_material_types):
+def get_work_order_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
     try:
         weight_fields = []
         for rm_type in raw_material_types:
@@ -903,7 +908,7 @@ def get_work_order_details(department, company, branch, manufacturer, raw_materi
         return []
 
 
-def get_employee_wip_details(department, company, branch, manufacturer, raw_material_types):
+def get_employee_wip_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
     try:
         weight_fields = []
         for rm_type in raw_material_types:
@@ -946,7 +951,7 @@ def get_employee_wip_details(department, company, branch, manufacturer, raw_mate
         return []
 
 
-def get_supplier_wip_details(department, company, branch, manufacturer, raw_material_types):
+def get_supplier_wip_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
     try:
         weight_fields = []
         for rm_type in raw_material_types:
@@ -988,7 +993,7 @@ def get_supplier_wip_details(department, company, branch, manufacturer, raw_mate
         return []
 
 
-def get_employee_msl_details(department, company, branch, manufacturer, raw_material_types):
+def get_employee_msl_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
     try:
         variant_codes = get_variant_codes(raw_material_types)
         if variant_codes:
@@ -1024,7 +1029,7 @@ def get_employee_msl_details(department, company, branch, manufacturer, raw_mate
         return []
 
 
-def get_supplier_msl_details(department, company, branch, manufacturer, raw_material_types):
+def get_supplier_msl_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
     try:
         variant_codes = get_variant_codes(raw_material_types)
         if variant_codes:
@@ -1059,7 +1064,7 @@ def get_supplier_msl_details(department, company, branch, manufacturer, raw_mate
         return []
 
 
-def get_employee_msl_hold_details(department, company, branch, manufacturer, raw_material_types):
+def get_employee_msl_hold_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
     try:
         variant_codes = get_variant_codes(raw_material_types)
         if variant_codes:
@@ -1095,7 +1100,7 @@ def get_employee_msl_hold_details(department, company, branch, manufacturer, raw
         return []
 
 
-def get_supplier_msl_hold_details(department, company, branch, manufacturer, raw_material_types):
+def get_supplier_msl_hold_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
     try:
         variant_codes = get_variant_codes(raw_material_types)
         if variant_codes:
@@ -1130,7 +1135,7 @@ def get_supplier_msl_hold_details(department, company, branch, manufacturer, raw
         return []
 
 
-def get_finished_goods_details(department, company, branch, manufacturer, raw_material_types):
+def get_finished_goods_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
     try:
         dept_clean = department.replace(' - GEPL', '').replace(' - KGJPL', '')
 
