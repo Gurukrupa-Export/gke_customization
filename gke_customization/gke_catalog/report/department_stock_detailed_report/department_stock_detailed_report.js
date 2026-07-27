@@ -35,13 +35,28 @@ frappe.query_reports["Department Stock Detailed Report"] = {
         {
             "fieldname": "category",
             "label": __("Category"),
-            "fieldtype": "Data",
+            "fieldtype": "Link",
+            "options": "Attribute Value",
+            "get_query": function() {
+                return {
+                    filters: { "is_category": 1 }
+                };
+            },
             "reqd": 0
         },
         {
             "fieldname": "sub_category",
             "label": __("Sub Category"),
-            "fieldtype": "Data",
+            "fieldtype": "Link",
+            "options": "Attribute Value",
+            "get_query": function() {
+                let category = frappe.query_report.get_filter_value("category");
+                let filters = { "is_subcategory": 1 };
+                if (category) {
+                    filters["parent_attribute_value"] = category;
+                }
+                return { filters: filters };
+            },
             "reqd": 0
         },
         {
