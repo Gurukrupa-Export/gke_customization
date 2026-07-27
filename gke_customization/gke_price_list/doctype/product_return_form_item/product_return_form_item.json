@@ -31,7 +31,6 @@
   "item_subcategory",
   "gold_rate",
   "diamond_quality",
-  "diamond_weight",
   "description_section",
   "description",
   "image_section",
@@ -48,6 +47,14 @@
   "base_rate",
   "base_amount",
   "section_break_bynu",
+  "metal_weight",
+  "finding_weight",
+  "diamond_weight",
+  "diamond_pcs",
+  "gemstone_weight",
+  "gemstone_pcs",
+  "other_weight",
+  "section_break_bnwk",
   "metal_amount",
   "diamond_amount",
   "finding_amount",
@@ -469,6 +476,40 @@
    "label": "Physical Net Weight"
   },
   {
+   "fieldname": "section_break_bnwk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "metal_weight",
+   "fieldtype": "Float",
+   "label": "Metal Weight"
+  },
+  {
+   "fieldname": "gemstone_weight",
+   "fieldtype": "Float",
+   "label": "Gemstone Weight"
+  },
+  {
+   "fieldname": "finding_weight",
+   "fieldtype": "Float",
+   "label": "Finding Weight"
+  },
+  {
+   "fieldname": "diamond_pcs",
+   "fieldtype": "Int",
+   "label": "Diamond Pcs"
+  },
+  {
+   "fieldname": "gemstone_pcs",
+   "fieldtype": "Int",
+   "label": "Gemstone Pcs"
+  },
+  {
+   "fieldname": "other_weight",
+   "fieldtype": "Float",
+   "label": "Other Weight"
+  },
+  {
    "default": "0",
    "fieldname": "is_jewelex_tag",
    "fieldtype": "Check",
@@ -484,8 +525,8 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-20 12:56:37.158550",
- "modified_by": "shruti_b@gkexport.com",
+ "modified": "2026-07-26 13:33:11.521115",
+ "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Product Return Form Item",
  "owner": "aditya_r@gkexport.com",

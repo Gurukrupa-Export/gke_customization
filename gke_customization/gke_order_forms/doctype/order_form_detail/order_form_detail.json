@@ -15,6 +15,8 @@
   "delivery_date",
   "is_repairing",
   "mod_reason",
+  "reference_design_code",
+  "reference_serial_no",
   "section_break_10",
   "design_type",
   "stylebio",
@@ -123,17 +125,7 @@
   "column_break_kowz",
   "design_image_4",
   "column_break_on6m",
-  "design_image_5",
-  "section_break_ddrr",
-  "customer_gold",
-  "column_break_udpa",
-  "customer_diamond",
-  "column_break_pgvc",
-  "customer_stone",
-  "column_break_cmcp",
-  "customer_good",
-  "column_break_nvtx",
-  "customer_finding"
+  "design_image_5"
  ],
  "fields": [
   {
@@ -902,64 +894,24 @@
    "options": "\nSTAND ALONE PRODUCTS\nNECKLACE SET (2 PCS)\nNECKLACE SET (3 pcs)\nNECKLACE SET (4 pcs)\nPENDANT SET (2 PCS)\nPENDANT SET (3 pcs)\nPENDANT SET (4 pcs)\nPAIR BANGLE\nCOUPLE BAND RING"
   },
   {
-   "fieldname": "section_break_ddrr",
-   "fieldtype": "Section Break"
+   "depends_on": "eval:doc.is_repairing==1",
+   "fieldname": "reference_design_code",
+   "fieldtype": "Link",
+   "label": "Reference Design Code",
+   "options": "Item"
   },
   {
-   "default": "No",
-   "fieldname": "customer_gold",
-   "fieldtype": "Select",
-   "label": "Customer Gold",
-   "options": "\nYes\nNo"
-  },
-  {
-   "fieldname": "column_break_udpa",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "customer_diamond",
-   "fieldtype": "Select",
-   "label": "Customer Diamond",
-   "options": "\nYes\nNo"
-  },
-  {
-   "fieldname": "column_break_pgvc",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "No",
-   "fieldname": "customer_stone",
-   "fieldtype": "Select",
-   "label": "Customer Stone",
-   "options": "\nYes\nNo"
-  },
-  {
-   "fieldname": "column_break_cmcp",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "No",
-   "fieldname": "customer_good",
-   "fieldtype": "Select",
-   "label": "Customer Good",
-   "options": "\nYes\nNo"
-  },
-  {
-   "fieldname": "column_break_nvtx",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "No",
-   "fieldname": "customer_finding",
-   "fieldtype": "Select",
-   "label": "Customer Finding",
-   "options": "\nYes\nNo"
+   "depends_on": "eval:doc.is_repairing==1",
+   "fieldname": "reference_serial_no",
+   "fieldtype": "Link",
+   "label": "Reference Serial No",
+   "options": "Serial No"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-22 09:45:56.438226",
+ "modified": "2026-07-25 23:38:16.146225",
  "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Order Form Detail",
