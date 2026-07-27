@@ -272,13 +272,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "options": "Product Return Order",
-   "read_only": 1
-  },
-  {
    "fieldname": "item_code",
    "fieldtype": "Link",
    "label": "Item",
