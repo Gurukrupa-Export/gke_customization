@@ -13,6 +13,7 @@
   "column_break_gpues",
   "branch",
   "salesman_name",
+  "mod_reason",
   "section_break_cnij8",
   "customer_code",
   "order_date",
@@ -161,12 +162,70 @@
   "column_break_5wjbg",
   "new_bom",
   "amended_from",
+  "serial_no",
+  "product_bom",
   "tab_break_ztm2",
   "sketch",
   "sketch_order_form",
   "column_break_5jnz",
   "cad",
-  "order_form"
+  "order_form",
+  "bom_tab",
+  "bom_metal_detail_section",
+  "metal_detail",
+  "section_break_jxiy",
+  "total_metal_weight",
+  "column_break_r53o",
+  "casting_pcs",
+  "rpt_capture_wt",
+  "bom_finding_detail_section",
+  "finding_detail",
+  "section_break_p8nq",
+  "total_finding_pcs",
+  "column_break_7tiz",
+  "total_finding_weightin_gms",
+  "bom_diamond_detail_section",
+  "diamond_detail",
+  "section_break_ejvr",
+  "total_diamond_pcs",
+  "column_break_rcxi",
+  "total_diamond_weight",
+  "column_break_cohy",
+  "total_diamond_weightin_gms",
+  "bom_gemstone_detail_section",
+  "navratna",
+  "gemstone_detail",
+  "section_break_yfqv",
+  "total_gemstone_pcs",
+  "column_break_3uwz",
+  "total_gemstone_weight",
+  "column_break_ftpn",
+  "total_gemstone_weightin_gms",
+  "bom_other_detail_section",
+  "other_detail",
+  "section_break_s6ge",
+  "total_other_pcs",
+  "column_break_bmsz",
+  "total_other_weight",
+  "product_weight_section",
+  "metal_weight_in_gram",
+  "gross_weight_in_gram",
+  "net_weight_in_gram",
+  "net_wt_add_on",
+  "column_break_civz",
+  "diamond_weight_in_carat",
+  "gemstone_weight_in_carat",
+  "other_weight_in_gram",
+  "column_break_fklp",
+  "finding_weight_in_gram",
+  "total_diamond_weight_in_gram",
+  "total_gemstone_weight_in_gram",
+  "product_ratio_section",
+  "metal_to_diamond_ratioincl_of_finding",
+  "metal_to_diamond_ratioexcl_of_finding",
+  "column_break_qtqz",
+  "avg_diamond_weightin_carat",
+  "rating"
  ],
  "fields": [
   {
@@ -223,7 +282,7 @@
    "default": "Today",
    "fetch_from": "serial_and_design_id_order_form.order_date",
    "fieldname": "order_date",
-   "fieldtype": "Date",
+   "fieldtype": "Datetime",
    "in_list_view": 1,
    "label": "Order Date",
    "read_only": 1
@@ -231,7 +290,7 @@
   {
    "fetch_from": "serial_and_design_id_order_form_detail.delivery_date",
    "fieldname": "delivery_date",
-   "fieldtype": "Date",
+   "fieldtype": "Datetime",
    "label": "Delivery Date",
    "read_only": 1
   },
@@ -1242,6 +1301,298 @@
    "fieldtype": "Link",
    "label": "Serial No BOM",
    "options": "BOM"
+  },
+  {
+   "fieldname": "bom_tab",
+   "fieldtype": "Tab Break",
+   "label": "BOM "
+  },
+  {
+   "fieldname": "bom_metal_detail_section",
+   "fieldtype": "Section Break",
+   "label": "BOM Metal Detail"
+  },
+  {
+   "fieldname": "metal_detail",
+   "fieldtype": "Table",
+   "label": "Metal Detail",
+   "options": "Order BOM Metal Detail"
+  },
+  {
+   "fieldname": "section_break_jxiy",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_metal_weight",
+   "fieldtype": "Float",
+   "label": "Total Metal Weight"
+  },
+  {
+   "fieldname": "column_break_r53o",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "casting_pcs",
+   "fieldtype": "Int",
+   "label": "Casting Pcs"
+  },
+  {
+   "fieldname": "rpt_capture_wt",
+   "fieldtype": "Float",
+   "label": "RPT Capture WT"
+  },
+  {
+   "fieldname": "bom_finding_detail_section",
+   "fieldtype": "Section Break",
+   "label": "BOM Finding Detail"
+  },
+  {
+   "fieldname": "finding_detail",
+   "fieldtype": "Table",
+   "label": "Finding Detail",
+   "options": "Order BOM Finding Detail"
+  },
+  {
+   "fieldname": "section_break_p8nq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_finding_pcs",
+   "fieldtype": "Int",
+   "label": "Total Finding Pcs"
+  },
+  {
+   "fieldname": "column_break_7tiz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_finding_weightin_gms",
+   "fieldtype": "Float",
+   "label": "Total Finding Weight(In gms)"
+  },
+  {
+   "fieldname": "bom_diamond_detail_section",
+   "fieldtype": "Section Break",
+   "label": "BOM Diamond Detail"
+  },
+  {
+   "fieldname": "diamond_detail",
+   "fieldtype": "Table",
+   "label": "Diamond Detail",
+   "options": "Order BOM Diamond Detail"
+  },
+  {
+   "fieldname": "section_break_ejvr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_diamond_pcs",
+   "fieldtype": "Int",
+   "label": "Total Diamond Pcs"
+  },
+  {
+   "fieldname": "column_break_rcxi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_diamond_weight",
+   "fieldtype": "Float",
+   "label": "Total Diamond Weight"
+  },
+  {
+   "fieldname": "column_break_cohy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_diamond_weightin_gms",
+   "fieldtype": "Float",
+   "label": "Total Diamond Weight(In gms)"
+  },
+  {
+   "fieldname": "bom_gemstone_detail_section",
+   "fieldtype": "Section Break",
+   "label": "BOM Gemstone Detail"
+  },
+  {
+   "default": "0",
+   "fieldname": "navratna",
+   "fieldtype": "Check",
+   "label": "Navratna"
+  },
+  {
+   "fieldname": "gemstone_detail",
+   "fieldtype": "Table",
+   "label": "Gemstone Detail",
+   "options": "Order BOM Gemstone Detail"
+  },
+  {
+   "fieldname": "section_break_yfqv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_gemstone_pcs",
+   "fieldtype": "Int",
+   "label": "Total Gemstone Pcs"
+  },
+  {
+   "fieldname": "column_break_3uwz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_gemstone_weight",
+   "fieldtype": "Float",
+   "label": "Total Gemstone Weight"
+  },
+  {
+   "fieldname": "column_break_ftpn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_gemstone_weightin_gms",
+   "fieldtype": "Float",
+   "label": "Total Gemstone Weight(In gms)"
+  },
+  {
+   "fieldname": "bom_other_detail_section",
+   "fieldtype": "Section Break",
+   "label": "BOM Other Detail"
+  },
+  {
+   "fieldname": "other_detail",
+   "fieldtype": "Table",
+   "label": "Other Detail",
+   "options": "Order BOM Other Detail"
+  },
+  {
+   "fieldname": "section_break_s6ge",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_other_pcs",
+   "fieldtype": "Int",
+   "label": "Total Other Pcs"
+  },
+  {
+   "fieldname": "column_break_bmsz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_other_weight",
+   "fieldtype": "Float",
+   "label": "Total Other Weight"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "product_weight_section",
+   "fieldtype": "Section Break",
+   "label": "Product Weight"
+  },
+  {
+   "fieldname": "metal_weight_in_gram",
+   "fieldtype": "Float",
+   "label": "Metal Weight (In Gram)"
+  },
+  {
+   "fieldname": "gross_weight_in_gram",
+   "fieldtype": "Float",
+   "label": "Gross Weight (In Gram)"
+  },
+  {
+   "fieldname": "net_weight_in_gram",
+   "fieldtype": "Float",
+   "label": "Net Weight (In Gram)"
+  },
+  {
+   "fieldname": "net_wt_add_on",
+   "fieldtype": "Float",
+   "label": "Net Wt add on"
+  },
+  {
+   "fieldname": "column_break_civz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "diamond_weight_in_carat",
+   "fieldtype": "Float",
+   "label": "Diamond Weight (In Carat)"
+  },
+  {
+   "fieldname": "gemstone_weight_in_carat",
+   "fieldtype": "Float",
+   "label": "Gemstone Weight (In Carat)"
+  },
+  {
+   "fieldname": "other_weight_in_gram",
+   "fieldtype": "Float",
+   "label": "Other Weight (In Gram)"
+  },
+  {
+   "fieldname": "column_break_fklp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "finding_weight_in_gram",
+   "fieldtype": "Float",
+   "label": "Finding Weight (In Gram)"
+  },
+  {
+   "fieldname": "total_diamond_weight_in_gram",
+   "fieldtype": "Float",
+   "label": "Total Diamond Weight (In Gram)"
+  },
+  {
+   "fieldname": "total_gemstone_weight_in_gram",
+   "fieldtype": "Float",
+   "label": "Total Gemstone Weight (In Gram)"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "product_ratio_section",
+   "fieldtype": "Section Break",
+   "label": "Product Ratio"
+  },
+  {
+   "fieldname": "metal_to_diamond_ratioincl_of_finding",
+   "fieldtype": "Float",
+   "label": "Metal to Diamond Ratio(Incl. of Finding)"
+  },
+  {
+   "fieldname": "metal_to_diamond_ratioexcl_of_finding",
+   "fieldtype": "Float",
+   "label": "Metal to Diamond Ratio(Excl. of Finding)"
+  },
+  {
+   "fieldname": "column_break_qtqz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "avg_diamond_weightin_carat",
+   "fieldtype": "Float",
+   "label": "Avg. Diamond Weight(In Carat)"
+  },
+  {
+   "fieldname": "rating",
+   "fieldtype": "Rating",
+   "label": "Rating"
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Link",
+   "label": "Serial No",
+   "options": "Serial No"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "product_bom",
+   "fieldtype": "Link",
+   "label": "Product BOM",
+   "options": "BOM"
+  },
+  {
+   "fieldname": "mod_reason",
+   "fieldtype": "Select",
+   "label": "MOD Reason",
+   "options": "\nAttribute Change\nPartial Design Change\nCategory Change"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1261,8 +1612,8 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2026-06-21 17:10:06.908016",
- "modified_by": "Administrator",
+ "modified": "2026-07-27 11:31:52.280586",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Repair Order",
  "naming_rule": "Expression",
