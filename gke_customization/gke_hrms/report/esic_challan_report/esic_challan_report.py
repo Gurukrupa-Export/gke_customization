@@ -7,6 +7,8 @@ import os
 from openpyxl import Workbook
 from datetime import date
 
+from pypika.terms import NotNullCriterion
+
 def execute(filters=None):
 	columns = get_columns(filters)
 	data = get_data(filters)
@@ -63,8 +65,6 @@ def get_data(filters=None):
 			`tabEmployee` AS e ON ss.employee = e.employee
 		WHERE 
     		sd.salary_component = 'Employees State Insurance Corporation' 
-			# AND ss.docstatus = 1
-			# AND e.name IN ('GEPL - 01779','GEPL - 01683')
 			AND ss.company = %(company)s
 			AND ss.start_date = %(from_date)s
 			AND ss.end_date = %(to_date)s
@@ -75,23 +75,142 @@ def get_data(filters=None):
 	"""
 
 	data = frappe.db.sql(query, values, as_dict=True)
-	totals = get_totals(data, filters.get("employee"))
+	totals = get_totals(data, filters.get("employee"), filters)
 	data += totals
 	
 	return data
 
-def get_totals(data, employee=None):
+def get_totals(data, employee=None, filters=None):
 	totals = {
-		"company": "Total",
-		"branch": "",
+		"company": "",
+		"branch": "Total",
 		"employee_id": "",
 		"employee_name": "Employee Count: {}".format(len(data)),
 		"employee_count": len(data),
 		"gross_pay": sum((row.get("gross_pay") or 0) for row in data),
 		"esic_amount": sum((row.get("esic_amount") or 0) for row in data),
 	}
-	return [totals]
+ 
+	total1 = {
+		"company": "",
+		"branch": "",
+		"employee_id": "",
+  		"employee_name": "", 
+		"gross_pay": None,
+        "esic_amount": None
+	}
+	esic = get_esic_total(filters)
+	esic_total = {
+        "company": "",
+        "branch": "Total Employees",
+        "employee_id": esic[0].get("total_emp"),
+        "employee_name": "Total Gross",
+        "gross_pay": esic[0].get("total_gross"),
+        "esic_amount": None
+    }
 
+	esic_total1 = {
+		"company": "",
+		"branch": "Excepted Employees",
+		"employee_id": esic[0].get("excepted_emp"),
+		"employee_name": "Excepted Gross",
+		"gross_pay": esic[0].get("excepted_gross"),
+		"esic_amount": None
+	}
+
+	esic_total2 = {
+		"company": "",
+		"branch": "ESIC Members",
+		"employee_id": esic[0].get("esic_member"),
+		"employee_name": "ESIC Wages",
+		"gross_pay": esic[0].get("esic_wages"),
+		"esic_amount": None
+    }
+	esic_total3 = {
+		"company": "",
+		"branch": "",
+		"employee_id": "",
+		"employee_name": "Employee Contribution",
+		"gross_pay": esic[0].get("employee_cont"),
+		"esic_amount": None
+	}
+	employer_contribution = 0
+	if esic[0].get("employee_cont"):
+		employer_contribution = round(esic[0].get("employee_cont") * 433.33 /100)
+	
+	esic_total4 = {
+		"company": "",
+		"branch": "",
+		"employee_id": "",
+		"employee_name": "Employer Contribution",
+		"gross_pay": employer_contribution,
+		"esic_amount": None
+	}
+	esic_total5 = {
+		"company": "",
+		"branch": "",
+		"employee_id": "",
+		"employee_name": "Total Contribution",
+		"gross_pay": (esic[0].get("employee_cont") or 0) + employer_contribution,
+		"esic_amount": None
+	}
+
+  
+	return [totals, total1, total1, esic_total, esic_total1, esic_total2, esic_total3, esic_total4, esic_total5]
+
+def get_esic_total(filters=None):
+	from_date = filters.get("from_date")
+	to_date = filters.get("to_date")
+	company = filters.get("company")
+	branch = filters.get("branch")
+
+	conditions = []
+	values = {
+		"from_date": from_date,
+		"to_date": to_date,
+		"company": company
+	}
+
+	if branch:
+		conditions.append("AND e.branch = %(branch)s")
+		values["branch"] = branch
+
+	condition_query = ""
+	if conditions:
+		condition_query = " AND " + " AND ".join(conditions)
+ 
+	query = f"""
+		SELECT 
+			COUNT(DISTINCT ss.employee) AS total_emp,
+			SUM(ss.gross_pay) AS total_gross,
+
+			COUNT(DISTINCT CASE WHEN esic.amount = 0 OR esic.amount IS NULL THEN ss.employee END) AS excepted_emp,
+			SUM(CASE WHEN esic.amount = 0 OR esic.amount IS NULL THEN ss.gross_pay ELSE 0 END) AS excepted_gross,
+
+			COUNT(DISTINCT CASE WHEN esic.amount > 0 THEN ss.employee END) AS esic_member,
+			SUM(CASE WHEN esic.amount > 0 THEN ss.gross_pay ELSE 0 END) AS esic_wages,
+
+			SUM(CASE WHEN esic.amount > 0 THEN esic.amount ELSE 0 END) AS employee_cont 
+
+		FROM 
+			`tabSalary Slip` AS ss
+		LEFT JOIN 
+			`tabSalary Detail` AS esic ON ss.name = esic.parent
+			AND esic.salary_component = 'Employees State Insurance Corporation'
+		JOIN 
+    		`tabEmployee` AS e ON ss.employee = e.employee
+		WHERE  
+   			ss.company = %(company)s
+			AND ss.start_date = %(from_date)s
+			AND ss.end_date = %(to_date)s
+			{condition_query}
+	""" 
+	data = frappe.db.sql(query, values, as_dict=True)
+	# frappe.throw(f"{data}")
+
+	return data
+
+    
 def get_columns(filters=None):
 	columns = [
 		{
@@ -122,7 +241,8 @@ def get_columns(filters=None):
 			"label": "Gross Pay",
 			"fieldname": "gross_pay",
 			"fieldtype": "Currency",
-			"width": 120
+			"width": 120,
+			"default": ""
 		},
 		{
 			"label": "ESIC Amount",
@@ -141,6 +261,8 @@ def export_txt(filters=None):
 		filters = frappe.parse_json(filters)
 
 	data = get_data(filters)
+	from_date = filters.get("from_date")
+	to_date = filters.get("to_date")
 
 	# 🔹 Create workbook & sheet
 	wb = Workbook()
@@ -191,7 +313,19 @@ def export_txt(filters=None):
 			code = 3
 			date = row.get("relieving_date").strftime("%d-%m-%Y")
 		elif row.get("custom_month") in [4,10]:
-			code = 4
+			if row.get("employee_id"):
+				emp_promotion = frappe.db.get_value("Employee Promotion", 
+                                	{"employee": row.get("employee_id"), "promotion_date": ("between", [from_date, to_date])}, 
+                                 	["name","current_ctc","revised_ctc","promotion_date"],
+                                  as_dict=True)
+				if emp_promotion:
+					promotion_date = emp_promotion.get("promotion_date")
+					if promotion_date and promotion_date.month == row.get("custom_month"):
+						if ( promotion_date and emp_promotion.get("current_ctc") and emp_promotion.get("revised_ctc")
+							and emp_promotion.get("revised_ctc") > emp_promotion.get("current_ctc")
+							and emp_promotion.get("revised_ctc") >= 21000
+						):
+							code = 4
 		else:
 			code = 0
 

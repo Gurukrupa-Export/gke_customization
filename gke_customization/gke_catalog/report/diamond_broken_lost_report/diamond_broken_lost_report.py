@@ -56,39 +56,107 @@ def get_data(filters):
             WHEN eir.subcontracting='Yes' THEN sup.supplier_name
             ELSE emp.employee_name
         END AS employee,
+
         IFNULL(SUM(CASE WHEN mbld.loss_type='Broken' THEN mbld.proportionally_loss ELSE 0 END),0) AS broken_wt,
         IFNULL(SUM(CASE WHEN mbld.loss_type='Broken' THEN mbld.pcs ELSE 0 END),0) AS broken_pcs,
-        IFNULL(SUM(CASE WHEN mbld.loss_type='Broken' THEN mbld.proportionally_loss*IFNULL(dr.diamond_rate,0) ELSE 0 END),0) AS broken_amt,
-        IFNULL(SUM(CASE WHEN mbld.loss_type='Loss' THEN mbld.proportionally_loss ELSE 0 END),0) AS lost_wt,
-        IFNULL(SUM(CASE WHEN mbld.loss_type='Loss' THEN mbld.pcs ELSE 0 END),0) AS lost_pcs,
-        IFNULL(SUM(CASE WHEN mbld.loss_type='Loss' THEN mbld.proportionally_loss*IFNULL(dr.diamond_rate,0) ELSE 0 END),0) AS lost_amt,
-        IFNULL(SUM(CASE WHEN mbld.loss_type IN ('Broken','Loss') THEN mbld.proportionally_loss ELSE 0 END),0) AS total_wt,
-        IFNULL(SUM(CASE WHEN mbld.loss_type IN ('Broken','Loss') THEN mbld.pcs ELSE 0 END),0) AS total_pcs,
-        IFNULL(SUM(CASE WHEN mbld.loss_type IN ('Broken','Loss') THEN mbld.proportionally_loss*IFNULL(dr.diamond_rate,0) ELSE 0 END),0) AS total_amt,
+        IFNULL(SUM(
+            CASE
+                WHEN mbld.loss_type='Broken'
+                THEN mbld.proportionally_loss * IFNULL(fg_bom_item.rate, design_bom_item.rate)
+                ELSE 0
+            END
+        ),0) AS broken_amt,
+
+        IFNULL(SUM(CASE WHEN mbld.loss_type='Missing' THEN mbld.proportionally_loss ELSE 0 END),0) AS lost_wt,
+        IFNULL(SUM(CASE WHEN mbld.loss_type='Missing' THEN mbld.pcs ELSE 0 END),0) AS lost_pcs,
+        IFNULL(SUM(
+            CASE
+                WHEN mbld.loss_type = 'Missing'
+                THEN mbld.proportionally_loss * IFNULL(fg_bom_item.rate, design_bom_item.rate)
+                ELSE 0
+            END
+        ),0) AS lost_amt,
+
+        IFNULL(SUM(CASE WHEN mbld.loss_type IN ('Broken','Missing') THEN mbld.proportionally_loss ELSE 0 END),0) AS total_wt,
+        IFNULL(SUM(CASE WHEN mbld.loss_type IN ('Broken','Missing') THEN mbld.pcs ELSE 0 END),0) AS total_pcs,
+        IFNULL(SUM(
+            CASE
+                WHEN mbld.loss_type IN ('Broken','Missing')
+                THEN mbld.proportionally_loss * IFNULL(fg_bom_item.rate, design_bom_item.rate)
+                ELSE 0
+            END
+        ),0) AS total_amt,
+
         dop.department AS lost_department
+
     FROM `tabEmployee IR` eir
-    LEFT JOIN `tabEmployee` emp ON emp.name=eir.employee
-    LEFT JOIN `tabSupplier` sup ON sup.name=eir.subcontractor
-    LEFT JOIN `tabManually Book Loss Details` mbld ON mbld.parent=eir.name
-    LEFT JOIN `tabDepartment Operation` dop ON dop.operation=eir.operation
-    LEFT JOIN `tabEmployee IR Operation` eiro ON eiro.parent=eir.name
+
+    LEFT JOIN `tabEmployee` emp
+        ON emp.name = eir.employee
+
+    LEFT JOIN `tabSupplier` sup
+        ON sup.name = eir.subcontractor
+
+    LEFT JOIN `tabManually Book Loss Details` mbld
+        ON mbld.parent = eir.name
+
+    LEFT JOIN `tabItem` item
+        ON item.name = mbld.item_code
+
+    LEFT JOIN `tabDepartment Operation` dop
+        ON dop.operation = eir.operation
+
+    
     LEFT JOIN (
-        SELECT manufacturing_operation, MAX(basic_rate) AS diamond_rate
-        FROM `tabMOP Balance Table`
-        WHERE item_code LIKE 'D-%%'
-        GROUP BY manufacturing_operation
-    ) dr ON dr.manufacturing_operation=eiro.manufacturing_operation
-    WHERE eir.docstatus=1
-      AND mbld.loss_type IN ('Broken','Loss')
-      {conditions}
+        SELECT
+            manufacturing_work_order,
+            MAX(name) AS mop_name
+        FROM `tabManufacturing Operation`
+        WHERE
+            department LIKE 'Tagging%%'
+            AND status = 'Finished'
+        GROUP BY manufacturing_work_order
+    ) tm
+        ON tm.manufacturing_work_order = mbld.manufacturing_work_order
+
+    LEFT JOIN `tabManufacturing Operation` mop
+        ON mop.name = tm.mop_name
+
+   
+    LEFT JOIN `tabSerial Number Creator` snc
+        ON snc.manufacturing_operation = mop.name
+       AND snc.docstatus = 1
+
+
+    LEFT JOIN `tabBOM` fg_bom
+        ON fg_bom.custom_serial_number_creator = snc.name
+       AND fg_bom.bom_type = 'Finish Goods'
+       AND fg_bom.docstatus = 1
+
+    LEFT JOIN `tabBOM Item` fg_bom_item
+        ON fg_bom_item.parent = fg_bom.name
+       AND fg_bom_item.item_code = mbld.item_code
+
+  
+    LEFT JOIN `tabBOM Item` design_bom_item
+        ON design_bom_item.parent = mop.design_id_bom
+       AND design_bom_item.item_code = mbld.item_code
+
+    WHERE
+        eir.docstatus = 1
+        AND item.variant_of = 'D'
+        AND mbld.loss_type IN ('Broken','Missing')
+        {conditions}
+
     GROUP BY
         emp.employee_name,
         sup.supplier_name,
         eir.subcontracting,
         dop.department
+
     ORDER BY
         CASE
-            WHEN eir.subcontracting='Yes' THEN sup.supplier_name
+            WHEN eir.subcontracting = 'Yes' THEN sup.supplier_name
             ELSE emp.employee_name
         END
     """
