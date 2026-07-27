@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.utils import get_url
 from datetime import datetime, timedelta
 
 def execute(filters=None):
@@ -101,6 +102,7 @@ def get_data(filters):
     pmo.po_no AS customer_po,
     mwo.manufacturing_plan AS mwo_mp_id,
     mwo.item_code AS mwo_design_id,
+    item.image AS mwo_design_image,
     mwo.master_bom AS mwo_mfg_bom,
     mwo.item_category AS mwo_item_category,
     mwo.item_sub_category AS mwo_item_subcategory,
@@ -172,6 +174,7 @@ def get_data(filters):
     sn.fg_bom AS sn_fg_bom
 
     FROM `tabManufacturing Work Order` mwo
+    LEFT JOIN `tabItem` item ON mwo.item_code = item.name
     LEFT JOIN `tabCustomer` c ON mwo.customer = c.name
     LEFT JOIN `tabManufacturing Operation` mo ON mwo.manufacturing_operation = mo.name
     LEFT JOIN `tabEmployee` emp ON mo.employee = emp.name
@@ -193,7 +196,58 @@ def get_data(filters):
 
     data = frappe.db.sql(query, as_dict=1)
 
+    for row in data:
+        row["mwo_design_id"] = build_design_id_with_image(row.get("mwo_design_id"), row.get("mwo_design_image"))
+
     return data
+
+
+def build_design_id_with_image(design_id, image):
+    if not design_id:
+        return design_id
+
+    if image:
+        image_url = (image if image.startswith("http") else get_url(image)).replace("'", "%27")
+        fill_js = (
+            "var im=document.createElement('img'); "
+            f"im.src='{image_url}'; "
+            "im.style.cssText='max-width:150px;max-height:150px;object-fit:contain;display:block;'; "
+            "t.appendChild(im);"
+        )
+    else:
+        fill_js = (
+            "var d=document.createElement('div'); "
+            "d.textContent='No Image'; "
+            "d.style.cssText='padding:8px;color:#888;font-size:12px;'; "
+            "t.appendChild(d);"
+        )
+
+    show_js = (
+        "var t=document.getElementById('design-tooltip-box'); "
+        "if(!t){t=document.createElement('div'); t.id='design-tooltip-box'; document.body.appendChild(t); "
+        "t.style.cssText='position:fixed;z-index:99999;border:1px solid #d1d8dd;background:#fff;"
+        "padding:4px;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.25);';} "
+        "t.innerHTML=''; "
+        f"{fill_js} "
+        "t.style.left=(event.clientX+15)+'px'; t.style.top=(event.clientY+15)+'px'; t.style.display='block';"
+    )
+    move_js = (
+        "var t=document.getElementById('design-tooltip-box'); "
+        "if(t){t.style.left=(event.clientX+15)+'px'; t.style.top=(event.clientY+15)+'px';}"
+    )
+    hide_js = (
+        "var t=document.getElementById('design-tooltip-box'); "
+        "if(t){t.style.display='none';}"
+    )
+
+    return (
+        f'<span style="cursor:pointer; text-decoration:underline dotted;" '
+        f'onmouseenter="{show_js}" '
+        f'onmousemove="{move_js}" '
+        f'onmouseleave="{hide_js}">'
+        f'{design_id}'
+        f'</span>'
+    )
 
 
 def calculate_totals(data):
@@ -216,6 +270,11 @@ def calculate_totals(data):
     unique_serial_no_count = set()
     unique_mp_id = set()
     unique_design_id = set()
+    unique_parent_mfg_order = set()
+    unique_sales_order = set()
+    unique_customer = set()
+    unique_order_form_id = set()
+    unique_quotation_id = set()
 
     for row in data:
         total_qty += int(row.get("mwo_qty") or 0)
@@ -237,13 +296,23 @@ def calculate_totals(data):
         unique_serial_no_count.add(row.get("sn_serial_no"))
         unique_mp_id.add(row.get("mwo_mp_id"))
         unique_design_id.add(row.get("mwo_design_id"))
-    
+        if row.get("parent_mfg_order"):
+            unique_parent_mfg_order.add(row.get("parent_mfg_order"))
+        if row.get("pmo_sales_order_id"):
+            unique_sales_order.add(row.get("pmo_sales_order_id"))
+        if row.get("mwo_customer"):
+            unique_customer.add(row.get("mwo_customer"))
+        if row.get("pmo_order_form_id"):
+            unique_order_form_id.add(row.get("pmo_order_form_id"))
+        if row.get("pmo_quotation_id"):
+            unique_quotation_id.add(row.get("pmo_quotation_id"))
+
 
     totals_row = {
         "mwo_id": "",
         "mwo_posting_date": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">Total MWO: {len(unique_mwo_count)}</span></b>',
         "mwo_is_finding": "",
-        "mwo_customer": "",
+        "mwo_customer": f"Customers: {len(unique_customer)}",
         "mwo_customer_name": "",
         "mwo_mp_id": "",
         "mwo_design_id": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">MP: {len(unique_mp_id)} | Design: {len(unique_design_id)}</span></b>',
@@ -267,7 +336,7 @@ def calculate_totals(data):
         "mwo_diam_wt_gm": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_diam_wt_gm:.4f}</span></b>',
         "mwo_diam_pcs": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_diam_pcs}</span></b>',
         "mwo_gem_pcs": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_gem_pcs}</span></b>',
-        "parent_mfg_order": "",
+        "parent_mfg_order": f"Parent MO: {len(unique_parent_mfg_order)}",
         "mwo_order_type": "",
         "mwo_delivery_date": "",
         "mwo_updated_delivery_date": "",
@@ -289,10 +358,10 @@ def calculate_totals(data):
         "pmo_est_delivery_date": "",
         "pmo_est_delivery_days": "",
         "manufacturing_end_date":"",
-        "pmo_order_form_id": "",
+        "pmo_order_form_id": f"Order Forms: {len(unique_order_form_id)}",
         "pmo_order_form_date": "",
-        "pmo_quotation_id": "",
-        "pmo_sales_order_id": "",
+        "pmo_quotation_id": f"Quotations: {len(unique_quotation_id)}",
+        "pmo_sales_order_id": f"Sales Orders: {len(unique_sales_order)}",
         "pmo_customer_po": "",
         "pmo_jewelex_order_no": "",
         "pmo_parent_quotation_id": "",
