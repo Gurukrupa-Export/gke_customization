@@ -10,7 +10,9 @@
   "customer",
   "customer_name",
   "is_jewlex_credit_note",
+  "is_jewelex_tag",
   "product_return_order_form",
+  "product_return_form_item",
   "column_break_pcxn",
   "company",
   "branch",
@@ -30,9 +32,13 @@
   "gemstone_charges",
   "custom_gemstone_charges",
   "column_break_zfrc",
-  "section_break_pgcn",
+  "diamond_rate_type",
+  "handling_charges",
+  "custom_handling_charges",
+  "wastage_charges",
+  "custom_wastage_charges",
+  "column_break_dhb3",
   "gold_rate_with_gst",
-  "column_break_wlwn",
   "gold_rate",
   "section_break_igyp",
   "jwelex_credit_note_data",
@@ -46,6 +52,7 @@
   "bom",
   "new_bom",
   "section_break_mt4i",
+  "jewelex_tag",
   "tag_no",
   "metal_touch",
   "metal_purity",
@@ -233,21 +240,12 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval: doc.credit_note_rate_type == 'Current Rate'",
-   "fieldname": "section_break_pgcn",
-   "fieldtype": "Section Break"
-  },
-  {
    "default": "0",
    "fieldname": "gold_rate_with_gst",
    "fieldtype": "Currency",
    "label": "Metal Rate With GST",
    "mandatory_depends_on": "eval: doc.credit_note_rate_type == 'Current Rate'",
    "read_only": 1
-  },
-  {
-   "fieldname": "column_break_wlwn",
-   "fieldtype": "Column Break"
   },
   {
    "default": "0",
@@ -274,25 +272,16 @@
    "read_only": 1
   },
   {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "options": "Product Return Order",
-   "read_only": 1
-  },
-  {
    "fieldname": "item_code",
    "fieldtype": "Link",
    "label": "Item",
-   "options": "Item",
-   "read_only": 1
+   "options": "Item"
   },
   {
    "fieldname": "serial_no",
    "fieldtype": "Link",
    "label": "Serial No",
-   "options": "Serial No",
-   "read_only": 1
+   "options": "Serial No"
   },
   {
    "fetch_from": "item_code.gst_hsn_code",
@@ -829,13 +818,62 @@
    "fieldname": "custom_gemstone_charges",
    "fieldtype": "Float",
    "label": "Custom Gemstone Charges"
+  },
+  {
+   "fieldname": "product_return_form_item",
+   "fieldtype": "Link",
+   "label": "Product Return Form Item",
+   "options": "Product Return Form Item"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_jewelex_tag",
+   "fieldtype": "Check",
+   "label": "Is Jewelex Tag"
+  },
+  {
+   "fieldname": "jewelex_tag",
+   "fieldtype": "Data",
+   "label": "Jewelex Tag"
+  },
+  {
+   "fieldname": "diamond_rate_type",
+   "fieldtype": "Select",
+   "label": "Diamond Rate Type",
+   "options": "\nInvoice Rate\nCurrent Rate"
+  },
+  {
+   "fieldname": "handling_charges",
+   "fieldtype": "Select",
+   "label": "Handling Charges",
+   "options": "With\nWithout\nHalf\nCustom"
+  },
+  {
+   "fieldname": "custom_handling_charges",
+   "fieldtype": "Data",
+   "label": "Custom Handling Charges"
+  },
+  {
+   "fieldname": "wastage_charges",
+   "fieldtype": "Select",
+   "label": "Wastage Charges",
+   "options": "With\nWithout\nHalf\nCustom"
+  },
+  {
+   "fieldname": "custom_wastage_charges",
+   "fieldtype": "Data",
+   "label": "Custom Wastage Charges"
+  },
+  {
+   "fieldname": "column_break_dhb3",
+   "fieldtype": "Section Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-21 14:28:47.103558",
+ "modified": "2026-07-23 18:14:34.030676",
  "modified_by": "shruti_b@gkexport.com",
  "module": "Gke Price List",
  "name": "Product Return Order",
