@@ -5,26 +5,10 @@ import frappe
 from frappe import _
 
 
-DEPARTMENTS = [
-    "Casting - KGJPL",
-    "Central - KGJPL",
-    "Computer Aided Designing - KGJPL",
-    "Computer Aided Manufacturing - KGJPL",
-    "Diamond Setting - KGJPL",
-    "Final Polish - KGJPL",
-    "Manufacturing Plan & Management  - KGJPL",
-    "Model Making - KGJPL",
-    "Pre Polish - KGJPL",
-    "Product Certification - KGJPL",
-    "Sub Contracting - KGJPL",
-    "Tagging - KGJPL",
-    "Waxing - KGJPL",
-]
-
-
 def execute(filters=None):
     filters = filters or {}
-    return get_columns(), get_data(filters)
+    departments = get_active_departments(filters)
+    return get_columns(departments), get_data(filters, departments)
 
 
 @frappe.whitelist()
@@ -40,7 +24,36 @@ def get_setting_type_options():
     )
 
 
-def get_columns():
+def get_active_departments(filters):
+    conditions, values = get_conditions(filters)
+
+    query = f"""
+        SELECT
+            mo.department AS department,
+            COUNT(*) AS qty
+        FROM (
+            SELECT *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY manufacturing_work_order
+                    ORDER BY creation DESC, name DESC
+                ) AS rn
+            FROM `tabManufacturing Operation`
+        ) mo
+        LEFT JOIN `tabItem` i
+            ON mo.item_code = i.name
+        WHERE mo.rn = 1
+            AND IFNULL(mo.department, '') != ''
+            {conditions}
+        GROUP BY mo.department
+        HAVING COUNT(*) > 0
+        ORDER BY mo.department
+    """
+
+    rows = frappe.db.sql(query, values, as_dict=True)
+    return [row["department"] for row in rows]
+
+
+def get_columns(departments):
     columns = [
         {
             "label": _("Item Category"),
@@ -62,8 +75,8 @@ def get_columns():
         },
     ]
 
-    for dept in DEPARTMENTS:
-        short_name = dept.replace(" - KGJPL", "").strip()
+    for dept in departments:
+        short_name = dept.rsplit(" - ", 1)[0].strip() if " - " in dept else dept
         columns.append(
             {
                 "label": _(short_name),
@@ -85,11 +98,8 @@ def get_columns():
     return columns
 
 
-def get_data(filters):
+def get_data(filters, departments):
     conditions, values = get_conditions(filters)
-
-    for i, dept in enumerate(DEPARTMENTS):
-        values[f"dept_{i}"] = dept
 
     query = f"""
         SELECT
@@ -99,21 +109,16 @@ def get_data(filters):
             mo.department,
             COUNT(*) AS qty
         FROM (
-            SELECT mo1.*
-            FROM `tabManufacturing Operation` mo1
-            INNER JOIN (
-                SELECT
-                    manufacturing_work_order,
-                    MAX(creation) AS latest_creation
-                FROM `tabManufacturing Operation`
-                GROUP BY manufacturing_work_order
-            ) latest
-                ON latest.manufacturing_work_order = mo1.manufacturing_work_order
-            AND latest.latest_creation = mo1.creation
+            SELECT *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY manufacturing_work_order
+                    ORDER BY creation DESC, name DESC
+                ) AS rn
+            FROM `tabManufacturing Operation`
         ) mo
         LEFT JOIN `tabItem` i
             ON mo.item_code = i.name
-        WHERE 1=1
+        WHERE mo.rn = 1
             {conditions}
         GROUP BY
             COALESCE(i.setting_type, ''),
@@ -126,7 +131,7 @@ def get_data(filters):
 
     detail_map = {}
     subtotal_map = {}
-    grand_total = {frappe.scrub(d): 0 for d in DEPARTMENTS}
+    grand_total = {frappe.scrub(d): 0 for d in departments}
     grand_row_total = 0
 
     for row in raw_data:
@@ -151,7 +156,7 @@ def get_data(filters):
                 "is_grand_total": 0,
                 "row_total": 0,
             }
-            for d in DEPARTMENTS:
+            for d in departments:
                 detail_map[detail_key][frappe.scrub(d)] = 0
 
         detail_map[detail_key][dept_field] += qty
@@ -167,7 +172,7 @@ def get_data(filters):
                 "is_grand_total": 0,
                 "row_total": 0,
             }
-            for d in DEPARTMENTS:
+            for d in departments:
                 subtotal_map[sub_setting_type][frappe.scrub(d)] = 0
 
         subtotal_map[sub_setting_type][dept_field] += qty
@@ -195,7 +200,7 @@ def get_data(filters):
         "is_grand_total": 1,
         "row_total": grand_row_total,
     }
-    for d in DEPARTMENTS:
+    for d in departments:
         grand[frappe.scrub(d)] = grand_total[frappe.scrub(d)]
 
     rows.append(grand)
@@ -205,6 +210,11 @@ def get_data(filters):
 def get_conditions(filters):
     conditions = ""
     values = {}
+
+    default_company = frappe.defaults.get_user_default("Company")
+    if default_company:
+        conditions += " AND mo.company = %(company)s"
+        values["company"] = default_company
 
     if filters.get("from_date"):
         conditions += " AND DATE(mo.creation) >= %(from_date)s"

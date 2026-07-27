@@ -1,7 +1,6 @@
 import frappe
 from frappe import _
 from datetime import datetime, timedelta
-import urllib.parse
 
 def execute(filters=None):
     columns = get_columns(filters)
@@ -14,13 +13,12 @@ def execute(filters=None):
 
 def get_columns(filters=None):
     columns = [
-        {"label": "Manufacturing Work Order ID", "fieldname": "mwo_id", "fieldtype": "Data","sticky":True},
+        {"label": "Manufacturing Work Order ID", "fieldname": "mwo_id", "fieldtype": "Link", "options": "Manufacturing Work Order", "sticky":True},
         {"label": "Posting Date", "fieldname": "mwo_posting_date", "fieldtype": "Data"},
         {"label": "Is Finding MWO", "fieldname": "mwo_is_finding", "fieldtype": "Data"},
         {"label": "Customer Code", "fieldname": "mwo_customer", "fieldtype": "Link", "options": "Customer"},
-        {"label": "Customer Name", "fieldname": "mwo_customer_name", "fieldtype": "Data"},
         {"label": "Customer PO No.", "fieldname": "customer_po", "fieldtype": "Data"},
-        {"label": "Manufacturing Plan ID", "fieldname": "mwo_mp_id", "fieldtype": "Data"},
+        {"label": "Manufacturing Plan ID", "fieldname": "mwo_mp_id", "fieldtype": "Link", "options": "Manufacturing Plan"},
         {"label": "Design ID", "fieldname": "mwo_design_id", "fieldtype": "Data"},
         {"label": "MFG BOM", "fieldname": "mwo_mfg_bom", "fieldtype": "Link", "options": "BOM"},
         {"label": "Item Category", "fieldname": "mwo_item_category", "fieldtype": "Data"},
@@ -77,6 +75,7 @@ def get_columns(filters=None):
         {"label": "Parent Plan ID", "fieldname": "pmo_parent_plan_id", "fieldtype": "Link", "options": "Manufacturing Plan"},
         {"label": "Ref Customer ID", "fieldname": "pmo_ref_customer_id", "fieldtype": "Link", "options": "Customer"},
         {"label": "Ref Customer Name", "fieldname": "pmo_ref_customer_name", "fieldtype": "Data"},
+        
         {"label": "Quotation Creation Date", "fieldname": "q_creation_date", "fieldtype": "Date"},
         {"label": "Quotation Quantity", "fieldname": "q_total_qty", "fieldtype": "Data"},
         {"label": "Quotation Branch", "fieldname": "q_branch", "fieldtype": "Data"},
@@ -99,7 +98,6 @@ def get_data(filters):
     mwo.posting_date AS mwo_posting_date,
     (CASE WHEN mwo.is_finding_mwo=1 THEN 'Yes' ELSE 'No' END) AS mwo_is_finding,
     mwo.customer AS mwo_customer,
-    c.customer_name AS mwo_customer_name,
     pmo.po_no AS customer_po,
     mwo.manufacturing_plan AS mwo_mp_id,
     mwo.item_code AS mwo_design_id,
@@ -175,7 +173,7 @@ def get_data(filters):
 
     FROM `tabManufacturing Work Order` mwo
     LEFT JOIN `tabCustomer` c ON mwo.customer = c.name
-    LEFT JOIN `tabManufacturing Operation` mo ON mwo.manufacturing_operation = mo.name and mo.status != 'Finished'
+    LEFT JOIN `tabManufacturing Operation` mo ON mwo.manufacturing_operation = mo.name
     LEFT JOIN `tabEmployee` emp ON mo.employee = emp.name
     LEFT JOIN `tabParent Manufacturing Order` pmo ON mwo.manufacturing_order = pmo.name
     LEFT JOIN `tabCustomer` cust ON pmo.ref_customer = cust.name
@@ -194,16 +192,6 @@ def get_data(filters):
     """
 
     data = frappe.db.sql(query, as_dict=1)
-    
-    for row in data:
-        # encoded_mwo = urllib.parse.quote(row["mwo_id"])
-        # encoded_mp_id = urllib.parse.quote(row["mwo_mp_id"])
-        encoded_mwo = urllib.parse.quote(str(row["mwo_id"] or ""))
-        encoded_mp_id = urllib.parse.quote(str(row["mwo_mp_id"] or ""))
-
-        row["mwo_id"] = f'<a href="https://gkexport.frappe.cloud/app/manufacturing-work-order/{encoded_mwo}" target="_blank">{row["mwo_id"]}</a>'
-        row["mwo_mp_id"] = f'<a href="https://gkexport.frappe.cloud/app/manufacturing-plan/{encoded_mp_id}" target="_blank">{row["mwo_mp_id"]}</a>'
-        
 
     return data
 
@@ -252,13 +240,13 @@ def calculate_totals(data):
     
 
     totals_row = {
-        "mwo_id": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">Total MWO: {len(unique_mwo_count)}</span></b>',
-        "mwo_posting_date":"",
+        "mwo_id": "",
+        "mwo_posting_date": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">Total MWO: {len(unique_mwo_count)}</span></b>',
         "mwo_is_finding": "",
         "mwo_customer": "",
         "mwo_customer_name": "",
-        "mwo_mp_id": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{len(unique_mp_id)} </span></b>',
-        "mwo_design_id": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{len(unique_design_id)}</span></b>',
+        "mwo_mp_id": "",
+        "mwo_design_id": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">MP: {len(unique_mp_id)} | Design: {len(unique_design_id)}</span></b>',
         "mwo_mfg_bom": "",
         "mwo_item_category": "",
         "mwo_item_subcategory": "",
@@ -373,7 +361,16 @@ def get_conditions(filters):
         conditions.append(f"mwo.delivery_date = '{filters['delivery_date']}'")
 
     if filters.get("posting_date"):
-        conditions.append(f"mwo.posting_date = '{filters['posting_date']}'")
+        posting_date = filters["posting_date"]
+        if isinstance(posting_date, (list, tuple)) and len(posting_date) == 2:
+            conditions.append(
+                f"mwo.posting_date BETWEEN '{posting_date[0]}' AND '{posting_date[1]}'"
+            )
+        else:
+            conditions.append(f"mwo.posting_date = '{posting_date}'")
+
+    if filters.get("hide_finished"):
+        conditions.append("(mo.status IS NULL OR mo.status != 'Finished')")
 
     # if filters.get("pmo"):
     #     pmos = ', '.join([f'"{pmo}"' for pmo in filters.get("pmo")])

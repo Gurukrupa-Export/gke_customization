@@ -11,11 +11,22 @@ frappe.query_reports["Branch Stock Summary"] = {
             "options": "Company",
             "default": frappe.defaults.get_user_default("Company"),
             "reqd": 1,
+            "hidden": 1,
             "on_change": function() {
                 frappe.query_report.set_filter_value('branch', '');
                 frappe.query_report.set_filter_value('manufacturer', '');
                 frappe.query_report.set_filter_value('department', '');
                 update_branch_options();
+            }
+        },
+        {
+            "fieldname": "as_on_date",
+            "label": __("As On Date"),
+            "fieldtype": "Date",
+            "default": frappe.datetime.get_today(),
+            "reqd": 1,
+            "on_change": function() {
+                frappe.query_report.refresh();
             }
         },
         {
@@ -44,7 +55,7 @@ frappe.query_reports["Branch Stock Summary"] = {
             "fieldname": "raw_material_type",
             "label": __("Raw Material Type"),
             "fieldtype": "Select",
-            "options": ["", "Metal", "Diamond", "Gemstone", "Finding", "Aloy", "Other"].join('\n'),
+            "options": ["", "Metal", "Diamond", "Gemstone", "Finding", "Alloy", "Other"].join('\n'),
             "default": "Metal",
             "reqd": 1,
             "on_change": function() {
@@ -505,4 +516,3 @@ $(document).ready(function() {
         attach_view_button_handlers();
     }, 3000);
 });
-

@@ -87,7 +87,18 @@ frappe.query_reports["Order Detail Report"] = {
         {
             fieldname: "posting_date",
             label: __("Posting Date"),
-            fieldtype: "Date",
+            fieldtype: "DateRange",
+            default: [
+                frappe.datetime.add_days(frappe.datetime.now_date(), -90),
+                frappe.datetime.now_date(),
+            ],
+            reqd: 0,
+        },
+        {
+            fieldname: "hide_finished",
+            label: __("Hide Finished Operations"),
+            fieldtype: "Check",
+            default: 1,
             reqd: 0,
         },
     ],
