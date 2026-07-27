@@ -151,8 +151,10 @@ def get_data(filters):
         LEFT JOIN 
             `tabStock Entry` se ON se.custom_metal_conversion_reference = mc.name 
                 AND se.purpose = 'Repack'
-        WHERE 
+        WHERE
             mc.docstatus = 1
+            AND mc.target_item IS NOT NULL
+            AND mc.target_item != ''
             {conditions}
         ORDER BY 
             mc.creation DESC
