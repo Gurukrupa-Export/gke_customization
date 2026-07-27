@@ -10,10 +10,18 @@
   "to_site",
   "get_pricing_details_section",
   "from_site_1",
+  "section_break_tfs8",
+  "mwo_from_site",
+  "column_break_2hyu",
+  "mwo_to_site",
   "user_details_section",
   "api_key",
   "column_break_qpnk",
-  "api_secret"
+  "api_secret",
+  "section_break_cadsite_section",
+  "cad_from_site",
+  "column_break_cadsite_column",
+  "cad_to_site"
  ],
  "fields": [
   {
@@ -58,14 +66,52 @@
    "fieldname": "api_secret",
    "fieldtype": "Data",
    "label": "API Secret"
+  },
+  {
+   "fieldname": "section_break_tfs8",
+   "fieldtype": "Section Break",
+   "label": "MWO Site"
+  },
+  {
+   "fieldname": "mwo_from_site",
+   "fieldtype": "Data",
+   "label": "MWO From Site"
+  },
+  {
+   "fieldname": "mwo_to_site",
+   "fieldtype": "Data",
+   "label": "MWO To Site"
+  },
+  {
+   "fieldname": "column_break_2hyu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cad_from_site",
+   "fieldtype": "Data",
+   "label": "CAD From Site"
+  },
+  {
+   "fieldname": "cad_to_site",
+   "fieldtype": "Data",
+   "label": "CAD To Site"
+  },
+  {
+   "fieldname": "section_break_cadsite_section",
+   "fieldtype": "Section Break",
+   "label": "CAD MWO Site"
+  },
+  {
+   "fieldname": "column_break_cadsite_column",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-06-25 15:39:56.007667",
- "modified_by": "shubham_k@gkexport.com",
+ "modified": "2026-07-15 15:37:22.702470",
+ "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Data Migration in KGGK",
  "owner": "shubham_k@gkexport.com",
