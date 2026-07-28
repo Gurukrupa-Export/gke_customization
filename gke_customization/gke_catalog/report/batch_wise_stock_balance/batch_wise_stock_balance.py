@@ -1,4 +1,4 @@
-# Copyright (c) 2024, Frappe Technologies Pvt. Ltd. and contributors
+# Copyright (c) 2026, Frappe Technologies Pvt. Ltd. and contributors
 # For license information, please see license.txt
 
 from collections import defaultdict
@@ -55,6 +55,19 @@ def get_columns(filters):
 				"options": "Batch",
 			},
 			{
+				"label": _("Source Document Type"),
+				"fieldname": "reference_doctype",
+				"fieldtype": "Data",
+				"width": 180,	
+			},
+			{
+				"label": _("Source Document Name"),
+				"fieldname": "reference_name",
+				"fieldtype": "Dynamic Link",
+				"options": "reference_doctype",
+				"width": 200,
+			},
+			{
 				"label": _("Expiry Date"),
 				"fieldname": "expiry_date",
 				"fieldtype": "Date",
@@ -76,6 +89,12 @@ def get_columns(filters):
 				"fieldname": "value",
 				"fieldtype": "Currency",
 				"width": 150,
+			},
+			{
+				"label": _("Invoice Done"),
+				"fieldname": "invoice_done",
+				"fieldtype": "Check",
+				"width": 100,
 			},
 		]
 	)
@@ -105,7 +124,30 @@ def parse_batchwise_data(batchwise_data):
 
 		data.append(d)
 
+	invoiced_batches = get_invoiced_batches({d.batch_no for d in data if d.batch_no})
+	for d in data:
+		d.invoice_done = 1 if d.batch_no in invoiced_batches else 0
+
 	return data
+
+
+def get_invoiced_batches(batch_nos):
+	if not batch_nos:
+		return set()
+
+	pi = frappe.qb.DocType("Purchase Invoice")
+	pi_item = frappe.qb.DocType("Purchase Invoice Item")
+
+	query = (
+		frappe.qb.from_(pi_item)
+		.inner_join(pi)
+		.on(pi_item.parent == pi.name)
+		.select(pi_item.batch_no)
+		.distinct()
+		.where((pi.docstatus == 1) & (pi_item.batch_no.isin(list(batch_nos))))
+	)
+
+	return {d.batch_no for d in query.run(as_dict=True)}
 
 
 def get_batchwise_data_from_stock_ledger(filters):
@@ -123,6 +165,8 @@ def get_batchwise_data_from_stock_ledger(filters):
 			table.batch_no,
 			table.warehouse,
 			batch.expiry_date,
+			batch.reference_doctype,
+    		batch.reference_name,
 			Sum(table.actual_qty).as_("balance_qty"),
 		)
 		.where(table.is_cancelled == 0)
@@ -154,6 +198,8 @@ def get_batchwise_data_from_serial_batch_bundle(batchwise_data, filters):
 			ch_table.batch_no,
 			table.warehouse,
 			batch.expiry_date,
+			batch.reference_doctype,
+    		batch.reference_name,
 			ch_table.incoming_rate.as_("incoming_rate"),
 			Sum(ch_table.qty).as_("balance_qty"),
 		)
@@ -174,10 +220,28 @@ def get_batchwise_data_from_serial_batch_bundle(batchwise_data, filters):
 
 	return batchwise_data
 
+def _as_list(value):
+    if not value:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, tuple):
+        return list(value)
+    if isinstance(value, str):
+        try:
+            import json
+            parsed = json.loads(value)
+            if isinstance(parsed, list):
+                return parsed
+        except Exception:
+            pass
+        return [v.strip() for v in value.split(",") if v.strip()]
+    return [value]
 
 def get_query_based_on_filters(query, batch, table, filters):
-	if filters.item_code:
-		query = query.where(table.item_code == filters.item_code)
+	item_codes = _as_list(getattr(filters, "item_code", None))
+	if item_codes:
+		query = query.where(table.item_code.isin(item_codes))
 
 	if filters.batch_no:
 		query = query.where(batch.name == filters.batch_no)
@@ -194,10 +258,9 @@ def get_query_based_on_filters(query, batch, table, filters):
 		to_date = get_datetime(str(filters.to_date) + " 23:59:59")
 		query = query.where(table.posting_datetime <= to_date)
 
-	if filters.warehouse:
-		lft, rgt = frappe.db.get_value(
-			"Warehouse", filters.warehouse, ["lft", "rgt"]
-		)
+	warehouses_selected = _as_list(getattr(filters, "warehouse", None))
+	if warehouses_selected:
+		query = query.where(table.warehouse.isin(warehouses_selected))
 
 		warehouses = frappe.get_all(
 			"Warehouse",

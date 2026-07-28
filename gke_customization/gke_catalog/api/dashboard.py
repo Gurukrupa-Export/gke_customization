@@ -18,7 +18,7 @@ from gke_customization.gke_catalog.api.notifications import notify_user
 from gke_customization.gke_catalog.api.login import get_address_by_link_name
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_created_issue_by_customer_and_supplier(customer):
     if isinstance(customer, str):
         try:
@@ -196,7 +196,7 @@ def get_quotation_form(customer, id=None):
         return {"success": False, "message": "Failed to fetch Quotation"}
     
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_sales_order(customer, id=None):
     if isinstance(customer, str):
         try:
@@ -310,7 +310,7 @@ def get_sales_order(customer, id=None):
         return {"success": False, "message": f"Internal error: {str(e)}"}
         
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_sales_invoice(customer, id=None):
     if isinstance(customer, str):
         try:
@@ -408,7 +408,9 @@ def get_sales_invoice(customer, id=None):
         frappe.log_error(f"Error in get_sales_invoice: {str(e)}")
         return {"success": False, "message": "Failed to fetch Sales Invoice"}
 
-@frappe.whitelist(allow_guest=True)
+
+
+@frappe.whitelist()
 def get_customer_wise_count(customer):
 
     get_catalogue_data = frappe.get_all(

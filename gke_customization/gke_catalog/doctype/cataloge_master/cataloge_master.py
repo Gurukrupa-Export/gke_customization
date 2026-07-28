@@ -6,7 +6,7 @@ from frappe.model.document import Document
 
 
 class CatalogeMaster(Document):
-    pass
+	pass
 	# def before_insert(self):
 	# 	if self.customer and not self.diamond_quality:
 

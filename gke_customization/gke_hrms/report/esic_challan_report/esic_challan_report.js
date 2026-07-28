@@ -4,30 +4,38 @@
 frappe.query_reports["ESIC Challan Report"] = {
 	"filters": [
 		{
-			"label": __("Month"),
-			"fieldtype": "Select",
-			"fieldname": "month",
-			"reqd": 1,
-			"options": [],
-			"default": ()=>{
-				const dateObject = new Date(); // create a new date object with the current date
-				const options = { month: "short", year: "numeric" };
-				const dateString = dateObject.toLocaleDateString("en-US", options);
-				return dateString
-			},
-			"on_change": function(query_report){
-				var _month = query_report.get_filter_value('month');
-				if (!_month) return
-				let firstDayOfMonth = moment(_month, "MMM YYYY").toDate();
-				firstDayOfMonth = frappe.datetime.obj_to_str(firstDayOfMonth)
-				let lastDayOfMonth = frappe.datetime.month_end(firstDayOfMonth)
-				query_report.set_filter_value({
-					"from_date": firstDayOfMonth,
-					"to_date": lastDayOfMonth,
-					"employee": null
-				}); 
-			}
-		},
+            "label": __("Month"),
+            "fieldtype": "Select",
+            "fieldname": "month",
+            "reqd": 1,
+            "options": [
+                "January","February","March","April",
+                "May","June","July","August",
+                "September","October","November","December"
+            ],
+            "default": new Date().toLocaleString('en-US', { month: 'long' }),
+            "on_change": function() {
+                set_dates();
+            }
+        },
+        {
+            "label": __("Year"),
+            "fieldtype": "Select",
+            "fieldname": "year",
+            "reqd": 1,
+            "options": (() => {
+                let years = [];
+                let currentYear = new Date().getFullYear();
+                for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+                    years.push(String(i));
+                }
+                return years;
+            })(),
+            "default": String(new Date().getFullYear()),
+            "on_change": function() {
+                set_dates();
+            }
+        },
 		{
 			"label": __("From Date"),
 			"fieldtype": "Date",
@@ -69,7 +77,7 @@ frappe.query_reports["ESIC Challan Report"] = {
 		}, 
 	],
 	onload: (report) => {
-		fetch_month_list();
+		set_dates();
 		report.page.add_button("Clear Filters", function() {
 			window.open("/app/query-report/ESIC%20Challan%20Report", "_self")
 		}).addClass("btn-info")
@@ -93,7 +101,25 @@ frappe.query_reports["ESIC Challan Report"] = {
 			}
 			});
 		}).addClass("btn-secondary");
-	}
+		
+	},
+	"formatter": function(value, row, column, data, default_formatter) {
+        value = default_formatter(value, row, column, data);
+		if (data && ["gross_pay","employee_id"].includes(column.id) && value) {
+			value = $(`<span>${value}</span>`);
+			var $value = $(value).css("font-weight", "bold");
+			value = $value.wrap("<p></p>").parent().html();
+		}
+		var total_field = ["Total Employees", "Total Gross","Excepted Employees","Excepted Gross","ESIC Members","ESIC Wages","Employee Contribution","Employer Contribution","Total Contribution"];
+		if (["branch", "employee_name"].includes(column.id) && total_field.includes(data.employee_name)) {
+			value = $(`<span>${value}</span>`);
+			var $value = $(value).css("font-weight", "bold");
+			var $value = $(value).css("color", "blue");
+			value = $value.wrap("<p></p>").parent().html();
+		}
+
+        return value;
+    }
 };
 
 function fetch_month_list() {
@@ -106,4 +132,28 @@ function fetch_month_list() {
 				month.refresh();
 		}
 	})
+}
+
+function set_dates() {
+    let report = frappe.query_report;
+    if (!report) return;
+
+    let monthName = report.get_filter_value("month");
+    let year = parseInt(report.get_filter_value("year"));
+
+    if (!monthName || !year) return;
+
+    const monthIndex = [
+        "January","February","March","April",
+        "May","June","July","August",
+        "September","October","November","December"
+    ].indexOf(monthName);
+
+    let from_date = new Date(year, monthIndex, 1);
+    let to_date = new Date(year, monthIndex + 1, 0);
+
+    report.set_filter_value({
+        from_date: frappe.datetime.obj_to_str(from_date),
+        to_date: frappe.datetime.obj_to_str(to_date)
+    });
 }

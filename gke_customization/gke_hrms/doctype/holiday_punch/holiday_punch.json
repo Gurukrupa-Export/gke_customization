@@ -20,11 +20,14 @@
   "column_break_padw",
   "add_new_punch",
   "for_od",
+  "get_employees",
   "section_break_buh6b",
   "employees",
   "section_break_dn8t7",
   "details",
   "to_be_deleted",
+  "error_details_tab",
+  "error_details",
   "amended_from"
  ],
  "fields": [
@@ -134,14 +137,29 @@
    "fieldtype": "Link",
    "label": "Department",
    "options": "Department"
+  },
+  {
+   "fieldname": "get_employees",
+   "fieldtype": "Button",
+   "label": "Get Employees"
+  },
+  {
+   "fieldname": "error_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Error Details"
+  },
+  {
+   "fieldname": "error_details",
+   "fieldtype": "Text",
+   "label": "Error Details"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-03-21 15:39:55.883740",
- "modified_by": "aditya_r@gkexport.com",
+ "modified": "2026-05-14 11:21:13.285262",
+ "modified_by": "shubham_si@gkexport.com",
  "module": "GKE HRMS",
  "name": "Holiday Punch",
  "naming_rule": "Expression",

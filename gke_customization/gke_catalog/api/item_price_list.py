@@ -85,7 +85,7 @@ def get_item_price(customer=None,item_code=None, bom=None, diamond_quality=None,
         finding_summary[metal_touch]["finding_making_charge"] += met.get("finding_making_amount", 0)
     
     
-    # return dia_price_data
+    # return finding_price_data 
     return {
         "dia_quality_summary": dia_quality_summary,
         "dia_overall_summary": {
