@@ -106,18 +106,36 @@ def get_bom_details(design_id,serial_no):
 
 
 
+# @frappe.whitelist()
+# def get_data_from_jwelex(self,tag_no,company):
+# 	url = "http://3.108.219.130:8001/credit-note"
+
+# 	response = requests.get(
+# 		url,
+# 		params={"tag_no": tag_no,"company":company},
+# 		timeout=30
+# 	)
+
+# 	response.raise_for_status()
+# 	return response.json()
+
+
+
 @frappe.whitelist()
-def get_data_from_jwelex(self,tag_no,company):
-	url = "http://3.108.219.130:8001/credit-note"
+def get_data_from_jwelex(tag_no, company):
+    url = "http://3.108.219.130:8001/credit-note"
 
-	response = requests.get(
-		url,
-		params={"tag_no": tag_no,"company":company},
-		timeout=30
-	)
+    response = requests.get(
+        url,
+        params={
+            "tag_no": tag_no,
+            "company": company
+        },
+        timeout=30
+    )
 
-	response.raise_for_status()
-	return response.json()
+    response.raise_for_status()
+    return response.json()
 
 
 
