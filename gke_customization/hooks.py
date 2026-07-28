@@ -285,6 +285,12 @@ doc_events = {
 # "Item": {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
 # },
+"Item": {
+    "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_item_kggk"
+},
+"BOM": {
+    "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_bom_kggk"
+},
 # "Department IR": {
 #     "autoname": "gke_customization.gke_order_forms.doc_events.department_ir.autoname"
 # },
