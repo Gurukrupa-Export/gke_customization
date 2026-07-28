@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+import requests
 from frappe.model.document import Document,json
 from erpnext.setup.utils import get_exchange_rate
 from frappe.utils import get_link_to_form
@@ -12,12 +13,14 @@ from datetime import datetime
 from frappe.model.naming import make_autoname
 
 
-class RepairOrder(Document):	
+class RepairOrder(Document):
 	def before_insert(self):
 		if self.bom:
 			fetch_bom_details(self)
 		if self.required_design in  ["No","CAD"] and self.product_type in ["Company Goods - Branch Sales , Unsold & Undelivered","Customer Goods (Company Manufactured) - Sold & Delivered"]:
 			fetch_bom_details(self)
+		if self.tag_no1:
+					fetch_jwelex_bom_details(self)
 
 	def on_submit(self):
 		if self.required_design == 'Manual':
@@ -38,6 +41,7 @@ class RepairOrder(Document):
 				if self.workflow_state == 'Update Item':
 					new_bom_doc = create_bom(self,self.item)
 					frappe.db.set_value(self.doctype, self.name, "new_bom", new_bom_doc)
+				
 			# else:
 				# item_template = create_item_template_from_order(self)
 				# updatet_item_template(item_template)
@@ -69,11 +73,141 @@ class RepairOrder(Document):
 			bom_creation(self)
 		if self.workflow_state == "BOM QC" and self.product_type == "Customer Goods (Other Company Manufactured)":
 			create_serial_no(self)
+		if self.workflow_state == "Create Serial No" and self.product_type == "Customer Goods (Other Company Manufactured)":
+			create_serial_no(self)
+		if self.workflow_state == "BOM QC" and self.tag_no1:
+			# frappe.throw("HI")
+			create_serial_no(self)
 		if self.required_design == 'CAD':
 					if self.workflow_state == 'Create CAD' and not self.sketch_order_form:
 						order_form_id = create_cad(self,sketch_item_code=self.item)
 						frappe.msgprint("New Order Form Created: {0}".format(get_link_to_form("Order Form",order_form_id)))
+		if self.workflow_state == 'Update BOM' and self.is_jewelex_tag:
+			new_bom_doc = bom_creation(self)
+			self.db_set("item", self.new_item_code)
+			# frappe.db.set_value(self.doctype, self.name, "new_bom", new_bom_doc)
 		
+
+
+		
+# def fetch_bom_details(self):
+# 	source_bom = None
+# 	if self.bom:
+# 		source_bom = frappe.get_doc("BOM", self.bom)
+# 	if self.required_design in ["No",'CAD'] and self.product_type in ["Company Goods - Branch Sales , Unsold & Undelivered","Customer Goods (Company Manufactured) - Sold & Delivered"]:
+# 		source_bom = frappe.get_doc("BOM", self.serial_no_bom)
+
+# 	self.set("metal_detail", [])
+# 	total_metal_weight = 0
+# 	for row in source_bom.metal_detail:
+# 		self.append("metal_detail", {
+# 			"metal_type": row.metal_type,
+# 			"metal_touch": row.metal_touch,
+# 			"metal_colour": row.metal_colour,
+# 			"metal_purity": row.metal_purity,
+# 			"quantity": row.quantity,
+# 			"difference": row.difference,
+# 			"cad_weight": row.cad_weight,
+# 			"cam_weight": row.cam_weight,
+# 			"wax_weight": row.wax_weight,
+# 			"casting_weight": row.casting_weight,
+# 			"finish_loss_grams": row.finish_loss_grams,
+# 			"finish_loss_percentage": row.finish_loss_percentage,
+# 			"finish_product_weight": row.finish_product_weight,
+# 		})
+# 		total_metal_weight += row.quantity or 0
+
+# 	self.set("finding_detail", [])
+# 	for row in source_bom.finding_detail:
+# 		self.append("finding_detail", {
+# 			"metal_type": row.metal_type,
+# 			"metal_touch": row.metal_touch,
+# 			"metal_colour": row.metal_colour,
+# 			"metal_purity": row.metal_purity,
+# 			"quantity": row.quantity,
+# 			"qty": row.qty,
+# 			"finding_size": row.finding_size,
+# 			"finding_type": row.finding_type,
+# 			"finding_category": row.finding_category,
+# 		})
+
+# 	self.set("diamond_detail", [])
+# 	for row in source_bom.diamond_detail:
+# 		self.append("diamond_detail", {
+# 			"sieve_size_range": row.sieve_size_range,
+# 			"diamond_sieve_size": row.diamond_sieve_size,
+# 			"size_in_mm": row.size_in_mm,
+# 			"sub_setting_type": row.sub_setting_type,
+# 			"stone_shape": row.stone_shape,
+# 			"diamond_type": row.diamond_type,
+# 			"quality": row.quality,
+# 			"diamond_grade": row.diamond_grade,
+# 			"weight_in_gms": row.weight_in_gms,
+# 			"quantity": row.quantity,
+# 			"weight_per_pcs": row.weight_per_pcs,
+# 			"pcs": row.pcs,
+# 		})
+
+# 	self.set("gemstone_detail", [])
+# 	for row in source_bom.gemstone_detail:
+# 		self.append("gemstone_detail", {
+# 			"gemstone_quality": row.gemstone_quality,
+# 			"stone_shape": row.stone_shape,
+# 			"cut_or_cab": row.cut_or_cab,
+# 			"gemstone_type": row.gemstone_type,
+# 			"gemstone_size": row.gemstone_size,
+# 			"gemstone_code": row.gemstone_code,
+# 			"sub_setting_type": row.sub_setting_type,
+# 			"pcs": row.pcs,
+# 			"quantity": row.quantity,
+# 			"weight_in_gms": row.weight_in_gms,
+# 			"is_customer_item": row.is_customer_item,
+# 		})
+
+# 	self.set("other_detail", [])
+# 	for row in source_bom.other_detail:
+# 		self.append("other_detail", {
+# 			"quantity": row.quantity,
+# 			"qty": row.qty,
+# 			"item_code": row.item_code,
+# 		})
+
+# 	# Per-category totals (BOM field -> Repair Order field)
+# 	self.total_metal_weight = total_metal_weight
+
+# 	self.total_finding_pcs = source_bom.finding_pcs
+# 	self.total_finding_weightin_gms = source_bom.total_finding_weight_per_gram
+
+# 	self.total_diamond_pcs = source_bom.total_diamond_pcs
+# 	self.total_diamond_weight = source_bom.total_diamond_weight
+# 	self.total_diamond_weightin_gms = source_bom.total_diamond_weight_in_gms
+
+# 	self.total_gemstone_pcs = source_bom.total_gemstone_pcs
+# 	self.total_gemstone_weight = source_bom.total_gemstone_weight
+# 	self.total_gemstone_weightin_gms = source_bom.total_gemstone_weight_in_gms
+
+# 	self.total_other_pcs = source_bom.total_other_pcs
+# 	self.total_other_weight = source_bom.total_other_weight
+
+# 	# Product Weight section
+# 	self.metal_weight_in_gram = source_bom.metal_weight
+# 	self.gross_weight_in_gram = source_bom.gross_weight
+# 	self.net_weight_in_gram = source_bom.metal_and_finding_weight
+# 	self.net_wt_add_on = source_bom.net_wt_add_on
+# 	self.diamond_weight_in_carat = source_bom.diamond_weight
+# 	self.gemstone_weight_in_carat = source_bom.gemstone_weight
+# 	self.other_weight_in_gram = source_bom.other_weight
+# 	self.finding_weight_in_gram = source_bom.finding_weight_
+# 	self.total_diamond_weight_in_gram = source_bom.total_diamond_weight_in_gms
+# 	self.total_gemstone_weight_in_gram = source_bom.total_gemstone_weight_in_gms
+
+# 	# Product Ratio section
+# 	self.metal_to_diamond_ratioincl_of_finding = source_bom.gold_to_diamond_ratio
+# 	self.metal_to_diamond_ratioexcl_of_finding = source_bom.metal_to_diamond_ratio_excl_of_finding
+# 	self.avg_diamond_weightin_carat = source_bom.diamond_ratio
+# 	self.rating = source_bom.custom_rating
+
+
 
 
 		
@@ -81,8 +215,11 @@ def fetch_bom_details(self):
 	source_bom = None
 	if self.bom:
 		source_bom = frappe.get_doc("BOM", self.bom)
-	if self.required_design in ["No",'CAD'] and self.product_type in ["Company Goods - Branch Sales , Unsold & Undelivered","Customer Goods (Company Manufactured) - Sold & Delivered"]:
+	if self.required_design in ["No",'CAD'] and self.product_type in ["Company Goods - Branch Sales , Unsold & Undelivered","Customer Goods (Company Manufactured) - Sold & Delivered"] and self.serial_no_bom:
 		source_bom = frappe.get_doc("BOM", self.serial_no_bom)
+
+	if not source_bom:
+		return
 
 	self.set("metal_detail", [])
 	total_metal_weight = 0
@@ -194,7 +331,71 @@ def fetch_bom_details(self):
 	self.avg_diamond_weightin_carat = source_bom.diamond_ratio
 	self.rating = source_bom.custom_rating
 
-		
+def fetch_jwelex_bom_details(self):
+	company_code = "GEPL" if self.company == "Gurukrupa Export Private Limited" else "KGPL"
+	data = get_data_from_jwelex(self.tag_no1, company_code)
+	materials = data.get("materials", {})
+
+	self.set("metal_detail", [])
+	for row in materials.get("metal_details", []):
+		self.append("metal_detail", {
+			"metal_type": row.get("Meterial"),
+			"metal_touch": row.get("Purity_Name"),
+			"metal_purity": row.get("Size_Name"),
+			"metal_colour": "Yellow",
+			"quantity": row.get("Weight"),
+		})
+
+	self.set("finding_detail", [])
+	for row in materials.get("finding_details", []):
+		self.append("finding_detail", {
+			"metal_type": row.get("Meterial"),
+			"metal_touch": row.get("Purity_Name"),
+			"finding_type": row.get("Shape_Name"),
+			"finding_size": row.get("Size_Name"),
+			"finding_category": row.get("Code_Name"),
+			"quantity": row.get("Weight"),
+			"qty": row.get("Pcs"),
+		})
+
+	self.set("diamond_detail", [])
+	for row in materials.get("diamond_details", []):
+		pcs = row.get("Pcs") or 0
+		weight = row.get("Weight") or 0
+		self.append("diamond_detail", {
+			"diamond_type": row.get("Meterial"),
+			"stone_shape": row.get("Shape_Name"),
+			"diamond_grade": row.get("Purity_Name"),
+			"diamond_sieve_size": row.get("Size_Name"),
+			"size_in_mm": row.get("Code_Name"),
+			"pcs": pcs,
+			"quantity": weight,
+			"weight_in_gms": row.get("Gross_Wt"),
+			"weight_per_pcs": (weight / pcs) if pcs else weight,
+		})
+
+	self.set("gemstone_detail", [])
+	for row in materials.get("stone_details", []):
+		self.append("gemstone_detail", {
+			"gemstone_type": row.get("Meterial"),
+			"stone_shape": row.get("Shape_Name"),
+			"gemstone_quality": row.get("Purity_Name"),
+			"gemstone_size": row.get("Size_Name"),
+			"gemstone_code": row.get("Code_Name"),
+			"pcs": row.get("Pcs"),
+			"quantity": row.get("Weight"),
+			"weight_in_gms": row.get("Gross_Wt"),
+		})
+
+	self.set("other_detail", [])
+	for row in materials.get("other_details", []):
+		self.append("other_detail", {
+			"item_code": row.get("Meterial"),
+			"quantity": row.get("Weight"),
+			"qty": row.get("Pcs"),
+		})
+
+
 def bom_creation(self):
 	# if not self.item:
 	# 	frappe.throw("Item is not specified in the Order.")
@@ -209,7 +410,10 @@ def bom_creation(self):
 
 	# Create new BOM document
 	bom = frappe.new_doc("BOM")
-	bom.item = self.item
+	if self.is_jewelex_tag:
+		bom.item = self.new_item_code
+	else:
+		bom.item = self.item
 	bom.is_active = 1
 	bom.is_default = 0
 
@@ -261,9 +465,9 @@ def bom_creation(self):
 
 	# Append item in BOM Items table (Raw Materials)
 	bom.append("items", {
-		"item_code": self.item,
-		"qty": self.qty,
-		"do_not_explode":1
+    "item_code": self.new_item_code if self.is_jewelex_tag else self.item,
+    "qty": self.qty,
+    "do_not_explode": 1
 	})
 
 	# Copy metal_detail and set BOM's metal_purity from first row
@@ -367,7 +571,7 @@ def bom_creation(self):
 	bom.save(ignore_permissions=True)
 
 	# Update Order with created BOM name
-	if self.product_type == "Company Goods - Branch Sales , Unsold & Undelivered" and self.required_design =="CAD":
+	if self.product_type in ["Company Goods - Branch Sales , Unsold & Undelivered","Customer Goods (Company Manufactured) - Sold & Delivered"] and self.required_design =="CAD":
 		self.db_set("product_bom", bom.name)  # Assuming 'new_bom' field exists
 	else:
 		self.db_set("new_bom", bom.name)  # Assuming 'new_bom' field exists
@@ -436,7 +640,7 @@ def set_value_in_cad_child_table(order_form_doc,self,sketch_item_code):
 		# order_details.design_type = 'Mod'
 		order_details.design_type = 'Sketch Design'
 	elif self.required_design == 'CAD':
-		if self.tag_no:
+		if self.tag_no or self.serial_no:
 			if self.mod_reason == "Category Change":
 				order_details.design_type = 'New Design'
 				order_details.reference_serial_no = self.tag_no
@@ -444,6 +648,7 @@ def set_value_in_cad_child_table(order_form_doc,self,sketch_item_code):
 
 			else:
 				order_details.design_type = 'Mod - Old Stylebio & Tag No'
+				
 		else:
 			order_details.design_type = 'New Design'
 
@@ -465,6 +670,10 @@ def set_value_in_cad_child_table(order_form_doc,self,sketch_item_code):
 		order_details.design_id = ""
 		image = frappe.db.get_value("Item", self.item, "image")
 		order_details.design_image_1 =  image
+	elif (self.is_jewelex_tag and self.serial_no) and self.required_design == 'CAD':
+		order_details.tag_no = self.serial_no
+		order_details.bom = self.new_bom
+		order_details.design_id = self.new_item_code
 	else:
 		order_details.tag_no = self.tag_no
 		order_details.bom = self.bom
@@ -1127,7 +1336,10 @@ def cerate_bom_timesheet(self):
 
 def create_serial_no(self):
 	serial = frappe.new_doc('Serial No')
-	serial.item_code = self.item
+	if self.is_jewelex_tag:
+		serial.item_code = self.new_item_code
+	else:
+		serial.item_code = self.item
 	serial.customer = self.customer_code
 	serial.company=self.company
 	serial.purchase_document_no = self.name
@@ -1137,7 +1349,10 @@ def create_serial_no(self):
 	serial.custom_bom_no=self.new_bom
 	serial.status = 'Delivered'
 	# serial.custom_manufacturer='Labh'
-	compose_series = genrate_serial_no(self, self.new_bom)
+	if self.is_jewelex_tag:
+		compose_series = genrate_serial_no(self, self.product_bom)
+	else:
+		compose_series = genrate_serial_no(self, self.new_bom)
 	sr_no = make_autoname(compose_series)
 	serial.serial_no=sr_no
 	# frappe.throw(f"Serial No = {serial.serial_no}")
@@ -1188,3 +1403,23 @@ def genrate_serial_no(self, new_bom):
 
 	compose_series = str(series_start + mnf_abbr + m_abbr + dg_abbr + final_date + ".####")
 	return compose_series
+
+
+
+
+
+@frappe.whitelist()
+def get_data_from_jwelex(tag_no, company):
+    url = "http://3.108.219.130:8001/credit-note"
+
+    response = requests.get(
+        url,
+        params={
+            "tag_no": tag_no,
+            "company": company
+        },
+        timeout=30
+    )
+
+    response.raise_for_status()
+    return response.json()

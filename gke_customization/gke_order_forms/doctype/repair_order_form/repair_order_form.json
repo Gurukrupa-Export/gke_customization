@@ -221,7 +221,6 @@
    "label": "Total No of Designs"
   },
   {
-   "default": "Repair",
    "fieldname": "sales_type",
    "fieldtype": "Link",
    "label": "Sales Type",
@@ -247,7 +246,7 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2026-07-23 16:49:59.072339",
+ "modified": "2026-07-27 17:07:46.652658",
  "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Repair Order Form",
