@@ -746,7 +746,7 @@ def get_metal_purity(metal_type,metal_touch,customer):
 	metal_purity = frappe.db.sql(f"""select metal_purity from `tabMetal Criteria` where parent = '{customer}' and metal_type = '{metal_type}' and metal_touch = '{metal_touch}'""",as_dict=1)
 	return metal_purity
 
-
+@frappe.whitelist()
 def get_bom_detail(design_id, doc):
     doc = json.loads(doc)
 
