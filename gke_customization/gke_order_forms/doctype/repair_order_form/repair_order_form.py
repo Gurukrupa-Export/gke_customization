@@ -2,11 +2,12 @@
 # For license information, please see license.txt
 
 import frappe
+import requests
 from frappe import _
 from frappe.utils import get_link_to_form
 from frappe.model.mapper import get_mapped_doc
 from frappe.model.document import Document
-
+from frappe.utils import now_datetime
 class RepairOrderForm(Document):
 	def on_submit(self):
 		if not self.order_details:
@@ -22,6 +23,11 @@ def create_serial_and_design_order(self):
 	doclist = []
 	for row in self.order_details:
 		docname = make_serial_and_design_order(row.name, parent_doc = self)
+		order_datetime = now_datetime()
+		frappe.db.set_value("Repair Order", docname, "order_date", order_datetime)
+		if self.delivery_date:
+			# Ffrappe.throw(f'{self.delivery_date}')
+			frappe.db.set_value("Repair Order", docname, "delivery_date", self.delivery_date)
 		doclist.append(get_link_to_form("Repair Order", docname))
 		
 	if doclist:
@@ -96,3 +102,50 @@ def get_bom_details(design_id,serial_no):
 	with_value['gross_weight'] = frappe.db.get_value("BOM",master_bom,"gross_weight")
 	
 	return with_value
+
+
+
+
+# @frappe.whitelist()
+# def get_data_from_jwelex(self,tag_no,company):
+# 	url = "http://3.108.219.130:8001/credit-note"
+
+# 	response = requests.get(
+# 		url,
+# 		params={"tag_no": tag_no,"company":company},
+# 		timeout=30
+# 	)
+
+# 	response.raise_for_status()
+# 	return response.json()
+
+
+
+@frappe.whitelist()
+def get_data_from_jwelex(tag_no, company):
+    url = "http://3.108.219.130:8001/credit-note"
+
+    response = requests.get(
+        url,
+        params={
+            "tag_no": tag_no,
+            "company": company
+        },
+        timeout=30
+    )
+
+    response.raise_for_status()
+    return response.json()
+
+
+
+
+
+
+
+
+
+
+
+
+
