@@ -304,10 +304,10 @@ frappe.ui.form.on('Repair Order Form Detail', {
 	item: function (frm, cdt, cdn) {
 		var d = locals[cdt][cdn];
 		
-		if (d.item & !d.is_jewelex_tag) {
+		if (d.item && !d.is_jewelex_tag) {
 			console.log('hii');
 			frappe.call({
-				method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_bom_details",
+				method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_bom_detail",
 				args: {
 					"design_id": d.item,
 					"doc":d
