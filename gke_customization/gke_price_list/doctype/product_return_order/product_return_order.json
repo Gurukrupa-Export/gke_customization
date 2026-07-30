@@ -37,6 +37,8 @@
   "custom_handling_charges",
   "wastage_charges",
   "custom_wastage_charges",
+  "hallmarking_amounts",
+  "certification_amounts",
   "column_break_dhb3",
   "gold_rate_with_gst",
   "gold_rate",
@@ -867,6 +869,20 @@
   {
    "fieldname": "column_break_dhb3",
    "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "hallmarking_amounts",
+   "fieldtype": "Check",
+   "label": "Hallmarking Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "certification_amounts",
+   "fieldtype": "Check",
+   "label": "Certification Amount",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
