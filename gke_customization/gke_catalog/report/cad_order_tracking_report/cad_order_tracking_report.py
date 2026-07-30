@@ -13,6 +13,7 @@ def get_columns():
     """Define report columns"""
     return [
         {"fieldname": "ord_number", "label": _("Order Number"), "fieldtype": "Link", "options": "Order", "width": 130},
+        {"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 100},
         {"fieldname": "category", "label": _("Category"), "fieldtype": "Data", "width": 100},
         {"fieldname": "subcategory", "label": _("Sub Category"), "fieldtype": "Data", "width": 120},
         {"fieldname": "setting", "label": _("Setting"), "fieldtype": "Data", "width": 100},
@@ -33,6 +34,7 @@ def get_columns():
         {"fieldname": "update_item_date_time", "label": _("Update Item Date & Time"), "fieldtype": "Data", "width": 170},
         {"fieldname": "delivery_date", "label": _("Delivery Date"), "fieldtype": "Data", "width": 160},
         {"fieldname": "approved_date_time", "label": _("Approved Date & Time"), "fieldtype": "Data", "width": 160},
+        {"fieldname": "time_taken", "label": _("Time Taken"), "fieldtype": "Data", "width": 130},
         {"fieldname": "gold_kt", "label": _("Gold KT"), "fieldtype": "Data", "width": 80},
         {"fieldname": "cam_type", "label": _("CAM Type"), "fieldtype": "Data", "width": 90},
         {"fieldname": "cad_weight", "label": _("CAD Weight"), "fieldtype": "Float", "width": 100, "precision": 3},
@@ -72,7 +74,10 @@ def get_data(filters):
     enrich_assignment_dates(orders, order_names)
     enrich_timesheet_data(orders, order_names)
     enrich_bom_metal_data(orders, order_names)
-    
+    calculate_time_taken(orders)
+
+    orders.append({"ord_number": _("Total"), "category": _("{0} Orders").format(len(orders))})
+
     return orders
 
 
@@ -120,12 +125,18 @@ def get_base_orders(filters, limit=None):
     
     if filters.get("category"):
         conditions.append("category = %(category)s")
-    
+
+    if filters.get("setting_type"):
+        conditions.append("setting_type = %(setting_type)s")
+
     if filters.get("workflow_state"):
         conditions.append("workflow_state = %(workflow_state)s")
     
     if filters.get("order_number"):
         conditions.append("name = %(order_number)s")
+    
+    if filters.get("workflow_type"):
+        conditions.append("workflow_type = %(workflow_type)s")
     
     where_clause = " AND ".join(conditions)
     limit_clause = f"LIMIT {limit}" if limit else ""
@@ -133,6 +144,7 @@ def get_base_orders(filters, limit=None):
     query = f"""
         SELECT 
             name as ord_number,
+            workflow_state as status,
             category,
             subcategory,
             setting_type as setting,
@@ -149,6 +161,8 @@ def get_base_orders(filters, limit=None):
                 ELSE ''
             END as party_code_and_name,
             branch,
+            order_date as draft_date_time_raw,
+            delivery_date as approved_date_time_raw,
             DATE_FORMAT(order_date, '%%d-%%m-%%Y %%H:%%i:%%s') as draft_date_time,
             DATE_FORMAT(delivery_date, '%%d-%%m-%%Y %%H:%%i:%%s') as delivery_date,
             DATE_FORMAT(delivery_date, '%%d-%%m-%%Y %%H:%%i:%%s') as approved_date_time,
@@ -319,6 +333,27 @@ def enrich_timesheet_data(orders, order_names):
             order['design_rework_date_time'] = None
             order['cad_update_date_time'] = None
             order['update_item_date_time'] = None
+
+
+def calculate_time_taken(orders):
+    """Calculate time taken from draft to approval (draft time - approval date & time)"""
+
+    for order in orders:
+        draft_date = order.pop('draft_date_time_raw', None)
+        approved_date = order.pop('approved_date_time_raw', None)
+
+        if draft_date and approved_date:
+            delta = approved_date - draft_date
+            total_seconds = int(delta.total_seconds())
+            if total_seconds >= 0:
+                days, remainder = divmod(total_seconds, 86400)
+                hours, remainder = divmod(remainder, 3600)
+                minutes, seconds = divmod(remainder, 60)
+                order['time_taken'] = f"{days}d {hours:02d}:{minutes:02d}:{seconds:02d}"
+            else:
+                order['time_taken'] = None
+        else:
+            order['time_taken'] = None
 
 
 def enrich_bom_metal_data(orders, order_names):
