@@ -124,12 +124,12 @@ def append_gemstone_detail_from_jwelex(product_order, stone_details):
 
 
 class ProductReturnOrderForm(Document):
-	def get_data_from_jwelex(self,tag_no):
+	def get_data_from_jwelex(self,tag_no,company):
 		url = "http://3.108.219.130:8001/credit-note"
 
 		response = requests.get(
 			url,
-			params={"tag_no": tag_no},
+			params={"tag_no": tag_no,"company": company},
 			timeout=30
 		)
 
@@ -1309,7 +1309,12 @@ class ProductReturnOrderForm(Document):
 			if item_row.item_code == 'Subcontracting Charges':
 				continue
 			if item_row.jewelex_tag:
-				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag)
+				if self.company == 'KG GK Jewellers Private Limited':
+					company = "KGJPL"
+				if self.company == 'Gurukrupa Export Private Limited':
+					company = "GEPL"
+				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag,company)
+				# frappe.throw(f"{jewelex_data}")
 			elif item_row.serial_no:
 				bom_name = frappe.db.get_value("Serial No", item_row.serial_no, "custom_bom_no")
 				if not bom_name:
@@ -1380,7 +1385,6 @@ class ProductReturnOrderForm(Document):
 			product_order.amount = item_row.amount
 			product_order.hallmarking_amounts=self.product_hallmarking
 			product_order.certification_amounts=self.product_certification
-
 			system_fields = {
 				"name", "parent", "parentfield", "parenttype",
 				"doctype", "idx", "owner", "creation",
