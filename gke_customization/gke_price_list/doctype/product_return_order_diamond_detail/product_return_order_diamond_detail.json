@@ -1,0 +1,269 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-20 20:14:49.225554",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item",
+  "diamond_type",
+  "stone_shape",
+  "diamond_cut",
+  "sieve_size_color",
+  "sub_setting_type",
+  "diamond_sieve_size",
+  "sieve_size_range",
+  "size_in_mm",
+  "diamond_size_in_mm",
+  "is_customer_item",
+  "total_diamond_rate",
+  "fg_purchase_rate",
+  "se_rate",
+  "handling_rate",
+  "column_break_8",
+  "size_type",
+  "pcs",
+  "weight_per_pcs",
+  "std_wt",
+  "quantity",
+  "quantity_3",
+  "actual_quantity",
+  "weight_in_gms",
+  "difference",
+  "diamond_grade",
+  "stock_uom",
+  "item_variant",
+  "quality",
+  "diamond_rate_for_specified_quantity",
+  "fg_purchase_amount"
+ ],
+ "fields": [
+  {
+   "default": "D",
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "default": "Real",
+   "fieldname": "diamond_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": " Type",
+   "options": "Attribute Value",
+   "reqd": 1
+  },
+  {
+   "fieldname": "stone_shape",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Stone Shape",
+   "options": "Attribute Value",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "stone_shape.diamond_cut",
+   "fieldname": "diamond_cut",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Diamond Cut",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "diamond_sieve_size.sieve_size_color",
+   "fieldname": "sieve_size_color",
+   "fieldtype": "Color",
+   "in_list_view": 1,
+   "label": "Color",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sub_setting_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sub Setting Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "diamond_sieve_size",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": " Sieve Size",
+   "mandatory_depends_on": "eval:doc.stone_shape == 'Round'",
+   "options": "Attribute Value"
+  },
+  {
+   "allow_on_submit": 1,
+   "fetch_from": "diamond_sieve_size.sieve_size_range",
+   "fieldname": "sieve_size_range",
+   "fieldtype": "Link",
+   "label": "Sieve Size Range",
+   "mandatory_depends_on": "eval:doc.stone_shape == 'Round'",
+   "options": "Attribute Value"
+  },
+  {
+   "allow_on_submit": 1,
+   "fetch_from": "diamond_sieve_size.diameter",
+   "fieldname": "size_in_mm",
+   "fieldtype": "Float",
+   "label": "Size In MM",
+   "mandatory_depends_on": "eval:doc.stone_shape == 'Round'"
+  },
+  {
+   "depends_on": "eval:doc.stone_shape != 'Round'",
+   "fieldname": "diamond_size_in_mm",
+   "fieldtype": "Link",
+   "label": "Diamond Size in MM",
+   "mandatory_depends_on": "eval:doc.stone_shape != 'Round'",
+   "options": "Attribute Value"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_customer_item",
+   "fieldtype": "Check",
+   "label": "Is Customer Item"
+  },
+  {
+   "fieldname": "total_diamond_rate",
+   "fieldtype": "Currency",
+   "label": "Diamond Rate"
+  },
+  {
+   "fieldname": "fg_purchase_rate",
+   "fieldtype": "Currency",
+   "label": "FG Purchase Rate"
+  },
+  {
+   "fieldname": "se_rate",
+   "fieldtype": "Currency",
+   "label": "SE Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "handling_rate",
+   "fieldtype": "Currency",
+   "label": "Handling Rate"
+  },
+  {
+   "fieldname": "column_break_8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "diamond_sieve_size.size_type",
+   "fieldname": "size_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Size Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pcs",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Pcs",
+   "reqd": 1
+  },
+  {
+   "fieldname": "weight_per_pcs",
+   "fieldtype": "Float",
+   "label": "Weight per piece",
+   "read_only": 1
+  },
+  {
+   "fieldname": "std_wt",
+   "fieldtype": "Float",
+   "label": "Standard Weight",
+   "read_only": 1
+  },
+  {
+   "description": "Weight show Based on precision",
+   "fieldname": "quantity",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Weight in cts",
+   "reqd": 1
+  },
+  {
+   "fieldname": "quantity_3",
+   "fieldtype": "Float",
+   "label": "Weight in cts(2)"
+  },
+  {
+   "fieldname": "actual_quantity",
+   "fieldtype": "Float",
+   "label": "Weight in cts",
+   "read_only": 1
+  },
+  {
+   "fieldname": "weight_in_gms",
+   "fieldtype": "Float",
+   "label": "Weight in Gms",
+   "precision": "3",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "difference",
+   "fieldtype": "Float",
+   "label": "Difference(Based on Roundoff)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "diamond_grade",
+   "fieldtype": "Link",
+   "label": "Diamond Grade",
+   "options": "Attribute Value"
+  },
+  {
+   "default": "Carat",
+   "fieldname": "stock_uom",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Stock UOM",
+   "options": "UOM",
+   "reqd": 1
+  },
+  {
+   "fieldname": "item_variant",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Item Variant"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "quality",
+   "fieldtype": "Link",
+   "label": "Quality",
+   "options": "Attribute Value"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "diamond_rate_for_specified_quantity",
+   "fieldtype": "Currency",
+   "label": "Amount"
+  },
+  {
+   "fieldname": "fg_purchase_amount",
+   "fieldtype": "Currency",
+   "label": "FG Purchase Amount"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-21 20:29:32.729110",
+ "modified_by": "shruti_b@gkexport.com",
+ "module": "Gke Price List",
+ "name": "Product Return Order Diamond Detail",
+ "owner": "shruti_b@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
