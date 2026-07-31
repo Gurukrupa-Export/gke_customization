@@ -632,7 +632,8 @@ def process_data(data, filters):
                     row["total_pay_hrs"] = row.get("net_wrk_hrs") + (row.get("ot_hours") or timedelta(0))
 
         if row.get("lh"):
-            row["status"] = 'LH'
+            # row["status"] = 'LH'
+			row.status = STATUS.get(row.status) or 'LH'
 
         shift_hours_in_sec = ''
         if row.shift_hours:
