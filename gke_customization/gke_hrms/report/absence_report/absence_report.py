@@ -1,117 +1,199 @@
-# Copyright (c) 2024, Gurukrupa Export and contributors
+# Copyright (c) 2026, Gurukrupa Export
 # For license information, please see license.txt
 
 import frappe
 from frappe import _
 
+
 def execute(filters=None):
-    columns = get_columns(filters)
+    if not filters:
+        filters = {}
+
+    if not filters.get("from_date") or not filters.get("to_date"):
+        frappe.throw(_("From Date and To Date are required"))
+
+    columns = get_columns()
     data = get_data(filters)
     return columns, data
 
-def get_columns(filters=None):
-    columns = [
+
+# -------------------------------------------------------
+# Columns
+# -------------------------------------------------------
+
+def get_columns():
+    return [
+        {
+            "label": _("Date"),
+            "fieldname": "attendance_date",
+            "fieldtype": "Date",
+            "width": 130,
+        },
         {
             "label": _("Employee"),
             "fieldname": "employee",
             "fieldtype": "Link",
             "options": "Employee",
-            "width": 220,
-        },
-        {
-            "label": _("Employee Name"),
-            "fieldname": "employee_name",
-            "fieldtype": "Data",
-            "width": 150,
+            "width": 280,
         },
         {
             "label": _("Company"),
             "fieldname": "company",
             "fieldtype": "Link",
             "options": "Company",
-            "width": 150,
+            "width": 160,
         },
         {
             "label": _("Department"),
             "fieldname": "department",
             "fieldtype": "Link",
             "options": "Department",
-            "width": 150,
+            "width": 160,
         },
         {
             "label": _("Designation"),
             "fieldname": "designation",
             "fieldtype": "Data",
+            "width": 140,
+        },
+        {
+            "label": _("Shift"),
+            "fieldname": "shift",
+            "fieldtype": "Link",
+            "options": "Shift Type",
             "width": 150,
         },
         {
-            "label": _("Attendance"),
-            "fieldname": "attendance",
-            "fieldtype": "Data",
-            "width": 100,
+            "label": _("Last Check-in"),
+            "fieldname": "last_checkin",
+            "fieldtype": "Datetime",
+            "width": 210,
         },
         {
-            "label": _("Last Check-in Date"),
-            "fieldname": "last_checkin_date",
-            "fieldtype": "Date",
-            "width": 130
-        }
+            "label": _("Status"),
+            "fieldname": "status",
+            "fieldtype": "Data",
+            "width": 90,
+        },
     ]
-    return columns
+
 
 def get_data(filters):
     conditions = get_conditions(filters)
 
     query = f"""
-    SELECT 
-        e.employee AS employee,
-        e.employee_name AS employee_name,
-        e.department AS department,
-        e.company AS company,
-        e.designation AS designation,
-        IF(ec_today.employee IS NOT NULL, 'Present', 'Absent') AS attendance,
-        MAX(DATE(ec_last.time)) AS last_checkin_date
-    FROM `tabEmployee` e
-    LEFT JOIN `tabEmployee Checkin` ec_today 
-        ON e.employee = ec_today.employee AND DATE(ec_today.time) = CURDATE()
-    LEFT JOIN `tabEmployee Checkin` ec_last 
-        ON e.employee = ec_last.employee
-    {conditions}
-    GROUP BY 
-        e.employee, e.employee_name, e.department, e.company, e.designation
-    HAVING 
-        last_checkin_date IS NOT NULL
-    ORDER BY 
-        e.department ASC;
+        SELECT 
+            a.attendance_date,
+            e.employee,
+            e.employee_name,
+            e.department,
+            e.company,
+            e.designation,
+            a.shift,
+
+            (
+                SELECT MAX(ec.time)
+                FROM `tabEmployee Checkin` ec
+                WHERE ec.employee = e.employee
+                AND ec.docstatus < 2
+            ) AS last_checkin,
+
+            CASE 
+            WHEN la.name IS NOT NULL THEN la.leave_type
+            ELSE 'Absent'
+            END AS status
+
+
+        FROM `tabAttendance` a
+        INNER JOIN `tabEmployee` e ON e.employee = a.employee
+        LEFT JOIN `tabLeave Application` la
+            ON la.employee = a.employee
+            AND la.status = 'Approved'
+            AND a.attendance_date BETWEEN la.from_date AND la.to_date
+
+        WHERE
+            a.attendance_date BETWEEN %(from_date)s
+                AND LEAST(%(to_date)s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))
+            AND DAYOFWEEK(a.attendance_date) != 1
+            AND a.status IN ('Absent', 'On Leave')
+            AND a.docstatus = 1
+            AND e.status = 'Active'
+            {conditions}
+
+        UNION ALL
+
+        SELECT 
+            CURDATE() AS attendance_date,
+            e.employee,
+            e.employee_name,
+            e.department,
+            e.company,
+            e.designation,
+            NULL AS shift,
+
+            (
+                SELECT MAX(ec.time)
+                FROM `tabEmployee Checkin` ec
+                WHERE ec.employee = e.employee
+                AND ec.docstatus < 2
+            ) AS last_checkin,
+
+            CASE 
+                WHEN la.name IS NOT NULL THEN 'LWP'
+                ELSE 'Absent'
+            END AS status
+
+        FROM `tabEmployee` e
+        LEFT JOIN `tabLeave Application` la
+            ON la.employee = e.employee
+            AND la.status = 'Approved'
+            AND CURDATE() BETWEEN la.from_date AND la.to_date
+
+        WHERE
+            e.status = 'Active'
+            AND DAYOFWEEK(CURDATE()) != 1
+            AND CURDATE() BETWEEN %(from_date)s AND %(to_date)s
+            AND NOT EXISTS (
+                SELECT 1
+                FROM `tabAttendance` a
+                WHERE a.employee = e.employee
+                AND a.attendance_date = CURDATE()
+                AND a.docstatus = 1
+            )
+            AND NOT EXISTS (
+                SELECT 1
+                FROM `tabEmployee Checkin` ec
+                WHERE ec.employee = e.employee
+                AND ec.docstatus < 2
+            AND DATE(ec.time) = CURDATE()
+            )
+            {conditions}
+
+        ORDER BY
+            attendance_date DESC,
+            department ASC
     """
 
-    data = frappe.db.sql(query, as_dict=1)
-    return data
+    return frappe.db.sql(query, filters, as_dict=True)
+
+
+# -------------------------------------------------------
+# Conditions
+# -------------------------------------------------------
 
 def get_conditions(filters):
-    filter_list = []
+    conditions = []
 
     if filters.get("company"):
-        filter_list.append(f"""e.company = "{filters.get("company")}" """)
+        conditions.append("e.company = %(company)s")
 
-    if filters.get("from_date"):
-        filter_list.append(f"""ec_last.time >= "{filters.get("from_date")}" """)
-
-    if filters.get("to_date"):
-        filter_list.append(f"""ec_last.time <= "{filters.get("to_date")}" """)
+    if filters.get("branch"):
+        conditions.append("e.branch = %(branch)s")
 
     if filters.get("department"):
-        filter_list.append(f"""e.department = "{filters.get("department")}" """)
+        conditions.append("e.department = %(department)s")
 
-    if filters.get("designation"):
-        filter_list.append(f"""e.designation = "{filters.get("designation")}" """)
+    if conditions:
+        return " AND " + " AND ".join(conditions)
 
-    if filters.get("employee"):
-        filter_list.append(f"""e.employee = "{filters.get("employee")}" """)
-
-    # Construct the WHERE clause based on available filters
-    conditions = ""
-    if filter_list:
-        conditions = "WHERE " + " AND ".join(filter_list)
-
-    return conditions
+    return ""

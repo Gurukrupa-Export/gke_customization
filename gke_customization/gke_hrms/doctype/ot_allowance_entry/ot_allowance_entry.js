@@ -52,6 +52,21 @@ frappe.ui.form.on("OT Allowance Entry", {
 });
 
 frappe.ui.form.on("OT Details", {
+	employee(frm, cdt, cdn) {
+		let d = locals[cdt][cdn]
+		frappe.call({
+			method: "gke_customization.gke_hrms.doctype.ot_allowance_entry.ot_allowance_entry.get_ot_details",
+			args: {
+				employee: frm.doc.employee,
+				for_date: d.attendance_date
+			},
+			callback: function(r) {
+				if (r.message) {
+					frappe.model.set_value(cdt,cdn,"shift", r.message)
+				}
+			}
+		})	
+	},
 	allow(frm, cdt, cdn) {
 		let d = locals[cdt][cdn]
 		if (!d.allow) {

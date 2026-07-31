@@ -6,6 +6,8 @@ from frappe.model.document import Document
 from frappe.utils import getdate
 from datetime import timedelta
 
+from pydantic import fields
+
 
 class InactivePayroll(Document):
 	def autoname(self): 
@@ -24,14 +26,15 @@ def get_inactive_employees(docname):
 		date = doc.to_date + timedelta(days=7)
 		inactive_employees = frappe.get_all("Employee",
 			filters={
-				"status": "Inactive",
+				"status": ["in",['Left','Inactive']],
+				# "status": "Inactive",
 				"relieving_date": ["between", [doc.from_date, date]],
 				"company":doc.company,
 				"branch":doc.branch
 			},
 			fields=["name", "employee_name", "department","designation","company","branch"]
 		)
-
+   
 		for emp in inactive_employees:
 			doc.append("employee", {
 				"employee": emp.name,
@@ -45,12 +48,47 @@ def get_inactive_employees(docname):
 		return "Employees fetched successfully."
 
 @frappe.whitelist()
+def get_inactive_employees_list(docname):
+		doc = frappe.get_doc("Inactive Payroll", docname)
+		if not doc.from_date or not doc.to_date:
+			frappe.throw("Please set both From Date and To Date.")
+
+		doc.employees = []  
+		date = doc.to_date + timedelta(days=7)
+		inactive_employees = frappe.get_all("Employee",
+			filters={
+				"status": ["in",['Left','Inactive']],
+				# "status": "Inactive",
+				"relieving_date": ["between", [doc.from_date, date]],
+				"company":doc.company,
+				"branch":doc.branch
+			},
+			fields=["name", "employee_name", "department","designation","company","branch"]
+		)
+		for emp in inactive_employees:
+			att_length = len(frappe.get_list("Attendance", filters={"employee": emp.name, "attendance_date": ["between", [doc.from_date, doc.to_date]]}, fields=["name"]))
+			if att_length <= 0:
+				continue
+   
+		# for emp in inactive_employees:
+			doc.append("employee", {
+				"employee": emp.name,
+				"employee_name": emp.employee_name,
+				"department": emp.department,
+				"designation": emp.designation,
+				"company": emp.company,
+				"branch": emp.branch,
+			})
+		doc.save()
+		return "Employees fetched successfully....."
+
+@frappe.whitelist()
 def activate_employees(docname):
 	doc = frappe.get_doc("Inactive Payroll", docname)
 	count = 0
 	for row in doc.employee:  
 		emp = frappe.get_doc("Employee", row.employee)
-		if emp.status == "Inactive":
+		if emp.status in ["Inactive", "Left"]:
 			emp.db_set('status', 'Active')
 			emp.save()
 			count += 1

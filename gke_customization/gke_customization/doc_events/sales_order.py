@@ -23,8 +23,8 @@ def validate(self,method=None):
             elif not row.diamond_grade:
                 frappe.throw("Diamond grade is mandatory")
 
-    if self.customer == 'MHCU0022':
-        self.shipping_address_name = 'Gurukrupa Export Private Limited - Surat Factory-Billing'
+    # if self.customer == 'MHCU0022':
+    #     self.shipping_address_name = 'Gurukrupa Export Private Limited - Surat Factory-Billing'
 
 @frappe.whitelist()
 def make_delivery_note(source_name, target_doc=None, kwargs=None):

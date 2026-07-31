@@ -18,8 +18,7 @@
   "rate_per_gm_threshold",
   "revise_rate_per_gm_threshold",
   "supplier_fg_purchase_rate",
-  "revise_supplier_fg_purchase_rate",
-  "name1"
+  "revise_supplier_fg_purchase_rate"
  ],
  "fields": [
   {
@@ -97,19 +96,13 @@
    "fieldname": "revise_supplier_fg_purchase_rate",
    "fieldtype": "Currency",
    "label": "Revise Supplier FG Purchase Rate"
-  },
-  {
-   "fieldname": "name1",
-   "fieldtype": "Link",
-   "label": "Name",
-   "options": "Supplier Services Price Item Subcategory"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-09-16 15:47:14.164476",
+ "modified": "2025-12-13 14:57:27.247668",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Revise Supplier Services Price Item Subcategory",

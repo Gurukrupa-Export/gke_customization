@@ -1,0 +1,140 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-04-14 14:50:04.725549",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_iurf",
+  "employee",
+  "employee_name",
+  "column_break_zf2c",
+  "department",
+  "section_break_gjtf",
+  "kaizen_category",
+  "kaizen_slip",
+  "problem",
+  "section_break_p78d",
+  "kaizen_implemented",
+  "responsible",
+  "status",
+  "column_break_2puz",
+  "implementation_date",
+  "verified_savings__impact",
+  "committee_remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_iurf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "kaizen_category",
+   "fieldtype": "Select",
+   "label": "Kaizen Category",
+   "options": "\nProductivity\nCost\nQuality\nMorale\nCompliance"
+  },
+  {
+   "fieldname": "problem",
+   "fieldtype": "Small Text",
+   "label": "Problem"
+  },
+  {
+   "fieldname": "kaizen_implemented",
+   "fieldtype": "Data",
+   "label": "Kaizen Implemented"
+  },
+  {
+   "fieldname": "implementation_date",
+   "fieldtype": "Date",
+   "label": "Implementation Date"
+  },
+  {
+   "fieldname": "responsible",
+   "fieldtype": "Data",
+   "label": "Responsible"
+  },
+  {
+   "fieldname": "verified_savings__impact",
+   "fieldtype": "Data",
+   "label": "Verified Savings / Impact"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "label": "Status"
+  },
+  {
+   "fieldname": "committee_remarks",
+   "fieldtype": "Data",
+   "label": "Committee Remarks"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "column_break_zf2c",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_gjtf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_p78d",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_2puz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "kaizen_slip",
+   "fieldtype": "Link",
+   "label": "Kaizen Slip",
+   "options": "Kaizen Slip"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-14 16:18:08.691051",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Kaizen Tracker",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

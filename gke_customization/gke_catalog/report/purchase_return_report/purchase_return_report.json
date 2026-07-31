@@ -1,0 +1,161 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2026-02-06 14:47:41.973789",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2026-02-06 14:47:41.973789",
+ "modified_by": "arti@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Purchase Return Report",
+ "owner": "arti@gkexport.com",
+ "prepared_report": 0,
+ "ref_doctype": "Purchase Receipt",
+ "report_name": "Purchase Return Report",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Stock User"
+  },
+  {
+   "role": "Acc. Exec. - GK"
+  },
+  {
+   "role": "Sr. Acc. Exec. - GK"
+  },
+  {
+   "role": "Acc. Exec. - SD"
+  },
+  {
+   "role": "Sr. Acc. Exec. - SD"
+  },
+  {
+   "role": "Account Supervisor GK"
+  },
+  {
+   "role": "GK Store"
+  },
+  {
+   "role": "GK Buying"
+  },
+  {
+   "role": "Acc. Exec. - KG"
+  },
+  {
+   "role": "Account Supervisor KG"
+  },
+  {
+   "role": "GK Chennai Sales"
+  },
+  {
+   "role": "GK Buying 1"
+  },
+  {
+   "role": "SD Account Extra"
+  },
+  {
+   "role": "Gemstone Bagging Executive - ST"
+  },
+  {
+   "role": "Dispatch Executive - ST"
+  },
+  {
+   "role": "Store Executive - ST"
+  },
+  {
+   "role": "Store Manager - ST"
+  },
+  {
+   "role": "Gemstone Bagging Manager - ST"
+  },
+  {
+   "role": "Store Executive - MUM"
+  },
+  {
+   "role": "Product Allocation Executive - KGJPL"
+  },
+  {
+   "role": "Store Executive - KGJPL"
+  },
+  {
+   "role": "Account Executive - KGJPL"
+  },
+  {
+   "role": "Account Manager - BL"
+  },
+  {
+   "role": "Product Allocation Executive - CH"
+  },
+  {
+   "role": "Product Allocation Executive - ST"
+  },
+  {
+   "role": "Product Allocation Manager - ST"
+  },
+  {
+   "role": "Product Allocation Manager - CH"
+  },
+  {
+   "role": "Account Executive - CH"
+  },
+  {
+   "role": "Account Manager - MUM"
+  },
+  {
+   "role": "Account Manager - CH"
+  },
+  {
+   "role": "Account Executive - MUM"
+  },
+  {
+   "role": "Account Executive - CB"
+  },
+  {
+   "role": "Account Manager - CB"
+  },
+  {
+   "role": "Account Senior Manager - ST"
+  },
+  {
+   "role": "Account Executive - ST"
+  },
+  {
+   "role": "Sales & Marketing Manager - CH"
+  },
+  {
+   "role": "Account Executive - SD"
+  },
+  {
+   "role": "Sales Manager - ST"
+  },
+  {
+   "role": "Account Doctype"
+  },
+  {
+   "role": "Chartered Accountant -ST - GK"
+  },
+  {
+   "role": "Account Supervisor - ST - GK"
+  },
+  {
+   "role": "Stock Manager"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Purchase User"
+  },
+  {
+   "role": "Test Dharm"
+  }
+ ],
+ "timeout": 0
+}

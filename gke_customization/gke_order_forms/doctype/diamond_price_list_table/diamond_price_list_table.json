@@ -1,0 +1,48 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-11-14 14:22:41.587001",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_if9c",
+  "diamond_shape",
+  "diamond_price_list"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_if9c",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "diamond_shape",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Diamond Shape",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "diamond_price_list",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Diamond Price List",
+   "options": "\nSieve Size Range\nWeight (in cts)\nSize (in mm)"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-11-21 10:03:08.460113",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Diamond Price List Table",
+ "owner": "shruti_b@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

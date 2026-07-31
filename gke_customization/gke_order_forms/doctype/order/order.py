@@ -16,9 +16,40 @@ from frappe.desk.form.assign_to import add as add_assignment
 
 
 class Order(Document):
+	# def on_update(self):
+	# 	if self.workflow_state == "Assigned":
+	# 		create_timesheet(self)
+
+
 	def on_update(self):
 		if self.workflow_state == "Assigned":
 			create_timesheet(self)
+
+		if self.workflow_state == "Cancelled":
+			timesheets = frappe.get_all(
+				"Timesheet",
+				filters={"order": self.name},
+				fields=["name", "docstatus"]
+			)
+
+			if not timesheets:
+				frappe.msgprint("No Timesheets found for this Order")
+				return
+
+			for ts in timesheets:
+				ts_doc = frappe.get_doc("Timesheet", ts.name)
+
+				if ts_doc.docstatus == 1:
+					# Proper cancel for submitted doc
+					ts_doc.cancel()
+				elif ts_doc.docstatus == 0:
+					# Draft ko forcefully cancel karna (bypass transition)
+					frappe.db.set_value("Timesheet", ts.name, "docstatus", 2)
+
+				# Workflow state update
+				frappe.db.set_value("Timesheet", ts.name, "workflow_state", "Cancelled")
+
+			frappe.msgprint(f"All linked Timesheets for Order {self.name} have been cancelled.")
 
 	def on_submit(self):
 		item_variant = create_line_items(self)
@@ -35,6 +66,7 @@ class Order(Document):
 				self.reload()
 
 	def validate(self):
+		update_new_designer_timesheet(self)
 		if self.workflow_state in ["Update Item", "Design Rework in Progress"]:
 			timesheet_validation(self)
 		if self.order_type != 'Purchase' and self.workflow_state == "Assigned":
@@ -76,6 +108,7 @@ class Order(Document):
 
 		frappe.db.set_value("Order",self.name,"workflow_state","Cancelled")
 		self.reload()
+
 
 
 
@@ -814,6 +847,53 @@ def create_timesheet(self):
             frappe.msgprint(f" Could not create timesheet for {row.designer}")
 
 
+def timesheet_validation(self):
+	if self.cad_order_form and self.workflow_state in ["Update Item", "Design Rework in Progress"]:
+		required_approval = frappe.db.get_value(
+			"Order Form", self.cad_order_form, "required_customer_approval"
+		)
+
+		
+		timesheets = frappe.get_all(
+			"Timesheet",
+			filters={"order": self.name},
+			fields=["name", "workflow_state", "docstatus"]
+		)
+
+		
+		if self.workflow_state == "Update Item":
+			if required_approval:
+				for ts in timesheets:
+					if ts["workflow_state"] != "Approved" and ts["docstatus"] != 2:
+						timesheet_doc = frappe.get_doc("Timesheet", ts["name"])
+						timesheet_doc.workflow_state = "Approved"
+						timesheet_doc.save(ignore_permissions=True)
+						if timesheet_doc.docstatus == 0:
+							timesheet_doc.submit()
+				frappe.db.commit()
+				frappe.msgprint(f"All relevant Timesheets are now auto-approved for Order {self.name}. Proceeding.")
+			else:
+				not_approved = [
+					ts["name"]
+					for ts in timesheets
+					if ts["workflow_state"] != "Approved" and ts["docstatus"] != 2
+				]
+				if not_approved:
+					message = f"The following Timesheets are not Approved for Order {self.name}: {', '.join(not_approved)}"
+					frappe.throw(message)
+
+		elif self.workflow_state == "Design Rework in Progress":
+			for ts in timesheets:
+				if ts["workflow_state"] == "Approved" and ts["docstatus"] != 2:
+					frappe.db.set_value("Timesheet", ts["name"], {
+						"workflow_state": "Design Rework in Progress",
+						"docstatus": 0
+					})
+			frappe.db.commit()
+			frappe.msgprint(f"Relevant Timesheets for Order {self.name} updated to 'Design Rework in Progress'.")
+
+
+
 def validate_timesheet(self):
 	if not self.customer_order_form:
 		if self.workflow_state == "Designing":
@@ -1150,47 +1230,24 @@ def validate_timesheet(self):
 			frappe.msgprint("Timesheets Cancelled for each designer assignment")
 
 
-def timesheet_validation(self):
-	if self.cad_order_form and self.workflow_state in ["Update Item", "Design Rework in Progress"]:
-		required_approval = frappe.db.get_value("Order Form", self.cad_order_form, "required_customer_approval")
+
+def update_new_designer_timesheet(self):
+	if self.workflow_state == "Update Designer":
 		
-
-		# Get all Timesheets for this Order
-		timesheets = frappe.get_all("Timesheet",
-			filters={"order": self.name},
-			fields=["name", "workflow_state"]
-		)
-
-		if self.workflow_state == "Update Item":
-			if required_approval:
+		for row in self.designer_assignment:
+			if row.designer:  
+				timesheets = frappe.db.get_list(
+					"Timesheet",
+					filters={
+						"order": self.name,
+						"employee": row.designer 
+					},
+					fields=["name"]
+				)
 				for ts in timesheets:
-					if ts["workflow_state"] != "Approved":
-						timesheet_doc = frappe.get_doc("Timesheet", ts["name"])
-						timesheet_doc.workflow_state = "Approved"
-						timesheet_doc.save()
-						timesheet_doc.submit()
-						frappe.db.commit()
-				frappe.msgprint(f"All Timesheets are now auto-approved for Order {self.name}. Proceeding.")
-			else:
-				not_approved = [ts["name"] for ts in timesheets if ts["workflow_state"] != "Approved"]
-				if not_approved:
-					message = f"The following Timesheets are not Approved for Order {self.name}: {', '.join(not_approved)}"
-					frappe.throw(message)
+					frappe.db.set_value("Timesheet", ts["name"], "docstatus", "2")
+					frappe.db.set_value("Timesheet",ts["name"],"workflow_state","Cancelled")
 
-		elif self.workflow_state == "Design Rework in Progress":
-			if required_approval:
-				for ts in timesheets:
-					if ts["workflow_state"] != "Design Rework in Progress":
-						timesheet_doc = frappe.get_doc("Timesheet", ts["name"])
-						timesheet_doc.workflow_state = "Design Rework in Progress"
-						timesheet_doc.save()
-						frappe.db.commit()
-				frappe.msgprint(f"All Timesheets for Order {self.name} updated to 'Design Rework in Progress'.")
-			else:
-				not_approved = [ts["name"] for ts in timesheets if ts["workflow_state"] != "Approved"]
-				if not_approved:
-					message = f"The following Timesheets are not Approved for Order {self.name}: {', '.join(not_approved)}"
-					frappe.throw(message)
 
 
 def cerate_bom_timesheet(self):
@@ -2451,12 +2508,25 @@ def make_quotation_fill_defaults(quotation, order):
 	)
 	if taxes.get("taxes"):
 		quotation.update(taxes)
+	cad_order_form = frappe.db.get_value(
+    "Order Form",
+    {"name": order.cad_order_form},
+    ["sales_type", "customer_gold", "customer_stone","customer_diamond","customer_good","customer_finding"],
+	as_dict=True
+	)
 
 	quotation.quotation_to = "Customer"
 	quotation.company = order.company
 	quotation.party_name = order.customer_code
 	quotation.order_type = order.order_type
 	quotation.diamond_quality = order.diamond_quality
+	if cad_order_form:
+		quotation.custom_sales_type = cad_order_form.sales_type
+		quotation.custom_customer_gold = cad_order_form.customer_gold
+		quotation.custom_customer_diamond = cad_order_form.customer_diamond
+		quotation.custom_customer_stone = cad_order_form.customer_stone
+		quotation.custom_customer_good = cad_order_form.customer_good
+		quotation.custom_customer_finding = cad_order_form.customer_finding
 
 	service_types = frappe.db.get_values("Service Type 2", {"parent": order.name}, "service_type1")
 	for service_type in service_types:

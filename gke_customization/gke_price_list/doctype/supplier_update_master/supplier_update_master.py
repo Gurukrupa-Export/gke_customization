@@ -36,6 +36,7 @@ class SupplierUpdateMaster(Document):
                 "supplier_type": "supplier_type",
                 "territory": "territory",
                 "territory_code":"custom_territory_code",
+                "billing_currency":"default_currency",
                 "country": "country",
                 "consider_purchase_receipt_as_customer": "custom_consider_purchase_receipt_as_customergoods",
                 "gst_transporter_id": "gst_transporter_id",

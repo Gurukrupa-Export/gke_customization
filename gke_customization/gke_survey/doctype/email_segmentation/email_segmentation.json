@@ -310,7 +310,7 @@
    "fieldname": "activity",
    "fieldtype": "Select",
    "label": "Activity",
-   "options": "\nActive\nInactive"
+   "options": "\nActive\nInactive\nReactive"
   },
   {
    "fieldname": "naming_series",
@@ -356,7 +356,7 @@
    "fieldname": "reason_for_filing_the_form",
    "fieldtype": "Select",
    "label": "Reason for Filing the Form",
-   "options": "New Zoho Mail Request\nEngagement Level Request (Internal & External)\nInternal Contact Request (User)\nExternal Contact Request (Customer & Supplier)\nExternal Contact Request (Supplier Only)\nExternal Contact Request (Customer Only)"
+   "options": "New Zoho Mail Request\nEngagement Level Request (Internal & External)\nInternal Contact Request (User)\nExternal Contact Request (Customer & Supplier)\nExternal Contact Request (Supplier Only)\nExternal Contact Request (Customer Only)\nActivity"
   },
   {
    "fieldname": "column_break_aodo",

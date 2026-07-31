@@ -1,0 +1,168 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:PC-{#####}",
+ "creation": "2025-10-10 09:48:11.160546",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "column_break_7nih",
+  "branch",
+  "section_break_1df0",
+  "lender",
+  "lender_name",
+  "interest_rate",
+  "column_break_umic",
+  "date",
+  "loan_amount",
+  "section_break_nndc",
+  "partner_capital_repayment_schedule",
+  "amended_from",
+  "get_total",
+  "total_amount",
+  "total_interest",
+  "payment_entry_created"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_1df0",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Partner Capital",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "total_interest",
+   "fieldtype": "Float",
+   "label": "Total Interest"
+  },
+  {
+   "fieldname": "section_break_nndc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "partner_capital_repayment_schedule",
+   "fieldtype": "Table",
+   "label": "Partner Capital Repayment Schedule",
+   "options": "Partner Capital Repayment Schedule"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Branch",
+   "options": "Branch",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_7nih",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_umic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Float",
+   "label": "Total Amount"
+  },
+  {
+   "fieldname": "interest_rate",
+   "fieldtype": "Float",
+   "label": "Interest  Rate"
+  },
+  {
+   "fieldname": "loan_amount",
+   "fieldtype": "Float",
+   "label": "Loan Amount"
+  },
+  {
+   "default": "0",
+   "fieldname": "payment_entry_created",
+   "fieldtype": "Check",
+   "label": "Payment Entry Created"
+  },
+  {
+   "fieldname": "lender",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Business Partner",
+   "options": "Business Partner",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "lender.business_partner",
+   "fieldname": "lender_name",
+   "fieldtype": "Data",
+   "label": "Business Partner Name"
+  },
+  {
+   "fieldname": "get_total",
+   "fieldtype": "Button",
+   "label": "Get Total"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [
+  {
+   "link_doctype": "Payment Entry",
+   "link_fieldname": "custom_partner_capital"
+  },
+  {
+   "link_doctype": "Journal Entry",
+   "link_fieldname": "custom_partner_capital"
+  }
+ ],
+ "modified": "2025-10-17 13:45:51.727139",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Partner Capital",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

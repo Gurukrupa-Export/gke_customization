@@ -9,6 +9,9 @@
   "size_in_mm",
   "diamond_size_in_mm",
   "supplier_fg_purchase_rate",
+  "column_break_730c",
+  "company_rate",
+  "customer_rate",
   "section_break_hjga",
   "rate_per_carat",
   "diamond_handling_rate",
@@ -94,6 +97,20 @@
    "fieldname": "stone_code",
    "fieldtype": "Data",
    "label": "Stone Code"
+  },
+  {
+   "fieldname": "column_break_730c",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company_rate",
+   "fieldtype": "Currency",
+   "label": "Company Rate"
+  },
+  {
+   "fieldname": "customer_rate",
+   "fieldtype": "Currency",
+   "label": "Customer Rate"
   }
  ],
  "index_web_pages_for_search": 1,
