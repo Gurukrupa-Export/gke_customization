@@ -35,7 +35,7 @@ def get_questionnaire(template):
             "field_type",
             "options",
             "required",
-            "sequence"
+            "sequence","require_rating","require_remark"
         ],
         order_by="section asc, sequence asc"
     )
@@ -92,12 +92,14 @@ def save_response(questionnaire,answers,branch=None,
                 })
 
         else:
-            response.append("questionnaire_answer",{
+            response.append("questionnaire_answer", {
                 "question": row["question"],
                 "answer": row["answer"],
-                "remark": row["remark"]
+                "rating": row.get("rating") or 0,
+                "remark": row.get("remark")
             })
 
+        # frappe.throw(f"answers: {row}") 
     response.insert(ignore_permissions=True)
 
     frappe.db.commit()
