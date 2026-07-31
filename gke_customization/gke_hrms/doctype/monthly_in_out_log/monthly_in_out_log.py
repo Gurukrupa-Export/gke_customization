@@ -633,7 +633,7 @@ def process_data(data, filters):
 
         if row.get("lh"):
             # row["status"] = 'LH'
-			row.status = STATUS.get(row.status) or 'LH'
+            row.status = STATUS.get(row.status) or 'LH'
 
         shift_hours_in_sec = ''
         if row.shift_hours:
