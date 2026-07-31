@@ -3,6 +3,10 @@
 
 frappe.ui.form.on('Repair Order Form', {
 	delivery_date(frm) {
+		if (frm.doc.delivery_date) {
+            let date = frm.doc.delivery_date.split(" ")[0];
+            frm.set_value("delivery_date", `${date} 11:00:00`);
+        }
 		validate_dates(frm, frm.doc, "delivery_date")
 		update_fields_in_child_table(frm, "delivery_date")
 		calculate_due_days(frm);
@@ -32,6 +36,79 @@ frappe.ui.form.on('Repair Order Form', {
 				refresh_field("service_type");
 			});
 		}
+	},
+	refresh(frm){
+		if (frm.doc.__islocal) {
+			frappe.db.get_value("Employee", { "user_id": frappe.session.user }, ["department", "branch"], function(r) {
+				if (r) {
+					if (r.department) frm.set_value("department", r.department);
+					if (r.branch) frm.set_value("branch", r.branch);
+				}
+			});
+		}
+		  frm.add_custom_button(__("Product Return Order Form"), function () {
+            let dialog = new frappe.ui.form.MultiSelectDialog({
+              doctype: "Product Return Order",
+              target: frm,
+              setters: [
+                {
+                  label: "Product Return Order Form",
+                  fieldname: "product_return_order_form",
+                  fieldtype: "Link",
+                  options: "Product Return Order Form"
+                },
+                {
+                  label: "Customer",
+                  fieldname: "customer",
+                  fieldtype: "Link",
+                  options: "Customer",
+                  reqd: 1,
+                  default: frm.doc.customer_code || undefined
+                },
+              ],
+              add_filters_group: 1,
+              get_query() {
+                return {
+                  filters: {
+                    workflow_state: 'Approved',
+                    return_type: 'Repair',
+                    docstatus: 1
+                  }
+                };
+              },
+              action(selections) {
+                if (!selections || selections.length === 0) return;
+
+                frappe.db.get_list("Product Return Order", {
+                  filters: { name: ["in", selections] },
+                  fields: ["name", "item_code", "serial_no", "qty", "new_bom"]
+                }).then((records) => {
+                  records.forEach((rec) => {
+                    let d = frm.add_child("order_details");
+                    frappe.model.set_value(d.doctype, d.name, "item", rec.item_code);
+                    frappe.model.set_value(d.doctype, d.name, "tag_no", rec.serial_no);
+                    frappe.model.set_value(d.doctype, d.name, "delivery_date", frm.doc.delivery_date);
+                    frappe.model.set_value(d.doctype, d.name, "diamond_quality", frm.doc.diamond_quality);
+                    if (rec.qty) {
+                      frappe.model.set_value(d.doctype, d.name, "qty", rec.qty);
+                    }
+                    if (rec.new_bom) {
+                      // item/tag_no handlers above trigger an async BOM lookup that
+                      // sets `bom` from the item's master BOM; override it once that
+                      // settles so the Product Return Order's new_bom wins instead.
+                      setTimeout(() => {
+                        frappe.model.set_value(d.doctype, d.name, "bom", rec.new_bom);
+                        frm.refresh_field("order_details");
+                      }, 1500);
+                    }
+                  });
+                  frm.refresh_field("order_details");
+                });
+
+                dialog.dialog.hide();
+              }
+            });
+          },__("Get Items From"));
 	},
 	setup(frm,cdt,cdn) {
 		frm.set_query("diamond_quality", function (doc) {
@@ -106,6 +183,10 @@ frappe.ui.form.on('Repair Order Form', {
 
 		let design_fields = [["item", "tag_no"]]
 		set_filter_for_design_n_serial(frm, design_fields)
+
+
+		var feid = [['product_type',"Product Type"]];
+		set_filters_on_parent_table_fields(frm,feid)
 		
 		
 	},
@@ -127,11 +208,42 @@ frappe.ui.form.on('Repair Order Form', {
 				},
 
 				callback: function (r) {
+					// console.log('hii',r.message);
 					if (r.message.item_code) {
+						console.log('hiiiiii');
 						let d = frm.add_child('order_details');
-						d.item = r.message.item_code;
-						d.delivery_date = frm.doc.delivery_date;
-						d.diamond_quality = frm.doc.diamond_quality;
+						// d.item = r.message.item_code;
+						// d.tag_no=r.message.serial_no;
+						// d.delivery_date = frm.doc.delivery_date;
+						// d.diamond_quality = frm.doc.diamond_quality;
+						frappe.model.set_value(d.doctype, d.name, "item", r.message.item_code);
+						frappe.model.set_value(d.doctype, d.name, "tag_no", r.message.serial_no);
+						frappe.model.set_value(d.doctype, d.name, "delivery_date", frm.doc.delivery_date);
+						frappe.model.set_value(d.doctype, d.name, "diamond_quality", frm.doc.diamond_quality);
+						if (d.tag_no) {frappe.db.get_value(
+								"Serial No",
+								d.tag_no,
+								"custom_bom_no"
+							).then(res => {
+								if (res.message) {
+									frappe.model.set_value(
+										d.doctype,
+										d.name,
+										"serial_no_bom",
+										res.message.custom_bom_no
+									);
+								}
+							});
+						}
+					
+						// let d = frm.add_child('order_details');
+
+						// frappe.model.set_value(
+						// 	d.doctype,
+						// 	d.name,
+						// 	"item",
+						// 	r.message.item_code
+						// );
 						frappe.model.with_doc("Item", r.message.item_code, function (m) {
 							var doc = frappe.model.get_doc("Item", r.message.item_code);
 							if (doc.attributes) {
@@ -150,48 +262,77 @@ frappe.ui.form.on('Repair Order Form', {
 			});
 		}
 	}
+	
 });
 
 frappe.ui.form.on('Repair Order Form Detail', {
-	tag_no(frm, cdt, cdn) {
-		var d = locals[cdt][cdn];
-		fetch_item_from_serial(d, "tag_no", "item")
-		if (d.tag_no) {
-			frappe.db.get_value("Serial No", d.tag_no,'custom_bom_no', (r)=>{
-				frappe.model.set_value(cdt, cdn, 'bom', r.custom_bom_no)
-			})
-			frappe.db.get_value("Serial No",d.tag_no,'custom_gross_wt', (r)=>{
-				frappe.model.set_value(cdt, cdn, 'bom_weight', r.custom_bom_no)
-			})
-		}
-	},
+	tag_no1(frm, cdt, cdn) {
+    let d = locals[cdt][cdn];
+
+    fetch_item_from_serial(d, "tag_no", "item");
+
+    let company = "";
+
+    if (frm.doc.company === "Gurukrupa Export Private Limited") {
+        company = "GEPL";
+    } else {
+        company = "KGPL";
+    }
+
+    if (d.tag_no1) {
+        // frappe.db.get_value("Serial No", d.tag_no, "custom_bom_no", (r) => {
+        //     frappe.model.set_value(cdt, cdn, "serial_no_bom", r.custom_bom_no);
+        // });
+
+       frappe.call({
+    method: "gke_customization.gke_order_forms.doctype.repair_order_form.repair_order_form.get_data_from_jwelex",
+    args: {
+        tag_no: d.tag_no1,
+        company: company
+    },
+    callback: function(r) {
+         if (r.message && r.message.summary_totals) {
+            let summary_totals = r.message.summary_totals;
+            frappe.model.set_value(cdt, cdn, "diamond_target", summary_totals.diamond_weight);
+            frappe.model.set_value(cdt, cdn, "metal_target", summary_totals.metal_weight);
+            frappe.model.set_value(cdt, cdn, "metal_type", "Gold");
+        }
+    }
+});
+    }
+},
 	item: function (frm, cdt, cdn) {
 		var d = locals[cdt][cdn];
-		if (d.item) {
+		
+		if (d.item && !d.is_jewelex_tag) {
+			// console.log('hii');
 			frappe.call({
-				method: "gke_customization.gke_order_forms.doctype.repair_order_form.repair_order_form.get_bom_details",
+				method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_bom_detail",
 				args: {
 					"design_id": d.item,
-					"serial_no":d.tag_no
+					"doc":d
+					// "serial_no":d.tag_no
 				},
 				callback(r) {
 					if(r.message) {
+						console.log("FULL R:", r);
+						// console.log('hii',r.message);
+						// console.log('hii',r.message.stone_changeable);
 						d.bom_weight = r.message.gross_weight
+						d.diamond_quality = r.message.diamond_quality
 						d.category = r.message.item_category;
 						d.subcategory = r.message.item_subcategory;
 						d.setting_type = r.message.setting_type;
 						d.sub_setting_type1 = r.message.sub_setting_type1
 						d.sub_setting_type2 = r.message.sub_setting_type2
-						// if(!d.tag_no){
-						// }
-						d.bom = r.message.master_bom;
+						d.bom = r.message.bom;
 						d.qty = r.message.qty
 						d.metal_type = r.message.metal_type
 						d.metal_touch = r.message.metal_touch
 						d.metal_purity = r.message.metal_purity
 						d.metal_colour = r.message.metal_colour
 						d.metal_target = r.message.metal_target
-						d.metal_target = r.message.custom_metal_target
+						// d.metal_target = r.message.custom_metal_target
 						d.diamond_target = r.message.diamond_target
 						d.product_size = r.message.product_size
 						d.sizer_type = r.message.sizer_type
@@ -199,6 +340,8 @@ frappe.ui.form.on('Repair Order Form Detail', {
 						d.height = r.message.height
 						d.width = r.message.width
 						d.stone_changeable = r.message.stone_changeable
+						d.space_between_mugappu = r.message.space_between_mugappu
+						d.two_in_one = r.message.two_in_one || "None";
 						d.detachable = r.message.detachable
 						d.lock_type = r.message.lock_type
 						d.feature = r.message.feature
@@ -212,27 +355,33 @@ frappe.ui.form.on('Repair Order Form Detail', {
 						d.back_belt_patti = r.message.back_belt_patti
 						d.vanki_type = r.message.vanki_type
 						d.rhodium = r.message.rhodium
+						d.chain=r.message.chain
 						d.chain_type = r.message.chain_type
 						d.customer_chain = r.message.customer_chain
 						d.chain_weight = r.message.chain_weight
 						d.chain_length = r.message.chain_length
+						d.total_length= r.message.chain_length
 						d.chain_thickness = r.message.chain_thickness
 						d.chain_from = r.message.chain_from
+						d.space_between_mugappu = r.message.space_between_mugappu
+						d.two_in_one = r.message.two_in_one
+						d.two_in_onee = r.message.two_in_one
+						d.rhodium = r.message.rhodium
+						d.enamal = r.message.enamal
+						d.gemstone_type1 = r.message.gemstone_type1
+						d.gemstone_type = r.message.gemstone_type || "None";
+						d.gemstone_quality = r.message.gemstone_quality
+						d.charm = r.message.charm
+						d.capganthan = r.message.capganthan
+						
 						if(r.message.number_of_ant){
 							d.number_of_ant = r.message.number_of_ant
 						}
 						else{
 							d.number_of_ant = r.message.custom_number_of_ant
 						}
-						d.distance_between_kadi_to_mugappu = r.message.distance_between_kadi_to_mugappu
-						d.space_between_mugappu = r.message.space_between_mugappu
-						d.two_in_one = r.message.two_in_one
-						d.rhodium = r.message.rhodium
-						d.enamal = r.message.enamal
-						d.gemstone_type1 = r.message.gemstone_type1
-						d.gemstone_quality = r.message.gemstone_quality
-						d.charm = r.message.charm
-						d.capganthan = r.message.capganthan
+						// d.distance_between_kadi_to_mugappu = r.message.distance_between_kadi_to_mugappu
+						
 						refresh_field('order_details');
 					}
 				}
@@ -869,13 +1018,26 @@ function set_filters_on_parent_table_fields(frm, fields) {
 }
 
 // Auto calculate due days from delivery date 
+// function calculate_due_days(frm) {
+// 	frm.set_value('due_days', frappe.datetime.get_day_diff(frm.doc.delivery_date, frm.doc.order_date));
+// }
 function calculate_due_days(frm) {
-	frm.set_value('due_days', frappe.datetime.get_day_diff(frm.doc.delivery_date, frm.doc.order_date));
+    if (frm.doc.order_date && frm.doc.delivery_date) {
+        const order_date = frm.doc.order_date.split(" ")[0];
+        const delivery_date = frm.doc.delivery_date.split(" ")[0];
+
+        const due_days = frappe.datetime.get_day_diff(delivery_date, order_date);
+        frm.set_value("due_days", due_days);
+    }
 }
 
 // Auto Calculate delivery date from due days
+// function delivery_date(frm) {
+// 	frm.set_value('delivery_date', frappe.datetime.add_days(frm.doc.order_date, frm.doc.due_days));
+// }
 function delivery_date(frm) {
-	frm.set_value('delivery_date', frappe.datetime.add_days(frm.doc.order_date, frm.doc.due_days));
+    let date = frappe.datetime.add_days(frm.doc.order_date, frm.doc.due_days);
+    frm.set_value('delivery_date', `${date} 11:00:00`);
 }
 
 function update_fields_in_child_table(frm, fieldname) {

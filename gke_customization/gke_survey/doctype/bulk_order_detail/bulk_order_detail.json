@@ -16,6 +16,7 @@
   "category",
   "sub_category",
   "bulk_order_no",
+  "company",
   "column_break_dpbx",
   "gold_weight",
   "dia_weight",
@@ -146,13 +147,18 @@
    "fieldname": "bulk_order_no",
    "fieldtype": "Data",
    "label": "Bulk Order No."
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Data",
+   "label": "Company"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-06-13 18:03:23.604701",
+ "modified": "2026-07-22 21:55:36.178415",
  "modified_by": "shubham_k@gkexport.com",
  "module": "GKE SURVEY",
  "name": "Bulk Order Detail",
