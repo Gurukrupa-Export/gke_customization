@@ -1378,6 +1378,8 @@ class ProductReturnOrderForm(Document):
 			product_order.metal_purity = item_row.metal_purity
 			product_order.setting_type = item_row.setting_type
 			product_order.amount = item_row.amount
+			product_order.hallmarking_amounts=self.product_hallmarking
+			product_order.certification_amounts=self.product_certification
 
 			system_fields = {
 				"name", "parent", "parentfield", "parenttype",

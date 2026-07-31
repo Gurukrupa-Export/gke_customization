@@ -209,7 +209,8 @@ class ProductReturnOrder(Document):
 			build_diamond_detail(self, new_bom)
 			build_gemstone_detail(self, new_bom)
 			build_other_detail(self, new_bom)
-	
+			new_bom.hallmarking_amount = 0 if not self.hallmarking_amounts else new_bom.hallmarking_amount
+			new_bom.certification_amount=0 if not self.certification_amounts else new_bom.certification_amount
 			new_bom.total_metal_weight = sum(row.quantity for row in new_bom.metal_detail)
 			new_bom.total_metal_amount = sum(row.amount for row in new_bom.metal_detail)
 			new_bom.total_making_amount = sum(row.making_amount for row in new_bom.metal_detail)

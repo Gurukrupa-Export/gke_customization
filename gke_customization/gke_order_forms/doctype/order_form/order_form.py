@@ -746,6 +746,87 @@ def get_metal_purity(metal_type,metal_touch,customer):
 	metal_purity = frappe.db.sql(f"""select metal_purity from `tabMetal Criteria` where parent = '{customer}' and metal_type = '{metal_type}' and metal_touch = '{metal_touch}'""",as_dict=1)
 	return metal_purity
 
+@frappe.whitelist()
+def get_bom_detail(design_id, doc):
+    doc = json.loads(doc)
+
+    item_subcategory = frappe.db.get_value("Item", design_id, "item_subcategory")
+
+    fg_bom = frappe.db.get_value("BOM", {"bom_type": "Finished Goods", "item": design_id}, "name", order_by="creation DESC")
+    master_bom = fg_bom or frappe.db.get_value("Item", design_id, "master_bom")
+
+    if not master_bom:
+        frappe.throw(f"Master BOM for Item <b>{get_link_to_form('Item', design_id)}</b> is not set")
+
+    def norm(x):
+        return x.replace(" ", "_").replace("/", "").lower()
+
+    def clean(v):
+        if v is None:
+            return None
+        if isinstance(v, str) and v.strip() in ("None", "null", ""):
+            return None
+        return v
+
+    def is_empty(v):
+        if v is None:
+            return True
+        if isinstance(v, str) and v.strip() in ("None", "null", ""):
+            return True
+        return False
+
+    # ── 1. All expected keys from subcategory item_attributes ──
+    subcategory_doc = frappe.get_doc("Attribute Value", item_subcategory)
+    expected_keys = [norm(attr.item_attribute) for attr in subcategory_doc.item_attributes]
+
+    # ── 2. Variant attributes (item-level overrides) ──
+    variant_attributes = frappe.db.get_all(
+        "Item Variant Attribute",
+        filters={"parent": design_id},
+        fields=["attribute", "attribute_value"]
+    )
+    variant_map = {
+        norm(d.attribute): clean(d.attribute_value)
+        for d in variant_attributes
+    }
+
+    # ── 3. BOM fields — only fetch fields that actually exist on BOM DocType ──
+    bom_meta_fields = {f.fieldname for f in frappe.get_meta("BOM").fields}
+    safe_bom_keys = [k for k in expected_keys if k in bom_meta_fields]
+
+    bom_values = {}
+    if safe_bom_keys:
+        raw = frappe.db.get_value("BOM", master_bom, safe_bom_keys, as_dict=1) or {}
+        bom_values = {k: clean(v) for k, v in raw.items()}
+
+    # ── 4. Also fetch fixed BOM fields (metal_target, qty, etc.) ──
+    fixed_bom_fields = ["metal_target", "qty", "metal_type", "metal_touch",
+                        "metal_purity", "item_category", "item_subcategory",
+                        "lock_type", "gemstone_quality", "setting_type",
+                        "sub_setting_type1", "sub_setting_type2"]
+    safe_fixed = [f for f in fixed_bom_fields if f in bom_meta_fields]
+    if safe_fixed:
+        fixed_raw = frappe.db.get_value("BOM", master_bom, safe_fixed, as_dict=1) or {}
+        bom_values.update({k: clean(v) for k, v in fixed_raw.items()})
+
+    # ── 5. Merge: variant wins, BOM is fallback, all expected keys present ──
+    final_data = {}
+    all_keys = set(expected_keys + list(variant_map.keys()) + list(bom_values.keys()))
+
+    for key in all_keys:
+        variant_val = variant_map.get(key)
+        bom_val = bom_values.get(key)
+
+        if not is_empty(variant_val):
+            final_data[key] = variant_val
+        elif not is_empty(bom_val):
+            final_data[key] = bom_val
+        else:
+            final_data[key] = "None"   # key present, value genuinely absent
+
+    final_data["master_bom"] = master_bom
+    return final_data
+
 
 @frappe.whitelist()
 def get_sketh_details(design_id):
