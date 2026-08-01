@@ -201,8 +201,11 @@ def get_response(response):
     answers = {}
 
     for d in response_doc.questionnaire_answer:
-
-        answers[d.question] = d.answer
+        answers[d.question] = {
+            "answer": d.answer,
+            "remark": d.remark,
+            "rating": d.rating
+        }
 
     tables = {}
 
