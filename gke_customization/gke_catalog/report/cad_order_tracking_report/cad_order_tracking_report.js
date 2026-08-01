@@ -22,6 +22,13 @@ frappe.query_reports["CAD Order Tracking Report"] = {
             "default": "CAD"
         },
         {
+            "fieldname": "workflow_type",
+            "label": __("Workflow Type"),
+            "fieldtype": "Select",
+            "options": "\nCAD\nBOM",
+            "default": "CAD"
+        },
+        {
             "fieldname": "order_number",
             "label": __("Order Number"),
             "fieldtype": "Link",
@@ -47,6 +54,12 @@ frappe.query_reports["CAD Order Tracking Report"] = {
             "fieldname": "category",
             "label": __("Category"),
             "fieldtype": "Data"
+        },
+        {
+            "fieldname": "setting_type",
+            "label": __("Setting Type"),
+            "fieldtype": "Select",
+            "options": "\nOpen\nClose\nClose-Open Setting"
         },
         {
             "fieldname": "designer",

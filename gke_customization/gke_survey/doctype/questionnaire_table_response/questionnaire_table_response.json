@@ -1,0 +1,54 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-23 15:56:12.228665",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_djrg",
+  "question",
+  "row_no",
+  "row_data"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_djrg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "question",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Question",
+   "options": "Questionnaire Question"
+  },
+  {
+   "fieldname": "row_no",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Row No"
+  },
+  {
+   "fieldname": "row_data",
+   "fieldtype": "Code",
+   "in_list_view": 1,
+   "label": "Row Data"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-30 18:53:28.551766",
+ "modified_by": "Administrator",
+ "module": "GKE SURVEY",
+ "name": "Questionnaire Table Response",
+ "owner": "bhavika_patel@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
