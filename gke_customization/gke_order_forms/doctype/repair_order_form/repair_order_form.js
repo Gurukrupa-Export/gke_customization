@@ -266,35 +266,48 @@ frappe.ui.form.on('Repair Order Form', {
 });
 
 frappe.ui.form.on('Repair Order Form Detail', {
-	tag_no(frm, cdt, cdn) {
-		var d = locals[cdt][cdn];
-		fetch_item_from_serial(d, "tag_no", "item")
-		if (d.tag_no) {
-			// frappe.db.get_value("Serial No", d.tag_no,'custom_bom_no', (r)=>{
-			// 	frappe.model.set_value(cdt, cdn, 'serial_no_bom', r.custom_bom_no)
-			// })
-			frappe.call({
-				method: "gke_customization.gke_order_forms.doctype.repair_order_form.repair_order_form.get_data_from_jwelex",
-				args: { tag_no: d.tag_no },
-				callback: function (r) {
-					if (r.message) {
-						frappe.msgprint({
-							title: __("Jewelex Data"),
-							indicator: "blue",
-							message: `<pre>${frappe.utils.escape_html(JSON.stringify(r.message, null, 2))}</pre>`
-						});
-					}
-				}
-			});
-		}
-	},
+	tag_no1(frm, cdt, cdn) {
+    let d = locals[cdt][cdn];
+
+    fetch_item_from_serial(d, "tag_no", "item");
+
+    let company = "";
+
+    if (frm.doc.company === "Gurukrupa Export Private Limited") {
+        company = "GEPL";
+    } else {
+        company = "KGPL";
+    }
+
+    if (d.tag_no1) {
+        // frappe.db.get_value("Serial No", d.tag_no, "custom_bom_no", (r) => {
+        //     frappe.model.set_value(cdt, cdn, "serial_no_bom", r.custom_bom_no);
+        // });
+
+       frappe.call({
+    method: "gke_customization.gke_order_forms.doctype.repair_order_form.repair_order_form.get_data_from_jwelex",
+    args: {
+        tag_no: d.tag_no1,
+        company: company
+    },
+    callback: function(r) {
+         if (r.message && r.message.summary_totals) {
+            let summary_totals = r.message.summary_totals;
+            frappe.model.set_value(cdt, cdn, "diamond_target", summary_totals.diamond_weight);
+            frappe.model.set_value(cdt, cdn, "metal_target", summary_totals.metal_weight);
+            frappe.model.set_value(cdt, cdn, "metal_type", "Gold");
+        }
+    }
+});
+    }
+},
 	item: function (frm, cdt, cdn) {
 		var d = locals[cdt][cdn];
 		
-		if (d.item) {
+		if (d.item && !d.is_jewelex_tag) {
 			console.log('hii');
 			frappe.call({
-				method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_bom_details",
+				method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_bom_detail",
 				args: {
 					"design_id": d.item,
 					"doc":d

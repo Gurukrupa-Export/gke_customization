@@ -8,6 +8,7 @@ frappe.ui.form.on('Repair Order', {
 		hide_all_subcategory_attribute_fields(frm)
 		show_attribute_fields_for_subcategory(frm)
 	},
+	
 	order_form(frm){
 		if(frm.doc.order_form){
 			frm.set_df_property('cad', 'hidden', 1)

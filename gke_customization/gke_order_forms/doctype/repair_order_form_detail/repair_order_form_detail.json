@@ -9,6 +9,7 @@
  "field_order": [
   "repair_type",
   "product_type",
+  "is_jewelex_tag",
   "tag_no1",
   "column_break_aeaoz",
   "required_design",
@@ -209,8 +210,8 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Item Subcategory",
-   "options": "Attribute Value",
-   "reqd": 1
+   "mandatory_depends_on": "eval:!doc.is_jewelex_tag",
+   "options": "Attribute Value"
   },
   {
    "fetch_from": "item.setting_type",
@@ -329,8 +330,8 @@
    "fieldname": "rhodium",
    "fieldtype": "Link",
    "label": "Rhodium",
-   "options": "Attribute Value",
-   "reqd": 1
+   "mandatory_depends_on": "eval:!doc.is_jewelex_tag",
+   "options": "Attribute Value"
   },
   {
    "fetch_from": "bom.gemstone_quality",
@@ -706,13 +707,14 @@
    "options": "Attribute Value"
   },
   {
+   "depends_on": "eval:!doc.is_jewelex_tag",
    "fetch_from": "bom.feature",
    "fetch_if_empty": 1,
    "fieldname": "feature",
    "fieldtype": "Link",
    "label": "Feature",
-   "options": "Attribute Value",
-   "reqd": 1
+   "mandatory_depends_on": "eval:!doc.is_jewelex_tag",
+   "options": "Attribute Value"
   },
   {
    "fieldname": "section_break_ck8j",
@@ -860,21 +862,29 @@
    "options": "Attribute Value"
   },
   {
+   "depends_on": "eval:doc.is_jewelex_tag",
    "fieldname": "tag_no1",
    "fieldtype": "Data",
    "label": "Tag No1"
   },
   {
+   "depends_on": "eval:doc.repair_type == \"Modified Product\" && doc.required_design == \"CAD\"",
    "fieldname": "mod_reason",
    "fieldtype": "Select",
    "label": "MOD Reason",
    "options": "\nAttribute Change\nPartial Design Change\nCategory Change"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_jewelex_tag",
+   "fieldtype": "Check",
+   "label": " Is Jewelex Tag"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-25 23:28:40.643580",
+ "modified": "2026-07-28 17:09:43.287808",
  "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Repair Order Form Detail",

@@ -247,7 +247,12 @@ def _calc_jewelex_row_amounts(doc, row):
     if not row.get("jewelex_tag"):
         return False
 
-    data = get_data_from_jwelex(row.jewelex_tag)
+    if doc.company == 'KG GK Jewellers Private Limited':
+        company = "KGJPL"
+    if doc.company == 'Gurukrupa Export Private Limited':
+        company = "GEPL"
+    
+    data = get_data_from_jwelex(row.jewelex_tag,company)
     if not data:
         frappe.throw(f"No JWELEX data found for Tag No {frappe.bold(row.jewelex_tag)}")
 
@@ -1097,9 +1102,9 @@ def _calc_bom_raw_material_consignment(doc):
 
 
 @frappe.whitelist()
-def get_data_from_jwelex(tag_no):
+def get_data_from_jwelex(tag_no,company):
 
-    url = f"http://3.108.219.130:8001//credit-note?tag_no={tag_no}"
+    url = f"http://3.108.219.130:8001//credit-note?tag_no={tag_no}&company={company}"
     
     try:
         response = requests.get(url, timeout=10)
