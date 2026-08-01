@@ -58,7 +58,10 @@ def save_response(questionnaire,answers,branch=None,
     previous_audit_pending_points=None,
     serious_irregularities_found=None,
     fraud_suspected=None,
-    matter_requiring_immediate_attention=None):
+    matter_requiring_immediate_attention=None,
+    employee_id=None,
+    employee_name=None,
+    department=None):
 
     if isinstance(answers, str):
         answers = json.loads(answers)
@@ -79,6 +82,9 @@ def save_response(questionnaire,answers,branch=None,
     response.fraud_suspected = fraud_suspected
     response.matter_requiring_immediate_attention = matter_requiring_immediate_attention
     response.submitted_by = frappe.session.user
+    response.employee_id = employee_id
+    response.employee_name = employee_name
+    response.department = department
 
     for row in answers:
         if row.get("field_type") == "Table":
