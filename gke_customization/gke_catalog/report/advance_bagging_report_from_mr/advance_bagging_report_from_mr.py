@@ -64,6 +64,9 @@ def execute(filters=None):
     if filters.get("workflow_state") and filters["workflow_state"]:
         filters_dict["workflow_state"] = ["in", filters["workflow_state"]]
 
+    if filters.get("material_request") and filters["material_request"]:
+        filters_dict["name"] = ["in", filters["material_request"]]
+
     warehouse_name_map = get_warehouse_display_names()
     department_transfer_map = get_department_transfer_map()
     

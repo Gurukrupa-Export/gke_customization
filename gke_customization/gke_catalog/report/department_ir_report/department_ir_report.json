@@ -25,25 +25,13 @@
    "role": "System Manager"
   },
   {
-   "role": "Computer Operator - ST - GE"
+   "role": "Manufacturing Plan & Management Executive - KGJPL"
   },
   {
-   "role": "Computer Operator - ST - KG"
+   "role": "Manufacturing Manager"
   },
   {
-   "role": "Executive - ST - GE"
-  },
-  {
-   "role": "Manufacturing Plan & Management MFG - ST - GE"
-  },
-  {
-   "role": "QC Doctype"
-  },
-  {
-   "role": "CAD Hod"
-  },
-  {
-   "role": "GK Sub Contracting"
+   "role": "Manufacturer HOD"
   }
  ],
  "timeout": 300
