@@ -32,7 +32,7 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
             reqd: 0,
             get_data: function(txt) {
                 return frappe.db.get_list("Material Request", {
-                    fields: ["distinct workflow_state as value"],
+                    fields: ["workflow_state as value"],
                     filters: {
                         "material_request_type": "Manufacture",
                         "workflow_state": ["is", "set"],
@@ -40,8 +40,9 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
                     },
                     order_by: "workflow_state"
                 }).then(r => {
+                    let seen = new Set();
                     return r
-                        .filter(d => d.value && d.value.trim() !== "")
+                        .filter(d => d.value && d.value.trim() !== "" && !seen.has(d.value) && seen.add(d.value))
                         .map(d => {
                             return {
                                 value: d.value,
@@ -87,7 +88,7 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
                 
                 return Promise.all([
                     frappe.db.get_list("Material Request", {
-                        fields: ["distinct custom_department as value"],
+                        fields: ["custom_department as value"],
                         filters: {
                             "material_request_type": "Manufacture",
                             "custom_department": ["is", "set"],
@@ -95,7 +96,7 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
                         }
                     }),
                     frappe.db.get_list("Parent Manufacturing Order", {
-                        fields: ["distinct department as value"],
+                        fields: ["department as value"],
                         filters: {
                             "department": ["is", "set"]
                         }
@@ -141,11 +142,12 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
             reqd: 0,
             get_data: function(txt) {
                 return frappe.db.get_list("Parent Manufacturing Order", {
-                    fields: ["distinct item_category as value"],
+                    fields: ["item_category as value"],
                     order_by: "item_category"
                 }).then(r => {
+                    let seen = new Set();
                     return r
-                        .filter(d => d.value && d.value.trim() !== "")
+                        .filter(d => d.value && d.value.trim() !== "" && !seen.has(d.value) && seen.add(d.value))
                         .map(d => {
                             return {
                                 value: d.value,
@@ -163,11 +165,12 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
             reqd: 0,
             get_data: function(txt) {
                 return frappe.db.get_list("Parent Manufacturing Order", {
-                    fields: ["distinct setting_type as value"],
+                    fields: ["setting_type as value"],
                     order_by: "setting_type"
                 }).then(r => {
+                    let seen = new Set();
                     return r
-                        .filter(d => d.value && d.value.trim() !== "")
+                        .filter(d => d.value && d.value.trim() !== "" && !seen.has(d.value) && seen.add(d.value))
                         .map(d => {
                             return {
                                 value: d.value,
@@ -177,9 +180,59 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
                 });
             }
         },
+        {
+            label: "Material Req Id",
+            fieldname: "material_request",
+            fieldtype: "MultiSelectList",
+            reqd: 0,
+            get_data: function(txt) {
+                return frappe.db.get_link_options("Material Request", txt, {
+                    material_request_type: "Manufacture"
+                });
+            }
+        },
     ],
     
     onload: function(report) {
+        // Scan QR / Barcode Button - Adds scanned Material Request to the filter
+        report.page.add_inner_button(__("Scan Material Req Id"), function () {
+            new frappe.ui.Scanner({
+                dialog: true,
+                multiple: true,
+                on_scan(data) {
+                    let scanned_value = data && data.result && data.result.text;
+                    if (!scanned_value) return;
+                    scanned_value = scanned_value.trim();
+
+                    frappe.db.exists("Material Request", scanned_value).then((exists) => {
+                        if (!exists) {
+                            frappe.show_alert({
+                                message: __("{0} is not a valid Material Request", [scanned_value]),
+                                indicator: "red"
+                            });
+                            return;
+                        }
+
+                        let field = report.get_filter("material_request");
+                        let current_values = field.get_value() || [];
+                        if (current_values.includes(scanned_value)) {
+                            frappe.show_alert({
+                                message: __("{0} is already added", [scanned_value]),
+                                indicator: "orange"
+                            });
+                            return;
+                        }
+
+                        field.set_value([...current_values, scanned_value]);
+                        frappe.show_alert({
+                            message: __("Added {0}", [scanned_value]),
+                            indicator: "green"
+                        });
+                    });
+                }
+            });
+        }, __("Scan"));
+
         // **View Summary Report Button - Passes ALL current filters**
         report.page.add_inner_button(__("View Summary Report"), function () {
             // Get ALL current filter values

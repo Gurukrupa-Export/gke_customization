@@ -11,7 +11,7 @@ frappe.query_reports["Manufacturing Work Order & Stock Register"] = {
             fieldtype: "Link",
             options: "Company",
             default: frappe.defaults.get_user_default("Company"),
-            read_only: frappe.user.has_role("System Manager") ? 0 : 1,
+            hidden: 1,
         },
         {
             fieldname: "from_date",
