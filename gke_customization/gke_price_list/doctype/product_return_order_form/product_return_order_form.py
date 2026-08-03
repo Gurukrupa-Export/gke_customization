@@ -1847,7 +1847,7 @@ class ProductReturnOrderForm(Document):
 		# SET TOTALS MANUALLY
 		# -------------------------------------------------
 		self.total_taxes_and_charges = total_gst
-		self.grand_total = total_taxable + total_gst
+		self.grand_total = round(total_taxable + total_gst,2)
 		self.rounded_total=round(self.grand_total)
 		self.rounding_adjustment=abs(self.rounded_total - self.grand_total)
 	def apply_bbpm_manual_calculation(self):
@@ -2239,7 +2239,7 @@ class ProductReturnOrderForm(Document):
 					# Diamond Quantity: {quantity} <br>
 					# Diamond Total Rate: {total_rate} <br>
 					# Diamond Amount: {diamond_amount}""")
-					row_diamond_amt_total += diamond_amount
+					row_diamond_amt_total += round(diamond_amount,2)
 
 
 			# =================================================
