@@ -12,6 +12,10 @@
   "submitted_by",
   "submission_date",
   "section_break_k07a",
+  "employee_id",
+  "employee_name",
+  "department",
+  "section_break_gf44",
   "branch",
   "auditor_name",
   "audit_month",
@@ -27,8 +31,7 @@
   "matter_requiring_immediate_attention",
   "section_break_v2nj",
   "questionnaire_answer",
-  "questionnaire_table_response",
-  "section_break_gf44"
+  "questionnaire_table_response"
  ],
  "fields": [
   {
@@ -148,13 +151,30 @@
   {
    "fieldname": "section_break_gf44",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee_id",
+   "fieldtype": "Link",
+   "label": "Employee ID",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-30 18:53:06.369475",
- "modified_by": "Administrator",
+ "modified": "2026-08-01 16:43:00.724672",
+ "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE SURVEY",
  "name": "Questionnaire Response",
  "naming_rule": "By \"Naming Series\" field",

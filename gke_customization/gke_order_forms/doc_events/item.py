@@ -1,4 +1,9 @@
 import frappe
+import requests
+from frappe.utils import flt
+
+
+
 
 def before_validate(self,method):
     if self.custom_is_similar_item:
