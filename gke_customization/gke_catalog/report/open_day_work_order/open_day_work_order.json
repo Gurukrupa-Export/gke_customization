@@ -1,37 +1,26 @@
 {
- "add_total_row": 1,
+ "add_total_row": 0,
+ "add_translate_data": 0,
  "columns": [],
- "creation": "2025-07-03 10:06:42.233026",
+ "creation": "2026-07-28 18:31:38.998730",
  "disabled": 0,
  "docstatus": 0,
  "doctype": "Report",
  "filters": [],
  "idx": 0,
  "is_standard": "Yes",
- "letter_head": "Sadguru Diamond",
+ "letter_head": "Gurukrupa Export",
  "letterhead": null,
- "modified": "2025-07-03 16:55:13.108872",
- "modified_by": "jinali_g@gkexport.com",
+ "modified": "2026-07-28 18:31:38.998730",
+ "modified_by": "sukhdev_k@gkexport.com",
  "module": "GKE Catalog",
- "name": "Advance Bagging Report From MR",
- "owner": "jinali_g@gkexport.com",
+ "name": "Open Day Work Order",
+ "owner": "sukhdev_k@gkexport.com",
  "prepared_report": 0,
- "ref_doctype": "Material Request",
- "report_name": "Advance Bagging Report From MR",
+ "ref_doctype": "Employee IR",
+ "report_name": "Open Day Work Order",
  "report_type": "Script Report",
  "roles": [
-  {
-   "role": "Purchase User"
-  },
-  {
-   "role": "Purchase Manager"
-  },
-  {
-   "role": "Stock User"
-  },
-  {
-   "role": "Stock Manager"
-  },
   {
    "role": "System Manager"
   },
@@ -57,9 +46,6 @@
    "role": "Final Polish Executive - KGJPL"
   },
   {
-   "role": "Gemstone Bagging Executive - KGJPL"
-  },
-  {
    "role": "Model Making Manager - KGJPL"
   },
   {
@@ -78,13 +64,7 @@
    "role": "Waxing Executive - KGJPL"
   },
   {
-   "role": "Product Allocation Executive - KGJPL"
-  },
-  {
-   "role": "Store Executive - KGJPL"
-  },
-  {
-   "role": "Account Executive - KGJPL"
+   "role": "Computer Aided Designing Executive - KGJPL"
   }
  ],
  "timeout": 0

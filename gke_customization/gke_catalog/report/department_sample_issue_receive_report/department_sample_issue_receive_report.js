@@ -9,7 +9,7 @@ frappe.query_reports["Department Sample Issue Receive Report"] = {
     filters: [
         {
             fieldname: "jangad_no",
-            label: __("Jangad No"),
+            label: __("Department IR"),
             fieldtype: "Link",
             options: "Department IR",
             reqd: 0

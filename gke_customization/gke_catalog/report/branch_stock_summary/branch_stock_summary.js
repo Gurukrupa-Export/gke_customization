@@ -11,13 +11,7 @@ frappe.query_reports["Branch Stock Summary"] = {
             "options": "Company",
             "default": frappe.defaults.get_user_default("Company"),
             "reqd": 1,
-            "hidden": 1,
-            "on_change": function() {
-                frappe.query_report.set_filter_value('branch', '');
-                frappe.query_report.set_filter_value('manufacturer', '');
-                frappe.query_report.set_filter_value('department', '');
-                update_branch_options();
-            }
+            "hidden": 1
         },
         {
             "fieldname": "as_on_date",
@@ -108,14 +102,6 @@ frappe.query_reports["Branch Stock Summary"] = {
             },
             callback: function (r) {
                 if (r.message) {
-                    if (r.message.company) {
-                        let company_filter = report.get_filter("company");
-                        if (company_filter) {
-                            company_filter.set_value(r.message.company);
-                        }
-                    }
-
-
                     if (r.message.department) {
                         setTimeout(function() {
                             update_branch_options();

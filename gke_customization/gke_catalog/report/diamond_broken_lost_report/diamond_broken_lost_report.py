@@ -28,10 +28,6 @@ def get_columns():
 
 def get_conditions(filters):
     conditions=[]; params={}
-    if filters.get("company"):
-        conditions.append("eir.company = %(company)s"); params["company"]=filters["company"]
-    if filters.get("branch"):
-        conditions.append("emp.branch = %(branch)s"); params["branch"]=filters["branch"]
     if filters.get("manufacturer"):
         conditions.append("eir.manufacturer = %(manufacturer)s"); params["manufacturer"]=filters["manufacturer"]
     if filters.get("employee"):

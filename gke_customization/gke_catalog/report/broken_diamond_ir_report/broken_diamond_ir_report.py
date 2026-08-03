@@ -17,7 +17,7 @@ def execute(filters=None):
 def get_columns():
     return [
         {
-            "label": _("Jangad No"),
+            "label": _("Employee IR No"),
             "fieldname": "jangad_no",
             "fieldtype": "Link",
             "options": "Employee IR",
@@ -114,10 +114,6 @@ def get_conditions(filters):
     conditions = []
     values = {}
 
-    if filters.get("company"):
-        conditions.append("receive_ir.company = %(company)s")
-        values["company"] = filters.get("company")
-
     if filters.get("from_date"):
         conditions.append("DATE(receive_ir.creation) >= %(from_date)s")
         values["from_date"] = filters.get("from_date")
@@ -141,10 +137,6 @@ def get_conditions(filters):
     if filters.get("from_department"):
         conditions.append("iim.from_department = %(from_department)s")
         values["from_department"] = filters.get("from_department")
-
-    if filters.get("branch"):
-        conditions.append("receive_emp.branch = %(branch)s")
-        values["branch"] = filters.get("branch")
 
     if filters.get("to_manager"):
         conditions.append("receive_emp.name = %(to_manager)s")

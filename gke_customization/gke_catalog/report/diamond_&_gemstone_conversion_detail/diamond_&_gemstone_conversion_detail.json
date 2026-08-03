@@ -25,16 +25,10 @@
    "role": "System Manager"
   },
   {
-   "role": "GK Diamond Bagging"
-  },
-  {
-   "role": "Diamond Bagging Executive - ST"
-  },
-  {
-   "role": "Diamond Bagging Manager - ST"
-  },
-  {
    "role": "Diamond Bagging Executive - KGJPL"
+  },
+  {
+   "role": "Gemstone Bagging Executive - KGJPL"
   }
  ],
  "timeout": 0

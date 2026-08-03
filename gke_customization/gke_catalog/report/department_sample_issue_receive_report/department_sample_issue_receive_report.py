@@ -19,7 +19,7 @@ def get_columns():
     return [
         {"label": _("Trans Date"), "fieldname": "trans_date", "fieldtype": "Date", "width": 100},
         {"label": _("Trans Time"), "fieldname": "trans_time", "fieldtype": "Data", "width": 90},
-        {"label": _("Jangad No"), "fieldname": "jangad_no", "fieldtype": "Data", "width": 100},
+        {"label": _("Department IR"), "fieldname": "jangad_no", "fieldtype": "Data", "width": 100},
         {"label": _("Manufacturing Work Order"), "fieldname": "manufacturing_work_order", "fieldtype": "Link", "options": "Manufacturing Work Order", "width": 180},
         {"label": _("From Dept"), "fieldname": "from_department", "fieldtype": "Link", "options": "Department", "width": 130},
         {"label": _("From Mgr"), "fieldname": "from_manager", "fieldtype": "Data", "width": 110},

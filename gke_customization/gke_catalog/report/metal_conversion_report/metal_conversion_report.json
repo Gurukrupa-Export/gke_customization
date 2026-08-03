@@ -25,66 +25,6 @@
    "role": "System Manager"
   },
   {
-   "role": "Computer Operator - ST - GE"
-  },
-  {
-   "role": "GK Sub Contracting"
-  },
-  {
-   "role": "Central Executive"
-  },
-  {
-   "role": "Waxing Executive - ST"
-  },
-  {
-   "role": "Waxing 2 Executive - ST"
-  },
-  {
-   "role": "close waxing Executive - ST"
-  },
-  {
-   "role": "Model Making Executive - ST"
-  },
-  {
-   "role": "Close Model Making Executive - ST"
-  },
-  {
-   "role": "Sub Contracting Executive - ST"
-  },
-  {
-   "role": "Refinery Executive -ST"
-  },
-  {
-   "role": "Sub Contracting Manager - ST"
-  },
-  {
-   "role": "Close Model Making Manager - ST"
-  },
-  {
-   "role": "Model Making Manager - ST"
-  },
-  {
-   "role": "close waxing Manager - ST"
-  },
-  {
-   "role": "Waxing 2 Manager - ST"
-  },
-  {
-   "role": "Waxing Manager - ST"
-  },
-  {
-   "role": "Waxing Executive - MUM"
-  },
-  {
-   "role": "Model Making Manager - MUM"
-  },
-  {
-   "role": "Sub Contracting Manager - MUM"
-  },
-  {
-   "role": "Sub Contracting Executive - MUM"
-  },
-  {
    "role": "Waxing Manager - KGJPL"
   },
   {
@@ -97,19 +37,7 @@
    "role": "Waxing Executive - KGJPL"
   },
   {
-   "role": "Product Repair Center Executive - CH"
-  },
-  {
-   "role": "Product Repair Center Manager - CH"
-  },
-  {
-   "role": "Central Executive - ST"
-  },
-  {
    "role": "Central Executive - KGJPL"
-  },
-  {
-   "role": "Nandi Executive - ST"
   }
  ],
  "timeout": 0
