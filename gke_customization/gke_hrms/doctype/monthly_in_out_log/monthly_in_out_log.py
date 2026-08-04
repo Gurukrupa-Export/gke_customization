@@ -288,6 +288,7 @@ def get_data(filters):
     Attendance = frappe.qb.DocType("Attendance")
     Employee = frappe.qb.DocType("Employee")
     ShiftType = frappe.qb.DocType("Shift Type")
+    ShiftAssignment = frappe.qb.DocType("Shift Assignment")
     PersonalOutLog = frappe.qb.DocType("Personal Out Log")
     OTLog = frappe.qb.DocType("OT Log")
 
@@ -356,7 +357,18 @@ def get_data(filters):
     query = (
 		frappe.qb.from_(Attendance)
 		.left_join(Employee).on(Attendance.employee == Employee.name)
-		.left_join(ShiftType).on(Attendance.shift == ShiftType.name)
+		# .left_join(ShiftType).on(Attendance.shift == ShiftType.name)
+        .left_join(ShiftAssignment).on(
+      		(Attendance.employee == ShiftAssignment.employee) &
+			(Attendance.attendance_date.between(ShiftAssignment.start_date, ShiftAssignment.end_date)) 
+   			# & (ShiftAssignment.shift_type == Attendance.shift)
+   			# & (ShiftAssignment.status == 'Active')
+        )
+		.left_join(ShiftType).on(
+			( (ShiftAssignment.shift_type.isnotnull()) & (ShiftAssignment.shift_type == ShiftType.name) ) 
+   			|
+			( (ShiftAssignment.shift_type.isnull()) & (Attendance.shift == ShiftType.name) )
+		)
 		.left_join(pol_subquery).on(
 			(Attendance.attendance_date == pol_subquery.date) &
 			(Attendance.employee == pol_subquery.employee)
@@ -367,7 +379,13 @@ def get_data(filters):
 		)
 		.select(
 			Attendance.attendance_date, 
-			(Attendance.shift).as_('shift_name'),
+			# (Attendance.shift).as_('shift_name'),
+            IF(
+				ShiftAssignment.shift_type.isnotnull(),
+				ShiftAssignment.shift_type,
+				# Attendance.shift
+				Employee.default_shift
+			).as_("shift_name"),
 
 			Concat(TIME_FORMAT(ShiftType.start_time, "%H:%i:%s"), " TO ", TIME_FORMAT(ShiftType.end_time, "%H:%i:%s")).as_('shift'),
 			
@@ -642,6 +660,10 @@ def process_data(data, filters):
             if row.status not in ['Leave Without Pay', 'Absent']:
                 if row.net_wrk_hrs.total_seconds() > shift_hours_in_sec or (shift_hours_in_sec - row.net_wrk_hrs.total_seconds()) < 60:
                     row.net_wrk_hrs = timedelta(hours=row.shift_hours)
+            leave_status = frappe.db.get_value('Leave Type',{'name': row.status,'is_earned_leave': 1}, ['name'])
+            if leave_status:
+                row.status = STATUS.get(row.status) or row.status
+                row.net_wrk_hrs = timedelta(hours=row.shift_hours)
         else:
             shift = emp_det.get("default_shift")
             shift_det = frappe.db.get_value("Shift Type", shift, ['shift_hours', 'start_time', 'end_time'], as_dict=1)
