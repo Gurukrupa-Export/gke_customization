@@ -164,7 +164,6 @@ def get_employee_checkins(employee, date):
     error_status = ""
     if len(checkins) % 2 != 0:
         error_status = "ERR"
-	frappe.msgprint(f"in {in_times} out {out_times} error_status {error_status}")
     return in_times, out_times, error_status
 
 
