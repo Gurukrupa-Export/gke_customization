@@ -145,7 +145,8 @@ def get_employee_checkins(employee, date):
         "Employee Checkin",
         filters={
             "employee": employee,
-            "time": ["between", [start_dt, end_dt]]
+            "time": ["between", [start_dt, end_dt]],
+			"skip_auto_attendance": 0
         },
         fields=["time", "log_type"],
         order_by="time asc"
@@ -163,7 +164,7 @@ def get_employee_checkins(employee, date):
     error_status = ""
     if len(checkins) % 2 != 0:
         error_status = "ERR"
-
+	frappe.msgprint(f"in {in_times} out {out_times} error_status {error_status}")
     return in_times, out_times, error_status
 
 
