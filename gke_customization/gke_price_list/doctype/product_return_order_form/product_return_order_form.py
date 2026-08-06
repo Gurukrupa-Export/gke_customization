@@ -124,12 +124,12 @@ def append_gemstone_detail_from_jwelex(product_order, stone_details):
 
 
 class ProductReturnOrderForm(Document):
-	def get_data_from_jwelex(self,tag_no,company):
+	def get_data_from_jwelex(self,tag_no,company,is_sale):
 		url = "http://3.108.219.130:8001/credit-note"
 
 		response = requests.get(
 			url,
-			params={"tag_no": tag_no,"company": company},
+			params={"tag_no": tag_no, "company": company, "is_sale": is_sale},
 			timeout=30
 		)
 
@@ -1292,7 +1292,7 @@ class ProductReturnOrderForm(Document):
 		if not (self.company == "KG GK Jewellers Private Limited" or customer_group == "Internal"):
 			bom_doc.validate()
 			bom_doc.save()
-			update_totals("BOM", bom_doc.name)
+			# update_totals("BOM", bom_doc.name)
 
 	def on_submit(self):
 
@@ -1308,13 +1308,12 @@ class ProductReturnOrderForm(Document):
 			bom = None
 			if item_row.item_code == 'Subcontracting Charges':
 				continue
-			if item_row.jewelex_tag:
-				if self.company == 'KG GK Jewellers Private Limited':
-					company = "KGJPL"
-				if self.company == 'Gurukrupa Export Private Limited':
-					company = "GEPL"
-				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag,company)
-				# frappe.throw(f"{jewelex_data}")
+			if (item_row.jewelex_tag and item_row.is_sale) and self.ref_company == "KG":
+				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag,"KGPL",1)
+			elif item_row.jewelex_tag and not item_row.is_sale:
+				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag,"KGPL",0)
+			elif item_row.jewelex_tag and self.ref_company == "GK":
+				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag,"KGPL",1)
 			elif item_row.serial_no:
 				bom_name = frappe.db.get_value("Serial No", item_row.serial_no, "custom_bom_no")
 				if not bom_name:
@@ -1383,8 +1382,7 @@ class ProductReturnOrderForm(Document):
 			product_order.metal_purity = item_row.metal_purity
 			product_order.setting_type = item_row.setting_type
 			product_order.amount = item_row.amount
-			product_order.hallmarking_amounts=self.product_hallmarking
-			product_order.certification_amounts=self.product_certification
+
 			system_fields = {
 				"name", "parent", "parentfield", "parenttype",
 				"doctype", "idx", "owner", "creation",
@@ -1847,7 +1845,7 @@ class ProductReturnOrderForm(Document):
 		# SET TOTALS MANUALLY
 		# -------------------------------------------------
 		self.total_taxes_and_charges = total_gst
-		self.grand_total = round(total_taxable + total_gst,2)
+		self.grand_total = total_taxable + total_gst
 		self.rounded_total=round(self.grand_total)
 		self.rounding_adjustment=abs(self.rounded_total - self.grand_total)
 	def apply_bbpm_manual_calculation(self):
@@ -2239,7 +2237,7 @@ class ProductReturnOrderForm(Document):
 					# Diamond Quantity: {quantity} <br>
 					# Diamond Total Rate: {total_rate} <br>
 					# Diamond Amount: {diamond_amount}""")
-					row_diamond_amt_total += round(diamond_amount,2)
+					row_diamond_amt_total += diamond_amount
 
 
 			# =================================================

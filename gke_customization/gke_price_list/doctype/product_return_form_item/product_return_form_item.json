@@ -12,6 +12,7 @@
   "hsn_sac",
   "item_group",
   "is_jewelex_tag",
+  "is_sale",
   "jewelex_tag",
   "column_break_kfci",
   "item_name",
@@ -439,8 +440,7 @@
    "fieldname": "metal_purity",
    "fieldtype": "Link",
    "label": "Metal Purity",
-   "options": "Attribute Value",
-   "read_only": 1
+   "options": "Attribute Value"
   },
   {
    "fieldname": "metal_colour",
@@ -519,14 +519,20 @@
    "fieldname": "jewelex_tag",
    "fieldtype": "Data",
    "label": "Jewelex Tag"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_sale",
+   "fieldtype": "Check",
+   "label": "Is Sale"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-26 13:33:11.521115",
- "modified_by": "Administrator",
+ "modified": "2026-08-05 18:36:39.782333",
+ "modified_by": "shubham_ke@gkexport.com",
  "module": "Gke Price List",
  "name": "Product Return Form Item",
  "owner": "aditya_r@gkexport.com",
