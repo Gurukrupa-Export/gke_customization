@@ -16,7 +16,7 @@ def execute(filters=None):
 
 
 def validate_filters(filters):
-    mandatory_filters = ["company", "department"]
+    mandatory_filters = ["company"]
     missing = [frappe.bold(_(f.replace("_", " ").title())) for f in mandatory_filters if not filters.get(f)]
     if missing:
         frappe.throw(_("Mandatory filters missing: {0}").format(", ".join(missing)))
