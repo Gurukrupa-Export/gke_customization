@@ -1127,6 +1127,8 @@ def create_credit_note_orders(source_doctype, source_name, child_fieldname):
     source_doc = frappe.get_doc(source_doctype, source_name)
     child_rows = source_doc.get(child_fieldname)
 
+    jewelex_company = "KGPL" if source_doc.get("ref_company") == "KG" else "GEPL"
+
     created = []
     errors = []
 
@@ -1136,7 +1138,7 @@ def create_credit_note_orders(source_doctype, source_name, child_fieldname):
             continue
 
         try:
-            data = get_data_from_jwelex(tag_no=tag_no)  # reuse existing function directly
+            data = get_data_from_jwelex(tag_no=tag_no, company=jewelex_company, is_sale=row.get("is_sale"))  # reuse existing function directly
             if not data:
                 errors.append({"tag_no": tag_no, "error": "No data found"})
                 continue
