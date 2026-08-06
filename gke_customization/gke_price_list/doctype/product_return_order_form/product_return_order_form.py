@@ -133,7 +133,11 @@ class ProductReturnOrderForm(Document):
 			timeout=30
 		)
 
-		response.raise_for_status()
+		if not response.ok:
+			frappe.throw(
+				f"Jwelex API rejected Tag No {frappe.bold(tag_no)} "
+				f"({response.status_code}): {response.text}"
+			)
 		return response.json()
 		
 	def before_validate(self):
@@ -1308,12 +1312,11 @@ class ProductReturnOrderForm(Document):
 			bom = None
 			if item_row.item_code == 'Subcontracting Charges':
 				continue
-			if (item_row.jewelex_tag and item_row.is_sale) and self.ref_company == "KG":
-				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag,"KGPL",1)
+			jewelex_company = "KGPL" if self.ref_company == "KG" else "GEPL"
+			if item_row.jewelex_tag and item_row.is_sale:
+				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag,jewelex_company,1)
 			elif item_row.jewelex_tag and not item_row.is_sale:
-				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag,"KGPL",0)
-			elif item_row.jewelex_tag and self.ref_company == "GK":
-				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag,"KGPL",1)
+				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag,jewelex_company,0)
 			elif item_row.serial_no:
 				bom_name = frappe.db.get_value("Serial No", item_row.serial_no, "custom_bom_no")
 				if not bom_name:
