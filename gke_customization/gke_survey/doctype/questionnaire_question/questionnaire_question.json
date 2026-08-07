@@ -1,0 +1,168 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-07-23 10:51:07.109754",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "section_break_gvlc",
+  "questionnaire",
+  "section",
+  "section_name",
+  "column_break_eala",
+  "sequence",
+  "question",
+  "is_visible",
+  "section_break_oftl",
+  "fieldname",
+  "field_type",
+  "required",
+  "default_value",
+  "depends_on",
+  "column_break_as48",
+  "options",
+  "help_text",
+  "require_rating",
+  "require_remark"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "label": "naming_series",
+   "options": "AUD-"
+  },
+  {
+   "fieldname": "section_break_gvlc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "questionnaire",
+   "fieldtype": "Link",
+   "label": "Questionnaire",
+   "options": "Questionnaire Template"
+  },
+  {
+   "fieldname": "section",
+   "fieldtype": "Link",
+   "label": "Section",
+   "options": "Questionnaire Section"
+  },
+  {
+   "fieldname": "sequence",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Sequence"
+  },
+  {
+   "fieldname": "question",
+   "fieldtype": "Data",
+   "label": "Question"
+  },
+  {
+   "fieldname": "fieldname",
+   "fieldtype": "Data",
+   "label": "Fieldname"
+  },
+  {
+   "fieldname": "field_type",
+   "fieldtype": "Select",
+   "label": "Field Type",
+   "options": "Data\nSmall Text\nLong Text\nInt\nFloat\nCurrency\nCheck\nDate\nDatetime\nTime\nSelect\nLink\nAttach\nAttach Image\nRating\nTable\nSignature"
+  },
+  {
+   "fieldname": "options",
+   "fieldtype": "Small Text",
+   "label": "Options"
+  },
+  {
+   "default": "0",
+   "fieldname": "required",
+   "fieldtype": "Check",
+   "label": "Required"
+  },
+  {
+   "fieldname": "help_text",
+   "fieldtype": "Small Text",
+   "label": "Help Text"
+  },
+  {
+   "fieldname": "default_value",
+   "fieldtype": "Data",
+   "label": "Default Value"
+  },
+  {
+   "fieldname": "depends_on",
+   "fieldtype": "Data",
+   "label": "Depends On"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_visible",
+   "fieldtype": "Check",
+   "label": "Is Visible"
+  },
+  {
+   "fetch_from": "section.section_name",
+   "fieldname": "section_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Section Name"
+  },
+  {
+   "fieldname": "column_break_eala",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_oftl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_as48",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "require_rating",
+   "fieldtype": "Check",
+   "label": "Require Rating"
+  },
+  {
+   "default": "0",
+   "fieldname": "require_remark",
+   "fieldtype": "Check",
+   "label": "Require Remark"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-31 16:39:39.091285",
+ "modified_by": "bhavika_patel@gkexport.com",
+ "module": "GKE SURVEY",
+ "name": "Questionnaire Question",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "bhavika_patel@gkexport.com",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
