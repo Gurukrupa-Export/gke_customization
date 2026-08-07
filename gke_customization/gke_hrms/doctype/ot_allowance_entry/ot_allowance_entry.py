@@ -758,6 +758,7 @@ class OTAllowanceEntry(Document):
 			# }
 			# fields = ["date(time) as date", "log_type as type", "time(time) as time", "time as date_time", "source","name as employee_checkin", 
 			# 			f"date('{holiday.holiday_date}') as holiday", "employee", "shift"]
+			# 			# f"date('{holiday.holiday_date}') as holiday", "employee", "employee_name","shift"]
 
 			# data = frappe.get_list("Employee Checkin", filters= filters, fields=fields, order_by='date_time')
 			Checkin = DocType("Employee Checkin")
@@ -848,39 +849,18 @@ class OTAllowanceEntry(Document):
 		return final_result
 	
 	def get_emp_list(self):
-		# emp_list = []
-		# filters = {}
-		# if self.employee:
-		# 	filters["employee"] = self.employee
-		# if self.designation:
-		# 	filters["designation"] = self.designation
-		# if self.department:
-		# 	filters["department"] = self.department
-		# if self.company:
-		# 	filters["company"] = self.company
-
-		# emp_list = frappe.get_list("Employee", filters = filters, fields = ["default_shift","holiday_list","name","company", "designation", "department", "branch"])
-		Employee = DocType("Employee")
-
-		query = frappe.qb.from_(Employee).select(
-			Employee.default_shift,
-			Employee.holiday_list,
-			Employee.name,
-			Employee.company,
-			Employee.designation,
-			Employee.department,
-			Employee.branch
-		)
+		emp_list = []
+		filters = {}
 		if self.employee:
-			query = query.where(Employee.name == self.employee)
+			filters["employee"] = self.employee
 		if self.designation:
-			query = query.where(Employee.designation == self.designation)
+			filters["designation"] = self.designation
 		if self.department:
-			query = query.where(Employee.department == self.department)
+			filters["department"] = self.department
 		if self.company:
-			query = query.where(Employee.company == self.company)
+			filters["company"] = self.company
 
-		emp_list = query.run(as_dict=1)
+		emp_list = frappe.get_list("Employee", filters = filters, fields = ["default_shift","holiday_list","name","company", "designation", "department", "branch"])
 		holidays = {}
 		for emp in emp_list:
 			if shift:=emp.get("default_shift") and not emp.get("holiday_list"):

@@ -88,6 +88,7 @@ def get_pf_data(filters=None):
 			AND ss.end_date <= '{end_date}'
 			AND ss.company = '{filters.get("company")}'
 			AND emp.uan_number IS NOT NULL
+			AND ss._is_pf_applicable = 1
 			{emp_condition}
 		ORDER BY ss.employee_name
 		"""
