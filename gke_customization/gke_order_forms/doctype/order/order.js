@@ -548,21 +548,28 @@ frappe.ui.form.on('Order', {
 			
 		});
 				
-		if(dialog.get_value("item")) {
-			// set item_code variants value in the given dialog box
-			edit_item_documents(
-				frm,
-				dialog,
-				dialog.get_value("item"),
-				order_form_data 
-			);
-		};
+		// if(dialog.get_value("item")) {
+		// 	// set item_code variants value in the given dialog box
+		// 	edit_item_documents(
+		// 		frm,
+		// 		dialog,
+		// 		dialog.get_value("item"),
+		// 		order_form_data 
+		// 	);
+		// };
 
 		dialog.show();
 
 		dialog.$wrapper.find(".modal-dialog").css("max-width", "90%");
 		dialog.$wrapper.find('.modal-footer .btn-primary').hide();
-
+		if (frm.doc.design_id) {
+			edit_item_documents(
+				frm,
+				dialog,
+				frm.doc.design_id,
+				order_form_data
+			);
+		}
 		// hide update button
 		if (cur_frm.doc.docstatus == 1) {
 			dialog.$wrapper.find(".btn-modal-primary").remove();
