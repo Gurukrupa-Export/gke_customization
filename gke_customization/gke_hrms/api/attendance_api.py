@@ -362,7 +362,8 @@ def process_data(data, from_date, to_date, employee):
 				'hl_name': hl_name,
 				'from_date': from_date,
 				'to_date': to_date
-			}, as_dict=1)wo = [row.holiday_date for row in holidays if row.weekly_off]
+			}, as_dict=1)
+		wo = [row.holiday_date for row in holidays if row.weekly_off]
 		holidays = [row.holiday_date for row in holidays if not row.weekly_off]
 	
 	for row in data:
