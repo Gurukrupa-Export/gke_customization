@@ -713,7 +713,7 @@ frappe.ui.form.on("Order BOM Finding Detail", {
 
 let edit_item_documents = (frm,dialog,design_id,order_form_data) => {
 	var doc = frappe.get_doc("Item", design_id);
-	
+	console.log("DESIGN ID =", design_id);
 	if (!doc) {
 		frappe.call({
 			method: "frappe.client.get",
