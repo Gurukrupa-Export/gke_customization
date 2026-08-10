@@ -185,6 +185,9 @@ def build_other_detail(doc, new_bom):
 
 
 class ProductReturnOrder(Document):
+	pass
+
+	"""
 	def validate(self):
 		if self.workflow_state=='BOM Calculated':
 			if self.bom:
@@ -302,3 +305,4 @@ class ProductReturnOrder(Document):
 		compose_series = str(series_start + mnf_abbr + m_abbr + dg_abbr + final_date + ".####")
 		return compose_series
 
+	"""

@@ -22,12 +22,14 @@ frappe.query_reports["Repair Serial Weight Difference"] = {
 		{
 			fieldname: "tag_no",
 			label: __("Serial No"),
-			fieldtype: "Data"
+			fieldtype: "Link",
+			options: "Serial No"
 		},
 		{
 			fieldname: "party",
 			label: __("Customer"),
-			fieldtype: "Data"
+			fieldtype: "Link",
+			options: "Customer"
 		}
 	],
 
