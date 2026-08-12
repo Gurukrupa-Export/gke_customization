@@ -849,18 +849,39 @@ class OTAllowanceEntry(Document):
 		return final_result
 	
 	def get_emp_list(self):
-		emp_list = []
-		filters = {}
-		if self.employee:
-			filters["employee"] = self.employee
-		if self.designation:
-			filters["designation"] = self.designation
-		if self.department:
-			filters["department"] = self.department
-		if self.company:
-			filters["company"] = self.company
+		# emp_list = []
+		# filters = {}
+		# if self.employee:
+		# 	filters["employee"] = self.employee
+		# if self.designation:
+		# 	filters["designation"] = self.designation
+		# if self.department:
+		# 	filters["department"] = self.department
+		# if self.company:
+		# 	filters["company"] = self.company
 
-		emp_list = frappe.get_list("Employee", filters = filters, fields = ["default_shift","holiday_list","name","company", "designation", "department", "branch"])
+		# emp_list = frappe.get_list("Employee", filters = filters, fields = ["default_shift","holiday_list","name","company", "designation", "department", "branch"])
+		Employee = DocType("Employee")
+
+		query = frappe.qb.from_(Employee).select(
+			Employee.default_shift,
+			Employee.holiday_list,
+			Employee.name,
+			Employee.company,
+			Employee.designation,
+			Employee.department,
+			Employee.branch
+		)
+		if self.employee:
+			query = query.where(Employee.name == self.employee)
+		if self.designation:
+			query = query.where(Employee.designation == self.designation)
+		if self.department:
+			query = query.where(Employee.department == self.department)
+		if self.company:
+			query = query.where(Employee.company == self.company)
+
+		emp_list = query.run(as_dict=1)
 		holidays = {}
 		for emp in emp_list:
 			if shift:=emp.get("default_shift") and not emp.get("holiday_list"):
