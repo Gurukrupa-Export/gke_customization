@@ -625,6 +625,10 @@ class OTAllowanceEntry(Document):
 			.where(
 				(Attendance.docstatus == 1)
 				&
+				(Attendance.in_time.isnotnull())
+				&
+				(Attendance.out_time.isnotnull())
+				&
 				(
 					(shift_start_ts > Attendance.in_time) |
 					( To_Seconds( Time_Diff(Attendance.out_time,shift_end_ts) ) > 0 )
@@ -634,8 +638,23 @@ class OTAllowanceEntry(Document):
 
 		for condition in conditions:
 			query = query.where(condition)
-		
-		data = query.run(as_dict=True)
+			
+		filtered_data = query.run(as_dict=True)
+
+		data = []
+
+		for row in filtered_data:
+			if row.get("attendance"):
+				checkin_count = frappe.db.count(
+					"Employee Checkin",
+					{"attendance": row.get("attendance")}
+				)
+
+				# Exclude odd number of checkins
+				if checkin_count % 2 != 0:
+					continue
+
+			data.append(row)
 
 		self.ot_details = []
 		
