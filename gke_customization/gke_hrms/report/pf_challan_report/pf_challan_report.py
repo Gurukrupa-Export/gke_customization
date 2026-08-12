@@ -153,7 +153,7 @@ def get_account_total_summary(filters=None):
 		{}
 	)
 
-	employee_count = sum(1 for row in pf_totals if (row.get("eps_wage") != 0))
+	employee_count = sum(1 for row in pf_totals if (row.get("eps_wage") > 0))
 	
 	# employee_count_raw = total_row.get("employee_name", 0)
 	# if isinstance(employee_count_raw, str) and ":" in employee_count_raw:
@@ -211,7 +211,7 @@ def get_account_total_summary(filters=None):
 			"ac_no_22": ac_no_22,
 		},
 		"grand_total": total_amount,
-		"employee_count": len(data),
+		"employee_count": len(employee_data),
 		"gross_pay": sum((row.get("gross_pay") or 0) for row in data),
 		"pf_amount": sum((row.get("pf_amount") or 0) for row in data),
 	}
