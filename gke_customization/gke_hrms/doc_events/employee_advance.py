@@ -4,7 +4,7 @@ from frappe.utils import fmt_money
 
 def calculate_working_days(doc, method=None):
     # added by shubham
-    check_already_exist_loan_application = frappe.db.get_list(
+    check_already_exist_loan_application = frappe.db.get_all(
             "Employee Advance",
             filters={"employee": doc.employee},
             fields=["status", "name"]
