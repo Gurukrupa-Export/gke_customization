@@ -8,6 +8,7 @@ frappe.ui.form.on('Repair Order', {
 		hide_all_subcategory_attribute_fields(frm)
 		show_attribute_fields_for_subcategory(frm)
 	},
+	
 	order_form(frm){
 		if(frm.doc.order_form){
 			frm.set_df_property('cad', 'hidden', 1)
@@ -19,7 +20,39 @@ frappe.ui.form.on('Repair Order', {
 	est_delivery_date(frm) {
 		validate_dates(frm, frm.doc, "est_delivery_date")
 		frm.set_value('est_due_days', frappe.datetime.get_day_diff(frm.doc.est_delivery_date, frm.doc.order_date));
-	}
+	},
+	setup(frm, cdt, cdn) {
+	var fields = [
+		['metal_type', 'Metal Type'],
+		// ['metal_purity', 'Metal Purity'],
+		['metal_touch', 'Metal Touch'],
+		['metal_colour', 'Metal Colour'],
+		['metal_purity', 'Metal Purity'],
+
+	];
+	set_filters_on_child_table_fields(frm, 'metal_detail', fields);
+
+	var diamond_fields = [
+		['stone_shape', 'Stone Shape'],
+		['sub_setting_type', 'Sub Setting Type'],
+		// ['size_in_mm', 'Size In MM'],
+		// ['sieve_size', 'Sieve Size'],
+		// ['sieve_size_range', 'Sieve Size Range'],
+		['diamond_grade', 'Diamond Grade'],
+		['quality', 'Diamond Quality'],
+	];
+	set_filters_on_child_table_fields(frm, 'diamond_detail', diamond_fields);
+	var finding_fields = [
+		['metal_type', 'Metal Type'],
+		['metal_touch', 'Metal Touch'],
+		['metal_purity', 'Metal Purity'],
+		['metal_colour', 'Metal Colour'],
+		['finding_category', 'Finding Category'],
+		['finding_type', 'Finding Sub-Category'],
+		['finding_size', 'Finding Size'],
+	];
+	set_filters_on_child_table_fields(frm, 'finding_detail', finding_fields);
+},
 });
 
 
@@ -69,7 +102,7 @@ function show_attribute_fields_for_subcategory(frm) {
 function hide_all_subcategory_attribute_fields(frm) {
 	var fields = [
 		"metal_target", "diamond_target", "metal_colour", "product_size",
-		"length", "height", "sizer_type", "enamal", "rhodium", "stone_type",
+		"length", "height", "enamal", "rhodium", "stone_type",
 		"gemstone_type", "gemstone_quality", "stone_changeable",
 		"changeable", "hinges", "back_belt", "vanki_type", "black_beed",
 		"black_beed_line", "screw_type", "hook_type", "lock_type", "two_in_one",
@@ -88,3 +121,14 @@ function validate_dates(frm, doc, dateField) {
         frappe.model.set_value(doc.doctype, doc.name, dateField, frappe.datetime.add_days(order_date,1))
     }
 }
+function set_filters_on_child_table_fields(frm, table_name, fields) {
+	fields.map(function (field) {
+		frm.set_query(field[0], table_name, function () {
+			return {
+				query: 'jewellery_erpnext.query.item_attribute_query',
+				filters: { 'item_attribute': field[1] }
+			};
+		});
+	});
+}
+
