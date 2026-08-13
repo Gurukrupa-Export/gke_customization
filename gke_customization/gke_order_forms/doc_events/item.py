@@ -1027,7 +1027,7 @@ def create_bom_kggk(doc, method=None):
                     "difference": row.difference,
                     "fg_purchase_rate": row.fg_purchase_rate,
                     "finding_category": row.finding_category,
-                    "finding_size": row.finding_size,
+                    "finding_size": row.finding_size or 0,
                     "finding_type": row.finding_type,
                     "ignore_work_order": row.ignore_work_order,
                     "is_customer_item": row.is_customer_item,
