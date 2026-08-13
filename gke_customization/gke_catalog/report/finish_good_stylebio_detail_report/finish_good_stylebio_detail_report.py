@@ -79,12 +79,12 @@ def get_columns():
             "fieldtype": "Data",
             "width": 120,
         },
-        {
-            "label": _("Code"),
-            "fieldname": "code",
-            "fieldtype": "Data",
-            "width": 100,
-        },
+        # {
+        #     "label": _("Code"),
+        #     "fieldname": "code",
+        #     "fieldtype": "Data",
+        #     "width": 100,
+        # },
         {
             # Changed from Float -> Int so Pcs always renders as a whole number
             "label": _("Pcs"),
@@ -149,10 +149,6 @@ def get_conditions(filters):
         conditions.append("DATE(sn.creation) <= %(to_date)s")
         values["to_date"] = filters.get("to_date")
 
-    if filters.get("company"):
-        conditions.append("bom.company = %(company)s")
-        values["company"] = filters.get("company")
-
     if filters.get("branch"):
         conditions.append("emp.branch = %(branch)s")
         values["branch"] = filters.get("branch")
@@ -194,7 +190,7 @@ def get_data(filters):
             '' AS shape,
             bmd.metal_purity AS purity,
             '' AS size,
-            '' AS code,
+            /* '' AS code, */
             1 AS pcs,
             IFNULL(bmd.quantity,0) AS weight,
 
@@ -236,14 +232,12 @@ def get_data(filters):
             IFNULL(bdd.stone_shape,'') AS shape,
             IFNULL(bdd.quality,'') AS purity,
             IFNULL(bdd.diamond_sieve_size,'') AS size,
-            '' AS code,
+            /* '' AS code, */
             CAST(IFNULL(bdd.pcs,0) AS SIGNED) AS pcs,
             IFNULL(bdd.quantity,0) AS weight,
 
-    ROUND(
-        IFNULL(bdd.quantity,0) / 5,
-        3
-    ) AS pure_weight,
+    /* Diamond pure weight is not computed, always 0 */
+    0 AS pure_weight,
 
     0  AS metal_ratio,
             2 AS sort_order
@@ -275,7 +269,8 @@ SELECT
     IFNULL(bfd.finding_type,'') AS shape,
     IFNULL(bfd.metal_purity,'') AS purity,
     IFNULL(bfd.finding_size,'') AS size,
-    IFNULL(bfd.item,'') AS code,
+
+    /* IFNULL(bfd.item,'') AS code, */
 
     CAST(IFNULL(bfd.qty,0) AS SIGNED) AS pcs,
    IFNULL(bfd.quantity,0) AS weight,
@@ -324,16 +319,14 @@ SELECT
 
     IFNULL(bgd.gemstone_size,'') AS size,
 
-    IFNULL(bgd.gemstone_code,'') AS code,
+    /* IFNULL(bgd.gemstone_code,'') AS code, */
 
     CAST(IFNULL(bgd.pcs,0) AS SIGNED) AS pcs,
 
     IFNULL(bgd.quantity,0) AS weight,
 
-ROUND(
-    IFNULL(bgd.quantity,0) / 5,
-    3
-) AS pure_weight,
+/* Gemstone pure weight is not computed, always 0 */
+0 AS pure_weight,
 
 0 AS metal_ratio,
 
@@ -376,7 +369,7 @@ SELECT
 
     '' AS size,
 
-    IFNULL(bod.item_code,'') AS code,
+    /* IFNULL(bod.item_code,'') AS code, */
 
     CAST(IFNULL(bod.qty,0) AS SIGNED) AS pcs,
 
@@ -414,14 +407,13 @@ INNER JOIN `tabBOM Other Detail` bod
 def group_duplicate_rows(data):
     """
     Group duplicate rows by Serial No.
-    Display parent values only once (Jewlex style).
+    Repeat parent values on every row of the same piece.
     """
 
     if not data:
         return []
 
     grouped_data = []
-    previous_serial = None
 
     for row in data:
 
@@ -451,19 +443,6 @@ def group_duplicate_rows(data):
         for key, value in row.items():
             if value is None and key not in ("gross_wt",):
                 row[key] = ""
-
-        # Hide duplicate parent values
-        if previous_serial == row["serial_no"]:
-
-            row["serial_no"] = ""
-            row["stylebio"] = ""
-            row["category"] = ""
-            row["sub_category"] = ""
-            row["setting"] = ""
-            row["gross_wt"] = None  # keep as None, not "", so it stays blank
-
-        else:
-            previous_serial = row["serial_no"]
 
         grouped_data.append(row)
 
