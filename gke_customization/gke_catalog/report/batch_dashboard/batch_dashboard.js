@@ -5,9 +5,10 @@
 frappe.query_reports["Batch dashboard"] = {
     filters: [
         {
-            fieldname: "order_no",
-            label: __("Order No"),
-            fieldtype: "Data",
+            fieldname: "sales_order",
+            label: __("Sales Order"),
+            fieldtype: "Link",
+            options: "Sales Order",
         },
         {
             fieldname: "to_department",
@@ -21,17 +22,14 @@ frappe.query_reports["Batch dashboard"] = {
             fieldtype: "Select",
             options: [
                 "",
-                "Department Stock",
-                "Department Issue",
-                "Employee Issue",
-                "Customer Issue",
+                "Draft",
+                "Not Started",
+                "In Process",
+                "Completed",
+                "Stopped",
+                "Closed",
+                "Cancelled",
             ].join("\n"),
-        },
-        {
-            fieldname: "priority",
-            label: __("Priority"),
-            fieldtype: "Select",
-            options: ["", "NORMAL", "PRIORITY:1"].join("\n"),
         },
         {
             fieldname: "from_due_date",
@@ -65,53 +63,72 @@ frappe.query_reports["Batch dashboard"] = {
 
     onload: function (report) {
         report.page.main.on("click", ".batch-detail-icon", function () {
-            show_batch_detail_dialog($(this).data("batch"));
+            const $btn = $(this);
+            if ($btn.hasClass("disabled")) return;
+            $btn.addClass("disabled");
+            show_batch_detail_dialog($btn.data("batch"), () => $btn.removeClass("disabled"));
         });
 
         report.page.main.on("click", ".batch-history-icon", function () {
-            show_batch_history_dialog($(this).data("batch"));
+            const $btn = $(this);
+            if ($btn.hasClass("disabled")) return;
+            $btn.addClass("disabled");
+            show_batch_history_dialog($btn.data("batch"), () => $btn.removeClass("disabled"));
         });
     },
 };
 
-function show_batch_detail_dialog(batch_no) {
+function show_batch_detail_dialog(batch_no, on_close) {
+    function to_float(v) {
+        return typeof flt === "function" ? flt(v) : parseFloat(v) || 0;
+    }
+
     frappe.call({
-        method: "frappe.client.get_list",
+        method: "gke_customization.gke_catalog.report.batch_dashboard.batch_dashboard.get_batch_detail",
         args: {
-            doctype: "Batch Detail",
-            filters: { parent: batch_no },
-            fields: ["type", "shape", "purity", "size", "code", "weight", "pcs"],
-            parent: "Batch",
-            limit_page_length: 0,
+            batch_no: batch_no,
         },
         callback: function (r) {
             const rows = r.message || [];
-            const total_weight = rows.reduce((sum, d) => sum + (flt(d.weight) || 0), 0);
-            const total_pcs = rows.reduce((sum, d) => sum + (flt(d.pcs) || 0), 0);
+            const total_qty = rows.reduce((sum, d) => sum + (to_float(d.qty) || 0), 0);
+            const total_amount = rows.reduce((sum, d) => sum + (to_float(d.amount) || 0), 0);
 
             let html = `
                 <table class="table table-bordered">
                     <thead><tr>
-                        <th>${__("Type")}</th><th>${__("Shape")}</th><th>${__("Purity")}</th>
-                        <th>${__("Size")}</th><th>${__("Code")}</th>
-                        <th>${__("Weight")}</th><th>${__("Pcs")}</th>
+                        <th>${__("Stock Entry")}</th><th>${__("Item Code")}</th><th>${__("Item Name")}</th>
+                        <th>${__("Source Warehouse")}</th><th>${__("Target Warehouse")}</th>
+                        <th>${__("Batch No")}</th>
+                        <th>${__("Qty")}</th><th>${__("UOM")}</th>
+                        <th>${__("Rate")}</th><th>${__("Amount")}</th>
                     </tr></thead>
                     <tbody>`;
 
-            rows.forEach((d) => {
-                html += `<tr>
-                    <td>${d.type || ""}</td><td>${d.shape || ""}</td><td>${d.purity || ""}</td>
-                    <td>${d.size || ""}</td><td>${d.code || ""}</td>
-                    <td class="text-right">${flt(d.weight).toFixed(3)}</td>
-                    <td class="text-right">${d.pcs || 0}</td>
-                </tr>`;
-            });
+            if (!rows.length) {
+                html += `
+                    <tr>
+                        <td colspan="10" class="text-center text-muted">${__("No stock entry found")}</td>
+                    </tr>
+                `;
+            } else {
+                rows.forEach((d) => {
+                    html += `<tr>
+                        <td>${d.stock_entry || ""}</td><td>${d.item_code || ""}</td><td>${d.item_name || ""}</td>
+                        <td>${d.s_warehouse || ""}</td><td>${d.t_warehouse || ""}</td>
+                        <td>${d.batch_no || ""}</td>
+                        <td class="text-right">${to_float(d.qty).toFixed(3)}</td><td>${d.uom || ""}</td>
+                        <td class="text-right">${to_float(d.basic_rate).toFixed(2)}</td>
+                        <td class="text-right">${to_float(d.amount).toFixed(2)}</td>
+                    </tr>`;
+                });
+            }
 
             html += `</tbody>
                 <tfoot><tr>
-                    <th colspan="5" class="text-right">${__("Total")}</th>
-                    <th class="text-right">${total_weight.toFixed(3)}</th>
-                    <th class="text-right">${total_pcs}</th>
+                    <th colspan="6" class="text-right">${__("Total")}</th>
+                    <th class="text-right">${total_qty.toFixed(3)}</th>
+                    <th></th><th></th>
+                    <th class="text-right">${total_amount.toFixed(2)}</th>
                 </tr></tfoot>
                 </table>`;
 
@@ -119,16 +136,16 @@ function show_batch_detail_dialog(batch_no) {
                 title: __("Batch Detail") + " - " + batch_no,
                 size: "large",
                 fields: [{ fieldtype: "HTML", options: html }],
+                onhide: on_close,
             }).show();
         },
+        error: function () {
+            on_close && on_close();
+        },
     });
-
-    function flt(v) {
-        return frappe.utils ? frappe.utils.flt(v) : parseFloat(v) || 0;
-    }
 }
 
-function show_batch_history_dialog(batch_no) {
+function show_batch_history_dialog(batch_no, on_close) {
     frappe.call({
         method: "gke_customization.gke_catalog.report.batch_dashboard.batch_dashboard.get_batch_history",
         args: {
@@ -146,7 +163,7 @@ function show_batch_history_dialog(batch_no) {
                             <th>${__("Receive Date")}</th>
                             <th>${__("Receive Time")}</th>
                             <th>${__("Employee Name")}</th>
-                            <th>${__("Current Operation")}</th>
+                            <th>${__("Operation")}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -180,7 +197,11 @@ function show_batch_history_dialog(batch_no) {
                 title: __("Batch History") + " - " + batch_no,
                 size: "extra-large",
                 fields: [{ fieldtype: "HTML", options: html }],
+                onhide: on_close,
             }).show();
+        },
+        error: function () {
+            on_close && on_close();
         },
     });
 }
