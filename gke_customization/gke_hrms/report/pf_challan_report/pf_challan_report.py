@@ -153,7 +153,12 @@ def get_account_total_summary(filters=None):
 		{}
 	)
 
-	employee_count = sum(1 for row in pf_totals if (row.get("eps_wage") > 0))
+	eps_wage_total = [
+		row for row in pf_totals
+		if row.get("company") != "Total" 
+	]
+
+	employee_count = sum(1 for row in eps_wage_total if (row.get("eps_wage") > 0))
 	
 	# employee_count_raw = total_row.get("employee_name", 0)
 	# if isinstance(employee_count_raw, str) and ":" in employee_count_raw:
