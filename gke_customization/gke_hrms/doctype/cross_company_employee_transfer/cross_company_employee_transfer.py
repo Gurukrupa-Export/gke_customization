@@ -162,7 +162,7 @@ class CrossCompanyEmployeeTransfer(Document):
 
 			try:
 				response = requests.post(
-					"https://kggk-uat.m.frappe.cloud/api/method/create_transfer_employee",
+					"https://kggk-prod.frappe.cloud/api/method/create_transfer_employee",
 					
 					json={
 						"employee_data": payload
@@ -184,6 +184,7 @@ class CrossCompanyEmployeeTransfer(Document):
 
 				else:
 					import json
+					# frappe.throw(f"{response_data.get("message")}")
 					frappe.throw(
 						"Employee creation failed in KGGK\n\n" +
 						"\n".join(
@@ -200,11 +201,13 @@ class CrossCompanyEmployeeTransfer(Document):
 				)
 				raise
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def get_kggk_data(property=None):
 
     response = requests.get(
-        "https://kggk-uat.m.frappe.cloud/api/method/get_dept_desi_reprt_leave_apr_from_kggk"
+        "https://kggk-prod.frappe.cloud/api/method/get_dept_desi_reprt_leave_apr_from_kggk"
     )
 
     return response.json()	
+
+
