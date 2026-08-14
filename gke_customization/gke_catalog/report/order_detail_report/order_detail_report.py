@@ -72,6 +72,8 @@ def get_columns(filters=None):
         {"label": "Sales Order ID", "fieldname": "pmo_sales_order_id", "fieldtype": "Link", "options": "Sales Order"},
         {"label": "Customer PO", "fieldname": "pmo_customer_po", "fieldtype": "Data"},
         {"label": "Jewelex Order No", "fieldname": "pmo_jewelex_order_no", "fieldtype": "Data"},
+        {"label": "Jewelex Batch No", "fieldname": "pmo_jewelex_batch_no", "fieldtype": "Data"},
+        
         {"label": "Parent Quotation ID", "fieldname": "pmo_parent_quotation_id", "fieldtype": "Link", "options": "Quotation"},
         {"label": "Parent Sales Order ID", "fieldname": "pmo_parent_sales_order_id", "fieldtype": "Link", "options": "Sales Order"},
         {"label": "Parent Plan ID", "fieldname": "pmo_parent_plan_id", "fieldtype": "Link", "options": "Manufacturing Plan"},
@@ -154,6 +156,7 @@ def get_data(filters):
     pmo.sales_order AS pmo_sales_order_id,
     pmo.po_no AS pmo_customer_po,
     pmo.jewelex_order_no AS pmo_jewelex_order_no,
+    pmo.jewelex_batch_no AS pmo_jewelex_batch_no,
     pmo.parent_quotation AS pmo_parent_quotation_id,
     pmo.parent_sales_order AS pmo_parent_sales_order_id,
     pmo.parent_mp AS pmo_parent_plan_id,
