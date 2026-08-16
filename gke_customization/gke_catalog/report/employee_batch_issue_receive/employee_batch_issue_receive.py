@@ -69,10 +69,18 @@ def get_columns():
             "width": 150
         },
         {
-            "label": _("Main Slip"),
-            "fieldname": "main_slip",
-            "fieldtype": "Data",
-            "width": 120
+            "label": _("Issue ID"),
+            "fieldname": "issue_ir",
+            "fieldtype": "Link",
+            "options": "Employee IR",
+            "width": 130
+        },
+        {
+            "label": _("Receive ID"),
+            "fieldname": "receive_ir",
+            "fieldtype": "Link",
+            "options": "Employee IR",
+            "width": 130
         },
         {
             "label": _("Employee Name"),
@@ -163,13 +171,6 @@ def get_columns():
             "precision": 3
         },
         {
-            "label": _("Allow Loss %"),
-            "fieldname": "allow_loss",
-            "fieldtype": "Float",
-            "width": 110,
-            "precision": 2
-        },
-        {
             "label": _("Issue Date"),
             "fieldname": "issue_date",
             "fieldtype": "Datetime",
@@ -242,14 +243,17 @@ def get_data(filters):
     # Merge Employee IR data into main data
     for row in main_data:
         key = (row.get("manufacturing_operation"), row.get("employee_id"))
+
         if key in ir_mapping:
             if ir_mapping[key]["issue"]:
                 row["issue_date"] = ir_mapping[key]["issue"].get("date_time")
                 row["issue_by"] = ir_mapping[key]["issue"].get("full_name") or ir_mapping[key]["issue"].get("owner")
-            
+                row["issue_ir"] = ir_mapping[key]["issue"].get("employee_ir")
+
             if ir_mapping[key]["receive"]:
                 row["receive_date"] = ir_mapping[key]["receive"].get("date_time")
                 row["receive_by"] = ir_mapping[key]["receive"].get("full_name") or ir_mapping[key]["receive"].get("owner")
+                row["receive_ir"] = ir_mapping[key]["receive"].get("employee_ir")
 
         row["time_diff"] = get_time_diff_str(row.get("issue_date"), row.get("receive_date"))
 
@@ -291,7 +295,6 @@ def get_main_data(filters):
             mo.manufacturer,
             mo.department,
             mo.operation,
-            mo.main_slip_no as main_slip,
             emp.employee_name,
             mo.employee as employee_id,
             mo.gross_wt,
@@ -308,7 +311,6 @@ def get_main_data(filters):
                 WHEN mo.loss_wt < 0 THEN ABS(mo.loss_wt)
                 ELSE NULL 
             END as loss_wt,
-            mo.allowed_loss_percentage as allow_loss,
             mwo.customer
         FROM 
             `tabManufacturing Operation` mo
@@ -361,12 +363,10 @@ def get_employee_ir_data(filters):
     
     if filters.get("employee_id"):
         operation_conditions += " AND eir.employee = %(employee_id)s"
-    
-    if filters.get("company"):
-        operation_conditions += " AND mo.company = %(company)s"
-    
+
     query = f"""
-        SELECT 
+        SELECT
+            eir.name as employee_ir,
             eiro.manufacturing_operation,
             eir.employee,
             eir.type,
@@ -397,9 +397,6 @@ def get_employee_ir_data(filters):
 
 def get_conditions(filters):
     conditions = ""
-    
-    if filters.get("company"):
-        conditions += " AND mo.company = %(company)s"
 
     # # Branch filter optional - includes NULL values
     # if filters.get("branch"):
@@ -434,45 +431,39 @@ def get_employees_by_operation(doctype, txt, searchfield, start, page_len, filte
     """Get employees who worked on a specific operation"""
     department = filters.get("department")
     operation = filters.get("operation")
-    company = filters.get("company")
-    
-    # If no operation selected, return all active employees in company
+
+    # If no operation selected, return all active employees
     if not operation:
         return frappe.db.sql("""
-            SELECT DISTINCT 
+            SELECT DISTINCT
                 emp.name,
                 emp.employee_name
             FROM `tabEmployee` emp
-            WHERE 
-                emp.company = %(company)s
-                AND emp.status = 'Active'
+            WHERE
+                emp.status = 'Active'
                 AND (emp.name LIKE %(txt)s OR emp.employee_name LIKE %(txt)s)
             ORDER BY emp.employee_name
             LIMIT %(start)s, %(page_len)s
         """, {
-            "company": company,
             "txt": "%" + txt + "%",
             "start": start,
             "page_len": page_len
         })
-    
+
     # If operation selected, filter employees who worked on that operation
     conditions = "mo.operation = %(operation)s"
-    
+
     if department:
         conditions += " AND mo.department = %(department)s"
-    
-    if company:
-        conditions += " AND mo.company = %(company)s"
-    
+
     return frappe.db.sql(f"""
-        SELECT DISTINCT 
+        SELECT DISTINCT
             emp.name,
             emp.employee_name
         FROM `tabEmployee` emp
-        INNER JOIN `tabManufacturing Operation` mo 
+        INNER JOIN `tabManufacturing Operation` mo
             ON mo.employee = emp.name
-        WHERE 
+        WHERE
             {conditions}
             AND emp.status = 'Active'
             AND (emp.name LIKE %(txt)s OR emp.employee_name LIKE %(txt)s)
@@ -481,7 +472,6 @@ def get_employees_by_operation(doctype, txt, searchfield, start, page_len, filte
     """, {
         "department": department,
         "operation": operation,
-        "company": company,
         "txt": "%" + txt + "%",
         "start": start,
         "page_len": page_len

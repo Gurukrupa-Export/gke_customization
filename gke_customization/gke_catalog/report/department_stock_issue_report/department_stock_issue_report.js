@@ -40,7 +40,7 @@ frappe.query_reports["Department Stock Issue Report"] = {
             "fieldname": "status",
             "label": __("Status"),
             "fieldtype": "Select",
-            "options": ["", "Transit", "Received"],
+            "options": ["", "Transit", "Received", "Issued"],
             "default": ""
         },
         {
@@ -119,6 +119,8 @@ frappe.query_reports["Department Stock Issue Report"] = {
                 value = "<span style='color: orange; font-weight: bold;'>Transit</span>";
             } else if (value == "Received") {
                 value = "<span style='color: green; font-weight: bold;'>Received</span>";
+            } else if (value == "Issued") {
+                value = "<span style='color: #2490ef; font-weight: bold;'>Issued</span>";
             }
         }
         
