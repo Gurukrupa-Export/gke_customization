@@ -127,9 +127,10 @@ def get_data(filters):
                 (SELECT department FROM `tabWarehouse` WHERE name = sed.t_warehouse),
                 'N/A'
             ) as to_department,
-            CASE 
+            CASE
+                WHEN se.stock_entry_type = 'Material Issue' THEN 'Issued'
                 WHEN EXISTS (
-                    SELECT 1 FROM `tabStock Entry` se2 
+                    SELECT 1 FROM `tabStock Entry` se2
                     WHERE (se2.outgoing_stock_entry = se.name OR se2.repack_entry = se.name)
                     AND se2.docstatus = 1
                 ) THEN 'Received'
@@ -140,16 +141,16 @@ def get_data(filters):
             sed.item_code as item_code,
             sed.qty as qty,
             COALESCE(sed.pcs, 1) as pcs
-        FROM 
+        FROM
             `tabStock Entry` se
-        INNER JOIN 
+        INNER JOIN
             `tabStock Entry Detail` sed ON se.name = sed.parent
-        INNER JOIN 
+        LEFT JOIN
             `tabWarehouse` tw ON sed.t_warehouse = tw.name
-        WHERE 
-            se.stock_entry_type IN ('Material Transfer(Department)', 'Material Transfer (Department)', 'Customer Goods Transfer')
+        WHERE
+            se.stock_entry_type IN ('Material Transfer(Department)', 'Material Transfer (Department)', 'Customer Goods Transfer', 'Material Issue')
             AND se.docstatus = 1
-            AND tw.warehouse_type = 'Transit'
+            AND (tw.warehouse_type = 'Transit' OR se.stock_entry_type = 'Material Issue')
             AND sed.serial_no IS NULL
             AND sed.batch_no IS NOT NULL
             {conditions}
@@ -225,17 +226,19 @@ def get_conditions(filters):
     
     if filters.get("status"):
         if filters.get("status") == "Transit":
-            conditions.append("""AND NOT EXISTS (
-                SELECT 1 FROM `tabStock Entry` se2 
+            conditions.append("""AND se.stock_entry_type != 'Material Issue' AND NOT EXISTS (
+                SELECT 1 FROM `tabStock Entry` se2
                 WHERE (se2.outgoing_stock_entry = se.name OR se2.repack_entry = se.name)
                 AND se2.docstatus = 1
             )""")
         elif filters.get("status") == "Received":
-            conditions.append("""AND EXISTS (
-                SELECT 1 FROM `tabStock Entry` se2 
+            conditions.append("""AND se.stock_entry_type != 'Material Issue' AND EXISTS (
+                SELECT 1 FROM `tabStock Entry` se2
                 WHERE (se2.outgoing_stock_entry = se.name OR se2.repack_entry = se.name)
                 AND se2.docstatus = 1
             )""")
+        elif filters.get("status") == "Issued":
+            conditions.append("AND se.stock_entry_type = 'Material Issue'")
     
     if filters.get("manufacturer"):
         conditions.append("AND se.manufacturer = %(manufacturer)s")
