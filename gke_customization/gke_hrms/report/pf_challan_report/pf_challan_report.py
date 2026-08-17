@@ -131,47 +131,70 @@ def get_total(data, employee=None, filters=None):
 
 @frappe.whitelist()
 def get_account_total_summary(filters=None):
-    if isinstance(filters, str):
-        filters = frappe.parse_json(filters)
-    filters = filters or {}
+	if isinstance(filters, str):
+		filters = frappe.parse_json(filters)
+	filters = filters or {}
     
-    data = get_data(filters)
-    ac1_subscribers = len(data)
-    ac21_subscribers = len(data)
-    pf_totals = get_pf_data(filters)
-    total_row = next(
+	data = get_data(filters)
+
+		# Exclude Total row
+	employee_data = [
+		row for row in data
+		if row.get("company") != "Total"
+	]
+
+	ac1_subscribers = len(employee_data)
+	ac21_subscribers = len(employee_data)
+
+
+	pf_totals = get_pf_data(filters)
+	total_row = next(
 		(row for row in pf_totals if row.get("company") == "Total"),
 		{}
 	)
+
+	eps_wage_total = [
+		row for row in pf_totals
+		if row.get("company") != "Total" 
+	]
+
+	employee_count = sum(1 for row in eps_wage_total if (row.get("eps_wage") > 0))
+	
+	# employee_count_raw = total_row.get("employee_name", 0)
+	# if isinstance(employee_count_raw, str) and ":" in employee_count_raw:
+	# 	employee_count = int(employee_count_raw.split(":")[-1].strip())
+	# else:
+	# 	employee_count = int(employee_count_raw or 0)
+
+	# employee_count = sum(1 for row in data if (row.get("gross_pay") or 0) != 0)
+	# employee_count_raw = total_row.get("employee_name", 0)
+	# if isinstance(employee_count_raw, str) and ":" in employee_count_raw:
+	# 	employee_count = int(employee_count_raw.split(":")[-1].strip())
+	# else:
+	# 	employee_count = int(employee_count_raw or 0)
+
+	ac10_subscribers = employee_count
+	# frappe.msgprint(f"Total Row: {employee_count} {ac1_subscribers} {ac21_subscribers}")
+
+	total_epf_amount = total_row.get("epf_wage", 0)
+	total_edli_amount = total_row.get("edli_wage", 0)
+	total_eps_amount = total_row.get("eps_wage", 0)
+	total_ee_share = total_row.get("ee_share")
+	total_eps_contribution = total_row.get("eps_con")
+	total_er_share = total_row.get("er_share", 0)
     
-    employee_count = sum(1 for row in data if (row.get("gross_pay") or 0) != 0)
-    employee_count_raw = total_row.get("employee_name", 0)
-    if isinstance(employee_count_raw, str) and ":" in employee_count_raw:
-        employee_count = int(employee_count_raw.split(":")[-1].strip())
-    else:
-        employee_count = int(employee_count_raw or 0)
+	ac1_wages = total_epf_amount
+	ac10_wages = total_eps_amount
+	ac21_wages = total_epf_amount
+
+	ac_no_1_employee = total_ee_share
+	ac_no_1_employer = total_er_share
+	ac_no_2 = round((total_epf_amount * 0.5) / 100)
+	ac_no_10 = total_eps_contribution
+	ac_no_21 = round((total_epf_amount * 0.5) / 100)
+	ac_no_22 = 0
     
-    ac10_subscribers = employee_count
-    
-    total_epf_amount = total_row.get("epf_wage", 0)
-    total_edli_amount = total_row.get("edli_wage", 0)
-    total_eps_amount = total_row.get("eps_wage", 0)
-    total_ee_share = total_row.get("ee_share", 0)
-    total_eps_contribution = total_row.get("eps_con", 0)
-    total_er_share = total_row.get("er_share", 0)
-    
-    ac1_wages = total_epf_amount
-    ac10_wages = total_eps_amount
-    ac21_wages = total_epf_amount
-    
-    ac_no_1_employee = total_ee_share
-    ac_no_1_employer = total_er_share
-    ac_no_2 = round((total_epf_amount * 0.5) / 100)
-    ac_no_10 = total_eps_contribution
-    ac_no_21 = round((total_epf_amount * 0.5) / 100)
-    ac_no_22 = 0
-    
-    total_amount = (
+	total_amount = (
 		(ac_no_1_employee or 0)
 		+ (ac_no_1_employer or 0)
 		+ (ac_no_2 or 0)
@@ -180,7 +203,7 @@ def get_account_total_summary(filters=None):
 		+ (ac_no_22 or 0)
 	)
     
-    return {
+	return {
 		"ac1": {"subscribers": ac1_subscribers, "wages": ac1_wages},
 		"ac10": {"subscribers": ac10_subscribers, "wages": ac10_wages},
 		"ac21": {"subscribers": ac21_subscribers, "wages": ac21_wages},
@@ -193,7 +216,7 @@ def get_account_total_summary(filters=None):
 			"ac_no_22": ac_no_22,
 		},
 		"grand_total": total_amount,
-		"employee_count": len(data),
+		"employee_count": len(employee_data),
 		"gross_pay": sum((row.get("gross_pay") or 0) for row in data),
 		"pf_amount": sum((row.get("pf_amount") or 0) for row in data),
 	}
