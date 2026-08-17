@@ -61,8 +61,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Type",
-   "options": "Attribute Value",
-   "reqd": 1
+   "options": "Attribute Value"
   },
   {
    "fieldname": "metal_touch",
@@ -77,8 +76,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Metal Purity",
-   "options": "Attribute Value",
-   "reqd": 1
+   "options": "Attribute Value"
   },
   {
    "allow_on_submit": 1,
@@ -92,8 +90,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Colour",
-   "options": "Attribute Value",
-   "reqd": 1
+   "options": "Attribute Value"
   },
   {
    "fieldname": "cad_weight",
@@ -146,8 +143,7 @@
    "fieldname": "quantity",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Weight (in gms)",
-   "reqd": 1
+   "label": "Weight (in gms)"
   },
   {
    "fieldname": "quantity_3",
@@ -299,8 +295,8 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-21 20:29:02.211717",
- "modified_by": "shruti_b@gkexport.com",
+ "modified": "2026-08-17 23:11:18.505913",
+ "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Product Return Order Metal Detail",
  "owner": "shruti_b@gkexport.com",
