@@ -18,76 +18,20 @@ frappe.query_reports["Finish Good Stylebio Detail Report"] = {
             default: frappe.datetime.get_today()
         },
         {
-            fieldname: "company",
-            label: __("Company"),
-            fieldtype: "Link",
-            options: "Company",
-            reqd: 1,
-            default: frappe.defaults.get_user_default("Company"),
-            on_change: function(report) {
-                report.set_filter_value("branch", "");
-                report.set_filter_value("department", "");
-                report.refresh();
-            }
-        },
-        {
-            fieldname: "branch",
-            label: __("Branch"),
-            fieldtype: "Link",
-            options: "Branch",
-            get_query: function() {
-
-                let company = frappe.query_report.get_filter_value("company");
-
-                let filters = {};
-
-                if (company) {
-                    filters.company = company;
-                }
-
-                return {
-                    filters: filters
-                };
-            },
-            on_change: function(report) {
-                report.set_filter_value("department", "");
-                report.refresh();
-            }
-        },
-        {
             fieldname: "department",
             label: __("Department"),
             fieldtype: "Link",
-            options: "Department",
-            get_query: function() {
-
-                let company = frappe.query_report.get_filter_value("company");
-                let branch = frappe.query_report.get_filter_value("branch");
-
-                let filters = {};
-
-                if (company) {
-                    filters.company = company;
-                }
-
-                if (branch) {
-                    filters.branch = branch;
-                }
-
-                return {
-                    filters: filters
-                };
-            }
+            options: "Department"
         },
         {
             fieldname: "serial_no",
-            label: __("Tag No"),
+            label: __("Serial No"),
             fieldtype: "Link",
             options: "Serial No"
         },
         {
             fieldname: "stylebio",
-            label: __("StyleBio"),
+            label: __("Item Code"),
             fieldtype: "Link",
             options: "Item"
         }
@@ -110,22 +54,10 @@ function init_user_dept_permissions(report) {
                 args: {
                     doctype: "Employee",
                     filters: { user_id: frappe.session.user },
-                    fieldname: ["company", "branch", "department"]
+                    fieldname: ["department"]
                 },
                 callback(r) {
                     if (!r.message) return;
-
-                    if (r.message.company && report.get_filter("company")) {
-                        report.get_filter("company").set_value(r.message.company);
-                    }
-
-                    if (r.message.branch && report.get_filter("branch")) {
-                        report.get_filter("branch").set_value(r.message.branch);
-                        if (!is_management) {
-                            report.get_filter("branch").df.read_only = 1;
-                            report.get_filter("branch").refresh();
-                        }
-                    }
 
                     if (r.message.department && report.get_filter("department")) {
                         report.get_filter("department").set_value(r.message.department);

@@ -21,7 +21,7 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
             label: "Material Type",
             fieldname: "material_type",
             fieldtype: "Select",
-            options: ["", "Diamond", "Metal", "Gemstone", "Finding", "Others"],
+            options: ["", "Diamond", "Gemstone", "Finding", "Others"],
             reqd: 0
         },
         {
@@ -38,7 +38,8 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
                         "workflow_state": ["is", "set"],
                         "workflow_state": ["!=", "Material Transferred to MOP"]
                     },
-                    order_by: "workflow_state"
+                    order_by: "workflow_state",
+                    limit: 0
                 }).then(r => {
                     let seen = new Set();
                     return r
@@ -64,7 +65,8 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
                     filters: {
                         "disabled": 0
                     },
-                    order_by: "name"
+                    order_by: "name",
+                    limit: 0
                 }).then(r => {
                     return r
                         .filter(d => d.value && d.value.trim() !== "")
@@ -93,19 +95,22 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
                             "material_request_type": "Manufacture",
                             "custom_department": ["is", "set"],
                             "workflow_state": ["!=", "Material Transferred to MOP"]
-                        }
+                        },
+                        limit: 0
                     }),
                     frappe.db.get_list("Parent Manufacturing Order", {
                         fields: ["department as value"],
                         filters: {
                             "department": ["is", "set"]
-                        }
+                        },
+                        limit: 0
                     }),
                     frappe.db.get_list("Department", {
                         fields: ["name as value"],
                         filters: {
                             "disabled": 0
-                        }
+                        },
+                        limit: 0
                     })
                 ]).then(results => {
                     results.forEach(result => {
@@ -143,7 +148,8 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
             get_data: function(txt) {
                 return frappe.db.get_list("Parent Manufacturing Order", {
                     fields: ["item_category as value"],
-                    order_by: "item_category"
+                    order_by: "item_category",
+                    limit: 0
                 }).then(r => {
                     let seen = new Set();
                     return r
@@ -166,7 +172,8 @@ frappe.query_reports["Advance Bagging Report From MR"] = {
             get_data: function(txt) {
                 return frappe.db.get_list("Parent Manufacturing Order", {
                     fields: ["setting_type as value"],
-                    order_by: "setting_type"
+                    order_by: "setting_type",
+                    limit: 0
                 }).then(r => {
                     let seen = new Set();
                     return r

@@ -548,21 +548,28 @@ frappe.ui.form.on('Order', {
 			
 		});
 				
-		if(dialog.get_value("item")) {
-			// set item_code variants value in the given dialog box
-			edit_item_documents(
-				frm,
-				dialog,
-				dialog.get_value("item"),
-				order_form_data 
-			);
-		};
+		// if(dialog.get_value("item")) {
+		// 	// set item_code variants value in the given dialog box
+		// 	edit_item_documents(
+		// 		frm,
+		// 		dialog,
+		// 		dialog.get_value("item"),
+		// 		order_form_data 
+		// 	);
+		// };
 
 		dialog.show();
 
 		dialog.$wrapper.find(".modal-dialog").css("max-width", "90%");
 		dialog.$wrapper.find('.modal-footer .btn-primary').hide();
-
+		if (frm.doc.design_id) {
+			edit_item_documents(
+				frm,
+				dialog,
+				frm.doc.design_id,
+				order_form_data
+			);
+		}
 		// hide update button
 		if (cur_frm.doc.docstatus == 1) {
 			dialog.$wrapper.find(".btn-modal-primary").remove();
@@ -713,7 +720,7 @@ frappe.ui.form.on("Order BOM Finding Detail", {
 
 let edit_item_documents = (frm,dialog,design_id,order_form_data) => {
 	var doc = frappe.get_doc("Item", design_id);
-	
+	console.log("DESIGN ID =", design_id);
 	if (!doc) {
 		frappe.call({
 			method: "frappe.client.get",
@@ -739,28 +746,27 @@ let edit_item_documents = (frm,dialog,design_id,order_form_data) => {
 	}
 };
 
-let set_edit_order_form_detail = (frm,item_doc,dialog) => {
-	// clearing all tables
-	dialog.fields_dict.order_form_detail.df.data = [];
-	item_attributes = item_doc.attributes
-	
-	item_attributes.forEach(attr => {
-		const fieldname = attr.attribute.toLowerCase().replace(/\s+/g, '_');
-		const order_value = frm.doc[fieldname] || "";
-		// console.log(item_doc , fieldname, order_value);
-		
-		dialog.fields_dict.order_form_detail.df.data.push({
-			attribute: attr.attribute,
-			attribute_value: attr.attribute_value,
-			new_attribute: order_value || ""
-		});
-	});
-	dialog.fields_dict.order_form_detail.grid.refresh();
-	
-	// $.each(item_doc.attributes, function (index, d) {
-	// 	var field_name = d.attribute.toLowerCase().replace(/\s+/g, '_');
-	// 	dialog.set_df_property(field_name, "hidden", 1);
-	// });
+let set_edit_order_form_detail = (frm, item_doc, dialog, order_form_data) => {
+    // Clear existing rows while keeping the same array reference
+    order_form_data.length = 0;
+
+    const item_attributes = item_doc.attributes || [];
+
+    item_attributes.forEach(attr => {
+        const fieldname = attr.attribute
+            .toLowerCase()
+            .replace(/\s+/g, "_");
+
+        const order_value = frm.doc[fieldname] || "";
+
+        order_form_data.push({
+            attribute: attr.attribute || "",
+            attribute_value: attr.attribute_value || "",
+            new_attribute: order_value
+        });
+    });
+
+    dialog.fields_dict.order_form_detail.grid.refresh();
 };
 
 function show_designer_dialog(frm){

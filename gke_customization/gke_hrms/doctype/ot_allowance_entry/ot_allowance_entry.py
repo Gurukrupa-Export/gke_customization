@@ -758,6 +758,7 @@ class OTAllowanceEntry(Document):
 			# }
 			# fields = ["date(time) as date", "log_type as type", "time(time) as time", "time as date_time", "source","name as employee_checkin", 
 			# 			f"date('{holiday.holiday_date}') as holiday", "employee", "shift"]
+			# 			# f"date('{holiday.holiday_date}') as holiday", "employee", "employee_name","shift"]
 
 			# data = frappe.get_list("Employee Checkin", filters= filters, fields=fields, order_by='date_time')
 			Checkin = DocType("Employee Checkin")

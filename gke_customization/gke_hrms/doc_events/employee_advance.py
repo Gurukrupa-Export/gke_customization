@@ -1,7 +1,26 @@
 import frappe
 from datetime import datetime, timedelta
+from frappe.utils import fmt_money
 
 def calculate_working_days(doc, method=None):
+    # added by shubham
+    check_already_exist_loan_application = frappe.db.get_all(
+            "Employee Advance",
+            filters={"employee": doc.employee},
+            fields=["status", "name"]
+    )
+
+    unpaid_advance = next(
+        (row for row in check_already_exist_loan_application if row["status"] in ["Unpaid", "Draft"]),
+        None
+    )
+
+    if unpaid_advance:
+        frappe.throw(
+            f"You are not eligible to apply for a new advance because old advance {unpaid_advance['name']} is still unpaid."
+        )
+    # till here shubham
+
     salary = frappe.db.get_value("Employee", doc.employee, "ctc")  
     holiday_list = frappe.db.get_value("Employee", doc.employee, "holiday_list")
     default_shift = frappe.db.get_value("Employee", doc.employee, "default_shift")
@@ -62,17 +81,61 @@ def calculate_working_days(doc, method=None):
     
     # Calculate the hourly salary and validate the advance amount
     if (salary and shift_hours):
-        monthly_salary = salary / working_days
-        hourly_salary = monthly_salary / shift_hours
+        
+        # from here shubham
+        pending_advance = frappe.db.exists(
+            "Employee Advance",
+            {
+                "employee": doc.employee,
+                "docstatus": 1,
+                "status": "Unpaid",
+            }
+        )
+        
+        if pending_advance:
+            frappe.throw(
+                "You cannot create a new advance request while a previous Amount is Unpaid"
+            )
+            
+        day_salary = salary / working_days
+
+        hourly_salary = day_salary / shift_hours
+        
+        earned_amount = working_hours * hourly_salary
+        
+        allowed_amt = earned_amount * 70 / 100
+        
+        paid_advance = frappe.db.sql("""
+            SELECT SUM(advance_amount)
+            FROM `tabEmployee Advance`
+            WHERE employee=%s
+            AND docstatus=1
+            AND workflow_state IN ('Send to Account', 'Approved')
+        """, doc.employee)[0][0] or 0
+        
+        remaining_amount = allowed_amt - paid_advance
+        
+        # if doc.advance_amount > remaining_amount:
+        #     frappe.throw(
+        #         f"Maximum remaining advance allowed is {remaining_amount}"
+        #     )
+        
+        # to here shubham
+        # monthly_salary = salary / working_days
+        # hourly_salary = monthly_salary / shift_hours
         
         total_amount = working_hours * hourly_salary
         
-        allowed_amt = (85 * total_amount/100)
-        if doc.advance_amount > (allowed_amt):
-            frappe.throw(f"You are not eligible for this advance amount of {doc.advance_amount}. The maximum eligible amount based on your working hours is {allowed_amt:.2f}.")
+        # allowed_amt = (85 * total_amount/100)
+        
+        if doc.advance_amount > remaining_amount:
+            frappe.throw(f"You are not eligible for this advance amount of {fmt_money(doc.advance_amount, precision=2)}. The maximum eligible amount based on your working hours is {fmt_money(allowed_amt, precision=2)}. and remaning amount is {fmt_money(remaining_amount, precision=2)}")
         if posting_date > mid_of_month:
             if doc.advance_amount > salary: 
-                frappe.throw(f"Advance amount cannot be greater than the monthly salary. Monthly Salary: {salary}, Advance amount: {doc.advance_amount}")
+                frappe.throw(f"Advance amount cannot be greater than the monthly salary. Monthly Salary: {fmt_money(salary, precision=2)}, Advance amount: {fmt_money(doc.advance_amount, precision=2)}")
         else:
             if doc.advance_amount > total_amount: 
-                frappe.throw(f"Advance amount cannot be greater than the total amount. Total amount: {total_amount}, Advance amount: {doc.advance_amount}")
+                frappe.throw(f"Advance amount cannot be greater than the total amount. Total amount: {fmt_money(total_amount, precision=2)}, Advance amount: {fmt_money(doc.advance_amount, precision=2)}")
+       
+
+
