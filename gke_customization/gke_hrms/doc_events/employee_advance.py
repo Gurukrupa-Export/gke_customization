@@ -148,18 +148,18 @@ def calculate_working_days(doc, method=None):
     # added by shubham
     check_already_exist_loan_application = frappe.db.get_list(
             "Employee Advance",
-            filters={"employee": doc.employee, "workflow_state": ["not in", ["Send to manager","Send to HR"]]},
+            filters={"employee": doc.employee, "workflow_state": ["not in", ["Send to Manager","Send to HR"]]},
             fields=["status", "name"]
     )
     
     unpaid_advance = next(
-        (row for row in check_already_exist_loan_application if row["status"] in ["Unpaid", "Draft"]),
+        (row for row in check_already_exist_loan_application if row["status"] in ["Draft"]),
         None
     )
 
     if unpaid_advance:
         frappe.throw(
-            f"You are not eligible to apply for a new advance because old advance {unpaid_advance['name']} is still unpaid."
+            f"You are not eligible to apply for a new advance because old advance {unpaid_advance['name']} is still Draft."
         )
     # till here shubham
 
@@ -225,19 +225,19 @@ def calculate_working_days(doc, method=None):
     if (salary and shift_hours):
         
         # from here shubham
-        pending_advance = frappe.db.exists(
-            "Employee Advance",
-            {
-                "employee": doc.employee,
-                "docstatus": 1,
-                "status": "Unpaid",
-            }
-        )
+        # pending_advance = frappe.db.exists(
+        #     "Employee Advance",
+        #     {
+        #         "employee": doc.employee,
+        #         "docstatus": 1,
+        #         "status": "Unpaid",
+        #     }
+        # )
         
-        if pending_advance:
-            frappe.throw(
-                "You cannot create a new advance request while a previous Amount is Unpaid"
-            )
+        # if pending_advance:
+        #     frappe.throw(
+        #         "You cannot create a new advance request while a previous Amount is Unpaid"
+        #     )
             
         day_salary = salary / working_days
 
