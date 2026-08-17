@@ -48,7 +48,7 @@
    "fieldname": "source_site",
    "fieldtype": "Select",
    "label": "Source Site",
-   "options": "http://ec2-13-234-27-130.ap-south-1.compute.amazonaws.com:8001/\nhttps://gkexport.frappe.cloud"
+   "options": "https://gkexport.frappe.cloud"
   },
   {
    "fieldname": "column_break_3",
@@ -81,7 +81,7 @@
    "fieldname": "target_site",
    "fieldtype": "Select",
    "label": "Target Site",
-   "options": "\nhttps://kggk-uat.m.frappe.cloud/\nhttps://kggk-prod.frappe.cloud/"
+   "options": "https://kggk-prod.frappe.cloud/"
   },
   {
    "fieldname": "details_section",
@@ -128,7 +128,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-01 17:06:59.230686",
+ "modified": "2026-08-17 18:25:23.607552",
  "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE HRMS",
  "name": "Cross Company Employee Transfer",
