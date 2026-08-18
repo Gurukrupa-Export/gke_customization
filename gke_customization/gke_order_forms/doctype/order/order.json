@@ -15,6 +15,7 @@
 "column_break_etz53",
 "branch",
 "salesman_name",
+"repair_order",
 "section_break_oi3uq",
 "customer_code",
 "order_date",
@@ -1738,6 +1739,12 @@
 {
 "fieldname": "column_break_jlsm",
 "fieldtype": "Column Break"
+},
+{
+  "fieldname": "repair_order",
+  "fieldtype": "Link",
+  "label": "Repair Order",
+  "options": "Repair Form"
 }
 ],
 "index_web_pages_for_search": 1,

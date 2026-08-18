@@ -46,69 +46,187 @@ frappe.ui.form.on('Repair Order Form', {
 				}
 			});
 		}
-		  frm.add_custom_button(__("Product Return Order Form"), function () {
-            let dialog = new frappe.ui.form.MultiSelectDialog({
-              doctype: "Product Return Order",
-              target: frm,
-              setters: [
-                {
-                  label: "Product Return Order Form",
-                  fieldname: "product_return_order_form",
-                  fieldtype: "Link",
-                  options: "Product Return Order Form"
-                },
-                {
-                  label: "Customer",
-                  fieldname: "customer",
-                  fieldtype: "Link",
-                  options: "Customer",
-                  reqd: 1,
-                  default: frm.doc.customer_code || undefined
-                },
-              ],
-              add_filters_group: 1,
-              get_query() {
-                return {
-                  filters: {
-                    workflow_state: 'Approved',
-                    return_type: 'Repair',
+	frm.add_custom_button(__("Product Return Order Form"), function () {
+
+    let dialog = new frappe.ui.form.MultiSelectDialog({
+        doctype: "Product Return Order",
+        target: frm,
+
+        setters: [
+            {
+                label: "Product Return Order Form",
+                fieldname: "product_return_order_form",
+                fieldtype: "Link",
+                options: "Product Return Order Form"
+            },
+            {
+                label: "Customer",
+                fieldname: "customer",
+                fieldtype: "Link",
+                options: "Customer",
+                reqd: 1,
+                default: frm.doc.customer_code || undefined
+            }
+        ],
+
+        add_filters_group: 1,
+
+        get_query() {
+            return {
+                filters: {
+                    workflow_state: "Approved",
+                    return_type: "Repair",
                     docstatus: 1
-                  }
-                };
-              },
-              action(selections) {
-                if (!selections || selections.length === 0) return;
+                }
+            };
+        },
 
-                frappe.db.get_list("Product Return Order", {
-                  filters: { name: ["in", selections] },
-                  fields: ["name", "item_code", "serial_no", "qty", "new_bom"]
-                }).then((records) => {
-                  records.forEach((rec) => {
+        action(selections) {
+
+            if (!selections || !selections.length) {
+                return;
+            }
+
+            frappe.db.get_list("Product Return Order", {
+                filters: {
+                    name: ["in", selections]
+                },
+                fields: [
+                    "name",
+                    "item_code",
+                    "serial_no",
+                    "qty",
+                    "new_bom"
+                ]
+            }).then(async (records) => {
+
+                for (const rec of records) {
+
                     let d = frm.add_child("order_details");
-                    frappe.model.set_value(d.doctype, d.name, "item", rec.item_code);
-                    frappe.model.set_value(d.doctype, d.name, "tag_no", rec.serial_no);
-                    frappe.model.set_value(d.doctype, d.name, "delivery_date", frm.doc.delivery_date);
-                    frappe.model.set_value(d.doctype, d.name, "diamond_quality", frm.doc.diamond_quality);
-                    if (rec.qty) {
-                      frappe.model.set_value(d.doctype, d.name, "qty", rec.qty);
-                    }
-                    if (rec.new_bom) {
-                      // item/tag_no handlers above trigger an async BOM lookup that
-                      // sets `bom` from the item's master BOM; override it once that
-                      // settles so the Product Return Order's new_bom wins instead.
-                      setTimeout(() => {
-                        frappe.model.set_value(d.doctype, d.name, "bom", rec.new_bom);
-                        frm.refresh_field("order_details");
-                      }, 1500);
-                    }
-                  });
-                  frm.refresh_field("order_details");
-                });
 
-                dialog.dialog.hide();
-              }
+                    console.log("Record:", rec);
+                    console.log("New BOM:", rec.new_bom);
+                    console.log("Child Doctype:", d.doctype);
+                    console.log("Child Name:", d.name);
+
+                    // -----------------------------------------
+                    // Set item
+                    // -----------------------------------------
+                    await frappe.model.set_value(
+                        d.doctype,
+                        d.name,
+                        "item",
+                        rec.item_code
+                    );
+
+                    // -----------------------------------------
+                    // Set tag no
+                    // -----------------------------------------
+                    await frappe.model.set_value(
+                        d.doctype,
+                        d.name,
+                        "tag_no",
+                        rec.serial_no
+                    );
+
+                    // -----------------------------------------
+                    // Other fields
+                    // -----------------------------------------
+                    await frappe.model.set_value(
+                        d.doctype,
+                        d.name,
+                        "delivery_date",
+                        frm.doc.delivery_date
+                    );
+
+                    await frappe.model.set_value(
+                        d.doctype,
+                        d.name,
+                        "diamond_quality",
+                        frm.doc.diamond_quality
+                    );
+
+                    await frappe.model.set_value(
+                        d.doctype,
+                        d.name,
+                        "product_return_order",
+                        rec.name
+                    );
+
+                    if (rec.qty) {
+                        await frappe.model.set_value(
+                            d.doctype,
+                            d.name,
+                            "qty",
+                            1
+                        );
+                    }
+
+                    // -----------------------------------------
+                    // WAIT FOR AUTOMATIC BOM LOGIC
+                    // -----------------------------------------
+                    if (rec.new_bom) {
+
+                        setTimeout(async () => {
+
+                            console.log(
+                                "Before setting BOM:",
+                                d.bom
+                            );
+
+                            console.log(
+                                "Setting BOM to:",
+                                rec.new_bom
+                            );
+
+                            // Use frappe.model.set_value
+                            await frappe.model.set_value(
+                                d.doctype,
+                                d.name,
+                                "bom",
+                                rec.new_bom
+                            );
+
+                            console.log(
+                                "After setting BOM:",
+                                d.bom
+                            );
+
+                            // Get actual row from locals
+                            let row = locals[d.doctype][d.name];
+
+                            console.log(
+                                "Actual child row:",
+                                row
+                            );
+
+                            console.log(
+                                "Actual row BOM:",
+                                row.bom
+                            );
+
+                            frm.refresh_field("order_details");
+
+                        }, 2000);
+                    }
+                }
+
+                frm.refresh_field("order_details");
+
+            }).catch((error) => {
+
+                console.error(
+                    "Product Return Order error:",
+                    error
+                );
+
             });
-          },__("Get Items From"));
+
+            dialog.dialog.hide();
+        }
+    });
+
+}, __("Get Items From"));
 	},
 	setup(frm,cdt,cdn) {
 		frm.set_query("diamond_quality", function (doc) {
@@ -266,66 +384,49 @@ frappe.ui.form.on('Repair Order Form', {
 });
 
 frappe.ui.form.on('Repair Order Form Detail', {
-	tag_no1(frm, cdt, cdn) {
-    let d = locals[cdt][cdn];
-
-    fetch_item_from_serial(d, "tag_no", "item");
-
-    let company = "";
-
-    if (frm.doc.company === "Gurukrupa Export Private Limited") {
-        company = "GEPL";
-    } else {
-        company = "KGPL";
-    }
-
-    if (d.tag_no1) {
-        // frappe.db.get_value("Serial No", d.tag_no, "custom_bom_no", (r) => {
-        //     frappe.model.set_value(cdt, cdn, "serial_no_bom", r.custom_bom_no);
-        // });
-
-       frappe.call({
-    method: "gke_customization.gke_order_forms.doctype.repair_order_form.repair_order_form.get_data_from_jwelex",
-    args: {
-        tag_no: d.tag_no1,
-        company: company
-    },
-    callback: function(r) {
-         if (r.message && r.message.summary_totals) {
-            let summary_totals = r.message.summary_totals;
-            frappe.model.set_value(cdt, cdn, "diamond_target", summary_totals.diamond_weight);
-            frappe.model.set_value(cdt, cdn, "metal_target", summary_totals.metal_weight);
-            frappe.model.set_value(cdt, cdn, "metal_type", "Gold");
-        }
-    }
-});
-    }
-},
-	item: function (frm, cdt, cdn) {
+	// tag_no(frm, cdt, cdn) {
+	// 	var d = locals[cdt][cdn];
+	// 	fetch_item_from_serial(d, "tag_no", "item")
+	// 	if (d.tag_no) {
+	// 		// frappe.db.get_value("Serial No", d.tag_no,'custom_bom_no', (r)=>{
+	// 		// 	frappe.model.set_value(cdt, cdn, 'serial_no_bom', r.custom_bom_no)
+	// 		// })
+	// 		frappe.call({
+	// 			method: "gke_customization.gke_order_forms.doctype.repair_order_form.repair_order_form.get_data_from_jwelex",
+	// 			args: { tag_no: d.tag_no,  company: d.company},
+	// 			callback: function (r) {
+	// 				if (r.message) {
+	// 					frappe.msgprint({
+	// 						title: __("Jewelex Data"),
+	// 						indicator: "blue",
+	// 						message: `<pre>${frappe.utils.escape_html(JSON.stringify(r.message, null, 2))}</pre>`
+	// 					});
+	// 				}
+	// 			}
+	// 		});
+	// 	}
+	// },
+	bom: function (frm, cdt, cdn) {
 		var d = locals[cdt][cdn];
 		
-		if (d.item && !d.is_jewelex_tag) {
-			// console.log('hii');
+		if (d.item) {
 			frappe.call({
-				method: "gke_customization.gke_order_forms.doctype.order_form.order_form.get_bom_detail",
+				method: "gke_customization.gke_order_forms.doctype.repair_order_form.repair_order_form.get_bom_detail",
 				args: {
-					"design_id": d.item,
-					"doc":d
-					// "serial_no":d.tag_no
+					design_id: d.item,
+					bom: d.bom,
 				},
 				callback(r) {
 					if(r.message) {
-						console.log("FULL R:", r);
-						// console.log('hii',r.message);
-						// console.log('hii',r.message.stone_changeable);
+						console.log(r.message)
 						d.bom_weight = r.message.gross_weight
 						d.diamond_quality = r.message.diamond_quality
 						d.category = r.message.item_category;
 						d.subcategory = r.message.item_subcategory;
-						d.setting_type = r.message.setting_type;
-						d.sub_setting_type1 = r.message.sub_setting_type1
-						d.sub_setting_type2 = r.message.sub_setting_type2
-						d.bom = r.message.bom;
+						d.setting_type = r.message.setting_type || "";
+						d.sub_setting_type1 = r.message.sub_setting_type1 || "";
+						d.sub_setting_type2 = r.message.sub_setting_type2 || "";
+						d.bom = r.message.master_bom || d.bom;
 						d.qty = r.message.qty
 						d.metal_type = r.message.metal_type
 						d.metal_touch = r.message.metal_touch
@@ -341,7 +442,7 @@ frappe.ui.form.on('Repair Order Form Detail', {
 						d.width = r.message.width
 						d.stone_changeable = r.message.stone_changeable
 						d.space_between_mugappu = r.message.space_between_mugappu
-						d.two_in_one = r.message.two_in_one || "None";
+						d.two_in_one = r.message.two_in_one || "";
 						d.detachable = r.message.detachable
 						d.lock_type = r.message.lock_type
 						d.feature = r.message.feature
@@ -369,7 +470,7 @@ frappe.ui.form.on('Repair Order Form Detail', {
 						d.rhodium = r.message.rhodium
 						d.enamal = r.message.enamal
 						d.gemstone_type1 = r.message.gemstone_type1
-						d.gemstone_type = r.message.gemstone_type || "None";
+						d.gemstone_type = r.message.gemstone_type || "";
 						d.gemstone_quality = r.message.gemstone_quality
 						d.charm = r.message.charm
 						d.capganthan = r.message.capganthan
@@ -379,9 +480,7 @@ frappe.ui.form.on('Repair Order Form Detail', {
 						}
 						else{
 							d.number_of_ant = r.message.custom_number_of_ant
-						}
-						// d.distance_between_kadi_to_mugappu = r.message.distance_between_kadi_to_mugappu
-						
+						}						
 						refresh_field('order_details');
 					}
 				}
