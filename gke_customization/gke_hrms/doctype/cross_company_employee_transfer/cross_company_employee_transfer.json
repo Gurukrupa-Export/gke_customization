@@ -63,9 +63,9 @@
   },
   {
    "fieldname": "new_company",
-   "fieldtype": "Link",
+   "fieldtype": "Select",
    "label": "New Company",
-   "options": "Company",
+   "options": "\nKG GK Jewellers Private Limited\nGurukrupa Export Private Limited",
    "reqd": 1
   },
   {
