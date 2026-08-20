@@ -21,7 +21,35 @@
   "section_break_cadsite_section",
   "cad_from_site",
   "column_break_cadsite_column",
-  "cad_to_site"
+  "cad_to_site",
+  "sync_control_section",
+  "is_migrate",
+  "ignore_site_check",
+  "column_break_sync_control",
+  "resync_since",
+  "sync_now",
+  "sync_status",
+  "sync_progress_section",
+  "sync_progress_html",
+  "last_run_started_on",
+  "last_trigger",
+  "column_break_sync_run",
+  "last_run_completed_on",
+  "last_reference",
+  "sync_counts_section",
+  "total_items",
+  "items_synced",
+  "items_failed",
+  "items_skipped",
+  "column_break_sync_counts",
+  "total_boms",
+  "boms_synced",
+  "boms_failed",
+  "field_mismatches",
+  "sync_log_section",
+  "last_error",
+  "sync_log",
+  "failed_records"
  ],
  "fields": [
   {
@@ -104,13 +132,177 @@
   {
    "fieldname": "column_break_cadsite_column",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sync_control_section",
+   "fieldtype": "Section Break",
+   "label": "Sync Control"
+  },
+  {
+   "fieldname": "is_migrate",
+   "fieldtype": "Check",
+   "label": "Is Migrate",
+   "default": "0",
+   "description": "Master switch. Nothing is pushed to the To Site while this is off."
+  },
+  {
+   "fieldname": "ignore_site_check",
+   "fieldtype": "Check",
+   "label": "Ignore Site Identity Check",
+   "default": "0",
+   "description": "Only tick this when host_name is not configured on the bench and the From Site check misfires. It never bypasses the same-site guard."
+  },
+  {
+   "fieldname": "column_break_sync_control",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sync_now",
+   "fieldtype": "Button",
+   "label": "Sync Now"
+  },
+  {
+   "fieldname": "sync_status",
+   "fieldtype": "Select",
+   "label": "Sync Status",
+   "read_only": 1,
+   "default": "Idle",
+   "options": "Idle\nQueued\nRunning\nCompleted\nPartially Completed\nFailed"
+  },
+  {
+   "fieldname": "sync_progress_section",
+   "fieldtype": "Section Break",
+   "label": "Last Sync Run"
+  },
+  {
+   "fieldname": "sync_progress_html",
+   "fieldtype": "HTML",
+   "label": "Progress"
+  },
+  {
+   "fieldname": "last_run_started_on",
+   "fieldtype": "Datetime",
+   "label": "Started On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_trigger",
+   "fieldtype": "Data",
+   "label": "Triggered By",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_sync_run",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_run_completed_on",
+   "fieldtype": "Datetime",
+   "label": "Completed On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_reference",
+   "fieldtype": "Data",
+   "label": "Reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sync_counts_section",
+   "fieldtype": "Section Break",
+   "label": "Counts"
+  },
+  {
+   "fieldname": "total_items",
+   "fieldtype": "Int",
+   "label": "Items Sent",
+   "read_only": 1
+  },
+  {
+   "fieldname": "items_synced",
+   "fieldtype": "Int",
+   "label": "Items Synced",
+   "read_only": 1
+  },
+  {
+   "fieldname": "items_failed",
+   "fieldtype": "Int",
+   "label": "Items Failed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "items_skipped",
+   "fieldtype": "Int",
+   "label": "Items Already Synced",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_sync_counts",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_boms",
+   "fieldtype": "Int",
+   "label": "BOMs Sent",
+   "read_only": 1
+  },
+  {
+   "fieldname": "boms_synced",
+   "fieldtype": "Int",
+   "label": "BOMs Synced",
+   "read_only": 1
+  },
+  {
+   "fieldname": "boms_failed",
+   "fieldtype": "Int",
+   "label": "BOMs Failed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "field_mismatches",
+   "fieldtype": "Int",
+   "label": "Field Mismatches",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sync_log_section",
+   "fieldtype": "Section Break",
+   "label": "Migration Log",
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:1"
+  },
+  {
+   "fieldname": "last_error",
+   "fieldtype": "Small Text",
+   "label": "Last Error",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sync_log",
+   "fieldtype": "Long Text",
+   "label": "Sync Log",
+   "read_only": 1,
+   "description": "Newest lines last. Field mismatches and missing links are recorded here."
+  },
+  {
+   "fieldname": "failed_records",
+   "fieldtype": "Long Text",
+   "label": "Failed Records (JSON)",
+   "read_only": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "resync_since",
+   "fieldtype": "Date",
+   "label": "Re-sync From Date",
+   "description": "Used by the Re-sync Since button: re-pushes everything in scope modified on or after this date, including records already marked synced."
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-07-15 15:37:22.702470",
+ "modified": "2026-08-20 12:30:00.000000",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Data Migration in KGGK",

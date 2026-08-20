@@ -6,10 +6,17 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "deprecation_notice",
   "section_break_smmk",
   "enable_item_bom_sync_on_manufacturing_plan_submit"
  ],
  "fields": [
+  {
+   "fieldname": "deprecation_notice",
+   "fieldtype": "HTML",
+   "label": "Deprecated",
+   "options": "<div class='alert alert-warning'>This screen is deprecated. Configure the KGGK sync on <b>Data Migration in KGGK</b> instead — site URLs, credentials, the Is Migrate switch, status, counters and the migration log are all there.</div>"
+  },
   {
    "fieldname": "section_break_smmk",
    "fieldtype": "Section Break"
@@ -19,17 +26,19 @@
    "fieldname": "enable_item_bom_sync_on_manufacturing_plan_submit",
    "fieldtype": "Check",
    "in_list_view": 1,
-   "label": "Is Migrate",
-   "reqd": 1
+   "label": "Is Migrate (moved to Data Migration in KGGK)",
+   "reqd": 0,
+   "read_only": 1,
+   "description": "Superseded. This flag now lives on Data Migration in KGGK, next to the site URLs and credentials it is read with. Nothing reads this field any more."
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-17 14:11:05.676195",
+ "modified": "2026-08-20 12:30:00.000000",
  "modified_by": "Administrator",
- "module": "Gke Customization",
+ "module": "GKE Order Forms",
  "name": "Item Migration in KGGK",
  "owner": "shubham_si@gkexport.com",
  "permissions": [

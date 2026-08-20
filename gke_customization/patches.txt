@@ -1,0 +1,5 @@
+[pre_model_sync]
+
+[post_model_sync]
+gke_customization.patches.add_kggk_sync_fields
+gke_customization.patches.migrate_kggk_sync_settings

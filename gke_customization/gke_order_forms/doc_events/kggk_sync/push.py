@@ -1,0 +1,349 @@
+"""The single push pipeline. Every trigger - hooks, the manual button, Manufacturing Plan
+submit - comes through here, so there is one behaviour to reason about and one to fix.
+"""
+
+import frappe
+from frappe.utils import now_datetime
+
+from . import client, files, payload as payload_builder
+from .config import get_sync_config, in_reentrant_context
+from .log import SyncRun, log_skip
+
+# Fields that identify a record and cannot be changed on an existing one.
+IMMUTABLE_ON_UPDATE = {"Item": {"variant_of", "item_code"}, "BOM": {"item"}}
+
+SYNC_MARKERS = ("custom_is_sync", "custom_last_synced_on", "custom_sync_error")
+
+
+def _has_markers(doctype):
+	key = f"kggk_markers::{doctype}"
+	value = getattr(frappe.local, key, None)
+	if value is None:
+		value = frappe.db.has_column(doctype, "custom_is_sync")
+		setattr(frappe.local, key, value)
+	return value
+
+
+def mark_synced(doctype, name, ok, error=""):
+	"""Record the outcome on the record itself, so a retry knows what to skip."""
+	if not _has_markers(doctype):
+		return
+	values = {"custom_is_sync": 1 if ok else 0, "custom_sync_error": (error or "")[:500]}
+	if ok:
+		values["custom_last_synced_on"] = now_datetime()
+	try:
+		frappe.db.set_value(doctype, name, values, update_modified=False)
+	except Exception:
+		frappe.logger("kggk_sync").exception(f"could not mark {doctype} {name}")
+
+
+def _link_exists(config, doctype, value, cache):
+	key = (doctype, value)
+	if key not in cache:
+		cache[key] = client.exists(config, doctype, value)
+	return cache[key]
+
+
+def _strip_missing_links(config, doc, data, run, cache):
+	"""Drop optional Link values the target does not have; refuse on essential ones.
+
+	Dropping an optional link - one Item Category, one Sizer Type - keeps the record
+	syncing instead of failing whole on a single absent master. Dropping a mandatory one
+	would create a broken record on the target, so that blocks the push instead.
+
+	Returns a list of blocking problems; empty means it is safe to send.
+	"""
+	blocking = []
+	for fieldname, (link_doctype, essential) in payload_builder.link_fields(doc.doctype).items():
+		value = data.get(fieldname)
+		if not value:
+			continue
+		found = _link_exists(config, link_doctype, value, cache)
+		if found is not False:
+			continue
+		if essential:
+			blocking.append(f"{fieldname}: {link_doctype} '{value}' does not exist on target")
+			continue
+		data.pop(fieldname, None)
+		run.mismatch(
+			doc.doctype,
+			doc.name,
+			f"{fieldname}: {link_doctype} '{value}' does not exist on target, field dropped",
+		)
+	return blocking
+
+
+def _send(config, doctype, name, data):
+	"""PUT the existing record, POST a new one if the target has never seen it."""
+	path = f"/api/resource/{client.segment(doctype)}/{client.segment(name)}"
+	update_data = {
+		k: v for k, v in data.items() if k not in IMMUTABLE_ON_UPDATE.get(doctype, set())
+	}
+	response = client.put(config, path, json=update_data)
+	if response.not_found:
+		response = client.post(config, f"/api/resource/{client.segment(doctype)}", json=data)
+		return response, "created"
+	return response, "updated"
+
+
+def push_item(item_code, config, run, seen=None):
+	"""Create or update one Item on the target, attachments included."""
+	seen = seen if seen is not None else set()
+	if item_code in seen:
+		return True
+	seen.add(item_code)
+
+	if not frappe.db.exists("Item", item_code):
+		run.item_failed(item_code, "item does not exist on this site")
+		return False
+
+	doc = frappe.get_doc("Item", item_code)
+
+	# A variant cannot be created before its template exists on the target.
+	if doc.get("variant_of"):
+		template = doc.variant_of
+		if client.exists(config, "Item", template) is False:
+			run.line("INFO", "Item", item_code, f"template {template} missing on target, pushing it first")
+			run.items_total += 1
+			push_item(template, config, run, seen=seen)
+
+	allowed = payload_builder.get_target_fields(config, "Item")
+	data, attachments, _dropped = payload_builder.build_payload(doc, allowed, run=run)
+	blocking = _strip_missing_links(config, doc, data, run, run.link_cache)
+	if blocking:
+		message = "required master(s) missing on target - " + "; ".join(blocking)
+		run.item_failed(item_code, message)
+		mark_synced("Item", item_code, False, message)
+		return False
+
+	response, action = _send(config, "Item", item_code, data)
+	if not response.ok:
+		message = response.message()
+		run.item_failed(item_code, message)
+		mark_synced("Item", item_code, False, message)
+		return False
+
+	note = action
+	if attachments:
+		resolved = files.upload_all(config, attachments, "Item", item_code, run=run)
+		if resolved:
+			follow_up = client.put(
+				config, f"/api/resource/Item/{client.segment(item_code)}", json=resolved
+			)
+			if follow_up.ok:
+				note = f"{action}, {len(resolved)} attachment(s)"
+			else:
+				run.mismatch(
+					"Item", item_code, f"attachment urls could not be set - {follow_up.message()}"
+				)
+				note = f"{action}, attachments uploaded but not linked"
+
+	run.item_ok(item_code, note)
+	mark_synced("Item", item_code, True)
+	return True
+
+
+def push_bom(bom_name, config, run):
+	"""Create or update one BOM on the target, attachments included."""
+	if not frappe.db.exists("BOM", bom_name):
+		run.bom_failed(bom_name, "BOM does not exist on this site")
+		return False
+
+	doc = frappe.get_doc("BOM", bom_name)
+
+	# A BOM cannot validate on the target without its finished-goods item. Batches are
+	# assembled from Items and BOMs independently - "Sync Now" takes the oldest unsynced of
+	# each - so the item a given BOM needs is very often not in the same batch. Pull it in
+	# rather than failing the BOM for a reason the operator cannot act on.
+	if doc.get("item") and client.exists(config, "Item", doc.item) is False:
+		run.line("INFO", "BOM", bom_name, f"item {doc.item} missing on target, pushing it first")
+		run.items_total += 1
+		push_item(doc.item, config, run)
+
+	allowed = payload_builder.get_target_fields(config, "BOM")
+	data, attachments, _dropped = payload_builder.build_payload(doc, allowed, run=run)
+	blocking = _strip_missing_links(config, doc, data, run, run.link_cache)
+	if blocking:
+		message = "required master(s) missing on target - " + "; ".join(blocking)
+		run.bom_failed(bom_name, message)
+		mark_synced("BOM", bom_name, False, message)
+		return False
+
+	response, action = _send(config, "BOM", bom_name, data)
+	if not response.ok:
+		message = response.message()
+		run.bom_failed(bom_name, message)
+		mark_synced("BOM", bom_name, False, message)
+		return False
+
+	note = action
+	if attachments:
+		resolved = files.upload_all(config, attachments, "BOM", bom_name, run=run)
+		if resolved:
+			follow_up = client.put(config, f"/api/resource/BOM/{client.segment(bom_name)}", json=resolved)
+			if follow_up.ok:
+				note = f"{action}, {len(resolved)} attachment(s)"
+			else:
+				run.mismatch("BOM", bom_name, f"attachment urls could not be set - {follow_up.message()}")
+
+	run.bom_ok(bom_name, note)
+	mark_synced("BOM", bom_name, True)
+	return True
+
+
+# One Manufacturing Plan can carry hundreds of distinct items - a real plan on this site
+# selects 490 items and 490 BOMs. Pushing 980 records in a single job would run for the
+# better part of an hour, exceed the job timeout, and lose the whole run's progress. Work
+# is processed a chunk at a time and the remainder re-queued, so a run makes durable
+# progress and a timeout costs one chunk instead of everything.
+CHUNK_SIZE = 50
+JOB_TIMEOUT = 3600
+
+
+def sync_records(
+	items=None,
+	boms=None,
+	trigger="Manual",
+	reference=None,
+	totals=None,
+	resume=False,
+	chunk_index=0,
+):
+	"""Push a batch of Items and BOMs. The one entry point every trigger calls.
+
+	Items go first, across chunks as well as within one: a BOM whose finished-goods item
+	does not exist on the target cannot validate there. Each record is wrapped in a
+	savepoint so one bad row cannot take the rest of the chunk down with it.
+	"""
+	items = list(dict.fromkeys(items or []))
+	boms = list(dict.fromkeys(boms or []))
+
+	if in_reentrant_context():
+		log_skip("push suppressed: already inside a sync or a bulk operation")
+		return None
+
+	config, reason = get_sync_config()
+	if not config:
+		log_skip(reason)
+		return None
+
+	if not items and not boms:
+		return None
+
+	if totals is None:
+		totals = {"items": len(items), "boms": len(boms)}
+
+	# Items first, then BOMs, filling one chunk.
+	batch_items = items[:CHUNK_SIZE]
+	rest_items = items[len(batch_items) :]
+	bom_budget = max(CHUNK_SIZE - len(batch_items), 0)
+	batch_boms = boms[:bom_budget]
+	rest_boms = boms[len(batch_boms) :]
+
+	run = SyncRun(trigger=trigger, reference=reference, resume=resume)
+	run.items_total = int(totals.get("items") or 0)
+	run.boms_total = int(totals.get("boms") or 0)
+	run.start()
+	if rest_items or rest_boms:
+		run.line(
+			"INFO",
+			None,
+			None,
+			f"chunk {chunk_index + 1}: {len(batch_items)} item(s), {len(batch_boms)} BOM(s); "
+			f"{len(rest_items)} item(s) and {len(rest_boms)} BOM(s) still queued",
+		)
+
+	items, boms = batch_items, batch_boms
+
+	frappe.flags.in_kggk_sync = True
+	try:
+		seen = set()
+		for item_code in items:
+			frappe.db.savepoint("kggk_item")
+			try:
+				push_item(item_code, config, run, seen=seen)
+			except Exception as exc:
+				frappe.db.rollback(save_point="kggk_item")
+				run.item_failed(item_code, f"unexpected error: {exc}")
+				frappe.log_error(frappe.get_traceback(), f"KGGK sync: Item {item_code}"[:140])
+
+		for bom_name in boms:
+			frappe.db.savepoint("kggk_bom")
+			try:
+				push_bom(bom_name, config, run)
+			except Exception as exc:
+				frappe.db.rollback(save_point="kggk_bom")
+				run.bom_failed(bom_name, f"unexpected error: {exc}")
+				frappe.log_error(frappe.get_traceback(), f"KGGK sync: BOM {bom_name}"[:140])
+	finally:
+		frappe.flags.in_kggk_sync = False
+
+	if rest_items or rest_boms:
+		# Hand the remainder to a fresh job. A distinct job_id per chunk is required:
+		# deduplicate=True would otherwise reject the continuation, because the job
+		# queueing it is itself still running under the base id.
+		run.flush(force=True, extra={"sync_status": "Running"})
+		frappe.db.commit()
+		frappe.enqueue(
+			"gke_customization.gke_order_forms.doc_events.kggk_sync.push.sync_records",
+			queue="long",
+			timeout=JOB_TIMEOUT,
+			job_id=f"kggk_sync::{reference or trigger}::chunk{chunk_index + 1}",
+			deduplicate=True,
+			items=rest_items,
+			boms=rest_boms,
+			trigger=trigger,
+			reference=reference,
+			totals=totals,
+			resume=True,
+			chunk_index=chunk_index + 1,
+		)
+		return {
+			"status": "Running",
+			"items_synced": run.items_synced,
+			"items_failed": run.items_failed,
+			"boms_synced": run.boms_synced,
+			"boms_failed": run.boms_failed,
+			"field_mismatches": run.mismatches,
+			"remaining": len(rest_items) + len(rest_boms),
+		}
+
+	status = run.finish()
+	return {
+		"status": status,
+		"items_synced": run.items_synced,
+		"items_failed": run.items_failed,
+		"boms_synced": run.boms_synced,
+		"boms_failed": run.boms_failed,
+		"field_mismatches": run.mismatches,
+	}
+
+
+def enqueue_sync(items=None, boms=None, trigger="Manual", reference=None, job_id=None):
+	"""Queue a batch. Never blocks the save or submit that asked for it."""
+	items = list(dict.fromkeys(items or []))
+	boms = list(dict.fromkeys(boms or []))
+	if not items and not boms:
+		return False
+
+	if in_reentrant_context():
+		return False
+
+	config, reason = get_sync_config()
+	if not config:
+		log_skip(reason)
+		return False
+
+	frappe.enqueue(
+		"gke_customization.gke_order_forms.doc_events.kggk_sync.push.sync_records",
+		queue="long",
+		timeout=JOB_TIMEOUT,
+		enqueue_after_commit=True,
+		job_id=job_id or f"kggk_sync::{trigger}::{reference or ''}",
+		deduplicate=True,
+		items=items,
+		boms=boms,
+		trigger=trigger,
+		reference=reference,
+	)
+	return True
