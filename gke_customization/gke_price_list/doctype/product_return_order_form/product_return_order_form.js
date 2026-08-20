@@ -270,7 +270,7 @@ frappe.ui.form.on("Product Return Form Item", {
 						frappe.model.set_value(cdt, cdn, "total_weight", r.message.sales_invoice.total_weight);
 						frappe.model.set_value(cdt, cdn, "rate", r.message.sales_invoice.rate);
 
-						if (frm.doc.return_subtype in ["Sale Without Payment-Return", "QC Fail-Repair", "Finish Goods-Consignment"]) {
+						if (["Sale Without Payment-Return", "QC Fail-Repair", "Finish Goods-Consignment"].includes(frm.doc.return_subtype)) {
 							// Amount fields
 							frappe.model.set_value(cdt, cdn, "amount", r.message.sales_invoice.amount);
 							frappe.model.set_value(cdt, cdn, "base_rate", r.message.sales_invoice.base_rate);
