@@ -13,7 +13,7 @@ frappe.query_reports["Accounts Payable - SD"] = {
 		},
 		{
 			fieldname: "report_date",
-			label: __("Posting Date"),
+			label: __("As On Date"),
 			fieldtype: "Date",
 			default: frappe.datetime.get_today(),
 		},

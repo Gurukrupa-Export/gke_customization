@@ -53,16 +53,14 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": " Type",
-   "options": "Attribute Value",
-   "reqd": 1
+   "options": "Attribute Value"
   },
   {
    "fieldname": "stone_shape",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Stone Shape",
-   "options": "Attribute Value",
-   "reqd": 1
+   "options": "Attribute Value"
   },
   {
    "fetch_from": "stone_shape.diamond_cut",
@@ -163,8 +161,7 @@
    "fieldname": "pcs",
    "fieldtype": "Int",
    "in_list_view": 1,
-   "label": "Pcs",
-   "reqd": 1
+   "label": "Pcs"
   },
   {
    "fieldname": "weight_per_pcs",
@@ -183,8 +180,7 @@
    "fieldname": "quantity",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Weight in cts",
-   "reqd": 1
+   "label": "Weight in cts"
   },
   {
    "fieldname": "quantity_3",
@@ -224,8 +220,7 @@
    "hidden": 1,
    "in_list_view": 1,
    "label": "Stock UOM",
-   "options": "UOM",
-   "reqd": 1
+   "options": "UOM"
   },
   {
    "fieldname": "item_variant",
@@ -256,8 +251,8 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-21 20:29:32.729110",
- "modified_by": "shruti_b@gkexport.com",
+ "modified": "2026-08-17 23:06:28.373826",
+ "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Product Return Order Diamond Detail",
  "owner": "shruti_b@gkexport.com",
