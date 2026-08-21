@@ -1631,7 +1631,20 @@ def create_bom(self, item_variant):
     new_bom_doc.custom_order_form_type = "Order"
     new_bom_doc.custom_cad_order_form_id = self.cad_order_form
     new_bom_doc.custom_order_id = self.name
-
+    new_bom_doc.metal_type_=self.metal_type
+    new_bom_doc.diamond_type=self.diamond_type
+    for i in new_bom_doc.diamond_detail:
+        i.diamond_type=self.diamond_type
+    for i in new_bom_doc.finding_detail:
+        i.metal_type=self.metal_type
+        i.metal_colour=self.metal_colour
+        i.metal_touch = self.metal_touch
+        if i.metal_touch == "22KT":
+            i.metal_purity = "91.9"
+        if i.metal_touch == "20KT":
+            i.metal_purity = "85.0"
+        if i.metal_touch == "18KT":
+            i.metal_purity = "75.4"
     # If metal_type is Silver, update metal details and convert quantities
     if (
         self.metal_type
@@ -1669,6 +1682,7 @@ def create_bom(self, item_variant):
                     original_row.quantity / wax_to_gold_18
                 ) * wax_to_silver_ratio
             elif original_row.metal_touch == "22KT":
+                # frappe.throw(f"{wax_to_gold_22}")
                 converted_qty = (
                     original_row.quantity / wax_to_gold_22
                 ) * wax_to_silver_ratio
@@ -1697,22 +1711,44 @@ def create_bom_for_touch(self, item_variant=None):
     bom_doc = frappe.get_doc("BOM", self.bom)
     new_bom_doc = frappe.copy_doc(bom_doc)
     qty = 0
+    new_bom_doc.metal_type=self.metal_type
+    new_bom_doc.metal_type_=self.metal_type
+    new_bom_doc.diamond_type=self.diamond_type
+    new_bom_doc.metal_colour=self.metal_colour
     for i in new_bom_doc.metal_detail:
         i.quantity = flt(i.quantity) * (
             flt(self.metal_touch.replace("KT", ""))
             / flt(i.metal_touch.replace("KT", ""))
         )
         qty = i.quantity
+        i.metal_type=self.metal_type
+        i.metal_colour=self.metal_colour
         i.metal_touch = self.metal_touch
         if i.metal_touch == "22KT":
             i.metal_purity = "91.9"
+        if i.metal_touch == "20KT":
+            i.metal_purity = "85.0"
         if i.metal_touch == "18KT":
             i.metal_purity = "75.4"
+    for i in new_bom_doc.finding_detail:
+        i.metal_type=self.metal_type
+        i.metal_colour=self.metal_colour
+        i.metal_touch = self.metal_touch
+        if i.metal_touch == "22KT":
+            i.metal_purity = "91.9"
+        if i.metal_touch == "20KT":
+            i.metal_purity = "85.0"
+        if i.metal_touch == "18KT":
+            i.metal_purity = "75.4"
+    for i in new_bom_doc.diamond_detail:
+        i.diamond_type=self.diamond_type
     new_bom_doc.metal_touch = self.metal_touch
     if new_bom_doc.metal_touch == "22KT":
         new_bom_doc.metal_purity = 91.9
     if new_bom_doc.metal_touch == "18KT":
         new_bom_doc.metal_purity = 75.4
+    if new_bom_doc.metal_touch == "20KT":
+        new_bom_doc.metal_purity = '85.0'
     new_bom_doc.metal_target = qty
     new_bom_doc.custom_order_form_type = "Order"
     new_bom_doc.custom_cad_order_form_id = self.cad_order_form
