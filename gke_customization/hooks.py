@@ -285,11 +285,18 @@ doc_events = {
 # "Item": {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
 # },
+# KGGK sync. Deliberately on_update, not before_validate: the push is a background job
+# queued after the save commits, so a slow or unreachable KGGK site can no longer block
+# anyone from saving an Item or a BOM, and a save that later fails validation never
+# leaves a record pushed.
 "Item": {
-    "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_item_kggk"
+    "on_update": "gke_customization.gke_order_forms.doc_events.item.create_item_kggk"
 },
 "BOM": {
-    "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_bom_kggk"
+    "on_update": "gke_customization.gke_order_forms.doc_events.item.create_bom_kggk",
+    # BOM is submittable, so on_update never fires for an edit made after submit. Without
+    # this, a submitted BOM changed on GK would silently stay stale on KGGK.
+    "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.item.create_bom_kggk"
 },
 # "Department IR": {
 #     "autoname": "gke_customization.gke_order_forms.doc_events.department_ir.autoname"
