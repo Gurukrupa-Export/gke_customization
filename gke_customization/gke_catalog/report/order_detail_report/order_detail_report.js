@@ -197,4 +197,33 @@ frappe.query_reports["Order Detail Report"] = {
     fetchOptions("Manufacturing Operation", "department", "department");
     fetchOptions("Parent Manufacturing Order", "item_category", "category");
 },
+
+    // ✅ Columns that should show a unique count (instead of a sum) in the
+    // fixed total row at the bottom of the report.
+    get_datatable_options(options) {
+        const unique_count_fields = [
+            "mwo_id",
+            "mwo_mp_id",
+            "mwo_customer",
+            "mwo_design_id",
+            "parent_mfg_order",
+            "pmo_name",
+            "pmo_sales_order_id",
+            "pmo_order_form_id",
+            "pmo_quotation_id",
+        ];
+
+        options.hooks = options.hooks || {};
+        options.hooks.columnTotal = function (values, column, type) {
+            if (unique_count_fields.includes(column.column.fieldname)) {
+                const unique_values = new Set(
+                    values.filter((v) => v !== null && v !== undefined && v !== "")
+                );
+                return unique_values.size ? String(unique_values.size) : "";
+            }
+            return frappe.utils.report_column_total(values, column, type);
+        };
+
+        return options;
+    },
 };
