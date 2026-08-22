@@ -499,8 +499,9 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	doc.usa = parent_doc.usa
 	doc.india_states = parent_doc.india_states
 	doc.item_type = item_type
-	doc.workflow_type=workflow_type
-	doc.bom_type=bom_type
+	if metal_type=='Silver':
+		doc.workflow_type=workflow_type
+		doc.bom_type=bom_type
 	doc.bom_or_cad = bom_or_cad
 	if design_type in ['New Design','Sketch Design']:
 		doc.workflow_type = 'CAD'
