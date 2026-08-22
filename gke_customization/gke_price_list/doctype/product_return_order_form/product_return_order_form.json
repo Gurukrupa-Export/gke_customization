@@ -1,6 +1,6 @@
 {
  "actions": [],
- "autoname": "format:{ref_company}-PRF-{YYYY}-{#####}",
+ "autoname": "prompt",
  "creation": "2026-01-09 14:15:44.504200",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -492,11 +492,11 @@
    "link_fieldname": "custom_product_return_form_ref"
   }
  ],
- "modified": "2026-08-16 23:06:44.104998",
- "modified_by": "shubham_ke@gkexport.com",
+ "modified": "2026-08-19 14:52:04.328868",
+ "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Product Return Order Form",
- "naming_rule": "Expression (old style)",
+ "naming_rule": "Set by user",
  "owner": "aditya_r@gkexport.com",
  "permissions": [
   {
