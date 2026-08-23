@@ -1614,6 +1614,34 @@ frappe.ui.form.on("Product Return Form Item", {
             frappe.model.set_value(cdt, cdn, "amount", data.summary_totals.grand_total_with_charges);
             frappe.model.set_value(cdt, cdn, "rate", data.summary_totals.grand_total_with_charges);
             frappe.model.set_value(cdt, cdn, "qty", 1);
+			let total_costing_amount = 0;
+
+			(data.materials.metal_details || []).forEach(d => {
+				total_costing_amount += flt(d.Costing_Amt);
+			});
+
+			(data.materials.finding_details || []).forEach(d => {
+				total_costing_amount += flt(d.Costing_Amt);
+			});
+
+			(data.materials.diamond_details || []).forEach(d => {
+				total_costing_amount += flt(d.Costing_Amt);
+			});
+
+			(data.materials.stone_details || []).forEach(d => {
+				total_costing_amount += flt(d.Costing_Amt);
+			});
+
+			(data.materials.other_details || []).forEach(d => {
+				total_costing_amount += flt(d.Costing_Amt);
+			});
+
+			frappe.model.set_value(
+				cdt,
+				cdn,
+				"total_costing_amount",
+				total_costing_amount
+			);
         }
     });
 },
