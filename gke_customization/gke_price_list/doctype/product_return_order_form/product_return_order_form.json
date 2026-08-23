@@ -133,6 +133,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
+   "no_copy": 1,
    "options": "Draft\nItem & BOM Creation\nSend to Pricing\nVerified\nApproved\nIssued\nCancelled",
    "reqd": 1
   },
@@ -492,7 +493,7 @@
    "link_fieldname": "custom_product_return_form_ref"
   }
  ],
- "modified": "2026-08-16 23:05:08.482719",
+ "modified": "2026-08-20 10:50:11.285939",
  "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Product Return Order Form",

@@ -80,6 +80,16 @@ def append_diamond_detail_from_jwelex(product_order, diamond_details):
 		dest.total_diamond_rate = d.get("Rate")
 		dest.diamond_rate_for_specified_quantity = d.get("Amount")
 		dest.se_rate = d.get("Costing_Amt")
+		# purity_name = d.get("Purity_Name")
+		# if purity_name:
+		# 	if purity_name.startswith("DIAMOND NO"):
+		# 		purity_name = purity_name.replace("DIAMOND NO", "", 1).strip()
+		# 	elif purity_name.startswith("GK NO"):
+		# 		purity_name = purity_name.replace("GK NO", "", 1).strip()
+
+		# 	purity_name = purity_name.replace(" ", "")
+
+		# dest.diamond_grade = purity_name
 
 
 def append_finding_detail_from_jwelex(product_order, finding_details):
