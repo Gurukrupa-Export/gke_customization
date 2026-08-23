@@ -6,6 +6,7 @@ from frappe.model.document import Document
 from frappe.model.naming import make_autoname
 import datetime
 from datetime import date
+import requests,json
 
 
 SYSTEM_FIELDS = {
@@ -256,9 +257,98 @@ class ProductReturnOrder(Document):
 			# frappe.throw(f"Serial No = {serial.serial_no}")
 			serial.insert(ignore_permissions=True)
 			# serial.save()
-			# self.db_set("serial_no", serial.name, update_modified=False)
-			self.serial_no = serial.name
-	
+			self.db_set("serial_no", serial.name, update_modified=False)
+			# self.serial_no = serial.name
+			if serial.name:
+				remote_url = (
+					"https://kggk-prod.frappe.cloud/"
+					"/api/method/serial_product_return_order"
+				)
+
+				headers = {
+					"Authorization": "token 94efdb20934f180:8929a35acb05168",
+					"Content-Type": "application/json",
+					"Accept": "application/json"
+				}
+
+				payload = {
+					"name": self.name,
+					"serial_no": serial.name
+				}
+
+				try:
+
+					response = requests.post(
+						remote_url,
+						headers=headers,
+						json=payload,
+						timeout=30
+					)
+
+					# Check HTTP status
+					response.raise_for_status()
+
+					# Try to read JSON response
+					try:
+						response_data = response.json()
+					except Exception:
+						response_data = response.text
+
+					frappe.log_error(
+						title="Serial No Synced Successfully",
+						message=json.dumps({
+							"document": self.name,
+							"serial_no": serial.name,
+							"status_code": response.status_code,
+							"response": response_data
+						}, default=str, indent=2)
+					)
+
+				except requests.exceptions.Timeout:
+
+					frappe.log_error(
+						title="Remote Serial No API Timeout",
+						message=json.dumps({
+							"document": self.name,
+							"serial_no": serial.name,
+							"url": remote_url
+						}, indent=2)
+					)
+
+					frappe.throw(
+						"Remote Serial No synchronization timed out."
+					)
+
+				except requests.exceptions.RequestException as e:
+
+					frappe.log_error(
+						title="Remote Serial No API Failed",
+						message=json.dumps({
+							"document": self.name,
+							"serial_no": serial.name,
+							"error": str(e),
+							"response": getattr(e.response, "text", None)
+							if getattr(e, "response", None)
+							else None
+						}, default=str, indent=2)
+					)
+
+					frappe.throw(
+						"Remote Serial No synchronization failed:\n\n" + str(e)
+					)
+
+				except Exception as e:
+
+					frappe.log_error(
+						title="Remote Serial No Sync Unexpected Error",
+						message=frappe.get_traceback()
+					)
+
+					frappe.throw(
+						"Unexpected error during Serial No synchronization:\n\n"
+						+ str(e)
+					)
+					
 
 
 	def genrate_serial_no(self, new_bom):

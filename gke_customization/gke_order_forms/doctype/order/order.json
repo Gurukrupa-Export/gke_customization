@@ -1741,10 +1741,11 @@
 "fieldtype": "Column Break"
 },
 {
+  "fetch_from": "cad_order_form.repair_order",
   "fieldname": "repair_order",
   "fieldtype": "Link",
   "label": "Repair Order",
-  "options": "Repair Form"
+  "options": "Repair Order"
 }
 ],
 "index_web_pages_for_search": 1,
