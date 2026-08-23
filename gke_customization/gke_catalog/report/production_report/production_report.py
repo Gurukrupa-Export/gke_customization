@@ -12,7 +12,7 @@ def execute(filters=None):
     if not filters:
         filters = {}
 
-    filters = validate_department_access(filters)
+    # filters = validate_department_access(filters)
 
     columns = get_columns()
     data = get_data(filters)
@@ -21,19 +21,19 @@ def execute(filters=None):
 
 
 
-def validate_department_access(filters):
-    user = frappe.session.user
-    is_admin = user == "Administrator" or "System Manager" in frappe.get_roles(user)
+# def validate_department_access(filters):
+#     user = frappe.session.user
+#     is_admin = user == "Administrator" or "System Manager" in frappe.get_roles(user)
 
-    user_department = frappe.defaults.get_user_default("department")
+#     user_department = frappe.defaults.get_user_default("department")
 
-    if not is_admin:
-        if not user_department:
-            frappe.throw(_("User default Department is not set."))
+#     if not is_admin:
+#         if not user_department:
+#             frappe.throw(_("User default Department is not set."))
 
-        filters["department"] = user_department
+#         filters["department"] = user_department
 
-    return filters
+#     return filters
 
 
 
