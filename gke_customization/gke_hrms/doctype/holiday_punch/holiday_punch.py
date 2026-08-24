@@ -151,85 +151,217 @@ class HolidayPunch(Document):
 
 def process_attendance_from_rows(rows, employee, shift_type, date):
 
-	date = getdate(date)
+    # if employee == "GEPL - 01389":
+    #     frappe.throw(
+    #         f"Employee: {employee}\n"
+    #         f"Rows: {rows}\n"
+    #         f"Has Checkin: {any(row.get('employee_checkin') for row in rows)}"
+    #     )
 
-	# if row doest have checkins then skip it
-	if not any(row.get("employee_checkin") is None for row in rows):
-		# frappe.msgprint(f"Employee {employee} Skipped..........")
-		return
+    date = getdate(date)
 
-	# -------------------------
-	# cancel old attendance
-	# -------------------------
+    # -------------------------------------------------
+    # Skip if there is no missing employee_checkin
+    # -------------------------------------------------
+    if not any(
+        row.get("employee_checkin") is not None
+        for row in rows
+    ):
+        return
 
-	if att := frappe.db.exists(
-		"Attendance",
-		{
-			"employee": employee,
-			"attendance_date": date,
-			"docstatus": 1,
-		},
-	):
-		doc = frappe.get_doc("Attendance", att)
-		doc.cancel()
+    # if employee == "GEPL - 01389":
+    #     frappe.throw(
+    #         f"{rows, employee, shift_type, date}"
+    #     )
 
-	# -------------------------
-	# collect punches
-	# -------------------------
+    # -------------------------------------------------
+    # Get Shift Type
+    # -------------------------------------------------. 
+    shift = frappe.get_doc("Shift Type", shift_type)
 
-	punches = []
+    start_time = shift.start_time
+    end_time = shift.end_time
 
-	rows.sort(key=lambda x: x.time)
+    late_entry_grace_period = (
+        shift.late_entry_grace_period or 0
+    )
 
-	for r in rows:
+    # -------------------------------------------------
+    # Cancel old attendance
+    # -------------------------------------------------
+    existing_attendance = frappe.db.exists(
+        "Attendance",
+        {
+            "employee": employee,
+            "attendance_date": date,
+            "docstatus": 1,
+        },
+    )
 
-		if not r.time:
-			continue
+    if existing_attendance:
+        old_attendance = frappe.get_doc(
+            "Attendance",
+            existing_attendance
+        )
+        old_attendance.cancel()
 
-		dt = get_datetime(r.time)
+    # -------------------------------------------------
+    # Collect punches
+    # -------------------------------------------------
+    punches = []
 
-		punches.append(dt)
+    # Don't modify original rows
+    sorted_rows = sorted(
+        rows,
+        key=lambda x: get_datetime(x.time)
+        if x.time else get_datetime("1900-01-01")
+    )
 
-	if not punches:
-		return
+    for row in sorted_rows:
 
-	# -------------------------
-	# first IN last OUT
-	# -------------------------
+        if not row.get("time"):
+            continue
 
-	in_time = punches[0]
-	out_time = punches[-1]
+        dt = get_datetime(row.get("time"))
 
-	if out_time <= in_time:
-		return
+        punches.append(dt)
 
-	working_hours = (out_time - in_time).total_seconds() / 3600
+    # No punches
+    if not punches:
+        return
 
-	# -------------------------
-	# create attendance
-	# -------------------------
+    # -------------------------------------------------
+    # First IN / Last OUT
+    # -------------------------------------------------
+    in_time = punches[0]
+    out_time = punches[-1]
 
-	att = frappe.new_doc("Attendance")
+    # Invalid punch sequence
+    if out_time <= in_time:
+        return
 
-	att.employee = employee
-	att.attendance_date = date
-	att.shift = shift_type
-	att.in_time = in_time
-	att.out_time = out_time
-	att.working_hours = working_hours
+    # -------------------------------------------------
+    # Working Hours
+    # -------------------------------------------------
+    working_hours = (
+        out_time - in_time
+    ).total_seconds() / 3600
 
-	if working_hours > 0:
-		att.status = "Present"
-	else:
-		att.status = "Absent"
+    # -------------------------------------------------
+    # Shift Start / End
+    # -------------------------------------------------
+    shift_start = get_datetime(
+        f"{date} {start_time}"
+    )
 
-	att.insert()
-	att.submit()
+    shift_end = get_datetime(
+        f"{date} {end_time}"
+    )
 
-	# link checkin record with attendance
-	all_checkins = frappe.get_all("Employee Checkin", {"employee": employee, "time": ["between", [in_time, out_time]]}, "name")
-	for checkin in all_checkins:
-		frappe.db.set_value("Employee Checkin", checkin.name, "attendance", att.name)
+    # -------------------------------------------------
+    # Overnight Shift
+    # -------------------------------------------------
+    if shift_end <= shift_start:
+        shift_end = add_days(
+            shift_end,
+            1
+        )
+
+    # -------------------------------------------------
+    # Late Entry
+    # -------------------------------------------------
+    late_entry = 0
+
+    allowed_late_time = (
+        shift_start
+        + timedelta(
+            minutes=late_entry_grace_period
+        )
+    )
+
+    if in_time > allowed_late_time:
+        late_entry = 1
+
+    # -------------------------------------------------
+    # Early Exit
+    # -------------------------------------------------
+    early_exit = 0
+
+    if out_time < shift_end:
+        early_exit = 1
+
+    # if employee == "GEPL - 00175":
+    #     frappe.throw(
+    #         f"{late_entry, early_exit}"
+    #     )
+
+    # -------------------------------------------------
+    # Create Attendance
+    # -------------------------------------------------
+    att = frappe.new_doc("Attendance")
+
+    att.employee = employee
+    att.attendance_date = date
+    att.shift = shift_type
+
+    att.in_time = in_time
+    att.out_time = out_time
+    att.working_hours = working_hours
+
+    att.late_entry = late_entry
+    att.early_exit = early_exit
+
+    # if employee == "GEPL - 00175":
+    #     frappe.throw(
+    #         f"""
+    #         Variable late_entry = {late_entry}
+    #         Attendance late_entry = {att.late_entry}
+    #         """
+    #     )
+
+    # -------------------------------------------------
+    # Attendance Status
+    # -------------------------------------------------
+    if working_hours > 0:
+        att.status = "Present"
+    else:
+        att.status = "Absent"
+
+    # -------------------------------------------------
+    # Insert & Submit
+    # -------------------------------------------------
+    att.insert()
+    att.submit()
+
+
+    if late_entry:
+        att.db_set("late_entry", late_entry, update_modified=False)
+
+    if early_exit:
+        att.db_set("early_exit", early_exit, update_modified=False)
+
+    # -------------------------------------------------
+    # Link Employee Checkins with Attendance
+    # -------------------------------------------------
+    all_checkins = frappe.get_all(
+        "Employee Checkin",
+        filters={
+            "employee": employee,
+            "time": [
+                "between",
+                [in_time, out_time]
+            ],
+        },
+        fields=["name"],
+    )
+
+    for checkin in all_checkins:
+        frappe.db.set_value(
+            "Employee Checkin",
+            checkin.name,
+            "attendance",
+            att.name
+        )
 
 @frappe.whitelist()
 def add_checkins(details, date, shift_name):

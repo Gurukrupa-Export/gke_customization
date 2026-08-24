@@ -101,7 +101,8 @@ class CrossCompanyEmployeeTransfer(Document):
 				"Default Shift": "default_shift",         # ✅ fixed
 				"Leave Approver": "leave_approver",
 				"Expense Approver": "expense_approver",
-				"Shift Request Approver": "shift_request_approver"
+				"Shift Request Approver": "shift_request_approver",
+				"Holiday List": "holiday_list"
 			}
 
 			# def get_property_data_by_property():
@@ -137,22 +138,49 @@ class CrossCompanyEmployeeTransfer(Document):
 				if not fieldname:
 					continue
 
-				if fieldname in ["expense_approver", "reports_to", "shift_request_approver", "leave_approver"]:
+				# if fieldname in ["expense_approver", "reports_to", "shift_request_approver", "leave_approver"]:
+				# if fieldname == "holiday_list":
+				# 	frappe.throw(f"{row.new}")
 
-					# "KGJPL - 00628 - Alpeshbhai Sureshbhai Rathod"
-					parts = row.new.split(" - ")
+				# 	# "KGJPL - 00628 - Alpeshbhai Sureshbhai Rathod"
+				# 	parts = row.new.split(" - ")
 
-					if len(parts) >= 2:
-						payload[fieldname] = f"{parts[0]} - {parts[1]}"
-					else:
-						payload[fieldname] = row.new
+				# 	if len(parts) >= 2:
+				# 		payload[fieldname] = f"{parts[0]} - {parts[1]}"
+				# 	else:
+				# 		payload[fieldname] = row.new
+
+				# else:
+				# 	payload[fieldname] = row.new
+
+				fieldname = field_map.get(row.property)
+
+				if not fieldname:
+					continue
+
+				# Only Reports To / Employee fields
+				if fieldname == "reports_to":
+
+					if not row.new_value:
+						frappe.throw(
+							f"Actual value missing for {row.property}: {row.new}"
+						)
+
+					payload[fieldname] = row.new_value
 
 				else:
+
+					# Department / Designation / Shift / User
 					payload[fieldname] = row.new
 
-			payload["holiday_list"] = "KGJPL-Holiday"
+			# if self.new_company == "Gurukrupa Export Private Limited":
+			# 	payload["holiday_list"] = "GEPL-ST-Holiday"
+			# else:
+			# 	payload["holiday_list"] = "KGJPL-Holiday"
 
 			payload["date_of_joining"] = self.transfer_date
+
+			payload["attendance_device_id"] = self.attendance_device_id
 			
 			payload["doctype"] = "Employee"
 
@@ -162,8 +190,7 @@ class CrossCompanyEmployeeTransfer(Document):
 
 			try:
 				response = requests.post(
-					"https://kggk-prod.frappe.cloud/api/method/create_transfer_employee",
-					
+					f"{self.target_site}/api/method/create_transfer_employee",
 					json={
 						"employee_data": payload
 					},
@@ -175,23 +202,24 @@ class CrossCompanyEmployeeTransfer(Document):
 				response_data = response.json()
 				# frappe.throw(frappe.as_json(response_data))
 
-				if response_data.get("message") and response_data["message"].get("name"):
+				if response_data.get("message") and response_data["message"].get("employee"):
 
-					self.new_employee_id = response_data["message"].get("name")
-					self.db_set("new_employee_id", response_data["message"].get("name"))
+					self.new_employee_id = response_data["message"]["employee"]
+					self.db_set("new_employee_id", response_data["message"]["employee"])
 
-					return response_data["message"].get("name")
+					return response_data["message"]["employee"]
 
 				else:
 					import json
 					# frappe.throw(f"{response_data.get("message")}")
 					frappe.throw(
-						"Employee creation failed in KGGK\n\n" +
+						f"Employee creation failed in {self.new_company}\n\n" +
 						"\n".join(
 							json.loads(msg)["message"]
 							for msg in json.loads(response_data.get("_server_messages", "[]"))
 						)
 					)
+				
 
 			except Exception as e:
 
@@ -201,13 +229,14 @@ class CrossCompanyEmployeeTransfer(Document):
 				)
 				raise
 
+
 @frappe.whitelist(allow_guest=True)
-def get_kggk_data(property=None):
-
-    response = requests.get(
-        "https://kggk-prod.frappe.cloud/api/method/get_dept_desi_reprt_leave_apr_from_kggk"
-    )
-
-    return response.json()	
-
+def get_kggk_data(property=None, new_company=None):
+	response = requests.get(
+			"https://gkexport-dummy-v16.m.frappe.cloud/api/method/get_dept_desi_reprt_leave_apr_from_gk",
+			params={
+				"new_company": new_company
+			}
+		)
+	return response.json()	
 
