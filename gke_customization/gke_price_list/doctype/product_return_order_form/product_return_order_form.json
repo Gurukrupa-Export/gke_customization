@@ -351,11 +351,13 @@
    "options": "With\nWithout\nHalf\nCustom"
   },
   {
+   "depends_on": "eval:doc.making_charges_type=='Custom'",
    "fieldname": "custom_making_charges",
    "fieldtype": "Data",
    "label": "Custom Making Charges"
   },
   {
+   "depends_on": "eval:doc.gemstone_charges=='Custom'",
    "fieldname": "custom_gemstones_charges",
    "fieldtype": "Data",
    "label": "Custom Gemstones Charges"
@@ -385,6 +387,7 @@
    "options": "With\nWithout\nHalf\nCustom"
   },
   {
+   "depends_on": "eval:doc.handling_charges=='Custom'",
    "fieldname": "custom_handling_charges",
    "fieldtype": "Data",
    "label": "Custom Handling Charges"
@@ -396,6 +399,7 @@
    "options": "With\nWithout\nHalf\nCustom"
   },
   {
+   "depends_on": "eval:doc.wastage_charges=='Custom'",
    "fieldname": "custom_wastage_charges",
    "fieldtype": "Data",
    "label": "Custom Wastage Charges"
@@ -492,8 +496,8 @@
    "link_fieldname": "custom_product_return_form_ref"
   }
  ],
- "modified": "2026-08-19 14:52:04.328868",
- "modified_by": "Administrator",
+ "modified": "2026-08-24 15:48:49.952899",
+ "modified_by": "shruti_b@gkexport.com",
  "module": "Gke Price List",
  "name": "Product Return Order Form",
  "naming_rule": "Set by user",
