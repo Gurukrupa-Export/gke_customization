@@ -10,8 +10,6 @@
  "field_order": [
   "company",
   "department",
-  "is_jewelex_tag",
-  "tag_no1",
   "column_break_gpues",
   "branch",
   "salesman_name",
@@ -23,7 +21,6 @@
   "est_delivery_date",
   "updated_delivery_date",
   "project",
-  "parcel_place",
   "flow_type",
   "column_break_2",
   "po_no",
@@ -31,7 +28,7 @@
   "due_days",
   "est_due_days",
   "diamond_quality",
-  "service_type",
+  "product_return_order",
   "section_break_17",
   "scan_serial_no",
   "column_break_19",
@@ -48,6 +45,7 @@
   "item",
   "bom",
   "tag_no",
+  "column_break_mipd",
   "serial_no_bom",
   "modification",
   "section_break_41",
@@ -227,7 +225,11 @@
   "metal_to_diamond_ratioexcl_of_finding",
   "column_break_qtqz",
   "avg_diamond_weightin_carat",
-  "rating"
+  "rating",
+  "territory_tab",
+  "parcel_place",
+  "column_break_eulg",
+  "service_type"
  ],
  "fields": [
   {
@@ -300,13 +302,13 @@
    "fetch_from": "serial_and_design_code_order_form.project",
    "fieldname": "project",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Project",
    "options": "Project",
    "read_only": 1
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.repair_type",
-   "fetch_if_empty": 1,
    "fieldname": "repair_type",
    "fieldtype": "Link",
    "label": "Repair Type",
@@ -351,6 +353,7 @@
   {
    "fieldname": "est_due_days",
    "fieldtype": "Int",
+   "hidden": 1,
    "label": "Est Due Days"
   },
   {
@@ -400,6 +403,7 @@
   {
    "fieldname": "design_by",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Design By",
    "options": "\nConcept by Design\nCustomer Design",
    "read_only": 1
@@ -426,13 +430,12 @@
    "fieldtype": "Section Break"
   },
   {
-   "allow_on_submit": 1,
    "fetch_from": "serial_and_design_code_order_form_detail.item",
-   "fetch_if_empty": 1,
    "fieldname": "item",
    "fieldtype": "Link",
    "label": "Design Code",
-   "options": "Item"
+   "options": "Item",
+   "read_only": 1
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.bom",
@@ -490,7 +493,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.sub_setting_type1",
-   "fetch_if_empty": 1,
    "fieldname": "sub_setting_type1",
    "fieldtype": "Link",
    "label": "Sub Setting Type1",
@@ -499,7 +501,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.sub_setting_type2",
-   "fetch_if_empty": 1,
    "fieldname": "sub_setting_type2",
    "fieldtype": "Link",
    "label": "Sub Setting Type2",
@@ -518,7 +519,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.metal_type",
-   "fetch_if_empty": 1,
    "fieldname": "metal_type",
    "fieldtype": "Link",
    "label": "Metal Type",
@@ -527,7 +527,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.metal_touch",
-   "fetch_if_empty": 1,
    "fieldname": "metal_touch",
    "fieldtype": "Link",
    "label": "Metal Touch",
@@ -536,7 +535,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.metal_purity",
-   "fetch_if_empty": 1,
    "fieldname": "metal_purity",
    "fieldtype": "Link",
    "label": "Metal Purity",
@@ -545,7 +543,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.metal_colour",
-   "fetch_if_empty": 1,
    "fieldname": "metal_colour",
    "fieldtype": "Link",
    "label": "Metal Colour ",
@@ -563,10 +560,11 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.diamond_target",
-   "fetch_if_empty": 1,
    "fieldname": "diamond_target",
    "fieldtype": "Float",
+   "hidden": 1,
    "label": "Diamond Target",
+   "read_only": 1,
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
@@ -575,7 +573,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.product_size",
-   "fetch_if_empty": 1,
    "fieldname": "product_size",
    "fieldtype": "Float",
    "hidden": 1,
@@ -598,7 +595,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.length",
-   "fetch_if_empty": 1,
    "fieldname": "length",
    "fieldtype": "Float",
    "hidden": 1,
@@ -608,7 +604,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.width",
-   "fetch_if_empty": 1,
    "fieldname": "width",
    "fieldtype": "Float",
    "hidden": 1,
@@ -618,7 +613,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.height",
-   "fetch_if_empty": 1,
    "fieldname": "height",
    "fieldtype": "Float",
    "hidden": 1,
@@ -642,7 +636,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.changeable",
-   "fetch_if_empty": 1,
    "fieldname": "changeable",
    "fieldtype": "Select",
    "hidden": 1,
@@ -657,7 +650,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.enamal",
-   "fetch_if_empty": 1,
    "fieldname": "enamal",
    "fieldtype": "Link",
    "hidden": 1,
@@ -668,7 +660,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.rhodium",
-   "fetch_if_empty": 1,
    "fieldname": "rhodium",
    "fieldtype": "Link",
    "hidden": 1,
@@ -683,7 +674,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.gemstone_quality",
-   "fetch_if_empty": 1,
    "fieldname": "gemstone_quality",
    "fieldtype": "Link",
    "hidden": 1,
@@ -698,7 +688,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.hinges",
-   "fetch_if_empty": 1,
    "fieldname": "hinges",
    "fieldtype": "Link",
    "hidden": 1,
@@ -720,7 +709,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.vanki_type",
-   "fetch_if_empty": 1,
    "fieldname": "vanki_type",
    "fieldtype": "Link",
    "hidden": 1,
@@ -750,7 +738,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.lock_type",
-   "fetch_if_empty": 1,
    "fieldname": "lock_type",
    "fieldtype": "Link",
    "hidden": 1,
@@ -768,7 +755,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.back_belt_patti",
-   "fetch_if_empty": 1,
    "fieldname": "back_belt_patti",
    "fieldtype": "Link",
    "hidden": 1,
@@ -782,7 +768,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.chain",
-   "fetch_if_empty": 1,
    "fieldname": "chain",
    "fieldtype": "Link",
    "hidden": 1,
@@ -792,7 +777,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.chain_type",
-   "fetch_if_empty": 1,
    "fieldname": "chain_type",
    "fieldtype": "Link",
    "hidden": 1,
@@ -806,7 +790,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.customer_chain",
-   "fetch_if_empty": 1,
    "fieldname": "customer_chain",
    "fieldtype": "Link",
    "hidden": 1,
@@ -816,7 +799,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.back_chain",
-   "fetch_if_empty": 1,
    "fieldname": "back_chain",
    "fieldtype": "Link",
    "hidden": 1,
@@ -830,7 +812,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.chain_length",
-   "fetch_if_empty": 1,
    "fieldname": "chain_length",
    "fieldtype": "Float",
    "hidden": 1,
@@ -839,7 +820,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.chain_weight",
-   "fetch_if_empty": 1,
    "fieldname": "chain_weight",
    "fieldtype": "Float",
    "hidden": 1,
@@ -852,7 +832,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.total_length",
-   "fetch_if_empty": 1,
    "fieldname": "total_length",
    "fieldtype": "Float",
    "hidden": 1,
@@ -861,7 +840,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.detachable",
-   "fetch_if_empty": 1,
    "fieldname": "detachable",
    "fieldtype": "Link",
    "hidden": 1,
@@ -875,7 +853,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.back_chain_size",
-   "fetch_if_empty": 1,
    "fieldname": "back_chain_size",
    "fieldtype": "Float",
    "hidden": 1,
@@ -884,7 +861,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.back_side_size",
-   "fetch_if_empty": 1,
    "fieldname": "back_side_size",
    "fieldtype": "Float",
    "hidden": 1,
@@ -897,7 +873,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.total_mugappu",
-   "fetch_if_empty": 1,
    "fieldname": "total_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
@@ -913,7 +888,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.back_belt_length",
-   "fetch_if_empty": 1,
    "fieldname": "back_belt_length",
    "fieldtype": "Float",
    "hidden": 1,
@@ -926,7 +900,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.space_between_mugappu",
-   "fetch_if_empty": 1,
    "fieldname": "space_between_mugappu",
    "fieldtype": "Float",
    "hidden": 1,
@@ -935,7 +908,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.nakshi_from",
-   "fetch_if_empty": 1,
    "fieldname": "nakshi_from",
    "fieldtype": "Link",
    "hidden": 1,
@@ -949,7 +921,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.back_belt",
-   "fetch_if_empty": 1,
    "fieldname": "back_belt",
    "fieldtype": "Link",
    "hidden": 1,
@@ -959,7 +930,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.customer_sample",
-   "fetch_if_empty": 1,
    "fieldname": "customer_sample",
    "fieldtype": "Link",
    "hidden": 1,
@@ -973,7 +943,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.customer_sample_voucher_no",
-   "fetch_if_empty": 1,
    "fieldname": "customer_sample_voucher_no",
    "fieldtype": "Data",
    "label": "Customer Sample Voucher No",
@@ -985,7 +954,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.customer_gold",
-   "fetch_if_empty": 1,
    "fieldname": "customer_gold",
    "fieldtype": "Select",
    "hidden": 1,
@@ -999,7 +967,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.customer_diamond",
-   "fetch_if_empty": 1,
    "fieldname": "customer_diamond",
    "fieldtype": "Select",
    "hidden": 1,
@@ -1013,7 +980,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.customer_stone",
-   "fetch_if_empty": 1,
    "fieldname": "customer_stone",
    "fieldtype": "Select",
    "hidden": 1,
@@ -1027,7 +993,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.customer_good",
-   "fetch_if_empty": 1,
    "fieldname": "customer_good",
    "fieldtype": "Link",
    "label": "Customer Good",
@@ -1039,7 +1004,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.certificate_place",
-   "fetch_if_empty": 1,
    "fieldname": "certificate_place",
    "fieldtype": "Link",
    "hidden": 1,
@@ -1135,7 +1099,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.bom_weight",
-   "fetch_if_empty": 1,
    "fieldname": "bom_weight",
    "fieldtype": "Float",
    "label": "BOM Weight",
@@ -1147,14 +1110,12 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.customer_weight",
-   "fetch_if_empty": 1,
    "fieldname": "customer_weight",
    "fieldtype": "Float",
    "label": "Customer Weight"
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.required_design",
-   "fetch_if_empty": 1,
    "fieldname": "required_design",
    "fieldtype": "Select",
    "label": "Required Design",
@@ -1163,7 +1124,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.feature",
-   "fetch_if_empty": 1,
    "fieldname": "feature",
    "fieldtype": "Link",
    "label": "Feature",
@@ -1171,7 +1131,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.distance_between_kadi_to_mugappu",
-   "fetch_if_empty": 1,
    "fieldname": "distance_between_kadi_to_mugappu",
    "fieldtype": "Float",
    "label": "Distance Between Kadi to Mugappu"
@@ -1231,15 +1190,15 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.metal_target",
-   "fetch_if_empty": 1,
    "fieldname": "metal_target",
    "fieldtype": "Float",
+   "hidden": 1,
    "label": "Metal Target",
+   "read_only": 1,
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.two_in_one",
-   "fetch_if_empty": 1,
    "fieldname": "two_in_one",
    "fieldtype": "Link",
    "hidden": 1,
@@ -1268,6 +1227,7 @@
   {
    "fieldname": "est_delivery_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Estimated Due Date"
   },
   {
@@ -1283,7 +1243,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.charm",
-   "fetch_if_empty": 1,
    "fieldname": "charm",
    "fieldtype": "Link",
    "label": "Charm",
@@ -1291,7 +1250,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.capganthan",
-   "fetch_if_empty": 1,
    "fieldname": "capganthan",
    "fieldtype": "Link",
    "label": "Cap/Ganthan",
@@ -1305,7 +1263,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.black_bead",
-   "fetch_if_empty": 1,
    "fieldname": "black_bead",
    "fieldtype": "Link",
    "hidden": 1,
@@ -1315,7 +1272,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.black_bead_line",
-   "fetch_if_empty": 1,
    "fieldname": "black_bead_line",
    "fieldtype": "Float",
    "hidden": 1,
@@ -1324,7 +1280,6 @@
   },
   {
    "fetch_from": "serial_and_design_code_order_form_detail.gemstone_type",
-   "fetch_if_empty": 1,
    "fieldname": "gemstone_type",
    "fieldtype": "Link",
    "label": "Gemstone Type",
@@ -1642,22 +1597,30 @@
    "options": "BOM"
   },
   {
+   "depends_on": "eval:doc.required_design == \"CAD\"",
    "fieldname": "mod_reason",
    "fieldtype": "Select",
    "label": "MOD Reason",
    "options": "\nAttribute Change\nPartial Design Change\nCategory Change"
   },
   {
-   "default": "0",
-   "fieldname": "is_jewelex_tag",
-   "fieldtype": "Check",
-   "label": "Is Jewelex Tag"
+   "fieldname": "product_return_order",
+   "fieldtype": "Link",
+   "label": "Product Return Order",
+   "options": "Product Return Order"
   },
   {
-   "depends_on": "eval:doc.is_jewelex_tag",
-   "fieldname": "tag_no1",
-   "fieldtype": "Data",
-   "label": "Tag No1"
+   "fieldname": "column_break_mipd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "territory_tab",
+   "fieldtype": "Tab Break",
+   "label": "Territory"
+  },
+  {
+   "fieldname": "column_break_eulg",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -1677,11 +1640,11 @@
   }
  ],
  "make_attachments_public": 1,
- "modified": "2026-07-28 16:31:46.486962",
- "modified_by": "shubham_k@gkexport.com",
+ "modified": "2026-08-13 15:23:39.533774",
+ "modified_by": "shubham_ke@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Repair Order",
- "naming_rule": "Expression",
+ "naming_rule": "Expression (old style)",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",

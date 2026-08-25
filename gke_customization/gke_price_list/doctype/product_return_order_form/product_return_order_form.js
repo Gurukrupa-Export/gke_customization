@@ -1547,12 +1547,21 @@ frappe.ui.form.on("Product Return Form Item", {
 	},
 	jewelex_tag(frm, cdt, cdn) {
     let row = locals[cdt][cdn];
+	let cmp = "";
+	if (frm.doc.ref_company == "KG") {
+		cmp = "KGPL";
+	} else {
+		cmp = "GEPL";
+	}
+	
     if (!row.jewelex_tag) return;
 
     frappe.call({
         method: "gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form_api.get_data_from_jwelex",
         args: {
-            tag_no: row.jewelex_tag
+            tag_no: row.jewelex_tag,
+			company:cmp,
+			is_sale:row.is_sale
         },
         callback: function(r) {
             if (!r.message) {
@@ -1588,9 +1597,9 @@ frappe.ui.form.on("Product Return Form Item", {
             frappe.model.set_value(cdt, cdn, "gemstone_pcs", gemstone_pcs);
 
             // Amounts
-            frappe.model.set_value(cdt, cdn, "metal_amount", data.totals.metal_totals.total_amount);
-            frappe.model.set_value(cdt, cdn, "diamond_amount", data.totals.diamond_totals.total_amount);
-            frappe.model.set_value(cdt, cdn, "gemstone_amount", data.totals.stone_totals.total_amount);
+            frappe.model.set_value(cdt, cdn, "metal_amount", data.summary_totals.metal_amount);
+            frappe.model.set_value(cdt, cdn, "diamond_amount", data.summary_totals.diamond_amount);
+            frappe.model.set_value(cdt, cdn, "gemstone_amount", data.summary_totals.stone_amount);
             frappe.model.set_value(cdt, cdn, "finding_amount", data.totals.finding_totals.total_amount);
             frappe.model.set_value(cdt, cdn, "other_material_amount", data.totals.other_totals.total_amount);
 
@@ -1603,6 +1612,36 @@ frappe.ui.form.on("Product Return Form Item", {
 
             // Grand total
             frappe.model.set_value(cdt, cdn, "amount", data.summary_totals.grand_total_with_charges);
+            frappe.model.set_value(cdt, cdn, "rate", data.summary_totals.grand_total_with_charges);
+            frappe.model.set_value(cdt, cdn, "qty", 1);
+			let total_costing_amount = 0;
+
+			(data.materials.metal_details || []).forEach(d => {
+				total_costing_amount += flt(d.Costing_Amt);
+			});
+
+			(data.materials.finding_details || []).forEach(d => {
+				total_costing_amount += flt(d.Costing_Amt);
+			});
+
+			(data.materials.diamond_details || []).forEach(d => {
+				total_costing_amount += flt(d.Costing_Amt);
+			});
+
+			(data.materials.stone_details || []).forEach(d => {
+				total_costing_amount += flt(d.Costing_Amt);
+			});
+
+			(data.materials.other_details || []).forEach(d => {
+				total_costing_amount += flt(d.Costing_Amt);
+			});
+
+			frappe.model.set_value(
+				cdt,
+				cdn,
+				"total_costing_amount",
+				total_costing_amount
+			);
         }
     });
 },

@@ -83,11 +83,15 @@ class Order(Document):
 		if self.is_finding_order and self.workflow_state == 'Update Item':
 			check_finding_code(self)
 		
+	
 	def on_update_after_submit(self):
 		create_timesheet_copy_paste_item_bom(self)
 		if self.workflow_state == "Creating BOM" and self.docstatus == 1:
 			bom_creation(self)
-		if self.is_repairing == 0 and (self.design_type == 'Mod - Old Stylebio & Tag No' and self.bom_type != 'Duplicate BOM'):
+		if self.is_repairing == 0 and (
+			self.design_type == "Mod - Old Stylebio & Tag No"
+			and self.bom_type != "Duplicate BOM"
+		):
 			cerate_bom_timesheet(self)
 		calculate_metal_weights(self)
 		calculate_finding_weights(self)
@@ -95,11 +99,27 @@ class Order(Document):
 		calculate_gemstone_weights(self)
 		calculate_other_weights(self)
 		calculate_total(self)
-		if (self.workflow_state == 'Approved' and self.mod_reason not in ['Change in Metal Touch','Change in Metal Colour']) and (self.is_finding_order==0) and (self.is_repairing==0) and self.bom_type != 'Duplicate BOM':
-			timesheet = frappe.get_doc("Timesheet",{"order":self.name},"name")
-			timesheet.run_method('submit')
-		if self.workflow_state == 'Update BOM' and self.design_type == 'Sketch Design':
+		if self.workflow_state == 'Approved' and self.repair_order and self.is_repairing:
+			frappe.db.set_value("Repair Order",self.repair_order,"new_item_code",self.item)
+			frappe.db.set_value("Repair Order",self.repair_order,"new_bom",self.new_bom)
+			repair_bom = frappe.db.get_value("Repair Order",self.repair_order,"bom")
+			frappe.db.set_value("Repair Order",self.repair_order,"product_bom",repair_bom)
+			frappe.db.set_value("Repair Order",self.repair_order,"workflow_state","Approved")
+		if (
+			(
+				self.workflow_state == "Approved"
+				and self.mod_reason
+				not in ["Change in Metal Touch", "Change in Metal Colour"]
+			)
+			and (self.is_finding_order == 0)
+			and (self.is_repairing == 0)
+			and self.bom_type != "Duplicate BOM"
+		):
+			timesheet = frappe.get_doc("Timesheet", {"order": self.name})
+			timesheet.run_method("submit")
+		if self.workflow_state == "Update BOM" and self.design_type == "Sketch Design":
 			update_variant_attributes(self)
+
 	
 	def on_cancel(self):
 		if frappe.db.get_list("Timesheet",filters={"order":self.name},fields="name"):

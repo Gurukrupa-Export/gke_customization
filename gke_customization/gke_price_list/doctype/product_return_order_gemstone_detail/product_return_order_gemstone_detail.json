@@ -57,8 +57,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Gemstone Type",
-   "options": "Attribute Value",
-   "reqd": 1
+   "options": "Attribute Value"
   },
   {
    "fetch_if_empty": 1,
@@ -73,8 +72,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Stone Shape",
-   "options": "Attribute Value",
-   "reqd": 1
+   "options": "Attribute Value"
   },
   {
    "default": "Precious",
@@ -123,8 +121,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Gemstone Size",
-   "options": "Attribute Value",
-   "reqd": 1
+   "options": "Attribute Value"
   },
   {
    "allow_on_submit": 1,
@@ -173,8 +170,7 @@
    "fieldname": "quantity",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Weight in cts",
-   "reqd": 1
+   "label": "Weight in cts"
   },
   {
    "fieldname": "quantity_3",
@@ -206,8 +202,7 @@
    "hidden": 1,
    "in_list_view": 1,
    "label": "Stock UOM",
-   "options": "UOM",
-   "reqd": 1
+   "options": "UOM"
   },
   {
    "fieldname": "item_variant",
@@ -245,8 +240,8 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-21 20:30:08.055823",
- "modified_by": "shruti_b@gkexport.com",
+ "modified": "2026-08-17 23:05:48.617366",
+ "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Product Return Order Gemstone Detail",
  "owner": "shruti_b@gkexport.com",

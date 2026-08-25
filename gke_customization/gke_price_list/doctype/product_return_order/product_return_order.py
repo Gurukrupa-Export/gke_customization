@@ -6,6 +6,7 @@ from frappe.model.document import Document
 from frappe.model.naming import make_autoname
 import datetime
 from datetime import date
+import requests,json
 
 
 SYSTEM_FIELDS = {
@@ -209,8 +210,7 @@ class ProductReturnOrder(Document):
 			build_diamond_detail(self, new_bom)
 			build_gemstone_detail(self, new_bom)
 			build_other_detail(self, new_bom)
-			new_bom.hallmarking_amount = 0 if not self.hallmarking_amounts else new_bom.hallmarking_amount
-			new_bom.certification_amount=0 if not self.certification_amounts else new_bom.certification_amount
+	
 			new_bom.total_metal_weight = sum(row.quantity for row in new_bom.metal_detail)
 			new_bom.total_metal_amount = sum(row.amount for row in new_bom.metal_detail)
 			new_bom.total_making_amount = sum(row.making_amount for row in new_bom.metal_detail)
@@ -238,55 +238,7 @@ class ProductReturnOrder(Document):
 			# new_bom.save()
 			self.db_set("new_bom", new_bom.name, update_modified=False)
 	def on_submit(self):
-		# if self.bom:
-		# 	bom_doc = frappe.get_doc("BOM", self.bom)
-		# 	new_bom = frappe.copy_doc(bom_doc)
-		# else:
-		# 	# Jewelex-tag rows have no source BOM to copy from - build a fresh one.
-		# 	new_bom = frappe.new_doc("BOM")
-		# 	new_bom.company = self.company
-		# 	new_bom.currency = frappe.get_cached_value("Company", self.company, "default_currency")
-		# 	new_bom.append("items", {
-		# 		"item_code": self.item_code,
-		# 		"qty": 1,
-		# 		"uom": self.uom,
-		# 		"rate": 0,
-		# 	})
-
-		# # Comment out any line below to skip that table's rebuild/calculation
-		# # (the table then keeps whatever rows copy_doc pulled from the source BOM).
-		# build_metal_detail(self, new_bom)
-		# build_finding_detail(self, new_bom)
-		# build_diamond_detail(self, new_bom)
-		# build_gemstone_detail(self, new_bom)
-		# build_other_detail(self, new_bom)
-
-		# new_bom.total_metal_weight = sum(row.quantity for row in new_bom.metal_detail)
-		# new_bom.total_metal_amount = sum(row.amount for row in new_bom.metal_detail)
-		# new_bom.total_making_amount = sum(row.making_amount for row in new_bom.metal_detail)
-		# new_bom.total_wastage_amount = sum(row.wastage_amount for row in new_bom.metal_detail)
-		# new_bom.total_finding_amount = sum(row.amount for row in new_bom.finding_detail)
-		# new_bom.total_diamond_amount = sum(row.diamond_rate_for_specified_quantity for row in new_bom.diamond_detail)
-		# new_bom.total_gemstone_amount = sum(row.gemstone_rate_for_specified_quantity for row in new_bom.gemstone_detail)
-		# new_bom.gemstone_bom_amount = new_bom.total_gemstone_amount
-		# new_bom.diamond_bom_amount = new_bom.total_diamond_amount
-		# new_bom.gold_bom_amount=new_bom.total_metal_amount 
-		# new_bom.finding_bom_amount=new_bom.total_finding_amount
-		# new_bom.total_bom_amount = (new_bom.diamond_bom_amount+ new_bom.gold_bom_amount+ new_bom.gemstone_bom_amount+ new_bom.finding_bom_amount)
-		# new_bom.making_charge = (sum(r.making_amount for r in new_bom.metal_detail)+ sum(r.making_amount for r in new_bom.finding_detail) )
-		# new_bom.finding_pcs = self.total_finding_pcs
-		# new_bom.finding_weight = sum(row.quantity for row in new_bom.finding_detail)
-		# new_bom.total_gemstone_pcs = self.total_gemstone_pcs
-		# new_bom.total_gemstone_weight_per_gram = self.total_gemstone_weightin_gms
-		# new_bom.total_gemstone_amount = self.total_gemstone_amount
-		# new_bom.total_diamond_amount = self.total_diamond_amount
-		# new_bom.total_diamond_pcs = self.total_diamond_pcs
-		# new_bom.total_diamond_weight_in_gms = self.total_diamond_weight_in_gram
-		# new_bom.bom_type = "Finish Goods"
-		# new_bom.item = self.item_code
-		# new_bom.insert(ignore_permissions=True)
 		
-		# self.db_set("new_bom", new_bom.name, update_modified=False)
 		if not self.serial_no:
 			serial = frappe.new_doc('Serial No')
 			serial.item_code = self.item_code
@@ -299,18 +251,109 @@ class ProductReturnOrder(Document):
 			serial.custom_bom_no=self.new_bom
 			serial.status = 'Delivered'
 			serial.custom_manufacturer='Labh'
-			compose_series = self.genrate_serial_no(new_bom)
+			compose_series = self.genrate_serial_no(self.new_bom)
 			sr_no = make_autoname(compose_series)
 			serial.serial_no=sr_no
 			# frappe.throw(f"Serial No = {serial.serial_no}")
 			serial.insert(ignore_permissions=True)
 			# serial.save()
 			self.db_set("serial_no", serial.name, update_modified=False)
-	
+			# self.serial_no = serial.name
+			if serial.name:
+				remote_url = (
+					"https://kggk-prod.frappe.cloud/"
+					"/api/method/serial_product_return_order"
+				)
+
+				headers = {
+					"Authorization": "token 94efdb20934f180:8929a35acb05168",
+					"Content-Type": "application/json",
+					"Accept": "application/json"
+				}
+
+				payload = {
+					"name": self.name,
+					"serial_no": serial.name
+				}
+
+				try:
+
+					response = requests.post(
+						remote_url,
+						headers=headers,
+						json=payload,
+						timeout=30
+					)
+
+					# Check HTTP status
+					response.raise_for_status()
+
+					# Try to read JSON response
+					try:
+						response_data = response.json()
+					except Exception:
+						response_data = response.text
+
+					frappe.log_error(
+						title="Serial No Synced Successfully",
+						message=json.dumps({
+							"document": self.name,
+							"serial_no": serial.name,
+							"status_code": response.status_code,
+							"response": response_data
+						}, default=str, indent=2)
+					)
+
+				except requests.exceptions.Timeout:
+
+					frappe.log_error(
+						title="Remote Serial No API Timeout",
+						message=json.dumps({
+							"document": self.name,
+							"serial_no": serial.name,
+							"url": remote_url
+						}, indent=2)
+					)
+
+					frappe.throw(
+						"Remote Serial No synchronization timed out."
+					)
+
+				except requests.exceptions.RequestException as e:
+
+					frappe.log_error(
+						title="Remote Serial No API Failed",
+						message=json.dumps({
+							"document": self.name,
+							"serial_no": serial.name,
+							"error": str(e),
+							"response": getattr(e.response, "text", None)
+							if getattr(e, "response", None)
+							else None
+						}, default=str, indent=2)
+					)
+
+					frappe.throw(
+						"Remote Serial No synchronization failed:\n\n" + str(e)
+					)
+
+				except Exception as e:
+
+					frappe.log_error(
+						title="Remote Serial No Sync Unexpected Error",
+						message=frappe.get_traceback()
+					)
+
+					frappe.throw(
+						"Unexpected error during Serial No synchronization:\n\n"
+						+ str(e)
+					)
+					
 
 
 	def genrate_serial_no(self, new_bom):
-		
+		errors = []
+		new_bom = frappe.get_doc("BOM",new_bom)
 			# series_start = frappe.db.get_value("Manufacturing Setting", doc.company, ["series_start"])
 		series_start = frappe.db.get_value("Manufacturing Setting", {"manufacturer":'Labh'}, ["series_start"])
 		# metal_type, manufacturer, posting_date = frappe.db.get_value(
@@ -331,22 +374,31 @@ class ProductReturnOrder(Document):
 		final_date = date[0] + date_to_letter[int(date[1])]
 		if not series_start:
 			errors.append(
-				f"Please set value <b>Series Start</b> on Manufacturing Setting for <strong>{doc.company}</strong>"
+				f"Please set value <b>Series Start</b> on Manufacturing Setting for <strong>{self.company}</strong>"
 			)
 		if not mnf_abbr:
 			errors.append(
-				f"Please set value <b>Abbreviation</b> on Manufacturer doctype for <strong>{doc.company}</strong>"
+				f"Please set value <b>Abbreviation</b> on Manufacturer doctype for <strong>{self.company}</strong>"
 			)
 		if not dg_abbr:
 			errors.append(
-				f"Please set value <b>Abbreviation</b> on Attribute Value doctype respective Diamond Grade:<b>{diamond_grade}</b>"
+				f"Please set value <b>Abbreviation</b> on Attribute Value doctype respective Diamond Grade:<b>{diamond_grade_data}</b>"
 			)
 		if not m_abbr:
 			errors.append(
-				f"Please set value <b>Abbreviation</b> on Attribute Value doctype respective Metal Type:<b>{diamond_grade}</b>"
+				f"Please set value <b>Abbreviation</b> on Attribute Value doctype respective Metal Type:<b>{metal_type}</b>"
 			)
-	
+		# frappe.throw(
+		# 	f"""
+		# 	series_start = {series_start}<br>
+		# 	mnf_abbr = {mnf_abbr}<br>
+		# 	m_abbr = {m_abbr}<br>
+		# 	dg_abbr = {dg_abbr}<br>
+		# 	final_date = {final_date}
+		# 	"""
+		# )
+			
 
-		compose_series = str(series_start + mnf_abbr + m_abbr + dg_abbr + final_date + ".####")
+		compose_series = str(series_start + mnf_abbr + m_abbr + dg_abbr + final_date + ".1244")
 		return compose_series
 
