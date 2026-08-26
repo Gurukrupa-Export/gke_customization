@@ -64,4 +64,5 @@ frappe.query_reports["24Q Report"] = {
             company_filter.refresh();
         }
     },
+    
 };
