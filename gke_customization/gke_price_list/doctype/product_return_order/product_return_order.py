@@ -185,9 +185,7 @@ def build_other_detail(doc, new_bom):
 
 
 class ProductReturnOrder(Document):
-	pass
-
-	"""
+    # pass
 	def validate(self):
 		if self.workflow_state=='BOM Calculated':
 			if self.bom:
@@ -212,8 +210,7 @@ class ProductReturnOrder(Document):
 			build_diamond_detail(self, new_bom)
 			build_gemstone_detail(self, new_bom)
 			build_other_detail(self, new_bom)
-			new_bom.hallmarking_amount = 0 if not self.hallmarking_amounts else new_bom.hallmarking_amount
-			new_bom.certification_amount=0 if not self.certification_amounts else new_bom.certification_amount
+	
 			new_bom.total_metal_weight = sum(row.quantity for row in new_bom.metal_detail)
 			new_bom.total_metal_amount = sum(row.amount for row in new_bom.metal_detail)
 			new_bom.total_making_amount = sum(row.making_amount for row in new_bom.metal_detail)
@@ -254,7 +251,7 @@ class ProductReturnOrder(Document):
 			serial.custom_bom_no=self.new_bom
 			serial.status = 'Delivered'
 			serial.custom_manufacturer='Labh'
-			compose_series = self.genrate_serial_no(new_bom)
+			compose_series = self.genrate_serial_no(self.new_bom)
 			sr_no = make_autoname(compose_series)
 			serial.serial_no=sr_no
 			# frappe.throw(f"Serial No = {serial.serial_no}")
@@ -265,7 +262,7 @@ class ProductReturnOrder(Document):
 
 
 	def genrate_serial_no(self, new_bom):
-		
+		new_bom = frappe.get_doc("BOM",new_bom)
 			# series_start = frappe.db.get_value("Manufacturing Setting", doc.company, ["series_start"])
 		series_start = frappe.db.get_value("Manufacturing Setting", {"manufacturer":'Labh'}, ["series_start"])
 		# metal_type, manufacturer, posting_date = frappe.db.get_value(
@@ -284,25 +281,26 @@ class ProductReturnOrder(Document):
 		date = f"{posting_date.year %100:02d}"
 		date_to_letter = {0: "J", 1: "A", 2: "B", 3: "C", 4: "D", 5: "E", 6: "F", 7: "G", 8: "H", 9: "I"}
 		final_date = date[0] + date_to_letter[int(date[1])]
+		errors = []
 		if not series_start:
 			errors.append(
-				f"Please set value <b>Series Start</b> on Manufacturing Setting for <strong>{doc.company}</strong>"
+				f"Please set value <b>Series Start</b> on Manufacturing Setting for <strong>{self.company}</strong>"
 			)
 		if not mnf_abbr:
 			errors.append(
-				f"Please set value <b>Abbreviation</b> on Manufacturer doctype for <strong>{doc.company}</strong>"
+				f"Please set value <b>Abbreviation</b> on Manufacturer doctype for <strong>{self.company}</strong>"
 			)
 		if not dg_abbr:
 			errors.append(
-				f"Please set value <b>Abbreviation</b> on Attribute Value doctype respective Diamond Grade:<b>{diamond_grade}</b>"
+				f"Please set value <b>Abbreviation</b> on Attribute Value doctype respective Diamond Grade:<b>{diamond_grade_data}</b>"
 			)
 		if not m_abbr:
 			errors.append(
-				f"Please set value <b>Abbreviation</b> on Attribute Value doctype respective Metal Type:<b>{diamond_grade}</b>"
+				f"Please set value <b>Abbreviation</b> on Attribute Value doctype respective Metal Type:<b>{metal_type}</b>"
 			)
-	
+		if errors:
+			frappe.throw("<br>".join(errors))
 
-		compose_series = str(series_start + mnf_abbr + m_abbr + dg_abbr + final_date + ".####")
+		compose_series = str(series_start + mnf_abbr + m_abbr + dg_abbr + final_date + ".1244")
 		return compose_series
 
-	"""
