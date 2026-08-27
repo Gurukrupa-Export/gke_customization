@@ -78,9 +78,9 @@ class OrderForm(Document):
 		for i in self.order_details:	
 			if i.metal_type == "Silver":
 				i.metal_colour = "White"
-				i.metal_touch = "20KT"
+				# i.metal_touch = "20KT"
 				# i.setting_type = "Open"
-				i.diamond_type = "AD"
+				# i.diamond_type = "AD"
 			# return
 
 	def validate_category_subcaegory(self):
