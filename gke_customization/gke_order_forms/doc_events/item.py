@@ -546,6 +546,10 @@ def create_item_kggk(doc, method=None):
                         {frappe.as_json(payload)}
                         """
                     )
+
+                    frappe.throw(
+                        f"API Error ({response.status_code})<br><br>{response.text}"
+                    )
                 else:
                     frappe.logger().info(
                         f"Item {item_code} synced successfully."
@@ -556,8 +560,7 @@ def create_item_kggk(doc, method=None):
                     title="Item Sync Error",
                     message=frappe.get_traceback()
                 )
-
-
+                raise
 
  
 # import frappe
