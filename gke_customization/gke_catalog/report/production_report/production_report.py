@@ -12,7 +12,7 @@ def execute(filters=None):
     if not filters:
         filters = {}
 
-    filters = validate_department_access(filters)
+    # filters = validate_department_access(filters)
 
     columns = get_columns()
     data = get_data(filters)
@@ -21,19 +21,19 @@ def execute(filters=None):
 
 
 
-def validate_department_access(filters):
-    user = frappe.session.user
-    is_admin = user == "Administrator" or "System Manager" in frappe.get_roles(user)
+# def validate_department_access(filters):
+#     user = frappe.session.user
+#     is_admin = user == "Administrator" or "System Manager" in frappe.get_roles(user)
 
-    user_department = frappe.defaults.get_user_default("department")
+#     user_department = frappe.defaults.get_user_default("department")
 
-    if not is_admin:
-        if not user_department:
-            frappe.throw(_("User default Department is not set."))
+#     if not is_admin:
+#         if not user_department:
+#             frappe.throw(_("User default Department is not set."))
 
-        filters["department"] = user_department
+#         filters["department"] = user_department
 
-    return filters
+#     return filters
 
 
 
@@ -53,17 +53,17 @@ def get_columns():
         {"fieldname": "manufacturer", "label": _("Manufacturer"), "fieldtype": "Link", "options": "Manufacturer", "width": 120},
         {"fieldname": "metal_touch", "label": _("Metal Touch"), "fieldtype": "Data", "width": 100},
         {"fieldname": "finding_touch", "label": _("Finding Touch"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "gross_wt", "label": _("Gross Wt"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "metal_wt", "label": _("Metal Wt"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "finding_wt", "label": _("Finding Wt"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "net_wt", "label": _("Net Wt"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "pure_wt", "label": _("Pure Wt"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "alloy_wt", "label": _("Alloy Wt"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "diamond_wt", "label": _("Diamond Wt"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "diamond_pcs", "label": _("Diamond Pcs"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "gemstone_wt", "label": _("Gemstone Wt"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "gemstone_pcs", "label": _("Gemstone Pcs"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "other_wt", "label": _("Other Wt"), "fieldtype": "Data", "width": 100},
+        {"fieldname": "gross_wt", "label": _("Gross Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
+        {"fieldname": "metal_wt", "label": _("Metal Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
+        {"fieldname": "finding_wt", "label": _("Finding Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
+        {"fieldname": "net_wt", "label": _("Net Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
+        {"fieldname": "pure_wt", "label": _("Pure Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
+        {"fieldname": "alloy_wt", "label": _("Alloy Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
+        {"fieldname": "diamond_wt", "label": _("Diamond Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
+        {"fieldname": "diamond_pcs", "label": _("Diamond Pcs"), "fieldtype": "Int", "width": 100},
+        {"fieldname": "gemstone_wt", "label": _("Gemstone Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
+        {"fieldname": "gemstone_pcs", "label": _("Gemstone Pcs"), "fieldtype": "Int", "width": 100},
+        {"fieldname": "other_wt", "label": _("Other Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
         {"fieldname": "parent_manufacturing_order", "label": _("Parent Manufacturing Order"), "fieldtype": "Link", "options": "Parent Manufacturing Order", "width": 150},
         {"fieldname": "serial_no_status", "label": _("Serial No. Status"), "fieldtype": "Data", "width": 120}
     ]
