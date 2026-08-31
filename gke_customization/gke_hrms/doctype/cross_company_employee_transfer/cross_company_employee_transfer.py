@@ -229,14 +229,22 @@ class CrossCompanyEmployeeTransfer(Document):
 				)
 				raise
 
-
 @frappe.whitelist(allow_guest=True)
-def get_kggk_data(property=None, new_company=None):
-	response = requests.get(
-			"https://gkexport-dummy-v16.m.frappe.cloud/api/method/get_dept_desi_reprt_leave_apr_from_gk",
-			params={
-				"new_company": new_company
-			}
-		)
-	return response.json()	
+def get_kggk_data(target_site=None, property=None, new_company=None):
 
+    if not target_site:
+        frappe.throw("Target Site is required")
+
+    target_site = str(target_site).rstrip("/")
+
+    # frappe.throw(f"Target Site after strip: {target_site}")
+
+    response = requests.get(
+        f"{target_site}/api/method/get_dept_desi_reprt_leave_apr",
+        params={
+            "new_company": new_company
+        },
+        timeout=30
+    )
+	
+    return response.json()
