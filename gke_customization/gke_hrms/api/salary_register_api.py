@@ -24,7 +24,7 @@ from openpyxl.utils import get_column_letter
 # =====================================================
 
 SOFTWARE_API_TEMPLATE = (
-    "https://gkexport.frappe.cloud/api/method/get_attendance_report_data"
+    "{site_url}/api/method/get_attendance_report_data"
     "?month={month}&year={year}"
 )
 
@@ -95,7 +95,13 @@ def _fetch_software_data(month, year):
     if cached:
         return cached["records"], cached["month"], cached["year"]
 
-    url = SOFTWARE_API_TEMPLATE.format(month=month, year=year)
+    site_url = frappe.utils.get_url()
+
+    url = SOFTWARE_API_TEMPLATE.format(
+        site_url=site_url.rstrip("/"),
+        month=month,
+        year=year
+    )
 
     response = requests.get(url, timeout=30)
     response.raise_for_status()
