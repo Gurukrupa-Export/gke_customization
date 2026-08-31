@@ -33,7 +33,7 @@ def get_data(filters):
             i.image,
             MAX(CASE WHEN iv.attribute = 'Finding Category' THEN iv.attribute_value END) AS finding_category,
             MAX(CASE WHEN iv.attribute = 'Finding Sub-Category' THEN iv.attribute_value END) AS finding_subcategory,
-            # MAX(CASE WHEN iv.attribute = 'Finding Size' THEN iv.attribute_value END) AS finding_size,
+            MAX(CASE WHEN iv.attribute = 'Finding Size' THEN iv.attribute_value END) AS finding_size,
             MAX(CASE WHEN iv.attribute = 'Metal Type' THEN iv.attribute_value END) AS metal_type,
             MAX(CASE WHEN iv.attribute = 'Metal Touch' THEN iv.attribute_value END) AS metal_touch,
             MAX(CASE WHEN iv.attribute = 'Metal Colour' THEN iv.attribute_value END) AS metal_colour,
@@ -54,7 +54,6 @@ def get_data(filters):
         p.image,
         p.finding_category,
         p.finding_subcategory,
-        # p.finding_size,
         ftw.custom_finding_size,
         p.metal_type,
         p.metal_touch,
@@ -67,13 +66,8 @@ def get_data(filters):
        ON ftw.custom_metal_touch = p.metal_touch
        AND ftw.custom_metal_type = p.metal_type
        AND ftw.custom_metal_colour = p.metal_colour
-    GROUP BY
-      p.finding_category,
-      p.finding_subcategory,
-      p.metal_type,
-      p.metal_touch,
-      p.metal_colour,
-      p.metal_purity
+       AND ftw.custom_finding_size = p.finding_size
+       AND ftw.parent = p.finding_subcategory
     ORDER BY p.item_code
     """
     rows = frappe.db.sql(query, as_dict=1)

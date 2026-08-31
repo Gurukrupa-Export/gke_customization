@@ -8,13 +8,12 @@ from frappe.utils import add_days, now
 
 
 class TestOrderForm(FrappeTestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.department = frappe.get_value(
+    def setUp(self):
+        self.department = frappe.get_value(
             "Department", {"department_name": "Test_Department"}, "name"
         )
-        cls.branch = frappe.get_value("Branch", {"branch_name": "Test Branch"}, "name")
+        self.branch = frappe.get_value("Branch", {"branch_name": "Test Branch"}, "name")
+        return super().setUp()
 
     def test_order_created_purchase(self):
         order_form = make_order_form(
@@ -152,7 +151,7 @@ class TestOrderForm(FrappeTestCase):
 def make_order_form(**args):
     args = frappe._dict(args)
     order_form = frappe.new_doc("Order Form")
-    order_form.company = "Gurukrupa Export Private Limited"
+    order_form.company = "Test_Company"
     order_form.department = args.department
     order_form.branch = args.branch
     order_form.salesman_name = "Test_Sales_Person"
@@ -215,7 +214,6 @@ def make_order_form(**args):
                 "design_by": args.design_by,
                 "design_type": args.design_type,
                 "design_id": args.design_code,
-                "bom": "BOM-RI05086-001-001",
                 "mod_reason": "Change in Metal Colour",
                 "category": "Mugappu",
                 "subcategory": "Casual Mugappu",
@@ -283,6 +281,7 @@ def make_order_form(**args):
                 "chain_thickness": 10,
                 "gemstone_type": "Rose Quartz",
                 "gemstone_quality": "Synthetic",
+                "design_image_1": "https://www.tanishq.co.in/product/classic-gold-mugappu-chain-513515cebaacz.html?lang=en"
             },
         )
 

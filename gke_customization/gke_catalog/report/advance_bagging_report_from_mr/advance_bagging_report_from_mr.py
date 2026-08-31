@@ -28,8 +28,8 @@ def execute(filters=None):
         {"label": "Purpose", "fieldname": "material_request_type", "fieldtype": "Data", "width": 130},
         {"label": "Material Type", "fieldname": "material_type", "fieldtype": "Data", "width": 130},
         {"label": "Item Code", "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 210},
-        {"label": "Item Attributes", "fieldname": "item_attributes", "fieldtype": "Data", "width": 700},
-        {"label": "Alternative Item", "fieldname": "custom_alternative_item", "fieldtype": "Link", "options": "Item", "width": 150},
+        # {"label": "Item Attributes", "fieldname": "item_attributes", "fieldtype": "Data", "width": 700},
+        # {"label": "Alternative Item", "fieldname": "custom_alternative_item", "fieldtype": "Link", "options": "Item", "width": 150},
         {"label": "Quantity", "fieldname": "qty", "fieldtype": "Float", "width": 100},
         {"label": "Pcs", "fieldname": "pcs", "fieldtype": "Int", "width": 80},
         {"label": "Customer PO", "fieldname": "custom_customer_po_no", "fieldtype": "Data", "width": 150},
@@ -63,6 +63,9 @@ def execute(filters=None):
 
     if filters.get("workflow_state") and filters["workflow_state"]:
         filters_dict["workflow_state"] = ["in", filters["workflow_state"]]
+
+    if filters.get("material_request") and filters["material_request"]:
+        filters_dict["name"] = ["in", filters["material_request"]]
 
     warehouse_name_map = get_warehouse_display_names()
     department_transfer_map = get_department_transfer_map()
@@ -226,8 +229,8 @@ def execute(filters=None):
                 "item_category": pmo.get("item_category"),
                 "item_sub_category": pmo.get("item_sub_category"),
                 "setting_type": pmo.get("setting_type"),
-                "department": department,
-                "item_attributes": attributes
+                "department": department
+                # "item_attributes": attributes
             }
             
             # Always add department received date
@@ -408,17 +411,16 @@ def get_warehouse_display_names():
     return {w.name: w.warehouse_name or w.name for w in warehouses}
 
 def get_department_transfer_map():
-    try:
-        transfers = frappe.get_all("Material Request Department Transfer",
-            fields=["parent", "department"],
-            filters={"docstatus": ["!=", 2]}
-        )
-        transfer_map = {}
-        for transfer in transfers:
-            transfer_map[transfer.parent] = transfer.department
-        return transfer_map
-    except:
+    if not frappe.db.exists("DocType", "Material Request Department Transfer"):
         return {}
+    transfers = frappe.get_all("Material Request Department Transfer",
+        fields=["parent", "department"],
+        filters={"docstatus": ["!=", 2]}
+    )
+    transfer_map = {}
+    for transfer in transfers:
+        transfer_map[transfer.parent] = transfer.department
+    return transfer_map
 
 def get_material_type_from_title(title):
     if not title or len(title) < 3:

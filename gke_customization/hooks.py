@@ -34,6 +34,7 @@ doctype_js = {
     "Employee Onboarding": "public/js/doctype_js/employee_onboarding.js",
     "Payment Entry": "public/js/doctype_js/payment_entry.js",
     "Stock Entry": "public/js/doctype_js/stock_entry.js",
+    "Payroll Entry": "public/js/doctype_js/payroll_entry.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -65,9 +66,7 @@ doctype_js = {
 # "filters": "gke_customization.utils.jinja_filters"
 # }
 jinja = {
-    "methods": [
-        "gke_customization.gke_hrms.utils.get_account_total_summary_for_print"
-    ]
+    "methods": ["gke_customization.gke_hrms.utils.get_account_total_summary_for_print"]
 }
 # Installation
 # ------------
@@ -123,6 +122,7 @@ override_doctype_class = {
     "Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive",
     "Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin",
     "Job Requisition": "gke_customization.overrides.job_requisition.CustomJobRequisition",
+    "Payroll Entry": "gke_customization.overrides.payroll_entry.CustomPayrollEntry",
     # "Parent Manufacturing Order": "gke_customization.overrides.parent_manufacturing_order.CustomParentManufacturingOrder"
 }
 
@@ -154,37 +154,35 @@ scheduler_events = {
         "gke_customization.gke_hrms.doc_events.leave_allocation.compOff_leave_allocation",
     ],
     "hourly": [
-        "gke_customization.gke_hrms.sync_checkin.sync_biometric_checkins" # new script for Sync biometric checkins
+        "gke_customization.gke_hrms.sync_checkin.sync_biometric_checkins"  # new script for Sync biometric checkins
     ],
     "cron": {
         "0 6 * * *": [
-		    "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
+            "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
         ],
-         "0 9 * * *": [
+        "0 9 * * *": [
             "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
         ],
-
         "0 15 * * *": [
             "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
         ],
-
         "0 23 * * *": [
             "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
         ],
         "0 10 * * *": [
-			"gke_customization.gke_hrms.report.department_wise_daily_present_report.department_wise_daily_present_report.send_morning_present_report"
-		],
+            "gke_customization.gke_hrms.report.department_wise_daily_present_report.department_wise_daily_present_report.send_morning_present_report"
+        ],
         "0 8 * * *": [
-			"gke_customization.gke_hrms.report.department_wise_daily_attendance.department_wise_daily_attendance.send_daily_attendance_report"
-		]
+            "gke_customization.gke_hrms.report.department_wise_daily_attendance.department_wise_daily_attendance.send_daily_attendance_report"
+        ]
     },
 }
 
 # Testing
 # -------
 
+# payroll/withholding tests need the hrms test fixtures (_Test Company), on dev sites too
 # before_tests = "gke_customization.install.before_tests"
-
 # Overriding Methods
 # ------------------------------
 #
@@ -192,7 +190,7 @@ override_whitelisted_methods = {
     "hrms.hr.doctype.job_offer.job_offer.make_employee": "gke_customization.gke_hrms.doc_events.job_offer.make_employee",
     "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note": "gke_customization.gke_customization.doc_events.sales_order.make_delivery_note",
     "erpnext.selling.doctype.delivery_note.delivery_note.make_sales_invoice": "gke_customization.gke_customization.doc_events.delivery_note.make_sales_invoice",
-    "hrms.hr.doctype.employee_attendance_tool.employee_attendance_tool.mark_employee_attendance":"gke_customization.gke_hrms.api.attendance_tool.mark_employee_attendance"
+    "hrms.hr.doctype.employee_attendance_tool.employee_attendance_tool.mark_employee_attendance": "gke_customization.gke_hrms.api.attendance_tool.mark_employee_attendance",
 }
 #
 # each overriding function accepts a `data` argument;
@@ -277,9 +275,9 @@ doc_events = {
         "validate": "gke_customization.gke_hrms.doc_events.attendance_request.validate",
         "on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit",
     },
-    "Leave Application":{
+    "Leave Application": {
         "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
-        "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit"
+        "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit",
     },
     "Loan Application": {
         "validate": "gke_customization.gke_hrms.doc_events.loan_application.validate"
@@ -297,11 +295,19 @@ doc_events = {
         "on_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_submit"
     },
     "Journal Entry": {
-        "on_submit": "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit"
+        "on_submit": [
+            "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit",
+            "gke_customization.gke_hrms.doc_events.journal_entry.update_withholding_release_status",
+        ],
+        "on_cancel": "gke_customization.gke_hrms.doc_events.journal_entry.update_withholding_release_status",
+        "on_trash": "gke_customization.gke_hrms.doc_events.journal_entry.cancel_withholding_releases_on_trash",
     },
-    # "Item": {
-    #     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
-    # },
+    "Item": {
+        "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_item_kggk"
+    },
+    "BOM": {
+        "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_bom_kggk"
+    },
     # "Department IR": {
     #     "autoname": "gke_customization.gke_order_forms.doc_events.department_ir.autoname"
     # },

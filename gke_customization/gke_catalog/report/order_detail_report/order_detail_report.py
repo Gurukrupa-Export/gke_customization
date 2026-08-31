@@ -1,31 +1,31 @@
 import frappe
 from frappe import _
+from frappe.utils import get_url
 from datetime import datetime, timedelta
-import urllib.parse
 
 def execute(filters=None):
     columns = get_columns(filters)
     data = get_data(filters)
-    
-    totals_row = calculate_totals(data)
-    data.append(totals_row)
 
     return columns, data
 
 def get_columns(filters=None):
     columns = [
-        {"label": "Manufacturing Work Order ID", "fieldname": "mwo_id", "fieldtype": "Data","sticky":True},
+        {"label": "Manufacturing Work Order ID", "fieldname": "mwo_id", "fieldtype": "Link", "options": "Manufacturing Work Order", "sticky":True},
         {"label": "Posting Date", "fieldname": "mwo_posting_date", "fieldtype": "Data"},
         {"label": "Is Finding MWO", "fieldname": "mwo_is_finding", "fieldtype": "Data"},
         {"label": "Customer Code", "fieldname": "mwo_customer", "fieldtype": "Link", "options": "Customer"},
-        {"label": "Customer Name", "fieldname": "mwo_customer_name", "fieldtype": "Data"},
+        {"label": "Old Cust_Code", "fieldname": "old_cust_code", "fieldtype": "Data"},
+        
         {"label": "Customer PO No.", "fieldname": "customer_po", "fieldtype": "Data"},
-        {"label": "Manufacturing Plan ID", "fieldname": "mwo_mp_id", "fieldtype": "Data"},
+        {"label": "PMO", "fieldname": "pmo_name", "fieldtype": "Data"},
+
+        {"label": "Manufacturing Plan ID", "fieldname": "mwo_mp_id", "fieldtype": "Link", "options": "Manufacturing Plan"},
         {"label": "Design ID", "fieldname": "mwo_design_id", "fieldtype": "Data"},
         {"label": "MFG BOM", "fieldname": "mwo_mfg_bom", "fieldtype": "Link", "options": "BOM"},
         {"label": "Item Category", "fieldname": "mwo_item_category", "fieldtype": "Data"},
         {"label": "Item Sub Category", "fieldname": "mwo_item_subcategory", "fieldtype": "Data"},
-        {"label": "MWO Qty", "fieldname": "mwo_qty", "fieldtype": "Data"},
+        {"label": "MWO Qty", "fieldname": "mwo_qty", "fieldtype": "Int"},
         {"label": "Setting Type", "fieldname": "mwo_setting_type", "fieldtype": "Data"},
         {"label": "Manufacturer", "fieldname": "mwo_manufacturer", "fieldtype": "Data"},
         {"label": "Diamond Grade", "fieldname": "mwo_diam_grade", "fieldtype": "Data"},
@@ -33,17 +33,17 @@ def get_columns(filters=None):
         {"label": "Metal Touch", "fieldname": "mwo_metal_touch", "fieldtype": "Data"},
         {"label": "Metal Color", "fieldname": "mwo_metal_color", "fieldtype": "Data"},
         {"label": "Metal Purity", "fieldname": "mwo_metal_purity", "fieldtype": "Data"},
-        {"label": "Gross Wt", "fieldname": "mwo_gross_wt", "fieldtype": "Data"},
-        {"label": "Net Wt", "fieldname": "mwo_net_wt", "fieldtype": "Data"},
+        {"label": "Gross Wt", "fieldname": "mwo_gross_wt", "fieldtype": "Float", "precision": 4},
+        {"label": "Net Wt", "fieldname": "mwo_net_wt", "fieldtype": "Float", "precision": 4},
         # {"label": "Metal Wt", "fieldname": "mwo_metal_wt", "fieldtype": "Data"},
-        {"label": "Finding Wt", "fieldname": "mwo_finding_wt", "fieldtype": "Data"},
-        {"label": "Diamond Wt (cts)", "fieldname": "mwo_diam_wt", "fieldtype": "Data"},
-        {"label": "Gemstone Wt (cts)", "fieldname": "mwo_gem_wt", "fieldtype": "Data"},
-        {"label": "Other Wt", "fieldname": "mwo_other_wt", "fieldtype": "Data"},
-        {"label": "Diamond Wt (Gram)", "fieldname": "mwo_diam_wt_gm", "fieldtype": "Data"},
-        {"label": "Diamond Pcs", "fieldname": "mwo_diam_pcs", "fieldtype": "Data"},
-        {"label": "Gemstone Pcs", "fieldname": "mwo_gem_pcs", "fieldtype": "Data"},
-        {"label": "Parent Manufacturing Order ID", "fieldname": "parent_mfg_order", "fieldtype": "Link", "options": "Parent Manufacturing Order"},
+        {"label": "Finding Wt", "fieldname": "mwo_finding_wt", "fieldtype": "Float", "precision": 2},
+        {"label": "Diamond Wt (cts)", "fieldname": "mwo_diam_wt", "fieldtype": "Float", "precision": 4},
+        {"label": "Gemstone Wt (cts)", "fieldname": "mwo_gem_wt", "fieldtype": "Float", "precision": 4},
+        {"label": "Other Wt", "fieldname": "mwo_other_wt", "fieldtype": "Float", "precision": 2},
+        {"label": "Diamond Wt (Gram)", "fieldname": "mwo_diam_wt_gm", "fieldtype": "Float", "precision": 4},
+        {"label": "Diamond Pcs", "fieldname": "mwo_diam_pcs", "fieldtype": "Int"},
+        {"label": "Gemstone Pcs", "fieldname": "mwo_gem_pcs", "fieldtype": "Int"},
+        # {"label": "Parent Manufacturing Order ID", "fieldname": "parent_mfg_order", "fieldtype": "Link", "options": "Parent Manufacturing Order"},
         {"label": "Order Type", "fieldname": "mwo_order_type", "fieldtype": "Data"},
         {"label": "Delivery Date", "fieldname": "mwo_delivery_date", "fieldtype": "Date"},
         {"label": "Updated Delivery Date", "fieldname": "mwo_updated_delivery_date", "fieldtype": "Date"},
@@ -55,13 +55,13 @@ def get_columns(filters=None):
         {"label": "Employee ID", "fieldname": "mop_employee", "fieldtype": "Link", "options": "Employee"},
         {"label": "Employee Name", "fieldname": "mop_emp_name", "fieldtype": "Data"},
         {"label": "Subcontractor", "fieldname": "mo_subcontractor", "fieldtype": "Data"},
-        {"label": "Main Slip No", "fieldname": "mop_main_slip", "fieldtype": "Data"},
+        # {"label": "Main Slip No", "fieldname": "mop_main_slip", "fieldtype": "Data"},
         {"label": "Diamond Quality", "fieldname": "pmo_diam_quality", "fieldtype": "Data"},
         {"label": "Customer Gold", "fieldname": "pmo_is_cust_gold", "fieldtype": "Data"},
         {"label": "Customer Diamond", "fieldname": "pmo_is_cust_diam", "fieldtype": "Data"},
         {"label": "Customer Gemstone", "fieldname": "pmo_is_cust_gem", "fieldtype": "Data"},
         {"label": "Customer Chain", "fieldname": "pmo_is_cust_material", "fieldtype": "Data"},
-        {"label": "Company Name", "fieldname": "pmo_company", "fieldtype": "Data"},
+        # {"label": "Company Name", "fieldname": "pmo_company", "fieldtype": "Data"},
         {"label": "Due Days", "fieldname": "pmo_due_days", "fieldtype": "Data"},
         {"label": "Est. Delivery Date", "fieldname": "pmo_est_delivery_date", "fieldtype": "Date"},
         {"label": "Est. Delivery Days", "fieldname": "pmo_est_delivery_days", "fieldtype": "Data"},
@@ -72,17 +72,20 @@ def get_columns(filters=None):
         {"label": "Sales Order ID", "fieldname": "pmo_sales_order_id", "fieldtype": "Link", "options": "Sales Order"},
         {"label": "Customer PO", "fieldname": "pmo_customer_po", "fieldtype": "Data"},
         {"label": "Jewelex Order No", "fieldname": "pmo_jewelex_order_no", "fieldtype": "Data"},
+        {"label": "Jewelex Batch No", "fieldname": "pmo_jewelex_batch_no", "fieldtype": "Data"},
+        
         {"label": "Parent Quotation ID", "fieldname": "pmo_parent_quotation_id", "fieldtype": "Link", "options": "Quotation"},
         {"label": "Parent Sales Order ID", "fieldname": "pmo_parent_sales_order_id", "fieldtype": "Link", "options": "Sales Order"},
         {"label": "Parent Plan ID", "fieldname": "pmo_parent_plan_id", "fieldtype": "Link", "options": "Manufacturing Plan"},
         {"label": "Ref Customer ID", "fieldname": "pmo_ref_customer_id", "fieldtype": "Link", "options": "Customer"},
         {"label": "Ref Customer Name", "fieldname": "pmo_ref_customer_name", "fieldtype": "Data"},
+        
         {"label": "Quotation Creation Date", "fieldname": "q_creation_date", "fieldtype": "Date"},
-        {"label": "Quotation Quantity", "fieldname": "q_total_qty", "fieldtype": "Data"},
+        {"label": "Quotation Quantity", "fieldname": "q_total_qty", "fieldtype": "Int"},
         {"label": "Quotation Branch", "fieldname": "q_branch", "fieldtype": "Data"},
         {"label": "Sales Order Creation Date", "fieldname": "so_creation_date", "fieldtype": "Date"},
         {"label": "Sales Order Delivery Date", "fieldname": "so_delivery_date", "fieldtype": "Date"},
-        {"label": "Sales Order Quantity", "fieldname": "so_total_qty", "fieldtype": "Data"},
+        {"label": "Sales Order Quantity", "fieldname": "so_total_qty", "fieldtype": "Int"},
         {"label": "Serial No Creator", "fieldname": "sn_creator_id", "fieldtype": "Link", "options": "Serial Number Creator"},
         {"label": "Serial No", "fieldname": "sn_serial_no", "fieldtype": "Data"},
         {"label": "Serial No Date", "fieldname": "serial_creation", "fieldtype": "Date"},
@@ -99,10 +102,10 @@ def get_data(filters):
     mwo.posting_date AS mwo_posting_date,
     (CASE WHEN mwo.is_finding_mwo=1 THEN 'Yes' ELSE 'No' END) AS mwo_is_finding,
     mwo.customer AS mwo_customer,
-    c.customer_name AS mwo_customer_name,
     pmo.po_no AS customer_po,
     mwo.manufacturing_plan AS mwo_mp_id,
     mwo.item_code AS mwo_design_id,
+    item.image AS mwo_design_image,
     mwo.master_bom AS mwo_mfg_bom,
     mwo.item_category AS mwo_item_category,
     mwo.item_sub_category AS mwo_item_subcategory,
@@ -153,12 +156,15 @@ def get_data(filters):
     pmo.sales_order AS pmo_sales_order_id,
     pmo.po_no AS pmo_customer_po,
     pmo.jewelex_order_no AS pmo_jewelex_order_no,
+    pmo.jewelex_batch_no AS pmo_jewelex_batch_no,
     pmo.parent_quotation AS pmo_parent_quotation_id,
     pmo.parent_sales_order AS pmo_parent_sales_order_id,
     pmo.parent_mp AS pmo_parent_plan_id,
     pmo.ref_customer AS pmo_ref_customer_id,
     pmo.manufacturing_end_date AS manufacturing_end_date,
+    pmo.name AS pmo_name,
     cust.customer_name AS pmo_ref_customer_name,
+    cust.old_customer_code AS old_cust_code,
 
     DATE(q.creation) AS q_creation_date,
     q.total_qty AS q_total_qty,
@@ -174,8 +180,9 @@ def get_data(filters):
     sn.fg_bom AS sn_fg_bom
 
     FROM `tabManufacturing Work Order` mwo
+    LEFT JOIN `tabItem` item ON mwo.item_code = item.name
     LEFT JOIN `tabCustomer` c ON mwo.customer = c.name
-    LEFT JOIN `tabManufacturing Operation` mo ON mwo.manufacturing_operation = mo.name and mo.status != 'Finished'
+    LEFT JOIN `tabManufacturing Operation` mo ON mwo.manufacturing_operation = mo.name
     LEFT JOIN `tabEmployee` emp ON mo.employee = emp.name
     LEFT JOIN `tabParent Manufacturing Order` pmo ON mwo.manufacturing_order = pmo.name
     LEFT JOIN `tabCustomer` cust ON pmo.ref_customer = cust.name
@@ -194,138 +201,59 @@ def get_data(filters):
     """
 
     data = frappe.db.sql(query, as_dict=1)
-    
-    for row in data:
-        # encoded_mwo = urllib.parse.quote(row["mwo_id"])
-        # encoded_mp_id = urllib.parse.quote(row["mwo_mp_id"])
-        encoded_mwo = urllib.parse.quote(str(row["mwo_id"] or ""))
-        encoded_mp_id = urllib.parse.quote(str(row["mwo_mp_id"] or ""))
 
-        row["mwo_id"] = f'<a href="https://gkexport.frappe.cloud/app/manufacturing-work-order/{encoded_mwo}" target="_blank">{row["mwo_id"]}</a>'
-        row["mwo_mp_id"] = f'<a href="https://gkexport.frappe.cloud/app/manufacturing-plan/{encoded_mp_id}" target="_blank">{row["mwo_mp_id"]}</a>'
-        
+    for row in data:
+        row["mwo_design_id"] = build_design_id_with_image(row.get("mwo_design_id"), row.get("mwo_design_image"))
 
     return data
 
 
-def calculate_totals(data):
-    total_qty = 0
-    total_gross_wt = 0
-    total_net_wt = 0
-    total_finding_wt = 0
-    total_diam_wt_gm = 0
-    total_gem_wt = 0
-    total_other_wt = 0
-    total_diam_pcs = 0
-    total_gem_pcs = 0
-    # total_design_id = 0
-    total_quotation_qty = 0
-    total_serial_no = 0
-    total_sales_order_qty = 0
-    total_diam_wt = 0
-    unique_mwo_count= set()
-    unique_mp_count = set()
-    unique_serial_no_count = set()
-    unique_mp_id = set()
-    unique_design_id = set()
+def build_design_id_with_image(design_id, image):
+    if not design_id:
+        return design_id
 
-    for row in data:
-        total_qty += int(row.get("mwo_qty") or 0)
-        # total_design_id += int(row.get("mwo_design_id") or 0)
-        total_gross_wt += float(row.get("mwo_gross_wt") or 0)
-        total_net_wt += float(row.get("mwo_net_wt") or 0)
-        total_finding_wt += float(row.get("mwo_finding_wt") or 0)
-        total_diam_wt_gm += float(row.get("mwo_diam_wt_gm") or 0)
-        total_gem_wt += float(row.get("mwo_gem_wt") or 0)
-        total_other_wt += float(row.get("mwo_other_wt") or 0)
-        total_diam_pcs += int(row.get("mwo_diam_pcs") or 0)
-        total_gem_pcs += int(row.get("mwo_gem_pcs") or 0)
-        total_quotation_qty += int(row.get("q_total_qty") or 0)
-        total_serial_no += int(row.get("sn_serial_no") or 0)
-        total_sales_order_qty += int(row.get("so_total_qty") or 0)
-        total_diam_wt += float(row.get("mwo_diam_wt") or 0)
-        
-        unique_mwo_count.add(row.get("mwo_id"))
-        unique_mp_count.add(row.get("mwo_mp_id"))
-        unique_serial_no_count.add(row.get("sn_serial_no"))
-        unique_mp_id.add(row.get("mwo_mp_id"))
-        unique_design_id.add(row.get("mwo_design_id"))
-    
+    if image:
+        image_url = (image if image.startswith("http") else get_url(image)).replace("'", "%27")
+        fill_js = (
+            "var im=document.createElement('img'); "
+            f"im.src='{image_url}'; "
+            "im.style.cssText='max-width:150px;max-height:150px;object-fit:contain;display:block;'; "
+            "t.appendChild(im);"
+        )
+    else:
+        fill_js = (
+            "var d=document.createElement('div'); "
+            "d.textContent='No Image'; "
+            "d.style.cssText='padding:8px;color:#888;font-size:12px;'; "
+            "t.appendChild(d);"
+        )
 
-    totals_row = {
-        "mwo_id": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">Total MWO: {len(unique_mwo_count)}</span></b>',
-        "mwo_posting_date":"",
-        "mwo_is_finding": "",
-        "mwo_customer": "",
-        "mwo_customer_name": "",
-        "mwo_mp_id": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{len(unique_mp_id)} </span></b>',
-        "mwo_design_id": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{len(unique_design_id)}</span></b>',
-        "mwo_mfg_bom": "",
-        "mwo_item_category": "",
-        "mwo_item_subcategory": "",
-        "mwo_qty": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_qty}</span></b>',
-        "mwo_setting_type": "",
-        "mwo_manufacturer": "",
-        "mwo_diam_grade": "",
-        "mwo_metal_type": "",
-        "mwo_metal_touch": "",
-        "mwo_metal_color": "",
-        "mwo_metal_purity": "",
-        "mwo_gross_wt": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_gross_wt:.4f}</span></b>',
-        "mwo_net_wt": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_net_wt:.4f}</span></b>',
-        "mwo_finding_wt": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_finding_wt:.2f}</span></b>',
-        "mwo_diam_wt": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_diam_wt:.4f}</span></b>',
-        "mwo_gem_wt": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_gem_wt:.4f}</span></b>',
-        "mwo_other_wt": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_other_wt:.2f}</span></b>',
-        "mwo_diam_wt_gm": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_diam_wt_gm:.4f}</span></b>',
-        "mwo_diam_pcs": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_diam_pcs}</span></b>',
-        "mwo_gem_pcs": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_gem_pcs}</span></b>',
-        "parent_mfg_order": "",
-        "mwo_order_type": "",
-        "mwo_delivery_date": "",
-        "mwo_updated_delivery_date": "",
-        "mop_id": "",
-        "mop_operation": "",
-        "mop_status": "",
-        "mop_department": "",
-        "mop_employee": "",
-        "mop_emp_name": "",
-        "mo_subcontractor":"",
-        "mop_main_slip": "",
-        "pmo_diam_quality": "",
-        "pmo_is_cust_gold": "",
-        "pmo_is_cust_diam": "",
-        "pmo_is_cust_gem": "",
-        "pmo_is_cust_material": "",
-        "pmo_company": "",
-        "pmo_due_days": "",
-        "pmo_est_delivery_date": "",
-        "pmo_est_delivery_days": "",
-        "manufacturing_end_date":"",
-        "pmo_order_form_id": "",
-        "pmo_order_form_date": "",
-        "pmo_quotation_id": "",
-        "pmo_sales_order_id": "",
-        "pmo_customer_po": "",
-        "pmo_jewelex_order_no": "",
-        "pmo_parent_quotation_id": "",
-        "pmo_parent_sales_order_id": "",
-        "pmo_parent_plan_id": "",
-        "pmo_ref_customer_id": "",
-        "pmo_ref_customer_name": "",
-        "q_creation_date": "",
-        "q_total_qty": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_quotation_qty}</span></b>',
-        "q_branch": "",
-        "so_creation_date": "",
-        "so_delivery_date": "",
-        "so_total_qty": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_sales_order_qty}</span></b>',
-        "sn_creator_id": "",
-        "sn_serial_no": f'<b><span style="color:rgb(23,175,23); font-size: 15px; font-weight: bold;">{total_serial_no}</span></b>',
-        "serial_creation": "",
-        "sn_fg_bom": ""
-    }
-    
-    return totals_row
+    show_js = (
+        "var t=document.getElementById('design-tooltip-box'); "
+        "if(!t){t=document.createElement('div'); t.id='design-tooltip-box'; document.body.appendChild(t); "
+        "t.style.cssText='position:fixed;z-index:99999;border:1px solid #d1d8dd;background:#fff;"
+        "padding:4px;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.25);';} "
+        "t.innerHTML=''; "
+        f"{fill_js} "
+        "t.style.left=(event.clientX+15)+'px'; t.style.top=(event.clientY+15)+'px'; t.style.display='block';"
+    )
+    move_js = (
+        "var t=document.getElementById('design-tooltip-box'); "
+        "if(t){t.style.left=(event.clientX+15)+'px'; t.style.top=(event.clientY+15)+'px';}"
+    )
+    hide_js = (
+        "var t=document.getElementById('design-tooltip-box'); "
+        "if(t){t.style.display='none';}"
+    )
+
+    return (
+        f'<span style="cursor:pointer; text-decoration:underline dotted;" '
+        f'onmouseenter="{show_js}" '
+        f'onmousemove="{move_js}" '
+        f'onmouseleave="{hide_js}">'
+        f'{design_id}'
+        f'</span>'
+    )
 
 
 def get_conditions(filters):
@@ -374,7 +302,16 @@ def get_conditions(filters):
         conditions.append(f"mwo.delivery_date = '{filters['delivery_date']}'")
 
     if filters.get("posting_date"):
-        conditions.append(f"mwo.posting_date = '{filters['posting_date']}'")
+        posting_date = filters["posting_date"]
+        if isinstance(posting_date, (list, tuple)) and len(posting_date) == 2:
+            conditions.append(
+                f"mwo.posting_date BETWEEN '{posting_date[0]}' AND '{posting_date[1]}'"
+            )
+        else:
+            conditions.append(f"mwo.posting_date = '{posting_date}'")
+
+    if filters.get("hide_finished"):
+        conditions.append("(mo.status IS NULL OR mo.status != 'Finished')")
 
     # if filters.get("pmo"):
     #     pmos = ', '.join([f'"{pmo}"' for pmo in filters.get("pmo")])

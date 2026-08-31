@@ -80,6 +80,8 @@
   "need_state",
   "modularity_description",
   "bangle",
+  "technique",
+  "making_component",
   "column_break_5mhdj",
   "rpt_cad_approval",
   "supplier",
@@ -207,7 +209,6 @@
    "fieldtype": "Section Break"
   },
   {
-   "fetch_from": "design_code.tag_no",
    "fieldname": "serial_no",
    "fieldtype": "Link",
    "label": "Serial No",
@@ -274,7 +275,7 @@
    "fieldname": "complexity",
    "fieldtype": "Select",
    "label": "Complexity",
-   "options": "\nSimple\nMedium\nComplex"
+   "options": "\nSimple\nMedium\nComplex\nA\nB\nC\nD\nE\nF"
   },
   {
    "fieldname": "productivity",
@@ -564,8 +565,7 @@
    "fetch_if_empty": 1,
    "fieldname": "design_image",
    "fieldtype": "Attach Image",
-   "label": "Design Image",
-   "reqd": 1
+   "label": "Design Image"
   },
   {
    "fieldname": "design_image_preview",
@@ -835,12 +835,24 @@
    "label": "Diamond Quality",
    "link_filters": "[[\"Attribute Value\",\"is_diamond_quality\",\"=\",1]]",
    "options": "Attribute Value"
+  },
+  {
+   "fieldname": "technique",
+   "fieldtype": "Link",
+   "label": "Technique",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "making_component",
+   "fieldtype": "Select",
+   "label": "Making Component",
+   "options": "\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2026-04-02 15:31:48.904958",
+ "modified": "2026-07-05 22:16:53.908732",
  "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Customer Design Information Sheet",

@@ -1,0 +1,92 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2026-06-30 15:28:41.930795",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2026-06-30 15:28:41.930795",
+ "modified_by": "sukhdev_k@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Finish Good Item Details",
+ "owner": "sukhdev_k@gkexport.com",
+ "prepared_report": 0,
+ "ref_doctype": "BOM",
+ "report_name": "Finish Good Item Details",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Central Manager - KGJPL"
+  },
+  {
+   "role": "Central Executive - KGJPL"
+  },
+  {
+   "role": "Computer Aided Designer - KGJPL"
+  },
+  {
+   "role": "Diamond Bagging Executive - KGJPL"
+  },
+  {
+   "role": "Diamond Setting Manager - KGJPL"
+  },
+  {
+   "role": "Diamond Setting Executive - KGJPL"
+  },
+  {
+   "role": "Final Polish Manager - KGJPL"
+  },
+  {
+   "role": "Final Polish Executive - KGJPL"
+  },
+  {
+   "role": "Gemstone Bagging Executive - KGJPL"
+  },
+  {
+   "role": "BOM Executive - KGJPL"
+  },
+  {
+   "role": "Model Making Manager - KGJPL"
+  },
+  {
+   "role": "Pre Polish Executive - KGJPL"
+  },
+  {
+   "role": "Tagging Executive - KGJPL"
+  },
+  {
+   "role": "Waxing Manager - KGJPL"
+  },
+  {
+   "role": "Waxing Executive - KGJPL"
+  },
+  {
+   "role": "Product Allocation Executive - KGJPL"
+  },
+  {
+   "role": "Account Executive - KGJPL"
+  },
+  {
+   "role": "Computer Aided Designing Executive - KGJPL"
+  },
+  {
+   "role": "Model Making Executive - KGJPL"
+  },
+  {
+   "role": "Manufacturing User"
+  },
+  {
+   "role": "Manufacturing Manager"
+  }
+ ],
+ "timeout": 0
+}

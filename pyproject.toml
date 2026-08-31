@@ -9,6 +9,7 @@ dynamic = ["version"]
 dependencies = [
     "qrcode~= 7.4.2",
     "forex-python~= 1.8",
+    "requests~=2.32.0",
 ]
 
 [build-system]
@@ -25,3 +26,6 @@ sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FRAPPE", "ERPNEXT", "FIRSTPARTY",
 [tool.bench.dev-dependencies]
 parameterized = "~=0.8.1"
 time-machine = "~=2.10.0"
+
+[tool.bench.frappe-dependencies]
+frappe = ">=15.0.0,<17.0.0"

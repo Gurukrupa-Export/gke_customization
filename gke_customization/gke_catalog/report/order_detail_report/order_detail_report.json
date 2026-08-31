@@ -1,5 +1,5 @@
 {
- "add_total_row": 0,
+ "add_total_row": 1,
  "add_translate_data": 0,
  "columns": [],
  "creation": "2025-02-28 15:17:17.953582",
@@ -25,10 +25,10 @@
    "role": "System Manager"
   },
   {
-   "role": "Computer Operator - ST - GE"
+   "role": "Manufacturing Plan & Management Executive - KGJPL"
   },
   {
-   "role": "Manager - ST - GE"
+   "role": "Manufacturing Manager"
   }
  ],
  "timeout": 300

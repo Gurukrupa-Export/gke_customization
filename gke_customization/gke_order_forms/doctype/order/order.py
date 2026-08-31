@@ -93,6 +93,10 @@ class Order(Document):
         calculate_gemstone_weights(self)
         calculate_other_weights(self)
         calculate_total(self)
+        if self.workflow_state == 'Approved' and self.repair_order and self.is_repairing:
+            frappe.db.set_value("Repair Order",self.repair_order,"new_item_code",self.item)
+            frappe.db.set_value("Repair Order",self.repair_order,"new_bom",self.new_bom)
+            frappe.db.set_value("Repair Order",self.repair_order,"workflow_state","Approved")
         if (
             (
                 self.workflow_state == "Approved"
@@ -1029,6 +1033,8 @@ def create_line_items(self):
             "custom_sketch_order_form_id",
             custom_sketch_order_form_id,
         )
+        frappe.db.set_value("Item", item_variant, "custom_is_photoshop_images", 1)
+
         if purchase_type_for_design:
             frappe.db.set_value(
                 "Item", item_variant, "custom_purchase_type", purchase_type_for_design
@@ -1072,6 +1078,7 @@ def create_line_items(self):
                 "variant_of": item_variant[1],
                 "custom_sketch_order_id": sketch_order_form_id,
                 "custom_sketch_order_form_id": custom_sketch_order_form_id,
+                "custom_is_photoshop_images":1
             },
         )
         if purchase_type_for_design:
@@ -1210,7 +1217,7 @@ def create_item_template_from_order(source_name, target_doc=None):
     def post_process(source, target):
         target.is_design_code = 1
         target.has_variants = 1
-
+        # target.item_code = source.name
         if source.designer_assignment:
             target.designer = source.designer_assignment[0].designer
         else:
@@ -1241,6 +1248,7 @@ def create_item_template_from_order(source_name, target_doc=None):
                     "india_states": "india_states",
                     "usa": "usa",
                     "usa_states": "usa_states",
+                    "custom_is_photoshop_images":1
                 },
             }
         },
@@ -1451,6 +1459,8 @@ def create_only_variant_from_order(self, source_name, target_doc=None):
                     "religious": "custom_shapes",
                     "zodiac": "custom_zodiac",
                     "has_serial_no": 1,
+					"custom_is_photoshop_images":1
+
                 },
             }
         },
@@ -1621,7 +1631,25 @@ def create_bom(self, item_variant):
     new_bom_doc.custom_order_form_type = "Order"
     new_bom_doc.custom_cad_order_form_id = self.cad_order_form
     new_bom_doc.custom_order_id = self.name
-
+    new_bom_doc.metal_type_=self.metal_type
+    new_bom_doc.diamond_type=self.diamond_type
+    new_bom_doc.metal_purity=self.metal_purity
+    if self.metal_type=='Silver':
+        new_bom_doc.gold_to_diamond_ratio=0
+        new_bom_doc.metal_to_diamond_ratio_excl_of_finding=0
+        new_bom_doc.diamond_ratio=0
+    for i in new_bom_doc.diamond_detail:
+        i.diamond_type=self.diamond_type
+        if i.diamond_type != 'AD':
+            i.quantity=i.quantity *1.7
+            i.weight_per_pcs =i.weight_per_pcs *1.7
+    for i in new_bom_doc.finding_detail:
+        i.metal_type=self.metal_type
+        i.metal_colour=self.metal_colour
+        i.metal_touch = self.metal_touch
+        i.metal_purity=self.metal_purity
+       
+        
     # If metal_type is Silver, update metal details and convert quantities
     if (
         self.metal_type
@@ -1635,6 +1663,7 @@ def create_bom(self, item_variant):
         wax_to_gold_18 = settings.wax_to_gold_18
         wax_to_gold_22 = settings.wax_to_gold_22
         wax_to_silver_ratio = settings.wax_to_silver
+        wax_to_22_silver_ratio = settings.wax_to_22kt_silver_ratio
 
         # Update each row in new BOM's metal_detail
         for new_row, original_row in zip(
@@ -1643,37 +1672,121 @@ def create_bom(self, item_variant):
             new_row.metal_type = "Silver"
             new_row.metal_touch = self.metal_touch
             new_row.metal_colour = self.metal_colour
-            new_row.metal_purity = "85.0"
+            new_row.metal_purity = self.metal_purity
+            if self.metal_touch=="20KT":
+                new_row.metal_purity = "85.0"
 
-            # Perform conversion based on original metal_touch
-            if original_row.metal_touch == "10KT":
-                converted_qty = (
-                    original_row.quantity / wax_to_gold_10
-                ) * wax_to_silver_ratio
-            elif original_row.metal_touch == "14KT":
-                converted_qty = (
-                    original_row.quantity / wax_to_gold_14
-                ) * wax_to_silver_ratio
-            elif original_row.metal_touch == "18KT":
-                converted_qty = (
-                    original_row.quantity / wax_to_gold_18
-                ) * wax_to_silver_ratio
-            elif original_row.metal_touch == "22KT":
-                converted_qty = (
-                    original_row.quantity / wax_to_gold_22
-                ) * wax_to_silver_ratio
-            else:
-                # If not matched, keep original quantity
-                converted_qty = original_row.quantity
+                # Perform conversion based on original metal_touch
+                if original_row.metal_touch == "10KT":
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_10
+                    ) * wax_to_silver_ratio
+                elif original_row.metal_touch == "14KT":
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_14
+                    ) * wax_to_silver_ratio
+                elif original_row.metal_touch == "18KT":
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_18
+                    ) * wax_to_silver_ratio
+                elif original_row.metal_touch == "22KT":
+                    # frappe.throw(f"{wax_to_gold_22}")
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_22
+                    ) * wax_to_silver_ratio
+                else:
+                    # If not matched, keep original quantity
+                    converted_qty = original_row.quantity
+                new_row.quantity = converted_qty
+            elif self.metal_touch=="22KT":
+                new_row.metal_purity = "92.5"  
+                if original_row.metal_touch == "10KT":
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_10
+                    ) * wax_to_22_silver_ratio
+                elif original_row.metal_touch == "14KT":
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_14
+                    ) * wax_to_22_silver_ratio
+                elif original_row.metal_touch == "18KT":
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_18
+                    ) * wax_to_22_silver_ratio
+                elif original_row.metal_touch == "22KT":
+                    # frappe.throw(f"{wax_to_gold_22}")
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_22
+                    ) * wax_to_22_silver_ratio 
+                else:
+                    # If not matched, keep original quantity
+                    converted_qty = original_row.quantity
 
-            new_row.quantity = converted_qty
+                new_row.quantity = converted_qty
+        for new_row, original_row in zip(
+            new_bom_doc.finding_detail, bom_doc.finding_detail
+        ):
+            new_row.metal_type = "Silver"
+            new_row.metal_touch = self.metal_touch
+            new_row.metal_colour = self.metal_colour
+            new_row.metal_purity = self.metal_purity
+            if self.metal_touch=="20KT":
+                new_row.metal_purity = "85.0"
 
+                # Perform conversion based on original metal_touch
+                if original_row.metal_touch == "10KT":
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_10
+                    ) * wax_to_silver_ratio
+                elif original_row.metal_touch == "14KT":
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_14
+                    ) * wax_to_silver_ratio
+                elif original_row.metal_touch == "18KT":
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_18
+                    ) * wax_to_silver_ratio
+                elif original_row.metal_touch == "22KT":
+                    # frappe.throw(f"{wax_to_gold_22}")
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_22
+                    ) * wax_to_silver_ratio
+                else:
+                    # If not matched, keep original quantity
+                    converted_qty = original_row.quantity
+                new_row.quantity = converted_qty
+            elif self.metal_touch=="22KT":
+                new_row.metal_purity = "92.5"  
+                if original_row.metal_touch == "10KT":
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_10
+                    ) * wax_to_22_silver_ratio
+                elif original_row.metal_touch == "14KT":
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_14
+                    ) * wax_to_22_silver_ratio
+                elif original_row.metal_touch == "18KT":
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_18
+                    ) * wax_to_22_silver_ratio
+                elif original_row.metal_touch == "22KT":
+                    # frappe.throw(f"{wax_to_gold_22}")
+                    converted_qty = (
+                        original_row.quantity / wax_to_gold_22
+                    ) * wax_to_22_silver_ratio 
+                else:
+                    # If not matched, keep original quantity
+                    converted_qty = original_row.quantity
+
+                new_row.quantity = converted_qty    
         # Update BOM-level fields
         new_bom_doc.metal_type = self.metal_type
         new_bom_doc.metal_touch = self.metal_touch
         new_bom_doc.metal_colour = self.metal_colour
-        new_bom_doc.metal_purity = "85.0"
-
+        if self.metal_touch=="22KT":
+            new_bom_doc.metal_purity = "92.5" 
+        else:
+            new_bom_doc.metal_purity = "85.0"
+        # frappe.msgprint(f"{new_bom_doc.metal_purity}")
         total_metal_weight = sum(row.quantity for row in new_bom_doc.metal_detail)
         new_bom_doc.metal_weight = total_metal_weight
         new_bom_doc.metal_target = total_metal_weight
@@ -1687,22 +1800,44 @@ def create_bom_for_touch(self, item_variant=None):
     bom_doc = frappe.get_doc("BOM", self.bom)
     new_bom_doc = frappe.copy_doc(bom_doc)
     qty = 0
+    new_bom_doc.metal_type=self.metal_type
+    new_bom_doc.metal_type_=self.metal_type
+    new_bom_doc.diamond_type=self.diamond_type
+    new_bom_doc.metal_colour=self.metal_colour
     for i in new_bom_doc.metal_detail:
         i.quantity = flt(i.quantity) * (
             flt(self.metal_touch.replace("KT", ""))
             / flt(i.metal_touch.replace("KT", ""))
         )
         qty = i.quantity
+        i.metal_type=self.metal_type
+        i.metal_colour=self.metal_colour
         i.metal_touch = self.metal_touch
         if i.metal_touch == "22KT":
             i.metal_purity = "91.9"
+        if i.metal_touch == "20KT":
+            i.metal_purity = "85.0"
         if i.metal_touch == "18KT":
             i.metal_purity = "75.4"
+    for i in new_bom_doc.finding_detail:
+        i.metal_type=self.metal_type
+        i.metal_colour=self.metal_colour
+        i.metal_touch = self.metal_touch
+        if i.metal_touch == "22KT":
+            i.metal_purity = "91.9"
+        if i.metal_touch == "20KT":
+            i.metal_purity = "85.0"
+        if i.metal_touch == "18KT":
+            i.metal_purity = "75.4"
+    for i in new_bom_doc.diamond_detail:
+        i.diamond_type=self.diamond_type
     new_bom_doc.metal_touch = self.metal_touch
     if new_bom_doc.metal_touch == "22KT":
         new_bom_doc.metal_purity = 91.9
     if new_bom_doc.metal_touch == "18KT":
         new_bom_doc.metal_purity = 75.4
+    if new_bom_doc.metal_touch == "20KT":
+        new_bom_doc.metal_purity = '85.0'
     new_bom_doc.metal_target = qty
     new_bom_doc.custom_order_form_type = "Order"
     new_bom_doc.custom_cad_order_form_id = self.cad_order_form
@@ -2000,6 +2135,7 @@ def make_quotation_batch(order_names, target_doc=None):
                 "po_no": order.po_no,
                 "custom_jewelex_batch_no": order.jewelex_batch_no,
                 "qty": order.qty,
+                "metal_type":order.metal_type
             },
         )
 
@@ -2032,12 +2168,25 @@ def make_quotation_fill_defaults(quotation, order):
     )
     if taxes.get("taxes"):
         quotation.update(taxes)
+    cad_order_form = frappe.db.get_value(
+    "Order Form",
+    {"name": order.cad_order_form},
+    ["sales_type", "customer_gold", "customer_stone","customer_diamond","customer_good","customer_finding"],
+	as_dict=True
+	)
 
     quotation.quotation_to = "Customer"
     quotation.company = order.company
     quotation.party_name = order.customer_code
     quotation.order_type = order.order_type
     quotation.diamond_quality = order.diamond_quality
+    if cad_order_form:
+        quotation.custom_sales_type = cad_order_form.sales_type
+        quotation.custom_customer_gold = cad_order_form.customer_gold
+        quotation.custom_customer_diamond = cad_order_form.customer_diamond
+        quotation.custom_customer_stone = cad_order_form.customer_stone
+        quotation.custom_customer_good = cad_order_form.customer_good
+        quotation.custom_customer_finding = cad_order_form.customer_finding
 
     service_types = frappe.db.get_values(
         "Service Type 2", {"parent": order.name}, "service_type1"
@@ -2069,7 +2218,8 @@ def get_orders_for_quotation(doctype, txt, searchfield, start, page_len, filters
             o.name,
             o.item,
             o.cad_order_form,
-            o.customer_code
+            o.customer_code,
+            o.metal_type
         FROM
             `tabOrder` o
         INNER JOIN

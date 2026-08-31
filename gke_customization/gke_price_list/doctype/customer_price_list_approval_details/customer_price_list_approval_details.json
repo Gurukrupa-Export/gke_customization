@@ -1,0 +1,54 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-01-03 15:37:36.755786",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "date",
+  "company_rate",
+  "customer_rate"
+ ],
+ "fields": [
+  {
+   "default": "now",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Date"
+  },
+  {
+   "fieldname": "company_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company Rate",
+   "options": "currency"
+  },
+  {
+   "fieldname": "customer_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer Rate",
+   "options": "currency"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-01-28 12:46:35.776160",
+ "modified_by": "shubham_k@gkexport.com",
+ "module": "Gke Price List",
+ "name": "Customer Price List Approval Details",
+ "owner": "shubham_k@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
