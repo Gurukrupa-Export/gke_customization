@@ -169,6 +169,12 @@ scheduler_events = {
         "0 23 * * *": [
             "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
         ],
+        "0 10 * * *": [
+            "gke_customization.gke_hrms.report.department_wise_daily_present_report.department_wise_daily_present_report.send_morning_present_report"
+        ],
+        "0 8 * * *": [
+            "gke_customization.gke_hrms.report.department_wise_daily_attendance.department_wise_daily_attendance.send_daily_attendance_report"
+        ]
     },
 }
 
