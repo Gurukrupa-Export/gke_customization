@@ -499,6 +499,8 @@ def create_item_kggk(doc, method=None):
                 "front_view": sync_attached_file_to_remote(doc.front_view, to_site, api_key, api_secret),
                 "top_view": sync_attached_file_to_remote(doc.top_view, to_site, api_key, api_secret),
                 "finish_front_view": sync_attached_file_to_remote(doc.finish_front_view, to_site, api_key, api_secret),
+                "image": sync_attached_file_to_remote(doc.image, to_site, api_key, api_secret),
+
             }
             
 
@@ -546,6 +548,10 @@ def create_item_kggk(doc, method=None):
                         {frappe.as_json(payload)}
                         """
                     )
+
+                    frappe.throw(
+                        f"API Error ({response.status_code})<br><br>{response.text}"
+                    )
                 else:
                     frappe.logger().info(
                         f"Item {item_code} synced successfully."
@@ -556,6 +562,7 @@ def create_item_kggk(doc, method=None):
                     title="Item Sync Error",
                     message=frappe.get_traceback()
                 )
+                raise
 
 
 
