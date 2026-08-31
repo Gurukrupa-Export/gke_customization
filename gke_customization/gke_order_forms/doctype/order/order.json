@@ -80,6 +80,7 @@
 "qty",
 "metal_type",
 "metal_touch",
+"metal_purity",
 "metal_colour",
 "diamond_type",
 "section_break_25",
@@ -1746,7 +1747,14 @@
   "fieldtype": "Link",
   "label": "Repair Order",
   "options": "Repair Order"
-}
+},
+  {
+   "fieldname": "metal_purity",
+   "fieldtype": "Link",
+   "label": "Metal Purity",
+   "options": "Attribute Value",
+   "read_only": 1
+  }
 ],
 "index_web_pages_for_search": 1,
 "is_submittable": 1,
