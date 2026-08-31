@@ -12,6 +12,7 @@
   "hsn_sac",
   "item_group",
   "is_jewelex_tag",
+  "is_sale",
   "jewelex_tag",
   "column_break_kfci",
   "item_name",
@@ -43,6 +44,7 @@
   "section_break_zutr",
   "rate",
   "amount",
+  "total_costing_amount",
   "column_break_xurv",
   "base_rate",
   "base_amount",
@@ -101,7 +103,7 @@
    "fieldtype": "Link",
    "label": "Serial No",
    "options": "Serial No",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.is_jewelex_tag == 1"
   },
   {
    "fieldname": "bom",
@@ -439,8 +441,7 @@
    "fieldname": "metal_purity",
    "fieldtype": "Link",
    "label": "Metal Purity",
-   "options": "Attribute Value",
-   "read_only": 1
+   "options": "Attribute Value"
   },
   {
    "fieldname": "metal_colour",
@@ -519,14 +520,25 @@
    "fieldname": "jewelex_tag",
    "fieldtype": "Data",
    "label": "Jewelex Tag"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_sale",
+   "fieldtype": "Check",
+   "label": "Is Sale"
+  },
+  {
+   "fieldname": "total_costing_amount",
+   "fieldtype": "Currency",
+   "label": "Total Costing Amount"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-26 13:33:11.521115",
- "modified_by": "Administrator",
+ "modified": "2026-08-13 11:38:17.518288",
+ "modified_by": "shubham_ke@gkexport.com",
  "module": "Gke Price List",
  "name": "Product Return Form Item",
  "owner": "aditya_r@gkexport.com",

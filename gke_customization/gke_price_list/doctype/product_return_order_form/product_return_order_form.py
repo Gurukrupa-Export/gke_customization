@@ -80,6 +80,16 @@ def append_diamond_detail_from_jwelex(product_order, diamond_details):
 		dest.total_diamond_rate = d.get("Rate")
 		dest.diamond_rate_for_specified_quantity = d.get("Amount")
 		dest.se_rate = d.get("Costing_Amt")
+		# purity_name = d.get("Purity_Name")
+		# if purity_name:
+		# 	if purity_name.startswith("DIAMOND NO"):
+		# 		purity_name = purity_name.replace("DIAMOND NO", "", 1).strip()
+		# 	elif purity_name.startswith("GK NO"):
+		# 		purity_name = purity_name.replace("GK NO", "", 1).strip()
+
+		# 	purity_name = purity_name.replace(" ", "")
+
+		# dest.diamond_grade = purity_name
 
 
 def append_finding_detail_from_jwelex(product_order, finding_details):
@@ -124,16 +134,20 @@ def append_gemstone_detail_from_jwelex(product_order, stone_details):
 
 
 class ProductReturnOrderForm(Document):
-	def get_data_from_jwelex(self,tag_no,company):
+	def get_data_from_jwelex(self,tag_no,company,is_sale):
 		url = "http://3.108.219.130:8001/credit-note"
 
 		response = requests.get(
 			url,
-			params={"tag_no": tag_no,"company": company},
+			params={"tag_no": tag_no, "company": company, "is_sale": is_sale},
 			timeout=30
 		)
 
-		response.raise_for_status()
+		if not response.ok:
+			frappe.throw(
+				f"Jwelex API rejected Tag No {frappe.bold(tag_no)} "
+				f"({response.status_code}): {response.text}"
+			)
 		return response.json()
 		
 	def before_validate(self):
@@ -254,229 +268,6 @@ class ProductReturnOrderForm(Document):
 					"rate": t.rate,
 					"cost_center": t.cost_center,
 				})
-	# def calculate_sales_taxes_and_charges(self):
-	# 	# if self.sales_type not in ("Outright", "Outwork", "Branch Sales", "Hybrid"):
-	# 	# 	return
-	# 	# frappe.throw("hii")
-	# 	company_state  = frappe.db.get_value("Address", self.company_address,  "gst_state_number")
-
-	# 	if not customer_state or not company_state:
-	# 		return
-
-	# 	self.tax_category = "In-State" if customer_state == company_state else "Out-State"
-
-	# 	item_template_map = {
-	# 		"Outright": {
-	# 			"Gurukrupa Export Private Limited": "GST 3% - GEPL",
-	# 			"KG GK Jewellers Private Limited":  "GST 3% - KGJPL",
-	# 		},
-	# 		"Branch Sales": {
-	# 		"Gurukrupa Export Private Limited": "GST 3% - GEPL"
-	# 		},
-	# 		"Outwork": {
-	# 			"Gurukrupa Export Private Limited": "GST 5% - GEPL",
-	# 			"KG GK Jewellers Private Limited":  "GST 5% - KGJPL",
-	# 		},
-	# 	}
-	# 	# Hybrid has no rate/template of its own — for account-head selection
-	# 	# only, it borrows the Outright template; the real 3%/5% rates
-	# 	# come from the customer's Outright / Outwork rows (see
-	# 	# _set_hybrid_gst_details below).
-	# 	item_template_map["Hybrid"] = item_template_map["Outright"]
-
-	# 	item_tax_template = item_template_map.get(self.sales_type, {}).get(self.company)
-	# 	# frappe.throw(f"{item_tax_template}")
-	# 	if not item_tax_template:
-	# 		return
-
-	# 	taxes_and_charges = frappe.db.get_value(
-	# 		"Sales Taxes and Charges Template",
-	# 		{
-	# 			"company":      self.company,
-	# 			"tax_category": self.tax_category,
-	# 			"disabled":     0,
-	# 		},
-	# 		"name"
-	# 	)
-
-	# 	if not taxes_and_charges:
-	# 		frappe.log_error(
-	# 			f"No Sales Taxes and Charges Template found for "
-	# 			f"Company: {self.company}, Tax Category: {self.tax_category}",
-	# 			"set_gst_details"
-	# 		)
-	# 		return
-
-	# 	self.taxes_and_charges = taxes_and_charges
-
-	# 	if self.sales_type == "Hybrid":
-	# 		_set_hybrid_gst_details(self, item_tax_template)
-	# 		return
-
-	# 	template_rates = frappe.get_all(
-	# 		"Item Tax Template Detail",
-	# 		filters={"parent": item_tax_template},
-	# 		fields=["tax_type", "tax_rate"]
-	# 	)
-
-	# 	tax_rate = frappe.db.get_value(
-	# 		"Sales Type Multiselect",
-	# 		{
-	# 			"parent": self.customer,
-	# 			"sales_type": self.sales_type
-	# 		},
-	# 		"tax_rate"
-	# 	)
-
-	# 	tax_rate_f = flt(tax_rate)
-	# 	cgst_rate = sgst_rate = igst_rate = 0.0
-	# 	for r in template_rates:
-	# 		tax_type = r.tax_type or ""
-	# 		if "Output" not in tax_type or "RCM" in tax_type:
-	# 			continue
-	# 		if "CGST" in tax_type:
-	# 			cgst_rate = flt(tax_rate_f)
-	# 		elif "SGST" in tax_type:
-	# 			sgst_rate = flt(tax_rate_f)
-	# 		elif "IGST" in tax_type:
-	# 			igst_rate = flt(tax_rate_f)
-
-	# 	account_rate_map = {}
-	# 	for r in template_rates:
-	# 		tax_type = r.tax_type or ""
-	# 		if "Output" not in tax_type or "RCM" in tax_type:
-	# 			continue
-	# 		account_rate_map[r.tax_type] = flt(tax_rate_f)
-
-	# 	self.taxes = []
-	# 	tax_rows = frappe.get_all(
-	# 		"Sales Taxes and Charges",
-	# 		filters={"parent": self.taxes_and_charges},
-	# 		fields=["charge_type", "account_head", "description", "rate", "cost_center"],
-	# 		order_by="idx asc"
-	# 	)
-	# 	for t in tax_rows:
-	# 		correct_rate = account_rate_map.get(t.account_head, t.rate)
-	# 		self.append("taxes", {
-	# 			"charge_type":  t.charge_type,
-	# 			"account_head": t.account_head,
-	# 			"description":  t.description,
-	# 			"rate":         correct_rate,
-	# 			"cost_center":  t.cost_center,
-	# 			"tax_amount":correct_rate * self.total /100
-	# 		})
-	# 	for item in self.items:
-	# 		if not item.item_code:
-	# 			continue
-
-	# 		item.item_tax_template = item_tax_template
-	# 		item.gst_treatment     = "Taxable"
-	# 		item.cgst_rate         = 0.0
-	# 		item.sgst_rate         = 0.0
-	# 		item.igst_rate         = 0.0
-	# 		item.cgst_amount       = 0.0
-	# 		item.sgst_amount       = 0.0
-	# 		item.igst_amount       = 0.0
-
-	# 		taxable_value = flt(item.taxable_value)
-
-	# 		if self.tax_category == "In-State":
-	# 			item.cgst_rate   = tax_rate/2
-	# 			item.sgst_rate   = tax_rate/2
-	# 			item.cgst_amount = flt(taxable_value * item.cgst_rate / 100, 2)
-	# 			item.sgst_amount = flt(taxable_value * item.sgst_rate / 100, 2)
-	# 		else:
-	# 			item.igst_rate   = tax_rate
-	# 			item.igst_amount = flt(taxable_value * item.igst_rate / 100, 2)
-
-	# def _set_hybrid_gst_details(self, item_tax_template):
-
-	# 	if self.company not in HYBRID_ENABLED_COMPANIES:
-	# 		frappe.throw(_("Hybrid Sales Type is not yet enabled for company {0}").format(self.company))
-
-	# 	fg_rate = flt(frappe.db.get_value(
-	# 		"Sales Type Multiselect",
-	# 		{"parent": self.customer, "sales_type": "Outright"},
-	# 		"tax_rate",
-	# 	))
-	# 	sc_rate = flt(frappe.db.get_value(
-	# 		"Sales Type Multiselect",
-	# 		{"parent": self.customer, "sales_type": "Outwork"},
-	# 		"tax_rate",
-	# 	))
-
-	# 	total_owned    = sum(flt(item.custom_company_owned_amount)     for item in self.items)
-	# 	total_supplied = sum(flt(item.custom_customer_supplied_amount) for item in self.items)
-
-	# 	self.taxes = []
-	# 	tax_rows = frappe.get_all(
-	# 		"Sales Taxes and Charges",
-	# 		filters={"parent": self.taxes_and_charges},
-	# 		fields=["charge_type", "account_head", "description", "rate", "cost_center"],
-	# 		order_by="idx asc",
-	# 	)
-
-	# 	# One template row per account head (CGST/SGST/IGST) — reused for both
-	# 	# the Outright and Outwork rows we append below.
-	# 	account_by_type = {}
-	# 	for t in tax_rows:
-	# 		head = t.account_head or ""
-	# 		if "IGST" in head:
-	# 			account_by_type.setdefault("IGST", t)
-	# 		elif "CGST" in head:
-	# 			account_by_type.setdefault("CGST", t)
-	# 		elif "SGST" in head:
-	# 			account_by_type.setdefault("SGST", t)
-
-	# 	def _append_tax_row(account_key, rate, amount, label):
-	# 		template = account_by_type.get(account_key)
-	# 		if not template:
-	# 			return
-	# 		self.append("taxes", {
-	# 			"charge_type":  template.charge_type,
-	# 			"account_head": template.account_head,
-	# 			"description":  f"{template.description} ({label})",
-	# 			"rate":         rate,
-	# 			"cost_center":  template.cost_center,
-	# 			"tax_amount":   amount,
-	# 		})
-
-	# 	if self.tax_category == "In-State":
-	# 		_append_tax_row("CGST", fg_rate / 2, round(total_owned * fg_rate / 2 / 100, 2), "Outright")
-	# 		_append_tax_row("SGST", fg_rate / 2, round(total_owned * fg_rate / 2 / 100, 2), "Outright")
-	# 		_append_tax_row("CGST", sc_rate / 2, round(total_supplied * sc_rate / 2 / 100, 2), "Outwork")
-	# 		_append_tax_row("SGST", sc_rate / 2, round(total_supplied * sc_rate / 2 / 100, 2), "Outwork")
-	# 	else:
-	# 		_append_tax_row("IGST", fg_rate, round(total_owned * fg_rate / 100, 2), "Outright")
-	# 		_append_tax_row("IGST", sc_rate, round(total_supplied * sc_rate / 100, 2), "Outwork")
-
-	# 	for item in self.items:
-	# 		if not item.item_code:
-	# 			continue
-
-	# 		item.item_tax_template = item_tax_template
-	# 		item.gst_treatment     = "Taxable"
-
-	# 		owned         = flt(item.custom_company_owned_amount)
-	# 		supplied      = flt(item.custom_customer_supplied_amount)
-	# 		taxable_value = owned + supplied
-
-	# 		if self.tax_category == "In-State":
-	# 			cgst_amount = round(owned * fg_rate / 2 / 100 + supplied * sc_rate / 2 / 100, 2)
-	# 			item.cgst_amount = cgst_amount
-	# 			item.sgst_amount = cgst_amount
-	# 			item.igst_amount = 0.0
-	# 			item.cgst_rate   = round(cgst_amount / taxable_value * 100, 4) if taxable_value else 0.0
-	# 			item.sgst_rate   = item.cgst_rate
-	# 			item.igst_rate   = 0.0
-	# 		else:
-	# 			igst_amount = round(owned * fg_rate / 100 + supplied * sc_rate / 100, 2)
-	# 			item.igst_amount = igst_amount
-	# 			item.cgst_amount = 0.0
-	# 			item.sgst_amount = 0.0
-	# 			item.cgst_rate   = 0.0
-	# 			item.sgst_rate   = 0.0
-	# 			item.igst_rate   = round(igst_amount / taxable_value * 100, 4) if taxable_value else 0.0
 
 	def calculate_sales_taxes_and_charges(self):
 		"""
@@ -1292,7 +1083,7 @@ class ProductReturnOrderForm(Document):
 		if not (self.company == "KG GK Jewellers Private Limited" or customer_group == "Internal"):
 			bom_doc.validate()
 			bom_doc.save()
-			update_totals("BOM", bom_doc.name)
+			# update_totals("BOM", bom_doc.name)
 
 	def on_submit(self):
 
@@ -1308,13 +1099,11 @@ class ProductReturnOrderForm(Document):
 			bom = None
 			if item_row.item_code == 'Subcontracting Charges':
 				continue
-			if item_row.jewelex_tag:
-				if self.company == 'KG GK Jewellers Private Limited':
-					company = "KGJPL"
-				if self.company == 'Gurukrupa Export Private Limited':
-					company = "GEPL"
-				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag,company)
-				# frappe.throw(f"{jewelex_data}")
+			jewelex_company = "KGPL" if self.ref_company == "KG" else "GEPL"
+			if item_row.jewelex_tag and item_row.is_sale:
+				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag,jewelex_company,1)
+			elif item_row.jewelex_tag and not item_row.is_sale:
+				jewelex_data = self.get_data_from_jwelex(item_row.jewelex_tag,jewelex_company,0)
 			elif item_row.serial_no:
 				bom_name = frappe.db.get_value("Serial No", item_row.serial_no, "custom_bom_no")
 				if not bom_name:
@@ -1327,6 +1116,9 @@ class ProductReturnOrderForm(Document):
 			product_order.customer = self.customer
 			product_order.company = self.company
 			product_order.branch = self.branch
+			product_order.ref_company = self.ref_company
+			product_order.return_subtype = self.return_subtype
+			product_order.return_type = self.credit_note_type
 			product_order.sales_type = self.sales_type
 			product_order.credit_note_rate_type=self.credit_note_rate_type
 			product_order.product_return_order_form = self.name
@@ -1383,8 +1175,7 @@ class ProductReturnOrderForm(Document):
 			product_order.metal_purity = item_row.metal_purity
 			product_order.setting_type = item_row.setting_type
 			product_order.amount = item_row.amount
-			product_order.hallmarking_amounts=self.product_hallmarking
-			product_order.certification_amounts=self.product_certification
+
 			system_fields = {
 				"name", "parent", "parentfield", "parenttype",
 				"doctype", "idx", "owner", "creation",
@@ -1743,7 +1534,7 @@ class ProductReturnOrderForm(Document):
 
 	def set_total_in_words(self):
 		from frappe.utils import money_in_words
-		self.in_words = money_in_words(self.rounded_total)
+		self.in_words = money_in_words(flt(self.rounded_total))
 
 	def apply_pcpm_manual_calculation(self):
 		"""
@@ -4601,5 +4392,6 @@ def calculate_percentage_amount(rate, base_value):
 
 def create_return_sales_invoice(doc):
 	pass
+	
 
 

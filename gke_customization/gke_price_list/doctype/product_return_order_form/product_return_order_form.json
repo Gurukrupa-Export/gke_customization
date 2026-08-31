@@ -1,6 +1,6 @@
 {
  "actions": [],
- "autoname": "format:PRF-{YYYY}-{#####}",
+ "autoname": "format:{ref_company}-PRF-{YYYY}-{#####}",
  "creation": "2026-01-09 14:15:44.504200",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -8,6 +8,8 @@
   "basic_information_section",
   "customer",
   "customer_name",
+  "ref_company",
+  "old_product_return_order_form",
   "column_break_pcxn",
   "company",
   "branch",
@@ -131,6 +133,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
+   "no_copy": 1,
    "options": "Draft\nItem & BOM Creation\nSend to Pricing\nVerified\nApproved\nIssued\nCancelled",
    "reqd": 1
   },
@@ -463,6 +466,18 @@
    "fieldname": "total_amount",
    "fieldtype": "Currency",
    "label": "Total Amount"
+  },
+  {
+   "default": "GK",
+   "fieldname": "ref_company",
+   "fieldtype": "Select",
+   "label": "Ref Company",
+   "options": "\nGK\nKG"
+  },
+  {
+   "fieldname": "old_product_return_order_form",
+   "fieldtype": "Data",
+   "label": "Old Product Return order form"
   }
  ],
  "grid_page_length": 50,
@@ -478,11 +493,11 @@
    "link_fieldname": "custom_product_return_form_ref"
   }
  ],
- "modified": "2026-07-27 15:25:32.874055",
- "modified_by": "shruti_b@gkexport.com",
+ "modified": "2026-08-20 10:50:11.285939",
+ "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Product Return Order Form",
- "naming_rule": "Expression",
+ "naming_rule": "Expression (old style)",
  "owner": "aditya_r@gkexport.com",
  "permissions": [
   {

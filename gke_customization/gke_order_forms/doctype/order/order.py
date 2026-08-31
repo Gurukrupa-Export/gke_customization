@@ -83,11 +83,15 @@ class Order(Document):
 		if self.is_finding_order and self.workflow_state == 'Update Item':
 			check_finding_code(self)
 		
+	
 	def on_update_after_submit(self):
 		create_timesheet_copy_paste_item_bom(self)
 		if self.workflow_state == "Creating BOM" and self.docstatus == 1:
 			bom_creation(self)
-		if self.is_repairing == 0 and (self.design_type == 'Mod - Old Stylebio & Tag No' and self.bom_type != 'Duplicate BOM'):
+		if self.is_repairing == 0 and (
+			self.design_type == "Mod - Old Stylebio & Tag No"
+			and self.bom_type != "Duplicate BOM"
+		):
 			cerate_bom_timesheet(self)
 		calculate_metal_weights(self)
 		calculate_finding_weights(self)
@@ -95,11 +99,27 @@ class Order(Document):
 		calculate_gemstone_weights(self)
 		calculate_other_weights(self)
 		calculate_total(self)
-		if (self.workflow_state == 'Approved' and self.mod_reason not in ['Change in Metal Touch','Change in Metal Colour']) and (self.is_finding_order==0) and (self.is_repairing==0) and self.bom_type != 'Duplicate BOM':
-			timesheet = frappe.get_doc("Timesheet",{"order":self.name},"name")
-			timesheet.run_method('submit')
-		if self.workflow_state == 'Update BOM' and self.design_type == 'Sketch Design':
+		if self.workflow_state == 'Approved' and self.repair_order and self.is_repairing:
+			frappe.db.set_value("Repair Order",self.repair_order,"new_item_code",self.item)
+			frappe.db.set_value("Repair Order",self.repair_order,"new_bom",self.new_bom)
+			repair_bom = frappe.db.get_value("Repair Order",self.repair_order,"bom")
+			frappe.db.set_value("Repair Order",self.repair_order,"product_bom",repair_bom)
+			frappe.db.set_value("Repair Order",self.repair_order,"workflow_state","Approved")
+		if (
+			(
+				self.workflow_state == "Approved"
+				and self.mod_reason
+				not in ["Change in Metal Touch", "Change in Metal Colour"]
+			)
+			and (self.is_finding_order == 0)
+			and (self.is_repairing == 0)
+			and self.bom_type != "Duplicate BOM"
+		):
+			timesheet = frappe.get_doc("Timesheet", {"order": self.name})
+			timesheet.run_method("submit")
+		if self.workflow_state == "Update BOM" and self.design_type == "Sketch Design":
 			update_variant_attributes(self)
+
 	
 	def on_cancel(self):
 		if frappe.db.get_list("Timesheet",filters={"order":self.name},fields="name"):
@@ -1655,6 +1675,7 @@ def create_line_items(self):
 
 		frappe.db.set_value("Item", item_variant, "custom_sketch_order_id", sketch_order_form_id)
 		frappe.db.set_value("Item", item_variant, "custom_sketch_order_form_id", custom_sketch_order_form_id)
+		frappe.db.set_value("Item", item_variant, "custom_is_photoshop_images", 1)
 		if purchase_type_for_design:
 			frappe.db.set_value("Item", item_variant, "custom_purchase_type", purchase_type_for_design)
 		if supplier_for_design:
@@ -1686,7 +1707,8 @@ def create_line_items(self):
 			"is_design_code": 1,
 			"variant_of": item_variant[1],
 			"custom_sketch_order_id": sketch_order_form_id,
-			"custom_sketch_order_form_id": custom_sketch_order_form_id
+			"custom_sketch_order_form_id": custom_sketch_order_form_id,
+			"custom_is_photoshop_images":1
 		})
 		if purchase_type_for_design:
 			frappe.db.set_value("Item", item_variant, "custom_purchase_type", purchase_type_for_design)
@@ -1821,6 +1843,8 @@ def create_item_template_from_order(source_name, target_doc=None):
 					"india_states":"india_states",
 					"usa":"usa",
 					"usa_states":"usa_states",
+					"custom_is_photoshop_images":1
+
 				} 
 			}
 		},target_doc, post_process
@@ -1988,7 +2012,8 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 					"shapes":"custom_religious",
 					"religious":"custom_shapes",
 					"zodiac":"custom_zodiac",
-					"has_serial_no":1
+					"has_serial_no":1,
+					"custom_is_photoshop_images":1
 				} 
 			}
 		},target_doc, post_process
@@ -2472,6 +2497,9 @@ def make_quotation_batch(order_names, target_doc=None):
 			"delivery_date": order.delivery_date,
 			"order_form_type": "Order",
 			"order_form_id": order.name,
+			# Origin BOM. Seeded here so the row carries it from the moment it is mapped,
+			# before the Quotation's "Creating BOM" run gets a chance to resolve it.
+			"copy_bom": order.new_bom,
 			"salesman_name": order.salesman_name,
 			"order_form_date": order.order_date,
 			"custom_customer_sample": order.customer_sample,

@@ -432,7 +432,7 @@ def get_address_by_link_name(user_type, link_name):
                 filters={
                     "parent": link_name 
                 },
-                fields=["full_name","user_id","user_contact_no"]
+                fields=["full_name","user_id"]
             )
             # Merge both dicts together
             merged_data = {**customer_info, **address_data,"customer_representatives": customer_represent}

@@ -9,6 +9,12 @@ frappe.query_reports["Accounts Payable Summary - SD"] = {
 			fieldtype: "Select",
 			options: "Customer Summary\nMonthly Summary",
 			default: "Customer Summary",
+			on_change: function () {
+				let is_monthly = frappe.query_report.get_filter_value("summary_type") === "Monthly Summary";
+				frappe.query_report.toggle_filter_display("calculate_ageing_with", is_monthly);
+				frappe.query_report.toggle_filter_display("from_date", is_monthly);
+				frappe.query_report.toggle_filter_display("to_date", is_monthly);
+			},
 		},
 		{
 			fieldname: "company",
@@ -125,6 +131,10 @@ frappe.query_reports["Accounts Payable Summary - SD"] = {
 			var filters = report.get_values();
 			frappe.set_route("query-report", "Accounts Payable - SD", { company: filters.company });
 		});
+		let is_monthly = frappe.query_report.get_filter_value("summary_type") === "Monthly Summary";
+		frappe.query_report.toggle_filter_display("calculate_ageing_with", is_monthly);
+		frappe.query_report.toggle_filter_display("from_date", is_monthly);
+		frappe.query_report.toggle_filter_display("to_date", is_monthly);
 	},
 };
 

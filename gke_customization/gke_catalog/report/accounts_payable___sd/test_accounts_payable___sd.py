@@ -6,7 +6,6 @@ from erpnext.accounts.doctype.purchase_invoice.test_purchase_invoice import make
 from gke_customization.gke_catalog.report.accounts_payable___sd.accounts_payable___sd import execute
 from erpnext.accounts.test.accounts_mixin import AccountsTestMixin
 
-
 class TestAccountsPayable(AccountsTestMixin, FrappeTestCase):
 	def setUp(self):
 		self.create_company()

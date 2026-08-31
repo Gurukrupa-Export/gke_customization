@@ -22,6 +22,12 @@ def execute(filters=None):
 def get_columns():
     return [
         {
+            "fieldname": "month",
+            "label": _("Month"),
+            "fieldtype": "Data",
+            "width": 100,
+        },
+        {
             "fieldname": "employee",
             "label": _("Employee ID"),
             "fieldtype": "Link",
@@ -135,89 +141,161 @@ def get_month_dates(fiscal_year, month):
 # -----------------------------------
 def get_data(filters):
 
-    conditions = get_conditions(filters)
+    ss_conditions = get_conditions(filters, "ss")
+    es_conditions = get_conditions(filters, "es")
 
     data = frappe.db.sql(
         f"""
         SELECT
-            ss.employee AS employee,
-            ss.employee_name AS employee_name,
+            salary.ym AS month,
+            salary.employee AS employee,
+            salary.employee_name AS employee_name,
             e.pan_number AS pan_number,
-            es.custom_tax_withholding_category AS section,
+            tds.section AS section,
 
-            SUM(ss.gross_pay) AS gross_pay,
-            SUM(ss.net_pay) AS net_pay,
+            salary.gross_pay AS gross_pay,
+            salary.net_pay AS net_pay,
 
-            SUM(COALESCE(es.amount, 0)) AS tds_amount,
+            COALESCE(tds.tds_amount, 0) AS tds_amount,
 
-            SUM(ss.gross_pay) - SUM(COALESCE(es.amount, 0))
+            salary.gross_pay - COALESCE(tds.tds_amount, 0)
                 AS salary_without_tds
 
-        FROM `tabSalary Slip` ss
+        FROM (
+            SELECT
+                ss.employee AS employee,
+                ss.employee_name AS employee_name,
+                DATE_FORMAT(ss.start_date, '%%Y-%%m') AS ym,
+                SUM(ss.gross_pay) AS gross_pay,
+                SUM(ss.net_pay) AS net_pay
 
-        INNER JOIN `tabAdditional Salary` es
-            ON ss.employee = es.employee
+            FROM `tabSalary Slip` ss
+
+            WHERE
+                ss.docstatus = 1
+
+                AND ss.start_date >= %(from_date)s
+
+                AND ss.end_date <= %(to_date)s
+
+                {ss_conditions}
+
+            GROUP BY
+                ss.employee,
+                DATE_FORMAT(ss.start_date, '%%Y-%%m')
+        ) salary
+
+        LEFT JOIN (
+            SELECT
+                es.employee AS employee,
+                es.custom_tax_withholding_category AS section,
+                DATE_FORMAT(es.payroll_date, '%%Y-%%m') AS ym,
+                SUM(es.amount) AS tds_amount
+
+            FROM `tabAdditional Salary` es
+
+            -- Only count TDS for months where a Salary Slip is actually done (submitted)
+            INNER JOIN (
+                SELECT DISTINCT
+                    ss.employee AS employee,
+                    DATE_FORMAT(ss.start_date, '%%Y-%%m') AS ym
+
+                FROM `tabSalary Slip` ss
+
+                WHERE
+                    ss.docstatus = 1
+
+                    AND ss.start_date >= %(from_date)s
+
+                    AND ss.end_date <= %(to_date)s
+
+                    {ss_conditions}
+            ) months
+                ON months.employee = es.employee
+                AND months.ym = DATE_FORMAT(es.payroll_date, '%%Y-%%m')
+
+            WHERE
+                es.docstatus = 1
+
+                AND es.payroll_date BETWEEN %(from_date)s AND %(to_date)s
+
+                AND es.salary_component LIKE '%%Income%%'
+
+                AND es.custom_reason_for_additional_salary LIKE '%%TDS%%'
+
+                {es_conditions}
+
+            GROUP BY
+                es.employee,
+                es.custom_tax_withholding_category,
+                DATE_FORMAT(es.payroll_date, '%%Y-%%m')
+
+            HAVING
+                SUM(es.amount) <> 0
+        ) tds
+            ON tds.employee = salary.employee
+            AND tds.ym = salary.ym
 
         LEFT JOIN `tabEmployee` e
-            ON ss.employee = e.name
+            ON salary.employee = e.name
 
         WHERE
-            ss.docstatus = 1
+            EXISTS (
+                SELECT 1
+                FROM `tabAdditional Salary` es
 
-            AND es.payroll_date BETWEEN %(from_date)s AND %(to_date)s
+                WHERE
+                    es.employee = salary.employee
 
-            AND es.salary_component LIKE '%%Income%%'
+                    AND es.docstatus = 1
 
-            AND es.custom_reason_for_additional_salary LIKE '%%TDS%%'
+                    AND es.payroll_date BETWEEN %(from_date)s AND %(to_date)s
 
-            {conditions}
+                    AND es.salary_component LIKE '%%Income%%'
 
-        GROUP BY
-            ss.employee,
-            ss.employee_name,
-            e.pan_number,
-            es.custom_tax_withholding_category
+                    AND es.custom_reason_for_additional_salary LIKE '%%TDS%%'
 
-        HAVING
-            SUM(COALESCE(es.amount,0)) <> 0
+                    AND es.amount <> 0
+
+                    {es_conditions}
+            )
 
         ORDER BY
-            ss.employee
+            salary.ym,
+            salary.employee
         """,
         filters,
         as_dict=True,
     )
 
 
-    # -----------------------------------
     # Total Row
-    # -----------------------------------
-    if data:
-
-        total_row = {
-            "employee": "Total",
-            "employee_name": "",
-            "pan_number": "",
-            "section": "",
-
-            "gross_pay": sum(
-                row.gross_pay or 0 for row in data
-            ),
-
-            "net_pay": sum(
-                row.net_pay or 0 for row in data
-            ),
-
-            "tds_amount": sum(
-                row.tds_amount or 0 for row in data
-            ),
-
-            "salary_without_tds": sum(
-                row.salary_without_tds or 0 for row in data
-            ),
-        }
-
-        data.append(total_row)
+    # if data:
+    #
+    #     total_row = {
+    #         "employee": "Total",
+    #         "employee_name": "",
+    #         "pan_number": "",
+    #         "section": "",
+    #
+    #         "gross_pay": sum(
+    #             row.gross_pay or 0 for row in data
+    #         ),
+    #
+    #         "net_pay": sum(
+    #             row.net_pay or 0 for row in data
+    #         ),
+    #
+    #         "tds_amount": sum(
+    #             row.tds_amount or 0 for row in data
+    #         ),
+    #
+    #         "salary_without_tds": sum(
+    #             row.salary_without_tds or 0 for row in data
+    #         ),
+    #     }
+    #
+    #     data.append(total_row)
 
 
     return data
@@ -227,7 +305,7 @@ def get_data(filters):
 # -----------------------------------
 # Filters
 # -----------------------------------
-def get_conditions(filters):
+def get_conditions(filters, alias):
 
     conditions = []
 
@@ -275,7 +353,7 @@ def get_conditions(filters):
     if filters.get("employee"):
 
         conditions.append(
-            "AND ss.employee = %(employee)s"
+            f"AND {alias}.employee = %(employee)s"
         )
 
 
@@ -283,7 +361,7 @@ def get_conditions(filters):
     if filters.get("company"):
 
         conditions.append(
-            "AND ss.company = %(company)s"
+            f"AND {alias}.company = %(company)s"
         )
 
 
