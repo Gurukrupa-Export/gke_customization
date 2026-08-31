@@ -61,6 +61,18 @@ frappe.query_reports["Production Report"] = {
 
 
 
+    "get_datatable_options": function(options) {
+        return Object.assign(options, {
+            hooks: {
+                columnTotal: function(columnValues, cell) {
+                    if (cell.column.fieldname === "serial_no") {
+                        return columnValues.filter((v) => v).length;
+                    }
+                }
+            }
+        });
+    },
+
     "formatter": function(value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
         // Status color logic
