@@ -417,6 +417,7 @@ def send_morning_present_report(date=None, department=None):
 		html = render_email_html(dept, date, rows, leave_rows, absent_rows, summary)
 		frappe.sendmail(
 			recipients=manager_emails,
+			cc=["angat_p@gkexport.com","hr_srt@gkexport.com"],
 			sender="alerts@gkexport.com",
 			subject=f"Present Report — {dept} — {formatdate(date, 'dd-mm-yyyy')}",
 			message=html,
