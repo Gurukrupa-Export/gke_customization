@@ -10,6 +10,7 @@ from datetime import date, datetime
 
 
 class CrossCompanyEmployeeTransfer(Document):
+    	
 
 		def validate(self):
 			pass
@@ -228,6 +229,12 @@ class CrossCompanyEmployeeTransfer(Document):
 					message=str(e)
 				)
 				raise
+
+		def autoname(self):
+			company_abbr = frappe.db.get_value("Company", self.company, "abbr")
+			if company_abbr:
+				series = f"{company_abbr}-CSE-TRN-.#####"
+				self.name = frappe.model.naming.make_autoname(series)
 
 @frappe.whitelist(allow_guest=True)
 def get_kggk_data(target_site=None, property=None, new_company=None):
