@@ -63,6 +63,7 @@
     "qty",
     "metal_type",
     "metal_touch",
+    "metal_purity",
     "metal_colour",
     "diamond_type",
     "finding_size",
@@ -879,6 +880,13 @@
    "fieldtype": "Data",
    "label": "Jewelex Design ID",
    "mandatory_depends_on": "eval:doc.design_type=='Sketch Design'"
+  },
+  {
+   "depends_on": "eval:doc.metal_type=='Silver'",
+   "fieldname": "metal_purity",
+   "fieldtype": "Link",
+   "label": "Metal Purity",
+   "options": "Attribute Value"
   }
 ],
 "index_web_pages_for_search": 1,
