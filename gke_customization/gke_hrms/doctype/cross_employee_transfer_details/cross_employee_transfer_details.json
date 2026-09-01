@@ -8,31 +8,45 @@
  "field_order": [
   "property",
   "current",
-  "new"
+  "new",
+  "new_value"
  ],
  "fields": [
   {
    "fieldname": "property",
    "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
    "label": "Property"
   },
   {
    "fieldname": "current",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Current"
   },
   {
    "fieldname": "new",
    "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
    "label": "New"
+  },
+  {
+   "fieldname": "new_value",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "New Value"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-08-01 17:07:45.401650",
- "modified_by": "Administrator",
+ "modified": "2026-08-20 13:29:49.274262",
+ "modified_by": "mansi_g@gkexport.com",
  "module": "GKE HRMS",
  "name": "Cross Employee Transfer Details",
  "owner": "shubham_si@gkexport.com",

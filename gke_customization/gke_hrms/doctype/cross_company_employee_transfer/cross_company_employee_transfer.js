@@ -184,6 +184,7 @@ frappe.ui.form.on("Cross Company Employee Transfer", {
 	},
 
     refresh(frm) {
+		setup_property_dropdown(frm);
 		restrict_add_row_without_employee(frm); // 👈 ab refresh me daala
 	},
 
@@ -194,26 +195,29 @@ frappe.ui.form.on("Cross Company Employee Transfer", {
 		(frm.doc.transfer_details || []).forEach(row => {
 			frappe.model.set_value(row.doctype, row.name, "current", "");
 		});
+		// restrict_add_row_without_employee(frm); // 👈 employee change hone par bhi check karo
 	}
 });
 
 
 function setup_property_dropdown(frm) {
-
 	let grid = frm.fields_dict.transfer_details.grid;
 	if (!grid) return;
-
+	
+	console.log("setup_property_dropdown called");
 	frappe.model.with_doctype("Employee", () => {
-
+		console.log("Employee doctype loaded, setting up property dropdown");
 		let options = [""]; // blank option — taaki empty select allowed rahe
-
+		console.log("Initial options:", options);
 		let exclude_fields = [
 			"employee", "employee_name", "status", "naming_series",
 			"first_name", "middle_name", "last_name", "image",
 			"date_of_birth", "date_of_joining", "lft", "rgt"
 		];
+		console.log("exclude_fields:", exclude_fields);
 
 		frappe.get_meta("Employee").fields.forEach(df => {
+			console.log("filed", df.fieldname, "label", df.label, "type", df.fieldtype);
 			if (
 				df.fieldtype != "HTML" &&
 				df.fieldtype != "Section Break" &&
@@ -239,72 +243,197 @@ function setup_property_dropdown(frm) {
 		});
 
 		grid.refresh();
+		
 	});
 }
 
 
+// frappe.ui.form.on("Cross Employee Transfer Details", {
+	
+
+// 	property(frm, cdt, cdn) {
+
+// 		let row = locals[cdt][cdn];
+// 		console.log("Property")
+// 		console.log("Property changed:", row.property, "for employee:", frm.doc.employee);
+// 		if (!row.property || !frm.doc.employee) return;
+
+//         let duplicate = (frm.doc.transfer_details || []).some(
+// 			r => r.property === row.property && r.name !== row.name
+// 		);
+
+//         if (duplicate) {
+// 			frappe.msgprint(__("Property '{0}' is already selected in another row.", [row.property]));
+// 			frappe.model.set_value(cdt, cdn, "property", ""); // field ko clear kardo
+// 			return; // aage ka logic mat chalao
+// 		}
+
+// 		frappe.model.with_doctype("Employee", () => {
+
+// 			let df = frappe.get_meta("Employee").fields.find(
+// 				f => __(f.label) == row.property
+// 			);
+
+// 			if (!df) return;
+
+// 			frappe.call({
+// 				method: "hrms.hr.utils.get_employee_field_property",
+// 				args: {
+// 					employee: frm.doc.employee,
+// 					fieldname: df.fieldname
+// 				},
+// 				callback(r) {
+// 					if (!r.message) return;
+
+// 					frappe.model.set_value(cdt, cdn, "fieldname", df.fieldname);
+// 					frappe.model.set_value(cdt, cdn, "current", r.message.value);
+
+// 					// "New" field ko dynamic banana
+// 					let grid_row = frm.fields_dict.transfer_details.grid.get_row(cdn);
+
+// 					if (grid_row && grid_row.grid_form) {
+// 						let wrapper = grid_row.grid_form.fields_dict.new.wrapper;
+// 						$(wrapper).empty(); // purana control hatao warna duplicate ban jayega
+
+// 						frappe.ui.form.make_control({
+// 							df: {
+// 								fieldtype: r.message.datatype,
+// 								fieldname: "new",
+// 								options: r.message.options || "",
+// 								label: "New"
+// 							},
+// 							parent: wrapper,
+// 							render_input: true
+// 						});
+// 					}
+// 				}
+// 			});
+// 		});
+// 	}
+// });
+
 frappe.ui.form.on("Cross Employee Transfer Details", {
 
-	property(frm, cdt, cdn) {
+	refresh(frm) {
+        filter_property_options(frm);
+    },
 
-		let row = locals[cdt][cdn];
+    transfer_details_add(frm, cdt, cdn) {
+        filter_property_options(frm);
+    },
 
-		if (!row.property || !frm.doc.employee) return;
+
+    property(frm, cdt, cdn) {
+
+        let row = locals[cdt][cdn];
+
+        if (!row.property || !frm.doc.employee) return;
 
         let duplicate = (frm.doc.transfer_details || []).some(
-			r => r.property === row.property && r.name !== row.name
-		);
+            r => r.property === row.property && r.name !== row.name
+        );
 
         if (duplicate) {
-			frappe.msgprint(__("Property '{0}' is already selected in another row.", [row.property]));
-			frappe.model.set_value(cdt, cdn, "property", ""); // field ko clear kardo
-			return; // aage ka logic mat chalao
-		}
 
-		frappe.model.with_doctype("Employee", () => {
+            frappe.msgprint(
+                __("Property '{0}' is already selected in another row.", [
+                    row.property
+                ])
+            );
 
-			let df = frappe.get_meta("Employee").fields.find(
-				f => __(f.label) == row.property
-			);
+            frappe.model.set_value(
+                cdt,
+                cdn,
+                "property",
+                ""
+            );
 
-			if (!df) return;
+            return;
+        }
 
-			frappe.call({
-				method: "hrms.hr.utils.get_employee_field_property",
-				args: {
-					employee: frm.doc.employee,
-					fieldname: df.fieldname
-				},
-				callback(r) {
-					if (!r.message) return;
+        frappe.model.with_doctype("Employee", () => {
 
-					frappe.model.set_value(cdt, cdn, "fieldname", df.fieldname);
-					frappe.model.set_value(cdt, cdn, "current", r.message.value);
+            let df = frappe.get_meta("Employee").fields.find(
+                f => __(f.label) === row.property
+            );
 
-					// "New" field ko dynamic banana
-					let grid_row = frm.fields_dict.transfer_details.grid.get_row(cdn);
+            if (!df) return;
 
-					if (grid_row && grid_row.grid_form) {
-						let wrapper = grid_row.grid_form.fields_dict.new.wrapper;
-						$(wrapper).empty(); // purana control hatao warna duplicate ban jayega
+            frappe.call({
+                method: "hrms.hr.utils.get_employee_field_property",
+                args: {
+                    employee: frm.doc.employee,
+                    fieldname: df.fieldname
+                },
 
-						frappe.ui.form.make_control({
-							df: {
-								fieldtype: r.message.datatype,
-								fieldname: "new",
-								options: r.message.options || "",
-								label: "New"
-							},
-							parent: wrapper,
-							render_input: true
-						});
-					}
-				}
-			});
-		});
-	}
+                callback(r) {
+
+                    if (!r.message) return;
+
+                    frappe.model.set_value(
+                        cdt,
+                        cdn,
+                        "fieldname",
+                        df.fieldname
+                    );
+
+                    frappe.model.set_value(
+                        cdt,
+                        cdn,
+                        "current",
+                        r.message.value
+                    );
+
+                    let grid_row =
+                        frm.fields_dict.transfer_details.grid.get_row(cdn);
+
+                    if (grid_row && grid_row.grid_form) {
+
+                        let wrapper =
+                            grid_row.grid_form.fields_dict.new.wrapper;
+
+                        $(wrapper).empty();
+
+                        frappe.ui.form.make_control({
+                            df: {
+                                fieldtype: r.message.datatype,
+                                fieldname: "new",
+                                options: r.message.options || "",
+                                label: "New"
+                            },
+                            parent: wrapper,
+                            render_input: true
+                        });
+                    }
+                }
+            });
+        });
+    }
 });
 
+
+function filter_property_options(frm) {
+    let grid = frm.fields_dict.transfer_details.grid;
+    let property_field = grid.docfields.find(df => df.fieldname === "property");
+    if (!property_field || !property_field.options) return;
+
+    let remove_property = "Attendance Device ID (Biometric/RF tag ID)";
+    let options = property_field.options
+        .split("\n")
+        .filter(option => option.trim() !== remove_property);
+
+    property_field.options = options.join("\n");
+
+    // also patch each already-rendered row's own docfield copy
+    (grid.grid_rows || []).forEach(grid_row => {
+        if (grid_row.docfields) {
+            let f = grid_row.docfields.find(df => df.fieldname === "property");
+            if (f) f.options = property_field.options;
+        }
+    });
+
+    grid.refresh();
+}
 
 function restrict_add_row_without_employee(frm) {
 
@@ -316,6 +445,7 @@ function restrict_add_row_without_employee(frm) {
 	frm.refresh_field("transfer_details");
 
     if (grid._add_row_restricted) return;
+	console.log("restrict_add_row_without_employee called", grid._add_row_restricted);
 
 	let original_add_new_row = grid.add_new_row.bind(grid);
 
@@ -328,6 +458,7 @@ function restrict_add_row_without_employee(frm) {
 	};
 
 	grid._add_row_restricted = true; // flag lagado taaki dobara wrap na ho
+	console.log("restrict_add_row_without_employee applied");
 }
 
 
