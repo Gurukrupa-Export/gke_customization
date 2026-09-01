@@ -6,6 +6,13 @@ import frappe
 from frappe import _
 from frappe.utils import getdate, today, flt
 
+from gke_customization.gke_catalog.report.mfg_dashboard_script.mfg_dashboard_script import (
+    DEPARTMENT_SEQUENCE,
+)
+
+# Departments excluded from the Gross Wt pivot columns on this report only.
+EXCLUDED_DEPARTMENTS = ["Manufacturing Plan & Management", "Computer Aided Designing", "Sales"]
+
 
 
 def execute(filters=None):
@@ -14,10 +21,64 @@ def execute(filters=None):
 
     # filters = validate_department_access(filters)
 
-    columns = get_columns()
-    data = get_data(filters)
+    department_name_map = get_department_name_map()
+    departments = get_departments(department_name_map)
+    columns = get_columns(departments)
+    data = get_data(filters, departments, department_name_map)
 
     return columns, data
+
+
+
+def get_department_name_map():
+    """Map each actual Department record (name, which may carry a ' - <company abbr>' suffix)
+    to its base department_name, so departments from different companies collapse into one column."""
+    included_departments = [d for d in DEPARTMENT_SEQUENCE if d not in EXCLUDED_DEPARTMENTS]
+
+    department_records = frappe.get_all(
+        "Department",
+        filters={"department_name": ["in", included_departments], "disabled": 0},
+        fields=["name", "department_name"],
+        ignore_permissions=True,
+        ignore_user_permissions=True
+    )
+
+    return {d.name: d.department_name for d in department_records}
+
+
+
+def get_departments(department_name_map):
+    sequence_order = {department_name: idx for idx, department_name in enumerate(DEPARTMENT_SEQUENCE)}
+    found_names = set(department_name_map.values())
+
+    return sorted(found_names, key=lambda department_name: sequence_order.get(department_name, len(DEPARTMENT_SEQUENCE)))
+
+
+
+def get_department_gross_wt_fieldname(department):
+    if not department:
+        return "gross_wt_no_department"
+    return "gross_wt_" + frappe.scrub(department)
+
+
+
+def get_department_from_mwo(parent_manufacturing_order):
+    """Current department a piece is sitting in, per its latest Manufacturing Work Order -
+    same logic the Manufacturing Dashboard uses (main_mwo CTE in mfg_dashboard_script.py)."""
+    if not parent_manufacturing_order:
+        return None
+
+    result = frappe.db.sql("""
+        SELECT mwo.department
+        FROM `tabManufacturing Work Order` mwo
+        WHERE mwo.manufacturing_order = %s
+            AND mwo.for_fg = 0
+            AND mwo.is_finding_mwo = 0
+        ORDER BY mwo.modified DESC
+        LIMIT 1
+    """, (parent_manufacturing_order,), as_dict=True)
+
+    return result[0].department if result and result[0].department else None
 
 
 
@@ -37,9 +98,9 @@ def execute(filters=None):
 
 
 
-def get_columns():
-    
-    return [
+def get_columns(departments=None):
+
+    columns = [
         {"fieldname": "item_code", "label": _("Item Code"), "fieldtype": "Link", "options": "Item", "width": 120},
         {"fieldname": "creation_date", "label": _("Creation Date & Time"), "fieldtype": "Datetime", "width": 150},
         {"fieldname": "serial_no", "label": _("Serial No"), "fieldtype": "Link", "options": "Serial No", "width": 120},
@@ -53,7 +114,17 @@ def get_columns():
         {"fieldname": "manufacturer", "label": _("Manufacturer"), "fieldtype": "Link", "options": "Manufacturer", "width": 120},
         {"fieldname": "metal_touch", "label": _("Metal Touch"), "fieldtype": "Data", "width": 100},
         {"fieldname": "finding_touch", "label": _("Finding Touch"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "gross_wt", "label": _("Gross Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
+    ]
+
+    for department in (departments or []):
+        columns.append({
+            "fieldname": get_department_gross_wt_fieldname(department),
+            "label": _("{0} Gross Wt").format(department),
+            "fieldtype": "Float",
+            "precision": 3,
+            "width": 120
+        })
+    columns += [
         {"fieldname": "metal_wt", "label": _("Metal Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
         {"fieldname": "finding_wt", "label": _("Finding Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
         {"fieldname": "net_wt", "label": _("Net Wt"), "fieldtype": "Float", "precision": 3, "width": 100},
@@ -68,9 +139,11 @@ def get_columns():
         {"fieldname": "serial_no_status", "label": _("Serial No. Status"), "fieldtype": "Data", "width": 120}
     ]
 
+    return columns
 
 
-def get_data(filters):
+
+def get_data(filters, departments=None, department_name_map=None):
     conditions = get_conditions(filters)
     
     base_query = """
@@ -84,12 +157,36 @@ def get_data(filters):
         COALESCE(sn.status, 'Active') as serial_no_status,
         sn.custom_bom_no,
         COALESCE(snc.manufacturer, '') as manufacturer,
-        COALESCE(pmo.order_type, ord.order_type, snc.order_type, '') as order_type
+        COALESCE(
+            pmo.order_type, ord.order_type, snc.order_type,
+            pmo2.order_type, ord2.order_type, snc2.order_type,
+            pmo3.order_type, ord3.order_type,
+            CASE WHEN si_match.serial_no IS NOT NULL THEN 'Sales' END,
+            ''
+        ) as order_type,
+        COALESCE(pmo.department, snc.department, '') as department
     FROM `tabSerial No` sn
     LEFT JOIN `tabItem` item ON item.name = sn.item_code
     LEFT JOIN `tabSerial Number Creator` snc ON snc.serial_no = sn.name
     LEFT JOIN `tabParent Manufacturing Order` pmo ON snc.parent_manufacturing_order = pmo.name
     LEFT JOIN `tabOrder` ord ON pmo.order_form_id = ord.name
+    LEFT JOIN `tabBOM` main_bom ON main_bom.name = sn.custom_bom_no
+    LEFT JOIN `tabSerial Number Creator` snc2 ON main_bom.custom_serial_number_creator = snc2.name
+    LEFT JOIN `tabParent Manufacturing Order` pmo2 ON snc2.parent_manufacturing_order = pmo2.name
+    LEFT JOIN `tabOrder` ord2 ON pmo2.order_form_id = ord2.name
+    LEFT JOIN (
+        SELECT serial_no, MAX(order_type) as order_type, MAX(order_form_id) as order_form_id
+        FROM `tabParent Manufacturing Order`
+        WHERE serial_no IS NOT NULL
+        GROUP BY serial_no
+    ) pmo3 ON pmo3.serial_no = sn.name
+    LEFT JOIN `tabOrder` ord3 ON pmo3.order_form_id = ord3.name
+    LEFT JOIN (
+        SELECT DISTINCT sii.serial_no
+        FROM `tabSales Invoice Item` sii
+        INNER JOIN `tabSales Invoice` si ON sii.parent = si.name
+        WHERE si.docstatus = 1 AND sii.serial_no IS NOT NULL
+    ) si_match ON si_match.serial_no = sn.name
     WHERE sn.item_code NOT LIKE %s
     AND (item.item_group IS NULL OR LOWER(item.item_group) NOT LIKE %s)
     AND (item.item_group IS NULL OR LOWER(item.item_group) NOT LIKE %s)
@@ -108,7 +205,7 @@ def get_data(filters):
         if filters.get("order_type"):
             base_params.append(filters["order_type"])
     
-    final_query = base_query + " ORDER BY sn.creation DESC LIMIT 1000"
+    final_query = base_query + " ORDER BY sn.creation DESC LIMIT 10000"
     
     try:
         data = frappe.db.sql(final_query, base_params, as_dict=True)
@@ -131,7 +228,15 @@ def get_data(filters):
             order_type = row.get('order_type', '')
             
             row['manufacturer'] = manufacturer
-            
+
+            for dept in (departments or []):
+                row[get_department_gross_wt_fieldname(dept)] = 0
+            department_value = (
+                get_department_from_mwo(pmo_data.get('parent_manufacturing_order', '')) if pmo_data else None
+            ) or (pmo_data.get('department') if pmo_data else None) or row.get('department', '')
+            department_name = (department_name_map or {}).get(department_value)
+            gross_wt_fieldname = get_department_gross_wt_fieldname(department_name) if department_name in (departments or []) else None
+
             if custom_bom_no:
                 bom_data = get_serial_specific_bom_data(serial_no_val, custom_bom_no)
                 if bom_data:
@@ -152,18 +257,19 @@ def get_data(filters):
                     total_pure_wt = metal_pure_wt + finding_pure_wt
                     total_alloy_wt = net_wt - total_pure_wt if net_wt > 0 else 0
                     
+                    if gross_wt_fieldname:
+                        row[gross_wt_fieldname] = round(gross_wt, 3)
                     row.update({
-                        'gross_wt': format_weight_display(gross_wt),
-                        'diamond_wt': format_weight_display(diamond_wt),
-                        'diamond_pcs': str(diamond_pcs) if diamond_pcs > 0 else '',
-                        'gemstone_wt': format_weight_display(gemstone_wt),
-                        'gemstone_pcs': str(gemstone_pcs) if gemstone_pcs > 0 else '',
-                        'other_wt': format_weight_display(other_wt),
-                        'metal_wt': format_weight_display(metal_wt),
-                        'finding_wt': format_weight_display(finding_wt),
-                        'net_wt': format_weight_display(net_wt),
-                        'pure_wt': format_weight_display(total_pure_wt),
-                        'alloy_wt': format_weight_display(total_alloy_wt),
+                        'diamond_wt': round(diamond_wt, 3),
+                        'diamond_pcs': diamond_pcs,
+                        'gemstone_wt': round(gemstone_wt, 3),
+                        'gemstone_pcs': gemstone_pcs,
+                        'other_wt': round(other_wt, 3),
+                        'metal_wt': round(metal_wt, 3),
+                        'finding_wt': round(finding_wt, 3),
+                        'net_wt': round(net_wt, 3),
+                        'pure_wt': round(total_pure_wt, 3),
+                        'alloy_wt': round(total_alloy_wt, 3),
                         'metal_touch': metal_touch_display,
                         'finding_touch': finding_touch_display,
                         'category': bom_data.get('item_category', row.get('category', '')),
@@ -171,13 +277,13 @@ def get_data(filters):
                     })
                 else:
                     row.update({
-                        'gross_wt': '', 'diamond_wt': '', 'diamond_pcs': '',
-                        'gemstone_wt': '', 'gemstone_pcs': '', 'other_wt': '',
-                        'metal_wt': '', 'finding_wt': '', 'net_wt': '',
-                        'metal_touch': '', 'finding_touch': '', 'pure_wt': '', 'alloy_wt': '',
+                        'diamond_wt': 0, 'diamond_pcs': 0,
+                        'gemstone_wt': 0, 'gemstone_pcs': 0, 'other_wt': 0,
+                        'metal_wt': 0, 'finding_wt': 0, 'net_wt': 0,
+                        'metal_touch': '', 'finding_touch': '', 'pure_wt': 0, 'alloy_wt': 0,
                         'item_subcategory': ''
                     })
-                
+
                 if pmo_data:
                     row.update({
                         'customer': row.get('customer') or pmo_data.get('customer', ''),
@@ -192,32 +298,134 @@ def get_data(filters):
             
             else:
                 row.update({
-                    'gross_wt': '', 'diamond_wt': '', 'diamond_pcs': '',
-                    'gemstone_wt': '', 'gemstone_pcs': '', 'other_wt': '',
-                    'metal_wt': '', 'finding_wt': '', 'net_wt': '',
-                    'metal_touch': '', 'finding_touch': '', 'pure_wt': '', 'alloy_wt': '',
+                    'diamond_wt': 0, 'diamond_pcs': 0,
+                    'gemstone_wt': 0, 'gemstone_pcs': 0, 'other_wt': 0,
+                    'metal_wt': 0, 'finding_wt': 0, 'net_wt': 0,
+                    'metal_touch': '', 'finding_touch': '', 'pure_wt': 0, 'alloy_wt': 0,
                     'order_type': order_type, 'customer_po_no': '', 'parent_manufacturing_order': '',
                     'item_subcategory': ''
                 })
             
             final_data.append(row)
-        
+
+        final_data.extend(get_wip_mwo_rows(filters, departments, department_name_map))
+        final_data.sort(key=lambda r: r.get('creation_date') or '', reverse=True)
+        final_data = final_data[:10000]
+
         for row in final_data:
-            view_button_html = (
-                '<button class="btn btn-sm" style="background: white; '
-                'border: 1px solid #d1d8dd; color: #333; padding: 4px 12px; font-size: 12px; '
-                'border-radius: 4px; cursor: pointer; transition: all 0.2s ease;" '
-                'onmouseover="this.style.backgroundColor=\'#f8f9fa\'; this.style.borderColor=\'#adb5bd\';" '
-                'onmouseout="this.style.backgroundColor=\'white\'; this.style.borderColor=\'#d1d8dd\';" '
-                'onclick="show_serial_details(\'{0}\')">View</button>'.format(row["serial_no"])
-            )
-            row['view_details'] = view_button_html
-        
+            if row.get('serial_no'):
+                view_button_html = (
+                    '<button class="btn btn-sm" style="background: white; '
+                    'border: 1px solid #d1d8dd; color: #333; padding: 4px 12px; font-size: 12px; '
+                    'border-radius: 4px; cursor: pointer; transition: all 0.2s ease;" '
+                    'onmouseover="this.style.backgroundColor=\'#f8f9fa\'; this.style.borderColor=\'#adb5bd\';" '
+                    'onmouseout="this.style.backgroundColor=\'white\'; this.style.borderColor=\'#d1d8dd\';" '
+                    'onclick="show_serial_details(\'{0}\')">View</button>'.format(row["serial_no"])
+                )
+                row['view_details'] = view_button_html
+            else:
+                row['view_details'] = ''
+
         return final_data
-        
+
     except Exception as e:
         frappe.throw(_("Error fetching data: {0}").format(str(e)))
         return []
+
+
+
+def get_wip_mwo_rows(filters, departments=None, department_name_map=None):
+    """Work-in-progress pieces that haven't reached Tagging yet (no Serial No exists for them),
+    sourced directly from their current Manufacturing Work Order so their weight still shows up
+    under the correct department column instead of being invisible until a Serial No is created."""
+    conditions = [
+        "raw_mwo.for_fg = 0",
+        "raw_mwo.is_finding_mwo = 0",
+        "raw_mwo.serial_no IS NULL",
+        "raw_mwo.manufacturing_order IS NOT NULL"
+    ]
+    params = []
+
+    if filters.get("from_date"):
+        conditions.append("DATE(raw_mwo.creation) >= %s")
+        params.append(filters["from_date"])
+
+    if filters.get("to_date"):
+        conditions.append("DATE(raw_mwo.creation) <= %s")
+        params.append(filters["to_date"])
+
+    query = """
+        SELECT
+            mwo.name as mwo_name,
+            mwo.item_code,
+            mwo.creation as creation_date,
+            mwo.department,
+            mwo.manufacturing_order as parent_manufacturing_order,
+            mwo.gross_wt,
+            mwo.net_wt,
+            mwo.metal_weight,
+            mwo.finding_wt,
+            mwo.other_wt,
+            mwo.diamond_wt,
+            mwo.gemstone_wt,
+            COALESCE(item.item_group, '') as category
+        FROM (
+            SELECT raw_mwo.*,
+                ROW_NUMBER() OVER (PARTITION BY raw_mwo.manufacturing_order ORDER BY raw_mwo.modified DESC) as rn
+            FROM `tabManufacturing Work Order` raw_mwo
+            WHERE {conditions}
+        ) mwo
+        LEFT JOIN `tabItem` item ON item.name = mwo.item_code
+        WHERE mwo.rn = 1
+        ORDER BY mwo.creation DESC
+        LIMIT 10000
+    """.format(conditions=" AND ".join(conditions))
+
+    mwo_rows = frappe.db.sql(query, params, as_dict=True)
+
+    wip_rows = []
+    for m in mwo_rows:
+        department_name = (department_name_map or {}).get(m.get('department'))
+        if department_name not in (departments or []):
+            continue
+
+        weight_value = flt(m.get('gross_wt')) or flt(m.get('net_wt')) or flt(m.get('metal_weight'))
+
+        row = {
+            'item_code': m.get('item_code', ''),
+            'creation_date': m.get('creation_date'),
+            'serial_no': '',
+            'view_details': '',
+            'category': m.get('category', ''),
+            'item_subcategory': '',
+            'customer': '',
+            'order_type': '',
+            'customer_po_no': '',
+            'warehouse': '',
+            'manufacturer': '',
+            'metal_touch': '',
+            'finding_touch': '',
+            'metal_wt': round(flt(m.get('metal_weight', 0)), 3),
+            'finding_wt': round(flt(m.get('finding_wt', 0)), 3),
+            'net_wt': round(flt(m.get('net_wt', 0)), 3),
+            'pure_wt': 0,
+            'alloy_wt': 0,
+            'diamond_wt': round(flt(m.get('diamond_wt', 0)), 3),
+            'diamond_pcs': 0,
+            'gemstone_wt': round(flt(m.get('gemstone_wt', 0)), 3),
+            'gemstone_pcs': 0,
+            'other_wt': round(flt(m.get('other_wt', 0)), 3),
+            'parent_manufacturing_order': m.get('parent_manufacturing_order', ''),
+            'serial_no_status': 'In Progress',
+        }
+
+        for dept in (departments or []):
+            row[get_department_gross_wt_fieldname(dept)] = 0
+        row[get_department_gross_wt_fieldname(department_name)] = round(weight_value, 3)
+
+        wip_rows.append(row)
+
+    return wip_rows
 
 
 
@@ -450,11 +658,12 @@ def get_correct_bom_snc_pmo_data(serial_no, custom_bom_no):
     """Get PMO data via correct BOM-SNC join - FIXED using your working query"""
     try:
         direct_snc_query = """
-        SELECT 
+        SELECT
             pmo.name as parent_manufacturing_order,
             pmo.customer,
             COALESCE(pmo.po_no, pmo.child_po, ord.po_no) as customer_po_no,
-            COALESCE(pmo.order_type, ord.order_type, snc.order_type) as order_type
+            COALESCE(pmo.order_type, ord.order_type, snc.order_type) as order_type,
+            COALESCE(pmo.department, snc.department) as department
         FROM `tabSerial Number Creator` snc
         LEFT JOIN `tabParent Manufacturing Order` pmo ON snc.parent_manufacturing_order = pmo.name
         LEFT JOIN `tabOrder` ord ON pmo.order_form_id = ord.name
@@ -468,11 +677,12 @@ def get_correct_bom_snc_pmo_data(serial_no, custom_bom_no):
         
         if custom_bom_no:
             correct_bom_snc_query = """
-            SELECT 
+            SELECT
                 snc.parent_manufacturing_order,
                 pmo.customer,
                 COALESCE(pmo.po_no, pmo.child_po, ord.po_no, snc.po_no) as customer_po_no,
-                COALESCE(pmo.order_type, ord.order_type, snc.order_type) as order_type
+                COALESCE(pmo.order_type, ord.order_type, snc.order_type) as order_type,
+                COALESCE(pmo.department, snc.department) as department
             FROM `tabBOM` bom
             LEFT JOIN `tabSerial Number Creator` snc ON bom.custom_serial_number_creator = snc.name
             LEFT JOIN `tabParent Manufacturing Order` pmo ON snc.parent_manufacturing_order = pmo.name
@@ -486,11 +696,12 @@ def get_correct_bom_snc_pmo_data(serial_no, custom_bom_no):
                 return result[0]
         
         direct_pmo_query = """
-        SELECT 
+        SELECT
             pmo.name as parent_manufacturing_order,
             pmo.customer,
             COALESCE(pmo.po_no, pmo.child_po, ord.po_no) as customer_po_no,
-            COALESCE(pmo.order_type, ord.order_type) as order_type
+            COALESCE(pmo.order_type, ord.order_type) as order_type,
+            pmo.department as department
         FROM `tabParent Manufacturing Order` pmo
         LEFT JOIN `tabOrder` ord ON pmo.order_form_id = ord.name
         WHERE pmo.serial_no = %s
@@ -884,6 +1095,12 @@ def get_conditions(filters):
         conditions.append("snc.manufacturer = %s")
         
     if filters.get("order_type"):
-        conditions.append("COALESCE(pmo.order_type, ord.order_type, snc.order_type, '') = %s")
+        conditions.append("""COALESCE(
+            pmo.order_type, ord.order_type, snc.order_type,
+            pmo2.order_type, ord2.order_type, snc2.order_type,
+            pmo3.order_type, ord3.order_type,
+            CASE WHEN si_match.serial_no IS NOT NULL THEN 'Sales' END,
+            ''
+        ) = %s""")
 
     return " AND ".join(conditions) if conditions else ""

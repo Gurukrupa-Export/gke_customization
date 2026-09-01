@@ -33,14 +33,14 @@ frappe.query_reports["Production Report"] = {
             "fieldtype": "Select",
             "options": "\nSales\nStock Order\nRepair"
         },
-        {
-            "fieldname": "manufacturer",
-            "label": __("Manufacturer"),
-            "fieldtype": "MultiSelectList",
-            "get_data": function(txt) {
-                return frappe.db.get_link_options('Manufacturer', txt);
-            }
-        }
+        // {
+        //     "fieldname": "manufacturer",
+        //     "label": __("Manufacturer"),
+        //     "fieldtype": "MultiSelectList",
+        //     "get_data": function(txt) {
+        //         return frappe.db.get_link_options('Manufacturer', txt);
+        //     }
+        // }
     ],
 
     "onload": function(report) {
@@ -92,10 +92,11 @@ frappe.query_reports["Production Report"] = {
 
         // Weight columns blank for zero values
         const weightColumns = [
-            "gross_wt", "diamond_wt", "gemstone_wt", "other_wt", 
+            "gross_wt", "diamond_wt", "gemstone_wt", "other_wt",
             "metal_wt", "finding_wt", "net_wt", "pure_wt", "alloy_wt"
         ];
-        if (weightColumns.includes(column.fieldname)) {
+        const isDepartmentGrossWtColumn = column.fieldname && column.fieldname.startsWith("gross_wt_");
+        if (weightColumns.includes(column.fieldname) || isDepartmentGrossWtColumn) {
             if (value === "" || value === null || value === undefined || value === "0.000") {
                 value = "";
             }
