@@ -53,14 +53,14 @@ ALWAYS_EXCLUDE = {
 DOCTYPE_EXCLUDE = {
 	# The target rebuilds the explosion from `items` on save; sending ours fights it.
 	"BOM": {"exploded_items"},
-	# Sync markers are local bookkeeping about the push itself.
-	"Item": {"custom_is_sync", "custom_last_synced_on", "custom_sync_error"},
 }
-DOCTYPE_EXCLUDE["BOM"] |= {"custom_is_sync", "custom_last_synced_on", "custom_sync_error"}
 
 CHILD_EXCLUDE = ALWAYS_EXCLUDE - {"idx"}
 
 _TARGET_FIELD_TTL = 600
+# A failed lookup is cached briefly so a dead target is not re-asked once per record, but
+# not so long that a target coming back up stays invisible for ten minutes.
+_TARGET_FIELD_FAIL_TTL = 60
 
 
 def _numeric_attributes():
@@ -96,11 +96,13 @@ def _child_rows(doc, df):
 
 
 def build_payload(doc, allowed_fields=None, run=None):
-	"""Return ``(payload, attachments, dropped)`` for one document.
+	"""Return ``(payload, attachments)`` for one document.
 
 	``attachments`` maps fieldname -> source file url; those are uploaded separately,
-	because an Attach field holds a path and the target has no such file. ``dropped``
-	lists fields the target does not have, which the caller records in the log.
+	because an Attach field holds a path and the target has no such file.
+
+	Fields the target does not have are dropped and reported on ``run`` here rather than
+	handed back for a caller to remember - that report is the point of this run.
 	"""
 	meta = frappe.get_meta(doc.doctype)
 	excluded = ALWAYS_EXCLUDE | DOCTYPE_EXCLUDE.get(doc.doctype, set())
@@ -146,14 +148,17 @@ def build_payload(doc, allowed_fields=None, run=None):
 	payload = frappe.parse_json(frappe.as_json(payload))
 
 	if run and dropped:
+		names = sorted(dropped)
 		run.mismatch(
 			doc.doctype,
 			doc.name,
-			f"{len(dropped)} field(s) not present on target, dropped: {', '.join(sorted(dropped)[:25])}"
-			+ (" ..." if len(dropped) > 25 else ""),
+			f"{len(names)} field(s) do not exist on the target, dropped: "
+			+ ", ".join(names[:25])
+			+ (f" (+{len(names) - 25} more)" if len(names) > 25 else ""),
+			kind="FIELD-MISSING",
 		)
 
-	return payload, attachments, dropped
+	return payload, attachments
 
 
 # Links without which the record is meaningless on the target, beyond those the schema
@@ -172,26 +177,63 @@ def link_fields(doctype):
 	return out
 
 
-def get_target_fields(config, doctype):
+def _schema_unknown(run, doctype, message):
+	"""Say that we could not learn the target's schema, once per doctype per chunk.
+
+	Reported, not raised. Sending everything and letting the target reject what it does not
+	want still beats refusing to sync - but it must not be silent, because the whole point
+	of this run is to find out what the target is missing, and "we never managed to ask" is
+	a different answer from "nothing is missing".
+	"""
+	if run:
+		run.mismatch(
+			doctype,
+			None,
+			f"{message}; every field will be sent and the target left to decide, so this run "
+			"cannot say which fields are missing",
+			kind="SCHEMA-UNKNOWN",
+			once_key=f"schema::{doctype}",
+		)
+	else:
+		frappe.logger("kggk_sync").warning(f"kggk target schema for {doctype}: {message}")
+
+
+def get_target_fields(config, doctype, run=None):
 	"""Fieldnames the target site has for ``doctype``.
 
 	``None`` means the lookup failed - the caller then sends everything and lets the target
-	decide, which is the old behaviour and strictly better than refusing to sync.
+	decide, which is strictly better than refusing to sync. Every route to ``None`` is
+	reported, because a silent one is indistinguishable from a clean run.
 	"""
 	from . import client
 
 	cache_key = f"kggk_target_fields::{doctype}"
 	cached = frappe.cache().get_value(cache_key)
+	if cached:
+		return set(cached)
 	if cached is not None:
-		return set(cached) if cached else None
+		# An empty list is the negative sentinel: a recent lookup failed. Still a failure,
+		# so still reported - a cached silence is silence.
+		_schema_unknown(run, doctype, "the target's field list could not be read recently")
+		return None
 
 	fields = set(ALWAYS_EXCLUDE)
 
 	response = client.get(config, f"/api/resource/DocType/{client.segment(doctype)}")
 	if not response.ok:
-		frappe.cache().set_value(cache_key, [], expires_in_sec=60)
+		frappe.cache().set_value(cache_key, [], expires_in_sec=_TARGET_FIELD_FAIL_TTL)
+		_schema_unknown(run, doctype, f"could not read the target's DocType - {response.message()}")
 		return None
-	for row in (response.data.get("data") or {}).get("fields") or []:
+
+	rows = (response.data.get("data") or {}).get("fields") or []
+	if not rows:
+		# A DocType with no fields is not a real answer. Treating it as one would drop every
+		# field on every record and report the target as having nothing at all.
+		frappe.cache().set_value(cache_key, [], expires_in_sec=_TARGET_FIELD_FAIL_TTL)
+		_schema_unknown(run, doctype, "the target returned a DocType definition with no fields")
+		return None
+
+	for row in rows:
 		if row.get("fieldname"):
 			fields.add(row["fieldname"])
 
@@ -204,10 +246,20 @@ def get_target_fields(config, doctype):
 			"limit_page_length": 0,
 		},
 	)
-	if custom.ok:
-		for row in custom.data.get("data") or []:
-			if row.get("fieldname"):
-				fields.add(row["fieldname"])
+	if not custom.ok:
+		# The dangerous branch. Standard fields are known and custom ones are not, so the set
+		# looks complete and is not: every custom field on the record would be dropped as
+		# "missing on target" and cached that way. A confident wrong answer is worse than no
+		# answer, so this counts as a failure rather than a partial success.
+		frappe.cache().set_value(cache_key, [], expires_in_sec=_TARGET_FIELD_FAIL_TTL)
+		_schema_unknown(
+			run, doctype, f"could not read the target's Custom Fields - {custom.message()}"
+		)
+		return None
 
-	frappe.cache().set_value(cache_key, list(fields), expires_in_sec=_TARGET_FIELD_TTL)
+	for row in custom.data.get("data") or []:
+		if row.get("fieldname"):
+			fields.add(row["fieldname"])
+
+	frappe.cache().set_value(cache_key, sorted(fields), expires_in_sec=_TARGET_FIELD_TTL)
 	return fields

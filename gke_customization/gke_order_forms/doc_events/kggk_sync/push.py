@@ -3,7 +3,6 @@ submit - comes through here, so there is one behaviour to reason about and one t
 """
 
 import frappe
-from frappe.utils import now_datetime
 
 from . import client, files, payload as payload_builder
 from .config import get_sync_config, in_reentrant_context
@@ -11,31 +10,6 @@ from .log import SyncRun, log_skip
 
 # Fields that identify a record and cannot be changed on an existing one.
 IMMUTABLE_ON_UPDATE = {"Item": {"variant_of", "item_code"}, "BOM": {"item"}}
-
-SYNC_MARKERS = ("custom_is_sync", "custom_last_synced_on", "custom_sync_error")
-
-
-def _has_markers(doctype):
-	key = f"kggk_markers::{doctype}"
-	value = getattr(frappe.local, key, None)
-	if value is None:
-		value = frappe.db.has_column(doctype, "custom_is_sync")
-		setattr(frappe.local, key, value)
-	return value
-
-
-def mark_synced(doctype, name, ok, error=""):
-	"""Record the outcome on the record itself, so a retry knows what to skip."""
-	if not _has_markers(doctype):
-		return
-	values = {"custom_is_sync": 1 if ok else 0, "custom_sync_error": (error or "")[:500]}
-	if ok:
-		values["custom_last_synced_on"] = now_datetime()
-	try:
-		frappe.db.set_value(doctype, name, values, update_modified=False)
-	except Exception:
-		frappe.logger("kggk_sync").exception(f"could not mark {doctype} {name}")
-
 
 def _link_exists(config, doctype, value, cache):
 	key = (doctype, value)
@@ -59,7 +33,20 @@ def _strip_missing_links(config, doc, data, run, cache):
 		if not value:
 			continue
 		found = _link_exists(config, link_doctype, value, cache)
-		if found is not False:
+		if found is None:
+			# The check itself failed - a timeout, a 500, a 403. Treating that as "it is
+			# there" sends the value anyway and the target rejects the whole record with a
+			# message that blames something else entirely.
+			run.mismatch(
+				doc.doctype,
+				doc.name,
+				f"{fieldname}: could not check whether {link_doctype} '{value}' exists on "
+				"target, sending it anyway",
+				kind="LINK-UNKNOWN",
+				once_key=f"linkcheck::{link_doctype}",
+			)
+			continue
+		if found:
 			continue
 		if essential:
 			blocking.append(f"{fieldname}: {link_doctype} '{value}' does not exist on target")
@@ -69,6 +56,7 @@ def _strip_missing_links(config, doc, data, run, cache):
 			doc.doctype,
 			doc.name,
 			f"{fieldname}: {link_doctype} '{value}' does not exist on target, field dropped",
+			kind="LINK-MISSING",
 		)
 	return blocking
 
@@ -107,20 +95,18 @@ def push_item(item_code, config, run, seen=None):
 			run.items_total += 1
 			push_item(template, config, run, seen=seen)
 
-	allowed = payload_builder.get_target_fields(config, "Item")
-	data, attachments, _dropped = payload_builder.build_payload(doc, allowed, run=run)
+	allowed = payload_builder.get_target_fields(config, "Item", run=run)
+	data, attachments = payload_builder.build_payload(doc, allowed, run=run)
 	blocking = _strip_missing_links(config, doc, data, run, run.link_cache)
 	if blocking:
 		message = "required master(s) missing on target - " + "; ".join(blocking)
 		run.item_failed(item_code, message)
-		mark_synced("Item", item_code, False, message)
 		return False
 
 	response, action = _send(config, "Item", item_code, data)
 	if not response.ok:
 		message = response.message()
 		run.item_failed(item_code, message)
-		mark_synced("Item", item_code, False, message)
 		return False
 
 	note = action
@@ -139,7 +125,6 @@ def push_item(item_code, config, run, seen=None):
 				note = f"{action}, attachments uploaded but not linked"
 
 	run.item_ok(item_code, note)
-	mark_synced("Item", item_code, True)
 	return True
 
 
@@ -160,20 +145,18 @@ def push_bom(bom_name, config, run):
 		run.items_total += 1
 		push_item(doc.item, config, run)
 
-	allowed = payload_builder.get_target_fields(config, "BOM")
-	data, attachments, _dropped = payload_builder.build_payload(doc, allowed, run=run)
+	allowed = payload_builder.get_target_fields(config, "BOM", run=run)
+	data, attachments = payload_builder.build_payload(doc, allowed, run=run)
 	blocking = _strip_missing_links(config, doc, data, run, run.link_cache)
 	if blocking:
 		message = "required master(s) missing on target - " + "; ".join(blocking)
 		run.bom_failed(bom_name, message)
-		mark_synced("BOM", bom_name, False, message)
 		return False
 
 	response, action = _send(config, "BOM", bom_name, data)
 	if not response.ok:
 		message = response.message()
 		run.bom_failed(bom_name, message)
-		mark_synced("BOM", bom_name, False, message)
 		return False
 
 	note = action
@@ -187,7 +170,6 @@ def push_bom(bom_name, config, run):
 				run.mismatch("BOM", bom_name, f"attachment urls could not be set - {follow_up.message()}")
 
 	run.bom_ok(bom_name, note)
-	mark_synced("BOM", bom_name, True)
 	return True
 
 
@@ -206,8 +188,9 @@ def sync_records(
 	trigger="Manual",
 	reference=None,
 	totals=None,
-	resume=False,
+	counters=None,
 	chunk_index=0,
+	run_id=None,
 ):
 	"""Push a batch of Items and BOMs. The one entry point every trigger calls.
 
@@ -240,10 +223,15 @@ def sync_records(
 	batch_boms = boms[:bom_budget]
 	rest_boms = boms[len(batch_boms) :]
 
-	run = SyncRun(trigger=trigger, reference=reference, resume=resume)
+	run = SyncRun(
+		trigger=trigger,
+		reference=reference,
+		config=config,
+		counters=counters,
+		chunk_index=chunk_index,
+	)
 	run.items_total = int(totals.get("items") or 0)
 	run.boms_total = int(totals.get("boms") or 0)
-	run.start()
 	if rest_items or rest_boms:
 		run.line(
 			"INFO",
@@ -256,6 +244,7 @@ def sync_records(
 	items, boms = batch_items, batch_boms
 
 	frappe.flags.in_kggk_sync = True
+	reported = False
 	try:
 		seen = set()
 		for item_code in items:
@@ -275,48 +264,46 @@ def sync_records(
 				frappe.db.rollback(save_point="kggk_bom")
 				run.bom_failed(bom_name, f"unexpected error: {exc}")
 				frappe.log_error(frappe.get_traceback(), f"KGGK sync: BOM {bom_name}"[:140])
+
+		# Reached only if the loops ran to completion; the reporting below then owns it.
+		reported = True
 	finally:
 		frappe.flags.in_kggk_sync = False
+		if not reported:
+			# A chunk killed by the job timeout, or one that raised on its way out, still
+			# reports what it learned. Silence here would look exactly like a clean run.
+			run.report()
 
 	if rest_items or rest_boms:
-		# Hand the remainder to a fresh job. A distinct job_id per chunk is required:
-		# deduplicate=True would otherwise reject the continuation, because the job
-		# queueing it is itself still running under the base id.
-		run.flush(force=True, extra={"sync_status": "Running"})
 		frappe.db.commit()
+		# Hand the remainder to a fresh job. A distinct job_id per chunk is required:
+		# deduplicate=True would otherwise reject the continuation, because the job queueing
+		# it is itself still running under the base id. `run_id` is in the id too, so
+		# re-pushing the same plan cannot collide with a chunk still pending from the
+		# previous run and be silently dropped.
 		frappe.enqueue(
 			"gke_customization.gke_order_forms.doc_events.kggk_sync.push.sync_records",
 			queue="long",
 			timeout=JOB_TIMEOUT,
-			job_id=f"kggk_sync::{reference or trigger}::chunk{chunk_index + 1}",
+			job_id=f"kggk_sync::{run_id or reference or trigger}::chunk{chunk_index + 1}",
 			deduplicate=True,
 			items=rest_items,
 			boms=rest_boms,
 			trigger=trigger,
 			reference=reference,
 			totals=totals,
-			resume=True,
+			counters=run.counters(),
 			chunk_index=chunk_index + 1,
+			run_id=run_id,
 		)
 		return {
 			"status": "Running",
-			"items_synced": run.items_synced,
-			"items_failed": run.items_failed,
-			"boms_synced": run.boms_synced,
-			"boms_failed": run.boms_failed,
-			"field_mismatches": run.mismatches,
+			**run.counters(),
 			"remaining": len(rest_items) + len(rest_boms),
 		}
 
 	status = run.finish()
-	return {
-		"status": status,
-		"items_synced": run.items_synced,
-		"items_failed": run.items_failed,
-		"boms_synced": run.boms_synced,
-		"boms_failed": run.boms_failed,
-		"field_mismatches": run.mismatches,
-	}
+	return {"status": status, **run.counters()}
 
 
 def enqueue_sync(items=None, boms=None, trigger="Manual", reference=None, job_id=None):
@@ -345,5 +332,6 @@ def enqueue_sync(items=None, boms=None, trigger="Manual", reference=None, job_id
 		boms=boms,
 		trigger=trigger,
 		reference=reference,
+		run_id=frappe.generate_hash(length=8),
 	)
 	return True

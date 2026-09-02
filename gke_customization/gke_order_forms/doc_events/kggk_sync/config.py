@@ -1,8 +1,12 @@
-"""Settings, URL handling and the site-identity guard for the KGGK sync.
+"""Settings, URL handling and the site guards for the Manufacturing Plan testing push.
 
 Every outbound push funnels through :func:`get_sync_config`. It is the single place that
-decides whether this site is allowed to push at all, which is why the same-site bug is
-fixed here rather than at each call site.
+decides whether this site may push at all, and to where.
+
+This is the *testing* target and it is deliberately separate from the live Item/BOM sync in
+``doc_events/item.py``, which keeps reading ``to_site``/``api_key``/``api_secret`` on the same
+settings screen and is not touched by anything here. Two flows, two targets, two sets of
+credentials, one settings doctype.
 """
 
 import frappe
@@ -10,12 +14,17 @@ from frappe.utils import cint
 
 SETTINGS = "Data Migration in KGGK"
 
-# Reasons a push is refused. Surfaced verbatim in the migration log.
-SKIP_DISABLED = "Is Migrate is off in Data Migration in KGGK"
-SKIP_NO_TARGET = "To Site is not set in Data Migration in KGGK"
-SKIP_NO_CREDS = "API Key / API Secret are not set in Data Migration in KGGK"
-SKIP_SAME_SITE = "From Site and To Site are the same ({0}) - refusing to sync a site to itself"
-SKIP_WRONG_SITE = "This site ({0}) is not the configured From Site ({1}) - refusing to push"
+# Reasons a push is refused. Surfaced verbatim wherever the skip is reported.
+SKIP_DISABLED = (
+	"'Send Manufacturing Plan Data to Testing Site' is off in Data Migration in KGGK"
+)
+SKIP_NO_TARGET = "Testing Site is not set in Data Migration in KGGK"
+SKIP_NO_CREDS = "Testing API Key / Testing API Secret are not set in Data Migration in KGGK"
+SKIP_SAME_SITE = "Testing Site is this site ({0}) - refusing to sync a site to itself"
+SKIP_LIVE_TARGET = (
+	"Testing Site ({0}) is the live To Site - refusing to push a Manufacturing Plan into the "
+	"production KGGK site"
+)
 
 
 def strip_scheme(url):
@@ -69,67 +78,80 @@ def current_site_hosts():
 	return {h for h in hosts if h}
 
 
-def get_settings():
-	return frappe.get_cached_doc(SETTINGS)
+def _testing_api_secret():
+	"""Read the secret from ``__Auth``, not from ``tabSingles``.
+
+	A Password field on a Single stores ``*****`` in the Singles table and the real value in
+	``__Auth``. ``frappe.db.get_value`` returns the placeholder, which authenticates as
+	nothing - and the resulting 401 looks exactly like a mistyped key, so it would be
+	debugged in the wrong place.
+	"""
+	from frappe.utils.password import get_decrypted_password
+
+	try:
+		return get_decrypted_password(SETTINGS, SETTINGS, "testing_api_secret", raise_exception=False)
+	except Exception:
+		return None
 
 
 def is_sync_enabled():
-	"""The Is Migrate master switch. Absent field is treated as OFF, deliberately."""
-	return bool(cint(frappe.db.get_single_value(SETTINGS, "is_migrate")))
+	"""The master switch. An absent or unticked field is OFF, deliberately."""
+	return bool(cint(frappe.db.get_single_value(SETTINGS, "enable_testing_sync")))
 
 
-def get_sync_config(check_enabled=True):
+def get_sync_config():
 	"""Resolve the push configuration, or return ``None`` with the reason it was refused.
 
-	Returns ``(config, reason)``. ``config`` is a dict with ``to_site``, ``from_site`` and
-	ready-to-use ``headers``; ``reason`` is ``None`` on success and a human-readable
-	sentence otherwise. Callers log the reason - they never guess at it.
+	Returns ``(config, reason)``. ``config`` carries ``to_site`` - the *testing* site, named
+	``to_site`` because every request helper reads that key - plus ready-to-use ``headers``.
+	``reason`` is ``None`` on success and a human-readable sentence otherwise. Callers report
+	the reason; they never guess at it.
 	"""
 	settings = frappe.db.get_value(
 		SETTINGS,
 		SETTINGS,
-		["from_site", "to_site", "api_key", "api_secret", "is_migrate", "ignore_site_check"],
+		["from_site", "to_site", "enable_testing_sync", "testing_site", "testing_api_key"],
 		as_dict=True,
 	) or frappe._dict()
 
-	if check_enabled and not cint(settings.get("is_migrate")):
+	if not cint(settings.get("enable_testing_sync")):
 		return None, SKIP_DISABLED
 
-	from_site = settings.get("from_site")
-	to_site = settings.get("to_site")
-
-	if not to_site:
+	target = settings.get("testing_site")
+	if not target:
 		return None, SKIP_NO_TARGET
 
-	api_key = settings.get("api_key")
-	api_secret = settings.get("api_secret")
+	api_key = settings.get("testing_api_key")
+	api_secret = _testing_api_secret()
 	if not api_key or not api_secret:
 		return None, SKIP_NO_CREDS
 
-	# --- the same-site guard -------------------------------------------------------
-	# This is never legitimate and is never bypassable. A Single doctype travels with a
-	# database restore, so a clone of the source site arrives already configured to push;
-	# without this check it pushes straight back into itself, and the inbound write then
-	# re-fires the same hook.
-	target_host = host_of(to_site)
+	target_host = host_of(target)
+
+	# --- the same-site guards ------------------------------------------------------
+	# Never legitimate, never bypassable. A Single doctype travels with a database restore,
+	# so a clone of this site arrives already configured to push; without this it pushes
+	# straight back into itself, and the inbound write re-fires the hooks on the way in.
+	if target_host in current_site_hosts():
+		return None, SKIP_SAME_SITE.format(target_host)
+
+	from_site = settings.get("from_site")
 	if from_site and host_of(from_site) == target_host:
 		return None, SKIP_SAME_SITE.format(target_host)
 
-	here = current_site_hosts()
-	if target_host in here:
-		return None, SKIP_SAME_SITE.format(target_host)
-
-	# --- the wrong-site guard ------------------------------------------------------
-	# Bypassable, because a bench with no host_name configured can report a site identity
-	# that never matches From Site. Same-site above is not bypassable; this one is.
-	if from_site and not cint(settings.get("ignore_site_check")):
-		if here and host_of(from_site) not in here:
-			return None, SKIP_WRONG_SITE.format(", ".join(sorted(here)), host_of(from_site))
+	# --- the wrong-target guard ----------------------------------------------------
+	# `to_site` is the live KGGK site the Item/BOM before_validate hooks push to. If the
+	# Testing Site field has been pointed at it, one plan submit would put several hundred
+	# items and BOMs into production. Pasting the wrong URL is a realistic mistake and this
+	# is a cheap way to survive it.
+	live = settings.get("to_site")
+	if live and host_of(live) == target_host:
+		return None, SKIP_LIVE_TARGET.format(target_host)
 
 	return (
 		frappe._dict(
 			from_site=base_url(from_site),
-			to_site=base_url(to_site),
+			to_site=base_url(target),
 			headers={
 				"Authorization": f"token {api_key}:{api_secret}",
 				"Accept": "application/json",
