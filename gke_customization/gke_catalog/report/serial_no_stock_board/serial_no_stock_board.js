@@ -9,6 +9,9 @@ frappe.query_reports["Serial No Stock Board"] = {
 			"fieldtype": "Link",
 			"options": "Serial No",
 			"reqd": 0,
+			"on_change": function(report) {
+				gke_handle_tag_no_change(report);
+			},
 		},
 		{
 			"fieldname": "tag_no_list",
@@ -153,12 +156,28 @@ function gke_setup_bulk_serial_filter(report) {
 	`);
 	$input_area.append($icon);
 
+	report._gke_bulk_serial_icon = $icon;
 	gke_refresh_bulk_serial_icon(report, $icon);
 
 	$icon.on("click", function(e) {
 		e.stopPropagation();
 		gke_open_bulk_serial_dialog(report, $icon);
 	});
+}
+
+// Defining "on_change" on the tag_no filter (below) makes the report
+// framework skip its default auto-refresh for this field, so this handler
+// is responsible for triggering the refresh itself in every case, not just
+// when it clears the stale bulk filter.
+function gke_handle_tag_no_change(report) {
+	let tag_no = report.get_filter_value("tag_no");
+	if (tag_no && report.get_filter_value("tag_no_list")) {
+		report.set_filter_value("tag_no_list", "");
+		if (report._gke_bulk_serial_icon) {
+			gke_refresh_bulk_serial_icon(report, report._gke_bulk_serial_icon);
+		}
+	}
+	report.refresh();
 }
 
 function gke_refresh_bulk_serial_icon(report, $icon) {

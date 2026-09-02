@@ -62,23 +62,31 @@ def get_department_gross_wt_fieldname(department):
 
 
 
-def get_department_from_mwo(parent_manufacturing_order):
-    """Current department a piece is sitting in, per its latest Manufacturing Work Order -
-    same logic the Manufacturing Dashboard uses (main_mwo CTE in mfg_dashboard_script.py)."""
-    if not parent_manufacturing_order:
-        return None
+def get_latest_departments_for_pmos(parent_manufacturing_orders):
+    """Batch lookup of the current department for many Parent Manufacturing Orders at once -
+    same latest-MWO-per-manufacturing_order ranking the Manufacturing Dashboard uses (main_mwo
+    CTE in mfg_dashboard_script.py), done in a single query instead of one query per row."""
+    pmo_names = list({p for p in parent_manufacturing_orders if p})
+    if not pmo_names:
+        return {}
 
-    result = frappe.db.sql("""
-        SELECT mwo.department
-        FROM `tabManufacturing Work Order` mwo
-        WHERE mwo.manufacturing_order = %s
-            AND mwo.for_fg = 0
-            AND mwo.is_finding_mwo = 0
-        ORDER BY mwo.modified DESC
-        LIMIT 1
-    """, (parent_manufacturing_order,), as_dict=True)
+    placeholders = ", ".join(["%s"] * len(pmo_names))
+    rows = frappe.db.sql("""
+        SELECT mwo.manufacturing_order, mwo.department
+        FROM (
+            SELECT
+                manufacturing_order,
+                department,
+                ROW_NUMBER() OVER (PARTITION BY manufacturing_order ORDER BY modified DESC) as rn
+            FROM `tabManufacturing Work Order`
+            WHERE manufacturing_order IN ({placeholders})
+                AND for_fg = 0
+                AND is_finding_mwo = 0
+        ) mwo
+        WHERE mwo.rn = 1
+    """.format(placeholders=placeholders), pmo_names, as_dict=True)
 
-    return result[0].department if result and result[0].department else None
+    return {r.manufacturing_order: r.department for r in rows if r.department}
 
 
 
@@ -161,7 +169,19 @@ def get_data(filters, departments=None, department_name_map=None):
             pmo.order_type, ord.order_type, snc.order_type,
             pmo2.order_type, ord2.order_type, snc2.order_type,
             pmo3.order_type, ord3.order_type,
-            CASE WHEN si_match.serial_no IS NOT NULL THEN 'Sales' END,
+            CASE WHEN EXISTS (
+                SELECT 1
+                FROM `tabSales Invoice Item` sii
+                INNER JOIN `tabSales Invoice` si ON si.name = sii.parent
+                WHERE si.docstatus = 1
+                  AND (
+                        sii.serial_no = sn.name
+                        OR FIND_IN_SET(
+                            sn.name,
+                            REPLACE(REPLACE(sii.serial_no, '\\n', ','), ' ', '')
+                        ) > 0
+                      )
+            ) THEN 'Sales' END,
             ''
         ) as order_type,
         COALESCE(pmo.department, snc.department, '') as department
@@ -181,12 +201,6 @@ def get_data(filters, departments=None, department_name_map=None):
         GROUP BY serial_no
     ) pmo3 ON pmo3.serial_no = sn.name
     LEFT JOIN `tabOrder` ord3 ON pmo3.order_form_id = ord3.name
-    LEFT JOIN (
-        SELECT DISTINCT sii.serial_no
-        FROM `tabSales Invoice Item` sii
-        INNER JOIN `tabSales Invoice` si ON sii.parent = si.name
-        WHERE si.docstatus = 1 AND sii.serial_no IS NOT NULL
-    ) si_match ON si_match.serial_no = sn.name
     WHERE sn.item_code NOT LIKE %s
     AND (item.item_group IS NULL OR LOWER(item.item_group) NOT LIKE %s)
     AND (item.item_group IS NULL OR LOWER(item.item_group) NOT LIKE %s)
@@ -209,30 +223,35 @@ def get_data(filters, departments=None, department_name_map=None):
     
     try:
         data = frappe.db.sql(final_query, base_params, as_dict=True)
-        
+
         final_data = []
-        
-        for row in data:
+
+        pmo_data_by_row = [
+            get_correct_bom_snc_pmo_data(row.get('serial_no', ''), row.get('custom_bom_no', ''))
+            if row.get('custom_bom_no') else None
+            for row in data
+        ]
+        department_map = get_latest_departments_for_pmos(
+            pmo_data.get('parent_manufacturing_order') for pmo_data in pmo_data_by_row if pmo_data
+        )
+
+        for row, pmo_data in zip(data, pmo_data_by_row):
             serial_no_val = row.get('serial_no', '')
             custom_bom_no = row.get('custom_bom_no', '')
-            
-            pmo_data = None
-            if custom_bom_no:
-                pmo_data = get_correct_bom_snc_pmo_data(serial_no_val, custom_bom_no)
-            
+
             manufacturer = row.get('manufacturer', '')
             company_from_snc = ''
             if pmo_data:
                 company_from_snc = get_company_from_snc(serial_no_val, pmo_data.get('parent_manufacturing_order', ''))
-            
+
             order_type = row.get('order_type', '')
-            
+
             row['manufacturer'] = manufacturer
 
             for dept in (departments or []):
                 row[get_department_gross_wt_fieldname(dept)] = 0
             department_value = (
-                get_department_from_mwo(pmo_data.get('parent_manufacturing_order', '')) if pmo_data else None
+                department_map.get(pmo_data.get('parent_manufacturing_order')) if pmo_data else None
             ) or (pmo_data.get('department') if pmo_data else None) or row.get('department', '')
             department_name = (department_name_map or {}).get(department_value)
             gross_wt_fieldname = get_department_gross_wt_fieldname(department_name) if department_name in (departments or []) else None
@@ -341,7 +360,6 @@ def get_wip_mwo_rows(filters, departments=None, department_name_map=None):
     conditions = [
         "raw_mwo.for_fg = 0",
         "raw_mwo.is_finding_mwo = 0",
-        "raw_mwo.serial_no IS NULL",
         "raw_mwo.manufacturing_order IS NOT NULL"
     ]
     params = []
@@ -353,6 +371,11 @@ def get_wip_mwo_rows(filters, departments=None, department_name_map=None):
     if filters.get("to_date"):
         conditions.append("DATE(raw_mwo.creation) <= %s")
         params.append(filters["to_date"])
+
+    order_type_conditions = []
+    if filters.get("order_type"):
+        order_type_conditions.append("COALESCE(pmo.order_type, '') = %s")
+        params.append(filters["order_type"])
 
     query = """
         SELECT
@@ -368,7 +391,8 @@ def get_wip_mwo_rows(filters, departments=None, department_name_map=None):
             mwo.other_wt,
             mwo.diamond_wt,
             mwo.gemstone_wt,
-            COALESCE(item.item_group, '') as category
+            COALESCE(item.item_group, '') as category,
+            COALESCE(pmo.order_type, '') as order_type
         FROM (
             SELECT raw_mwo.*,
                 ROW_NUMBER() OVER (PARTITION BY raw_mwo.manufacturing_order ORDER BY raw_mwo.modified DESC) as rn
@@ -376,10 +400,16 @@ def get_wip_mwo_rows(filters, departments=None, department_name_map=None):
             WHERE {conditions}
         ) mwo
         LEFT JOIN `tabItem` item ON item.name = mwo.item_code
+        LEFT JOIN `tabParent Manufacturing Order` pmo ON pmo.name = mwo.manufacturing_order
         WHERE mwo.rn = 1
+        AND mwo.serial_no IS NULL
+        {order_type_conditions}
         ORDER BY mwo.creation DESC
         LIMIT 10000
-    """.format(conditions=" AND ".join(conditions))
+    """.format(
+        conditions=" AND ".join(conditions),
+        order_type_conditions=("AND " + " AND ".join(order_type_conditions)) if order_type_conditions else ""
+    )
 
     mwo_rows = frappe.db.sql(query, params, as_dict=True)
 
@@ -399,7 +429,7 @@ def get_wip_mwo_rows(filters, departments=None, department_name_map=None):
             'category': m.get('category', ''),
             'item_subcategory': '',
             'customer': '',
-            'order_type': '',
+            'order_type': m.get('order_type', ''),
             'customer_po_no': '',
             'warehouse': '',
             'manufacturer': '',
@@ -1099,7 +1129,19 @@ def get_conditions(filters):
             pmo.order_type, ord.order_type, snc.order_type,
             pmo2.order_type, ord2.order_type, snc2.order_type,
             pmo3.order_type, ord3.order_type,
-            CASE WHEN si_match.serial_no IS NOT NULL THEN 'Sales' END,
+            CASE WHEN EXISTS (
+                SELECT 1
+                FROM `tabSales Invoice Item` sii
+                INNER JOIN `tabSales Invoice` si ON si.name = sii.parent
+                WHERE si.docstatus = 1
+                  AND (
+                        sii.serial_no = sn.name
+                        OR FIND_IN_SET(
+                            sn.name,
+                            REPLACE(REPLACE(sii.serial_no, '\\n', ','), ' ', '')
+                        ) > 0
+                      )
+            ) THEN 'Sales' END,
             ''
         ) = %s""")
 
