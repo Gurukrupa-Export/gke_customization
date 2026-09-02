@@ -9,10 +9,20 @@
 // names the target and never pre-selects the destructive option.
 
 frappe.ui.form.on("Data Migration in KGGK", {
-	refresh(frm) {
-		if (!frm.doc.enable_testing_sync) return;
-
-		frm.add_custom_button(__("Prefill Testing Site"), () => check_testing_site(frm));
+	// The trigger is the Button field in the Manufacturing Plan Testing Sync section, not a
+	// toolbar button - it belongs beside the settings it acts on, where it can be found.
+	prefill_testing_site(frm) {
+		if (frm.is_dirty()) {
+			// The server reads these from the database, so an unsaved Testing Site would
+			// produce a refusal that contradicts what is on screen.
+			frappe.msgprint({
+				title: __("Unsaved Changes"),
+				indicator: "orange",
+				message: __("Save the settings first, then press the button."),
+			});
+			return;
+		}
+		check_testing_site(frm);
 	},
 });
 

@@ -27,7 +27,8 @@
   "testing_site",
   "column_break_testing_sync",
   "testing_api_key",
-  "testing_api_secret"
+  "testing_api_secret",
+  "prefill_testing_site"
  ],
  "fields": [
   {
@@ -112,7 +113,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "collapsible": 1,
    "description": "A separate, non-production target used only to test the Manufacturing Plan push. This is NOT the live To Site above - the Item/BOM sync keeps using that one.",
    "fieldname": "testing_sync_section",
    "fieldtype": "Section Break",
@@ -150,13 +150,20 @@
    "fieldtype": "Password",
    "label": "Testing API Secret",
    "mandatory_depends_on": "enable_testing_sync"
+  },
+  {
+   "depends_on": "enable_testing_sync",
+   "description": "Checks the testing site for missing custom fields and for the items and BOMs the submitted Manufacturing Plans need. Reports first; creates nothing until you confirm.",
+   "fieldname": "prefill_testing_site",
+   "fieldtype": "Button",
+   "label": "Check / Prefill Testing Site"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-02 18:00:00.000000",
+ "modified": "2026-09-02 19:35:00.000000",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Data Migration in KGGK",
