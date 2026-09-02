@@ -123,6 +123,8 @@ override_doctype_class = {
 	"Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin",
     "Job Requisition": "gke_customization.overrides.job_requisition.CustomJobRequisition",
     "Payroll Entry": "gke_customization.overrides.payroll_entry.CustomPayrollEntry",
+    "Salary Structure Assignment": "gke_customization.overrides.salary_structure_assignment.CustomSalaryStructureAssignment",
+    "Salary Structure Assignment": "gke_customization.overrides.salary_structure_assignment.CustomSalaryStructureAssignment",
     # "Parent Manufacturing Order": "gke_customization.overrides.parent_manufacturing_order.CustomParentManufacturingOrder"
 }
 
@@ -328,6 +330,9 @@ doc_events = {
     "on_submit": "gke_customization.gke_order_forms.doc_events.timesheet.on_submit",
     "on_update": "gke_customization.gke_order_forms.doc_events.timesheet.on_update"
     
+},
+"Salary Slip": {
+    "before_validate": "gke_customization.overrides.salary_slip.seed_slip_only_formula_fields",
 },
 # "Stock Entry": {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.stock_entry.before_validate",
