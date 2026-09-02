@@ -5478,7 +5478,10 @@ def catalogue_data22(selectedSubcategory=None, itemCategory=None, itemCode=None,
 
         WHERE {where_clause}
         GROUP BY item.item_code, item.variant_of
-        ORDER BY item.creation ASC
+        ORDER BY 
+            SUBSTRING_INDEX(item.item_code, '-', 1),
+            CAST(REGEXP_REPLACE(SUBSTRING_INDEX(item.item_code, '-', 1), '[^0-9]', '') AS UNSIGNED),
+            item.item_code ASC
         # LIMIT %(page_size)s OFFSET %(offset)s
     """
 
@@ -12528,13 +12531,15 @@ def get_variants_by_itemcode(itemCode=None, customer=None):
         #     AND idf.company = 'Gurukrupa Export Private Limited'
         WHERE
             item.item_code LIKE %(base_code)s
-            AND item.item_code != %(itemCode)s
             AND idf.company = 'Gurukrupa Export Private Limited'
 
         GROUP BY item.item_code
         ORDER BY item.creation ASC
-    """, {"base_code": base_code + "%", "customer": customer, "itemCode": itemCode} , as_dict=True)
+    """, {"base_code": base_code + "%", "customer": customer} , as_dict=True)
     # """, {"base_code": base_code + "%", "customer": customer}, as_dict=True)
+    
+    if len(db_data) <= 1:
+        return []
 
     # -------- MULTISELECT MERGE --------
     item_codes = [row.item_code for row in db_data]
