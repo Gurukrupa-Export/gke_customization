@@ -1,5 +1,6 @@
 import frappe
 import requests
+import hashlib
 from frappe.utils import flt
 
 
@@ -343,10 +344,92 @@ def get_same_ref_doc(self,table_name, type):
 
 
 
+# import frappe
+def sync_attached_file_to_remote(local_file_url, to_site, api_key, api_secret):
+    """Return a URL usable on the remote site for an Attach Image field value.
+
+    - Empty value -> None
+    - Web link (user typed a URL) -> returned as-is, remote can fetch it directly
+    - Locally attached file (/files/... or /private/files/...) -> file content is
+      uploaded to the remote site and the new remote file_url is returned
+    """
+    import requests
+
+    if not local_file_url:
+        return None
+
+    if not local_file_url.startswith("/"):
+        # External URL entered directly in the Attach field
+        return local_file_url
+
+    try:
+        file_doc = frappe.get_doc("File", {"file_url": local_file_url})
+        file_content = file_doc.get_content()
+    except Exception:
+        frappe.log_error(
+            title="KGGK Image Sync Error",
+            message=f"Could not read local file for {local_file_url}\n\n{frappe.get_traceback()}"
+        )
+        return None
+
+    content_hash = file_doc.content_hash or hashlib.md5(file_content).hexdigest()
+
+    # Avoid re-uploading unchanged files: if a File with the same content hash
+    # already exists on the remote, reuse its file_url instead of duplicating it.
+    try:
+        existing = requests.get(
+            f"{to_site}/api/resource/File",
+            headers={"Authorization": f"token {api_key}:{api_secret}"},
+            params={
+                "filters": frappe.as_json([["content_hash", "=", content_hash]]),
+                "fields": frappe.as_json(["file_url"]),
+                "limit_page_length": 1
+            },
+            timeout=15
+        )
+        if existing.status_code == 200:
+            data = existing.json().get("data") or []
+            if data:
+                return data[0]["file_url"]
+    except Exception:
+        frappe.log_error(
+            title="KGGK Image Lookup Error",
+            message=frappe.get_traceback()
+        )
+
+    try:
+        response = requests.post(
+            f"{to_site}/api/method/upload_file",
+            headers={"Authorization": f"token {api_key}:{api_secret}"},
+            files={"file": (file_doc.file_name, file_content)},
+            data={"is_private": file_doc.is_private},
+            timeout=30
+        )
+        if response.status_code == 200:
+            return response.json().get("message", {}).get("file_url")
+
+        frappe.log_error(
+            title="KGGK Image Upload Error",
+            message=f"""
+            URL: {response.url}
+
+            Status Code: {response.status_code}
+
+            Response:
+            {response.text}
+
+            File: {local_file_url}
+            """
+        )
+    except Exception:
+        frappe.log_error(
+            title="KGGK Image Upload Error",
+            message=frappe.get_traceback()
+        )
+
+    return None
 
 
- 
-import frappe
 def create_item_kggk(doc, method=None):
     import requests
     from_site = frappe.db.get_single_value("Data Migration in KGGK","from_site")
@@ -410,13 +493,24 @@ def create_item_kggk(doc, method=None):
                 "asset_naming_series": doc.asset_naming_series,
                 "asset_category": doc.asset_category,
                 "is_grouped_asset": doc.is_grouped_asset,
-                "auto_create_assets": doc.auto_create_assets
+                "auto_create_assets": doc.auto_create_assets,
+                "custom_catalogue_image": sync_attached_file_to_remote(doc.custom_catalogue_image, to_site, api_key, api_secret),
+                "sketch_image": sync_attached_file_to_remote(doc.sketch_image, to_site, api_key, api_secret),
+                "front_view": sync_attached_file_to_remote(doc.front_view, to_site, api_key, api_secret),
+                "top_view": sync_attached_file_to_remote(doc.top_view, to_site, api_key, api_secret),
+                "finish_front_view": sync_attached_file_to_remote(doc.finish_front_view, to_site, api_key, api_secret),
+                "image": sync_attached_file_to_remote(doc.image, to_site, api_key, api_secret),
+
             }
             
 
             try:
                 # Try update first
-                update_payload = {k: v for k, v in payload.items() if k not in ( "variant_of")}
+                # Exclude variant_of and attributes: these are set only at item
+                # creation. Once stock exists on the remote item, ERPNext blocks
+                # any change to the attributes table (even spurious formatting
+                # diffs from flt()), so never resend it on update.
+                update_payload = {k: v for k, v in payload.items() if k not in ("variant_of", "attributes")}
                 response = requests.put(
                     f"{to_site}/api/resource/Item/{item_code}",
                     headers=headers,
@@ -458,10 +552,10 @@ def create_item_kggk(doc, method=None):
                     frappe.throw(
                         f"API Error ({response.status_code})<br><br>{response.text}"
                     )
-
-                frappe.logger().info(
-                    f"Item {item_code} synced successfully."
-                )
+                else:
+                    frappe.logger().info(
+                        f"Item {item_code} synced successfully."
+                    )
 
             except Exception:
                 frappe.log_error(
@@ -469,6 +563,133 @@ def create_item_kggk(doc, method=None):
                     message=frappe.get_traceback()
                 )
                 raise
+
+
+
+ 
+# import frappe
+# def create_item_kggk(doc, method=None):
+#     import requests
+#     from_site = frappe.db.get_single_value("Data Migration in KGGK","from_site")
+#     to_site= frappe.db.get_single_value("Data Migration in KGGK","to_site")
+#     api_key = frappe.db.get_single_value("Data Migration in KGGK", "api_key")
+#     api_secret = frappe.db.get_single_value("Data Migration in KGGK", "api_secret")
+#     # base_url = "https://kggk-uat.m.frappe.cloud"
+#     # base_url = "https://gkexport-dummy-v16.m.frappe.cloud"
+
+#     headers = {
+#         # "Authorization": "token efffaa047a1663f:fe9e9c5b6461c5c",# from local to dummy site 
+#         "Authorization": f"token {api_key}:{api_secret}", #from dummy site to uat kggk
+#         "Content-Type": "application/json"
+#     }
+#     if doc.setting_type == "Close":
+#         if from_site and to_site:
+#             item_code = doc.name
+
+#             numeric_attributes = set(
+#                 frappe.get_all("Item Attribute", filters={"numeric_values": 1}, pluck="name")
+#             )
+
+#             payload = {
+#                 "item_code": doc.name,
+#                 "item_name": doc.item_name,
+#                 "item_group": doc.item_group,
+#                 "stock_uom": doc.stock_uom,
+#                 "description": doc.description,
+#                 "master_bom": doc.master_bom,
+#                 "has_variants":doc.has_variants,
+#                 "disabled": doc.disabled,
+#                 "is_stock_item": doc.is_stock_item,
+#                 "gst_hsn_code": doc.gst_hsn_code,
+#                 "include_item_in_manufacturing": doc.include_item_in_manufacturing,
+#                 "custom_is_manufacturing_item": doc.custom_is_manufacturing_item,
+#                 "custom_inventory_type_can_be_customer_goods": doc.custom_inventory_type_can_be_customer_goods,
+#                 "custom_reason_for_design_code_": doc.custom_reason_for_design_code_,
+#                 "old_tag_no": doc.old_tag_no,
+#                 "stylebio": doc.stylebio,
+#                 "item_category": doc.item_category,
+#                 "item_subcategory": doc.item_subcategory,
+#                 "setting_type": doc.setting_type,
+#                 "sub_setting_type": doc.sub_setting_type,
+#                 "approx_gold": doc.approx_gold,
+#                 "approx_diamond": doc.approx_diamond,
+#                 "custom_old_item_category": doc.custom_old_item_category,
+#                 "designer": doc.designer,
+#                 "product_dimension": doc.product_dimension,
+#                 "sizer_type": doc.sizer_type,
+#                 "product_shape": doc.product_shape,
+#                 "productivity": doc.productivity,
+#                 "manufacturing_type": doc.manufacturing_type,
+#                 "variant_of": doc.variant_of,
+#                 "attributes": [
+#                     {
+#                         "attribute": row.attribute,
+#                         "attribute_value": flt(row.attribute_value) if row.attribute in numeric_attributes else row.attribute_value
+#                     }
+#                     for row in (doc.attributes or [])
+#                 ],
+#                 "asset_naming_series": doc.asset_naming_series,
+#                 "asset_category": doc.asset_category,
+#                 "is_grouped_asset": doc.is_grouped_asset,
+#                 "auto_create_assets": doc.auto_create_assets
+#             }
+            
+
+#             try:
+#                 # Try update first
+#                 update_payload = {k: v for k, v in payload.items() if k not in ( "variant_of")}
+#                 response = requests.put(
+#                     f"{to_site}/api/resource/Item/{item_code}",
+#                     headers=headers,
+#                     json=update_payload,
+#                     timeout=15
+#                 )
+
+#                 # If item doesn't exist, create it
+#                 if response.status_code == 404:
+#                     response = requests.post(
+#                         f"{to_site}/api/resource/Item",
+#                         headers=headers,
+#                         json=payload,
+#                         timeout=15
+#                     )
+
+#                 # Log full response for debugging
+#                 frappe.logger().info(
+#                     f"Status Code: {response.status_code}\nResponse: {response.text}"
+#                 )
+
+#                 # Handle API errors
+#                 if response.status_code >= 400:
+#                     frappe.log_error(
+#                         title="KGGK API Error",
+#                         message=f"""
+#                         URL: {response.url}
+
+#                         Status Code: {response.status_code}
+
+#                         Response:
+#                         {response.text}
+
+#                         Payload:
+#                         {frappe.as_json(payload)}
+#                         """
+#                     )
+
+#                     frappe.throw(
+#                         f"API Error ({response.status_code})<br><br>{response.text}"
+#                     )
+
+#                 frappe.logger().info(
+#                     f"Item {item_code} synced successfully."
+#                 )
+
+#             except Exception:
+#                 frappe.log_error(
+#                     title="Item Sync Error",
+#                     message=frappe.get_traceback()
+#                 )
+#                 raise
 
 
 
