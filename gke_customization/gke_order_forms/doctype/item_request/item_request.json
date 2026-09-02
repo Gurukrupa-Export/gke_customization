@@ -12,6 +12,7 @@
   "is_consumable",
   "is_asset",
   "is_consumable_update",
+  "is_asset_update",
   "column_break_kuin",
   "select_raw_material",
   "item_code",
@@ -130,7 +131,7 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:doc.is_consumable_update || doc.is_consumable || doc.is_asset\r\n",
+   "depends_on": "eval:doc.is_consumable_update || doc.is_consumable || doc.is_asset || doc.is_asset_update\r\n",
    "fieldname": "item_name",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -171,7 +172,7 @@
    "read_only_depends_on": "eval:doc.workflow_state != 'Verify Detail'"
   },
   {
-   "depends_on": "eval: (doc.is_consumable_update || doc.is_consumable) || doc.is_asset == \"1\"\r\n",
+   "depends_on": "eval: (doc.is_consumable_update || doc.is_consumable) || doc.is_asset == \"1\" || doc.is_asset_update == \"1\"\r\n",
    "fieldname": "section_break_5qrb",
    "fieldtype": "Section Break"
   },
@@ -206,7 +207,7 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:  doc.is_consumable_update",
+   "depends_on": "eval: doc.is_consumable_update || doc.is_asset_update",
    "fieldname": "item_code",
    "fieldtype": "Link",
    "label": "Item Code",
@@ -294,7 +295,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:doc.is_consumable_update",
+   "depends_on": "eval:doc.is_consumable_update || doc.is_asset_update",
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
@@ -311,7 +312,7 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:doc.is_consumable_update",
+   "depends_on": "eval:doc.is_consumable_update || doc.is_asset_update",
    "fieldname": "reason_for_hold",
    "fieldtype": "Data",
    "label": "Reason For Hold"
@@ -343,7 +344,7 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:doc.is_consumable_update || doc.is_asset",
+   "depends_on": "eval:doc.is_consumable_update || doc.is_asset || doc.is_asset_update",
    "fieldname": "cons_hsn_code",
    "fieldtype": "Int",
    "label": "HSN Code",
@@ -727,13 +728,13 @@
    "label": "Is Consumable Update"
   },
   {
-   "depends_on": "eval: doc.is_consumable_update",
+   "depends_on": "eval: doc.is_consumable_update || doc.is_asset_update",
    "fieldname": "update_gst",
    "fieldtype": "Select",
    "label": "Update Item Tax (GST %)"
   },
   {
-   "depends_on": "eval:doc.is_asset == \"1\"",
+   "depends_on": "eval:doc.is_asset == \"1\" || doc.is_asset_update",
    "fieldname": "section_break_tbuj",
    "fieldtype": "Section Break"
   },
@@ -802,13 +803,19 @@
    "fieldname": "asset_size",
    "fieldtype": "Data",
    "label": "Asset Size"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_asset_update",
+   "fieldtype": "Check",
+   "label": "Is Asset Update"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-01-12 16:07:06.048957",
- "modified_by": "shubham_k@gkexport.com",
+ "modified": "2026-09-01 16:47:13.245300",
+ "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Item Request",
  "naming_rule": "By \"Naming Series\" field",
