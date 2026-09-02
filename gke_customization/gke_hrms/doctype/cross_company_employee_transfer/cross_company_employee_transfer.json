@@ -12,6 +12,7 @@
   "source_site",
   "column_break_3",
   "company",
+  "attendance_device_id",
   "new_company",
   "department",
   "target_site",
@@ -48,7 +49,8 @@
    "fieldname": "source_site",
    "fieldtype": "Select",
    "label": "Source Site",
-   "options": "https://gkexport.frappe.cloud"
+   "options": "https://gkexport.frappe.cloud/\nhttps://kggk-prod.frappe.cloud/\nhttps://sgdiam.frappe.cloud/",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_3",
@@ -63,9 +65,9 @@
   },
   {
    "fieldname": "new_company",
-   "fieldtype": "Link",
+   "fieldtype": "Select",
    "label": "New Company",
-   "options": "Company",
+   "options": "\nKG GK Jewellers Private Limited\nGurukrupa Export Private Limited\nSadguru Diamond",
    "reqd": 1
   },
   {
@@ -81,7 +83,7 @@
    "fieldname": "target_site",
    "fieldtype": "Select",
    "label": "Target Site",
-   "options": "https://kggk-prod.frappe.cloud/"
+   "options": "https://gkexport.frappe.cloud/\nhttps://kggk-prod.frappe.cloud/\nhttps://sgdiam.frappe.cloud/"
   },
   {
    "fieldname": "details_section",
@@ -124,12 +126,17 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "attendance_device_id",
+   "fieldtype": "Data",
+   "label": "Attendance Device ID (Biometric/RF tag ID)"
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-17 18:25:23.607552",
- "modified_by": "bhavika_patel@gkexport.com",
+ "modified": "2026-08-21 18:30:22.957034",
+ "modified_by": "mansi_g@gkexport.com",
  "module": "GKE HRMS",
  "name": "Cross Company Employee Transfer",
  "owner": "shubham_si@gkexport.com",
@@ -166,6 +173,19 @@
    "read": 1,
    "report": 1,
    "role": "HR Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
    "share": 1,
    "submit": 1,
    "write": 1

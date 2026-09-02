@@ -187,9 +187,9 @@
     "fieldname": "diamond_quality",
     "fieldtype": "Link",
     "label": "Customer Diamond Quality",
-    "mandatory_depends_on": "eval:(doc.is_finding_order == 0 && doc.order_type == 'Sales') || (doc.is_finding_order == 0 && doc.order_type == 'Stock Order')",
-    "options": "Attribute Value"
-    },
+    "mandatory_depends_on": "eval:(\r\n    doc.is_finding_order == 0 &&\r\n    (doc.order_type == 'Sales' || doc.order_type == 'Stock Order') &&\r\n    doc.order_details &&\r\n    doc.order_details.length > 0 &&\r\n    doc.order_details[0].metal_type == 'Gold'\r\n)\r\n",
+   "options": "Attribute Value"
+  },
     {
     "fieldname": "service_type",
     "fieldtype": "Table MultiSelect",
