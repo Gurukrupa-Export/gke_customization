@@ -824,6 +824,110 @@ class TestPrefillWorker(unittest.TestCase):
 		self.assertEqual(out["fields_created"], [])
 
 
+class TestTargetNaming(unittest.TestCase):
+	"""The target decides what it calls a record, and it often disagrees with us.
+
+	ERPNext names a BOM `BOM-{item}-{index}` from the receiving site's own BOM count for that
+	item. An item here carries Template, Quotation, Sales Order and Manufacturing Process
+	BOMs while KGGK receives only the Template one, so the numbering almost never lines up.
+	Addressing the record by our name after that 404s and pushes it again - one extra BOM per
+	BOM per run.
+	"""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://kggk.example.com", headers={})
+
+	def test_the_created_name_is_read_back_from_the_target(self):
+		created = k.Response(status_code=200, data={"data": {"name": "BOM-X-001"}})
+		with patch.object(k, "api_put", return_value=k.Response(status_code=404)), patch.object(
+			k, "api_post", return_value=created
+		):
+			response, action, assigned = k._send(self.cfg, "BOM", "BOM-X-002", {"item": "X"})
+		self.assertEqual(action, "created")
+		self.assertEqual(assigned, "BOM-X-001")
+
+	def test_an_update_is_addressed_by_the_targets_name(self):
+		with patch.object(k, "api_put", return_value=k.Response(status_code=200)) as put, patch.object(
+			k, "api_post"
+		) as post:
+			response, action, assigned = k._send(
+				self.cfg, "BOM", "BOM-X-002", {"item": "X"}, lookup="BOM-X-001"
+			)
+		self.assertEqual(action, "updated")
+		self.assertEqual(assigned, "BOM-X-001")
+		self.assertIn("BOM-X-001", put.call_args.args[1])
+		post.assert_not_called()
+
+	def test_an_unknown_record_maps_to_its_own_name(self):
+		"""The right guess for a first push, and it must not invent one."""
+		with patch.object(frappe, "get_all", return_value=[]):
+			self.assertEqual(
+				k.target_names("BOM", ["BOM-X-002"], "kggk.example.com"), {"BOM-X-002": "BOM-X-002"}
+			)
+
+	def test_a_recorded_rename_is_used(self):
+		rows = [frappe._dict(record_name="BOM-X-002", target_name="BOM-X-001")]
+		with patch.object(frappe, "get_all", return_value=rows):
+			self.assertEqual(
+				k.target_name_for("BOM", "BOM-X-002", "kggk.example.com"), "BOM-X-001"
+			)
+
+	def test_only_item_and_bom_are_mapped(self):
+		"""Nothing else is pushed by this engine, so nothing else can be known to differ."""
+		with patch.object(frappe, "get_all") as get_all:
+			k.target_names("Item Group", ["Rings"], "kggk.example.com")
+		get_all.assert_not_called()
+
+	def test_a_link_carries_the_targets_name_not_ours(self):
+		"""Sending our name would point master_bom at nothing on the other site."""
+		doc = frappe._dict(doctype="Item", name="I-1")
+		data = {"master_bom": "BOM-X-002"}
+		run = _run(config=self.cfg)
+		with patch.object(k, "link_fields", return_value={"master_bom": ("BOM", False)}), patch.object(
+			k, "target_name_for", return_value="BOM-X-001"
+		), patch.object(k, "_link_exists", return_value=True) as exists:
+			k._strip_missing_links(self.cfg, doc, data, run, {})
+		self.assertEqual(data["master_bom"], "BOM-X-001")
+		self.assertEqual(exists.call_args.args[2], "BOM-X-001")
+
+	def test_the_relink_pass_resolves_the_name_at_the_end_not_when_it_was_dropped(self):
+		"""The BOM had no name on the target when the link was dropped - it had not been
+		pushed yet. Freezing the translation in at that point would resolve to nothing."""
+		run = _run(config=self.cfg)
+		run.deferred = [("Item", "I-1", "master_bom", "BOM-X-002", "BOM")]
+		with patch.object(
+			k, "target_names", side_effect=lambda dt, names, t: {n: "BOM-X-001" for n in names}
+		), patch.object(k, "target_name_for", side_effect=lambda dt, n, t: n), patch.object(
+			k, "api_exists_many", return_value={"BOM-X-001": True}
+		), patch.object(
+			k, "api_put", return_value=k.Response(status_code=200)
+		) as put:
+			k._apply_deferred_links(self.cfg, run)
+		self.assertEqual(put.call_args.kwargs["json"], {"master_bom": "BOM-X-001"})
+
+	def test_the_prefill_asks_about_the_targets_names(self):
+		"""Otherwise every renamed record reads as missing and is pushed again, forever."""
+		asked = {}
+
+		def exists_many(cfg, doctype, names, run=None):
+			asked[doctype] = names
+			return {n: True for n in names}
+
+		with patch.object(k, "get_sync_config", return_value=(self.cfg, None)), patch.object(
+			k, "_field_gaps", return_value=([], [], [])
+		), patch.object(k, "_plan_records", return_value=(["MP-1"], [], ["BOM-X-002"])), patch.object(
+			k, "target_names", side_effect=lambda dt, names, t: {n: "BOM-X-001" for n in names}
+		), patch.object(k, "api_exists_many", side_effect=exists_many), patch.object(
+			k, "_close_prefill"
+		), patch.object(k.SyncRun, "_open_log", return_value="LOG-1"), patch.object(
+			k.SyncRun, "flush"
+		), patch.object(k.SyncRun, "report"), patch.object(k, "enqueue_sync"):
+			out = k.run_prefill("LOG-1", apply=0)
+
+		self.assertEqual(asked["BOM"], ["BOM-X-001"])
+		self.assertEqual(out["boms_missing"], 0)
+
+
 class TestLegacyHooksStayUnwired(unittest.TestCase):
 	def test_the_blocking_before_validate_push_is_not_registered(self):
 		"""It aborted a local save when KGGK was down. A merge must not bring it back."""

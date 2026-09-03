@@ -513,7 +513,12 @@ TRIGGERS = (
 )
 
 
-def mark_state(doctype, name, status, target, error=None, local_modified=None):
+# The two doctypes this engine pushes, and therefore the only ones whose name on the target
+# it can know. Anything else is assumed to be called the same on both sites.
+MAPPED_DOCTYPES = ("Item", "BOM")
+
+
+def mark_state(doctype, name, status, target, error=None, local_modified=None, target_name=None):
 	"""Record what this site knows about one record on one target.
 
 	This is the memory that makes "transfer later changes" and the hourly reconciler
@@ -546,6 +551,8 @@ def mark_state(doctype, name, status, target, error=None, local_modified=None):
 
 		doc.status = status
 		doc.last_error = str(error or "")[:500]
+		if target_name:
+			doc.target_name = target_name
 		if status == "Synced":
 			doc.synced_on = now_datetime()
 			# The source document's own timestamp, not "now": the reconciler asks whether the
@@ -559,6 +566,47 @@ def mark_state(doctype, name, status, target, error=None, local_modified=None):
 		doc.save(ignore_permissions=True)
 	except Exception:
 		frappe.logger("kggk_sync").exception(f"could not record sync state for {doctype} {name}")
+
+
+def target_names(doctype, names, target):
+	"""``{our name: its name on the target}`` for records we have pushed before.
+
+	The name a record has on the target is not always the name we know it by. ERPNext names a
+	BOM ``BOM-{item}-{index}``, and the index counts how many BOMs *that* site already holds
+	for the item - so a BOM that is ``-002`` here can quite normally land as ``-001`` there.
+	An item here carries Template, Quotation, Sales Order and Manufacturing Process BOMs while
+	KGGK receives only the Template one, so the two numberings almost never agree.
+
+	Addressing a record by our name after that point 404s, pushes it again, and leaves another
+	duplicate behind on every run. Names we have never recorded map to themselves, which is
+	the right guess for a first push.
+	"""
+	names = [n for n in dict.fromkeys(names or []) if n]
+	mapping = {n: n for n in names}
+	if not names or not target or doctype not in MAPPED_DOCTYPES:
+		return mapping
+
+	try:
+		for row in frappe.get_all(
+			STATE_DOCTYPE,
+			filters={
+				"record_doctype": doctype,
+				"record_name": ("in", names),
+				"target_site": target,
+			},
+			fields=["record_name", "target_name"],
+		):
+			if row.target_name:
+				mapping[row.record_name] = row.target_name
+	except Exception:
+		frappe.logger("kggk_sync").exception(f"could not read target names for {doctype}")
+
+	return mapping
+
+
+def target_name_for(doctype, name, target):
+	"""What one record is called on the target, falling back to our own name."""
+	return target_names(doctype, [name], target).get(name, name)
 
 
 def is_synced(doctype, name, target):
@@ -799,11 +847,18 @@ class SyncRun:
 	def _target_host(self):
 		return host_of((self.config or {}).get("to_site"))
 
-	def item_ok(self, name, note="", local_modified=None):
+	def item_ok(self, name, note="", local_modified=None, target_name=None):
 		self.items_synced += 1
 		self.line("OK", "Item", name, note or "synced")
 		self.row("Item", name, "Synced", note or "synced", action=note)
-		mark_state("Item", name, "Synced", self._target_host(), local_modified=local_modified)
+		mark_state(
+			"Item",
+			name,
+			"Synced",
+			self._target_host(),
+			local_modified=local_modified,
+			target_name=target_name,
+		)
 
 	def item_failed(self, name, message):
 		self.items_failed += 1
@@ -812,11 +867,18 @@ class SyncRun:
 		self.row("Item", name, "Failed", message)
 		mark_state("Item", name, "Failed", self._target_host(), error=message)
 
-	def bom_ok(self, name, note="", local_modified=None):
+	def bom_ok(self, name, note="", local_modified=None, target_name=None):
 		self.boms_synced += 1
 		self.line("OK", "BOM", name, note or "synced")
 		self.row("BOM", name, "Synced", note or "synced", action=note)
-		mark_state("BOM", name, "Synced", self._target_host(), local_modified=local_modified)
+		mark_state(
+			"BOM",
+			name,
+			"Synced",
+			self._target_host(),
+			local_modified=local_modified,
+			target_name=target_name,
+		)
 
 	def bom_failed(self, name, message):
 		self.boms_failed += 1
@@ -1349,11 +1411,20 @@ def _strip_missing_links(config, doc, data, run, cache):
 	Returns a list of blocking problems; empty means it is safe to send.
 	"""
 	blocking = []
+	target_host = host_of(config.to_site)
 	for fieldname, (link_doctype, essential) in link_fields(doc.doctype).items():
 		value = data.get(fieldname)
 		if not value:
 			continue
-		found = _link_exists(config, link_doctype, value, cache)
+
+		# A link to an Item or a BOM has to carry the name the *target* uses, which is not
+		# always ours. Sending our name would point the link at nothing, or worse at the
+		# wrong record.
+		remote_value = target_name_for(link_doctype, value, target_host)
+		if remote_value != value:
+			data[fieldname] = remote_value
+
+		found = _link_exists(config, link_doctype, remote_value, cache)
 		if found is None:
 			# The check itself failed - a timeout, a 500, a 403. Treating that as "it is
 			# there" sends the value anyway and the target rejects the whole record with a
@@ -1361,8 +1432,8 @@ def _strip_missing_links(config, doc, data, run, cache):
 			run.mismatch(
 				doc.doctype,
 				doc.name,
-				f"{fieldname}: could not check whether {link_doctype} '{value}' exists on "
-				"target, sending it anyway",
+				f"{fieldname}: could not check whether {link_doctype} '{remote_value}' exists "
+				"on target, sending it anyway",
 				kind="LINK-UNKNOWN",
 				once_key=f"linkcheck::{link_doctype}",
 			)
@@ -1370,15 +1441,20 @@ def _strip_missing_links(config, doc, data, run, cache):
 		if found:
 			continue
 		if essential:
-			blocking.append(f"{fieldname}: {link_doctype} '{value}' does not exist on target")
+			blocking.append(
+				f"{fieldname}: {link_doctype} '{remote_value}' does not exist on target"
+			)
 			continue
 		data.pop(fieldname, None)
+		# Deferred with OUR name. The target may not have named it yet - that happens when
+		# it is pushed, later in this same run - so the translation has to wait until the
+		# relink pass rather than being frozen in now.
 		run.defer_link(doc.doctype, doc.name, fieldname, value, link_doctype)
 		run.mismatch(
 			doc.doctype,
 			doc.name,
-			f"{fieldname}: {link_doctype} '{value}' does not exist on target, field dropped "
-			"for now - will be re-applied if it arrives later in this run",
+			f"{fieldname}: {link_doctype} '{remote_value}' does not exist on target, field "
+			"dropped for now - will be re-applied if it arrives later in this run",
 			kind="LINK-MISSING",
 		)
 	return blocking
@@ -1397,27 +1473,40 @@ def _apply_deferred_links(config, run):
 	if not run.deferred:
 		return
 
-	# Group by the doctype being pointed at so existence is asked in batches, not per link.
-	wanted = {}
+	target_host = host_of(config.to_site)
+
+	# Now, not when the link was dropped: the record it points at may have been pushed since,
+	# and only now do we know what the target decided to call it.
+	remote = {}
 	for _dt, _name, _field, value, link_doctype in run.deferred:
-		wanted.setdefault(link_doctype, set()).add(value)
+		remote.setdefault(link_doctype, set()).add(value)
+	remote = {
+		link_doctype: target_names(link_doctype, sorted(values), target_host)
+		for link_doctype, values in remote.items()
+	}
 
 	exists = {}
-	for link_doctype, values in wanted.items():
-		exists[link_doctype] = api_exists_many(config, link_doctype, sorted(values), run=run)
+	for link_doctype, mapping in remote.items():
+		exists[link_doctype] = api_exists_many(
+			config, link_doctype, sorted(set(mapping.values())), run=run
+		)
 
 	# One PUT per record, not per field, so an item with two recovered links costs one call.
 	updates = {}
 	still_missing = []
 	for doctype, name, fieldname, value, link_doctype in run.deferred:
-		if exists.get(link_doctype, {}).get(value):
-			updates.setdefault((doctype, name), {})[fieldname] = value
+		remote_value = remote.get(link_doctype, {}).get(value, value)
+		if exists.get(link_doctype, {}).get(remote_value):
+			updates.setdefault((doctype, name), {})[fieldname] = remote_value
 		else:
-			still_missing.append((doctype, name, fieldname, link_doctype, value))
+			still_missing.append((doctype, name, fieldname, link_doctype, remote_value))
 
 	for (doctype, name), fields in updates.items():
+		# The record being patched may itself be under a different name over there.
 		response = api_put(
-			config, f"/api/resource/{segment(doctype)}/{segment(name)}", json=fields
+			config,
+			f"/api/resource/{segment(doctype)}/{segment(target_name_for(doctype, name, target_host))}",
+			json=fields,
 		)
 		if response.ok:
 			run.line("RELINKED", doctype, name, ", ".join(sorted(fields)))
@@ -1442,17 +1531,27 @@ def _apply_deferred_links(config, run):
 	]
 
 
-def _send(config, doctype, name, data):
-	"""PUT the existing record, POST a new one if the target has never seen it."""
-	path = f"/api/resource/{segment(doctype)}/{segment(name)}"
+def _send(config, doctype, name, data, lookup=None):
+	"""PUT the record under the name the target knows it by; POST if it has never seen it.
+
+	Returns ``(response, action, target_name)``. That third value is the point: the target
+	decides the name of what it creates - see ``target_names`` - and unless we read it back
+	and remember it, the next run addresses the record by our name, gets a 404, POSTs again
+	and leaves a duplicate. Over a few runs that is one extra BOM per BOM per run.
+	"""
+	lookup = lookup or name
 	update_data = {
 		k: v for k, v in data.items() if k not in IMMUTABLE_ON_UPDATE.get(doctype, set())
 	}
-	response = api_put(config, path, json=update_data)
-	if response.not_found:
-		response = api_post(config, f"/api/resource/{segment(doctype)}", json=data)
-		return response, "created"
-	return response, "updated"
+	response = api_put(
+		config, f"/api/resource/{segment(doctype)}/{segment(lookup)}", json=update_data
+	)
+	if not response.not_found:
+		return response, "updated", lookup
+
+	response = api_post(config, f"/api/resource/{segment(doctype)}", json=data)
+	assigned = ((response.data or {}).get("data") or {}).get("name") or name
+	return response, "created", assigned
 
 
 def push_item(item_code, config, run, seen=None):
@@ -1472,10 +1571,12 @@ def push_item(item_code, config, run, seen=None):
 	# we actually sent leaves the reconciler able to spot the difference next time round.
 	sent_version = doc.modified
 
+	target_host = host_of(config.to_site)
+
 	# A variant cannot be created before its template exists on the target.
 	if doc.get("variant_of"):
 		template = doc.variant_of
-		if api_exists(config, "Item", template) is False:
+		if api_exists(config, "Item", target_name_for("Item", template, target_host)) is False:
 			run.line("INFO", "Item", item_code, f"template {template} missing on target, pushing it first")
 			run.items_total += 1
 			push_item(template, config, run, seen=seen)
@@ -1488,28 +1589,36 @@ def push_item(item_code, config, run, seen=None):
 		run.item_failed(item_code, message)
 		return False
 
-	response, action = _send(config, "Item", item_code, data)
+	response, action, target_id = _send(
+		config, "Item", item_code, data, lookup=target_name_for("Item", item_code, target_host)
+	)
 	if not response.ok:
 		message = response.message()
 		run.item_failed(item_code, message)
 		return False
 
 	note = action
+	if target_id != item_code:
+		# Worth saying out loud: from here on the two sites know this record by different
+		# names, and every later link to it has to use theirs.
+		note = f"{action} as {target_id}"
+		run.line("RENAMED", "Item", item_code, f"the target calls it {target_id}")
+
 	if attachments:
-		resolved = upload_all(config, attachments, "Item", item_code, run=run)
+		resolved = upload_all(config, attachments, "Item", target_id, run=run)
 		if resolved:
 			follow_up = api_put(
-				config, f"/api/resource/Item/{segment(item_code)}", json=resolved
+				config, f"/api/resource/Item/{segment(target_id)}", json=resolved
 			)
 			if follow_up.ok:
-				note = f"{action}, {len(resolved)} attachment(s)"
+				note = f"{note}, {len(resolved)} attachment(s)"
 			else:
 				run.mismatch(
 					"Item", item_code, f"attachment urls could not be set - {follow_up.message()}"
 				)
-				note = f"{action}, attachments uploaded but not linked"
+				note = f"{note}, attachments uploaded but not linked"
 
-	run.item_ok(item_code, note, local_modified=sent_version)
+	run.item_ok(item_code, note, local_modified=sent_version, target_name=target_id)
 	return True
 
 
@@ -1526,7 +1635,12 @@ def push_bom(bom_name, config, run):
 	# assembled from Items and BOMs independently - "Sync Now" takes the oldest unsynced of
 	# each - so the item a given BOM needs is very often not in the same batch. Pull it in
 	# rather than failing the BOM for a reason the operator cannot act on.
-	if doc.get("item") and api_exists(config, "Item", doc.item) is False:
+	target_host = host_of(config.to_site)
+
+	if (
+		doc.get("item")
+		and api_exists(config, "Item", target_name_for("Item", doc.item, target_host)) is False
+	):
 		run.line("INFO", "BOM", bom_name, f"item {doc.item} missing on target, pushing it first")
 		run.items_total += 1
 		push_item(doc.item, config, run)
@@ -1539,23 +1653,32 @@ def push_bom(bom_name, config, run):
 		run.bom_failed(bom_name, message)
 		return False
 
-	response, action = _send(config, "BOM", bom_name, data)
+	response, action, target_id = _send(
+		config, "BOM", bom_name, data, lookup=target_name_for("BOM", bom_name, target_host)
+	)
 	if not response.ok:
 		message = response.message()
 		run.bom_failed(bom_name, message)
 		return False
 
 	note = action
+	if target_id != bom_name:
+		# The common case for BOMs, not the exception. An item here carries Template,
+		# Quotation, Sales Order and Manufacturing Process BOMs while KGGK receives only the
+		# Template one, so the two sites' numbering almost never lines up.
+		note = f"{action} as {target_id}"
+		run.line("RENAMED", "BOM", bom_name, f"the target calls it {target_id}")
+
 	if attachments:
-		resolved = upload_all(config, attachments, "BOM", bom_name, run=run)
+		resolved = upload_all(config, attachments, "BOM", target_id, run=run)
 		if resolved:
-			follow_up = api_put(config, f"/api/resource/BOM/{segment(bom_name)}", json=resolved)
+			follow_up = api_put(config, f"/api/resource/BOM/{segment(target_id)}", json=resolved)
 			if follow_up.ok:
-				note = f"{action}, {len(resolved)} attachment(s)"
+				note = f"{note}, {len(resolved)} attachment(s)"
 			else:
 				run.mismatch("BOM", bom_name, f"attachment urls could not be set - {follow_up.message()}")
 
-	run.bom_ok(bom_name, note, local_modified=sent_version)
+	run.bom_ok(bom_name, note, local_modified=sent_version, target_name=target_id)
 	return True
 
 
@@ -2312,16 +2435,22 @@ def run_prefill(log_name, apply=0, limit_plans=None):
 	run.items_total = len(items)
 	run.boms_total = len(boms)
 
-	# Batched: two requests per fifty names instead of one per name. This is the difference
-	# between twenty requests and a thousand for a real plan.
-	item_presence = api_exists_many(config, "Item", items, run=run)
-	bom_presence = api_exists_many(config, "BOM", boms, run=run)
+	# Ask about the names the target uses, not ours - otherwise every record it renamed
+	# reads as missing and gets pushed again, which is how duplicates breed.
+	target_host = host_of(config.to_site)
+	item_map = target_names("Item", items, target_host)
+	bom_map = target_names("BOM", boms, target_host)
 
-	missing_items = [n for n in items if item_presence.get(n) is False]
-	missing_boms = [n for n in boms if bom_presence.get(n) is False]
+	# Batched: one request per fifty names instead of one per name. This is the difference
+	# between twenty requests and a thousand for a real plan.
+	item_presence = api_exists_many(config, "Item", sorted(set(item_map.values())), run=run)
+	bom_presence = api_exists_many(config, "BOM", sorted(set(bom_map.values())), run=run)
+
+	missing_items = [n for n in items if item_presence.get(item_map[n]) is False]
+	missing_boms = [n for n in boms if bom_presence.get(bom_map[n]) is False]
 	# A name whose batch could not be asked about is unknown, never assumed present.
-	unchecked = [n for n in items if n not in item_presence] + [
-		n for n in boms if n not in bom_presence
+	unchecked = [n for n in items if item_map[n] not in item_presence] + [
+		n for n in boms if bom_map[n] not in bom_presence
 	]
 
 	for line in standard_gaps:

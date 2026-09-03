@@ -8,6 +8,7 @@
  "field_order": [
   "record_doctype",
   "record_name",
+  "target_name",
   "column_break_head",
   "status",
   "target_site",
@@ -37,6 +38,14 @@
    "label": "Record",
    "read_only": 1,
    "reqd": 1
+  },
+  {
+   "description": "What this record is called on the target. ERPNext names a BOM from the receiving site's own BOM count for that item, so the name there is often not the name here.",
+   "fieldname": "target_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Name on Target",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_head",
@@ -101,7 +110,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-03 10:00:00.000000",
+ "modified": "2026-09-03 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "KGGK Sync State",
