@@ -33,14 +33,6 @@ frappe.query_reports["Production Report"] = {
             "fieldtype": "Select",
             "options": "\nSales\nStock Order\nRepair"
         },
-        // {
-        //     "fieldname": "manufacturer",
-        //     "label": __("Manufacturer"),
-        //     "fieldtype": "MultiSelectList",
-        //     "get_data": function(txt) {
-        //         return frappe.db.get_link_options('Manufacturer', txt);
-        //     }
-        // }
     ],
 
     "onload": function(report) {
