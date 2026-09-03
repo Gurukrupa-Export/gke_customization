@@ -13,6 +13,12 @@ dependencies = [
     "pyodbc>=5.0.1"
 ]
 
+[deploy.dependencies.apt]
+packages = [
+    "unixodbc",
+    "unixodbc-dev",
+]
+
 [build-system]
 requires = ["flit_core >=3.4,<4"]
 build-backend = "flit_core.buildapi"
