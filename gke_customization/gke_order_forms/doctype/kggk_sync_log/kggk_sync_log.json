@@ -1,0 +1,231 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:KGGK-SYNC-{YYYY}-{#####}",
+ "creation": "2026-09-03 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "trigger",
+  "reference",
+  "column_break_head",
+  "status",
+  "progress",
+  "target_site",
+  "timing_section",
+  "started_on",
+  "column_break_timing",
+  "ended_on",
+  "job_id",
+  "counts_section",
+  "items_total",
+  "items_synced",
+  "items_failed",
+  "column_break_counts",
+  "boms_total",
+  "boms_synced",
+  "boms_failed",
+  "mismatches",
+  "summary_section",
+  "summary",
+  "records_section",
+  "records",
+  "problems_section",
+  "problems"
+ ],
+ "fields": [
+  {
+   "fieldname": "trigger",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Trigger",
+   "options": "Manual\nManufacturing Plan\nItem Update\nBOM Update\nPrefill\nReconcile\nRetry",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "description": "The Manufacturing Plan, Item, BOM or earlier log this run came from.",
+   "fieldname": "reference",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Queued",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Queued\nRunning\nCompleted\nPartially Completed\nFailed",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "progress",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Progress",
+   "read_only": 1
+  },
+  {
+   "fieldname": "target_site",
+   "fieldtype": "Data",
+   "label": "Target Site",
+   "read_only": 1
+  },
+  {
+   "fieldname": "timing_section",
+   "fieldtype": "Section Break",
+   "label": "Timing"
+  },
+  {
+   "fieldname": "started_on",
+   "fieldtype": "Datetime",
+   "label": "Started On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_timing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ended_on",
+   "fieldtype": "Datetime",
+   "label": "Ended On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "job_id",
+   "fieldtype": "Data",
+   "label": "Job ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "counts_section",
+   "fieldtype": "Section Break",
+   "label": "Counts"
+  },
+  {
+   "fieldname": "items_total",
+   "fieldtype": "Int",
+   "label": "Items Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "items_synced",
+   "fieldtype": "Int",
+   "label": "Items Synced",
+   "read_only": 1
+  },
+  {
+   "fieldname": "items_failed",
+   "fieldtype": "Int",
+   "label": "Items Failed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_counts",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "boms_total",
+   "fieldtype": "Int",
+   "label": "BOMs Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "boms_synced",
+   "fieldtype": "Int",
+   "label": "BOMs Synced",
+   "read_only": 1
+  },
+  {
+   "fieldname": "boms_failed",
+   "fieldtype": "Int",
+   "label": "BOMs Failed",
+   "read_only": 1
+  },
+  {
+   "description": "Fields or links that could not be written to the target.",
+   "fieldname": "mismatches",
+   "fieldtype": "Int",
+   "label": "Field / Link Problems",
+   "read_only": 1
+  },
+  {
+   "fieldname": "summary_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "summary",
+   "fieldtype": "Small Text",
+   "label": "Summary",
+   "read_only": 1
+  },
+  {
+   "fieldname": "records_section",
+   "fieldtype": "Section Break",
+   "label": "Records"
+  },
+  {
+   "fieldname": "records",
+   "fieldtype": "Table",
+   "label": "Records",
+   "options": "KGGK Sync Log Record",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "problems_section",
+   "fieldtype": "Section Break",
+   "label": "Problems"
+  },
+  {
+   "description": "Fields the target does not have, links it is missing, and anything else that could not be sent.",
+   "fieldname": "problems",
+   "fieldtype": "Long Text",
+   "label": "Problems",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-03 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "KGGK Sync Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager"
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "reference",
+ "track_changes": 0
+}
