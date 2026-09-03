@@ -22,13 +22,14 @@
   "cad_from_site",
   "column_break_cadsite_column",
   "cad_to_site",
-  "testing_sync_section",
-  "enable_testing_sync",
-  "testing_site",
+  "kggk_sync_section",
+  "enable_sync",
   "column_break_testing_sync",
-  "testing_api_key",
-  "testing_api_secret",
-  "prefill_testing_site"
+  "sync_updates",
+  "auto_reconcile",
+  "reconcile_batch_size",
+  "prefill_target_site",
+  "view_sync_logs"
  ],
  "fields": [
   {
@@ -43,7 +44,9 @@
   {
    "fieldname": "to_site",
    "fieldtype": "Data",
-   "label": "To Site"
+   "label": "To Site",
+   "mandatory_depends_on": "enable_sync",
+   "description": "Full base URL of the KGGK site, e.g. https://kggk-uat.example.com"
   },
   {
    "fieldname": "get_pricing_details_section",
@@ -63,7 +66,8 @@
   {
    "fieldname": "api_key",
    "fieldtype": "Data",
-   "label": "API Key"
+   "label": "API Key",
+   "mandatory_depends_on": "enable_sync"
   },
   {
    "fieldname": "column_break_qpnk",
@@ -72,7 +76,8 @@
   {
    "fieldname": "api_secret",
    "fieldtype": "Data",
-   "label": "API Secret"
+   "label": "API Secret",
+   "mandatory_depends_on": "enable_sync"
   },
   {
    "fieldname": "section_break_tfs8",
@@ -113,57 +118,66 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "A separate, non-production target used only to test the Manufacturing Plan push. This is NOT the live To Site above - the Item/BOM sync keeps using that one.",
-   "fieldname": "testing_sync_section",
+   "description": "Pushes Items, BOMs and the subcontracting rows of submitted Manufacturing Plans to the To Site above, in the background. Whether that site is a test site or the live KGGK site is decided by what To Site points at.",
+   "fieldname": "kggk_sync_section",
    "fieldtype": "Section Break",
-   "label": "Manufacturing Plan Testing Sync"
+   "label": "KGGK Sync"
   },
   {
    "default": "0",
-   "description": "Off by default. While this is unticked nothing is sent to the testing site, by submit or by button.",
-   "fieldname": "enable_testing_sync",
+   "description": "Off by default. While this is unticked nothing is pushed to the To Site - not by an Item or BOM save, not by a Manufacturing Plan submit, not by the scheduler, not by the button below.",
+   "fieldname": "enable_sync",
    "fieldtype": "Check",
-   "label": "Send Manufacturing Plan Data to Testing Site"
-  },
-  {
-   "depends_on": "enable_testing_sync",
-   "description": "Full base URL, e.g. https://kggk-test.example.com",
-   "fieldname": "testing_site",
-   "fieldtype": "Data",
-   "label": "Testing Site",
-   "mandatory_depends_on": "enable_testing_sync"
+   "label": "Enable KGGK Sync"
   },
   {
    "fieldname": "column_break_testing_sync",
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "enable_testing_sync",
-   "fieldname": "testing_api_key",
-   "fieldtype": "Data",
-   "label": "Testing API Key",
-   "mandatory_depends_on": "enable_testing_sync"
-  },
-  {
-   "depends_on": "enable_testing_sync",
-   "fieldname": "testing_api_secret",
-   "fieldtype": "Password",
-   "label": "Testing API Secret",
-   "mandatory_depends_on": "enable_testing_sync"
-  },
-  {
-   "depends_on": "enable_testing_sync",
-   "description": "Checks the testing site for missing custom fields and for the items and BOMs the submitted Manufacturing Plans need. Reports first; creates nothing until you confirm.",
-   "fieldname": "prefill_testing_site",
+   "depends_on": "enable_sync",
+   "description": "Checks the To Site for missing custom fields and for the items and BOMs the submitted Manufacturing Plans need. Runs in the background and opens a Sync Log to watch. Reports first; creates nothing until you confirm.",
+   "fieldname": "prefill_target_site",
    "fieldtype": "Button",
-   "label": "Check / Prefill Testing Site"
+   "label": "Check / Prefill Target Site"
+  },
+  {
+   "default": "1",
+   "depends_on": "enable_sync",
+   "description": "Push a later edit of an Item or BOM that KGGK already has. Off means only new records and Manufacturing Plans are sent.",
+   "fieldname": "sync_updates",
+   "fieldtype": "Check",
+   "label": "Send Later Changes"
+  },
+  {
+   "default": "0",
+   "depends_on": "enable_sync",
+   "description": "Every hour, look for records that changed while the target was unreachable and push them. Also retries failed records, up to five times each.",
+   "fieldname": "auto_reconcile",
+   "fieldtype": "Check",
+   "label": "Hourly Change Check"
+  },
+  {
+   "default": "200",
+   "depends_on": "auto_reconcile",
+   "description": "How many records one hourly pass may queue.",
+   "fieldname": "reconcile_batch_size",
+   "fieldtype": "Int",
+   "label": "Records per Hourly Pass",
+   "non_negative": 1
+  },
+  {
+   "depends_on": "enable_sync",
+   "fieldname": "view_sync_logs",
+   "fieldtype": "Button",
+   "label": "Sync Logs"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-02 19:35:00.000000",
+ "modified": "2026-09-03 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Data Migration in KGGK",

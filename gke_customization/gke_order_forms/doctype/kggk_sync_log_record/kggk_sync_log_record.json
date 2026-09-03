@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-09-03 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "record_doctype",
+  "record_name",
+  "status",
+  "action",
+  "attempts",
+  "synced_on",
+  "message"
+ ],
+ "fields": [
+  {
+   "columns": 1,
+   "fieldname": "record_doctype",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "Item\nBOM",
+   "read_only": 1
+  },
+  {
+   "columns": 3,
+   "fieldname": "record_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Record",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nSynced\nFailed\nSkipped",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "description": "created or updated on the target",
+   "fieldname": "action",
+   "fieldtype": "Data",
+   "label": "Action",
+   "read_only": 1
+  },
+  {
+   "fieldname": "attempts",
+   "fieldtype": "Int",
+   "label": "Attempts",
+   "read_only": 1
+  },
+  {
+   "fieldname": "synced_on",
+   "fieldtype": "Datetime",
+   "label": "Synced On",
+   "read_only": 1
+  },
+  {
+   "columns": 4,
+   "fieldname": "message",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Message",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-03 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "KGGK Sync Log Record",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
