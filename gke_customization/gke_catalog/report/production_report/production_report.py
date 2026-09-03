@@ -326,6 +326,7 @@ def get_data(filters, departments=None, department_name_map=None):
             final_data.append(row)
 
         final_data.extend(get_wip_mwo_rows(filters, departments, department_name_map))
+        final_data = [row for row in final_data if row.get('serial_no')]
         final_data.sort(key=lambda r: r.get('creation_date') or '', reverse=True)
         final_data = final_data[:10000]
 
