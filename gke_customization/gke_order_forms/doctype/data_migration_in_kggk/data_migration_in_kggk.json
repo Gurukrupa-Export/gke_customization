@@ -42,11 +42,11 @@
    "fieldtype": "Column Break"
   },
   {
+   "description": "Full base URL of the KGGK site, e.g. https://kggk-uat.example.com . Must be https except for localhost.",
    "fieldname": "to_site",
    "fieldtype": "Data",
    "label": "To Site",
-   "mandatory_depends_on": "enable_sync",
-   "description": "Full base URL of the KGGK site, e.g. https://kggk-uat.example.com"
+   "mandatory_depends_on": "enable_sync"
   },
   {
    "fieldname": "get_pricing_details_section",
@@ -75,7 +75,7 @@
   },
   {
    "fieldname": "api_secret",
-   "fieldtype": "Data",
+   "fieldtype": "Password",
    "label": "API Secret",
    "mandatory_depends_on": "enable_sync"
   },
@@ -150,9 +150,9 @@
    "label": "Send Later Changes"
   },
   {
-   "default": "0",
+   "default": "1",
    "depends_on": "enable_sync",
-   "description": "Every hour, look for records that changed while the target was unreachable and push them. Also retries failed records, up to five times each.",
+   "description": "Every hour, look for records that changed while the target was unreachable, or whose push was never queued, and send them. Also retries failed and partially-synced records, up to five times each. This is the recovery path for a lost job - leaving it off means a dropped push is never noticed.",
    "fieldname": "auto_reconcile",
    "fieldtype": "Check",
    "label": "Hourly Change Check"

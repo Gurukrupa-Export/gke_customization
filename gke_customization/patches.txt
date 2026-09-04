@@ -2,3 +2,5 @@
 
 [post_model_sync]
 gke_customization.patches.v1_0.drop_kggk_testing_credentials
+gke_customization.patches.v1_0.encrypt_kggk_api_secret
+gke_customization.patches.v1_0.enforce_kggk_sync_state_uniqueness
