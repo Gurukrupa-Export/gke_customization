@@ -3016,6 +3016,10 @@ def _field_gaps(config, run=None):
 			if field["fieldname"] not in target_fields:
 				row = dict(field)
 				row["dt"] = doctype
+				# Not a decoration. Deselecting one of these leaves the upsert with nothing to
+				# match on, and `_send` then refuses the record rather than guessing at its
+				# name - so the form has to be able to say so before the choice is made.
+				row["is_identity"] = 1
 				creatable.append(row)
 
 	return creatable, standard_gaps, informational_gaps, unreadable, expected_absent
@@ -3141,7 +3145,7 @@ def _prefill_warnings(result):
 
 
 @frappe.whitelist()
-def start_prefill(action=ACTION_CHECK, limit_plans=None, check_log=None, apply=None):
+def start_prefill(action=ACTION_CHECK, limit_plans=None, check_log=None, fields=None, apply=None):
 	"""Hand one of the prefill actions to a worker and return the log to watch.
 
 	Three separate presses rather than one that does everything, because they are three
@@ -3159,6 +3163,15 @@ def start_prefill(action=ACTION_CHECK, limit_plans=None, check_log=None, apply=N
 		action = ACTION_ALL
 	if action not in ACTIONS:
 		frappe.throw(_("Unknown action {0}.").format(action))
+
+	# The form sends the chosen fields as JSON, and `bench execute` sends a real list.
+	if isinstance(fields, str):
+		try:
+			fields = frappe.parse_json(fields)
+		except Exception:
+			frappe.throw(_("Could not read the list of fields to create."))
+	if fields is not None and not isinstance(fields, (list, tuple)):
+		frappe.throw(_("The list of fields to create must be a list."))
 
 	config, reason = get_sync_config()
 	if not config:
@@ -3184,6 +3197,11 @@ def start_prefill(action=ACTION_CHECK, limit_plans=None, check_log=None, apply=N
 		)
 		if not log or log.trigger != "Prefill":
 			frappe.throw(_("{0} is not a prefill check.").format(check_log))
+		if log.status in (STATUS_QUEUED, STATUS_RUNNING):
+			# Its findings are still being written; the counts on it are not final yet.
+			frappe.throw(
+				_("That run is still {0}.").format(log.status), title=_("Not Finished")
+			)
 		if host_of(log.target_site) != host_of(config.to_site):
 			frappe.throw(
 				_("That check was run against {0}, but To Site is now {1}.").format(
@@ -3227,6 +3245,7 @@ def start_prefill(action=ACTION_CHECK, limit_plans=None, check_log=None, apply=N
 		deduplicate=True,
 		log_name=log.name,
 		action=action,
+		fields=fields,
 		limit_plans=limit_plans,
 		expect_target=host_of(config.to_site),
 		expect_fingerprint=config.get("fingerprint"),
@@ -3241,6 +3260,7 @@ def run_prefill(
 	limit_plans=None,
 	expect_target=None,
 	expect_fingerprint=None,
+	fields=None,
 	apply=None,
 ):
 	"""Work out what the target is missing and, depending on the action, fill it in.
@@ -3306,6 +3326,12 @@ def run_prefill(
 		"target": config.to_site,
 		"plans_scanned": len(plans),
 		"fields_to_create": [f"{r['dt']}.{r['fieldname']}" for r in creatable],
+		# Which of those the matching depends on, so the form can mark them and warn if they
+		# are unticked rather than letting the push fail later for a reason nobody connects
+		# back to a checkbox.
+		"identity_fields": [
+			f"{r['dt']}.{r['fieldname']}" for r in creatable if r.get("is_identity")
+		],
 		"standard_field_gaps": standard_gaps,
 		"informational_gaps": informational_gaps,
 		"schema_unreadable": unreadable,
@@ -3339,11 +3365,18 @@ def run_prefill(
 		)
 		return result
 
-	created, failed = [], []
+	created, failed, skipped = [], [], []
 	if action in (ACTION_FIELDS, ACTION_ALL):
+		# `fields` is what the operator ticked. None means "everything you found", which is
+		# what a caller with no form - `bench execute`, the deprecated entry point - means.
+		wanted = None if fields is None else {str(f) for f in fields}
 		for row in creatable:
-			ok, message = _create_custom_field(config, row)
 			label = f"{row['dt']}.{row['fieldname']}"
+			if wanted is not None and label not in wanted:
+				skipped.append(label)
+				run.line("FIELD-SKIPPED", row["dt"], row["fieldname"], "not selected")
+				continue
+			ok, message = _create_custom_field(config, row)
 			if ok:
 				created.append(label)
 				run.line("FIELD-CREATED", row["dt"], row["fieldname"], message)
@@ -3355,6 +3388,19 @@ def run_prefill(
 					f"could not create on target - {message}",
 					kind="FIELD-CREATE-FAILED",
 				)
+
+		# Leaving one of these out is allowed - it is the operator's call - but it has a
+		# consequence they will otherwise meet much later, as records refusing to send.
+		left_out = [f for f in (result.get("identity_fields") or []) if f in skipped or f in failed]
+		if left_out:
+			run.mismatch(
+				None,
+				None,
+				"the source-identity field(s) " + ", ".join(left_out) + " were not created, so "
+				"records of those doctypes cannot be matched on the target and will be refused "
+				"rather than guessed at",
+				kind="IDENTITY-UNAVAILABLE",
+			)
 
 		# The target's schema is now different, so anything cached about it is stale.
 		for doctype in _prefill_doctype_names():
@@ -3375,7 +3421,11 @@ def run_prefill(
 
 	parts = []
 	if action in (ACTION_FIELDS, ACTION_ALL):
-		parts.append(_("{0} field(s) created, {1} failed.").format(len(created), len(failed)))
+		parts.append(
+			_("{0} field(s) created, {1} failed, {2} not selected.").format(
+				len(created), len(failed), len(skipped)
+			)
+		)
 	if action in (ACTION_RECORDS, ACTION_ALL):
 		parts.append(
 			_("{0} item(s) and {1} BOM(s) queued for push.").format(
@@ -3386,10 +3436,14 @@ def run_prefill(
 		{
 			"fields_created": created,
 			"fields_failed": failed,
+			"fields_skipped": skipped,
 			"records_queued": bool(queued),
 			"message": " ".join(parts),
 		}
 	)
+	# What is still outstanding after this run, so the same log can offer to finish the job
+	# rather than sending the operator back to run another check.
+	result["fields_to_create"] = sorted(set(failed) | set(skipped))
 	_close_prefill(
 		log_name,
 		STATUS_PARTIAL if failed else STATUS_COMPLETED,

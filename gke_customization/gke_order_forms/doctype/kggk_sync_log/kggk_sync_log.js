@@ -84,23 +84,30 @@ function retry(frm) {
 	);
 }
 
-// What a finished check offers. Two buttons, not one: creating the fields the target is
-// missing and pushing ten thousand records at it are separate decisions with very different
-// consequences, and the first is often the only one you want.
+// What a finished prefill run offers next. A check offers both actions; a field-creation
+// run offers the push, and offers creation again for whatever was left out or failed - so
+// the whole job can be finished from the one document instead of starting over.
 function offer_apply(frm) {
 	frappe.call({
 		method: "gke_customization.gke_order_forms.doc_events.kggk_sync.prefill_result",
 		args: { log_name: frm.doc.name },
 		callback(r) {
 			const out = r.message;
-			if (!out || out.applied) return;
+			if (!out) return;
+
+			// A run that queued records has nothing left to offer.
+			if (out.action === "records" || out.action === "all") {
+				render_summary(frm, out);
+				return;
+			}
 
 			render_summary(frm, out);
 
-			if ((out.fields_to_create || []).length) {
+			const outstanding = out.fields_to_create || [];
+			if (outstanding.length) {
 				frm.add_custom_button(
 					__("Create Missing Fields"),
-					() => confirm_fields(out),
+					() => choose_fields(out),
 					__("Actions")
 				).addClass("btn-primary");
 			}
@@ -127,14 +134,108 @@ function offer_apply(frm) {
 	});
 }
 
+// Not every missing field is wanted. Some belong to a module the target does not run, and
+// creating them there is clutter nobody will remove - so the list is presented and the
+// operator decides. Everything is ticked by default, because that is the common case.
+function choose_fields(out) {
+	const outstanding = out.fields_to_create || [];
+	// Only the identity fields still outstanding. After a partial run the result still lists
+	// every identity field it ever found, and treating an already-created one as "unticked"
+	// would warn about a problem that no longer exists.
+	const identityLeft = (out.identity_fields || []).filter((f) => outstanding.includes(f));
+	const identity = new Set(identityLeft);
+
+	const options = outstanding.map((f) => ({
+		label: identity.has(f)
+			? `${frappe.utils.escape_html(f)} <span class="text-muted">— ${__(
+					"needed to match records"
+			  )}</span>`
+			: frappe.utils.escape_html(f),
+		value: f,
+		checked: 1,
+	}));
+
+	const dialog = new frappe.ui.Dialog({
+		title: __("Create Fields on the Target"),
+		size: "large",
+		fields: [
+			{
+				fieldtype: "HTML",
+				options: `<p class="text-muted">${__(
+					"These are created on {0}. Untick anything you do not want.",
+					[frappe.utils.escape_html(out.target)]
+				)}</p>`,
+			},
+			{
+				fieldname: "fields",
+				fieldtype: "MultiCheck",
+				label: __("Fields to create"),
+				options: options,
+				columns: 1,
+			},
+		],
+		primary_action_label: __("Create Selected"),
+		primary_action() {
+			const chosen = dialog.get_value("fields") || [];
+			if (!chosen.length) {
+				frappe.msgprint({
+					title: __("Nothing Selected"),
+					indicator: "orange",
+					message: __("Tick at least one field, or close this dialog."),
+				});
+				return;
+			}
+
+			// Leaving these out is allowed, but it is not a small thing: without them a
+			// record cannot be matched on the target and the push refuses it rather than
+			// guessing at its name. Better said here than met later as a wall of failures.
+			const dropped = identityLeft.filter((f) => !chosen.includes(f));
+			const go = () => {
+				dialog.hide();
+				run_action({ action: "fields", fields: JSON.stringify(chosen) });
+			};
+
+			if (dropped.length) {
+				frappe.confirm(
+					__(
+						"{0} is not selected. Without it, records of that type cannot be " +
+							"matched on the target and will be refused rather than sent. Continue?",
+						[dropped.join(", ")]
+					),
+					go
+				);
+				return;
+			}
+			go();
+		},
+	});
+	dialog.show();
+}
+
 function render_summary(frm, out) {
 	const rows = [
 		[__("Target"), frappe.utils.escape_html(out.target)],
 		[__("Manufacturing Plans scanned"), out.plans_scanned],
-		[__("Custom fields to create"), (out.fields_to_create || []).length],
 		[__("Items missing on target"), `${out.items_missing} / ${out.items_total}`],
 		[__("BOMs missing on target"), `${out.boms_missing} / ${out.boms_total}`],
 	];
+
+	// A run that created fields reports what happened to each one; a check reports how many
+	// it would create.
+	if (out.fields_created || out.fields_skipped) {
+		rows.push([__("Fields created"), (out.fields_created || []).length]);
+		if ((out.fields_skipped || []).length) {
+			rows.push([__("Fields not selected"), out.fields_skipped.length]);
+		}
+		if ((out.fields_failed || []).length) {
+			rows.push([
+				`<span class="text-danger">${__("Fields that failed")}</span>`,
+				`<span class="text-danger">${out.fields_failed.length}</span>`,
+			]);
+		}
+	} else {
+		rows.push([__("Custom fields to create"), (out.fields_to_create || []).length]);
+	}
 
 	// The number the summary used to leave out, and the one that decides whether any of the
 	// others can be believed: a record whose batch could not be asked about is unknown, not
@@ -150,12 +251,9 @@ function render_summary(frm, out) {
 		${rows.map(([k, v]) => `<tr><td style="width:60%">${k}</td><td>${v}</td></tr>`).join("")}
 	</table>`;
 
-	if ((out.fields_to_create || []).length) {
-		html += `<p style="margin-top:12px"><b>${__("Will be created on the target")}</b></p>
-			<div style="max-height:160px;overflow:auto"><code>${out.fields_to_create
-				.map(frappe.utils.escape_html)
-				.join("<br>")}</code></div>`;
-	}
+	html += field_list(__("Still to be created"), out.fields_to_create);
+	html += field_list(__("Created on the target"), out.fields_created);
+	html += field_list(__("Could not be created"), out.fields_failed);
 
 	// Findings, not faults. A standard field missing on the target means the two sites run
 	// different app versions; a same-named custom field would hide that behind something
@@ -166,12 +264,7 @@ function render_summary(frm, out) {
 		html += `<p style="margin-top:12px" class="text-muted">${frappe.utils.escape_html(note)}</p>`;
 	});
 
-	if ((out.standard_field_gaps || []).length) {
-		html += `<p style="margin-top:12px"><b>${__("Standard fields absent on the target")}</b></p>
-			<div style="max-height:120px;overflow:auto"><code>${out.standard_field_gaps
-				.map(frappe.utils.escape_html)
-				.join("<br>")}</code></div>`;
-	}
+	html += field_list(__("Standard fields absent on the target"), out.standard_field_gaps);
 
 	if ((out.expected_absent || []).length) {
 		html += `<p style="margin-top:12px" class="text-muted">${__(
@@ -180,18 +273,15 @@ function render_summary(frm, out) {
 		)}</p>`;
 	}
 
-	frm.dashboard.add_section(html, __("Check Result"));
+	frm.dashboard.add_section(html, __("Prefill Result"));
 }
 
-function confirm_fields(out) {
-	frappe.confirm(
-		__(
-			"Create {0} custom field(s) on {1}?<br><br>This writes to the other site. " +
-				"No Items or BOMs are pushed.",
-			[(out.fields_to_create || []).length, frappe.utils.escape_html(out.target)]
-		),
-		() => run_action({ action: "fields" })
-	);
+function field_list(title, entries) {
+	if (!(entries || []).length) return "";
+	return `<p style="margin-top:12px"><b>${title}</b></p>
+		<div style="max-height:160px;overflow:auto"><code>${entries
+			.map(frappe.utils.escape_html)
+			.join("<br>")}</code></div>`;
 }
 
 function confirm_records(out, check_log) {
@@ -201,7 +291,7 @@ function confirm_records(out, check_log) {
 				"They are queued and sent in the background.",
 			[out.items_missing, out.boms_missing, frappe.utils.escape_html(out.target)]
 		),
-		// Naming the check binds the push to it: the server re-reads that log and refuses if
+		// Naming the run binds the push to it: the server re-reads that log and refuses if
 		// To Site has moved since it ran.
 		() => run_action({ action: "records", check_log: check_log })
 	);
