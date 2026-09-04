@@ -40,7 +40,20 @@ class DataMigrationinKGGK(Document):
 		from gke_customization.gke_order_forms.doc_events.kggk_sync import (
 			current_site_hosts,
 			host_of,
+			is_secure,
 		)
+
+		if not is_secure(self.to_site):
+			# The API secret goes out on every single request. On plain HTTP it is readable by
+			# anything between here and the target, and this credential can write Items, BOMs
+			# and Custom Fields on the other site.
+			frappe.throw(
+				_(
+					"To Site must be https - the API secret is sent on every request. "
+					"Plain HTTP is allowed only for localhost."
+				),
+				title=_("Insecure Target"),
+			)
 
 		target = host_of(self.to_site)
 		if target in current_site_hosts():
