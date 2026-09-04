@@ -35,7 +35,10 @@ frappe.ui.form.on("KGGK Sync Log", {
 				.addClass("btn-primary");
 		}
 
-		if (frm.doc.trigger === "Prefill" && frm.doc.status === "Completed") {
+		// A check that finished Partially Completed still has findings worth reading - it is
+		// the incomplete ones you most want to look at - so the summary is rendered either
+		// way. Whether Apply is offered is a separate question, answered by the server.
+		if (frm.doc.trigger === "Prefill" && ["Completed", "Partially Completed"].includes(frm.doc.status)) {
 			offer_apply(frm);
 		}
 	},
@@ -93,12 +96,22 @@ function offer_apply(frm) {
 
 			render_summary(frm, out);
 
+			// The server refuses an unusable check too; this only avoids offering a button
+			// that would throw. Both read the same `blocked_reason`.
+			if (out.blocked_reason) {
+				frm.dashboard.add_comment(out.blocked_reason, "orange", true);
+				return;
+			}
+
 			const nothing_to_do =
 				!(out.fields_to_create || []).length && !out.items_missing && !out.boms_missing;
 			if (nothing_to_do) return;
 
-			frm.add_custom_button(__("Create and Push"), () => confirm_apply(out), __("Actions"))
-				.addClass("btn-primary");
+			frm.add_custom_button(
+				__("Create and Push"),
+				() => confirm_apply(out, frm.doc.name),
+				__("Actions")
+			).addClass("btn-primary");
 		},
 	});
 }
@@ -111,6 +124,16 @@ function render_summary(frm, out) {
 		[__("Items missing on target"), `${out.items_missing} / ${out.items_total}`],
 		[__("BOMs missing on target"), `${out.boms_missing} / ${out.boms_total}`],
 	];
+
+	// The number the summary used to leave out, which is the one that decides whether any of
+	// the others can be believed: a record whose batch could not be asked about is unknown,
+	// not absent, and a check carrying any is not a check.
+	if (out.unchecked) {
+		rows.push([
+			`<span class="text-danger">${__("Records that could not be checked")}</span>`,
+			`<span class="text-danger">${out.unchecked}</span>`,
+		]);
+	}
 
 	let html = `<table class="table table-bordered" style="margin:0">
 		${rows.map(([k, v]) => `<tr><td style="width:60%">${k}</td><td>${v}</td></tr>`).join("")}
@@ -146,7 +169,7 @@ function render_summary(frm, out) {
 	frm.dashboard.add_section(html, __("Check Result"));
 }
 
-function confirm_apply(out) {
+function confirm_apply(out, check_log) {
 	frappe.confirm(
 		__(
 			"Create {0} custom field(s) on {1} and push {2} item(s) and {3} BOM(s)?<br><br>This writes to the other site.",
@@ -160,7 +183,9 @@ function confirm_apply(out) {
 		() => {
 			frappe.call({
 				method: "gke_customization.gke_order_forms.doc_events.kggk_sync.start_prefill",
-				args: { apply: 1 },
+				// Naming the check is what binds the apply to it: the server re-reads that
+				// log, and refuses if To Site has moved since it was run.
+				args: { apply: 1, check_log: check_log },
 				freeze: true,
 				freeze_message: __("Queueing the prefill..."),
 				callback(r) {

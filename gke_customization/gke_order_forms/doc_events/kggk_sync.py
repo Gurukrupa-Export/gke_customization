@@ -44,6 +44,16 @@ SKIP_DISABLED = "'Enable KGGK Sync' is off in Data Migration in KGGK"
 SKIP_NO_TARGET = "To Site is not set in Data Migration in KGGK"
 SKIP_NO_CREDS = "API Key / API Secret are not set in Data Migration in KGGK"
 SKIP_SAME_SITE = "To Site is this site ({0}) - refusing to sync a site to itself"
+SKIP_INSECURE = (
+	"To Site ({0}) is not https. The API secret is sent on every request, so plain HTTP is "
+	"refused; use https, or localhost for a development bench."
+)
+# The target this run was bound to is not the target configured now. Someone repointed To
+# Site while the run was in flight.
+SKIP_RETARGETED = (
+	"this run was queued for {0} but To Site is now {1} - refusing to send records to a "
+	"target the run was not checked against"
+)
 
 
 def strip_scheme(url):
@@ -77,6 +87,20 @@ def base_url(url):
 	if not value.startswith(("http://", "https://")):
 		value = "https://" + value
 	return value
+
+
+# Hosts allowed to speak plain HTTP. A development bench has no certificate; anything else
+# would be putting the API secret on the wire in clear text.
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+def is_secure(url):
+	"""Is this URL safe to put a credential on?"""
+	value = str(url or "").strip().lower()
+	host = host_of(value)
+	if host in LOCAL_HOSTS or host.endswith(".localhost"):
+		return True
+	return not value.startswith("http://")
 
 
 def current_site_hosts():
@@ -163,10 +187,17 @@ def get_sync_config():
 	if from_site and host_of(from_site) == target_host:
 		return None, SKIP_SAME_SITE.format(target_host)
 
+	if not is_secure(target):
+		return None, SKIP_INSECURE.format(target_host)
+
 	return (
 		frappe._dict(
 			from_site=base_url(from_site),
 			to_site=base_url(target),
+			# What this configuration *is*, so a job queued against it can tell that the
+			# settings changed underneath it. The secret is included because rotating the
+			# key is also a change worth noticing; it is hashed, never carried in the clear.
+			fingerprint=config_fingerprint(from_site, target, api_key, api_secret),
 			headers={
 				"Authorization": f"token {api_key}:{api_secret}",
 				"Accept": "application/json",
@@ -174,6 +205,20 @@ def get_sync_config():
 		),
 		None,
 	)
+
+
+def config_fingerprint(from_site, to_site, api_key, api_secret):
+	"""A short, stable digest of the settings a run was queued against.
+
+	Job arguments are readable by anyone who can open the queue, so this is a hash rather
+	than the values themselves.
+	"""
+	import hashlib
+
+	raw = "|".join(
+		[host_of(from_site), host_of(to_site), str(api_key or ""), str(api_secret or "")]
+	)
+	return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
 def target_site():
@@ -272,7 +317,16 @@ def _url(config, path):
 
 
 def api_request(
-	config, method, path, json=None, params=None, files=None, data=None, timeout=None, attempts=None
+	config,
+	method,
+	path,
+	json=None,
+	params=None,
+	files=None,
+	data=None,
+	timeout=None,
+	attempts=None,
+	retry_connection=True,
 ):
 	"""Call the target site, retrying only what is worth retrying.
 
@@ -282,6 +336,11 @@ def api_request(
 	``attempts=1`` opts out of the retries entirely. Three attempts on a 30 s timeout with
 	2 s and 4 s of backoff is up to 96 seconds for one call - fine inside a background job,
 	far too long for anything that has to answer a web request.
+
+	``retry_connection=False`` is for a call that creates something. A connection error says
+	the *answer* was lost, not that the request was: the record may well have been created,
+	and sending it again is how one BOM becomes two. Those callers re-ask what happened
+	instead of guessing.
 	"""
 	url = _url(config, path)
 	timeout = timeout or (UPLOAD_TIMEOUT if files else DEFAULT_TIMEOUT)
@@ -305,7 +364,7 @@ def api_request(
 			)
 		except requests.exceptions.RequestException as exc:
 			last = Response(url=url, error=f"connection failed: {exc}")
-			if attempt < max_attempts:
+			if attempt < max_attempts and retry_connection:
 				time.sleep(BACKOFF_SECONDS * attempt)
 				continue
 			return last
@@ -568,7 +627,8 @@ def mark_state(doctype, name, status, target, error=None, local_modified=None, t
 	"""
 	if not name or not target:
 		return
-	try:
+
+	def write():
 		existing = frappe.db.get_value(
 			STATE_DOCTYPE,
 			{"record_doctype": doctype, "record_name": name, "target_site": target},
@@ -597,13 +657,52 @@ def mark_state(doctype, name, status, target, error=None, local_modified=None, t
 			# record changed *after* the version we sent, and only this answers that.
 			doc.local_modified = local_modified or frappe.db.get_value(doctype, name, "modified")
 			doc.attempts = 0
-		elif status == "Failed":
+		elif status in ("Failed", "Partial"):
+			# Partial counts too, or a link that will never resolve is retried by the
+			# reconciler every hour until the end of time.
 			doc.attempts = cint(doc.attempts) + 1
 
 		doc.flags.ignore_version = True
 		doc.save(ignore_permissions=True)
+
+	# Read-then-write is not atomic, and a plan job, an item save and a prefill can all reach
+	# the same record at once. The unique constraint on (type, record, target) is what stops
+	# two rows existing; this turns the resulting error into the update it should have been.
+	try:
+		frappe.db.savepoint("kggk_state")
+		write()
+	except frappe.exceptions.DuplicateEntryError:
+		frappe.db.rollback(save_point="kggk_state")
+		try:
+			write()
+		except Exception:
+			frappe.logger("kggk_sync").exception(
+				f"could not record sync state for {doctype} {name} after a concurrent insert"
+			)
 	except Exception:
 		frappe.logger("kggk_sync").exception(f"could not record sync state for {doctype} {name}")
+
+
+def set_state_status(doctype, name, target, status):
+	"""Change only the status of a Sync State row.
+
+	Deliberately not `mark_state`: that one stamps ``local_modified`` from the record as it
+	is *now* whenever the status is Synced. Promoting a record out of Partial after its link
+	was repaired would therefore adopt any edit made since the push, and the reconciler would
+	never send it. The version stamp belongs to the push that set it.
+	"""
+	if not name or not target:
+		return
+	try:
+		row = frappe.db.get_value(
+			STATE_DOCTYPE,
+			{"record_doctype": doctype, "record_name": name, "target_site": target},
+			"name",
+		)
+		if row:
+			frappe.db.set_value(STATE_DOCTYPE, row, "status", status, update_modified=False)
+	except Exception:
+		frappe.logger("kggk_sync").exception(f"could not set sync status for {doctype} {name}")
 
 
 def target_names(doctype, names, target):
@@ -643,8 +742,38 @@ def target_names(doctype, names, target):
 
 
 def target_name_for(doctype, name, target):
-	"""What one record is called on the target, falling back to our own name."""
+	"""What one record is called on the target, falling back to our own name.
+
+	The fallback is a *guess*, and it is only ever safe where the value is checked before
+	use - resolving a Link, where `api_exists` decides. Never use it to address a record we
+	are about to overwrite: see `target_name_if_known`.
+	"""
 	return target_names(doctype, [name], target).get(name, name)
+
+
+def target_name_if_known(doctype, name, target):
+	"""What the target calls this record, or ``None`` if we have never recorded it.
+
+	The distinction `target_name_for` cannot make, and the one that matters before a write.
+	Assuming an unrecorded BOM is called the same thing over there is how a PUT lands on a
+	completely unrelated BOM: names are `BOM-{item}-{nnn}`, the index counts that site's own
+	BOMs for the item, and KGGK creates BOMs of its own. `BOM-RING-001` exists on both sites
+	and means two different things.
+	"""
+	if not name or not target or doctype not in MAPPED_DOCTYPES:
+		return None
+	try:
+		return (
+			frappe.db.get_value(
+				STATE_DOCTYPE,
+				{"record_doctype": doctype, "record_name": name, "target_site": target},
+				"target_name",
+			)
+			or None
+		)
+	except Exception:
+		frappe.logger("kggk_sync").exception(f"could not read the target name for {doctype} {name}")
+		return None
 
 
 def is_synced(doctype, name, target):
@@ -659,6 +788,28 @@ def is_synced(doctype, name, target):
 				"record_name": name,
 				"target_site": target,
 				"status": "Synced",
+			},
+		)
+	)
+
+
+def is_on_target(doctype, name, target):
+	"""Does the target hold this record at all - complete or not?
+
+	A Partial record is on the target just as much as a Synced one; it is only waiting for a
+	link. Deciding "has KGGK got this?" on Synced alone would treat it as new, and the
+	"Send Later Changes" switch would not apply to it.
+	"""
+	if not name or not target:
+		return False
+	return bool(
+		frappe.db.exists(
+			STATE_DOCTYPE,
+			{
+				"record_doctype": doctype,
+				"record_name": name,
+				"target_site": target,
+				"status": ("in", ["Synced", "Partial"]),
 			},
 		)
 	)
@@ -716,6 +867,12 @@ class SyncRun:
 		# ride between chunks, because the BOM an Item wants is very often pushed later than
 		# the Item itself. See `_apply_deferred_links`.
 		self.deferred = [tuple(d) for d in (deferred or [])][:MAX_DEFERRED]
+
+		# Records that reached the target with a link still missing. They are on the target
+		# and they are not finished, and calling that "Synced" is what used to lose the link
+		# for good: the reconciler compares timestamps, the record looks current, and nothing
+		# ever goes back for it. Held as Partial instead, which the reconciler does pick up.
+		self.incomplete = set()
 
 	# -- counters carried to the next chunk ------------------------------------------
 
@@ -877,8 +1034,12 @@ class SyncRun:
 		remembered and retried once its target exists.
 		"""
 		if len(self.deferred) >= MAX_DEFERRED:
+			# Past the ceiling the link is not merely deferred, it is dropped - so the record
+			# must not be allowed to look finished either.
+			self.incomplete.add((doctype, name))
 			return
 		self.deferred.append((doctype, name, fieldname, value, link_doctype))
+		self.incomplete.add((doctype, name))
 
 	# -- outcomes --------------------------------------------------------------------
 
@@ -887,12 +1048,13 @@ class SyncRun:
 
 	def item_ok(self, name, note="", local_modified=None, target_name=None):
 		self.items_synced += 1
+		status = "Partial" if ("Item", name) in self.incomplete else "Synced"
 		self.line("OK", "Item", name, note or "synced")
-		self.row("Item", name, "Synced", note or "synced", action=note)
+		self.row("Item", name, status, note or "synced", action=note)
 		mark_state(
 			"Item",
 			name,
-			"Synced",
+			status,
 			self._target_host(),
 			local_modified=local_modified,
 			target_name=target_name,
@@ -907,12 +1069,13 @@ class SyncRun:
 
 	def bom_ok(self, name, note="", local_modified=None, target_name=None):
 		self.boms_synced += 1
+		status = "Partial" if ("BOM", name) in self.incomplete else "Synced"
 		self.line("OK", "BOM", name, note or "synced")
-		self.row("BOM", name, "Synced", note or "synced", action=note)
+		self.row("BOM", name, status, note or "synced", action=note)
 		mark_state(
 			"BOM",
 			name,
-			"Synced",
+			status,
 			self._target_host(),
 			local_modified=local_modified,
 			target_name=target_name,
@@ -938,6 +1101,11 @@ class SyncRun:
 		if status is None:
 			if self.items_failed or self.boms_failed:
 				status = STATUS_PARTIAL if (self.items_synced or self.boms_synced) else STATUS_FAILED
+			elif self.incomplete or self.mismatches:
+				# Everything was accepted, and something is still not right over there - a
+				# link never resolved, a field could not be written. "Completed" would put
+				# that behind a green tick and nobody would look again.
+				status = STATUS_PARTIAL
 			else:
 				status = STATUS_COMPLETED
 		self.line("INFO", None, None, f"=== sync finished: {self.summary(status)} ===")
@@ -1495,6 +1663,177 @@ def get_target_submit_fields(config, doctype, run=None):
 # Fields that identify a record and cannot be changed on an existing one.
 IMMUTABLE_ON_UPDATE = {"Item": {"variant_of", "item_code"}, "BOM": {"item"}}
 
+# ---------------------------------------------------------------------------------
+# RECORD IDENTITY ON THE TARGET
+# ---------------------------------------------------------------------------------
+#
+# A record's *name* is not its identity across two sites. ERPNext names a BOM
+# `BOM-{item}-{nnn}` where the index counts how many BOMs that site already holds for the
+# item, so the same design is `-002` here and `-001` there, and `BOM-RING-001` exists on
+# both sites meaning different things. Addressing a record by name alone therefore either
+# overwrites something unrelated or creates a duplicate.
+#
+# So every record we push carries where it came from, and that triple - source site, source
+# doctype, source name - is what we look it up by. It is stable across renames on either
+# side, it survives our Sync State table being lost, and it makes the push an upsert rather
+# than a guess.
+
+IDENTITY_SOURCE_SITE = "custom_kggk_source_site"
+IDENTITY_SOURCE_DOCTYPE = "custom_kggk_source_doctype"
+IDENTITY_SOURCE_NAME = "custom_kggk_source_name"
+
+# Created on the target for each doctype we push. `read_only` because they are bookkeeping,
+# not data anybody there should edit; `no_copy` so an amended document does not inherit an
+# identity belonging to another record.
+IDENTITY_FIELDS = (
+	{
+		"fieldname": IDENTITY_SOURCE_SITE,
+		"label": "Source Site",
+		"fieldtype": "Data",
+		"read_only": 1,
+		"no_copy": 1,
+		"description": "Set by the Gurukrupa sync. The site this record was pushed from.",
+	},
+	{
+		"fieldname": IDENTITY_SOURCE_DOCTYPE,
+		"label": "Source DocType",
+		"fieldtype": "Data",
+		"read_only": 1,
+		"no_copy": 1,
+		"description": "Set by the Gurukrupa sync.",
+	},
+	{
+		"fieldname": IDENTITY_SOURCE_NAME,
+		"label": "Source Name",
+		"fieldtype": "Data",
+		"read_only": 1,
+		"no_copy": 1,
+		# The lookup runs on this for every record in a run; without the index it is a full
+		# table scan of the target's Item table each time.
+		"search_index": 1,
+		"description": "Set by the Gurukrupa sync. The name this record has on the source site.",
+	},
+)
+
+
+def source_host():
+	"""The host this site is known by, for stamping onto records we push."""
+	try:
+		host = host_of(frappe.utils.get_url())
+		if host:
+			return host
+	except Exception:
+		pass
+	return host_of(getattr(frappe.local, "site", "") or "")
+
+
+def _identity_values(doctype, name):
+	return {
+		IDENTITY_SOURCE_SITE: source_host(),
+		IDENTITY_SOURCE_DOCTYPE: doctype,
+		IDENTITY_SOURCE_NAME: str(name),
+	}
+
+
+def _identity_key(config, doctype):
+	return f"kggk_identity_ready::{host_of(config.to_site)}::{doctype}"
+
+
+def ensure_identity_fields(config, doctype, run=None):
+	"""Make sure the target can hold - and be searched by - a record's origin.
+
+	Returns True when the target has all three fields. Without them the upsert has nothing
+	to look a record up by and has to fall back to matching on name, which is the behaviour
+	this exists to replace, so a failure here is reported rather than passed over.
+	"""
+	cached = frappe.cache().get_value(_identity_key(config, doctype), expires=True)
+	if cached:
+		return True
+
+	existing = get_target_fields(config, doctype, run=run)
+	if existing is None:
+		# We could not read the schema at all. Nothing is safe to conclude.
+		return False
+
+	missing = [f for f in IDENTITY_FIELDS if f["fieldname"] not in existing]
+	for field in missing:
+		row = dict(field)
+		row["dt"] = doctype
+		ok, message = _create_custom_field(config, row)
+		if not ok:
+			run and run.mismatch(
+				doctype,
+				None,
+				f"could not create {row['fieldname']} on the target - {message}. Records will "
+				"be matched by name instead, which cannot tell two sites' BOMs apart.",
+				kind="IDENTITY-UNAVAILABLE",
+				once_key=f"identity::{doctype}",
+			)
+			return False
+
+	if missing:
+		# The schema just changed; whatever we cached about it is a field list short.
+		frappe.cache().delete_value(f"kggk_target_fields::{host_of(config.to_site)}::{doctype}")
+
+	frappe.cache().set_value(_identity_key(config, doctype), 1, expires_in_sec=_TARGET_FIELD_TTL)
+	return True
+
+
+def lookup_by_identity(config, doctype, name, run=None):
+	"""What the target calls the record that came from our ``name``, or ``None``.
+
+	``None`` means "not there" only when the question was actually answered; a lookup that
+	failed returns ``_LOOKUP_FAILED`` so the caller refuses to create rather than creating a
+	duplicate on the strength of a timeout.
+	"""
+	identity = _identity_values(doctype, name)
+	response = api_get(
+		config,
+		f"/api/resource/{segment(doctype)}",
+		params={
+			"filters": frappe.as_json(
+				[
+					[IDENTITY_SOURCE_SITE, "=", identity[IDENTITY_SOURCE_SITE]],
+					[IDENTITY_SOURCE_DOCTYPE, "=", doctype],
+					[IDENTITY_SOURCE_NAME, "=", str(name)],
+				]
+			),
+			"fields": frappe.as_json(["name"]),
+			"limit_page_length": 0,
+			"order_by": "creation asc",
+		},
+	)
+	if not response.ok:
+		run and run.mismatch(
+			doctype,
+			name,
+			f"could not ask the target which record came from this one - {response.message()}",
+			kind="IDENTITY-LOOKUP-FAILED",
+			once_key=f"idlookup::{doctype}",
+		)
+		return _LOOKUP_FAILED
+
+	rows = response.data.get("data") or []
+	if not rows:
+		return None
+	if len(rows) > 1:
+		# The target already holds duplicates of this record. Say so - it is a data problem
+		# over there that no amount of syncing will fix - and keep using the oldest, so that
+		# every later run addresses the same one instead of alternating between them.
+		run and run.mismatch(
+			doctype,
+			name,
+			f"the target holds {len(rows)} records that all claim to come from this one "
+			f"({', '.join(r.get('name') for r in rows[:5])}); using the oldest",
+			kind="TARGET-DUPLICATE",
+		)
+	return rows[0].get("name")
+
+
+# Distinct from None, which means "asked, and it is not there".
+_LOOKUP_FAILED = object()
+
+
 def _link_exists(config, doctype, value, cache):
 	key = (doctype, value)
 	if key not in cache:
@@ -1602,12 +1941,34 @@ def _apply_deferred_links(config, run):
 		else:
 			still_missing.append((doctype, name, fieldname, link_doctype, remote_value))
 
+	# Records that will still be waiting on something after this pass, whatever happens to
+	# the PUTs below. Only a record on neither list has actually been completed.
+	unfinished = {(doctype, name) for doctype, name, _f, _ld, _v in still_missing}
+
 	for (doctype, name), fields in updates.items():
 		# The record being patched may itself be under a different name over there.
+		known = target_name_if_known(doctype, name, target_host)
+		if not known:
+			# The state row is missing - `mark_state` swallows its own failures, so this can
+			# happen after a push that otherwise worked. Ask the target directly rather than
+			# either guessing our own name, which is what lands a PUT on an unrelated record,
+			# or giving up on a link we can still repair.
+			found = lookup_by_identity(config, doctype, name, run=run)
+			known = None if found is _LOOKUP_FAILED else found
+
+		if not known:
+			run.mismatch(
+				doctype,
+				name,
+				f"{', '.join(sorted(fields))}: cannot be re-linked - the target has no record "
+				"that came from this one, and its name there was never recorded",
+				kind="RELINK-FAILED",
+			)
+			unfinished.add((doctype, name))
+			continue
+
 		response = api_put(
-			config,
-			f"/api/resource/{segment(doctype)}/{segment(target_name_for(doctype, name, target_host))}",
-			json=fields,
+			config, f"/api/resource/{segment(doctype)}/{segment(known)}", json=fields
 		)
 		if response.ok:
 			run.line("RELINKED", doctype, name, ", ".join(sorted(fields)))
@@ -1619,8 +1980,26 @@ def _apply_deferred_links(config, run):
 				f"{response.message()}",
 				kind="RELINK-FAILED",
 			)
+			# A failed relink is not a lost one. Put it back in the backlog so the next chunk,
+			# and failing that the hourly reconciler, tries again.
+			for fieldname, value in fields.items():
+				link_doctype = next(
+					(ld for dt, nm, fn, _v, ld in run.deferred
+					 if (dt, nm, fn) == (doctype, name, fieldname)),
+					None,
+				)
+				still_missing.append((doctype, name, fieldname, link_doctype, value))
+			unfinished.add((doctype, name))
+
+	# Whatever is finished is finished: promote it out of Partial so the reconciler stops
+	# carrying it. Anything still waiting keeps its Partial row and will be picked up again.
+	for doctype, name in {k for k in updates} - unfinished:
+		run.incomplete.discard((doctype, name))
+		set_state_status(doctype, name, target_host, "Synced")
 
 	for doctype, name, fieldname, link_doctype, value in still_missing:
+		run.incomplete.add((doctype, name))
+		set_state_status(doctype, name, target_host, "Partial")
 		run.line(
 			"LINK-PENDING", doctype, name, f"{fieldname}: {link_doctype} '{value}' still absent"
 		)
@@ -1633,50 +2012,105 @@ def _apply_deferred_links(config, run):
 
 
 def _send(config, doctype, name, data, lookup=None, run=None):
-	"""PUT the record under the name the target knows it by; POST if it has never seen it.
+	"""Upsert one record on the target, addressed by where it came from.
 
 	Returns ``(response, action, target_name, blocked_fields)``.
 
-	``target_name`` is the point of the third slot: the target decides the name of what it
-	creates - see ``target_names`` - and unless we read it back and remember it, the next run
-	addresses the record by our name, gets a 404, POSTs again and leaves a duplicate. Over a
-	few runs that is one extra BOM per BOM per run.
+	The record is looked up by its identity - the source site, doctype and name stamped on
+	it - and *not* by its name, which means two different things on two sites. Three answers
+	are possible and all three matter:
+
+	* a name comes back  -> PUT that record, whatever it is called over there
+	* nothing comes back -> POST, and remember what the target decides to call it
+	* the question could not be answered -> refuse. Creating on the strength of a failed
+	  lookup is how a duplicate is made, and a duplicate BOM is not something the next run
+	  can tidy up.
 
 	``blocked_fields`` is non-empty only when the target has already submitted the record and
 	would not let those fields change.
 	"""
-	lookup = lookup or name
-	update_data = {
-		k: v for k, v in data.items() if k not in IMMUTABLE_ON_UPDATE.get(doctype, set())
-	}
-	path = f"/api/resource/{segment(doctype)}/{segment(lookup)}"
-	response = api_put(config, path, json=update_data)
+	data = dict(data)
+	data.update(_identity_values(doctype, name))
 
-	if response.ok:
-		return response, "updated", lookup, []
+	identified = ensure_identity_fields(config, doctype, run=run)
 
-	# The target has submitted this record, so most of it is frozen over there. Sending the
-	# whole payload would keep failing on the first frozen field forever. ERPNext still lets a
-	# handful of fields change after submit - is_active and is_default on a BOM among them -
-	# so send those and say plainly which ones could not move.
-	#
-	# This engine never submits anything itself: submitting is irreversible on someone else's
-	# production site, and the REST route for it needs a full read-modify-write that would
-	# overwrite the record if it went wrong. Records land as drafts and KGGK submits them.
-	if response.exc_type == "UpdateAfterSubmitError":
-		allowed = get_target_submit_fields(config, doctype, run=run)
-		reduced = {k: v for k, v in update_data.items() if k in allowed}
-		blocked = sorted(set(update_data) - set(reduced))
-		if not reduced:
-			return response, "updated", lookup, blocked
-		retry = api_put(config, path, json=reduced)
-		action = "updated (submitted on target)" if retry.ok else "updated"
-		return retry, action, lookup, blocked
+	target_id = lookup
+	if not target_id and identified:
+		found = lookup_by_identity(config, doctype, name, run=run)
+		if found is _LOOKUP_FAILED:
+			return (
+				Response(error="could not determine whether this record already exists on the target"),
+				"skipped",
+				name,
+				[],
+			)
+		target_id = found
 
-	if not response.not_found:
-		return response, "updated", lookup, []
+	if not target_id and not identified:
+		# No identity on the target and no recorded name. Matching on our own name is exactly
+		# the guess that overwrites an unrelated record, so this refuses instead - the
+		# prefill button creates the identity fields and then it will go through.
+		return (
+			Response(
+				error="the target has no source-identity fields, so this record cannot be "
+				"matched safely - run Check / Prefill Target Site first"
+			),
+			"skipped",
+			name,
+			[],
+		)
 
-	response = api_post(config, f"/api/resource/{segment(doctype)}", json=data)
+	if target_id:
+		update_data = {
+			k: v for k, v in data.items() if k not in IMMUTABLE_ON_UPDATE.get(doctype, set())
+		}
+		path = f"/api/resource/{segment(doctype)}/{segment(target_id)}"
+		response = api_put(config, path, json=update_data)
+
+		if response.ok:
+			return response, "updated", target_id, []
+
+		# The target has submitted this record, so most of it is frozen over there. Sending
+		# the whole payload would keep failing on the first frozen field forever. ERPNext
+		# still lets a handful of fields change after submit - is_active and is_default on a
+		# BOM among them - so send those and say plainly which ones could not move.
+		#
+		# This engine never submits anything itself: submitting is irreversible on someone
+		# else's production site, and the REST route for it needs a full read-modify-write
+		# that would overwrite the record if it went wrong. Records land as drafts and KGGK
+		# submits them.
+		if response.exc_type == "UpdateAfterSubmitError":
+			allowed = get_target_submit_fields(config, doctype, run=run)
+			reduced = {k: v for k, v in update_data.items() if k in allowed}
+			blocked = sorted(set(update_data) - set(reduced))
+			if not reduced:
+				return response, "updated", target_id, blocked
+			retry = api_put(config, path, json=reduced)
+			action = "updated (submitted on target)" if retry.ok else "updated"
+			return retry, action, target_id, blocked
+
+		if not response.not_found:
+			return response, "updated", target_id, []
+
+		# It was there when we asked and is not there now - deleted mid-run. Fall through and
+		# create it again rather than failing the record.
+		run and run.line("INFO", doctype, name, f"{target_id} vanished from the target, recreating")
+
+	# Create. Deliberately not retried on a connection error: the record may have been
+	# created and only the answer lost, so we ask the target what happened rather than
+	# sending it a second time.
+	response = api_post(
+		config, f"/api/resource/{segment(doctype)}", json=data, retry_connection=False
+	)
+
+	if response.error and identified:
+		settled = lookup_by_identity(config, doctype, name, run=run)
+		if settled is not _LOOKUP_FAILED and settled:
+			run and run.line(
+				"RECOVERED", doctype, name, f"the create did land, as {settled}, despite the error"
+			)
+			return Response(status_code=200, data={"data": {"name": settled}}), "created", settled, []
+
 	assigned = ((response.data or {}).get("data") or {}).get("name") or name
 	return response, "created", assigned, []
 
@@ -1721,7 +2155,7 @@ def push_item(item_code, config, run, seen=None):
 		"Item",
 		item_code,
 		data,
-		lookup=target_name_for("Item", item_code, target_host),
+		lookup=target_name_if_known("Item", item_code, target_host),
 		run=run,
 	)
 	if blocked:
@@ -1798,7 +2232,7 @@ def push_bom(bom_name, config, run):
 		"BOM",
 		bom_name,
 		data,
-		lookup=target_name_for("BOM", bom_name, target_host),
+		lookup=target_name_if_known("BOM", bom_name, target_host),
 		run=run,
 	)
 	if blocked:
@@ -1855,6 +2289,8 @@ def sync_records(
 	run_id=None,
 	log_name=None,
 	deferred=None,
+	expect_target=None,
+	expect_fingerprint=None,
 ):
 	"""Push a batch of Items and BOMs. The one entry point every trigger calls.
 
@@ -1873,6 +2309,18 @@ def sync_records(
 	if not config:
 		log_skip(reason)
 		return None
+
+	# The settings are a Single, so they can be edited while this run is in flight - and a
+	# run is a chain of jobs, each of which reads them afresh. Without this a twenty-chunk
+	# run can be repointed halfway through and post the rest of a Manufacturing Plan into a
+	# different company's site, recording Sync State rows that say it went somewhere it did
+	# not. The run travels with the target it was queued for and refuses anything else.
+	blocked = _wrong_target(config, expect_target, expect_fingerprint)
+	if blocked:
+		log_skip(blocked)
+		if log_name:
+			_abandon_run(log_name, blocked)
+		return {"status": STATUS_FAILED, "error": blocked}
 
 	if not items and not boms:
 		return None
@@ -1980,6 +2428,8 @@ def sync_records(
 			run_id=run_id,
 			log_name=run.log_name,
 			deferred=run.deferred,
+			expect_target=expect_target,
+			expect_fingerprint=expect_fingerprint,
 		)
 		return {
 			"status": "Running",
@@ -1989,6 +2439,37 @@ def sync_records(
 
 	status = run.finish()
 	return {"status": status, **run.counters()}
+
+
+def _wrong_target(config, expect_target, expect_fingerprint):
+	"""The reason this run must not proceed against the current settings, or ``None``."""
+	if expect_target and host_of(config.to_site) != expect_target:
+		return SKIP_RETARGETED.format(expect_target, host_of(config.to_site))
+	if expect_fingerprint and config.get("fingerprint") != expect_fingerprint:
+		# Same host, different credentials. Worth stopping for on its own: a key that changed
+		# mid-run usually means the target was repointed and back, or rotated under us.
+		return (
+			f"the KGGK settings changed after this run was queued (target {host_of(config.to_site)} "
+			"is the same, but the credentials are not) - refusing to continue"
+		)
+	return None
+
+
+def _abandon_run(log_name, reason):
+	"""Close a log for a run that refused to proceed, so it does not sit at Running."""
+	try:
+		doc = frappe.get_doc(LOG_DOCTYPE, log_name)
+		doc.status = STATUS_FAILED
+		doc.summary = reason
+		doc.ended_on = now_datetime()
+		doc.problems = ((doc.problems or "") + f"\nABORTED       | - | - | {reason}")[
+			-MAX_REPORT_CHARS:
+		]
+		doc.flags.ignore_version = True
+		doc.save(ignore_permissions=True)
+		frappe.db.commit()
+	except Exception:
+		frappe.logger("kggk_sync").exception(f"could not close abandoned run {log_name}")
 
 
 def enqueue_sync(items=None, boms=None, trigger="Manual", reference=None, job_id=None, log_name=None):
@@ -2019,6 +2500,9 @@ def enqueue_sync(items=None, boms=None, trigger="Manual", reference=None, job_id
 		reference=reference,
 		run_id=frappe.generate_hash(length=8),
 		log_name=log_name,
+		# Bound here, where the target is known to be the one the caller decided on.
+		expect_target=host_of(config.to_site),
+		expect_fingerprint=config.get("fingerprint"),
 	)
 	return True
 
@@ -2131,16 +2615,31 @@ def _on_master_update(doc):
 		if not is_sync_enabled():
 			return
 
-		if not cint(setting("sync_updates", 1)) and not is_eligible(doc):
-			return
-
 		config, reason = get_sync_config()
 		if not config:
 			log_skip(reason, doc.doctype, doc.name)
 			return
 
-		if not is_eligible(doc) and not is_synced(doc.doctype, doc.name, host_of(config.to_site)):
+		target_host = host_of(config.to_site)
+		already = is_on_target(doc.doctype, doc.name, target_host)
+
+		# "Send Later Changes" means exactly that: changes to a record KGGK already holds.
+		# Testing eligibility here instead was the bug - a Close Item is eligible forever, so
+		# every later save of one still went across with the switch off, which is precisely
+		# the case the switch exists to stop.
+		if already and not cint(setting("sync_updates", 1)):
 			return
+
+		if not is_eligible(doc) and not already:
+			return
+
+		# Durable intent, written before the queue is touched. `frappe.enqueue` can refuse -
+		# redis unreachable, or `deduplicate` declining because a job with this id is already
+		# running, in which case the *current* edit is simply dropped - and an exception here
+		# is swallowed so the save cannot fail. Without this row nothing would remember that a
+		# push was ever wanted: the reconciler joins on Sync State, so a record with no row is
+		# invisible to it forever.
+		mark_state(doc.doctype, doc.name, "Pending", target_host)
 
 		key = "items" if doc.doctype == "Item" else "boms"
 		enqueue_sync(
@@ -2207,6 +2706,12 @@ def _drifted(doctype, target, limit):
 		             (state.status = 'Synced' and (
 		                 state.local_modified is null or source.modified > state.local_modified
 		             ))
+		             -- Pending is a push that was asked for and may never have been queued:
+		             -- redis was down, the worker died, or the deduplicated job id was
+		             -- refused because one was already running. It is the only record of
+		             -- that intent, so it has to be visible here.
+		             or (state.status in ('Pending', 'Partial')
+		                 and state.attempts < %(max_attempts)s)
 		             or (state.status = 'Failed' and state.attempts < %(max_attempts)s)
 		         )
 		order by source.modified asc
@@ -2450,12 +2955,14 @@ def _field_gaps(config, run=None):
 	creatable = []
 	standard_gaps = []
 	unreadable = []
+	seen_fields = {}
 
 	for doctype in _prefill_doctypes():
 		target_fields = get_target_fields(config, doctype, run=run)
 		if target_fields is None:
 			unreadable.append(doctype)
 			continue
+		seen_fields[doctype] = target_fields
 
 		local_custom = _local_custom_fields(doctype)
 		for df in frappe.get_meta(doctype).fields:
@@ -2469,6 +2976,19 @@ def _field_gaps(config, run=None):
 				creatable.append(row)
 			else:
 				standard_gaps.append(f"{doctype}.{name} ({df.fieldtype})")
+
+	# The three fields that let a record be found by where it came from. They exist only on
+	# the target - there is nothing to mirror them from here - so the gap logic above cannot
+	# see them, and without them every push falls back to matching on name.
+	for doctype in MAPPED_DOCTYPES:
+		target_fields = seen_fields.get(doctype)
+		if target_fields is None:
+			continue
+		for field in IDENTITY_FIELDS:
+			if field["fieldname"] not in target_fields:
+				row = dict(field)
+				row["dt"] = doctype
+				creatable.append(row)
 
 	return creatable, standard_gaps, unreadable
 
@@ -2513,8 +3033,48 @@ def _prefill_in_flight():
 	return None
 
 
+def _stored_result(log_name):
+	"""The findings a prefill check wrote onto its log, or ``None``."""
+	problems = frappe.db.get_value(LOG_DOCTYPE, log_name, "problems") or ""
+	start = problems.rfind("{")
+	if start == -1:
+		return None
+	try:
+		return frappe.parse_json(problems[start:])
+	except Exception:
+		return None
+
+
+def _check_is_actionable(result):
+	"""Why the findings of this check must not be acted on, or ``None``.
+
+	A check that could not see everything is not a check. Applying on the back of one creates
+	custom fields and pushes records on the strength of a question that was never answered -
+	and the gaps it could not see are exactly the records that will fail.
+	"""
+	if not result:
+		return _("The check did not record its findings, so there is nothing to apply.")
+	if result.get("applied"):
+		return _("That log is an Apply, not a check.")
+	if cint(result.get("unchecked")):
+		return _(
+			"{0} record(s) could not be checked against the target, so this run does not know "
+			"what is missing. Run the check again."
+		).format(cint(result.get("unchecked")))
+	if result.get("schema_unreadable"):
+		return _("The target's field list could not be read for: {0}.").format(
+			", ".join(result["schema_unreadable"])
+		)
+	if result.get("standard_field_gaps"):
+		return _(
+			"The target is missing {0} standard field(s), so the two sites are running "
+			"different app versions. That has to be resolved by deploying, not by this button."
+		).format(len(result["standard_field_gaps"]))
+	return None
+
+
 @frappe.whitelist()
-def start_prefill(apply=0, limit_plans=None):
+def start_prefill(apply=0, limit_plans=None, check_log=None):
 	"""Hand the prefill to a worker and return the log to watch. Answers in milliseconds.
 
 	This used to do the whole job inside the web request: one existence check per item and
@@ -2539,6 +3099,36 @@ def start_prefill(apply=0, limit_plans=None):
 	reachable, message = check_connectivity(config)
 	if not reachable:
 		frappe.throw(message, title=_("Cannot Reach the Target Site"))
+
+	if apply:
+		# Apply acts on the findings of one specific check. Without naming it, "the second
+		# press" is only a second call to the same endpoint - and between the two presses the
+		# To Site can have been changed, which would create fields and push records into a
+		# site nobody ever checked.
+		if not check_log:
+			frappe.throw(
+				_("Run the check first, then apply its result."), title=_("Nothing to Apply")
+			)
+		log = frappe.db.get_value(
+			LOG_DOCTYPE, check_log, ["trigger", "status", "target_site"], as_dict=True
+		)
+		if not log or log.trigger != "Prefill":
+			frappe.throw(_("{0} is not a prefill check.").format(check_log))
+		if log.status != STATUS_COMPLETED:
+			frappe.throw(
+				_("That check finished as {0}, so its findings are incomplete.").format(log.status),
+				title=_("Check Not Usable"),
+			)
+		if host_of(log.target_site) != host_of(config.to_site):
+			frappe.throw(
+				_("That check was run against {0}, but To Site is now {1}.").format(
+					host_of(log.target_site), host_of(config.to_site)
+				),
+				title=_("Target Changed"),
+			)
+		refusal = _check_is_actionable(_stored_result(check_log))
+		if refusal:
+			frappe.throw(refusal, title=_("Check Not Usable"))
 
 	running = _prefill_in_flight()
 	if running:
@@ -2567,12 +3157,14 @@ def start_prefill(apply=0, limit_plans=None):
 		log_name=log.name,
 		apply=apply,
 		limit_plans=limit_plans,
+		expect_target=host_of(config.to_site),
+		expect_fingerprint=config.get("fingerprint"),
 	)
 
 	return {"log": log.name, "target": config.to_site, "connection": message}
 
 
-def run_prefill(log_name, apply=0, limit_plans=None):
+def run_prefill(log_name, apply=0, limit_plans=None, expect_target=None, expect_fingerprint=None):
 	"""Work out what the target is missing and, on apply, fill it in.
 
 	Two presses on purpose: the first writes nothing, the second creates Custom Fields on
@@ -2587,6 +3179,11 @@ def run_prefill(log_name, apply=0, limit_plans=None):
 	config, reason = get_sync_config()
 	if not config:
 		_close_prefill(log_name, STATUS_FAILED, reason)
+		return
+
+	blocked = _wrong_target(config, expect_target, expect_fingerprint)
+	if blocked:
+		_close_prefill(log_name, STATUS_FAILED, blocked)
 		return
 
 	run = SyncRun(
@@ -2642,7 +3239,22 @@ def run_prefill(log_name, apply=0, limit_plans=None):
 		result["message"] = _(
 			"Checked {0}. {1} field(s) would be created, {2} item(s) and {3} BOM(s) would be pushed."
 		).format(config.to_site, len(creatable), len(missing_items), len(missing_boms))
-		_close_prefill(log_name, STATUS_COMPLETED, result["message"], result=result, run=run)
+		# A check that could not see everything must not close green. Its whole output is a
+		# list of what the target is missing, and an unanswered question is not an empty one -
+		# `Completed` here is what let an incomplete check be applied.
+		incomplete = bool(unchecked) or bool(unreadable) or bool(standard_gaps)
+		if incomplete:
+			result["message"] += _(
+				" Incomplete: {0} record(s) could not be checked, {1} doctype(s) unreadable, "
+				"{2} standard field gap(s). Run it again before applying."
+			).format(len(unchecked), len(unreadable), len(standard_gaps))
+		_close_prefill(
+			log_name,
+			STATUS_PARTIAL if incomplete else STATUS_COMPLETED,
+			result["message"],
+			result=result,
+			run=run,
+		)
 		return result
 
 	created, failed = [], []
@@ -2727,14 +3339,13 @@ def _close_prefill(log_name, status, message, result=None, run=None):
 def prefill_result(log_name):
 	"""The stored findings of a prefill check, for the form that offers to act on them."""
 	frappe.only_for("System Manager")
-	problems = frappe.db.get_value(LOG_DOCTYPE, log_name, "problems") or ""
-	start = problems.rfind("{")
-	if start == -1:
-		return None
-	try:
-		return frappe.parse_json(problems[start:])
-	except Exception:
-		return None
+	result = _stored_result(log_name)
+	if result:
+		# The form needs to know whether it may offer Apply at all, and the reason has to be
+		# the same one the server will enforce - two implementations of "is this usable"
+		# would eventually disagree, and the disagreement would be a button that throws.
+		result["blocked_reason"] = _check_is_actionable(result)
+	return result
 
 
 @frappe.whitelist()
