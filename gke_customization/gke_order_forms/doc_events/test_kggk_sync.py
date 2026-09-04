@@ -928,6 +928,45 @@ class TestTargetNaming(unittest.TestCase):
 		self.assertEqual(out["boms_missing"], 0)
 
 
+class TestSettingsValidation(unittest.TestCase):
+	"""mandatory_depends_on only runs in the browser."""
+
+	def _settings_doc(self, **kw):
+		from gke_customization.gke_order_forms.doctype.data_migration_in_kggk import (
+			data_migration_in_kggk as mod,
+		)
+
+		doc = mod.DataMigrationinKGGK(
+			{"doctype": "Data Migration in KGGK", "name": "Data Migration in KGGK"}
+		)
+		doc.update({"enable_sync": 1, "to_site": "https://kggk.example.com",
+		            "api_key": "k", "api_secret": "s", "from_site": ""})
+		doc.update(kw)
+		return doc
+
+	def test_the_switch_cannot_be_turned_on_without_a_target(self):
+		with patch.object(k, "current_site_hosts", return_value={"gk.example.com"}):
+			with self.assertRaises(frappe.ValidationError):
+				self._settings_doc(to_site="").validate_kggk_sync()
+
+	def test_the_switch_cannot_be_turned_on_without_credentials(self):
+		with patch.object(k, "current_site_hosts", return_value={"gk.example.com"}):
+			with self.assertRaises(frappe.ValidationError):
+				self._settings_doc(api_secret="").validate_kggk_sync()
+
+	def test_pointing_it_at_this_site_is_refused_at_save_time(self):
+		with patch.object(k, "current_site_hosts", return_value={"kggk.example.com"}):
+			with self.assertRaises(frappe.ValidationError):
+				self._settings_doc().validate_kggk_sync()
+
+	def test_a_complete_configuration_saves(self):
+		with patch.object(k, "current_site_hosts", return_value={"gk.example.com"}):
+			self._settings_doc().validate_kggk_sync()
+
+	def test_the_switch_being_off_validates_nothing(self):
+		self._settings_doc(enable_sync=0, to_site="", api_key="", api_secret="").validate_kggk_sync()
+
+
 class TestLegacyHooksStayUnwired(unittest.TestCase):
 	def test_the_blocking_before_validate_push_is_not_registered(self):
 		"""It aborted a local save when KGGK was down. A merge must not bring it back."""
