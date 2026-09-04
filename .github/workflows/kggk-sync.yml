@@ -1,0 +1,260 @@
+# CI for the KGGK data migration - the Item / BOM / Manufacturing Plan push.
+#
+# Deliberately scoped by `paths`: this app is large and most of it has nothing to do with
+# the sync, so a change to payroll should not wait on a six-app bench install. Everything
+# the sync consists of is listed below, plus hooks.py and patches.txt, because unwiring a
+# hook or dropping a patch breaks the feature just as effectively as editing the module.
+
+name: KGGK Sync
+
+on:
+  push:
+    branches: [master, gk_develop]
+    paths: &sync_paths
+      - "gke_customization/gke_order_forms/doc_events/kggk_sync.py"
+      - "gke_customization/gke_order_forms/doc_events/test_kggk_sync.py"
+      - "gke_customization/gke_order_forms/doc_events/item.py"
+      - "gke_customization/gke_order_forms/doctype/data_migration_in_kggk/**"
+      - "gke_customization/gke_order_forms/doctype/kggk_sync_log/**"
+      - "gke_customization/gke_order_forms/doctype/kggk_sync_log_record/**"
+      - "gke_customization/gke_order_forms/doctype/kggk_sync_state/**"
+      - "gke_customization/patches/v1_0/*kggk*"
+      - "gke_customization/patches.txt"
+      - "gke_customization/hooks.py"
+      - ".github/workflows/kggk-sync.yml"
+  pull_request:
+    branches: [master, gk_develop]
+    paths: *sync_paths
+
+# A second push to the same PR makes the first run's answer irrelevant.
+concurrency:
+  group: kggk-sync-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------------
+  # Everything that can be checked without a database. Seconds, no secrets, and it runs
+  # on forks - so a syntax error or an unwired hook is caught even when the job below
+  # cannot start.
+  # ---------------------------------------------------------------------------------
+  static:
+    name: Static checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python compiles
+        run: |
+          python -m compileall -q \
+            gke_customization/gke_order_forms/doc_events/kggk_sync.py \
+            gke_customization/gke_order_forms/doc_events/test_kggk_sync.py \
+            gke_customization/gke_order_forms/doctype/data_migration_in_kggk \
+            gke_customization/gke_order_forms/doctype/kggk_sync_log \
+            gke_customization/gke_order_forms/doctype/kggk_sync_log_record \
+            gke_customization/gke_order_forms/doctype/kggk_sync_state \
+            gke_customization/patches/v1_0
+
+      - name: DocType JSON is valid
+        run: |
+          python - <<'PY'
+          import json, pathlib, sys
+          bad = []
+          for p in pathlib.Path("gke_customization/gke_order_forms/doctype").rglob("*.json"):
+              if "kggk" not in p.name and "data_migration" not in p.name:
+                  continue
+              try:
+                  json.loads(p.read_text())
+              except Exception as exc:
+                  bad.append(f"{p}: {exc}")
+          print("\n".join(bad) or "all sync doctype JSON parses")
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: Client scripts parse
+        run: |
+          for f in gke_customization/gke_order_forms/doctype/kggk_sync_log/kggk_sync_log.js \
+                   gke_customization/gke_order_forms/doctype/data_migration_in_kggk/data_migration_in_kggk.js; do
+            node --check "$f" && echo "ok  $f"
+          done
+
+      - name: The secret is not a plaintext field
+        run: |
+          python - <<'PY'
+          import json, sys
+          j = json.load(open("gke_customization/gke_order_forms/doctype/"
+                            "data_migration_in_kggk/data_migration_in_kggk.json"))
+          f = next(x for x in j["fields"] if x["fieldname"] == "api_secret")
+          if f["fieldtype"] != "Password":
+              sys.exit(f"api_secret is {f['fieldtype']}, not Password - it would sit in "
+                       "tabSingles in clear text and go into every backup.")
+          print("api_secret is a Password field")
+          PY
+
+      - name: Every KGGK patch is registered
+        run: |
+          python - <<'PY'
+          import pathlib, sys
+          listed = pathlib.Path("gke_customization/patches.txt").read_text()
+          missing = [
+              p.stem for p in pathlib.Path("gke_customization/patches/v1_0").glob("*kggk*.py")
+              if p.stem not in listed
+          ]
+          if missing:
+              sys.exit("patches not listed in patches.txt, so they will never run: "
+                       + ", ".join(missing))
+          print("all KGGK patches are registered")
+          PY
+
+      - name: The blocking before_validate push stays unwired
+        run: |
+          python - <<'PY'
+          import re, sys
+          src = open("gke_customization/hooks.py").read()
+          # Only the live mapping, not the commented-out history above it.
+          live = "\n".join(l for l in src.splitlines() if not l.lstrip().startswith("#"))
+          bad = [n for n in ("create_item_kggk", "create_bom_kggk") if n in live]
+          if bad:
+              sys.exit(f"{', '.join(bad)} is wired again - that pushed to KGGK synchronously "
+                       "inside the save and threw on any API error, so an unreachable KGGK "
+                       "aborted a local Item or BOM save.")
+          for need in ("kggk_sync.item_on_update", "kggk_sync.bom_on_update"):
+              if need not in live:
+                  sys.exit(f"{need} is not wired - Item/BOM changes would stop reaching KGGK.")
+          print("hooks are wired to the background push, not the blocking one")
+          PY
+
+  # ---------------------------------------------------------------------------------
+  # The real suite, on a real site. gke_customization's doctypes link into erpnext, hrms,
+  # india_compliance, jewellery_erpnext and gurukrupa_customizations, so all of them have
+  # to be installed before it will even migrate - three are private, hence the token.
+  # ---------------------------------------------------------------------------------
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    # Forks have no access to the token, and a job that cannot start should not be
+    # reported as a failure of the change.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+
+    services:
+      mariadb:
+        image: mariadb:10.6
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=5s --health-retries=10
+
+    steps:
+      - name: Check the token is configured
+        env:
+          TOKEN: ${{ secrets.GKE_CI_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::GKE_CI_TOKEN is not set. The suite needs jewellery_erpnext and"
+            echo "::error::gurukrupa_customizations, which are private. Add a repo secret"
+            echo "::error::holding a PAT with read access to those repositories."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          path: gke_customization
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: MariaDB settings Frappe expects
+        run: |
+          mysql --host 127.0.0.1 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
+          mysql --host 127.0.0.1 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
+
+      - name: Install bench
+        run: pip install frappe-bench
+
+      - name: Build the bench
+        run: |
+          # --skip-assets: these are backend tests, and building the frontend is most of
+          # the wall clock of a bench init.
+          bench init --skip-redis-config-generation --skip-assets \
+                     --frappe-branch version-15 --python "$(which python)" ci-bench
+
+      - name: Fetch the apps
+        working-directory: ci-bench
+        env:
+          TOKEN: ${{ secrets.GKE_CI_TOKEN }}
+        run: |
+          auth() { echo "https://x-access-token:${TOKEN}@github.com/$1"; }
+          bench get-app --branch version-15 erpnext https://github.com/frappe/erpnext.git
+          bench get-app --branch version-15 hrms https://github.com/frappe/hrms.git
+          bench get-app --branch version-15 india_compliance https://github.com/resilient-tech/india-compliance.git
+          bench get-app --branch New-Gurukrupa-Export jewellery_erpnext "$(auth Gurukrupa-Export/jewellery-erpnext.git)"
+          bench get-app --branch main gurukrupa_customizations "$(auth Gurukrupa-Export/gurukrupa_customizations.git)"
+          bench get-app gke_customization "${GITHUB_WORKSPACE}/gke_customization"
+
+      - name: Create the site
+        working-directory: ci-bench
+        run: |
+          bench set-config -g db_host 127.0.0.1
+          bench set-config -g redis_cache "redis://127.0.0.1:6379"
+          bench set-config -g redis_queue "redis://127.0.0.1:6379"
+          bench set-config -g redis_socketio "redis://127.0.0.1:6379"
+          bench new-site ci.localhost \
+            --db-root-password root --admin-password admin --no-mariadb-socket
+          bench --site ci.localhost set-config allow_tests true
+
+      - name: Install the apps
+        working-directory: ci-bench
+        run: |
+          for app in erpnext hrms india_compliance jewellery_erpnext \
+                     gurukrupa_customizations gke_customization; do
+            echo "::group::install $app"
+            bench --site ci.localhost install-app "$app"
+            echo "::endgroup::"
+          done
+
+      - name: Patches apply cleanly
+        working-directory: ci-bench
+        run: bench --site ci.localhost migrate
+
+      - name: KGGK sync suite
+        working-directory: ci-bench/sites
+        run: |
+          # Not `bench run-tests`: that bootstraps test records for every installed app
+          # first, and india_compliance's fixtures fail before this module is reached.
+          # Loading the module directly runs the same tests and exits non-zero on failure.
+          ../env/bin/python - <<'PY'
+          import sys, unittest
+          import frappe
+
+          frappe.init(site="ci.localhost")
+          frappe.connect()
+          frappe.flags.in_test = True
+
+          suite = unittest.TestLoader().loadTestsFromName(
+              "gke_customization.gke_order_forms.doc_events.test_kggk_sync"
+          )
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          print(f"\nran {result.testsRun}, failures {len(result.failures)}, "
+                f"errors {len(result.errors)}")
+          sys.exit(0 if result.wasSuccessful() else 1)
+          PY
