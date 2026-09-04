@@ -216,16 +216,33 @@ UPLOAD_TIMEOUT = 120
 MAX_ATTEMPTS = 3
 BACKOFF_SECONDS = 2
 
+# Statuses worth trying again. A 5xx is the target having a bad moment; a 429 is it asking us
+# to slow down, which is the one 4xx that is not "your payload is wrong". frappe.cloud rate
+# limits, and treating its 429 as fatal drops the record for a reason that would have cleared
+# itself in a few seconds.
+TOO_MANY_REQUESTS = 429
+# A target that asks us to wait longer than this is having a bigger problem than one record.
+MAX_RETRY_AFTER = 30
+
 
 class Response:
 	"""Uniform result. ``ok`` means the target accepted it; ``error`` is display-ready."""
 
-	def __init__(self, status_code=None, data=None, text="", url="", error=None):
+	def __init__(self, status_code=None, data=None, text="", url="", error=None, headers=None):
 		self.status_code = status_code
 		self.data = data or {}
 		self.text = text or ""
 		self.url = url
 		self.error = error
+		self.headers = headers or {}
+
+	@property
+	def exc_type(self):
+		"""The Frappe exception class the target raised, when it named one.
+
+		Far more reliable than matching on the message, which is translated.
+		"""
+		return (self.data or {}).get("exc_type") or ""
 
 	@property
 	def ok(self):
@@ -300,17 +317,38 @@ def api_request(
 			payload = {}
 
 		response = Response(
-			status_code=raw.status_code, data=payload, text=raw.text, url=url
+			status_code=raw.status_code,
+			data=payload,
+			text=raw.text,
+			url=url,
+			headers=dict(raw.headers or {}),
 		)
 
-		if raw.status_code >= 500 and attempt < max_attempts:
+		retryable = raw.status_code >= 500 or raw.status_code == TOO_MANY_REQUESTS
+		if retryable and attempt < max_attempts:
 			last = response
-			time.sleep(BACKOFF_SECONDS * attempt)
+			time.sleep(_retry_delay(response, attempt))
 			continue
 
 		return response
 
 	return last or Response(url=url, error="no attempt was made")
+
+
+def _retry_delay(response, attempt):
+	"""How long to wait before trying again.
+
+	A 429 usually carries ``Retry-After``; obeying it is both politer and faster than our own
+	backoff guess. Anything absurd is clamped - we are retrying one record, not waiting out
+	an outage.
+	"""
+	after = (response.headers or {}).get("Retry-After")
+	if after:
+		try:
+			return max(1, min(int(float(after)), MAX_RETRY_AFTER))
+		except (TypeError, ValueError):
+			pass
+	return BACKOFF_SECONDS * attempt
 
 
 def api_get(config, path, **kwargs):
@@ -1188,7 +1226,12 @@ def _numeric_attributes():
 	return frappe.local.kggk_numeric_attributes
 
 
-def _child_rows(doc, df):
+def _child_rows(doc, df, allowed=None):
+	"""Rows of one child table, restricted to fields the target's child doctype has.
+
+	``allowed=None`` means we could not learn the target's child schema, so everything is
+	sent and the target decides - the same fallback the parent uses.
+	"""
 	rows = []
 	for row in doc.get(df.fieldname) or []:
 		data = {}
@@ -1197,6 +1240,8 @@ def _child_rows(doc, df):
 			if child_df.fieldtype in LAYOUT_TYPES or child_df.fieldtype in TABLE_TYPES:
 				continue
 			if child_df.fieldname in CHILD_EXCLUDE:
+				continue
+			if allowed is not None and child_df.fieldname not in allowed:
 				continue
 			value = row.get(child_df.fieldname)
 			if value is None:
@@ -1211,7 +1256,23 @@ def _child_rows(doc, df):
 	return rows
 
 
-def build_payload(doc, allowed_fields=None, run=None):
+def _child_gap(doc, df, allowed):
+	"""Child fieldnames that carry a value here and do not exist on the target."""
+	missing = set()
+	meta = frappe.get_meta(df.options)
+	for row in doc.get(df.fieldname) or []:
+		for child_df in meta.fields:
+			name = child_df.fieldname
+			if not name or name in allowed or name in CHILD_EXCLUDE:
+				continue
+			if child_df.fieldtype in LAYOUT_TYPES or child_df.fieldtype in TABLE_TYPES:
+				continue
+			if row.get(name) not in (None, "", 0, []):
+				missing.add(name)
+	return missing
+
+
+def build_payload(doc, allowed_fields=None, run=None, config=None):
 	"""Return ``(payload, attachments)`` for one document.
 
 	``attachments`` maps fieldname -> source file url; those are uploaded separately,
@@ -1246,7 +1307,24 @@ def build_payload(doc, allowed_fields=None, run=None):
 			continue
 
 		if df.fieldtype in TABLE_TYPES:
-			rows = _child_rows(doc, df)
+			# A jewellery BOM carries several big child tables. One custom field the target
+			# is missing on one of them rejects the whole BOM, with a message that names the
+			# child row rather than the field - so compare these too, not just the parent's.
+			child_allowed = None
+			if config is not None and df.options:
+				child_allowed = get_target_fields(config, df.options, run=run)
+				if child_allowed is not None:
+					missing = _child_gap(doc, df, child_allowed)
+					if missing:
+						run and run.mismatch(
+							doc.doctype,
+							doc.name,
+							f"{name}: {len(missing)} field(s) do not exist on the target's "
+							f"{df.options}, dropped: " + ", ".join(sorted(missing)[:15]),
+							kind="FIELD-MISSING",
+							once_key=f"childgap::{df.options}",
+						)
+			rows = _child_rows(doc, df, allowed=child_allowed)
 			if rows:
 				payload[name] = rows
 			continue
@@ -1356,9 +1434,12 @@ def get_target_fields(config, doctype, run=None):
 		_schema_unknown(run, doctype, "the target returned a DocType definition with no fields")
 		return None
 
+	on_submit = set()
 	for row in rows:
 		if row.get("fieldname"):
 			fields.add(row["fieldname"])
+			if cint(row.get("allow_on_submit")):
+				on_submit.add(row["fieldname"])
 
 	custom = api_get(
 		config,
@@ -1385,7 +1466,27 @@ def get_target_fields(config, doctype, run=None):
 			fields.add(row["fieldname"])
 
 	frappe.cache().set_value(cache_key, sorted(fields), expires_in_sec=_TARGET_FIELD_TTL)
+	frappe.cache().set_value(
+		_submit_fields_key(config, doctype), sorted(on_submit), expires_in_sec=_TARGET_FIELD_TTL
+	)
 	return fields
+
+
+def _submit_fields_key(config, doctype):
+	return f"kggk_target_submit_fields::{host_of(config.to_site)}::{doctype}"
+
+
+def get_target_submit_fields(config, doctype, run=None):
+	"""Fields the target still allows to change after a document is submitted.
+
+	Populated as a side effect of ``get_target_fields``; this only reads it back, and asks
+	for the schema first if nobody has yet.
+	"""
+	cached = frappe.cache().get_value(_submit_fields_key(config, doctype), expires=True)
+	if cached is None:
+		get_target_fields(config, doctype, run=run)
+		cached = frappe.cache().get_value(_submit_fields_key(config, doctype), expires=True)
+	return set(cached or [])
 
 # ============================================================================
 # THE PUSH PIPELINE
@@ -1531,27 +1632,53 @@ def _apply_deferred_links(config, run):
 	]
 
 
-def _send(config, doctype, name, data, lookup=None):
+def _send(config, doctype, name, data, lookup=None, run=None):
 	"""PUT the record under the name the target knows it by; POST if it has never seen it.
 
-	Returns ``(response, action, target_name)``. That third value is the point: the target
-	decides the name of what it creates - see ``target_names`` - and unless we read it back
-	and remember it, the next run addresses the record by our name, gets a 404, POSTs again
-	and leaves a duplicate. Over a few runs that is one extra BOM per BOM per run.
+	Returns ``(response, action, target_name, blocked_fields)``.
+
+	``target_name`` is the point of the third slot: the target decides the name of what it
+	creates - see ``target_names`` - and unless we read it back and remember it, the next run
+	addresses the record by our name, gets a 404, POSTs again and leaves a duplicate. Over a
+	few runs that is one extra BOM per BOM per run.
+
+	``blocked_fields`` is non-empty only when the target has already submitted the record and
+	would not let those fields change.
 	"""
 	lookup = lookup or name
 	update_data = {
 		k: v for k, v in data.items() if k not in IMMUTABLE_ON_UPDATE.get(doctype, set())
 	}
-	response = api_put(
-		config, f"/api/resource/{segment(doctype)}/{segment(lookup)}", json=update_data
-	)
+	path = f"/api/resource/{segment(doctype)}/{segment(lookup)}"
+	response = api_put(config, path, json=update_data)
+
+	if response.ok:
+		return response, "updated", lookup, []
+
+	# The target has submitted this record, so most of it is frozen over there. Sending the
+	# whole payload would keep failing on the first frozen field forever. ERPNext still lets a
+	# handful of fields change after submit - is_active and is_default on a BOM among them -
+	# so send those and say plainly which ones could not move.
+	#
+	# This engine never submits anything itself: submitting is irreversible on someone else's
+	# production site, and the REST route for it needs a full read-modify-write that would
+	# overwrite the record if it went wrong. Records land as drafts and KGGK submits them.
+	if response.exc_type == "UpdateAfterSubmitError":
+		allowed = get_target_submit_fields(config, doctype, run=run)
+		reduced = {k: v for k, v in update_data.items() if k in allowed}
+		blocked = sorted(set(update_data) - set(reduced))
+		if not reduced:
+			return response, "updated", lookup, blocked
+		retry = api_put(config, path, json=reduced)
+		action = "updated (submitted on target)" if retry.ok else "updated"
+		return retry, action, lookup, blocked
+
 	if not response.not_found:
-		return response, "updated", lookup
+		return response, "updated", lookup, []
 
 	response = api_post(config, f"/api/resource/{segment(doctype)}", json=data)
 	assigned = ((response.data or {}).get("data") or {}).get("name") or name
-	return response, "created", assigned
+	return response, "created", assigned, []
 
 
 def push_item(item_code, config, run, seen=None):
@@ -1582,16 +1709,29 @@ def push_item(item_code, config, run, seen=None):
 			push_item(template, config, run, seen=seen)
 
 	allowed = get_target_fields(config, "Item", run=run)
-	data, attachments = build_payload(doc, allowed, run=run)
+	data, attachments = build_payload(doc, allowed, run=run, config=config)
 	blocking = _strip_missing_links(config, doc, data, run, run.link_cache)
 	if blocking:
 		message = "required master(s) missing on target - " + "; ".join(blocking)
 		run.item_failed(item_code, message)
 		return False
 
-	response, action, target_id = _send(
-		config, "Item", item_code, data, lookup=target_name_for("Item", item_code, target_host)
+	response, action, target_id, blocked = _send(
+		config,
+		"Item",
+		item_code,
+		data,
+		lookup=target_name_for("Item", item_code, target_host),
+		run=run,
 	)
+	if blocked:
+		run.mismatch(
+			"Item",
+			item_code,
+			f"the target has submitted this record, so {len(blocked)} field(s) could not be "
+			"updated: " + ", ".join(blocked[:20]) + (f" (+{len(blocked) - 20} more)" if len(blocked) > 20 else ""),
+			kind="SUBMITTED-ON-TARGET",
+		)
 	if not response.ok:
 		message = response.message()
 		run.item_failed(item_code, message)
@@ -1646,16 +1786,29 @@ def push_bom(bom_name, config, run):
 		push_item(doc.item, config, run)
 
 	allowed = get_target_fields(config, "BOM", run=run)
-	data, attachments = build_payload(doc, allowed, run=run)
+	data, attachments = build_payload(doc, allowed, run=run, config=config)
 	blocking = _strip_missing_links(config, doc, data, run, run.link_cache)
 	if blocking:
 		message = "required master(s) missing on target - " + "; ".join(blocking)
 		run.bom_failed(bom_name, message)
 		return False
 
-	response, action, target_id = _send(
-		config, "BOM", bom_name, data, lookup=target_name_for("BOM", bom_name, target_host)
+	response, action, target_id, blocked = _send(
+		config,
+		"BOM",
+		bom_name,
+		data,
+		lookup=target_name_for("BOM", bom_name, target_host),
+		run=run,
 	)
+	if blocked:
+		run.mismatch(
+			"BOM",
+			bom_name,
+			f"the target has submitted this BOM, so {len(blocked)} field(s) could not be "
+			"updated: " + ", ".join(blocked[:20]) + (f" (+{len(blocked) - 20} more)" if len(blocked) > 20 else ""),
+			kind="SUBMITTED-ON-TARGET",
+		)
 	if not response.ok:
 		message = response.message()
 		run.bom_failed(bom_name, message)
@@ -2268,6 +2421,24 @@ def _plan_records(limit_plans=None):
 	return plans, items, boms
 
 
+def _prefill_doctypes():
+	"""The doctypes the button reconciles: Item, BOM, Manufacturing Plan and their children.
+
+	The child tables matter as much as the parents here. A jewellery BOM's metal, diamond and
+	finding rows carry their own custom fields, and one of those missing on the target rejects
+	the entire BOM - so the button has to be able to see and create them too.
+	"""
+	doctypes = []
+	for parent in PREFILL_DOCTYPES:
+		if not frappe.db.exists("DocType", parent):
+			continue
+		doctypes.append(parent)
+		for df in frappe.get_meta(parent).fields:
+			if df.fieldtype in TABLE_TYPES and df.options and df.options not in doctypes:
+				doctypes.append(df.options)
+	return doctypes
+
+
 def _field_gaps(config, run=None):
 	"""What the target is missing, per doctype.
 
@@ -2280,10 +2451,7 @@ def _field_gaps(config, run=None):
 	standard_gaps = []
 	unreadable = []
 
-	for doctype in PREFILL_DOCTYPES:
-		if not frappe.db.exists("DocType", doctype):
-			continue
-
+	for doctype in _prefill_doctypes():
 		target_fields = get_target_fields(config, doctype, run=run)
 		if target_fields is None:
 			unreadable.append(doctype)
@@ -2494,8 +2662,9 @@ def run_prefill(log_name, apply=0, limit_plans=None):
 			)
 
 	# The target's schema is now different, so anything cached about it is stale.
-	for doctype in PREFILL_DOCTYPES:
+	for doctype in _prefill_doctypes():
 		frappe.cache().delete_value(f"kggk_target_fields::{host_of(config.to_site)}::{doctype}")
+		frappe.cache().delete_value(_submit_fields_key(config, doctype))
 
 	queued = enqueue_sync(
 		items=missing_items,
