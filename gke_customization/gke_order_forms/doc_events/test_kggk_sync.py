@@ -9,6 +9,7 @@ Runs that would otherwise open a KGGK Sync Log pass ``log=k.LOG_NEVER``, so the 
 tests stay pure and do not litter the database with documents.
 """
 
+import io
 import unittest
 from contextlib import ExitStack
 from unittest.mock import ANY, patch
@@ -842,7 +843,7 @@ class TestTargetNaming(unittest.TestCase):
 		with patch.object(k, "api_put", return_value=k.Response(status_code=404)), patch.object(
 			k, "api_post", return_value=created
 		):
-			response, action, assigned = k._send(self.cfg, "BOM", "BOM-X-002", {"item": "X"})
+			response, action, assigned, blocked = k._send(self.cfg, "BOM", "BOM-X-002", {"item": "X"})
 		self.assertEqual(action, "created")
 		self.assertEqual(assigned, "BOM-X-001")
 
@@ -850,7 +851,7 @@ class TestTargetNaming(unittest.TestCase):
 		with patch.object(k, "api_put", return_value=k.Response(status_code=200)) as put, patch.object(
 			k, "api_post"
 		) as post:
-			response, action, assigned = k._send(
+			response, action, assigned, blocked = k._send(
 				self.cfg, "BOM", "BOM-X-002", {"item": "X"}, lookup="BOM-X-001"
 			)
 		self.assertEqual(action, "updated")
@@ -926,6 +927,176 @@ class TestTargetNaming(unittest.TestCase):
 
 		self.assertEqual(asked["BOM"], ["BOM-X-001"])
 		self.assertEqual(out["boms_missing"], 0)
+
+
+class TestTransportRetries(unittest.TestCase):
+	"""What is worth trying again, and what is the target telling us the payload is wrong."""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", headers={})
+
+	def _raw(self, status, headers=None):
+		r = frappe._dict(status_code=status, text="", headers=headers or {})
+		r.json = lambda: {}
+		return r
+
+	def test_429_is_retried_not_treated_as_a_bad_payload(self):
+		"""frappe.cloud rate limits. Dropping the record loses it for a reason that would
+		have cleared itself in seconds."""
+		calls = []
+
+		def request(*a, **kw):
+			calls.append(1)
+			return self._raw(429 if len(calls) < 3 else 200)
+
+		with patch(f"{MOD}.requests.request", side_effect=request), patch(f"{MOD}.time.sleep"):
+			response = k.api_request(self.cfg, "GET", "/x")
+		self.assertEqual(len(calls), 3)
+		self.assertTrue(response.ok)
+
+	def test_a_400_is_not_retried(self):
+		"""A 4xx that is not 429 means the payload is wrong; sending it again sends the
+		same wrong payload."""
+		calls = []
+
+		def request(*a, **kw):
+			calls.append(1)
+			return self._raw(400)
+
+		with patch(f"{MOD}.requests.request", side_effect=request), patch(f"{MOD}.time.sleep"):
+			k.api_request(self.cfg, "PUT", "/x")
+		self.assertEqual(len(calls), 1)
+
+	def test_retry_after_is_obeyed_and_clamped(self):
+		response = k.Response(status_code=429, headers={"Retry-After": "5"})
+		self.assertEqual(k._retry_delay(response, 1), 5)
+
+		absurd = k.Response(status_code=429, headers={"Retry-After": "99999"})
+		self.assertEqual(k._retry_delay(absurd, 1), k.MAX_RETRY_AFTER)
+
+		none = k.Response(status_code=503, headers={})
+		self.assertEqual(k._retry_delay(none, 2), k.BACKOFF_SECONDS * 2)
+
+	def test_a_junk_retry_after_falls_back_to_our_own_backoff(self):
+		response = k.Response(status_code=429, headers={"Retry-After": "Wed, 21 Oct 2026"})
+		self.assertEqual(k._retry_delay(response, 1), k.BACKOFF_SECONDS)
+
+
+class TestSubmittedOnTarget(unittest.TestCase):
+	"""KGGK submits the BOMs it receives. After that most of the record is frozen there."""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", headers={})
+
+	def _refusal(self):
+		return k.Response(
+			status_code=417,
+			data={"exc_type": "UpdateAfterSubmitError", "exception": "Cannot Update After Submit"},
+		)
+
+	def test_the_fields_that_can_still_change_are_sent_and_the_rest_reported(self):
+		data = {"is_active": 1, "is_default": 1, "quantity": 5, "uom": "Nos"}
+		with patch.object(k, "api_put", side_effect=[self._refusal(), k.Response(status_code=200)]) as put, patch.object(
+			k, "get_target_submit_fields", return_value={"is_active", "is_default"}
+		):
+			response, action, target, blocked = k._send(self.cfg, "BOM", "B-1", data)
+
+		self.assertTrue(response.ok)
+		self.assertEqual(put.call_args.kwargs["json"], {"is_active": 1, "is_default": 1})
+		self.assertEqual(blocked, ["quantity", "uom"])
+		self.assertIn("submitted on target", action)
+
+	def test_nothing_sendable_reports_without_a_second_call(self):
+		with patch.object(k, "api_put", return_value=self._refusal()) as put, patch.object(
+			k, "get_target_submit_fields", return_value=set()
+		):
+			response, action, target, blocked = k._send(self.cfg, "BOM", "B-1", {"quantity": 5})
+		self.assertEqual(put.call_count, 1)
+		self.assertEqual(blocked, ["quantity"])
+
+	def test_a_submitted_target_never_becomes_a_second_bom(self):
+		"""The refusal must not fall through to the 404 branch and POST a duplicate."""
+		with patch.object(k, "api_put", side_effect=[self._refusal(), k.Response(status_code=200)]), patch.object(
+			k, "get_target_submit_fields", return_value={"is_active"}
+		), patch.object(k, "api_post") as post:
+			k._send(self.cfg, "BOM", "B-1", {"is_active": 1, "quantity": 5})
+		post.assert_not_called()
+
+	def test_this_engine_never_submits_anything_itself(self):
+		"""Submitting is irreversible on someone else's production site, and the REST route
+		for it needs a full read-modify-write that would overwrite the record if it went
+		wrong. Records land as drafts and KGGK submits them.
+
+		`docstatus` being excluded from every payload is what makes that structural rather
+		than a convention someone can forget."""
+		source = io.open(k.__file__.replace(".pyc", ".py"), encoding="utf-8").read()
+		self.assertNotIn("frappe.client.submit", source)
+		self.assertNotIn("/api/method/frappe.client.cancel", source)
+		self.assertIn("docstatus", k.ALWAYS_EXCLUDE)
+
+
+class TestChildTableFields(unittest.TestCase):
+	"""A BOM's metal, diamond and finding rows carry their own custom fields.
+
+	One of those missing on the target rejects the entire BOM, with a message naming the
+	child row rather than the field - so they have to be compared too.
+	"""
+
+	def test_a_child_field_the_target_lacks_is_dropped(self):
+		df = frappe._dict(fieldname="metal_detail", options="BOM Metal Detail", fieldtype="Table")
+		doc = frappe._dict(metal_detail=[frappe._dict(metal_type="Gold", custom_new="x", idx=1)])
+		meta = frappe._dict(
+			fields=[
+				frappe._dict(fieldname="metal_type", fieldtype="Data"),
+				frappe._dict(fieldname="custom_new", fieldtype="Data"),
+			]
+		)
+		with patch.object(frappe, "get_meta", return_value=meta):
+			rows = k._child_rows(doc, df, allowed={"metal_type", "idx"})
+		self.assertEqual(rows, [{"metal_type": "Gold", "idx": 1}])
+
+	def test_an_unknown_child_schema_sends_everything(self):
+		"""Same fallback as the parent: better to let the target decide than to refuse."""
+		df = frappe._dict(fieldname="metal_detail", options="BOM Metal Detail", fieldtype="Table")
+		doc = frappe._dict(metal_detail=[frappe._dict(metal_type="Gold", custom_new="x", idx=1)])
+		meta = frappe._dict(
+			fields=[
+				frappe._dict(fieldname="metal_type", fieldtype="Data"),
+				frappe._dict(fieldname="custom_new", fieldtype="Data"),
+			]
+		)
+		with patch.object(frappe, "get_meta", return_value=meta):
+			rows = k._child_rows(doc, df, allowed=None)
+		self.assertEqual(rows[0]["custom_new"], "x")
+
+	def test_the_gap_is_only_reported_for_fields_that_carry_a_value(self):
+		df = frappe._dict(fieldname="metal_detail", options="BOM Metal Detail", fieldtype="Table")
+		doc = frappe._dict(
+			metal_detail=[frappe._dict(metal_type="Gold", custom_used="x", custom_empty="")]
+		)
+		meta = frappe._dict(
+			fields=[
+				frappe._dict(fieldname="metal_type", fieldtype="Data"),
+				frappe._dict(fieldname="custom_used", fieldtype="Data"),
+				frappe._dict(fieldname="custom_empty", fieldtype="Data"),
+			]
+		)
+		with patch.object(frappe, "get_meta", return_value=meta):
+			gap = k._child_gap(doc, df, allowed={"metal_type"})
+		self.assertEqual(gap, {"custom_used"})
+
+	def test_the_prefill_reconciles_child_doctypes_too(self):
+		meta = {
+			"Item": frappe._dict(fields=[frappe._dict(fieldtype="Table", options="Item Variant Attribute")]),
+			"BOM": frappe._dict(fields=[frappe._dict(fieldtype="Table", options="BOM Metal Detail")]),
+			"Manufacturing Plan": frappe._dict(fields=[]),
+		}
+		with patch.object(frappe.db, "exists", return_value=True), patch.object(
+			frappe, "get_meta", side_effect=lambda dt: meta[dt]
+		):
+			doctypes = k._prefill_doctypes()
+		self.assertIn("BOM Metal Detail", doctypes)
+		self.assertIn("Item Variant Attribute", doctypes)
 
 
 class TestSettingsValidation(unittest.TestCase):
