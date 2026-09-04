@@ -28,6 +28,7 @@
   "sync_updates",
   "auto_reconcile",
   "reconcile_batch_size",
+  "check_target_site",
   "prefill_target_site",
   "view_sync_logs"
  ],
@@ -136,10 +137,17 @@
   },
   {
    "depends_on": "enable_sync",
-   "description": "Checks the To Site for missing custom fields and for the items and BOMs the submitted Manufacturing Plans need. Runs in the background and opens a Sync Log to watch. Reports first; creates nothing until you confirm.",
+   "description": "Reports what the target is missing. Writes nothing.",
+   "fieldname": "check_target_site",
+   "fieldtype": "Button",
+   "label": "Check Target Site"
+  },
+  {
+   "depends_on": "enable_sync",
+   "description": "Creates every custom field the target is missing, including the source-identity fields the sync matches records by. Writes to the other site; it does not push any Items or BOMs.",
    "fieldname": "prefill_target_site",
    "fieldtype": "Button",
-   "label": "Check / Prefill Target Site"
+   "label": "Create Missing Fields on Target"
   },
   {
    "default": "1",

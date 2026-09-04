@@ -11,20 +11,25 @@ frappe.ui.form.on("Data Migration in KGGK", {
 		);
 	},
 
-	// The trigger is the Button field in the KGGK Sync section, not a toolbar button - it
-	// belongs beside the settings it acts on, where it can be found.
+	// Two buttons, because they are two different decisions. Reading the target is free and
+	// reversible; creating fields on it is neither. Rolling them into one press meant nobody
+	// could create the missing fields without also committing to pushing ten thousand
+	// records at the other site.
+	check_target_site(frm) {
+		if (unsaved(frm)) return;
+		start(frm, "check");
+	},
+
 	prefill_target_site(frm) {
-		if (frm.is_dirty()) {
-			// The server reads these from the database, so an unsaved To Site would produce
-			// a refusal that contradicts what is on screen.
-			frappe.msgprint({
-				title: __("Unsaved Changes"),
-				indicator: "orange",
-				message: __("Save the settings first, then press the button."),
-			});
-			return;
-		}
-		start_prefill(0);
+		if (unsaved(frm)) return;
+		frappe.confirm(
+			__(
+				"Create every custom field that {0} is missing?<br><br>" +
+					"This writes to the other site. No Items or BOMs are pushed.",
+				[frappe.utils.escape_html(frm.doc.to_site || "the target")]
+			),
+			() => start(frm, "fields")
+		);
 	},
 
 	view_sync_logs() {
@@ -32,21 +37,32 @@ frappe.ui.form.on("Data Migration in KGGK", {
 	},
 });
 
-// The check is a background job, and the answer lands on a KGGK Sync Log. Rather than hold
-// the user in front of a dialog for something that can take minutes, send them to that
+function unsaved(frm) {
+	if (!frm.is_dirty()) return false;
+	// The server reads these from the database, so an unsaved To Site would produce a
+	// refusal that contradicts what is on screen.
+	frappe.msgprint({
+		title: __("Unsaved Changes"),
+		indicator: "orange",
+		message: __("Save the settings first, then press the button."),
+	});
+	return true;
+}
+
+// Both actions are background jobs, and the answer lands on a KGGK Sync Log. Rather than
+// hold the user in front of a dialog for something that can take minutes, send them to that
 // document: it updates itself, survives a page reload, and is still there tomorrow.
 //
 // Only the refusals are answered inline - a missing setting or an unreachable target comes
 // back from the server as a thrown message, which is what you want when you just pressed a
 // button.
-function start_prefill(apply) {
+function start(frm, action) {
 	frappe.call({
 		method: "gke_customization.gke_order_forms.doc_events.kggk_sync.start_prefill",
-		args: { apply: apply },
+		args: { action: action },
 		freeze: true,
-		freeze_message: apply
-			? __("Queueing the prefill...")
-			: __("Checking the connection..."),
+		freeze_message:
+			action === "check" ? __("Checking the connection...") : __("Queueing the field creation..."),
 		callback(r) {
 			if (r.exc || !r.message) return;
 			frappe.show_alert({
