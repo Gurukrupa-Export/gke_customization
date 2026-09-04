@@ -2927,21 +2927,34 @@ def _plan_records(limit_plans=None):
 
 
 def _prefill_doctypes():
-	"""The doctypes the button reconciles: Item, BOM, Manufacturing Plan and their children.
+	"""The doctypes the button reconciles, each with the table field that reaches it.
 
-	The child tables matter as much as the parents here. A jewellery BOM's metal, diamond and
-	finding rows carry their own custom fields, and one of those missing on the target rejects
-	the entire BOM - so the button has to be able to see and create them too.
+	Yields ``(doctype, parent_doctype, parent_fieldname)``; the parent pair is ``None`` for
+	the three top-level doctypes. Child tables matter as much as their parents - a jewellery
+	BOM's metal, diamond and finding rows carry their own custom fields, and one of those
+	missing on the target rejects the whole BOM - but a child can only be judged in the light
+	of its parent, which is what the pair is for. See `_field_gaps`.
 	"""
-	doctypes = []
+	out = []
 	for parent in PREFILL_DOCTYPES:
 		if not frappe.db.exists("DocType", parent):
 			continue
-		doctypes.append(parent)
+		out.append((parent, None, None))
 		for df in frappe.get_meta(parent).fields:
-			if df.fieldtype in TABLE_TYPES and df.options and df.options not in doctypes:
-				doctypes.append(df.options)
-	return doctypes
+			if df.fieldtype in TABLE_TYPES and df.options:
+				if not any(d == df.options for d, _p, _f in out):
+					out.append((df.options, parent, df.fieldname))
+	return out
+
+
+def _prefill_doctype_names():
+	return [d for d, _p, _f in _prefill_doctypes()]
+
+
+# Doctypes whose records this engine actually sends. Manufacturing Plan is examined so the
+# target is understood, but plan documents are never copied - only the items and BOMs their
+# subcontracting rows name - so a gap on a plan doctype is a note, not an obstacle.
+PUSHED_DOCTYPES = set(MAPPED_DOCTYPES)
 
 
 def _field_gaps(config, run=None):
@@ -2954,15 +2967,30 @@ def _field_gaps(config, run=None):
 	"""
 	creatable = []
 	standard_gaps = []
+	informational_gaps = []
 	unreadable = []
+	expected_absent = []
 	seen_fields = {}
 
-	for doctype in _prefill_doctypes():
+	for doctype, parent, parent_field in _prefill_doctypes():
+		# A child table the target does not have a field for is not a hole in the check - the
+		# target simply does not carry that table, the parent gap already says so, and its
+		# rows are never sent. `BOM Scrap Item` on a target whose BOM has no `scrap_items` is
+		# the case: calling that "unreadable" made every check incomplete, for ever, over a
+		# table nothing was going to push.
+		if parent and seen_fields.get(parent) is not None and parent_field not in seen_fields[parent]:
+			expected_absent.append(f"{doctype} (the target's {parent} has no {parent_field})")
+			continue
+
 		target_fields = get_target_fields(config, doctype, run=run)
 		if target_fields is None:
 			unreadable.append(doctype)
 			continue
 		seen_fields[doctype] = target_fields
+
+		# Whether a gap here can stop anything depends on whether we ever send this doctype.
+		root = parent or doctype
+		bucket = standard_gaps if root in PUSHED_DOCTYPES else informational_gaps
 
 		local_custom = _local_custom_fields(doctype)
 		for df in frappe.get_meta(doctype).fields:
@@ -2975,7 +3003,7 @@ def _field_gaps(config, run=None):
 				row["dt"] = doctype
 				creatable.append(row)
 			else:
-				standard_gaps.append(f"{doctype}.{name} ({df.fieldtype})")
+				bucket.append(f"{doctype}.{name} ({df.fieldtype})")
 
 	# The three fields that let a record be found by where it came from. They exist only on
 	# the target - there is nothing to mirror them from here - so the gap logic above cannot
@@ -2990,7 +3018,7 @@ def _field_gaps(config, run=None):
 				row["dt"] = doctype
 				creatable.append(row)
 
-	return creatable, standard_gaps, unreadable
+	return creatable, standard_gaps, informational_gaps, unreadable, expected_absent
 
 
 def _create_custom_field(config, row):
@@ -3045,50 +3073,92 @@ def _stored_result(log_name):
 		return None
 
 
-def _check_is_actionable(result):
-	"""Why the findings of this check must not be acted on, or ``None``.
+# The three things the buttons do, in increasing order of consequence. `all` is what the
+# old two-press Apply did, kept so an existing client keeps working.
+ACTION_CHECK = "check"      # reads the target, writes nothing
+ACTION_FIELDS = "fields"    # creates the missing Custom Fields on the target
+ACTION_RECORDS = "records"  # queues the missing Items and BOMs
+ACTION_ALL = "all"
+ACTIONS = (ACTION_CHECK, ACTION_FIELDS, ACTION_RECORDS, ACTION_ALL)
 
-	A check that could not see everything is not a check. Applying on the back of one creates
-	custom fields and pushes records on the strength of a question that was never answered -
-	and the gaps it could not see are exactly the records that will fail.
+
+def _blocks_record_push(result):
+	"""Why the missing records must not be queued from this check, or ``None``.
+
+	Deliberately narrower than it used to be. The first version refused on any version gap,
+	and on a real pair of sites there are always version gaps - they are a permanent fact
+	about two different deployments, not a transient fault - so the check closed
+	`Partially Completed` every time and the button could never be pressed. That is a worse
+	failure than the one it was guarding against.
+
+	What genuinely stops a push is not knowing *which* records are missing. Everything else
+	degrades a push without invalidating it: a field the target lacks is dropped and
+	reported, which is exactly what the report exists to say.
 	"""
 	if not result:
-		return _("The check did not record its findings, so there is nothing to apply.")
-	if result.get("applied"):
-		return _("That log is an Apply, not a check.")
+		return _("The check did not record its findings, so there is nothing to act on.")
 	if cint(result.get("unchecked")):
 		return _(
 			"{0} record(s) could not be checked against the target, so this run does not know "
 			"what is missing. Run the check again."
 		).format(cint(result.get("unchecked")))
-	if result.get("schema_unreadable"):
-		return _("The target's field list could not be read for: {0}.").format(
-			", ".join(result["schema_unreadable"])
-		)
-	if result.get("standard_field_gaps"):
-		return _(
-			"The target is missing {0} standard field(s), so the two sites are running "
-			"different app versions. That has to be resolved by deploying, not by this button."
-		).format(len(result["standard_field_gaps"]))
+
+	# Item and BOM are the two doctypes whose records are actually sent. Not being able to
+	# read their schema means every field would be sent blind, and the check cannot say what
+	# is missing - which is the one question the push depends on.
+	blind = [d for d in (result.get("schema_unreadable") or []) if d in PUSHED_DOCTYPES]
+	if blind:
+		return _("The target's field list could not be read for {0}.").format(", ".join(blind))
 	return None
 
 
+def _prefill_warnings(result):
+	"""Things worth saying out loud that are nonetheless not reasons to stop."""
+	notes = []
+	gaps = result.get("standard_field_gaps") or []
+	if gaps:
+		notes.append(
+			_(
+				"{0} standard field(s) are absent on the target, so the two sites are on "
+				"different app versions. Those fields cannot be created here - they are "
+				"dropped from each record and listed in the run's problems."
+			).format(len(gaps))
+		)
+	soft = [d for d in (result.get("schema_unreadable") or []) if d not in PUSHED_DOCTYPES]
+	if soft:
+		notes.append(
+			_("The field list could not be read for {0}; every field of those will be sent "
+			  "and the target left to decide.").format(", ".join(soft))
+		)
+	if result.get("informational_gaps"):
+		notes.append(
+			_("{0} gap(s) are on Manufacturing Plan, whose documents are never copied - only "
+			  "the items and BOMs its rows name. They do not affect the sync.").format(
+				len(result["informational_gaps"])
+			)
+		)
+	return notes
+
+
 @frappe.whitelist()
-def start_prefill(apply=0, limit_plans=None, check_log=None):
-	"""Hand the prefill to a worker and return the log to watch. Answers in milliseconds.
+def start_prefill(action=ACTION_CHECK, limit_plans=None, check_log=None, apply=None):
+	"""Hand one of the prefill actions to a worker and return the log to watch.
 
-	This used to do the whole job inside the web request: one existence check per item and
-	per BOM across every submitted plan, each retried three times on a 30 second timeout,
-	and on apply a POST per custom field - of which Item alone has nearly two hundred. Well
-	past the 120 second gateway limit, so the browser got "Request Timed Out" while the work
-	carried on invisibly in a worker that had already been killed.
+	Three separate presses rather than one that does everything, because they are three
+	different decisions: reading the target, changing its schema, and sending it ten
+	thousand records. Rolling them together meant nobody could create the missing fields
+	without also committing to the push.
 
-	What is still done here is only what has to be: refusing, with a reason, before anything
-	is queued. A configuration problem or an unreachable target should be a sentence on
-	screen, not a log entry you have to go and find.
+	Answers in milliseconds. Only refusals happen here - a configuration problem or an
+	unreachable target should be a sentence on screen, not a log entry you have to find.
 	"""
 	frappe.only_for("System Manager")
-	apply = cint(apply)
+
+	# `apply=1` was the old "do everything" press.
+	if apply is not None and cint(apply):
+		action = ACTION_ALL
+	if action not in ACTIONS:
+		frappe.throw(_("Unknown action {0}.").format(action))
 
 	config, reason = get_sync_config()
 	if not config:
@@ -3100,25 +3170,20 @@ def start_prefill(apply=0, limit_plans=None, check_log=None):
 	if not reachable:
 		frappe.throw(message, title=_("Cannot Reach the Target Site"))
 
-	if apply:
-		# Apply acts on the findings of one specific check. Without naming it, "the second
-		# press" is only a second call to the same endpoint - and between the two presses the
-		# To Site can have been changed, which would create fields and push records into a
-		# site nobody ever checked.
+	# Queueing records acts on a list somebody read and approved, so it has to be the list
+	# from a specific check against this same target. Creating fields does not: it works out
+	# what is missing there and then, so there is no stale answer to act on - which is what
+	# lets it be a single press.
+	if action in (ACTION_RECORDS, ACTION_ALL):
 		if not check_log:
 			frappe.throw(
-				_("Run the check first, then apply its result."), title=_("Nothing to Apply")
+				_("Run the check first, then push its result."), title=_("Nothing to Push")
 			)
 		log = frappe.db.get_value(
 			LOG_DOCTYPE, check_log, ["trigger", "status", "target_site"], as_dict=True
 		)
 		if not log or log.trigger != "Prefill":
 			frappe.throw(_("{0} is not a prefill check.").format(check_log))
-		if log.status != STATUS_COMPLETED:
-			frappe.throw(
-				_("That check finished as {0}, so its findings are incomplete.").format(log.status),
-				title=_("Check Not Usable"),
-			)
 		if host_of(log.target_site) != host_of(config.to_site):
 			frappe.throw(
 				_("That check was run against {0}, but To Site is now {1}.").format(
@@ -3126,7 +3191,7 @@ def start_prefill(apply=0, limit_plans=None, check_log=None):
 				),
 				title=_("Target Changed"),
 			)
-		refusal = _check_is_actionable(_stored_result(check_log))
+		refusal = _blocks_record_push(_stored_result(check_log))
 		if refusal:
 			frappe.throw(refusal, title=_("Check Not Usable"))
 
@@ -3136,11 +3201,17 @@ def start_prefill(apply=0, limit_plans=None, check_log=None):
 			_("A prefill is already running: {0}").format(running), title=_("Already Running")
 		)
 
+	labels = {
+		ACTION_CHECK: _("Check only"),
+		ACTION_FIELDS: _("Create missing fields"),
+		ACTION_RECORDS: _("Push missing records"),
+		ACTION_ALL: _("Create fields and push records"),
+	}
 	log = frappe.get_doc(
 		{
 			"doctype": LOG_DOCTYPE,
 			"trigger": "Prefill",
-			"reference": _("Apply") if apply else _("Check only"),
+			"reference": labels[action],
 			"target_site": config.to_site,
 			"status": STATUS_QUEUED,
 		}
@@ -3155,26 +3226,32 @@ def start_prefill(apply=0, limit_plans=None, check_log=None):
 		job_id=f"kggk_prefill::{log.name}",
 		deduplicate=True,
 		log_name=log.name,
-		apply=apply,
+		action=action,
 		limit_plans=limit_plans,
 		expect_target=host_of(config.to_site),
 		expect_fingerprint=config.get("fingerprint"),
 	)
 
-	return {"log": log.name, "target": config.to_site, "connection": message}
+	return {"log": log.name, "target": config.to_site, "connection": message, "action": action}
 
 
-def run_prefill(log_name, apply=0, limit_plans=None, expect_target=None, expect_fingerprint=None):
-	"""Work out what the target is missing and, on apply, fill it in.
-
-	Two presses on purpose: the first writes nothing, the second creates Custom Fields on
-	another site and queues records at it. If To Site has been pointed somewhere unintended,
-	the check is the last chance to notice.
+def run_prefill(
+	log_name,
+	action=ACTION_CHECK,
+	limit_plans=None,
+	expect_target=None,
+	expect_fingerprint=None,
+	apply=None,
+):
+	"""Work out what the target is missing and, depending on the action, fill it in.
 
 	Never throws for a *sync* problem. A target that rejects one field is reported and the
 	rest continues; the log says what happened either way.
 	"""
-	apply = cint(apply)
+	if apply is not None and cint(apply):
+		action = ACTION_ALL
+	if action not in ACTIONS:
+		action = ACTION_CHECK
 
 	config, reason = get_sync_config()
 	if not config:
@@ -3194,7 +3271,9 @@ def run_prefill(log_name, apply=0, limit_plans=None, expect_target=None, expect_
 	)
 	run.flush(STATUS_RUNNING)
 
-	creatable, standard_gaps, unreadable = _field_gaps(config, run=run)
+	creatable, standard_gaps, informational_gaps, unreadable, expected_absent = _field_gaps(
+		config, run=run
+	)
 	plans, items, boms = _plan_records(limit_plans)
 
 	run.items_total = len(items)
@@ -3222,32 +3301,35 @@ def run_prefill(log_name, apply=0, limit_plans=None, expect_target=None, expect_
 		run.mismatch(None, None, f"standard field absent on target: {line}", kind="VERSION-GAP")
 
 	result = {
-		"applied": bool(apply),
+		"action": action,
+		"applied": action != ACTION_CHECK,
 		"target": config.to_site,
 		"plans_scanned": len(plans),
 		"fields_to_create": [f"{r['dt']}.{r['fieldname']}" for r in creatable],
 		"standard_field_gaps": standard_gaps,
+		"informational_gaps": informational_gaps,
 		"schema_unreadable": unreadable,
+		"expected_absent": expected_absent,
 		"items_total": len(items),
 		"boms_total": len(boms),
 		"items_missing": len(missing_items),
 		"boms_missing": len(missing_boms),
 		"unchecked": len(unchecked),
 	}
+	result["blocked_reason"] = _blocks_record_push(result)
+	result["warnings"] = _prefill_warnings(result)
 
-	if not apply:
+	if action == ACTION_CHECK:
 		result["message"] = _(
 			"Checked {0}. {1} field(s) would be created, {2} item(s) and {3} BOM(s) would be pushed."
 		).format(config.to_site, len(creatable), len(missing_items), len(missing_boms))
-		# A check that could not see everything must not close green. Its whole output is a
-		# list of what the target is missing, and an unanswered question is not an empty one -
-		# `Completed` here is what let an incomplete check be applied.
-		incomplete = bool(unchecked) or bool(unreadable) or bool(standard_gaps)
+		# Only a check that could not answer its own question is incomplete. Version gaps are
+		# a finding, not a fault - they are the answer, not a failure to produce one.
+		incomplete = bool(unchecked) or bool(unreadable)
 		if incomplete:
 			result["message"] += _(
-				" Incomplete: {0} record(s) could not be checked, {1} doctype(s) unreadable, "
-				"{2} standard field gap(s). Run it again before applying."
-			).format(len(unchecked), len(unreadable), len(standard_gaps))
+				" Incomplete: {0} record(s) could not be checked, {1} doctype(s) unreadable."
+			).format(len(unchecked), len(unreadable))
 		_close_prefill(
 			log_name,
 			STATUS_PARTIAL if incomplete else STATUS_COMPLETED,
@@ -3258,41 +3340,54 @@ def run_prefill(log_name, apply=0, limit_plans=None, expect_target=None, expect_
 		return result
 
 	created, failed = [], []
-	for row in creatable:
-		ok, message = _create_custom_field(config, row)
-		label = f"{row['dt']}.{row['fieldname']}"
-		if ok:
-			created.append(label)
-			run.line("FIELD-CREATED", row["dt"], row["fieldname"], message)
-		else:
-			failed.append(label)
-			run.mismatch(
-				row["dt"],
-				row["fieldname"],
-				f"could not create on target - {message}",
-				kind="FIELD-CREATE-FAILED",
+	if action in (ACTION_FIELDS, ACTION_ALL):
+		for row in creatable:
+			ok, message = _create_custom_field(config, row)
+			label = f"{row['dt']}.{row['fieldname']}"
+			if ok:
+				created.append(label)
+				run.line("FIELD-CREATED", row["dt"], row["fieldname"], message)
+			else:
+				failed.append(label)
+				run.mismatch(
+					row["dt"],
+					row["fieldname"],
+					f"could not create on target - {message}",
+					kind="FIELD-CREATE-FAILED",
+				)
+
+		# The target's schema is now different, so anything cached about it is stale.
+		for doctype in _prefill_doctype_names():
+			frappe.cache().delete_value(
+				f"kggk_target_fields::{host_of(config.to_site)}::{doctype}"
 			)
+			frappe.cache().delete_value(_submit_fields_key(config, doctype))
+			frappe.cache().delete_value(_identity_key(config, doctype))
 
-	# The target's schema is now different, so anything cached about it is stale.
-	for doctype in _prefill_doctypes():
-		frappe.cache().delete_value(f"kggk_target_fields::{host_of(config.to_site)}::{doctype}")
-		frappe.cache().delete_value(_submit_fields_key(config, doctype))
+	queued = False
+	if action in (ACTION_RECORDS, ACTION_ALL):
+		queued = enqueue_sync(
+			items=missing_items,
+			boms=missing_boms,
+			trigger="Prefill",
+			reference=f"prefill {log_name}",
+		)
 
-	queued = enqueue_sync(
-		items=missing_items,
-		boms=missing_boms,
-		trigger="Prefill",
-		reference=f"prefill {log_name}",
-	)
-
+	parts = []
+	if action in (ACTION_FIELDS, ACTION_ALL):
+		parts.append(_("{0} field(s) created, {1} failed.").format(len(created), len(failed)))
+	if action in (ACTION_RECORDS, ACTION_ALL):
+		parts.append(
+			_("{0} item(s) and {1} BOM(s) queued for push.").format(
+				len(missing_items), len(missing_boms)
+			)
+		)
 	result.update(
 		{
 			"fields_created": created,
 			"fields_failed": failed,
 			"records_queued": bool(queued),
-			"message": _(
-				"{0} field(s) created, {1} failed. {2} item(s) and {3} BOM(s) queued for push."
-			).format(len(created), len(failed), len(missing_items), len(missing_boms)),
+			"message": " ".join(parts),
 		}
 	)
 	_close_prefill(
@@ -3341,10 +3436,11 @@ def prefill_result(log_name):
 	frappe.only_for("System Manager")
 	result = _stored_result(log_name)
 	if result:
-		# The form needs to know whether it may offer Apply at all, and the reason has to be
-		# the same one the server will enforce - two implementations of "is this usable"
-		# would eventually disagree, and the disagreement would be a button that throws.
-		result["blocked_reason"] = _check_is_actionable(result)
+		# Recomputed rather than trusted from the stored copy: the form must be told what the
+		# server will actually enforce right now, and both go through the same function so
+		# they cannot disagree and leave a button that throws when pressed.
+		result["blocked_reason"] = _blocks_record_push(result)
+		result["warnings"] = _prefill_warnings(result)
 	return result
 
 

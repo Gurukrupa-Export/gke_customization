@@ -84,8 +84,9 @@ function retry(frm) {
 	);
 }
 
-// The second of the two presses. The first one wrote nothing; this one creates Custom
-// Fields on another site and queues records at it, so it names the target and says so.
+// What a finished check offers. Two buttons, not one: creating the fields the target is
+// missing and pushing ten thousand records at it are separate decisions with very different
+// consequences, and the first is often the only one you want.
 function offer_apply(frm) {
 	frappe.call({
 		method: "gke_customization.gke_order_forms.doc_events.kggk_sync.prefill_result",
@@ -96,22 +97,32 @@ function offer_apply(frm) {
 
 			render_summary(frm, out);
 
-			// The server refuses an unusable check too; this only avoids offering a button
-			// that would throw. Both read the same `blocked_reason`.
+			if ((out.fields_to_create || []).length) {
+				frm.add_custom_button(
+					__("Create Missing Fields"),
+					() => confirm_fields(out),
+					__("Actions")
+				).addClass("btn-primary");
+			}
+
+			if (!out.items_missing && !out.boms_missing) return;
+
+			// The push is the one the server can refuse, and it says why. Showing the reason
+			// beats offering a button that throws when pressed.
 			if (out.blocked_reason) {
-				frm.dashboard.add_comment(out.blocked_reason, "orange", true);
+				frm.dashboard.add_comment(
+					__("Cannot push records: {0}", [out.blocked_reason]),
+					"orange",
+					true
+				);
 				return;
 			}
 
-			const nothing_to_do =
-				!(out.fields_to_create || []).length && !out.items_missing && !out.boms_missing;
-			if (nothing_to_do) return;
-
 			frm.add_custom_button(
-				__("Create and Push"),
-				() => confirm_apply(out, frm.doc.name),
+				__("Push Missing Records"),
+				() => confirm_records(out, frm.doc.name),
 				__("Actions")
-			).addClass("btn-primary");
+			);
 		},
 	});
 }
@@ -125,9 +136,9 @@ function render_summary(frm, out) {
 		[__("BOMs missing on target"), `${out.boms_missing} / ${out.boms_total}`],
 	];
 
-	// The number the summary used to leave out, which is the one that decides whether any of
-	// the others can be believed: a record whose batch could not be asked about is unknown,
-	// not absent, and a check carrying any is not a check.
+	// The number the summary used to leave out, and the one that decides whether any of the
+	// others can be believed: a record whose batch could not be asked about is unknown, not
+	// absent, and a check carrying any is not a check.
 	if (out.unchecked) {
 		rows.push([
 			`<span class="text-danger">${__("Records that could not be checked")}</span>`,
@@ -146,53 +157,65 @@ function render_summary(frm, out) {
 				.join("<br>")}</code></div>`;
 	}
 
-	// A standard field missing on the target means the two sites run different app versions.
-	// Creating a same-named custom field would hide that behind something that only looks
-	// right, so these are shown and never created.
+	// Findings, not faults. A standard field missing on the target means the two sites run
+	// different app versions; a same-named custom field would hide that behind something
+	// that only looks right, so these are shown and never created - and they do not stop
+	// anything, because they are a permanent fact about two deployments rather than a
+	// transient fault.
+	(out.warnings || []).forEach((note) => {
+		html += `<p style="margin-top:12px" class="text-muted">${frappe.utils.escape_html(note)}</p>`;
+	});
+
 	if ((out.standard_field_gaps || []).length) {
-		html += `<p style="margin-top:12px"><b>${__("Standard fields absent on the target")}</b><br>
-			<span class="text-muted">${__(
-				"These are not custom fields, so they are not created - the two sites are running different app versions."
-			)}</span></p>
+		html += `<p style="margin-top:12px"><b>${__("Standard fields absent on the target")}</b></p>
 			<div style="max-height:120px;overflow:auto"><code>${out.standard_field_gaps
 				.map(frappe.utils.escape_html)
 				.join("<br>")}</code></div>`;
 	}
 
-	if ((out.schema_unreadable || []).length) {
-		html += `<p style="margin-top:12px" class="text-danger">${__(
-			"Could not read the target's field list for: {0}. Nothing can be reconciled for those.",
-			[out.schema_unreadable.join(", ")]
+	if ((out.expected_absent || []).length) {
+		html += `<p style="margin-top:12px" class="text-muted">${__(
+			"Not examined, because the target has no such table: {0}",
+			[frappe.utils.escape_html(out.expected_absent.join(", "))]
 		)}</p>`;
 	}
 
 	frm.dashboard.add_section(html, __("Check Result"));
 }
 
-function confirm_apply(out, check_log) {
+function confirm_fields(out) {
 	frappe.confirm(
 		__(
-			"Create {0} custom field(s) on {1} and push {2} item(s) and {3} BOM(s)?<br><br>This writes to the other site.",
-			[
-				(out.fields_to_create || []).length,
-				frappe.utils.escape_html(out.target),
-				out.items_missing,
-				out.boms_missing,
-			]
+			"Create {0} custom field(s) on {1}?<br><br>This writes to the other site. " +
+				"No Items or BOMs are pushed.",
+			[(out.fields_to_create || []).length, frappe.utils.escape_html(out.target)]
 		),
-		() => {
-			frappe.call({
-				method: "gke_customization.gke_order_forms.doc_events.kggk_sync.start_prefill",
-				// Naming the check is what binds the apply to it: the server re-reads that
-				// log, and refuses if To Site has moved since it was run.
-				args: { apply: 1, check_log: check_log },
-				freeze: true,
-				freeze_message: __("Queueing the prefill..."),
-				callback(r) {
-					if (r.exc || !r.message) return;
-					frappe.set_route("Form", "KGGK Sync Log", r.message.log);
-				},
-			});
-		}
+		() => run_action({ action: "fields" })
 	);
+}
+
+function confirm_records(out, check_log) {
+	frappe.confirm(
+		__(
+			"Push {0} item(s) and {1} BOM(s) to {2}?<br><br>" +
+				"They are queued and sent in the background.",
+			[out.items_missing, out.boms_missing, frappe.utils.escape_html(out.target)]
+		),
+		// Naming the check binds the push to it: the server re-reads that log and refuses if
+		// To Site has moved since it ran.
+		() => run_action({ action: "records", check_log: check_log })
+	);
+}
+
+function run_action(args) {
+	frappe.call({
+		method: "gke_customization.gke_order_forms.doc_events.kggk_sync.start_prefill",
+		args: args,
+		freeze: true,
+		freeze_message: __("Queueing..."),
+		callback(r) {
+			if (r.exc || !r.message) return;
+			frappe.set_route("Form", "KGGK Sync Log", r.message.log);
+		},
+	});
 }
