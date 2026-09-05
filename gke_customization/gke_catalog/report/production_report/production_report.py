@@ -214,8 +214,6 @@ def get_data(filters, departments=None, department_name_map=None):
             base_params.append(filters["from_date"])
         if filters.get("to_date"):
             base_params.append(filters["to_date"])
-        if filters.get("manufacturer"):
-            base_params.append(filters["manufacturer"])
         if filters.get("order_type"):
             base_params.append(filters["order_type"])
     
@@ -328,6 +326,7 @@ def get_data(filters, departments=None, department_name_map=None):
             final_data.append(row)
 
         final_data.extend(get_wip_mwo_rows(filters, departments, department_name_map))
+        final_data = [row for row in final_data if row.get('serial_no')]
         final_data.sort(key=lambda r: r.get('creation_date') or '', reverse=True)
         final_data = final_data[:10000]
 
@@ -372,9 +371,16 @@ def get_wip_mwo_rows(filters, departments=None, department_name_map=None):
         conditions.append("DATE(raw_mwo.creation) <= %s")
         params.append(filters["to_date"])
 
+    exclusion_conditions = [
+        "mwo.item_code NOT LIKE %s",
+        "(item.item_group IS NULL OR LOWER(item.item_group) NOT LIKE %s)",
+        "(item.item_group IS NULL OR LOWER(item.item_group) NOT LIKE %s)"
+    ]
+    params.extend(['SN%', '%sample%', '%consumable%'])
+
     order_type_conditions = []
     if filters.get("order_type"):
-        order_type_conditions.append("COALESCE(pmo.order_type, '') = %s")
+        order_type_conditions.append("COALESCE(pmo.order_type, ord.order_type, '') = %s")
         params.append(filters["order_type"])
 
     query = """
@@ -392,7 +398,7 @@ def get_wip_mwo_rows(filters, departments=None, department_name_map=None):
             mwo.diamond_wt,
             mwo.gemstone_wt,
             COALESCE(item.item_group, '') as category,
-            COALESCE(pmo.order_type, '') as order_type
+            COALESCE(pmo.order_type, ord.order_type, '') as order_type
         FROM (
             SELECT raw_mwo.*,
                 ROW_NUMBER() OVER (PARTITION BY raw_mwo.manufacturing_order ORDER BY raw_mwo.modified DESC) as rn
@@ -401,13 +407,16 @@ def get_wip_mwo_rows(filters, departments=None, department_name_map=None):
         ) mwo
         LEFT JOIN `tabItem` item ON item.name = mwo.item_code
         LEFT JOIN `tabParent Manufacturing Order` pmo ON pmo.name = mwo.manufacturing_order
+        LEFT JOIN `tabOrder` ord ON pmo.order_form_id = ord.name
         WHERE mwo.rn = 1
         AND mwo.serial_no IS NULL
+        AND {exclusion_conditions}
         {order_type_conditions}
         ORDER BY mwo.creation DESC
         LIMIT 10000
     """.format(
         conditions=" AND ".join(conditions),
+        exclusion_conditions=" AND ".join(exclusion_conditions),
         order_type_conditions=("AND " + " AND ".join(order_type_conditions)) if order_type_conditions else ""
     )
 
@@ -1121,9 +1130,6 @@ def get_conditions(filters):
     if filters.get("to_date"):
         conditions.append("DATE(sn.creation) <= %s")
 
-    if filters.get("manufacturer"):
-        conditions.append("snc.manufacturer = %s")
-        
     if filters.get("order_type"):
         conditions.append("""COALESCE(
             pmo.order_type, ord.order_type, snc.order_type,
