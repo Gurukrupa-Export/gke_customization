@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class ItemMigrationinKGGK(Document):
+class CreditNoteSubtype(Document):
 	pass

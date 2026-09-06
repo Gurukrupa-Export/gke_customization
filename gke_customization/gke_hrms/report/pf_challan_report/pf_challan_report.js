@@ -152,6 +152,8 @@ function fetch_and_render_account_total_panel(report) {
 }
  
 function render_account_total_panel(report, summary, filters) {
+	console.log('summary', summary);
+	
 	const fmt = (n) => {
 		const num = Number(n) || 0;
 		return num.toLocaleString("en-IN");

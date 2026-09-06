@@ -1,0 +1,67 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-21 12:47:36.174141",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_kuvu",
+  "particulars",
+  "gross_wt",
+  "net_wt",
+  "purity",
+  "approx_value"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_kuvu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "particulars",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Particulars "
+  },
+  {
+   "fieldname": "gross_wt",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Gross Wt"
+  },
+  {
+   "fieldname": "net_wt",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Net Wt"
+  },
+  {
+   "fieldname": "purity",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Purity "
+  },
+  {
+   "fieldname": "approx_value",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Approx Value"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-04 17:33:08.167267",
+ "modified_by": "Administrator",
+ "module": "GKE SURVEY",
+ "name": "Audit Customer Gold Reconciliation Details",
+ "owner": "mansi_g@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
