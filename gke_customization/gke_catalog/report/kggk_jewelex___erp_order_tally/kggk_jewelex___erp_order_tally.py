@@ -154,7 +154,7 @@ def get_compare_columns():
 		{"label": "Jewelex Batch Count", "fieldname": "jewelex_batch_count", "fieldtype": "Int", "width": 140},
 		{"label": "ERP Order No", "fieldname": "erp_order_no", "fieldtype": "Data", "width": 160},
 		{"label": "ERP Order Count", "fieldname": "erp_order_count", "fieldtype": "Int", "width": 130},
-		{"label": "ERP Order Complete", "fieldname": "erp_order_complete", "fieldtype": "Data", "width": 160},
+		{"label": "ERP Order Complete", "fieldname": "erp_order_complete", "fieldtype": "Int", "width": 160},
 	]
 
 
@@ -199,7 +199,7 @@ def get_compare_data():
 				"jewelex_batch_count": row.get("Jewelex_Batch_Count"),
 				"erp_order_no": erp_row.erp_order_no if erp_row else NOT_FOUND,
 				"erp_order_count": erp_row.erp_order_count if erp_row else NOT_FOUND,
-				"erp_order_complete": erp_complete_row.erp_complete_order_no if erp_complete_row else NOT_FOUND,
+				"erp_order_complete": erp_complete_row.erp_complete_count if erp_complete_row else 0,
 			}
 		)
 
