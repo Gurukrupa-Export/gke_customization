@@ -2,59 +2,23 @@
 # For license information, please see license.txt
 
 import json
-from decimal import Decimal
+import time
 
 import frappe
 import requests
 
-from .jewelex_db_config import JEWELEX_DB_CONFIG
+# The report fetches Jewelex order tally data from a live API on the EC2
+# bench instead of connecting to Jewelex directly or reading a cached JSON
+# file. So no pyodbc, no per-site config, and no extra setup is needed on the
+# live site.
+JEWELEX_ORDER_TALLY_API_URL = "http://ec2-13-234-27-130.ap-south-1.compute.amazonaws.com:8003/order-tally"
 
-# A scheduled job on this EC2 bench (see hooks.py -> scheduler_events) queries
-# Jewelex over pyodbc and writes the result to a public JSON file. The report
-# never queries Jewelex directly at view-time -- everywhere it runs (this
-# bench or the live site) it just fetches that JSON file over plain HTTP. So
-# no pyodbc, no per-site config, and no extra setup is needed on the live site.
-JEWELEX_CACHE_FILENAME = "jewelex_order_tally_cache.json"
-JEWELEX_CACHE_SITE = "v16site.local"
-JEWELEX_CACHE_URL = f"http://127.0.0.1:8003/files/{JEWELEX_CACHE_FILENAME}"
-
-JEWELEX_QUERY = """
-SELECT  dbo.Batch_Master.Batch_No ,
-        dbo.M_Category.Category_Name AS Category ,
-        dbo.M_Sub_Category.Sub_Category_Name AS Sub_Category ,
-        dbo.M_Design_Setting.DesignSetting_Name AS Setting ,
-        dbo.Batch_Master.StyleBio ,
-        dbo.M_Customer.Cust_Code AS Party_Code ,
-        dbo.Batch_Master.Gold_Wt ,
-        dbo.Batch_Master.Dia_Wt ,
-        dbo.M_Metal.Metal_Type AS Metal_Type ,
-        dbo.Batch_Master.Stone_Wt ,
-        dbo.Batch_Master.Other_Wt ,
-        dbo.Batch_Master.NetGross_Wt ,
-		M_Department.Dept_Name AS Current_Dept ,
-        dbo.Process_Master.Process_Name AS Current_Process ,
-        dbo.Order_Detail.Bulk_Order_No ,
-        dbo.Order_Master.Order_No ,
-        dbo.Order_Master.Order_Date ,
-        Order_Master.Due_date ,
-        Order_Master.Order_Type
-FROM    dbo.Batch_Master WITH ( NOLOCK )
-        LEFT JOIN dbo.Order_Detail WITH ( NOLOCK ) ON dbo.Batch_Master.Order_Detail_Id = dbo.Order_Detail.Order_Detail_Id
-        LEFT JOIN dbo.Order_Master WITH ( NOLOCK ) ON dbo.Order_Detail.Order_Id = dbo.Order_Master.Order_Id
-        LEFT JOIN dbo.Gen_Order_Detail WITH ( NOLOCK ) ON dbo.Order_Detail.Order_Detail_Id = Gen_Order_Detail.Order_Detail_Id
-        LEFT JOIN dbo.M_Customer WITH ( NOLOCK ) ON dbo.Order_Master.Party_Id = dbo.M_Customer.Cust_ID
-        LEFT JOIN dbo.M_Metal WITH ( NOLOCK ) ON dbo.Batch_Master.Metal_ID = dbo.M_Metal.Metal_ID
-        LEFT JOIN dbo.M_Purity WITH ( NOLOCK ) ON dbo.Batch_Master.Purity_Id = dbo.M_Purity.Purity_ID
-        LEFT JOIN dbo.M_Sub_Category WITH ( NOLOCK ) ON dbo.Batch_Master.Sub_Category_Id = dbo.M_Sub_Category.Sub_Category_ID
-        LEFT JOIN dbo.M_Category WITH ( NOLOCK ) ON dbo.Batch_Master.Category_Id = dbo.M_Category.Category_ID
-        LEFT JOIN dbo.M_Design_Setting WITH ( NOLOCK ) ON dbo.Batch_Master.Seting_Id = dbo.M_Design_Setting.Design_ID
-        LEFT JOIN dbo.Process_Master WITH ( NOLOCK ) ON dbo.Batch_Master.CurrentProcessId = dbo.Process_Master.Process_Id
-        LEFT JOIN dbo.M_Department WITH ( NOLOCK ) ON dbo.Batch_Master.CurrentDeptId = dbo.M_Department.Dept_ID
-WHERE   Batch_Master.Is_cancel = 0
-        AND dbo.Batch_Master.Is_Split = 0
-        AND dbo.Batch_Master.Is_Marge = 0
-        AND ( ( Batch_Master.Is_Complete = 0 ) OR ( Batch_Master.Is_Complete = 1 AND Batch_Master.Is_Tag = 0 ) )
-"""
+# The API above may occasionally be unreachable -- keep a local copy of the
+# last successful fetch here so a transient/permanent network failure
+# degrades to stale data instead of a hard error.
+JEWELEX_LOCAL_FALLBACK_FILENAME = "jewelex_order_tally_local_fallback.json"
+JEWELEX_FETCH_RETRIES = 3
+JEWELEX_FETCH_RETRY_DELAY = 2
 
 
 def execute(filters=None):
@@ -92,74 +56,65 @@ def get_columns():
 	]
 
 
-def get_jewelex_connection():
+def _local_fallback_path():
+	return frappe.get_site_path("private", "files", JEWELEX_LOCAL_FALLBACK_FILENAME)
+
+
+def _read_local_fallback():
+	path = _local_fallback_path()
 	try:
-		import pyodbc
-	except ImportError:
-		frappe.throw(
-			"pyodbc is not installed. Run 'bench pip install pyodbc' in the bench environment "
-			"(and ensure the ODBC Driver 17 for SQL Server is installed on the OS)."
-		)
-
-	conn_str = (
-		f"DRIVER={{{JEWELEX_DB_CONFIG['driver']}}};"
-		f"SERVER={JEWELEX_DB_CONFIG['server']},{JEWELEX_DB_CONFIG['port']};"
-		f"DATABASE={JEWELEX_DB_CONFIG['database']};"
-		f"UID={JEWELEX_DB_CONFIG['user']};"
-		f"PWD={JEWELEX_DB_CONFIG['password']};"
-	)
-	return pyodbc.connect(conn_str)
+		with open(path) as f:
+			return json.load(f)
+	except (FileNotFoundError, json.JSONDecodeError):
+		return None
 
 
-def refresh_jewelex_order_tally_cache():
-	"""Scheduled job (EC2 bench only). Queries Jewelex over pyodbc and writes
-	the rows to this site's public files, so the report can fetch them over
-	a plain URL instead of connecting to Jewelex at view-time.
-
-	This same hooks.py cron entry also ships to the live site, which has no
-	pyodbc -- skip there instead of erroring every run."""
-	try:
-		import pyodbc  # noqa: F401
-	except ImportError:
-		return
-
-	conn = get_jewelex_connection()
-	try:
-		cursor = conn.cursor()
-		cursor.execute(JEWELEX_QUERY)
-		columns = [col[0] for col in cursor.description]
-		rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
-	finally:
-		conn.close()
-
-	def _json_default(value):
-		if isinstance(value, Decimal):
-			return float(value)
-		return str(value)
-
-	file_path = frappe.get_site_path("public", "files", JEWELEX_CACHE_FILENAME)
-	with open(file_path, "w") as f:
-		json.dump(rows, f, default=_json_default)
+def _write_local_fallback(rows):
+	with open(_local_fallback_path(), "w") as f:
+		json.dump(rows, f)
 
 
 def get_jewelex_data(filters=None):
-	# TODO: apply report filters to the query (e.g. WHERE Order_No = ?) once
-	# the filters are finalized.
-	try:
-		# The EC2 bench is reached by IP:port, not by its site domain, so the
-		# Host header must be set explicitly or Frappe can't resolve which
-		# site's public files to serve from and returns a 404.
-		response = requests.get(
-			JEWELEX_CACHE_URL, headers={"Host": JEWELEX_CACHE_SITE}, timeout=15
-		)
-		response.raise_for_status()
-	except requests.RequestException as e:
-		frappe.throw(
-			f"Could not load Jewelex data from the cache file ({JEWELEX_CACHE_URL}): {e}. "
-			"The scheduled refresh job on the EC2 bench may not have run yet."
-		)
-	return response.json()
+	last_error = None
+	for attempt in range(1, JEWELEX_FETCH_RETRIES + 1):
+		try:
+			response = requests.get(JEWELEX_ORDER_TALLY_API_URL, timeout=15)
+			response.raise_for_status()
+			payload = response.json()
 
+			if not isinstance(payload, dict) or payload.get("status") != "success":
+				raise ValueError(f"Unexpected Jewelex API response: {payload!r}")
+
+			rows = payload.get("data")
+			if rows is None:
+				raise ValueError("Jewelex API response missing 'data' field")
+
+			_write_local_fallback(rows)
+			return rows
+		except (requests.RequestException, ValueError) as e:
+			last_error = e
+			if attempt < JEWELEX_FETCH_RETRIES:
+				time.sleep(JEWELEX_FETCH_RETRY_DELAY)
+
+	frappe.log_error(
+		title="Jewelex order tally API fetch failed",
+		message=f"Could not reach {JEWELEX_ORDER_TALLY_API_URL} after {JEWELEX_FETCH_RETRIES} attempts: {last_error}",
+	)
+
+	fallback = _read_local_fallback()
+	if fallback is not None:
+		frappe.msgprint(
+			"Could not reach the Jewelex order tally API right now -- showing the last "
+			"successfully loaded data instead. It may be out of date.",
+			indicator="orange",
+			alert=True,
+		)
+		return fallback
+
+	frappe.throw(
+		f"Could not load Jewelex data from the API ({JEWELEX_ORDER_TALLY_API_URL}): {last_error}. "
+		"No previously loaded data is available on this site to fall back to."
+	)
 
 ERP_COMPARE_QUERY = """
 SELECT  pmo.jewelex_order_no AS jewelex_order_no,
