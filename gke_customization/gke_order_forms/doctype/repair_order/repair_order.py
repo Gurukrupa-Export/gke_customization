@@ -683,6 +683,7 @@ def make_quotation(source_name, target_doc=None):
 			"company": "company",
 			"party_name": "customer_code",
 			"order_type": "order_type",
+			"custom_flow_type": "flow_type",
 			"diamond_quality": "diamond_quality"
 		}
 		for target_field, source_field in field_map.items():
