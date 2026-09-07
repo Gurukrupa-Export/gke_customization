@@ -156,6 +156,12 @@ scheduler_events = {
     "hourly": [
         "gke_customization.gke_hrms.sync_checkin.sync_biometric_checkins" # new script for Sync biometric checkins
     ],
+    "hourly_long": [
+        # Catches what the save hooks could not: an edit made while KGGK was down, a job lost
+        # to a worker restart, a record changed by a patch or a bulk import. Reads and
+        # enqueues only, and does nothing at all unless "Hourly Change Check" is ticked.
+        "gke_customization.gke_order_forms.doc_events.kggk_sync.reconcile_changes"
+    ],
     "cron": {
         "0 6 * * *": [
 		    "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
@@ -291,11 +297,19 @@ doc_events = {
 # "Item": {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
 # },
+# The KGGK push. `on_update`, not `before_validate`: the old hooks called
+# `item.create_item_kggk` / `item.create_bom_kggk`, which did blocking HTTP inside the save
+# and `frappe.throw` on any API error - so an unreachable KGGK site aborted a local Item or
+# BOM save. Those functions are still in item.py, unreferenced, if this ever has to go back.
+#
+# BOM needs both events: Frappe runs `on_update` for a save and a submit, but a *different*
+# event for an edit after submit, and BOMs here are submitted.
 "Item": {
-    "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_item_kggk"
+    "on_update": "gke_customization.gke_order_forms.doc_events.kggk_sync.item_on_update"
 },
 "BOM": {
-    "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_bom_kggk"
+    "on_update": "gke_customization.gke_order_forms.doc_events.kggk_sync.bom_on_update",
+    "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.kggk_sync.bom_on_update"
 },
 # "Department IR": {
 #     "autoname": "gke_customization.gke_order_forms.doc_events.department_ir.autoname"
