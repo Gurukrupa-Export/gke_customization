@@ -2705,7 +2705,7 @@ def make_quotation_batch(order_names, target_doc=None):
 	else:
 		target_doc = frappe.get_doc(target_doc)
 
-	# target_doc.items = []
+	target_doc.set("items", [row for row in target_doc.get("items") if row.item_code])
 	for name in order_names:
 		order = frappe.db.get_value("Order", name, "*", as_dict=True)
 		if not order:
@@ -2727,8 +2727,6 @@ def make_quotation_batch(order_names, target_doc=None):
 			"delivery_date": order.delivery_date,
 			"order_form_type": "Order",
 			"order_form_id": order.name,
-			# Origin BOM. Seeded here so the row carries it from the moment it is mapped,
-			# before the Quotation's "Creating BOM" run gets a chance to resolve it.
 			"copy_bom": order.new_bom,
 			"salesman_name": order.salesman_name,
 			"order_form_date": order.order_date,
@@ -2742,7 +2740,6 @@ def make_quotation_batch(order_names, target_doc=None):
 			"custom_jewelex_batch_no": order.jewelex_batch_no,
 			"qty": order.qty,
 			"metal_type":order.metal_type
-
 		})
 
 	# Only run set_missing_values once
@@ -2750,6 +2747,7 @@ def make_quotation_batch(order_names, target_doc=None):
 	make_quotation_fill_defaults(target_doc, first_order)
 
 	return target_doc
+
 
 
 def make_quotation_fill_defaults(quotation, order):
