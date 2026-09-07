@@ -37,6 +37,21 @@ def _run(**kwargs):
 	return k.SyncRun(**kwargs)
 
 
+def _gaps(creatable=(), standard=(), informational=(), unreadable=(), expected_absent=()):
+	"""The five-part answer `_field_gaps` gives.
+
+	Named rather than spelled out as a bare tuple at each stub, so a test says which bucket it
+	is filling and a sixth bucket is one edit here instead of a `ValueError` in every caller.
+	"""
+	return (
+		list(creatable),
+		list(standard),
+		list(informational),
+		list(unreadable),
+		list(expected_absent),
+	)
+
+
 class TestConfigGuards(unittest.TestCase):
 	def _resolve(self, settings, secret="secret", hosts=("gk.example.com",)):
 		with patch.object(frappe.db, "get_value", return_value=settings), patch(
@@ -273,7 +288,7 @@ class TestUpdateEligibility(unittest.TestCase):
 		with patch.object(k, "is_sync_enabled", return_value=enabled), patch.object(
 			k, "setting", return_value=sync_updates
 		), patch.object(k, "get_sync_config", return_value=(self.cfg, None)), patch.object(
-			k, "is_synced", return_value=synced
+			k, "is_on_target", return_value=synced
 		), patch.object(
 			k, "enqueue_sync"
 		) as enqueue:
@@ -368,6 +383,8 @@ class TestDeferredRelink(unittest.TestCase):
 	def test_the_link_is_put_back_once_the_bom_arrives(self):
 		self.run.deferred = [("Item", "I-1", "master_bom", "B-1", "BOM")]
 		with patch.object(k, "api_exists_many", return_value={"B-1": True}), patch.object(
+			k, "target_name_if_known", side_effect=lambda dt, n, t: n
+		), patch.object(k, "set_state_status"), patch.object(
 			k, "api_put", return_value=k.Response(status_code=200)
 		) as put:
 			k._apply_deferred_links(self.cfg, self.run)
@@ -382,6 +399,8 @@ class TestDeferredRelink(unittest.TestCase):
 			("Item", "I-1", "other_bom", "B-2", "BOM"),
 		]
 		with patch.object(k, "api_exists_many", return_value={"B-1": True, "B-2": True}), patch.object(
+			k, "target_name_if_known", side_effect=lambda dt, n, t: n
+		), patch.object(k, "set_state_status"), patch.object(
 			k, "api_put", return_value=k.Response(status_code=200)
 		) as put:
 			k._apply_deferred_links(self.cfg, self.run)
@@ -767,7 +786,7 @@ class TestPrefillWorker(unittest.TestCase):
 
 	def test_dry_run_creates_nothing(self):
 		out, create, enqueue = self._worker(
-			gaps=([{"dt": "Item", "fieldname": "custom_x"}], [], []),
+			gaps=_gaps(creatable=[{"dt": "Item", "fieldname": "custom_x"}]),
 			plans=(["MP-1"], ["I-1"], ["B-1"]),
 			presence={"Item": {"I-1": False}, "BOM": {"B-1": False}},
 			apply=0,
@@ -780,7 +799,7 @@ class TestPrefillWorker(unittest.TestCase):
 
 	def test_apply_creates_fields_and_queues_records(self):
 		out, create, enqueue = self._worker(
-			gaps=([{"dt": "Item", "fieldname": "custom_x"}], [], []),
+			gaps=_gaps(creatable=[{"dt": "Item", "fieldname": "custom_x"}]),
 			plans=(["MP-1"], ["I-1"], []),
 			presence={"Item": {"I-1": False}},
 			apply=1,
@@ -793,7 +812,7 @@ class TestPrefillWorker(unittest.TestCase):
 	def test_standard_field_gaps_are_never_created(self):
 		"""A missing standard field is a version mismatch, not something to paper over."""
 		out, create, _ = self._worker(
-			gaps=([], ["Item.some_v16_field (Data)"], []),
+			gaps=_gaps(standard=["Item.some_v16_field (Data)"]),
 			plans=([], [], []),
 			presence={},
 			apply=1,
@@ -804,7 +823,7 @@ class TestPrefillWorker(unittest.TestCase):
 	def test_unknown_existence_is_not_assumed_present(self):
 		"""A name missing from the batch answer means 'we could not ask', not 'absent'."""
 		out, _, enqueue = self._worker(
-			gaps=([], [], []),
+			gaps=_gaps(),
 			plans=(["MP-1"], ["I-1"], []),
 			presence={"Item": {}},
 			apply=0,
@@ -814,7 +833,7 @@ class TestPrefillWorker(unittest.TestCase):
 
 	def test_a_failed_field_leaves_the_run_partially_complete(self):
 		out, create, _ = self._worker(
-			gaps=([{"dt": "Item", "fieldname": "custom_x"}], [], []),
+			gaps=_gaps(creatable=[{"dt": "Item", "fieldname": "custom_x"}]),
 			plans=([], [], []),
 			presence={},
 			apply=1,
@@ -840,17 +859,19 @@ class TestTargetNaming(unittest.TestCase):
 
 	def test_the_created_name_is_read_back_from_the_target(self):
 		created = k.Response(status_code=200, data={"data": {"name": "BOM-X-001"}})
-		with patch.object(k, "api_put", return_value=k.Response(status_code=404)), patch.object(
-			k, "api_post", return_value=created
-		):
+		# The target can be searched by origin and answers "nothing came from that record", so
+		# this is a first push and the create is the right move.
+		with patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "lookup_by_identity", return_value=None
+		), patch.object(k, "api_post", return_value=created):
 			response, action, assigned, blocked = k._send(self.cfg, "BOM", "BOM-X-002", {"item": "X"})
 		self.assertEqual(action, "created")
 		self.assertEqual(assigned, "BOM-X-001")
 
 	def test_an_update_is_addressed_by_the_targets_name(self):
 		with patch.object(k, "api_put", return_value=k.Response(status_code=200)) as put, patch.object(
-			k, "api_post"
-		) as post:
+			k, "ensure_identity_fields", return_value=True
+		), patch.object(k, "api_post") as post:
 			response, action, assigned, blocked = k._send(
 				self.cfg, "BOM", "BOM-X-002", {"item": "X"}, lookup="BOM-X-001"
 			)
@@ -899,6 +920,8 @@ class TestTargetNaming(unittest.TestCase):
 		with patch.object(
 			k, "target_names", side_effect=lambda dt, names, t: {n: "BOM-X-001" for n in names}
 		), patch.object(k, "target_name_for", side_effect=lambda dt, n, t: n), patch.object(
+			k, "target_name_if_known", side_effect=lambda dt, n, t: n
+		), patch.object(k, "set_state_status"), patch.object(
 			k, "api_exists_many", return_value={"BOM-X-001": True}
 		), patch.object(
 			k, "api_put", return_value=k.Response(status_code=200)
@@ -915,7 +938,7 @@ class TestTargetNaming(unittest.TestCase):
 			return {n: True for n in names}
 
 		with patch.object(k, "get_sync_config", return_value=(self.cfg, None)), patch.object(
-			k, "_field_gaps", return_value=([], [], [])
+			k, "_field_gaps", return_value=_gaps()
 		), patch.object(k, "_plan_records", return_value=(["MP-1"], [], ["BOM-X-002"])), patch.object(
 			k, "target_names", side_effect=lambda dt, names, t: {n: "BOM-X-001" for n in names}
 		), patch.object(k, "api_exists_many", side_effect=exists_many), patch.object(
@@ -994,32 +1017,50 @@ class TestSubmittedOnTarget(unittest.TestCase):
 			data={"exc_type": "UpdateAfterSubmitError", "exception": "Cannot Update After Submit"},
 		)
 
+	def _theirs(self, blocked):
+		"""`blocked` without the origin stamp.
+
+		`_send` adds the three source-identity fields to every payload and they are
+		`read_only`, so a target that has already submitted the record refuses them along with
+		the real ones - on every update, for ever. They carry no information for the operator:
+		they are constant for a record and were already correct over there. What this class is
+		about is which of *their* fields could not move.
+		"""
+		identity = {f["fieldname"] for f in k.IDENTITY_FIELDS}
+		return [f for f in blocked if f not in identity]
+
 	def test_the_fields_that_can_still_change_are_sent_and_the_rest_reported(self):
 		data = {"is_active": 1, "is_default": 1, "quantity": 5, "uom": "Nos"}
 		with patch.object(k, "api_put", side_effect=[self._refusal(), k.Response(status_code=200)]) as put, patch.object(
 			k, "get_target_submit_fields", return_value={"is_active", "is_default"}
-		):
-			response, action, target, blocked = k._send(self.cfg, "BOM", "B-1", data)
+		), patch.object(k, "ensure_identity_fields", return_value=True):
+			response, action, target, blocked = k._send(
+				self.cfg, "BOM", "B-1", data, lookup="B-1"
+			)
 
 		self.assertTrue(response.ok)
 		self.assertEqual(put.call_args.kwargs["json"], {"is_active": 1, "is_default": 1})
-		self.assertEqual(blocked, ["quantity", "uom"])
+		self.assertEqual(self._theirs(blocked), ["quantity", "uom"])
 		self.assertIn("submitted on target", action)
 
 	def test_nothing_sendable_reports_without_a_second_call(self):
 		with patch.object(k, "api_put", return_value=self._refusal()) as put, patch.object(
 			k, "get_target_submit_fields", return_value=set()
-		):
-			response, action, target, blocked = k._send(self.cfg, "BOM", "B-1", {"quantity": 5})
+		), patch.object(k, "ensure_identity_fields", return_value=True):
+			response, action, target, blocked = k._send(
+				self.cfg, "BOM", "B-1", {"quantity": 5}, lookup="B-1"
+			)
 		self.assertEqual(put.call_count, 1)
-		self.assertEqual(blocked, ["quantity"])
+		self.assertEqual(self._theirs(blocked), ["quantity"])
 
 	def test_a_submitted_target_never_becomes_a_second_bom(self):
 		"""The refusal must not fall through to the 404 branch and POST a duplicate."""
 		with patch.object(k, "api_put", side_effect=[self._refusal(), k.Response(status_code=200)]), patch.object(
 			k, "get_target_submit_fields", return_value={"is_active"}
-		), patch.object(k, "api_post") as post:
-			k._send(self.cfg, "BOM", "B-1", {"is_active": 1, "quantity": 5})
+		), patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "api_post"
+		) as post:
+			k._send(self.cfg, "BOM", "B-1", {"is_active": 1, "quantity": 5}, lookup="B-1")
 		post.assert_not_called()
 
 	def test_this_engine_never_submits_anything_itself(self):
@@ -1094,7 +1135,7 @@ class TestChildTableFields(unittest.TestCase):
 		with patch.object(frappe.db, "exists", return_value=True), patch.object(
 			frappe, "get_meta", side_effect=lambda dt: meta[dt]
 		):
-			doctypes = k._prefill_doctypes()
+			doctypes = k._prefill_doctype_names()
 		self.assertIn("BOM Metal Detail", doctypes)
 		self.assertIn("Item Variant Attribute", doctypes)
 
