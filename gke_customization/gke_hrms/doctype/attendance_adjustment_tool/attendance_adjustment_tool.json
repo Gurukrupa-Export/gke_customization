@@ -1,0 +1,175 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-18 10:43:01.548034",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "from_date",
+  "company",
+  "records",
+  "column_break_pdds",
+  "to_date",
+  "branch",
+  "column_break_uy6g",
+  "preview_btn",
+  "section_break_qdel",
+  "preview_html",
+  "processed",
+  "column_break_viho",
+  "generate_btn",
+  "adjustment_details",
+  "update_attendance",
+  "date",
+  "tab_break_kffm",
+  "error_details",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "From Date",
+   "options": "From Date"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "description": "Upload Excel file in the required format; each row should represent one employee record.\n\n\nRequired Columns: employee, actual_salary, monthly_salary, calendar_days",
+   "fieldname": "records",
+   "fieldtype": "Attach",
+   "in_list_view": 1,
+   "label": "Records",
+   "options": "Records"
+  },
+  {
+   "fieldname": "column_break_pdds",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "To Date",
+   "options": "To Date"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "column_break_uy6g",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "preview_btn",
+   "fieldtype": "Button",
+   "label": "Preview",
+   "options": "Preview"
+  },
+  {
+   "fieldname": "section_break_qdel",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "preview_html",
+   "fieldtype": "HTML",
+   "label": "Preview"
+  },
+  {
+   "default": "0",
+   "fieldname": "processed",
+   "fieldtype": "Check",
+   "label": "Processed",
+   "options": "Processed"
+  },
+  {
+   "fieldname": "column_break_viho",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "generate_btn",
+   "fieldtype": "Button",
+   "label": "Generate"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "adjustment_details",
+   "fieldtype": "Table",
+   "label": "Adjustment Details",
+   "options": "Adjustment Details"
+  },
+  {
+   "default": "0",
+   "fieldname": "update_attendance",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Update Attendance - Completed",
+   "options": "Update Attendance - Completed"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Dates"
+  },
+  {
+   "fieldname": "tab_break_kffm",
+   "fieldtype": "Tab Break",
+   "label": "Error Details"
+  },
+  {
+   "fieldname": "error_details",
+   "fieldtype": "Text",
+   "label": "Error Details"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Attendance Adjustment Tool",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-08-18 17:29:35.699002",
+ "modified_by": "bhavika_patel@gkexport.com",
+ "module": "GKE HRMS",
+ "name": "Attendance Adjustment Tool",
+ "owner": "shubham_si@gkexport.com",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
