@@ -360,6 +360,7 @@ class TestUpdateEligibility(unittest.TestCase):
 	def test_the_switch_stops_every_save_driven_push(self):
 		"""One switch, one meaning: off means a save sends nothing.
 
+<<<<<<< HEAD
 		It used to stop only edits to records KGGK already had, while a newly eligible design
 		still went across - so an Order submit, which creates eligible Items, put them on
 		KGGK with the switch visibly unticked and no way to reason about why.
@@ -377,6 +378,10 @@ class TestUpdateEligibility(unittest.TestCase):
 
 		# And on, it still does its job.
 		self._save(brand_new, synced=False, sync_updates=1).assert_called_once()
+=======
+		still_eligible = frappe._dict(doctype="Item", name="I-2", setting_type="Nova Glow")
+		self._save(still_eligible, synced=False, sync_updates=0).assert_called_once()
+>>>>>>> c3f67de7ad776138cc81350376aeb04642236f8f
 
 
 class TestDeferredRelink(unittest.TestCase):
