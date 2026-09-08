@@ -21,7 +21,7 @@ frappe.query_reports["Department Wise Daily Present Report"] = {
 					}
 				};
 			},
-			"on_change": fetch_employees
+			// "on_change": fetch_employees
 		},
 		{
 			"label": __("Employee"),
@@ -36,7 +36,11 @@ frappe.query_reports["Department Wise Daily Present Report"] = {
 				if (department) filters.department = department;
 
 				return {
-					filters: filters
+					filters: {
+						company: company,
+						department: department,
+						status: "Active"
+					}
 				};
 			},
 		}, 
@@ -108,7 +112,7 @@ function fetch_employees(report) {
  
 				let emp_filter = frappe.query_report.get_filter("manager");
 				if (emp_filter) {
-					emp_filter.df.read_only = 1;
+					// emp_filter.df.read_only = 1;
 					emp_filter.refresh();
 				}
 			}

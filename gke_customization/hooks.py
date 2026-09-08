@@ -160,10 +160,10 @@ scheduler_events = {
         "0 6 * * *": [
 		    "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
         ],
-        "0 10 * * *": [
+        "30 10 * * *": [
 			"gke_customization.gke_hrms.report.department_wise_daily_present_report.department_wise_daily_present_report.send_morning_present_report"
 		],
-        "0 8 * * *": [
+        "30 8 * * *": [
 			"gke_customization.gke_hrms.report.department_wise_daily_attendance.department_wise_daily_attendance.send_daily_attendance_report"
 		]
     },

@@ -223,6 +223,8 @@ def get_employees(filters):
 	if filters.get("manager"):
 		user_id = frappe.db.get_value("Employee", filters.get("manager"), "user_id")
 		allowed_departments = get_manager_departments(user_id) or []
+		if not allowed_departments:
+			return []
 		query = query.where(Employee.department.isin(allowed_departments))
 
 	return query.run(as_dict=True)
@@ -499,6 +501,7 @@ def send_daily_attendance_report(date=None, department=None):
 		html = render_email_html(dept, date, rows, summary)
 		frappe.sendmail(
 			recipients=manager_emails,
+			cc=["angat_p@gkexport.com","hr_srt@gkexport.com"],
 			sender="alerts@gkexport.com",
 			subject=f"Daily Attendance Report — {dept} — {formatdate(date, 'dd-mm-yyyy')}",
 			message=html,
