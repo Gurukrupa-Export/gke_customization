@@ -2587,9 +2587,9 @@ def sync_plan_now(plan_name):
 def is_eligible(doc):
 	"""Should this record go to KGGK on its own merit, before any sync history?"""
 	if doc.doctype == "Item":
-		return doc.get("setting_type") == "Close"
+		return doc.get("setting_type") == "Nova Glow"
 	if doc.doctype == "BOM":
-		return doc.get("setting_type") == "Close" and doc.get("bom_type") == "Template"
+		return doc.get("setting_type") == "Nova Glow" and doc.get("bom_type") == "Template"
 	return False
 
 
