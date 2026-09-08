@@ -1427,6 +1427,53 @@ def translate_company(fieldtype, options, value):
 	return target_company() or value
 
 
+# A confirmed company is remembered for the run rather than asked once per record.
+_COMPANY_CHECK_TTL = 600
+
+
+def verify_target_company(config, run=None):
+	"""Does the configured Target Company exist on the target? Returns ``(ok, message)``.
+
+	Worth one call before a run rather than finding out per record. Target Company is a Data
+	field - it has to be, because it names a Company in another database - so a typo saves
+	cleanly and then rewrites the company on *every* Item and BOM to something that does not
+	exist. Without this the operator gets hundreds of identical failures naming a value they
+	are sure they typed correctly.
+
+	A lookup that cannot be completed does not block: refusing to sync because a check timed
+	out would be worse than the thing it guards against, and the per-record link check still
+	catches it further down.
+	"""
+	company = target_company()
+	if not company:
+		return True, ""
+
+	key = f"kggk_company_ok::{host_of(config.to_site)}::{company}"
+	if frappe.cache().get_value(key, expires=True):
+		return True, ""
+
+	found = api_exists(config, COMPANY_DOCTYPE, company)
+	if found is None:
+		message = _(
+			"Could not check whether Company '{0}' exists on {1}; continuing."
+		).format(company, host_of(config.to_site))
+		if run:
+			run.mismatch(
+				None, None, message, kind="COMPANY-UNKNOWN", once_key="targetcompany"
+			)
+		return True, message
+
+	if not found:
+		return False, _(
+			"Target Company '{0}' does not exist on {1}. Every Item and BOM would be rewritten "
+			"to it and refused. Check the exact name in KGGK's Company list, or clear the "
+			"field to send this site's own company."
+		).format(company, host_of(config.to_site))
+
+	frappe.cache().set_value(key, 1, expires_in_sec=_COMPANY_CHECK_TTL)
+	return True, ""
+
+
 def stamp_company(doctype, payload, allowed_fields=None):
 	"""Put the target's company on the record, whether or not ours carried one.
 
@@ -1454,15 +1501,19 @@ def stamp_company(doctype, payload, allowed_fields=None):
 	if allowed_fields is not None and table not in allowed_fields:
 		return
 
-	rows = payload.get(table) or []
-	# One company on the target means exactly one defaults row. An Item here can hold defaults
-	# for several companies, and rewriting each of them to the same name would send several
-	# rows that are now duplicates of one another - which the target rejects, failing the
-	# whole Item. Keep the first row's other defaults, drop the rest.
-	row = dict(rows[0]) if rows else {}
-	row["company"] = company
-	row["idx"] = 1
-	payload[table] = [row]
+	# The company, and nothing else.
+	#
+	# Thirteen of Item Default's sixteen fields are links to Warehouse, Account or Cost
+	# Center, every one of them scoped to the company of the row it sits in. Carrying those
+	# across under a different company's name is how a KGGK Item ends up defaulting to a
+	# Gurukrupa warehouse, or is rejected outright because the account does not exist there -
+	# and child-row links are not checked by `_strip_missing_links`, so the failure arrives as
+	# the whole Item being refused with a message about a field nobody was thinking about.
+	#
+	# It also settles the several-companies case: one target company means one row, and
+	# rewriting each source row to the same name would send duplicates that the target
+	# rejects. What KGGK wants for its own defaults is KGGK's business to set.
+	payload[table] = [{"company": company, "idx": 1}]
 
 
 def _numeric_attributes():
@@ -2409,6 +2460,14 @@ def sync_records(
 			_abandon_run(log_name, blocked)
 		return {"status": STATUS_FAILED, "error": blocked}
 
+	# One question, once, instead of the same failure on every record in the run.
+	company_ok, company_message = verify_target_company(config)
+	if not company_ok:
+		log_skip(company_message)
+		if log_name:
+			_abandon_run(log_name, company_message)
+		return {"status": STATUS_FAILED, "error": company_message}
+
 	if not items and not boms:
 		return None
 
@@ -3289,6 +3348,12 @@ def start_prefill(action=ACTION_CHECK, limit_plans=None, check_log=None, fields=
 	reachable, message = check_connectivity(config)
 	if not reachable:
 		frappe.throw(message, title=_("Cannot Reach the Target Site"))
+
+	# Said here, where somebody just pressed a button, rather than in a log they have to go
+	# and find.
+	company_ok, company_message = verify_target_company(config)
+	if not company_ok:
+		frappe.throw(company_message, title=_("Target Company Not Found"))
 
 	# Queueing records acts on a list somebody read and approved, so it has to be the list
 	# from a specific check against this same target. Creating fields does not: it works out
