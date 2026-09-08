@@ -1,6 +1,8 @@
 # Copyright (c) 2025, Gurukrupa Export and contributors
 # For license information, please see license.txt
 
+import re
+
 import frappe
 from frappe import _
 
@@ -8,15 +10,15 @@ from frappe import _
 def execute(filters=None):
     if not filters:
         filters = {}
-    
-    columns = get_columns()
-    data = get_data(filters)
-    
+
+    data, department_columns = get_data(filters)
+    columns = get_columns(department_columns)
+
     return columns, data
 
 
-def get_columns():
-    return [
+def get_columns(department_columns=None):
+    columns = [
         {"fieldname": "action", "label": _(""), "fieldtype": "Data", "width": 150},
         {"fieldname": "serial_no", "label": _("Serial No."), "fieldtype": "Link", "options": "Serial No", "width": 150},
         {"fieldname": "posting_date", "label": _("Date"), "fieldtype": "Date", "width": 120},
@@ -25,6 +27,14 @@ def get_columns():
         {"fieldname": "item_code", "label": _("Item Code"), "fieldtype": "Link", "options": "Item", "width": 150},
         {"fieldname": "item_category", "label": _("Item Category"), "fieldtype": "Data", "width": 120},
         {"fieldname": "item_subcategory", "label": _("Item Sub Category"), "fieldtype": "Data", "width": 140},
+        {"fieldname": "pmo_no", "label": _("PMO No."), "fieldtype": "Link", "options": "Parent Manufacturing Order", "width": 140},
+        {"fieldname": "mwo_no", "label": _("MWO No."), "fieldtype": "Link", "options": "Manufacturing Work Order", "width": 140},
+    ]
+
+    for fieldname, label in (department_columns or []):
+        columns.append({"fieldname": fieldname, "label": label, "fieldtype": "Float", "precision": 3, "width": 140})
+
+    columns += [
         {"fieldname": "gross_wt", "label": _("Gross Wt."), "fieldtype": "Float", "precision": 3, "width": 100},
         {"fieldname": "casting_wt", "label": _("Casting Wt."), "fieldtype": "Float", "precision": 3, "width": 130},
         {"fieldname": "finish_metal_wt", "label": _("Finish Metal Wt"), "fieldtype": "Float", "precision": 3, "width": 120},
@@ -43,6 +53,8 @@ def get_columns():
         {"fieldname": "warehouse", "label": _("Warehouse"), "fieldtype": "Link", "options": "Warehouse", "width": 150},
         {"fieldname": "serial_no_status", "label": _("Serial No status"), "fieldtype": "Data", "width": 120}
     ]
+
+    return columns
 
 
 def get_data(filters):
@@ -165,24 +177,21 @@ def get_data(filters):
         
         COALESCE(i.item_category, '') as item_category,
         COALESCE(i.item_subcategory, '') as item_subcategory,
-        
+
         ROUND(COALESCE(bom.gross_weight, 0), 3) as gross_wt,
-        
+
+        COALESCE(mwo_info.pmo_no, '') as pmo_no,
+        COALESCE(mwo_info.mwo_no, '') as mwo_no,
+
         ROUND(COALESCE((
-            SELECT mo.net_wt 
-            FROM `tabSerial No` sn_inner
-            LEFT JOIN `tabBOM` bom_inner ON bom_inner.name = sn_inner.custom_bom_no
-            LEFT JOIN `tabSerial Number Creator` snc ON snc.name = bom_inner.custom_serial_number_creator
-            LEFT JOIN `tabManufacturing Work Order` mwo ON mwo.manufacturing_order = snc.parent_manufacturing_order
-                AND mwo.department NOT IN ('Serial Number - GEPL', 'Serial Number - KGJPL', 'Serial Number MU - GEPL')
-                AND COALESCE(mwo.is_finding_mwo, 0) = 0
-            LEFT JOIN `tabManufacturing Operation` mo ON mo.manufacturing_work_order = mwo.name
-                AND mo.operation = 'Casting'
-            WHERE sn_inner.name = sn.name
-            ORDER BY mo.creation DESC 
+            SELECT mo.net_wt
+            FROM `tabManufacturing Operation` mo
+            WHERE mo.manufacturing_work_order = mwo_info.mwo_no
+            AND mo.operation = 'Casting'
+            ORDER BY mo.creation DESC
             LIMIT 1
         ), 0), 3) as casting_wt,
-        
+
         ROUND(COALESCE(bom.total_metal_weight, 0), 3) as finish_metal_wt,
         ROUND(COALESCE(bom.metal_and_finding_weight, 0), 3) as net_wt,
         ROUND(COALESCE(
@@ -240,6 +249,19 @@ def get_data(filters):
     FROM `tabSerial No` sn
     LEFT JOIN `tabItem` i ON sn.item_code = i.name
     LEFT JOIN `tabBOM` bom ON bom.name = sn.custom_bom_no
+    LEFT JOIN (
+        SELECT
+            bom_inner.name AS bom_name,
+            mwo.name AS mwo_no,
+            mwo.manufacturing_order AS pmo_no,
+            ROW_NUMBER() OVER (PARTITION BY bom_inner.name ORDER BY mwo.creation DESC) AS rn
+        FROM `tabBOM` bom_inner
+        LEFT JOIN `tabSerial Number Creator` snc ON snc.name = bom_inner.custom_serial_number_creator
+        LEFT JOIN `tabManufacturing Work Order` mwo ON mwo.manufacturing_order = snc.parent_manufacturing_order
+            AND mwo.department NOT IN ('Serial Number - GEPL', 'Serial Number - KGJPL', 'Serial Number MU - GEPL')
+            AND COALESCE(mwo.is_finding_mwo, 0) = 0
+        WHERE bom_inner.custom_serial_number_creator IS NOT NULL
+    ) mwo_info ON mwo_info.bom_name = sn.custom_bom_no AND mwo_info.rn = 1
     {where_clause}
     ORDER BY sn.creation DESC
     LIMIT 1000
@@ -247,7 +269,7 @@ def get_data(filters):
     
     try:
         data = frappe.db.sql(query, filters, as_dict=True)
-        
+
         seen_serials = set()
         unique_data = []
         for row in data:
@@ -255,12 +277,59 @@ def get_data(filters):
             if serial_key not in seen_serials:
                 seen_serials.add(serial_key)
                 unique_data.append(row)
-        
-        return unique_data
+
+        department_columns = attach_department_wise_wt(unique_data)
+
+        return unique_data, department_columns
     except Exception as e:
         frappe.log_error("Item Code Serial No Detail Error", str(e))
         frappe.throw(_("Error fetching data: {0}").format(str(e)))
+        return [], []
+
+
+def attach_department_wise_wt(rows):
+    """For each row's mwo_no, find every department that MWO's manufacturing
+    operations passed through and the latest gross_wt recorded in each
+    department (a department can repeat if multiple operations ran there,
+    so only the most recent one is kept). Each distinct department becomes
+    its own column on the row instead of one combined text field, and the
+    list of (fieldname, label) pairs needed to build those columns is
+    returned so the caller can add them to the report's column list."""
+
+    mwo_nos = sorted({row.get('mwo_no') for row in rows if row.get('mwo_no')})
+
+    if not mwo_nos:
         return []
+
+    operations = frappe.db.sql("""
+        SELECT manufacturing_work_order, department, gross_wt, creation
+        FROM `tabManufacturing Operation`
+        WHERE manufacturing_work_order IN %(mwo_nos)s
+        AND department IS NOT NULL
+        ORDER BY creation ASC
+    """, {"mwo_nos": mwo_nos}, as_dict=True)
+
+    mwo_dept_wt = {}
+    department_fieldnames = {}
+    for op in operations:
+        dept_map = mwo_dept_wt.setdefault(op.manufacturing_work_order, {})
+        dept_map[op.department] = op.gross_wt or 0
+        department_fieldnames.setdefault(op.department, department_fieldname(op.department))
+
+    for row in rows:
+        dept_map = mwo_dept_wt.get(row.get('mwo_no'), {})
+        for department, fieldname in department_fieldnames.items():
+            row[fieldname] = round(dept_map[department], 3) if department in dept_map else None
+
+    return sorted(
+        ((fieldname, department) for department, fieldname in department_fieldnames.items()),
+        key=lambda pair: pair[1]
+    )
+
+
+def department_fieldname(department):
+    slug = re.sub(r'[^0-9a-zA-Z]+', '_', department).strip('_').lower()
+    return f"dept_{slug}"
 
 
 @frappe.whitelist()
