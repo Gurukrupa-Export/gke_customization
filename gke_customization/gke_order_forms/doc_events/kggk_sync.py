@@ -2747,18 +2747,12 @@ ELIGIBLE_SETTING_TYPES = ("Nova Glow", "Close", "Close Setting")
 def is_eligible(doc):
 	"""Should this record go to KGGK on its own merit, before any sync history?"""
 	if doc.doctype == "Item":
-<<<<<<< HEAD
 		return doc.get("setting_type") in ELIGIBLE_SETTING_TYPES
 	if doc.doctype == "BOM":
 		return (
 			doc.get("setting_type") in ELIGIBLE_SETTING_TYPES
 			and doc.get("bom_type") == "Template"
 		)
-=======
-		return doc.get("setting_type") == "Nova Glow"
-	if doc.doctype == "BOM":
-		return doc.get("setting_type") == "Nova Glow" and doc.get("bom_type") == "Template"
->>>>>>> c3f67de7ad776138cc81350376aeb04642236f8f
 	return False
 
 
