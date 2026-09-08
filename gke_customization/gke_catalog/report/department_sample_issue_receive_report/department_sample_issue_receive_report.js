@@ -32,6 +32,7 @@ frappe.query_reports["Department Sample Issue Receive Report"] = {
             fieldtype: "Link",
             options: "Branch",
             reqd: 0,
+            hidden: 1, // Department IR has no "branch" field in this app; kept for other apps where it exists
             get_query: function() {
                 return {
                     filters: {

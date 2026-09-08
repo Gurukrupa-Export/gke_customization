@@ -16,7 +16,7 @@ def execute(filters=None):
 
 
 def validate_filters(filters):
-    mandatory_filters = ["company"]
+    mandatory_filters = ["company", "department"]
     missing = [frappe.bold(_(f.replace("_", " ").title())) for f in mandatory_filters if not filters.get(f)]
     if missing:
         frappe.throw(_("Mandatory filters missing: {0}").format(", ".join(missing)))
@@ -24,12 +24,8 @@ def validate_filters(filters):
 
 def get_columns():
     return [
-        {"label": _("Item Code"), "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 220},
-        {"label": _("Item Name"), "fieldname": "item_name", "fieldtype": "Data", "width": 220},
-        {"label": _("Item Group"), "fieldname": "item_group", "fieldtype": "Data", "width": 180},
         {"label": _("Shape"), "fieldname": "shape", "fieldtype": "Data", "width": 120},
         {"label": _("Purity"), "fieldname": "purity", "fieldtype": "Data", "width": 120},
-        {"label": _("UOM"), "fieldname": "stock_uom", "fieldtype": "Data", "width": 80},
         {"label": _("Department Stock"), "fieldname": "department_stock", "fieldtype": "Float", "width": 130},
         {"label": _("Batch Stock"), "fieldname": "batch_stock", "fieldtype": "Float", "width": 120},
         {"label": _("Worker Stock"), "fieldname": "worker_stock", "fieldtype": "Float", "width": 120},
@@ -68,76 +64,75 @@ def get_data(filters):
 
     item_details_map = get_item_details(list(all_item_codes))
 
-    data = []
+    grouped = {}
     for item_code in all_item_codes:
         item_details = item_details_map.get(item_code)
         if not item_details:
             continue
 
-        department_stock = flt0(department_stock_map.get(item_code))
-        batch_stock = flt0(batch_stock_map.get(item_code))
-        worker_stock = flt0(worker_stock_map.get(item_code))
-        jobwork_stock = flt0(jobwork_stock_map.get(item_code))
-        bagging_stock = flt0(bagging_stock_map.get(item_code))
-        assort_stock = flt0(assort_stock_map.get(item_code))
-        lost_stock = flt0(lost_stock_map.get(item_code))
-        broken_stock = flt0(broken_stock_map.get(item_code))
+        key = (cstr0(item_details.get("shape")), cstr0(item_details.get("purity")))
+        row = grouped.setdefault(key, {
+            "shape": item_details.get("shape"),
+            "purity": item_details.get("purity"),
+            "department_stock": 0.0,
+            "batch_stock": 0.0,
+            "worker_stock": 0.0,
+            "jobwork_stock": 0.0,
+            "bagging_stock": 0.0,
+            "assort_stock": 0.0,
+            "lost_stock": 0.0,
+            "broken_stock": 0.0,
+        })
 
-        total_stock = (
-            department_stock
-            + batch_stock
-            + worker_stock
-            + jobwork_stock
-            + bagging_stock
-            + assort_stock
-            + lost_stock
-            + broken_stock
+        row["department_stock"] += flt0(department_stock_map.get(item_code))
+        row["batch_stock"] += flt0(batch_stock_map.get(item_code))
+        row["worker_stock"] += flt0(worker_stock_map.get(item_code))
+        row["jobwork_stock"] += flt0(jobwork_stock_map.get(item_code))
+        row["bagging_stock"] += flt0(bagging_stock_map.get(item_code))
+        row["assort_stock"] += flt0(assort_stock_map.get(item_code))
+        row["lost_stock"] += flt0(lost_stock_map.get(item_code))
+        row["broken_stock"] += flt0(broken_stock_map.get(item_code))
+
+    data = []
+    for row in grouped.values():
+        row["total_stock"] = (
+            row["department_stock"]
+            + row["batch_stock"]
+            + row["worker_stock"]
+            + row["jobwork_stock"]
+            + row["bagging_stock"]
+            + row["assort_stock"]
+            + row["lost_stock"]
+            + row["broken_stock"]
         )
 
-        diff_stock = department_stock - (
-            batch_stock
-            + worker_stock
-            + jobwork_stock
-            + bagging_stock
-            + assort_stock
-            + lost_stock
-            + broken_stock
+        row["diff_stock"] = row["department_stock"] - (
+            row["batch_stock"]
+            + row["worker_stock"]
+            + row["jobwork_stock"]
+            + row["bagging_stock"]
+            + row["assort_stock"]
+            + row["lost_stock"]
+            + row["broken_stock"]
         )
 
         if not any([
-            department_stock,
-            batch_stock,
-            worker_stock,
-            jobwork_stock,
-            bagging_stock,
-            assort_stock,
-            lost_stock,
-            broken_stock,
-            total_stock,
-            diff_stock,
+            row["department_stock"],
+            row["batch_stock"],
+            row["worker_stock"],
+            row["jobwork_stock"],
+            row["bagging_stock"],
+            row["assort_stock"],
+            row["lost_stock"],
+            row["broken_stock"],
+            row["total_stock"],
+            row["diff_stock"],
         ]):
             continue
 
-        data.append({
-            "item_code": item_code,
-            "item_name": item_details.get("item_name"),
-            "item_group": item_details.get("item_group"),
-            "shape": item_details.get("shape"),
-            "purity": item_details.get("purity"),
-            "stock_uom": item_details.get("stock_uom"),
-            "department_stock": department_stock,
-            "batch_stock": batch_stock,
-            "worker_stock": worker_stock,
-            "jobwork_stock": jobwork_stock,
-            "bagging_stock": bagging_stock,
-            "assort_stock": assort_stock,
-            "lost_stock": lost_stock,
-            "broken_stock": broken_stock,
-            "total_stock": total_stock,
-            "diff_stock": diff_stock,
-        })
+        data.append(row)
 
-    data.sort(key=lambda d: (cstr0(d.get("item_group")), cstr0(d.get("item_code"))))
+    data.sort(key=lambda d: (cstr0(d.get("shape")), cstr0(d.get("purity"))))
     return data
 
 
@@ -198,9 +193,9 @@ def get_department_stock(filters, warehouses):
     """
     params = list(warehouses)
 
-    if filters.get("manufacturer"):
-        query += " AND i.manufacturer = %s"
-        params.append(filters.manufacturer)
+    # if filters.get("manufacturer"):
+    #     query += " AND i.default_item_manufacturer = %s"
+    #     params.append(filters.manufacturer)
 
     query += """
         GROUP BY sle.item_code
@@ -233,9 +228,9 @@ def get_mop_bom_diamond_stock(filters, stock_type):
     manufacturer_condition = ""
     extra_condition = ""
 
-    if filters.get("manufacturer"):
-        manufacturer_condition = " AND itm.manufacturer = %(manufacturer)s"
-        values["manufacturer"] = filters.manufacturer
+    # if filters.get("manufacturer"):
+    #     manufacturer_condition = " AND itm.default_item_manufacturer = %(manufacturer)s"
+    #     values["manufacturer"] = filters.manufacturer
 
     if stock_type == "batch":
         extra_condition = """
@@ -297,9 +292,9 @@ def get_bagging_stock(filters, reserve_warehouses):
     """
     params = list(reserve_warehouses)
 
-    if filters.get("manufacturer"):
-        query += " AND i.manufacturer = %s"
-        params.append(filters.manufacturer)
+    # if filters.get("manufacturer"):
+    #     query += " AND i.default_item_manufacturer = %s"
+    #     params.append(filters.manufacturer)
 
     query += """
         GROUP BY sle.item_code
@@ -318,9 +313,9 @@ def get_assort_stock(filters):
     }
 
     manufacturer_condition = ""
-    if filters.get("manufacturer"):
-        manufacturer_condition = " AND i.manufacturer = %(manufacturer)s"
-        values["manufacturer"] = filters.manufacturer
+    # if filters.get("manufacturer"):
+    #     manufacturer_condition = " AND i.default_item_manufacturer = %(manufacturer)s"
+    #     values["manufacturer"] = filters.manufacturer
 
     rows = frappe.db.sql(f"""
         SELECT
@@ -353,9 +348,9 @@ def get_loss_stock(filters, loss_type):
     }
 
     manufacturer_condition = ""
-    if filters.get("manufacturer"):
-        manufacturer_condition = " AND i.manufacturer = %(manufacturer)s"
-        values["manufacturer"] = filters.manufacturer
+    # if filters.get("manufacturer"):
+    #     manufacturer_condition = " AND i.default_item_manufacturer = %(manufacturer)s"
+    #     values["manufacturer"] = filters.manufacturer
 
     rows = frappe.db.sql(f"""
         SELECT
@@ -367,16 +362,21 @@ def get_loss_stock(filters, loss_type):
                 END
             ) AS qty
         FROM `tabEmployee IR` eir
-        INNER JOIN `tabManufacturing Work Order` mwo
-            ON mwo.name = eir.main_slip
         INNER JOIN `tabEmployee Loss Details` eld
             ON eld.parent = eir.name
         INNER JOIN `tabItem` i
             ON i.name = eld.item_code
         WHERE eir.company = %(company)s
           AND eir.department = %(department)s
-          AND mwo.branch = %(branch)s
           AND eld.loss_type = %(loss_type)s
+          AND EXISTS (
+                SELECT 1
+                FROM `tabEmployee IR Operation` eiro
+                INNER JOIN `tabManufacturing Work Order` mwo
+                    ON mwo.name = eiro.manufacturing_work_order
+                WHERE eiro.parent = eir.name
+                  AND mwo.branch = %(branch)s
+          )
           AND i.item_group IN ('Diamond - V', 'Diamond - T', 'Diamond - DNU')
           {manufacturer_condition}
         GROUP BY eld.item_code

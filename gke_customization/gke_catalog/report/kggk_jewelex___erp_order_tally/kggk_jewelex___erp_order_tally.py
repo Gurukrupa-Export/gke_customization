@@ -11,7 +11,7 @@ import requests
 # bench instead of connecting to Jewelex directly or reading a cached JSON
 # file. So no pyodbc, no per-site config, and no extra setup is needed on the
 # live site.
-JEWELEX_ORDER_TALLY_API_URL = "http://ec2-13-234-27-130.ap-south-1.compute.amazonaws.com:8003/order-tally"
+JEWELEX_ORDER_TALLY_API_URL = "http://3.108.219.130:8003/order-tally"
 
 # The API above may occasionally be unreachable -- keep a local copy of the
 # last successful fetch here so a transient/permanent network failure
@@ -160,13 +160,13 @@ def get_compare_columns():
 
 def get_jewelex_compare_data():
 	# Derived from the same cached rows as the main report, replicating what
-	# JEWELEX_COMPARE_QUERY used to compute in SQL (distinct batch count per
-	# Order_No/Order_Date), so no separate Jewelex query is needed.
+	# JEWELEX_COMPARE_QUERY used to compute in SQL (distinct bulk order count
+	# per Order_No/Order_Date), so no separate Jewelex query is needed.
 	rows = get_jewelex_data()
 	batch_sets = {}
 	for row in rows:
 		key = (row.get("Order_No"), row.get("Order_Date"))
-		batch_sets.setdefault(key, set()).add(row.get("Batch_No"))
+		batch_sets.setdefault(key, set()).add(row.get("Bulk_Order_No"))
 
 	return [
 		{"Order_No": order_no, "Order_Date": order_date, "Jewelex_Batch_Count": len(batches)}
