@@ -1385,6 +1385,86 @@ _TARGET_FIELD_TTL = 600
 _TARGET_FIELD_FAIL_TTL = 60
 
 
+# The Company on the two sites is not the same record. They are separate installations whose
+# Company names were typed independently - "Gurukrupa Export Private Limited" here can be
+# "Gurukrupa Export" there, or a different legal entity entirely. `company` is *mandatory* on
+# a BOM, so a name the target does not have is not a field that gets quietly dropped: it
+# blocks the whole record, which is exactly the
+#
+#     required master(s) missing on target - company: Company '...' does not exist on target
+#
+# that this exists to answer. Set Target Company in Data Migration in KGGK to the name KGGK
+# uses and every Company link is rewritten to it on the way out.
+COMPANY_DOCTYPE = "Company"
+
+
+def target_company():
+	"""The Company name to write onto records on the target, or ``None`` to send ours.
+
+	Cached for the request: it is asked once per Company link per row, and a jewellery BOM
+	has a great many rows.
+	"""
+	cached = getattr(frappe.local, "kggk_target_company", "unset")
+	if cached == "unset":
+		value = setting("target_company")
+		cached = str(value).strip() or None if value else None
+		frappe.local.kggk_target_company = cached
+	return cached
+
+
+# Where a doctype keeps its company when it has no field of its own. Item is the case: there
+# is no `Item.company`, only `item_defaults` rows, so an Item with no defaults row reaches
+# the target carrying no company at all - and then nothing on KGGK knows which company it
+# belongs to. Only tables named here get a row created; rewriting a value that is already
+# there is safe anywhere, inventing a row is not.
+COMPANY_DEFAULT_TABLES = {"Item": "item_defaults"}
+
+
+def translate_company(fieldtype, options, value):
+	"""Swap a Company link for the target's Company. Any other field is returned unchanged."""
+	if not value or fieldtype not in LINK_TYPES or options != COMPANY_DOCTYPE:
+		return value
+	return target_company() or value
+
+
+def stamp_company(doctype, payload, allowed_fields=None):
+	"""Put the target's company on the record, whether or not ours carried one.
+
+	`translate_company` only rewrites a value that is already there, which is enough for a
+	BOM - `company` is mandatory, so there is always one to rewrite - and not enough for an
+	Item, whose company lives only in `item_defaults` and is often not set at all.
+
+	Does nothing when Target Company is blank; then the record goes as it always did.
+	"""
+	company = target_company()
+	if not company:
+		return
+
+	meta = frappe.get_meta(doctype)
+
+	# A Company link on the record itself (BOM.company).
+	for df in meta.fields:
+		if df.fieldtype in LINK_TYPES and df.options == COMPANY_DOCTYPE:
+			if allowed_fields is None or df.fieldname in allowed_fields:
+				payload[df.fieldname] = company
+
+	table = COMPANY_DEFAULT_TABLES.get(doctype)
+	if not table:
+		return
+	if allowed_fields is not None and table not in allowed_fields:
+		return
+
+	rows = payload.get(table) or []
+	# One company on the target means exactly one defaults row. An Item here can hold defaults
+	# for several companies, and rewriting each of them to the same name would send several
+	# rows that are now duplicates of one another - which the target rejects, failing the
+	# whole Item. Keep the first row's other defaults, drop the rest.
+	row = dict(rows[0]) if rows else {}
+	row["company"] = company
+	row["idx"] = 1
+	payload[table] = [row]
+
+
 def _numeric_attributes():
 	"""Item Attributes whose value must be sent as a number, cached per request."""
 	if getattr(frappe.local, "kggk_numeric_attributes", None) is None:
@@ -1414,6 +1494,9 @@ def _child_rows(doc, df, allowed=None):
 			value = row.get(child_df.fieldname)
 			if value is None:
 				continue
+			# Child rows carry Company too - `Item.item_defaults` above all - and one wrong
+			# company in a row rejects the whole parent just as surely as the parent's own.
+			value = translate_company(child_df.fieldtype, child_df.options, value)
 			data[child_df.fieldname] = value
 		if row.get("idx") is not None:
 			data["idx"] = row.get("idx")
@@ -1502,7 +1585,11 @@ def build_payload(doc, allowed_fields=None, run=None, config=None):
 			continue
 		if df.fieldtype in ("Check",):
 			value = cint(value)
+		value = translate_company(df.fieldtype, df.options, value)
 		payload[name] = value
+
+	# Last, so it applies whether or not the source carried a company of its own.
+	stamp_company(doc.doctype, payload, allowed_fields)
 
 	# Date, Datetime, Time and Decimal values come off the doc as Python objects that the
 	# JSON encoder in `requests` cannot serialise. frappe's encoder can, so round-trip the
@@ -2582,14 +2669,31 @@ def sync_plan_now(plan_name):
 # unreachable KGGK site aborted the local save. Nothing below can do that: the whole body
 # is inside a try, and the push itself happens in a background job.
 
-# The rule that first sends a record to KGGK, carried over verbatim from the hooks this
-# replaces so nothing that used to cross stops crossing.
+# The setting types that make a design worth sending, newest name first.
+#
+# This is an Attribute Value, and it gets renamed: it was "Close Setting", then "Close", and
+# is now "Nova Glow". The old names stay because a rename of the master does not rewrite the
+# thousands of Items already carrying the previous value - and an Item that silently stopped
+# being eligible would look exactly like the sync being broken, with nothing anywhere saying
+# why. Drop a name from this tuple only once no Item or BOM still holds it:
+#
+#     select setting_type, count(*) from tabItem group by setting_type;
+#
+# One tuple rather than a literal in two places, so the next rename is one line.
+ELIGIBLE_SETTING_TYPES = ("Nova Glow", "Close", "Close Setting")
+
+
+# The rule that first sends a record to KGGK, carried over from the hooks this replaces so
+# nothing that used to cross stops crossing.
 def is_eligible(doc):
 	"""Should this record go to KGGK on its own merit, before any sync history?"""
 	if doc.doctype == "Item":
-		return doc.get("setting_type") == "Close"
+		return doc.get("setting_type") in ELIGIBLE_SETTING_TYPES
 	if doc.doctype == "BOM":
-		return doc.get("setting_type") == "Close" and doc.get("bom_type") == "Template"
+		return (
+			doc.get("setting_type") in ELIGIBLE_SETTING_TYPES
+			and doc.get("bom_type") == "Template"
+		)
 	return False
 
 
@@ -2620,15 +2724,18 @@ def _on_master_update(doc):
 			log_skip(reason, doc.doctype, doc.name)
 			return
 
+		# The one switch that governs saving. Off means a save sends nothing at all - not an
+		# edit to a record KGGK holds, and not a new design either.
+		#
+		# It used to gate only the first of those, which read as "updates are off" while a
+		# newly eligible Item or BOM still went across on its own merit. That is not a switch
+		# anybody can reason about: an Order submit creates Items, the Items are eligible, and
+		# they appear on KGGK with the switch visibly unticked. One meaning, one checkbox.
+		if not cint(setting("sync_updates", 1)):
+			return
+
 		target_host = host_of(config.to_site)
 		already = is_on_target(doc.doctype, doc.name, target_host)
-
-		# "Send Later Changes" means exactly that: changes to a record KGGK already holds.
-		# Testing eligibility here instead was the bug - a Close Item is eligible forever, so
-		# every later save of one still went across with the switch off, which is precisely
-		# the case the switch exists to stop.
-		if already and not cint(setting("sync_updates", 1)):
-			return
 
 		if not is_eligible(doc) and not already:
 			return
