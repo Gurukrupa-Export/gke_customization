@@ -267,7 +267,7 @@ class TestSaveAndSubmitNeverRaise(unittest.TestCase):
 			k.on_submit(doc)  # must not raise
 
 	def test_enqueue_failure_does_not_reach_an_item_save(self):
-		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Close")
+		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Nova Glow")
 		with patch.object(k, "is_sync_enabled", return_value=True), patch.object(
 			k, "setting", return_value=1
 		), patch.object(
@@ -297,7 +297,7 @@ class TestUpdateEligibility(unittest.TestCase):
 
 	def test_a_closed_item_is_pushed_even_if_kggk_has_never_seen_it(self):
 		"""Exactly what the before_validate hook did. Not a behaviour change."""
-		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Close")
+		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Nova Glow")
 		enqueue = self._save(doc, synced=False)
 		enqueue.assert_called_once()
 		self.assertEqual(enqueue.call_args.kwargs["items"], ["I-1"])
@@ -312,18 +312,32 @@ class TestUpdateEligibility(unittest.TestCase):
 		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Open")
 		self._save(doc, synced=True).assert_called_once()
 
+	def test_the_previous_names_of_the_setting_type_still_qualify(self):
+		"""This Attribute Value gets renamed - "Close Setting", then "Close", now "Nova Glow".
+
+		A rename of the master does not rewrite the Items already carrying the old value, so
+		dropping one has to be a deliberate act, not a silent consequence of a rename.
+		"""
+		for name in ("Nova Glow", "Close", "Close Setting"):
+			doc = frappe._dict(doctype="Item", name="I-1", setting_type=name)
+			self.assertTrue(k.is_eligible(doc), f"{name} should still be eligible")
+
+		self.assertFalse(
+			k.is_eligible(frappe._dict(doctype="Item", name="I-1", setting_type="Open"))
+		)
+
 	def test_a_bom_needs_template_as_well_as_closed(self):
 		"""The BOM gate was stricter than the Item one; it stays stricter."""
-		closed_only = frappe._dict(doctype="BOM", name="B-1", setting_type="Close", bom_type="Variant")
+		closed_only = frappe._dict(doctype="BOM", name="B-1", setting_type="Nova Glow", bom_type="Variant")
 		self._save(closed_only, synced=False).assert_not_called()
 
-		template = frappe._dict(doctype="BOM", name="B-1", setting_type="Close", bom_type="Template")
+		template = frappe._dict(doctype="BOM", name="B-1", setting_type="Nova Glow", bom_type="Template")
 		enqueue = self._save(template, synced=False)
 		enqueue.assert_called_once()
 		self.assertEqual(enqueue.call_args.kwargs["boms"], ["B-1"])
 
 	def test_the_switch_stops_it_before_anything_is_read(self):
-		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Close")
+		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Nova Glow")
 		with patch.object(k, "is_sync_enabled", return_value=False), patch.object(
 			k, "get_sync_config"
 		) as config, patch.object(k, "enqueue_sync") as enqueue:
@@ -333,7 +347,7 @@ class TestUpdateEligibility(unittest.TestCase):
 		config.assert_not_called()
 
 	def test_the_inbound_leg_of_a_sync_does_not_push_back(self):
-		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Close")
+		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Nova Glow")
 		frappe.flags.in_kggk_sync = True
 		try:
 			with patch.object(k, "is_sync_enabled") as enabled, patch.object(k, "enqueue_sync") as enqueue:
@@ -343,12 +357,26 @@ class TestUpdateEligibility(unittest.TestCase):
 		finally:
 			frappe.flags.in_kggk_sync = False
 
-	def test_updates_can_be_switched_off_without_stopping_new_records(self):
-		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Open")
-		self._save(doc, synced=True, sync_updates=0).assert_not_called()
+	def test_the_switch_stops_every_save_driven_push(self):
+		"""One switch, one meaning: off means a save sends nothing.
 
-		still_eligible = frappe._dict(doctype="Item", name="I-2", setting_type="Close")
-		self._save(still_eligible, synced=False, sync_updates=0).assert_called_once()
+		It used to stop only edits to records KGGK already had, while a newly eligible design
+		still went across - so an Order submit, which creates eligible Items, put them on
+		KGGK with the switch visibly unticked and no way to reason about why.
+		"""
+		already_there = frappe._dict(doctype="Item", name="I-1", setting_type="Open")
+		self._save(already_there, synced=True, sync_updates=0).assert_not_called()
+
+		brand_new = frappe._dict(doctype="Item", name="I-2", setting_type="Nova Glow")
+		self._save(brand_new, synced=False, sync_updates=0).assert_not_called()
+
+		new_bom = frappe._dict(
+			doctype="BOM", name="B-1", setting_type="Nova Glow", bom_type="Template"
+		)
+		self._save(new_bom, synced=False, sync_updates=0).assert_not_called()
+
+		# And on, it still does its job.
+		self._save(brand_new, synced=False, sync_updates=1).assert_called_once()
 
 
 class TestDeferredRelink(unittest.TestCase):
