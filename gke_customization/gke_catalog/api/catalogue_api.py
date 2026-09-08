@@ -1797,6 +1797,7 @@ def get_customer_filter(search, values, customer_join, where_clause, page, page_
                 item.stylebio,
                 MIN(item.image) AS image,
                 item.sketch_image,
+                item.custom_catalogue_image,
                 item.front_view as cad_image,
                 CASE
                     WHEN item.front_view = item.image THEN 'CAD Image'
@@ -2094,6 +2095,7 @@ def customer_wise_item(selectedSubcategory=None, customer=None, user=None, metal
                 item.stylebio,
                 MIN(item.image) AS image,
                 item.sketch_image,
+                item.custom_catalogue_image,
                 item.front_view as cad_image,
                 CASE
                     WHEN item.front_view = item.image THEN 'CAD Image'
@@ -2328,6 +2330,7 @@ def get_customer_wishlist_items(customer=None):
                 item.stylebio,
                 MIN(item.image) AS image,
                 item.sketch_image,
+                item.custom_catalogue_image,
                 item.front_view as cad_image,
                 CASE
                     WHEN item.front_view = item.image THEN 'CAD Image'
@@ -4662,6 +4665,7 @@ def subcategory_count(categoryName, user_type, customer=None):
             count_query = """
                 SELECT 
                     ti.item_category,
+                    ti.custom_catalogue_image,
                     ti.item_subcategory,
                     # COUNT(DISTINCT IFNULL(ti.variant_of, ti.name)) AS item_count,
                     COUNT(DISTINCT IFNULL(ti.variant_of, ti.item_code)) AS item_count,  -- <-- Yahan comma missing tha, jo maine laga diya hai
@@ -4705,6 +4709,7 @@ def subcategory_count(categoryName, user_type, customer=None):
                     image_rows = frappe.db.sql("""
                         SELECT 
                             ti.item_subcategory, 
+                            ti.custom_catalogue_image,
                             ti.image AS first_image 
                         FROM `tabCataloge Item Details` tci
                         INNER JOIN `tabCataloge Master` tcm ON tcm.name = tci.parent
@@ -4945,6 +4950,7 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
             item.item_category,
             item.image,
             item.sketch_image,
+            item.custom_catalogue_image,
             item.front_view AS cad_image,
 
             CASE
@@ -5318,6 +5324,7 @@ def catalogue_data22(selectedSubcategory=None, itemCategory=None, itemCode=None,
             item.item_category,
             item.image,
             item.sketch_image,
+            item.custom_catalogue_image,
             item.front_view AS cad_image,
             CASE
                 WHEN item.front_view = item.image THEN 'CAD Image'
@@ -6422,6 +6429,7 @@ def catalogue_data_with_trending_item(selectedSubcategory, customer, metalType =
                 item.item_code,
                 item.item_category,
                 item.image,
+                item.custom_catalogue_image,
                 item.sketch_image,
                 item.cad_3d_image,
                 item.`3d_videos_1` ,
@@ -6604,7 +6612,7 @@ def get_data_for_multiple_customer_collections_details(catalogue_list, collectio
                     "Item",
                     # {'name': row.item_code, 'item_category': item_category},
                     {'name': row.item_code},
-                    ["item_category","item_subcategory", "image"],  # fetch fields you need
+                    ["item_category","item_subcategory", "image","custom_catalogue_image"],  # fetch fields you need
                     as_dict=True
                 )
 
@@ -6615,6 +6623,7 @@ def get_data_for_multiple_customer_collections_details(catalogue_list, collectio
                         "collection": row.collection,
                         "name": row.name,
                         "image": item.get("image") if item else "",
+                        "custom_catalogue_image": item.get("custom_catalogue_image") if item else "",
                         "item_category": item.get("item_category") if item else "",
                         "item_subcategory": item.get("item_subcategory") if item else "",
                     })
@@ -6653,6 +6662,7 @@ def get_catalogue_collection_item_data(selectedSubcategory, itemCode):
                 item.stylebio,
                 item.image,
                 item.sketch_image,
+                item.custom_catalogue_image,
                 item.front_view as cad_image,
                 CASE
                     WHEN item.front_view = item.image THEN 'CAD Image'
@@ -8314,6 +8324,7 @@ def get_similar_item(item_code, customer=None, user=None):
                 item.item_code,
                 item.image,
                 item.sketch_image,
+                item.custom_catalogue_image,
                 item.front_view AS cad_image,
 
                 item.item_category,
@@ -8389,6 +8400,7 @@ def get_similar_item(item_code, customer=None, user=None):
                 item.item_code,
                 item.image,
                 item.sketch_image,
+                item.custom_catalogue_image,
                 item.front_view AS cad_image,
 
                 item.item_category,
@@ -8766,6 +8778,7 @@ def get_item_of_customer_by_user(customer):
             i.item_subcategory,
             i.creation,
             i.image,
+            i.custom_catalogue_image,
             i.sketch_image,
             i.front_view AS cad_image,
             i.stylebio,
@@ -9415,6 +9428,7 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
             item.item_category,
             item.image,
             item.sketch_image,
+            item.custom_catalogue_image,
             item.front_view AS cad_image,
             CASE
                 WHEN item.front_view = item.image THEN 'CAD Image'
@@ -12421,6 +12435,7 @@ def get_variants_by_itemcode(itemCode=None, customer=None):
             item.item_category,
             item.image,
             item.sketch_image,
+            item.custom_catalogue_image,
             item.front_view AS cad_image,
 
             CASE
@@ -13257,6 +13272,7 @@ def get_set_by_itemcode(itemCode=None, customer=None):
             item.item_category,
             item.image,
             item.sketch_image,
+            item.custom_catalogue_image,
             item.front_view AS cad_image,
 
             CASE
@@ -13458,6 +13474,7 @@ def global_search(query=None, customer=None, user=None):
                 item.item_category,
                 item.item_subcategory,
                 item.image,
+                item.custom_catalogue_image,
                 bom.metal_touch,
                 bom.metal_colour,
                 FORMAT(bom.gross_weight, 3) AS gross_metal_weight,
