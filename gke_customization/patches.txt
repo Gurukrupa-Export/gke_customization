@@ -4,3 +4,4 @@
 gke_customization.patches.v1_0.drop_kggk_testing_credentials
 gke_customization.patches.v1_0.encrypt_kggk_api_secret
 gke_customization.patches.v1_0.enforce_kggk_sync_state_uniqueness
+gke_customization.patches.v1_0.v15_rename_close_setting_to_nova_glow
