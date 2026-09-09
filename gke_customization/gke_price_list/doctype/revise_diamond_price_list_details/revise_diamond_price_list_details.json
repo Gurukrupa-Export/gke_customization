@@ -13,6 +13,7 @@
   "column_break_yvaf",
   "customer_rate",
   "company_rate",
+  "new_outwork_rate",
   "section_break_ecdh",
   "rate_per_carat",
   "diamond_handling_rate",
@@ -45,19 +46,21 @@
    "label": "To Weight"
   },
   {
+   "depends_on": "eval:parent.sales_type=='Outwork'",
    "fieldname": "supplier_fg_purchase_rate",
    "fieldtype": "Currency",
-   "label": "Supplier Fg Purchase Rate"
+   "label": "Outwork Rate"
   },
   {
    "fieldname": "section_break_ecdh",
    "fieldtype": "Section Break"
   },
   {
+   "depends_on": "eval:parent.sales_type=='Outright'",
    "fieldname": "rate_per_carat",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Current Rate Per Carat"
+   "label": "Outright Rate"
   },
   {
    "fieldname": "diamond_handling_rate",
@@ -75,10 +78,11 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval:parent.sales_type=='Outright'",
    "fieldname": "revised_rate",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "New Rate Per Carat Rate"
+   "label": "New Outright Rate"
   },
   {
    "fieldname": "revised_diamond_handling_rate",
@@ -119,17 +123,24 @@
    "fieldname": "company_rate",
    "fieldtype": "Currency",
    "label": "Company Rate"
+  },
+  {
+   "depends_on": "eval:parent.sales_type=='Outwork'",
+   "fieldname": "new_outwork_rate",
+   "fieldtype": "Currency",
+   "label": "New Outwork Rate"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-24 15:26:03.324401",
- "modified_by": "Administrator",
+ "modified": "2026-09-01 16:23:20.620174",
+ "modified_by": "shruti_b@gkexport.com",
  "module": "Gke Price List",
  "name": "Revise Diamond Price List Details",
  "owner": "Administrator",
  "permissions": [],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
