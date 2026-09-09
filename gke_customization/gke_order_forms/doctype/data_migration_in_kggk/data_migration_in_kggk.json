@@ -24,6 +24,7 @@
   "cad_to_site",
   "kggk_sync_section",
   "enable_sync",
+  "target_company",
   "column_break_testing_sync",
   "sync_updates",
   "auto_reconcile",
@@ -132,6 +133,13 @@
    "label": "Enable KGGK Sync"
   },
   {
+   "depends_on": "enable_sync",
+   "description": "The Company name exactly as it is on the KGGK site. Every Company link on an Item or BOM is rewritten to this on the way out. Leave blank to send this site's own company name - which fails if KGGK does not have a Company by that name, because company is mandatory on a BOM.",
+   "fieldname": "target_company",
+   "fieldtype": "Data",
+   "label": "Target Company"
+  },
+  {
    "fieldname": "column_break_testing_sync",
    "fieldtype": "Column Break"
   },
@@ -152,10 +160,10 @@
   {
    "default": "1",
    "depends_on": "enable_sync",
-   "description": "Push a later edit of an Item or BOM that KGGK already has. Off means only new records and Manufacturing Plans are sent.",
+   "description": "On: saving an Item or BOM sends it to KGGK - both a new design and a later edit to one KGGK already has. Off: saving sends nothing at all. Manufacturing Plan submits and the buttons above are unaffected either way.",
    "fieldname": "sync_updates",
    "fieldtype": "Check",
-   "label": "Send Later Changes"
+   "label": "Sync Item / BOM Saves"
   },
   {
    "default": "1",

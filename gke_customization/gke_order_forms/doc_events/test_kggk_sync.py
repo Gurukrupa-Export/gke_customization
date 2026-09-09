@@ -312,6 +312,20 @@ class TestUpdateEligibility(unittest.TestCase):
 		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Open")
 		self._save(doc, synced=True).assert_called_once()
 
+	def test_the_previous_names_of_the_setting_type_still_qualify(self):
+		"""This Attribute Value gets renamed - "Close Setting", then "Close", now "Nova Glow".
+
+		A rename of the master does not rewrite the Items already carrying the old value, so
+		dropping one has to be a deliberate act, not a silent consequence of a rename.
+		"""
+		for name in ("Nova Glow", "Close", "Close Setting"):
+			doc = frappe._dict(doctype="Item", name="I-1", setting_type=name)
+			self.assertTrue(k.is_eligible(doc), f"{name} should still be eligible")
+
+		self.assertFalse(
+			k.is_eligible(frappe._dict(doctype="Item", name="I-1", setting_type="Open"))
+		)
+
 	def test_a_bom_needs_template_as_well_as_closed(self):
 		"""The BOM gate was stricter than the Item one; it stays stricter."""
 		closed_only = frappe._dict(doctype="BOM", name="B-1", setting_type="Nova Glow", bom_type="Variant")
@@ -343,12 +357,26 @@ class TestUpdateEligibility(unittest.TestCase):
 		finally:
 			frappe.flags.in_kggk_sync = False
 
-	def test_updates_can_be_switched_off_without_stopping_new_records(self):
-		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Open")
-		self._save(doc, synced=True, sync_updates=0).assert_not_called()
+	def test_the_switch_stops_every_save_driven_push(self):
+		"""One switch, one meaning: off means a save sends nothing.
 
-		still_eligible = frappe._dict(doctype="Item", name="I-2", setting_type="Nova Glow")
-		self._save(still_eligible, synced=False, sync_updates=0).assert_called_once()
+		It used to stop only edits to records KGGK already had, while a newly eligible design
+		still went across - so an Order submit, which creates eligible Items, put them on
+		KGGK with the switch visibly unticked and no way to reason about why.
+		"""
+		already_there = frappe._dict(doctype="Item", name="I-1", setting_type="Open")
+		self._save(already_there, synced=True, sync_updates=0).assert_not_called()
+
+		brand_new = frappe._dict(doctype="Item", name="I-2", setting_type="Nova Glow")
+		self._save(brand_new, synced=False, sync_updates=0).assert_not_called()
+
+		new_bom = frappe._dict(
+			doctype="BOM", name="B-1", setting_type="Nova Glow", bom_type="Template"
+		)
+		self._save(new_bom, synced=False, sync_updates=0).assert_not_called()
+
+		# And on, it still does its job.
+		self._save(brand_new, synced=False, sync_updates=1).assert_called_once()
 
 
 class TestDeferredRelink(unittest.TestCase):
@@ -1177,6 +1205,141 @@ class TestSettingsValidation(unittest.TestCase):
 
 	def test_the_switch_being_off_validates_nothing(self):
 		self._settings_doc(enable_sync=0, to_site="", api_key="", api_secret="").validate_kggk_sync()
+
+
+class TestTargetCompany(unittest.TestCase):
+	"""The two sites' Company records are named independently, and `company` is mandatory
+	on a BOM - so a name the target does not have blocks the whole record."""
+
+	SRC = "Gurukrupa Export Private Limited"
+	TGT = "KGGK"
+
+	def setUp(self):
+		frappe.local.kggk_target_company = "unset"
+
+	tearDown = setUp
+
+	def _with(self, configured, fn):
+		frappe.local.kggk_target_company = "unset"
+		with patch.object(
+			k, "setting", side_effect=lambda f, d=None: configured if f == "target_company" else d
+		):
+			try:
+				return fn()
+			finally:
+				frappe.local.kggk_target_company = "unset"
+
+	# -- translation -----------------------------------------------------------------
+
+	def test_a_company_link_is_rewritten(self):
+		self.assertEqual(
+			self._with(self.TGT, lambda: k.translate_company("Link", "Company", self.SRC)),
+			self.TGT,
+		)
+
+	def test_other_links_and_lookalike_fields_are_untouched(self):
+		self.assertEqual(
+			self._with(self.TGT, lambda: k.translate_company("Link", "Item Group", "Rings")),
+			"Rings",
+		)
+		# A Data field whose options happen to say Company is not a link to one.
+		self.assertEqual(
+			self._with(self.TGT, lambda: k.translate_company("Data", "Company", self.SRC)),
+			self.SRC,
+		)
+
+	# -- stamping --------------------------------------------------------------------
+
+	def test_a_bom_gets_the_target_company(self):
+		payload = {}
+		self._with(self.TGT, lambda: k.stamp_company("BOM", payload))
+		self.assertEqual(payload["company"], self.TGT)
+
+	def test_an_item_with_no_defaults_row_gets_one(self):
+		"""Item has no `company` field of its own; without this it arrives carrying none."""
+		payload = {"item_code": "IT-1"}
+		self._with(self.TGT, lambda: k.stamp_company("Item", payload))
+		self.assertEqual(payload["item_defaults"], [{"company": self.TGT, "idx": 1}])
+
+	def test_company_specific_defaults_are_never_carried_across(self):
+		"""The regression this class exists for.
+
+		Thirteen of Item Default's sixteen fields are links to Warehouse, Account or Cost
+		Center, all scoped to the company of the row they sit in. Relabelling such a row with
+		the target's company would point a KGGK Item at a Gurukrupa warehouse, or have it
+		refused outright for an account that does not exist there.
+		"""
+		payload = {
+			"item_defaults": [
+				{
+					"company": self.SRC,
+					"default_warehouse": "Stores - GEPL",
+					"expense_account": "Stock Expense - GEPL",
+					"income_account": "Sales - GEPL",
+					"buying_cost_center": "Main - GEPL",
+					"idx": 1,
+				}
+			]
+		}
+		self._with(self.TGT, lambda: k.stamp_company("Item", payload))
+		self.assertEqual(payload["item_defaults"], [{"company": self.TGT, "idx": 1}])
+
+	def test_several_source_companies_collapse_to_one_row(self):
+		"""One company on the target means one row; duplicates would fail the Item."""
+		payload = {
+			"item_defaults": [
+				{"company": "Company A", "default_warehouse": "WH-A", "idx": 1},
+				{"company": "Company B", "default_warehouse": "WH-B", "idx": 2},
+			]
+		}
+		self._with(self.TGT, lambda: k.stamp_company("Item", payload))
+		self.assertEqual(payload["item_defaults"], [{"company": self.TGT, "idx": 1}])
+
+	def test_blank_target_company_changes_nothing(self):
+		bom = {"company": self.SRC}
+		self._with(None, lambda: k.stamp_company("BOM", bom))
+		self.assertEqual(bom, {"company": self.SRC})
+
+		item = {"item_code": "IT-1"}
+		self._with(None, lambda: k.stamp_company("Item", item))
+		self.assertEqual(item, {"item_code": "IT-1"}, "no row may be invented")
+
+	def test_nothing_is_stamped_that_the_target_does_not_have(self):
+		bom = {}
+		self._with(self.TGT, lambda: k.stamp_company("BOM", bom, allowed_fields={"item"}))
+		self.assertNotIn("company", bom)
+
+		item = {}
+		self._with(self.TGT, lambda: k.stamp_company("Item", item, allowed_fields={"item_code"}))
+		self.assertNotIn("item_defaults", item)
+
+	# -- preflight -------------------------------------------------------------------
+
+	def _verify(self, configured, exists):
+		cfg = frappe._dict(to_site="https://kggk.example.com", headers={})
+		with patch.object(k, "api_exists", return_value=exists), patch.object(
+			frappe.cache(), "get_value", return_value=None
+		), patch.object(frappe.cache(), "set_value"):
+			return self._with(configured, lambda: k.verify_target_company(cfg))
+
+	def test_a_company_the_target_does_not_have_blocks_the_run(self):
+		ok, message = self._verify(self.TGT, exists=False)
+		self.assertFalse(ok)
+		self.assertIn(self.TGT, message)
+
+	def test_a_company_the_target_has_passes(self):
+		self.assertTrue(self._verify(self.TGT, exists=True)[0])
+
+	def test_no_configured_company_asks_nothing(self):
+		cfg = frappe._dict(to_site="https://kggk.example.com", headers={})
+		with patch.object(k, "api_exists") as asked:
+			ok, _msg = self._with(None, lambda: k.verify_target_company(cfg))
+		self.assertTrue(ok)
+		asked.assert_not_called()
+
+	def test_a_failed_check_does_not_block(self):
+		"""Refusing to sync because a check timed out is worse than what it guards against."""
+		self.assertTrue(self._verify(self.TGT, exists=None)[0])
 
 
 class TestLegacyHooksStayUnwired(unittest.TestCase):
