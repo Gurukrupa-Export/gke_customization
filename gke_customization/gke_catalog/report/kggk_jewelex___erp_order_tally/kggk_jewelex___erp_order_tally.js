@@ -3,12 +3,26 @@
 
 frappe.query_reports["KGGK Jewelex - ERP Order Tally"] = {
 	filters: [
-		// {
-		// 	"fieldname": "my_filter",
-		// 	"label": __("My Filter"),
-		// 	"fieldtype": "Data",
-		// 	"reqd": 1,
-		// },
+		{
+			fieldname: "from_date",
+			label: __("Order Date (From)"),
+			fieldtype: "Date",
+		},
+		{
+			fieldname: "to_date",
+			label: __("Order Date (To)"),
+			fieldtype: "Date",
+		},
+		{
+			fieldname: "jewelex_order_no",
+			label: __("Jwelex Order No"),
+			fieldtype: "Data",
+		},
+		{
+			fieldname: "jewelex_batch_no",
+			label: __("Jwelex Batch No"),
+			fieldtype: "Data",
+		},
 		{
 			fieldname: "compare_mode",
 			label: __("Compare Mode"),
