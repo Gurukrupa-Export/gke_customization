@@ -24,11 +24,40 @@ JEWELEX_FETCH_RETRY_DELAY = 2
 def execute(filters=None):
 	filters = filters or {}
 	if frappe.utils.cint(filters.get("compare_mode")):
-		return get_compare_columns(), get_compare_data()
+		return get_compare_columns(), get_compare_data(filters)
 
 	columns = get_columns()
-	data = get_jewelex_data(filters)
+	data = apply_jewelex_filters(get_jewelex_data(filters), filters)
 	return columns, data
+
+
+def apply_jewelex_filters(rows, filters=None):
+	filters = filters or {}
+	order_no = filters.get("jewelex_order_no")
+	batch_no = filters.get("jewelex_batch_no")
+
+	from_date = filters.get("from_date")
+	to_date = filters.get("to_date")
+	from_date = frappe.utils.getdate(from_date) if from_date else None
+	to_date = frappe.utils.getdate(to_date) if to_date else None
+
+	filtered = []
+	for row in rows:
+		if order_no and str(row.get("Order_No") or "").strip() != str(order_no).strip():
+			continue
+		if batch_no and str(row.get("Batch_No") or "").strip() != str(batch_no).strip():
+			continue
+		if from_date or to_date:
+			row_date = row.get("Order_Date")
+			if not row_date:
+				continue
+			row_date = frappe.utils.getdate(row_date)
+			if from_date and row_date < from_date:
+				continue
+			if to_date and row_date > to_date:
+				continue
+		filtered.append(row)
+	return filtered
 
 
 def get_columns():
@@ -158,11 +187,11 @@ def get_compare_columns():
 	]
 
 
-def get_jewelex_compare_data():
+def get_jewelex_compare_data(filters=None):
 	# Derived from the same cached rows as the main report, replicating what
 	# JEWELEX_COMPARE_QUERY used to compute in SQL (distinct bulk order count
 	# per Order_No/Order_Date), so no separate Jewelex query is needed.
-	rows = get_jewelex_data()
+	rows = apply_jewelex_filters(get_jewelex_data(), filters)
 	batch_sets = {}
 	for row in rows:
 		key = (row.get("Order_No"), row.get("Order_Date"))
@@ -177,8 +206,8 @@ def get_jewelex_compare_data():
 NOT_FOUND = "Not Found"
 
 
-def get_compare_data():
-	jewelex_rows = get_jewelex_compare_data()
+def get_compare_data(filters=None):
+	jewelex_rows = get_jewelex_compare_data(filters)
 	erp_rows = frappe.db.sql(ERP_COMPARE_QUERY, as_dict=True)
 	erp_complete_rows = frappe.db.sql(ERP_COMPLETE_QUERY, as_dict=True)
 
