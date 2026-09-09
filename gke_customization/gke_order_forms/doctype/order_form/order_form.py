@@ -2138,3 +2138,68 @@ def set_tolerance(diamond_weight, customer):
 	return data_json
 
 
+@frappe.whitelist()
+def get_jewelex_order_form_detail(order_form, doc):
+
+	order_form_doc = frappe.get_doc("Order Form", order_form)
+	doc = json.loads(doc)
+
+	order_date_str = getdate(order_form_doc.order_date).strftime("%Y-%m-%d")
+	file_name = f"Jewelex_Order_Form_Detail_{order_date_str}.xlsx"
+
+	workbook = openpyxl.Workbook()
+	sheet = workbook.active
+	sheet.title = "Jewelex Order Detail"
+
+	# Excel headers
+	headers = [
+		"StyleBio",
+		"TagNo",
+		"PONo",
+		"Metal Colour",
+		"Remark"
+	]
+	sheet.append(headers)
+
+	rows_data = []
+
+	# PONo comes from Order Form
+	po_no = order_form_doc.get("po_no", "")
+
+	# Loop through order details child table
+	for row in doc.get("order_details", []):
+
+		row_data = [
+			row.get("stylebio", ""),
+			row.get("tagno", ""),
+			po_no,
+			row.get("metal_colour", ""),
+			row.get("order_details_and_remarks", "")
+			
+		]
+
+		rows_data.append(row_data)
+
+	# Write rows
+	if rows_data:
+		for row in rows_data:
+			sheet.append(row)
+	else:
+		frappe.throw("Order Details Can Not Download")
+
+	# Save workbook to BytesIO
+	output = BytesIO()
+	workbook.save(output)
+	output.seek(0)
+
+	# Save file in Frappe
+	file_doc = save_file(
+		file_name,
+		output.getvalue(),
+		order_form_doc.doctype,
+		order_form_doc.name,
+		is_private=0
+	)
+
+	return file_doc.file_url
+
