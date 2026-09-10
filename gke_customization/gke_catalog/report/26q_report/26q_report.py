@@ -124,7 +124,7 @@ def get_data(filters):
             AND pi.company = %s
             AND pi.posting_date BETWEEN %s AND %s
             AND pi.tax_withholding_category IS NOT NULL
-            AND twc.tds_section NOT IN ('192', '192B')
+            AND (twc.tds_section IS NULL OR twc.tds_section NOT IN ('192', '192B'))
         GROUP BY pi.name
         ORDER BY pi.posting_date ASC
     """
