@@ -172,7 +172,7 @@ def bom_creation(self):
     bom.two_in_one = self.two_in_one
     bom.enamal = self.enamal
     bom.chain_type = self.chain_type
-    bom.gemstone_type1 = self.gemstone_type
+    bom.gemstone_type = self.gemstone_type
     bom.gemstone_quality = self.gemstone_quality
     bom.setting_type = self.setting_type
     bom.sub_setting_type1 = self.sub_setting_type1
