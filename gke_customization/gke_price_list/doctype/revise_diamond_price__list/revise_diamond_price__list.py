@@ -340,6 +340,9 @@ def crate_price_list(self,row):
     diamond_price_list_doc.diamond_quality = self.diamond_quality
     diamond_price_list_doc.stone_shape = self.stone_shape
     diamond_price_list_doc.stone_code = row.stone_code
+    diamond_price_list_doc.supplier_fg_purchase_rate = row.new_outwork_rate
+    diamond_price_list_doc.rate = row.revised_rate
+    
 
     if self.handling_charges_for_outright:
         diamond_price_list_doc.outright_handling_charges_in_percentage = self.outright_handling_charges_in_percentage
