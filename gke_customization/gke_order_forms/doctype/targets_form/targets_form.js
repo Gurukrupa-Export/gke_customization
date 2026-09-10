@@ -17,8 +17,8 @@ frappe.ui.form.on("Targets Form", {
             const entries = [
                 { setting_type: "Open", nature: "Outright" },
                 { setting_type: "Open", nature: "Outwork" },
-                { setting_type: "Close", nature: "Outright" },
-                { setting_type: "Close", nature: "Outwork" }
+                { setting_type: "Nova Glow", nature: "Outright" },
+                { setting_type: "Nova Glow", nature: "Outwork" }
             ];
 
             // Financial year start: April (month index 3)
@@ -117,8 +117,8 @@ frappe.ui.form.on("Targets Form", {
             const entries = [
                 { setting_type: "Open", nature: "Outright" },
                 { setting_type: "Open", nature: "Outwork" },
-                { setting_type: "Close", nature: "Outright" },
-                { setting_type: "Close", nature: "Outwork" }
+                { setting_type: "Nova Glow", nature: "Outright" },
+                { setting_type: "Nova Glow", nature: "Outwork" }
             ];
 
             const fy_start_month = 3; // April
