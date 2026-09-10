@@ -21,7 +21,14 @@
   "section_break_cadsite_section",
   "cad_from_site",
   "column_break_cadsite_column",
-  "cad_to_site"
+  "cad_to_site",
+  "testing_sync_section",
+  "enable_testing_sync",
+  "testing_site",
+  "column_break_testing_sync",
+  "testing_api_key",
+  "testing_api_secret",
+  "prefill_testing_site"
  ],
  "fields": [
   {
@@ -104,13 +111,59 @@
   {
    "fieldname": "column_break_cadsite_column",
    "fieldtype": "Column Break"
+  },
+  {
+   "description": "A separate, non-production target used only to test the Manufacturing Plan push. This is NOT the live To Site above - the Item/BOM sync keeps using that one.",
+   "fieldname": "testing_sync_section",
+   "fieldtype": "Section Break",
+   "label": "Manufacturing Plan Testing Sync"
+  },
+  {
+   "default": "0",
+   "description": "Off by default. While this is unticked nothing is sent to the testing site, by submit or by button.",
+   "fieldname": "enable_testing_sync",
+   "fieldtype": "Check",
+   "label": "Send Manufacturing Plan Data to Testing Site"
+  },
+  {
+   "depends_on": "enable_testing_sync",
+   "description": "Full base URL, e.g. https://kggk-test.example.com",
+   "fieldname": "testing_site",
+   "fieldtype": "Data",
+   "label": "Testing Site",
+   "mandatory_depends_on": "enable_testing_sync"
+  },
+  {
+   "fieldname": "column_break_testing_sync",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "enable_testing_sync",
+   "fieldname": "testing_api_key",
+   "fieldtype": "Data",
+   "label": "Testing API Key",
+   "mandatory_depends_on": "enable_testing_sync"
+  },
+  {
+   "depends_on": "enable_testing_sync",
+   "fieldname": "testing_api_secret",
+   "fieldtype": "Password",
+   "label": "Testing API Secret",
+   "mandatory_depends_on": "enable_testing_sync"
+  },
+  {
+   "depends_on": "enable_testing_sync",
+   "description": "Checks the testing site for missing custom fields and for the items and BOMs the submitted Manufacturing Plans need. Reports first; creates nothing until you confirm.",
+   "fieldname": "prefill_testing_site",
+   "fieldtype": "Button",
+   "label": "Check / Prefill Testing Site"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-07-15 15:37:22.702470",
+ "modified": "2026-09-02 19:35:00.000000",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Data Migration in KGGK",

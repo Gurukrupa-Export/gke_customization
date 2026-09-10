@@ -75,9 +75,9 @@ class OrderForm(Document):
 		for i in self.order_details:	
 			if i.metal_type == "Silver":
 				i.metal_colour = "White"
-				i.metal_touch = "20KT"
-				i.setting_type = "Open"
-				i.diamond_type = "AD"
+				# i.metal_touch = "20KT"
+				# i.setting_type = "Open"
+				# i.diamond_type = "AD"
 			# return
 
 	def validate_category_subcaegory(self):
@@ -415,12 +415,18 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	
 	
 	design_type = frappe.get_doc('Order Form Detail',source_name).design_type
+	metal_type = frappe.get_doc('Order Form Detail',source_name).metal_type
 	item_type = frappe.get_doc('Order Form Detail',source_name).item_type
 	# as_per_serial_no = frappe.get_doc('Order Form Detail',source_name).as_per_serial_no
 	mod_reason = frappe.get_doc('Order Form Detail',source_name).mod_reason
 	design_id = frappe.get_doc('Order Form Detail',source_name).design_id
 	is_repairing = frappe.get_doc('Order Form Detail',source_name).is_repairing
 	is_finding_order = frappe.get_doc('Order Form Detail',source_name).is_finding_order
+	if metal_type=='Silver':
+		bom_or_cad = 'Check'
+		workflow_type='BOM'
+		item_type='No Variant No Suffix'
+		bom_type='Duplicate BOM'
 	if design_type == 'Mod - Old Stylebio & Tag No':
 		if is_repairing == 1:
 			bom_or_cad = frappe.get_doc('Order Form Detail',source_name).bom_or_cad
@@ -490,6 +496,10 @@ def make_cad_order(source_name, target_doc=None, parent_doc = None):
 	doc.usa = parent_doc.usa
 	doc.india_states = parent_doc.india_states
 	doc.item_type = item_type
+	doc.metal_purity=frappe.get_doc('Order Form Detail',source_name).metal_purity
+	if metal_type=='Silver':
+		doc.bom_type=bom_type
+		doc.workflow_type=workflow_type
 	doc.bom_or_cad = bom_or_cad
 	if design_type in ['New Design','Sketch Design']:
 		doc.workflow_type = 'CAD'
@@ -2127,4 +2137,69 @@ def set_tolerance(diamond_weight, customer):
 				
 	return data_json
 
+
+@frappe.whitelist()
+def get_jewelex_order_form_detail(order_form, doc):
+
+	order_form_doc = frappe.get_doc("Order Form", order_form)
+	doc = json.loads(doc)
+
+	order_date_str = getdate(order_form_doc.order_date).strftime("%Y-%m-%d")
+	file_name = f"Jewelex_Order_Form_Detail_{order_date_str}.xlsx"
+
+	workbook = openpyxl.Workbook()
+	sheet = workbook.active
+	sheet.title = "Jewelex Order Detail"
+
+	# Excel headers
+	headers = [
+		"StyleBio",
+		"TagNo",
+		"PONo",
+		"Metal Colour",
+		"Remark"
+	]
+	sheet.append(headers)
+
+	rows_data = []
+
+	# PONo comes from Order Form
+	po_no = order_form_doc.get("po_no", "")
+
+	# Loop through order details child table
+	for row in doc.get("order_details", []):
+
+		row_data = [
+			row.get("stylebio", ""),
+			row.get("tagno", ""),
+			po_no,
+			row.get("metal_colour", ""),
+			row.get("order_details_and_remarks", "")
+			
+		]
+
+		rows_data.append(row_data)
+
+	# Write rows
+	if rows_data:
+		for row in rows_data:
+			sheet.append(row)
+	else:
+		frappe.throw("Order Details Can Not Download")
+
+	# Save workbook to BytesIO
+	output = BytesIO()
+	workbook.save(output)
+	output.seek(0)
+
+	# Save file in Frappe
+	file_doc = save_file(
+		file_name,
+		output.getvalue(),
+		order_form_doc.doctype,
+		order_form_doc.name,
+		is_private=0
+	)
+
+	return file_doc.file_url
 
