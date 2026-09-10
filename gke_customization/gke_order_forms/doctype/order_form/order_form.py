@@ -732,8 +732,13 @@ def get_bom_details(design_id, doc):
 	variant_attributes = frappe.db.get_all("Item Variant Attribute", filters={"parent": design_id}, fields=["attribute", "attribute_value"])
 	variant_map = {d.attribute.replace(' ', '_').replace('/', '').lower(): d.attribute_value for d in variant_attributes}
 
-	# Get fallback values from BOM
-	bom_values = frappe.db.get_value("BOM", master_bom, attribute_keys, as_dict=1)
+	# Get fallback values from BOM -- only for keys BOM actually has a field for.
+	# The keys come from Item Attribute names, several of which (Breadth, Gemstone Type1)
+	# no longer exist on BOM, and get_value would raise Unknown column on those.
+	# Same guard as get_bom_detail below.
+	bom_meta_fields = {f.fieldname for f in frappe.get_meta("BOM").fields}
+	safe_bom_keys = [k for k in attribute_keys if k in bom_meta_fields]
+	bom_values = (frappe.db.get_value("BOM", master_bom, safe_bom_keys, as_dict=1) or {}) if safe_bom_keys else {}
 
 	with_value = {}
 	for original_name, formatted_key in attribute_pairs:
