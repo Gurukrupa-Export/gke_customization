@@ -1,9 +1,9 @@
+from datetime import datetime, timedelta
+
 import frappe
+import requests
 from frappe import _
 from frappe.utils import cint, get_datetime, getdate
-from datetime import datetime, timedelta
-import requests
-
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift_timings
 
 
@@ -13,6 +13,7 @@ def _log_error(title, message):
         print(f"{title} -- {message}")
     else:
         frappe.log_error(title=title, message=message)
+
 
 # ---------------------------------------------------------------------------
 # Main entry point
@@ -154,21 +155,25 @@ def _process_single_log(log, existing, last_punch_map, time_threshold):
                 return "skipped"
 
     # ── Determine Log Type (shift-aware) ──────────────────────────────
-    log_type = _determine_log_type(employee, log_dt)
+    log_type, pp_result = _determine_log_type(employee, log_dt)
 
     # ── Create Employee Checkin ───────────────────────────────────────
     device_name = log.get("device_name", "")
     unique_id = log.get("indexno", "")
 
-    checkin = frappe.get_doc({
-        "doctype": "Employee Checkin",
-        "employee": employee,
-        "time": log_dt_str,
-        "log_type": log_type,
-        "device_id": device_name,
-        "source": "Biometric",
-        "custom_unique_id": unique_id,
-    })
+    checkin = frappe.get_doc(
+        {
+            "doctype": "Employee Checkin",
+            "employee": employee,
+            "time": log_dt_str,
+            "log_type": log_type,
+            "device_id": device_name,
+            "source": "Biometric",
+            "custom_unique_id": unique_id,
+        }
+    )
+    if pp_result:
+        checkin.flags.pp_result = pp_result
     checkin.insert(ignore_permissions=True)
 
     # Update tracking structures so subsequent logs in the same batch
@@ -183,17 +188,59 @@ def _process_single_log(log, existing, last_punch_map, time_threshold):
 # Log Type determination (shift-aware, supports day + night shifts)
 # ---------------------------------------------------------------------------
 def _determine_log_type(employee, log_dt):
-    """Decide whether a punch is IN or OUT based on the employee's shift
-    assignment and prior checkins within the same shift window.
+    """Decide whether a punch is IN or OUT.
 
-    Handles:
-      ✅ Day shifts      (e.g. 09:00 – 18:00)
-      ✅ Night shifts     (e.g. 21:00 – 06:00)
-      ✅ After-midnight punches for previous-day night shifts
-      ✅ Multiple punches — toggles IN→OUT→IN→OUT
-      ✅ Missing OUT — next shift window starts fresh with IN
-      ✅ Late entry / early exit within grace window
+    Returns (log_type, engine_result). engine_result is the already-computed
+    classify_punch() dict — non-None only in 'live' mode — so the caller can
+    hand it to the Employee Checkin doc and avoid a second, redundant
+    classify_punch() call inside fetch_shift().
     """
+    try:
+        from gke_customization.gke_hrms.punch_pairing import (
+            classify_punch,
+            get_mode,
+        )
+    except Exception:
+        return _determine_log_type_legacy(employee, log_dt), None
+
+    mode = get_mode()
+    if mode == "live":
+        try:
+            result = classify_punch(employee, get_datetime(log_dt))
+            # R5 orphans stay direction-less; they are routed to the
+            # regularization queue by the nightly reconciliation
+            return (result.get("log_type") or "IN"), result
+        except Exception:
+            _log_error(
+                title="Biometric Sync — session pairing failed, using legacy",
+                message=frappe.get_traceback(),
+            )
+            return _determine_log_type_legacy(employee, log_dt), None
+
+    legacy_result = _determine_log_type_legacy(employee, log_dt)
+
+    if mode == "log":
+        try:
+            result = classify_punch(employee, get_datetime(log_dt))
+            engine_result = result.get("log_type")
+            if engine_result and engine_result != legacy_result:
+                frappe.logger("punch_pairing").info(
+                    {
+                        "employee": employee,
+                        "time": str(log_dt),
+                        "legacy": legacy_result,
+                        "engine": engine_result,
+                        "rule": result.get("rule"),
+                    }
+                )
+        except Exception:
+            frappe.logger("punch_pairing").error(frappe.get_traceback())
+
+    return legacy_result, None
+
+
+def _determine_log_type_legacy(employee, log_dt):
+    """Legacy behaviour: per-window chronological IN/OUT toggle."""
     try:
         _prev_shift, curr_shift, _next_shift = get_employee_shift_timings(
             employee, get_datetime(log_dt), True
@@ -219,7 +266,7 @@ def _determine_log_type(employee, log_dt):
     #     if not (actual_start <= punch_dt <= actual_end):
     #         # Outside the shift window — treat as a standalone IN
     #         return "IN"
-    
+
     # ── Query last checkin within this shift's actual window ─────────
     # Use actual_start/actual_end (which include the grace period) so that
     # early-arrival punches (e.g. 20:59 for a 21:00 shift) are included
@@ -258,7 +305,7 @@ def _determine_log_type(employee, log_dt):
     #         (employee, log_date_str, log_dt),
     #         as_dict=True,
     #     )
-    
+
     # new 11-05-2026
     punch_dt = get_datetime(log_dt)
 
@@ -269,7 +316,7 @@ def _determine_log_type(employee, log_dt):
 
     if actual_start and actual_end:
         outside_shift = not (actual_start <= punch_dt <= actual_end)
-        
+
     query_start = actual_start or curr_shift.get("start_datetime")
     query_end = actual_end or curr_shift.get("end_datetime")
 
@@ -299,7 +346,7 @@ def _determine_log_type(employee, log_dt):
 
     if shift_start and shift_end:
         is_night_shift = shift_end.date() > shift_start.date()
-    
+
     # Fallback to latest punch globally
     if not last_log and is_night_shift:
         last_log = frappe.db.sql(
@@ -330,10 +377,20 @@ def _resolve_date_range(settings):
     today = datetime.now().date()
 
     if cint(settings.manual):
-        from_date = settings.from_date if isinstance(settings.from_date, datetime) else \
-            datetime.strptime(str(settings.from_date), "%Y-%m-%d").date() if settings.from_date else today
-        to_date = settings.to_date if isinstance(settings.to_date, datetime) else \
-            datetime.strptime(str(settings.to_date), "%Y-%m-%d").date() if settings.to_date else today
+        from_date = (
+            settings.from_date
+            if isinstance(settings.from_date, datetime)
+            else datetime.strptime(str(settings.from_date), "%Y-%m-%d").date()
+            if settings.from_date
+            else today
+        )
+        to_date = (
+            settings.to_date
+            if isinstance(settings.to_date, datetime)
+            else datetime.strptime(str(settings.to_date), "%Y-%m-%d").date()
+            if settings.to_date
+            else today
+        )
         # frappe Date fields may already be date objects
         if hasattr(from_date, "date"):
             from_date = from_date.date()
