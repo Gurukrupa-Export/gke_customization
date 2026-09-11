@@ -5,7 +5,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 def validate(self, method=None):
-
+    loan_eligibility_months=12
     guarantors = [s for s in self.custom_loan_guarantor if s.employee]
 
     last_app = frappe.get_all("Loan Application",
@@ -35,17 +35,17 @@ def validate(self, method=None):
             last_posting_date = datetime.strptime(last_posting_date, "%Y-%m-%d").date()
 
         allowed_date = last_posting_date + relativedelta(months=+18)
-        allowed_date_applicant=joining_date_applicant + relativedelta(months=+18)
-        if current_posting_date < allowed_date_applicant:
-            frappe.throw(
-                _("You cannot apply for a loan before 1.5 years from your Joining Date")
-            )
 
         if current_posting_date < allowed_date:
             frappe.throw(
                 _("You cannot apply for a loan before 1.5 years from your last loan application.")
             )
 
+    allowed_date_applicant=joining_date_applicant + relativedelta(months=+loan_eligibility_months)
+    if current_posting_date < allowed_date_applicant:
+        frappe.throw(
+            _("You cannot apply for a loan before 1 years from your Joining Date")
+        )
     
     if not self.applicant or not self.custom_loan_guarantor:
         return
@@ -81,16 +81,49 @@ def validate(self, method=None):
         if row.employee:
             guarantor_ids.append(row.employee)
             
-    existing = frappe.db.get_all("Loan Guarantor",
-        filters={
-            "employee": ["in", guarantor_ids],
-            "parenttype": "Loan Application",
-            "parent": ["!=", self.name]
-        },
-        fields=["employee", "parent"]
-    )
+    # existing = frappe.db.get_all("Loan Guarantor",
+    #     filters={
+    #         "employee": ["in", guarantor_ids],
+    #         "parenttype": "Loan Application",
+    #         "parent": ["!=", self.name]
+    #     },
+    #     fields=["employee", "parent"]
+    # )
     
+    # if existing:
+    #     used = [f"{row.employee} (in {row.parent})" for row in existing]
+    #     used_list = ", ".join(used)
+    #     frappe.throw("You cannot select this employee as they are already a guarantor in another loan application")
+
+    # shubham - 17-07-2026
+    existing = frappe.db.sql("""
+        SELECT
+            lg.employee,
+            la.name,
+            la.workflow_state
+        FROM `tabLoan Guarantor` lg
+
+        INNER JOIN `tabLoan Application` la
+            ON la.name = lg.parent
+
+        WHERE lg.employee IN %(employees)s
+        AND lg.parent != %(current_parent)s
+        AND la.workflow_state NOT IN ('Rejected', 'Cancelled')
+    """, {
+        "employees": tuple(guarantor_ids),
+        "current_parent": self.name
+    }, as_dict=True)
+
+    # frappe.throw(f"{existing}")
     if existing:
-        used = [f"{row.employee} (in {row.parent})" for row in existing]
-        used_list = ", ".join(used)
-        frappe.throw("You cannot select this employee as they are already a guarantor in another loan application")
+
+        used = [
+            f"{row.employee} (Loan: {row.name}, Status: {row.workflow_state})"
+            for row in existing
+        ]
+
+        frappe.throw(
+            "You cannot select this employee as guarantor because they are already "
+            "assigned in another active loan application:<br><br>"
+            + "<br>".join(used)
+        )

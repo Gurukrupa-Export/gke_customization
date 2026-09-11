@@ -299,7 +299,7 @@ def export_txt(filters=None):
 		
 		code = 0  # Reason Code
 		date = ""
-		if (row.get("leave_days") or 0) > 0 or (row.get("payment_days") == 0):
+		if (row.get("payment_days") == 0):
 			code = 1
 		elif row.get("status") == "Left" or (
 			row.get("status") == "Inactive" and row.get("relieving_date") 
