@@ -15,6 +15,7 @@
   "employee_id",
   "employee_name",
   "department",
+  "designation",
   "section_break_gf44",
   "branch",
   "auditor_name",
@@ -168,13 +169,19 @@
    "fieldtype": "Link",
    "label": "Department",
    "options": "Department"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-01 16:43:00.724672",
- "modified_by": "bhavika_patel@gkexport.com",
+ "modified": "2026-09-10 12:07:28.537354",
+ "modified_by": "mansi_g@gkexport.com",
  "module": "GKE SURVEY",
  "name": "Questionnaire Response",
  "naming_rule": "By \"Naming Series\" field",
