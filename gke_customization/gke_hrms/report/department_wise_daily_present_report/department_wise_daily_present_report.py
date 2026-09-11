@@ -406,6 +406,7 @@ def send_morning_present_report(date=None, department=None):
 		rows, leave_rows,absent_rows, summary = result
  
 		manager_emails = get_department_manager_emails(dept)
+		
 		if not manager_emails:
 			frappe.log_error(
 				title="Morning Present Report — no manager in custom_user_group",
@@ -414,14 +415,19 @@ def send_morning_present_report(date=None, department=None):
 			skipped.append(dept)
 			continue
 
+		if isinstance(manager_emails, list):
+			manager_string = ", ".join(manager_emails)
+		else:
+			manager_string = manager_emails
+		# frappe.throw(f"{manager_string}")
 		html = render_email_html(dept, date, rows, leave_rows, absent_rows, summary)
 		frappe.sendmail(
-			recipients=manager_emails,
+			recipients=manager_string,
 			cc=["angat_p@gkexport.com","hr_srt@gkexport.com"],
 			sender="alerts@gkexport.com",
 			subject=f"Present Report — {dept} — {formatdate(date, 'dd-mm-yyyy')}",
 			message=html,
-			now=True,
+			now=True,expose_recipients="header"
 		)
 		sent.append({"department": dept, "managers": manager_emails})
  
