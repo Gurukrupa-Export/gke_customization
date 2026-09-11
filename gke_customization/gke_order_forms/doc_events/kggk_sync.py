@@ -30,7 +30,7 @@ from urllib.parse import quote
 import frappe
 import requests
 from frappe import _
-from frappe.utils import cint, flt, now_datetime, time_diff_in_seconds
+from frappe.utils import add_to_date, cint, flt, now_datetime, time_diff_in_seconds
 
 
 # ============================================================================
@@ -2330,6 +2330,15 @@ def push_item(item_code, config, run, seen=None):
 				)
 				note = f"{note}, attachments uploaded but not linked"
 
+	# It is on the target now, so nothing later in this run may be told otherwise by a
+	# lookup cached from before it was pushed. A variant is the case this exists for: the
+	# template is pushed a few lines above, and if anything earlier in the run had already
+	# asked whether that template existed - and been told no - the variant is then refused
+	# for "variant_of: Item ... does not exist on target", leaving exactly the template
+	# without its variant.
+	run.link_cache[("Item", target_id)] = True
+	run.link_cache[("Item", item_code)] = True
+
 	run.item_ok(item_code, note, local_modified=sent_version, target_name=target_id)
 	return True
 
@@ -2403,6 +2412,9 @@ def push_bom(bom_name, config, run):
 			else:
 				run.mismatch("BOM", bom_name, f"attachment urls could not be set - {follow_up.message()}")
 
+	run.link_cache[("BOM", target_id)] = True
+	run.link_cache[("BOM", bom_name)] = True
+
 	run.bom_ok(bom_name, note, local_modified=sent_version, target_name=target_id)
 	return True
 
@@ -2414,6 +2426,15 @@ def push_bom(bom_name, config, run):
 # progress and a timeout costs one chunk instead of everything.
 CHUNK_SIZE = 50
 JOB_TIMEOUT = 3600
+
+# How often a running chunk writes what it has done so far.
+#
+# Counters and record rows are buffered in memory and were written only when the chunk ended.
+# A worker killed mid-chunk - a deploy, a restart, an out-of-memory - therefore lost every
+# record it had already pushed: the target had the items, and the log still said
+# "0 synced, 0 failed" with no rows and no way to tell where it stopped. Flushing costs one
+# save per ten records and turns a dead run from a mystery into a position.
+FLUSH_EVERY = 10
 
 
 def sync_records(
@@ -2510,7 +2531,7 @@ def sync_records(
 	loops_completed = False
 	try:
 		seen = set()
-		for item_code in items:
+		for position, item_code in enumerate(items, start=1):
 			frappe.db.savepoint("kggk_item")
 			try:
 				push_item(item_code, config, run, seen=seen)
@@ -2518,8 +2539,15 @@ def sync_records(
 				frappe.db.rollback(save_point="kggk_item")
 				run.item_failed(item_code, f"unexpected error: {exc}")
 				frappe.log_error(frappe.get_traceback(), f"KGGK sync: Item {item_code}"[:140])
+			if position % FLUSH_EVERY == 0:
+				run.flush()
 
-		for bom_name in boms:
+		# Always, whatever the count. Items and BOMs are the two halves of a run and they fail
+		# for different reasons; knowing the items finished is most of the diagnosis when the
+		# BOMs are what hangs.
+		run.flush()
+
+		for position, bom_name in enumerate(boms, start=1):
 			frappe.db.savepoint("kggk_bom")
 			try:
 				push_bom(bom_name, config, run)
@@ -2527,6 +2555,8 @@ def sync_records(
 				frappe.db.rollback(save_point="kggk_bom")
 				run.bom_failed(bom_name, f"unexpected error: {exc}")
 				frappe.log_error(frappe.get_traceback(), f"KGGK sync: BOM {bom_name}"[:140])
+			if position % FLUSH_EVERY == 0:
+				run.flush()
 
 		# The BOMs of this chunk now exist on the target, so the links that were dropped
 		# because they did not - `Item.master_bom` above all - can be put back.
@@ -2907,6 +2937,13 @@ def reconcile_changes():
 	if in_reentrant_context():
 		return
 
+	# Before the switch, not after it: a stuck log is a stuck log whether or not anybody
+	# wants drift reconciled, and leaving it Running is what makes it unrecoverable.
+	try:
+		reap_stale_runs()
+	except Exception:
+		frappe.logger("kggk_sync").exception("the stale-run sweep failed")
+
 	if not cint(setting("auto_reconcile", 0)):
 		return
 
@@ -2940,6 +2977,63 @@ def reconcile_changes():
 # ============================================================================
 
 
+# A run whose log has not been touched for this long is a worker that died, not one that is
+# busy. Every chunk flushes its counters, and a chunk is fifty records, so a live run updates
+# `modified` regularly even against a slow target.
+STALE_SYNC_MINUTES = 30
+
+
+@frappe.whitelist()
+def reap_stale_runs():
+	"""Close runs whose worker died, so their records can be retried.
+
+	A sync log is created Running by the worker that picked the job up, and only that worker
+	ever closes it. Killed mid-flight - a deploy, a restart, an out-of-memory, a job timeout -
+	it says Running for ever: nothing notices, `retry_log` refuses to touch a Running run, and
+	the form does not offer the Retry button. The records in it are then stranded with no
+	route back, which is the one outcome the logging was supposed to prevent.
+
+	Deliberately not gated on "Hourly Change Check" or on the sync being enabled: a stuck
+	document needs tidying whatever the settings say, and this touches nothing but the log.
+	"""
+	cutoff = add_to_date(now_datetime(), minutes=-STALE_SYNC_MINUTES)
+	stale = frappe.get_all(
+		LOG_DOCTYPE,
+		filters={
+			"status": ("in", [STATUS_QUEUED, STATUS_RUNNING]),
+			"modified": ("<", cutoff),
+		},
+		fields=["name", "reference", "trigger"],
+		order_by="modified asc",
+		limit=50,
+	)
+
+	closed = []
+	for row in stale:
+		try:
+			doc = frappe.get_doc(LOG_DOCTYPE, row.name)
+			doc.status = STATUS_FAILED
+			doc.ended_on = now_datetime()
+			doc.summary = (
+				f"{doc.summary or ''} | Abandoned: no progress for {STALE_SYNC_MINUTES} "
+				"minutes, so the worker running it is gone. Press Retry Failed to queue it "
+				"again."
+			).strip(" |")
+			doc.flags.ignore_version = True
+			doc.save(ignore_permissions=True)
+			closed.append(row.name)
+		except Exception:
+			frappe.logger("kggk_sync").exception(f"could not close stale run {row.name}")
+
+	if closed:
+		frappe.db.commit()
+		frappe.logger("kggk_sync").info(
+			f"{_stamp()} | REAPED        | - | - | closed {len(closed)} stale run(s): "
+			+ ", ".join(closed)
+		)
+	return closed
+
+
 @frappe.whitelist()
 def retry_log(log_name):
 	"""Re-queue whatever failed in an earlier run, into a new log.
@@ -2955,6 +3049,13 @@ def retry_log(log_name):
 
 	items = [r.record_name for r in log.records if r.status in ("Failed", "Pending") and r.record_doctype == "Item"]
 	boms = [r.record_name for r in log.records if r.status in ("Failed", "Pending") and r.record_doctype == "BOM"]
+
+	# A run that died before it processed anything lists no records at all, so there is
+	# nothing to read back - and that is exactly the run most worth retrying. For a
+	# Manufacturing Plan the answer is not lost, it is still on the plan, so re-derive it.
+	if not items and not boms and log.trigger == "Manufacturing Plan" and log.reference:
+		if frappe.db.exists("Manufacturing Plan", log.reference):
+			items, boms = collect_records(frappe.get_doc("Manufacturing Plan", log.reference))
 
 	if not items and not boms:
 		frappe.throw(_("Nothing in this run failed, so there is nothing to retry."))
