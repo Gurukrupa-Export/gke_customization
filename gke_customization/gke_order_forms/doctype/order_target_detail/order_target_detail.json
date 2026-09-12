@@ -20,7 +20,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Setting Type",
-   "options": "\nOpen\nClose"
+   "options": "\nOpen\nNova Glow"
   },
   {
    "fieldname": "nature",

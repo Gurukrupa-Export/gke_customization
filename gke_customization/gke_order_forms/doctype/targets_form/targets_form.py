@@ -35,9 +35,9 @@ def calculate_total(self):
             total_open_outright += target_value
         if row.setting_type == 'Open' and row.nature == 'Outwork':
             total_open_outwork += target_value
-        if row.setting_type == 'Close' and row.nature == 'Outright':
+        if row.setting_type == 'Nova Glow' and row.nature == 'Outright':
             total_close_outright += target_value
-        if row.setting_type == 'Close' and row.nature == 'Outwork':
+        if row.setting_type == 'Nova Glow' and row.nature == 'Outwork':
             total_close_outwork += target_value
         
 
