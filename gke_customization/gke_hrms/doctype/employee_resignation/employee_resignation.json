@@ -150,7 +150,7 @@
    "fieldname": "reason_for_resignation",
    "fieldtype": "Select",
    "label": "Reason for Resignation",
-   "options": "\nBetter Opportunity\nBetter Compensation\nBehavioral Issue\nCultural Issues\nFamily Reason\nHealth Issue\nHigher Education\nIntegrity Issue\nLack Of Career Growth\nLayoff\nMisconduct\nMarriage\nPerformance Issue\nOther\nRetirement\nRelocation\nStarting Own Business\nTermination\nViolation Of Sop"
+   "options": "\nBetter Opportunity\nBetter Compensation\nBehavioral Issue\nCultural Issues\nFamily Reason\nHealth Issue\nHigher Education\nIntegrity Issue\nLack Of Career Growth\nLayoff\nMisconduct\nMarriage\nPerformance Issue\nOther\nRetirement\nRelocation\nStarting Own Business\nTermination\nViolation Of Sop\nAbsconding"
   },
   {
    "default": "0",
@@ -267,8 +267,8 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-14 15:36:47.860911",
- "modified_by": "Administrator",
+ "modified": "2026-08-01 16:50:50.006348",
+ "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE HRMS",
  "name": "Employee Resignation",
  "naming_rule": "By \"Naming Series\" field",
@@ -301,6 +301,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

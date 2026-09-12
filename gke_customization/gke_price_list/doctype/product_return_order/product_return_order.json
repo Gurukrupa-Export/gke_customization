@@ -17,6 +17,8 @@
   "company",
   "branch",
   "sales_type",
+  "ref_company",
+  "old_product_return_order_form",
   "column_break_fmev",
   "date",
   "posting_time",
@@ -37,13 +39,12 @@
   "custom_handling_charges",
   "wastage_charges",
   "custom_wastage_charges",
-  "hallmarking_amounts",
-  "certification_amounts",
   "column_break_dhb3",
   "gold_rate_with_gst",
   "gold_rate",
   "section_break_igyp",
   "jwelex_credit_note_data",
+  "amended_from",
   "item_code",
   "serial_no",
   "hsn_sac",
@@ -127,8 +128,7 @@
   "other_section",
   "other_detail",
   "total_other_pcs",
-  "total_other_weight",
-  "amended_from"
+  "total_other_weight"
  ],
  "fields": [
   {
@@ -271,13 +271,6 @@
    "fieldname": "jwelex_credit_note_data",
    "fieldtype": "Code",
    "label": "Jwelex Credit Note Data",
-   "read_only": 1
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "options": "Product Return Order",
    "read_only": 1
   },
   {
@@ -878,29 +871,28 @@
    "fieldtype": "Section Break"
   },
   {
-   "default": "0",
-   "fieldname": "hallmarking_amounts",
-   "fieldtype": "Check",
-   "label": "Hallmarking Amount",
-   "read_only": 1
+   "default": "GK",
+   "fieldname": "ref_company",
+   "fieldtype": "Select",
+   "label": "Ref Company",
+   "options": "\nGK\nKG",
+   "sort_options": 1
   },
   {
-   "default": "0",
-   "fieldname": "certification_amounts",
-   "fieldtype": "Check",
-   "label": "Certification Amount",
-   "read_only": 1
+   "fieldname": "old_product_return_order_form",
+   "fieldtype": "Data",
+   "label": "Old Product Return Order Form"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-29 17:05:48.038098",
- "modified_by": "shruti_b@gkexport.com",
+ "modified": "2026-08-04 14:13:31.610604",
+ "modified_by": "shubham_ke@gkexport.com",
  "module": "Gke Price List",
  "name": "Product Return Order",
- "naming_rule": "Expression",
+ "naming_rule": "Expression (old style)",
  "owner": "Administrator",
  "permissions": [
   {

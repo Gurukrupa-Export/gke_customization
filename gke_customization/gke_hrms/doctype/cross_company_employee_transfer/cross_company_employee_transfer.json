@@ -1,0 +1,203 @@
+{
+ "actions": [],
+ "creation": "2026-07-17 14:49:52.832603",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "transfer_date",
+  "source_site",
+  "column_break_3",
+  "company",
+  "attendance_device_id",
+  "new_company",
+  "department",
+  "target_site",
+  "details_section",
+  "transfer_details",
+  "reallocate_leaves",
+  "create_new_employee_id",
+  "new_employee_id",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "transfer_date",
+   "fieldtype": "Date",
+   "label": "Transfer Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "source_site",
+   "fieldtype": "Select",
+   "label": "Source Site",
+   "options": "https://gkexport.frappe.cloud/\nhttps://kggk-prod.frappe.cloud/\nhttps://sgdiam.frappe.cloud/",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "new_company",
+   "fieldtype": "Select",
+   "label": "New Company",
+   "options": "\nKG GK Jewellers Private Limited\nGurukrupa Export Private Limited\nSadguru Diamond",
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department",
+   "read_only": 1
+  },
+  {
+   "fieldname": "target_site",
+   "fieldtype": "Select",
+   "label": "Target Site",
+   "options": "https://gkexport.frappe.cloud/\nhttps://kggk-prod.frappe.cloud/\nhttps://sgdiam.frappe.cloud/"
+  },
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Employee Transfer Details"
+  },
+  {
+   "fieldname": "transfer_details",
+   "fieldtype": "Table",
+   "label": "Employee Transfer Detail",
+   "options": "Cross Employee Transfer Details",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "reallocate_leaves",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Re-allocate Leaves"
+  },
+  {
+   "default": "0",
+   "fieldname": "create_new_employee_id",
+   "fieldtype": "Check",
+   "label": "Create New Employee Id"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "new_employee_id",
+   "fieldtype": "Data",
+   "label": "New Employee ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Cross Company Employee Transfer",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "attendance_device_id",
+   "fieldtype": "Data",
+   "label": "Attendance Device ID (Biometric/RF tag ID)"
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-08-21 18:30:22.957034",
+ "modified_by": "mansi_g@gkexport.com",
+ "module": "GKE HRMS",
+ "name": "Cross Company Employee Transfer",
+ "owner": "shubham_si@gkexport.com",
+ "permissions": [
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Employee",
+   "share": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "employee_name",
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}

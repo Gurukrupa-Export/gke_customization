@@ -247,12 +247,8 @@ def _calc_jewelex_row_amounts(doc, row):
     if not row.get("jewelex_tag"):
         return False
 
-    if doc.company == 'KG GK Jewellers Private Limited':
-        company = "KGJPL"
-    if doc.company == 'Gurukrupa Export Private Limited':
-        company = "GEPL"
-    
-    data = get_data_from_jwelex(row.jewelex_tag,company)
+    jewelex_company = "KGPL" if doc.ref_company == "KG" else "GEPL"
+    data = get_data_from_jwelex(row.jewelex_tag,jewelex_company,row.is_sale)
     if not data:
         frappe.throw(f"No JWELEX data found for Tag No {frappe.bold(row.jewelex_tag)}")
 
@@ -1102,9 +1098,9 @@ def _calc_bom_raw_material_consignment(doc):
 
 
 @frappe.whitelist()
-def get_data_from_jwelex(tag_no,company):
+def get_data_from_jwelex(tag_no,company,is_sale):
 
-    url = f"http://3.108.219.130:8001//credit-note?tag_no={tag_no}&company={company}"
+    url = f"http://3.108.219.130:8001//credit-note?tag_no={tag_no}&company={company}&is_sale={is_sale}"
     
     try:
         response = requests.get(url, timeout=10)
@@ -1131,6 +1127,8 @@ def create_credit_note_orders(source_doctype, source_name, child_fieldname):
     source_doc = frappe.get_doc(source_doctype, source_name)
     child_rows = source_doc.get(child_fieldname)
 
+    jewelex_company = "KGPL" if source_doc.get("ref_company") == "KG" else "GEPL"
+
     created = []
     errors = []
 
@@ -1140,7 +1138,7 @@ def create_credit_note_orders(source_doctype, source_name, child_fieldname):
             continue
 
         try:
-            data = get_data_from_jwelex(tag_no=tag_no)  # reuse existing function directly
+            data = get_data_from_jwelex(tag_no=tag_no, company=jewelex_company, is_sale=row.get("is_sale"))  # reuse existing function directly
             if not data:
                 errors.append({"tag_no": tag_no, "error": "No data found"})
                 continue

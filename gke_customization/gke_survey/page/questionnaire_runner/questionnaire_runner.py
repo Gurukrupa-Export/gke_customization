@@ -35,7 +35,7 @@ def get_questionnaire(template):
             "field_type",
             "options",
             "required",
-            "sequence"
+            "sequence","require_rating","require_remark"
         ],
         order_by="section asc, sequence asc"
     )
@@ -58,7 +58,10 @@ def save_response(questionnaire,answers,branch=None,
     previous_audit_pending_points=None,
     serious_irregularities_found=None,
     fraud_suspected=None,
-    matter_requiring_immediate_attention=None):
+    matter_requiring_immediate_attention=None,
+    employee_id=None,
+    employee_name=None,
+    department=None):
 
     if isinstance(answers, str):
         answers = json.loads(answers)
@@ -79,6 +82,9 @@ def save_response(questionnaire,answers,branch=None,
     response.fraud_suspected = fraud_suspected
     response.matter_requiring_immediate_attention = matter_requiring_immediate_attention
     response.submitted_by = frappe.session.user
+    response.employee_id = employee_id
+    response.employee_name = employee_name
+    response.department = department
 
     for row in answers:
         if row.get("field_type") == "Table":
@@ -92,12 +98,14 @@ def save_response(questionnaire,answers,branch=None,
                 })
 
         else:
-            response.append("questionnaire_answer",{
+            response.append("questionnaire_answer", {
                 "question": row["question"],
                 "answer": row["answer"],
-                "remark": row["remark"]
+                "rating": row.get("rating") or 0,
+                "remark": row.get("remark")
             })
 
+        # frappe.throw(f"answers: {row}") 
     response.insert(ignore_permissions=True)
 
     frappe.db.commit()
@@ -151,7 +159,8 @@ def get_responses(questionnaire):
             "auditor_name",
             "branch",
             "audit_dates",
-            "audit_month"
+            "audit_month",
+            "employee_name"
         ],
         order_by="creation desc"
     )
@@ -199,8 +208,11 @@ def get_response(response):
     answers = {}
 
     for d in response_doc.questionnaire_answer:
-
-        answers[d.question] = d.answer
+        answers[d.question] = {
+            "answer": d.answer,
+            "remark": d.remark,
+            "rating": d.rating
+        }
 
     tables = {}
 

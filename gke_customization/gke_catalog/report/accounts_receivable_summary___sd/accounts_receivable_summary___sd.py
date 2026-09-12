@@ -103,21 +103,16 @@ class AccountsReceivableSummary(ReceivablePayableReport):
 			self.data.append(row)
 
 	def setup_monthly_fieldnames(self):
-		# one column per month within the from/to date range, instead of one column per date
+		# one column per month that has dues, irrespective of the from/to date filter
 		unique_months = sorted(
-			{
-				row["entry_date"].replace(day=1)
-				for row in self.receivables
-				if row.get("entry_date")
-				and self.filters.from_date <= row["entry_date"] <= self.filters.to_date
-			}
+			{row["entry_date"].replace(day=1) for row in self.receivables if row.get("entry_date")}
 		)
 		self.date_fieldnames = OrderedDict(
 			(month, "month_" + month.strftime("%Y%m")) for month in unique_months
 		)
 
 		for row in self.receivables:
-			if row.get("entry_date") and self.filters.from_date <= row["entry_date"] <= self.filters.to_date:
+			if row.get("entry_date"):
 				fieldname = self.date_fieldnames[row["entry_date"].replace(day=1)]
 				row[fieldname] = row.get("outstanding", 0.0)
 

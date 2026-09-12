@@ -491,7 +491,7 @@ def _get_filters(filters):
 BASE_CONDITION = """
     `tabOrder`.bom_or_cad = 'CAD'
     AND `tabOrder`.workflow_type = 'CAD'
-    AND `tabOrder`.workflow_state IN ('Approved', 'Update Item')
+    AND `tabOrder`.workflow_state IN ('Approved', 'Update Item' , 'Update Item - On-Hold')
     AND `tabTimesheet`.workflow_state IN ('Approved', 'Customer Approval')
 """
 
@@ -553,7 +553,33 @@ import calendar
 from datetime import date
 
 
-def _get_date_filter(filters, date_column="`tabTimesheet`.start_date"):
+# def _get_date_filter(filters, date_column="`tabTimesheet`.start_date"):
+#     """
+#     filters = {
+#         "year": 2026,
+#         "month": 7
+#     }
+#     """
+
+#     year = filters.get("year")
+#     month = filters.get("month")
+
+#     if year and month:
+#         # First date of month
+#         from_date = date(int(year), int(month), 1)
+
+#         # Last date of month
+#         last_day = calendar.monthrange(int(year), int(month))[1]
+#         to_date = date(int(year), int(month), last_day)
+
+#         return (
+#             f"AND {date_column} BETWEEN %s AND %s",
+#             [from_date, to_date]
+#         )
+
+#     return "", []
+
+def _get_date_filter(filters):
     """
     filters = {
         "year": 2026,
@@ -572,10 +598,19 @@ def _get_date_filter(filters, date_column="`tabTimesheet`.start_date"):
         last_day = calendar.monthrange(int(year), int(month))[1]
         to_date = date(int(year), int(month), last_day)
 
-        return (
-            f"AND {date_column} BETWEEN %s AND %s",
-            [from_date, to_date]
-        )
+        condition = """
+            AND `tabTimesheet`.start_date BETWEEN %s AND %s
+            AND `tabTimesheet`.end_date BETWEEN %s AND %s
+        """
+
+        params = [
+            from_date,
+            to_date,
+            from_date,
+            to_date
+        ]
+
+        return condition, params
 
     return "", []
 

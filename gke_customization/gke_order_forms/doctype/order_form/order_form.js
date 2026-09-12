@@ -314,7 +314,28 @@ frappe.ui.form.on('Order Form', {
 				});
 			}, __("Get File"))
 		// }
-		
+		frm.add_custom_button(__("Get Jewelex Order Detail"), function() {
+	frappe.call({
+		method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.get_jewelex_order_form_detail',
+		args: {
+			order_form: frm.doc.name,
+			doc: frm.doc
+		},
+		callback: function(response) {
+			if (response.message) {
+
+				const a = document.createElement('a');
+				a.href = response.message;
+
+				let formatted_date = frm.doc.order_date.replace(/-/g, "_");
+				let filename = `${formatted_date}_Jewelex_Order_Form_Detail.xlsx`;
+
+				a.download = filename;
+				a.click();
+			}
+		}
+	});
+}, __("Get File"));
 		// if(frm.doc.customer_name.includes('Titan') && frm.doc.flow_type == 'PROTO' && !frm.doc.code_creation_file && frm.doc.docstatus == '1'){
 			frm.add_custom_button(__("Get Code Creation"), function(){
 				frappe.call({
