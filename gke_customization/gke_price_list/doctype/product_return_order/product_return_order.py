@@ -238,8 +238,8 @@ class ProductReturnOrder(Document):
 			# new_bom.save()
 			self.db_set("new_bom", new_bom.name, update_modified=False)
 
-	def on_update(self):
-		sync_product_return_order_to_gk(self)
+	# def on_update(self):
+	# 	sync_product_return_order_to_gk(self)
 	def on_submit(self):
 		
 		if not self.serial_no:
