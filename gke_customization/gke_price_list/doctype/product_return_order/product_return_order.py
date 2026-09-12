@@ -237,6 +237,9 @@ class ProductReturnOrder(Document):
 			new_bom.insert(ignore_permissions=True)
 			# new_bom.save()
 			self.db_set("new_bom", new_bom.name, update_modified=False)
+
+	def on_update(self):
+		sync_product_return_order_to_gk(self)
 	def on_submit(self):
 		
 		if not self.serial_no:
@@ -261,12 +264,12 @@ class ProductReturnOrder(Document):
 			# self.serial_no = serial.name
 			if serial.name:
 				remote_url = (
-					"https://kggk-prod.frappe.cloud/"
+					"https://gkexport-dummy-v16.m.frappe.cloud"
 					"/api/method/serial_product_return_order"
 				)
 
 				headers = {
-					"Authorization": "token 94efdb20934f180:8929a35acb05168",
+				"Authorization": "token 94efdb20934f180:5418ee1e0b4a5e3",
 					"Content-Type": "application/json",
 					"Accept": "application/json"
 				}
@@ -401,4 +404,1223 @@ class ProductReturnOrder(Document):
 
 		compose_series = str(series_start + mnf_abbr + m_abbr + dg_abbr + final_date + ".1244")
 		return compose_series
+
+
+
+
+
+import json
+import requests
+
+
+def sync_product_return_order_to_gk(doc):
+
+    # =========================================================
+    # PREVENT REMOTE DOCUMENT FROM SYNCING BACK
+    # =========================================================
+
+    # if not doc.custom_auto_created_product_return_order:
+
+	# =====================================================
+	# GET OLD DOCUMENT
+	# =====================================================
+
+	old_doc = doc.get_doc_before_save()
+
+	workflow_changed = False
+	local_old_state = None
+	local_new_state = doc.workflow_state
+
+	if old_doc:
+		local_old_state = old_doc.workflow_state
+
+		if local_old_state != local_new_state:
+			workflow_changed = True
+
+	# =====================================================
+	# DEBUG WORKFLOW CHANGE
+	# =====================================================
+
+	frappe.log_error(
+		title="Product Return Workflow Debug",
+		message=json.dumps({
+			"document": doc.name,
+			"old_state": local_old_state,
+			"new_state": local_new_state,
+			"workflow_changed": workflow_changed
+		}, default=str, indent=2)
+	)
+
+	# =====================================================
+	# ONLY SYNC WHEN WORKFLOW CHANGED
+	# =====================================================
+
+	if workflow_changed:
+
+		# =================================================
+		# METAL DETAIL
+		# =================================================
+
+		metal_detail = []
+
+		for row in (doc.metal_detail or []):
+
+			metal_detail.append({
+				"item": row.item,
+				"metal_type": row.metal_type,
+				"metal_touch": row.metal_touch,
+				"metal_purity": row.metal_purity,
+				"metal_colour": row.metal_colour,
+				"cad_weight": row.cad_weight,
+				"purity_percentage": row.purity_percentage,
+				"wastage_rate": row.wastage_rate,
+				"wastage_amount": row.wastage_amount,
+				"se_rate": row.se_rate,
+				"cad_to_finish_ratio": row.cad_to_finish_ratio,
+				"quantity": row.quantity,
+				"actual_quantity": row.actual_quantity,
+				"difference_qty": row.difference_qty,
+				"additional_net_weight": row.additional_net_weight,
+				"is_customer_item": row.is_customer_item,
+				"rate": row.rate,
+				"difference": row.difference,
+				"amount": row.amount,
+				"making_rate": row.making_rate,
+				"making_amount": row.making_amount,
+				"stock_uom": row.stock_uom,
+				"item_variant": row.item_variant,
+				"fg_purchase_rate": row.fg_purchase_rate,
+				"fg_purchase_amount": row.fg_purchase_amount,
+				"cam_weight": row.cam_weight,
+				"wax_weight": row.wax_weight,
+				"casting_weight": row.casting_weight,
+				"finish_product_weight": row.finish_product_weight,
+				"finish_loss_percentage": row.finish_loss_percentage,
+				"finish_loss_grams": row.finish_loss_grams,
+				"custom_rate": row.custom_rate,
+				"custom_making_rate": row.custom_making_rate,
+				"custom_wastage_rate": row.custom_wastage_rate
+			})
+
+		# =================================================
+		# FINDING DETAIL
+		# =================================================
+
+		finding_detail = []
+
+		for row in (doc.finding_detail or []):
+
+			finding_detail.append({
+				"item": row.item,
+				"finding_category": row.finding_category,
+				"finding_type": row.finding_type,
+				"metal_type": row.metal_type,
+				"metal_touch": row.metal_touch,
+				"metal_purity": row.metal_purity,
+				"metal_colour": row.metal_colour,
+				"customer_metal_purity": row.customer_metal_purity,
+				"purity_percentage": row.purity_percentage,
+				"qty": row.qty,
+				"quantity": row.quantity,
+				"actual_quantity": row.actual_quantity,
+				"difference_qty": row.difference_qty,
+				"rate": row.rate,
+				"amount": row.amount,
+				"making_rate": row.making_rate,
+				"making_amount": row.making_amount,
+				"wastage_rate": row.wastage_rate,
+				"wastage_amount": row.wastage_amount,
+				"fg_purchase_rate": row.fg_purchase_rate,
+				"fg_purchase_amount": row.fg_purchase_amount,
+				"is_customer_item": row.is_customer_item,
+				"is_manufacturing_item": row.is_manufacturing_item,
+				"ignore_work_order": row.ignore_work_order,
+				"not_finding_rate": row.not_finding_rate,
+				"difference": row.difference,
+				"stock_uom": row.stock_uom
+			})
+
+		# =================================================
+		# GEMSTONE DETAIL
+		# =================================================
+
+		gemstone_detail = []
+
+		for row in (doc.gemstone_detail or []):
+
+			gemstone_detail.append({
+				"item": row.item,
+				"gemstone_type": row.gemstone_type,
+				"gemstone_code": row.gemstone_code,
+				"gemstone_grade": row.gemstone_grade,
+				"gemstone_quality": row.gemstone_quality,
+				"gemstone_pr": row.gemstone_pr,
+				"cut_or_cab": row.cut_or_cab,
+				"gemstone_size": row.gemstone_size,
+				"stone_shape": row.stone_shape,
+				"size_height": row.size_height,
+				"size_weight": row.size_weight,
+				"pcs": row.pcs,
+				"quantity": row.quantity,
+				"quantity_3": row.quantity_3,
+				"stock_uom": row.stock_uom,
+				"per_pc_or_per_carat": row.per_pc_or_per_carat,
+				"price_list_type": row.price_list_type,
+				"rate": row.rate,
+				"amount": row.amount,
+				"fg_purchase_rate": row.fg_purchase_rate,
+				"gemstone_rate_for_specified_quantity":
+					row.gemstone_rate_for_specified_quantity,
+				"total_gemstone_rate": row.total_gemstone_rate,
+				"is_customer_item": row.is_customer_item
+			})
+
+		# =================================================
+		# DIAMOND DETAIL
+		# =================================================
+
+		diamond_detail = []
+
+		for row in (doc.diamond_detail or []):
+
+			diamond_detail.append({
+				"item": row.item,
+				"diamond_type": row.diamond_type,
+				"stone_shape": row.stone_shape,
+				"sieve_size_color": row.sieve_size_color,
+				"diamond_sieve_size": row.diamond_sieve_size,
+				"sieve_size_range": row.sieve_size_range,
+				"size_in_mm": row.size_in_mm,
+				"is_customer_item": row.is_customer_item,
+				"total_diamond_rate": row.total_diamond_rate,
+				"fg_purchase_rate": row.fg_purchase_rate,
+				"se_rate": row.se_rate,
+				"handling_rate": row.handling_rate,
+				"size_type": row.size_type,
+				"pcs": row.pcs,
+				"weight_per_pcs": row.weight_per_pcs,
+				"std_wt": row.std_wt,
+				"quantity": row.quantity,
+				"quantity_3": row.quantity_3,
+				"actual_quantity": row.actual_quantity,
+				"weight_in_gms": row.weight_in_gms,
+				"difference": row.difference,
+				"diamond_grade": row.diamond_grade,
+				"stock_uom": row.stock_uom,
+				"item_variant": row.item_variant,
+				"diamond_rate_for_specified_quantity":
+					row.diamond_rate_for_specified_quantity,
+				"fg_purchase_amount": row.fg_purchase_amount
+			})
+
+		# =================================================
+		# OTHER DETAIL
+		# =================================================
+
+		other_detail = []
+
+		for row in (doc.other_detail or []):
+
+			other_detail.append({
+				"item_code": row.item_code,
+				"qty": row.qty,
+				"quantity": row.quantity,
+				"rate": row.rate,
+				"amount": row.amount,
+				"uom": row.uom
+			})
+
+		# =================================================
+		# MAIN PAYLOAD
+		# =================================================
+
+		payload = {
+
+			# -------------------------------------------------
+			# BASIC
+			# -------------------------------------------------
+
+			"name": doc.name,
+			"index": doc.index,
+
+			"customer": "GJCU0009",
+			"customer_name": "Gurukrupa Export Private Limited - Factory",
+
+			"item_code": doc.item_code,
+			"new_bom": doc.new_bom,
+			"serial_no": doc.serial_no,
+
+			# "branch": doc.branch,
+
+			"is_jewlex_credit_note": doc.is_jewlex_credit_note,
+			"is_jewelex_tag": doc.is_jewelex_tag,
+
+			"product_return_order_form":
+				doc.product_return_order_form,
+
+			"company": "KG GK Jewellers Private Limited",
+			"sales_type": doc.sales_type,
+			"ref_company": doc.ref_company,
+
+			"date": doc.date,
+			"posting_time": doc.posting_time,
+
+			"status": doc.status,
+
+			# -------------------------------------------------
+			# WORKFLOW
+			#
+			# IMPORTANT:
+			# workflow_state is removed before PUT.
+			# -------------------------------------------------
+
+			"workflow_state": doc.workflow_state,
+
+			# -------------------------------------------------
+			# RETURN / CREDIT NOTE
+			# -------------------------------------------------
+
+			"making_charges": doc.making_charges,
+			"custom_making_charges": doc.custom_making_charges,
+
+			"credit_note_rate_type": doc.credit_note_rate_type,
+
+			"return_material_type": doc.return_material_type,
+
+			"gemstone_charges": doc.gemstone_charges,
+			"custom_gemstone_charges": doc.custom_gemstone_charges,
+
+			"diamond_rate_type": doc.diamond_rate_type,
+
+			"handling_charges": doc.handling_charges,
+			"wastage_charges": doc.wastage_charges,
+
+			# -------------------------------------------------
+			# GOLD RATE
+			# -------------------------------------------------
+
+			"gold_rate_with_gst": doc.gold_rate_with_gst,
+			"gold_rate": doc.gold_rate,
+
+			# -------------------------------------------------
+			# ITEM
+			# -------------------------------------------------
+
+			"serial_no": doc.serial_no,
+			"hsn_sac": doc.hsn_sac,
+			"item_group": doc.item_group,
+			"item_name": doc.item_name,
+
+			"bom": doc.bom,
+
+			"metal_touch": doc.metal_touch,
+			"metal_purity": doc.metal_purity,
+			"metal_colour": doc.metal_colour,
+			"setting_type": doc.setting_type,
+
+			# -------------------------------------------------
+			# WEIGHT
+			# -------------------------------------------------
+
+			"net_weight": doc.net_weight,
+			"gross_weight": doc.gross_weight,
+
+			"gold_weight": doc.gold_weight,
+			"diamond_weight": doc.diamond_weight,
+
+			"physical_net_weight": doc.physical_net_weight,
+			"physical_gross_weight": doc.physical_gross_weight,
+
+			# -------------------------------------------------
+			# CATEGORY
+			# -------------------------------------------------
+
+			"item_category": doc.item_category,
+			"item_subcategory": doc.item_subcategory,
+
+			# -------------------------------------------------
+			# DESCRIPTION / IMAGE
+			# -------------------------------------------------
+
+			"description": doc.description,
+			"image": doc.image,
+
+			# -------------------------------------------------
+			# QUANTITY
+			# -------------------------------------------------
+
+			"qty": doc.qty,
+			"uom": doc.uom,
+
+			# -------------------------------------------------
+			# AMOUNTS
+			# -------------------------------------------------
+
+			"rate": doc.rate,
+			"amount": doc.amount,
+
+			"base_rate": doc.base_rate,
+			"base_amount": doc.base_amount,
+
+			"metal_amount": doc.metal_amount,
+			"diamond_amount": doc.diamond_amount,
+			"finding_amount": doc.finding_amount,
+			"making_amount": doc.making_amount,
+
+			"certification_amount": doc.certification_amount,
+			"freight_amount": doc.freight_amount,
+			"gemstone_amount": doc.gemstone_amount,
+			"other_material_amount": doc.other_material_amount,
+			"hallmarking_amount": doc.hallmarking_amount,
+			"custom_duty_amount": doc.custom_duty_amount,
+			"other_amount": doc.other_amount,
+
+			"total_weight": doc.total_weight,
+
+			# -------------------------------------------------
+			# WAREHOUSE / INVOICE
+			# -------------------------------------------------
+
+			"warehouse": doc.warehouse,
+
+			"sales_invoice": doc.sales_invoice,
+			"sales_invoice_item": doc.sales_invoice_item,
+
+			# -------------------------------------------------
+			# COUNTS
+			# -------------------------------------------------
+
+			"total_finding_pcs": doc.total_finding_pcs,
+			"total_gemstone_pcs": doc.total_gemstone_pcs,
+			"total_diamond_pcs": doc.total_diamond_pcs,
+
+			# -------------------------------------------------
+			# CHILD TABLES
+			# -------------------------------------------------
+
+			"metal_detail": metal_detail,
+			"finding_detail": finding_detail,
+			"gemstone_detail": gemstone_detail,
+			"diamond_detail": diamond_detail,
+			"other_detail": other_detail,
+
+			# -------------------------------------------------
+			# PREVENT REMOTE SYNC BACK
+			# -------------------------------------------------
+
+			# "custom_auto_created_product_return_order": 1
+		}
+
+		# =====================================================
+		# REMOTE API
+		# =====================================================
+
+		# base_url = (
+		#     "https://gkexport-dummy-v16.m.frappe.cloud"
+		#     "/api/resource/Product%20Return%20Order"
+		# )
+		base_url = (
+			"https://gkexport-dummy-v16.m.frappe.cloud/"
+			"/api/resource/Product%20Return%20Order"
+		)
+
+		remote_url = base_url + "/" + str(doc.name)
+
+		# =====================================================
+		# API TOKEN
+		#
+		# IMPORTANT:
+		# Replace these with your NEW rotated credentials.
+		# =====================================================
+
+		headers = {
+			"Authorization": "token 94efdb20934f180:5418ee1e0b4a5e3",
+			"Content-Type": "application/json",
+			"Accept": "application/json"
+		}
+
+		# =====================================================
+		# WORKFLOW API
+		# =====================================================
+
+		workflow_url = (
+			"https://gkexport-dummy-v16.m.frappe.cloud/"
+			"/api/method/frappe.model.workflow.apply_workflow"
+		)
+
+		# =====================================================
+		# GET REMOTE DOCUMENT
+		# =====================================================
+
+		remote_exists = False
+		remote_response = None
+		remote_data = {}
+
+		try:
+
+			get_resp = requests.get(
+				remote_url,
+				headers=headers
+			)
+			get_resp.raise_for_status()
+
+			remote_response = get_resp.json()
+
+			remote_exists = True
+
+			remote_data = remote_response.get(
+				"data",
+				{}
+			)
+
+		except Exception as get_error:
+
+			error_text = str(get_error)
+
+			is_404 = False
+
+			if "404" in error_text:
+				is_404 = True
+
+			try:
+				if (
+					hasattr(get_error, "response")
+					and get_error.response
+					and get_error.response.status_code == 404
+				):
+					is_404 = True
+			except Exception:
+				pass
+
+			if not is_404:
+
+				frappe.log_error(
+					title="Remote Product Return GET Failed",
+					message=(
+						"Document: "
+						+ str(doc.name)
+						+ "\n\n"
+						+ error_text
+					)
+				)
+
+				frappe.throw(
+					"Unable to check Product Return Order on GK:\n\n"
+					+ error_text
+				)
+
+		# =====================================================
+		# CREATE REMOTE DOCUMENT
+		# =====================================================
+
+		if not remote_exists:
+
+			# ---------------------------------------------
+			# DO NOT SEND workflow_state DURING CREATE
+			# ---------------------------------------------
+
+			create_payload = payload.copy()
+
+			create_payload.pop(
+				"workflow_state",
+				None
+			)
+
+			try:
+
+				create_resp = requests.post(
+					base_url,
+					headers=headers,
+					data=json.dumps(
+						create_payload,
+						default=str
+					)
+				)
+				create_resp.raise_for_status()
+
+				create_response = create_resp.json()
+
+				frappe.log_error(
+					title="Remote Product Return Order Created",
+					message=json.dumps({
+						"document": doc.name,
+						"local_old_state": local_old_state,
+						"local_new_state": local_new_state,
+						"response": create_response
+					}, default=str, indent=2)
+				)
+
+			except Exception as create_error:
+
+				error_detail = str(create_error)
+
+				try:
+
+					if (
+						hasattr(create_error, "response")
+						and create_error.response
+					):
+
+						error_detail += (
+							"\nHTTP Status: "
+							+ str(
+								create_error.response.status_code
+							)
+						)
+
+						error_detail += (
+							"\nGK Response: "
+							+ str(
+								create_error.response.text
+							)
+						)
+
+				except Exception:
+					pass
+
+				frappe.log_error(
+					title="Remote Product Return Order Creation Failed",
+					message=(
+						"Document: "
+						+ str(doc.name)
+						+ "\n\n"
+						+ error_detail
+					)
+				)
+
+				frappe.throw(
+					"Remote Product Return Order creation failed:\n\n"
+					+ error_detail
+				)
+
+			# ---------------------------------------------
+			# GET NEW REMOTE DOCUMENT
+			# ---------------------------------------------
+
+			try:
+
+				get_resp = requests.get(
+					remote_url,
+					headers=headers
+				)
+				get_resp.raise_for_status()
+
+				remote_response = get_resp.json()
+
+				remote_data = remote_response.get(
+					"data",
+					{}
+				)
+
+				remote_workflow_state = remote_data.get(
+					"workflow_state"
+				)
+
+			except Exception as e:
+
+				frappe.throw(
+					"Remote document was created but could "
+					"not be fetched afterward.\n\n"
+					+ str(e)
+				)
+
+		else:
+
+			remote_workflow_state = remote_data.get(
+				"workflow_state"
+			)
+
+		# =====================================================
+		# LOG REMOTE STATE
+		# =====================================================
+
+		frappe.log_error(
+			title="Remote Workflow State Before Sync",
+			message=json.dumps({
+				"document": doc.name,
+				"local_old_state": local_old_state,
+				"local_new_state": local_new_state,
+				"remote_state": remote_workflow_state
+			}, default=str, indent=2)
+		)
+
+		# =====================================================
+		# UPDATE REMOTE DOCUMENT DATA
+		#
+		# IMPORTANT:
+		# NEVER PUT workflow_state
+		# =====================================================
+
+		update_payload = payload.copy()
+
+		update_payload.pop(
+			"workflow_state",
+			None
+		)
+
+		try:
+
+			update_resp = requests.put(
+				remote_url,
+				headers=headers,
+				data=json.dumps(
+					update_payload,
+					default=str
+				)
+			)
+			update_resp.raise_for_status()
+
+			update_response = update_resp.json()
+
+			frappe.log_error(
+				title="Remote Product Return Order Data Updated",
+				message=json.dumps({
+					"document": doc.name,
+					"response": update_response
+				}, default=str, indent=2)
+			)
+
+		except Exception as update_error:
+
+			error_detail = str(update_error)
+
+			try:
+
+				if (
+					hasattr(update_error, "response")
+					and update_error.response
+				):
+
+					error_detail += (
+						"\nHTTP Status: "
+						+ str(
+							update_error.response.status_code
+						)
+					)
+
+					error_detail += (
+						"\nGK Response: "
+						+ str(
+							update_error.response.text
+						)
+					)
+
+			except Exception:
+				pass
+
+			frappe.log_error(
+				title="Remote Product Return Order Update Failed",
+				message=(
+					"Document: "
+					+ str(doc.name)
+					+ "\n\n"
+					+ error_detail
+				)
+			)
+
+			frappe.throw(
+				"Remote Product Return Order update failed:\n\n"
+				+ error_detail
+			)
+
+		# =====================================================
+		# DETERMINE REMOTE WORKFLOW ACTION
+		#
+		# Mapping:
+		#
+		# Draft
+		#   -> Create Item
+		#   Action = Send to IBM
+		#
+		# Create Item
+		#   -> Send For Approval
+		#   Action = Send For Approval
+		#
+		# Draft
+		#   -> BOM Calculated
+		#   Action = Calculate Bom
+		#
+		# BOM Calculated
+		#   -> Send For Approval
+		#   Action = Send For Approval
+		#
+		# Send For Approval
+		#   -> BOM Calculated
+		#   Action = BOM Recalculation
+		#
+		# Send For Approval
+		#   -> Approved
+		#   Action = Approve
+		#
+		# =====================================================
+
+		workflow_action = None
+		expected_remote_state = local_new_state
+
+		# =====================================================
+		# DRAFT -> CREATE ITEM
+		# =====================================================
+
+		if (
+			local_old_state == "Draft"
+			and local_new_state == "Create Item"
+		):
+
+			if not doc.is_jewelex_tag:
+
+				frappe.throw(
+					"Cannot synchronize workflow to GK.\n\n"
+					"Local transition:\n"
+					"Draft -> Create Item\n\n"
+					"is_jewelex_tag is not enabled."
+				)
+
+			workflow_action = "Send to IBM"
+
+		# =====================================================
+		# CREATE ITEM -> SEND FOR APPROVAL
+		# =====================================================
+
+		elif (
+			local_old_state == "Create Item"
+			and local_new_state == "Send For Approval"
+		):
+
+			if not doc.is_jewelex_tag:
+
+				frappe.throw(
+					"Cannot synchronize workflow to GK.\n\n"
+					"Create Item -> Send For Approval\n\n"
+					"is_jewelex_tag is not enabled."
+				)
+
+			if not doc.item_code:
+
+				frappe.throw(
+					"Cannot synchronize workflow to GK.\n\n"
+					"Create Item -> Send For Approval\n\n"
+					"item_code is missing."
+				)
+
+			workflow_action = "Send For Approval"
+
+		# =====================================================
+		# DRAFT -> BOM CALCULATED
+		# =====================================================
+
+		elif (
+			local_old_state == "Draft"
+			and local_new_state == "BOM Calculated"
+		):
+
+			if not doc.is_jewelex_tag:
+
+				frappe.throw(
+					"Cannot synchronize workflow to GK.\n\n"
+					"Draft -> BOM Calculated\n\n"
+					"is_jewelex_tag is not enabled."
+				)
+
+			workflow_action = "Calculate Bom"
+
+		# =====================================================
+		# BOM CALCULATED -> SEND FOR APPROVAL
+		# =====================================================
+
+		elif (
+			local_old_state == "BOM Calculated"
+			and local_new_state == "Send For Approval"
+		):
+
+			if not doc.is_jewelex_tag:
+
+				frappe.throw(
+					"Cannot synchronize workflow to GK.\n\n"
+					"BOM Calculated -> Send For Approval\n\n"
+					"is_jewelex_tag is not enabled."
+				)
+
+			if not doc.item_code:
+
+				frappe.throw(
+					"Cannot synchronize workflow to GK.\n\n"
+					"BOM Calculated -> Send For Approval\n\n"
+					"item_code is missing."
+				)
+
+			workflow_action = "Send For Approval"
+
+		# =====================================================
+		# SEND FOR APPROVAL -> BOM CALCULATED
+		#
+		# IMPORTANT:
+		#
+		# GK workflow:
+		#
+		# Send For Approval
+		#       |
+		#       | BOM Recalculation
+		#       v
+		# BOM Calculated
+		#
+		# Therefore action MUST be:
+		# "BOM Recalculation"
+		# =====================================================
+
+		elif (
+			local_old_state == "Send For Approval"
+			and local_new_state == "BOM Calculated"
+		):
+
+			if not doc.is_jewelex_tag:
+
+				frappe.throw(
+					"Cannot synchronize workflow to GK.\n\n"
+					"Send For Approval -> BOM Calculated\n\n"
+					"is_jewelex_tag is not enabled."
+				)
+
+			if not doc.item_code:
+
+				frappe.throw(
+					"Cannot synchronize workflow to GK.\n\n"
+					"Send For Approval -> BOM Calculated\n\n"
+					"item_code is missing."
+				)
+
+			workflow_action = "BOM Recalculation"
+
+		# =====================================================
+		# SEND FOR APPROVAL -> APPROVED
+		# =====================================================
+
+		elif (
+			local_old_state == "Send For Approval"
+			and local_new_state == "Approved"
+		):
+
+			if not doc.is_jewelex_tag:
+
+				frappe.throw(
+					"Cannot synchronize workflow to GK.\n\n"
+					"Send For Approval -> Approved\n\n"
+					"is_jewelex_tag is not enabled."
+				)
+
+			workflow_action = "Approve"
+
+		# =====================================================
+		# NO MAPPING
+		# =====================================================
+
+		else:
+
+			frappe.log_error(
+				title="No Remote Workflow Mapping",
+				message=json.dumps({
+					"document": doc.name,
+					"local_old_state": local_old_state,
+					"local_new_state": local_new_state,
+					"remote_state": remote_workflow_state
+				}, default=str, indent=2)
+			)
+
+			frappe.throw(
+				"No remote workflow mapping configured.\n\n"
+				"Document: "
+				+ str(doc.name)
+				+ "\n\n"
+				"Local Old State: "
+				+ str(local_old_state)
+				+ "\n"
+				"Local New State: "
+				+ str(local_new_state)
+				+ "\n"
+				"Remote State: "
+				+ str(remote_workflow_state)
+			)
+
+		# =====================================================
+		# LOG SELECTED WORKFLOW MAPPING
+		# =====================================================
+
+		frappe.log_error(
+			title="Remote Workflow Mapping Selected",
+			message=json.dumps({
+				"document": doc.name,
+				"local_old_state": local_old_state,
+				"local_new_state": local_new_state,
+				"remote_current_state": remote_workflow_state,
+				"workflow_action": workflow_action,
+				"expected_remote_state": expected_remote_state
+			}, default=str, indent=2)
+		)
+
+		# =====================================================
+		# CHECK REMOTE STATE BEFORE APPLYING ACTION
+		#
+		# Remote should currently be at LOCAL OLD STATE.
+		# =====================================================
+
+		if remote_workflow_state != local_old_state:
+
+			# -------------------------------------------------
+			# SPECIAL CASE:
+			# Remote is already at LOCAL NEW STATE.
+			# -------------------------------------------------
+
+			if remote_workflow_state == local_new_state:
+
+				frappe.log_error(
+					title="Remote Workflow Already Synchronized",
+					message=json.dumps({
+						"document": doc.name,
+						"local_old_state": local_old_state,
+						"local_new_state": local_new_state,
+						"remote_state": remote_workflow_state
+					}, default=str, indent=2)
+				)
+
+			else:
+
+				frappe.throw(
+					"Remote workflow is not in the expected state.\n\n"
+					"Document: "
+					+ str(doc.name)
+					+ "\n\n"
+					"Local Old State: "
+					+ str(local_old_state)
+					+ "\n"
+					"Local New State: "
+					+ str(local_new_state)
+					+ "\n"
+					"Remote Current State: "
+					+ str(remote_workflow_state)
+					+ "\n"
+					"Expected Remote State: "
+					+ str(local_old_state)
+					+ "\n"
+					"Action Required: "
+					+ str(workflow_action)
+				)
+
+		# =====================================================
+		# APPLY WORKFLOW
+		# =====================================================
+
+		if (
+			remote_workflow_state == local_old_state
+			and workflow_action
+		):
+
+			workflow_payload = {
+				"doc": json.dumps({
+					"doctype": "Product Return Order",
+					"name": doc.name
+				}),
+				"action": workflow_action
+			}
+
+			# -------------------------------------------------
+			# LOG REQUEST
+			# -------------------------------------------------
+
+			frappe.log_error(
+				title="Remote Workflow Request",
+				message=json.dumps({
+					"document": doc.name,
+					"local_old_state": local_old_state,
+					"local_new_state": local_new_state,
+					"remote_state": remote_workflow_state,
+					"workflow_action": workflow_action,
+					"expected_remote_state":
+						expected_remote_state,
+					"workflow_payload": workflow_payload
+				}, default=str, indent=2)
+			)
+
+			# -------------------------------------------------
+			# CALL APPLY WORKFLOW
+			# -------------------------------------------------
+
+			try:
+
+				workflow_resp = requests.post(
+					workflow_url,
+					headers=headers,
+					data=json.dumps(
+						workflow_payload,
+						default=str
+					)
+				)
+				workflow_resp.raise_for_status()
+
+				workflow_response = workflow_resp.json()
+
+			except Exception as workflow_error:
+
+				error_detail = str(workflow_error)
+
+				try:
+
+					if (
+						hasattr(workflow_error, "response")
+						and workflow_error.response
+					):
+
+						error_detail += (
+							"\n\nHTTP Status: "
+							+ str(
+								workflow_error.response.status_code
+							)
+						)
+
+						error_detail += (
+							"\n\nGK Response:\n"
+							+ str(
+								workflow_error.response.text
+							)
+						)
+
+				except Exception:
+					pass
+
+				frappe.log_error(
+					title="GK Apply Workflow Failed",
+					message=(
+						"Document: "
+						+ str(doc.name)
+						+ "\n\n"
+						"Local Old State: "
+						+ str(local_old_state)
+						+ "\n"
+						"Local New State: "
+						+ str(local_new_state)
+						+ "\n"
+						"Remote State: "
+						+ str(remote_workflow_state)
+						+ "\n"
+						"Action: "
+						+ str(workflow_action)
+						+ "\n\n"
+						"Payload:\n"
+						+ json.dumps(
+							workflow_payload,
+							indent=2,
+							default=str
+						)
+						+ "\n\n"
+						"Error:\n"
+						+ error_detail
+					)
+				)
+
+				frappe.throw(
+					"Remote Product Return Order Workflow "
+					"Sync Failed:\n\n"
+					+ error_detail
+				)
+
+			# =================================================
+			# GET FINAL REMOTE DOCUMENT
+			# =================================================
+
+			try:
+
+				final_resp = requests.get(
+					remote_url,
+					headers=headers
+				)
+				final_resp.raise_for_status()
+
+				final_response = final_resp.json()
+
+				final_data = final_response.get(
+					"data",
+					{}
+				)
+
+				final_workflow_state = final_data.get(
+					"workflow_state"
+				)
+
+			except Exception as final_error:
+
+				frappe.throw(
+					"Workflow action was sent to GK, "
+					"but final remote state could not be checked.\n\n"
+					+ str(final_error)
+				)
+
+			# =================================================
+			# LOG FINAL RESULT
+			# =================================================
+
+			frappe.log_error(
+				title="Remote Product Return Workflow Result",
+				message=json.dumps({
+					"document": doc.name,
+					"local_old_state": local_old_state,
+					"local_new_state": local_new_state,
+					"remote_state_before":
+						remote_workflow_state,
+					"workflow_action": workflow_action,
+					"expected_remote_state":
+						expected_remote_state,
+					"actual_remote_state":
+						final_workflow_state,
+					"workflow_response":
+						workflow_response
+				}, default=str, indent=2)
+			)
+
+			# =================================================
+			# FINAL VALIDATION
+			#
+			# Compare remote final state with local new state.
+			# =================================================
+
+			if final_workflow_state != local_new_state:
+
+				frappe.throw(
+					"Remote workflow action was executed, "
+					"but remote workflow did not reach "
+					"the local workflow state.\n\n"
+					"Document: "
+					+ str(doc.name)
+					+ "\n\n"
+					"Local Old State: "
+					+ str(local_old_state)
+					+ "\n"
+					"Local New State: "
+					+ str(local_new_state)
+					+ "\n"
+					"Remote State Before: "
+					+ str(remote_workflow_state)
+					+ "\n"
+					"Remote State After: "
+					+ str(final_workflow_state)
+					+ "\n"
+					"Workflow Action: "
+					+ str(workflow_action)
+				)
+
+			# =================================================
+			# SUCCESS LOG
+			# =================================================
+
+			frappe.log_error(
+				title="Remote Product Return Workflow Synchronized",
+				message=json.dumps({
+					"document": doc.name,
+					"local_old_state": local_old_state,
+					"local_new_state": local_new_state,
+					"remote_old_state":
+						remote_workflow_state,
+					"remote_new_state":
+						final_workflow_state,
+					"action":
+						workflow_action
+				}, default=str, indent=2)
+			)
 
