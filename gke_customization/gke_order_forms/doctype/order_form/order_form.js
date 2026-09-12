@@ -314,7 +314,7 @@ frappe.ui.form.on('Order Form', {
 				});
 			}, __("Get File"))
 		// }
-			frm.add_custom_button(__("Get Jewelex Order Detail"), function() {
+		frm.add_custom_button(__("Get Jewelex Order Detail"), function() {
 	frappe.call({
 		method: 'gke_customization.gke_order_forms.doctype.order_form.order_form.get_jewelex_order_form_detail',
 		args: {
