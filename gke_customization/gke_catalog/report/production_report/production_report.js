@@ -5,14 +5,14 @@
 
 frappe.query_reports["Production Report"] = {
     "filters": [
-        {
-            "fieldname": "department",
-            "label": __("Department"),
-            "fieldtype": "Link",
-            "options": "Department",
-            "reqd": 1,
-            "default": frappe.defaults.get_user_default("department")
-        },
+        // {
+        //     "fieldname": "department",
+        //     "label": __("Department"),
+        //     "fieldtype": "Link",
+        //     "options": "Department",
+        //     // "reqd": 1,
+        //     // "default": frappe.defaults.get_user_default("department")
+        // },
         {
             "fieldname": "from_date",
             "label": __("From Date"),
@@ -60,6 +60,18 @@ frappe.query_reports["Production Report"] = {
     },
 
 
+
+    "get_datatable_options": function(options) {
+        return Object.assign(options, {
+            hooks: {
+                columnTotal: function(columnValues, cell) {
+                    if (cell.column.fieldname === "serial_no") {
+                        return columnValues.filter((v) => v).length;
+                    }
+                }
+            }
+        });
+    },
 
     "formatter": function(value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
@@ -218,7 +230,7 @@ function show_serial_details_modal_with_raw_materials(details) {
 
 
     let dialog = new frappe.ui.Dialog({
-        title: 'Serial No Details - ' + details.serial_no,
+        // title: 'Serial No Details - ' + details.serial_no,
         size: 'extra-large',
         fields: [{ fieldtype: 'HTML', fieldname: 'serial_details_html' }]
     });
