@@ -1,0 +1,45 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2026-08-17 14:24:25.963175",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "",
+ "letterhead": null,
+ "modified": "2026-08-19 11:26:52.578871",
+ "modified_by": "bhavika_patel@gkexport.com",
+ "module": "GKE HRMS",
+ "name": "Department Wise Daily Attendance",
+ "owner": "sandeep_m@gkexport.com",
+ "prepared_report": 0,
+ "ref_doctype": "Employee Checkin",
+ "reference_report": "Monthly In-Out",
+ "report_name": "Department Wise Daily Attendance",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "HR User"
+  },
+  {
+   "role": "HR Manager"
+  },
+  {
+   "role": "GK HR"
+  },
+  {
+   "role": "GK MFG Department HOD"
+  },
+  {
+   "role": "GK Security"
+  }
+ ],
+ "timeout": 0
+}
