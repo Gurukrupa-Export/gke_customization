@@ -435,7 +435,10 @@ def create_item_kggk(doc, method=None):
     from_site = frappe.db.get_single_value("Data Migration in KGGK","from_site")
     to_site= frappe.db.get_single_value("Data Migration in KGGK","to_site")
     api_key = frappe.db.get_single_value("Data Migration in KGGK", "api_key")
-    api_secret = frappe.db.get_single_value("Data Migration in KGGK", "api_secret")
+    # api_secret = frappe.db.get_single_value("Data Migration in KGGK", "api_secret")
+    migration_settings = frappe.get_single("Data Migration in KGGK")
+    api_secret = migration_settings.get_password("api_secret")
+
     # base_url = "https://kggk-uat.m.frappe.cloud"
     # base_url = "https://gkexport-dummy-v16.m.frappe.cloud"
 
