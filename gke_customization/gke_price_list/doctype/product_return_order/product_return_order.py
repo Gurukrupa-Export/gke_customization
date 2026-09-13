@@ -187,6 +187,9 @@ def build_other_detail(doc, new_bom):
 class ProductReturnOrder(Document):
     # pass
 	def validate(self):
+		if self.is_jewelex_tag:
+			return
+		
 		if self.workflow_state=='BOM Calculated':
 			if self.bom:
 				bom_doc = frappe.get_doc("BOM", self.bom)
@@ -238,6 +241,8 @@ class ProductReturnOrder(Document):
 			# new_bom.save()
 			self.db_set("new_bom", new_bom.name, update_modified=False)
 	def on_submit(self):
+		if self.is_jewelex_tag:
+			return
 		
 		if not self.serial_no:
 			serial = frappe.new_doc('Serial No')
