@@ -254,8 +254,10 @@ class ProductReturnOrder(Document):
 			# Get Item from item_code and sync it to KGGK
 			if self.item_code:
 				item = frappe.get_doc("Item", self.item_code)
+				item_templat = item.variant_of
+				item_template = frappe.get_doc("Item",item_templat)
+				create_item_kggk(item_template)
 				create_item_kggk(item)
-
 		
 	def on_submit(self):
 		
