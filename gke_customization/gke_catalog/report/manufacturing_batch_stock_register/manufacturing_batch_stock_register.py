@@ -60,22 +60,24 @@ def get_data(filters):
         od = o.get(dept, {})
 
         # ── Gold ─────────────────────────────────────────────────────────
-        go = flt(od.get("gold_receive")) - flt(od.get("gold_issue"))
+        # Issue (Material Transfer) moves stock INTO the department; Receive
+        # (Material Receive) moves stock back OUT — same convention as Count below.
+        go = flt(od.get("gold_issue")) - flt(od.get("gold_receive"))
         gi = flt(pd.get("gold_issue"))
         gr = flt(pd.get("gold_receive"))
-        gc = go + gr - gi
+        gc = go + gi - gr
 
         # ── Diamond ───────────────────────────────────────────────────────
-        do_ = flt(od.get("diamond_receive")) - flt(od.get("diamond_issue"))
+        do_ = flt(od.get("diamond_issue")) - flt(od.get("diamond_receive"))
         di  = flt(pd.get("diamond_issue"))
         dr  = flt(pd.get("diamond_receive"))
-        dc  = do_ + dr - di
+        dc  = do_ + di - dr
 
         # ── Stone ─────────────────────────────────────────────────────────
-        so = flt(od.get("stone_receive")) - flt(od.get("stone_issue"))
+        so = flt(od.get("stone_issue")) - flt(od.get("stone_receive"))
         si = flt(pd.get("stone_issue"))
         sr = flt(pd.get("stone_receive"))
-        sc = so + sr - si
+        sc = so + si - sr
 
         # ── Count ─────────────────────────────────────────────────────────
         co = flt(od.get("count_open"))

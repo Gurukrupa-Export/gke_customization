@@ -95,9 +95,13 @@ def get_data(filters):
 			COALESCE(repd.diamond_weight, iepd.diamond_weight) AS dia_wt,
 			COALESCE(repd.gold_weight, iepd.gold_weight) AS gold_wt,
 			COALESCE(repd.gross_weight, iepd.gross_weight) AS gross_wt,
-			(SELECT SUM(bfd.quantity) FROM `tabBOM Finding Detail` bfd
+			(CASE WHEN EXISTS (
+				SELECT 1 FROM `tabBOM Finding Detail` bfd
 				WHERE bfd.parent = COALESCE(repd.bom, iepd.bom) AND bfd.finding_category = 'Chains'
-			) AS chain_wt
+			) THEN (
+				SELECT bom.total_finding_weight_per_gram FROM `tabBOM` bom
+				WHERE bom.name = COALESCE(repd.bom, iepd.bom)
+			) ELSE 0 END) AS chain_wt
 		FROM `tabProduct Certification` issue
 		INNER JOIN (
 			SELECT e.*, ROW_NUMBER() OVER (PARTITION BY e.parent, e.serial_no ORDER BY e.idx) AS rn

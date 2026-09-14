@@ -41,6 +41,8 @@ def get_active_departments(filters):
         ) mo
         LEFT JOIN `tabItem` i
             ON mo.item_code = i.name
+        LEFT JOIN `tabAttribute Value` av
+            ON av.name = i.item_subcategory
         WHERE mo.rn = 1
             AND IFNULL(mo.department, '') != ''
             {conditions}
@@ -105,7 +107,7 @@ def get_data(filters, departments):
         SELECT
             COALESCE(i.setting_type, '') AS setting_type,
             COALESCE(i.sub_setting_type, 'No Setting Type') AS sub_setting_type,
-            COALESCE(i.item_category, 'No Category') AS item_category,
+            COALESCE(i.item_category, av.parent_attribute_value, i.item_group, 'No Category') AS item_category,
             mo.department,
             COUNT(*) AS qty
         FROM (
@@ -118,12 +120,14 @@ def get_data(filters, departments):
         ) mo
         LEFT JOIN `tabItem` i
             ON mo.item_code = i.name
+        LEFT JOIN `tabAttribute Value` av
+            ON av.name = i.item_subcategory
         WHERE mo.rn = 1
             {conditions}
         GROUP BY
             COALESCE(i.setting_type, ''),
             COALESCE(i.sub_setting_type, 'No Setting Type'),
-            COALESCE(i.item_category, 'No Category'),
+            COALESCE(i.item_category, av.parent_attribute_value, i.item_group, 'No Category'),
             mo.department
     """
 
@@ -225,7 +229,10 @@ def get_conditions(filters):
         values["to_date"] = filters["to_date"]
 
     if filters.get("item_category"):
-        conditions += " AND i.item_category = %(item_category)s"
+        conditions += (
+            " AND COALESCE(i.item_category, av.parent_attribute_value, i.item_group)"
+            " = %(item_category)s"
+        )
         values["item_category"] = filters["item_category"]
 
     if filters.get("setting_type"):

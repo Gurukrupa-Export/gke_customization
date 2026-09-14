@@ -162,13 +162,18 @@ def get_item_attributes(item_codes):
 
 
 def get_all_inbound_lots_by_item(item_codes, warehouse_names, company=None):
+    """Combines Purchase Receipt, Customer Goods Received, Stock Reconciliation,
+    Material Receipt, and Sales Return into one unified list of inbound 'lots' per item,
+    sorted oldest-first for FIFO. Each lot's source_key is built from its own unique row
+    ID (row.name) - NOT from parent+rate, since two lines in the same document can share
+    the same rate, which previously caused one lot to silently overwrite another."""
     if not item_codes or not warehouse_names:
         return {}
 
     all_lots = []
 
     purchase_rows = frappe.db.sql("""
-        SELECT pri.item_code, pri.qty, pri.rate, pri.parent, pr.posting_date
+        SELECT pri.name as row_name, pri.item_code, pri.qty, pri.rate, pri.parent, pr.posting_date
         FROM `tabPurchase Receipt` pr
         LEFT JOIN `tabPurchase Receipt Item` pri ON pri.parent = pr.name
         WHERE pr.docstatus = 1
@@ -177,7 +182,7 @@ def get_all_inbound_lots_by_item(item_codes, warehouse_names, company=None):
         AND pri.qty > 0
     """, {"items": tuple(item_codes), "warehouses": tuple(warehouse_names)}, as_dict=True)
     for row in purchase_rows:
-        row["source_key"] = "PR-" + row.parent + "-" + str(row.rate)
+        row["source_key"] = "PR-" + row.row_name
         all_lots.append(row)
 
     cgr_conditions = ["se.docstatus = 1", "sed.item_code IN %(items)s", "sed.t_warehouse IN %(warehouses)s",
@@ -188,13 +193,13 @@ def get_all_inbound_lots_by_item(item_codes, warehouse_names, company=None):
         cgr_params["company"] = company
     cgr_where = " AND ".join(cgr_conditions)
     cgr_rows = frappe.db.sql(f"""
-        SELECT sed.item_code, sed.qty, sed.basic_rate as rate, sed.parent, se.posting_date
+        SELECT sed.name as row_name, sed.item_code, sed.qty, sed.basic_rate as rate, sed.parent, se.posting_date
         FROM `tabStock Entry` se
         LEFT JOIN `tabStock Entry Detail` sed ON sed.parent = se.name
         WHERE {cgr_where}
     """, cgr_params, as_dict=True)
     for row in cgr_rows:
-        row["source_key"] = "CGR-" + row.parent + "-" + str(row.rate)
+        row["source_key"] = "CGR-" + row.row_name
         all_lots.append(row)
 
     sr_conditions = ["sr.docstatus = 1", "sri.item_code IN %(items)s", "sri.qty > 0"]
@@ -204,13 +209,13 @@ def get_all_inbound_lots_by_item(item_codes, warehouse_names, company=None):
         sr_params["company"] = company
     sr_where = " AND ".join(sr_conditions)
     sr_rows = frappe.db.sql(f"""
-        SELECT sri.item_code, sri.qty, sri.valuation_rate as rate, sri.parent, sr.posting_date
+        SELECT sri.name as row_name, sri.item_code, sri.qty, sri.valuation_rate as rate, sri.parent, sr.posting_date
         FROM `tabStock Reconciliation` sr
         LEFT JOIN `tabStock Reconciliation Item` sri ON sri.parent = sr.name
         WHERE {sr_where}
     """, sr_params, as_dict=True)
     for row in sr_rows:
-        row["source_key"] = "SR-" + row.parent + "-" + str(row.rate)
+        row["source_key"] = "SR-" + row.row_name
         all_lots.append(row)
 
     mr_conditions = ["se.docstatus = 1", "sed.item_code IN %(items)s", "sed.t_warehouse IN %(warehouses)s",
@@ -221,13 +226,13 @@ def get_all_inbound_lots_by_item(item_codes, warehouse_names, company=None):
         mr_params["company"] = company
     mr_where = " AND ".join(mr_conditions)
     mr_rows = frappe.db.sql(f"""
-        SELECT sed.item_code, sed.qty, sed.basic_rate as rate, sed.parent, se.posting_date
+        SELECT sed.name as row_name, sed.item_code, sed.qty, sed.basic_rate as rate, sed.parent, se.posting_date
         FROM `tabStock Entry` se
         LEFT JOIN `tabStock Entry Detail` sed ON sed.parent = se.name
         WHERE {mr_where}
     """, mr_params, as_dict=True)
     for row in mr_rows:
-        row["source_key"] = "MR-" + row.parent + "-" + str(row.rate)
+        row["source_key"] = "MR-" + row.row_name
         all_lots.append(row)
 
     sret_conditions = ["si.docstatus = 1", "sii.item_code IN %(items)s", "si.is_return = 1"]
@@ -237,13 +242,13 @@ def get_all_inbound_lots_by_item(item_codes, warehouse_names, company=None):
         sret_params["company"] = company
     sret_where = " AND ".join(sret_conditions)
     sret_rows = frappe.db.sql(f"""
-        SELECT sii.item_code, ABS(sii.qty) as qty, sii.rate, sii.parent, si.posting_date
+        SELECT sii.name as row_name, sii.item_code, ABS(sii.qty) as qty, sii.rate, sii.parent, si.posting_date
         FROM `tabSales Invoice` si
         LEFT JOIN `tabSales Invoice Item` sii ON sii.parent = si.name
         WHERE {sret_where}
     """, sret_params, as_dict=True)
     for row in sret_rows:
-        row["source_key"] = "SRET-" + row.parent + "-" + str(row.rate)
+        row["source_key"] = "SRET-" + row.row_name
         all_lots.append(row)
 
     lots_by_item = {}
