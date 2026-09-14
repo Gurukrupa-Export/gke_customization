@@ -4520,20 +4520,24 @@ def sync_product_return_form_to_remote(doc, method=None):
 	for row in (doc.sales_taxes_and_charges or []):
 		sales_taxes_and_charges.append({
 			"charge_type": row.charge_type,
-			"account_head": row.account_head,
+			"account_head": (
+				row.account_head.rsplit(" - ", 1)[0] + " - KGJPL"
+				if row.account_head and " - " in row.account_head
+				else row.account_head
+			),
 			"description": row.description,
 			"included_in_print_rate": row.included_in_print_rate,
 			"included_in_paid_amount": row.included_in_paid_amount,
-			"set_by_item_tax_template": row.set_by_item_tax_template,
-			"is_tax_withholding_account": row.is_tax_withholding_account,
+			# "set_by_item_tax_template": row.set_by_item_tax_template,
+			# "is_tax_withholding_account": row.is_tax_withholding_account,
 			"cost_center": row.cost_center,
 			"rate": row.rate,
 			"account_currency": row.account_currency,
-			"net_amount": row.net_amount,
+			# "net_amount": row.net_amount,
 			"tax_amount": row.tax_amount,
 			"total": row.total,
 			"tax_amount_after_discount_amount": row.tax_amount_after_discount_amount,
-			"base_net_amount": row.base_net_amount,
+			# "base_net_amount": row.base_net_amount,
 			"base_tax_amount": row.base_tax_amount,
 			"base_total": row.base_total,
 			"base_tax_amount_after_discount_amount": row.base_tax_amount_after_discount_amount,
