@@ -1918,6 +1918,8 @@ TARGET_ONLY_FIELDS = {
 			"options": "BOM",
 			"insert_after": "master_bom",
 			"read_only": 1,
+			# Next to Master BOM in the Item list on KGGK, which is where it gets read.
+			"in_list_view": 1,
 			"description": (
 				"Set by the Gurukrupa sync. The Copy BOM of the most recent Manufacturing "
 				"Plan row for this item. Not the item's master BOM."
@@ -1992,6 +1994,27 @@ def copy_bom_for(run, item_code):
 	return run.copy_bom.get(item_code)
 
 
+def _linked_bom(item_code):
+	"""Any BOM this item is linked to, for an item no plan row names a Copy BOM for.
+
+	`Item.master_bom` first, because that is the one a person chose. Failing that the item's
+	own default BOM, then its newest active one - an item that is linked to a BOM should carry
+	that link to KGGK rather than arrive with the field empty.
+	"""
+	master = frappe.db.get_value("Item", item_code, "master_bom")
+	if master:
+		return master
+
+	for filters in (
+		{"item": item_code, "is_default": 1, "docstatus": ("<", 2)},
+		{"item": item_code, "is_active": 1, "docstatus": ("<", 2)},
+	):
+		found = frappe.get_all("BOM", filters=filters, pluck="name", order_by="creation desc", limit=1)
+		if found:
+			return found[0]
+	return None
+
+
 def target_only_values(run, doctype, name):
 	"""What to send for the fields that exist only on the target, for one record."""
 	if doctype == "Item":
@@ -2007,7 +2030,7 @@ def target_only_values(run, doctype, name):
 				once_key="copybom::source",
 			)
 			return {}
-		bom = copy_bom_for(run, name)
+		bom = copy_bom_for(run, name) or _linked_bom(name)
 		if bom:
 			return {"custom_copy_bom": bom}
 	return {}
@@ -2131,6 +2154,49 @@ def lookup_by_identity(config, doctype, name, run=None):
 _LOOKUP_FAILED = object()
 
 
+# Doctypes whose name means a different thing on each site, so our name is never a safe guess
+# for theirs. ERPNext numbers a BOM `BOM-{item}-{nnn}` by counting that site's own BOMs for the
+# item, so `BOM-RING-001` exists on both sites and is two different BOMs. An Item is named
+# `field:item_code`, which does mean the same thing on both, so it is deliberately not here.
+NAME_DIVERGES = {"BOM"}
+
+
+def remote_link_name(config, link_doctype, value, target_host, run=None, cache=None, probe=False):
+	"""The target's name for a linked record, or ``None`` when it cannot be known.
+
+	`target_name_for` falls back to our own name, and its docstring calls that safe "where the
+	value is checked before use". For a BOM it is not: `api_exists` only says that *something*
+	of that name is over there, not that it is this record. That is how an Item's Copy BOM came
+	to point at the target's own BOM of the same number - a different BOM entirely.
+
+	So for those doctypes the mapping has to be real: what we recorded when we pushed it, or -
+	with ``probe`` - what the target says when asked by identity.
+
+	``probe`` is off in the main pass on purpose. An unmapped BOM is usually one this very run
+	is about to push, and asking the target about each one would be an extra round trip per
+	item for an answer that is about to change. The link is dropped and deferred instead, and
+	the relink pass asks once, at the end, for whatever is still unresolved.
+	"""
+	if link_doctype not in NAME_DIVERGES:
+		return target_name_for(link_doctype, value, target_host)
+
+	known = target_name_if_known(link_doctype, value, target_host)
+	if known or not probe:
+		return known
+
+	# Never pushed from here, or the Sync State row was lost. Ask before giving up: an earlier
+	# run may well have pushed it.
+	key = ("identity", link_doctype, value)
+	if cache is not None and key in cache:
+		return cache[key]
+
+	found = lookup_by_identity(config, link_doctype, value, run=run)
+	resolved = None if found is _LOOKUP_FAILED else found
+	if cache is not None:
+		cache[key] = resolved
+	return resolved
+
+
 def _link_exists(config, doctype, value, cache):
 	key = (doctype, value)
 	if key not in cache:
@@ -2157,11 +2223,16 @@ def _strip_missing_links(config, doc, data, run, cache):
 		# A link to an Item or a BOM has to carry the name the *target* uses, which is not
 		# always ours. Sending our name would point the link at nothing, or worse at the
 		# wrong record.
-		remote_value = target_name_for(link_doctype, value, target_host)
-		if remote_value != value:
-			data[fieldname] = remote_value
+		remote_value = remote_link_name(config, link_doctype, value, target_host, run, cache)
+		if remote_value is None:
+			# Nothing over there is known to be this record. Treated exactly as missing:
+			# dropped and deferred, so it is re-applied once the record is pushed.
+			found = False
+		else:
+			if remote_value != value:
+				data[fieldname] = remote_value
+			found = _link_exists(config, link_doctype, remote_value, cache)
 
-		found = _link_exists(config, link_doctype, remote_value, cache)
 		if found is None:
 			# The check itself failed - a timeout, a 500, a 403. Treating that as "it is
 			# there" sends the value anyway and the target rejects the whole record with a
@@ -2179,7 +2250,7 @@ def _strip_missing_links(config, doc, data, run, cache):
 			continue
 		if essential:
 			blocking.append(
-				f"{fieldname}: {link_doctype} '{remote_value}' does not exist on target"
+				f"{fieldname}: {link_doctype} '{remote_value or value}' is not on the target"
 			)
 			continue
 		data.pop(fieldname, None)
@@ -2190,8 +2261,8 @@ def _strip_missing_links(config, doc, data, run, cache):
 		run.mismatch(
 			doc.doctype,
 			doc.name,
-			f"{fieldname}: {link_doctype} '{remote_value}' does not exist on target, field "
-			"dropped for now - will be re-applied if it arrives later in this run",
+			f"{fieldname}: {link_doctype} '{remote_value or value}' is not on the target, "
+			"field dropped for now - will be re-applied if it arrives later in this run",
 			kind="LINK-MISSING",
 		)
 
@@ -2285,22 +2356,31 @@ def _apply_deferred_links(config, run):
 	for _dt, _name, _field, value, link_doctype in run.deferred:
 		remote.setdefault(link_doctype, set()).add(value)
 	remote = {
-		link_doctype: target_names(link_doctype, sorted(values), target_host)
+		link_doctype: {
+			value: remote_link_name(
+				config, link_doctype, value, target_host, run, run.link_cache, probe=True
+			)
+			for value in sorted(values)
+		}
 		for link_doctype, values in remote.items()
 	}
 
 	exists = {}
 	for link_doctype, mapping in remote.items():
 		exists[link_doctype] = api_exists_many(
-			config, link_doctype, sorted(set(mapping.values())), run=run
+			config, link_doctype, sorted({v for v in mapping.values() if v}), run=run
 		)
 
 	# One PUT per record, not per field, so an item with two recovered links costs one call.
 	updates = {}
 	still_missing = []
 	for doctype, name, fieldname, value, link_doctype in run.deferred:
-		remote_value = remote.get(link_doctype, {}).get(value, value)
-		if exists.get(link_doctype, {}).get(remote_value):
+		remote_value = remote.get(link_doctype, {}).get(value) or value
+		if remote.get(link_doctype, {}).get(value) is None and link_doctype in NAME_DIVERGES:
+			# Still nothing on the target that is known to be this record. Re-applying our own
+			# name here is what pointed an Item's Copy BOM at the target's own BOM.
+			still_missing.append((doctype, name, fieldname, link_doctype, value))
+		elif exists.get(link_doctype, {}).get(remote_value):
 			updates.setdefault((doctype, name), {})[fieldname] = remote_value
 		else:
 			still_missing.append((doctype, name, fieldname, link_doctype, remote_value))
@@ -2956,14 +3036,21 @@ def sync_records(
 			# not status - see `if status:` in `flush` - so this used to leave the log at
 			# "Running" for ever, which no reaper under half an hour and no Retry button can
 			# help with, because `retry_log` refuses a running log.
-			run.problem(
-				"ABORTED",
-				None,
-				None,
-				"the chunk stopped before it finished - a job timeout, or the worker was shut "
-				"down. Press Retry Failed to queue what is left.",
-			)
-			run.finish(STATUS_PARTIAL if run.done else STATUS_FAILED)
+			#
+			# Wrapped, because this runs while an exception is already on its way out - often
+			# the job timeout itself. Raising here would replace that exception with this
+			# one and lose what actually happened.
+			try:
+				run.problem(
+					"ABORTED",
+					None,
+					None,
+					"the chunk stopped before it finished - a job timeout, or the worker was "
+					"shut down. Press Retry Failed to queue what is left.",
+				)
+				run.finish(STATUS_PARTIAL if run.done else STATUS_FAILED)
+			except Exception:
+				frappe.logger("kggk_sync").exception("could not close the killed chunk's log")
 
 	if rest_items or rest_boms:
 		# Every chunk reports its own problems. Only the last one used to, because `finish()`
@@ -3115,6 +3202,14 @@ def collect_records(doc):
 			frappe.logger("kggk_sync").warning(
 				f"{doc.name}: subcontracting row {row.get('idx')} has no manufacturing_bom"
 			)
+
+		# The Copy BOM is a different record from the Manufacturing BOM - the origin the row
+		# was raised from, and the one `Item.custom_copy_bom` points at on the target. It has
+		# to be pushed too, or that link has nothing to resolve to and the item lands on KGGK
+		# pointing at whatever BOM happens to share the name over there.
+		copy_bom = row.get("copy_bom")
+		if copy_bom and copy_bom not in boms:
+			boms.append(copy_bom)
 
 	return items, boms
 
