@@ -436,9 +436,11 @@ class TestDeferredRelink(unittest.TestCase):
 
 	def test_what_is_still_missing_is_carried_to_the_next_chunk(self):
 		self.run.deferred = [("Item", "I-1", "master_bom", "B-1", "BOM")]
+		# The relink pass asks the target by identity for a BOM it has no mapping for; without
+		# this the test dials out to `https://t` for real.
 		with patch.object(k, "api_exists_many", return_value={"B-1": False}), patch.object(
-			k, "api_put"
-		) as put:
+			k, "target_name_if_known", return_value="B-1"
+		), patch.object(k, "api_put") as put:
 			k._apply_deferred_links(self.cfg, self.run)
 		put.assert_not_called()
 		self.assertEqual(len(self.run.deferred), 1)
@@ -1361,7 +1363,7 @@ class TestTargetNaming(unittest.TestCase):
 		data = {"master_bom": "BOM-X-002"}
 		run = _run(config=self.cfg)
 		with patch.object(k, "link_fields", return_value={"master_bom": ("BOM", False)}), patch.object(
-			k, "target_name_for", return_value="BOM-X-001"
+			k, "target_name_if_known", return_value="BOM-X-001"
 		), patch.object(k, "_link_exists", return_value=True) as exists:
 			k._strip_missing_links(self.cfg, doc, data, run, {})
 		self.assertEqual(data["master_bom"], "BOM-X-001")
@@ -1375,7 +1377,7 @@ class TestTargetNaming(unittest.TestCase):
 		with patch.object(
 			k, "target_names", side_effect=lambda dt, names, t: {n: "BOM-X-001" for n in names}
 		), patch.object(k, "target_name_for", side_effect=lambda dt, n, t: n), patch.object(
-			k, "target_name_if_known", side_effect=lambda dt, n, t: n
+			k, "target_name_if_known", side_effect=lambda dt, n, t: "BOM-X-001"
 		), patch.object(k, "set_state_status"), patch.object(
 			k, "api_exists_many", return_value={"BOM-X-001": True}
 		), patch.object(
@@ -1383,6 +1385,37 @@ class TestTargetNaming(unittest.TestCase):
 		) as put:
 			k._apply_deferred_links(self.cfg, run)
 		self.assertEqual(put.call_args.kwargs["json"], {"master_bom": "BOM-X-001"})
+
+	def test_an_unmapped_bom_link_is_dropped_not_guessed(self):
+		"""The bug this exists for. The target had a BOM of the same name - its own, a
+		different record - so `api_exists` said yes and the item was linked to the wrong BOM."""
+		doc = frappe._dict(doctype="Item", name="I-1")
+		data = {"custom_copy_bom": "BOM-X-003"}
+		run = _run(config=self.cfg)
+		with patch.object(
+			k, "link_fields", return_value={"custom_copy_bom": ("BOM", False)}
+		), patch.object(k, "target_name_if_known", return_value=None), patch.object(
+			k, "_link_exists", return_value=True
+		) as exists, patch.object(k, "lookup_by_identity") as identity:
+			k._strip_missing_links(self.cfg, doc, data, run, {})
+
+		self.assertNotIn("custom_copy_bom", data)
+		exists.assert_not_called()
+		# And it did not cost a round trip: the BOM is very likely pushed later in this run,
+		# so the question is left to the relink pass.
+		identity.assert_not_called()
+		self.assertEqual(run.deferred, [("Item", "I-1", "custom_copy_bom", "BOM-X-003", "BOM")])
+
+	def test_an_item_link_still_maps_to_its_own_name(self):
+		"""Item is named `field:item_code`, so the name does mean the same on both sites."""
+		doc = frappe._dict(doctype="BOM", name="B-1")
+		data = {"item": "RI00210-004"}
+		run = _run(config=self.cfg)
+		with patch.object(k, "link_fields", return_value={"item": ("Item", False)}), patch.object(
+			k, "target_names", side_effect=lambda dt, names, t: {n: n for n in names}
+		), patch.object(k, "_link_exists", return_value=True):
+			k._strip_missing_links(self.cfg, doc, data, run, {})
+		self.assertEqual(data["item"], "RI00210-004")
 
 	def test_the_prefill_asks_about_the_targets_names(self):
 		"""Otherwise every renamed record reads as missing and is pushed again, forever."""
