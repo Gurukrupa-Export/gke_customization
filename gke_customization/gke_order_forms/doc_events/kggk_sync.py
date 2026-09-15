@@ -856,12 +856,24 @@ class SyncRun:
 		# Problems from *this* chunk only. Carrying them forward would grow the queued job
 		# payload with every continuation.
 		self.problems = []
+
+		# How much of `problems` the log document already has. A chunk flushes several times -
+		# after the items, every ten records, and again at the end - and each flush used to
+		# append the whole list, so the earliest problems were written once per flush. The
+		# counts said "1 failed" while the text listed the failure twice, which reads exactly
+		# like a record having been pushed twice. `problems` itself is never cleared: `report`
+		# needs the whole list to build the target's Error Log.
+		self._problems_written = 0
 		self.last_error = ""
 		self._once = set()
 
 		# "Does this master exist on the target" answers, reused across the chunk so fifty
 		# items do not ask about the same Item Group fifty times.
 		self.link_cache = {}
+
+		# `item_code -> Copy BOM`, warmed for the whole chunk by `sync_records`. See
+		# `copy_bom_map`.
+		self.copy_bom = {}
 
 		# Links dropped because the record they point at was not on the target *yet*. These
 		# ride between chunks, because the BOM an Item wants is very often pushed later than
@@ -979,9 +991,10 @@ class SyncRun:
 					doc.ended_on = now_datetime()
 					doc.progress = 100.0
 
-			if self.problems:
+			unwritten = self.problems[self._problems_written :]
+			if unwritten:
 				existing = doc.problems or ""
-				doc.problems = (existing + "\n" + "\n".join(self.problems))[-MAX_REPORT_CHARS:]
+				doc.problems = (existing + "\n" + "\n".join(unwritten))[-MAX_REPORT_CHARS:]
 
 			if self.rows_dropped:
 				doc.summary = (
@@ -993,6 +1006,8 @@ class SyncRun:
 			doc.flags.ignore_version = True
 			doc.save(ignore_permissions=True)
 			frappe.db.commit()
+			# Only now, so a save that raised leaves them to be written again next flush.
+			self._problems_written = len(self.problems)
 		except Exception:
 			frappe.logger("kggk_sync").exception(f"could not update {self.log_name}")
 
@@ -1674,7 +1689,30 @@ def link_fields(doctype):
 	for df in frappe.get_meta(doctype).fields:
 		if df.fieldtype in LINK_TYPES and df.options:
 			out[df.fieldname] = (df.options, bool(df.reqd) or df.fieldname in essential)
+
+	# Fields this site does not have. They are in the payload all the same, and a link is a
+	# link: without this the target's name for the BOM is never substituted for ours.
+	for field in TARGET_ONLY_FIELDS.get(doctype, ()):
+		if field["fieldtype"] in LINK_TYPES and field.get("options"):
+			out[field["fieldname"]] = (field["options"], False)
+
 	return out
+
+
+def dynamic_link_fields(doctype):
+	"""``fieldname -> the fieldname holding its doctype`` for every Dynamic Link field.
+
+	A Dynamic Link does not name its doctype in the schema - it names another field that does -
+	so `link_fields` above cannot see it and `LINK_TYPES` deliberately excludes it. That left
+	these fields sent verbatim, and `BOM.custom_creation_docname` points at the Manufacturing
+	Plan that built the BOM, which is a document the target never receives. Every plan-triggered
+	BOM was therefore rejected whole with a LinkValidationError naming "Creation Docname".
+	"""
+	return {
+		df.fieldname: df.options
+		for df in frappe.get_meta(doctype).fields
+		if df.fieldtype == "Dynamic Link" and df.options
+	}
 
 
 def _schema_unknown(run, doctype, message):
@@ -1852,6 +1890,126 @@ IDENTITY_FIELDS = (
 		"description": "Set by the Gurukrupa sync. The name this record has on the source site.",
 	},
 )
+
+
+# ---------------------------------------------------------------------------------
+# FIELDS THAT EXIST ONLY ON THE TARGET
+# ---------------------------------------------------------------------------------
+#
+# KGGK needs to know which BOM a design was ordered from, and this site has nowhere to put
+# that on the Item. The answer lives on the Purchase Order a Manufacturing Plan raises at
+# submit, so mirroring it onto `tabItem` here would add a column that nothing on this site
+# reads or maintains.
+#
+# So the field exists on KGGK only: created there by Check / Prefill Target Site, and given
+# its value at push time from this site's documents. Exactly the arrangement the three
+# identity fields above use, for the same reason - there is nothing here to mirror.
+#
+# A Link field listed here is picked up by `link_fields`, so it gets the same treatment as
+# `Item.master_bom`: translated to the target's name for the BOM, dropped if that BOM is not
+# there yet, and re-applied by the relink pass once it arrives.
+
+TARGET_ONLY_FIELDS = {
+	"Item": (
+		{
+			"fieldname": "custom_copy_bom",
+			"label": "Copy BOM",
+			"fieldtype": "Link",
+			"options": "BOM",
+			"insert_after": "master_bom",
+			"read_only": 1,
+			"description": (
+				"Set by the Gurukrupa sync. The BOM the most recent Purchase Order for this "
+				"item was raised from. Not the item's master BOM."
+			),
+		},
+	),
+}
+
+
+# Where the value comes from. `Purchase Order Item.custom_copy_bom` is a Custom Field, created
+# by `jewellery_erpnext.patches.add_purchase_order_item_copy_bom_field`, and a site that has
+# not had that patch run - or that has lost the field since - has no such column.
+COPY_BOM_SOURCE = ("Purchase Order Item", "custom_copy_bom")
+
+
+def _copy_bom_source_ready():
+	"""Can this site be asked for a Copy BOM at all?
+
+	Asking for a column that is not there is a SQL error, and this runs inside a push: the
+	savepoint would turn it into "unexpected error" against every item in the chunk.
+	"""
+	doctype, fieldname = COPY_BOM_SOURCE
+	return bool(frappe.db.has_column(doctype, fieldname))
+
+
+def copy_bom_map(item_codes):
+	"""``item_code -> the BOM its most recent Purchase Order row came from`` (or ``None``).
+
+	Every requested code is a key, so a miss is cached as firmly as a hit.
+
+	Two queries rather than one with an OR: a Purchase Order raised for an FG Purchase row
+	carries the item in `item_code`, while a subcontracting row carries the generic service
+	item there and the real one in `fg_item`. `item_code` is indexed on Purchase Order Item
+	and `fg_item` is not, and an OR across the two loses the index for both.
+	"""
+	found = {code: None for code in item_codes}
+	if not item_codes or not _copy_bom_source_ready():
+		return found
+
+	doctype, source_field = COPY_BOM_SOURCE
+	rows = []
+	for fieldname in ("item_code", "fg_item"):
+		if not frappe.db.has_column(doctype, fieldname):
+			continue
+		rows += frappe.get_all(
+			doctype,
+			filters={
+				fieldname: ("in", list(item_codes)),
+				source_field: ("is", "set"),
+				"docstatus": ("<", 2),
+			},
+			fields=[f"{fieldname} as item_code", f"{source_field} as copy_bom", "creation"],
+		)
+
+	# Oldest first, so the newest row for an item is the one left standing. Sorted here rather
+	# than in SQL because the two queries are ordered independently of each other.
+	for row in sorted(rows, key=lambda r: r.creation):
+		found[row.item_code] = row.copy_bom
+
+	return found
+
+
+def copy_bom_for(run, item_code):
+	"""One item's Copy BOM, from the run's cache.
+
+	`sync_records` warms the cache for a whole chunk in one pair of queries. This covers what
+	that missed - a variant's template, or the finished-goods item a BOM pulled in.
+	"""
+	if item_code not in run.copy_bom:
+		run.copy_bom.update(copy_bom_map([item_code]))
+	return run.copy_bom.get(item_code)
+
+
+def target_only_values(run, doctype, name):
+	"""What to send for the fields that exist only on the target, for one record."""
+	if doctype == "Item":
+		if not _copy_bom_source_ready():
+			# Said once, not per item. Silence here would look exactly like every item simply
+			# having no Purchase Order.
+			run.mismatch(
+				"Item",
+				None,
+				"{0}.{1} does not exist on this site, so Copy BOM cannot be worked out for "
+				"any item - run `bench migrate` here".format(*COPY_BOM_SOURCE),
+				kind="SOURCE-FIELD-MISSING",
+				once_key="copybom::source",
+			)
+			return {}
+		bom = copy_bom_for(run, name)
+		if bom:
+			return {"custom_copy_bom": bom}
+	return {}
 
 
 def source_host():
@@ -2035,7 +2193,74 @@ def _strip_missing_links(config, doc, data, run, cache):
 			"dropped for now - will be re-applied if it arrives later in this run",
 			kind="LINK-MISSING",
 		)
+
+	_strip_missing_dynamic_links(config, doc, data, run, cache)
 	return blocking
+
+
+def _strip_missing_dynamic_links(config, doc, data, run, cache):
+	"""Drop Dynamic Link pairs whose record the target does not have.
+
+	Never blocking, whatever the schema says: a Dynamic Link is provenance on every doctype
+	this engine sends - which Quotation, Sales Order or Manufacturing Plan built this BOM - and
+	none of those documents is ever copied to the target, so a missing one is expected rather
+	than a reason to refuse the record.
+	"""
+	target_host = host_of(config.to_site)
+	for fieldname, options_field in dynamic_link_fields(doc.doctype).items():
+		value = data.get(fieldname)
+		link_doctype = data.get(options_field) or doc.get(options_field)
+		# Frappe does not validate a dynamic link whose doctype half is blank, so neither do we.
+		if not value or not link_doctype:
+			continue
+
+		remote_value = target_name_for(link_doctype, value, target_host)
+		if remote_value != value:
+			data[fieldname] = remote_value
+
+		# Ask about the doctype before asking about the record. A dynamic link's value differs
+		# per record - one Order id per Item - so the per-record check cannot be cached and a
+		# plan of five hundred items would pay five hundred round trips to learn the same
+		# thing. The doctype answer is cached and settles all of them at once.
+		if _link_exists(config, "DocType", link_doctype, cache) is False:
+			found = False
+		else:
+			found = _link_exists(config, link_doctype, remote_value, cache)
+
+		if found is None:
+			run.mismatch(
+				doc.doctype,
+				doc.name,
+				f"{fieldname}: could not check whether {link_doctype} '{remote_value}' exists "
+				"on target, sending it anyway",
+				kind="LINK-UNKNOWN",
+				once_key=f"linkcheck::{link_doctype}",
+			)
+			continue
+		if found:
+			continue
+
+		# Both halves, together. A docname without its doctype is meaningless, and a doctype
+		# left behind pointing at nothing is worse than no provenance at all.
+		data.pop(fieldname, None)
+		data.pop(options_field, None)
+
+		if link_doctype in PUSHED_DOCTYPES:
+			run.defer_link(doc.doctype, doc.name, fieldname, value, link_doctype)
+			note = "dropped for now - will be re-applied if it arrives later in this run"
+		else:
+			# Deferring this would be a promise the engine cannot keep: nothing in a run ever
+			# pushes a Manufacturing Plan, so the record would sit at Partial for ever and the
+			# hourly reconciler would pick it up again every hour, for ever.
+			note = f"dropped - {link_doctype} documents are never copied to the target"
+
+		run.mismatch(
+			doc.doctype,
+			doc.name,
+			f"{fieldname}: {link_doctype} '{remote_value}' does not exist on target, field "
+			+ note,
+			kind="LINK-MISSING",
+		)
 
 
 def _apply_deferred_links(config, run):
@@ -2149,6 +2374,83 @@ def _apply_deferred_links(config, run):
 	]
 
 
+def _adopt_same_named(config, doctype, name, run=None):
+	"""The target already holds a record under our own name. Claim it, if nobody else has.
+
+	The sync this replaced pushed by name and stamped no identity, so KGGK holds Items and BOMs
+	that `lookup_by_identity` cannot recognise. Every one of them answers "not there", is then
+	created, and the create dies on a duplicate primary key - for ever, because nothing in a
+	later run can get past it either.
+
+	Adopting on a name is exactly the guess the identity fields exist to prevent, so this adopts
+	only what is demonstrably unclaimed: a record whose identity fields are empty, or which
+	already says it came from here. One that names a different source is a real collision - two
+	sites' records sharing a name - and is reported rather than overwritten.
+
+	Returns the target's name for the record on adoption, otherwise ``None``.
+	"""
+	response = api_get(config, f"/api/resource/{segment(doctype)}/{segment(name)}")
+
+	if response.not_found:
+		# Then the duplicate was not on the name at all, but on some other unique index -
+		# `Item.item_code` against a differently named record, say. Nothing here to adopt, and
+		# the original error is the honest thing to report.
+		return None
+
+	if not response.ok:
+		run and run.mismatch(
+			doctype,
+			name,
+			"the target refused this record as a duplicate and could not then be asked about "
+			f"the record it already has - {response.message()}",
+			kind="ADOPT-FAILED",
+		)
+		return None
+
+	existing = (response.data or {}).get("data") or {}
+	ours = _identity_values(doctype, name)
+	claimed = {field: existing.get(field) for field in ours}
+	target_id = existing.get("name") or name
+
+	if any(claimed.values()) and claimed != ours:
+		run and run.mismatch(
+			doctype,
+			name,
+			f"the target already has a {doctype} called '{target_id}', and it came from "
+			f"{claimed.get(IDENTITY_SOURCE_SITE) or 'an unnamed site'} "
+			f"({claimed.get(IDENTITY_SOURCE_DOCTYPE) or '?'} "
+			f"'{claimed.get(IDENTITY_SOURCE_NAME) or '?'}'). Two different records cannot share "
+			"one name over there - one of them has to be renamed before this can sync.",
+			kind="NAME-CONFLICT",
+		)
+		return None
+
+	if claimed == ours:
+		# It is ours already and the identity lookup missed it. Use it rather than failing the
+		# record over a search index that was a moment behind the write.
+		return target_id
+
+	stamp = api_put(config, f"/api/resource/{segment(doctype)}/{segment(target_id)}", json=ours)
+	if not stamp.ok:
+		run and run.mismatch(
+			doctype,
+			name,
+			f"the target's existing {target_id} carries no source identity and could not be "
+			f"stamped with one - {stamp.message()}",
+			kind="ADOPT-FAILED",
+		)
+		return None
+
+	run and run.line(
+		"ADOPTED",
+		doctype,
+		name,
+		f"the target's existing {target_id} carried no source identity - claimed by this site, "
+		"so later runs will update it instead of trying to create it",
+	)
+	return target_id
+
+
 def _send(config, doctype, name, data, lookup=None, run=None):
 	"""Upsert one record on the target, addressed by where it came from.
 
@@ -2198,7 +2500,8 @@ def _send(config, doctype, name, data, lookup=None, run=None):
 			[],
 		)
 
-	if target_id:
+	def update(target_id):
+		"""PUT the payload onto ``target_id``. ``None`` means it is no longer there."""
 		update_data = {
 			k: v for k, v in data.items() if k not in IMMUTABLE_ON_UPDATE.get(doctype, set())
 		}
@@ -2230,6 +2533,13 @@ def _send(config, doctype, name, data, lookup=None, run=None):
 		if not response.not_found:
 			return response, "updated", target_id, []
 
+		return None
+
+	if target_id:
+		updated = update(target_id)
+		if updated is not None:
+			return updated
+
 		# It was there when we asked and is not there now - deleted mid-run. Fall through and
 		# create it again rather than failing the record.
 		run and run.line("INFO", doctype, name, f"{target_id} vanished from the target, recreating")
@@ -2240,6 +2550,17 @@ def _send(config, doctype, name, data, lookup=None, run=None):
 	response = api_post(
 		config, f"/api/resource/{segment(doctype)}", json=data, retry_connection=False
 	)
+
+	# The target has a record of this name already and the identity lookup did not find it, so
+	# it was put there by something that stamped no identity - the blocking hooks this engine
+	# replaced, or a hand edit. Claim it and update it, rather than failing this record on
+	# every run from now until somebody notices.
+	if not response.ok and response.exc_type == "DuplicateEntryError" and identified:
+		adopted = _adopt_same_named(config, doctype, name, run=run)
+		if adopted:
+			updated = update(adopted)
+			if updated is not None:
+				return updated
 
 	if response.error and identified:
 		settled = lookup_by_identity(config, doctype, name, run=run)
@@ -2282,6 +2603,22 @@ def push_item(item_code, config, run, seen=None):
 
 	allowed = get_target_fields(config, "Item", run=run)
 	data, attachments = build_payload(doc, allowed, run=run, config=config)
+
+	# Fields the target has and this site does not, so `build_payload` could not find them on
+	# the doc. Added before the link pass, which is what turns our BOM name into theirs.
+	for fieldname, value in target_only_values(run, "Item", item_code).items():
+		if allowed is not None and fieldname not in allowed:
+			run.mismatch(
+				"Item",
+				item_code,
+				f"{fieldname} does not exist on the target yet - run Check / Prefill Target "
+				"Site to create it",
+				kind="FIELD-MISSING",
+				once_key=f"targetonly::Item::{fieldname}",
+			)
+			continue
+		data[fieldname] = value
+
 	blocking = _strip_missing_links(config, doc, data, run, run.link_cache)
 	if blocking:
 		message = "required master(s) missing on target - " + "; ".join(blocking)
@@ -2530,6 +2867,9 @@ def sync_records(
 	frappe.flags.in_kggk_sync = True
 	loops_completed = False
 	try:
+		# One pair of queries for the chunk rather than one per item. See `copy_bom_map`.
+		run.copy_bom.update(copy_bom_map(items))
+
 		seen = set()
 		for position, item_code in enumerate(items, start=1):
 			frappe.db.savepoint("kggk_item")
@@ -3271,6 +3611,19 @@ def _field_gaps(config, run=None):
 				creatable.append(row)
 			else:
 				bucket.append(f"{doctype}.{name} ({df.fieldtype})")
+
+	# Data the target should carry that this site has no field for, so the gap logic above -
+	# which works by comparing the two schemas - cannot see it either. Ordinary fields, unlike
+	# the identity ones below: deselecting one only means the target goes without it.
+	for doctype, fields in TARGET_ONLY_FIELDS.items():
+		target_fields = seen_fields.get(doctype)
+		if target_fields is None:
+			continue
+		for field in fields:
+			if field["fieldname"] not in target_fields:
+				row = dict(field)
+				row["dt"] = doctype
+				creatable.append(row)
 
 	# The three fields that let a record be found by where it came from. They exist only on
 	# the target - there is nothing to mirror them from here - so the gap logic above cannot

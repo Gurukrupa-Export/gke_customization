@@ -451,6 +451,92 @@ class TestDeferredRelink(unittest.TestCase):
 		self.assertEqual(second.deferred, [("Item", "I-1", "master_bom", "B-1", "BOM")])
 
 
+class TestDynamicLinks(unittest.TestCase):
+	"""BOM.custom_creation_docname points at the Manufacturing Plan that built the BOM.
+
+	Plans are never copied to the target, so every plan-triggered BOM used to be rejected whole
+	with `LinkValidationError: Could not find Creation Docname`. A Dynamic Link names its
+	doctype in a sibling field rather than in the schema, which is why `link_fields` could not
+	see it.
+	"""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", headers={})
+		self.run = _run(config=self.cfg)
+		self.doc = frappe._dict(
+			doctype="BOM",
+			name="B-1",
+			custom_creation_doctype="Manufacturing Plan",
+			custom_creation_docname="MP-1",
+		)
+		self.data = {
+			"item": "I-1",
+			"custom_creation_doctype": "Manufacturing Plan",
+			"custom_creation_docname": "MP-1",
+		}
+
+	def _strip(self, found=False):
+		with patch.object(k, "link_fields", return_value={}), patch.object(
+			k, "dynamic_link_fields", return_value={"custom_creation_docname": "custom_creation_doctype"}
+		), patch.object(k, "_link_exists", return_value=found):
+			return k._strip_missing_links(self.cfg, self.doc, self.data, self.run, {})
+
+	def test_a_plan_the_target_does_not_have_drops_the_pair_instead_of_failing_the_bom(self):
+		blocking = self._strip()
+		self.assertEqual(blocking, [])
+		self.assertNotIn("custom_creation_docname", self.data)
+		self.assertNotIn("custom_creation_doctype", self.data)
+		self.assertIn("LINK-MISSING", "\n".join(self.run.problems))
+
+	def test_a_doctype_that_is_never_pushed_is_not_deferred(self):
+		"""Deferring it would park the BOM at Partial for ever and give the hourly reconciler
+		a record it can never finish."""
+		self._strip()
+		self.assertEqual(self.run.deferred, [])
+		self.assertIn("never copied to the target", "\n".join(self.run.problems))
+
+	def test_a_link_the_target_does_have_is_left_alone(self):
+		self._strip(found=True)
+		self.assertEqual(self.data["custom_creation_docname"], "MP-1")
+		self.assertEqual(self.data["custom_creation_doctype"], "Manufacturing Plan")
+		self.assertEqual(self.run.problems, [])
+
+	def test_a_doctype_the_target_does_not_have_at_all_costs_one_call(self):
+		"""A dynamic link's value differs per record, so the per-record answer cannot be
+		cached. The doctype answer can, and settles every record at once."""
+		cache = {}
+		with patch.object(k, "link_fields", return_value={}), patch.object(
+			k, "dynamic_link_fields", return_value={"custom_creation_docname": "custom_creation_doctype"}
+		), patch.object(k, "api_exists", return_value=False) as exists:
+			for name in ("B-1", "B-2", "B-3"):
+				k._strip_missing_links(
+					self.cfg,
+					frappe._dict(
+						doctype="BOM",
+						name=name,
+						custom_creation_doctype="Manufacturing Plan",
+						custom_creation_docname=f"MP-{name}",
+					),
+					{"custom_creation_doctype": "Manufacturing Plan", "custom_creation_docname": f"MP-{name}"},
+					self.run,
+					cache,
+				)
+
+		self.assertEqual(exists.call_count, 1)
+		self.assertEqual(exists.call_args.args[1:], ("DocType", "Manufacturing Plan"))
+
+	def test_a_blank_doctype_half_is_not_checked(self):
+		"""Frappe does not validate a dynamic link with no doctype, so neither do we."""
+		self.doc.custom_creation_doctype = None
+		self.data.pop("custom_creation_doctype")
+		with patch.object(k, "link_fields", return_value={}), patch.object(
+			k, "dynamic_link_fields", return_value={"custom_creation_docname": "custom_creation_doctype"}
+		), patch.object(k, "_link_exists") as exists:
+			k._strip_missing_links(self.cfg, self.doc, self.data, self.run, {})
+		exists.assert_not_called()
+		self.assertEqual(self.data["custom_creation_docname"], "MP-1")
+
+
 class TestTargetSchemaFailuresAreReported(unittest.TestCase):
 	"""Every route to `None` must say so - a silent one looks like a clean run."""
 
@@ -567,6 +653,83 @@ class TestReporting(unittest.TestCase):
 		run = self._run_with(1)
 		with patch(f"{MOD}.api_post", side_effect=RuntimeError("boom")), patch("frappe.log_error"):
 			self.assertFalse(run.report())
+
+
+class _FakeLog:
+	"""Just enough of a KGGK Sync Log for `flush` to write to."""
+
+	def __init__(self):
+		self.problems = ""
+		self.records = []
+		self.status = ""
+		self.summary = ""
+		self.started_on = None
+		self.ended_on = None
+		self.progress = 0
+		self.flags = frappe._dict()
+		self.saves = 0
+
+	def append(self, _fieldname, row):
+		self.records.append(row)
+
+	def set(self, fieldname, value):
+		setattr(self, fieldname, value)
+
+	def save(self, **_kwargs):
+		self.saves += 1
+
+
+class TestProblemsAreWrittenOnce(unittest.TestCase):
+	"""A chunk flushes several times: after the items, every ten records, and at the end.
+
+	Each flush used to append the whole problem list, so the earliest lines were written once
+	per flush. The counters said "1 failed" while the text listed the failure twice, which
+	reads exactly like a record having been pushed twice.
+	"""
+
+	def setUp(self):
+		self.doc = _FakeLog()
+		# `_run` defaults to LOG_NEVER, which returns from `flush` before it writes anything.
+		self.run = _run(
+			config=frappe._dict(to_site="https://t", headers={}),
+			log_name="LOG-1",
+			log=k.LOG_ALWAYS,
+		)
+
+	def _flush(self, *statuses):
+		with patch.object(frappe, "get_doc", return_value=self.doc), patch.object(frappe.db, "commit"):
+			for status in statuses:
+				self.run.flush(status)
+
+	def test_a_problem_seen_by_two_flushes_is_written_once(self):
+		self.run.item_failed("I-1", "HTTP 409: DuplicateEntryError")
+		self._flush(None, k.STATUS_FAILED)
+		self.assertEqual(self.doc.problems.count("I-1"), 1)
+
+	def test_a_problem_raised_after_the_first_flush_is_still_written(self):
+		self.run.item_failed("I-1", "nope")
+		self._flush(None)
+		self.run.bom_failed("B-1", "also nope")
+		self._flush(k.STATUS_FAILED)
+		self.assertEqual(self.doc.problems.count("I-1"), 1)
+		self.assertEqual(self.doc.problems.count("B-1"), 1)
+
+	def test_a_save_that_fails_leaves_the_problems_to_be_written_again(self):
+		self.run.item_failed("I-1", "nope")
+		self.doc.save = lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("boom"))
+		self._flush(None)
+
+		self.doc = _FakeLog()
+		self._flush(k.STATUS_FAILED)
+		self.assertEqual(self.doc.problems.count("I-1"), 1)
+
+	def test_report_still_sees_every_problem_after_a_flush(self):
+		"""`problems` is the source for the target's Error Log and must not be consumed."""
+		self.run.item_failed("I-1", "nope")
+		self._flush(None)
+		with patch(f"{MOD}.api_post", return_value=k.Response(status_code=200)) as post:
+			self.run.report()
+		self.assertIn("I-1", post.call_args.kwargs["json"]["error"])
 
 
 class TestCounters(unittest.TestCase):
@@ -1102,6 +1265,252 @@ class TestSubmittedOnTarget(unittest.TestCase):
 		self.assertNotIn("frappe.client.submit", source)
 		self.assertNotIn("/api/method/frappe.client.cancel", source)
 		self.assertIn("docstatus", k.ALWAYS_EXCLUDE)
+
+
+class TestTargetOnlyFields(unittest.TestCase):
+	"""Item.custom_copy_bom exists on KGGK and not here.
+
+	Its value is on the Purchase Order a Manufacturing Plan raises at submit, so mirroring it
+	onto `tabItem` on this site would be a column nothing here reads. The field is created on
+	the target by Check / Prefill Target Site and filled at push time instead.
+	"""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", headers={})
+		self.run = _run(config=self.cfg)
+
+	def test_the_field_is_not_on_this_site(self):
+		"""The whole point: no column here, no patch here, nothing for anyone to maintain."""
+		self.assertFalse(frappe.get_meta("Item").has_field("custom_copy_bom"))
+		self.assertIn("custom_copy_bom", [f["fieldname"] for f in k.TARGET_ONLY_FIELDS["Item"]])
+
+	def test_it_is_treated_as_a_link_so_the_target_name_is_substituted(self):
+		"""Without this the item would point at our name for the BOM, which means something
+		else over there."""
+		self.assertEqual(k.link_fields("Item")["custom_copy_bom"], ("BOM", False))
+
+	def test_it_is_dropped_and_deferred_when_the_bom_is_not_there_yet(self):
+		"""Items are pushed before BOMs, so this is the normal case, not the exception."""
+		doc = frappe._dict(doctype="Item", name="I-1")
+		data = {"custom_copy_bom": "B-1"}
+		with patch.object(k, "_link_exists", return_value=False), patch.object(
+			k, "dynamic_link_fields", return_value={}
+		):
+			blocking = k._strip_missing_links(self.cfg, doc, data, self.run, {})
+
+		self.assertEqual(blocking, [])
+		self.assertNotIn("custom_copy_bom", data)
+		self.assertEqual(self.run.deferred, [("Item", "I-1", "custom_copy_bom", "B-1", "BOM")])
+
+	def test_the_prefill_offers_to_create_it_on_the_target(self):
+		"""`_field_gaps` finds the rest by scanning this site's Custom Fields, and there is no
+		Custom Field here to find."""
+		with patch.object(k, "_prefill_doctypes", return_value=[("Item", None, None)]), patch.object(
+			k, "get_target_fields", return_value={"item_code"}
+		), patch.object(k, "_local_custom_fields", return_value={}):
+			creatable, _standard, _info, _unreadable, _absent = k._field_gaps(self.cfg)
+
+		copy_bom = [row for row in creatable if row["fieldname"] == "custom_copy_bom"]
+		self.assertEqual(len(copy_bom), 1)
+		self.assertEqual(copy_bom[0]["dt"], "Item")
+		self.assertEqual(copy_bom[0]["insert_after"], "master_bom")
+		# Not an identity field: the form may offer it as optional.
+		self.assertNotIn("is_identity", copy_bom[0])
+
+	def _push(self, allowed, copy_bom="B-1"):
+		"""Run `push_item` against patched boundaries and return the payload `_send` got."""
+		sent = {}
+
+		def _capture(config, doctype, name, data, lookup=None, run=None):
+			sent.update(data)
+			return k.Response(status_code=200), "created", name, []
+
+		doc = frappe._dict(doctype="Item", name="I-1", item_code="I-1", modified="now")
+		with patch.object(frappe.db, "exists", return_value=True), patch.object(
+			frappe, "get_doc", return_value=doc
+		), patch.object(k, "get_target_fields", return_value=allowed), patch.object(
+			k, "build_payload", return_value=({"item_code": "I-1"}, {})
+		), patch.object(k, "_strip_missing_links", return_value=[]), patch.object(
+			k, "_copy_bom_source_ready", return_value=True
+		), patch.object(k, "copy_bom_for", return_value=copy_bom), patch.object(
+			k, "target_name_if_known", return_value=None
+		), patch.object(
+			k, "_send", side_effect=_capture
+		), patch.object(k, "mark_state"):
+			self.assertTrue(k.push_item("I-1", self.cfg, self.run))
+		return sent
+
+	def test_the_value_reaches_the_payload(self):
+		"""`build_payload` reads the doc, and the doc has no such field - so if this does not
+		add it, nothing does."""
+		self.assertEqual(self._push({"item_code", "custom_copy_bom"})["custom_copy_bom"], "B-1")
+
+	def test_a_target_without_the_field_yet_is_reported_not_sent(self):
+		"""Until Check / Prefill Target Site has run there is nowhere to put the value."""
+		sent = self._push({"item_code"})
+		self.assertNotIn("custom_copy_bom", sent)
+		self.assertIn("Prefill", "\n".join(self.run.problems))
+
+	def test_an_item_with_no_purchase_order_sends_nothing_extra(self):
+		sent = self._push({"item_code", "custom_copy_bom"}, copy_bom=None)
+		self.assertNotIn("custom_copy_bom", sent)
+		self.assertEqual(self.run.problems, [])
+
+
+class TestCopyBomLookup(unittest.TestCase):
+	"""Where the value comes from: the Purchase Order the Manufacturing Plan raised."""
+
+	def setUp(self):
+		# This bench has no `Purchase Order Item.custom_copy_bom`; the queries under test
+		# assume the site that runs them does.
+		for target, attr in ((k, "_copy_bom_source_ready"), (frappe.db, "has_column")):
+			patcher = patch.object(target, attr, return_value=True)
+			patcher.start()
+			self.addCleanup(patcher.stop)
+
+	def _rows(self, *rows):
+		"""`frappe.get_all` is called once per column, so answer in that order."""
+		return [[frappe._dict(r) for r in group] for group in rows]
+
+	def test_both_columns_are_asked_and_the_newest_row_wins(self):
+		"""An FG Purchase row carries the item in `item_code`; a subcontracting row carries
+		the generic service item there and the real one in `fg_item`."""
+		answers = self._rows(
+			[{"item_code": "I-1", "copy_bom": "B-OLD", "creation": 1}],
+			[{"item_code": "I-1", "copy_bom": "B-NEW", "creation": 2}],
+		)
+		with patch.object(frappe, "get_all", side_effect=answers) as get_all:
+			found = k.copy_bom_map(["I-1"])
+
+		self.assertEqual(found, {"I-1": "B-NEW"})
+		asked = [set(c.kwargs["filters"]) - {"custom_copy_bom", "docstatus"} for c in get_all.call_args_list]
+		self.assertEqual(asked, [{"item_code"}, {"fg_item"}])
+
+	def test_a_site_without_the_source_field_is_not_queried(self):
+		"""Asking for a column that is not there is a SQL error, and this runs inside a push:
+		the savepoint would turn it into "unexpected error" against every item in the chunk."""
+		with patch.object(k, "_copy_bom_source_ready", return_value=False), patch.object(
+			frappe, "get_all"
+		) as get_all:
+			self.assertEqual(k.copy_bom_map(["I-1"]), {"I-1": None})
+		get_all.assert_not_called()
+
+	def test_a_site_without_the_source_field_says_so_once(self):
+		"""Silence would look exactly like every item simply having no Purchase Order."""
+		run = _run()
+		with patch.object(k, "_copy_bom_source_ready", return_value=False):
+			for name in ("I-1", "I-2", "I-3"):
+				self.assertEqual(k.target_only_values(run, "Item", name), {})
+		self.assertEqual(len(run.problems), 1)
+		self.assertIn("SOURCE-FIELD-MISSING", run.problems[0])
+
+	def test_an_item_with_no_purchase_order_is_cached_as_a_miss(self):
+		"""A key for every code asked about, so a miss is not re-queried per record."""
+		with patch.object(frappe, "get_all", side_effect=self._rows([], [])):
+			self.assertEqual(k.copy_bom_map(["I-1", "I-2"]), {"I-1": None, "I-2": None})
+
+	def test_nothing_is_queried_for_an_empty_chunk(self):
+		with patch.object(frappe, "get_all") as get_all:
+			self.assertEqual(k.copy_bom_map([]), {})
+		get_all.assert_not_called()
+
+	def test_the_run_cache_spares_a_second_query(self):
+		run = _run()
+		with patch.object(k, "copy_bom_map", return_value={"I-1": "B-1"}) as lookup:
+			self.assertEqual(k.copy_bom_for(run, "I-1"), "B-1")
+			self.assertEqual(k.copy_bom_for(run, "I-1"), "B-1")
+		self.assertEqual(lookup.call_count, 1)
+
+
+class TestAdoptOnDuplicate(unittest.TestCase):
+	"""The hooks this engine replaced pushed by name and stamped no identity.
+
+	So the target holds records `lookup_by_identity` cannot recognise. Each one answers "not
+	there", is created, and the create dies on a duplicate primary key - for ever.
+	"""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", headers={})
+		self.run = _run(config=self.cfg)
+
+	def _duplicate(self):
+		return k.Response(
+			status_code=409,
+			data={
+				"exc_type": "DuplicateEntryError",
+				"exception": "frappe.exceptions.DuplicateEntryError: ('Item', 'I-1', ...)",
+			},
+		)
+
+	def _theirs(self, identity=None):
+		"""What the target says about the record it already has under our name."""
+		return k.Response(status_code=200, data={"data": {"name": "I-1", **(identity or {})}})
+
+	def _send(self, get, put=None):
+		with patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "lookup_by_identity", return_value=None
+		), patch.object(k, "api_post", return_value=self._duplicate()), patch.object(
+			k, "api_get", return_value=get
+		), patch.object(
+			k, "api_put", side_effect=put or [k.Response(status_code=200), k.Response(status_code=200)]
+		) as api_put:
+			result = k._send(self.cfg, "Item", "I-1", {"item_name": "ring"}, run=self.run)
+		return result, api_put
+
+	def test_an_unclaimed_record_is_stamped_and_then_updated(self):
+		(response, action, target, blocked), api_put = self._send(self._theirs())
+
+		self.assertTrue(response.ok)
+		self.assertEqual(action, "updated")
+		self.assertEqual(target, "I-1")
+
+		# First the identity stamp, then the real payload.
+		self.assertEqual(api_put.call_args_list[0].kwargs["json"], k._identity_values("Item", "I-1"))
+		self.assertIn("item_name", api_put.call_args_list[1].kwargs["json"])
+
+	def test_a_record_claimed_by_another_source_is_never_overwritten(self):
+		theirs = self._theirs(
+			{
+				k.IDENTITY_SOURCE_SITE: "other.example.com",
+				k.IDENTITY_SOURCE_DOCTYPE: "Item",
+				k.IDENTITY_SOURCE_NAME: "SOMETHING-ELSE",
+			}
+		)
+		(response, _action, _target, _blocked), api_put = self._send(theirs)
+
+		api_put.assert_not_called()
+		self.assertFalse(response.ok)
+		self.assertIn("NAME-CONFLICT", "\n".join(self.run.problems))
+		self.assertIn("other.example.com", "\n".join(self.run.problems))
+
+	def test_a_duplicate_that_is_not_on_the_name_leaves_the_original_error(self):
+		"""Some other unique index, then - there is nothing here to adopt."""
+		(response, _action, _target, _blocked), api_put = self._send(k.Response(status_code=404))
+
+		api_put.assert_not_called()
+		self.assertFalse(response.ok)
+		self.assertIn("DuplicateEntryError", response.message())
+
+	def test_a_record_that_already_says_it_came_from_here_is_used_as_is(self):
+		"""The identity lookup missed it - an index a moment behind the write."""
+		(response, action, target, _blocked), api_put = self._send(
+			self._theirs(k._identity_values("Item", "I-1"))
+		)
+
+		self.assertTrue(response.ok)
+		self.assertEqual(action, "updated")
+		self.assertEqual(target, "I-1")
+		# No stamp: it is already stamped. Straight to the payload.
+		self.assertEqual(api_put.call_count, 1)
+		self.assertIn("item_name", api_put.call_args.kwargs["json"])
+
+	def test_adoption_is_not_attempted_without_identity_fields_on_the_target(self):
+		"""Without them there is nothing to stamp, and nothing to recognise it by next time."""
+		with patch.object(k, "ensure_identity_fields", return_value=False), patch.object(
+			k, "api_get"
+		) as api_get:
+			k._send(self.cfg, "Item", "I-1", {"item_name": "ring"}, run=self.run)
+		api_get.assert_not_called()
 
 
 class TestChildTableFields(unittest.TestCase):
