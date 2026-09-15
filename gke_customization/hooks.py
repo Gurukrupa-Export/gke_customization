@@ -163,6 +163,13 @@ scheduler_events = {
         "gke_customization.gke_order_forms.doc_events.kggk_sync.reconcile_changes"
     ],
     "cron": {
+        # Sweeping stranded sync runs is deliberately NOT on `hourly_long`. A run is usually
+        # stranded because the long queue is wedged or a worker died, and a reaper queued
+        # behind that jam cannot clear it. Frappe puts a Cron frequency on the `default`
+        # queue, so this one still runs when `long` is stuck.
+        "*/10 * * * *": [
+            "gke_customization.gke_order_forms.doc_events.kggk_sync.reap_stale_runs"
+        ],
         "0 6 * * *": [
 		    "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
         ],

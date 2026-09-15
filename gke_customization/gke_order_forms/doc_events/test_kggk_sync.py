@@ -607,6 +607,195 @@ class TestTargetSchemaFailuresAreReported(unittest.TestCase):
 		self.assertIn("item_code", second)
 
 
+class _Chunk:
+	"""Drives `sync_records` with every boundary patched, and records what it re-enqueued."""
+
+	def __init__(self, test, items=(), boms=(), clock=None, enqueue_error=None, push=None):
+		self.test = test
+		self.items = list(items)
+		self.boms = list(boms)
+		self.pushed = []
+		self.enqueued = None
+		self._clock = clock
+		self._enqueue_error = enqueue_error
+		self._push = push
+
+	def _tick(self):
+		"""`time.monotonic` values the chunk will see, then a value past any deadline."""
+		return next(self._clock) if self._clock else 0
+
+	def _record(self, name, run, counter):
+		self.pushed.append(name)
+		if self._push:
+			# Before the counter moves: a record that was killed did not sync.
+			self._push(name)
+		setattr(run, counter, getattr(run, counter) + 1)
+		return True
+
+	def _enqueue(self, *args, **kwargs):
+		if self._enqueue_error:
+			raise self._enqueue_error
+		self.enqueued = kwargs
+
+	def run(self):
+		stack = ExitStack()
+		p = stack.enter_context
+		p(patch(f"{MOD}.get_sync_config", return_value=(_settings(fingerprint="f"), "")))
+		p(patch(f"{MOD}._wrong_target", return_value=None))
+		p(patch(f"{MOD}.verify_target_company", return_value=(True, "")))
+		p(patch(f"{MOD}.copy_bom_map", return_value={}))
+		p(patch(f"{MOD}._apply_deferred_links"))
+		p(patch(
+			f"{MOD}.push_item",
+			side_effect=lambda code, cfg, run, seen=None: self._record(code, run, "items_synced"),
+		))
+		p(patch(
+			f"{MOD}.push_bom",
+			side_effect=lambda name, cfg, run: self._record(name, run, "boms_synced"),
+		))
+		p(patch(f"{MOD}.time.monotonic", side_effect=lambda: self._tick()))
+		p(patch("frappe.enqueue", side_effect=self._enqueue))
+		p(patch.object(frappe.db, "savepoint"))
+		p(patch.object(frappe.db, "rollback"))
+		p(patch.object(frappe.db, "commit"))
+		self.closed = []
+		p(patch.object(
+			k.SyncRun, "finish",
+			autospec=True,
+			side_effect=lambda run, status=None: self.closed.append(status or "auto") or (status or "auto"),
+		))
+		p(patch.object(k.SyncRun, "flush"))
+		p(patch.object(k.SyncRun, "report"))
+		p(patch(f"{MOD}.mark_state"))
+		with stack:
+			return k.sync_records(items=self.items, boms=self.boms, log_name="LOG-1")
+
+
+class TestChunkBudget(unittest.TestCase):
+	"""A chunk is fifty records by count, which is not the same as fifty records by time.
+
+	One that outruns `JOB_TIMEOUT` is killed by RQ where it stands, and a killed chunk cannot
+	close its own log.
+	"""
+
+	def test_a_chunk_inside_its_budget_does_it_all_in_one_go(self):
+		chunk = _Chunk(self, items=["I-1", "I-2"], boms=["B-1"], clock=iter([0] * 20))
+		chunk.run()
+		self.assertEqual(chunk.pushed, ["I-1", "I-2", "B-1"])
+		self.assertIsNone(chunk.enqueued)
+
+	def test_the_unpushed_tail_is_handed_to_the_next_chunk(self):
+		# Time passes only after the first item.
+		clock = iter([0, 0, 10**6, 10**6, 10**6])
+		chunk = _Chunk(self, items=["I-1", "I-2", "I-3"], boms=["B-1"], clock=clock)
+		chunk.run()
+
+		self.assertEqual(chunk.pushed, ["I-1"])
+		self.assertEqual(chunk.enqueued["items"], ["I-2", "I-3"])
+
+	def test_the_boms_go_with_it_when_the_items_run_out_of_time(self):
+		"""Every BOM in the batch waits on an item this chunk did not reach; pushing them now
+		would fail them all for a reason the next chunk is about to fix."""
+		clock = iter([0, 0, 10**6, 10**6, 10**6])
+		chunk = _Chunk(self, items=["I-1", "I-2"], boms=["B-1", "B-2"], clock=clock)
+		chunk.run()
+
+		self.assertNotIn("B-1", chunk.pushed)
+		self.assertEqual(chunk.enqueued["boms"], ["B-1", "B-2"])
+
+	def test_a_budget_stop_in_the_bom_loop_keeps_the_items_done(self):
+		# Ticks: the deadline, item 1, BOM 1, then past the budget.
+		clock = iter([0, 0, 0, 10**6, 10**6])
+		chunk = _Chunk(self, items=["I-1"], boms=["B-1", "B-2"], clock=clock)
+		chunk.run()
+
+		self.assertEqual(chunk.pushed, ["I-1", "B-1"])
+		self.assertEqual(chunk.enqueued["items"], [])
+		self.assertEqual(chunk.enqueued["boms"], ["B-2"])
+
+	def test_the_run_is_not_closed_when_it_hands_over(self):
+		"""It is still going, in another job. Closing it here is what would lose the rest."""
+		clock = iter([0, 0, 10**6, 10**6, 10**6])
+		chunk = _Chunk(self, items=["I-1", "I-2"], boms=[], clock=clock)
+		result = chunk.run()
+		self.assertEqual(result["status"], "Running")
+		self.assertEqual(chunk.closed, [])
+
+
+class TestAKilledChunkClosesItsLog(unittest.TestCase):
+	"""`flush()` writes counters and progress but not status - see `if status:` in `flush`.
+
+	So the recovery path used to leave the log at Running for ever, which no reaper under half
+	an hour helps with and no Retry button reaches, because `retry_log` refuses a running log.
+	"""
+
+	def _killed(self, at):
+		"""RQ's JobTimeoutException is not an Exception, so it escapes the per-record except."""
+
+		def _boom(name):
+			if name == at:
+				raise BaseException("job exceeded maximum timeout value")
+
+		return _boom
+
+	def test_a_kill_after_some_records_closes_the_log_partially_completed(self):
+		chunk = _Chunk(self, items=["I-1", "I-2"], boms=[], push=self._killed("I-2"))
+		with self.assertRaises(BaseException):
+			chunk.run()
+		self.assertEqual(chunk.closed, [k.STATUS_PARTIAL])
+
+	def test_a_kill_before_anything_landed_closes_the_log_failed(self):
+		chunk = _Chunk(self, items=["I-1"], boms=[], push=self._killed("I-1"))
+		with self.assertRaises(BaseException):
+			chunk.run()
+		self.assertEqual(chunk.closed, [k.STATUS_FAILED])
+
+
+class TestLostHandoff(unittest.TestCase):
+	"""The remainder lives only in the job kwargs - it is never written down."""
+
+	def test_a_failed_continuation_closes_the_run_instead_of_stranding_it(self):
+		clock = iter([0, 0, 10**6, 10**6, 10**6])
+		chunk = _Chunk(
+			self,
+			items=["I-1", "I-2"],
+			boms=[],
+			clock=clock,
+			enqueue_error=RuntimeError("redis is gone"),
+		)
+		result = chunk.run()
+
+		self.assertNotEqual(result["status"], "Running")
+		self.assertEqual(chunk.closed, [k.STATUS_PARTIAL])
+
+
+class TestReaperIsScheduledOnItsOwn(unittest.TestCase):
+	"""It was only ever called from `reconcile_changes`, which is `hourly_long` - the very
+	queue a stranded run is usually stranded behind."""
+
+	def test_the_reaper_has_its_own_cron_entry(self):
+		from gke_customization import hooks
+
+		cron = hooks.scheduler_events.get("cron", {})
+		methods = [m for entry in cron.values() for m in entry]
+		self.assertIn(
+			"gke_customization.gke_order_forms.doc_events.kggk_sync.reap_stale_runs", methods
+		)
+
+	def test_it_is_not_on_a_long_queue_schedule(self):
+		"""Frappe puts a Cron frequency on `default`; anything with "Long" in the frequency
+		goes to the queue that is already jammed."""
+		from gke_customization import hooks
+
+		for key, entry in hooks.scheduler_events.items():
+			if key == "cron":
+				continue
+			self.assertNotIn(
+				"gke_customization.gke_order_forms.doc_events.kggk_sync.reap_stale_runs",
+				entry,
+			)
+
+
 class TestReporting(unittest.TestCase):
 	def _run_with(self, n):
 		run = _run(
@@ -1035,6 +1224,81 @@ class TestPrefillWorker(unittest.TestCase):
 		self.assertEqual(out["fields_created"], [])
 
 
+class TestPrefillReporting(unittest.TestCase):
+	"""The prefill's own account of what it did - the only thing an operator can read back."""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", from_site="https://f", headers={})
+
+	def _worker(self, creatable, fields=None, create_result=(True, "created")):
+		"""Run `run_prefill` and hand back the `_close_prefill` mock."""
+		with ExitStack() as stack:
+			enter = stack.enter_context
+			enter(patch.object(k, "get_sync_config", return_value=(self.cfg, None)))
+			enter(patch.object(k, "_field_gaps", return_value=_gaps(creatable=creatable)))
+			enter(patch.object(k, "_plan_records", return_value=([], [], [])))
+			enter(patch.object(k, "api_exists_many", return_value={}))
+			enter(patch.object(k.SyncRun, "_open_log", return_value="LOG-1"))
+			enter(patch.object(k.SyncRun, "flush"))
+			enter(patch.object(k.SyncRun, "report"))
+			enter(patch.object(k, "_create_custom_field", return_value=create_result))
+			enter(patch.object(k, "enqueue_sync", return_value=True))
+			close = enter(patch.object(k, "_close_prefill"))
+			k.run_prefill("LOG-1", apply=1, fields=fields)
+		return close.call_args.args[1]
+
+	def test_a_run_that_created_everything_is_completed(self):
+		status = self._worker([{"dt": "Item", "fieldname": "custom_x"}])
+		self.assertEqual(status, k.STATUS_COMPLETED)
+
+	def test_a_skipped_field_is_not_a_completed_run(self):
+		"""A prefill where the field was left unticked created nothing, and saying "Completed"
+		is how a missing field on the target comes to look like a sync bug."""
+		status = self._worker(
+			[{"dt": "Item", "fieldname": "custom_copy_bom"}], fields=["Item.something_else"]
+		)
+		self.assertEqual(status, k.STATUS_PARTIAL)
+
+	def test_a_failed_field_is_not_a_completed_run(self):
+		status = self._worker(
+			[{"dt": "Item", "fieldname": "custom_x"}], create_result=(False, "HTTP 403")
+		)
+		self.assertEqual(status, k.STATUS_PARTIAL)
+
+	def test_the_problems_are_written_here_before_they_are_sent_there(self):
+		"""`report` posts to the *target's* Error Log; `flush` is the only thing that writes
+		them to the log the operator is looking at."""
+
+		class _Run:
+			def __init__(self):
+				self.calls = []
+				self.rows = []
+
+			def flush(self, status=None):
+				self.calls.append("flush")
+
+			def report(self, status=None):
+				self.calls.append("report")
+
+		run = _Run()
+		with patch.object(frappe, "get_doc", side_effect=frappe.DoesNotExistError):
+			k._close_prefill("LOG-1", k.STATUS_COMPLETED, "done", run=run)
+
+		self.assertEqual(run.calls, ["flush", "report"])
+
+
+class TestCustomFieldPayload(unittest.TestCase):
+	def test_the_selection_marker_is_not_sent_to_the_target(self):
+		"""`is_identity` is a marker for the dialog, not a Custom Field property."""
+		row = {"dt": "Item", "fieldname": "custom_kggk_source_name", "fieldtype": "Data", "is_identity": 1}
+		with patch.object(k, "api_post", return_value=k.Response(status_code=200)) as post:
+			ok, _message = k._create_custom_field(frappe._dict(to_site="https://t"), row)
+
+		self.assertTrue(ok)
+		self.assertNotIn("is_identity", post.call_args.kwargs["json"])
+		self.assertEqual(post.call_args.kwargs["json"]["fieldname"], "custom_kggk_source_name")
+
+
 class TestTargetNaming(unittest.TestCase):
 	"""The target decides what it calls a record, and it often disagrees with us.
 
@@ -1357,34 +1621,50 @@ class TestTargetOnlyFields(unittest.TestCase):
 		self.assertEqual(self.run.problems, [])
 
 
+class TestCopyBomSourceGuard(unittest.TestCase):
+	"""Its own class: `TestCopyBomLookup` patches the very function under test here."""
+
+	def test_a_missing_source_table_is_not_an_exception(self):
+		"""`has_column` raises outright for a table that does not exist at all, and this is
+		called inside a push."""
+		with patch.object(frappe.db, "has_column", side_effect=Exception("no such table")):
+			self.assertFalse(k._copy_bom_source_ready())
+
+
 class TestCopyBomLookup(unittest.TestCase):
-	"""Where the value comes from: the Purchase Order the Manufacturing Plan raised."""
+	"""Where the value comes from: the Manufacturing Plan row that ordered the item."""
 
 	def setUp(self):
-		# This bench has no `Purchase Order Item.custom_copy_bom`; the queries under test
-		# assume the site that runs them does.
+		# This bench has no Manufacturing Plan Table column to read; the query under test
+		# assumes the site that runs it does.
 		for target, attr in ((k, "_copy_bom_source_ready"), (frappe.db, "has_column")):
 			patcher = patch.object(target, attr, return_value=True)
 			patcher.start()
 			self.addCleanup(patcher.stop)
 
 	def _rows(self, *rows):
-		"""`frappe.get_all` is called once per column, so answer in that order."""
-		return [[frappe._dict(r) for r in group] for group in rows]
+		return [frappe._dict(r) for r in rows]
 
-	def test_both_columns_are_asked_and_the_newest_row_wins(self):
-		"""An FG Purchase row carries the item in `item_code`; a subcontracting row carries
-		the generic service item there and the real one in `fg_item`."""
-		answers = self._rows(
-			[{"item_code": "I-1", "copy_bom": "B-OLD", "creation": 1}],
-			[{"item_code": "I-1", "copy_bom": "B-NEW", "creation": 2}],
+	def test_it_reads_the_plan_row_and_the_newest_wins(self):
+		"""Ordered oldest first, so the most recent plan is the one left standing."""
+		rows = self._rows(
+			{"item_code": "I-1", "copy_bom": "B-OLD"},
+			{"item_code": "I-1", "copy_bom": "B-NEW"},
 		)
-		with patch.object(frappe, "get_all", side_effect=answers) as get_all:
+		with patch.object(frappe, "get_all", return_value=rows) as get_all:
 			found = k.copy_bom_map(["I-1"])
 
 		self.assertEqual(found, {"I-1": "B-NEW"})
-		asked = [set(c.kwargs["filters"]) - {"custom_copy_bom", "docstatus"} for c in get_all.call_args_list]
-		self.assertEqual(asked, [{"item_code"}, {"fg_item"}])
+		self.assertEqual(get_all.call_count, 1)
+		self.assertEqual(get_all.call_args.args[0], "Manufacturing Plan Table")
+		self.assertEqual(get_all.call_args.kwargs["order_by"], "creation asc")
+
+	def test_only_manufacturing_plan_rows_are_considered(self):
+		"""`copy_bom` is a plan-table field, but a filter on parenttype is what keeps this
+		query off any other doctype that ever reuses the child table."""
+		with patch.object(frappe, "get_all", return_value=[]) as get_all:
+			k.copy_bom_map(["I-1"])
+		self.assertEqual(get_all.call_args.kwargs["filters"]["parenttype"], "Manufacturing Plan")
 
 	def test_a_site_without_the_source_field_is_not_queried(self):
 		"""Asking for a column that is not there is a SQL error, and this runs inside a push:
@@ -1396,7 +1676,7 @@ class TestCopyBomLookup(unittest.TestCase):
 		get_all.assert_not_called()
 
 	def test_a_site_without_the_source_field_says_so_once(self):
-		"""Silence would look exactly like every item simply having no Purchase Order."""
+		"""Silence would look exactly like every item simply having no plan row."""
 		run = _run()
 		with patch.object(k, "_copy_bom_source_ready", return_value=False):
 			for name in ("I-1", "I-2", "I-3"):
@@ -1404,9 +1684,9 @@ class TestCopyBomLookup(unittest.TestCase):
 		self.assertEqual(len(run.problems), 1)
 		self.assertIn("SOURCE-FIELD-MISSING", run.problems[0])
 
-	def test_an_item_with_no_purchase_order_is_cached_as_a_miss(self):
+	def test_an_item_with_no_plan_row_is_cached_as_a_miss(self):
 		"""A key for every code asked about, so a miss is not re-queried per record."""
-		with patch.object(frappe, "get_all", side_effect=self._rows([], [])):
+		with patch.object(frappe, "get_all", return_value=[]):
 			self.assertEqual(k.copy_bom_map(["I-1", "I-2"]), {"I-1": None, "I-2": None})
 
 	def test_nothing_is_queried_for_an_empty_chunk(self):

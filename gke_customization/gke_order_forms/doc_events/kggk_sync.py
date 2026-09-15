@@ -1897,9 +1897,9 @@ IDENTITY_FIELDS = (
 # ---------------------------------------------------------------------------------
 #
 # KGGK needs to know which BOM a design was ordered from, and this site has nowhere to put
-# that on the Item. The answer lives on the Purchase Order a Manufacturing Plan raises at
-# submit, so mirroring it onto `tabItem` here would add a column that nothing on this site
-# reads or maintains.
+# that on the Item. The answer lives on the Manufacturing Plan row that ordered it, so
+# mirroring it onto `tabItem` here would add a column that nothing on this site reads or
+# maintains.
 #
 # So the field exists on KGGK only: created there by Check / Prefill Target Site, and given
 # its value at push time from this site's documents. Exactly the arrangement the three
@@ -1919,62 +1919,63 @@ TARGET_ONLY_FIELDS = {
 			"insert_after": "master_bom",
 			"read_only": 1,
 			"description": (
-				"Set by the Gurukrupa sync. The BOM the most recent Purchase Order for this "
-				"item was raised from. Not the item's master BOM."
+				"Set by the Gurukrupa sync. The Copy BOM of the most recent Manufacturing "
+				"Plan row for this item. Not the item's master BOM."
 			),
 		},
 	),
 }
 
 
-# Where the value comes from. `Purchase Order Item.custom_copy_bom` is a Custom Field, created
-# by `jewellery_erpnext.patches.add_purchase_order_item_copy_bom_field`, and a site that has
-# not had that patch run - or that has lost the field since - has no such column.
-COPY_BOM_SOURCE = ("Purchase Order Item", "custom_copy_bom")
+# Where the value comes from: the Manufacturing Plan row that ordered the item. The plan is
+# also what triggers the push, so by the time a chunk runs the row is there and submitted.
+#
+# The Purchase Order the plan raises carries the same value on `custom_copy_bom`, but reading
+# it there would be a longer way round to the same answer, and that field is a Custom Field
+# that not every site has.
+COPY_BOM_SOURCE = ("Manufacturing Plan Table", "copy_bom")
 
 
 def _copy_bom_source_ready():
 	"""Can this site be asked for a Copy BOM at all?
 
-	Asking for a column that is not there is a SQL error, and this runs inside a push: the
-	savepoint would turn it into "unexpected error" against every item in the chunk.
+	Asking for a column - or a table - that is not there is a SQL error, and this runs inside
+	a push: the savepoint would turn it into "unexpected error" against every item in the
+	chunk.
 	"""
 	doctype, fieldname = COPY_BOM_SOURCE
-	return bool(frappe.db.has_column(doctype, fieldname))
+	try:
+		return bool(frappe.db.has_column(doctype, fieldname))
+	except Exception:
+		# No such table - the app that owns Manufacturing Plan is not installed here.
+		return False
 
 
 def copy_bom_map(item_codes):
-	"""``item_code -> the BOM its most recent Purchase Order row came from`` (or ``None``).
+	"""``item_code -> the Copy BOM of its most recent Manufacturing Plan row`` (or ``None``).
 
 	Every requested code is a key, so a miss is cached as firmly as a hit.
-
-	Two queries rather than one with an OR: a Purchase Order raised for an FG Purchase row
-	carries the item in `item_code`, while a subcontracting row carries the generic service
-	item there and the real one in `fg_item`. `item_code` is indexed on Purchase Order Item
-	and `fg_item` is not, and an OR across the two loses the index for both.
 	"""
 	found = {code: None for code in item_codes}
 	if not item_codes or not _copy_bom_source_ready():
 		return found
 
 	doctype, source_field = COPY_BOM_SOURCE
-	rows = []
-	for fieldname in ("item_code", "fg_item"):
-		if not frappe.db.has_column(doctype, fieldname):
-			continue
-		rows += frappe.get_all(
-			doctype,
-			filters={
-				fieldname: ("in", list(item_codes)),
-				source_field: ("is", "set"),
-				"docstatus": ("<", 2),
-			},
-			fields=[f"{fieldname} as item_code", f"{source_field} as copy_bom", "creation"],
-		)
+	rows = frappe.get_all(
+		doctype,
+		filters={
+			"item_code": ("in", list(item_codes)),
+			source_field: ("is", "set"),
+			"parenttype": "Manufacturing Plan",
+			"docstatus": ("<", 2),
+		},
+		fields=["item_code", f"{source_field} as copy_bom", "creation"],
+		order_by="creation asc",
+	)
 
-	# Oldest first, so the newest row for an item is the one left standing. Sorted here rather
-	# than in SQL because the two queries are ordered independently of each other.
-	for row in sorted(rows, key=lambda r: r.creation):
+	# Oldest first, so the newest row for an item is the one left standing: the field says what
+	# was last ordered, not what was ordered first.
+	for row in rows:
 		found[row.item_code] = row.copy_bom
 
 	return found
@@ -2001,7 +2002,7 @@ def target_only_values(run, doctype, name):
 				"Item",
 				None,
 				"{0}.{1} does not exist on this site, so Copy BOM cannot be worked out for "
-				"any item - run `bench migrate` here".format(*COPY_BOM_SOURCE),
+				"any item".format(*COPY_BOM_SOURCE),
 				kind="SOURCE-FIELD-MISSING",
 				once_key="copybom::source",
 			)
@@ -2764,6 +2765,16 @@ def push_bom(bom_name, config, run):
 CHUNK_SIZE = 50
 JOB_TIMEOUT = 3600
 
+# A chunk stops here and hands the rest over, well before `JOB_TIMEOUT` can kill it.
+#
+# Fifty records is a chunk by count, and that is not the same as a chunk by time: a design with
+# a large CAD attachment, or a target under load, can take minutes for one record. A chunk that
+# runs into the job timeout is killed by RQ where it stands, and a killed chunk cannot close its
+# own log - the run then sits at "Running" for ever with a half-filled progress bar, which is
+# exactly the state three plans were found in. Stopping on the clock turns that kill into an
+# ordinary chunk boundary, with the remainder queued and the log honest.
+CHUNK_BUDGET_SECONDS = 20 * 60
+
 # How often a running chunk writes what it has done so far.
 #
 # Counters and record rows are buffered in memory and were written only when the chunk ended.
@@ -2866,12 +2877,20 @@ def sync_records(
 
 	frappe.flags.in_kggk_sync = True
 	loops_completed = False
+	deadline = time.monotonic() + CHUNK_BUDGET_SECONDS
+	out_of_time = False
 	try:
 		# One pair of queries for the chunk rather than one per item. See `copy_bom_map`.
 		run.copy_bom.update(copy_bom_map(items))
 
 		seen = set()
 		for position, item_code in enumerate(items, start=1):
+			if time.monotonic() > deadline:
+				# Give the rest of this chunk back to the queue rather than letting the job
+				# timeout take it. See `CHUNK_BUDGET_SECONDS`.
+				rest_items = items[position - 1 :] + rest_items
+				out_of_time = True
+				break
 			frappe.db.savepoint("kggk_item")
 			try:
 				push_item(item_code, config, run, seen=seen)
@@ -2887,7 +2906,17 @@ def sync_records(
 		# BOMs are what hangs.
 		run.flush()
 
+		if out_of_time:
+			# Every BOM in this batch waits on an item this chunk did not get to. Pushing them
+			# now would fail them all for a reason the next chunk is about to fix.
+			rest_boms = boms + rest_boms
+			boms = []
+
 		for position, bom_name in enumerate(boms, start=1):
+			if time.monotonic() > deadline:
+				rest_boms = boms[position - 1 :] + rest_boms
+				out_of_time = True
+				break
 			frappe.db.savepoint("kggk_bom")
 			try:
 				push_bom(bom_name, config, run)
@@ -2897,6 +2926,15 @@ def sync_records(
 				frappe.log_error(frappe.get_traceback(), f"KGGK sync: BOM {bom_name}"[:140])
 			if position % FLUSH_EVERY == 0:
 				run.flush()
+
+		if out_of_time:
+			run.line(
+				"INFO",
+				None,
+				None,
+				f"chunk {chunk_index + 1} reached its {CHUNK_BUDGET_SECONDS // 60}-minute budget; "
+				f"{len(rest_items)} item(s) and {len(rest_boms)} BOM(s) handed to the next chunk",
+			)
 
 		# The BOMs of this chunk now exist on the target, so the links that were dropped
 		# because they did not - `Item.master_bom` above all - can be put back.
@@ -2913,8 +2951,19 @@ def sync_records(
 		if not loops_completed:
 			# A chunk killed by the job timeout, or one that raised on its way out, still
 			# reports what it learned. Silence here would look exactly like a clean run.
-			run.flush()
-			run.report()
+			#
+			# It must also *close* the run. A bare `flush()` writes counters and progress but
+			# not status - see `if status:` in `flush` - so this used to leave the log at
+			# "Running" for ever, which no reaper under half an hour and no Retry button can
+			# help with, because `retry_log` refuses a running log.
+			run.problem(
+				"ABORTED",
+				None,
+				None,
+				"the chunk stopped before it finished - a job timeout, or the worker was shut "
+				"down. Press Retry Failed to queue what is left.",
+			)
+			run.finish(STATUS_PARTIAL if run.done else STATUS_FAILED)
 
 	if rest_items or rest_boms:
 		# Every chunk reports its own problems. Only the last one used to, because `finish()`
@@ -2928,25 +2977,42 @@ def sync_records(
 		# it is itself still running under the base id. `run_id` is in the id too, so
 		# re-pushing the same plan cannot collide with a chunk still pending from the
 		# previous run and be silently dropped.
-		frappe.enqueue(
-			"gke_customization.gke_order_forms.doc_events.kggk_sync.sync_records",
-			queue="long",
-			timeout=JOB_TIMEOUT,
-			job_id=f"kggk_sync::{run_id or reference or trigger}::chunk{chunk_index + 1}",
-			deduplicate=True,
-			items=rest_items,
-			boms=rest_boms,
-			trigger=trigger,
-			reference=reference,
-			totals=totals,
-			counters=run.counters(),
-			chunk_index=chunk_index + 1,
-			run_id=run_id,
-			log_name=run.log_name,
-			deferred=run.deferred,
-			expect_target=expect_target,
-			expect_fingerprint=expect_fingerprint,
-		)
+		try:
+			frappe.enqueue(
+				"gke_customization.gke_order_forms.doc_events.kggk_sync.sync_records",
+				queue="long",
+				timeout=JOB_TIMEOUT,
+				job_id=f"kggk_sync::{run_id or reference or trigger}::chunk{chunk_index + 1}",
+				deduplicate=True,
+				items=rest_items,
+				boms=rest_boms,
+				trigger=trigger,
+				reference=reference,
+				totals=totals,
+				counters=run.counters(),
+				chunk_index=chunk_index + 1,
+				run_id=run_id,
+				log_name=run.log_name,
+				deferred=run.deferred,
+				expect_target=expect_target,
+				expect_fingerprint=expect_fingerprint,
+			)
+		except Exception as exc:
+			# The remainder lives only in these kwargs - it is never written down - so a lost
+			# hand-off silently loses the rest of the run, and the log would sit at "Running"
+			# with nothing to say why. Close it instead, and name what is owed: for a
+			# Manufacturing Plan `retry_log` can re-derive the records from the plan itself.
+			frappe.logger("kggk_sync").exception(f"could not queue chunk {chunk_index + 2}")
+			run.problem(
+				"ABORTED",
+				None,
+				None,
+				f"the next chunk could not be queued ({exc}), so {len(rest_items)} item(s) and "
+				f"{len(rest_boms)} BOM(s) were not pushed. Press Retry Failed to queue them "
+				"again.",
+			)
+			return {"status": run.finish(STATUS_PARTIAL if run.done else STATUS_FAILED), **run.counters()}
+
 		return {
 			"status": "Running",
 			**run.counters(),
@@ -3647,7 +3713,9 @@ def _field_gaps(config, run=None):
 
 def _create_custom_field(config, row):
 	"""POST one Custom Field to the target. Returns ``(ok, message)``."""
-	payload = {k: v for k, v in row.items() if v not in (None, "")}
+	# `is_identity` is a marker for the selection dialog, not a Custom Field property. It was
+	# being POSTed to the target as a junk key.
+	payload = {k: v for k, v in row.items() if v not in (None, "") and k != "is_identity"}
 	payload["dt"] = row["dt"]
 
 	response = api_post(config, "/api/resource/Custom Field", json=payload)
@@ -4070,9 +4138,12 @@ def run_prefill(
 	# What is still outstanding after this run, so the same log can offer to finish the job
 	# rather than sending the operator back to run another check.
 	result["fields_to_create"] = sorted(set(failed) | set(skipped))
+	# Skipped counts as unfinished, not as success. A run where every field was left unticked
+	# created nothing at all, and reporting that as "Completed" is how a missing field on the
+	# target ends up looking like a sync bug instead of a field that was never asked for.
 	_close_prefill(
 		log_name,
-		STATUS_PARTIAL if failed else STATUS_COMPLETED,
+		STATUS_PARTIAL if (failed or skipped) else STATUS_COMPLETED,
 		result["message"],
 		result=result,
 		run=run,
@@ -4083,6 +4154,12 @@ def run_prefill(
 def _close_prefill(log_name, status, message, result=None, run=None):
 	"""Write the prefill's answer onto its log. The only place the button's result lives."""
 	if run:
+		# Flush first. `report` sends the problem lines to the *target's* Error Log, and
+		# `flush` is the only thing that writes them here - so without this, the reason a
+		# field could not be created was readable on KGGK and nowhere on the site whose
+		# operator pressed the button. `run_prefill` flushes before it creates anything, so
+		# every FIELD-CREATE-FAILED line was raised after the last flush.
+		run.flush()
 		run.report(status)
 	try:
 		doc = frappe.get_doc(LOG_DOCTYPE, log_name)
