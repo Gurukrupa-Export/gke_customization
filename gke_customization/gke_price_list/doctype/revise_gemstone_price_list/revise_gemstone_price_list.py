@@ -48,7 +48,7 @@ class ReviseGemstonePriceList(Document):
                         if j not in old_gemstone_price_list:
                             sorted_data = []
                             for k in frappe.db.get_list("Gemstone Price List",filters={"name":j},fields=["from_weight","to_weight","gemstone_size"]):
-                                sorted_data.append({"from_weight": k['from_weight'], "to_weight": k['to_weight'], "stone_size": k['gemstone_size']})
+                                sorted_data.append({"from_weight": k.get('from_weight'), "to_weight": k.get('to_weight'), "stone_size": k.get('gemstone_size')})
                             set_data_in_child_table(self,sorted_data)
         else:
             old_rate = frappe.db.get_list("Gemstone Price List",filters=filters,fields=["rate","name"])
