@@ -1817,7 +1817,6 @@ def make_quotation(source_name, target_doc=None):
 			"company": "company",
 			"party_name": "customer_code",
 			"order_type": "order_type",
-			"custom_design_type": "design_type",
 			"diamond_quality": "diamond_quality"
 		}
 		for target_field, source_field in field_map.items():
@@ -2078,8 +2077,6 @@ def make_quotation_fill_defaults(quotation, order):
 	quotation.company = order.company
 	quotation.party_name = order.customer_code
 	quotation.order_type = order.order_type
-	# `order` is a "*" row, so design_type is already loaded -- no extra query.
-	quotation.custom_design_type = order.design_type
 	quotation.diamond_quality = order.diamond_quality
 
 	service_types = frappe.db.get_values("Service Type 2", {"parent": order.name}, "service_type1")
