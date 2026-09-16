@@ -43,6 +43,7 @@ def get_pf_data(filters=None):
 		formatted_emps = ", ".join([f"'{e}'" for e in emp_list])
 		emp_condition = f"AND ss.employee IN ({formatted_emps})"
 
+	# Round(Least(Ifnull(basic.basic, 0), 15000) * 0.0367, 2) AS er_share,
 	sql_query = f"""
 		SELECT 
 			ss.employee,
@@ -61,7 +62,15 @@ def get_pf_data(filters=None):
 			CASE WHEN Timestampdiff(year, emp.date_of_birth, Curdate()) < 58 THEN Least(Ifnull(basic.basic, 0), 15000) ELSE 0 end AS eps_wage,
 			Round(Least(Ifnull(basic.basic, 0), 15000) * 0.12, 0) AS ee_share,
 			CASE WHEN Timestampdiff(year, emp.date_of_birth, Curdate()) < 58 THEN Round(Least(Ifnull(basic.basic, 0), 15000) * 0.0833, 0) ELSE 0 end AS eps_con,
-			Round(Least(Ifnull(basic.basic, 0), 15000) * 0.0367, 2) AS er_share,
+			ROUND(
+				ROUND(LEAST(IFNULL(basic.basic, 0), 15000) * 0.12,0)
+				-
+				CASE
+					WHEN TIMESTAMPDIFF(YEAR, emp.date_of_birth, CURDATE()) < 58
+					THEN ROUND(LEAST(IFNULL(basic.basic, 0), 15000) * 0.0833,0)
+					ELSE 0
+				END
+			) AS er_share,
 			CASE
 				WHEN IFNULL(ss.absent_days, 0) > 0
 					THEN ROUND(ss.absent_days, 0)
