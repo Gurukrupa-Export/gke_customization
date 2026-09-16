@@ -435,7 +435,10 @@ def create_item_kggk(doc, method=None):
     from_site = frappe.db.get_single_value("Data Migration in KGGK","from_site")
     to_site= frappe.db.get_single_value("Data Migration in KGGK","to_site")
     api_key = frappe.db.get_single_value("Data Migration in KGGK", "api_key")
-    api_secret = frappe.db.get_single_value("Data Migration in KGGK", "api_secret")
+    # api_secret = frappe.db.get_single_value("Data Migration in KGGK", "api_secret")
+    migration_settings = frappe.get_single("Data Migration in KGGK")
+    api_secret = migration_settings.get_password("api_secret")
+
     # base_url = "https://kggk-uat.m.frappe.cloud"
     # base_url = "https://gkexport-dummy-v16.m.frappe.cloud"
 
@@ -471,8 +474,8 @@ def create_item_kggk(doc, method=None):
                 "stylebio": doc.stylebio,
                 "item_category": doc.item_category,
                 "item_subcategory": doc.item_subcategory,
-                "setting_type": doc.setting_type,
-                "sub_setting_type": doc.sub_setting_type,
+                "setting_type": "Nova Glow",
+                "sub_setting_type": "Nova Glow Setting",
                 "approx_gold": doc.approx_gold,
                 "approx_diamond": doc.approx_diamond,
                 "custom_old_item_category": doc.custom_old_item_category,
@@ -566,130 +569,6 @@ def create_item_kggk(doc, method=None):
 
 
 
- 
-# import frappe
-# def create_item_kggk(doc, method=None):
-#     import requests
-#     from_site = frappe.db.get_single_value("Data Migration in KGGK","from_site")
-#     to_site= frappe.db.get_single_value("Data Migration in KGGK","to_site")
-#     api_key = frappe.db.get_single_value("Data Migration in KGGK", "api_key")
-#     api_secret = frappe.db.get_single_value("Data Migration in KGGK", "api_secret")
-#     # base_url = "https://kggk-uat.m.frappe.cloud"
-#     # base_url = "https://gkexport-dummy-v16.m.frappe.cloud"
-
-#     headers = {
-#         # "Authorization": "token efffaa047a1663f:fe9e9c5b6461c5c",# from local to dummy site 
-#         "Authorization": f"token {api_key}:{api_secret}", #from dummy site to uat kggk
-#         "Content-Type": "application/json"
-#     }
-#     if doc.setting_type == "Nova Glow":
-#         if from_site and to_site:
-#             item_code = doc.name
-
-#             numeric_attributes = set(
-#                 frappe.get_all("Item Attribute", filters={"numeric_values": 1}, pluck="name")
-#             )
-
-#             payload = {
-#                 "item_code": doc.name,
-#                 "item_name": doc.item_name,
-#                 "item_group": doc.item_group,
-#                 "stock_uom": doc.stock_uom,
-#                 "description": doc.description,
-#                 "master_bom": doc.master_bom,
-#                 "has_variants":doc.has_variants,
-#                 "disabled": doc.disabled,
-#                 "is_stock_item": doc.is_stock_item,
-#                 "gst_hsn_code": doc.gst_hsn_code,
-#                 "include_item_in_manufacturing": doc.include_item_in_manufacturing,
-#                 "custom_is_manufacturing_item": doc.custom_is_manufacturing_item,
-#                 "custom_inventory_type_can_be_customer_goods": doc.custom_inventory_type_can_be_customer_goods,
-#                 "custom_reason_for_design_code_": doc.custom_reason_for_design_code_,
-#                 "old_tag_no": doc.old_tag_no,
-#                 "stylebio": doc.stylebio,
-#                 "item_category": doc.item_category,
-#                 "item_subcategory": doc.item_subcategory,
-#                 "setting_type": doc.setting_type,
-#                 "sub_setting_type": doc.sub_setting_type,
-#                 "approx_gold": doc.approx_gold,
-#                 "approx_diamond": doc.approx_diamond,
-#                 "custom_old_item_category": doc.custom_old_item_category,
-#                 "designer": doc.designer,
-#                 "product_dimension": doc.product_dimension,
-#                 "sizer_type": doc.sizer_type,
-#                 "product_shape": doc.product_shape,
-#                 "productivity": doc.productivity,
-#                 "manufacturing_type": doc.manufacturing_type,
-#                 "variant_of": doc.variant_of,
-#                 "attributes": [
-#                     {
-#                         "attribute": row.attribute,
-#                         "attribute_value": flt(row.attribute_value) if row.attribute in numeric_attributes else row.attribute_value
-#                     }
-#                     for row in (doc.attributes or [])
-#                 ],
-#                 "asset_naming_series": doc.asset_naming_series,
-#                 "asset_category": doc.asset_category,
-#                 "is_grouped_asset": doc.is_grouped_asset,
-#                 "auto_create_assets": doc.auto_create_assets
-#             }
-            
-
-#             try:
-#                 # Try update first
-#                 update_payload = {k: v for k, v in payload.items() if k not in ( "variant_of")}
-#                 response = requests.put(
-#                     f"{to_site}/api/resource/Item/{item_code}",
-#                     headers=headers,
-#                     json=update_payload,
-#                     timeout=15
-#                 )
-
-#                 # If item doesn't exist, create it
-#                 if response.status_code == 404:
-#                     response = requests.post(
-#                         f"{to_site}/api/resource/Item",
-#                         headers=headers,
-#                         json=payload,
-#                         timeout=15
-#                     )
-
-#                 # Log full response for debugging
-#                 frappe.logger().info(
-#                     f"Status Code: {response.status_code}\nResponse: {response.text}"
-#                 )
-
-#                 # Handle API errors
-#                 if response.status_code >= 400:
-#                     frappe.log_error(
-#                         title="KGGK API Error",
-#                         message=f"""
-#                         URL: {response.url}
-
-#                         Status Code: {response.status_code}
-
-#                         Response:
-#                         {response.text}
-
-#                         Payload:
-#                         {frappe.as_json(payload)}
-#                         """
-#                     )
-
-#                     frappe.throw(
-#                         f"API Error ({response.status_code})<br><br>{response.text}"
-#                     )
-
-#                 frappe.logger().info(
-#                     f"Item {item_code} synced successfully."
-#                 )
-
-#             except Exception:
-#                 frappe.log_error(
-#                     title="Item Sync Error",
-#                     message=frappe.get_traceback()
-#                 )
-#                 raise
 
 
 

@@ -71,7 +71,7 @@ def make_serial_and_design_order(source_name, target_doc=None, parent_doc = None
 	doc.po_no = parent_doc.po_no
 	doc.parcel_place = parent_doc.parcel_place
 	doc.product_type = parent_doc.product_type
-	# doc.project = parent_doc.project
+	doc.order_type = parent_doc.stock_type
 	# doc.due_days = parent_doc.due_days
 	# doc.form_remarks = parent_doc.remarks
 	doc.save()

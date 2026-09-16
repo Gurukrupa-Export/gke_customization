@@ -80,17 +80,38 @@ def append_diamond_detail_from_jwelex(product_order, diamond_details):
 		dest.total_diamond_rate = d.get("Rate")
 		dest.diamond_rate_for_specified_quantity = d.get("Amount")
 		dest.se_rate = d.get("Costing_Amt")
-		# purity_name = d.get("Purity_Name")
-		# if purity_name:
-		# 	if purity_name.startswith("DIAMOND NO"):
-		# 		purity_name = purity_name.replace("DIAMOND NO", "", 1).strip()
-		# 	elif purity_name.startswith("GK NO"):
-		# 		purity_name = purity_name.replace("GK NO", "", 1).strip()
+		purity_name = d.get("Purity_Name")
+		if purity_name:
+			if purity_name.startswith("DIAMOND NO"):
+				purity_name = purity_name.replace("DIAMOND NO", "", 1).strip()
 
-		# 	purity_name = purity_name.replace(" ", "")
+			elif purity_name.startswith("GK NO"):
+				purity_name = purity_name.replace("GK NO", "", 1).strip()
 
-		# dest.diamond_grade = purity_name
+			# Remove spaces and /
+			purity_name = purity_name.replace(" ", "").replace("/", "")
 
+			values = frappe.get_all(
+				"Item Attribute Value",
+				filters={"parent": "Diamond Grade"},
+				pluck="attribute_value"
+			)
+
+			frappe.log_error(
+				f"purity_name: {purity_name}\nvalues: {values}",
+				"Diamond Grade"
+			)
+
+			# Remove spaces and / from attribute values as well
+			values = [v.replace(" ", "").replace("/", "") for v in values]
+
+			if purity_name in values:
+				dest.diamond_grade = purity_name
+
+				frappe.log_error(
+					f"purity_name matched: {purity_name}",
+					"Diamond Grade Debug"
+				)
 
 def append_finding_detail_from_jwelex(product_order, finding_details):
 	for f in finding_details:
@@ -131,6 +152,11 @@ def append_gemstone_detail_from_jwelex(product_order, stone_details):
 		dest.total_gemstone_rate = s.get("Rate")
 		dest.gemstone_rate_for_specified_quantity = s.get("Amount")
 		dest.se_rate = s.get("Costing_Rate")
+		parent =  frappe.db.get_value("Jewelex to ERP Gemstone Mapping",{'mapping_type':"Gemstone Type"},"name")
+		if parent:
+			gemstone_type = frappe.db.get_value('Jewelex to ERP Gemstone Mapping item',{"parent":parent,"jewelex_gemstone_type":s.get('Purity_Name')},'erp_gemstone_type')
+			if gemstone_type:
+				dest.gemstone_type =  gemstone_type
 
 
 class ProductReturnOrderForm(Document):
@@ -1086,6 +1112,8 @@ class ProductReturnOrderForm(Document):
 			# update_totals("BOM", bom_doc.name)
 
 	def on_submit(self):
+		if self.ref_company == "KG":	
+			sync_product_return_form_to_remote(self)
 
 		# if self.yu: return
 
@@ -4394,4 +4422,357 @@ def create_return_sales_invoice(doc):
 	pass
 	
 
+
+
+import json
+import requests
+import frappe
+
+
+def sync_product_return_form_to_remote(doc, method=None):
+    # =========================================================
+    # PREVENT REMOTELY-CREATED DOCUMENT FROM SYNCING BACK
+    # =========================================================
+
+    # if not doc.custom_auto_created_product_return_form:
+
+    #     # =====================================================
+    #     # PRODUCT RETURN FORM ITEMS
+    #     # =====================================================
+
+	items = []
+
+	for row in (doc.items or []):
+		items.append({
+			"item_code": row.item_code,
+			"serial_no": row.serial_no,
+			"hsn_sac": row.hsn_sac,
+			"item_group": row.item_group,
+			"is_jewelex_tag": row.is_jewelex_tag,
+			"item_name": row.item_name,
+			"bom": row.bom,
+			"is_sale": row.is_sale,
+			"jewelex_tag": row.jewelex_tag,
+			"net_weight": row.net_weight,
+			"gross_weight": row.gross_weight,
+			"physical_gross_weight": row.physical_gross_weight,
+			"physical_net_weight": row.physical_net_weight,
+			"metal_touch": row.metal_touch,
+			"metal_purity": row.metal_purity,
+			"metal_colour": row.metal_colour,
+			"setting_type": row.setting_type,
+			"item_category": row.item_category,
+			"item_subcategory": row.item_subcategory,
+			"gold_rate": row.gold_rate,
+			"description": row.description,
+			"image": row.image,
+			"qty": row.qty,
+			"uom": row.uom,
+			"rate": row.rate,
+			"amount": row.amount,
+			"base_rate": row.base_rate,
+			"base_amount": row.base_amount,
+			"metal_weight": row.metal_weight,
+			"finding_weight": row.finding_weight,
+			"diamond_weight": row.diamond_weight,
+			"diamond_pcs": row.diamond_pcs,
+			"gemstone_weight": row.gemstone_weight,
+			"gemstone_pcs": row.gemstone_pcs,
+			"other_weight": row.other_weight,
+			"metal_amount": row.metal_amount,
+			"diamond_amount": row.diamond_amount,
+			"finding_amount": row.finding_amount,
+			"making_amount": row.making_amount,
+			"certification_amount": row.certification_amount,
+			"freight_amount": row.freight_amount,
+			"gemstone_amount": row.gemstone_amount,
+			"other_material_amount": row.other_material_amount,
+			"hallmarking_amount": row.hallmarking_amount,
+			"custom_duty_amount": row.custom_duty_amount,
+			"other_amount": row.other_amount,
+			"total_weight": row.total_weight,
+			"warehouse": row.warehouse,
+			"sales_invoice": row.sales_invoice,
+			"sales_invoice_item": row.sales_invoice_item
+		})
+
+	# =====================================================
+	# CREDIT NOTE INVOICE ITEMS
+	# =====================================================
+
+	credit_note_invoice_item = []
+
+	for row in (doc.credit_note_invoice_item or []):
+		credit_note_invoice_item.append({
+			"item_code": row.item_code,
+			"serial_no": row.serial_no,
+			"qty": row.qty,
+			"rate": row.rate,
+			"amount": row.amount
+		})
+
+	# =====================================================
+	# SALES TAXES AND CHARGES
+	# =====================================================
+
+	sales_taxes_and_charges = []
+
+	for row in (doc.sales_taxes_and_charges or []):
+		sales_taxes_and_charges.append({
+			"charge_type": row.charge_type,
+			"account_head": (
+				row.account_head.rsplit(" - ", 1)[0] + " - KGJPL"
+				if row.account_head and " - " in row.account_head
+				else row.account_head
+			),
+			"description": row.description,
+			"included_in_print_rate": row.included_in_print_rate,
+			"included_in_paid_amount": row.included_in_paid_amount,
+			# "set_by_item_tax_template": row.set_by_item_tax_template,
+			# "is_tax_withholding_account": row.is_tax_withholding_account,
+			"cost_center": row.cost_center,
+			"rate": row.rate,
+			"account_currency": row.account_currency,
+			# "net_amount": row.net_amount,
+			"tax_amount": row.tax_amount,
+			"total": row.total,
+			"tax_amount_after_discount_amount": row.tax_amount_after_discount_amount,
+			# "base_net_amount": row.base_net_amount,
+			"base_tax_amount": row.base_tax_amount,
+			"base_total": row.base_total,
+			"base_tax_amount_after_discount_amount": row.base_tax_amount_after_discount_amount,
+			"dont_recompute_tax": row.dont_recompute_tax
+		})
+
+	# =====================================================
+	# MAIN PAYLOAD
+	# =====================================================
+
+	payload = {
+		"name": doc.name,
+
+		# BASIC INFORMATION
+		"customer": "GJCU0009",
+		"customer_name": "Gurukrupa Export Private Limited - Factory",
+		"ref_company": doc.ref_company,
+		"company": "KG GK Jewellers Private Limited",
+		"sales_type": doc.sales_type,
+
+		"date": doc.date,
+		"posting_time": doc.posting_time,
+
+		"invoice_sales_type": doc.invoice_sales_type,
+		"status": doc.status,
+
+		"credit_note_type": doc.credit_note_type,
+		"credit_note_subtype": "Yes",
+		"return_subtype": "",
+
+		"credit_note_rate_type": "",
+		"diamond_rate_type": "",
+
+		"making_charges_type": "With",
+		"handling_charges": "With",
+		"wastage_charges": "With",
+		"gemstone_charges": "With",
+
+		"return_material_type": doc.return_material_type,
+
+		# RATES
+		"gold_rate_with_gst": doc.gold_rate_with_gst,
+		"gold_rate": doc.gold_rate,
+
+		# SCAN / PRODUCT
+		"scan_barcode": doc.scan_barcode,
+
+		"product_hallmarking": doc.product_hallmarking,
+		"product_certification": doc.product_certification,
+
+		# WEIGHTS
+		"metal_weight": doc.metal_weight,
+		"diamond_weight": doc.diamond_weight,
+		"diamond_pcs": doc.diamond_pcs,
+
+		"finding_weight": doc.finding_weight,
+
+		"gemstone_weight": doc.gemstone_weight,
+		"gemstone_pcs": doc.gemstone_pcs,
+
+		"other_weight": doc.other_weight,
+
+		# TOTALS
+		"total_amount": doc.total_amount,
+		"total_taxes_and_charges": doc.total_taxes_and_charges,
+		"grand_total": doc.grand_total,
+
+		"rounding_adjustment": doc.rounding_adjustment,
+		"rounded_total": doc.rounded_total,
+
+		"in_words": doc.in_words,
+
+		# TAX CATEGORY
+		"tax_category": doc.tax_category,
+
+		# CHILD TABLES
+		"items": items,
+		"credit_note_invoice_item": credit_note_invoice_item,
+		"sales_taxes_and_charges": sales_taxes_and_charges,
+
+		# IMPORTANT:
+		# This prevents the remote-created document from
+		# syncing back to this site.
+		"custom_auto_created_product_return_form": 1
+	}
+
+	# =====================================================
+	# REMOTE API
+	# =====================================================
+	migration_settings = frappe.get_single("Data Migration in KGGK")
+	site_url = (migration_settings.prf_to_site or "").rstrip("/")
+	api_key = migration_settings.api_key
+	api_secret = migration_settings.get_password("api_secret")
+
+	base_url = site_url
+
+	url = (
+		base_url
+		+ "/api/resource/Product%20Return%20Order%20Form"
+	)
+
+	headers = {
+		"Authorization": f"token {api_key}:{api_secret}",
+		"Content-Type": "application/json",
+		"Accept": "application/json",
+	}
+
+	# =====================================================
+	# CREATE REMOTE DOCUMENT
+	# =====================================================
+
+	try:
+
+		resp = requests.post(
+			url,
+			headers=headers,
+			data=json.dumps(payload, default=str)
+		)
+		resp.raise_for_status()
+		response = resp.json()
+
+		frappe.log_error(
+			title="Remote Product Return Form Created",
+			message=str(response)
+		)
+
+		# =================================================
+		# GET CREATED DOCUMENT NAME
+		# =================================================
+
+		remote_doc = None
+
+		if isinstance(response, dict):
+
+			if response.get("data"):
+				remote_doc = response.get("data")
+
+			elif response.get("message"):
+				remote_doc = response.get("message")
+
+		if not remote_doc:
+			frappe.throw(
+				"Remote Product Return Order Form was created, "
+				"but the response did not contain the document."
+			)
+
+		remote_name = remote_doc.get("name")
+
+		if not remote_name:
+			frappe.throw(
+				"Remote Product Return Order Form name was not returned."
+			)
+
+		# =================================================
+		# GET REMOTE DOCUMENT
+		# =================================================
+
+		get_url = (
+			base_url
+			+ "/api/resource/Product%20Return%20Order%20Form/"
+			+ remote_name
+		)
+
+		remote_resp = requests.get(
+			get_url,
+			headers=headers
+		)
+		remote_resp.raise_for_status()
+		remote_response = remote_resp.json()
+
+		remote_data = remote_response.get("data", {})
+
+		workflow_state = remote_data.get("workflow_state")
+		remote_docstatus = remote_data.get("docstatus")
+
+		frappe.log_error(
+			title="Remote Product Return Form State",
+			message=json.dumps({
+				"name": remote_name,
+				"workflow_state": workflow_state,
+				"docstatus": remote_docstatus
+			}, default=str)
+		)
+
+		# =================================================
+		# SUBMIT REMOTE DOCUMENT
+		# =================================================
+
+		if remote_docstatus != 1:
+
+			submit_url = (
+				base_url
+				+ "/api/resource/Product%20Return%20Order%20Form/"
+				+ remote_name
+			)
+
+			submit_payload = {
+				"docstatus": 1
+			}
+
+			submit_resp = requests.put(
+				submit_url,
+				headers=headers,
+				data=json.dumps(submit_payload)
+			)
+			submit_resp.raise_for_status()
+			submit_response = submit_resp.json()
+
+			frappe.log_error(
+				title="Remote Product Return Form Submitted",
+				message=json.dumps(
+					submit_response,
+					default=str
+				)
+			)
+
+	except Exception as e:
+
+		error_detail = str(e)
+
+		try:
+			error_detail += (
+				"\n\nResponse body:\n"
+				+ e.response.text
+			)
+		except Exception:
+			pass
+
+		frappe.log_error(
+			title="Product Return Order Form Remote Sync Failed",
+			message=error_detail
+		)
+
+		frappe.throw(
+			"Remote Product Return Order Form Sync Failed: "
+			+ error_detail
+		)
 

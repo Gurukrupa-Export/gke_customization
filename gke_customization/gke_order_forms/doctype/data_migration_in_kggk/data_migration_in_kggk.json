@@ -31,7 +31,11 @@
   "reconcile_batch_size",
   "check_target_site",
   "prefill_target_site",
-  "view_sync_logs"
+  "view_sync_logs",
+    "repair_order_section",
+  "prf_from_site",
+  "column_break_uinj",
+  "prf_to_site"
  ],
  "fields": [
   {
@@ -187,6 +191,27 @@
    "fieldname": "view_sync_logs",
    "fieldtype": "Button",
    "label": "Sync Logs"
+ },
+  {
+   "description": "This setting is used to synchronize Product Return Order Forms from the Gurukrupa site to the KGGK site. It synchronizes both the Product Return Order Form and the corresponding Product Return Order between the two sites.",
+   "fieldname": "repair_order_section",
+   "fieldtype": "Section Break",
+   "label": "Repair Order "
+  },
+  {
+   "fieldname": "column_break_uinj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "prf_from_site",
+   "fieldtype": "Data",
+   "label": "PRF From Site "
+  },
+  {
+   "description": "Destination site to which Product Return Order data is synchronized.",
+   "fieldname": "prf_to_site",
+   "fieldtype": "Data",
+   "label": "PRF To Site"
   }
  ],
  "grid_page_length": 50,

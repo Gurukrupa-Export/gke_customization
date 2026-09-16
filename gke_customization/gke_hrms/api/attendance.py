@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 from datetime import timedelta, datetime
-from frappe.utils import flt, getdate, add_days, format_time, today, add_to_date, get_time
+from frappe.utils import flt, getdate, add_days, format_time, today, add_to_date, get_time, get_datetime
 import frappe.utils
 from gurukrupa_customizations.gurukrupa_customizations.doctype.manual_punch.manual_punch import get_checkins
 from frappe.query_builder.functions import Count, Date, Concat, IfNull, Sum
@@ -350,8 +350,17 @@ def process_data(data,from_date,to_date, employee):
 	emp_det = frappe.db.get_value("Employee", employee, 
 		["default_shift","holiday_list","date_of_joining","employee_name","company","department","allowed_personal_hours",
     "designation","old_punch_id","middle_name","gender","date_of_birth","branch"], as_dict=1)
+
+	default_shift = emp_det.get("default_shift") #<<< CHANGED
+	 
+	shift = ''
+	for row in data:
+		shift = row.shift_name
 	
-	shift = emp_det.get("default_shift")
+	if not shift:
+		shift = default_shift #<<< CHANGED
+
+	# shift = emp_det.get("default_shift")
 	shift_det = frappe.db.get_value("Shift Type", shift, ['shift_hours','holiday_list','start_time', 'end_time','early_exit_grace_period'], as_dict=1)
 	shift_hours = flt(shift_det.get("shift_hours"))
 	shift_name = f"{format_time(shift_det.get('start_time'))} To {format_time(shift_det.get('end_time'))}"
@@ -359,32 +368,107 @@ def process_data(data,from_date,to_date, employee):
 
 	EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
 	addition_day = add_days(to_date,1)
-	checkins = (
-		frappe.qb.from_(EmployeeCheckin)
-		.select(
-			Date(EmployeeCheckin.time).as_("login_date"),
-			EmployeeCheckin.attendance,
-			Count(EmployeeCheckin.name).as_("cnt")
-		)
-		.where(
-			(EmployeeCheckin.time.between(from_date, addition_day)) &
-			(EmployeeCheckin.employee == employee)
-			&
-			(EmployeeCheckin.attendance.isnotnull()) & 
-			(EmployeeCheckin.attendance != "")
-		)
-		.groupby(EmployeeCheckin.attendance)
-	).run(as_dict=True)
+
+	# checkins = (
+	# 	frappe.qb.from_(EmployeeCheckin)
+	# 	.select(
+	# 		Date(EmployeeCheckin.time).as_("login_date"),
+	# 		EmployeeCheckin.attendance,
+	# 		Count(EmployeeCheckin.name).as_("cnt")
+	# 	)
+	# 	.where(
+	# 		(EmployeeCheckin.time.between(from_date, addition_day)) &
+	# 		(EmployeeCheckin.employee == employee)
+	# 		&
+	# 		(EmployeeCheckin.attendance.isnotnull()) & 
+	# 		(EmployeeCheckin.attendance != "")
+	# 	)
+	# 	.groupby(EmployeeCheckin.attendance)
+	# ).run(as_dict=True)
+
+	################################################
+	from_date_time = get_datetime(from_date)
+	to_date_time = get_datetime(f"{addition_day} 23:59:59")
+
+	is_night_shift = get_time(shift_det.get('start_time')) > get_time(shift_det.get('end_time'))
 	
+	TIME = CustomFunction("TIME", ["time"])
+	IF = CustomFunction("IF", ["condition", "true_expr", "false_expr"])
+
+	# Modify the checkins query to handle night shifts:
+	if is_night_shift:
+		# For night shifts, group check-ins by the shift start date
+		# If time is before shift start (meaning it's from next day), use previous date
+		shift_start_time = shift_det.get('start_time')
+		checkins = (
+			frappe.qb.from_(EmployeeCheckin)
+			.select(
+				IF(
+					TIME(EmployeeCheckin.time) < shift_start_time, # shift_start_time = 23:00:00 and time =  22:00:00
+					Date(EmployeeCheckin.time - timedelta(days=1)), #
+					Date(EmployeeCheckin.time)
+				).as_("login_date"),
+				EmployeeCheckin.attendance,
+				Count(EmployeeCheckin.name).as_("cnt")
+			)
+			.where(
+				(EmployeeCheckin.time.between(from_date_time, to_date_time)) &
+				(EmployeeCheckin.employee == employee) &
+				(EmployeeCheckin.attendance.isnotnull()) &
+				(EmployeeCheckin.attendance != "")
+			)
+			.groupby(EmployeeCheckin.attendance)
+		).run(as_dict=True)
+	else:
+		# Keep existing logic for day shifts
+		checkins = (
+			frappe.qb.from_(EmployeeCheckin)
+			.select(
+				Date(EmployeeCheckin.time).as_("login_date"),
+				EmployeeCheckin.attendance,
+				Count(EmployeeCheckin.name).as_("cnt")
+			)
+			.where(
+				(EmployeeCheckin.time.between(from_date_time, to_date_time)) &
+				(EmployeeCheckin.employee == employee) &
+				(EmployeeCheckin.attendance.isnotnull()) &
+				(EmployeeCheckin.attendance != "")
+			)
+			.groupby(EmployeeCheckin.attendance)
+		).run(as_dict=True)
+	#########################################################
+
 	checkins = {row.login_date: row.cnt for row in checkins}
 	
-	od = frappe.get_list("Employee Checkin",{'employee':employee,'source':"Outdoor Duty", "time": ['between',[from_date,add_days(to_date,1)]]},'date(time) as login_date', pluck='login_date',group_by='login_date')
+	# od = frappe.get_list("Employee Checkin",{'employee':employee,'source':"Outdoor Duty", "time": ['between',[from_date,add_days(to_date,1)]]},'date(time) as login_date', pluck='login_date',group_by='login_date')
+	od = frappe.db.sql("""
+		SELECT DATE(time) as login_date
+		FROM `tabEmployee Checkin`
+		WHERE employee = %(employee)s
+			AND source = 'Outdoor Duty'
+			AND time BETWEEN %(from_date)s AND %(to_date)s
+		GROUP BY DATE(time)
+	""", {
+		'employee': employee,
+		'from_date': from_date,
+		'to_date': add_days(to_date, 1)
+	}, pluck='login_date')
 	if shift and not emp_det.get('holiday_list'):
 			emp_det['holiday_list'] = shift_det.get("holiday_list")
 	
 	if hl_name:=emp_det.get('holiday_list'):
-		holidays = frappe.get_list("Holiday", {"parent": hl_name,
-					"holiday_date":["between",[from_date, to_date]]}, ["holiday_date","weekly_off"], ignore_permissions=1)
+		# holidays = frappe.get_list("Holiday", {"parent": hl_name,
+		# 			"holiday_date":["between",[from_date, to_date]]}, ["holiday_date","weekly_off"], ignore_permissions=1)
+		holidays = frappe.db.sql("""
+			SELECT holiday_date, weekly_off
+			FROM `tabHoliday`
+			WHERE parent = %(hl_name)s
+				AND holiday_date BETWEEN %(from_date)s AND %(to_date)s
+		""", {
+			'hl_name': hl_name,
+			'from_date': from_date,
+			'to_date': to_date
+		}, as_dict=1)
 		wo = [row.holiday_date for row in holidays if row.weekly_off]
 		holidays = [row.holiday_date for row in holidays if not row.weekly_off]
 	
@@ -393,6 +477,10 @@ def process_data(data,from_date,to_date, employee):
 		if grace_period != 0:
 			if not (row.early_hrs): 
 				if row.status == 'Absent':
+					row.net_wrk_hrs = timedelta(0)
+					row.total_pay_hrs = timedelta(0)
+				elif row.status == 'Leave Without Pay':
+					# FIXED: Force LWP to 0 hours
 					row.net_wrk_hrs = timedelta(0)
 					row.total_pay_hrs = timedelta(0)
 				elif row.late_hrs or row.p_out_hrs:
@@ -411,63 +499,163 @@ def process_data(data,from_date,to_date, employee):
 		shift_hours_in_sec = ''
 		if row.shift_hours:
 			shift_hours_in_sec = row.shift_hours * 3600
-			if row.net_wrk_hrs.total_seconds() > shift_hours_in_sec or (shift_hours_in_sec - row.net_wrk_hrs.total_seconds()) < 60:
+			if row.status not in ['Leave Without Pay', 'Absent']:
+				if row.net_wrk_hrs.total_seconds() > shift_hours_in_sec or (shift_hours_in_sec - row.net_wrk_hrs.total_seconds()) < 60:
+					row.net_wrk_hrs = timedelta(hours=row.shift_hours)
+			leave_status = frappe.db.get_value('Leave Type',{'name': row.status,'is_earned_leave': 1}, ['name'])
+			if leave_status:
+				row.status = STATUS.get(row.status) or row.status
 				row.net_wrk_hrs = timedelta(hours=row.shift_hours)
 		else:
-			shift = emp_det.get("default_shift")
-			shift_det = frappe.db.get_value("Shift Type", shift, ['shift_hours','start_time', 'end_time'], as_dict=1)
-			shift_hours = flt(shift_det.get("shift_hours"))
-			shift_name = f"{format_time(shift_det.get('start_time'))} To {format_time(shift_det.get('end_time'))}"
-			row.shift = shift_name
+			# shift = emp_det.get("default_shift")
+			# shift_det = frappe.db.get_value("Shift Type", shift, ['shift_hours','start_time', 'end_time'], as_dict=1)
+			# shift_hours = flt(shift_det.get("shift_hours"))
+			# shift_name = f"{format_time(shift_det.get('start_time'))} To {format_time(shift_det.get('end_time'))}"
+			# row.shift = shift_name
+			#<<< CHANGED
+			row_shift_det = get_shift_for_date(employee, row.attendance_date, default_shift)
+			row_shift_hours = flt(row_shift_det.get("shift_hours"))
+			row_shift_name = f"{format_time(row_shift_det.get('start_time'))} To {format_time(row_shift_det.get('end_time'))}"
+			row.shift = row_shift_name
+			#<<< CHANGED END
+						
+			leave_status = frappe.db.get_value('Leave Type',{'name': row.status,'is_earned_leave': 1}, ['name'])
+			e_leave_status = frappe.db.get_value('Leave Type', {'name': row.status,'max_continuous_days_allowed': ['>',0]}, ['name'])
 			
-			leave_status = frappe.db.get_value('Leave Type',{'name': row.status,'is_earned_leave': 0}, ['name'])
-			if leave_status:
-				row.status = leave_status
+			# FIXED: Check if LWP specifically
+			is_lwp = frappe.db.get_value('Leave Type', {'name': row.status, 'is_lwp': 1}, ['name'])
+			
+			if is_lwp:
+				# Force LWP to 0 hours
+				row.status = STATUS.get(row.status) or row.status
 				row.net_wrk_hrs = timedelta(0)
+			elif leave_status or e_leave_status:
+				row.status = STATUS.get(row.status) or row.status
+				row.net_wrk_hrs = timedelta(hours=row_shift_hours) #<<< CHANGED
 			else:
-				row.net_wrk_hrs = timedelta(hours=shift_hours)
+				row.net_wrk_hrs = timedelta(0)
 				
 		row["total_pay_hrs"] = row.net_wrk_hrs + (row.get("ot_hours") or timedelta(0))
 		row.status = STATUS.get(row.status) or row.status
 		processed[row.attendance_date] = row
 
-	ot_for_wo = frappe.get_all("OT Log", {"employee":employee,"attendance_date": ["between",[from_date,to_date]], "is_cancelled":0}, ["attendance_date","allowed_ot as ot_hours", "first_in as in_time", "last_out as out_time"])
+	# ot_for_wo = frappe.get_all("OT Log", {"employee":employee,"attendance_date": ["between",[from_date,to_date]], "is_cancelled":0}, ["attendance_date","allowed_ot as ot_hours", "first_in as in_time", "last_out as out_time"])
+	ot_for_wo = frappe.db.sql("""
+			SELECT
+				attendance_date,
+				allowed_ot as ot_hours,
+				first_in as in_time,
+				last_out as out_time
+			FROM `tabOT Log`
+			WHERE employee = %(employee)s
+				AND attendance_date BETWEEN %(from_date)s AND %(to_date)s
+				AND is_cancelled = 0
+		""", {
+			'employee': employee,
+			'from_date': from_date,
+			'to_date': to_date
+		}, as_dict=1)
 	ot_for_wo = {row.attendance_date: row for row in ot_for_wo}
 	date_range = get_date_range(from_date, to_date)
 
 	for date in date_range:
 		row = processed.get(date,ot_for_wo.get(date,{}))
 		status = row.get("status") or "XX"
+
+		#########################################################
+		# Check for odd checkin count first, but don't override WO/Holiday status later
+		has_checkin_error = False
+		# frappe.log_error(message=f"{checkins=}", title="Checkins -- Monthly In Out")
+		if count:=checkins.get(date):
+			if count %2 != 0:
+				has_checkin_error = True
+		#########################################################
+		# ---- NEW: resolve the shift active on THIS specific date, for OD/WO/Holiday/fallback use ---- #<<< CHANGED
+		date_shift_det = get_shift_for_date(employee, date, default_shift)   # <<< NEW
+		date_shift_hours = flt(date_shift_det.get("shift_hours"))   # <<< NEW
+		date_shift_name = f"{format_time(date_shift_det.get('start_time'))} To {format_time(date_shift_det.get('end_time'))}"  # <<< NEW
+		 
 		if date in od:
 			status = "OD"
+			row["status"] = status
+			date_time = datetime.combine(getdate(date), get_time(date_shift_det .start_time)) #<<< CHANGED
+			if first_in_last_out := get_checkins(employee,date_time):		
+				row["in_time"] = get_time(first_in_last_out[0].get("time"))
+				row["out_time"] = get_time(first_in_last_out[-1].get("time"))
 			if row.get("ot_hours"):
 				if ot_hours:=row.get("ot_hours"):
 					row['total_pay_hrs'] = ot_hours
 			else:
-				# row["status"] = "OD"
-				row['total_pay_hrs'] = row.get("total_pay_hrs")
+				row['total_pay_hrs'] = row.get("total_pay_hrs") or timedelta(0)
 		elif date in wo and (date >= getdate(emp_det.get("date_of_joining"))):
-			status = "WO"
-			date_time = datetime.combine(getdate(date), get_time(shift_det.start_time))
-			if first_in_last_out := get_checkins(employee,date_time):		
-				row["in_time"] = get_time(first_in_last_out[0].get("time"))
-				row["out_time"] = get_time(first_in_last_out[-1].get("time"))
-			if ot_hours:=row.get("ot_hours"):
-				row['total_pay_hrs'] = ot_hours
+			# status = "WO"
+			# date_time = datetime.combine(getdate(date), get_time(shift_det.start_time))
+			# if first_in_last_out := get_checkins(employee,date_time):		
+			# 	row["in_time"] = get_time(first_in_last_out[0].get("time"))
+			# 	row["out_time"] = get_time(first_in_last_out[-1].get("time"))
+			# if ot_hours:=row.get("ot_hours"):
+			# 	row['total_pay_hrs'] = ot_hours
+			if row.get("status") not in ["LWP", "PL", "CL", "SL", "ML","WFH"]:
+				status = "WO"
+				row["status"] = status
+				date_time = datetime.combine(getdate(date), get_time(date_shift_det.start_time)) #<<< CHANGED
+				########### bhavika  ##############
+				if first_in_last_out := get_checkins(employee, date_time):
+					# Ignore check-ins that already belong to another attendance
+					has_previous_attendance = False
+
+					for ci in first_in_last_out:
+						if frappe.db.get_value("Employee Checkin", ci.get("employee_checkin"), "attendance"):
+							has_previous_attendance = True
+							break
+
+					if has_previous_attendance:
+						has_checkin_error = False
+						row["in_time"] = ""
+						row["out_time"] = ""
+
+					else:
+						if len(first_in_last_out) % 2 != 0:
+							row["status"] = "ERR"
+
+						if len(first_in_last_out) == 1:
+							# Single punch
+							if first_in_last_out[0].get("type") == "IN":
+								row["in_time"] = get_time(first_in_last_out[0].get("time"))
+								row["out_time"] = ""
+							else:
+								row["in_time"] = ""
+								row["out_time"] = get_time(first_in_last_out[0].get("time"))
+						else:
+							# 2, 3, 4, 5... punches
+							row["in_time"] = get_time(first_in_last_out[0].get("time"))
+							row["out_time"] = get_time(first_in_last_out[-1].get("time"))
+				else:
+					# No check-ins found for this WO date - clean WO
+					has_checkin_error = False
+				
+				# Add OT hours if OT Log exists (created 1-2 days after work)
+				if ot_hours:=row.get("ot_hours"):
+					row['total_pay_hrs'] = ot_hours
+			##########################################################################	
 		elif (date in holidays) and (date >= getdate(emp_det.get("date_of_joining"))):
-			status = "H"
-			row['net_wrk_hrs'] = timedelta(hours=shift_hours)
-			row['total_pay_hrs'] = timedelta(hours=shift_hours)
+			if row.get("status") in ["LWP", "PL", "CL", "SL", "ML","WFH"]:
+				pass
+			else:
+				status = 'H'
+				row['net_wrk_hrs'] = timedelta(hours=date_shift_hours)  #<<< CHANGED
+				row['total_pay_hrs'] = timedelta(hours=date_shift_hours)  #<<< CHANGED
 		else:
 			status = "XX"	
-		if count:=checkins.get(date):
-			if count %2 != 0:
+		# Apply ERR status only if the date is NOT a WO, Holiday, or OD
+		# if has_checkin_error and status not in ["WO", "H", "OD"]:
+		if has_checkin_error:
 				status = "ERR"
 				row['net_wrk_hrs'] = timedelta(0)
 				row['total_pay_hrs'] = timedelta(0)
 		temp = {
 			"login_date": date,
-			"shift": shift_name,
+			"shift": date_shift_name,
 			"status": status,
 			"employee": employee,
             "employee_name": emp_det.get("employee_name"),
@@ -489,6 +677,30 @@ def process_data(data,from_date,to_date, employee):
 		temp.update(row)
 		result.append(temp)
 	return result
+
+def get_shift_for_date(employee, check_date, default_shift):
+	assigned_shift = frappe.db.get_value(
+		"Shift Assignment",
+		{
+			"employee": employee,
+			"docstatus": 1,
+			"start_date": ["<=", check_date],
+		},
+		["shift_type", "end_date"],
+		as_dict=True,
+		order_by="start_date desc"
+	)
+	if assigned_shift and (not assigned_shift.end_date or assigned_shift.end_date >= check_date):
+		shift = assigned_shift.shift_type
+	else:
+		shift = default_shift
+
+	shift_det = frappe.db.get_value(
+		"Shift Type", shift,
+		['shift_hours', 'holiday_list', 'start_time', 'end_time', 'early_exit_grace_period'],
+		as_dict=1
+	)
+	return shift_det
 
 def get_date_range(start_date, end_date):
 	import datetime
