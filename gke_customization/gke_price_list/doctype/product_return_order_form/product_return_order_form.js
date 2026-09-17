@@ -206,6 +206,7 @@ frappe.ui.form.on("Product Return Order Form", {
 
 frappe.ui.form.on("Product Return Form Item", {
 	serial_no(frm, cdt, cdn) {
+		if(frm.doc.ref_company == "GK"){
 		let child = locals[cdt][cdn];
 
 		if (!frm.doc.customer || !frm.doc.sales_type) {
@@ -303,7 +304,375 @@ frappe.ui.form.on("Product Return Form Item", {
 				}
 			})
 		}
+	}
 	},
+    kggk_serial_no(frm, cdt, cdn) {
+
+        let row = locals[cdt][cdn];
+
+        if (!row.kggk_serial_no) {
+            return;
+        }
+
+        frappe.call({
+            method: "gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form.get_kggk_serial_no",
+
+            args: {
+                tag_no: row.kggk_serial_no
+            },
+
+            freeze: true,
+            freeze_message: __("Fetching Serial No details from KGGK..."),
+
+            callback: function (r) {
+
+                if (!r.message) {
+                    return;
+                }
+
+                let data = r.message;
+                let invoice = data.sales_invoice || {};
+
+                // =================================================
+                // SERIAL NO
+                // =================================================
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "serial_no",
+                    data.serial_no
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "item_code",
+                    data.item_code
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "warehouse",
+                    data.warehouse
+                );
+
+                // =================================================
+                // BOM
+                // =================================================
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "bom",
+                    data.bom
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "net_weight",
+                    data.net_weight
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "gross_weight",
+                    data.gross_weight
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "metal_purity",
+                    data.metal_purity
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "metal_touch",
+                    data.metal_touch
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "metal_colour",
+                    data.metal_colour
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "diamond_quality",
+                    data.diamond_quality
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "item_subcategory",
+                    data.item_subcategory
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "setting_type",
+                    data.setting_type
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "making_charge",
+                    data.making_charge
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "total_metal_weight",
+                    data.total_metal_weight
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "total_diamond_weight_in_gms",
+                    data.total_diamond_weight_in_gms
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "total_gemstone_weight",
+                    data.total_gemstone_weight
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "finding_weight",
+                    data.finding_weight
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "total_diamond_pcs",
+                    data.total_diamond_pcs
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "total_gemstone_pcs",
+                    data.total_gemstone_pcs
+                );
+
+                // =================================================
+                // SALES INVOICE
+                // =================================================
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "sales_invoice",
+                    data.sales_invoice_name
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "sales_invoice_item",
+                    invoice.name
+                );
+
+                // =================================================
+                // SALES INVOICE ITEM DETAILS
+                // =================================================
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "item_category",
+                    invoice.item_category
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "description",
+                    invoice.description
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "item_name",
+                    invoice.item_name
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "qty",
+                    invoice.qty
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "uom",
+                    invoice.uom
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "custom_diamond_quality",
+                    invoice.custom_diamond_quality
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "total_weight",
+                    invoice.total_weight
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "rate",
+                    invoice.rate
+                );
+
+                // =================================================
+                // AMOUNTS FROM KGGK SALES INVOICE ITEM
+                // =================================================
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "wastage_amount",
+                    invoice.wastage_amount
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "gemstone_amount",
+                    invoice.gemstone_amount
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "hallmarking_amount",
+                    invoice.custom_hallmarking_amount ||
+                    invoice.hallmarking_amount
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "certification_amount",
+                    invoice.custom_certification_amount ||
+                    invoice.certification_amount
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "making_amount",
+                    invoice.making_amount
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "finding_amount",
+                    invoice.finding_amount
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "diamond_amount",
+                    invoice.diamond_amount
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "metal_amount",
+                    invoice.metal_amount
+                );
+
+                // =================================================
+                // OTHER AMOUNTS
+                // =================================================
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "amount",
+                    invoice.amount
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "base_rate",
+                    invoice.base_rate
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "base_amount",
+                    invoice.base_amount
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "freight_amount",
+                    invoice.freight_amount
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "other_material_amount",
+                    invoice.other_material_amount
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "custom_duty_amount",
+                    invoice.custom_duty_amount
+                );
+
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "other_amount",
+                    invoice.other_amount
+                );
+
+                // Refresh row
+                frm.refresh_field("items");
+            }
+        });
+    },
+
 
 	edit_bom: function (frm, cdt, cdn) {
 		var row = locals[cdt][cdn];
