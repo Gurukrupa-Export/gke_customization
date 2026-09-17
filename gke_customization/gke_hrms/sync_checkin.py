@@ -183,17 +183,40 @@ def _process_single_log(log, existing, last_punch_map, time_threshold):
 # Log Type determination (shift-aware, supports day + night shifts)
 # ---------------------------------------------------------------------------
 def _determine_log_type(employee, log_dt):
-    """Decide whether a punch is IN or OUT based on the employee's shift
-    assignment and prior checkins within the same shift window.
+    """Decide whether a punch is IN or OUT.
 
-    Handles:
-      ✅ Day shifts      (e.g. 09:00 – 18:00)
-      ✅ Night shifts     (e.g. 21:00 – 06:00)
-      ✅ After-midnight punches for previous-day night shifts
-      ✅ Multiple punches — toggles IN→OUT→IN→OUT
-      ✅ Missing OUT — next shift window starts fresh with IN
-      ✅ Late entry / early exit within grace window
+    Default: session-based pairing engine (handles next-day checkouts,
+    early check-ins outside the window, forgotten punches, night shifts
+    and mid-sequence punches deterministically for any shift timing).
+    Falls back to the legacy window toggle when session pairing is
+    disabled in HR Settings.
     """
+    try:
+        from gke_customization.gke_hrms.punch_pairing import (
+            classify_punch,
+            get_mode,
+        )
+    except Exception:
+        return _determine_log_type_legacy(employee, log_dt)
+
+    if get_mode() == "live":
+        try:
+            result = classify_punch(employee, get_datetime(log_dt))
+            # R5 orphans stay direction-less; they are routed to the
+            # regularization queue by the nightly reconciliation
+            return result.get("log_type") or "IN"
+        except Exception:
+            _log_error(
+                title="Biometric Sync — session pairing failed, using legacy",
+                message=frappe.get_traceback(),
+            )
+            return _determine_log_type_legacy(employee, log_dt)
+
+    return _determine_log_type_legacy(employee, log_dt)
+
+
+def _determine_log_type_legacy(employee, log_dt):
+    """Legacy behaviour: per-window chronological IN/OUT toggle."""
     try:
         _prev_shift, curr_shift, _next_shift = get_employee_shift_timings(
             employee, get_datetime(log_dt), True

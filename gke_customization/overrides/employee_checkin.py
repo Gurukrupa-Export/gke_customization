@@ -18,12 +18,43 @@ class CustomEmployeeCheckin(EmployeeCheckin):
     def validate(self):
         validate_active_employee(self.employee)
         self.validate_duplicate_log()
+        self.validate_time_change()
         self.fetch_shift()
         self.set_geolocation()
         self.validate_distance_from_shift_location()
 
     @frappe.whitelist()
     def fetch_shift(self):
+        """Session-based punch pairing (default) with legacy fallback,
+        controlled by the HR Settings switch (enable_session_pairing)."""
+        try:
+            from gke_customization.gke_hrms.punch_pairing import (
+                bind_checkin,
+                classify_punch,
+                get_mode,
+            )
+        except Exception:
+            get_mode = None
+
+        mode = get_mode() if get_mode else "off"
+
+        if mode == "live":
+            try:
+                bind_checkin(self, classify_punch(self.employee, get_datetime(self.time)))
+                return
+            except Exception:
+                # never block punch creation on an engine failure
+                frappe.logger("punch_pairing").error(
+                    {"msg": "classify_punch failed, using legacy fetch_shift",
+                     "employee": self.employee, "time": str(self.time),
+                     "traceback": frappe.get_traceback()}
+                )
+                return self._legacy_fetch_shift()
+
+        return self._legacy_fetch_shift()
+
+    def _legacy_fetch_shift(self):
+        """Legacy window-containment behaviour (original fetch_shift body)."""
         if not (
             shift_actual_timings := get_actual_start_end_datetime_of_shift(
                 self.employee, get_datetime(self.time), True

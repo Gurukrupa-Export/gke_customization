@@ -34,6 +34,13 @@
   "section_break_44ms",
   "column_break_hexd",
   "attendance",
+  "punch_error",
+  "error_case",
+  "punch_ledger",
+  "ot_check_status",
+  "resolution_status",
+  "resolved_by",
+  "resolution_remarks",
   "column_break_vipo",
   "amended_from"
  ],
@@ -246,6 +253,58 @@
    "read_only": 1
   },
   {
+   "fieldname": "punch_error",
+   "fieldtype": "Select",
+   "label": "Punch Error",
+   "options": "\nMissing IN\nMissing OUT\nUnpaired punch\nReclassification needed",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "error_case",
+   "fieldtype": "Select",
+   "label": "Error Case",
+   "options": "\nForgot Check-out\nNext-Day Check-out\nBeyond Shift\nOdd Punch\nOrphan Punch",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "Business case shown to HR: forgot checkout / next-day checkout / beyond-shift error punch."
+  },
+  {
+   "fieldname": "punch_ledger",
+   "fieldtype": "Small Text",
+   "label": "Punch Ledger",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "Exact punch sequence with pairing rules and the shift window."
+  },
+  {
+   "fieldname": "ot_check_status",
+   "fieldtype": "Select",
+   "label": "Approved OT Check",
+   "options": "\nNo Approved OT\nApproved OT Matched\nApproved OT Exceeds",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "resolution_status",
+   "fieldtype": "Select",
+   "label": "Resolution Status",
+   "options": "\nPending HR\nAuto-Resolved (Approved OT)\nAuto-Closed (Shift End)\nHR-Approved\nRejected",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "resolved_by",
+   "fieldtype": "Data",
+   "label": "Resolved By",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "resolution_remarks",
+   "fieldtype": "Small Text",
+   "label": "Resolution Remarks"
+  },
+  {
    "fieldname": "column_break_vipo",
    "fieldtype": "Column Break"
   }
@@ -254,7 +313,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-01-15 16:28:36.418216",
+ "modified": "2026-09-15 00:00:00.000000",
  "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE HRMS",
  "name": "Monthly In-Out Log",

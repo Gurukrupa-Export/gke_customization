@@ -102,23 +102,48 @@ class MonthlyInOutLog(Document):
         """
         Populate document fields using the service function.
         Uses the first record returned for the date.
+
+        Submitted cards are updated via a single batched
+        frappe.db.set_value() call (fetch-latest must work after
+        submission without allow_on_submit on every field) — no
+        reset-to-None pass beforehand; every field is written once,
+        directly to its final value.
         """
+        is_submitted = bool(
+            self.name and self.docstatus == 1 and frappe.db.exists(self.doctype, self.name)
+        )
+
+        def _persist(updates: dict):
+            if not updates:
+                return
+            if is_submitted:
+                frappe.db.set_value(self.doctype, self.name, updates, update_modified=True)
+            for field, value in updates.items():
+                self.set(field, value)  # keep in-memory doc in sync either way
+
         try:
-            # normalize
+            # error-punch ledger context (punch_error / error_case /
+            # punch_ledger / approved-OT check / resolution status)
+            from gke_customization.gke_hrms.ot_resolver import apply_error_context
+
+            apply_error_context(self)
+
             attendance_date = getdate(self.attendance_date)
 
             if self.attendance:
                 attendance_doc = frappe.get_doc("Attendance", self.attendance)
                 if not attendance_doc.working_hours:
-                    self.net_wrk_hrs = timedelta(0)
-                    self.spent_hrs = timedelta(0)
-                    self.p_out_hrs = timedelta(0)
-                    self.ot_hrs = timedelta(0)
-                    self.in_time = timedelta(0)
-                    self.out_time = timedelta(0)
-                    self.early_hrs = timedelta(0)
-                    self.late_hrs = timedelta(0)
-                    self.late = 0
+                    _persist({
+                        "net_wrk_hrs": timedelta(0),
+                        "spent_hrs": timedelta(0),
+                        "p_out_hrs": timedelta(0),
+                        "ot_hrs": timedelta(0),
+                        "in_time": timedelta(0),
+                        "out_time": timedelta(0),
+                        "early_hrs": timedelta(0),
+                        "late_hrs": timedelta(0),
+                        "late": 0,
+                    })
                     return
 
             # frappe.throw(f'{attendance_date}')
@@ -133,35 +158,50 @@ class MonthlyInOutLog(Document):
             # use the first (daily) record for the date
             record = records[0]
 
-            # Reset all fields you expect to populate
-            for f in ("status", "spent_hrs", "net_wrk_hrs","in_time", "out_time", "p_out_hrs", "late", "late_hrs", "early_hrs", "ot_hrs"):
-                if hasattr(self, f):
-                    setattr(self, f, None)
-
-            self.status =  record.get("status")
-
-            # time/duration fields as HH:MM:SS
-            self.spent_hrs = fmt_td_or_value(record.get("spent_hrs") or record.get("spent_hours"))
-            
-            # net_wrk_hrs may be timedelta; keep as string
-            # if net_wrk_hrs is negative then convert into positive
             net_wrk_hrs = record.get("net_wrk_hrs")
             if net_wrk_hrs and net_wrk_hrs < timedelta(0):
                 net_wrk_hrs = -net_wrk_hrs
-            self.net_wrk_hrs = fmt_td_or_value(net_wrk_hrs)
 
-            self.in_time = fmt_td_or_value(record.get("in_time"))
-            self.out_time = fmt_td_or_value(record.get("out_time"))
-
-            self.p_out_hrs = fmt_td_or_value(record.get("p_out_hrs"))
-
-            self.late = record.get("late") or record.get("late_entry")
-            self.late_hrs = fmt_td_or_value(record.get("late_hrs"))
-            self.early_hrs = fmt_td_or_value(record.get("early_hrs"))
-            self.ot_hrs= fmt_td_or_value(record.get("ot_hours") or record.get("othrs"))
+            _persist({
+                "status": record.get("status"),
+                "spent_hrs": fmt_td_or_value(record.get("spent_hrs") or record.get("spent_hours")),
+                "net_wrk_hrs": fmt_td_or_value(net_wrk_hrs),
+                "in_time": fmt_td_or_value(record.get("in_time")),
+                "out_time": fmt_td_or_value(record.get("out_time")),
+                "p_out_hrs": fmt_td_or_value(record.get("p_out_hrs")),
+                # NOT NULL column -> must never be None
+                "late": record.get("late") or record.get("late_entry") or 0,
+                "late_hrs": fmt_td_or_value(record.get("late_hrs")),
+                "early_hrs": fmt_td_or_value(record.get("early_hrs")),
+                "ot_hrs": fmt_td_or_value(record.get("ot_hours") or record.get("othrs")),
+            })
 
         except Exception:
-            frappe.log_error(title="MonthlyInOutLog.populate_from_attendance_error", message=frappe.get_traceback(with_context=True), reference_doctype=self.doctype)
+            frappe.log_error(
+                title="MonthlyInOutLog.populate_from_attendance_error",
+                message=frappe.get_traceback(with_context=True),
+                reference_doctype=self.doctype,
+            )
+            
+    @frappe.whitelist()
+    def resolve_error(self, action, out_time=None, remarks=None):
+        """HR resolution from the Monthly In-Out Log (error ledger).
+
+        Actions:
+          approve_ot - resolve using the approved OT Log (OUT = shift end + approved OT)
+          set_out    - HR supplies the actual check-out datetime
+          auto_close - close at shift end (no OT)
+          reject     - mark resolution rejected
+        """
+        from gke_customization.gke_hrms.ot_resolver import resolve_error_day
+
+        return resolve_error_day(
+            employee=self.employee,
+            attendance_date=self.attendance_date,
+            action=action,
+            out_time=out_time,
+            remarks=remarks,
+        )
 
 # ============================================================
 # WHITELISTED SERVICE (MODULE-LEVEL, REUSABLE)
@@ -252,7 +292,7 @@ def fetch_attendance_data(filters):
             "shift_hours": row.get("shift_hours"),
 
             "status": row.get("status"),
-
+            "punch_error": row.get("punch_error"),
             "spent_hrs": row.get("spent_hours"),
             "net_wrk_hrs": row.get("net_wrk_hrs"),
 
@@ -378,7 +418,8 @@ def get_data(filters):
 			(Attendance.employee == ot_subquery.employee)
 		)
 		.select(
-			Attendance.attendance_date, 
+			Attendance.attendance_date,
+			Attendance.punch_error,
 			# (Attendance.shift).as_('shift_name'),
             IF(
 				ShiftAssignment.shift_type.isnotnull(),
