@@ -481,14 +481,14 @@ frappe.ui.form.on("Product Return Form Item", {
                 frappe.model.set_value(
                     cdt,
                     cdn,
-                    "sales_invoice",
+                    "kggk_sales_invoice",
                     data.sales_invoice_name
                 );
 
                 frappe.model.set_value(
                     cdt,
                     cdn,
-                    "sales_invoice_item",
+                    "kggk_sales_invoice_item",
                     invoice.name
                 );
 
