@@ -1141,8 +1141,8 @@ def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, m
 #                 AND bom.sub_setting_type1 = 'Close-Open Setting'
 #                 AND item.setting_type = 'Open'
 #             """
-#         elif "Nova Glow" in search_terms:
-#             setting_filter = "AND item.setting_type = 'Nova Glow'"
+#         elif "Close" in search_terms:
+#             setting_filter = "AND item.setting_type = 'Close'"
 
 #         matched_item_codes = frappe.db.sql(
 #             f"""
@@ -1732,8 +1732,8 @@ def get_customer_filter(search, values, customer_join, where_clause, page, page_
                 AND bom.sub_setting_type1 = 'Close-Open Setting'
                 AND item.setting_type = 'Open'
             """
-        elif "Nova Glow" in search_terms:
-            setting_filter = "AND item.setting_type = 'Nova Glow'"
+        elif "Close" in search_terms:
+            setting_filter = "AND item.setting_type = 'Close'"
 
         matched_item_codes = frappe.db.sql(
             f"""
@@ -4228,9 +4228,9 @@ def get_customer_wishlist_items(customer=None):
 #                 AND bom.sub_setting_type1 = 'Close-Open Setting'
 #                 AND item.setting_type = 'Open'
 #             """
-#         elif "Nova Glow" in search_terms:
+#         elif "Close" in search_terms:
 #             setting_filter = """
-#                 AND item.setting_type = 'Nova Glow'
+#                 AND item.setting_type = 'Close'
 #             """
 #         # frappe.throw(f"{ where_clause}")
         
@@ -4879,9 +4879,9 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
                 AND bom.sub_setting_type1 = 'Close-Open Setting'
                 AND item.setting_type = 'Open'
             """
-        elif "Nova Glow" in search_terms:
+        elif "Close" in search_terms:
             setting_filter = """
-                AND item.setting_type = 'Nova Glow'
+                AND item.setting_type = 'Close'
             """
         # frappe.throw(f"{ where_clause}")
         
@@ -10344,9 +10344,9 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
 #                 AND bom.sub_setting_type1 = 'Close-Open Setting'
 #                 AND item.setting_type = 'Open'
 #             """
-#         elif "Nova Glow" in search_terms:
+#         elif "Close" in search_terms:
 #             setting_filter = """
-#                 AND item.setting_type = 'Nova Glow'
+#                 AND item.setting_type = 'Close'
 #             """
 
 #         matched_item_codes = frappe.db.sql(
@@ -10691,9 +10691,9 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
 #                 AND bom.sub_setting_type1 = 'Close-Open Setting'
 #                 AND item.setting_type = 'Open'
 #             """
-#         elif "Nova Glow" in search_terms:
+#         elif "Close" in search_terms:
 #             setting_filter = """
-#                 AND item.setting_type = 'Nova Glow'
+#                 AND item.setting_type = 'Close'
 #             """
 
 #         matched_item_codes = frappe.db.sql(
@@ -11034,9 +11034,9 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
 #                 AND bom.sub_setting_type1 = 'Close-Open Setting'
 #                 AND item.setting_type = 'Open'
 #             """
-#         elif "Nova Glow" in search_terms:
+#         elif "Close" in search_terms:
 #             setting_filter = """
-#                 AND item.setting_type = 'Nova Glow'
+#                 AND item.setting_type = 'Close'
 #             """
 #         # frappe.throw(f"{ where_clause}")
         
