@@ -1169,6 +1169,7 @@ class ProductReturnOrderForm(Document):
 
 			product_order.item_code = item_row.item_code
 			product_order.item_name = item_row.item_name
+			is_kggk_serial_no = bool(item_row.kggk_serial_no)
 			product_order.is_jewelex_tag = item_row.is_jewelex_tag
 			product_order.jewelex_tag = item_row.jewelex_tag
 			# product_order.bom = bom.name if bom else item_row.bom
@@ -5030,8 +5031,8 @@ def sync_product_return_form_to_remote(doc, method=None):
 			"is_sale": row.is_sale,
 			"jewelex_tag": row.jewelex_tag,
 			"net_weight": row.net_weight,
-			"sales_invoice_item":row.sales_invoice_item,
-			"sales_invoice":row.sales_invoice,
+			"sales_invoice_item":row.kggk_sales_invoice_item,
+			"sales_invoice":row.kggk_sales_invoice,
 			"gross_weight": row.gross_weight,
 			"physical_gross_weight": row.physical_gross_weight,
 			"physical_net_weight": row.physical_net_weight,
@@ -5070,8 +5071,8 @@ def sync_product_return_form_to_remote(doc, method=None):
 			"other_amount": row.other_amount,
 			"total_weight": row.total_weight,
 			"warehouse": row.warehouse,
-			"sales_invoice": row.sales_invoice,
-			"sales_invoice_item": row.sales_invoice_item
+			# "sales_invoice": row.sales_invoice,
+			# "sales_invoice_item": row.sales_invoice_item
 		})
 
 	# =====================================================
