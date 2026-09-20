@@ -1,8 +1,8 @@
 {
- "add_total_row": 0,
+ "add_total_row": 1,
  "add_translate_data": 0,
  "columns": [],
- "creation": "2026-07-31 12:46:05.439992",
+ "creation": "2026-09-07 09:37:02.078956",
  "disable_prepared_report_automation": 0,
  "disabled": 0,
  "docstatus": 0,
@@ -12,16 +12,20 @@
  "idx": 0,
  "is_standard": "Yes",
  "letter_head": null,
- "modified": "2026-07-31 12:46:05.439992",
+ "modified": "2026-09-07 09:37:02.078956",
  "modified_by": "Administrator",
  "module": "GKE Catalog",
- "name": "Serial No Stock Board",
+ "name": "Product Certificate IR",
  "owner": "Administrator",
  "prepared_report": 0,
- "ref_doctype": "Serial No",
- "report_name": "Serial No Stock Board",
+ "ref_doctype": "Product Certification",
+ "report_name": "Product Certificate IR",
  "report_type": "Script Report",
- "roles": [],
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
  "snapshot_report": 0,
  "timeout": 0
 }

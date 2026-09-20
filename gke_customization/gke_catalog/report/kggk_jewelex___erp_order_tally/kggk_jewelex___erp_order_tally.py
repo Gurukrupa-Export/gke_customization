@@ -1,57 +1,63 @@
 # Copyright (c) 2026, Gurukrupa Export and contributors
 # For license information, please see license.txt
 
+import json
+import time
+
 import frappe
+import requests
 
-from .jewelex_db_config import JEWELEX_DB_CONFIG
+# The report fetches Jewelex order tally data from a live API on the EC2
+# bench instead of connecting to Jewelex directly or reading a cached JSON
+# file. So no pyodbc, no per-site config, and no extra setup is needed on the
+# live site.
+JEWELEX_ORDER_TALLY_API_URL = "http://3.108.219.130:8003/order-tally"
 
-JEWELEX_QUERY = """
-SELECT  dbo.Batch_Master.Batch_No ,
-        dbo.M_Category.Category_Name AS Category ,
-        dbo.M_Sub_Category.Sub_Category_Name AS Sub_Category ,
-        dbo.M_Design_Setting.DesignSetting_Name AS Setting ,
-        dbo.Batch_Master.StyleBio ,
-        dbo.M_Customer.Cust_Code AS Party_Code ,
-        dbo.Batch_Master.Gold_Wt ,
-        dbo.Batch_Master.Dia_Wt ,
-        dbo.M_Metal.Metal_Type AS Metal_Type ,
-        dbo.Batch_Master.Stone_Wt ,
-        dbo.Batch_Master.Other_Wt ,
-        dbo.Batch_Master.NetGross_Wt ,
-		M_Department.Dept_Name AS Current_Dept ,
-        dbo.Process_Master.Process_Name AS Current_Process ,
-        dbo.Order_Detail.Bulk_Order_No ,
-        dbo.Order_Master.Order_No ,
-        dbo.Order_Master.Order_Date ,
-        Order_Master.Due_date ,
-        Order_Master.Order_Type
-FROM    dbo.Batch_Master WITH ( NOLOCK )
-        LEFT JOIN dbo.Order_Detail WITH ( NOLOCK ) ON dbo.Batch_Master.Order_Detail_Id = dbo.Order_Detail.Order_Detail_Id
-        LEFT JOIN dbo.Order_Master WITH ( NOLOCK ) ON dbo.Order_Detail.Order_Id = dbo.Order_Master.Order_Id
-        LEFT JOIN dbo.Gen_Order_Detail WITH ( NOLOCK ) ON dbo.Order_Detail.Order_Detail_Id = Gen_Order_Detail.Order_Detail_Id
-        LEFT JOIN dbo.M_Customer WITH ( NOLOCK ) ON dbo.Order_Master.Party_Id = dbo.M_Customer.Cust_ID
-        LEFT JOIN dbo.M_Metal WITH ( NOLOCK ) ON dbo.Batch_Master.Metal_ID = dbo.M_Metal.Metal_ID
-        LEFT JOIN dbo.M_Purity WITH ( NOLOCK ) ON dbo.Batch_Master.Purity_Id = dbo.M_Purity.Purity_ID
-        LEFT JOIN dbo.M_Sub_Category WITH ( NOLOCK ) ON dbo.Batch_Master.Sub_Category_Id = dbo.M_Sub_Category.Sub_Category_ID
-        LEFT JOIN dbo.M_Category WITH ( NOLOCK ) ON dbo.Batch_Master.Category_Id = dbo.M_Category.Category_ID
-        LEFT JOIN dbo.M_Design_Setting WITH ( NOLOCK ) ON dbo.Batch_Master.Seting_Id = dbo.M_Design_Setting.Design_ID
-        LEFT JOIN dbo.Process_Master WITH ( NOLOCK ) ON dbo.Batch_Master.CurrentProcessId = dbo.Process_Master.Process_Id
-        LEFT JOIN dbo.M_Department WITH ( NOLOCK ) ON dbo.Batch_Master.CurrentDeptId = dbo.M_Department.Dept_ID
-WHERE   Batch_Master.Is_cancel = 0
-        AND dbo.Batch_Master.Is_Split = 0
-        AND dbo.Batch_Master.Is_Marge = 0
-        AND ( ( Batch_Master.Is_Complete = 0 ) OR ( Batch_Master.Is_Complete = 1 AND Batch_Master.Is_Tag = 0 ) )
-"""
+# The API above may occasionally be unreachable -- keep a local copy of the
+# last successful fetch here so a transient/permanent network failure
+# degrades to stale data instead of a hard error.
+JEWELEX_LOCAL_FALLBACK_FILENAME = "jewelex_order_tally_local_fallback.json"
+JEWELEX_FETCH_RETRIES = 3
+JEWELEX_FETCH_RETRY_DELAY = 2
 
 
 def execute(filters=None):
 	filters = filters or {}
 	if frappe.utils.cint(filters.get("compare_mode")):
-		return get_compare_columns(), get_compare_data()
+		return get_compare_columns(), get_compare_data(filters)
 
 	columns = get_columns()
-	data = get_jewelex_data(filters)
+	data = apply_jewelex_filters(get_jewelex_data(filters), filters)
 	return columns, data
+
+
+def apply_jewelex_filters(rows, filters=None):
+	filters = filters or {}
+	order_no = filters.get("jewelex_order_no")
+	batch_no = filters.get("jewelex_batch_no")
+
+	from_date = filters.get("from_date")
+	to_date = filters.get("to_date")
+	from_date = frappe.utils.getdate(from_date) if from_date else None
+	to_date = frappe.utils.getdate(to_date) if to_date else None
+
+	filtered = []
+	for row in rows:
+		if order_no and str(row.get("Order_No") or "").strip() != str(order_no).strip():
+			continue
+		if batch_no and str(row.get("Batch_No") or "").strip() != str(batch_no).strip():
+			continue
+		if from_date or to_date:
+			row_date = row.get("Order_Date")
+			if not row_date:
+				continue
+			row_date = frappe.utils.getdate(row_date)
+			if from_date and row_date < from_date:
+				continue
+			if to_date and row_date > to_date:
+				continue
+		filtered.append(row)
+	return filtered
 
 
 def get_columns():
@@ -79,45 +85,65 @@ def get_columns():
 	]
 
 
-def get_jewelex_connection():
-	try:
-		import pyodbc
-	except ImportError:
-		frappe.throw(
-			"pyodbc is not installed. Run 'bench pip install pyodbc' in the bench environment "
-			"(and ensure the ODBC Driver 17 for SQL Server is installed on the OS)."
-		)
+def _local_fallback_path():
+	return frappe.get_site_path("private", "files", JEWELEX_LOCAL_FALLBACK_FILENAME)
 
-	conn_str = (
-		f"DRIVER={{{JEWELEX_DB_CONFIG['driver']}}};"
-		f"SERVER={JEWELEX_DB_CONFIG['server']},{JEWELEX_DB_CONFIG['port']};"
-		f"DATABASE={JEWELEX_DB_CONFIG['database']};"
-		f"UID={JEWELEX_DB_CONFIG['user']};"
-		f"PWD={JEWELEX_DB_CONFIG['password']};"
-	)
-	return pyodbc.connect(conn_str)
+
+def _read_local_fallback():
+	path = _local_fallback_path()
+	try:
+		with open(path) as f:
+			return json.load(f)
+	except (FileNotFoundError, json.JSONDecodeError):
+		return None
+
+
+def _write_local_fallback(rows):
+	with open(_local_fallback_path(), "w") as f:
+		json.dump(rows, f)
 
 
 def get_jewelex_data(filters=None):
-	# TODO: apply report filters to the query (e.g. WHERE Order_No = ?) once
-	# the filters are finalized.
-	conn = get_jewelex_connection()
-	try:
-		cursor = conn.cursor()
-		cursor.execute(JEWELEX_QUERY)
-		columns = [col[0] for col in cursor.description]
-		return [dict(zip(columns, row)) for row in cursor.fetchall()]
-	finally:
-		conn.close()
+	last_error = None
+	for attempt in range(1, JEWELEX_FETCH_RETRIES + 1):
+		try:
+			response = requests.get(JEWELEX_ORDER_TALLY_API_URL, timeout=15)
+			response.raise_for_status()
+			payload = response.json()
 
+			if not isinstance(payload, dict) or payload.get("status") != "success":
+				raise ValueError(f"Unexpected Jewelex API response: {payload!r}")
 
-JEWELEX_COMPARE_QUERY = f"""
-SELECT  Order_No,
-        Order_Date,
-        COUNT(DISTINCT Batch_No) AS Jewelex_Batch_Count
-FROM ( {JEWELEX_QUERY} ) AS jewelex_sub
-GROUP BY Order_No, Order_Date
-"""
+			rows = payload.get("data")
+			if rows is None:
+				raise ValueError("Jewelex API response missing 'data' field")
+
+			_write_local_fallback(rows)
+			return rows
+		except (requests.RequestException, ValueError) as e:
+			last_error = e
+			if attempt < JEWELEX_FETCH_RETRIES:
+				time.sleep(JEWELEX_FETCH_RETRY_DELAY)
+
+	frappe.log_error(
+		title="Jewelex order tally API fetch failed",
+		message=f"Could not reach {JEWELEX_ORDER_TALLY_API_URL} after {JEWELEX_FETCH_RETRIES} attempts: {last_error}",
+	)
+
+	fallback = _read_local_fallback()
+	if fallback is not None:
+		frappe.msgprint(
+			"Could not reach the Jewelex order tally API right now -- showing the last "
+			"successfully loaded data instead. It may be out of date.",
+			indicator="orange",
+			alert=True,
+		)
+		return fallback
+
+	frappe.throw(
+		f"Could not load Jewelex data from the API ({JEWELEX_ORDER_TALLY_API_URL}): {last_error}. "
+		"No previously loaded data is available on this site to fall back to."
+	)
 
 ERP_COMPARE_QUERY = """
 SELECT  pmo.jewelex_order_no AS jewelex_order_no,
@@ -157,26 +183,31 @@ def get_compare_columns():
 		{"label": "Jewelex Batch Count", "fieldname": "jewelex_batch_count", "fieldtype": "Int", "width": 140},
 		{"label": "ERP Order No", "fieldname": "erp_order_no", "fieldtype": "Data", "width": 160},
 		{"label": "ERP Order Count", "fieldname": "erp_order_count", "fieldtype": "Int", "width": 130},
-		{"label": "ERP Order Complete", "fieldname": "erp_order_complete", "fieldtype": "Data", "width": 160},
+		{"label": "ERP Order Complete", "fieldname": "erp_order_complete", "fieldtype": "Int", "width": 160},
 	]
 
 
-def get_jewelex_compare_data():
-	conn = get_jewelex_connection()
-	try:
-		cursor = conn.cursor()
-		cursor.execute(JEWELEX_COMPARE_QUERY)
-		columns = [col[0] for col in cursor.description]
-		return [dict(zip(columns, row)) for row in cursor.fetchall()]
-	finally:
-		conn.close()
+def get_jewelex_compare_data(filters=None):
+	# Derived from the same cached rows as the main report, replicating what
+	# JEWELEX_COMPARE_QUERY used to compute in SQL (distinct bulk order count
+	# per Order_No/Order_Date), so no separate Jewelex query is needed.
+	rows = apply_jewelex_filters(get_jewelex_data(), filters)
+	batch_sets = {}
+	for row in rows:
+		key = (row.get("Order_No"), row.get("Order_Date"))
+		batch_sets.setdefault(key, set()).add(row.get("Bulk_Order_No"))
+
+	return [
+		{"Order_No": order_no, "Order_Date": order_date, "Jewelex_Batch_Count": len(batches)}
+		for (order_no, order_date), batches in batch_sets.items()
+	]
 
 
 NOT_FOUND = "Not Found"
 
 
-def get_compare_data():
-	jewelex_rows = get_jewelex_compare_data()
+def get_compare_data(filters=None):
+	jewelex_rows = get_jewelex_compare_data(filters)
 	erp_rows = frappe.db.sql(ERP_COMPARE_QUERY, as_dict=True)
 	erp_complete_rows = frappe.db.sql(ERP_COMPLETE_QUERY, as_dict=True)
 
@@ -197,7 +228,7 @@ def get_compare_data():
 				"jewelex_batch_count": row.get("Jewelex_Batch_Count"),
 				"erp_order_no": erp_row.erp_order_no if erp_row else NOT_FOUND,
 				"erp_order_count": erp_row.erp_order_count if erp_row else NOT_FOUND,
-				"erp_order_complete": erp_complete_row.erp_complete_order_no if erp_complete_row else NOT_FOUND,
+				"erp_order_complete": erp_complete_row.erp_complete_count if erp_complete_row else 0,
 			}
 		)
 

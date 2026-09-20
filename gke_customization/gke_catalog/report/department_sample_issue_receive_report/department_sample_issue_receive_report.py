@@ -53,7 +53,7 @@ def get_data(filters):
         conditions.append("dir.company = %(company)s")
         query_filters["company"] = filters.get("company")
 
-    if filters.get("branch"):
+    if filters.get("branch") and frappe.db.has_column("Department IR", "branch"):
         conditions.append("dir.branch = %(branch)s")
         query_filters["branch"] = filters.get("branch")
 
@@ -201,7 +201,10 @@ def get_data(filters):
             mwo.item_category AS category,
             diro.gross_wt,
             diro.diamond_pcs AS pcs,
-            dir.workflow_state AS status,
+            CASE
+                WHEN dir.type = 'Issue' THEN 'Issued'
+                WHEN dir.type = 'Receive' THEN 'Received'
+            END AS status,
             /* Issue Employee */
             CASE
                 WHEN dir.type = 'Issue' THEN issue_user.full_name
