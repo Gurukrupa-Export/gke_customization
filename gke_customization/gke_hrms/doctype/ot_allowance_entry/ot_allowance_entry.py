@@ -590,6 +590,7 @@ class OTAllowanceEntry(Document):
 				Employee.designation,
 				Employee.department,
 				Employee.branch,
+				Employee.old_employee_code,
 				Sec_To_Time(ot_hours).as_("attn_ot_hrs"),
 				Attendance.shift,
 				Attendance.attendance_date,

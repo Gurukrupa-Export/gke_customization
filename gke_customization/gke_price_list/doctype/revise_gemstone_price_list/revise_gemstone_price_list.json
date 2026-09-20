@@ -8,242 +8,110 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "date",
-  "customer",
-  "effective_from",
-  "customer_name",
   "price_list",
-  "price_list_type",
-  "supplier_fg_purchase_rate",
-  "gemstone_pr",
-  "per_pc_or_per_carat",
-  "handling_charges_for_outright",
-  "outright_handling_charges_in_percentage",
-  "outright_handling_charges_rate",
-  "column_break_ha7fp",
-  "stone_type",
+  "is_standard",
+  "is_retail_customer",
+  "customer",
+  "gemstone_code",
+  "gemstone_type",
   "cut_or_cab",
-  "gemstone_grade",
   "stone_shape",
-  "stone_quality",
-  "stone_size",
-  "handling_charges_in_percentage",
-  "handling_charges_for_outwork",
-  "outwork_handling_charges_in_percentage",
-  "section_break_pviq",
-  "handling_charges_rate",
-  "column_break_4nuz",
-  "outwork_handling_charges_rate",
+  "gemstone_quality",
+  "gemstone_size",
+  "supplier_fg_purchase_rate",
+  "column_break_8",
+  "price_list_type",
+  "item",
+  "bom",
+  "rate",
+  "currency",
+  "effective_from",
+  "gemstone_grade",
+  "per_pc_or_per_carat",
+  "gemstone_pr",
+  "from_weight",
+  "to_weight",
+  "new_supplier_fg_purchase_rate",
+  "section_break_menw",
+  "revise_gemstone_pricelist_detail",
+  "section_break_yc6y",
   "from_gemstone_pr_rate",
+  "column_break_hf3d",
   "to_gemstone_pr_rate",
-  "amended_from",
-  "supplier_fg_multiplier",
+  "section_break_et0i",
   "gemstone_multiplier",
-  "section_break_8njhb",
-  "revise_gemstone_price_list_details",
-  "section_break_pzvtv",
-  "rate_per_carat",
-  "revised_rate",
-  "column_break_fowxy",
-  "difference",
-  "gemstone_price_list"
+  "supplier_fg_multiplier",
+  "amended_from"
  ],
  "fields": [
   {
-   "default": "Today",
-   "fieldname": "date",
-   "fieldtype": "Date",
-   "label": "Date"
-  },
-  {
+   "depends_on": "eval:!doc.is_standard && !doc.is_retail_customer",
    "fieldname": "customer",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Customer",
    "options": "Customer"
   },
   {
    "fieldname": "price_list",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Price List",
    "options": "Price List"
   },
   {
    "fieldname": "price_list_type",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Price List Type",
-   "options": "\nWeight (in cts)\nFixed"
-  },
-  {
-   "fieldname": "column_break_ha7fp",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "stone_type",
-   "fieldtype": "Link",
-   "label": "Stone Type",
-   "options": "Attribute Value"
+   "options": "\nFixed\nDiamond Range"
   },
   {
    "fieldname": "cut_or_cab",
    "fieldtype": "Link",
-   "label": "Faceted/Cabochon",
+   "label": "Cut or Cab",
    "options": "Attribute Value"
   },
   {
+   "depends_on": "eval: doc.price_list_type != \"Diamond Range\";",
    "fieldname": "stone_shape",
    "fieldtype": "Link",
    "label": "Stone Shape",
    "options": "Attribute Value"
   },
   {
-   "fieldname": "stone_quality",
-   "fieldtype": "Link",
-   "label": "Stone Quality",
-   "options": "Attribute Value"
-  },
-  {
-   "fieldname": "stone_size",
-   "fieldtype": "Link",
-   "label": "Stone Size",
-   "options": "Attribute Value"
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Revise Gemstone Price List",
-   "print_hide": 1,
-   "read_only": 1
-  },
-  {
-   "depends_on": "eval:doc.price_list_type == 'Weight (in cts)'",
-   "fieldname": "section_break_8njhb",
-   "fieldtype": "Section Break",
-   "label": "Revise Gemstone Price List Details"
-  },
-  {
-   "fieldname": "revise_gemstone_price_list_details",
-   "fieldtype": "Table",
-   "label": "Revise Gemstone Price List Details",
-   "options": "Revise Gemstone Price List Details"
-  },
-  {
-   "depends_on": "eval:doc.price_list_type == 'Fixed'",
-   "fieldname": "section_break_pzvtv",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "rate_per_carat",
-   "fieldtype": "Float",
-   "label": "Current Rate Per Carat"
-  },
-  {
-   "fieldname": "revised_rate",
-   "fieldtype": "Float",
-   "label": "New Rate Per Carat Rate"
-  },
-  {
-   "fieldname": "column_break_fowxy",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "difference",
-   "fieldtype": "Float",
-   "label": "Difference(New Rate-Current Rate)",
-   "read_only": 1
-  },
-  {
-   "fieldname": "gemstone_price_list",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "Gemstone Price List",
-   "options": "Gemstone Price List",
-   "read_only": 1
-  },
-  {
-   "fetch_from": "customer.customer_name",
-   "fieldname": "customer_name",
-   "fieldtype": "Data",
-   "label": "Customer Name",
-   "read_only": 1
-  },
-  {
+   "depends_on": "eval:doc.price_list_type != \"Diamond Range\"",
    "fieldname": "supplier_fg_purchase_rate",
    "fieldtype": "Currency",
-   "label": "Supplier FG Purchase Rate"
+   "hidden": 1,
+   "label": "Supplier FG Purchase Rate",
+   "precision": "3"
   },
   {
+   "depends_on": "eval: doc.price_list_type != \"Diamond Range\";",
    "fieldname": "gemstone_pr",
    "fieldtype": "Link",
    "label": "Gemstone PR",
    "options": "Attribute Value"
   },
   {
+   "depends_on": "eval:doc.price_list_type != \"Diamond Range\"",
    "fieldname": "per_pc_or_per_carat",
    "fieldtype": "Link",
    "label": "Per Pc or Per Carat",
    "options": "Attribute Value"
   },
   {
-   "default": "0",
-   "fieldname": "handling_charges_for_outright",
-   "fieldtype": "Check",
-   "label": "Handling Charges For Outright"
-  },
-  {
-   "depends_on": "eval:doc.handling_charges_for_outright",
-   "fieldname": "outright_handling_charges_in_percentage",
-   "fieldtype": "Percent",
-   "label": "Outright Handling Charges (In %)"
-  },
-  {
-   "depends_on": "eval:doc.handling_charges_for_outright",
-   "fieldname": "outright_handling_charges_rate",
-   "fieldtype": "Currency",
-   "label": "Outright Handling Charges Rate"
-  },
-  {
-   "depends_on": "eval:doc.handling_charges_for_outwork",
-   "fieldname": "outwork_handling_charges_in_percentage",
-   "fieldtype": "Percent",
-   "label": "Outwork Handling Charges (In %)"
-  },
-  {
-   "depends_on": "eval:doc.handling_charges_for_outwork",
-   "fieldname": "outwork_handling_charges_rate",
-   "fieldtype": "Currency",
-   "label": "Outwork Handling Charges Rate"
-  },
-  {
-   "default": "0",
-   "fieldname": "handling_charges_for_outwork",
-   "fieldtype": "Check",
-   "label": "Handling Charges For Outwork (Handling Rate)"
-  },
-  {
-   "depends_on": "eval:doc.price_list_type==\"Multiplier\"",
    "fieldname": "gemstone_multiplier",
    "fieldtype": "Table",
    "label": "Gemstone Multiplier",
    "options": "Gemstone Multiplier"
   },
   {
-   "depends_on": "eval:doc.price_list_type==\"Multiplier\"",
    "fieldname": "supplier_fg_multiplier",
    "fieldtype": "Table",
    "label": "Supplier FG Multiplier",
    "options": "Gemstone Multiplier"
-  },
-  {
-   "fieldname": "handling_charges_in_percentage",
-   "fieldtype": "Percent",
-   "label": "Handling Charges %"
-  },
-  {
-   "fieldname": "handling_charges_rate",
-   "fieldtype": "Currency",
-   "label": "Handling Charges Rate"
   },
   {
    "fieldname": "from_gemstone_pr_rate",
@@ -252,7 +120,6 @@
    "options": "Attribute Value"
   },
   {
-   "depends_on": "eval:doc.price_list_type==\"Multiplier\"\r\n",
    "fieldname": "effective_from",
    "fieldtype": "Date",
    "label": "Effective From"
@@ -270,36 +137,146 @@
    "options": "Attribute Value"
   },
   {
-   "fieldname": "section_break_pviq",
+   "depends_on": "eval: doc.price_list_type != \"Diamond Range\";",
+   "fieldname": "rate",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Rate"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_standard",
+   "fieldtype": "Check",
+   "label": "Is Standard"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_retail_customer",
+   "fieldtype": "Check",
+   "label": "Is Retail Customer"
+  },
+  {
+   "depends_on": "eval:doc.price_list_type != \"Diamond Range\"",
+   "fieldname": "gemstone_code",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Stone Code"
+  },
+  {
+   "depends_on": "eval: doc.price_list_type != \"Diamond Range\";",
+   "fieldname": "gemstone_type",
+   "fieldtype": "Link",
+   "label": "Stone Type",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval: doc.price_list_type != \"Diamond Range\";",
+   "fieldname": "gemstone_quality",
+   "fieldtype": "Link",
+   "label": "Stone Quality",
+   "options": "Attribute Value"
+  },
+  {
+   "depends_on": "eval: doc.price_list_type != \"Diamond Range\";",
+   "fieldname": "gemstone_size",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Stone Size",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "column_break_8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.price_list_type=='Fixed'",
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "depends_on": "eval:doc.price_list_type=='Fixed'",
+   "fieldname": "bom",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "BOM",
+   "options": "BOM"
+  },
+  {
+   "depends_on": "eval: doc.price_list_type != \"Diamond Range\";",
+   "fetch_from": "customer.default_currency",
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "section_break_menw",
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "column_break_4nuz",
+   "depends_on": "eval: doc.price_list_type == \"Diamond Range\";",
+   "fieldname": "section_break_yc6y",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_hf3d",
    "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.price_list_type == \"Diamond Range\";",
+   "fieldname": "section_break_et0i",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "from_weight",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "From Weight"
+  },
+  {
+   "fieldname": "to_weight",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "To Weight"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Revise Gemstone Price List",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "depends_on": "eval:doc.price_list_type != \"Diamond Range\"",
+   "fieldname": "new_supplier_fg_purchase_rate",
+   "fieldtype": "Currency",
+   "hidden": 1,
+   "label": "New Supplier FG Purchase Rate"
+  },
+  {
+   "fieldname": "revise_gemstone_pricelist_detail",
+   "fieldtype": "Table",
+   "label": "Revise Gemstone Pricelist Detail",
+   "options": "Revise Gemstone Pricelist Detail"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-24 15:44:59.075001",
- "modified_by": "Administrator",
+ "modified": "2026-09-02 17:32:04.079106",
+ "modified_by": "shruti_b@gkexport.com",
  "module": "Gke Price List",
  "name": "Revise Gemstone Price List",
  "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
+ "permissions": [],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

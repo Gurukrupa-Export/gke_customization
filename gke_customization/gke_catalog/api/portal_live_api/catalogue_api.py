@@ -12,8 +12,8 @@ import pytz
 from frappe.integrations.oauth2 import get_oauth_server
 import requests
 import json
-from gke_customization.gke_catalog.api.portal_live_api.notifications import notify_user
-from gke_customization.gke_catalog.api.portal_live_api.wishlist_download import get_method
+from gke_customization.gke_catalog.api.notifications import notify_user
+from gke_customization.gke_catalog.api.wishlist_download import get_method
 
 
 @frappe.whitelist(allow_guest = True)
@@ -728,9 +728,9 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
                 AND bom.sub_setting_type1 = 'Close-Open Setting'
                 AND item.setting_type = 'Open'
             """
-        elif "Close" in search_terms:
+        elif "Nova Glow" in search_terms:
             setting_filter = """
-                AND item.setting_type = 'Close'
+                AND item.setting_type = 'Nova Glow'
             """
         # frappe.throw(f"{ where_clause}")
         
@@ -1563,7 +1563,7 @@ def subcategory_count(categoryName, user_type, customer=None):
                     ti.item_category,
                     ti.item_subcategory,
                     # COUNT(DISTINCT IFNULL(ti.variant_of, ti.name)) AS item_count,
-                    COUNT(DISTINCT IFNULL(ti.variant_of, ti.item_code)) AS item_count
+                    COUNT(DISTINCT IFNULL(ti.variant_of, ti.item_code)) AS item_count,
                     COUNT(DISTINCT se.name)                         AS serial_count
 
                 FROM `tabCataloge Item Details` AS tci
@@ -2121,7 +2121,7 @@ def get_customers_attribute_data(customer):
     return enc_data
 
 @frappe.whitelist()
-def get_selected_item_for_customer_by_user(items, customers):
+def get_selected_item_for_customer_by_user(items, customers, user_type):
     """
     Save selected items to 'Cataloge Master' for one or more customers.
     Supports trending value updates.
@@ -2156,12 +2156,18 @@ def get_selected_item_for_customer_by_user(items, customers):
             fields=["email_id"]
         )
 
+        user_id = frappe.db.get_list(
+            "User",
+            filters={"name": customer},
+            fields=["email_id"]
+        )
+
         # frappe.throw(f"{customer_id}")
 
         # ---------------------------------------------------------
         # CUSTOMER EXISTS
         # ---------------------------------------------------------
-        if customer_found:
+        if customer_found or user_id:
 
             catalog_doc = frappe.get_doc("Cataloge Master", customer_found[0].name)
 
@@ -2213,6 +2219,26 @@ def get_selected_item_for_customer_by_user(items, customers):
         else:
             catalog_doc = frappe.new_doc("Cataloge Master")
             catalog_doc.customer = customer
+
+            if user_type == "User":
+                user_data = frappe.db.get_value(
+                    "User",
+                    customer,
+                    "email"
+                )
+
+                frappe.throw(f"user_data {user_data}")
+
+                full_name = user_data or ""
+
+                # Display: Full Name - Username
+                # display_name = f"{full_name} - {customer}"
+
+                # Customer field me username save karo
+                # catalog_doc.customer = customer
+
+                # Display ke liye alag field
+                catalog_doc.user = full_name
 
             for item_code, trending_value in items_dict.items():
                 catalog_doc.append("cataloge_item_details", {
@@ -2720,11 +2746,13 @@ def get_selected_item_count_for_customet_wise(customer_id, collection):
     
 
 @frappe.whitelist()
-def get_wishlist_item_for_customer_by_user(items, customers):
+def get_wishlist_item_for_customer_by_user(items, customers, user_type):
     """
     Save selected items to 'Cataloge Master' for one or more customers.
     Supports trending value updates.
     """
+
+    # frappe.throw(f"customers {customers}")
 
     # Parse JSON if string
     if isinstance(items, str):
@@ -2751,15 +2779,23 @@ def get_wishlist_item_for_customer_by_user(items, customers):
             filters={"customer": customer},
             fields=["name"]
         )
+        
+
+        user_id = frappe.db.get_list(
+            "Cataloge Master",
+            filters={"user": customer},
+            fields=["name"]
+        )
 
         # frappe.throw(f"{customer_id}")
 
         # ---------------------------------------------------------
         # CUSTOMER EXISTS
         # ---------------------------------------------------------
-        if customer_found:
+        if customer_found or user_id:
 
-            catalog_doc = frappe.get_doc("Cataloge Master", customer_found[0].name)
+            doc_name = customer_found[0].name if customer_found else user_id[0].name
+            catalog_doc = frappe.get_doc("Cataloge Master", doc_name)
             # catalog_doc.flags.ignore_permissions = True
 
             # Build lookup: existing item_code → trending
@@ -3098,7 +3134,27 @@ def get_wishlist_item_for_customer_by_user(items, customers):
         # ---------------------------------------------------------
         else:
             catalog_doc = frappe.new_doc("Cataloge Master")
-            catalog_doc.customer = customer
+            # catalog_doc.customer = customer
+
+            if user_type == "User":
+                user_email  = frappe.db.get_value(
+                    "User",
+                    customer,
+                    "email"
+                )
+                catalog_doc.user = user_email 
+                full_name = user_email or ""
+
+                # Display: Full Name - Username
+                display_name = f"{full_name} - {customer}"
+
+                # Customer field me username save karo
+                # catalog_doc.customer = customer
+
+                # Display ke liye alag field
+               
+            else:
+                catalog_doc.customer = customer
 
             added_items = []
 
@@ -3226,6 +3282,7 @@ def get_wishlist_item_for_customer_by_user(items, customers):
         "status": "success",
         "results": results
     }
+
 
 @frappe.whitelist()
 def add_item_in_folder(status=None, name=None, item=None, customer=None):
