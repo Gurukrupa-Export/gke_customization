@@ -2778,7 +2778,6 @@ def make_quotation_fill_defaults(quotation, order):
 	quotation.company = order.company
 	quotation.party_name = order.customer_code
 	quotation.order_type = order.order_type
-	# `order` is a "*" row, so flow_type and design_type are already loaded -- no extra query.
 	quotation.custom_flow_type = order.flow_type
 	quotation.custom_design_type = order.design_type
 	quotation.diamond_quality = order.diamond_quality

@@ -1141,8 +1141,8 @@ def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, m
 #                 AND bom.sub_setting_type1 = 'Close-Open Setting'
 #                 AND item.setting_type = 'Open'
 #             """
-#         elif "Close" in search_terms:
-#             setting_filter = "AND item.setting_type = 'Close'"
+#         elif "Nova Glow" in search_terms:
+#             setting_filter = "AND item.setting_type = 'Nova Glow'"
 
 #         matched_item_codes = frappe.db.sql(
 #             f"""
@@ -1732,8 +1732,8 @@ def get_customer_filter(search, values, customer_join, where_clause, page, page_
                 AND bom.sub_setting_type1 = 'Close-Open Setting'
                 AND item.setting_type = 'Open'
             """
-        elif "Close" in search_terms:
-            setting_filter = "AND item.setting_type = 'Close'"
+        elif "Nova Glow" in search_terms:
+            setting_filter = "AND item.setting_type = 'Nova Glow'"
 
         matched_item_codes = frappe.db.sql(
             f"""
@@ -4228,9 +4228,9 @@ def get_customer_wishlist_items(customer=None):
 #                 AND bom.sub_setting_type1 = 'Close-Open Setting'
 #                 AND item.setting_type = 'Open'
 #             """
-#         elif "Close" in search_terms:
+#         elif "Nova Glow" in search_terms:
 #             setting_filter = """
-#                 AND item.setting_type = 'Close'
+#                 AND item.setting_type = 'Nova Glow'
 #             """
 #         # frappe.throw(f"{ where_clause}")
         
@@ -4665,10 +4665,10 @@ def subcategory_count(categoryName, user_type, customer=None):
             count_query = """
                 SELECT 
                     ti.item_category,
-                    ti.custom_catalogue_image,
                     ti.item_subcategory,
+                    ti.custom_catalogue_image AS custom_catalogue_image,
                     # COUNT(DISTINCT IFNULL(ti.variant_of, ti.name)) AS item_count,
-                    COUNT(DISTINCT IFNULL(ti.variant_of, ti.item_code)) AS item_count,  -- <-- Yahan comma missing tha, jo maine laga diya hai
+                    COUNT(DISTINCT IFNULL(ti.variant_of, ti.item_code)) AS item_count, 
                     COUNT(DISTINCT se.name) AS serial_count
                 FROM `tabCataloge Item Details` AS tci
                 JOIN `tabCataloge Master` AS tcm 
@@ -4709,7 +4709,7 @@ def subcategory_count(categoryName, user_type, customer=None):
                     image_rows = frappe.db.sql("""
                         SELECT 
                             ti.item_subcategory, 
-                            ti.custom_catalogue_image,
+                            ti.custom_catalogue_image AS custom_catalogue_image,
                             ti.image AS first_image 
                         FROM `tabCataloge Item Details` tci
                         INNER JOIN `tabCataloge Master` tcm ON tcm.name = tci.parent
@@ -4753,6 +4753,7 @@ def subcategory_count(categoryName, user_type, customer=None):
             count_query = """
                 SELECT
                     item.item_subcategory,
+                    item.custom_catalogue_image AS custom_catalogue_image,
                     COUNT(DISTINCT IFNULL(item.variant_of, item.item_code)) AS item_count,
                     COUNT(DISTINCT se.name)                                  AS serial_count
 
@@ -4798,6 +4799,7 @@ def subcategory_count(categoryName, user_type, customer=None):
                     image_rows = frappe.db.sql("""
                         SELECT
                             ti.item_subcategory,
+                            ti.custom_catalogue_image AS custom_catalogue_image,
                             ti.image AS first_image
                         FROM `tabItem` ti
                         INNER JOIN `tabBOM` tb
@@ -4877,9 +4879,9 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
                 AND bom.sub_setting_type1 = 'Close-Open Setting'
                 AND item.setting_type = 'Open'
             """
-        elif "Close" in search_terms:
+        elif "Nova Glow" in search_terms:
             setting_filter = """
-                AND item.setting_type = 'Close'
+                AND item.setting_type = 'Nova Glow'
             """
         # frappe.throw(f"{ where_clause}")
         
@@ -8323,8 +8325,8 @@ def get_similar_item(item_code, customer=None, user=None):
                 item.name,
                 item.item_code,
                 item.image,
-                item.sketch_image,
                 item.custom_catalogue_image,
+                item.sketch_image,
                 item.front_view AS cad_image,
 
                 item.item_category,
@@ -8343,6 +8345,7 @@ def get_similar_item(item_code, customer=None, user=None):
                 FORMAT(bom.total_diamond_weight_in_gms, 3) AS total_diamond_weight_in_gms,
                 FORMAT(bom.other_weight, 3) AS other_weight,
                 FORMAT(bom.finding_weight_, 3) AS finding_weight_,
+                FORMAT(bom.total_gemstone_weight_in_gms,3),
 
                 bom.metal_colour,
                 bom.metal_touch,
@@ -8399,8 +8402,8 @@ def get_similar_item(item_code, customer=None, user=None):
                 item.name,
                 item.item_code,
                 item.image,
-                item.sketch_image,
                 item.custom_catalogue_image,
+                item.sketch_image,
                 item.front_view AS cad_image,
 
                 item.item_category,
@@ -8476,6 +8479,7 @@ def get_similar_item(item_code, customer=None, user=None):
                 item.item_code,
                 item.image,
                 item.sketch_image,
+                item.custom_catalogue_image,
                 item.front_view AS cad_image,
 
                 item.item_category,
@@ -10340,9 +10344,9 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
 #                 AND bom.sub_setting_type1 = 'Close-Open Setting'
 #                 AND item.setting_type = 'Open'
 #             """
-#         elif "Close" in search_terms:
+#         elif "Nova Glow" in search_terms:
 #             setting_filter = """
-#                 AND item.setting_type = 'Close'
+#                 AND item.setting_type = 'Nova Glow'
 #             """
 
 #         matched_item_codes = frappe.db.sql(
@@ -10687,9 +10691,9 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
 #                 AND bom.sub_setting_type1 = 'Close-Open Setting'
 #                 AND item.setting_type = 'Open'
 #             """
-#         elif "Close" in search_terms:
+#         elif "Nova Glow" in search_terms:
 #             setting_filter = """
-#                 AND item.setting_type = 'Close'
+#                 AND item.setting_type = 'Nova Glow'
 #             """
 
 #         matched_item_codes = frappe.db.sql(
@@ -11030,9 +11034,9 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
 #                 AND bom.sub_setting_type1 = 'Close-Open Setting'
 #                 AND item.setting_type = 'Open'
 #             """
-#         elif "Close" in search_terms:
+#         elif "Nova Glow" in search_terms:
 #             setting_filter = """
-#                 AND item.setting_type = 'Close'
+#                 AND item.setting_type = 'Nova Glow'
 #             """
 #         # frappe.throw(f"{ where_clause}")
         

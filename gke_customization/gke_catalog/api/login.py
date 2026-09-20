@@ -163,13 +163,17 @@ def send_otp_for_login_user(username, password):
     }
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def sent_alert_email_for_screen_shot(username):
     frappe.sendmail(
-        recipients = "bhavika_p@gkexport.com",
-        sender = "customer_portal@gkexport.com",
-        subject= "Screen Shot Alert",
-        message="You can not take Screen Shot"
+        recipients="bhavika_p@gkexport.com",
+        sender="customer_portal@gkexport.com",
+        subject="Screen Shot Alert",
+        message=f"""
+            <p><b>Screen Shot Alert</b></p>
+            <p>User <b>{username}</b> attempted to take a screenshot.</p>
+            <p>You can not take Screen Shot.</p>
+        """
     )
     return {
         "status": "success"
