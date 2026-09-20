@@ -308,4 +308,3 @@ class ProductReturnOrder(Document):
 
 		compose_series = str(series_start + mnf_abbr + m_abbr + dg_abbr + final_date + ".1244")
 		return compose_series
-
