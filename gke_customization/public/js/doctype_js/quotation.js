@@ -23,7 +23,11 @@ frappe.ui.form.on('Quotation', {
               add_filters_group: 1,
               get_query() {
                 return {
-                  query:"gke_customization.gke_order_forms.doctype.order.order.get_orders_for_quotation",
+                  filters: {
+                    item: ['is', 'set'],
+                    workflow_state: 'Approved',
+                    docstatus: 1
+                  }
                 };
               },
               action(selections) {
@@ -74,7 +78,7 @@ frappe.ui.form.on('Quotation', {
                   label: "Order Type",
                   fieldname: "order_type",
                   fieldtype: "Select",
-                  options: ["Sales", "Stock Order"],
+                  options: ["Sales", "Stock Order","Repair"],
                   reqd: 1,
                   default: frm.doc.order_type || undefined
                 }

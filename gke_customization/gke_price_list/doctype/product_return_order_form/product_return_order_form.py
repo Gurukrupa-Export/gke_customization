@@ -4381,5 +4381,3 @@ def calculate_percentage_amount(rate, base_value):
 
 def create_return_sales_invoice(doc):
 	pass
-
-

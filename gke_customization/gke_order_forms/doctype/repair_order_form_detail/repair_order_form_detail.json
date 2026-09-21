@@ -9,7 +9,6 @@
  "field_order": [
   "repair_type",
   "product_type",
-  "is_jewelex_tag",
   "tag_no1",
   "column_break_aeaoz",
   "required_design",
@@ -24,6 +23,7 @@
   "serial_no_bom",
   "diamond_quality",
   "view_item",
+  "product_return_order",
   "section_break_pa4d",
   "new_item_code",
   "column_break_fl2j",
@@ -133,6 +133,7 @@
    "options": "Item"
   },
   {
+   "fetch_from": "item.master_bom",
    "fieldname": "bom",
    "fieldtype": "Link",
    "label": "Design Code BOM",
@@ -210,8 +211,8 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Item Subcategory",
-   "mandatory_depends_on": "eval:!doc.is_jewelex_tag",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "reqd": 1
   },
   {
    "fetch_from": "item.setting_type",
@@ -248,7 +249,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "bom.metal_type",
+   "fetch_if_empty": 1,
    "fieldname": "metal_type",
    "fieldtype": "Link",
    "label": "Metal Type",
@@ -257,6 +258,7 @@
   },
   {
    "fetch_from": "bom.metal_touch",
+   "fetch_if_empty": 1,
    "fieldname": "metal_touch",
    "fieldtype": "Link",
    "label": "Metal Touch",
@@ -265,6 +267,7 @@
   },
   {
    "fetch_from": "bom.metal_purity",
+   "fetch_if_empty": 1,
    "fieldname": "metal_purity",
    "fieldtype": "Link",
    "label": "Metal Purity",
@@ -330,8 +333,8 @@
    "fieldname": "rhodium",
    "fieldtype": "Link",
    "label": "Rhodium",
-   "mandatory_depends_on": "eval:!doc.is_jewelex_tag",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "reqd": 1
   },
   {
    "fetch_from": "bom.gemstone_quality",
@@ -707,14 +710,13 @@
    "options": "Attribute Value"
   },
   {
-   "depends_on": "eval:!doc.is_jewelex_tag",
    "fetch_from": "bom.feature",
    "fetch_if_empty": 1,
    "fieldname": "feature",
    "fieldtype": "Link",
    "label": "Feature",
-   "mandatory_depends_on": "eval:!doc.is_jewelex_tag",
-   "options": "Attribute Value"
+   "options": "Attribute Value",
+   "reqd": 1
   },
   {
    "fieldname": "section_break_ck8j",
@@ -824,11 +826,9 @@
    "options": "Attribute Value"
   },
   {
-   "depends_on": "// eval:in_list([\"Chain Pendant\", \"Cuban Chain\", \"Nakshi Choker\", \"Nakshi Haram\", \"Nakshi Necklace\", \"Fancy Necklace\", \"Collar Necklace\", \"Choker Necklace\", \"Addigai Necklace\", \"Cocktail Chain\", \"Cocktail Chain Haram\", \"Charm Necklace\", \"Chik Chokar\", \"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\", \"Layered Necklace\", \"Magdi Necklace\", \"Mala Necklace\", \"Padhakam Necklace\", \"Short Necklace\", \"Station Necklace\", \"Tennis Necklace\", \"Solitaire Necklace\", \"Nakshi Chain\", \"God Pendant\", \"Solitaire Pendant\", \"Slider Pendant\", \"Nakshi Pendant\", \"Locket Pendant\", \"Kid Pendant\", \"Fancy Pendant\", \"Daily Wear Pendant\", \"Cocktail Pendant\"], doc.subcategory)",
    "fieldname": "capganthan",
    "fieldtype": "Link",
    "label": "Cap/Ganthan",
-   "mandatory_depends_on": "eval:in_list([\"Chain Pendant\", \"Cuban Chain\", \"Nakshi Choker\", \"Nakshi Haram\", \"Nakshi Necklace\", \"Fancy Necklace\", \"Collar Necklace\", \"Choker Necklace\", \"Addigai Necklace\", \"Cocktail Chain\", \"Cocktail Chain Haram\", \"Charm Necklace\", \"Chik Chokar\", \"Haram Necklace\", \"Kantha/Hasli Necklace\", \"Kids Necklace\", \"Lariat Necklace\", \"Layered Necklace\", \"Magdi Necklace\", \"Mala Necklace\", \"Padhakam Necklace\", \"Short Necklace\", \"Station Necklace\", \"Tennis Necklace\", \"Solitaire Necklace\", \"Nakshi Chain\", \"God Pendant\", \"Solitaire Pendant\", \"Slider Pendant\", \"Nakshi Pendant\", \"Locket Pendant\", \"Kid Pendant\", \"Fancy Pendant\", \"Daily Wear Pendant\", \"Cocktail Pendant\"], doc.subcategory)",
    "options": "Attribute Value"
   },
   {
@@ -839,7 +839,6 @@
    "options": "Attribute Value"
   },
   {
-   "fetch_from": "bom.black_bead",
    "fetch_if_empty": 1,
    "fieldname": "black_bead",
    "fieldtype": "Link",
@@ -848,7 +847,6 @@
   },
   {
    "depends_on": "eval:doc.black_bead == 'Yes'",
-   "fetch_from": "bom.black_bead_line",
    "fetch_if_empty": 1,
    "fieldname": "black_bead_line",
    "fieldtype": "Float",
@@ -862,30 +860,28 @@
    "options": "Attribute Value"
   },
   {
-   "depends_on": "eval:doc.is_jewelex_tag",
    "fieldname": "tag_no1",
    "fieldtype": "Data",
    "label": "Tag No1"
   },
   {
-   "depends_on": "eval:doc.repair_type == \"Modified Product\" && doc.required_design == \"CAD\"",
    "fieldname": "mod_reason",
    "fieldtype": "Select",
    "label": "MOD Reason",
    "options": "\nAttribute Change\nPartial Design Change\nCategory Change"
   },
   {
-   "default": "0",
-   "fieldname": "is_jewelex_tag",
-   "fieldtype": "Check",
-   "label": " Is Jewelex Tag"
+   "fieldname": "product_return_order",
+   "fieldtype": "Link",
+   "label": "Product Return Order",
+   "options": "Product Return Order"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-28 17:09:43.287808",
- "modified_by": "shubham_k@gkexport.com",
+ "modified": "2026-08-17 14:48:38.319751",
+ "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Repair Order Form Detail",
  "naming_rule": "Random",
