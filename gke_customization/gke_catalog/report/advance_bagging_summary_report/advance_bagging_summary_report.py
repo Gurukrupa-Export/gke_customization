@@ -27,9 +27,7 @@ def get_data(filters=None):
     
     # Group by item_code for summary
     item_summary = {}
-    total_qty = 0
-    total_pcs = 0
-    
+
     for row in base_data:
         item_code = row.get("item_code")
         if not item_code:
@@ -49,22 +47,11 @@ def get_data(filters=None):
         
         item_summary[item_code]["sum_of_quantity"] += qty
         item_summary[item_code]["count_of_pcs"] += pcs
-        
-        total_qty += qty
-        total_pcs += pcs
-    
+
     # Convert to list and sort by item_code
     result = list(item_summary.values())
     result.sort(key=lambda x: x["item_code"])
-    
-    # Add Grand Total row
-    result.append({
-        "item_code": "Grand Total",
-        "custom_alternative_item": "",
-        "sum_of_quantity": total_qty,
-        "count_of_pcs": total_pcs
-    })
-    
+
     return result
 
 def get_base_report_data(filters):
