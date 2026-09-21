@@ -14,6 +14,7 @@
   "is_jewelex_tag",
   "is_sale",
   "jewelex_tag",
+  "kggk_serial_no",
   "column_break_kfci",
   "item_name",
   "bom",
@@ -77,7 +78,9 @@
   "sales_invoice",
   "column_break_pzba",
   "return_sales_invoice",
-  "sales_invoice_item"
+  "sales_invoice_item",
+  "kggk_sales_invoice",
+  "kggk_sales_invoice_item"
  ],
  "fields": [
   {
@@ -517,6 +520,7 @@
    "label": "Is Jewelex Tag"
   },
   {
+   "depends_on": "eval:doc.is_jewelex_tag == 1",
    "fieldname": "jewelex_tag",
    "fieldtype": "Data",
    "label": "Jewelex Tag"
@@ -531,14 +535,29 @@
    "fieldname": "total_costing_amount",
    "fieldtype": "Currency",
    "label": "Total Costing Amount"
+  },
+  {
+   "fieldname": "kggk_serial_no",
+   "fieldtype": "Data",
+   "label": "KGGK Serial No"
+  },
+  {
+   "fieldname": "kggk_sales_invoice",
+   "fieldtype": "Data",
+   "label": "KGGK Sales Invoice"
+  },
+  {
+   "fieldname": "kggk_sales_invoice_item",
+   "fieldtype": "Data",
+   "label": "KGGK Sales Invoice Item"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-08-13 11:38:17.518288",
- "modified_by": "shubham_ke@gkexport.com",
+ "modified": "2026-09-18 16:50:16.899016",
+ "modified_by": "Administrator",
  "module": "Gke Price List",
  "name": "Product Return Form Item",
  "owner": "aditya_r@gkexport.com",

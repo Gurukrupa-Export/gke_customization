@@ -1176,6 +1176,3 @@ function set_filter_for_design_n_serial(frm, fields) {
 		})
 	});
 }
-
-
-
