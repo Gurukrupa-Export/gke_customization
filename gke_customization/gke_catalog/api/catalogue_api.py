@@ -4897,7 +4897,7 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
                 ON idf.parent = item.item_name
             LEFT JOIN `tabDesign Attribute - Multiselect` dam
                 ON dam.parent = item.item_code
-            WHERE
+            WHERE 1=1
                 # bom.bom_type = 'Finish Goods'
                 {"AND idf.company = %(company)s" if values.get("company") else ""}
                 AND (
@@ -12551,6 +12551,7 @@ def get_variants_by_itemcode(itemCode=None, customer=None):
         WHERE
             item.item_code LIKE %(base_code)s
             AND idf.company = 'Gurukrupa Export Private Limited'
+            AND item.item_group != 'Design DNU'
 
         GROUP BY item.item_code
         ORDER BY item.creation ASC
