@@ -61,17 +61,17 @@ def get_data(filters=None):
             emp.designation AS designation,
             mil.company AS company,
             mil.attendance_date AS attendance_date,
-            mil.shit_type AS shift_type,
+            mil.shift_type AS shift_type,
             mil.shift_hours AS shift_hours,
             mil.status AS status,
             mil.in_time AS in_time,
             mil.out_time AS out_time,
-            mil.spent_hrs AS spent_hrs,
-            mil.net_wrk_hrs AS net_wrk_hrs,
+            SEC_TO_TIME(mil.spent_hrs) AS spent_hrs,
+            SEC_TO_TIME(mil.net_wrk_hrs) AS net_wrk_hrs,
             mil.p_out_hrs AS p_out_hrs,
             mil.late_hrs AS late_hrs,
             mil.early_hrs AS early_hrs,
-            mil.ot_hrs AS ot_hrs
+            SEC_TO_TIME(mil.ot_hrs) AS ot_hrs
         FROM
             `tabMonthly In-Out Log` mil
         LEFT JOIN `tabEmployee` emp ON mil.employee = emp.name

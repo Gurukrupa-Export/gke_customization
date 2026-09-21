@@ -23,6 +23,18 @@ class CustomEmployeeCheckin(EmployeeCheckin):
         self.set_geolocation()
         self.validate_distance_from_shift_location()
 
+    def after_insert(self):
+        # engine-classified orphan (R5): notify HR the same day; the 04:00
+        # reconciliation remains the deduplicated safety net
+        if (
+            cint(self.offshift)
+            and self.punch_rule == "R5"
+            and not cint(self.skip_auto_attendance)
+        ):
+            from gke_customization.gke_hrms.punch_pairing import notify_orphan_checkin
+
+            notify_orphan_checkin(self)
+
     @frappe.whitelist()
     def fetch_shift(self):
         """Session-based punch pairing (default) with legacy fallback,
@@ -75,7 +87,10 @@ class CustomEmployeeCheckin(EmployeeCheckin):
         )
         if assignment:
             shift_assigment = get_employee_shift(self.employee, get_datetime(self.time), True, "forward")
-            if(shift_actual_timings.shift_type.name != shift_assigment.shift_type.name):
+            # get_employee_shift can still return None (assignment row exists
+            # but no shift resolves for this timestamp); fall back to the
+            # window-derived shift instead of crashing on .shift_type
+            if shift_assigment and (shift_actual_timings.shift_type.name != shift_assigment.shift_type.name):
                 self.offshift = 0
                 self.shift = shift_assigment.shift_type.name
                 self.shift_actual_start = shift_assigment.actual_start

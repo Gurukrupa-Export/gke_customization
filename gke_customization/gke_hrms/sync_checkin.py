@@ -199,9 +199,11 @@ def _determine_log_type(employee, log_dt):
     if is_session_pairing_enabled():
         try:
             result = classify_punch(employee, get_datetime(log_dt))
-            # R5 orphans stay direction-less; they are routed to the
-            # regularization queue by the nightly reconciliation
-            return result.get("log_type") or "IN"
+            # R5 orphans and DUP bounces stay direction-less here; the
+            # insert's fetch_shift -> bind_checkin stamps them (offshift /
+            # skip_auto_attendance) and routes them to the regularization
+            # queue. Forcing "IN" would poison the punch chain.
+            return result.get("log_type")
         except Exception:
             _log_error(
                 title="Biometric Sync — session pairing failed, using legacy",

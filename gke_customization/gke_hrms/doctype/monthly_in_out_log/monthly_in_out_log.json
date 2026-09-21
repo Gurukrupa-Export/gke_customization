@@ -15,7 +15,7 @@
   "designation",
   "section_break_nlsb",
   "attendance_date",
-  "shit_type",
+  "shift_type",
   "column_break_twkn",
   "shift_hours",
   "attendance_summary_section",
@@ -72,10 +72,10 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "shit_type",
+   "fieldname": "shift_type",
    "fieldtype": "Link",
    "in_standard_filter": 1,
-   "label": "Shit Type",
+   "label": "Shift Type",
    "options": "Shift Type"
   },
   {
@@ -105,7 +105,7 @@
    "read_only": 1
   },
   {
-   "fetch_from": "shit_type.shift_hours",
+   "fetch_from": "shift_type.shift_hours",
    "fieldname": "shift_hours",
    "fieldtype": "Float",
    "label": "Shift Hours",
@@ -191,14 +191,14 @@
   {
    "allow_on_submit": 1,
    "fieldname": "net_wrk_hrs",
-   "fieldtype": "Data",
+   "fieldtype": "Duration",
    "label": "Net Wrk Hrs",
    "read_only": 1
   },
   {
    "allow_on_submit": 1,
    "fieldname": "spent_hrs",
-   "fieldtype": "Data",
+   "fieldtype": "Duration",
    "label": "Spent Hrs",
    "read_only": 1
   },
@@ -224,9 +224,8 @@
   {
    "allow_on_submit": 1,
    "fieldname": "ot_hrs",
-   "fieldtype": "Data",
+   "fieldtype": "Duration",
    "label": "OTHrs",
-   "non_negative": 1,
    "read_only": 1
   },
   {
@@ -244,10 +243,11 @@
   },
   {
    "fieldname": "attendance",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "hidden": 1,
    "label": "Attendance",
-   "read_only": 1
+   "read_only": 1,
+   "options": "Attendance"
   },
   {
    "fieldname": "punch_error",
@@ -291,7 +291,7 @@
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Monthly In-Out Log",
- "naming_rule": "Expression",
+ "naming_rule": "Expression (old style)",
  "owner": "Administrator",
  "permissions": [
   {

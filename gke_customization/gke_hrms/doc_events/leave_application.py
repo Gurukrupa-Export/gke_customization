@@ -151,7 +151,7 @@ def create_attendance_records(doc):
 ######################### Update Monthly in-out Log after Submit Attendance Req #################################
 ##### 19 Feb 2026 ####
 
-from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log import get_attendance_details_by_date, fmt_td_or_value
+from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log import get_attendance_details_by_date, fmt_td_or_value, mil_duration_seconds
 
 def leave_application_update_monthly_inout_log(doc, method=None):
     """
@@ -215,12 +215,12 @@ def leave_application_update_monthly_inout_log(doc, method=None):
             frappe.db.set_value("Monthly In-Out Log", mil_name, "status", record.get("status"))
             frappe.db.set_value("Monthly In-Out Log", mil_name, "in_time", record.get("in_time"))
             frappe.db.set_value("Monthly In-Out Log", mil_name, "out_time", record.get("out_time"))
-            frappe.db.set_value("Monthly In-Out Log", mil_name, "spent_hrs", fmt_td_or_value(record.get("spent_hrs") or record.get("spent_hours")))
-            frappe.db.set_value("Monthly In-Out Log", mil_name, "net_wrk_hrs", fmt_td_or_value(record.get("net_wrk_hrs")))
+            frappe.db.set_value("Monthly In-Out Log", mil_name, "spent_hrs", mil_duration_seconds(record.get("spent_hrs") or record.get("spent_hours")))
+            frappe.db.set_value("Monthly In-Out Log", mil_name, "net_wrk_hrs", mil_duration_seconds(record.get("net_wrk_hrs")))
             frappe.db.set_value("Monthly In-Out Log", mil_name, "late", record.get("late", 0) or record.get("late_entry", 0))
             frappe.db.set_value("Monthly In-Out Log", mil_name, "late_hrs", fmt_td_or_value(record.get("late_hrs")))
             frappe.db.set_value("Monthly In-Out Log", mil_name, "early_hrs", fmt_td_or_value(record.get("early_hrs")))
-            frappe.db.set_value("Monthly In-Out Log", mil_name, "ot_hrs", fmt_td_or_value(record.get("ot_hours") or record.get("othrs")))
+            frappe.db.set_value("Monthly In-Out Log", mil_name, "ot_hrs", mil_duration_seconds(record.get("ot_hours") or record.get("othrs")))
             frappe.db.set_value("Monthly In-Out Log", mil_name, "p_out_hrs", fmt_td_or_value(record.get("p_out_hrs")))
 
             frappe.db.commit()

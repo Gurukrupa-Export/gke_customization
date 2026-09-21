@@ -61,7 +61,6 @@ DEDUP_SECONDS = 120  # punches this close to the previous accepted punch are bou
 
 HUMAN_SOURCES = ("Manual Punch", "Outdoor Duty")
 
-SESSION_PAIRING_LOG = "punch_pairing"
 
 def is_session_pairing_enabled() -> bool:
     return cint(
@@ -69,7 +68,9 @@ def is_session_pairing_enabled() -> bool:
     )
 
 def _log(message):
-    frappe.log_error(_("Punch Pairing"), _(message))
+    """Error-path logging: traceback in the message, static title."""
+    frappe.log_error(title=_("Punch Pairing"), message=message)
+
 
 
 def get_shift_cfg(shift_name: str) -> dict:
@@ -256,19 +257,36 @@ def classify_stream(punches: list[dict], instances_getter) -> list[dict]:
     for p in punches:
         dt = get_datetime(p["time"])
 
-        if last_dt is not None and 0 <= (dt - last_dt).total_seconds() <= DEDUP_SECONDS:
+        # Human-entered punches are authoritative: replay history with their
+        # stored direction, not the direction the rules would invent.
+        if p.get("source") in HUMAN_SOURCES and p.get("log_type") in ("IN", "OUT"):
+            instances = instances_getter(p["employee"], dt) if p.get("employee") else []
+            result = _apply_rules(dt, instances, open_session)
+            if result.get("log_type") != p["log_type"]:
+                inst = result.get("instance")
+                if not inst:
+                    for cand in reversed(instances):
+                        if cand["start_datetime"] <= dt <= cand["end_datetime"]:
+                            inst = cand
+                            break
+                result = {
+                    "rule": "HUMAN",
+                    "log_type": p["log_type"],
+                    "instance": inst,
+                    "flag": None,
+                }
+            last_dt = dt
+        elif last_dt is not None and 0 <= (dt - last_dt).total_seconds() <= DEDUP_SECONDS:
             result = {"rule": "DUP", "log_type": None, "instance": None, "flag": "DUPLICATE"}
         else:
             instances = instances_getter(employee, dt)
             result = _apply_rules(dt, instances, open_session)
             last_dt = dt
 
-            if result["rule"] in ("R1", "R3", "R4"):
-                if result["log_type"] == "IN":
-                    open_session = {"time": dt, "instance": result["instance"]}
-            elif result["rule"] == "R2":
-                open_session = None
-            # R5 leaves state unchanged
+        if result["log_type"] == "IN":
+            open_session = {"time": dt, "instance": result["instance"]}
+        elif result["log_type"] == "OUT":
+            open_session = None
 
         p = dict(p)
         p["result"] = result
@@ -281,7 +299,7 @@ def classify_stream(punches: list[dict], instances_getter) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def _history(employee: str, before_dt: datetime) -> list[dict]:
-    """Last punches before before_dt inside the history window."""
+    """Latest punches before before_dt inside the history window."""
     rows = frappe.get_all(
         "Employee Checkin",
         filters=[
@@ -289,10 +307,11 @@ def _history(employee: str, before_dt: datetime) -> list[dict]:
             ["time", ">", before_dt - timedelta(hours=HISTORY_WINDOW_HOURS)],
             ["time", "<", before_dt],
         ],
-        fields=["name", "employee", "time", "log_type"],
-        order_by="time asc",
+        fields=["name", "employee", "time", "log_type", "source"],
+        order_by="time desc",
         limit=50,
     )
+    rows.reverse()  # classify_stream expects chronological order
     return rows
 
 
@@ -434,16 +453,55 @@ def _reclassify_range(employee: str, from_dt: datetime, to_dt: datetime) -> dict
 
         if p.attendance:
             # linked to (possibly submitted) attendance - flag, don't rewrite
-            att_status = frappe.db.get_value("Attendance", p.attendance, "docstatus")
-            if att_status == 1:
-                frappe.db.set_value(
-                    "Attendance",
-                    p.attendance,
-                    "punch_error",
-                    "Reclassification needed",
-                    update_modified=False,
-                )
-                flagged += 1
+            att = frappe.db.get_value(
+                "Attendance",
+                p.attendance,
+                [
+                    "name", "employee", "employee_name", "attendance_date",
+                    "punch_error", "in_time", "out_time", "shift", "docstatus",
+                ],
+                as_dict=True,
+            )
+            if not att or att.docstatus != 1 or att.punch_error:
+                # gone, not submitted, or a more specific error already set
+                continue
+
+            from gke_customization.gke_hrms.ot_resolver import (
+                RES_AUTO_CLOSE,
+                RES_AUTO_OT,
+                RES_HR,
+                RES_REJECTED,
+                ensure_mil,
+                get_error_context,
+            )
+
+            mil_name = ensure_mil(att.employee, att.attendance_date)
+            if mil_name and frappe.db.get_value(
+                "Monthly In-Out Log", mil_name, "resolution_status"
+            ) in (RES_AUTO_OT, RES_AUTO_CLOSE, RES_HR, RES_REJECTED):
+                continue  # HR already decided this day; never reopen silently
+
+            att.punch_error = "Reclassification needed"
+            frappe.db.set_value(
+                "Attendance",
+                att.name,
+                "punch_error",
+                "Reclassification needed",
+                update_modified=False,
+            )
+
+            from gke_customization.gke_hrms.attendance_flags import _create_todo
+
+            _create_todo(att, "Reclassification needed")
+
+            if mil_name:
+                mil_doc = frappe.get_doc("Monthly In-Out Log", mil_name)
+                ctx = get_error_context(mil_doc, att)
+                if ctx:
+                    frappe.db.set_value(
+                        "Monthly In-Out Log", mil_name, ctx, update_modified=True
+                    )
+            flagged += 1
             continue
 
         inst = result.get("instance")
@@ -489,10 +547,22 @@ def _has_punch_rule_column() -> bool:
 def rebuild_employee(employee: str, from_dt: datetime = None) -> dict:
     """Public helper: re-run classification for one employee (used by tests
     and correction flows)."""
-    from_dt = get_datetime(from_dt) or frappe.utils.now_datetime() - timedelta(
-        days=RECONCILE_DAYS
-    )
+    # explicit None check: get_datetime(None) returns now, not None
+    if from_dt is None:
+        from_dt = frappe.utils.now_datetime() - timedelta(days=RECONCILE_DAYS)
     return _reclassify_range(employee, from_dt, frappe.utils.now_datetime())
+
+
+def nightly_reconciliation_scheduled():
+    """Cron entry point: run reconciliation on the long queue with a real
+    timeout instead of the scheduler's short default."""
+    frappe.enqueue(
+        "gke_customization.gke_hrms.punch_pairing.nightly_reconciliation",
+        queue="long",
+        timeout=3600,
+        job_id="pp_nightly_reconciliation",
+        deduplicate=True,
+    )
 
 
 def nightly_reconciliation():
@@ -501,6 +571,16 @@ def nightly_reconciliation():
     if not is_session_pairing_enabled():
         return
 
+    # attendance submits triggered from inside reconciliation must not enqueue
+    # their own flag jobs (flag_recent_attendances below is the authority)
+    frappe.flags.in_punch_pairing_reconcile = True
+    try:
+        return _nightly_reconciliation_inner()
+    finally:
+        frappe.flags.in_punch_pairing_reconcile = False
+
+
+def _nightly_reconciliation_inner():
     now = frappe.utils.now_datetime()
     from_dt = now - timedelta(days=RECONCILE_DAYS)
 
@@ -529,7 +609,6 @@ def nightly_reconciliation():
     _flag_orphan_checkins(from_dt)
 
     frappe.db.commit()
-    _log(f"Nightly reconciliation completed.\n" f"Totals: {totals}")
     return totals
 
 
@@ -609,3 +688,42 @@ def _get_hr_user(doc):
         return user
 
     return "Administrator"
+
+
+def notify_orphan_checkin(doc):
+    """R5 punch recorded live: tell HR the same day instead of waiting for
+    the 04:00 reconciliation. Deduped against any open ToDo for the punch."""
+    if doc.get("source") in HUMAN_SOURCES:
+        return
+    try:
+        if not doc.get("name"):
+            return
+        if frappe.db.exists(
+            {
+                "doctype": "ToDo",
+                "reference_type": "Employee Checkin",
+                "reference_name": doc.name,
+                "status": "Open",
+            }
+        ):
+            return
+
+        frappe.get_doc(
+            {
+                "doctype": "ToDo",
+                "allocated_to": _get_hr_user(doc),
+                "reference_type": "Employee Checkin",
+                "reference_name": doc.name,
+                "description": (
+                    f"Unpaired punch for {doc.employee_name or doc.employee} at {doc.time} "
+                    "(off-shift, no open session). If this was overtime or a personal "
+                    "out after shift end, regularize via Manual Punch."
+                ),
+                "priority": "Medium",
+                "status": "Open",
+            }
+        ).insert(ignore_permissions=True)
+    except Exception:
+        _log(
+            f"Orphan ToDo creation failed for {doc.get('name')}.\n{frappe.get_traceback()}"
+        )

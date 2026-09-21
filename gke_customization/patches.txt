@@ -1,8 +1,12 @@
 [pre_model_sync]
 
+gke_customization.patches.mil_field_fixes
+gke_customization.patches.mil_duration_fields
+
 [post_model_sync]
 
 gke_customization.patches.gc_ration_master
 gke_customization.patches.salary_withholding_release_fields
 gke_customization.patches.remove_bom_row_size_fields
 gke_customization.patches.punch_pairing_fields
+gke_customization.patches.employee_checkin_source_options

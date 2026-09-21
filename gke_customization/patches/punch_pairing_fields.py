@@ -46,7 +46,12 @@ def execute():
                 fieldname="source",
                 label="Source",
                 fieldtype="Select",
-                options="\nEmployee Checkin\nManual Punch\nBiometric\nOutdoor Duty\nWork From Home",
+                # OT Resolver / Auto Close: synthetic OUT punches written by the
+                # Monthly In-Out Log error resolver (not human input)
+                options=(
+                    "\nEmployee Checkin\nManual Punch\nBiometric\nOutdoor Duty\n"
+                    "Work From Home\nOT Resolver\nAuto Close"
+                ),
                 insert_after="device_id",
                 description="Origin of the punch (biometric sync, manual punch, attendance request...).",
             ),

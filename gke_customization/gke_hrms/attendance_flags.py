@@ -64,7 +64,7 @@ def flag_attendance_by_name(attendance):
         if not result:
             _refresh_mil_card(doc)  # clean day: card ledger was built before linking
     except Exception:
-        frappe.log_error(frappe.get_traceback(), f"punch flag failed: {attendance}")
+        frappe.log_error(title=f"punch flag failed: {attendance}", message=frappe.get_traceback())
     frappe.db.commit()
 
 
@@ -99,8 +99,8 @@ def detect_and_apply(doc) -> str | None:
                 return "resolved-via-approved-ot"
         except Exception:
             frappe.log_error(
-                frappe.get_traceback(),
-                "OT resolution failed",
+                title="OT resolution failed",
+                message=frappe.get_traceback(),
             )
 
     # No approved OT or OT resolution failed.
@@ -114,8 +114,8 @@ def detect_and_apply(doc) -> str | None:
         ensure_mil(doc.employee, doc.attendance_date)
     except Exception:
         frappe.log_error(
-            frappe.get_traceback(),
-            "MIL auto-creation failed",
+            title="MIL auto-creation failed",
+            message=frappe.get_traceback(),
         )
 
     # The card usually exists already (created on attendance submit, before the
@@ -123,6 +123,18 @@ def detect_and_apply(doc) -> str | None:
     _refresh_mil_card(doc)
 
     return error
+
+
+def flag_recent_attendances_scheduled():
+    """Cron entry point: run the flag pass on the long queue with a real
+    timeout instead of the scheduler's short default."""
+    frappe.enqueue(
+        "gke_customization.gke_hrms.attendance_flags.flag_recent_attendances",
+        queue="long",
+        timeout=3600,
+        job_id="pp_flag_recent_attendances",
+        deduplicate=True,
+    )
 
 
 def flag_recent_attendances(days: int = 3):
@@ -163,8 +175,8 @@ def flag_recent_attendances(days: int = 3):
 
         except Exception:
             frappe.log_error(
-                frappe.get_traceback(),
-                f"punch flag failed: {name}",
+                title=f"punch flag failed: {name}",
+                message=frappe.get_traceback(),
             )
 
     frappe.db.commit()
@@ -207,8 +219,8 @@ def _retry_ot_resolution(doc):
         try_resolve_with_approved_ot(doc)
     except Exception:
         frappe.log_error(
-            frappe.get_traceback(),
-            f"OT retry failed: {doc.name}",
+            title=f"OT retry failed: {doc.name}",
+            message=frappe.get_traceback(),
         )
 
 
@@ -232,9 +244,11 @@ def _refresh_mil_card(attendance_doc):
 
     except Exception:
         frappe.log_error(
-            frappe.get_traceback(),
-            f"MIL refresh failed for "
-            f"{attendance_doc.employee}/{attendance_doc.attendance_date}",
+            title=(
+                f"MIL refresh failed for "
+                f"{attendance_doc.employee}/{attendance_doc.attendance_date}"
+            ),
+            message=frappe.get_traceback(),
         )
 
 
@@ -245,20 +259,21 @@ def _detect_error(checkins) -> str | None:
     if any(t not in ("IN", "OUT") for t in types):
         return UNPAIRED
 
-    # Clean chain: IN, OUT, IN, OUT, ...
-    clean = len(types) % 2 == 0 and all(
-        t == ("IN" if i % 2 == 0 else "OUT")
-        for i, t in enumerate(types)
-    )
+    def _alternates_from(expected_first):
+        return all(
+            t == ("IN" if (i % 2 == 0) == (expected_first == "IN") else "OUT")
+            for i, t in enumerate(types)
+        )
 
-    if clean:
+    # Clean chain: IN, OUT, IN, OUT, ...
+    if len(types) % 2 == 0 and _alternates_from("IN"):
         return None
 
-    if types and types[0] == "OUT":
-        return MISSING_IN
-
-    if types and types[0] == "IN":
-        return MISSING_OUT
+    # Missing punch: an otherwise perfectly alternating chain with one end
+    # missing (odd length). Broken chains like IN, IN, OUT, OUT or IN, OUT, OUT
+    # are NOT a missing punch; appending another OUT would make them worse.
+    if types and len(types) % 2 == 1 and _alternates_from(types[0]):
+        return MISSING_IN if types[0] == "OUT" else MISSING_OUT
 
     return UNPAIRED
 

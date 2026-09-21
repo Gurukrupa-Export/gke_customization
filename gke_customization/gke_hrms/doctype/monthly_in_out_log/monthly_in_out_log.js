@@ -17,11 +17,22 @@ frappe.ui.form.on("Monthly In-Out Log", {
 				method: "populate_from_attendance",
 				doc: frm.doc,
 				freeze: true,
-			}).then(() => {
-				frappe.show_alert({
-					message: __("Monthly In-Out Log refreshed"),
-					indicator: "green",
-				});
+			}).then((r) => {
+				// populate_from_attendance swallows its own exceptions and
+				// returns False; never claim success when it failed
+				if (r.message) {
+					frappe.show_alert({
+						message: __("Monthly In-Out Log refreshed"),
+						indicator: "green",
+					});
+				} else {
+					frappe.show_alert({
+						message: __(
+							"Refresh failed. Please check the Error Log."
+						),
+						indicator: "red",
+					});
+				}
 				frm.reload_doc();
 			});
 		});
@@ -67,16 +78,19 @@ function show_resolve_dialog(frm, options) {
 		});
 	}
 
-	action_options.push(
-		{
+	// 'Set OUT' only fixes a Missing OUT; the server rejects it for any
+	// other punch error, so do not offer it
+	if (options.punch_error === "Missing OUT") {
+		action_options.push({
 			label: __("Enter actual check-out time"),
 			value: "set_out",
-		},
-		{
-			label: __("Reject"),
-			value: "reject",
-		}
-	);
+		});
+	}
+
+	action_options.push({
+		label: __("Reject"),
+		value: "reject",
+	});
 
 	const dialog = new frappe.ui.Dialog({
 		title: __("Resolve Error Punch: {0}", [frm.doc.punch_error]),

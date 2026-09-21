@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 
 import frappe
 from frappe import _
-from frappe.utils import get_datetime, get_time, getdate, time_diff_in_hours
+from frappe.utils import cint, get_datetime, get_time, getdate, time_diff_in_hours
 
 MIL_DOCTYPE = "Monthly In-Out Log"
 
@@ -127,14 +127,18 @@ def _ot_note(att, ot) -> str:
 
 
 def _stranded_punches_note(att) -> str:
-    """Punches hrms skipped because the attendance already existed (late sync).
+    """Punches of the day that are NOT linked to the attendance:
 
-    hrms marks them skip_auto_attendance=1 and never links them, so they are
-    invisible everywhere else. Show them so HR can pick that exact time in
-    'Set OUT' (the resolver adopts a checkin with the same timestamp).
+    - R5 off-shift orphans (e.g. an OT / personal-out block after the final
+      OUT: the engine conservatively leaves them direction-less for HR);
+    - punches hrms skipped (skip_auto_attendance=1, late sync) so they are
+      invisible everywhere else.
+
+    Shown on the card ledger so HR knows what to regularize via Manual
+    Punch (the resolver adopts a checkin with the same timestamp in Set OUT).
     Debounced duplicates (punch_rule = DUP) are not real punches: skipped.
     """
-    if not (att.punch_error and att.get("employee") and att.in_time):
+    if not (att.get("employee") and att.in_time):
         return ""
 
     attendance_date = getdate(att.attendance_date)
@@ -144,10 +148,9 @@ def _stranded_punches_note(att) -> str:
         filters={
             "employee": att.employee,
             "attendance": ("is", "not set"),
-            "skip_auto_attendance": 1,
             "time": ["between", [in_dt, in_dt + timedelta(hours=28)]],
         },
-        fields=["time", "punch_rule"],
+        fields=["time", "punch_rule", "skip_auto_attendance", "offshift"],
         order_by="time asc",
     )
 
@@ -157,8 +160,11 @@ def _stranded_punches_note(att) -> str:
             continue
         t = get_datetime(r.time)
         day_mark = "+1" if t.date() > attendance_date else ""
-        labels.append(f"{t:%H:%M}{day_mark}")
-    return f"unlinked (skipped): {', '.join(labels)}" if labels else ""
+        if cint(r.offshift or 0):
+            labels.append(f"{t:%H:%M}{day_mark} (off-shift)")
+        elif cint(r.skip_auto_attendance or 0):
+            labels.append(f"{t:%H:%M}{day_mark} (skipped)")
+    return f"unlinked: {', '.join(labels)}" if labels else ""
 
 
 def build_punch_ledger(att, ot=None) -> str:
@@ -248,11 +254,14 @@ def _ensure_out_checkin(att, out_time, source="Manual Punch") -> str:
     """Create (or adopt) the OUT Employee Checkin and link it to the attendance,
     same as Manual Punch Entry.update_emp_checkin + the link step.
 
-    Adopts an existing checkin with the same timestamp (e.g. a late-synced
-    punch hrms skipped), so HR can pick that exact time in 'Set OUT'.
+    Adopts an existing checkin with the same timestamp ONLY when it is not
+    already linked to an attendance (e.g. a late-synced punch hrms skipped),
+    so a punch owned by another day is never hijacked.
     """
     existing = frappe.db.get_value(
-        "Employee Checkin", {"employee": att.employee, "time": out_time}, "name"
+        "Employee Checkin",
+        {"employee": att.employee, "time": out_time, "attendance": ("is", "not set")},
+        "name",
     )
     # copy shift binding from the IN punch so IN/OUT belong to the same instance
     in_ci = frappe.db.get_value(
@@ -281,7 +290,7 @@ def _ensure_out_checkin(att, out_time, source="Manual Punch") -> str:
         "log_type": "OUT",
         "offshift": 0,
         "skip_auto_attendance": 0,
-        "punch_rule": "MANUAL",
+        "punch_rule": "MANUAL" if source == "Manual Punch" else source.upper().replace(" ", "_"),
     }
     if in_ci:
         values.update(in_ci)
@@ -290,7 +299,7 @@ def _ensure_out_checkin(att, out_time, source="Manual Punch") -> str:
     return name
 
 
-def _set_attendance_out(attendance_name, in_time, out_time) -> float:
+def _set_attendance_out(attendance_name, in_time, out_time, source="Manual Punch") -> float:
     """Close the day the way Manual Punch Entry does: real OUT checkin, linked,
     then out_time / working hours / status recomputed from the linked punches."""
     from gke_customization.gke_hrms.doctype.manual_punch_entry.manual_punch_entry import (
@@ -300,11 +309,11 @@ def _set_attendance_out(attendance_name, in_time, out_time) -> float:
     att = frappe.db.get_value(
         "Attendance",
         attendance_name,
-        ["name", "employee", "shift", "status", "attendance_date"],
+        ["name", "employee", "shift", "status", "attendance_date", "out_time", "working_hours"],
         as_dict=True,
     )
     out_time = get_datetime(out_time)
-    _ensure_out_checkin(att, out_time)
+    _ensure_out_checkin(att, out_time, source=source)
 
     logs = frappe.get_all(
         "Employee Checkin",
@@ -336,8 +345,27 @@ def _set_attendance_out(attendance_name, in_time, out_time) -> float:
         updates["status"] = calc["status"]
 
     frappe.db.set_value("Attendance", att.name, updates, update_modified=True)
+    _audit_resolution(att, updates, source)
     _close_todos(att.name)
     return updates["working_hours"]
+
+
+def _audit_resolution(att, updates, source):
+    """db.set_value leaves no Version record: write the change to the
+    attendance timeline so payroll disputes can trace who changed what."""
+    try:
+        frappe.get_doc("Attendance", att.name).add_comment(
+            "Comment",
+            f"{source}: OUT set to {updates.get('out_time')} "
+            f"(was {att.out_time or 'blank'}), working hours "
+            f"{updates.get('working_hours')} (was {att.working_hours or 0}), "
+            f"status {updates.get('status') or att.status}.",
+        )
+    except Exception:
+        frappe.log_error(
+            title=f"Resolution audit comment failed for {att.name}",
+            message=frappe.get_traceback(),
+        )
 
 
 def try_resolve_with_approved_ot(
@@ -381,7 +409,9 @@ def try_resolve_with_approved_ot(
     if stray:
         return {"status": "conflict", "stray": stray[0], "expected_out": expected_out}
 
-    hours = _set_attendance_out(attendance_doc.name, in_time, expected_out)
+    hours = _set_attendance_out(
+        attendance_doc.name, in_time, expected_out, source="OT Resolver"
+    )
     _update_mil(
         attendance_doc.employee,
         attendance_doc.attendance_date,
@@ -426,7 +456,9 @@ def auto_close_at_shift_end(attendance_doc, resolved_by=None, remarks=None) -> d
     if stray:
         return {"status": "conflict", "stray": stray[0], "expected_out": expected_out}
 
-    hours = _set_attendance_out(attendance_doc.name, in_time, expected_out)
+    hours = _set_attendance_out(
+        attendance_doc.name, in_time, expected_out, source="Auto Close"
+    )
     _update_mil(
         attendance_doc.employee,
         attendance_doc.attendance_date,
@@ -449,11 +481,17 @@ def get_resolution_options(employee, attendance_date) -> dict:
             "attendance_date": attendance_date,
             "docstatus": 1,
         },
-        ["punch_error", "in_time", "shift"],
+        ["name", "punch_error", "in_time", "shift"],
         as_dict=True,
     )
+    if not attendance:
+        frappe.throw(
+            _("No submitted attendance for {0} on {1}").format(employee, attendance_date)
+        )
+    frappe.has_permission("Attendance", "read", attendance.name, throw=True)
 
     options = {
+        "punch_error": attendance.punch_error or "",
         "missing_out": False,
         "approved_ot": False,
         "approved_ot_hours": None,
@@ -562,6 +600,9 @@ def resolve_error_day(employee, attendance_date, action, out_time=None, remarks=
     in_time = get_datetime(attendance.in_time)
     new_out = get_datetime(out_time)
 
+    if new_out > frappe.utils.now_datetime():
+        frappe.throw(_("OUT time cannot be in the future."))
+
     # OUT must come after the LAST linked punch (not just the first IN), or a
     # chain like IN, OUT, IN gets a second OUT sorted into the middle.
     last_punch = frappe.db.get_value(
@@ -612,8 +653,8 @@ def ensure_mil(employee, attendance_date) -> str | None:
         return mil.name
     except Exception:
         frappe.log_error(
-            frappe.get_traceback(),
-            f"Monthly In-Out Log auto-creation failed for {employee}/{attendance_date}",
+            title=f"Monthly In-Out Log auto-creation failed for {employee}/{attendance_date}",
+            message=frappe.get_traceback(),
         )
         return None
 
@@ -635,6 +676,6 @@ def _update_mil(employee, attendance_date, status, actor, text, remarks=None):
         frappe.get_doc(MIL_DOCTYPE, name).populate_from_attendance()
     except Exception:
         frappe.log_error(
-            frappe.get_traceback(),
-            f"MIL refresh after resolution failed for {employee}/{attendance_date}",
+            title=f"MIL refresh after resolution failed for {employee}/{attendance_date}",
+            message=frappe.get_traceback(),
         )

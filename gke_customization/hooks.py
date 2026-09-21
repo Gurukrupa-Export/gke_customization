@@ -160,12 +160,12 @@ scheduler_events = {
     "cron": {
         "0 4 * * *": [
             # session pairing: correct delayed/out-of-order punches, flag broken sequences
-            "gke_customization.gke_hrms.punch_pairing.nightly_reconciliation",
+            "gke_customization.gke_hrms.punch_pairing.nightly_reconciliation_scheduled",
         ],
         "5 8 * * *": [
             # error-punch resolution + flagging after the daily auto-attendance run (07:25)
             # order per the agreed flow: approved OT auto-resolve -> auto-close policy -> flag for HR
-            "gke_customization.gke_hrms.attendance_flags.flag_recent_attendances",
+            "gke_customization.gke_hrms.attendance_flags.flag_recent_attendances_scheduled",
         ],
         "0 6 * * *": [
             "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
@@ -287,6 +287,10 @@ doc_events = {
     },
     "Attendance": {
         "on_submit": "gke_customization.gke_hrms.attendance_flags.flag_attendance_punch_errors",
+    },
+    "Shift Type": {
+        # session pairing: block engine configs that break the punch chain
+        "validate": "gke_customization.gke_hrms.doc_events.shift_type.validate",
     },
     "Leave Application": {
         "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",

@@ -60,17 +60,15 @@ class MonthlyInOutLog(Document):
     def validate(self):
         self.validate_duplicate_entry()
         self.company = frappe.db.get_value("Employee", self.employee, "company")
-        self.shit_type = get_employee_shift(self.employee, self.attendance_date)
-        self.shift_hours = frappe.db.get_value("Shift Type", self.shit_type, "shift_hours")
+        self.shift_type = get_employee_shift(self.employee, self.attendance_date)
+        self.shift_hours = frappe.db.get_value("Shift Type", self.shift_type, "shift_hours")
         # links attendance, refreshes ledger + hours (also covers submit,
         # so there is no separate on_submit populate any more)
         self.populate_from_attendance()
-    
-    def on_submit(self):
-        self.populate_from_attendance()
 
+    def on_submit(self):
         if not self.attendance:
-            atten_doc = frappe.db.get_value("Attendance", {"employee": self.employee, "attendance_date": self.attendance_date, "docstatus": 1 }, "name")
+            atten_doc = frappe.db.get_value("Attendance", {"employee": self.employee, "attendance_date": self.attendance_date, "docstatus": 1}, "name")
             if atten_doc:
                 self.db_set("attendance", atten_doc)
             
@@ -108,31 +106,36 @@ class MonthlyInOutLog(Document):
 
     @frappe.whitelist()
     def populate_from_attendance(self):
-        """Refresh ledger, resolution state and hours from the day's attendance."""
+        """Refresh ledger, resolution state and hours from the day's attendance.
+        Returns True on success so callers (and the desk button) can tell a
+        swallowed failure from a real refresh."""
         try:
             att = get_mil_attendance(self)
             if not att:
-                return
+                return False
 
             updates = get_error_context(self, att)
             if att.name != self.attendance:
                 updates["attendance"] = att.name
             updates.update(self._hours_from(att))
             self._persist(updates)
+            return True
         except Exception:
             frappe.log_error(
                 title="MonthlyInOutLog.populate_from_attendance_error",
                 message=frappe.get_traceback(with_context=True),
                 reference_doctype=self.doctype,
             )
+            return False
 
     def _hours_from(self, att) -> dict:
         if not att.working_hours:
             zero = timedelta(0)
             return {
                 "status": self.status or att.status,
-                "net_wrk_hrs": zero, "spent_hrs": zero, "p_out_hrs": zero,
-                "ot_hrs": zero, "in_time": zero, "out_time": zero,
+                # Duration fields store seconds; Time fields stay timedelta
+                "net_wrk_hrs": 0, "spent_hrs": 0, "ot_hrs": 0,
+                "p_out_hrs": zero, "in_time": zero, "out_time": zero,
                 "early_hrs": zero, "late_hrs": zero, "late": 0,
             }
 
@@ -150,15 +153,15 @@ class MonthlyInOutLog(Document):
 
         return {
             "status": record.get("status"),
-            "spent_hrs": fmt_td_or_value(record.get("spent_hrs") or record.get("spent_hours")),
-            "net_wrk_hrs": fmt_td_or_value(net_wrk_hrs),
+            "spent_hrs": mil_duration_seconds(record.get("spent_hrs") or record.get("spent_hours")),
+            "net_wrk_hrs": mil_duration_seconds(net_wrk_hrs),
             "in_time": fmt_td_or_value(record.get("in_time")),
             "out_time": fmt_td_or_value(record.get("out_time")),
             "p_out_hrs": fmt_td_or_value(record.get("p_out_hrs")),
             "late": record.get("late") or record.get("late_entry") or 0,  # NOT NULL column
             "late_hrs": fmt_td_or_value(record.get("late_hrs")),
             "early_hrs": fmt_td_or_value(record.get("early_hrs")),
-            "ot_hrs": fmt_td_or_value(record.get("ot_hours") or record.get("othrs")),
+            "ot_hrs": mil_duration_seconds(record.get("ot_hours") or record.get("othrs")),
         }
 
     @frappe.whitelist()
@@ -199,17 +202,21 @@ def get_attendance_details_by_date(company, employee, attendance_date):
     }
 
 
-    return fetch_attendance_data(filters)
+    return fetch_attendance_data(filters, include_totals=False)
 
 
 # ============================================================
 # RESPONSE SHAPING (MODULE-LEVEL, REUSABLE)
 # ============================================================
 
-def fetch_attendance_data(filters):
+def fetch_attendance_data(filters, include_totals=True):
     """
     Reusable service that returns shaped attendance data for the given filters.
     This function is intentionally module-level so other controllers / scripts can import it.
+
+    include_totals=False skips the monthly totals pass: single-day callers
+    (MIL card populate, OT/leave/request updates) never read the totals and
+    the flag pass runs this per attendance row.
     """
     employee = filters.get("employee")
 
@@ -531,6 +538,28 @@ def get_conditions(filters):
     return conditions
 
 # small helper to format timedelta/time-like to HH:MM:SS string
+
+def mil_duration_seconds(value):
+    """Duration fields (spent_hrs / net_wrk_hrs / ot_hrs) store seconds.
+    Accepts timedelta, numeric seconds or an HH:MM:SS string; None passes through."""
+    if value is None:
+        return None
+    if isinstance(value, timedelta):
+        return value.total_seconds()
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, datetime):
+        return None
+    if isinstance(value, str):
+        parts = value.split(":")
+        if len(parts) == 3:
+            try:
+                return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+            except ValueError:
+                return None
+    return None
+
+
 def fmt_td_or_value(val):
     if not val:
         return "00:00:00"
