@@ -12551,6 +12551,7 @@ def get_variants_by_itemcode(itemCode=None, customer=None):
         WHERE
             item.item_code LIKE %(base_code)s
             AND idf.company = 'Gurukrupa Export Private Limited'
+            AND item.item_group != 'Design DNU'
 
         GROUP BY item.item_code
         ORDER BY item.creation ASC
