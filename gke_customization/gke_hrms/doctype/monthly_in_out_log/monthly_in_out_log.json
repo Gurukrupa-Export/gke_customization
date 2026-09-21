@@ -1,7 +1,7 @@
 {
  "actions": [],
  "autoname": "MIL-.YYYY.-.MM.-.#####",
- "creation": "2026-01-03 10:15:10.161491",
+ "creation": "2026-09-21 05:36:55.726441",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -34,6 +34,10 @@
   "section_break_44ms",
   "column_break_hexd",
   "attendance",
+  "punch_error",
+  "punch_ledger",
+  "resolution_status",
+  "resolution_remarks",
   "column_break_vipo",
   "amended_from"
  ],
@@ -246,6 +250,35 @@
    "read_only": 1
   },
   {
+   "fieldname": "punch_error",
+   "fieldtype": "Select",
+   "label": "Punch Error",
+   "no_copy": 1,
+   "options": "\nMissing IN\nMissing OUT\nUnpaired punch\nReclassification needed",
+   "read_only": 1
+  },
+  {
+   "description": "Exact punch sequence with pairing rules and the shift window.",
+   "fieldname": "punch_ledger",
+   "fieldtype": "Small Text",
+   "label": "Punch Ledger",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "resolution_status",
+   "fieldtype": "Select",
+   "label": "Resolution Status",
+   "no_copy": 1,
+   "options": "\nPending HR\nAuto-Resolved (Approved OT)\nAuto-Closed (Shift End)\nHR-Approved\nRejected"
+  },
+  {
+   "fieldname": "resolution_remarks",
+   "fieldtype": "Small Text",
+   "label": "Resolution Remarks",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_vipo",
    "fieldtype": "Column Break"
   }
@@ -254,12 +287,12 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-01-15 16:28:36.418216",
- "modified_by": "bhavika_patel@gkexport.com",
+ "modified": "2026-09-21 10:08:01.216102",
+ "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Monthly In-Out Log",
- "naming_rule": "Expression (old style)",
- "owner": "aditya_r@gkexport.com",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
  "permissions": [
   {
    "amend": 1,

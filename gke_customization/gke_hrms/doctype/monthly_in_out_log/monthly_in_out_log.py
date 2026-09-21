@@ -46,7 +46,11 @@ TOTAL_STATUS_ROWS = [
     "Net Days w/o OT",
 ]
 
-
+from gke_customization.gke_hrms.ot_resolver import (
+    get_error_context,
+    get_mil_attendance,
+    resolve_error_day,
+)
 # ============================================================
 # DOCUMENT CONTROLLER
 # ============================================================
@@ -54,16 +58,13 @@ TOTAL_STATUS_ROWS = [
 class MonthlyInOutLog(Document):
 
     def validate(self):
-        """
-        By default populate on validate if employee + attendance_date present.
-        Change this behavior if you want manual button-based population instead.
-        """
+        self.validate_duplicate_entry()
         self.company = frappe.db.get_value("Employee", self.employee, "company")
         self.shit_type = get_employee_shift(self.employee, self.attendance_date)
         self.shift_hours = frappe.db.get_value("Shift Type", self.shit_type, "shift_hours")
-
-        if not self.validate_duplicate_entry():
-            self.populate_from_attendance()
+        # links attendance, refreshes ledger + hours (also covers submit,
+        # so there is no separate on_submit populate any more)
+        self.populate_from_attendance()
     
     def on_submit(self):
         self.populate_from_attendance()
@@ -75,94 +76,100 @@ class MonthlyInOutLog(Document):
             
 
     def validate_duplicate_entry(self):
-        """
-        Prevent duplicate Monthly In-Out Log for same employee & date
-        """
-
-        if not self.employee or not self.attendance_date:
+        """One Monthly In-Out Log per employee + date."""
+        if not (self.employee and self.attendance_date):
             return
-
-        login_date = getdate(self.attendance_date)
-
-        duplicate = frappe.db.exists(
+        if frappe.db.exists(
             "Monthly In-Out Log",
             {
                 "employee": self.employee,
-                "attendance_date": login_date,
-                "docstatus": ["in", [0, 1]],
-                "name": ["!=", self.name],
+                "attendance_date": getdate(self.attendance_date),
+                "docstatus": ["<", 2],
+                "name": ["!=", self.name or ""],
             },
-        )
+        ):
+            frappe.throw(
+                _("Monthly In-Out Log already exists for {0} on {1}").format(
+                    self.employee, self.attendance_date
+                ),
+                frappe.DuplicateEntryError,
+            )
 
-        if duplicate:
-            return True
+    
+    def _persist(self, updates: dict):
+        """Existing card (draft or submitted): ONE db write, no modified bump.
+        New card: in-memory only, insert() persists it."""
+        if not updates:
+            return
+        if not self.is_new():
+            frappe.db.set_value(self.doctype, self.name, updates, update_modified=False)
+        for field, value in updates.items():
+            self.set(field, value)
 
     @frappe.whitelist()
     def populate_from_attendance(self):
-        """
-        Populate document fields using the service function.
-        Uses the first record returned for the date.
-        """
+        """Refresh ledger, resolution state and hours from the day's attendance."""
         try:
-            # normalize
-            attendance_date = getdate(self.attendance_date)
-
-            if self.attendance:
-                attendance_doc = frappe.get_doc("Attendance", self.attendance)
-                if not attendance_doc.working_hours:
-                    self.net_wrk_hrs = timedelta(0)
-                    self.spent_hrs = timedelta(0)
-                    self.p_out_hrs = timedelta(0)
-                    self.ot_hrs = timedelta(0)
-                    self.in_time = timedelta(0)
-                    self.out_time = timedelta(0)
-                    self.early_hrs = timedelta(0)
-                    self.late_hrs = timedelta(0)
-                    self.late = 0
-                    return
-
-            # frappe.throw(f'{attendance_date}')
-            # call the shared service function (module-level)
-            res = get_attendance_details_by_date(self.company, self.employee, attendance_date)
-            # frappe.throw(f"{res}")
-            records = res.get("records") or []
-
-            if not records:
+            att = get_mil_attendance(self)
+            if not att:
                 return
 
-            # use the first (daily) record for the date
-            record = records[0]
-
-            # Reset all fields you expect to populate
-            for f in ("status", "spent_hrs", "net_wrk_hrs","in_time", "out_time", "p_out_hrs", "late", "late_hrs", "early_hrs", "ot_hrs"):
-                if hasattr(self, f):
-                    setattr(self, f, None)
-
-            self.status =  record.get("status")
-
-            # time/duration fields as HH:MM:SS
-            self.spent_hrs = fmt_td_or_value(record.get("spent_hrs") or record.get("spent_hours"))
-            
-            # net_wrk_hrs may be timedelta; keep as string
-            # if net_wrk_hrs is negative then convert into positive
-            net_wrk_hrs = record.get("net_wrk_hrs")
-            if net_wrk_hrs and net_wrk_hrs < timedelta(0):
-                net_wrk_hrs = -net_wrk_hrs
-            self.net_wrk_hrs = fmt_td_or_value(net_wrk_hrs)
-
-            self.in_time = fmt_td_or_value(record.get("in_time"))
-            self.out_time = fmt_td_or_value(record.get("out_time"))
-
-            self.p_out_hrs = fmt_td_or_value(record.get("p_out_hrs"))
-
-            self.late = record.get("late") or record.get("late_entry")
-            self.late_hrs = fmt_td_or_value(record.get("late_hrs"))
-            self.early_hrs = fmt_td_or_value(record.get("early_hrs"))
-            self.ot_hrs= fmt_td_or_value(record.get("ot_hours") or record.get("othrs"))
-
+            updates = get_error_context(self, att)
+            if att.name != self.attendance:
+                updates["attendance"] = att.name
+            updates.update(self._hours_from(att))
+            self._persist(updates)
         except Exception:
-            frappe.log_error(title="MonthlyInOutLog.populate_from_attendance_error", message=frappe.get_traceback(with_context=True), reference_doctype=self.doctype)
+            frappe.log_error(
+                title="MonthlyInOutLog.populate_from_attendance_error",
+                message=frappe.get_traceback(with_context=True),
+                reference_doctype=self.doctype,
+            )
 
+    def _hours_from(self, att) -> dict:
+        if not att.working_hours:
+            zero = timedelta(0)
+            return {
+                "status": self.status or att.status,
+                "net_wrk_hrs": zero, "spent_hrs": zero, "p_out_hrs": zero,
+                "ot_hrs": zero, "in_time": zero, "out_time": zero,
+                "early_hrs": zero, "late_hrs": zero, "late": 0,
+            }
+
+        res = get_attendance_details_by_date(
+            self.company, self.employee, getdate(self.attendance_date)
+        )
+        records = res.get("records") or []
+        if not records:
+            return {}
+        record = records[0]
+
+        net_wrk_hrs = record.get("net_wrk_hrs")
+        if net_wrk_hrs and net_wrk_hrs < timedelta(0):
+            net_wrk_hrs = -net_wrk_hrs
+
+        return {
+            "status": record.get("status"),
+            "spent_hrs": fmt_td_or_value(record.get("spent_hrs") or record.get("spent_hours")),
+            "net_wrk_hrs": fmt_td_or_value(net_wrk_hrs),
+            "in_time": fmt_td_or_value(record.get("in_time")),
+            "out_time": fmt_td_or_value(record.get("out_time")),
+            "p_out_hrs": fmt_td_or_value(record.get("p_out_hrs")),
+            "late": record.get("late") or record.get("late_entry") or 0,  # NOT NULL column
+            "late_hrs": fmt_td_or_value(record.get("late_hrs")),
+            "early_hrs": fmt_td_or_value(record.get("early_hrs")),
+            "ot_hrs": fmt_td_or_value(record.get("ot_hours") or record.get("othrs")),
+        }
+
+    @frappe.whitelist()
+    def resolve_error(self, action, out_time=None, remarks=None):
+        return resolve_error_day(
+            employee=self.employee,
+            attendance_date=self.attendance_date,
+            action=action,
+            out_time=out_time,
+            remarks=remarks,
+        )
 # ============================================================
 # WHITELISTED SERVICE (MODULE-LEVEL, REUSABLE)
 # ============================================================
@@ -252,7 +259,7 @@ def fetch_attendance_data(filters):
             "shift_hours": row.get("shift_hours"),
 
             "status": row.get("status"),
-
+            "punch_error": row.get("punch_error"),
             "spent_hrs": row.get("spent_hours"),
             "net_wrk_hrs": row.get("net_wrk_hrs"),
 
@@ -378,7 +385,8 @@ def get_data(filters):
 			(Attendance.employee == ot_subquery.employee)
 		)
 		.select(
-			Attendance.attendance_date, 
+			Attendance.attendance_date,
+			Attendance.punch_error,
 			# (Attendance.shift).as_('shift_name'),
             IF(
 				ShiftAssignment.shift_type.isnotnull(),
@@ -535,6 +543,11 @@ def fmt_td_or_value(val):
     if isinstance(val, datetime):
         # rarely expected, return date-time string
         return val.strftime("%Y-%m-%d %H:%M:%S")
+    if isinstance(val, str):
+        # strip microseconds leaked from SQL TIME(6) values ("26:30:00.000000")
+        if "." in val:
+            val = val.split(".")[0]
+
     return val
 
 def process_data(data, filters):
