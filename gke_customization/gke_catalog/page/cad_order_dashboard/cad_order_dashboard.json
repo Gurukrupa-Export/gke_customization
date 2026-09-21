@@ -1,0 +1,26 @@
+{
+ "content": null,
+ "creation": "2026-09-20 10:45:52.152183",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-09-20 11:44:38.158460",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "cad-order-dashboard",
+ "owner": "Administrator",
+ "page_name": "cad-order-dashboard",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Computer Aided Designing Manager - ST"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "CAD Dashboard"
+}
