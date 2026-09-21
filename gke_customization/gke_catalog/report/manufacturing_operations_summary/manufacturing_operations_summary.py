@@ -29,26 +29,21 @@ def get_active_departments(filters):
 
     query = f"""
         SELECT
-            mo.department AS department,
-            COUNT(*) AS qty
-        FROM (
-            SELECT *,
-                ROW_NUMBER() OVER (
-                    PARTITION BY manufacturing_work_order
-                    ORDER BY creation DESC, name DESC
-                ) AS rn
-            FROM `tabManufacturing Operation`
-        ) mo
+            mwo.department AS department,
+            COUNT(DISTINCT mwo.name) AS qty
+        FROM `tabManufacturing Work Order` mwo
         LEFT JOIN `tabItem` i
-            ON mo.item_code = i.name
+            ON mwo.item_code = i.name
         LEFT JOIN `tabAttribute Value` av
             ON av.name = i.item_subcategory
-        WHERE mo.rn = 1
-            AND IFNULL(mo.department, '') != ''
+        WHERE IFNULL(mwo.department, '') != ''
+            AND IFNULL(mwo.is_finding_mwo, 0) = 0
+            AND IFNULL(mwo.has_split_mwo, 0) = 0
+            AND IFNULL(mwo.for_fg, 0) = 0
             {conditions}
-        GROUP BY mo.department
-        HAVING COUNT(*) > 0
-        ORDER BY mo.department
+        GROUP BY mwo.department
+        HAVING COUNT(DISTINCT mwo.name) > 0
+        ORDER BY mwo.department
     """
 
     rows = frappe.db.sql(query, values, as_dict=True)
@@ -108,27 +103,22 @@ def get_data(filters, departments):
             COALESCE(i.setting_type, '') AS setting_type,
             COALESCE(i.sub_setting_type, 'No Setting Type') AS sub_setting_type,
             COALESCE(i.item_category, av.parent_attribute_value, i.item_group, 'No Category') AS item_category,
-            mo.department,
-            COUNT(*) AS qty
-        FROM (
-            SELECT *,
-                ROW_NUMBER() OVER (
-                    PARTITION BY manufacturing_work_order
-                    ORDER BY creation DESC, name DESC
-                ) AS rn
-            FROM `tabManufacturing Operation`
-        ) mo
+            mwo.department,
+            COUNT(DISTINCT mwo.name) AS qty
+        FROM `tabManufacturing Work Order` mwo
         LEFT JOIN `tabItem` i
-            ON mo.item_code = i.name
+            ON mwo.item_code = i.name
         LEFT JOIN `tabAttribute Value` av
             ON av.name = i.item_subcategory
-        WHERE mo.rn = 1
+        WHERE IFNULL(mwo.is_finding_mwo, 0) = 0
+            AND IFNULL(mwo.has_split_mwo, 0) = 0
+            AND IFNULL(mwo.for_fg, 0) = 0
             {conditions}
         GROUP BY
             COALESCE(i.setting_type, ''),
             COALESCE(i.sub_setting_type, 'No Setting Type'),
             COALESCE(i.item_category, av.parent_attribute_value, i.item_group, 'No Category'),
-            mo.department
+            mwo.department
     """
 
     raw_data = frappe.db.sql(query, values, as_dict=True)
@@ -217,15 +207,15 @@ def get_conditions(filters):
 
     default_company = frappe.defaults.get_user_default("Company")
     if default_company:
-        conditions += " AND mo.company = %(company)s"
+        conditions += " AND mwo.company = %(company)s"
         values["company"] = default_company
 
     if filters.get("from_date"):
-        conditions += " AND DATE(mo.creation) >= %(from_date)s"
+        conditions += " AND DATE(mwo.creation) >= %(from_date)s"
         values["from_date"] = filters["from_date"]
 
     if filters.get("to_date"):
-        conditions += " AND DATE(mo.creation) <= %(to_date)s"
+        conditions += " AND DATE(mwo.creation) <= %(to_date)s"
         values["to_date"] = filters["to_date"]
 
     if filters.get("item_category"):
