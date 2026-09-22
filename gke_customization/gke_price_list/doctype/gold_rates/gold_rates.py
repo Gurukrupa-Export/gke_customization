@@ -428,6 +428,7 @@ class GoldRates(Document):
 
 			if field_name and len(self.table_djrm) > 6:
 				self.table_djrm[6].set(field_name, gold_value )
+		#fetch gold rate in gram
     
     
     
