@@ -131,7 +131,7 @@ class MonthlyInOutLog(Document):
             zero = timedelta(0)
             return {
                 "status": self.status or att.status,
-                "net_wrk_hrs": zero, "spent_hrs": zero, "p_out_hrs": zero,
+                "net_wrk_hrs": zero, "spent_hrs": 0, "p_out_hrs": zero,
                 "ot_hrs": zero, "in_time": zero, "out_time": zero,
                 "early_hrs": zero, "late_hrs": zero, "late": 0,
             }
@@ -150,7 +150,7 @@ class MonthlyInOutLog(Document):
 
         return {
             "status": record.get("status"),
-            "spent_hrs": fmt_td_or_value(record.get("spent_hrs") or record.get("spent_hours")),
+            "spent_hrs": to_duration_seconds(record.get("spent_hrs") or record.get("spent_hours")),
             "net_wrk_hrs": fmt_td_or_value(net_wrk_hrs),
             "in_time": fmt_td_or_value(record.get("in_time")),
             "out_time": fmt_td_or_value(record.get("out_time")),
@@ -543,12 +543,34 @@ def fmt_td_or_value(val):
     if isinstance(val, datetime):
         # rarely expected, return date-time string
         return val.strftime("%Y-%m-%d %H:%M:%S")
-    if isinstance(val, str):
-        # strip microseconds leaked from SQL TIME(6) values ("26:30:00.000000")
-        if "." in val:
-            val = val.split(".")[0]
 
     return val
+
+# spent_hrs is a Duration field: Frappe stores and expects total seconds
+def to_duration_seconds(val):
+    if val is None or val == "":
+        return 0
+    if isinstance(val, timedelta):
+        return int(val.total_seconds())
+    if isinstance(val, (int, float)):
+        return int(val)
+    if isinstance(val, datetime):
+        return (val.hour * 3600) + (val.minute * 60) + val.second
+    if isinstance(val, str):
+        val = val.strip().split(".")[0]
+        parts = val.split(":")
+        try:
+            nums = [int(p) for p in parts]
+        except ValueError:
+            return 0
+        if len(nums) == 3:
+            hours, minutes, seconds = nums
+        elif len(nums) == 2:
+            hours, minutes, seconds = nums[0], nums[1], 0
+        else:
+            hours, minutes, seconds = nums[0], 0, 0
+        return (hours * 3600) + (minutes * 60) + seconds
+    return 0
 
 def process_data(data, filters):
     employee = filters.get("employee")

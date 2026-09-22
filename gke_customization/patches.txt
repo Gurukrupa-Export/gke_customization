@@ -6,3 +6,4 @@ gke_customization.patches.gc_ration_master
 gke_customization.patches.salary_withholding_release_fields
 gke_customization.patches.remove_bom_row_size_fields
 gke_customization.patches.punch_pairing_fields
+gke_customization.patches.convert_mil_hours_to_duration
