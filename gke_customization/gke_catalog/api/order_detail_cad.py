@@ -417,6 +417,7 @@ from frappe.utils import (
     time_diff_in_hours,
     time_diff_in_seconds,
     format_duration,
+    date_diff,
 )
 
 @frappe.whitelist()
@@ -630,13 +631,19 @@ def get_order(
     # ---------------- Time Taken (Approval) & Approver ---------------- #
     time_taken_by_order = {}
     approver_by_order = {}
+    work_start_date_by_order = {}
     if order_ids:
         timesheets = frappe.get_all(
             "Timesheet",
             filters={"order": ["in", order_ids], "docstatus": ["!=", 2]},
-            fields=["name", "order"],
+            fields=["name", "order", "creation"],
         )
         timesheet_order_map = {ts.name: ts.order for ts in timesheets}
+
+        for ts in timesheets:
+            existing = work_start_date_by_order.get(ts.order)
+            if not existing or ts.creation < existing:
+                work_start_date_by_order[ts.order] = ts.creation
 
         if timesheet_order_map:
             workflow_comments = frappe.get_all(
@@ -704,6 +711,15 @@ def get_order(
             order["designer_name"] = ", ".join(designer_names_by_order.get(order["name"], []))
             order["time_taken_approval"] = time_taken_by_order.get(order["name"])
             order["approver"] = approver_by_order.get(order["name"])
+
+            work_start_date = work_start_date_by_order.get(order["name"])
+            order["work_start_date"] = work_start_date
+            order["on_hold_days"] = (
+                date_diff(work_start_date, order.get("order_date"))
+                if order.get("order_date") and work_start_date
+                else None
+            )
+
             order["order_id"] = order.pop("name")
             order["items"] = (
                 [item_details[order["item"]]]

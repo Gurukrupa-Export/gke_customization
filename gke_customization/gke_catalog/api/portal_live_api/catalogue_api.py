@@ -7702,6 +7702,47 @@ def add_item_in_folder(status=None, name=None, item=None, customer=None):
 
     return {"message": "Updated successfully"}
 
+        setting_filter = ""
+        if "Open" in search_terms:
+            setting_filter = """
+                AND bom.sub_setting_type1 != 'Close-Open Setting'
+            """
+        elif "Close-Open Setting" in search_terms:
+            setting_filter = """
+                AND bom.sub_setting_type1 = 'Close-Open Setting'
+                AND item.setting_type = 'Open'
+            """
+        elif "Nova Glow" in search_terms:
+            setting_filter = """
+                AND item.setting_type = 'Nova Glow'
+            """
+        # frappe.throw(f"{ where_clause}")
+        
+        matched_item_codes = frappe.db.sql(
+            f"""
+            SELECT DISTINCT
+                IFNULL(item.variant_of, item.item_code) AS item_code,
+                item.item_name
+            FROM `tabItem` item
+            INNER JOIN `tabBOM` bom
+                ON bom.item = item.item_code
+            LEFT JOIN `tabItem Default` idf
+                ON idf.parent = item.item_name
+            LEFT JOIN `tabDesign Attribute - Multiselect` dam
+                ON dam.parent = item.item_code
+            WHERE
+                bom.bom_type = 'Finish Goods'
+                {"AND idf.company = %(company)s" if values.get("company") else ""}
+                AND (
+                    {search_where}
+                )
+                {setting_filter}
+            """,
+            values,
+            as_list=True
+        )
+    
+    # frappe.throw(f"{matched_item_codes}")
 
 # @frappe.whitelist()
 # def get_similar_item(item_code):
@@ -8472,7 +8513,14 @@ def remove_item_of_customer_by_user(customer, item_code):
         doc.set("cataloge_item_details", new_rows)
         doc.save(ignore_permissions=True)
 
-    frappe.db.commit()
+            # ── STEP 1: Count query ──────────────────────────────────────────
+            count_query = """
+                SELECT 
+                    ti.item_category,
+                    ti.item_subcategory,
+                    # COUNT(DISTINCT IFNULL(ti.variant_of, ti.name)) AS item_count,
+                    COUNT(DISTINCT IFNULL(ti.variant_of, ti.item_code)) AS item_count,
+                    COUNT(DISTINCT se.name)                         AS serial_count
 
     return {
         "deleted_items": deleted_items
@@ -8969,8 +9017,12 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
             GROUP_CONCAT(DISTINCT mt.metal_purity) AS metal_purities,
             GROUP_CONCAT(DISTINCT mt.metal_touch) AS metal_touch,
 
-            GROUP_CONCAT(DISTINCT gd.stone_shape) AS gemstone_shape,
-            GROUP_CONCAT(DISTINCT gd.cut_or_cab) AS cut_or_cab,
+@frappe.whitelist()
+def get_selected_item_for_customer_by_user(items, customers, user_type):
+    """
+    Save selected items to 'Cataloge Master' for one or more customers.
+    Supports trending value updates.
+    """
 
             GROUP_CONCAT(DISTINCT dd.stone_shape) AS diamond_stone_shape,
             GROUP_CONCAT(DISTINCT dd.sub_setting_type) AS diamond_setting_type,
@@ -9065,42 +9117,18 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
         )
     
 
-    # -------- MULTISELECT ATTRIBUTES --------
-    item_codes = [row.item_code for row in db_data]
-    # frappe.throw(f"Total Records: {len(db_data)}")
-    if item_codes:
-        db_res = frappe.db.sql("""
-            SELECT parent, parentfield,
-            GROUP_CONCAT(design_attribute ORDER BY design_attribute SEPARATOR ', ') AS design_attributes
-            FROM `tabDesign Attribute - Multiselect`
-            WHERE parent IN %(data)s
-            GROUP BY parent, parentfield
-        """, {"data": tuple(item_codes)}, as_dict=True)
-    else:
-        db_res = []
-        
-    count_query = frappe.db.sql(f"""
-   SELECT COUNT(*)
-    FROM (
-        SELECT IFNULL(item.variant_of, item.item_code)
-        FROM `tabItem` item
-        LEFT JOIN `tabBOM` bom ON item.item_code = bom.item
-        LEFT JOIN `tabItem Default` idf ON item.item_name = idf.parent
-        WHERE {where_clause}
-        GROUP BY IFNULL(item.variant_of, item.item_code)
-    ) t
-    """, values)
+        user_id = frappe.db.get_list(
+            "User",
+            filters={"name": customer},
+            fields=["email_id"]
+        )
 
-    total_count = count_query[0][0]
+        # frappe.throw(f"{customer_id}")
 
-    attr_map = {}
-    for row in db_res:
-        parent = row["parent"]
-        field = row["parentfield"].replace("custom_", "")
-        value = row["design_attributes"]
-        if parent not in attr_map:
-            attr_map[parent] = {}
-        attr_map[parent][field] = value
+        # ---------------------------------------------------------
+        # CUSTOMER EXISTS
+        # ---------------------------------------------------------
+        if customer_found or user_id:
 
     for row in db_data:
         attrs = attr_map.get(row.item_code, {})
@@ -9186,38 +9214,32 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
 
 #     #             OR fd.finding_type LIKE %(search)s
 
-#     #             OR dam.design_attribute LIKE %(search)s
-#     #         )
-#     #     """
-    
-#     matched_item_codes = []
-#     if search:
+            if user_type == "User":
+                user_data = frappe.db.get_value(
+                    "User",
+                    customer,
+                    "email"
+                )
 
-#         search_terms = [x.strip() for x in search.split(",") if x.strip()]
-#         # frappe.throw(f"{search_terms}")
-#         search_conditions = []
+                frappe.throw(f"user_data {user_data}")
 
-#         for i, term in enumerate(search_terms):
+                full_name = user_data or ""
 
-#             values[f"search_{i}"] = f"%{term}%"
+                # Display: Full Name - Username
+                # display_name = f"{full_name} - {customer}"
 
-#             search_conditions.append(f"""               
-#                 item.item_category LIKE %(search_{i})s
-#                 OR item.item_subcategory LIKE %(search_{i})s
-#                 OR item.setting_type LIKE %(search_{i})s
-#                 OR bom.sub_setting_type1 LIKE %(search_{i})s
-#                 OR bom.metal_touch LIKE %(search_{i})s
-#                 OR bom.metal_colour LIKE %(search_{i})s
-#                 OR bom.diamond_quality LIKE %(search_{i})s
-#                 OR bom.design_style LIKE %(search_{i})s
-#                 OR bom.rhodium LIKE %(search_{i})s
-#                 OR dam.design_attribute LIKE %(search_{i})s
-#             """)
+                # Customer field me username save karo
+                # catalog_doc.customer = customer
 
-#         search_where = " OR ".join(search_conditions)
-        
-#         # add this condition
-#         setting_filter = ""
+                # Display ke liye alag field
+                catalog_doc.user = full_name
+
+            for item_code, trending_value in items_dict.items():
+                catalog_doc.append("cataloge_item_details", {
+                    "item_code": item_code,
+                    "item_name": item_code,
+                    "trending": trending_value
+                })
 
 #         if "Open" in search_terms:
 #             setting_filter = """
@@ -10814,17 +10836,18 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
 #     if metalType is None:
 #         metalType = frappe.form_dict.get("metalType")
 
-#     if itemCategory is None:
-#         itemCategory = frappe.form_dict.get("itemCategory")
-        
-#     values = {}
+@frappe.whitelist()
+def get_wishlist_item_for_customer_by_user(items, customers, user_type):
+    """
+    Save selected items to 'Cataloge Master' for one or more customers.
+    Supports trending value updates.
+    """
 
-#     # ---------------- FILTERS ----------------
-#     # sub_where = "b.bom_type = 'Finish Goods' AND i.item_group != 'Design DNU'"
-#     # where_clause = "1=1 AND bom.bom_type = 'Finish Goods' AND item.item_group != 'Design DNU'"
-    
-#     sub_where = "b.bom_type = 'Finish Goods' AND b.is_active = 1 AND i.item_group != 'Design DNU' AND i.disabled = 0"
-#     where_clause = "1=1 AND bom.bom_type = 'Finish Goods' AND bom.is_active = 1 AND item.item_group != 'Design DNU' AND item.disabled = 0"
+    # frappe.throw(f"customers {customers}")
+
+    # Parse JSON if string
+    if isinstance(items, str):
+        items = frappe.parse_json(items)
 
 #     if metalType:
 #         sub_where += " AND b.metal_type = %(metalType)s"
@@ -11134,10 +11157,18 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
 #             attr_map[parent] = {}
 #         attr_map[parent][field] = value
 
-#     for row in db_data:
-#         attrs = attr_map.get(row.item_code, {})
-#         for key, value in attrs.items():
-#             row[key] = value
+        customer_found = frappe.db.get_all(
+            "Cataloge Master",
+            filters={"customer": customer},
+            fields=["name"]
+        )
+        
+
+        user_id = frappe.db.get_list(
+            "Cataloge Master",
+            filters={"user": customer},
+            fields=["name"]
+        )
 
 #         row["custom_collection"] = row.get("custom_collection") or None
 #         row["custom_language"] = row.get("custom_language") or None
@@ -11146,53 +11177,14 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
 #         row["custom_alphabetnumber"] = row.get("custom_alphabetnumber") or None
 #         row["religious"] = row.get("religious") or None
 
+        # ---------------------------------------------------------
+        # CUSTOMER EXISTS
+        # ---------------------------------------------------------
+        if customer_found or user_id:
 
-#     # secure = SecureJSON()
-    
-#     if page == 1 and is_filter == 0:
-        
-#         # filters = get_method(db_data)
-        
-#         # enc_data = {
-#         #     "data": db_data[0:50],
-#         #     "filters":filters,
-#         #     "total_count": total_count,
-#         #     "page": page,
-#         #     "page_size": page_size,
-#         #     "has_more": (offset + page_size) <total_count
-#         # }
-        
-#         # encrypted = SecureJSON.encrypt(
-#         #     enc_data
-#         # )
-        
-#         # decrypted = secure.decrypt(
-#         #     encrypted
-#         # )
-        
-#         # return encrypted
-    
-#         return {
-#             "data": db_data[0:50],
-#             "filters":filters,
-#             "total_count": total_count,
-#             "page": page,
-#             "page_size": page_size,
-#             "has_more": (offset + page_size) <total_count
-#         }
-        
-#     # enc_data = {
-#     #     "data": db_data,
-#     #     "filters":filters,
-#     #     "total_count": total_count,
-#     #     "page": page,
-#     #     "page_size": page_size,
-#     #     "has_more": (offset + page_size) < total_count
-#     # }
-    
-#     # encrypted = secure.encrypt(
-#     #     enc_data
-#     # )
+            doc_name = customer_found[0].name if customer_found else user_id[0].name
+            catalog_doc = frappe.get_doc("Cataloge Master", doc_name)
+            # catalog_doc.flags.ignore_permissions = True
 
 
 #     # return encrypted
@@ -11556,8 +11548,32 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
 #                 bom.total_other_weight,
 #                 item.item_code AS variant_name,
 
-#                 GROUP_CONCAT(DISTINCT td.design_attributes) AS design_attributes,
-#                 GROUP_CONCAT(DISTINCT td.design_attribute_value_1) AS design_attributes_1,
+        # ---------------------------------------------------------
+        # NEW CUSTOMER → CREATE CATALOG
+        # ---------------------------------------------------------
+        else:
+            catalog_doc = frappe.new_doc("Cataloge Master")
+            # catalog_doc.customer = customer
+
+            if user_type == "User":
+                user_email  = frappe.db.get_value(
+                    "User",
+                    customer,
+                    "email"
+                )
+                catalog_doc.user = user_email 
+                full_name = user_email or ""
+
+                # Display: Full Name - Username
+                display_name = f"{full_name} - {customer}"
+
+                # Customer field me username save karo
+                # catalog_doc.customer = customer
+
+                # Display ke liye alag field
+               
+            else:
+                catalog_doc.customer = customer
 
 #                 GROUP_CONCAT(DISTINCT mt.metal_type) AS metal_types,
 #                 GROUP_CONCAT(DISTINCT mt.metal_colour) AS metal_color,
@@ -11743,8 +11759,9 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
 
 #             GROUP_CONCAT(DISTINCT item.name ORDER BY item.creation ASC) AS variant_name,
 
-#             GROUP_CONCAT(DISTINCT td.design_attributes) AS design_attributes,
-#             GROUP_CONCAT(DISTINCT td.design_attribute_value_1) AS design_attributes_1,
+
+@frappe.whitelist()
+def add_item_in_folder(status=None, name=None, item=None, customer=None):
 
 #             GROUP_CONCAT(DISTINCT mt.metal_type) AS metal_types,
 #             GROUP_CONCAT(DISTINCT mt.metal_colour) AS metal_color,

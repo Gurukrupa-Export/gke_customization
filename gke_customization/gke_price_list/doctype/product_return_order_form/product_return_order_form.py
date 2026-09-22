@@ -80,17 +80,38 @@ def append_diamond_detail_from_jwelex(product_order, diamond_details):
 		dest.total_diamond_rate = d.get("Rate")
 		dest.diamond_rate_for_specified_quantity = d.get("Amount")
 		dest.se_rate = d.get("Costing_Amt")
-		# purity_name = d.get("Purity_Name")
-		# if purity_name:
-		# 	if purity_name.startswith("DIAMOND NO"):
-		# 		purity_name = purity_name.replace("DIAMOND NO", "", 1).strip()
-		# 	elif purity_name.startswith("GK NO"):
-		# 		purity_name = purity_name.replace("GK NO", "", 1).strip()
+		purity_name = d.get("Purity_Name")
+		if purity_name:
+			if purity_name.startswith("DIAMOND NO"):
+				purity_name = purity_name.replace("DIAMOND NO", "", 1).strip()
 
-		# 	purity_name = purity_name.replace(" ", "")
+			elif purity_name.startswith("GK NO"):
+				purity_name = purity_name.replace("GK NO", "", 1).strip()
 
-		# dest.diamond_grade = purity_name
+			# Remove spaces and /
+			purity_name = purity_name.replace(" ", "").replace("/", "")
 
+			values = frappe.get_all(
+				"Item Attribute Value",
+				filters={"parent": "Diamond Grade"},
+				pluck="attribute_value"
+			)
+
+			frappe.log_error(
+				f"purity_name: {purity_name}\nvalues: {values}",
+				"Diamond Grade"
+			)
+
+			# Remove spaces and / from attribute values as well
+			values = [v.replace(" ", "").replace("/", "") for v in values]
+
+			if purity_name in values:
+				dest.diamond_grade = purity_name
+
+				frappe.log_error(
+					f"purity_name matched: {purity_name}",
+					"Diamond Grade Debug"
+				)
 
 def append_finding_detail_from_jwelex(product_order, finding_details):
 	for f in finding_details:
@@ -131,6 +152,11 @@ def append_gemstone_detail_from_jwelex(product_order, stone_details):
 		dest.total_gemstone_rate = s.get("Rate")
 		dest.gemstone_rate_for_specified_quantity = s.get("Amount")
 		dest.se_rate = s.get("Costing_Rate")
+		parent =  frappe.db.get_value("Jewelex to ERP Gemstone Mapping",{'mapping_type':"Gemstone Type"},"name")
+		if parent:
+			gemstone_type = frappe.db.get_value('Jewelex to ERP Gemstone Mapping item',{"parent":parent,"jewelex_gemstone_type":s.get('Purity_Name')},'erp_gemstone_type')
+			if gemstone_type:
+				dest.gemstone_type =  gemstone_type
 
 
 class ProductReturnOrderForm(Document):
@@ -1086,6 +1112,8 @@ class ProductReturnOrderForm(Document):
 			# update_totals("BOM", bom_doc.name)
 
 	def on_submit(self):
+		if self.ref_company == "KG":	
+			sync_product_return_form_to_remote(self)
 
 		# if self.yu: return
 
@@ -1141,6 +1169,7 @@ class ProductReturnOrderForm(Document):
 
 			product_order.item_code = item_row.item_code
 			product_order.item_name = item_row.item_name
+			is_kggk_serial_no = bool(item_row.kggk_serial_no)
 			product_order.is_jewelex_tag = item_row.is_jewelex_tag
 			product_order.jewelex_tag = item_row.jewelex_tag
 			# product_order.bom = bom.name if bom else item_row.bom
@@ -1245,6 +1274,8 @@ class ProductReturnOrderForm(Document):
 			product_order.save()
 			# If Tag No then Skip
 			if item_row.tag_no:
+				continue
+			if item_row.kggk_serial_no:
 				continue
 
 			if not item_row.is_jewelex_tag and not item_row.jewelex_tag:
@@ -3213,6 +3244,580 @@ def get_sales_bom_nd_invoice(serial_no, customer, sales_type):
 		"total_gemstone_pcs": bom_details.get("total_gemstone_pcs")
 	}
 
+import requests
+import frappe
+from urllib.parse import quote
+
+
+@frappe.whitelist()
+def get_kggk_serial_no(tag_no):
+
+    if not tag_no:
+        frappe.throw("Tag No is required")
+
+    # ============================================================
+    # 1. GET KGGK CONNECTION SETTINGS
+    # ============================================================
+
+    settings = frappe.get_doc("Data Migration in KGGK")
+
+    from_site = settings.serial_no_from_site
+    api_key = settings.from_site_api_key
+    api_secret = settings.get_password("from_site_api_secret")
+
+    if not from_site:
+        frappe.throw(
+            "Serial No From Site is not configured in "
+            "Data Migration in KGGK."
+        )
+
+    if not api_key or not api_secret:
+        frappe.throw(
+            "From Site API Key or API Secret is not configured."
+        )
+
+    from_site = from_site.rstrip("/")
+
+    headers = {
+        "Authorization": f"token {api_key}:{api_secret}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    }
+
+    # ============================================================
+    # 2. SEARCH SERIAL NO BY TAG NO ON KGGK
+    # ============================================================
+
+    encoded_tag_no = quote(tag_no, safe="")
+
+    serial_url = (
+        f"{from_site}/api/resource/Serial%20No"
+        f"?filters="
+        f"[[%22custom_jwelex_tag_no%22,%22=%22,%22"
+        f"{encoded_tag_no}%22]]"
+        f"&fields=%5B%22*%22%5D"
+        f"&limit_page_length=1"
+    )
+
+    try:
+
+        response = requests.get(
+            serial_url,
+            headers=headers,
+            timeout=30,
+        )
+
+    except requests.exceptions.RequestException as e:
+
+        frappe.throw(
+            f"Unable to connect to KGGK site while searching "
+            f"Tag No <b>{tag_no}</b>.<br><br>"
+            f"Error: {str(e)}"
+        )
+
+    if response.status_code != 200:
+
+        frappe.throw(
+            f"Failed to search Serial No for Tag No "
+            f"<b>{tag_no}</b> on KGGK site.<br><br>"
+            f"Status Code: {response.status_code}<br>"
+            f"Response: {response.text}"
+        )
+
+    serial_response = response.json().get("data")
+
+    if not serial_response:
+
+        frappe.throw(
+            f"No Serial No found on KGGK site for "
+            f"Tag No <b>{tag_no}</b>."
+        )
+
+    # ============================================================
+    # 3. GET THE SERIAL NO
+    # ============================================================
+
+    serial_data = serial_response[0]
+
+    remote_serial_no = serial_data.get("name")
+
+    if not remote_serial_no:
+
+        frappe.throw(
+            f"Serial No was not found for "
+            f"Tag No <b>{tag_no}</b>."
+        )
+
+    item_code = serial_data.get("item_code")
+    item_name = serial_data.get("item_name")
+    status = serial_data.get("status")
+    warehouse = serial_data.get("warehouse")
+
+    remote_bom = serial_data.get("custom_bom_no")
+
+    # ============================================================
+    # 4. CHECK SERIAL STATUS
+    # ============================================================
+
+    if status != "Delivered":
+
+        frappe.throw(
+            f"Serial No <b>{remote_serial_no}</b> "
+            f"for Tag No <b>{tag_no}</b> has status "
+            f"<b>{status}</b> on KGGK site.<br><br>"
+            f"It must be <b>Delivered</b> to proceed."
+        )
+
+    # ============================================================
+    # 5. FETCH SALES INVOICE + SALES INVOICE ITEM
+    # ============================================================
+
+    sales_invoice_api_url = (
+        f"{from_site}/api/method/"
+        f"get_sales_invoice_by_serial"
+    )
+
+    try:
+
+        invoice_response = requests.get(
+            sales_invoice_api_url,
+            headers=headers,
+            params={
+                "serial_no": remote_serial_no
+            },
+            timeout=30,
+        )
+
+    except requests.exceptions.RequestException as e:
+
+        frappe.throw(
+            f"Unable to connect to KGGK site while fetching "
+            f"Sales Invoice for Serial No "
+            f"<b>{remote_serial_no}</b>.<br><br>"
+            f"Error: {str(e)}"
+        )
+
+    if invoice_response.status_code != 200:
+
+        frappe.throw(
+            f"Failed to fetch Sales Invoice for Serial No "
+            f"<b>{remote_serial_no}</b> from KGGK site.<br><br>"
+            f"Status Code: {invoice_response.status_code}<br>"
+            f"Response: {invoice_response.text}"
+        )
+
+    invoice_result = invoice_response.json().get("message")
+
+    if not invoice_result:
+
+        frappe.throw(
+            f"Sales Invoice was not found for Serial No "
+            f"<b>{remote_serial_no}</b> on KGGK site."
+        )
+
+    sales_invoice_name = invoice_result.get(
+        "sales_invoice"
+    )
+
+    if not sales_invoice_name:
+
+        frappe.throw(
+            f"Sales Invoice reference was not found for "
+            f"Serial No <b>{remote_serial_no}</b>."
+        )
+
+    # ============================================================
+    # 6. FETCH BOM FROM CURRENT GURUKRUPA SITE
+    # ============================================================
+
+    bom_details = {}
+
+    if remote_bom:
+
+        bom_details = frappe.db.get_value(
+            "BOM",
+            remote_bom,
+            [
+                "metal_and_finding_weight",
+                "gross_weight",
+                "metal_purity",
+                "metal_touch",
+                "diamond_quality",
+                "item_subcategory",
+                "setting_type",
+                "total_metal_weight",
+                "diamond_weight",
+                "metal_colour",
+                "total_gemstone_weight",
+                "making_charge",
+                "finding_weight",
+                "total_diamond_pcs",
+                "total_gemstone_pcs",
+            ],
+            as_dict=True,
+        ) or {}
+
+        if not bom_details:
+
+            frappe.throw(
+                f"BOM <b>{remote_bom}</b> linked with "
+                f"Serial No <b>{remote_serial_no}</b> "
+                f"was not found on the current site."
+            )
+
+    # ============================================================
+    # 7. PREPARE LOCAL SERIAL NO CHILD TABLE
+    # ============================================================
+
+    child_rows = []
+
+    for row in (
+        serial_data.get("custom_serial_no_table") or []
+    ):
+
+        child_rows.append({
+
+            "doctype": "Serial No Table",
+
+            "serial_no": row.get("serial_no"),
+
+            "item_code": row.get("item_code"),
+
+            "item_name": row.get("item_name"),
+
+            "item_group": row.get("item_group"),
+
+            "purchase_rate": (
+                row.get("purchase_rate") or 0
+            ),
+
+            "warranty_period": (
+                row.get("warranty_period") or 0
+            ),
+
+            "company": "Gurukrupa Export Private Limited",
+
+            "status": row.get("status"),
+
+            "asset_status": row.get(
+                "asset_status"
+            ),
+
+            "maintenance_status": row.get(
+                "maintenance_status"
+            ),
+        })
+
+    # ============================================================
+    # 8. CREATE LOCAL SERIAL NO IF NOT EXISTS
+    # ============================================================
+
+    local_serial_created = False
+
+    if not frappe.db.exists(
+        "Serial No",
+        remote_serial_no
+    ):
+
+        serial_payload = {
+
+            "doctype": "Serial No",
+
+            # ----------------------------------------------------
+            # Basic information
+            # ----------------------------------------------------
+
+            "serial_no": remote_serial_no,
+
+            "item_code": item_code,
+
+            "item_name": item_name,
+
+            "description": serial_data.get(
+                "description"
+            ),
+
+            "batch_no": serial_data.get(
+                "batch_no"
+            ),
+
+            "warehouse": warehouse,
+
+            "purchase_rate": (
+                serial_data.get("purchase_rate") or 0
+            ),
+
+            "customer": serial_data.get(
+                "customer"
+            ),
+
+            "status": status,
+
+            "item_group": serial_data.get(
+                "item_group"
+            ),
+
+            "brand": serial_data.get(
+                "brand"
+            ),
+
+            # ----------------------------------------------------
+            # Asset information
+            # ----------------------------------------------------
+
+            "asset": serial_data.get(
+                "asset"
+            ),
+
+            "asset_status": serial_data.get(
+                "asset_status"
+            ),
+
+            # ----------------------------------------------------
+            # Location / Employee
+            # ----------------------------------------------------
+
+            "location": serial_data.get(
+                "location"
+            ),
+
+            "employee": serial_data.get(
+                "employee"
+            ),
+
+            # ----------------------------------------------------
+            # Warranty
+            # ----------------------------------------------------
+
+            "warranty_expiry_date": serial_data.get(
+                "warranty_expiry_date"
+            ),
+
+            "amc_expiry_date": serial_data.get(
+                "amc_expiry_date"
+            ),
+
+            "maintenance_status": serial_data.get(
+                "maintenance_status"
+            ),
+
+            "warranty_period": (
+                serial_data.get("warranty_period") or 0
+            ),
+
+            # ----------------------------------------------------
+            # Company
+            # ----------------------------------------------------
+
+            "company": (
+                "Gurukrupa Export Private Limited"
+            ),
+
+            # ----------------------------------------------------
+            # Reference information
+            # ----------------------------------------------------
+
+            "work_order": serial_data.get(
+                "work_order"
+            ),
+
+            "reference_doctype": serial_data.get(
+                "reference_doctype"
+            ),
+
+            "reference_name": serial_data.get(
+                "reference_name"
+            ),
+
+            "posting_date": serial_data.get(
+                "posting_date"
+            ),
+
+            # ----------------------------------------------------
+            # Custom fields
+            # ----------------------------------------------------
+
+            "custom_ownership_tag": serial_data.get(
+                "custom_ownership_tag"
+            ),
+
+            "custom_order_type": serial_data.get(
+                "custom_order_type"
+            ),
+
+            "custom_bom_no": remote_bom,
+
+            "custom_gross_wt": (
+                bom_details.get("gross_weight")
+            ),
+
+            "custom_is_auto_created": 1,
+
+            # IMPORTANT:
+            # Copy the tag number to local Serial No
+            "custom_jwelex_tag_no": tag_no,
+
+            # ----------------------------------------------------
+            # Child table
+            # ----------------------------------------------------
+
+            "custom_serial_no_table": child_rows,
+        }
+
+        try:
+
+            local_serial_doc = frappe.get_doc(
+                serial_payload
+            )
+
+            local_serial_doc.insert(
+                ignore_permissions=True
+            )
+
+            local_serial_created = True
+
+            frappe.log_error(
+                title="Local Serial No Created",
+                message=(
+                    f"Serial No: {remote_serial_no}\n"
+                    f"Tag No: {tag_no}\n"
+                    f"Item Code: {item_code}\n"
+                    f"Company: "
+                    f"Gurukrupa Export Private Limited\n"
+                    f"BOM: {remote_bom}\n"
+                    f"Child Rows: {len(child_rows)}"
+                )
+            )
+
+        except Exception:
+
+            frappe.log_error(
+                title="Local Serial No Creation Failed",
+                message=frappe.get_traceback()
+            )
+
+            frappe.throw(
+                f"Failed to create Serial No "
+                f"<b>{remote_serial_no}</b> "
+                f"on current site.<br><br>"
+                f"Error:<br>"
+                f"{frappe.get_traceback()}"
+            )
+
+    # ============================================================
+    # 9. RETURN ALL DATA
+    # ============================================================
+
+    return {
+
+        # --------------------------------------------------------
+        # Tag / Serial No
+        # --------------------------------------------------------
+
+        "tag_no": tag_no,
+
+        "serial_no": remote_serial_no,
+
+        "item_code": item_code,
+
+        "item_name": item_name,
+
+        "status": status,
+
+        "warehouse": warehouse,
+
+        # --------------------------------------------------------
+        # BOM
+        # --------------------------------------------------------
+
+        "bom": remote_bom,
+
+        "net_weight": bom_details.get(
+            "metal_and_finding_weight"
+        ),
+
+        "gross_weight": bom_details.get(
+            "gross_weight"
+        ),
+
+        "metal_purity": bom_details.get(
+            "metal_purity"
+        ),
+
+        "metal_touch": bom_details.get(
+            "metal_touch"
+        ),
+
+        "metal_colour": bom_details.get(
+            "metal_colour"
+        ),
+
+        "diamond_quality": bom_details.get(
+            "diamond_quality"
+        ),
+
+        "item_subcategory": bom_details.get(
+            "item_subcategory"
+        ),
+
+        "setting_type": bom_details.get(
+            "setting_type"
+        ),
+
+        "making_charge": bom_details.get(
+            "making_charge"
+        ),
+
+        "total_metal_weight": bom_details.get(
+            "total_metal_weight"
+        ),
+
+        "total_diamond_weight_in_gms": (
+            bom_details.get("diamond_weight")
+        ),
+
+        "total_gemstone_weight": (
+            bom_details.get("total_gemstone_weight")
+        ),
+
+        "finding_weight": bom_details.get(
+            "finding_weight"
+        ),
+
+        "total_diamond_pcs": bom_details.get(
+            "total_diamond_pcs"
+        ),
+
+        "total_gemstone_pcs": bom_details.get(
+            "total_gemstone_pcs"
+        ),
+
+        # --------------------------------------------------------
+        # Sales Invoice
+        # --------------------------------------------------------
+
+        "sales_invoice": invoice_result,
+
+        "sales_invoice_name": sales_invoice_name,
+
+        # --------------------------------------------------------
+        # Local Serial No
+        # --------------------------------------------------------
+
+        "local_serial_created": local_serial_created,
+
+        "local_serial_name": remote_serial_no,
+
+        # --------------------------------------------------------
+        # Child table
+        # --------------------------------------------------------
+
+        "custom_serial_no_table": child_rows,
+    }
+
+
+
+
 
 
 @frappe.whitelist()
@@ -4395,3 +5000,357 @@ def create_return_sales_invoice(doc):
 	
 
 
+
+import json
+import requests
+import frappe
+
+
+def sync_product_return_form_to_remote(doc, method=None):
+    # =========================================================
+    # PREVENT REMOTELY-CREATED DOCUMENT FROM SYNCING BACK
+    # =========================================================
+
+    # if not doc.custom_auto_created_product_return_form:
+
+    #     # =====================================================
+    #     # PRODUCT RETURN FORM ITEMS
+    #     # =====================================================
+
+	items = []
+
+	for row in (doc.items or []):
+		items.append({
+			"item_code": row.item_code,
+			"serial_no": row.serial_no,
+			"hsn_sac": row.hsn_sac,
+			"item_group": row.item_group,
+			"is_jewelex_tag": row.is_jewelex_tag,
+			"item_name": row.item_name,
+			"bom": row.bom,
+			"is_sale": row.is_sale,
+			"jewelex_tag": row.jewelex_tag,
+			"net_weight": row.net_weight,
+			"sales_invoice_item":row.kggk_sales_invoice_item,
+			"sales_invoice":row.kggk_sales_invoice,
+			"gross_weight": row.gross_weight,
+			"physical_gross_weight": row.physical_gross_weight,
+			"physical_net_weight": row.physical_net_weight,
+			"metal_touch": row.metal_touch,
+			"metal_purity": row.metal_purity,
+			"metal_colour": row.metal_colour,
+			"setting_type": "Nova Glow",
+			"item_category": row.item_category,
+			"item_subcategory": row.item_subcategory,
+			"gold_rate": row.gold_rate,
+			"description": row.description,
+			"image": row.image,
+			"qty": row.qty,
+			"uom": row.uom,
+			"rate": row.rate,
+			"amount": row.amount,
+			"base_rate": row.base_rate,
+			"base_amount": row.base_amount,
+			"metal_weight": row.metal_weight,
+			"finding_weight": row.finding_weight,
+			"diamond_weight": row.diamond_weight,
+			"diamond_pcs": row.diamond_pcs,
+			"gemstone_weight": row.gemstone_weight,
+			"gemstone_pcs": row.gemstone_pcs,
+			"other_weight": row.other_weight,
+			"metal_amount": row.metal_amount,
+			"diamond_amount": row.diamond_amount,
+			"finding_amount": row.finding_amount,
+			"making_amount": row.making_amount,
+			"certification_amount": row.certification_amount,
+			"freight_amount": row.freight_amount,
+			"gemstone_amount": row.gemstone_amount,
+			"other_material_amount": row.other_material_amount,
+			"hallmarking_amount": row.hallmarking_amount,
+			"custom_duty_amount": row.custom_duty_amount,
+			"other_amount": row.other_amount,
+			"total_weight": row.total_weight,
+			"warehouse": row.warehouse,
+			# "sales_invoice": row.sales_invoice,
+			# "sales_invoice_item": row.sales_invoice_item
+		})
+
+	# =====================================================
+	# CREDIT NOTE INVOICE ITEMS
+	# =====================================================
+
+	credit_note_invoice_item = []
+
+	for row in (doc.credit_note_invoice_item or []):
+		credit_note_invoice_item.append({
+			"item_code": row.item_code,
+			"serial_no": row.serial_no,
+			"qty": row.qty,
+			"rate": row.rate,
+			"amount": row.amount
+		})
+
+	# =====================================================
+	# SALES TAXES AND CHARGES
+	# =====================================================
+
+	sales_taxes_and_charges = []
+
+	for row in (doc.sales_taxes_and_charges or []):
+		sales_taxes_and_charges.append({
+			"charge_type": row.charge_type,
+			"account_head": (
+				row.account_head.rsplit(" - ", 1)[0] + " - KGJPL"
+				if row.account_head and " - " in row.account_head
+				else row.account_head
+			),
+			"description": row.description,
+			"included_in_print_rate": row.included_in_print_rate,
+			"included_in_paid_amount": row.included_in_paid_amount,
+			# "set_by_item_tax_template": row.set_by_item_tax_template,
+			# "is_tax_withholding_account": row.is_tax_withholding_account,
+			"cost_center": row.cost_center,
+			"rate": row.rate,
+			"account_currency": row.account_currency,
+			# "net_amount": row.net_amount,
+			"tax_amount": row.tax_amount,
+			"total": row.total,
+			"tax_amount_after_discount_amount": row.tax_amount_after_discount_amount,
+			# "base_net_amount": row.base_net_amount,
+			"base_tax_amount": row.base_tax_amount,
+			"base_total": row.base_total,
+			"base_tax_amount_after_discount_amount": row.base_tax_amount_after_discount_amount,
+			"dont_recompute_tax": row.dont_recompute_tax
+		})
+
+	# =====================================================
+	# MAIN PAYLOAD
+	# =====================================================
+
+	payload = {
+		"name": doc.name,
+
+		# BASIC INFORMATION
+		"customer": "GJCU0009",
+		"customer_name": "Gurukrupa Export Private Limited - Factory",
+		"ref_company": doc.ref_company,
+		"company": "KG GK Jewellers Private Limited",
+		"sales_type": doc.sales_type,
+
+		"date": doc.date,
+		"posting_time": doc.posting_time,
+
+		"invoice_sales_type": doc.invoice_sales_type,
+		"status": doc.status,
+
+		"credit_note_type": doc.credit_note_type,
+		"credit_note_subtype": "Yes",
+		"return_subtype": "",
+
+		"credit_note_rate_type": "",
+		"diamond_rate_type": "",
+
+		"making_charges_type": "With",
+		"handling_charges": "With",
+		"wastage_charges": "With",
+		"gemstone_charges": "With",
+
+		"return_material_type": doc.return_material_type,
+
+		# RATES
+		"gold_rate_with_gst": doc.gold_rate_with_gst,
+		"gold_rate": doc.gold_rate,
+
+		# SCAN / PRODUCT
+		"scan_barcode": doc.scan_barcode,
+
+		"product_hallmarking": doc.product_hallmarking,
+		"product_certification": doc.product_certification,
+
+		# WEIGHTS
+		"metal_weight": doc.metal_weight,
+		"diamond_weight": doc.diamond_weight,
+		"diamond_pcs": doc.diamond_pcs,
+
+		"finding_weight": doc.finding_weight,
+
+		"gemstone_weight": doc.gemstone_weight,
+		"gemstone_pcs": doc.gemstone_pcs,
+
+		"other_weight": doc.other_weight,
+
+		# TOTALS
+		"total_amount": doc.total_amount,
+		"total_taxes_and_charges": doc.total_taxes_and_charges,
+		"grand_total": doc.grand_total,
+
+		"rounding_adjustment": doc.rounding_adjustment,
+		"rounded_total": doc.rounded_total,
+
+		"in_words": doc.in_words,
+
+		# TAX CATEGORY
+		"tax_category": doc.tax_category,
+
+		# CHILD TABLES
+		"items": items,
+		"credit_note_invoice_item": credit_note_invoice_item,
+		"sales_taxes_and_charges": sales_taxes_and_charges,
+
+		# IMPORTANT:
+		# This prevents the remote-created document from
+		# syncing back to this site.
+		"custom_auto_created_product_return_form": 1
+	}
+
+	# =====================================================
+	# REMOTE API
+	# =====================================================
+	migration_settings = frappe.get_single("Data Migration in KGGK")
+	site_url = (migration_settings.prf_to_site or "").rstrip("/")
+	api_key = migration_settings.api_key
+	api_secret = migration_settings.get_password("api_secret")
+
+	base_url = site_url
+
+	url = (
+		base_url
+		+ "/api/resource/Product%20Return%20Order%20Form"
+	)
+
+	headers = {
+		"Authorization": f"token {api_key}:{api_secret}",
+		"Content-Type": "application/json",
+		"Accept": "application/json",
+	}
+
+	# =====================================================
+	# CREATE REMOTE DOCUMENT
+	# =====================================================
+
+	try:
+
+		resp = requests.post(
+			url,
+			headers=headers,
+			data=json.dumps(payload, default=str)
+		)
+		resp.raise_for_status()
+		response = resp.json()
+
+		frappe.log_error(
+			title="Remote Product Return Form Created",
+			message=str(response)
+		)
+
+		# =================================================
+		# GET CREATED DOCUMENT NAME
+		# =================================================
+
+		remote_doc = None
+
+		if isinstance(response, dict):
+
+			if response.get("data"):
+				remote_doc = response.get("data")
+
+			elif response.get("message"):
+				remote_doc = response.get("message")
+
+		if not remote_doc:
+			frappe.throw(
+				"Remote Product Return Order Form was created, "
+				"but the response did not contain the document."
+			)
+
+		remote_name = remote_doc.get("name")
+
+		if not remote_name:
+			frappe.throw(
+				"Remote Product Return Order Form name was not returned."
+			)
+
+		# =================================================
+		# GET REMOTE DOCUMENT
+		# =================================================
+
+		get_url = (
+			base_url
+			+ "/api/resource/Product%20Return%20Order%20Form/"
+			+ remote_name
+		)
+
+		remote_resp = requests.get(
+			get_url,
+			headers=headers
+		)
+		remote_resp.raise_for_status()
+		remote_response = remote_resp.json()
+
+		remote_data = remote_response.get("data", {})
+
+		workflow_state = remote_data.get("workflow_state")
+		remote_docstatus = remote_data.get("docstatus")
+
+		frappe.log_error(
+			title="Remote Product Return Form State",
+			message=json.dumps({
+				"name": remote_name,
+				"workflow_state": workflow_state,
+				"docstatus": remote_docstatus
+			}, default=str)
+		)
+
+		# =================================================
+		# SUBMIT REMOTE DOCUMENT
+		# =================================================
+
+		if remote_docstatus != 1:
+
+			submit_url = (
+				base_url
+				+ "/api/resource/Product%20Return%20Order%20Form/"
+				+ remote_name
+			)
+
+			submit_payload = {
+				"docstatus": 1
+			}
+
+			submit_resp = requests.put(
+				submit_url,
+				headers=headers,
+				data=json.dumps(submit_payload)
+			)
+			submit_resp.raise_for_status()
+			submit_response = submit_resp.json()
+
+			frappe.log_error(
+				title="Remote Product Return Form Submitted",
+				message=json.dumps(
+					submit_response,
+					default=str
+				)
+			)
+
+	except Exception as e:
+
+		error_detail = str(e)
+
+		try:
+			error_detail += (
+				"\n\nResponse body:\n"
+				+ e.response.text
+			)
+		except Exception:
+			pass
+
+		frappe.log_error(
+			title="Product Return Order Form Remote Sync Failed",
+			message=error_detail
+		)
+
+		frappe.throw(
+			"Remote Product Return Order Form Sync Failed: "
+			+ error_detail
+		)
