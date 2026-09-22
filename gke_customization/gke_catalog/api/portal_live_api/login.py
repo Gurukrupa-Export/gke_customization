@@ -22,7 +22,7 @@ def get_user_secret(username):
     return base64.b32encode(h.digest()).decode('utf-8')
 
 
-# @frappe.whitelist()
+# @frappe.whitelist(allow_guest=True)
 def generate_token_from_data(username, password):
     
     # login_manager = LoginManager()
@@ -101,11 +101,12 @@ def generate_token_from_data(username, password):
         "api_secret": api_secret
     }
 
-@frappe.whitelist(allow_guest = True)
+
+@frappe.whitelist(allow_guest=True)
 def send_otp_for_login_user(username, password):
 
-    # login_manager = LoginManager()
-    # login_manager.authenticate(username, password)
+    login_manager = LoginManager()
+    login_manager.authenticate(username, password)
     
     # verified_key = f"otp_verified_{username}"
     otp_key = f"otp_{username}"
@@ -137,7 +138,7 @@ def send_otp_for_login_user(username, password):
         recipients = recipient,
         # recipients = fallback_email,
         # recipients = "mitali_s@gkexport.com",
-        sender = "shubham_s@gkexport.com",  #"customer_portal@gkexport.com",
+        sender = "customer_portal@gkexport.com",  #"customer_portal@gkexport.com",
         subject= "Your One Time Password",
         template="otp",  # corresponds to otp_email.html
         args={"otp": otp},
@@ -148,12 +149,13 @@ def send_otp_for_login_user(username, password):
         recipients = "mansi_g@gkexport.com",
         # recipients = fallback_email,
         # recipients = "mitali_s@gkexport.com", 
-        sender = "shubham_s@gkexport.com",
+        sender = "customer_portal@gkexport.com",
         subject= "Your One Time Password",
         template="user_otp",  # corresponds to otp_email.html
         args={"otp": otp, "login_id": recipient},
         now=True
     )
+
 
     return {
         "status": "success",
@@ -161,20 +163,56 @@ def send_otp_for_login_user(username, password):
     }
 
 
+
+
 @frappe.whitelist()
 def sent_alert_email_for_screen_shot(username):
     frappe.sendmail(
-        recipients = "bhavika_p@gkexport.com",
-        sender = "customer_portal@gkexport.com",
-        subject= "Screen Shot Alert",
-        message="You can not take Screen Shot"
+        recipients="bhavika_p@gkexport.com",
+        sender="customer_portal@gkexport.com",
+        subject="Screen Shot Alert",
+        message=f"""
+            <p><b>Screen Shot Alert</b></p>
+            <p>User <b>{username}</b> attempted to take a screenshot.</p>
+            <p>You can not take Screen Shot.</p>
+        """
     )
+
     return {
         "status": "success"
     }
 
+    
 
-@frappe.whitelist(allow_guest = True)
+    
+import requests
+
+def set_gold_value():
+    URL = "http://bcast.jainbullion.in:7767/VOTSBroadcastStreaming/Services/xml/GetLiveRateByTemplateID/jain"
+
+    try:
+        response = requests.get(URL, timeout=10)
+        response.raise_for_status()
+        response_text = response.text
+    except Exception:
+        return None
+
+    gold_value = None
+
+    for line in response_text.strip().splitlines():
+        parts = line.split()
+
+        if len(parts) >= 8 and parts[0] == "4972":
+            try:
+                gold_value = float(parts[7])
+                break
+            except ValueError:
+                continue
+
+    return gold_value
+
+
+@frappe.whitelist(allow_guest=True)
 def verify_otp_using_customer_name(username, password, otp):
     otp_key = f"otp_{username}"
     verified_key = f"otp_verified_{username}"
@@ -330,7 +368,7 @@ def verify_otp_using_customer_name(username, password, otp):
 
                 login_after = get_login_time[0] 
                 login_before = get_login_time[1]
- 
+
                 login_after = int(login_after)    
                 login_before = int(login_before)   
                 # dict = {1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10, 11:11, 12:12, 13:1, 14:2, 15: 3, 16: 4, 17: 5, 18: 6 , 19: 7, 20: 8, 21: 9, 22:10, 23:11, 24: 12 }
@@ -339,19 +377,21 @@ def verify_otp_using_customer_name(username, password, otp):
                 current_time = datetime.now()
                 total_hours = (current_time.hour + 5) + (current_time.minute + 30) / 60 + (current_time.second / 3600)
                 # frappe.throw(f"{login_after}, {   new_hour}, {login_before}")
-
                 # if not(login_after <= total_hours <= login_before):
                 #     return {
                 #         "status": "failed",
                 #         "message": f"Access not allowed: current time is outside allowed login window."
                 #     }
-                        
+                       
+                gold_value = set_gold_value()
+                 
                 return {
                         "status": "success",
                         "message": "OTP verified successfully",
                         "api_key": result["api_key"],
                         "api_secret": result.get("api_secret"),
-                        "customer": data[0] if data else []
+                        "customer": data[0] if data else [],
+                        "gold_value" : gold_value
                 }
                
             except Exception as e:
@@ -371,8 +411,7 @@ def verify_otp_using_customer_name(username, password, otp):
     return {"status": "failed", "message": "Invalid or expired OTP"}
 
 
-
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def get_address_by_link_name(user_type, link_name):
     try:
         if not user_type or not link_name:
@@ -433,21 +472,22 @@ def get_address_by_link_name(user_type, link_name):
                 cust_details = frappe.db.get_value(
                     "Customer",
                     filters={"name": cus.parent, "disabled": 0},
-                    fieldname=["name as customer", "customer_name", "email_id"],
+                    fieldname=["name", "customer_name", "email_id"],
                     as_dict=True
                 )
                 if cust_details:
+                    cust_details["customer"] = cust_details.pop("name")
                     customer_info.append(cust_details)
 
             merged_data = {**emp_info, "customer_representatives": customer_info}
 
             return merged_data
     except Exception as e:
-        frappe.log_error(f"Error in getting user or customer: {str(e)}")
-        return {"success": False, "message": "Failed to user or customer"}
+        frappe.log_error(frappe.get_traceback(), "get_address_by_link_name")
+        return {"success": False, "message": str(e)}
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def update_last_active(user_id):
     """
     Returns current server timestamp in milliseconds
