@@ -138,7 +138,7 @@ class GoldRates(Document):
 		# frappe.throw(str(gold_value))
 		# if gold_value and self.table_djrm:
 		if gold_value is not None and self.table_djrm:
-			self.table_djrm[0].set("live_rate", gold_value)
+			self.table_djrm[0].set("live_rate", gold_value/10)
 			ist = pytz.timezone('Asia/Kolkata')
 			current_hour = datetime.now(ist).hour
 			if current_hour == 9:
@@ -151,7 +151,7 @@ class GoldRates(Document):
 				field_name = None  
 
 			if field_name and len(self.table_djrm) > 5:
-				self.table_djrm[0].set(field_name, gold_value)
+				self.table_djrm[0].set(field_name, gold_value/10)
 
 
 
@@ -183,7 +183,7 @@ class GoldRates(Document):
 		# if gold_value and self.table_djrm:
 		# 	self.table_djrm[1].set("9_am", gold_value)
 		if gold_value is not None and self.table_djrm:
-			self.table_djrm[1].set("live_rate", gold_value)
+			self.table_djrm[1].set("live_rate", gold_value/10)
 			ist = pytz.timezone('Asia/Kolkata')
 			current_hour = datetime.now(ist).hour
 			if current_hour == 9:
@@ -196,7 +196,7 @@ class GoldRates(Document):
 				field_name = None  
 
 			if field_name and len(self.table_djrm) > 5:
-				self.table_djrm[1].set(field_name, gold_value)
+				self.table_djrm[1].set(field_name, gold_value/10)
 
 
 
@@ -243,7 +243,7 @@ class GoldRates(Document):
 		# 	if len(self.table_djrm) > 2:
 		# 		self.table_djrm[2].set("9_am", gold_value)
 		if gold_value is not None and self.table_djrm:
-			self.table_djrm[2].set("live_rate", gold_value)
+			self.table_djrm[2].set("live_rate", gold_value/10)
 			ist = pytz.timezone('Asia/Kolkata')
 			current_hour = datetime.now(ist).hour
 			if current_hour == 9:
@@ -256,7 +256,7 @@ class GoldRates(Document):
 				field_name = None  
 
 			if field_name and len(self.table_djrm) > 5:
-				self.table_djrm[2].set(field_name, gold_value)
+				self.table_djrm[2].set(field_name, gold_value/10)
 
 
 	
@@ -308,7 +308,7 @@ class GoldRates(Document):
 		# 		self.table_djrm[3].set("9_am", gold_value)
 		if gold_rate is not None and self.table_djrm:
 			gold_value = gold_rate * 10 
-			self.table_djrm[3].set("live_rate", gold_value)
+			self.table_djrm[3].set("live_rate", gold_value/10)
 			ist = pytz.timezone('Asia/Kolkata')
 			current_hour = datetime.now(ist).hour
 			if current_hour == 9:
@@ -321,7 +321,7 @@ class GoldRates(Document):
 				field_name = None 
 
 			if field_name and len(self.table_djrm) > 5:
-				self.table_djrm[3].set(field_name, gold_value)
+				self.table_djrm[3].set(field_name, gold_value/10)
 
 
 
@@ -360,7 +360,7 @@ class GoldRates(Document):
 
 		if gold_rate is not None and self.table_djrm:
 			gold_value = gold_rate * 10
-			self.table_djrm[5].set("live_rate", gold_value) 
+			self.table_djrm[5].set("live_rate", gold_value/10) 
 			ist = pytz.timezone('Asia/Kolkata')
 			current_hour = datetime.now(ist).hour
 			if current_hour == 9:
@@ -373,7 +373,7 @@ class GoldRates(Document):
 				field_name = None 
 
 			if field_name and len(self.table_djrm) > 5:
-				self.table_djrm[5].set(field_name, gold_value)
+				self.table_djrm[5].set(field_name, gold_value/10)
 		
 
 
@@ -414,7 +414,7 @@ class GoldRates(Document):
 				break
 		# frappe.throw(str(gold_value))
 		if gold_value is not None and self.table_djrm:
-			self.table_djrm[6].set("live_rate", gold_value*10)
+			self.table_djrm[6].set("live_rate", gold_value)
 			ist = pytz.timezone('Asia/Kolkata')
 			current_hour = datetime.now(ist).hour
 			if current_hour == 9:
@@ -427,7 +427,7 @@ class GoldRates(Document):
 				field_name = None  
 
 			if field_name and len(self.table_djrm) > 6:
-				self.table_djrm[6].set(field_name, gold_value*10 )
+				self.table_djrm[6].set(field_name, gold_value )
     
     
     
