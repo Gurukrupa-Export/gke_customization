@@ -530,7 +530,6 @@
    "read_only_depends_on": "eval:doc.modification =='No'"
   },
   {
-   "fetch_from": "bom.breadth",
    "fetch_if_empty": 1,
    "fieldname": "breadth",
    "fieldtype": "Float",

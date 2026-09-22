@@ -25,7 +25,38 @@ frappe.ui.form.on("Payroll Entry", {
 			return stock_add_custom_button(label, fn, ...rest);
 		};
 	},
+	refresh(frm) {
+		gke_show_pending_release_indicator(frm);
+	},
 });
+
+// A release waiting on a draft Journal Entry keeps its cycles out of the pending
+// list, so the stock form shows no release button at all; name the entry instead.
+function gke_show_pending_release_indicator(frm) {
+	if (frm.doc.__islocal || frm.doc.docstatus !== 1) {
+		return;
+	}
+
+	frm.call("get_pending_release_entries").then((r) => {
+		const entries = r.message || [];
+
+		if (!entries.length) {
+			frm.dashboard.clear_headline();
+			return;
+		}
+
+		const links = entries
+			.map((name) => frappe.utils.get_form_link("Journal Entry", name, true))
+			.join(", ");
+		frm.dashboard.set_headline(
+			__(
+				"You have a draft Journal Entry ({0}) for a previous salary release. Please submit or delete it before releasing more withheld salary.",
+				[links]
+			),
+			"orange"
+		);
+	});
+}
 
 function gke_release_withheld_salaries(frm) {
 	if (!frm.doc.payment_account) {
@@ -120,9 +151,7 @@ function gke_show_release_dialog(frm, withheld_salaries) {
 
 				if (amount <= 0) {
 					frappe.msgprint(
-						__("Release Amount must be greater than zero for employee {0}", [
-							row.employee,
-						]),
+						__("Release Amount must be greater than zero for employee {0}", [row.employee])
 					);
 					return;
 				}
@@ -131,7 +160,7 @@ function gke_show_release_dialog(frm, withheld_salaries) {
 						__("Release Amount for employee {0} cannot exceed the pending amount {1}", [
 							row.employee,
 							row.amount,
-						]),
+						])
 					);
 					return;
 				}
