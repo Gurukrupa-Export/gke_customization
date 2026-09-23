@@ -198,7 +198,7 @@
   {
    "allow_on_submit": 1,
    "fieldname": "spent_hrs",
-   "fieldtype": "Time",
+   "fieldtype": "Duration",
    "label": "Spent Hrs",
    "read_only": 1
   },
