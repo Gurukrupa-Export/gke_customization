@@ -78,7 +78,7 @@ frappe.ui.form.on('Quotation', {
                   label: "Order Type",
                   fieldname: "order_type",
                   fieldtype: "Select",
-                  options: ["Sales", "Stock Order"],
+                  options: ["Sales", "Stock Order","Repair"],
                   reqd: 1,
                   default: frm.doc.order_type || undefined
                 }
