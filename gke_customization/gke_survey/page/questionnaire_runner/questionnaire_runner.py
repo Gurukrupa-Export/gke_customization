@@ -162,7 +162,7 @@ def get_responses(questionnaire):
             "branch",
             "audit_dates",
             "audit_month",
-            "employee_name"
+            "employee_name","designation"
         ],
         order_by="creation desc"
     )

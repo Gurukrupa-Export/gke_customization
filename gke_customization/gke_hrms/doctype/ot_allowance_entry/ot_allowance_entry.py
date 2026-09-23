@@ -447,136 +447,32 @@ class OTAllowanceEntry(Document):
 		PersonalOutLog = frappe.qb.DocType("Personal Out Log")
 
 		conditions = self.get_conditions(Attendance, Employee, OTLog, from_log)
-		
 		To_Seconds = CustomFunction("TIME_TO_SEC", ["date"])
 		ifelse = CustomFunction("IF", ["condition", "then", "else"])
 		Time_Diff = CustomFunction("TIMEDIFF", ["cur_date", "due_date"])
 		Time = CustomFunction("Time", ["time"])
 		Sec_To_Time = CustomFunction("SEC_TO_TIME", ["date"])
 
-
-		shift_start_ts = Timestamp(
-			Date(Attendance.in_time),
-			ShiftType.start_time
-		)
+		shift_start_ts = Timestamp(Date(Attendance.in_time), ShiftType.start_time)
 		shift_end_ts = Case() \
 			.when(
 				ShiftType.end_time < ShiftType.start_time,
-				Timestamp(
-					Date(Attendance.in_time) + 1,
-					ShiftType.end_time
-				)
+				Timestamp(Date(Attendance.in_time) + 1, ShiftType.end_time)
 			).else_(
-				Timestamp(
-					Date(Attendance.in_time),
-					ShiftType.end_time
-				)
+				Timestamp(Date(Attendance.in_time), ShiftType.end_time)
 			)
 
-		# sub_query_personal_out_log = (
-		# 	frappe.qb.from_(PersonalOutLog)
-		# 	.select(IfNull(Sum(To_Seconds(PersonalOutLog.total_hours)), 0))
-		# 	.where(
-		# 		(PersonalOutLog.is_cancelled == 0) &
-		# 		(PersonalOutLog.employee == Attendance.employee) &
-		# 		(PersonalOutLog.date == Attendance.attendance_date) &
-		# 		(PersonalOutLog.out_time >= ShiftType.end_time)
-		# 	)
-		# )
-
-		# 22-06-2026
-		sub_query_personal_out_log = (
-			frappe.qb.from_(PersonalOutLog)
-			.select(IfNull(Sum(
-				To_Seconds(Time_Diff(
-					PersonalOutLog.in_time,   # when they returned (end of personal out)
-					# Clamp: only count portion after shift end
-					Case()
-					.when(
-						Time(PersonalOutLog.out_time) < Time(shift_end_ts),  # left before shift end
-						Time(shift_end_ts)          # start counting from shift end
-					).else_(
-						PersonalOutLog.out_time     # left after shift end, count full duration
-					)
-				))
-			), 0))
-			.where(
-				(PersonalOutLog.is_cancelled == 0) &
-				(PersonalOutLog.employee == Attendance.employee) &
-				(PersonalOutLog.date == Attendance.attendance_date) &
-				# Personal out must have RETURNED after shift end
-				(Time(PersonalOutLog.in_time) > Time(shift_end_ts))
-			)
-		)
-
-		# ot_hours = (
-		# 	# Late OT (ONLY if OUT > Shift End)
-		# 	ifelse(
-		# 		Attendance.out_time > Timestamp(Date(Attendance.in_time), ShiftType.end_time), ################
-		# 		To_Seconds(
-		# 			Time_Diff(
-		# 				Attendance.out_time,
-		# 				Timestamp(Date(Attendance.in_time), ShiftType.end_time) #################
-		# 			)
-		# 		),
-		# 		0
-		# 	)
-
-		# 	+
-
-		# 	# Early OT (ONLY if IN < Shift Start)
-		# 	ifelse(
-		# 		Timestamp(Date(Attendance.in_time), ShiftType.start_time) > Attendance.in_time,
-		# 		To_Seconds(
-		# 			Time_Diff(
-		# 				Timestamp(Date(Attendance.in_time), ShiftType.start_time),
-		# 				Attendance.in_time
-		# 			)
-		# 		),
-		# 		0
-		# 	)
-
-		# 	# Personal Out deduction 
-		# 	- sub_query_personal_out_log
-		# ).as_("attn_ot_hrs")
-
+		# Rough pre-filter only — kept from before, just to decide which
+		# attendances are OT candidates. Real OT is recomputed below from
+		# actual checkin pairs, since this figure only looks at first_in/last_out.
 		ot_hours = (
-				# Late OT
-				ifelse(
-					Attendance.out_time > shift_end_ts,
+			ifelse(Attendance.out_time > shift_end_ts,
+				To_Seconds(Time_Diff(Attendance.out_time, shift_end_ts)), 0)
+			+
+			ifelse(shift_start_ts > Attendance.in_time,
+				To_Seconds(Time_Diff(shift_start_ts, Attendance.in_time)), 0)
+		).as_("attn_ot_hrs")
 
-					To_Seconds(
-						Time_Diff(
-							Attendance.out_time,
-							shift_end_ts
-						)
-					),
-
-					0
-				)
-
-				+
-
-				# Early OT
-				ifelse(
-					shift_start_ts > Attendance.in_time,
-
-					To_Seconds(
-						Time_Diff(
-							shift_start_ts,
-							Attendance.in_time
-						)
-					),
-
-					0
-				)
-
-				-
-
-				sub_query_personal_out_log
-
-			).as_("attn_ot_hrs")
-		
 		query = (
 			frappe.qb.from_(Attendance)
 			.left_join(ShiftType).on(Attendance.shift == ShiftType.name)
@@ -585,7 +481,6 @@ class OTAllowanceEntry(Document):
 			.select(
 				Attendance.name.as_("attendance"),
 				Attendance.employee,
-				# Attendance.employee_name,
 				Employee.company,
 				Employee.designation,
 				Employee.department,
@@ -601,66 +496,34 @@ class OTAllowanceEntry(Document):
 				OTLog.allowed_ot,
 				OTLog.remarks
 			)
-			# .where(
-			# 	(Attendance.docstatus == 1) 
-			# 	&
-			# 	(To_Seconds(Time_Diff(Attendance.out_time, Timestamp(Date(Attendance.in_time), ShiftType.end_time))) > 0)
-			# )
-			# .where(
-			# 	(Attendance.docstatus == 1)
-			# 	&
-			# 	(
-			# 		(Timestamp(Date(Attendance.in_time), ShiftType.start_time) > Attendance.in_time)
-			# 		|
-			# 		(
-			# 			To_Seconds(
-			# 				Time_Diff(
-			# 					Attendance.out_time,
-			# 					Timestamp(Date(Attendance.in_time), ShiftType.end_time)
-			# 				)
-			# 			) > 0
-			# 		)
-			# 	)
-			# )
-
 			.where(
 				(Attendance.docstatus == 1)
-				&
-				(Attendance.in_time.isnotnull())
-				&
-				(Attendance.out_time.isnotnull())
-				&
-				(
-					(shift_start_ts > Attendance.in_time) |
-					( To_Seconds( Time_Diff(Attendance.out_time,shift_end_ts) ) > 0 )
+				& (Attendance.in_time.isnotnull())
+				& (Attendance.out_time.isnotnull())
+				& (
+					(shift_start_ts > Attendance.in_time)
+					| (To_Seconds(Time_Diff(Attendance.out_time, shift_end_ts)) > 0)
 				)
 			)
 		)
 
 		for condition in conditions:
 			query = query.where(condition)
-			
+
 		filtered_data = query.run(as_dict=True)
 
 		data = []
-
 		for row in filtered_data:
 			if row.get("attendance"):
-				checkin_count = frappe.db.count(
-					"Employee Checkin",
-					{"attendance": row.get("attendance")}
-				)
-
-				# Exclude odd number of checkins
+				checkin_count = frappe.db.count("Employee Checkin", {"attendance": row.get("attendance")})
 				if checkin_count % 2 != 0:
 					continue
-
 			data.append(row)
 
 		self.ot_details = []
-		
-		data =  data + self.get_weekoffs_ot(from_log)
-		
+
+		data = data + self.get_weekoffs_ot(from_log)
+
 		if not data:
 			frappe.msgprint(_("No Records were found for the current filters"))
 			return
@@ -671,18 +534,45 @@ class OTAllowanceEntry(Document):
 				if row.get("branch") != self.branch:
 					continue
 
+			# --- Recompute real OT from checkin pairs (fixes the personal-out gap bug) ---
+			if row.get("attendance") and row.get("shift"):
+				start_td, end_td = frappe.db.get_value("Shift Type", row["shift"], ["start_time", "end_time"])
+
+				logs = frappe.get_all("Employee Checkin",filters={"attendance": row["attendance"]},
+					fields=["time"], order_by="time asc", )
+
+				if len(logs) >= 2:
+					day = get_datetime(get_datetime(logs[0].time).date())
+					shift_start = day + start_td
+					shift_end = day + end_td
+					if end_td <= start_td:  # night shift crossing midnight
+						shift_end += timedelta(days=1)
+
+					early_floor = shift_start - timedelta(hours=12)
+					late_ceiling = shift_end + timedelta(hours=12)
+
+					ot_seconds = 0
+					for i in range(0, len(logs) - 1, 2):  # IN/OUT pairs
+						p_in, p_out = get_datetime(logs[i].time), get_datetime(logs[i + 1].time)
+
+						# early OT: overlap of this pair with the pre-shift window
+						ot_seconds += max(0, (min(p_out, shift_start) - max(p_in, early_floor)).total_seconds())
+						
+						# late OT: overlap of this pair with the post-shift window
+						ot_seconds += max(0, (min(p_out, late_ceiling) - max(p_in, shift_end)).total_seconds())
+
+					row["attn_ot_hrs"] = timedelta(seconds=ot_seconds)
+
 			shift_start = frappe.db.get_value("Shift Type", row["shift"], "start_time")
-			
-			# If employee came early → FULL early OT must be allowed
+
 			if row.get("first_in") and shift_start and row["first_in"] < shift_start:
 				row["allowed_ot"] = row["attn_ot_hrs"]
 
-			# Fallback: if allowed_ot still empty
 			if not row.get("allowed_ot"):
 				row["allowed_ot"] = row["attn_ot_hrs"]
-			if row.get("allowed_ot") < timedelta(minutes=30):	# for excluding OT that are less than 30 min
+			if row.get("allowed_ot") < timedelta(minutes=30):
 				continue
-			if row["allowed_ot"].total_seconds() > 86399:  # OT > 23:59:59 it shows invalid date in ui 
+			if row["allowed_ot"].total_seconds() > 86399:
 				continue
 
 			if row.get("attendance"):
@@ -690,14 +580,7 @@ class OTAllowanceEntry(Document):
 			else:
 				row.update({"employee_name": frappe.db.get_value("Employee", row["employee"], "employee_name")})
 
-
-			# Lookup OT Request Hours (optional)
-			row["ot_request_hrs"] = self.get_ot_request_hrs(
-				row.get("employee"),
-				row.get("attendance_date")
-			)
-			#frappe.msgprint(f"Row: {row}")
-
+			row["ot_request_hrs"] = self.get_ot_request_hrs(row.get("employee"), row.get("attendance_date"))
 			self.append("ot_details", row)
 
 	def get_ot_request_hrs(self, employee, attendance_date):
@@ -820,6 +703,7 @@ class OTAllowanceEntry(Document):
 						"employee_name": row.employee_name,
 						"shift": row.shift,
 						"weekly_off": holiday.weekly_off,
+						"old_employee_code": emp.old_employee_code,
 						"company": emp.company,
 						"department": emp.department,
 						"designation": emp.designation,
@@ -880,7 +764,7 @@ class OTAllowanceEntry(Document):
 		if self.company:
 			filters["company"] = self.company
 
-		emp_list = frappe.get_list("Employee", filters = filters, fields = ["default_shift","holiday_list","name","company", "designation", "department", "branch"])
+		emp_list = frappe.get_list("Employee", filters = filters, fields = ["default_shift","holiday_list","name","company", "designation", "department", "branch","old_employee_code"])
 		holidays = {}
 		for emp in emp_list:
 			if shift:=emp.get("default_shift") and not emp.get("holiday_list"):
