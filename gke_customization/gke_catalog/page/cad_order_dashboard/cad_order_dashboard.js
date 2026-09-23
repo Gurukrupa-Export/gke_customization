@@ -17,6 +17,8 @@ class CadDashboard {
 			'gke_customization.gke_catalog.report.cad_dashboard_script.cad_dashboard_script.get_segment_orders';
 		this.get_my_tab_access_method =
 			'gke_customization.gke_catalog.report.cad_dashboard_script.cad_dashboard_script.get_my_tab_access';
+		this.get_my_matrix_view_access_method =
+			'gke_customization.gke_catalog.report.cad_dashboard_script.cad_dashboard_script.get_my_matrix_view_access';
 
 		this.BUCKET_ACCENTS = {
 			pending: 'var(--cad-blue)',
@@ -41,8 +43,9 @@ class CadDashboard {
 		this.has_tab_access = false;
 
 		this.render_shell();
-		this.init_tab_access().then(() => {
+		Promise.all([this.init_tab_access(), this.init_matrix_view_access()]).then(() => {
 			this.setup_page_controls();
+			this.apply_matrix_view_access_ui(this.matrix_view_flags || {});
 			if (!this.company_field.get_value()) {
 				this.refresh();
 			}
@@ -55,12 +58,41 @@ class CadDashboard {
 		});
 	}
 
+	init_matrix_view_access() {
+		return frappe.call({ method: this.get_my_matrix_view_access_method }).then((r) => {
+			this.matrix_view_flags = r.message || {};
+		});
+	}
+
+	// ---- restrict the matrix view dropdown for non-management sessions ----
+	//
+	// `get_dashboard_data` already returns designer/customer matrices scoped
+	// to the session's own data (see cad_dashboard_script.py), so there is
+	// no leak in the data itself. This is a UI-level restriction on top of
+	// that: a plain Designer-role user should only ever be offered the
+	// Status x Category view, never be able to switch into the
+	// Designer/Customer-keyed views at all - even though those would only
+	// ever show their own row.
+
+	apply_matrix_view_access_ui(flags) {
+		if (!flags.restrict_to_status) return; // management: leave every view option available
+
+		const $select = this.page.main.find('[data-field="matrix-view-select"]');
+		$select.find('option').each((_, opt) => {
+			if ($(opt).val() !== 'status') $(opt).remove();
+		});
+		$select.val('status').prop('disabled', true);
+
+		this.matrix_view = 'status';
+		this.$matrix_title.text(this.matrix_view_title());
+	}
+
 	apply_tab_access_ui(flags) {
 		this.tab_flags = flags;
 		const tabs = [
 			{ selector: '[data-filter-field=""][data-filter-value=""]', flag: 'allow_all', setting_type: '', sub_setting_type1: '' },
 			{ selector: '[data-filter-field="setting_type"][data-filter-value="Open"]', flag: 'allow_open_setting', setting_type: 'Open', sub_setting_type1: '' },
-			{ selector: '[data-filter-field="setting_type"][data-filter-value="Close"]', flag: 'allow_nova_glow', setting_type: 'Close', sub_setting_type1: '' },
+			{ selector: '[data-filter-field="setting_type"][data-filter-value="Nova Glow"]', flag: 'allow_nova_glow', setting_type: 'Nova Glow', sub_setting_type1: '' },
 			{ selector: '[data-filter-field="sub_setting_type1"][data-filter-value="Close-Open Setting"]', flag: 'allow_close_open_setting', setting_type: '', sub_setting_type1: 'Close-Open Setting' },
 		];
 
@@ -141,6 +173,58 @@ class CadDashboard {
 			render_input: true,
 		});
 		this.category_field.refresh();
+
+		this.customer_field = frappe.ui.form.make_control({
+			df: {
+				fieldname: 'customer',
+				fieldtype: 'Link',
+				options: 'Customer',
+				placeholder: __('All Customers'),
+				onchange: () => this.refresh(),
+			},
+			parent: this.page.main.find('[data-field="customer-field"]'),
+			render_input: true,
+		});
+		this.customer_field.refresh();
+
+		this.branch_field = frappe.ui.form.make_control({
+			df: {
+				fieldname: 'branch',
+				fieldtype: 'Link',
+				options: 'Branch',
+				placeholder: __('All Branches'),
+				onchange: () => this.refresh(),
+			},
+			parent: this.page.main.find('[data-field="branch-field"]'),
+			render_input: true,
+		});
+		this.branch_field.refresh();
+
+		this.department_field = frappe.ui.form.make_control({
+			df: {
+				fieldname: 'department',
+				fieldtype: 'Link',
+				options: 'Department',
+				placeholder: __('All Departments'),
+				onchange: () => this.refresh(),
+			},
+			parent: this.page.main.find('[data-field="department-field"]'),
+			render_input: true,
+		});
+		this.department_field.refresh();
+
+		this.assigned_to_field = frappe.ui.form.make_control({
+			df: {
+				fieldname: 'assigned_to',
+				fieldtype: 'Link',
+				options: 'User',
+				placeholder: __('Assigned To'),
+				onchange: () => this.refresh(),
+			},
+			parent: this.page.main.find('[data-field="assigned-to-field"]'),
+			render_input: true,
+		});
+		this.assigned_to_field.refresh();
 
 		this.daterange_field = frappe.ui.form.make_control({
 			df: {
@@ -242,6 +326,10 @@ class CadDashboard {
 	clear_filters() {
 		this.designer_field.set_value('');
 		this.category_field.set_value('');
+		this.customer_field.set_value('');
+		this.branch_field.set_value('');
+		this.department_field.set_value('');
+		this.assigned_to_field.set_value('');
 		this.daterange_field.set_value('');
 		this.page.main.find('[data-field="period-select"]').val('');
 		this.page.main.find('[data-field="matrix-filter"]').val('');
@@ -439,6 +527,10 @@ class CadDashboard {
 			due_soon_days: this.due_soon_days,
 			designer: this.designer_field.get_value() || undefined,
 			category: this.category_field.get_value() || undefined,
+			customer: this.customer_field.get_value() || undefined,
+			branch: this.branch_field.get_value() || undefined,
+			department: this.department_field.get_value() || undefined,
+			assigned_to: this.assigned_to_field.get_value() || undefined,
 			from_date: from_date || undefined,
 			to_date: to_date || undefined,
 			setting_type: this.setting_type || undefined,
@@ -564,30 +656,61 @@ class CadDashboard {
 				<div class="cad-kpi__count" data-segment="${seg_attr({ type: 'total' })}">${this.fmt_count(total)}</div>
 			</div>`;
 
-		const stock_tile = (label, stock, accent, key) => {
+		const stock_tile = (label, stock, flag_cls, key) => {
 			const count = stock ? stock.count : 0;
 			const pct = total ? Math.min(100, Math.round((count / total) * 1000) / 10) : 0;
 			const segment = { type: 'stock_split', key };
 			return `
-				<div class="cad-kpi" style="--cad-accent:${accent}">
+				<div class="cad-kpi ${flag_cls}">
 					<div class="cad-kpi__label">${frappe.utils.escape_html(label)}</div>
 					<div class="cad-kpi__count" data-segment="${seg_attr(segment)}">${this.fmt_count(count)}</div>
 					<div class="cad-kpi__pct">${pct}% of total</div>
 				</div>`;
 		};
 
-		const row1 = [total_tile, bucket_tile('pending'), bucket_tile('assigned'), bucket_tile('assigned_on_hold'), bucket_tile('rework')].join('');
-		const row2 = [bucket_tile('designing'), bucket_tile('designing_on_hold'), bucket_tile('qc'), bucket_tile('approved'), bucket_tile('rejected')].join('');
-		const row3 = [
-			stock_tile(__('Customer Order'), customer_order, 'var(--cad-yellow)', 'customer_order'),
-			stock_tile(__('Customer Stock'), customer_stock, 'var(--cad-indigo)', 'customer_stock'),
-			stock_tile(__('GK Stock'), gk_stock, 'var(--cad-teal)', 'gk_stock'),
+		// Distinct from the "Assigned" status tile above: that one is just the
+		// workflow_state label, which an order can carry without ever having a
+		// row in the Designer Assignment - CAD child table. This tile counts
+		// orders that actually have >= 1 designer assigned, regardless of status.
+		const assigned_to_designer_tile = () => {
+			const stock = this.data.assigned_to_designer;
+			const count = stock ? stock.count : 0;
+			const pct = total ? Math.min(100, Math.round((count / total) * 1000) / 10) : 0;
+			const segment = { type: 'assigned_to_designer' };
+			return `
+				<div class="cad-kpi" style="--cad-accent:var(--cad-amber)">
+					<div class="cad-kpi__label">${frappe.utils.escape_html(__('Assigned to Designer'))}</div>
+					<div class="cad-kpi__count" data-segment="${seg_attr(segment)}">${this.fmt_count(count)}</div>
+					<div class="cad-kpi__pct">${pct}% of total</div>
+				</div>`;
+		};
+
+		// 11 status/count tiles at 6 columns = exactly 2 rows.
+		const status_tiles = [
+			total_tile,
+			bucket_tile('pending'),
+			bucket_tile('assigned'),
+			assigned_to_designer_tile(),
+			bucket_tile('assigned_on_hold'),
+			bucket_tile('rework'),
+			bucket_tile('designing'),
+			bucket_tile('designing_on_hold'),
+			bucket_tile('qc'),
+			bucket_tile('approved'),
+			bucket_tile('rejected'),
+		].join('');
+
+		// Kept as its own row, deliberately visually distinct (Indian flag
+		// palette) from the status/count tiles above.
+		const flag_tiles = [
+			stock_tile(__('Customer Order'), customer_order, 'cad-kpi--flag-saffron', 'customer_order'),
+			stock_tile(__('Customer Stock'), customer_stock, 'cad-kpi--flag-white', 'customer_stock'),
+			stock_tile(__('GK Stock'), gk_stock, 'cad-kpi--flag-green', 'gk_stock'),
 		].join('');
 
 		this.$kpi_row.html(
-			`<div class="cad-kpi-row">${row1}</div>` +
-				`<div class="cad-kpi-row">${row2}</div>` +
-				`<div class="cad-kpi-row cad-kpi-row--3">${row3}</div>`
+			`<div class="cad-kpi-row cad-kpi-row--status">${status_tiles}</div>` +
+				`<div class="cad-kpi-row cad-kpi-row--flags">${flag_tiles}</div>`
 		);
 	}
 
