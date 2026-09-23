@@ -5101,7 +5101,15 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
                 COALESCE(i.variant_of, i.item_code) AS group_key,
                 COUNT(DISTINCT i.item_code) AS variant_count
             FROM `tabItem` AS i
-            INNER JOIN `tabBOM` AS b ON i.item_code = b.item 
+            INNER JOIN `tabBOM` AS b 
+                ON i.item_code = b.item 
+                AND b.is_active = 1
+            INNER JOIN `tabItem Default` AS idf3
+                ON i.item_name = idf3.parent
+                AND idf3.company = 'Gurukrupa Export Private Limited'
+            WHERE 
+                i.item_group != 'Design DNU'
+                AND i.disabled = 0
             GROUP BY COALESCE(i.variant_of, i.item_code)
         ) vc ON vc.group_key = COALESCE(item.variant_of, item.item_code)
 
@@ -5220,8 +5228,7 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
 
     return db_data[start:end], len(db_data)
 
-
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def catalogue_data22(selectedSubcategory=None, itemCategory=None, itemCode=None, metalType=None, company=None, customer=None, page=1, page_size=50, is_filter=None, search=None):
 
     if selectedSubcategory is None:
@@ -5333,7 +5340,7 @@ def catalogue_data22(selectedSubcategory=None, itemCategory=None, itemCode=None,
             item.item_category,
             item.image,
             item.sketch_image,
-            item.custom_catalogue_image,
+            item.custom_catalogue_image, 
             item.front_view AS cad_image,
             CASE
                 WHEN item.front_view = item.image THEN 'CAD Image'
@@ -5434,12 +5441,31 @@ def catalogue_data22(selectedSubcategory=None, itemCategory=None, itemCode=None,
 
        
         
+        
+        
+        # LEFT JOIN (
+        #     SELECT 
+        #         COALESCE(i.variant_of, i.item_code) AS group_key,
+        #         COUNT(DISTINCT i.item_code) AS variant_count
+        #     FROM `tabItem` AS i
+        #     INNER JOIN `tabBOM` AS b ON i.item_code = b.item  -- Yahan se comma hata diya hai
+        #     GROUP BY COALESCE(i.variant_of, i.item_code)
+        # ) vc ON vc.group_key = COALESCE(item.variant_of, item.item_code)
+        
         LEFT JOIN (
             SELECT 
                 COALESCE(i.variant_of, i.item_code) AS group_key,
                 COUNT(DISTINCT i.item_code) AS variant_count
             FROM `tabItem` AS i
-            INNER JOIN `tabBOM` AS b ON i.item_code = b.item  -- Yahan se comma hata diya hai
+            INNER JOIN `tabBOM` AS b 
+                ON i.item_code = b.item 
+                AND b.is_active = 1
+            INNER JOIN `tabItem Default` AS idf3
+                ON i.item_name = idf3.parent
+                AND idf3.company = 'Gurukrupa Export Private Limited'
+            WHERE 
+                i.item_group != 'Design DNU'
+                AND i.disabled = 0
             GROUP BY COALESCE(i.variant_of, i.item_code)
         ) vc ON vc.group_key = COALESCE(item.variant_of, item.item_code)
 
@@ -6045,99 +6071,6 @@ def get_selected_item_for_customer_by_user(items, customers, user_type):
     return {
         "status": "success",
         "results": results
-    }
-
-
-@frappe.whitelist()
-def get_selected_item_count_for_customet_wise(customer_id, collection):
-    try:
-        # Get all Catalogue Masters for this customer
-        catalogue_master_names = frappe.get_all(
-            "Cataloge Master",
-            filters={"customer": customer_id},
-            pluck="name"
-        )
-
-    # # Convert to dict format
-    # occasion_data = [{"occasion": name} for name in occasion]
-    
-    
-    finding_sub_category = frappe.get_all("Attribute Value", filters={"is_finding_type": 1}, pluck="name")
-    finding_sub_category = sorted(finding_sub_category)
-    finding_subcategory_data = [{"finding_sub_category": name} for name in finding_sub_category ]
-    
-     # Age Group — same pattern as occasion
-    age_group = frappe.get_all(
-        "Item Attribute Value",
-        filters={"parent": "Age Group"},
-        pluck="attribute_value"
-    )
-    age_group = sorted(age_group)
-    age_group_data = [{"age_group": name} for name in age_group]
-    
-  # Gender — original function ki tarah
-    gender = frappe.get_all(
-        "Attribute Value",
-        filters={"parent_attribute_value": "Gender"},
-        pluck="name"
-    )
-    gender = sorted(gender)
-    gender_data = [{"gender": name} for name in gender]
-    
-    # design_style
-    design_style = frappe.get_all(
-        "Attribute Value",
-        filters={"parent_attribute_value": "Design Style"},
-        pluck="name"
-    )
-    
-    design_style = sorted(design_style)
-    design_style = [{"design_style": name} for name in design_style]
-    
-    # religious
-    custom_religious = frappe.get_all(
-        "Attribute Value",
-        filters={"parent_attribute_value": "Religious"},
-        pluck="name"
-    )
-    
-    custom_religious = sorted(custom_religious)
-    custom_religious = [{"custom_religious": name} for name in custom_religious]
-    
-    
-    # Collection
-    collection = frappe.get_all(
-        "Attribute Value",
-        filters={"parent_attribute_value": "Collection"},
-        pluck="name"
-    )
-    collection=sorted(collection)
-    get_collection = [{"collection":name} for name in collection]
-   
-
-    Rhodium = frappe.get_doc("Item Attribute", "Rhodium")
-    rhodium_data = [
-        {"rhodium": row.attribute_value}
-        for row in Rhodium.item_attribute_values
-    ]
-    return {
-        "setting_types": setting_type_data,
-        "metal_types": metal_type_data,
-        "metal_touch": metal_touch_data,
-        "diamond_quality": diamond_quality_data,
-        "metal_color": metal_color_data,
-        "stone_shape": diamond_stone_shape,
-        "gemstone_shape": gemstone_stone_data,
-        "sieve_size_range": diamond_sieve_size_range_data,
-        "occasion": occasion_data,
-        # "sieve_size": diamond_sieve_size_data,
-        "finding_sub_category": finding_subcategory_data,
-        "age_group":age_group_data,
-        "gender_data":gender_data,
-        "collection_data":get_collection,
-        "rhodium":rhodium_data,
-        "custom_religious":custom_religious,
-        "design_style":design_style
     }
 
 
@@ -13312,53 +13245,53 @@ def catalogue_data2(selectedSubcategory=None, itemCategory=None, itemCode=None, 
 #     return db_data
 
 
-@frappe.whitelist()
-def get_variants_by_itemcode(itemCode=None, customer=None):
+# @frappe.whitelist()
+# def get_variants_by_itemcode(itemCode=None, customer=None):
     
-    current_user = frappe.session.user
+#     current_user = frappe.session.user
     
-    is_customer = frappe.db.exists("Customer", {"user": current_user})
+#     is_customer = frappe.db.exists("Customer", {"user": current_user})
     
-    if is_customer:
-        bom_condition = "AND bom.bom_type = 'Finish Goods'"
-    else:
-        bom_condition = ""
+#     if is_customer:
+#         bom_condition = "AND bom.bom_type = 'Finish Goods'"
+#     else:
+#         bom_condition = ""
 
-    itemCode = frappe.form_dict.get("itemCode") or itemCode
-    customer = frappe.form_dict.get("customer") or customer
+#     itemCode = frappe.form_dict.get("itemCode") or itemCode
+#     customer = frappe.form_dict.get("customer") or customer
 
-    if not itemCode:
-        return "Item Code Required"
+#     if not itemCode:
+#         return "Item Code Required"
 
-    base_code = itemCode.split("-")[0]
-    # base_code = itemCode
+#     base_code = itemCode.split("-")[0]
+#     # base_code = itemCode
 
-    # wishlist
-    if customer:
-        wishlist_case = "MAX(CASE WHEN tci.wishlist = 1 AND tcm.customer IS NOT NULL THEN 1 ELSE 0 END) AS wishlist"
-        customer_join = "AND tcm.customer = %(customer)s"
-    else:
-        wishlist_case = "0 AS wishlist"
-        customer_join = ""
+#     # wishlist
+#     if customer:
+#         wishlist_case = "MAX(CASE WHEN tci.wishlist = 1 AND tcm.customer IS NOT NULL THEN 1 ELSE 0 END) AS wishlist"
+#         customer_join = "AND tcm.customer = %(customer)s"
+#     else:
+#         wishlist_case = "0 AS wishlist"
+#         customer_join = ""
 
-    db_data = frappe.db.sql(f"""
-        SELECT
-            item.name,
-            bom.name,
-            tci.trending,
-            {wishlist_case},
-            item.creation,
-            item.item_code,
-            item.item_category,
-            item.image,
-            item.sketch_image,
-            item.custom_catalogue_image,
-            item.front_view AS cad_image,
+#     db_data = frappe.db.sql(f"""
+#         SELECT
+#             item.name,
+#             bom.name,
+#             tci.trending,
+#             {wishlist_case},
+#             item.creation,
+#             item.item_code,
+#             item.item_category,
+#             item.image,
+#             item.sketch_image,
+#             item.custom_catalogue_image,
+#             item.front_view AS cad_image,
 
-            CASE
-                WHEN item.front_view = item.image THEN 'CAD Image'
-                ELSE 'FG Image'
-            END AS image_remark,
+#             CASE
+#                 WHEN item.front_view = item.image THEN 'CAD Image'
+#                 ELSE 'FG Image'
+#             END AS image_remark,
 
 #     # Build map: { main_item_code -> [similar_item_codes] }
 #     similar_link_map = {}
@@ -13882,13 +13815,8 @@ def get_variants_by_itemcode(itemCode=None, customer=None):
 
         LEFT JOIN `tabItem Default` AS idf ON item.item_name = idf.parent
 
-        # WHERE
-        #     item.item_code LIKE %(base_code)s
-        #     AND idf.company = 'Gurukrupa Export Private Limited'
-        
         WHERE
             item.item_code LIKE %(base_code)s
-            AND item.item_code != %(itemCode)s
             AND idf.company = 'Gurukrupa Export Private Limited'
             AND item.item_group != 'Design DNU'
 
@@ -13896,6 +13824,9 @@ def get_variants_by_itemcode(itemCode=None, customer=None):
         ORDER BY item.creation ASC
     """, {"base_code": base_code + "%", "customer": customer, "itemCode": itemCode} , as_dict=True)
     # """, {"base_code": base_code + "%", "customer": customer}, as_dict=True)
+
+    if len(db_data) <= 1:
+        return []
 
     # -------- MULTISELECT MERGE --------
     item_codes = [row.item_code for row in db_data]
@@ -13930,6 +13861,13 @@ def get_variants_by_itemcode(itemCode=None, customer=None):
         row["custom_alphabetnumber"] = row.get("custom_alphabetnumber") or None
         row["religious"] = row.get("religious") or None
 
+    # secure = SecureJSON()
+
+    # enc_data = secure.encrypt(
+    #     db_data
+    # )
+
+    # return enc_data
     return db_data
 
 

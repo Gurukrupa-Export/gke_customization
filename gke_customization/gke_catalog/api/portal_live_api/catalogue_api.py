@@ -2216,9 +2216,10 @@ def get_data_for_multiple_customer_collections_details(catalogue_list, collectio
     # return final_data
 
 @frappe.whitelist()
-def get_catalogue_collection_item_data(selectedSubcategory, itemCode):
-    selectedSubcategory = frappe.form_dict.get("item_subcategory")
-    itemCode = frappe.form_dict.get("itemCode") 
+def add_item_in_folder(status=None, name=None, item=None, customer=None):
+
+    if not customer:
+        frappe.throw("Customer is required")
 
     where_clause = """
         idf.company = 'Gurukrupa Export Private Limited'
