@@ -5358,8 +5358,7 @@ def get_wishlist_item_customer_wise(customer):
         "new_rows": new_rows
     }
     
-    # NE00968
- 
+   
 
 
 @frappe.whitelist()
