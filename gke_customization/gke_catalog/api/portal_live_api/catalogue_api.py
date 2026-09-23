@@ -7604,6 +7604,7 @@ def get_wishlist_item_for_customer_by_user(items, customers):
 
 @frappe.whitelist()
 def add_item_in_folder(status=None, name=None, item=None, customer=None):
+
     if not customer:
         frappe.throw("Customer is required")
 
@@ -7700,191 +7701,15 @@ def add_item_in_folder(status=None, name=None, item=None, customer=None):
     catalog_doc.save(ignore_permissions=True)
     frappe.db.commit()
 
-    return {"message": "Updated successfully"}
 
-        setting_filter = ""
-        if "Open" in search_terms:
-            setting_filter = """
-                AND bom.sub_setting_type1 != 'Close-Open Setting'
-            """
-        elif "Close-Open Setting" in search_terms:
-            setting_filter = """
-                AND bom.sub_setting_type1 = 'Close-Open Setting'
-                AND item.setting_type = 'Open'
-            """
-        elif "Nova Glow" in search_terms:
-            setting_filter = """
-                AND item.setting_type = 'Nova Glow'
-            """
-        # frappe.throw(f"{ where_clause}")
-        
-        matched_item_codes = frappe.db.sql(
-            f"""
-            SELECT DISTINCT
-                IFNULL(item.variant_of, item.item_code) AS item_code,
-                item.item_name
-            FROM `tabItem` item
-            INNER JOIN `tabBOM` bom
-                ON bom.item = item.item_code
-            LEFT JOIN `tabItem Default` idf
-                ON idf.parent = item.item_name
-            LEFT JOIN `tabDesign Attribute - Multiselect` dam
-                ON dam.parent = item.item_code
-            WHERE
-                bom.bom_type = 'Finish Goods'
-                {"AND idf.company = %(company)s" if values.get("company") else ""}
-                AND (
-                    {search_where}
-                )
-                {setting_filter}
-            """,
-            values,
-            as_list=True
-        )
+    secure = SecureJSON()
     
-    # frappe.throw(f"{matched_item_codes}")
-
-# @frappe.whitelist()
-# def get_similar_item(item_code):
-
-#     if not item_code:
-#         return []
-
-#     # Step 1: Get similar item codes
-#     similar_item_codes = frappe.db.sql("""
-#         SELECT sit.item_code
-#         FROM `tabItem` i
-#         LEFT JOIN `tabSimilar Item Table` sit
-#             ON sit.parent = i.name
-#             AND sit.parenttype = 'Item'
-#             AND sit.parentfield = 'custom_similar_item_table'
-#         WHERE i.name = %s
-#         AND i.custom_is_similar_item = 1
-#     """, (item_code,), pluck=True)
-
-#     if not similar_item_codes:
-#         return []
-
-#     # Convert to tuple for IN condition
-#     codes_tuple = tuple(similar_item_codes)
-
-#     # Step 2: Get all item details in single query
-#     items = frappe.db.sql("""
-#         SELECT item_code, image
-#         FROM `tabItem`
-#         WHERE name IN %(codes)s
-#     """, {
-#         "codes": codes_tuple
-#     }, as_dict=True)
-
-#     return items
-
-# @frappe.whitelist()
-# def get_similar_item(item_code, customer=None, user=None):
-
-#     if not item_code:
-#         return []
-
-#     # Step 1: Similar item codes nikalo
-#     similar_item_codes = frappe.db.sql("""
-#         SELECT sit.item_code
-#         FROM `tabItem` i
-#         LEFT JOIN `tabSimilar Item Table` sit
-#             ON sit.parent = i.name
-#             AND sit.parenttype = 'Item'
-#             AND sit.parentfield = 'custom_similar_item_table'
-#         WHERE i.name = %s
-#         AND i.custom_is_similar_item = 1
-#     """, (item_code,), pluck=True)
-
-#     if not similar_item_codes:
-#         return []
-
-#     codes_tuple = tuple(similar_item_codes)
-
-#     # Step 2: Customer ke liye catalogue filter
-#     if customer:
-#         items = frappe.db.sql("""
-#             SELECT 
-#                 item.item_code, 
-#                 item.image
-#             FROM `tabItem` AS item
-#             INNER JOIN `tabCataloge Item Details` AS tci
-#                 ON tci.item_code = item.name
-#             INNER JOIN `tabCataloge Master` AS tcm
-#                 ON tcm.name = tci.parent
-#             WHERE item.name IN %(codes)s
-#             AND tcm.customer = %(customer)s
-#         """, {
-#             "codes": codes_tuple,
-#             "customer": customer
-#         }, as_dict=True)
-
-#     # Step 3: User ke liye internal catalogue filter
-#     elif user:
-#         items = frappe.db.sql("""
-#             SELECT 
-#                 item.item_code, 
-#                 item.image
-#             FROM `tabItem` AS item
-#             INNER JOIN `tabUser Item Details` AS uid
-#                 ON uid.item_code = item.name
-#             INNER JOIN `tabInternal Catalog Master` AS icm
-#                 ON icm.name = uid.parent
-#             WHERE item.name IN %(codes)s
-#             AND icm.user = %(user)s
-#         """, {
-#             "codes": codes_tuple,
-#             "user": user
-#         }, as_dict=True)
-
-#     # Step 4: Koi filter nahi — seedha item se
-#     else:
-#         items = frappe.db.sql("""
-#             SELECT item_code, image
-#             FROM `tabItem`
-#             WHERE name IN %(codes)s
-#         """, {
-#             "codes": codes_tuple
-#         }, as_dict=True)
-
-#     return items
-
-
-# @frappe.whitelist()
-# def get_similar_item(item_code, customer=None):
-
-#     if not item_code:
-#         return []
-
-#     # Similar items jo customer catalogue me bhi ho
-#     items = frappe.db.sql("""
-#         SELECT DISTINCT
-#             item.item_code,
-#             item.image
-
-#         FROM `tabSimilar Item Table` sit
-
-#         INNER JOIN `tabItem` item
-#             ON item.name = sit.item_code
-
-#         INNER JOIN `tabCataloge Item Details` tci
-#             ON tci.item_code = item.name
-
-#         INNER JOIN `tabCataloge Master` tcm
-#             ON tcm.name = tci.parent
-
-#         WHERE sit.parent = %(item_code)s
-#         AND sit.parenttype = 'Item'
-#         AND sit.parentfield = 'custom_similar_item_table'
-
-#         AND tcm.customer = %(customer)s
-#     """, {
-#         "item_code": item_code,
-#         "customer": customer
-#     }, as_dict=True)
-
-#     return items
+    enc_data = secure.encrypt(
+        {"message": "Updated successfully"}
+    ) 
+    
+    return enc_data
+    # return {"message": "Updated successfully"}
 
 @frappe.whitelist()
 def get_similar_item(item_code, customer=None, user=None):
@@ -11760,8 +11585,8 @@ def get_wishlist_item_for_customer_by_user(items, customers, user_type):
 #             GROUP_CONCAT(DISTINCT item.name ORDER BY item.creation ASC) AS variant_name,
 
 
-@frappe.whitelist()
-def add_item_in_folder(status=None, name=None, item=None, customer=None):
+# @frappe.whitelist()
+# def add_item_in_folder(status=None, name=None, item=None, customer=None):
 
 #             GROUP_CONCAT(DISTINCT mt.metal_type) AS metal_types,
 #             GROUP_CONCAT(DISTINCT mt.metal_colour) AS metal_color,
