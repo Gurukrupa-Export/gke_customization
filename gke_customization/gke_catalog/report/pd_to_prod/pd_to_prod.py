@@ -2,11 +2,30 @@
 # For license information, please see license.txt
 
 import frappe
+import requests
 
-from gke_customization.gke_catalog.api.pd_to_prod_api import (
-	get_pd_to_prod_data,
-	get_pd_to_prod_tag_summary,
-)
+JWELEX_API_BASE_URL = "http://3.108.219.130:8003"
+
+
+def _get_pd_to_prod_data():
+	return _call_jwelex_api(f"{JWELEX_API_BASE_URL}/pd-to-prod")
+
+
+def _get_pd_to_prod_tag_summary():
+	return _call_jwelex_api(f"{JWELEX_API_BASE_URL}/pd-to-prod-tag-summary")
+
+
+def _call_jwelex_api(url):
+	try:
+		response = requests.get(url, timeout=180)
+		response.raise_for_status()
+		return response.json().get("data")
+	except requests.RequestException:
+		frappe.log_error(
+			title="PD to Prod Jwelex API call failed",
+			message=frappe.get_traceback()
+		)
+		frappe.throw(f"Failed to fetch data from Jwelex API at {url}")
 
 
 def execute(filters=None):
@@ -186,7 +205,7 @@ def get_data(filters=None):
 
 	data = frappe.db.sql(query, filters, as_dict=True)
 
-	jwelex_data = get_pd_to_prod_data() or []
+	jwelex_data = _get_pd_to_prod_data() or []
 	jwelex_by_stylebio = {}
 	for row in jwelex_data:
 		jwelex_by_stylebio.setdefault(row.get("StyleBio_Ids"), row)
@@ -202,7 +221,7 @@ def get_data(filters=None):
 		"tagdate": None,
 	}
 
-	tag_summary_data = get_pd_to_prod_tag_summary() or []
+	tag_summary_data = _get_pd_to_prod_tag_summary() or []
 	tag_summary_by_stylebio = {}
 	for row in tag_summary_data:
 		tag_summary_by_stylebio.setdefault(row.get("StyleBio"), row)
