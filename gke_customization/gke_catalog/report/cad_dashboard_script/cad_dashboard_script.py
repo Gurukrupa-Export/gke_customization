@@ -26,6 +26,8 @@ TAB_ACCESS_MAP = {
 
 ROLE_TAB_ACCESS = {
 	"System Manager": set(ALL_TABS),
+	"Computer Aided Designer - ST - GE": set(ALL_TABS),
+    "Designer":set(ALL_TABS),
 }
 
 
@@ -38,12 +40,65 @@ def _allowed_tabs(user):
 	return allowed
 
 
+# ---------------------------------------------------------------------------
+# Per-user designer scoping. A regular designer must only ever see their own
+# row(s) in the dashboard/matrix - never every designer's data. Users holding
+# any role in DESIGNER_SCOPE_EXEMPT_ROLES (and Administrator) are exempt and
+# may view/filter across all designers as before. This is enforced here,
+# server-side, by overriding whatever `designer` value the client sent -
+# never trusting the client-supplied filter for non-exempt users.
+# ---------------------------------------------------------------------------
+
+DESIGNER_SCOPE_EXEMPT_ROLES = {
+	"System Manager",
+	"Director",
+	"CEO",
+	"Branch Manager",
+	"Department Manager",
+}
+
+
+def _designer_scope_for_session():
+	"""Employee ID to restrict designer-keyed views to, or None if the
+	current session is exempt (Administrator / management role) and should
+	see every designer's data unrestricted.
+	"""
+	user = frappe.session.user
+	if user == "Administrator" or (DESIGNER_SCOPE_EXEMPT_ROLES & set(frappe.get_roles(user))):
+		return None
+
+	employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+	return employee or "__no_designer_match__"
+
+
+def _scope_assignments(assignments_by_order, designer_scope):
+	"""Drop co-assignees from each order's assignment list when a designer
+	scope is active.
+
+	`_fetch_filtered_rows` only guarantees the scoped designer is *one of*
+	an order's assignees (via EXISTS) - an order can carry more than one
+	designer row. Without this step, any designer-keyed view built from
+	`assignments_by_order` (workload table, designer matrices, drill-downs)
+	would still show every co-assignee on a shared order, leaking other
+	designers' names/counts to a restricted session. When no scope is
+	active (exempt users), the assignments are returned unchanged.
+	"""
+	if designer_scope is None:
+		return assignments_by_order
+	scoped = {}
+	for order_name, assignments in assignments_by_order.items():
+		matched = [a for a in assignments if a.designer == designer_scope]
+		if matched:
+			scoped[order_name] = matched
+	return scoped
+
+
 def _tab_key_for_filters(setting_type, sub_setting_type1):
 	if sub_setting_type1 == "Close-Open Setting":
 		return "close_open_setting"
 	if setting_type == "Open":
 		return "open_setting"
-	if setting_type == "Close":
+	if setting_type == "Nova Glow":
 		return "nova_glow"
 	return "all"
 
@@ -63,6 +118,23 @@ def get_my_tab_access():
 		"allow_nova_glow": "nova_glow" in allowed,
 		"allow_close_open_setting": "close_open_setting" in allowed,
 	}
+
+
+@frappe.whitelist()
+def get_my_matrix_view_access():
+	"""Whether the current session should be locked to the Status x Category
+	matrix view only.
+
+	`get_dashboard_data` already scopes the designer/customer-keyed matrices
+	to the session's own data for a restricted user (see
+	`_designer_scope_for_session` / `_scope_assignments`), so there is no
+	data leak in what those matrices contain. This is a separate, UI-level
+	policy on top of that: a plain Designer-role user should never even be
+	offered the option to switch into the Designer/Customer-keyed views -
+	only the aggregate Status x Category view. Management (anyone exempt
+	from designer scoping) may freely switch between all views.
+	"""
+	return {"restrict_to_status": _designer_scope_for_session() is not None}
 
 
 # ---------------------------------------------------------------------------
@@ -206,7 +278,16 @@ def get_columns():
 
 
 def _build_extra_filter(
-	designer=None, from_date=None, to_date=None, setting_type=None, category=None, sub_setting_type1=None
+	designer=None,
+	from_date=None,
+	to_date=None,
+	setting_type=None,
+	category=None,
+	sub_setting_type1=None,
+	customer=None,
+	branch=None,
+	department=None,
+	assigned_to=None,
 ):
 	conditions = []
 	params = {}
@@ -216,12 +297,30 @@ def _build_extra_filter(
 			"WHERE da.parent = o.name AND da.designer = %(designer)s)"
 		)
 		params["designer"] = designer
+	if assigned_to:
+		# Standard Frappe "Assigned To" - `_assign` stores a JSON array of user
+		# emails, so this mirrors the same LIKE match the list view/report view
+		# use for their built-in Assigned To filter.
+		conditions.append("o._assign LIKE %(assigned_to)s")
+		params["assigned_to"] = f'%"{assigned_to}"%'
+	if customer:
+		conditions.append("o.customer_code = %(customer)s")
+		params["customer"] = customer
+	if branch:
+		conditions.append("o.branch = %(branch)s")
+		params["branch"] = branch
+	if department:
+		conditions.append("o.department = %(department)s")
+		params["department"] = department
 	if from_date:
 		conditions.append("o.order_date >= %(from_date)s")
-		params["from_date"] = from_date
+		params["from_date"] = getdate(from_date)
 	if to_date:
-		conditions.append("o.order_date <= %(to_date)s")
-		params["to_date"] = to_date
+		# order_date is a Datetime field - a plain "<= to_date" only matches
+		# midnight of to_date and silently drops every later timestamp that
+		# same day, so use an exclusive bound on the following day instead.
+		conditions.append("o.order_date < %(to_date)s")
+		params["to_date"] = add_days(getdate(to_date), 1)
 	if setting_type:
 		conditions.append("o.setting_type = %(setting_type)s")
 		params["setting_type"] = setting_type
@@ -236,10 +335,29 @@ def _build_extra_filter(
 
 
 def _fetch_filtered_rows(
-	company, designer=None, from_date=None, to_date=None, setting_type=None, category=None, sub_setting_type1=None
+	company,
+	designer=None,
+	from_date=None,
+	to_date=None,
+	setting_type=None,
+	category=None,
+	sub_setting_type1=None,
+	customer=None,
+	branch=None,
+	department=None,
+	assigned_to=None,
 ):
 	extra_filter, extra_params = _build_extra_filter(
-		designer, from_date, to_date, setting_type, category, sub_setting_type1
+		designer=designer,
+		from_date=from_date,
+		to_date=to_date,
+		setting_type=setting_type,
+		category=category,
+		sub_setting_type1=sub_setting_type1,
+		customer=customer,
+		branch=branch,
+		department=department,
+		assigned_to=assigned_to,
 	)
 	params = {"company": company, **extra_params}
 	return frappe.db.sql(
@@ -410,19 +528,39 @@ def get_dashboard_data(
 	matrix_filter=None,
 	sub_setting_type1=None,
 	status_filter=None,
+	customer=None,
+	branch=None,
+	department=None,
+	assigned_to=None,
 ):
 	if not company:
 		frappe.throw(_("Please select a Company"))
 
 	_enforce_tab_access(setting_type, sub_setting_type1)
+	designer_scope = _designer_scope_for_session()
+	if designer_scope is not None:
+		designer = designer_scope
 
 	due_soon_days = cint(due_soon_days)
 	if due_soon_days < 0:
 		due_soon_days = 0
 	due_soon_upper = add_days(nowdate(), due_soon_days)
 
-	rows = _fetch_filtered_rows(company, designer, from_date, to_date, setting_type, category, sub_setting_type1)
+	rows = _fetch_filtered_rows(
+		company,
+		designer,
+		from_date,
+		to_date,
+		setting_type,
+		category,
+		sub_setting_type1,
+		customer=customer,
+		branch=branch,
+		department=department,
+		assigned_to=assigned_to,
+	)
 	assignments_by_order = _fetch_assignments_by_order([row.name for row in rows])
+	assignments_by_order = _scope_assignments(assignments_by_order, designer_scope)
 
 	# ---- status summary ----
 	status_counts = {key: 0 for key in list(BUCKET_STATES.keys()) + ["bom_stage"]}
@@ -434,6 +572,16 @@ def get_dashboard_data(
 		for bucket in STATUS_ROW_ORDER
 	]
 	total_orders = len(rows)
+
+	# ---- Assigned to Designer ----
+	# `workflow_state = 'Assigned'` is just a status label an order can carry
+	# without ever having an actual row in the Designer Assignment - CAD child
+	# table (e.g. moved to "Assigned" manually before a designer was picked).
+	# This KPI instead counts orders that genuinely have >= 1 designer row
+	# with a non-blank `designer`, independent of workflow_state.
+	assigned_to_designer_count = sum(
+		1 for row in rows if any(a.designer for a in assignments_by_order.get(row.name, []))
+	)
 
 	# ---- GK Stock / Customer Stock / Customer Order ----
 	stock_counts = {"gk_stock": 0, "customer_stock": 0, "customer_order": 0}
@@ -577,6 +725,7 @@ def get_dashboard_data(
 		"gk_stock": {"count": stock_counts["gk_stock"]},
 		"customer_stock": {"count": stock_counts["customer_stock"]},
 		"customer_order": {"count": stock_counts["customer_order"]},
+		"assigned_to_designer": {"count": assigned_to_designer_count},
 		"status_summary": status_summary,
 		"designers": designers_workload,
 		"designer_category_matrix": designer_category_matrix,
@@ -606,6 +755,10 @@ def get_segment_orders(
 	sub_setting_type1=None,
 	status_filter=None,
 	segment=None,
+	customer=None,
+	branch=None,
+	department=None,
+	assigned_to=None,
 ):
 	"""Resolve the order names behind exactly one displayed number.
 
@@ -618,6 +771,9 @@ def get_segment_orders(
 		frappe.throw(_("Please select a Company"))
 
 	_enforce_tab_access(setting_type, sub_setting_type1)
+	designer_scope = _designer_scope_for_session()
+	if designer_scope is not None:
+		designer = designer_scope
 
 	segment = frappe.parse_json(segment) if isinstance(segment, str) else (segment or {})
 	seg_type = segment.get("type")
@@ -627,7 +783,19 @@ def get_segment_orders(
 		due_soon_days = 0
 	due_soon_upper = add_days(nowdate(), due_soon_days)
 
-	rows = _fetch_filtered_rows(company, designer, from_date, to_date, setting_type, category, sub_setting_type1)
+	rows = _fetch_filtered_rows(
+		company,
+		designer,
+		from_date,
+		to_date,
+		setting_type,
+		category,
+		sub_setting_type1,
+		customer=customer,
+		branch=branch,
+		department=department,
+		assigned_to=assigned_to,
+	)
 
 	if seg_type == "total":
 		return sorted(row.name for row in rows)
@@ -640,8 +808,16 @@ def get_segment_orders(
 		key = segment.get("key")
 		return sorted(row.name for row in rows if _classify_stock(row) == key)
 
+	if seg_type == "assigned_to_designer":
+		assignments_by_order = _fetch_assignments_by_order([row.name for row in rows])
+		assignments_by_order = _scope_assignments(assignments_by_order, designer_scope)
+		return sorted(
+			row.name for row in rows if any(a.designer for a in assignments_by_order.get(row.name, []))
+		)
+
 	if seg_type == "designer":
 		assignments_by_order = _fetch_assignments_by_order([row.name for row in rows])
+		assignments_by_order = _scope_assignments(assignments_by_order, designer_scope)
 		designer_key = segment.get("designer_key")
 		metric = segment.get("metric", "total")
 		names = []
@@ -658,6 +834,7 @@ def get_segment_orders(
 
 	if seg_type == "designer_status":
 		assignments_by_order = _fetch_assignments_by_order([row.name for row in rows])
+		assignments_by_order = _scope_assignments(assignments_by_order, designer_scope)
 		designer_key = segment.get("designer_key")
 		bucket = segment.get("bucket")
 		names = []
@@ -679,6 +856,7 @@ def get_segment_orders(
 		assignments_by_order = {}
 		if view in ("designer", "designer_status") and row_key is not None:
 			assignments_by_order = _fetch_assignments_by_order([row.name for row in filtered_rows])
+			assignments_by_order = _scope_assignments(assignments_by_order, designer_scope)
 
 		names = []
 		for row in filtered_rows:
@@ -737,6 +915,10 @@ def get_designer_status_breakdown(
 	matrix_filter=None,
 	sub_setting_type1=None,
 	designer_key=None,
+	customer=None,
+	branch=None,
+	department=None,
+	assigned_to=None,
 ):
 	"""Status-bucket counts behind one designer's "in progress" number.
 
@@ -748,9 +930,25 @@ def get_designer_status_breakdown(
 		frappe.throw(_("Please select a Company"))
 
 	_enforce_tab_access(setting_type, sub_setting_type1)
+	designer_scope = _designer_scope_for_session()
+	if designer_scope is not None:
+		designer = designer_scope
 
-	rows = _fetch_filtered_rows(company, designer, from_date, to_date, setting_type, category, sub_setting_type1)
+	rows = _fetch_filtered_rows(
+		company,
+		designer,
+		from_date,
+		to_date,
+		setting_type,
+		category,
+		sub_setting_type1,
+		customer=customer,
+		branch=branch,
+		department=department,
+		assigned_to=assigned_to,
+	)
 	assignments_by_order = _fetch_assignments_by_order([row.name for row in rows])
+	assignments_by_order = _scope_assignments(assignments_by_order, designer_scope)
 
 	counts = {}
 	for row in rows:
