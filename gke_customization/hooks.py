@@ -170,13 +170,10 @@ scheduler_events = {
         "0 6 * * *": [
             "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
         ],
-        "0 9 * * *": [
-            "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
-        ],
-        "0 15 * * *": [
-            "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
-        ],
-        "0 23 * * *": [
+        # ONE entry for all three runs. Frappe keys a Scheduled Job Type by method, so the same
+        # method listed under three cron keys kept only the last (23:00): each day's rate row
+        # appeared at ~23:02 and every customer-gold receipt had to be backdated a day.
+        "0 9,15,23 * * *": [
             "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
         ],
         "30 10 * * *": [

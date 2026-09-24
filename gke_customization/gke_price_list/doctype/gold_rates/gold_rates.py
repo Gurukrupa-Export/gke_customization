@@ -19,12 +19,12 @@ def run_gold_rate_scheduler():
 
         if name:
             doc = frappe.get_doc("Gold Rates", name)
-            # action = "Updated"
+            action = "Updated"
         else:
             doc = frappe.new_doc("Gold Rates")
             doc.date = today
             doc.add_default_rows()
-            # action = "Created"
+            action = "Created"
 
         doc.set_gold_value()
         doc.get_gold_value_1()
@@ -38,12 +38,15 @@ def run_gold_rate_scheduler():
         doc.save(ignore_permissions=True)
         frappe.db.commit()
 
-        # print(f"✅ {action}: {doc.name}")
-
-        frappe.logger().info(f"Gold Rate Scheduler {action}: {doc.name}")
-
-    except Exception as e:
+    except Exception:
+        # Nothing half-written survives a failed run: the next run starts from what was committed.
+        frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "Gold Rate Scheduler Error")
+        return
+
+    # Outside the try: ``action`` used to be commented out, so this line raised NameError AFTER the
+    # commit and every successful run was logged as a "Gold Rate Scheduler Error".
+    frappe.logger().info(f"Gold Rate Scheduler {action}: {doc.name}")
 
 
 
