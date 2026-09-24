@@ -64,13 +64,14 @@
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: 14px;
+	row-gap: 8px;
+	column-gap: 12px;
 }
 
 .caddash__filter {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 6px;
 }
 
 .caddash__filter label {
@@ -83,12 +84,16 @@
 
 .caddash__filter [data-field="company-field"],
 .caddash__filter [data-field="designer-field"],
-.caddash__filter [data-field="category-field"] {
-	width: 200px;
+.caddash__filter [data-field="category-field"],
+.caddash__filter [data-field="customer-field"],
+.caddash__filter [data-field="branch-field"],
+.caddash__filter [data-field="department-field"],
+.caddash__filter [data-field="assigned-to-field"] {
+	width: 150px;
 }
 
 .caddash__filter--daterange [data-field="daterange-field"] {
-	width: 220px;
+	width: 200px;
 }
 
 .caddash__filter .control-input-wrapper,
@@ -356,55 +361,63 @@
 
 .cad-kpi-row {
 	display: grid;
-	grid-template-columns: repeat(5, 1fr);
+}
+
+.cad-kpi-row--status {
+	grid-template-columns: repeat(6, 1fr);
 	border-bottom: 1px solid var(--border-color);
 }
 
-.cad-kpi-row:last-child {
-	border-bottom: none;
+/* 11 tiles at 6 columns = exactly 2 rows - the row-2 tiles get a top border
+   instead of a second stacked container, so the strip reads as one block. */
+.cad-kpi-row--status > .cad-kpi:nth-child(n + 7) {
+	border-top: 1px solid var(--border-color);
 }
 
-.cad-kpi-row--3 {
+.cad-kpi-row--status > .cad-kpi:nth-child(6n),
+.cad-kpi-row--status > .cad-kpi:last-child {
+	border-right: none;
+}
+
+.cad-kpi-row--flags {
 	grid-template-columns: repeat(3, 1fr);
 	gap: 12px;
 	padding: 12px;
 }
 
-.cad-kpi-row--3 .cad-kpi {
+.cad-kpi-row--flags .cad-kpi {
 	border-right: none;
 	border-radius: var(--border-radius, 6px);
 }
 
-.cad-kpi-row--3 .cad-kpi:nth-child(1) {
+.cad-kpi--flag-saffron {
 	/* Indian flag palette - fixed hex, intentionally not theme-adaptive */
 	background: #ff9933;
 }
 
-.cad-kpi-row--3 .cad-kpi:nth-child(1) .cad-kpi__label,
-.cad-kpi-row--3 .cad-kpi:nth-child(1) .cad-kpi__count,
-.cad-kpi-row--3 .cad-kpi:nth-child(1) .cad-kpi__pct {
+.cad-kpi--flag-saffron .cad-kpi__label,
+.cad-kpi--flag-saffron .cad-kpi__count,
+.cad-kpi--flag-saffron .cad-kpi__pct {
 	color: #4a2600;
 }
 
-.cad-kpi-row--3 .cad-kpi:nth-child(2) {
+.cad-kpi--flag-white {
 	background: #ffffff;
-	border: 2px solid #000080;
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
-.cad-kpi-row--3 .cad-kpi:nth-child(2) .cad-kpi__label,
-.cad-kpi-row--3 .cad-kpi:nth-child(2) .cad-kpi__count,
-.cad-kpi-row--3 .cad-kpi:nth-child(2) .cad-kpi__pct {
+.cad-kpi--flag-white .cad-kpi__label,
+.cad-kpi--flag-white .cad-kpi__count,
+.cad-kpi--flag-white .cad-kpi__pct {
 	color: #000080;
 }
 
-.cad-kpi-row--3 .cad-kpi:nth-child(3) {
+.cad-kpi--flag-green {
 	background: #138808;
 }
 
-.cad-kpi-row--3 .cad-kpi:nth-child(3) .cad-kpi__label,
-.cad-kpi-row--3 .cad-kpi:nth-child(3) .cad-kpi__count,
-.cad-kpi-row--3 .cad-kpi:nth-child(3) .cad-kpi__pct {
+.cad-kpi--flag-green .cad-kpi__label,
+.cad-kpi--flag-green .cad-kpi__count,
+.cad-kpi--flag-green .cad-kpi__pct {
 	color: #ffffff;
 }
 
@@ -414,12 +427,8 @@
 	align-items: center;
 	justify-content: center;
 	text-align: center;
-	padding: 12px 16px;
+	padding: 12px 8px;
 	border-right: 1px solid var(--border-color);
-}
-
-.cad-kpi-row > .cad-kpi:last-child {
-	border-right: none;
 }
 
 .cad-kpi__label {
