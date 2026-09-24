@@ -1636,5 +1636,3 @@ def xl_from_print_format(docname, print_format):
     frappe.local.response.filecontent = output.read()
     frappe.local.response.filename = f"{safe_title}_{docname}.xlsx"
     frappe.local.response.type = "download"
-
-

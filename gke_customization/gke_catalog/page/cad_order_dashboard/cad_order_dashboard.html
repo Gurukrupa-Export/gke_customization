@@ -1,0 +1,137 @@
+<div class="caddash">
+	<div class="caddash__topbar">
+		<div class="caddash__meta">
+			<span class="caddash__meta-label">CAD Design Snapshot</span>
+			<span class="caddash__meta-time" data-field="generated-at">--</span>
+		</div>
+		<div class="caddash__filters">
+			<div class="caddash__filter">
+				<label>Company</label>
+				<div data-field="company-field"></div>
+			</div>
+			<div class="caddash__filter">
+				<label>Designer</label>
+				<div data-field="designer-field"></div>
+			</div>
+			<div class="caddash__filter">
+				<label>Category</label>
+				<div data-field="category-field"></div>
+			</div>
+			<div class="caddash__filter">
+				<label>Customer</label>
+				<div data-field="customer-field"></div>
+			</div>
+			<div class="caddash__filter">
+				<label>Branch</label>
+				<div data-field="branch-field"></div>
+			</div>
+			<div class="caddash__filter">
+				<label>Department</label>
+				<div data-field="department-field"></div>
+			</div>
+			<div class="caddash__filter">
+				<label>Assigned To</label>
+				<div data-field="assigned-to-field"></div>
+			</div>
+			<div class="caddash__filter caddash__filter--daterange">
+				<label>Order Date</label>
+				<div data-field="daterange-field"></div>
+			</div>
+			<div class="caddash__filter">
+				<label>Period</label>
+				<select class="caddash__period-select" data-field="period-select">
+					<option value="">All</option>
+					<option value="today">Today</option>
+					<option value="last_week">Last Week</option>
+					<option value="current_week">Current Week</option>
+					<option value="this_month">This Month</option>
+					<option value="last_month">Last Month</option>
+				</select>
+			</div>
+			<button type="button" class="caddash__clear-filters" data-field="clear-filters" title="Clear Filter">
+				<span class="caddash__clear-filters-icon">&#x21bb;</span>
+				Clear Filter
+			</button>
+		</div>
+	</div>
+
+	<div class="caddash__tabs" data-field="setting-type-tabs">
+		<button type="button" class="caddash__tab is-active" data-filter-field="" data-filter-value="">All</button>
+		<button type="button" class="caddash__tab" data-filter-field="setting_type" data-filter-value="Open">Open Setting</button>
+		<button type="button" class="caddash__tab" data-filter-field="setting_type" data-filter-value="Nova Glow">Nova Glow</button>
+		<button type="button" class="caddash__tab" data-filter-field="sub_setting_type1" data-filter-value="Close-Open Setting">Close-Open Setting</button>
+	</div>
+
+	<div class="caddash__grid">
+		<section class="caddash__kpis" data-field="kpi-row">
+			<div class="caddash__loading">Loading status summary…</div>
+		</section>
+
+		<section class="caddash__matrix-wrap">
+			<div class="caddash__matrix-heading">
+				<div class="caddash__section-title" data-field="matrix-title">Designer &times; Category (Qty)</div>
+				<div class="caddash__matrix-controls">
+					<select class="caddash__matrix-view-select" data-field="matrix-view-select">
+						<option value="designer">Designer &times; Category</option>
+						<option value="status">Status &times; Category</option>
+						<option value="designer_status">Designer &times; Status</option>
+						<option value="customer">Customer &times; Category</option>
+						<option value="customer_status">Customer &times; Status</option>
+					</select>
+					<select class="caddash__matrix-filter" data-field="matrix-filter">
+						<option value="">All</option>
+						<option value="customer_order">Customer Order</option>
+						<option value="customer_stock">Customer Stock</option>
+						<option value="gk_stock">GK Stock</option>
+					</select>
+					<select class="caddash__matrix-status-filter" data-field="matrix-status-filter">
+						<option value="">All Statuses</option>
+						<option value="pending">Draft</option>
+						<option value="assigned">Assigned</option>
+						<option value="assigned_on_hold">Assigned - On Hold</option>
+						<option value="designing">Designing</option>
+						<option value="designing_on_hold">Designing - On Hold</option>
+						<option value="rework">Rework</option>
+						<option value="qc">Sent to QC</option>
+						<option value="approved">Approved</option>
+						<option value="rejected">Rejected / Cancelled</option>
+						<option value="bom_stage">Moved to BOM Stage</option>
+					</select>
+					<button type="button" class="caddash__matrix-export" data-field="matrix-export" title="Export to CSV">
+						Export
+					</button>
+				</div>
+			</div>
+			<div class="cad-matrix" data-field="designer-category-matrix">
+				<div class="caddash__loading">Loading matrix…</div>
+			</div>
+		</section>
+
+		<section class="caddash__designers-wrap">
+			<div class="caddash__section-title">Designer Workload</div>
+			<input
+				type="text"
+				class="caddash__designer-search"
+				data-field="designer-search"
+				placeholder="Search designer…"
+			/>
+			<div class="cad-designers" data-field="designer-list">
+				<div class="caddash__loading">Loading designer workload…</div>
+			</div>
+		</section>
+
+		<aside class="caddash__alerts">
+			<div class="caddash__section-title">Due-Date Alerts</div>
+			<div class="cad-alerts" data-field="alerts-board">
+				<div class="caddash__loading">Loading alerts…</div>
+			</div>
+		</aside>
+
+		<aside class="caddash__design-types">
+			<div class="caddash__section-title">Design Type</div>
+			<div class="cad-alerts" data-field="design-type-board">
+				<div class="caddash__loading">Loading design types…</div>
+			</div>
+		</aside>
+	</div>
+</div>

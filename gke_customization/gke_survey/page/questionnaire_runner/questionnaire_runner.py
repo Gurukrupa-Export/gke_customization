@@ -61,7 +61,7 @@ def save_response(questionnaire,answers,branch=None,
     matter_requiring_immediate_attention=None,
     employee_id=None,
     employee_name=None,
-    department=None):
+    department=None,designation=None,language=None):
 
     if isinstance(answers, str):
         answers = json.loads(answers)
@@ -85,6 +85,8 @@ def save_response(questionnaire,answers,branch=None,
     response.employee_id = employee_id
     response.employee_name = employee_name
     response.department = department
+    response.designation = designation
+    response.language = language
 
     for row in answers:
         if row.get("field_type") == "Table":
@@ -160,7 +162,7 @@ def get_responses(questionnaire):
             "branch",
             "audit_dates",
             "audit_month",
-            "employee_name"
+            "employee_name","designation"
         ],
         order_by="creation desc"
     )

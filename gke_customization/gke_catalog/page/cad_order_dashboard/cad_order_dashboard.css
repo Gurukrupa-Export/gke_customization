@@ -1,0 +1,805 @@
+/*
+ * CAD Dashboard - status/workload/alerts view over the `Order` doctype's CAD
+ * design flow (bom_or_cad = 'CAD'). Built on Frappe's own desk theme tokens
+ * (--card-bg, --border-color, --text-color, --gray-*, ...) so it reads as a
+ * native desk page and tracks light/dark automatically without local overrides.
+ */
+
+.caddash {
+	--cad-blue: var(--blue-600);
+	--cad-orange: var(--orange-600);
+	--cad-purple: var(--purple-600);
+	--cad-pink: var(--pink-600);
+	--cad-green: var(--green-600);
+	--cad-red: var(--red-600);
+	--cad-cyan: var(--cyan-600);
+	--cad-gray: var(--gray-600);
+	--cad-amber: var(--amber-600);
+	--cad-teal: var(--teal-600);
+	--cad-indigo: var(--violet-600);
+	--cad-yellow: var(--yellow-600);
+
+	color: var(--text-color);
+	font-family: var(--font-stack);
+	padding: 0 2px 30px;
+}
+
+.caddash * {
+	box-sizing: border-box;
+}
+
+/* ---------- top bar ---------- */
+
+.caddash__topbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 12px;
+	padding-bottom: 12px;
+	margin-bottom: 16px;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.caddash__meta {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.caddash__meta-label {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--text-muted);
+}
+
+.caddash__meta-time {
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+/* ---------- filter bar ---------- */
+
+.caddash__filters {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	row-gap: 8px;
+	column-gap: 12px;
+}
+
+.caddash__filter {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.caddash__filter label {
+	margin: 0;
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+.caddash__filter [data-field="company-field"],
+.caddash__filter [data-field="designer-field"],
+.caddash__filter [data-field="category-field"],
+.caddash__filter [data-field="customer-field"],
+.caddash__filter [data-field="branch-field"],
+.caddash__filter [data-field="department-field"],
+.caddash__filter [data-field="assigned-to-field"] {
+	width: 150px;
+}
+
+.caddash__filter--daterange [data-field="daterange-field"] {
+	width: 200px;
+}
+
+.caddash__filter .control-input-wrapper,
+.caddash__filter .control-input {
+	width: 100%;
+}
+
+.caddash__filter input.form-control,
+.caddash__filter input.input-with-feedback {
+	height: 28px;
+	font-size: 12.5px;
+}
+
+.caddash__period-select {
+	height: 28px;
+	padding: 0 8px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm, 4px);
+	background: var(--control-bg);
+	color: var(--text-color);
+	font-size: 12.5px;
+}
+
+.caddash__period-select:focus {
+	outline: none;
+	border-color: var(--cad-blue);
+}
+
+.caddash__clear-filters {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 28px;
+	padding: 0 10px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm, 4px);
+	background: var(--control-bg);
+	color: var(--text-muted);
+	font-size: 12px;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.caddash__clear-filters:hover {
+	color: var(--text-color);
+	background: var(--fg-hover-color);
+}
+
+.caddash__clear-filters-icon {
+	font-size: 13px;
+	line-height: 1;
+}
+
+/* ---------- setting type tabs ---------- */
+
+.caddash__tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-bottom: 16px;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.caddash__tab {
+	padding: 6px 4px;
+	margin-bottom: -1px;
+	border: none;
+	border-bottom: 2px solid transparent;
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 12.5px;
+	font-weight: 500;
+	cursor: pointer;
+}
+
+.caddash__tab + .caddash__tab {
+	margin-left: 14px;
+}
+
+.caddash__tab:hover {
+	color: var(--text-color);
+}
+
+.caddash__tab.is-active {
+	color: var(--text-color);
+	border-bottom-color: var(--cad-blue);
+	font-weight: 600;
+}
+
+/* ---------- layout grid ---------- */
+
+.caddash__grid {
+	display: grid;
+	grid-template-columns: 1fr 300px;
+	grid-template-areas:
+		"kpis    kpis"
+		"matrix  matrix"
+		"designers alerts"
+		"designers design-types";
+	gap: 16px;
+}
+
+.caddash__matrix-wrap {
+	grid-area: matrix;
+	min-width: 0;
+}
+
+.caddash__designers-wrap {
+	grid-area: designers;
+	min-width: 0;
+}
+
+.caddash__alerts {
+	grid-area: alerts;
+}
+
+.caddash__design-types {
+	grid-area: design-types;
+}
+
+@media (max-width: 900px) {
+	.caddash__grid {
+		grid-template-columns: 1fr;
+		grid-template-areas:
+			"kpis"
+			"matrix"
+			"alerts"
+			"design-types"
+			"designers";
+	}
+}
+
+.caddash__section-title {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--text-muted);
+	margin: 0 0 8px 2px;
+}
+
+.caddash__matrix-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 8px;
+}
+
+.caddash__matrix-heading .caddash__section-title {
+	margin-bottom: 0;
+}
+
+.caddash__matrix-controls {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.caddash__matrix-filter {
+	height: 26px;
+	padding: 0 8px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm, 4px);
+	background: var(--control-bg);
+	color: var(--text-color);
+	font-size: 12px;
+}
+
+.caddash__matrix-filter:focus {
+	outline: none;
+	border-color: var(--cad-blue);
+}
+
+.caddash__matrix-status-filter {
+	height: 26px;
+	padding: 0 8px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm, 4px);
+	background: var(--control-bg);
+	color: var(--text-color);
+	font-size: 12px;
+}
+
+.caddash__matrix-status-filter:focus {
+	outline: none;
+	border-color: var(--cad-blue);
+}
+
+.caddash__matrix-export {
+	height: 26px;
+	padding: 0 10px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm, 4px);
+	background: var(--control-bg);
+	color: var(--text-muted);
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.caddash__matrix-export:hover {
+	color: var(--text-color);
+	background: var(--fg-hover-color);
+}
+
+.caddash__designer-search {
+	width: 100%;
+	height: 28px;
+	margin-bottom: 8px;
+	padding: 0 10px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm, 4px);
+	background: var(--control-bg);
+	color: var(--text-color);
+	font-size: 12.5px;
+}
+
+.caddash__designer-search:focus {
+	outline: none;
+	border-color: var(--cad-blue);
+}
+
+/* ---------- matrix risk dots ---------- */
+
+.cad-matrix__risk {
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	margin-right: 5px;
+	border-radius: 50%;
+	vertical-align: middle;
+}
+
+.cad-matrix__risk--overdue {
+	background: var(--cad-red);
+}
+
+.cad-matrix__risk--due-soon {
+	background: var(--cad-orange);
+}
+
+/* ---------- matrix view select ---------- */
+
+.caddash__matrix-view-select {
+	height: 26px;
+	padding: 0 8px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm, 4px);
+	background: var(--control-bg);
+	color: var(--text-color);
+	font-size: 12px;
+}
+
+.caddash__matrix-view-select:focus {
+	outline: none;
+	border-color: var(--cad-blue);
+}
+
+/* ---------- KPI strip ---------- */
+
+.caddash__kpis {
+	grid-area: kpis;
+	background: var(--card-bg);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius, 6px);
+}
+
+.cad-kpi-row {
+	display: grid;
+}
+
+.cad-kpi-row--status {
+	grid-template-columns: repeat(6, 1fr);
+	border-bottom: 1px solid var(--border-color);
+}
+
+/* 11 tiles at 6 columns = exactly 2 rows - the row-2 tiles get a top border
+   instead of a second stacked container, so the strip reads as one block. */
+.cad-kpi-row--status > .cad-kpi:nth-child(n + 7) {
+	border-top: 1px solid var(--border-color);
+}
+
+.cad-kpi-row--status > .cad-kpi:nth-child(6n),
+.cad-kpi-row--status > .cad-kpi:last-child {
+	border-right: none;
+}
+
+.cad-kpi-row--flags {
+	grid-template-columns: repeat(3, 1fr);
+	gap: 12px;
+	padding: 12px;
+}
+
+.cad-kpi-row--flags .cad-kpi {
+	border-right: none;
+	border-radius: var(--border-radius, 6px);
+}
+
+.cad-kpi--flag-saffron {
+	/* Indian flag palette - fixed hex, intentionally not theme-adaptive */
+	background: #ff9933;
+}
+
+.cad-kpi--flag-saffron .cad-kpi__label,
+.cad-kpi--flag-saffron .cad-kpi__count,
+.cad-kpi--flag-saffron .cad-kpi__pct {
+	color: #4a2600;
+}
+
+.cad-kpi--flag-white {
+	background: #ffffff;
+}
+
+.cad-kpi--flag-white .cad-kpi__label,
+.cad-kpi--flag-white .cad-kpi__count,
+.cad-kpi--flag-white .cad-kpi__pct {
+	color: #000080;
+}
+
+.cad-kpi--flag-green {
+	background: #138808;
+}
+
+.cad-kpi--flag-green .cad-kpi__label,
+.cad-kpi--flag-green .cad-kpi__count,
+.cad-kpi--flag-green .cad-kpi__pct {
+	color: #ffffff;
+}
+
+.cad-kpi {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	padding: 12px 8px;
+	border-right: 1px solid var(--border-color);
+}
+
+.cad-kpi__label {
+	width: 100%;
+	font-size: 12px;
+	color: var(--text-muted);
+	margin-bottom: 6px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.cad-kpi__count {
+	font-size: 22px;
+	font-weight: 600;
+	line-height: 1;
+	color: var(--cad-accent, var(--text-color));
+}
+
+.cad-kpi--total .cad-kpi__count {
+	color: var(--text-color);
+}
+
+.cad-kpi__pct {
+	margin-top: 4px;
+	font-size: 11px;
+	color: var(--text-muted);
+}
+
+/* ---------- designer x category matrix ---------- */
+
+.cad-matrix {
+	background: var(--card-bg);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius, 6px);
+	max-height: 420px;
+	overflow: auto;
+}
+
+.cad-matrix table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 12.5px;
+	white-space: nowrap;
+}
+
+.cad-matrix th,
+.cad-matrix td {
+	padding: 8px 12px;
+	text-align: right;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.cad-matrix th:first-child,
+.cad-matrix td:first-child {
+	text-align: left;
+	position: sticky;
+	left: 0;
+	z-index: 1;
+	background: var(--card-bg);
+}
+
+.cad-matrix thead th {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	color: var(--text-muted);
+	font-weight: 600;
+	background: var(--card-bg);
+	border-bottom: 1px solid var(--border-color);
+	box-shadow: 0 1px 0 var(--border-color);
+}
+
+.cad-matrix thead th:first-child {
+	z-index: 3;
+}
+
+.cad-matrix tbody tr:last-child td {
+	border-bottom: none;
+}
+
+.cad-matrix tbody tr:nth-child(even) td,
+.cad-matrix tbody tr:nth-child(even) td:first-child {
+	background: var(--subtle-accent);
+}
+
+.cad-matrix tbody tr:hover td {
+	background: var(--fg-hover-color);
+}
+
+.cad-matrix tbody tr:hover td:first-child {
+	background: var(--fg-hover-color);
+}
+
+.cad-matrix td.cad-matrix__zero {
+	color: var(--text-muted);
+}
+
+.cad-matrix td[data-segment] {
+	cursor: pointer;
+}
+
+.cad-matrix td[data-segment]:hover {
+	text-decoration: underline;
+	text-decoration-color: var(--border-color);
+	text-underline-offset: 3px;
+}
+
+.cad-matrix tfoot td,
+.cad-matrix td.cad-matrix__total,
+.cad-matrix th.cad-matrix__total {
+	font-weight: 600;
+	color: var(--text-color);
+}
+
+.cad-matrix tfoot td {
+	border-bottom: none;
+	border-top: 1px solid var(--border-color);
+}
+
+.cad-matrix tfoot td:first-child {
+	background: var(--card-bg);
+}
+
+/* ---------- designer workload ---------- */
+
+.cad-designers {
+	background: var(--card-bg);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius, 6px);
+	max-height: 420px;
+	overflow-y: auto;
+}
+
+.cad-designer {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 10px 14px;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.cad-designer:last-child {
+	border-bottom: none;
+}
+
+.cad-designer__name {
+	flex: 0 0 140px;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--text-color);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.cad-designer__bar {
+	flex: 1 1 auto;
+	height: 5px;
+	border-radius: 3px;
+	background: var(--control-bg);
+	overflow: hidden;
+}
+
+.cad-designer__bar span {
+	display: block;
+	height: 100%;
+	background: var(--cad-blue);
+	border-radius: 3px;
+}
+
+.cad-designer__stats {
+	flex: 0 0 auto;
+	display: flex;
+	gap: 10px;
+	font-size: 11.5px;
+	white-space: nowrap;
+}
+
+.cad-designer__count {
+	color: var(--text-muted);
+}
+
+.cad-designer__inprogress {
+	color: var(--cad-orange);
+}
+
+.cad-designer__completed {
+	color: var(--cad-green);
+}
+
+/* ---------- due-date alerts ---------- */
+
+.cad-alerts {
+	background: var(--card-bg);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius, 6px);
+}
+
+.cad-lamp {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px 14px;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.cad-lamp:last-child {
+	border-bottom: none;
+}
+
+.cad-lamp__bulb {
+	flex: none;
+	width: 8px;
+	height: 8px;
+	border-radius: 2px;
+	background: var(--control-bg);
+}
+
+.cad-lamp--active .cad-lamp__bulb {
+	background: var(--cad-lamp-color, var(--text-muted));
+}
+
+.cad-lamp__label {
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.cad-lamp__days-input {
+	width: 36px;
+	margin: 0 2px;
+	padding: 0 3px;
+	background: var(--control-bg);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	color: var(--text-color);
+	font-size: 11px;
+	text-align: center;
+}
+
+.cad-lamp__days-input:focus {
+	outline: none;
+	border-color: var(--cad-blue);
+}
+
+.cad-lamp__count {
+	margin-left: auto;
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--text-color);
+}
+
+.cad-lamp__count span {
+	font-size: 11px;
+	font-weight: 400;
+	color: var(--text-muted);
+	margin-left: 4px;
+}
+
+/* ---------- misc ---------- */
+
+[data-segment] {
+	cursor: pointer;
+}
+
+[data-segment]:hover {
+	text-decoration: underline;
+	text-decoration-color: var(--border-color);
+	text-underline-offset: 3px;
+}
+
+.caddash__empty {
+	padding: 50px 20px;
+	text-align: center;
+	color: var(--text-muted);
+	font-size: 13px;
+}
+
+.caddash__loading {
+	padding: 50px 20px;
+	text-align: center;
+	color: var(--text-muted);
+	font-size: 12px;
+}
+
+/* ---------- designer "in progress" status breakdown popup ---------- */
+
+.cad-status-breakdown__row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 4px;
+	border-bottom: 1px solid var(--border-color);
+	cursor: pointer;
+}
+
+.cad-status-breakdown__row:last-child {
+	border-bottom: none;
+}
+
+.cad-status-breakdown__row:hover {
+	background: var(--fg-hover-color);
+}
+
+.cad-status-breakdown__label {
+	font-size: 13px;
+	color: var(--text-color);
+}
+
+.cad-status-breakdown__count {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text-color);
+}
+
+/* ---------- matrix cell image popup ---------- */
+
+.cad-thumb-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 14px;
+}
+
+.cad-thumb {
+	cursor: pointer;
+	text-align: center;
+}
+
+.cad-thumb__img {
+	width: 100%;
+	aspect-ratio: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	background: var(--control-bg);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm, 4px);
+}
+
+.cad-thumb__img img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.cad-thumb__placeholder {
+	color: var(--text-muted);
+	font-size: 11px;
+}
+
+.cad-thumb__name {
+	margin-top: 6px;
+	font-size: 11px;
+	color: var(--text-color);
+	word-break: break-all;
+}
+
+.cad-thumb:hover .cad-thumb__img {
+	box-shadow: 0 0 0 2px var(--dark-border-color);
+}
+
+.cad-thumb:hover .cad-thumb__name {
+	text-decoration: underline;
+}
+
+.cad-thumb-more {
+	margin-top: 16px;
+	padding-top: 12px;
+	border-top: 1px solid var(--border-color);
+	text-align: center;
+	font-size: 12px;
+	color: var(--text-muted);
+}
