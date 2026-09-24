@@ -22,6 +22,8 @@ import frappe
 from frappe.utils import add_days, now_datetime
 
 from gke_customization.gke_hrms.punch_pairing import _get_hr_user
+from gke_customization.gke_hrms.ot_resolver import ensure_mil, try_resolve_with_approved_ot, MIL_DOCTYPE, RES_REJECTED
+from gke_customization.gke_hrms.utils import _log_exc
 
 MISSING_OUT = "Missing OUT"
 MISSING_IN = "Missing IN"
@@ -64,7 +66,7 @@ def flag_attendance_by_name(attendance):
         if not result:
             _refresh_mil_card(doc)  # clean day: card ledger was built before linking
     except Exception:
-        frappe.log_error(frappe.get_traceback(), f"punch flag failed: {attendance}")
+        _log_exc(f"punch flag failed: {attendance}")
     frappe.db.commit()
 
 
@@ -77,7 +79,7 @@ def detect_and_apply(doc) -> str | None:
     checkins = frappe.get_all(
         "Employee Checkin",
         filters={"attendance": doc.name},
-        fields=["name", "log_type", "time"],
+        pluck="log_type",
         order_by="time asc",
     )
     if not checkins:
@@ -90,18 +92,11 @@ def detect_and_apply(doc) -> str | None:
     # Approved OT is the only automatic resolution.
     if error == MISSING_OUT:
         try:
-            from gke_customization.gke_hrms.ot_resolver import (
-                try_resolve_with_approved_ot,
-            )
-
             result = try_resolve_with_approved_ot(doc, error_hint=error)
             if result.get("status") == "resolved":
                 return "resolved-via-approved-ot"
         except Exception:
-            frappe.log_error(
-                frappe.get_traceback(),
-                "OT resolution failed",
-            )
+            _log_exc("OT resolution failed")
 
     # No approved OT or OT resolution failed.
     # Send the attendance to HR for regularization.
@@ -109,14 +104,11 @@ def detect_and_apply(doc) -> str | None:
     _create_todo(doc, error)
 
     try:
-        from gke_customization.gke_hrms.ot_resolver import ensure_mil
+        
 
         ensure_mil(doc.employee, doc.attendance_date)
     except Exception:
-        frappe.log_error(
-            frappe.get_traceback(),
-            "MIL auto-creation failed",
-        )
+        _log_exc("MIL auto-creation failed")
 
     # The card usually exists already (created on attendance submit, before the
     # punches were linked). Repopulate it now that the error is on the attendance.
@@ -162,10 +154,7 @@ def flag_recent_attendances(days: int = 3):
                 flagged += 1
 
         except Exception:
-            frappe.log_error(
-                frappe.get_traceback(),
-                f"punch flag failed: {name}",
-            )
+            _log_exc(f"punch flag failed: {name}")
 
     frappe.db.commit()
 
@@ -185,12 +174,6 @@ def _retry_ot_resolution(doc):
         return
 
     try:
-        from gke_customization.gke_hrms.ot_resolver import (
-            MIL_DOCTYPE,
-            RES_REJECTED,
-            try_resolve_with_approved_ot,
-        )
-
         status = frappe.db.get_value(
             MIL_DOCTYPE,
             {
@@ -206,10 +189,7 @@ def _retry_ot_resolution(doc):
         # on success: OUT checkin created, ToDo closed, card updated
         try_resolve_with_approved_ot(doc)
     except Exception:
-        frappe.log_error(
-            frappe.get_traceback(),
-            f"OT retry failed: {doc.name}",
-        )
+        _log_exc(f"OT retry failed: {doc.name}")
 
 
 def _refresh_mil_card(attendance_doc):
@@ -231,33 +211,29 @@ def _refresh_mil_card(attendance_doc):
             ).populate_from_attendance()
 
     except Exception:
-        frappe.log_error(
-            frappe.get_traceback(),
+        _log_exc(
             f"MIL refresh failed for "
-            f"{attendance_doc.employee}/{attendance_doc.attendance_date}",
+            f"{attendance_doc.employee}/{attendance_doc.attendance_date}"
         )
 
 
 def _detect_error(checkins) -> str | None:
-    types = [c.log_type for c in checkins]
-
     # Unknown direction.
-    if any(t not in ("IN", "OUT") for t in types):
+    if any(t not in ("IN", "OUT") for t in checkins):
         return UNPAIRED
 
     # Clean chain: IN, OUT, IN, OUT, ...
-    clean = len(types) % 2 == 0 and all(
-        t == ("IN" if i % 2 == 0 else "OUT")
-        for i, t in enumerate(types)
-    )
+    n = len(checkins)
+    expected = ["IN", "OUT"] * (n // 2)
+    clean = n % 2 == 0 and checkins == expected
 
     if clean:
         return None
 
-    if types and types[0] == "OUT":
+    if checkins[0] == "OUT":
         return MISSING_IN
 
-    if types and types[0] == "IN":
+    if checkins[0] == "IN":
         return MISSING_OUT
 
     return UNPAIRED

@@ -525,3 +525,6 @@ def get_employees_by_shift(
 	result = list(set(active_matching_assignment + fallback_employees))
 
 	return result
+
+def _log_exc(title: str):
+    frappe.log_error(frappe.get_traceback(), title)

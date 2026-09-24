@@ -18,12 +18,15 @@ Rules (evaluated in order):
                     (personal out / gate bounce inside the intake window);
                   - the open session belongs to the PREVIOUS instance, the punch
                     is still inside that instance's check-out window and closer to
-                    its end than to this instance's start (night -> day rotation:
+                    the window's end (actual_end) than to this instance's start
+                    (early-morning next-day checkout / night -> day rotation:
                     the night OUT at 06:30 must not become the day shift's IN).
   R2 Close    : open session exists and punch is within max_session_length of the
                 session IN -> OUT, closes the session (works across midnight).
-  R3 Return   : no open session, punch inside a shift's [S, shift_end] span ->
-                IN (return from personal out), bound to that instance.
+  R3 Return   : no open session, punch inside a shift's
+                [S, shift_end + allow_check_out_after_shift_end_time] span ->
+                IN (return from personal out / late entry), bound to that
+                instance (matches legacy window containment).
   R4 Stale    : open session older than max_session_length -> punch starts a NEW
                 session (IN); the stale session surfaces as a punch_error on
                 attendance instead of creating a 24h+ session silently.
@@ -88,6 +91,7 @@ def get_shift_cfg(shift_name: str) -> dict:
         [
             "late_entry_grace_period",
             "early_check_in_horizon",
+            "begin_check_in_before_shift_start_time",
             "max_session_length",
         ],
         as_dict=True,
@@ -95,7 +99,11 @@ def get_shift_cfg(shift_name: str) -> dict:
     if not vals:
         return cfg
     cfg["grace"] = cint(vals.get("late_entry_grace_period"))
-    cfg["early"] = cint(vals.get("early_check_in_horizon")) or DEFAULT_EARLY_HORIZON_MIN
+    # intake opening can never be narrower than the legacy early window
+    cfg["early"] = max(
+        cint(vals.get("early_check_in_horizon")) or DEFAULT_EARLY_HORIZON_MIN,
+        cint(vals.get("begin_check_in_before_shift_start_time")),
+    )
     cfg["max_session"] = cint(vals.get("max_session_length")) or DEFAULT_MAX_SESSION_MIN
     return cfg
 
@@ -179,8 +187,9 @@ def _apply_rules(
     #       gate bounce inside the intake window), or
     #   (b) the open session is for the PREVIOUS instance, the punch is still
     #       inside that instance's check-out window (actual_end) and is closer
-    #       to that instance's end than to this instance's start (night -> day
-    #       rotation). Otherwise intake wins over an open session of a
+    #       to that check-out window's end than to this instance's start
+    #       (early-morning next-day checkout / night -> day rotation).
+    #       Otherwise intake wins over an open session of a
     #       different (earlier) instance — that keeps the forgot-checkout case
     #       (next-day arrival) starting a new day.
     for inst in reversed(instances):
@@ -192,7 +201,7 @@ def _apply_rules(
                 closes_prev = (
                     not same
                     and for_dt <= (oi.get("actual_end") or oi["end_datetime"])
-                    and (for_dt - oi["end_datetime"])
+                    and (for_dt - (oi.get("actual_end") or oi["end_datetime"]))
                     <= (inst["start_datetime"] - for_dt)
                 )
                 if same or closes_prev:
@@ -229,9 +238,13 @@ def _apply_rules(
             "flag": "STALE_SESSION",
         }
 
-    # R3 - return from personal out (inside an active shift span)
+    # R3 - return from personal out (inside the shift's check-in/check-out
+    # window, i.e. up to shift_end + allow_check_out_after_shift_end_time),
+    # so a post-shift-end punch with no open session still binds to the
+    # shift exactly like legacy window containment instead of orphaning.
     for inst in reversed(instances):
-        if inst["start_datetime"] <= for_dt <= inst["end_datetime"]:
+        span_end = inst.get("actual_end") or inst["end_datetime"]
+        if inst["start_datetime"] <= for_dt <= span_end:
             return {"rule": "R3", "log_type": "IN", "instance": inst, "flag": None}
 
     # R5 - orphan
@@ -357,6 +370,27 @@ def bind_checkin(doc, result: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _punch_differs(p, result) -> bool:
+    """Would applying `result` to checkin `p` actually change anything?
+    Pure function of its two arguments — hoisted out of the reconciliation
+    loop below so it's defined once per run instead of once per punch."""
+    inst = result.get("instance")
+    new_log = result.get("log_type")
+    changed = False
+    if new_log and p.log_type != new_log:
+        changed = True
+    if inst:
+        if p.shift != inst["shift_type"]:
+            changed = True
+        elif p.shift_start and get_datetime(p.shift_start) != get_datetime(
+            inst["start_datetime"]
+        ):
+            changed = True
+    elif result.get("rule") == "R5" and not cint(p.offshift or 0):
+        changed = True
+    return changed
+
+
 def _reclassify_range(employee: str, from_dt: datetime, to_dt: datetime) -> dict:
     """Re-run the engine over a window and correct stored classifications.
 
@@ -392,6 +426,7 @@ def _reclassify_range(employee: str, from_dt: datetime, to_dt: datetime) -> dict
 
     results = classify_stream(punches, get_instances_around)
     corrected = flagged = 0
+    has_punch_rule_col = _has_punch_rule_column()
 
     for p, with_result in zip(punches, results):
         # human-entered punches are authoritative: never rewrite or flag them
@@ -412,24 +447,7 @@ def _reclassify_range(employee: str, from_dt: datetime, to_dt: datetime) -> dict
                 corrected += 1
             continue
 
-        def _differs(p, result):
-            inst = result.get("instance")
-            new_log = result.get("log_type")
-            changed = False
-            if new_log and p.log_type != new_log:
-                changed = True
-            if inst:
-                if p.shift != inst["shift_type"]:
-                    changed = True
-                elif p.shift_start and get_datetime(p.shift_start) != get_datetime(
-                    inst["start_datetime"]
-                ):
-                    changed = True
-            elif result.get("rule") == "R5" and not cint(p.offshift or 0):
-                changed = True
-            return changed
-
-        if not _differs(p, result):
+        if not _punch_differs(p, result):
             continue
 
         if p.attendance:
@@ -447,7 +465,7 @@ def _reclassify_range(employee: str, from_dt: datetime, to_dt: datetime) -> dict
             continue
 
         inst = result.get("instance")
-        update = {"punch_rule": result.get("rule")} if _has_punch_rule_column() else {}
+        update = {"punch_rule": result.get("rule")} if has_punch_rule_col else {}
         if result.get("rule") == "R5":
             update.update({"offshift": 1, "shift": None, "log_type": None})
         else:
@@ -474,16 +492,21 @@ def _reclassify_range(employee: str, from_dt: datetime, to_dt: datetime) -> dict
 
 
 def _has_punch_rule_column() -> bool:
-    try:
-        return bool(
-            frappe.db.sql(
-                "SELECT `fieldname` FROM `tabCustom Field` "
-                "WHERE `dt`='Employee Checkin' AND `fieldname`='punch_rule'",
-                as_dict=True,
+    """Whether Employee Checkin has the punch_rule custom field.
+    Cached per request: the schema can't change mid-run, so there's no
+    need to re-query it for every punch in the reconciliation loop."""
+    if not hasattr(frappe.local, "_pp_has_punch_rule_col"):
+        try:
+            frappe.local._pp_has_punch_rule_col = bool(
+                frappe.db.sql(
+                    "SELECT `fieldname` FROM `tabCustom Field` "
+                    "WHERE `dt`='Employee Checkin' AND `fieldname`='punch_rule'",
+                    as_dict=True,
+                )
             )
-        )
-    except Exception:
-        return False
+        except Exception:
+            frappe.local._pp_has_punch_rule_col = False
+    return frappe.local._pp_has_punch_rule_col
 
 
 def rebuild_employee(employee: str, from_dt: datetime = None) -> dict:

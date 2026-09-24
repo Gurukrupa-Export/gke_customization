@@ -22,6 +22,7 @@ from datetime import datetime, timedelta
 import frappe
 from frappe import _
 from frappe.utils import get_datetime, get_time, getdate, time_diff_in_hours
+from gke_customization.gke_hrms.utils import _log_exc
 
 MIL_DOCTYPE = "Monthly In-Out Log"
 
@@ -232,10 +233,7 @@ def get_error_context(mil_doc, att) -> dict:
 
         return {k: v for k, v in ctx.items() if (mil_doc.get(k) or "") != v}
     except Exception:
-        frappe.log_error(
-            title="Monthly In-Out Log: error context failed",
-            message=frappe.get_traceback(),
-        )
+        _log_exc("Monthly In-Out Log: error context failed")
         return {}
 
 
@@ -340,6 +338,23 @@ def _set_attendance_out(attendance_name, in_time, out_time) -> float:
     return updates["working_hours"]
 
 
+def _stray_punch_between(employee, start, end):
+    """First unlinked, non-skipped punch inside [start, end], or None.
+    Shared conflict guard for both auto-resolution paths below."""
+    rows = frappe.get_all(
+        "Employee Checkin",
+        filters={
+            "employee": employee,
+            "time": ["between", [start, end]],
+            "attendance": ("is", "not set"),
+            "skip_auto_attendance": 0,
+        },
+        pluck="name",
+        limit=1,
+    )
+    return rows[0] if rows else None
+
+
 def try_resolve_with_approved_ot(
     attendance_doc, error_hint=None, resolved_by=None, remarks=None
 ) -> dict:
@@ -367,19 +382,9 @@ def try_resolve_with_approved_ot(
     )
 
     # no stray unlinked punch inside the window contradicting the assumed close
-    stray = frappe.get_all(
-        "Employee Checkin",
-        filters={
-            "employee": attendance_doc.employee,
-            "time": ["between", [in_time, expected_out]],
-            "attendance": ("is", "not set"),
-            "skip_auto_attendance": 0,
-        },
-        pluck="name",
-        limit=1,
-    )
+    stray = _stray_punch_between(attendance_doc.employee, in_time, expected_out)
     if stray:
-        return {"status": "conflict", "stray": stray[0], "expected_out": expected_out}
+        return {"status": "conflict", "stray": stray, "expected_out": expected_out}
 
     hours = _set_attendance_out(attendance_doc.name, in_time, expected_out)
     _update_mil(
@@ -412,19 +417,9 @@ def auto_close_at_shift_end(attendance_doc, resolved_by=None, remarks=None) -> d
         return {"status": "skip"}
 
     # same guard as the OT resolver: no unlinked punch contradicting the close
-    stray = frappe.get_all(
-        "Employee Checkin",
-        filters={
-            "employee": attendance_doc.employee,
-            "time": ["between", [in_time, expected_out]],
-            "attendance": ("is", "not set"),
-            "skip_auto_attendance": 0,
-        },
-        pluck="name",
-        limit=1,
-    )
+    stray = _stray_punch_between(attendance_doc.employee, in_time, expected_out)
     if stray:
-        return {"status": "conflict", "stray": stray[0], "expected_out": expected_out}
+        return {"status": "conflict", "stray": stray, "expected_out": expected_out}
 
     hours = _set_attendance_out(attendance_doc.name, in_time, expected_out)
     _update_mil(
@@ -611,10 +606,7 @@ def ensure_mil(employee, attendance_date) -> str | None:
         mil.insert(ignore_permissions=True)
         return mil.name
     except Exception:
-        frappe.log_error(
-            frappe.get_traceback(),
-            f"Monthly In-Out Log auto-creation failed for {employee}/{attendance_date}",
-        )
+        _log_exc(f"Monthly In-Out Log auto-creation failed for {employee}/{attendance_date}")
         return None
 
 
@@ -634,7 +626,4 @@ def _update_mil(employee, attendance_date, status, actor, text, remarks=None):
     try:
         frappe.get_doc(MIL_DOCTYPE, name).populate_from_attendance()
     except Exception:
-        frappe.log_error(
-            frappe.get_traceback(),
-            f"MIL refresh after resolution failed for {employee}/{attendance_date}",
-        )
+        _log_exc(f"MIL refresh after resolution failed for {employee}/{attendance_date}")
