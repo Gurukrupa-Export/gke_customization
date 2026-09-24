@@ -78,11 +78,31 @@ class TestSchedulerRun(unittest.TestCase):
         self.assertEqual(len(self._records()), 1)
         self.log_error.assert_not_called()
 
-    def test_a_failing_feed_logs_the_failure_and_writes_nothing(self):
+    def test_a_failing_feed_loses_only_its_own_row(self):
+        """One dealer down must not cost the day its rate: the record is still written."""
         with patch.object(
             GoldRates, "get_gold_value_1", side_effect=ConnectionError("feed down")
         ):
             gold_rates.run_gold_rate_scheduler()
+        self.assertEqual(len(self._records()), 1)
+        self.log_error.assert_called_once()
+        self.assertEqual(
+            self.log_error.call_args.kwargs["title"],
+            "Gold Rate Fetch Error (get_gold_value_1)",
+        )
+
+    def test_a_failed_save_rolls_back_and_is_logged(self):
+        with patch.object(GoldRates, "save", side_effect=RuntimeError("db down")):
+            gold_rates.run_gold_rate_scheduler()
         self.assertEqual(self._records(), [])
         self.log_error.assert_called_once()
-        self.assertEqual(self.log_error.call_args.args[1], "Gold Rate Scheduler Error")
+        self.assertIn("Gold Rate Scheduler Error", self.log_error.call_args.args)
+
+    def test_every_feed_is_fetched_once_per_run(self):
+        """validate() refreshes the feeds; the scheduler used to call them all again first."""
+        calls = []
+        with patch.object(
+            GoldRates, "set_gold_value", side_effect=lambda *a: calls.append(1)
+        ):
+            gold_rates.run_gold_rate_scheduler()
+        self.assertEqual(len(calls), 1)
