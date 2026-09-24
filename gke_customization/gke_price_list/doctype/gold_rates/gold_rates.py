@@ -11,6 +11,33 @@ from datetime import datetime
 import pytz
 from frappe.model.document import Document
 
+#: The dealer feeds, in row order. Each is refreshed on its own: see ``refresh_feeds``.
+FEEDS = (
+    "set_gold_value",
+    "get_gold_value_1",
+    "set_gold_rate_2",
+    "get_gold_rate_3",
+    "get_gold_rate_4",
+    "set_gold_rate_5",
+)
+
+
+def refresh_feeds(doc):
+    """Refresh every dealer feed, each on its own, so one dealer being down loses only its row.
+
+    Two feeds (``get_gold_value_1``, ``get_gold_rate_4``) had no error handling, so one dealer's
+    outage failed the whole save and the day got no rate at all. Customer-gold receipts cannot be
+    backdated and need the exact day's rate, so that blocked every receipt until the next run.
+    """
+    for feed in FEEDS:
+        try:
+            getattr(doc, feed)()
+        except Exception:
+            frappe.log_error(
+                title=f"Gold Rate Fetch Error ({feed})", message=frappe.get_traceback()
+            )
+
+
 def run_gold_rate_scheduler():
     try:
         today = frappe.utils.today()
@@ -19,42 +46,32 @@ def run_gold_rate_scheduler():
 
         if name:
             doc = frappe.get_doc("Gold Rates", name)
-            # action = "Updated"
+            action = "Updated"
         else:
             doc = frappe.new_doc("Gold Rates")
             doc.date = today
             doc.add_default_rows()
-            # action = "Created"
+            action = "Created"
 
-        doc.set_gold_value()
-        doc.get_gold_value_1()
-        doc.set_gold_rate_2()
-        doc.get_gold_rate_3()
-        doc.get_gold_rate_4()
-        doc.set_gold_rate_5()
-        # doc.set_gold_value_6()
-
-        
+        # validate() refreshes every feed; calling them here as well fetched each one twice.
         doc.save(ignore_permissions=True)
         frappe.db.commit()
 
-        # print(f"✅ {action}: {doc.name}")
-
-        frappe.logger().info(f"Gold Rate Scheduler {action}: {doc.name}")
-
-    except Exception as e:
+    except Exception:
+        # Nothing half-written survives a failed run: the next run starts from what was committed.
+        frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "Gold Rate Scheduler Error")
+        return
+
+    # Outside the try: ``action`` used to be commented out, so this line raised NameError AFTER the
+    # commit and every successful run was logged as a "Gold Rate Scheduler Error".
+    frappe.logger().info(f"Gold Rate Scheduler {action}: {doc.name}")
 
 
 
 class GoldRates(Document):
 	def validate(self):
-		self.set_gold_value()
-		self.get_gold_value_1()
-		self.set_gold_rate_2()
-		self.get_gold_rate_3()
-		self.get_gold_rate_4()
-		self.set_gold_rate_5()
+		refresh_feeds(self)
 		# self.set_gold_value_6()
 
 
