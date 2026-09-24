@@ -52,6 +52,9 @@ class CadDashboard {
 		});
 	}
 
+	// Tab and matrix-view access is decided entirely server-side
+	// (get_my_tab_access / get_my_matrix_view_access in cad_dashboard_script.py).
+
 	init_tab_access() {
 		return frappe.call({ method: this.get_my_tab_access_method }).then((r) => {
 			this.apply_tab_access_ui(r.message || {});
