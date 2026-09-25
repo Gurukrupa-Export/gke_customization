@@ -1,35 +1,10 @@
 # Copyright (c) 2026, Gurukrupa Export
 """
-Tests for the session-based punch pairing engine.
+Tests for the session-based punch pairing engine. Run with:
+bench --site <site_name> run-tests --module gke_customization.gke_hrms.test_punch_pairing_rules
 
-Run (from bench root):
-bench --site kggk.test run-tests --module gke_customization.gke_hrms.test_punch_pairing_rules
-
-Uses IntegrationTestCase (NOT the deprecated FrappeTestCase). FrappeTestCase
-puts the run into Frappe's legacy "old-frappe-test-class-category", whose
-preparation walks every test_*.py in the app and preloads test records for
-their doctype dependencies (Employee -> erpnext/.../test_employee.py ->
-erpnext.tests.utils). Importing erpnext.tests.utils runs BootStrapTestData(),
-which inserts "_Test Holiday List" and fails on this site because
-Holiday List.custom_company is mandatory.
-
-IntegrationTestCase only loads what a test module explicitly declares
-(EXTRA_TEST_RECORD_DEPENDENCIES, empty here), so nothing from Frappe/ERPNext
-is bootstrapped and this file owns all of its test data. The class-level
-transaction is rolled back automatically when the test class finishes, so no
-manual cleanup of checkins is needed.
-
-The session engine is switched on in setUpClass (HR Settings.enable_session_pairing);
-with it off, Employee Checkin uses the legacy path and punch_rule stays empty.
-
-Runs on a fresh site too: all missing master data (Company, the three Shift
-Types with their configured thresholds, Department, Designation, and the
-approver User) is created in code if absent.
-
-Shift Types (created if missing, values mirror kggk.local):
-    8:30 TO 18:30 - KGJPL  : 08:30-18:30, allow_check_out 715, begin_check_in 120
-    7:30 TO 18:30 - KGJPL  : 07:30-18:30, allow_check_out 655, begin_check_in 120
-    20:00 TO 08:00 - KGJPL : 20:00-08:00 (night), allow_check_out 660, begin_check_in 59
+Uses IntegrationTestCase so no Frappe/ERPNext test records are bootstrapped;
+all master data (shifts, employee, holiday list) is created here if missing.
 """
 
 import frappe
@@ -46,7 +21,7 @@ TEST_HOLIDAY_LIST = "KGJPL-Holiday"
 TEST_COMPANY = "KGJPL Test"
 TEST_DEPARTMENT = "Central - KGJPL"
 TEST_DESIGNATION = "Accountant"
-TEST_APPROVER_EMAIL = "accounts@kggk.com"
+TEST_APPROVER_EMAIL = "pp.account@kggk.com"
 BASE_DATE = "2026-12-01"
 
 # (name, start_time, end_time, allow_check_out_after_shift_end_time,

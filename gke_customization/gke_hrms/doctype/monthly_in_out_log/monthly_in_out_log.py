@@ -48,7 +48,7 @@ TOTAL_STATUS_ROWS = [
 
 from gke_customization.gke_hrms.ot_resolver import (
     get_error_context,
-    get_mil_attendance,
+    get_monthly_in_out_log_attendance,
     resolve_error_day,
 )
 # ============================================================
@@ -110,7 +110,7 @@ class MonthlyInOutLog(Document):
     def populate_from_attendance(self):
         """Refresh ledger, resolution state and hours from the day's attendance."""
         try:
-            att = get_mil_attendance(self)
+            att = get_monthly_in_out_log_attendance(self)
             if not att:
                 return
 

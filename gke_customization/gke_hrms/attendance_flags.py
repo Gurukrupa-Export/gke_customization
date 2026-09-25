@@ -21,8 +21,8 @@ punches. It therefore enqueues the check to run after the transaction commits.
 import frappe
 from frappe.utils import add_days, now_datetime
 
-from gke_customization.gke_hrms.punch_pairing import _get_hr_user
-from gke_customization.gke_hrms.ot_resolver import ensure_mil, try_resolve_with_approved_ot, MIL_DOCTYPE, RES_REJECTED
+from gke_customization.gke_hrms.punch_pairing import get_attendance_review_user
+from gke_customization.gke_hrms.ot_resolver import ensure_monthly_in_out_log, try_resolve_with_approved_ot, MIL_DOCTYPE, RES_REJECTED
 from gke_customization.gke_hrms.utils import _log_exc
 
 MISSING_OUT = "Missing OUT"
@@ -62,15 +62,15 @@ def flag_attendance_by_name(attendance):
         return
 
     try:
-        result = detect_and_apply(doc)  # flagged path already refreshes the card
+        result = detect_and_flag_punch_error(doc)  # flagged path already refreshes the card
         if not result:
-            _refresh_mil_card(doc)  # clean day: card ledger was built before linking
+            _refresh_monthly_in_out_log_card(doc)  # clean day: card ledger was built before linking
     except Exception:
         _log_exc(f"punch flag failed: {attendance}")
     frappe.db.commit()
 
 
-def detect_and_apply(doc) -> str | None:
+def detect_and_flag_punch_error(doc) -> str | None:
     """Detect a broken punch chain and resolve it using approved OT.
 
     If approved OT cannot resolve the missing OUT, the attendance is
@@ -85,7 +85,7 @@ def detect_and_apply(doc) -> str | None:
     if not checkins:
         return None
 
-    error = _detect_error(checkins)
+    error = _detect_punch_error(checkins)
     if not error:
         return None
 
@@ -104,15 +104,13 @@ def detect_and_apply(doc) -> str | None:
     _create_todo(doc, error)
 
     try:
-        
-
-        ensure_mil(doc.employee, doc.attendance_date)
+        ensure_monthly_in_out_log(doc.employee, doc.attendance_date)
     except Exception:
         _log_exc("MIL auto-creation failed")
 
     # The card usually exists already (created on attendance submit, before the
     # punches were linked). Repopulate it now that the error is on the attendance.
-    _refresh_mil_card(doc)
+    _refresh_monthly_in_out_log_card(doc)
 
     return error
 
@@ -140,7 +138,7 @@ def flag_recent_attendances(days: int = 3):
         doc = frappe.get_doc("Attendance", name)
 
         # Keep the existing Monthly In-Out Log card synchronized.
-        _refresh_mil_card(doc)
+        _refresh_monthly_in_out_log_card(doc)
 
         if doc.get("punch_error"):
             # Already flagged: OT may have been approved since. Retry.
@@ -148,7 +146,7 @@ def flag_recent_attendances(days: int = 3):
             continue
 
         try:
-            result = detect_and_apply(doc)
+            result = detect_and_flag_punch_error(doc)
 
             if result and result != "resolved-via-approved-ot":
                 flagged += 1
@@ -192,7 +190,7 @@ def _retry_ot_resolution(doc):
         _log_exc(f"OT retry failed: {doc.name}")
 
 
-def _refresh_mil_card(attendance_doc):
+def _refresh_monthly_in_out_log_card(attendance_doc):
     """Refresh the employee-date Monthly In-Out Log card if it exists."""
     try:
         mil_name = frappe.db.exists(
@@ -217,7 +215,9 @@ def _refresh_mil_card(attendance_doc):
         )
 
 
-def _detect_error(checkins) -> str | None:
+def _detect_punch_error(checkins) -> str | None:
+    """Return the punch error for the ordered log types, or None if the
+    chain is a clean IN/OUT alternation ending with OUT."""
     # Unknown direction.
     if any(t not in ("IN", "OUT") for t in checkins):
         return UNPAIRED
@@ -256,7 +256,7 @@ def _create_todo(doc, error):
     frappe.get_doc(
         {
             "doctype": "ToDo",
-            "allocated_to": _get_hr_user(doc),
+            "allocated_to": get_attendance_review_user(doc),
             "reference_type": "Attendance",
             "reference_name": doc.name,
             "description": (
