@@ -34,6 +34,7 @@ doctype_js = {
     "Employee Onboarding" : "public/js/doctype_js/employee_onboarding.js",
     "Payment Entry" : "public/js/doctype_js/payment_entry.js",
     "Stock Entry" : "public/js/doctype_js/stock_entry.js",
+    "Payroll Entry": "public/js/doctype_js/payroll_entry.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -122,7 +123,8 @@ has_permission = {
 override_doctype_class = {
 	"Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive",
 	"Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin",
-    "Job Requisition": "gke_customization.overrides.job_requisition.CustomJobRequisition"
+    "Job Requisition": "gke_customization.overrides.job_requisition.CustomJobRequisition",
+    "Payroll Entry": "gke_customization.overrides.payroll_entry.CustomPayrollEntry",
     # "Parent Manufacturing Order": "gke_customization.overrides.parent_manufacturing_order.CustomParentManufacturingOrder"
 }
 
@@ -299,7 +301,12 @@ doc_events = {
 	"on_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_submit"
 },
 "Journal Entry": {
-    "on_submit": "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit"
+    "on_submit": [
+        "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit",
+        "gke_customization.gke_hrms.doc_events.journal_entry.update_withholding_release_status",
+    ],
+    "on_cancel": "gke_customization.gke_hrms.doc_events.journal_entry.update_withholding_release_status",
+    "on_trash": "gke_customization.gke_hrms.doc_events.journal_entry.cancel_withholding_releases_on_trash",
 },
 # "Item": {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
