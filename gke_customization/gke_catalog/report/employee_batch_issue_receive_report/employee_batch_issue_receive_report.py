@@ -256,6 +256,9 @@ def get_data(filters):
 def get_main_data(filters):
     conditions = get_conditions(filters)
     
+    # mwo.for_fg = 0: the FG work order's operation carries the loss of every sibling
+    # operation (jewellery_erpnext sync_mwo_weights), so listing it as well would count
+    # each loss twice. Same filter as employee_issue_receive_reports.
     query = f"""
         SELECT 
             mo.manufacturing_work_order,
@@ -295,6 +298,7 @@ def get_main_data(filters):
             mo.operation IS NOT NULL 
             AND mo.operation != ''
             AND mo.status IN ('WIP', 'Finished')
+            AND mwo.for_fg = 0
             {conditions}
         ORDER BY 
             mo.creation DESC
