@@ -915,9 +915,25 @@ class ReceivablePayableReport:
 					row[fieldname] = group_totals.get(fieldname, 0.0)
 				group_totals = defaultdict(float)
 
+		total_outstanding = sum(grand_totals.values())
+
 		if total_row:
 			for fieldname in self.date_fieldnames.values():
 				total_row[fieldname] = grand_totals.get(fieldname, 0.0)
+			total_row["outstanding"] = total_outstanding
+		else:
+			self.data.append(
+				{
+					"party": _("Total"),
+					"bold": 1,
+					"outstanding": total_outstanding,
+					**{
+						fieldname: grand_totals.get(fieldname, 0.0)
+						for fieldname in self.date_fieldnames.values()
+					},
+				}
+			)
+			self.skip_total_row = 1
 
 	def prepare_ple_query(self):
 		# get all the GL entries filtered by the given filters
