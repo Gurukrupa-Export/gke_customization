@@ -180,7 +180,7 @@ def get_data(filters=None):
 			so.name                                        AS "sketch_order_no",
 			it.variant_of                                  AS "variant_of",
 			it.item_category                               AS "item_category",
-			it.custom_cad_order_id                         AS "cad_order_no",
+			ord.name                                        AS "cad_order_no",
 			so.order_date                                  AS "sketch_order_date",
 			ord.order_date                                 AS "cad_order_date",
 			it.stylebio                                    AS "stylebio"
@@ -192,7 +192,7 @@ def get_data(filters=None):
 		LEFT JOIN `tabItem` it
 			ON it.name = fsac.item
 		LEFT JOIN `tabOrder` ord
-			ON ord.name = it.custom_cad_order_id
+			ON ord.design_id = fsac.item
 		WHERE fsac.item IS NOT NULL
 			{conditions}
 		ORDER BY so.name
