@@ -408,7 +408,30 @@ def get_report_summary(summary, date):
 # ---------------------------------------------------------------------------
 # Send Mail button - emails this report to each department's manager(s)
 # ---------------------------------------------------------------------------
+GROUP_FIELD = "custom_user_group"  # change if Branch uses a different fieldname
 
+def get_branch_hr_emails(department):
+	"""HR users (Branch.custom_user_group) for every branch that has an
+	active employee in this department."""
+	branches = frappe.get_all(
+		"Employee",
+		filters={"department": department, "status": "Active", "branch": ["is", "set"]},
+		pluck="branch",
+		distinct=True,
+	)
+	if not branches:
+		return []
+
+	users = frappe.get_all(
+		"User Group Member",
+		filters={
+			"parenttype": "Branch",
+			"parentfield": GROUP_FIELD,
+			"parent": ["in", branches],
+		},
+		pluck="user",
+	)
+	return [u for u in users if u]
 
 def get_department_manager_emails(department):
 	"""Users listed in Department.custom_user_group (Table MultiSelect,
@@ -441,6 +464,7 @@ def render_email_html(department, date, rows, summary):
 
 	return f"""
 	<h3>Daily Attendance Report — {department} — {formatdate(date, "dd-mm-yyyy")}</h3>
+	<p>{frappe.local.site}</p>
 	<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; font-size:13px;">
 		<thead style="background:#f2f2f2;">
 			<tr>
@@ -505,10 +529,17 @@ def send_daily_attendance_report(date=None, department=None):
 			manager_string = ", ".join(manager_emails)
 		else:
 			manager_string = manager_emails
+
+		hr_emails = get_branch_hr_emails(dept)
+		fixed_cc = ["angat_p@gkexport.com"]
+		cc = [e for e in dict.fromkeys(fixed_cc + hr_emails) if e not in manager_emails]
+		# frappe.throw(f"cc mail {cc} manager_string {manager_string}")	
+
 		html = render_email_html(dept, date, rows, summary)
 		frappe.sendmail(
 			recipients=manager_string,
-			cc=["angat_p@gkexport.com","hr_srt@gkexport.com"],
+			# cc=["angat_p@gkexport.com","hr_srt@gkexport.com"],
+			cc=cc,
 			sender="alerts@gkexport.com",
 			subject=f"Daily Attendance Report — {dept} — {formatdate(date, 'dd-mm-yyyy')}",
 			message=html,
