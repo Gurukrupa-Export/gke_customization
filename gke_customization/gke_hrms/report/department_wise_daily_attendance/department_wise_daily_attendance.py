@@ -441,6 +441,7 @@ def render_email_html(department, date, rows, summary):
 
 	return f"""
 	<h3>Daily Attendance Report — {department} — {formatdate(date, "dd-mm-yyyy")}</h3>
+	<p>{frappe.local.site}</p>
 	<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; font-size:13px;">
 		<thead style="background:#f2f2f2;">
 			<tr>
