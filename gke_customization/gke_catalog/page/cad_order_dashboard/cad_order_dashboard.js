@@ -19,6 +19,14 @@ class CadDashboard {
 			'gke_customization.gke_catalog.report.cad_dashboard_script.cad_dashboard_script.get_my_tab_access';
 		this.get_my_matrix_view_access_method =
 			'gke_customization.gke_catalog.report.cad_dashboard_script.cad_dashboard_script.get_my_matrix_view_access';
+		this.get_order_notification_count_method =
+			'gke_customization.gke_catalog.report.cad_dashboard_script.cad_dashboard_script.get_order_notification_count';
+		this.get_order_notifications_method =
+			'gke_customization.gke_catalog.report.cad_dashboard_script.cad_dashboard_script.get_order_notifications';
+		this.mark_order_notification_read_method =
+			'gke_customization.gke_catalog.report.cad_dashboard_script.cad_dashboard_script.mark_order_notification_read';
+		this.mark_all_order_notifications_read_method =
+			'gke_customization.gke_catalog.report.cad_dashboard_script.cad_dashboard_script.mark_all_order_notifications_read';
 
 		this.BUCKET_ACCENTS = {
 			pending: 'var(--cad-blue)',
@@ -373,6 +381,10 @@ class CadDashboard {
 			this.show_designer_status_breakdown(segment);
 			return;
 		}
+		if (segment.type === 'order_notifications') {
+			this.show_order_notifications();
+			return;
+		}
 		const args = this.build_call_args();
 		args.segment = segment;
 		frappe.call({
@@ -455,6 +467,78 @@ class CadDashboard {
 							this.open_orders(r2.message || []);
 						},
 					});
+				});
+			},
+		});
+	}
+
+	// ---- order-notifications popup (categorized, from the same "Notification
+	// Log" table the navbar bell reads) ----
+
+	show_order_notifications() {
+		const dialog = new frappe.ui.Dialog({
+			title: __('Order Notifications'),
+			size: 'large',
+			primary_action_label: __('Mark all as read'),
+			primary_action: () => {
+				frappe.call({
+					method: this.mark_all_order_notifications_read_method,
+					freeze: true,
+					callback: () => {
+						this.refresh_notification_count();
+						dialog.hide();
+					},
+				});
+			},
+		});
+		dialog.$body.html(`<div class="caddash__loading">${__('Loading\u2026')}</div>`);
+		dialog.show();
+
+		frappe.call({
+			method: this.get_order_notifications_method,
+			callback: (r) => {
+				const data = r.message || { count: 0, categories: [] };
+				if (!data.count) {
+					dialog.$body.html(`<div class="caddash__empty">${__('No unread Order notifications.')}</div>`);
+					dialog.get_primary_btn().hide();
+					return;
+				}
+				dialog.get_primary_btn().show();
+
+				const esc = frappe.utils.escape_html;
+				const strip_html = (s) => $('<div>').html(s || '').text();
+
+				const item_html = (item) => `
+					<div class="cad-order-notifications__item" data-name="${esc(item.name)}" data-order="${esc(item.document_name)}">
+						<div class="cad-order-notifications__subject">${strip_html(item.subject)}</div>
+						<div class="cad-order-notifications__meta">
+							${esc(item.document_name || '')} \u00b7 ${frappe.datetime.comment_when(item.creation)}
+						</div>
+					</div>`;
+
+				const html = data.categories
+					.map(
+						(cat) => `
+						<div class="cad-order-notifications__category">
+							<div class="cad-order-notifications__category-title">
+								${esc(cat.type)} <span class="cad-order-notifications__category-count">${cat.items.length}</span>
+							</div>
+							${cat.items.map(item_html).join('')}
+						</div>`
+					)
+					.join('');
+				dialog.$body.html(`<div class="cad-order-notifications">${html}</div>`);
+
+				dialog.$body.find('.cad-order-notifications__item').on('click', (e) => {
+					const $item = $(e.currentTarget);
+					const name = $item.attr('data-name');
+					const order = $item.attr('data-order');
+					frappe.call({ method: this.mark_order_notification_read_method, args: { name } });
+					this.refresh_notification_count();
+					dialog.hide();
+					if (order) {
+						frappe.set_route('Form', 'Order', order);
+					}
 				});
 			},
 		});
@@ -624,6 +708,25 @@ class CadDashboard {
 		if (this.data.generated_at) {
 			this.$generated_at.text('as of ' + frappe.datetime.str_to_user(this.data.generated_at));
 		}
+		this.refresh_notification_count();
+	}
+
+	// ---- order-notifications KPI tile ----
+	//
+	// Same "Notification Log" table the navbar bell reads from, narrowed to
+	// document_type = "Order" and the current user. Personal, so it's fetched
+	// on its own (not part of get_dashboard_data) and just patched into the
+	// tile once it lands.
+
+	refresh_notification_count() {
+		frappe.call({
+			method: this.get_order_notification_count_method,
+			callback: (r) => {
+				this.page.main
+					.find('[data-field="notification-count"]')
+					.text(this.fmt_count(r.message || 0));
+			},
+		});
 	}
 
 	fmt_count(n) {
@@ -688,7 +791,17 @@ class CadDashboard {
 				</div>`;
 		};
 
-		// 11 status/count tiles at 6 columns = exactly 2 rows.
+		// Personal, not scoped to the company/date/etc. filters like the rest of
+		// this strip - unread count is fetched separately (see
+		// `refresh_notification_count`) and only patched into this tile.
+		const notifications_tile = `
+			<div class="cad-kpi cad-kpi--notifications" style="--cad-accent:var(--cad-indigo)">
+				<div class="cad-kpi__label">${frappe.utils.escape_html(__('Order Notifications'))}</div>
+				<div class="cad-kpi__count" data-segment="${seg_attr({ type: 'order_notifications' })}" data-field="notification-count">0</div>
+				<div class="cad-kpi__pct">${__('unread')}</div>
+			</div>`;
+
+		// 12 status/count tiles at 6 columns = exactly 2 rows.
 		const status_tiles = [
 			total_tile,
 			bucket_tile('pending'),
@@ -701,6 +814,7 @@ class CadDashboard {
 			bucket_tile('qc'),
 			bucket_tile('approved'),
 			bucket_tile('rejected'),
+			notifications_tile,
 		].join('');
 
 		// Kept as its own row, deliberately visually distinct (Indian flag
