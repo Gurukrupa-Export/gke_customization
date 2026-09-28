@@ -952,6 +952,7 @@ def get_customer_wishlist_items(customer=None):
                 item.sketch_image,
                 item.custom_catalogue_image,
                 item.front_view as cad_image,
+                item.custom_catalogue_image AS custom_catalogue_image
                 CASE
                     WHEN item.front_view = item.image THEN 'CAD Image'
                     ELSE 'FG Image'
@@ -1223,7 +1224,7 @@ def subcategory_count(categoryName, user_type, customer=None):
                     ti.item_subcategory,
                     ti.custom_catalogue_image AS custom_catalogue_image,
                     # COUNT(DISTINCT IFNULL(ti.variant_of, ti.name)) AS item_count,
-                    COUNT(DISTINCT IFNULL(ti.variant_of, ti.item_code)) AS item_count, 
+                    COUNT(DISTINCT IFNULL(ti.variant_of, ti.item_code)) AS item_count,  -- <-- Yahan comma missing tha, jo maine laga diya hai
                     COUNT(DISTINCT se.name) AS serial_count
                 FROM `tabCataloge Item Details` AS tci
                 JOIN `tabCataloge Master` AS tcm 
@@ -1265,8 +1266,8 @@ def subcategory_count(categoryName, user_type, customer=None):
                     image_rows = frappe.db.sql("""
                         SELECT 
                             ti.item_subcategory, 
-                            ti.custom_catalogue_image AS custom_catalogue_image,
-                            ti.image AS first_image 
+                            ti.image AS first_image,
+                            ti.custom_catalogue_image
                         FROM `tabCataloge Item Details` tci
                         INNER JOIN `tabCataloge Master` tcm ON tcm.name = tci.parent
                         INNER JOIN `tabItem` ti ON ti.name = tci.item_code
@@ -1287,12 +1288,16 @@ def subcategory_count(categoryName, user_type, customer=None):
                     }, as_dict=True)
         
                     image_map = {}
+                    catalogue_image_map = {}
                     for row in image_rows:
                         if row.item_subcategory not in image_map:
                             image_map[row.item_subcategory] = row.first_image
+                        if row.custom_catalogue_image and row.item_subcategory not in catalogue_image_map:
+                            catalogue_image_map[row.item_subcategory] = row.custom_catalogue_image
         
                     for row in result:
                         row["first_image"] = image_map.get(row.item_subcategory)
+                        row["custom_catalogue_image"] = catalogue_image_map.get(row.item_subcategory)
         
                 # ── Cache save karo 5 min ke liye ───────────────────────────────
                 frappe.cache().set_value(cache_key, result, expires_in_sec=300)
@@ -1356,8 +1361,8 @@ def subcategory_count(categoryName, user_type, customer=None):
                     image_rows = frappe.db.sql("""
                         SELECT
                             ti.item_subcategory,
-                            ti.custom_catalogue_image AS custom_catalogue_image,
-                            ti.image AS first_image
+                            ti.image AS first_image,
+                            ti.custom_catalogue_image
                         FROM `tabItem` ti
                         INNER JOIN `tabBOM` tb
                             ON tb.item = ti.name
@@ -1380,12 +1385,16 @@ def subcategory_count(categoryName, user_type, customer=None):
                     }, as_dict=True)
 
                     image_map = {}
+                    catalogue_image_map = {}
                     for row in image_rows:
                         if row.item_subcategory not in image_map:
                             image_map[row.item_subcategory] = row.first_image
+                        if row.custom_catalogue_image and row.item_subcategory not in catalogue_image_map:
+                            catalogue_image_map[row.item_subcategory] = row.custom_catalogue_image
                     
                     for row in result:
                         row["first_image"] = image_map.get(row.item_subcategory)
+                        row["custom_catalogue_image"] = catalogue_image_map.get(row.item_subcategory)
 
             # ── Cache save karo 5 min ke liye ───────────────────────────────
             frappe.cache().set_value(cache_key, result, expires_in_sec=300)
@@ -1509,7 +1518,7 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
             item.item_category,
             item.image,
             item.sketch_image,
-            item.custom_catalogue_image,
+            item.custom_catalogue_image, 
             item.front_view AS cad_image,
 
             CASE
@@ -1571,12 +1580,12 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
             END AS rn,
 
             CASE
-                WHEN set_check.is_set_item = 1 THEN 1
+                WHEN item.custom_is_set_item = 1 AND set_check.is_set_item = 1 THEN 1
                 ELSE 0
             END AS is_set_item,
 
             CASE
-                WHEN similar_check.is_similar_item = 1 THEN 1
+                WHEN item.custom_is_similar_item = 1 AND similar_check.is_similar_item = 1 THEN 1
                 ELSE 0
             END AS is_similar_item,
 
@@ -1633,18 +1642,6 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
             GROUP BY IFNULL(i.variant_of, i.item_code)
         ) first_variant
             ON item.item_code = first_variant.first_item_code
-
-        # LEFT JOIN (
-        #     SELECT
-        #         IFNULL(i.variant_of, i.item_code) AS group_key,
-        #         COUNT(DISTINCT i.item_code) AS variant_count
-        #     FROM `tabItem` i
-        #     INNER JOIN `tabBOM` b
-        #         ON i.item_code = b.item
-        #         AND b.bom_type = 'Finish Goods'
-        #     GROUP BY IFNULL(i.variant_of, i.item_code)
-        # ) vc
-        #     ON vc.group_key = IFNULL(item.variant_of, item.item_code)
         
         LEFT JOIN (
             SELECT 
@@ -1669,9 +1666,10 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
                 parent AS item_code,
                 1 AS is_set_item
             FROM `tabSet Item Table`
+            WHERE parenttype = 'Item'
+              AND parentfield = 'custom_set_item_table'
             GROUP BY parent
-        ) set_check
-            ON set_check.item_code = item.item_code
+        ) set_check ON set_check.item_code = item.item_code
 
         LEFT JOIN (
             SELECT
@@ -1679,9 +1677,9 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
                 1 AS is_similar_item
             FROM `tabSimilar Item Table`
             WHERE parenttype = 'Item'
+              AND parentfield = 'custom_similar_item_table'
             GROUP BY parent
-        ) similar_check
-            ON similar_check.item_code = item.item_code
+        ) similar_check ON similar_check.item_code = item.item_code
 
         LEFT JOIN `tabCataloge Item Details` tci
             ON tci.item_code = item.name
@@ -1737,7 +1735,7 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
 
         GROUP BY item.item_code
 
-        ORDER BY item.creation DESC
+        ORDER BY item.item_code ASC
     """
     
     
@@ -1774,12 +1772,12 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
     )
     
     start = values.get("offset", 0)
-    end = start + values.get("page_size", 50)
+    end = start + values.get("page_size", 48)
 
     return db_data[start:end], len(db_data)
 
 @frappe.whitelist()
-def catalogue_data22(selectedSubcategory=None, itemCategory=None, itemCode=None, metalType=None, company=None, customer=None, page=1, page_size=50, is_filter=None, search=None):
+def catalogue_data22(selectedSubcategory=None, itemCategory=None, itemCode=None, metalType=None, company=None, customer=None, page=1, page_size=48, is_filter=None, search=None):
 
     if selectedSubcategory is None:
         selectedSubcategory = frappe.form_dict.get("selectedSubcategory")
@@ -1948,14 +1946,14 @@ def catalogue_data22(selectedSubcategory=None, itemCategory=None, itemCode=None,
                 WHEN vc.variant_count > 1 THEN 1 
                 ELSE 0 
             END AS rn,
-
+            
             CASE 
-               WHEN set_check.is_set_item = 1 THEN 1 
-               ELSE 0 
+                WHEN item.custom_is_set_item = 1 AND set_check.is_set_item = 1 THEN 1 
+                ELSE 0 
             END AS is_set_item,
             
             CASE 
-                WHEN similar_check.is_similar_item = 1 THEN 1 
+                WHEN item.custom_is_similar_item = 1 AND similar_check.is_similar_item = 1 THEN 1 
                 ELSE 0 
             END AS is_similar_item,
 
@@ -1989,10 +1987,6 @@ def catalogue_data22(selectedSubcategory=None, itemCategory=None, itemCode=None,
 
         FROM `tabItem` AS item
 
-       
-        
-        
-        
         # LEFT JOIN (
         #     SELECT 
         #         COALESCE(i.variant_of, i.item_code) AS group_key,
@@ -2018,22 +2012,25 @@ def catalogue_data22(selectedSubcategory=None, itemCategory=None, itemCode=None,
                 AND i.disabled = 0
             GROUP BY COALESCE(i.variant_of, i.item_code)
         ) vc ON vc.group_key = COALESCE(item.variant_of, item.item_code)
-
-
+        
         LEFT JOIN (
             SELECT 
                 sit.parent AS item_code,
-                CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END AS is_set_item
+                1 AS is_set_item
             FROM `tabSet Item Table` sit
+            WHERE sit.parenttype = 'Item'
+              AND sit.parentfield = 'custom_set_item_table'
             GROUP BY sit.parent
         ) AS set_check ON set_check.item_code = item.item_code
         
+        
         LEFT JOIN (
-        SELECT 
-            sit.parent AS item_code,
-            CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END AS is_similar_item
+            SELECT 
+                sit.parent AS item_code,
+                1 AS is_similar_item
             FROM `tabSimilar Item Table` sit
             WHERE sit.parenttype = 'Item'
+              AND sit.parentfield = 'custom_similar_item_table'
             GROUP BY sit.parent
         ) AS similar_check ON similar_check.item_code = item.item_code
 
@@ -2062,7 +2059,7 @@ def catalogue_data22(selectedSubcategory=None, itemCategory=None, itemCode=None,
 
         WHERE {where_clause}
         GROUP BY item.item_code, item.variant_of
-        ORDER BY item.creation DESC
+        ORDER BY item.item_code ASC
         # LIMIT %(page_size)s OFFSET %(offset)s
     """
 
@@ -2177,7 +2174,7 @@ def catalogue_data22(selectedSubcategory=None, itemCategory=None, itemCode=None,
         # return encrypted
     
         return {
-            "data": db_data[0:50],
+            "data": db_data[0:48],
             "filters":filters,
             "total_count": total_count,
             "page": page,
@@ -2209,8 +2206,6 @@ def catalogue_data22(selectedSubcategory=None, itemCategory=None, itemCode=None,
         "page_size": page_size,
         "has_more": (offset + page_size) < total_count
     }
-
-# -------------------------------------------------------------------------------------------
 
 
 
@@ -4985,56 +4980,114 @@ def get_similar_item(item_code, customer=None, user=None):
         #     "item_code": item_code
         # }, as_dict=True)
         
-        items = frappe.db.sql(f"""
+        
+        # items = frappe.db.sql(f"""
+        #     SELECT
+        #         item.name,
+        #         item.item_code,
+        #         item.image,
+        #         item.custom_catalogue_image AS catalogue_image,
+        #         item.sketch_image,
+        #         item.front_view AS cad_image,
+
+        #         item.item_category,
+        #         item.item_subcategory,
+        #         item.setting_type,
+        #         item.stylebio,
+        #         item.variant_of,
+
+        #         bom.name AS bom_name,
+        #         bom.sub_setting_type1,
+        #         bom.tag_no,
+        #         bom.diamond_quality,
+
+        #         FORMAT(bom.gross_weight,3) AS gross_metal_weight,
+        #         FORMAT(bom.metal_and_finding_weight,3) AS net_metal_finding_weight,
+        #         FORMAT(bom.total_diamond_weight_in_gms,3) AS total_diamond_weight_in_gms,
+        #         FORMAT(bom.other_weight,3) AS other_weight,
+        #         FORMAT(bom.finding_weight_,3) AS finding_weight_,
+
+        #         bom.metal_colour,
+        #         bom.metal_touch,
+        #         bom.metal_purity,
+
+        #         idf.company
+
+        #     FROM `tabSimilar Item Table` sit
+            
+        #     INNER JOIN `tabItem` item
+        #         ON item.name = sit.item_code
+
+        #     LEFT JOIN `tabBOM` bom
+        #         ON bom.item = item.item_code
+
+        #     LEFT JOIN `tabItem Default` idf
+        #         ON idf.parent = item.item_name
+
+        #     WHERE sit.parent = %(item_code)s
+        #     AND sit.parenttype = 'Item'
+        #     AND sit.parentfield = 'custom_similar_item_table'
+            
+        #     """, {
+        #         "item_code": item_code
+        #     }, as_dict=True)
+
+        # return items
+        
+        items = frappe.db.sql("""
             SELECT
                 item.name,
                 item.item_code,
                 item.image,
+                item.custom_catalogue_image AS catalogue_image,
                 item.sketch_image,
                 item.front_view AS cad_image,
-
+        
                 item.item_category,
                 item.item_subcategory,
                 item.setting_type,
                 item.stylebio,
                 item.variant_of,
-
+        
                 bom.name AS bom_name,
                 bom.sub_setting_type1,
                 bom.tag_no,
                 bom.diamond_quality,
-
+        
                 FORMAT(bom.gross_weight,3) AS gross_metal_weight,
                 FORMAT(bom.metal_and_finding_weight,3) AS net_metal_finding_weight,
                 FORMAT(bom.total_diamond_weight_in_gms,3) AS total_diamond_weight_in_gms,
                 FORMAT(bom.other_weight,3) AS other_weight,
                 FORMAT(bom.finding_weight_,3) AS finding_weight_,
-
+        
                 bom.metal_colour,
                 bom.metal_touch,
                 bom.metal_purity,
-
+        
                 idf.company
-
-            FROM `tabSimilar Item Table` sit
-            
-            INNER JOIN `tabItem` item
-                ON item.name = sit.item_code
-
+        
+            FROM `tabItem` item
+        
             LEFT JOIN `tabBOM` bom
                 ON bom.item = item.item_code
-
+                AND bom.is_active = 1
+        
             LEFT JOIN `tabItem Default` idf
                 ON idf.parent = item.item_name
-
-            WHERE sit.parent = %(item_code)s
-            AND sit.parenttype = 'Item'
-            AND sit.parentfield = 'custom_similar_item_table'
-            
-            """, {
-                "item_code": item_code
-            }, as_dict=True)
-
+        
+            WHERE item.item_code = %(item_code)s
+               OR item.item_code IN (
+                    SELECT sit.item_code
+                    FROM `tabSimilar Item Table` sit
+                    WHERE sit.parent = %(item_code)s
+                      AND sit.parenttype = 'Item'
+                      AND sit.parentfield = 'custom_similar_item_table'
+               )
+        
+            GROUP BY item.item_code
+            ORDER BY (item.item_code = %(item_code)s) DESC, item.item_code ASC
+        """, {"item_code": item_code}, as_dict=True)
+        
         return items
 
 
@@ -5775,6 +5828,7 @@ def get_variants_by_itemcode(itemCode=None, customer=None):
             item.item_code,
             item.item_category,
             item.image,
+            item.custom_catalogue_image AS custom_catalogue_image,
             item.sketch_image,
             item.front_view AS cad_image,
 
@@ -5955,6 +6009,8 @@ def get_set_by_itemcode(itemCode=None, customer=None):
         SELECT item_code
         FROM `tabSet Item Table`
         WHERE parent = %(itemCode)s
+            AND parenttype = 'Item'
+            AND parentfield = 'custom_set_item_table'
     """, {"itemCode": itemCode}, as_dict=True)
 
     if not set_items:
@@ -5991,10 +6047,12 @@ def get_set_by_itemcode(itemCode=None, customer=None):
     else:
         wishlist_case = "0 AS wishlist"
         customer_join = ""
-
+        
+    linked_item_codes = [itemCode] + [c for c in linked_item_codes if c != itemCode]
     placeholders = ", ".join([f"%(item_{i})s" for i in range(len(linked_item_codes))])
     item_params = {f"item_{i}": code for i, code in enumerate(linked_item_codes)}
     item_params["customer"] = customer
+    item_params["base_item"] = itemCode
 
     db_data = frappe.db.sql(f"""
         SELECT
@@ -6004,9 +6062,9 @@ def get_set_by_itemcode(itemCode=None, customer=None):
             item.creation,
             item.item_code,
             item.item_category,
+            item.custom_catalogue_image AS catalogue_image,
             item.image,
             item.sketch_image,
-            item.custom_catalogue_image,
             item.front_view AS cad_image,
 
             CASE
@@ -6113,7 +6171,7 @@ def get_set_by_itemcode(itemCode=None, customer=None):
             AND (idf.company = 'Gurukrupa Export Private Limited' OR idf.company IS NULL)
 
         GROUP BY item.item_code
-        ORDER BY item.creation ASC
+        ORDER BY (item.item_code = %(base_item)s) DESC, item.creation ASC
     """, item_params, as_dict=True)
 
     item_codes = [row.item_code for row in db_data]
