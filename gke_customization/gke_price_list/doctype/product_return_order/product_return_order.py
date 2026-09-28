@@ -247,17 +247,29 @@ class ProductReturnOrder(Document):
 			# new_bom.save()
 			self.db_set("new_bom", new_bom.name, update_modified=False)
 
-	def on_update(self):
-		if self.is_jewelex_tag or self.is_kggk_serial_no:
-			sync_product_return_order_to_gk(self)
+	# def on_update(self):
+	# 	if self.is_jewelex_tag or self.is_kggk_serial_no:
+	# 		sync_product_return_order_to_gk(self)
 
-			# Get Item from item_code and sync it to KGGK
-			if self.item_code:
-				item = frappe.get_doc("Item", self.item_code)
-				item_templat = item.variant_of
-				item_template = frappe.get_doc("Item",item_templat)
-				create_item_kggk(item_template)
-				create_item_kggk(item)
+	# 		# Get Item from item_code and sync it to KGGK
+	# 		if self.item_code:
+	# 			item = frappe.get_doc("Item", self.item_code)
+	# 			item_templat = item.variant_of
+	# 			item_template = frappe.get_doc("Item",item_templat)
+	# 			create_item_kggk(item_template)
+	# 			create_item_kggk(item)
+
+
+	def on_update(self):
+		if self.item_code:
+			item = frappe.get_doc("Item", self.item_code)
+			item_templat = item.variant_of
+			item_template = frappe.get_doc("Item",item_templat)
+			create_item_kggk(item_template)
+			create_item_kggk(item)
+		frappe.db.after_commit.add(
+			lambda: sync_product_return_order_to_gk(self)
+		)
 
 		
 	def on_submit(self):
