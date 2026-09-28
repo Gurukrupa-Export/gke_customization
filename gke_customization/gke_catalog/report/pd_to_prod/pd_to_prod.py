@@ -175,29 +175,24 @@ def get_columns():
 def get_data(filters=None):
 	query = """
 		SELECT
-			fsac.item                    AS "item_code",
-			COALESCE(so.customer_code, ord.customer_code) AS "customer",
-			so.name                      AS "sketch_order_no",
-			it.variant_of                AS "variant_of",
-			cat.item_category             AS "item_category",
-			it.custom_cad_order_id       AS "cad_order_no",
-			so.order_date                AS "sketch_order_date",
-			ord.order_date                AS "cad_order_date",
-			it.stylebio                   AS "stylebio"
+			fsac.item                                      AS "item_code",
+			COALESCE(so.customer_code, ord.customer_code)  AS "customer",
+			so.name                                        AS "sketch_order_no",
+			it.variant_of                                  AS "variant_of",
+			it.item_category                               AS "item_category",
+			ord.name                                        AS "cad_order_no",
+			so.order_date                                  AS "sketch_order_date",
+			ord.order_date                                 AS "cad_order_date",
+			it.stylebio                                    AS "stylebio"
 		FROM `tabSketch Order` so
-		LEFT JOIN `tabFinal Sketch Approval CMO` fsac
+		INNER JOIN `tabFinal Sketch Approval CMO` fsac
 			ON fsac.parent = so.name
 			AND fsac.parenttype = 'Sketch Order'
 			AND fsac.parentfield = 'final_sketch_approval_cmo'
 		LEFT JOIN `tabItem` it
 			ON it.name = fsac.item
-			AND it.custom_sketch_order_id = so.name
-			AND it.variant_of IS NOT NULL
-			AND it.variant_of != ''
-		LEFT JOIN `tabItem` cat
-			ON cat.name = fsac.item
 		LEFT JOIN `tabOrder` ord
-			ON ord.name = it.custom_cad_order_id
+			ON ord.design_id = fsac.item
 		WHERE fsac.item IS NOT NULL
 			{conditions}
 		ORDER BY so.name

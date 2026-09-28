@@ -27,15 +27,32 @@ TAB_ACCESS_MAP = {
 ROLE_TAB_ACCESS = {
 	"System Manager": set(ALL_TABS),
 	"Computer Aided Designer - ST - GE": set(ALL_TABS),
-    "Designer":set(ALL_TABS),
+	"Designer": set(ALL_TABS),
+	"CAD Hod": set(ALL_TABS),
+	"Coordinator - ST - GE": set(ALL_TABS),
 }
 
 
 def _allowed_tabs(user):
+	"""Priority order:
+	1. Administrator / System Manager -> every tab, always.
+	2. A user listed in TAB_ACCESS_MAP -> exactly the tabs listed there
+	   (this overrides role-based access, so e.g. a CAD Hod listed with only
+	   "nova_glow" does NOT also inherit the CAD Hod role's all-tabs access).
+	3. Everyone else -> union of the tabs granted by their roles.
+	"""
 	if user == "Administrator":
 		return set(ALL_TABS)
-	allowed = set(TAB_ACCESS_MAP.get(user, set()))
-	for role in frappe.get_roles(user):
+
+	roles = set(frappe.get_roles(user))
+	if "System Manager" in roles:
+		return set(ALL_TABS)
+
+	if user in TAB_ACCESS_MAP:
+		return set(TAB_ACCESS_MAP[user])
+
+	allowed = set()
+	for role in roles:
 		allowed |= ROLE_TAB_ACCESS.get(role, set())
 	return allowed
 
@@ -55,6 +72,8 @@ DESIGNER_SCOPE_EXEMPT_ROLES = {
 	"CEO",
 	"Branch Manager",
 	"Department Manager",
+	"CAD Hod",
+	"Coordinator - ST - GE",
 }
 
 

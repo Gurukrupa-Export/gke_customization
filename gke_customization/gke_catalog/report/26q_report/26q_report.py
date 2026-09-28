@@ -110,26 +110,30 @@ def get_data(filters):
             ORDER BY tr.from_date DESC
             LIMIT 1
             ) AS tds_rate,
-            IFNULL(SUM(gle.credit), 0) AS tds_amount
+            IFNULL(SUM(ptc.tax_amount), 0) AS tds_amount
         FROM `tabPurchase Invoice` pi
         LEFT JOIN `tabSupplier` s
             ON pi.supplier = s.name
         LEFT JOIN `tabTax Withholding Category` twc
             ON pi.tax_withholding_category = twc.name
-        LEFT JOIN `tabGL Entry` gle
-            ON gle.voucher_no = pi.name
-            AND gle.account LIKE %s
-            AND gle.credit > 0
+        INNER JOIN `tabPurchase Taxes and Charges` ptc
+            ON ptc.parent = pi.name
+            AND ptc.account_head LIKE %s
+            AND (ptc.account_head NOT LIKE %s AND ptc.account_head NOT LIKE %s)
         WHERE pi.docstatus = 1
             AND pi.company = %s
             AND pi.posting_date BETWEEN %s AND %s
             AND pi.tax_withholding_category IS NOT NULL
+            AND pi.tax_withholding_category != ''
             AND (twc.tds_section IS NULL OR twc.tds_section NOT IN ('192', '192B'))
         GROUP BY pi.name
+        HAVING tds_amount > 0
         ORDER BY pi.posting_date ASC
     """
     values = (
         "%TDS%",
+        "%TCS%",
+        "%192B%",
         filters.get("company"),
         from_date,
         to_date,
