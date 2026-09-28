@@ -368,7 +368,7 @@
 	border-bottom: 1px solid var(--border-color);
 }
 
-/* 11 tiles at 6 columns = exactly 2 rows - the row-2 tiles get a top border
+/* 12 tiles at 6 columns = exactly 2 rows - the row-2 tiles get a top border
    instead of a second stacked container, so the strip reads as one block. */
 .cad-kpi-row--status > .cad-kpi:nth-child(n + 7) {
 	border-top: 1px solid var(--border-color);
@@ -742,6 +742,47 @@
 	font-size: 13px;
 	font-weight: 600;
 	color: var(--text-color);
+}
+
+/* ---------- order-notifications popup ---------- */
+
+.cad-order-notifications__category {
+	margin-bottom: 14px;
+}
+
+.cad-order-notifications__category-title {
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+	color: var(--text-muted);
+	padding: 4px;
+}
+
+.cad-order-notifications__category-count {
+	color: var(--text-light);
+	font-weight: 400;
+}
+
+.cad-order-notifications__item {
+	padding: 8px;
+	border-bottom: 1px solid var(--border-color);
+	cursor: pointer;
+}
+
+.cad-order-notifications__item:hover {
+	background: var(--fg-hover-color);
+}
+
+.cad-order-notifications__subject {
+	font-size: 13px;
+	color: var(--text-color);
+}
+
+.cad-order-notifications__meta {
+	font-size: 12px;
+	color: var(--text-muted);
+	margin-top: 2px;
 }
 
 /* ---------- matrix cell image popup ---------- */
