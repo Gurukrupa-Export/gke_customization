@@ -300,7 +300,8 @@ class ProductReturnOrder(Document):
 
 				payload = {
 					"name": self.name,
-					"serial_no": serial.name
+					"serial_no": serial.name,
+					"customer": self.customer
 				}
 
 				try:
