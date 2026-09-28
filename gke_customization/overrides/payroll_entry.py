@@ -452,8 +452,25 @@ class CustomPayrollEntry(PayrollEntry):
 
 		# unlike stock, based on pending amounts rather than the employee flags, so the
 		# button stays available while a partially released employee still has a balance
+		#
+		# A regular bank entry can never be created when every payable slip is withheld
+		# (the payable total is zero), so in that case treat the regular payout as done —
+		# otherwise "Make Bank Entry" shows forever and blocks "Release Withheld Salaries".
+		pending_regular_payable = bool(
+			frappe.get_all(
+				"Salary Slip",
+				filters={
+					"payroll_entry": self.name,
+					"docstatus": 1,
+					"status": ("!=", "Withheld"),
+					"net_pay": (">", 0),
+				},
+				limit=1,
+			)
+		)
+
 		return {
-			"has_bank_entries": bool(bank_entries),
+			"has_bank_entries": bool(bank_entries) or not pending_regular_payable,
 			"has_bank_entries_for_withheld_salaries": not bool(
 				self.get_withheld_salaries()
 			),
