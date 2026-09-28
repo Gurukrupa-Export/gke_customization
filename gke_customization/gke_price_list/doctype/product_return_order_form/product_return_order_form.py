@@ -49,8 +49,8 @@ def append_metal_detail_from_jwelex(product_order, metal_details):
 				dest.metal_purity = metal_purity
 
 		dest.quantity = m.get("Weight")
-		dest.rate = m.get("Rate")
-		dest.amount = m.get("Amount")
+		dest.rate = m.get("Sale_Rate")
+		dest.amount = m.get("Sale_Amt")
 		dest.se_rate = m.get("Costing_Rate")
 
 
@@ -77,9 +77,9 @@ def append_diamond_detail_from_jwelex(product_order, diamond_details):
 		dest.size_in_mm = parse_float(d.get("Code_Name"))
 		dest.pcs = d.get("Pcs")
 		dest.quantity = d.get("Weight")
-		dest.total_diamond_rate = d.get("Rate")
-		dest.diamond_rate_for_specified_quantity = d.get("Amount")
-		dest.se_rate = d.get("Costing_Amt")
+		dest.total_diamond_rate = d.get("Sale_Rate")
+		dest.diamond_rate_for_specified_quantity = d.get("Sale_Amt")
+		dest.se_rate = d.get("Costing_Rate")
 		purity_name = d.get("Purity_Name")
 		if purity_name:
 			if purity_name.startswith("DIAMOND NO"):
@@ -130,8 +130,8 @@ def append_finding_detail_from_jwelex(product_order, finding_details):
 			dest.metal_purity = metal_purity
 
 		dest.quantity = f.get("Weight")
-		dest.rate = f.get("Rate")
-		dest.amount = f.get("Amount")
+		dest.rate = f.get("Sale_Rate")
+		dest.amount = f.get("Sale_Amt")
 		dest.se_rate = f.get("Costing_Rate")
 
 
@@ -149,8 +149,8 @@ def append_gemstone_detail_from_jwelex(product_order, stone_details):
 
 		dest.pcs = s.get("Pcs")
 		dest.quantity = s.get("Weight")
-		dest.total_gemstone_rate = s.get("Rate")
-		dest.gemstone_rate_for_specified_quantity = s.get("Amount")
+		dest.total_gemstone_rate = s.get("Sale_Rate")
+		dest.gemstone_rate_for_specified_quantity = s.get("Sale_Amt")
 		dest.se_rate = s.get("Costing_Rate")
 		parent =  frappe.db.get_value("Jewelex to ERP Gemstone Mapping",{'mapping_type':"Gemstone Type"},"name")
 		if parent:
@@ -723,7 +723,7 @@ class ProductReturnOrderForm(Document):
 	
 
 	def update_einvoice_items(self, invoice_data, payment_terms_data,allowed_item_types):
-		frappe.throw("hii")
+		# frappe.throw("hii")
 		if not self.get("invoice_item"):
 			self.invoice_item = []
 		else:
@@ -5354,3 +5354,4 @@ def sync_product_return_form_to_remote(doc, method=None):
 			"Remote Product Return Order Form Sync Failed: "
 			+ error_detail
 		)
+
