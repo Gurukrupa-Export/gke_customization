@@ -527,7 +527,8 @@ class OTAllowanceEntry(Document):
 		if not data:
 			frappe.msgprint(_("No Records were found for the current filters"))
 			return
-		data = sorted(data, key=lambda x:x.get("attendance_date")) 
+		# data = sorted(data, key=lambda x:x.get("attendance_date")) 
+		data = sorted(data, key=lambda x: (x.get("old_employee_code") or "", x.get("attendance_date")))
 
 		for row in data:
 			if self.branch:
