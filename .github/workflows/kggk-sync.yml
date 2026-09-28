@@ -207,7 +207,7 @@ jobs:
           bench get-app --branch version-15 erpnext https://github.com/frappe/erpnext.git
           bench get-app --branch version-15 hrms https://github.com/frappe/hrms.git
           bench get-app --branch version-15 india_compliance https://github.com/resilient-tech/india-compliance.git
-          bench get-app --branch New-Gurukrupa-Export jewellery_erpnext "$(auth Gurukrupa-Export/jewellery-erpnext.git)"
+          bench get-app --branch gk_develop jewellery_erpnext "$(auth Gurukrupa-Export/jewellery-erpnext.git)"
           bench get-app --branch main gurukrupa_customizations "$(auth Gurukrupa-Export/gurukrupa_customizations.git)"
           bench get-app gke_customization "${GITHUB_WORKSPACE}/gke_customization"
 
