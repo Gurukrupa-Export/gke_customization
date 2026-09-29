@@ -1,15 +1,13 @@
-from frappe.utils import flt
 import frappe
 from frappe import _
-import json
 
 
 def execute(filters=None):
     columns, data = [], []
-    
+
     columns = get_columns()
     data = get_data(filters)
-    
+
     return columns, data
 
 
@@ -20,20 +18,20 @@ def get_columns():
             "fieldname": "metal_conversion_id",
             "fieldtype": "Link",
             "options": "Metal Conversions",
-            "width": 160
+            "width": 160,
         },
         {
             "label": _("Stock Entry ID"),
             "fieldname": "stock_entry",
             "fieldtype": "Link",
             "options": "Stock Entry",
-            "width": 150
+            "width": 150,
         },
         {
             "label": _("Creation Date & Time"),
             "fieldname": "creation_datetime",
             "fieldtype": "Datetime",
-            "width": 160
+            "width": 160,
         },
         # {
         #     "label": _("Company"),
@@ -54,78 +52,77 @@ def get_columns():
             "fieldname": "manufacturer",
             "fieldtype": "Link",
             "options": "Manufacturer",
-            "width": 120
+            "width": 120,
         },
         {
             "label": _("User"),
             "fieldname": "user_name",
             "fieldtype": "Data",
-            "width": 150
+            "width": 150,
         },
         {
             "label": _("Department"),
             "fieldname": "department",
             "fieldtype": "Link",
             "options": "Department",
-            "width": 120
+            "width": 120,
         },
         {
             "label": _("Source Item"),
             "fieldname": "source_item",
             "fieldtype": "Link",
             "options": "Item",
-            "width": 150
+            "width": 150,
         },
         {
             "label": _("Source Item Qty"),
             "fieldname": "source_qty",
             "fieldtype": "Float",
             "width": 120,
-            "precision": 3
+            "precision": 3,
         },
         {
             "label": _("Source Alloy"),
             "fieldname": "source_alloy",
             "fieldtype": "Link",
             "options": "Item",
-            "width": 150
+            "width": 150,
         },
         {
             "label": _("Source Alloy Qty"),
             "fieldname": "source_alloy_qty",
             "fieldtype": "Float",
             "width": 130,
-            "precision": 3
+            "precision": 3,
         },
         {
             "label": _("Target Item"),
             "fieldname": "target_item",
             "fieldtype": "Link",
             "options": "Item",
-            "width": 150
+            "width": 150,
         },
         {
             "label": _("Target Item Qty"),
             "fieldname": "target_qty",
             "fieldtype": "Float",
             "width": 130,
-            "precision": 3
+            "precision": 3,
         },
         {
             "label": _("Is Customer Metal"),
             "fieldname": "is_customer_metal",
             "fieldtype": "Data",
-            "width": 130
-        }
-        
+            "width": 130,
+        },
     ]
 
 
 def get_data(filters):
     conditions = get_conditions(filters)
-    
+
     query = f"""
-        SELECT 
+        SELECT
             mc.creation as creation_datetime,
             mc.name as metal_conversion_id,
             mc.company,
@@ -139,27 +136,27 @@ def get_data(filters):
             mc.source_alloy_qty,
             mc.target_item,
             mc.target_qty,
-            CASE 
+            CASE
                 WHEN mc.is_customer_metal = 1 THEN 'Yes'
                 ELSE 'No'
             END as is_customer_metal,
             se.name as stock_entry
-        FROM 
+        FROM
             `tabMetal Conversions` mc
-        LEFT JOIN 
+        LEFT JOIN
             `tabUser` u ON mc.owner = u.name
-        LEFT JOIN 
-            `tabStock Entry` se ON se.custom_metal_conversion_reference = mc.name 
+        LEFT JOIN
+            `tabStock Entry` se ON se.custom_metal_conversion_reference = mc.name
                 AND se.purpose = 'Repack'
         WHERE
             mc.docstatus = 1
             AND mc.target_item IS NOT NULL
             AND mc.target_item != ''
             {conditions}
-        ORDER BY 
+        ORDER BY
             mc.creation DESC
     """
-    
+
     data = frappe.db.sql(query, filters, as_dict=1)
     return data
 
@@ -177,7 +174,9 @@ def get_conditions(filters):
         if filters.get("is_customer_metal") == "Yes":
             conditions += " AND mc.is_customer_metal = 1"
         elif filters.get("is_customer_metal") == "No":
-            conditions += " AND (mc.is_customer_metal = 0 OR mc.is_customer_metal IS NULL)"
+            conditions += (
+                " AND (mc.is_customer_metal = 0 OR mc.is_customer_metal IS NULL)"
+            )
 
     if filters.get("conversion_type"):
         if filters.get("conversion_type") == "Pure to Touch":
