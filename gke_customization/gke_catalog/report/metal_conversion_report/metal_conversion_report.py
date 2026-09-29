@@ -2,6 +2,7 @@ from collections import defaultdict
 
 import frappe
 from frappe import _
+from frappe.utils import flt
 from jewellery_erpnext.jewellery_erpnext.customization.utils.row_ownership import (
     CUSTOMER_INVENTORY_TYPES,
     DEFAULT_INVENTORY_TYPE,
@@ -129,6 +130,19 @@ def get_columns():
             "fieldtype": "Data",
             "width": 130,
         },
+        {
+            "label": _("Customer"),
+            "fieldname": "customer",
+            "fieldtype": "Data",
+            "width": 140,
+        },
+        {
+            "label": _("Customer Metal Qty"),
+            "fieldname": "customer_qty",
+            "fieldtype": "Float",
+            "width": 140,
+            "precision": 3,
+        },
     ]
 
 
@@ -216,7 +230,14 @@ def get_conversion_ownership(conversions):
                 "parenttype": "Stock Entry",
                 "parent": ["in", list(conversion_of)],
             },
-            fields=["parent", "item_code", "s_warehouse", "inventory_type"],
+            fields=[
+                "parent",
+                "item_code",
+                "s_warehouse",
+                "inventory_type",
+                "customer",
+                "transfer_qty",
+            ],
             order_by="parent asc, idx asc",
         ):
             rows_of[conversion_of[item.parent]].append(item)
@@ -231,12 +252,14 @@ def get_conversion_ownership(conversions):
 
 
 def summarise_ownership(source_item, rows):
-    """Whose metal a conversion consumed: "Yes", "No", "Mixed", or "" when no row says.
+    """Whose metal a conversion consumed: "Yes", "No", "Mixed", or "" when no row says,
+    with the customers in the order they were drawn and the qty of their metal.
 
     Only the rows that consume ``source_item`` count. The alloy is company stock even in a
     customer's conversion (MCON00333 drew 1.798 g of it), and the produced rows carry the
     lane of the metal they were made from. A row with no inventory type is company stock,
-    as in jewellery's ``get_batch_lane_map``.
+    as in jewellery's ``get_batch_lane_map``. The qty keeps 3 places whatever the site's
+    float precision.
     """
     consumed = [row for row in rows if row.s_warehouse and row.item_code == source_item]
     customer_rows = [
@@ -252,7 +275,13 @@ def summarise_ownership(source_item, rows):
         flag = "Mixed"
     else:
         flag = "Yes"
-    return {"is_customer_metal": flag}
+    return {
+        "is_customer_metal": flag,
+        "customer": ", ".join(
+            dict.fromkeys(row.customer for row in customer_rows if row.customer)
+        ),
+        "customer_qty": flt(sum(flt(row.transfer_qty) for row in customer_rows), 3),
+    }
 
 
 def get_conditions(filters):

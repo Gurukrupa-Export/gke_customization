@@ -125,13 +125,21 @@ class TestOwnershipSummary(unittest.TestCase):
     """``summarise_ownership``: only the rows that consume the source item decide."""
 
     def test_customer_conversion_with_company_alloy_is_customer_metal(self):
-        """MCON00333 read "No" on production. Its company alloy must not make it Mixed."""
+        """MCON00333 read "No" on production. Its company alloy must not make it Mixed,
+        and the 21.798 g of 22K it made is not customer metal consumed."""
         summary = report.summarise_ownership(G24, _mcon00333_rows())
-        self.assertEqual(summary["is_customer_metal"], "Yes")
+        self.assertEqual(
+            summary,
+            {"is_customer_metal": "Yes", "customer": CUSTOMER, "customer_qty": 20.0},
+        )
 
     def test_customer_and_company_draw_is_mixed(self):
+        """The customer's share is kept to 3 places: 9.523, not the site's 2-place 9.52."""
         summary = report.summarise_ownership(G24, _mcon00331_rows())
-        self.assertEqual(summary["is_customer_metal"], "Mixed")
+        self.assertEqual(
+            summary,
+            {"is_customer_metal": "Mixed", "customer": CUSTOMER, "customer_qty": 9.523},
+        )
 
     def test_owner_edge_cases(self):
         summarise = report.summarise_ownership
@@ -139,34 +147,69 @@ class TestOwnershipSummary(unittest.TestCase):
             # Untyped rows are company metal, as in jewellery's get_batch_lane_map.
             "untyped and Regular Stock": (
                 [_consumed(G24, 4, None), _consumed(G24, 6)],
-                "No",
+                ("No", "", 0.0),
             ),
             "Customer Stock": (
                 [_consumed(G24, 10, "Customer Stock", CUSTOMER)],
-                "Yes",
+                ("Yes", CUSTOMER, 10.0),
             ),
+            # Customers are listed in the order they were drawn, not sorted.
             "two customers": (
                 [
                     _consumed(G24, 4, "Customer Goods", OTHER_CUSTOMER),
                     _consumed(G24, 6, "Customer Goods", CUSTOMER),
                 ],
-                "Yes",
+                ("Yes", f"{OTHER_CUSTOMER}, {CUSTOMER}", 10.0),
             ),
             # Shown as booked: legacy rows carry a customer type with no customer.
             "customer type without a customer": (
                 [_consumed(G24, 10, "Customer Goods")],
-                "Yes",
+                ("Yes", "", 10.0),
             ),
             # Nothing consumed says whose metal it was: unknown, not "No".
             "only produced rows": (
                 [_produced(G22, 10.899, "Customer Goods", CUSTOMER)],
-                "",
+                ("", "", 0.0),
             ),
-            "no rows": ([], ""),
+            "no rows": ([], ("", "", 0.0)),
         }
-        for case, (rows, flag) in cases.items():
+        for case, (rows, (flag, customer, qty)) in cases.items():
             with self.subTest(case):
-                self.assertEqual(summarise(G24, rows)["is_customer_metal"], flag)
+                self.assertEqual(
+                    summarise(G24, rows),
+                    {
+                        "is_customer_metal": flag,
+                        "customer": customer,
+                        "customer_qty": qty,
+                    },
+                )
+
+
+class TestColumns(unittest.TestCase):
+    def test_customer_columns_follow_the_flag(self):
+        """The existing columns keep their fieldnames and order."""
+        columns = report.get_columns()
+        self.assertEqual(
+            [column["fieldname"] for column in columns],
+            [
+                "metal_conversion_id",
+                "stock_entry",
+                "creation_datetime",
+                "manufacturer",
+                "user_name",
+                "department",
+                "source_item",
+                "source_qty",
+                "source_alloy",
+                "source_alloy_qty",
+                "target_item",
+                "target_qty",
+                "is_customer_metal",
+                "customer",
+                "customer_qty",
+            ],
+        )
+        self.assertEqual(columns[-1]["precision"], 3)
 
 
 class TestHeaderQuery(unittest.TestCase):
@@ -314,6 +357,8 @@ class TestMetalConversionReport(unittest.TestCase):
         self.assertEqual(row.stock_entry, "_T-D3-SE-1")
         self.assertAlmostEqual(flt(row.source_qty), 20, places=3)
         self.assertAlmostEqual(flt(row.target_qty), 21.798, places=3)
+        self.assertEqual(row.customer, CUSTOMER)
+        self.assertAlmostEqual(flt(row.customer_qty), 20, places=3)
 
     def test_yes_and_no_filters_split_customer_mixed_and_company(self):
         """On production "Yes" listed none of the 17 conversions that drew GJCU0009's
@@ -321,13 +366,13 @@ class TestMetalConversionReport(unittest.TestCase):
         self.insert_customer_conversion(minute=1)
         self.insert_mixed_and_company_conversions()
 
-        flags = {
-            row.metal_conversion_id: row.is_customer_metal for row in self.run_report()
-        }
+        rows = {row.metal_conversion_id: row for row in self.run_report()}
         self.assertEqual(
-            flags,
+            {name: row.is_customer_metal for name, row in rows.items()},
             {"_T-D3-MCON-1": "Yes", "_T-D3-MCON-2": "Mixed", "_T-D3-MCON-3": "No"},
         )
+        self.assertEqual(rows["_T-D3-MCON-2"].customer, CUSTOMER)
+        self.assertAlmostEqual(flt(rows["_T-D3-MCON-2"].customer_qty), 9.523, places=3)
         self.assertEqual(
             self.names(is_customer_metal="Yes"), ["_T-D3-MCON-2", "_T-D3-MCON-1"]
         )
@@ -343,6 +388,8 @@ class TestMetalConversionReport(unittest.TestCase):
         self.assertEqual(row.metal_conversion_id, "_T-D3-MCON-C")
         self.assertFalse(row.stock_entry)
         self.assertEqual(row.is_customer_metal, "")
+        self.assertEqual(row.customer, "")
+        self.assertEqual(row.customer_qty, 0)
         self.assertEqual(self.names(is_customer_metal="Yes"), [])
         self.assertEqual(self.names(is_customer_metal="No"), [])
 
@@ -361,6 +408,7 @@ class TestMetalConversionReport(unittest.TestCase):
         (row,) = self.run_report()
         self.assertEqual(row.stock_entry, "_T-D3-SE-1")
         self.assertEqual(row.is_customer_metal, "Yes")
+        self.assertAlmostEqual(flt(row.customer_qty), 20, places=3)
 
     def test_ownership_lookup_query_count_is_constant(self):
         """One header query and two batched lookups, however many conversions are listed."""
