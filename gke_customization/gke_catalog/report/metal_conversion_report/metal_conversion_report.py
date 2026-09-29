@@ -1,5 +1,19 @@
+from collections import defaultdict
+
 import frappe
 from frappe import _
+from jewellery_erpnext.jewellery_erpnext.customization.utils.row_ownership import (
+    CUSTOMER_INVENTORY_TYPES,
+    DEFAULT_INVENTORY_TYPE,
+)
+
+#: The Stock Entry a conversion books. Kept local: jewellery ``kggk_prod``'s
+#: ``row_ownership`` has no ``METAL_CONVERSION_SE_TYPE``.
+CONVERSION_SE_TYPE = "Repack-Metal Conversion"
+
+#: The conversions each "Is Customer Metal" filter keeps. "Yes" keeps Mixed ones too, so
+#: no conversion that consumed customer metal is hidden by the filter.
+CUSTOMER_METAL_FILTER = {"Yes": ("Yes", "Mixed"), "No": ("No",)}
 
 
 def execute(filters=None):
@@ -119,6 +133,7 @@ def get_columns():
 
 
 def get_data(filters):
+    filters = frappe._dict(filters or {})
     conditions = get_conditions(filters)
 
     query = f"""
@@ -135,19 +150,11 @@ def get_data(filters):
             mc.source_alloy,
             mc.source_alloy_qty,
             mc.target_item,
-            mc.target_qty,
-            CASE
-                WHEN mc.is_customer_metal = 1 THEN 'Yes'
-                ELSE 'No'
-            END as is_customer_metal,
-            se.name as stock_entry
+            mc.target_qty
         FROM
             `tabMetal Conversions` mc
         LEFT JOIN
             `tabUser` u ON mc.owner = u.name
-        LEFT JOIN
-            `tabStock Entry` se ON se.custom_metal_conversion_reference = mc.name
-                AND se.purpose = 'Repack'
         WHERE
             mc.docstatus = 1
             AND mc.target_item IS NOT NULL
@@ -158,7 +165,94 @@ def get_data(filters):
     """
 
     data = frappe.db.sql(query, filters, as_dict=1)
+
+    ownership = get_conversion_ownership(data)
+    for row in data:
+        row.update(ownership[row.metal_conversion_id])
+
+    wanted = CUSTOMER_METAL_FILTER.get(filters.is_customer_metal)
+    if wanted:
+        data = [row for row in data if row.is_customer_metal in wanted]
+
     return data
+
+
+def get_conversion_ownership(conversions):
+    """Each conversion's Stock Entry and whose metal it consumed, keyed by conversion.
+
+    The header records no owner: FIFO may draw one conversion from several owners, and each
+    row of the conversion's Stock Entry carries its own lane's inventory type and customer.
+    The entry is found through its ``custom_metal_conversion_reference`` back-reference,
+    because ``Metal Conversions.stock_entry`` is empty on historical conversions. Cancelled
+    entries and the conversion's Process Loss entry are left out. Two queries, however many
+    conversions are listed.
+    """
+    if not conversions:
+        return {}
+
+    entries = frappe.get_all(
+        "Stock Entry",
+        filters={
+            "stock_entry_type": CONVERSION_SE_TYPE,
+            "docstatus": 1,
+            "custom_metal_conversion_reference": [
+                "in",
+                [row.metal_conversion_id for row in conversions],
+            ],
+        },
+        fields=["name", "custom_metal_conversion_reference"],
+        order_by="name asc",
+    )
+    stock_entry, conversion_of = {}, {}
+    for entry in entries:
+        conversion_of[entry.name] = entry.custom_metal_conversion_reference
+        stock_entry.setdefault(entry.custom_metal_conversion_reference, entry.name)
+
+    rows_of = defaultdict(list)
+    if entries:
+        for item in frappe.get_all(
+            "Stock Entry Detail",
+            filters={
+                "parenttype": "Stock Entry",
+                "parent": ["in", list(conversion_of)],
+            },
+            fields=["parent", "item_code", "s_warehouse", "inventory_type"],
+            order_by="parent asc, idx asc",
+        ):
+            rows_of[conversion_of[item.parent]].append(item)
+
+    return {
+        row.metal_conversion_id: {
+            "stock_entry": stock_entry.get(row.metal_conversion_id),
+            **summarise_ownership(row.source_item, rows_of[row.metal_conversion_id]),
+        }
+        for row in conversions
+    }
+
+
+def summarise_ownership(source_item, rows):
+    """Whose metal a conversion consumed: "Yes", "No", "Mixed", or "" when no row says.
+
+    Only the rows that consume ``source_item`` count. The alloy is company stock even in a
+    customer's conversion (MCON00333 drew 1.798 g of it), and the produced rows carry the
+    lane of the metal they were made from. A row with no inventory type is company stock,
+    as in jewellery's ``get_batch_lane_map``.
+    """
+    consumed = [row for row in rows if row.s_warehouse and row.item_code == source_item]
+    customer_rows = [
+        row
+        for row in consumed
+        if (row.inventory_type or DEFAULT_INVENTORY_TYPE) in CUSTOMER_INVENTORY_TYPES
+    ]
+    if not consumed:
+        flag = ""
+    elif not customer_rows:
+        flag = "No"
+    elif len(customer_rows) < len(consumed):
+        flag = "Mixed"
+    else:
+        flag = "Yes"
+    return {"is_customer_metal": flag}
 
 
 def get_conditions(filters):
@@ -169,14 +263,6 @@ def get_conditions(filters):
 
     if filters.get("department"):
         conditions += " AND mc.department = %(department)s"
-
-    if filters.get("is_customer_metal"):
-        if filters.get("is_customer_metal") == "Yes":
-            conditions += " AND mc.is_customer_metal = 1"
-        elif filters.get("is_customer_metal") == "No":
-            conditions += (
-                " AND (mc.is_customer_metal = 0 OR mc.is_customer_metal IS NULL)"
-            )
 
     if filters.get("conversion_type"):
         if filters.get("conversion_type") == "Pure to Touch":
