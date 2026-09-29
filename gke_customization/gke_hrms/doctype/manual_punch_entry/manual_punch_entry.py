@@ -320,8 +320,6 @@ def process_attendance(employee, shift_type, date):
 
 @frappe.whitelist()
 def cancel_linked_records(employee, date):
-	# ot = frappe.get_list("OT Log",{"employee":employee, "attendance_date":date, "is_cancelled":0},pluck="name")
-	# po = frappe.get_list("Personal Out Log",{"employee":employee, "date":date, "is_cancelled":0},pluck="name")
 	OT_Log = frappe.qb.DocType("OT Log")
 	ot = (
 		frappe.qb.from_(OT_Log)
