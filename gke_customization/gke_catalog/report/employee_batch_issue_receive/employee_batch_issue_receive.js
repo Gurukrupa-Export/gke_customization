@@ -2,11 +2,6 @@
 // File: employee_batch_issue_receive.js
 
 frappe.query_reports["Employee Batch Issue Receive"] = {
-    "onload": function(report) {
-        report.page.add_inner_button(__("Generate Report"), function() {
-            frappe.query_report.refresh();
-        }).addClass("btn-primary");
-    },
     "filters": [
         // {
         //     "fieldname": "branch",
@@ -21,20 +16,6 @@ frappe.query_reports["Employee Batch Issue Receive"] = {
         //         }
         //     }
         // },
-        {
-            "fieldname": "from_date",
-            "label": __("From Date"),
-            "fieldtype": "Date",
-            "default": frappe.datetime.add_months(frappe.datetime.get_today(), -1),
-            "reqd": 1
-        },
-        {
-            "fieldname": "to_date",
-            "label": __("To Date"),
-            "fieldtype": "Date",
-            "default": frappe.datetime.get_today(),
-            "reqd": 1
-        },
         {
             "fieldname": "manufacturer",
             "label": __("Manufacturer"),
