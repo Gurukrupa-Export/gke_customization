@@ -167,7 +167,7 @@ class PersonalOutEntry(Document):
 			(
 				( (checkout_time > emp_det.shift_start) & (checkout_time < emp_det.shift_end) )
 				| 
-				( checkout_time > emp_det.shift_end )
+				( checkout_time >= emp_det.shift_end )
 			)
 		)
 
