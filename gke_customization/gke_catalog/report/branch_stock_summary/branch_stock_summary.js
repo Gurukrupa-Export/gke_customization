@@ -11,7 +11,11 @@ frappe.query_reports["Branch Stock Summary"] = {
             "options": "Company",
             "default": frappe.defaults.get_user_default("Company"),
             "reqd": 1,
-            "hidden": 1
+            "on_change": function() {
+                frappe.query_report.set_filter_value('branch', '');
+                update_branch_options();
+                frappe.query_report.refresh();
+            }
         },
         {
             "fieldname": "as_on_date",
@@ -38,6 +42,7 @@ frappe.query_reports["Branch Stock Summary"] = {
             "label": __("Manufacturer"),
             "fieldtype": "Select",
             "options": ["", "Shubh", "Mangal", "Labh", "Amrut", "Service Center", "Siddhi"].join('\n'),
+            "default": "",
             "reqd": 0,
             "on_change": function() {
                 frappe.query_report.set_filter_value('department', '');
@@ -66,11 +71,36 @@ frappe.query_reports["Branch Stock Summary"] = {
             "on_change": function() {
                 frappe.query_report.refresh();
             }
+        },
+        {
+            "fieldname": "include_finished_goods_metal",
+            "label": __("Include Finished Goods Metal"),
+            "fieldtype": "Check",
+            "default": 0,
+            "on_change": function() {
+                frappe.query_report.refresh();
+            }
+        },
+        {
+            "fieldname": "include_work_order_wip",
+            "label": __("Include Work Order / WIP Stock"),
+            "fieldtype": "Check",
+            "default": 0,
+            "on_change": function() {
+                frappe.query_report.refresh();
+            }
         }
     ],
 
 
     "onload": function(report) {
+        // Summary button: explains this report's Grand Total vs the standard
+        // Stock Balance report's total for the same company/item group, and
+        // breaks down where the difference comes from.
+        report.page.add_inner_button(__("Summary"), function () {
+            show_report_summary();
+        });
+
         // Clear Filter button
         report.page.add_inner_button(__("Clear Filter"), function () {
             report.filters.forEach(function (filter) {
@@ -313,6 +343,148 @@ function detect_manufacturer_from_department(department) {
     }
     
     return "Shubh";
+}
+
+
+function show_report_summary() {
+    let current_filters = frappe.query_report.get_filter_values();
+
+    if (!current_filters.company) {
+        frappe.msgprint({
+            title: __('Missing Filter'),
+            message: __('Company filter is required to view the summary'),
+            indicator: 'red'
+        });
+        return;
+    }
+    if (!current_filters.raw_material_type) {
+        frappe.msgprint({
+            title: __('Missing Filter'),
+            message: __('Raw Material Type filter is required to view the summary'),
+            indicator: 'red'
+        });
+        return;
+    }
+
+    frappe.show_progress(__('Comparing with Stock Balance'), 50, 100, __('Please wait...'));
+
+    frappe.call({
+        method: "gke_customization.gke_catalog.report.branch_stock_summary.branch_stock_summary.get_summary_comparison",
+        args: {
+            filters: JSON.stringify(current_filters)
+        },
+        callback: function (r) {
+            frappe.hide_progress();
+            if (r.message) {
+                let dialog = new frappe.ui.Dialog({
+                    title: __('Report Summary'),
+                    size: "large",
+                    fields: [
+                        {
+                            fieldtype: "HTML",
+                            fieldname: "summary_html",
+                            options: build_summary_html(r.message)
+                        }
+                    ]
+                });
+                dialog.show();
+            }
+        },
+        error: function () {
+            frappe.hide_progress();
+            frappe.msgprint({
+                title: __('Error'),
+                message: __('Failed to load summary. Check console for details.'),
+                indicator: 'red'
+            });
+        }
+    });
+}
+
+
+function build_summary_html(s) {
+    let fmt = (v) => Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+    let diff_color = Math.abs(s.difference_total) < 0.001 ? 'var(--text-muted)' : 'var(--red-500, #d1414a)';
+
+    let breakdown_rows = (s.scope_gap_breakdown || []).map(row => `
+        <tr>
+            <td style="padding: 6px; border: 1px solid var(--border-color);">${row.department}</td>
+            <td style="padding: 6px; border: 1px solid var(--border-color); text-align: right;">${fmt(row.qty)}</td>
+        </tr>
+    `).join('');
+
+    if (!breakdown_rows) {
+        breakdown_rows = `<tr><td colspan="2" style="padding: 6px; border: 1px solid var(--border-color); text-align: center; color: var(--text-muted);">${__('No untracked stock found')}</td></tr>`;
+    }
+
+    // Work Order/WIP Stock and Finished Goods Metal only exist in the total
+    // when their checkbox filter is ticked, so they are listed as their own
+    // rows here rather than being silently merged into one combined number.
+    let optional_rows = `
+        <tr>
+            <td style="padding: 8px; border: 1px solid var(--border-color);">${__('Core Stock (Raw Material / Reserve / Transit / Scrap / MSL / Manufacturing Wh.)')}</td>
+            <td style="padding: 8px; border: 1px solid var(--border-color); text-align: right;">${fmt(s.core_branch_summary_qty)}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid var(--border-color);">
+                ${__('Work Order / WIP Stock')}
+                ${s.include_work_order_wip ? '' : ` <span style="color: var(--text-muted);">(${__('checkbox not ticked')})</span>`}
+            </td>
+            <td style="padding: 8px; border: 1px solid var(--border-color); text-align: right;">${fmt(s.work_order_wip_qty)}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid var(--border-color);">
+                ${__('Finished Goods Metal')}
+                ${s.include_finished_goods_metal ? '' : ` <span style="color: var(--text-muted);">(${__('checkbox not ticked')})</span>`}
+            </td>
+            <td style="padding: 8px; border: 1px solid var(--border-color); text-align: right;">${fmt(s.finished_goods_qty)}</td>
+        </tr>
+    `;
+
+    return `
+        <div style="padding: 10px; color: var(--text-color); background-color: var(--card-bg);">
+            <p style="color: var(--text-muted); margin-bottom: 15px;">
+                <strong>${s.company}</strong> &bull; ${s.raw_material_type} &bull; as on ${s.as_on_date}
+            </p>
+
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
+                ${optional_rows}
+                <tr>
+                    <td style="padding: 8px; border: 1px solid var(--border-color); font-weight: bold;">${__('Branch Stock Summary Grand Total')}</td>
+                    <td style="padding: 8px; border: 1px solid var(--border-color); text-align: right; font-weight: bold;">${fmt(s.branch_summary_qty)}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border: 1px solid var(--border-color);">${__('Stock Balance Total (same item group)')}</td>
+                    <td style="padding: 8px; border: 1px solid var(--border-color); text-align: right; font-weight: bold;">${fmt(s.stock_balance_qty)}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border: 1px solid var(--border-color); font-weight: bold;">${__('Difference')}</td>
+                    <td style="padding: 8px; border: 1px solid var(--border-color); text-align: right; font-weight: bold; color: ${diff_color};">${fmt(s.difference_total)}</td>
+                </tr>
+            </table>
+
+            <h5 style="margin-bottom: 5px;">${__('Why the totals differ')}</h5>
+
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 5px;">
+                <strong>${__('1. Stock in departments this report does not cover')}</strong> (${fmt(s.scope_gap_total)}) &mdash;
+                ${__('Branch Stock Summary only shows departments that currently have manufacturing work happening in them. The stock below sits in other departments or warehouses (like Purchase or Refinery, or warehouses with no department set), so it shows up in Stock Balance but not here:')}
+            </p>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px;">
+                <thead>
+                    <tr style="background-color: var(--subtle-fg);">
+                        <th style="padding: 6px; border: 1px solid var(--border-color); text-align: left;">${__('Department / Warehouse')}</th>
+                        <th style="padding: 6px; border: 1px solid var(--border-color); text-align: right;">${__('Quantity')}</th>
+                    </tr>
+                </thead>
+                <tbody>${breakdown_rows}</tbody>
+            </table>
+
+            <p style="font-size: 12px; color: var(--text-muted);">
+                <strong>${__('2. Old data corrections')}</strong> (${fmt(s.reconciliation_diff)}) &mdash;
+                ${__('This is a small leftover difference caused by past stock corrections (Stock Reconciliation entries) in the system. Stock Balance automatically adjusts for these old corrections; this report simply adds up the recorded stock movements, so it does not apply that same adjustment.')}
+            </p>
+        </div>
+    `;
 }
 
 

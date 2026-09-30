@@ -3,9 +3,56 @@
 
 import frappe
 from frappe import _
-from frappe.utils import flt, getdate
+from frappe.utils import flt, getdate, cint
 import json
 import re
+
+
+def get_winning_operation_subquery(company):
+    """
+    A Manufacturing Work Order can have several concurrently open
+    (Not Started / WIP) operations across different departments as an item
+    moves through its routing, each carrying the item's full weight. To avoid
+    counting that weight once per open operation, only the furthest-progressed
+    open operation (WIP beats Not Started; later routing step wins ties) is
+    treated as the one holding the stock.
+    """
+    return f"""
+        SELECT mop2.name
+        FROM (
+            SELECT mop3.name,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY mop3.manufacturing_work_order
+                       ORDER BY
+                           CASE mop3.status WHEN 'WIP' THEN 2 WHEN 'Not Started' THEN 1 ELSE 0 END DESC,
+                           mop3.idx DESC
+                   ) as rn
+            FROM `tabManufacturing Operation` mop3
+            INNER JOIN `tabManufacturing Work Order` mwo3 ON mop3.manufacturing_work_order = mwo3.name
+            WHERE mop3.status IN ('Not Started', 'WIP')
+              AND mwo3.company = '{company}'
+              AND mwo3.docstatus = 1
+        ) mop2
+        WHERE mop2.rn = 1
+    """
+
+
+def get_bom_weight_sum_sql(raw_material_types):
+    """Weight of a finished piece, sourced from its BOM, for the selected raw material type(s)."""
+    fields = []
+    for rm_type in raw_material_types:
+        if rm_type == "Metal":
+            fields.append("COALESCE(b.metal_weight, 0)")
+        elif rm_type == "Diamond":
+            fields.append("COALESCE(b.diamond_weight, 0)")
+        elif rm_type == "Gemstone":
+            fields.append("COALESCE(b.gemstone_weight, 0)")
+        elif rm_type == "Finding":
+            fields.append("COALESCE(b.finding_weight_, 0)")
+        elif rm_type == "Other":
+            fields.append("COALESCE(b.other_weight, 0)")
+
+    return " + ".join(fields) if fields else "COALESCE(b.metal_weight, 0)"
 
 
 def execute(filters=None):
@@ -20,6 +67,135 @@ def execute(filters=None):
         frappe.throw(_("Raw Material Type is required"))
 
     return get_branch_stock_summary_optimized(filters)
+
+
+@frappe.whitelist()
+def get_summary_comparison(filters):
+    """Compares this report's Grand Total against the standard Stock Balance report
+    for the same company/item group/as-on-date, and explains the gap.
+
+    The gap has two structural causes:
+    1. Scope gap: Branch Stock Summary only knows about departments that have an
+       active Manufacturing Operation. Stock sitting in other departments (e.g.
+       Purchase, Refinery) or in warehouses with no department set is invisible
+       to it but still counted by Stock Balance.
+    2. Ledger reconciliation drift: Stock Balance's engine recalculates balance
+       deltas for Stock Reconciliation vouchers from `qty_after_transaction`
+       (self-correcting historical ledger drift); Branch Stock Summary sums the
+       raw `actual_qty` column, so any such drift shows up as an unexplained
+       remainder here.
+    """
+    filters = json.loads(filters) if isinstance(filters, str) else (filters or {})
+
+    if not filters.get("company"):
+        frappe.throw(_("Company is required"))
+    if not filters.get("raw_material_type"):
+        frappe.throw(_("Raw Material Type is required"))
+
+    company = filters.get("company")
+    as_on_date = getdate(filters.get("as_on_date")) if filters.get("as_on_date") else getdate()
+    raw_material_types = [filters.get("raw_material_type")]
+    item_groups = get_item_groups(raw_material_types)
+    item_group_str = "', '".join(item_groups) if item_groups else ""
+
+    # Branch Stock Summary's own grand total, using the exact same filters.
+    # Work Order/WIP Stock and Finished Goods are only included when their
+    # checkboxes are ticked, so their contribution is split out here instead
+    # of being silently folded into one combined number.
+    WORK_ORDER_WIP_LABELS = {"Work Order Stock", "Employee WIP Stock", "Supplier WIP Stock"}
+
+    _, data = get_branch_stock_summary_optimized(filters)
+    core_qty = 0.0
+    core_pure_gold = 0.0
+    work_order_wip_qty = 0.0
+    work_order_wip_pure_gold = 0.0
+    finished_goods_qty = 0.0
+    finished_goods_pure_gold = 0.0
+
+    for row in data:
+        if not row.get("is_stock_type"):
+            continue
+        label = row.get("section")
+        qty = flt(row.get("quantity") or 0)
+        pure_gold = flt(row.get("pure_gold_weight") or 0)
+
+        if label in WORK_ORDER_WIP_LABELS:
+            work_order_wip_qty += qty
+            work_order_wip_pure_gold += pure_gold
+        elif label == "Finished Goods":
+            finished_goods_qty += qty
+            finished_goods_pure_gold += pure_gold
+        else:
+            core_qty += qty
+            core_pure_gold += pure_gold
+
+    branch_qty = core_qty + work_order_wip_qty + finished_goods_qty
+    branch_pure_gold = core_pure_gold + work_order_wip_pure_gold + finished_goods_pure_gold
+
+    # Standard Stock Balance report total, for the same item group(s).
+    from erpnext.stock.report.stock_balance.stock_balance import execute as stock_balance_execute
+
+    stock_balance_qty = 0.0
+    for item_group in item_groups:
+        _, sb_data = stock_balance_execute(frappe._dict({
+            "company": company,
+            "from_date": "2000-01-01",
+            "to_date": as_on_date,
+            "item_group": item_group,
+        }))
+        for row in sb_data:
+            stock_balance_qty += flt(row.get("bal_qty") or 0)
+
+    # Scope gap: same item group(s), but grouped by department, restricted to
+    # departments Branch Stock Summary does NOT track (i.e. no active
+    # Manufacturing Operation for this company/branch/manufacturer).
+    dept_list = [d["db_department"] for d in get_departments_list(filters)]
+    dept_str = ", ".join(f"'{d}'" for d in dept_list) if dept_list else "''"
+
+    scope_gap_breakdown = []
+    if item_group_str:
+        scope_gap_breakdown = frappe.db.sql(f"""
+            SELECT
+                COALESCE(NULLIF(w.department, ''), 'Unassigned Warehouse') as department,
+                SUM(sle.actual_qty) as qty
+            FROM `tabStock Ledger Entry` sle
+            INNER JOIN `tabItem` i ON sle.item_code = i.item_code
+            INNER JOIN `tabWarehouse` w ON sle.warehouse = w.name
+            WHERE sle.company = '{company}'
+              AND i.item_group IN ('{item_group_str}')
+              AND sle.posting_date <= '{as_on_date}'
+              AND sle.docstatus < 2
+              AND sle.is_cancelled = 0
+              AND COALESCE(w.department, '') NOT IN ({dept_str})
+            GROUP BY COALESCE(NULLIF(w.department, ''), 'Unassigned Warehouse')
+            HAVING SUM(sle.actual_qty) != 0
+            ORDER BY qty DESC
+        """, as_dict=True)
+
+    scope_gap_total = sum(flt(r.qty) for r in scope_gap_breakdown)
+    difference_total = stock_balance_qty - branch_qty
+    reconciliation_diff = difference_total - scope_gap_total
+
+    return {
+        "company": company,
+        "as_on_date": str(as_on_date),
+        "raw_material_type": filters.get("raw_material_type"),
+        "core_branch_summary_qty": core_qty,
+        "core_branch_summary_pure_gold": core_pure_gold,
+        "work_order_wip_qty": work_order_wip_qty,
+        "work_order_wip_pure_gold": work_order_wip_pure_gold,
+        "finished_goods_qty": finished_goods_qty,
+        "finished_goods_pure_gold": finished_goods_pure_gold,
+        "include_work_order_wip": bool(cint(filters.get("include_work_order_wip", 0))),
+        "include_finished_goods_metal": bool(cint(filters.get("include_finished_goods_metal"))),
+        "branch_summary_qty": branch_qty,
+        "branch_summary_pure_gold": branch_pure_gold,
+        "stock_balance_qty": stock_balance_qty,
+        "difference_total": difference_total,
+        "scope_gap_total": scope_gap_total,
+        "scope_gap_breakdown": scope_gap_breakdown,
+        "reconciliation_diff": reconciliation_diff,
+    }
 
 
 def get_branch_stock_summary_optimized(filters=None):
@@ -40,6 +216,9 @@ def get_branch_stock_summary_optimized(filters=None):
     company = filters.get("company")
     manufacturer = filters.get("manufacturer", "")
 
+    include_finished_goods_metal = bool(cint(filters.get("include_finished_goods_metal")))
+    include_work_order_wip = bool(cint(filters.get("include_work_order_wip", 0)))
+
     departments = get_departments_list(filters)
     if not departments:
         return columns, []
@@ -50,7 +229,8 @@ def get_branch_stock_summary_optimized(filters=None):
 
     bulk_stock_data = get_bulk_stock_data(
         company, dept_str, item_group_str, variant_code_str,
-        as_on_date, manufacturer, raw_material_types, dept_list
+        as_on_date, manufacturer, raw_material_types, dept_list,
+        include_finished_goods_metal, include_work_order_wip
     )
 
     data = []
@@ -63,6 +243,11 @@ def get_branch_stock_summary_optimized(filters=None):
 
         stock_values = extract_dept_stock_from_bulk(dept_with_suffix, bulk_stock_data)
         section_data = build_department_section_simplified(dept_name, stock_values)
+
+        # Skip departments with no non-zero stock rows at all (header only).
+        if len(section_data) <= 1:
+            continue
+
         data.extend(section_data)
 
         dept_total, dept_total_pure_gold = add_department_total_row_simplified(
@@ -86,7 +271,7 @@ def get_branch_stock_summary_optimized(filters=None):
     return columns, data
 
 
-def get_bulk_stock_data(company, dept_str, item_group_str, variant_code_str, as_on_date, manufacturer, raw_material_types, dept_list):
+def get_bulk_stock_data(company, dept_str, item_group_str, variant_code_str, as_on_date, manufacturer, raw_material_types, dept_list, include_finished_goods_metal=False, include_work_order_wip=True):
     bulk_data = {
         "work_order": {},
         "employee_wip": {},
@@ -98,6 +283,7 @@ def get_bulk_stock_data(company, dept_str, item_group_str, variant_code_str, as_
         "raw_material": {},
         "reserve": {},
         "scrap": {},
+        "manufacturing_wh": {},
         "finished_goods": {},
     }
 
@@ -120,93 +306,98 @@ def get_bulk_stock_data(company, dept_str, item_group_str, variant_code_str, as_
 
     weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
     manufacturer_condition = f" AND mop.manufacturer = '{manufacturer}'" if manufacturer else ""
+    winning_operation_subquery = get_winning_operation_subquery(company)
 
     try:
-        # Work Order stock
-        wo_result = frappe.db.sql(f"""
-            SELECT
-                mop.department,
-                SUM({weight_sum}) as total_balance,
-                SUM(
-                    CASE
-                        WHEN {1 if is_metal else 0} = 1
-                        THEN COALESCE(mop.net_wt, 0) * COALESCE(mwo.metal_purity, 0) / 100
-                        ELSE 0
-                    END
-                ) as pure_gold_weight
-            FROM `tabManufacturing Operation` mop
-            INNER JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-            WHERE mop.status = 'Not Started'
-              AND mop.department IN ({dept_str})
-              AND mwo.company = '{company}'
-              AND mwo.docstatus = 1
-              {manufacturer_condition}
-            GROUP BY mop.department
-        """, as_dict=True)
+        if include_work_order_wip:
+            # Work Order stock
+            wo_result = frappe.db.sql(f"""
+                SELECT
+                    mop.department,
+                    SUM({weight_sum}) as total_balance,
+                    SUM(
+                        CASE
+                            WHEN {1 if is_metal else 0} = 1
+                            THEN COALESCE(mop.net_wt, 0) * COALESCE(mwo.metal_purity, 0) / 100
+                            ELSE 0
+                        END
+                    ) as pure_gold_weight
+                FROM `tabManufacturing Operation` mop
+                INNER JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
+                INNER JOIN ({winning_operation_subquery}) winner ON winner.name = mop.name
+                WHERE mop.status = 'Not Started'
+                  AND mop.department IN ({dept_str})
+                  AND mwo.company = '{company}'
+                  AND mwo.docstatus = 1
+                  {manufacturer_condition}
+                GROUP BY mop.department
+            """, as_dict=True)
 
-        for row in wo_result:
-            bulk_data["work_order"][row.department] = {
-                "quantity": flt(row.total_balance),
-                "pure_gold_weight": flt(row.pure_gold_weight),
-            }
+            for row in wo_result:
+                bulk_data["work_order"][row.department] = {
+                    "quantity": flt(row.total_balance),
+                    "pure_gold_weight": flt(row.pure_gold_weight),
+                }
 
-        # Employee WIP
-        emp_wip_result = frappe.db.sql(f"""
-            SELECT
-                mop.department,
-                SUM({weight_sum}) as total_balance,
-                SUM(
-                    CASE
-                        WHEN {1 if is_metal else 0} = 1
-                        THEN COALESCE(mop.net_wt, 0) * COALESCE(mwo.metal_purity, 0) / 100
-                        ELSE 0
-                    END
-                ) as pure_gold_weight
-            FROM `tabManufacturing Operation` mop
-            INNER JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-            WHERE mop.status = 'WIP'
-              AND mop.for_subcontracting = 0
-              AND mop.department IN ({dept_str})
-              AND mwo.company = '{company}'
-              AND mwo.docstatus = 1
-              {manufacturer_condition}
-            GROUP BY mop.department
-        """, as_dict=True)
+            # Employee WIP
+            emp_wip_result = frappe.db.sql(f"""
+                SELECT
+                    mop.department,
+                    SUM({weight_sum}) as total_balance,
+                    SUM(
+                        CASE
+                            WHEN {1 if is_metal else 0} = 1
+                            THEN COALESCE(mop.net_wt, 0) * COALESCE(mwo.metal_purity, 0) / 100
+                            ELSE 0
+                        END
+                    ) as pure_gold_weight
+                FROM `tabManufacturing Operation` mop
+                INNER JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
+                INNER JOIN ({winning_operation_subquery}) winner ON winner.name = mop.name
+                WHERE mop.status = 'WIP'
+                  AND mop.for_subcontracting = 0
+                  AND mop.department IN ({dept_str})
+                  AND mwo.company = '{company}'
+                  AND mwo.docstatus = 1
+                  {manufacturer_condition}
+                GROUP BY mop.department
+            """, as_dict=True)
 
-        for row in emp_wip_result:
-            bulk_data["employee_wip"][row.department] = {
-                "quantity": flt(row.total_balance),
-                "pure_gold_weight": flt(row.pure_gold_weight),
-            }
+            for row in emp_wip_result:
+                bulk_data["employee_wip"][row.department] = {
+                    "quantity": flt(row.total_balance),
+                    "pure_gold_weight": flt(row.pure_gold_weight),
+                }
 
-        # Supplier WIP
-        sup_wip_result = frappe.db.sql(f"""
-            SELECT
-                mop.department,
-                SUM({weight_sum}) as total_balance,
-                SUM(
-                    CASE
-                        WHEN {1 if is_metal else 0} = 1
-                        THEN COALESCE(mop.net_wt, 0) * COALESCE(mwo.metal_purity, 0) / 100
-                        ELSE 0
-                    END
-                ) as pure_gold_weight
-            FROM `tabManufacturing Operation` mop
-            INNER JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
-            WHERE mop.status = 'WIP'
-              AND mop.for_subcontracting = 1
-              AND mop.department IN ({dept_str})
-              AND mwo.company = '{company}'
-              AND mwo.docstatus = 1
-              {manufacturer_condition}
-            GROUP BY mop.department
-        """, as_dict=True)
+            # Supplier WIP
+            sup_wip_result = frappe.db.sql(f"""
+                SELECT
+                    mop.department,
+                    SUM({weight_sum}) as total_balance,
+                    SUM(
+                        CASE
+                            WHEN {1 if is_metal else 0} = 1
+                            THEN COALESCE(mop.net_wt, 0) * COALESCE(mwo.metal_purity, 0) / 100
+                            ELSE 0
+                        END
+                    ) as pure_gold_weight
+                FROM `tabManufacturing Operation` mop
+                INNER JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
+                INNER JOIN ({winning_operation_subquery}) winner ON winner.name = mop.name
+                WHERE mop.status = 'WIP'
+                  AND mop.for_subcontracting = 1
+                  AND mop.department IN ({dept_str})
+                  AND mwo.company = '{company}'
+                  AND mwo.docstatus = 1
+                  {manufacturer_condition}
+                GROUP BY mop.department
+            """, as_dict=True)
 
-        for row in sup_wip_result:
-            bulk_data["supplier_wip"][row.department] = {
-                "quantity": flt(row.total_balance),
-                "pure_gold_weight": flt(row.pure_gold_weight),
-            }
+            for row in sup_wip_result:
+                bulk_data["supplier_wip"][row.department] = {
+                    "quantity": flt(row.total_balance),
+                    "pure_gold_weight": flt(row.pure_gold_weight),
+                }
 
         # Employee MSL / Supplier MSL
         if variant_code_str:
@@ -268,151 +459,155 @@ def get_bulk_stock_data(company, dept_str, item_group_str, variant_code_str, as_
                     "pure_gold_weight": flt(row.pure_gold_weight),
                 }
 
-        # Raw / Reserve / Transit / Scrap
+        # Raw / Reserve / Transit / Scrap / Manufacturing Warehouse
+        # Bulk queries across ALL departments at once (instead of 5 queries per
+        # department) to avoid an N+1 query pattern that made this report time
+        # out on real data (37 departments x 5 queries each, ~136s).
         if item_group_str:
-            for dept_with_suffix in dept_list:
-                dept_clean = dept_with_suffix.split(" - ")[0].strip()
+            dept_pairs = [
+                (dept_with_suffix, dept_with_suffix.split(" - ")[0].strip())
+                for dept_with_suffix in dept_list
+            ]
+            dept_mapping_sql = " UNION ALL ".join(
+                f"SELECT '{dept}' AS department, '{clean}' AS dept_clean"
+                for dept, clean in dept_pairs
+            )
 
-                # Transit
-                transit_result = frappe.db.sql(f"""
+            def _accumulate(rows):
+                grouped = {}
+                for row in rows:
+                    entry = grouped.setdefault(row.department, {"quantity": 0.0, "pure_gold_weight": 0.0})
+                    entry["quantity"] += flt(row.weight)
+                    if is_metal:
+                        entry["pure_gold_weight"] += get_pure_gold_from_item_code(row.item_code, row.weight)
+                return grouped
+
+            def _resolve_warehouses(warehouse_type, name_suffixes, department_match=True):
+                """Resolve which warehouses belong to which department for a stock type.
+
+                Runs only against the small `tabWarehouse` table (~1300 rows), so the
+                OR/CONCAT name-pattern matching here is cheap. Returns {warehouse_name: department}.
+                """
+                name_conditions = " OR ".join(
+                    f"w.warehouse_name = CONCAT(dm.dept_clean, '{suffix}')" for suffix in name_suffixes
+                )
+                dept_condition = (
+                    f"(w.warehouse_type = '{warehouse_type}' AND w.department = dm.department) OR "
+                    if department_match else ""
+                )
+                rows = frappe.db.sql(f"""
+                    SELECT DISTINCT w.name as warehouse, dm.department as department
+                    FROM ({dept_mapping_sql}) dm
+                    INNER JOIN `tabWarehouse` w ON (
+                        {dept_condition}{name_conditions}
+                    )
+                """, as_dict=True)
+                return {row.warehouse: row.department for row in rows}
+
+            def _aggregate_by_warehouse(wh_to_dept):
+                """Sum SLE stock for a resolved warehouse->department map using a sargable
+                `warehouse IN (...)` filter instead of joining Warehouse with OR/CONCAT."""
+                if not wh_to_dept:
+                    return {}
+                wh_str = "', '".join(wh_to_dept.keys())
+                rows = frappe.db.sql(f"""
                     SELECT
+                        sle.warehouse,
                         sle.item_code,
                         SUM(sle.actual_qty) as weight
                     FROM `tabStock Ledger Entry` sle
-                    INNER JOIN `tabWarehouse` w ON sle.warehouse = w.name
                     INNER JOIN `tabItem` i ON sle.item_code = i.item_code
                     WHERE sle.company = '{company}'
-                      AND (
-                            w.warehouse_name = '{dept_clean} Transit - GEPL'
-                            OR w.warehouse_name = '{dept_clean} Transit - KGJPL'
-                            OR w.warehouse_name = '{dept_clean} Transit'
-                          )
+                      AND sle.warehouse IN ('{wh_str}')
                       AND i.item_group IN ('{item_group_str}')
                       AND sle.posting_date <= '{as_on_date}'
                       AND sle.docstatus < 2
                       AND sle.is_cancelled = 0
-                    GROUP BY sle.item_code
+                    GROUP BY sle.warehouse, sle.item_code
                     HAVING SUM(sle.actual_qty) > 0
                 """, as_dict=True)
+                for row in rows:
+                    row.department = wh_to_dept.get(row.warehouse)
+                return _accumulate(rows)
 
-                if transit_result:
-                    qty = sum(flt(d.weight) for d in transit_result)
-                    pure_gold = sum(
-                        get_pure_gold_from_item_code(d.item_code, d.weight)
-                        for d in transit_result
-                    ) if is_metal else 0.0
-                    bulk_data["transit"][dept_with_suffix] = {
-                        "quantity": qty,
-                        "pure_gold_weight": pure_gold,
-                    }
+            # Transit (name-pattern based, no department column on most Warehouses)
+            transit_wh_map = _resolve_warehouses(
+                "Transit", [" Transit - GEPL", " Transit - KGJPL", " Transit"], department_match=False
+            )
+            bulk_data["transit"] = _aggregate_by_warehouse(transit_wh_map)
 
-                # Raw Material
-                raw_result = frappe.db.sql(f"""
-                    SELECT
-                        w.department,
-                        sle.item_code,
-                        SUM(sle.actual_qty) as weight
-                    FROM `tabStock Ledger Entry` sle
-                    INNER JOIN `tabWarehouse` w ON sle.warehouse = w.name
-                    INNER JOIN `tabItem` i ON sle.item_code = i.item_code
-                    WHERE sle.company = '{company}'
-                      AND w.department = '{dept_with_suffix}'
-                      AND w.warehouse_type = 'Raw Material'
-                      AND i.item_group IN ('{item_group_str}')
-                      AND sle.posting_date <= '{as_on_date}'
-                      AND sle.docstatus < 2
-                      AND sle.is_cancelled = 0
-                    GROUP BY w.department, sle.item_code
-                    HAVING SUM(sle.actual_qty) > 0
-                """, as_dict=True)
+            # Raw Material (direct department match)
+            raw_result = frappe.db.sql(f"""
+                SELECT
+                    w.department,
+                    sle.item_code,
+                    SUM(sle.actual_qty) as weight
+                FROM `tabStock Ledger Entry` sle
+                INNER JOIN `tabWarehouse` w ON sle.warehouse = w.name
+                INNER JOIN `tabItem` i ON sle.item_code = i.item_code
+                WHERE sle.company = '{company}'
+                  AND w.department IN ({dept_str})
+                  AND w.warehouse_type = 'Raw Material'
+                  AND i.item_group IN ('{item_group_str}')
+                  AND sle.posting_date <= '{as_on_date}'
+                  AND sle.docstatus < 2
+                  AND sle.is_cancelled = 0
+                GROUP BY w.department, sle.item_code
+                HAVING SUM(sle.actual_qty) > 0
+            """, as_dict=True)
+            bulk_data["raw_material"] = _accumulate(raw_result)
 
-                if raw_result:
-                    qty = sum(flt(d.weight) for d in raw_result)
-                    pure_gold = sum(
-                        get_pure_gold_from_item_code(d.item_code, d.weight)
-                        for d in raw_result
-                    ) if is_metal else 0.0
-                    bulk_data["raw_material"][dept_with_suffix] = {
-                        "quantity": qty,
-                        "pure_gold_weight": pure_gold,
-                    }
+            # Reserve (department match OR name pattern)
+            reserve_wh_map = _resolve_warehouses(
+                "Reserve", [" Reserve - GEPL", " Reserve - KGJPL", " Reserve"]
+            )
+            bulk_data["reserve"] = _aggregate_by_warehouse(reserve_wh_map)
 
-                # Reserve
-                reserve_result = frappe.db.sql(f"""
-                    SELECT
-                        sle.item_code,
-                        SUM(sle.actual_qty) as weight
-                    FROM `tabStock Ledger Entry` sle
-                    INNER JOIN `tabWarehouse` w ON sle.warehouse = w.name
-                    INNER JOIN `tabItem` i ON sle.item_code = i.item_code
-                    WHERE sle.company = '{company}'
-                      AND (
-                            (w.warehouse_type = 'Reserve' AND w.department = '{dept_with_suffix}')
-                            OR w.warehouse_name = '{dept_clean} Reserve - GEPL'
-                            OR w.warehouse_name = '{dept_clean} Reserve - KGJPL'
-                            OR w.warehouse_name = '{dept_clean} Reserve'
-                          )
-                      AND i.item_group IN ('{item_group_str}')
-                      AND sle.posting_date <= '{as_on_date}'
-                      AND sle.docstatus < 2
-                      AND sle.is_cancelled = 0
-                    GROUP BY sle.item_code
-                    HAVING SUM(sle.actual_qty) > 0
-                """, as_dict=True)
+            # Scrap (department match OR name pattern)
+            scrap_wh_map = _resolve_warehouses(
+                "Scrap", [" Scrap - GEPL", " Scrap - KGJPL", " Scrap"]
+            )
+            bulk_data["scrap"] = _aggregate_by_warehouse(scrap_wh_map)
 
-                if reserve_result:
-                    qty = sum(flt(d.weight) for d in reserve_result)
-                    pure_gold = sum(
-                        get_pure_gold_from_item_code(d.item_code, d.weight)
-                        for d in reserve_result
-                    ) if is_metal else 0.0
-                    bulk_data["reserve"][dept_with_suffix] = {
-                        "quantity": qty,
-                        "pure_gold_weight": pure_gold,
-                    }
-
-                # Scrap
-                scrap_result = frappe.db.sql(f"""
-                    SELECT
-                        sle.item_code,
-                        SUM(sle.actual_qty) as weight
-                    FROM `tabStock Ledger Entry` sle
-                    INNER JOIN `tabWarehouse` w ON sle.warehouse = w.name
-                    INNER JOIN `tabItem` i ON sle.item_code = i.item_code
-                    WHERE sle.company = '{company}'
-                      AND (
-                            (w.warehouse_type = 'Scrap' AND w.department = '{dept_with_suffix}')
-                            OR w.warehouse_name = '{dept_clean} Scrap - GEPL'
-                            OR w.warehouse_name = '{dept_clean} Scrap - KGJPL'
-                            OR w.warehouse_name = '{dept_clean} Scrap'
-                          )
-                      AND i.item_group IN ('{item_group_str}')
-                      AND sle.posting_date <= '{as_on_date}'
-                      AND sle.docstatus < 2
-                      AND sle.is_cancelled = 0
-                    GROUP BY sle.item_code
-                    HAVING SUM(sle.actual_qty) > 0
-                """, as_dict=True)
-
-                if scrap_result:
-                    qty = sum(flt(d.weight) for d in scrap_result)
-                    pure_gold = sum(
-                        get_pure_gold_from_item_code(d.item_code, d.weight)
-                        for d in scrap_result
-                    ) if is_metal else 0.0
-                    bulk_data["scrap"][dept_with_suffix] = {
-                        "quantity": qty,
-                        "pure_gold_weight": pure_gold,
-                    }
+            # Manufacturing Warehouse (direct department match)
+            manufacturing_wh_result = frappe.db.sql(f"""
+                SELECT
+                    w.department,
+                    sle.item_code,
+                    SUM(sle.actual_qty) as weight
+                FROM `tabStock Ledger Entry` sle
+                INNER JOIN `tabWarehouse` w ON sle.warehouse = w.name
+                INNER JOIN `tabItem` i ON sle.item_code = i.item_code
+                WHERE sle.company = '{company}'
+                  AND w.department IN ({dept_str})
+                  AND w.warehouse_type = 'Manufacturing'
+                  AND i.item_group IN ('{item_group_str}')
+                  AND sle.posting_date <= '{as_on_date}'
+                  AND sle.docstatus < 2
+                  AND sle.is_cancelled = 0
+                GROUP BY w.department, sle.item_code
+                HAVING SUM(sle.actual_qty) > 0
+            """, as_dict=True)
+            bulk_data["manufacturing_wh"] = _accumulate(manufacturing_wh_result)
 
         # Finished Goods
-        for dept_with_suffix in dept_list:
+        bom_weight_sum = get_bom_weight_sum_sql(raw_material_types)
+        for dept_with_suffix in (dept_list if include_finished_goods_metal else []):
             dept_clean = dept_with_suffix.replace(" - GEPL", "").replace(" - KGJPL", "")
 
             fg_result = frappe.db.sql(f"""
-                SELECT COUNT(*) as total_count
+                SELECT
+                    SUM({bom_weight_sum}) as total_weight,
+                    SUM(
+                        CASE
+                            WHEN {1 if is_metal else 0} = 1
+                            THEN COALESCE(b.metal_weight, 0) * COALESCE(b.metal_purity + 0, 0) / 100
+                            ELSE 0
+                        END
+                    ) as pure_gold_weight
                 FROM `tabSerial No` sn
                 INNER JOIN `tabWarehouse` w ON sn.warehouse = w.name
+                LEFT JOIN `tabBOM` b ON sn.custom_bom_no = b.name
                 WHERE sn.company = '{company}'
                   AND sn.status = 'Active'
                   AND w.warehouse_type = 'Finished Goods'
@@ -420,10 +615,10 @@ def get_bulk_stock_data(company, dept_str, item_group_str, variant_code_str, as_
                   AND w.warehouse_name NOT LIKE '%MU%'
             """, as_dict=True)
 
-            if fg_result and fg_result[0].get("total_count"):
+            if fg_result and fg_result[0].get("total_weight"):
                 bulk_data["finished_goods"][dept_with_suffix] = {
-                    "quantity": float(fg_result[0]["total_count"]),
-                    "pure_gold_weight": 0.0,
+                    "quantity": flt(fg_result[0]["total_weight"]),
+                    "pure_gold_weight": flt(fg_result[0]["pure_gold_weight"]),
                 }
 
     except Exception:
@@ -444,6 +639,7 @@ def extract_dept_stock_from_bulk(dept_with_suffix, bulk_data):
         "reserve_stock": bulk_data["reserve"].get(dept_with_suffix, {"quantity": 0.0, "pure_gold_weight": 0.0}),
         "transit_stock": bulk_data["transit"].get(dept_with_suffix, {"quantity": 0.0, "pure_gold_weight": 0.0}),
         "scrap_stock": bulk_data["scrap"].get(dept_with_suffix, {"quantity": 0.0, "pure_gold_weight": 0.0}),
+        "manufacturing_wh_stock": bulk_data["manufacturing_wh"].get(dept_with_suffix, {"quantity": 0.0, "pure_gold_weight": 0.0}),
         "finished_goods": bulk_data["finished_goods"].get(dept_with_suffix, {"quantity": 0.0, "pure_gold_weight": 0.0}),
     }
 
@@ -471,6 +667,7 @@ def build_department_section_simplified(dept_name, stock_values):
         {"key": "reserve_stock", "label": "Reserve Stock"},
         {"key": "transit_stock", "label": "Transit Stock"},
         {"key": "scrap_stock", "label": "Scrap Stock"},
+        {"key": "manufacturing_wh_stock", "label": "Manufacturing Warehouse Stock"},
         {"key": "finished_goods", "label": "Finished Goods"},
     ]
 
@@ -478,6 +675,9 @@ def build_department_section_simplified(dept_name, stock_values):
         stock_entry = stock_values.get(stock_type["key"], {"quantity": 0.0, "pure_gold_weight": 0.0})
         stock_value = flt(stock_entry.get("quantity", 0.0))
         pure_gold_weight = flt(stock_entry.get("pure_gold_weight", 0.0))
+
+        if stock_value == 0 and pure_gold_weight == 0:
+            continue
 
         display_value = "" if stock_value == 0 else stock_value
         display_pure_gold = "" if pure_gold_weight == 0 else pure_gold_weight
@@ -714,8 +914,15 @@ def get_stock_details(department, stock_type, stock_key, filters):
         "reserve_stock": get_reserve_stock_details,
         "transit_stock": get_transit_stock_details,
         "scrap_stock": get_scrap_stock_details,
+        "manufacturing_wh_stock": get_manufacturing_warehouse_details,
         "finished_goods": get_finished_goods_details,
     }
+
+    if stock_key == "finished_goods" and not cint(filters.get("include_finished_goods_metal")):
+        return []
+
+    if stock_key in ("work_order_stock", "employee_wip_stock", "supplier_wip_stock") and not cint(filters.get("include_work_order_wip", 0)):
+        return []
 
     detail_func = detail_functions.get(stock_key)
     if detail_func:
@@ -904,6 +1111,36 @@ def get_scrap_stock_details(department, company, branch, manufacturer, raw_mater
         return []
 
 
+def get_manufacturing_warehouse_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
+    try:
+        as_on_date = as_on_date or getdate()
+        item_groups = get_item_groups(raw_material_types)
+        if item_groups:
+            item_group_str = "', '".join(item_groups)
+            return frappe.db.sql(f"""
+                SELECT
+                    sle.item_code as 'Item Code',
+                    SUM(sle.actual_qty) as 'Weight'
+                FROM `tabStock Ledger Entry` sle
+                LEFT JOIN `tabWarehouse` w ON sle.warehouse = w.name
+                LEFT JOIN `tabItem` i ON sle.item_code = i.item_code
+                WHERE sle.company = '{company}'
+                  AND w.department = '{department}'
+                  AND w.warehouse_type = 'Manufacturing'
+                  AND i.item_group IN ('{item_group_str}')
+                  AND sle.posting_date <= '{as_on_date}'
+                  AND sle.docstatus < 2
+                  AND sle.is_cancelled = 0
+                GROUP BY sle.item_code
+                HAVING SUM(sle.actual_qty) > 0
+                ORDER BY SUM(sle.actual_qty) DESC
+            """, as_dict=True, debug=0)
+        return []
+    except Exception:
+        frappe.log_error("Manufacturing warehouse details error", frappe.get_traceback())
+        return []
+
+
 def get_work_order_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
     try:
         weight_fields = []
@@ -923,6 +1160,7 @@ def get_work_order_details(department, company, branch, manufacturer, raw_materi
 
         weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
         manufacturer_condition = f" AND mop.manufacturer = '{manufacturer}'" if manufacturer else ""
+        winning_operation_subquery = get_winning_operation_subquery(company)
 
         return frappe.db.sql(f"""
             SELECT
@@ -930,6 +1168,7 @@ def get_work_order_details(department, company, branch, manufacturer, raw_materi
                 ({weight_sum}) as 'Weight'
             FROM `tabManufacturing Operation` mop
             LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
+            INNER JOIN ({winning_operation_subquery}) winner ON winner.name = mop.name
             WHERE mop.status = 'Not Started'
               AND mop.department = '{department}'
               AND mwo.company = '{company}'
@@ -962,6 +1201,7 @@ def get_employee_wip_details(department, company, branch, manufacturer, raw_mate
 
         weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
         manufacturer_condition = f" AND mop.manufacturer = '{manufacturer}'" if manufacturer else ""
+        winning_operation_subquery = get_winning_operation_subquery(company)
 
         return frappe.db.sql(f"""
             SELECT
@@ -972,6 +1212,7 @@ def get_employee_wip_details(department, company, branch, manufacturer, raw_mate
             FROM `tabManufacturing Operation` mop
             LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
             LEFT JOIN `tabEmployee` emp ON mop.employee = emp.name
+            INNER JOIN ({winning_operation_subquery}) winner ON winner.name = mop.name
             WHERE mop.status = 'WIP'
               AND mop.for_subcontracting = 0
               AND mop.department = '{department}'
@@ -1005,6 +1246,7 @@ def getsupplier_wip_details(department, company, branch, manufacturer, raw_mater
 
         weight_sum = " + ".join(weight_fields) if weight_fields else "COALESCE(mop.net_wt, 0)"
         manufacturer_condition = f" AND mop.manufacturer = '{manufacturer}'" if manufacturer else ""
+        winning_operation_subquery = get_winning_operation_subquery(company)
 
         return frappe.db.sql(f"""
             SELECT
@@ -1014,6 +1256,7 @@ def getsupplier_wip_details(department, company, branch, manufacturer, raw_mater
                 'Supplier Operation' as 'Supplier Name'
             FROM `tabManufacturing Operation` mop
             LEFT JOIN `tabManufacturing Work Order` mwo ON mop.manufacturing_work_order = mwo.name
+            INNER JOIN ({winning_operation_subquery}) winner ON winner.name = mop.name
             WHERE mop.status = 'WIP'
               AND mop.for_subcontracting = 1
               AND mop.department = '{department}'
@@ -1104,13 +1347,23 @@ def get_supplier_msl_details(department, company, branch, manufacturer, raw_mate
 def get_finished_goods_details(department, company, branch, manufacturer, raw_material_types, as_on_date=None):
     try:
         dept_clean = department.replace(" - GEPL", "").replace(" - KGJPL", "")
+        is_metal = "Metal" in raw_material_types
+        bom_weight_sum = get_bom_weight_sum_sql(raw_material_types)
+
         return frappe.db.sql(f"""
             SELECT
                 sn.name as 'Serial No',
                 sn.item_code as 'Item Code',
-                sn.warehouse as 'Warehouse'
+                sn.warehouse as 'Warehouse',
+                ({bom_weight_sum}) as 'Weight',
+                CASE
+                    WHEN {1 if is_metal else 0} = 1
+                    THEN COALESCE(b.metal_weight, 0) * COALESCE(b.metal_purity + 0, 0) / 100
+                    ELSE 0
+                END as 'Pure Gold Weight'
             FROM `tabSerial No` sn
             INNER JOIN `tabWarehouse` w ON sn.warehouse = w.name
+            LEFT JOIN `tabBOM` b ON sn.custom_bom_no = b.name
             WHERE sn.company = '{company}'
               AND sn.status = 'Active'
               AND w.warehouse_type = 'Finished Goods'
