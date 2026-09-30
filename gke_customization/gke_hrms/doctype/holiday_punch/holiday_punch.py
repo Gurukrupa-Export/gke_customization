@@ -398,83 +398,104 @@ def add_checkins(details, date, shift_name):
 
 def check_employee_punch(employee_details, shift_date, shift_name):
 
-	if not employee_details:
-		return employee_details
+    if not employee_details:
+        return employee_details
 
-	shift_doc = frappe.get_doc("Shift Type", shift_name)
+    shift_doc = frappe.get_doc("Shift Type", shift_name)
 
-	start_time_obj = get_time(shift_doc.start_time)
-	end_time_obj = get_time(shift_doc.end_time)
+    start_time_obj = get_time(shift_doc.start_time)
+    end_time_obj = get_time(shift_doc.end_time)
 
-	is_night_shift = start_time_obj > end_time_obj
+    is_night_shift = start_time_obj > end_time_obj
 
-	employee_details.sort(key=lambda x: x["time"])
+    employee_details.sort(
+        key=lambda x: get_datetime(x["time"])
+    )
 
-	shift_start_dt = get_datetime(f"{shift_date} {start_time_obj}")
-	actual_start_dt = shift_start_dt - timedelta(minutes=shift_doc.get("begin_check_in_before_shift_start_time", 0))
+    shift_start_dt = get_datetime(
+        f"{shift_date} {start_time_obj}"
+    )
 
+    if is_night_shift:
+        shift_end_date = add_to_date(shift_date, days=1)
+    else:
+        shift_end_date = shift_date
 
-	if is_night_shift:
-		shift_end_date = add_to_date(shift_date, days=1)
-	else:
-		shift_end_date = shift_date
+    shift_end_dt = get_datetime(
+        f"{shift_end_date} {end_time_obj}"
+    )
 
-	shift_end_dt = get_datetime(f"{shift_end_date} {end_time_obj}")
+    # -----------------------------------------
+    # Saare actual punches ka first/last nikaalo
+    # (window ke andar-bahar filter mat karo)
+    # -----------------------------------------
 
-	# -------------------------
-	# check if any punch after shift end
-	# -------------------------
+    all_punch_times = [
+        get_datetime(d["time"]) for d in employee_details
+    ]
 
-	for d in employee_details:
-		dt = get_datetime(d["time"])
+    if not all_punch_times:
+        return employee_details
 
-		if dt >= shift_end_dt:
-			return employee_details  # shift already completed
+    first_dt = min(all_punch_times)
+    last_dt = max(all_punch_times)
 
-	# -------------------------
-	# punches inside shift
-	# -------------------------
+    # -----------------------------------------
+    # Missing time BEFORE first actual punch
+    # Sirf tab add karo jab first punch shift
+    # start ke BAAD hua ho (pehle se hua ho to
+    # kuch add nahi karna)
+    # -----------------------------------------
 
-	punches = []
+    if first_dt > shift_start_dt:
 
-	# emp = ''
-	for d in employee_details:
-		dt = get_datetime(d["time"])
-		# emp = d.get("employee")
+        new_in = make_row(
+            employee_details,
+            "IN",
+            shift_start_dt
+        )
 
-		if actual_start_dt <= dt <= shift_end_dt:
-			punches.append(dt)
+        new_out = make_row(
+            employee_details,
+            "OUT",
+            first_dt
+        )
 
-	if not punches:
-		return employee_details
+        employee_details.append(new_in)
+        employee_details.append(new_out)
 
-	last_dt = punches[-1]
+    # -----------------------------------------
+    # Missing time AFTER last actual punch
+    # Sirf tab add karo jab last punch shift
+    # end se PEHLE hua ho
+    # -----------------------------------------
 
-	count = len(punches)
+    if last_dt < shift_end_dt:
 
-	# -------------------------
-	# odd → need OUT
-	# even → need IN + OUT
-	# -------------------------
+        new_in = make_row(
+            employee_details,
+            "IN",
+            last_dt
+        )
 
-	if count % 2 == 1:
+        new_out = make_row(
+            employee_details,
+            "OUT",
+            shift_end_dt
+        )
 
-		employee_details.append(
-			make_row(employee_details, "OUT", shift_end_dt)
-		)
+        employee_details.append(new_in)
+        employee_details.append(new_out)
 
-	else:
+    # -----------------------------------------
+    # Final sorting
+    # -----------------------------------------
 
-		employee_details.append(
-			make_row(employee_details, "IN", add_to_date(last_dt))
-			# make_row(employee_details, "IN", add_to_date(last_dt, minutes=1))
-		)
+    employee_details.sort(
+        key=lambda x: get_datetime(x["time"])
+    )
 
-		employee_details.append(
-			make_row(employee_details, "OUT", shift_end_dt)
-		)
-
-	return employee_details
+    return employee_details
 
 
 def make_row(employee_details, punch_type, dt):
