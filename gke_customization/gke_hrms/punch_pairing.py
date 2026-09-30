@@ -64,8 +64,6 @@ DEDUP_SECONDS = 120  # punches this close to the previous accepted punch are bou
 
 HUMAN_SOURCES = ("Manual Punch", "Outdoor Duty")
 
-SESSION_PAIRING_LOG = "punch_pairing"
-
 def is_session_pairing_enabled() -> bool:
     """Whether the session-based punch pairing engine is switched on."""
     if not frappe.get_meta("HR Settings").has_field("enable_session_pairing"):
