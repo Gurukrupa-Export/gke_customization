@@ -162,12 +162,13 @@ class MonthlyInOutLog(Document):
         }
 
     @frappe.whitelist()
-    def resolve_error(self, action, out_time=None, remarks=None):
+    def resolve_error(self, action, out_time=None, in_time=None, remarks=None):
         return resolve_error_day(
             employee=self.employee,
             attendance_date=self.attendance_date,
             action=action,
             out_time=out_time,
+            in_time=in_time,
             remarks=remarks,
         )
 # ============================================================
