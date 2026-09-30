@@ -190,6 +190,23 @@ function build_resolve_args(values, options) {
 		if (!moment(out_time).isAfter(moment(in_time))) {
 			return stop(__("OUT time must be after IN time."));
 		}
+		if (manual && options.shift_start && options.shift_end) {
+			const start = moment(options.shift_start);
+			const end = moment(options.shift_end);
+			if (
+				moment(in_time).isBefore(start) ||
+				moment(in_time).isAfter(end) ||
+				moment(out_time).isBefore(start) ||
+				moment(out_time).isAfter(end)
+			) {
+				return stop(
+					__(
+						"IN and OUT must be inside the shift window {0} to {1}.",
+						[fmt_dt(options.shift_start), fmt_dt(options.shift_end)]
+					)
+				);
+			}
+		}
 		args.in_time = in_time;
 		args.out_time = out_time;
 	}
@@ -351,6 +368,25 @@ function ot_preview_html(options, action, ctx = {}) {
 				"alert-danger",
 				__("OUT time must be after IN time.")
 			);
+		}
+
+		if (ctx.manual && options.shift_start && options.shift_end) {
+			const start = moment(options.shift_start);
+			const end = moment(options.shift_end);
+			if (
+				moment(in_time).isBefore(start) ||
+				moment(in_time).isAfter(end) ||
+				moment(out_time).isBefore(start) ||
+				moment(out_time).isAfter(end)
+			) {
+				return alert_html(
+					"alert-danger",
+					__(
+						"IN and OUT must be inside the shift window {0} to {1}.",
+						[b(fmt_dt(options.shift_start)), b(fmt_dt(options.shift_end))]
+					)
+				);
+			}
 		}
 
 		return alert_html(

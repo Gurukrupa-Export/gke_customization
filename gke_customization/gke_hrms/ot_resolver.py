@@ -25,7 +25,14 @@ from datetime import datetime, timedelta
 
 import frappe
 from frappe import _
-from frappe.utils import get_datetime, get_time, getdate, time_diff_in_hours
+from frappe.utils import (
+    format_datetime,
+    get_datetime,
+    get_link_to_form,
+    get_time,
+    getdate,
+    time_diff_in_hours,
+)
 from gke_customization.gke_hrms.utils import _log_exc
 
 MIL_DOCTYPE = "Monthly In-Out Log"
@@ -263,12 +270,34 @@ def _ensure_out_checkin(att, out_time, source="Manual Punch") -> str:
     """Create (or adopt) the OUT Employee Checkin and link it to the attendance,
     same as Manual Punch Entry.update_emp_checkin + the link step.
 
-    Adopts an existing checkin with the same timestamp (e.g. a late-synced
-    punch hrms skipped), so HR can pick that exact time in 'Set OUT'.
+    Adopts an existing checkin with the same timestamp only when it is
+    unlinked (e.g. a late-synced punch hrms skipped). A punch already linked
+    to an attendance is a conflict and throws, so one day can never silently
+    steal another day's punch.
     """
     existing = frappe.db.get_value(
-        "Employee Checkin", {"employee": att.employee, "time": out_time}, "name"
+        "Employee Checkin",
+        {"employee": att.employee, "time": out_time},
+        ["name", "attendance"],
+        as_dict=True,
     )
+    if existing and existing.attendance:
+        other_date = frappe.db.get_value(
+            "Attendance", existing.attendance, "attendance_date"
+        )
+        frappe.throw(
+            _(
+                "Cannot set check-out to {0}. A punch at this exact time already "
+                "belongs to attendance {1} (dated {2}). Please enter a different "
+                "check-out time, or resolve that attendance first."
+            ).format(
+                frappe.bold(format_datetime(out_time)),
+                get_link_to_form("Attendance", existing.attendance),
+                frappe.bold(frappe.format(other_date, {"fieldtype": "Date"})),
+            ),
+            title=_("Check-out Time Already Used"),
+        )
+
     # copy shift binding from the IN punch so IN/OUT belong to the same instance
     in_ci = frappe.db.get_value(
         "Employee Checkin",
@@ -279,7 +308,7 @@ def _ensure_out_checkin(att, out_time, source="Manual Punch") -> str:
     )
 
     if existing:
-        name = existing
+        name = existing.name
     else:
         ci = frappe.new_doc("Employee Checkin")
         ci.employee = att.employee
@@ -336,12 +365,26 @@ def _exclude_checkins(names, new_in, new_out, new_attendance, user) -> int:
 
 def _create_override_punch(attendance_name, employee, punch_time, log_type, shift_fields) -> str:
     """Create (or adopt) the IN/OUT punch for the granted Full Day and link it
-    to the new attendance, same as Manual Punch Entry does."""
+    to the new attendance, same as Manual Punch Entry does.
+
+    Adopts an existing same-timestamp checkin only when it is unlinked; a
+    punch already owned by another attendance is a conflict and throws.
+    """
     existing = frappe.db.get_value(
-        "Employee Checkin", {"employee": employee, "time": punch_time}, "name"
+        "Employee Checkin",
+        {"employee": employee, "time": punch_time},
+        ["name", "attendance"],
+        as_dict=True,
     )
+    if existing and existing.attendance:
+        frappe.throw(
+            _(
+                "Employee Checkin {0} at {1} is already linked to attendance {2}."
+                " Resolve that day first."
+            ).format(existing.name, punch_time, existing.attendance)
+        )
     if existing:
-        name = existing
+        name = existing.name
     else:
         ci = frappe.new_doc("Employee Checkin")
         ci.employee = employee
@@ -554,15 +597,39 @@ def delete_punch_grant_full_day(
     if new_out <= new_in:
         frappe.throw(_("OUT time must be after IN time"))
 
-    # sanity cap: same limit the pairing engine uses for one IN -> OUT session
-    from gke_customization.gke_hrms.punch_pairing import get_shift_config
-
-    max_min = get_shift_config(attendance.shift)["max_session"]
-    if new_out - new_in > timedelta(minutes=max_min):
+    # granted Full Day must stay inside the attendance date's shift window
+    # (night-shift safe), same window rule Manual Punch Entry enforces
+    st = frappe.get_cached_value("Shift Type", attendance.shift, "start_time")
+    shift_start = datetime.combine(attendance_date, get_time(st))
+    shift_end = _shift_end_datetime(shift_start, attendance.shift)
+    if not (
+        shift_start <= new_in <= shift_end and shift_start <= new_out <= shift_end
+    ):
         frappe.throw(
-            _("IN to OUT is more than {0} hours. Please check the times.").format(
-                max_min // 60
-            )
+            _(
+                "IN and OUT must be inside the shift window {0} to {1}."
+                " A Full Day cannot be granted over another day's punches."
+            ).format(shift_start, shift_end)
+        )
+
+    # overlap guard: no other submitted attendance may own a punch inside the
+    # granted window (list-style filters: repeated "attendance" key)
+    conflicts = frappe.get_all(
+        "Employee Checkin",
+        filters=[
+            ["employee", "=", employee],
+            ["time", "between", [new_in, new_out]],
+            ["attendance", "is", "set"],
+            ["attendance", "!=", attendance.name],
+        ],
+        pluck="attendance",
+    )
+    if conflicts:
+        frappe.throw(
+            _(
+                "Punches inside this window already belong to attendance {0}."
+                " Resolve that day first."
+            ).format(", ".join(sorted(set(conflicts))))
         )
 
     # punches to exclude: everything linked to the day's attendance, plus
@@ -611,12 +678,10 @@ def delete_punch_grant_full_day(
         exclude_names, new_in, new_out, att_doc.name, resolved_by or "System"
     )
 
-    st = frappe.get_cached_value("Shift Type", attendance.shift, "start_time")
-    shift_start = datetime.combine(attendance_date, get_time(st))
     shift_fields = {
         "shift": attendance.shift,
         "shift_start": shift_start,
-        "shift_end": _shift_end_datetime(shift_start, attendance.shift),
+        "shift_end": shift_end,
     }
     _create_override_punch(att_doc.name, employee, new_in, "IN", shift_fields)
     _create_override_punch(att_doc.name, employee, new_out, "OUT", shift_fields)
