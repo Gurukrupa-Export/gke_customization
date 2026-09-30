@@ -488,6 +488,7 @@ def process_data(attendance_details, date_range, holiday_map, employee_details, 
 				"late_hrs": _format_time_value(record.get("late_hrs")),
 				"early_hrs": _format_time_value(record.get("early_hrs")),
 				"p_out_hrs": _format_time_value(record.get("p_out_hrs")),
+				"p_out_deduction_hrs": _format_time_value(timedelta(seconds=record.get("p_out_deduction_hrs") or 0)), #<-- changes
 				"net_wrk_hrs": _format_time_value(net_wrk_hrs_val) if net_wrk_hrs_val is not None else (_format_time_value(record.get("net_wrk_hrs")) or "0:00:00"),
 				"lh": record.get("lh") or 0,
 				"ot_hours": _format_time_value(ot_hours),
