@@ -160,7 +160,7 @@ scheduler_events = {
     "cron": {
         "0 4 * * *": [
             # session pairing: correct delayed/out-of-order punches, flag broken sequences
-            "gke_customization.gke_hrms.punch_pairing.nightly_reconciliation",
+            "gke_customization.gke_hrms.punch_pairing.run_nightly_punch_reconciliation",
         ],
         "5 8 * * *": [
             # error-punch resolution + flagging after the daily auto-attendance run (07:25)

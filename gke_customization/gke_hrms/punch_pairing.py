@@ -18,12 +18,15 @@ Rules (evaluated in order):
                     (personal out / gate bounce inside the intake window);
                   - the open session belongs to the PREVIOUS instance, the punch
                     is still inside that instance's check-out window and closer to
-                    its end than to this instance's start (night -> day rotation:
+                    the window's end (actual_end) than to this instance's start
+                    (early-morning next-day checkout / night -> day rotation:
                     the night OUT at 06:30 must not become the day shift's IN).
   R2 Close    : open session exists and punch is within max_session_length of the
                 session IN -> OUT, closes the session (works across midnight).
-  R3 Return   : no open session, punch inside a shift's [S, shift_end] span ->
-                IN (return from personal out), bound to that instance.
+  R3 Return   : no open session, punch inside a shift's
+                [S, shift_end + allow_check_out_after_shift_end_time] span ->
+                IN (return from personal out / late entry), bound to that
+                instance (matches legacy window containment).
   R4 Stale    : open session older than max_session_length -> punch starts a NEW
                 session (IN); the stale session surfaces as a punch_error on
                 attendance instead of creating a 24h+ session silently.
@@ -61,9 +64,11 @@ DEDUP_SECONDS = 120  # punches this close to the previous accepted punch are bou
 
 HUMAN_SOURCES = ("Manual Punch", "Outdoor Duty")
 
-SESSION_PAIRING_LOG = "punch_pairing"
-
 def is_session_pairing_enabled() -> bool:
+    """Whether the session-based punch pairing engine is switched on."""
+    if not frappe.get_meta("HR Settings").has_field("enable_session_pairing"):
+        return False
+
     return cint(
         frappe.db.get_single_value("HR Settings", "enable_session_pairing")
     )
@@ -72,7 +77,7 @@ def _log(message):
     frappe.log_error(_("Punch Pairing"), _(message))
 
 
-def get_shift_cfg(shift_name: str) -> dict:
+def get_shift_config(shift_name: str) -> dict:
     """Shift-level knobs for the engine. Falls back to defaults when the
     custom columns/fields are not present yet (pre-patch)."""
     cfg = {
@@ -88,6 +93,7 @@ def get_shift_cfg(shift_name: str) -> dict:
         [
             "late_entry_grace_period",
             "early_check_in_horizon",
+            "begin_check_in_before_shift_start_time",
             "max_session_length",
         ],
         as_dict=True,
@@ -95,7 +101,11 @@ def get_shift_cfg(shift_name: str) -> dict:
     if not vals:
         return cfg
     cfg["grace"] = cint(vals.get("late_entry_grace_period"))
-    cfg["early"] = cint(vals.get("early_check_in_horizon")) or DEFAULT_EARLY_HORIZON_MIN
+    # intake opening can never be narrower than the legacy early window
+    cfg["early"] = max(
+        cint(vals.get("early_check_in_horizon")) or DEFAULT_EARLY_HORIZON_MIN,
+        cint(vals.get("begin_check_in_before_shift_start_time")),
+    )
     cfg["max_session"] = cint(vals.get("max_session_length")) or DEFAULT_MAX_SESSION_MIN
     return cfg
 
@@ -105,20 +115,21 @@ def get_shift_cfg(shift_name: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def _instance_cache():
-    if not hasattr(frappe.local, "_pp_instance_cache"):
-        frappe.local._pp_instance_cache = {}
-    return frappe.local._pp_instance_cache
+def _shift_instance_cache():
+    if not hasattr(frappe.local, "_pp_shift_instance_cache"):
+        frappe.local._pp_shift_instance_cache = {}
+    return frappe.local._pp_shift_instance_cache
 
 
-def get_instances_around(employee: str, for_dt: datetime) -> list[dict]:
-    """Shift instances (prev/curr/next) around a datetime, with engine knobs.
+def get_shift_instances_for_datetime(employee: str, for_dt: datetime) -> list[dict]:
+    """Previous, current and next shift instances for a datetime, with
+    engine knobs.
 
     Each instance: shift_type, start_datetime, end_datetime, actual_start,
     actual_end, early, grace, max_session.
     """
     key = (employee, for_dt.replace(second=0, microsecond=0))
-    cache = _instance_cache()
+    cache = _shift_instance_cache()
     if key in cache:
         return cache[key]
 
@@ -136,7 +147,7 @@ def get_instances_around(employee: str, for_dt: datetime) -> list[dict]:
         if k in seen:
             continue
         seen.add(k)
-        cfg = get_shift_cfg(s.shift_type.name)
+        cfg = get_shift_config(s.shift_type.name)
         instances.append(
             {
                 "shift_type": s.shift_type.name,
@@ -160,7 +171,9 @@ def get_instances_around(employee: str, for_dt: datetime) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def _intake_window(inst: dict) -> tuple[datetime, datetime]:
+def get_shift_checkin_window(inst: dict) -> tuple[datetime, datetime]:
+    """First and last datetime at which a punch counts as an IN for the
+    shift instance (early horizon to grace/2h past start)."""
     start = inst["start_datetime"]
     intake_end_minutes = max(inst["grace"], INTAKE_MIN_MINUTES)
     return (
@@ -169,9 +182,11 @@ def _intake_window(inst: dict) -> tuple[datetime, datetime]:
     )
 
 
-def _apply_rules(
+def get_pairing_result_for_punch(
     for_dt: datetime, instances: list[dict], open_session: dict | None
 ) -> dict:
+    """Evaluate the pairing rules (DUP/R1-R5) for one punch against the
+    shift instances and the open work session."""
     # R1 - intake: nearest shift wins on overlapping zones (iterate reversed).
     # A punch inside an intake window CLOSES the open session instead of
     # starting a new one when:
@@ -179,12 +194,13 @@ def _apply_rules(
     #       gate bounce inside the intake window), or
     #   (b) the open session is for the PREVIOUS instance, the punch is still
     #       inside that instance's check-out window (actual_end) and is closer
-    #       to that instance's end than to this instance's start (night -> day
-    #       rotation). Otherwise intake wins over an open session of a
+    #       to that check-out window's end than to this instance's start
+    #       (early-morning next-day checkout / night -> day rotation).
+    #       Otherwise intake wins over an open session of a
     #       different (earlier) instance — that keeps the forgot-checkout case
     #       (next-day arrival) starting a new day.
     for inst in reversed(instances):
-        intake_start, intake_end = _intake_window(inst)
+        intake_start, intake_end = get_shift_checkin_window(inst)
         if intake_start <= for_dt <= intake_end:
             oi = open_session.get("instance") if open_session else None
             if oi and oi.get("start_datetime"):
@@ -192,7 +208,7 @@ def _apply_rules(
                 closes_prev = (
                     not same
                     and for_dt <= (oi.get("actual_end") or oi["end_datetime"])
-                    and (for_dt - oi["end_datetime"])
+                    and (for_dt - (oi.get("actual_end") or oi["end_datetime"]))
                     <= (inst["start_datetime"] - for_dt)
                 )
                 if same or closes_prev:
@@ -229,20 +245,24 @@ def _apply_rules(
             "flag": "STALE_SESSION",
         }
 
-    # R3 - return from personal out (inside an active shift span)
+    # R3 - return from personal out (inside the shift's check-in/check-out
+    # window, i.e. up to shift_end + allow_check_out_after_shift_end_time),
+    # so a post-shift-end punch with no open session still binds to the
+    # shift exactly like legacy window containment instead of orphaning.
     for inst in reversed(instances):
-        if inst["start_datetime"] <= for_dt <= inst["end_datetime"]:
+        span_end = inst.get("actual_end") or inst["end_datetime"]
+        if inst["start_datetime"] <= for_dt <= span_end:
             return {"rule": "R3", "log_type": "IN", "instance": inst, "flag": None}
 
     # R5 - orphan
     return {"rule": "R5", "log_type": None, "instance": None, "flag": "ORPHAN"}
 
 
-def classify_stream(punches: list[dict], instances_getter) -> list[dict]:
-    """Classify an ordered punch stream in memory.
+def determine_in_out_for_punches(punches: list[dict], shift_instances_getter) -> list[dict]:
+    """Decide the IN/OUT result for each punch in a chronological list.
 
     punches: [{name, time, ...}] chronological.
-    instances_getter(employee, time) -> list of instance dicts.
+    shift_instances_getter(employee, time) -> list of instance dicts.
     Returns the punches with `result` attached.
 
     A punch within DEDUP_SECONDS of the previous ACCEPTED punch is a device
@@ -254,13 +274,13 @@ def classify_stream(punches: list[dict], instances_getter) -> list[dict]:
 
     out = []
     for p in punches:
-        dt = get_datetime(p["time"])
+        dt = p["time"]
 
         if last_dt is not None and 0 <= (dt - last_dt).total_seconds() <= DEDUP_SECONDS:
             result = {"rule": "DUP", "log_type": None, "instance": None, "flag": "DUPLICATE"}
         else:
-            instances = instances_getter(employee, dt)
-            result = _apply_rules(dt, instances, open_session)
+            instances = shift_instances_getter(employee, dt)
+            result = get_pairing_result_for_punch(dt, instances, open_session)
             last_dt = dt
 
             if result["rule"] in ("R1", "R3", "R4"):
@@ -280,8 +300,9 @@ def classify_stream(punches: list[dict], instances_getter) -> list[dict]:
 # Punch classification (reads punch history from DB)
 # ---------------------------------------------------------------------------
 
-def _history(employee: str, before_dt: datetime) -> list[dict]:
-    """Last punches before before_dt inside the history window."""
+def get_employee_checkin_history(employee: str, before_dt: datetime) -> list[dict]:
+    """Last Employee Checkins of the employee before before_dt, inside the
+    history window."""
     rows = frappe.get_all(
         "Employee Checkin",
         filters=[
@@ -296,15 +317,16 @@ def _history(employee: str, before_dt: datetime) -> list[dict]:
     return rows
 
 
-def classify_punch(employee: str, punch_dt: datetime) -> dict:
-    """Classify one punch against the employee's recent punch history.
+def determine_punch_in_out(employee: str, punch_dt: datetime) -> dict:
+    """Decide the IN/OUT log type and shift instance for one punch, against
+    the employee's recent checkin history.
+    punch_dt must already be a datetime (callers pass get_datetime()).
     Returns {rule, log_type, instance, flag}."""
-    punch_dt = get_datetime(punch_dt)
-    history = _history(employee, punch_dt)
+    history = get_employee_checkin_history(employee, punch_dt)
     stream = history + [
         {"name": None, "employee": employee, "time": punch_dt, "log_type": None}
     ]
-    results = classify_stream(stream, get_instances_around)
+    results = determine_in_out_for_punches(stream, get_shift_instances_for_datetime)
     return results[-1]["result"]
 
 
@@ -313,8 +335,9 @@ def classify_punch(employee: str, punch_dt: datetime) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def bind_checkin(doc, result: dict) -> None:
-    """Stamp an Employee Checkin doc with the classification result."""
+def apply_punch_result_to_checkin(doc, result: dict) -> None:
+    """Write the punch result onto the Employee Checkin doc: log type,
+    shift binding and punch rule."""
     # Device bounce / double swipe: keep the row, never let it enter attendance.
     if result and result.get("rule") == "DUP":
         doc.skip_auto_attendance = 1
@@ -357,8 +380,29 @@ def bind_checkin(doc, result: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _reclassify_range(employee: str, from_dt: datetime, to_dt: datetime) -> dict:
-    """Re-run the engine over a window and correct stored classifications.
+def punch_needs_update(p, result) -> bool:
+    """Whether applying the result to the stored checkin would change any
+    stored value."""
+    inst = result.get("instance")
+    new_log = result.get("log_type")
+    changed = False
+    if new_log and p.log_type != new_log:
+        changed = True
+    if inst:
+        if p.shift != inst["shift_type"]:
+            changed = True
+        elif p.shift_start and get_datetime(p.shift_start) != get_datetime(
+            inst["start_datetime"]
+        ):
+            changed = True
+    elif result.get("rule") == "R5" and not cint(p.offshift or 0):
+        changed = True
+    return changed
+
+
+def reclassify_employee_checkins(employee: str, from_dt: datetime, to_dt: datetime) -> dict:
+    """Re-run the engine on the employee's checkins between from_dt and
+    to_dt and correct the stored classifications.
 
     Only touches checkins that are not linked to a submitted attendance
     (those are flagged for human review instead of silently rewritten).
@@ -390,7 +434,7 @@ def _reclassify_range(employee: str, from_dt: datetime, to_dt: datetime) -> dict
     if not punches:
         return {"checked": 0, "corrected": 0, "flagged": 0}
 
-    results = classify_stream(punches, get_instances_around)
+    results = determine_in_out_for_punches(punches, get_shift_instances_for_datetime)
     corrected = flagged = 0
 
     for p, with_result in zip(punches, results):
@@ -412,24 +456,7 @@ def _reclassify_range(employee: str, from_dt: datetime, to_dt: datetime) -> dict
                 corrected += 1
             continue
 
-        def _differs(p, result):
-            inst = result.get("instance")
-            new_log = result.get("log_type")
-            changed = False
-            if new_log and p.log_type != new_log:
-                changed = True
-            if inst:
-                if p.shift != inst["shift_type"]:
-                    changed = True
-                elif p.shift_start and get_datetime(p.shift_start) != get_datetime(
-                    inst["start_datetime"]
-                ):
-                    changed = True
-            elif result.get("rule") == "R5" and not cint(p.offshift or 0):
-                changed = True
-            return changed
-
-        if not _differs(p, result):
+        if not punch_needs_update(p, result):
             continue
 
         if p.attendance:
@@ -447,7 +474,7 @@ def _reclassify_range(employee: str, from_dt: datetime, to_dt: datetime) -> dict
             continue
 
         inst = result.get("instance")
-        update = {"punch_rule": result.get("rule")} if _has_punch_rule_column() else {}
+        update = {"punch_rule": result.get("rule")}
         if result.get("rule") == "R5":
             update.update({"offshift": 1, "shift": None, "log_type": None})
         else:
@@ -473,29 +500,16 @@ def _reclassify_range(employee: str, from_dt: datetime, to_dt: datetime) -> dict
     return {"checked": len(punches), "corrected": corrected, "flagged": flagged}
 
 
-def _has_punch_rule_column() -> bool:
-    try:
-        return bool(
-            frappe.db.sql(
-                "SELECT `fieldname` FROM `tabCustom Field` "
-                "WHERE `dt`='Employee Checkin' AND `fieldname`='punch_rule'",
-                as_dict=True,
-            )
-        )
-    except Exception:
-        return False
-
-
-def rebuild_employee(employee: str, from_dt: datetime = None) -> dict:
-    """Public helper: re-run classification for one employee (used by tests
-    and correction flows)."""
+def reclassify_recent_checkins(employee: str, from_dt: datetime = None) -> dict:
+    """Reclassify the employee's checkins of the last RECONCILE_DAYS (used
+    by tests and correction flows)."""
     from_dt = get_datetime(from_dt) or frappe.utils.now_datetime() - timedelta(
         days=RECONCILE_DAYS
     )
-    return _reclassify_range(employee, from_dt, frappe.utils.now_datetime())
+    return reclassify_employee_checkins(employee, from_dt, frappe.utils.now_datetime())
 
 
-def nightly_reconciliation():
+def run_nightly_punch_reconciliation():
     """Scheduled daily (04:00): reprocess recent punches, correct delayed or
     out-of-order biometric data, and flag mismatched attendances."""
     if not is_session_pairing_enabled():
@@ -514,7 +528,7 @@ def nightly_reconciliation():
     totals = {"employees": len(employees), "checked": 0, "corrected": 0, "flagged": 0}
     for i, employee in enumerate(employees):
         try:
-            stats = _reclassify_range(employee, from_dt, now)
+            stats = reclassify_employee_checkins(employee, from_dt, now)
             for k in ("checked", "corrected", "flagged"):
                 totals[k] += stats[k]
         except Exception:
@@ -523,26 +537,21 @@ def nightly_reconciliation():
             frappe.db.commit()
 
     # flag attendances whose linked punch sequence is not a clean IN..OUT chain
-    _flag_recent_attendances(from_dt, now)
+    from gke_customization.gke_hrms.attendance_flags import flag_recent_attendances
+
+    flag_recent_attendances()
     # surface orphan punches (R5) that belong to no session/shift so they
     # reach the regularization queue instead of being silently invisible
-    _flag_orphan_checkins(from_dt)
+    _create_todos_for_unpaired_checkins(from_dt)
 
     frappe.db.commit()
     _log(f"Nightly reconciliation completed.\n" f"Totals: {totals}")
     return totals
 
 
-def _flag_recent_attendances(from_dt, to_dt):
-    """Flag submitted attendances whose linked punch sequence is broken."""
-    from gke_customization.gke_hrms.attendance_flags import flag_recent_attendances
-
-    flag_recent_attendances()
-
-
-def _flag_orphan_checkins(from_dt):
-    """Raise one ToDo per employee/day for punches that the engine could not
-    classify (R5: offshift / no direction). Throttled: skips if an open ToDo
+def _create_todos_for_unpaired_checkins(from_dt):
+    """Create one ToDo per employee/day for checkins the engine could not
+    pair (R5: offshift / no direction). Throttled: skips if an open ToDo
     already references a checkin of that employee+day."""
     orphans = frappe.get_all(
         "Employee Checkin",
@@ -578,7 +587,7 @@ def _flag_orphan_checkins(from_dt):
             frappe.get_doc(
                 {
                     "doctype": "ToDo",
-                    "allocated_to": _get_hr_user(checkin),
+                    "allocated_to": get_attendance_review_user(checkin),
                     "reference_type": "Employee Checkin",
                     "reference_name": checkin.name,
                     "description": (
@@ -596,7 +605,7 @@ def _flag_orphan_checkins(from_dt):
                 f"{frappe.get_traceback()}"
             )
 
-def _get_hr_user(doc):
+def get_attendance_review_user(doc):
     """Route attendance review ToDos to the employee's reviewer,
     default HR reviewer, or Administrator."""
     reviewer = frappe.db.get_value("Employee", doc.employee, "attendance_review_by")

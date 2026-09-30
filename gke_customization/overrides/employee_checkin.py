@@ -28,14 +28,14 @@ class CustomEmployeeCheckin(EmployeeCheckin):
         """Session-based punch pairing (default) with legacy fallback,
         controlled by the HR Settings switch (enable_session_pairing)."""
         from gke_customization.gke_hrms.punch_pairing import (
-                bind_checkin,
-                classify_punch,
+                apply_punch_result_to_checkin,
+                determine_punch_in_out,
                 is_session_pairing_enabled,
             )
 
 
         if is_session_pairing_enabled():
-            bind_checkin(self, classify_punch(self.employee, get_datetime(self.time)))
+            apply_punch_result_to_checkin(self, determine_punch_in_out(self.employee, get_datetime(self.time)))
             return
 
         return self._legacy_fetch_shift()

@@ -22,6 +22,7 @@ from datetime import datetime, timedelta
 import frappe
 from frappe import _
 from frappe.utils import get_datetime, get_time, getdate, time_diff_in_hours
+from gke_customization.gke_hrms.utils import _log_exc
 
 MIL_DOCTYPE = "Monthly In-Out Log"
 
@@ -71,7 +72,7 @@ def get_approved_ot(employee, attendance_date):
     )
 
 
-def get_mil_attendance(mil_doc):
+def get_monthly_in_out_log_attendance(mil_doc):
     """Submitted Attendance row for a card (linked one first, else employee+date)."""
     filters = {"docstatus": 1}
     if mil_doc.get("attendance"):
@@ -126,7 +127,7 @@ def _ot_note(att, ot) -> str:
     return "no approved OT" if att.punch_error else ""
 
 
-def _stranded_punches_note(att) -> str:
+def get_unlinked_punches_note(att) -> str:
     """Punches hrms skipped because the attendance already existed (late sync).
 
     hrms marks them skip_auto_attendance=1 and never links them, so they are
@@ -193,7 +194,7 @@ def build_punch_ledger(att, ot=None) -> str:
         if shift:
             line += f" | shift {shift.start_time}–{shift.end_time}"
 
-    stranded = _stranded_punches_note(att)
+    stranded = get_unlinked_punches_note(att)
     if stranded:
         line += f" | {stranded}"
 
@@ -232,10 +233,7 @@ def get_error_context(mil_doc, att) -> dict:
 
         return {k: v for k, v in ctx.items() if (mil_doc.get(k) or "") != v}
     except Exception:
-        frappe.log_error(
-            title="Monthly In-Out Log: error context failed",
-            message=frappe.get_traceback(),
-        )
+        _log_exc("Monthly In-Out Log: error context failed")
         return {}
 
 
@@ -340,6 +338,23 @@ def _set_attendance_out(attendance_name, in_time, out_time) -> float:
     return updates["working_hours"]
 
 
+def get_unlinked_punch_between(employee, start, end):
+    """First unlinked, non-skipped punch inside [start, end], or None.
+    Shared conflict guard for both auto-resolution paths below."""
+    rows = frappe.get_all(
+        "Employee Checkin",
+        filters={
+            "employee": employee,
+            "time": ["between", [start, end]],
+            "attendance": ("is", "not set"),
+            "skip_auto_attendance": 0,
+        },
+        pluck="name",
+        limit=1,
+    )
+    return rows[0] if rows else None
+
+
 def try_resolve_with_approved_ot(
     attendance_doc, error_hint=None, resolved_by=None, remarks=None
 ) -> dict:
@@ -366,23 +381,13 @@ def try_resolve_with_approved_ot(
         seconds=int(ot.allowed_ot.total_seconds())
     )
 
-    # no stray unlinked punch inside the window contradicting the assumed close
-    stray = frappe.get_all(
-        "Employee Checkin",
-        filters={
-            "employee": attendance_doc.employee,
-            "time": ["between", [in_time, expected_out]],
-            "attendance": ("is", "not set"),
-            "skip_auto_attendance": 0,
-        },
-        pluck="name",
-        limit=1,
-    )
+    # no unlinked punch inside the window contradicting the assumed close
+    stray = get_unlinked_punch_between(attendance_doc.employee, in_time, expected_out)
     if stray:
-        return {"status": "conflict", "stray": stray[0], "expected_out": expected_out}
+        return {"status": "conflict", "stray": stray, "expected_out": expected_out}
 
     hours = _set_attendance_out(attendance_doc.name, in_time, expected_out)
-    _update_mil(
+    update_monthly_in_out_log_resolution(
         attendance_doc.employee,
         attendance_doc.attendance_date,
         RES_HR if resolved_by else RES_AUTO_OT,
@@ -411,23 +416,13 @@ def auto_close_at_shift_end(attendance_doc, resolved_by=None, remarks=None) -> d
     if expected_out <= in_time:
         return {"status": "skip"}
 
-    # same guard as the OT resolver: no unlinked punch contradicting the close
-    stray = frappe.get_all(
-        "Employee Checkin",
-        filters={
-            "employee": attendance_doc.employee,
-            "time": ["between", [in_time, expected_out]],
-            "attendance": ("is", "not set"),
-            "skip_auto_attendance": 0,
-        },
-        pluck="name",
-        limit=1,
-    )
+    # same guard as the approved-OT path: no unlinked punch contradicting the close
+    stray = get_unlinked_punch_between(attendance_doc.employee, in_time, expected_out)
     if stray:
-        return {"status": "conflict", "stray": stray[0], "expected_out": expected_out}
+        return {"status": "conflict", "stray": stray, "expected_out": expected_out}
 
     hours = _set_attendance_out(attendance_doc.name, in_time, expected_out)
-    _update_mil(
+    update_monthly_in_out_log_resolution(
         attendance_doc.employee,
         attendance_doc.attendance_date,
         RES_AUTO_CLOSE,
@@ -515,7 +510,7 @@ def resolve_error_day(employee, attendance_date, action, out_time=None, remarks=
     user = frappe.session.user
 
     if action == "reject":
-        _update_mil(
+        update_monthly_in_out_log_resolution(
             employee, attendance_date, RES_REJECTED, user, "Resolution rejected", remarks
         )
         _close_todos(attendance.name, "Cancelled")
@@ -575,9 +570,9 @@ def resolve_error_day(employee, attendance_date, action, out_time=None, remarks=
         frappe.throw(_("OUT time must be after the last punch ({0})").format(floor))
 
     # sanity cap: same limit the pairing engine uses for one IN -> OUT session
-    from gke_customization.gke_hrms.punch_pairing import get_shift_cfg
+    from gke_customization.gke_hrms.punch_pairing import get_shift_config
 
-    max_min = get_shift_cfg(attendance.shift)["max_session"]
+    max_min = get_shift_config(attendance.shift)["max_session"]
     if new_out - in_time > timedelta(minutes=max_min):
         frappe.throw(
             _("OUT is more than {0} hours after IN ({1}). Please check the date.").format(
@@ -586,7 +581,7 @@ def resolve_error_day(employee, attendance_date, action, out_time=None, remarks=
         )
 
     hours = _set_attendance_out(attendance.name, in_time, new_out)
-    _update_mil(employee, attendance_date, RES_HR, user, f"OUT set to {new_out}", remarks)
+    update_monthly_in_out_log_resolution(employee, attendance_date, RES_HR, user, f"OUT set to {new_out}", remarks)
     return {"status": "resolved", "out_time": new_out, "hours": hours}
 
 
@@ -595,7 +590,7 @@ def resolve_error_day(employee, attendance_date, action, out_time=None, remarks=
 # ---------------------------------------------------------------------------
 
 
-def ensure_mil(employee, attendance_date) -> str | None:
+def ensure_monthly_in_out_log(employee, attendance_date) -> str | None:
     """Get-or-create the card for an employee-date (creation auto-populates)."""
     attendance_date = getdate(attendance_date)
     name = frappe.db.exists(
@@ -611,17 +606,14 @@ def ensure_mil(employee, attendance_date) -> str | None:
         mil.insert(ignore_permissions=True)
         return mil.name
     except Exception:
-        frappe.log_error(
-            frappe.get_traceback(),
-            f"Monthly In-Out Log auto-creation failed for {employee}/{attendance_date}",
-        )
+        _log_exc(f"Monthly In-Out Log auto-creation failed for {employee}/{attendance_date}")
         return None
 
 
-def _update_mil(employee, attendance_date, status, actor, text, remarks=None):
+def update_monthly_in_out_log_resolution(employee, attendance_date, status, actor, text, remarks=None):
     """Write the resolution to the card (creating it if needed), then
     re-populate so ledger / hours reflect the resolved state."""
-    name = ensure_mil(employee, attendance_date)
+    name = ensure_monthly_in_out_log(employee, attendance_date)
     if not name:
         return
     note = f"{actor}: {text}" + (f" | {remarks}" if remarks else "")
@@ -634,7 +626,4 @@ def _update_mil(employee, attendance_date, status, actor, text, remarks=None):
     try:
         frappe.get_doc(MIL_DOCTYPE, name).populate_from_attendance()
     except Exception:
-        frappe.log_error(
-            frappe.get_traceback(),
-            f"MIL refresh after resolution failed for {employee}/{attendance_date}",
-        )
+        _log_exc(f"MIL refresh after resolution failed for {employee}/{attendance_date}")
