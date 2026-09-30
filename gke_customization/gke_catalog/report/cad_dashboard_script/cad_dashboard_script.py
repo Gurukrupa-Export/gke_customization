@@ -21,21 +21,38 @@ TAB_ACCESS_MAP = {
 	"sandeep_m@gkexport.com": set(ALL_TABS),
 	"gr@gkexport.com": set(ALL_TABS),
 	"arun_l@gkexport.com": {"nova_glow"},
-	"ashish_m@gkexport.com": {"open_setting"},
+	"ashish_m@gkexport.com": {"open_setting", "close_open_setting"},
 }
 
 ROLE_TAB_ACCESS = {
 	"System Manager": set(ALL_TABS),
 	"Computer Aided Designer - ST - GE": set(ALL_TABS),
-    "Designer":set(ALL_TABS),
+	"Designer": set(ALL_TABS),
+	"CAD Hod": set(ALL_TABS),
+	"Coordinator - ST - GE": set(ALL_TABS),
 }
 
 
 def _allowed_tabs(user):
+	"""Priority order:
+	1. Administrator / System Manager -> every tab, always.
+	2. A user listed in TAB_ACCESS_MAP -> exactly the tabs listed there
+	   (this overrides role-based access, so e.g. a CAD Hod listed with only
+	   "nova_glow" does NOT also inherit the CAD Hod role's all-tabs access).
+	3. Everyone else -> union of the tabs granted by their roles.
+	"""
 	if user == "Administrator":
 		return set(ALL_TABS)
-	allowed = set(TAB_ACCESS_MAP.get(user, set()))
-	for role in frappe.get_roles(user):
+
+	roles = set(frappe.get_roles(user))
+	if "System Manager" in roles:
+		return set(ALL_TABS)
+
+	if user in TAB_ACCESS_MAP:
+		return set(TAB_ACCESS_MAP[user])
+
+	allowed = set()
+	for role in roles:
 		allowed |= ROLE_TAB_ACCESS.get(role, set())
 	return allowed
 
@@ -55,6 +72,8 @@ DESIGNER_SCOPE_EXEMPT_ROLES = {
 	"CEO",
 	"Branch Manager",
 	"Department Manager",
+	"CAD Hod",
+	"Coordinator - ST - GE",
 }
 
 
@@ -442,6 +461,7 @@ def _apply_matrix_filter(rows, matrix_filter, status_filter=None):
 	with either view. Neither touches the KPI strip, designer workload, or
 	alerts sections, which always reflect the full filtered order set.
 	"""
+	rows = [row for row in rows if row.workflow_state != "Cancelled"]
 	if matrix_filter in ("gk_stock", "customer_stock", "customer_order"):
 		rows = [row for row in rows if _classify_stock(row) == matrix_filter]
 	if status_filter:
@@ -993,3 +1013,65 @@ def get_order_thumbnails(order_names):
 		for name in order_names
 		if name in image_by_name
 	]
+
+
+# ---------------------------------------------------------------------------
+# Order-notifications KPI tile. Same underlying "Notification Log" table that
+# feeds the standard navbar bell (assignment / mention / share / etc. land
+# there for every doctype) - this just narrows it to document_type = "Order"
+# and the current session user, so the dashboard can surface an Order-only
+# unread count without the user having to dig through the bell for it.
+# ---------------------------------------------------------------------------
+
+
+@frappe.whitelist()
+def get_order_notification_count():
+	return frappe.db.count(
+		"Notification Log",
+		filters={"for_user": frappe.session.user, "document_type": "Order", "read": 0},
+	)
+
+
+@frappe.whitelist()
+def get_order_notifications():
+	"""Unread Order notifications for the current user, grouped by type
+	(Assignment / Mention / ... - whatever `Notification Log.type` holds) so
+	the popup can show them as categories instead of one flat list.
+	"""
+	user = frappe.session.user
+	rows = frappe.get_all(
+		"Notification Log",
+		filters={"for_user": user, "document_type": "Order", "read": 0},
+		fields=["name", "subject", "type", "document_name", "from_user", "creation"],
+		order_by="creation desc",
+		limit_page_length=0,
+	)
+
+	groups = {}
+	order = []
+	for row in rows:
+		key = row.type or _("Other")
+		if key not in groups:
+			groups[key] = []
+			order.append(key)
+		groups[key].append(row)
+
+	return {
+		"count": len(rows),
+		"categories": [{"type": key, "items": groups[key]} for key in order],
+	}
+
+
+@frappe.whitelist()
+def mark_order_notification_read(name):
+	frappe.db.set_value("Notification Log", name, "read", 1, update_modified=False)
+
+
+@frappe.whitelist()
+def mark_all_order_notifications_read():
+	frappe.db.set_value(
+		"Notification Log",
+		{"for_user": frappe.session.user, "document_type": "Order", "read": 0},
+		"read",
+		1,
+	)
