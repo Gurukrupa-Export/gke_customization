@@ -1940,10 +1940,10 @@ def create_only_variant_from_order(self,source_name, target_doc=None):
 		
 		target.order_form_type = 'Order'
 		if db_data['item_group'] == 'Design DNU':
-			target.item_group = "Design DNU",
+			target.item_group = "Design DNU"
 			target.sequence = suffix
 		else:
-			target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V",		
+			target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V"		
 			target.sequence = item_code[2:7]
 		target.item_code = item_code
 		target.custom_cad_order_id = source_name
