@@ -33,6 +33,7 @@ from frappe.utils import (
     getdate,
     time_diff_in_hours,
 )
+
 from gke_customization.gke_hrms.utils import _log_exc
 
 MIL_DOCTYPE = "Monthly In-Out Log"
@@ -112,8 +113,15 @@ def get_monthly_in_out_log_attendance(mil_doc):
         "Attendance",
         filters,
         [
-            "name", "employee", "status", "attendance_date", "in_time", "out_time",
-            "working_hours", "shift", "punch_error",
+            "name",
+            "employee",
+            "status",
+            "attendance_date",
+            "in_time",
+            "out_time",
+            "working_hours",
+            "shift",
+            "punch_error",
         ],
         as_dict=True,
     )
@@ -363,7 +371,9 @@ def _exclude_checkins(names, new_in, new_out, new_attendance, user) -> int:
     return len(rows)
 
 
-def _create_override_punch(attendance_name, employee, punch_time, log_type, shift_fields) -> str:
+def _create_override_punch(
+    attendance_name, employee, punch_time, log_type, shift_fields
+) -> str:
     """Create (or adopt) the IN/OUT punch for the granted Full Day and link it
     to the new attendance, same as Manual Punch Entry does.
 
@@ -450,7 +460,11 @@ def _set_attendance_out(attendance_name, in_time, out_time) -> float:
         "early_exit": calc["early_exit"],
         "punch_error": "",
     }
-    if att.status in ("Present", "Absent", "Half Day"):  # never overwrite leave / WFH etc.
+    if att.status in (
+        "Present",
+        "Absent",
+        "Half Day",
+    ):  # never overwrite leave / WFH etc.
         updates["status"] = calc["status"]
 
     frappe.db.set_value("Attendance", att.name, updates, update_modified=True)
@@ -515,7 +529,12 @@ def try_resolve_with_approved_ot(
         f"OUT set to {expected_out} per approved OT {ot.name}",
         remarks,
     )
-    return {"status": "resolved", "out_time": expected_out, "hours": hours, "ot": ot.name}
+    return {
+        "status": "resolved",
+        "out_time": expected_out,
+        "hours": hours,
+        "ot": ot.name,
+    }
 
 
 def auto_close_at_shift_end(attendance_doc, resolved_by=None, remarks=None) -> dict:
@@ -578,6 +597,7 @@ def delete_punch_grant_full_day(
             )
         )
 
+    # Need to check this behaviour
     if attendance.leave_type or attendance.status in (
         "On Leave",
         "Half Day",
@@ -602,9 +622,7 @@ def delete_punch_grant_full_day(
     st = frappe.get_cached_value("Shift Type", attendance.shift, "start_time")
     shift_start = datetime.combine(attendance_date, get_time(st))
     shift_end = _shift_end_datetime(shift_start, attendance.shift)
-    if not (
-        shift_start <= new_in <= shift_end and shift_start <= new_out <= shift_end
-    ):
+    if not (shift_start <= new_in <= shift_end and shift_start <= new_out <= shift_end):
         frappe.throw(
             _(
                 "IN and OUT must be inside the shift window {0} to {1}."
@@ -756,18 +774,21 @@ def get_resolution_options(employee, attendance_date) -> dict:
 
         ot = get_approved_ot(employee, attendance_date)
         if ot and ot.allowed_ot:
-            expected_out = shift_end + timedelta(seconds=int(ot.allowed_ot.total_seconds()))
+            expected_out = shift_end + timedelta(
+                seconds=int(ot.allowed_ot.total_seconds())
+            )
 
             options["approved_ot"] = True
             options["approved_ot_hours"] = _hhmm(ot.allowed_ot)
-            options["expected_out"] = expected_out.strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
+            options["expected_out"] = expected_out.strftime("%Y-%m-%d %H:%M:%S")
 
     return options
 
+
 @frappe.whitelist()
-def resolve_error_day(employee, attendance_date, action, out_time=None, in_time=None, remarks=None):
+def resolve_error_day(
+    employee, attendance_date, action, out_time=None, in_time=None, remarks=None
+):
     """HR actions from the Monthly In-Out Log.
 
     approve_ot  - use the approved OT Log (OUT = shift end + approved OT)
@@ -785,24 +806,39 @@ def resolve_error_day(employee, attendance_date, action, out_time=None, in_time=
         "Attendance",
         {"employee": employee, "attendance_date": attendance_date, "docstatus": 1},
         [
-            "name", "employee", "attendance_date", "in_time", "shift", "punch_error",
-            "status", "leave_type",
+            "name",
+            "employee",
+            "attendance_date",
+            "in_time",
+            "shift",
+            "punch_error",
+            "status",
+            "leave_type",
         ],
         as_dict=True,
     )
     if not attendance:
         frappe.throw(
-            _("No submitted attendance for {0} on {1}").format(employee, attendance_date)
+            _("No submitted attendance for {0} on {1}").format(
+                employee, attendance_date
+            )
         )
     frappe.has_permission("Attendance", "write", attendance.name, throw=True)
     if not attendance.punch_error:
-        frappe.throw(_("Attendance {0} has no open punch error").format(attendance.name))
+        frappe.throw(
+            _("Attendance {0} has no open punch error").format(attendance.name)
+        )
 
     user = frappe.session.user
 
     if action == "reject":
         update_monthly_in_out_log_resolution(
-            employee, attendance_date, RES_REJECTED, user, "Resolution rejected", remarks
+            employee,
+            attendance_date,
+            RES_REJECTED,
+            user,
+            "Resolution rejected",
+            remarks,
         )
         _close_todos(attendance.name, "Cancelled")
         return {"status": "rejected"}
@@ -813,9 +849,9 @@ def resolve_error_day(employee, attendance_date, action, out_time=None, in_time=
         )
         if result["status"] != "resolved":
             frappe.throw(
-                _("Could not resolve with approved OT: {0}. Use 'Set OUT' instead.").format(
-                    result["status"]
-                )
+                _(
+                    "Could not resolve with approved OT: {0}. Use 'Set OUT' instead."
+                ).format(result["status"])
             )
         return result
 
@@ -831,15 +867,19 @@ def resolve_error_day(employee, attendance_date, action, out_time=None, in_time=
 
     if action == "delete_punch_full_day":
         return delete_punch_grant_full_day(
-            attendance, in_time=in_time, out_time=out_time, resolved_by=user, remarks=remarks
+            attendance,
+            in_time=in_time,
+            out_time=out_time,
+            resolved_by=user,
+            remarks=remarks,
         )
 
     # set_out
     if attendance.punch_error != "Missing OUT":
         frappe.throw(
-            _("'Set OUT' only fixes a Missing OUT. Correct '{0}' via Manual Punch.").format(
-                attendance.punch_error
-            )
+            _(
+                "'Set OUT' only fixes a Missing OUT. Correct '{0}' via Manual Punch."
+            ).format(attendance.punch_error)
         )
     if not attendance.in_time:
         frappe.throw(
@@ -871,13 +911,15 @@ def resolve_error_day(employee, attendance_date, action, out_time=None, in_time=
     max_min = get_shift_config(attendance.shift)["max_session"]
     if new_out - in_time > timedelta(minutes=max_min):
         frappe.throw(
-            _("OUT is more than {0} hours after IN ({1}). Please check the date.").format(
-                max_min // 60, in_time
-            )
+            _(
+                "OUT is more than {0} hours after IN ({1}). Please check the date."
+            ).format(max_min // 60, in_time)
         )
 
     hours = _set_attendance_out(attendance.name, in_time, new_out)
-    update_monthly_in_out_log_resolution(employee, attendance_date, RES_HR, user, f"OUT set to {new_out}", remarks)
+    update_monthly_in_out_log_resolution(
+        employee, attendance_date, RES_HR, user, f"OUT set to {new_out}", remarks
+    )
     return {"status": "resolved", "out_time": new_out, "hours": hours}
 
 
@@ -891,22 +933,34 @@ def ensure_monthly_in_out_log(employee, attendance_date) -> str | None:
     attendance_date = getdate(attendance_date)
     name = frappe.db.exists(
         MIL_DOCTYPE,
-        {"employee": employee, "attendance_date": attendance_date, "docstatus": ["<", 2]},
+        {
+            "employee": employee,
+            "attendance_date": attendance_date,
+            "docstatus": ["<", 2],
+        },
     )
     if name:
         return name
     try:
         mil = frappe.get_doc(
-            {"doctype": MIL_DOCTYPE, "employee": employee, "attendance_date": attendance_date}
+            {
+                "doctype": MIL_DOCTYPE,
+                "employee": employee,
+                "attendance_date": attendance_date,
+            }
         )
         mil.insert(ignore_permissions=True)
         return mil.name
     except Exception:
-        _log_exc(f"Monthly In-Out Log auto-creation failed for {employee}/{attendance_date}")
+        _log_exc(
+            f"Monthly In-Out Log auto-creation failed for {employee}/{attendance_date}"
+        )
         return None
 
 
-def update_monthly_in_out_log_resolution(employee, attendance_date, status, actor, text, remarks=None):
+def update_monthly_in_out_log_resolution(
+    employee, attendance_date, status, actor, text, remarks=None
+):
     """Write the resolution to the card (creating it if needed), then
     re-populate so ledger / hours reflect the resolved state."""
     name = ensure_monthly_in_out_log(employee, attendance_date)
@@ -922,4 +976,6 @@ def update_monthly_in_out_log_resolution(employee, attendance_date, status, acto
     try:
         frappe.get_doc(MIL_DOCTYPE, name).populate_from_attendance()
     except Exception:
-        _log_exc(f"MIL refresh after resolution failed for {employee}/{attendance_date}")
+        _log_exc(
+            f"MIL refresh after resolution failed for {employee}/{attendance_date}"
+        )

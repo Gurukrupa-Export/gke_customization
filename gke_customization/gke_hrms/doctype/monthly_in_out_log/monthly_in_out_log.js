@@ -30,13 +30,10 @@ frappe.ui.form.on("Monthly In-Out Log", {
 			});
 		});
 
-		if (
-			frm.doc.punch_error &&
-			!MIL_RESOLVED_STATUSES.includes(frm.doc.resolution_status)
-		) {
-			frm.add_custom_button(__("Resolve Error Punch"), () =>
-				open_resolve_dialog(frm)
-			).addClass("btn-primary");
+		if (frm.doc.punch_error && !MIL_RESOLVED_STATUSES.includes(frm.doc.resolution_status)) {
+			frm.add_custom_button(__("Resolve Error Punch"), () => open_resolve_dialog(frm)).addClass(
+				"btn-primary"
+			);
 		}
 	},
 });
@@ -112,7 +109,8 @@ function show_resolve_dialog(frm, options) {
 				default: MODE_AUTO,
 				hidden: 1,
 				onchange: () => sync_dialog(dialog, options),
-			},			{
+			},
+			{
 				fieldname: "in_time",
 				label: __("IN Time (date & time)"),
 				fieldtype: "Datetime",
@@ -141,10 +139,9 @@ function show_resolve_dialog(frm, options) {
 
 			if (args.action === FULL_DAY_ACTION) {
 				frappe.confirm(
-					__(
-						"This cancels attendance {0} and creates a new Present attendance. Continue?",
-						[frm.doc.attendance || ""]
-					),
+					__("This cancels attendance {0} and creates a new Present attendance. Continue?", [
+						frm.doc.attendance || "",
+					]),
 					submit
 				);
 			} else {
@@ -200,10 +197,10 @@ function build_resolve_args(values, options) {
 				moment(out_time).isAfter(end)
 			) {
 				return stop(
-					__(
-						"IN and OUT must be inside the shift window {0} to {1}.",
-						[fmt_dt(options.shift_start), fmt_dt(options.shift_end)]
-					)
+					__("IN and OUT must be inside the shift window {0} to {1}.", [
+						fmt_dt(options.shift_start),
+						fmt_dt(options.shift_end),
+					])
 				);
 			}
 		}
@@ -224,10 +221,7 @@ function submit_resolution(frm, dialog, args) {
 		const new_attendance = r.message && r.message.new_attendance;
 		frappe.show_alert({
 			message: new_attendance
-				? __(
-					"Punches excluded and Full Day granted. New attendance: {0}",
-					[new_attendance]
-				)
+				? __("Punches excluded and Full Day granted. New attendance: {0}", [new_attendance])
 				: __("Error punch resolved and attendance updated"),
 			indicator: "green",
 		});
@@ -286,6 +280,7 @@ function sync_dialog(dialog, options) {
 
 	render_preview(dialog, options, mode);
 }
+
 function render_preview(dialog, options, mode) {
 	const action = dialog.get_value("action") || "";
 	const current_mode = mode !== undefined ? mode : dialog.get_value("inout_mode");
@@ -305,8 +300,7 @@ function render_preview(dialog, options, mode) {
 
 const b = (v) => `<b>${frappe.utils.escape_html(String(v ?? ""))}</b>`;
 const fmt_dt = (v) => (v ? frappe.datetime.str_to_user(v) : "");
-const alert_html = (cls, msg) =>
-	`<div class="alert ${cls}" style="margin-bottom:10px">${msg}</div>`;
+const alert_html = (cls, msg) => `<div class="alert ${cls}" style="margin-bottom:10px">${msg}</div>`;
 
 // Same conditions the backend enforces in delete_punch_grant_full_day
 function get_full_day_blocker(options) {
@@ -335,17 +329,12 @@ function ot_preview_html(options, action, ctx = {}) {
 	if (action === "auto_close" && options.shift_end) {
 		return alert_html(
 			"alert-warning",
-			__("Check-out will be set to {0} (shift end, no OT).", [
-				b(fmt_dt(options.shift_end)),
-			])
+			__("Check-out will be set to {0} (shift end, no OT).", [b(fmt_dt(options.shift_end))])
 		);
 	}
 
 	if (action === "set_out") {
-		return alert_html(
-			"alert-info",
-			__("Check-out will be the time you enter below.")
-		);
+		return alert_html("alert-info", __("Check-out will be the time you enter below."));
 	}
 
 	if (action === FULL_DAY_ACTION) {
@@ -356,18 +345,12 @@ function ot_preview_html(options, action, ctx = {}) {
 		const out_time = ctx.manual ? ctx.out_time : options.shift_end;
 
 		if (!in_time || !out_time) {
-			return alert_html(
-				"alert-info",
-				__("Enter both the IN and OUT date & time.")
-			);
+			return alert_html("alert-info", __("Enter both the IN and OUT date & time."));
 		}
 
 		const hrs = moment(out_time).diff(moment(in_time), "hours", true);
 		if (hrs <= 0) {
-			return alert_html(
-				"alert-danger",
-				__("OUT time must be after IN time.")
-			);
+			return alert_html("alert-danger", __("OUT time must be after IN time."));
 		}
 
 		if (ctx.manual && options.shift_start && options.shift_end) {
@@ -381,10 +364,10 @@ function ot_preview_html(options, action, ctx = {}) {
 			) {
 				return alert_html(
 					"alert-danger",
-					__(
-						"IN and OUT must be inside the shift window {0} to {1}.",
-						[b(fmt_dt(options.shift_start)), b(fmt_dt(options.shift_end))]
-					)
+					__("IN and OUT must be inside the shift window {0} to {1}.", [
+						b(fmt_dt(options.shift_start)),
+						b(fmt_dt(options.shift_end)),
+					])
 				);
 			}
 		}
@@ -393,21 +376,13 @@ function ot_preview_html(options, action, ctx = {}) {
 			"alert-warning",
 			__(
 				"Day will be re-marked Present {0} to {1} ({2} hrs). The {3} linked punch(es) and any stray punches inside the window will be excluded with audit comments; a new attendance will be created.",
-				[
-					b(fmt_dt(in_time)),
-					b(fmt_dt(out_time)),
-					hrs.toFixed(2),
-					options.punch_count || 0,
-				]
+				[b(fmt_dt(in_time)), b(fmt_dt(out_time)), hrs.toFixed(2), options.punch_count || 0]
 			)
 		);
 	}
 
 	if (action === "reject") {
-		return alert_html(
-			"alert-danger",
-			__("Attendance will be left as-is and the error stays closed.")
-		);
+		return alert_html("alert-danger", __("Attendance will be left as-is and the error stays closed."));
 	}
 
 	// no action chosen yet: neutral summary of what is available
@@ -415,19 +390,15 @@ function ot_preview_html(options, action, ctx = {}) {
 
 	lines.push(
 		options.approved_ot
-			? __(
-				"Approved OT Log found ({0}): available as “Use approved OT”, check-out would be {1}.",
-				[b(options.approved_ot_hours), b(fmt_dt(options.expected_out))]
-			)
+			? __("Approved OT Log found ({0}): available as “Use approved OT”, check-out would be {1}.", [
+					b(options.approved_ot_hours),
+					b(fmt_dt(options.expected_out)),
+			  ])
 			: __("No approved OT Log for this day.")
 	);
 
 	if (options.missing_out && options.shift_end) {
-		lines.push(
-			__("“Close at shift end” would set check-out to {0}.", [
-				b(fmt_dt(options.shift_end)),
-			])
-		);
+		lines.push(__("“Close at shift end” would set check-out to {0}.", [b(fmt_dt(options.shift_end))]));
 	}
 
 	lines.push(__("Select an action below to see exactly what will change."));
