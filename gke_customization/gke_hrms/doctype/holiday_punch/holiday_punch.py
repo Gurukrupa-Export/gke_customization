@@ -4,7 +4,7 @@
 import frappe
 from frappe.model.document import Document
 from datetime import datetime, timedelta
-from frappe.utils import get_datetime, get_datetime_str, getdate, get_time, add_to_date, today
+from frappe.utils import get_datetime, get_datetime_str, getdate, get_time, add_to_date, today, add_days
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift_timings
 from gke_customization.gke_hrms.utils import get_employees_by_shift
 from pypika.functions import Date
