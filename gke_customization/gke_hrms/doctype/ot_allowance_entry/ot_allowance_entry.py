@@ -590,6 +590,7 @@ class OTAllowanceEntry(Document):
 				Employee.designation,
 				Employee.department,
 				Employee.branch,
+				Employee.old_employee_code,
 				Sec_To_Time(ot_hours).as_("attn_ot_hrs"),
 				Attendance.shift,
 				Attendance.attendance_date,
@@ -644,7 +645,8 @@ class OTAllowanceEntry(Document):
 		if not data:
 			frappe.msgprint(_("No Records were found for the current filters"))
 			return
-		data = sorted(data, key=lambda x:x.get("attendance_date")) 
+		# data = sorted(data, key=lambda x:x.get("attendance_date")) 
+		data = sorted(data, key=lambda x: (x.get("old_employee_code") or "", x.get("attendance_date")))
 
 		for row in data:
 			if self.branch:

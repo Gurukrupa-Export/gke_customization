@@ -72,7 +72,7 @@ frappe.query_reports["CAD Report"] = {
     reqd: 0,
     get_data: function(txt) {
         const current_user = frappe.session.user;
-        const arun_only = ["Close Setting", "Close"];
+        const arun_only = ["Nova Glow Setting", "Nova Glow"];
         const restricted_users = [
             "khushal_r@gkexport.com","ashish_m@gkexport.com","rahul_k@gkexport.com",
             "kaushik_g@gkexport.com","chandan_d@gkexport.com","soumaya_d@gkexport.com",

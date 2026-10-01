@@ -68,7 +68,8 @@
   "employee_relative_relation",
   "naming_series",
   "employee_signature_tab",
-  "employee_signature"
+  "employee_signature",
+  "employee_signature_file"
  ],
  "fields": [
   {
@@ -436,12 +437,17 @@
    "fieldtype": "Table",
    "label": "Department Contact Details",
    "options": "Department Contact Details"
+  },
+  {
+   "fieldname": "employee_signature_file",
+   "fieldtype": "Attach",
+   "label": "Employee Signature File"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-29 09:34:14.032878",
+ "modified": "2026-09-16 17:53:14.810857",
  "modified_by": "bhavika_patel@gkexport.com",
  "module": "GKE HRMS",
  "name": "Employee Additional Details",

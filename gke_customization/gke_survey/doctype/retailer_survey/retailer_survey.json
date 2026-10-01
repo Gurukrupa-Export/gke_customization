@@ -415,7 +415,7 @@
    "default": "0",
    "fieldname": "close_setting",
    "fieldtype": "Check",
-   "label": "Close Setting"
+   "label": "Nova Glow Setting"
   },
   {
    "default": "0",

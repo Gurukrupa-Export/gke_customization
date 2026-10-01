@@ -77,7 +77,7 @@ def execute(filters=None):
 
     
     if current_user == "arun_k@gkexport.com":
-          order_filters["setting_type"] = ["in", ["Close Setting", "Close"]]
+          order_filters["setting_type"] = ["in", ["Nova Glow Setting", "Nova Glow"]]
 
 
     # Apply incoming filters
