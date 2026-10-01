@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from frappe.utils import get_datetime, get_datetime_str, getdate, get_time, add_to_date, today
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift_timings
 from gke_customization.gke_hrms.utils import get_employees_by_shift
-
+from pypika.functions import Date
 
 class HolidayPunch(Document):
 
@@ -130,22 +130,56 @@ class HolidayPunch(Document):
 		if filters:
 			employee_list = frappe.get_all("Employee", filters, pluck="name")
 
-		data_list = []
-		for employee in employee_list:
-			shift_timings = get_employee_shift_timings(employee, get_datetime(shift_datetime), True)[1] 	#for current shift
-			or_filter = {
-					"time":["between",[get_datetime_str(shift_timings.actual_start), get_datetime_str(shift_timings.actual_end)]]
-			}
-			fields = ["date(time) as date", "log_type as type", "time", "source", "name as employee_checkin", "employee", "employee_name as custom_employee_name"]
-			attendance = frappe.db.get_value("Attendance", {"employee": employee, "attendance_date": getdate(shift_datetime), "docstatus":1})
-			if attendance:
-				or_filter["attendance"] = attendance
+		# data_list = []
+		# for employee in employee_list:
+		# 	shift_timings = get_employee_shift_timings(employee, get_datetime(shift_datetime), True)[1] 	#for current shift
+		# 	or_filter = {
+		# 			"time":["between",[get_datetime_str(shift_timings.actual_start), get_datetime_str(shift_timings.actual_end)]]
+		# 	}
+		# 	fields = ["date(time) as date", "log_type as type", "time", "source", "name as employee_checkin", "employee", "employee_name as custom_employee_name"]
+		# 	attendance = frappe.db.get_value("Attendance", {"employee": employee, "attendance_date": getdate(shift_datetime), "docstatus":1})
+		# 	if attendance:
+		# 		or_filter["attendance"] = attendance
 
-			data = frappe.get_all("Employee Checkin", filters= {"employee": employee}, or_filters = or_filter, fields=fields, order_by='time')
+		# 	data = frappe.get_all("Employee Checkin", filters= {"employee": employee}, or_filters = or_filter, fields=fields, order_by='time')
 			
-			if data:
-				data_list.append(data)
+		# 	if data:
+		# 		data_list.append(data)
 			
+        # bhavika 01-10-2026
+        EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
+
+        data_list = []
+
+        for employee in employee_list:
+            shift_timings = get_employee_shift_timings(employee, get_datetime(shift_datetime), True)[1]
+
+            condition = EmployeeCheckin.time.between(shift_timings.actual_start, shift_timings.actual_end)
+
+            attendance = frappe.db.get_value("Attendance", {"employee": employee, "attendance_date": getdate(shift_datetime), "docstatus": 1})
+
+            if attendance:
+                condition = condition | (EmployeeCheckin.attendance == attendance)
+
+            data = (
+                frappe.qb.from_(EmployeeCheckin)
+                .select(
+                    Date(EmployeeCheckin.time).as_("date"),
+                    EmployeeCheckin.log_type.as_("type"),
+                    EmployeeCheckin.time,
+                    EmployeeCheckin.source,
+                    EmployeeCheckin.name.as_("employee_checkin"),
+                    EmployeeCheckin.employee,
+                    EmployeeCheckin.employee_name.as_("custom_employee_name"),
+                )
+                .where(EmployeeCheckin.employee == employee)
+                .where(condition)
+                .orderby(EmployeeCheckin.time)
+                .run(as_dict=True)
+            )
+
+            if data:
+                data_list.append(data)
 		return data_list
 
 
