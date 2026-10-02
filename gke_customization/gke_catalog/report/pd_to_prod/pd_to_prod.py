@@ -194,6 +194,7 @@ def get_data(filters=None):
 		LEFT JOIN `tabOrder` ord
 			ON ord.design_id = fsac.item
 		WHERE fsac.item IS NOT NULL
+			AND TRIM(fsac.item) != ''
 			{conditions}
 		ORDER BY so.name
 	""".format(conditions=get_conditions(filters))
