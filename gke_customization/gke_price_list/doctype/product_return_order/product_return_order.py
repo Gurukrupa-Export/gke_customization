@@ -1309,7 +1309,11 @@ def sync_product_return_order_to_gk(doc):
 			"item_category": doc.item_category,
 			"item_subcategory": doc.item_subcategory,
 			"description": doc.description,
-			"image": doc.image,
+			# Send this site's absolute URL: the receiving site has the path but not the file, and
+			# Frappe logs "Error Attaching File" there on every save of a relative path it cannot read.
+			"image": frappe.utils.get_url(doc.image)
+			if (doc.image or "").startswith(("/files/", "/private/files/"))
+			else doc.image,
 			"qty": doc.qty,
 			"uom": doc.uom,
 			"rate": doc.rate,
