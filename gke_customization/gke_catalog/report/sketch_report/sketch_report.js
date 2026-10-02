@@ -56,7 +56,8 @@ frappe.query_reports["Sketch Report"] = {
             reqd: 0,
             get_data: function(txt) {
                 return frappe.db.get_list("Order", {
-                    fields: ["distinct setting_type as value"],
+                    fields: ["setting_type as value"],
+                    group_by: "setting_type",
                     filters: [
                         ["setting_type", "not in", [ " "]],
                         ["setting_type", "like", `%${txt}%`]
@@ -92,7 +93,8 @@ frappe.query_reports["Sketch Report"] = {
             reqd: 0,
             get_data: function(txt) {
                 return frappe.db.get_list("Sketch Order", {
-                    fields: ["distinct workflow_state as value"],
+                    fields: ["workflow_state as value"],
+                    group_by: "workflow_state",
                 }).then(r => {
                     return r.map(d => {
                         return {
