@@ -97,9 +97,9 @@ def append_diamond_detail_from_jwelex(product_order, diamond_details):
 				pluck="attribute_value"
 			)
 
-			frappe.log_error(
-				f"purity_name: {purity_name}\nvalues: {values}",
-				"Diamond Grade"
+			# Debug trace goes to the app logger, not Error Log (was two Error Log rows per diamond row).
+			frappe.logger().info(
+				f"Diamond Grade: purity_name: {purity_name}\nvalues: {values}"
 			)
 
 			# Remove spaces and / from attribute values as well
@@ -108,9 +108,8 @@ def append_diamond_detail_from_jwelex(product_order, diamond_details):
 			if purity_name in values:
 				dest.diamond_grade = purity_name
 
-				frappe.log_error(
-					f"purity_name matched: {purity_name}",
-					"Diamond Grade Debug"
+				frappe.logger().info(
+					f"Diamond Grade Debug: purity_name matched: {purity_name}"
 				)
 
 def append_finding_detail_from_jwelex(product_order, finding_details):
@@ -152,6 +151,9 @@ def append_gemstone_detail_from_jwelex(product_order, stone_details):
 		dest.total_gemstone_rate = s.get("Sale_Rate")
 		dest.gemstone_rate_for_specified_quantity = s.get("Sale_Amt")
 		dest.se_rate = s.get("Costing_Rate")
+		# No app ships "Jewelex to ERP Gemstone Mapping"; map the gemstone type only on sites that define it.
+		if not frappe.db.exists("DocType", "Jewelex to ERP Gemstone Mapping"):
+			continue
 		parent =  frappe.db.get_value("Jewelex to ERP Gemstone Mapping",{'mapping_type':"Gemstone Type"},"name")
 		if parent:
 			gemstone_type = frappe.db.get_value('Jewelex to ERP Gemstone Mapping item',{"parent":parent,"jewelex_gemstone_type":s.get('Purity_Name')},'erp_gemstone_type')

@@ -264,16 +264,25 @@ class ProductReturnOrder(Document):
 		if self.item_code:
 			item = frappe.get_doc("Item", self.item_code)
 			item_templat = item.variant_of
-			item_template = frappe.get_doc("Item",item_templat)
-			create_item_kggk(item_template)
+			# Items made at the Jewelex "Create Item" step are not variants; push a template only when there is one.
+			if item_templat:
+				item_template = frappe.get_doc("Item",item_templat)
+				create_item_kggk(item_template)
 			create_item_kggk(item)
-		frappe.db.after_commit.add(
-			lambda: sync_product_return_order_to_gk(self)
-		)
+		# Mirror workflow changes to the remote site only once "PRF To Site" is set on
+		# Data Migration in KGGK; until then transitions stay local-only, as on production.
+		if frappe.get_single("Data Migration in KGGK").get("prf_to_site"):
+			frappe.db.after_commit.add(
+				lambda: sync_product_return_order_to_gk(self)
+			)
 
-		
+
 	def on_submit(self):
-		
+		# Jewelex orders approved through the "Create Item" path never reach "BOM Calculated", so
+		# they have no BOM to build a serial from: skip them, as production does (K 68884d3).
+		if self.is_jewelex_tag and not self.new_bom:
+			return
+
 		if not self.serial_no:
 			serial = frappe.new_doc('Serial No')
 			serial.item_code = self.item_code
@@ -437,7 +446,8 @@ class ProductReturnOrder(Document):
 		# 	final_date = {final_date}
 		# 	"""
 		# )
-			
+		if errors:
+			frappe.throw("<br>".join(errors))
 
 		compose_series = str(series_start + mnf_abbr + m_abbr + dg_abbr + final_date + ".1244")
 		return compose_series
