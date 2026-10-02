@@ -11,7 +11,7 @@
  "is_standard": "Yes",
  "letter_head": "Sadguru Diamond",
  "letterhead": null,
- "modified": "2025-11-11 15:09:09.983222",
+ "modified": "2026-10-02 11:45:00.000000",
  "modified_by": "sahil_g@gkexport.com",
  "module": "GKE Catalog",
  "name": "Diamond & Gemstone Conversion Detail",
@@ -29,6 +29,15 @@
   },
   {
    "role": "Gemstone Bagging Executive - KGJPL"
+  },
+  {
+   "role": "Diamond Bagging Executive - ST"
+  },
+  {
+   "role": "Diamond Bagging Manager - ST"
+  },
+  {
+   "role": "GK Diamond Bagging"
   }
  ],
  "timeout": 0

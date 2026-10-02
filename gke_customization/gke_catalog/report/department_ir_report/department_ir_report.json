@@ -11,7 +11,7 @@
  "is_standard": "Yes",
  "letter_head": "Gurukrupa Export",
  "letterhead": null,
- "modified": "2025-09-17 11:42:08.966241",
+ "modified": "2026-10-02 11:45:00.000000",
  "modified_by": "mamata_yad@gkexport.com",
  "module": "GKE Catalog",
  "name": "Department IR Report",
@@ -32,6 +32,27 @@
   },
   {
    "role": "Manufacturer HOD"
+  },
+  {
+   "role": "CAD Hod"
+  },
+  {
+   "role": "Computer Operator - ST - GE"
+  },
+  {
+   "role": "Computer Operator - ST - KG"
+  },
+  {
+   "role": "Executive - ST - GE"
+  },
+  {
+   "role": "GK Sub Contracting"
+  },
+  {
+   "role": "Manufacturing Plan & Management MFG - ST - GE"
+  },
+  {
+   "role": "QC Doctype"
   }
  ],
  "timeout": 300

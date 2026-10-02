@@ -11,7 +11,7 @@
  "is_standard": "Yes",
  "letter_head": "Sadguru Diamond",
  "letterhead": null,
- "modified": "2025-10-03 17:27:29.516127",
+ "modified": "2026-10-02 11:45:00.000000",
  "modified_by": "sahil_g@gkexport.com",
  "module": "GKE Catalog",
  "name": "Branch Stock Summary",
@@ -41,6 +41,90 @@
   },
   {
    "role": "Model Making Executive - KGJPL"
+  },
+  {
+   "role": "Central Executive - MUM"
+  },
+  {
+   "role": "Central Executive - ST"
+  },
+  {
+   "role": "Central Manager - ST"
+  },
+  {
+   "role": "Close Model Making Executive - ST"
+  },
+  {
+   "role": "Close Model Making Manager - ST"
+  },
+  {
+   "role": "Computer Operator - ST - GE"
+  },
+  {
+   "role": "Computer Operator Casting - ST - GE"
+  },
+  {
+   "role": "Computer Operator Casting - ST - KG"
+  },
+  {
+   "role": "GK Job Work"
+  },
+  {
+   "role": "GK Sub Contracting"
+  },
+  {
+   "role": "Model Making Executive - ST"
+  },
+  {
+   "role": "Model Making Manager - MUM"
+  },
+  {
+   "role": "Model Making Manager - ST"
+  },
+  {
+   "role": "Nandi Executive - ST"
+  },
+  {
+   "role": "Product Repair Center Executive - CH"
+  },
+  {
+   "role": "Product Repair Center Manager - CH"
+  },
+  {
+   "role": "Refinery Executive -ST"
+  },
+  {
+   "role": "Sub Contracting Executive - MUM"
+  },
+  {
+   "role": "Sub Contracting Executive - ST"
+  },
+  {
+   "role": "Sub Contracting Manager - MUM"
+  },
+  {
+   "role": "Sub Contracting Manager - ST"
+  },
+  {
+   "role": "Waxing 2 Executive - ST"
+  },
+  {
+   "role": "Waxing 2 Manager - ST"
+  },
+  {
+   "role": "Waxing Executive - MUM"
+  },
+  {
+   "role": "Waxing Executive - ST"
+  },
+  {
+   "role": "Waxing Manager - ST"
+  },
+  {
+   "role": "close waxing Executive - ST"
+  },
+  {
+   "role": "close waxing Manager - ST"
   }
  ],
  "timeout": 0

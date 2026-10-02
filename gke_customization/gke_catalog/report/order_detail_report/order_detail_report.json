@@ -11,7 +11,7 @@
  "is_standard": "Yes",
  "letter_head": "Gurukrupa Export",
  "letterhead": null,
- "modified": "2025-09-04 10:06:47.587133",
+ "modified": "2026-10-02 11:45:00.000000",
  "modified_by": "mamata_yad@gkexport.com",
  "module": "GKE Catalog",
  "name": "Order Detail Report",
@@ -29,6 +29,12 @@
   },
   {
    "role": "Manufacturing Manager"
+  },
+  {
+   "role": "Computer Operator - ST - GE"
+  },
+  {
+   "role": "Manager - ST - GE"
   }
  ],
  "timeout": 300
