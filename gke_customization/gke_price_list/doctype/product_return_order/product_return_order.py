@@ -261,6 +261,11 @@ class ProductReturnOrder(Document):
 
 
 	def on_update(self):
+		# Only Jewelex-tag and KGGK-serial returns are pushed to the KGGK site, the gate master had
+		# before c97b25f (kept for gk_prod by business decision, 2026-10-02).
+		if not (self.is_jewelex_tag or self.is_kggk_serial_no):
+			return
+
 		if self.item_code:
 			item = frappe.get_doc("Item", self.item_code)
 			item_templat = item.variant_of
