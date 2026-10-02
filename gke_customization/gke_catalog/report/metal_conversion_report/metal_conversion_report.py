@@ -123,6 +123,7 @@ def get_columns():
 
 def get_data(filters):
     conditions = get_conditions(filters)
+    customer_metal_col = get_customer_metal_column()
     
     query = f"""
         SELECT 
@@ -140,7 +141,7 @@ def get_data(filters):
             mc.target_item,
             mc.target_qty,
             CASE 
-                WHEN mc.is_customer_metal = 1 THEN 'Yes'
+                WHEN {customer_metal_col} = 1 THEN 'Yes'
                 ELSE 'No'
             END as is_customer_metal,
             se.name as stock_entry
@@ -174,10 +175,11 @@ def get_conditions(filters):
         conditions += " AND mc.department = %(department)s"
 
     if filters.get("is_customer_metal"):
+        customer_metal_col = get_customer_metal_column()
         if filters.get("is_customer_metal") == "Yes":
-            conditions += " AND mc.is_customer_metal = 1"
+            conditions += f" AND {customer_metal_col} = 1"
         elif filters.get("is_customer_metal") == "No":
-            conditions += " AND (mc.is_customer_metal = 0 OR mc.is_customer_metal IS NULL)"
+            conditions += f" AND ({customer_metal_col} = 0 OR {customer_metal_col} IS NULL)"
 
     if filters.get("conversion_type"):
         if filters.get("conversion_type") == "Pure to Touch":
@@ -194,3 +196,11 @@ def get_conditions(filters):
         conditions += " AND DATE(mc.creation) <= %(to_date)s"
 
     return conditions
+
+
+def get_customer_metal_column():
+    # jewellery_erpnext dropped Metal Conversions.is_customer_metal; migrated sites
+    # keep the legacy column (default 0), new sites do not have it.
+    if frappe.db.has_column("Metal Conversions", "is_customer_metal"):
+        return "mc.is_customer_metal"
+    return "0"

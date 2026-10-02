@@ -69,12 +69,6 @@ def get_columns():
             "width": 150
         },
         {
-            "label": _("Main Slip"),
-            "fieldname": "main_slip",
-            "fieldtype": "Data",
-            "width": 120
-        },
-        {
             "label": _("Gross Wt"),
             "fieldname": "gross_wt",
             "fieldtype": "Float",
@@ -241,7 +235,6 @@ def get_main_data(filters):
             mo.operation,
             mo.employee as employee_id,
             emp.employee_name,
-            mo.main_slip_no as main_slip,
             mo.gross_wt,
             mo.received_gross_wt,
             mo.net_wt,

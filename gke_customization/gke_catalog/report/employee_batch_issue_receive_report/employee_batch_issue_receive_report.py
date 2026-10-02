@@ -69,12 +69,6 @@ def get_columns():
             "width": 150
         },
         {
-            "label": _("Main Slip"),
-            "fieldname": "main_slip",
-            "fieldtype": "Data",
-            "width": 120
-        },
-        {
             "label": _("Employee Name"),
             "fieldname": "employee_name",
             "fieldtype": "Data",
@@ -161,13 +155,6 @@ def get_columns():
             "fieldtype": "Float",
             "width": 100,
             "precision": 3
-        },
-        {
-            "label": _("Allow Loss %"),
-            "fieldname": "allow_loss",
-            "fieldtype": "Float",
-            "width": 110,
-            "precision": 2
         },
         {
             "label": _("Issue Date"),
@@ -266,7 +253,6 @@ def get_main_data(filters):
             mo.manufacturer,
             mo.department,
             mo.operation,
-            mo.main_slip_no as main_slip,
             emp.employee_name,
             mo.employee as employee_id,
             mo.gross_wt,
@@ -283,7 +269,6 @@ def get_main_data(filters):
                 WHEN mo.loss_wt < 0 THEN ABS(mo.loss_wt)
                 ELSE NULL 
             END as loss_wt,
-            mo.allowed_loss_percentage as allow_loss,
             mwo.customer
         FROM 
             `tabManufacturing Operation` mo

@@ -139,7 +139,6 @@ def get_data(filters):
     (CASE WHEN mo.for_subcontracting = 1 THEN mo.subcontractor END) AS mo_subcontractor,
     mo.employee AS mop_employee,
     emp.employee_name AS mop_emp_name,
-    mo.main_slip_no AS mop_main_slip,
 
     pmo.diamond_quality AS pmo_diam_quality,
     (CASE WHEN pmo.is_customer_gold=1 THEN 'Yes' ELSE 'No' END) AS pmo_is_cust_gold,

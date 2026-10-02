@@ -144,6 +144,14 @@ def get_data(filters):
     ss_conditions = get_conditions(filters, "ss")
     es_conditions = get_conditions(filters, "es")
 
+    # custom_tax_withholding_category is a DB-only custom field that no fixture
+    # ships; leave Section empty on sites where the column does not exist.
+    section_col = (
+        "es.custom_tax_withholding_category"
+        if frappe.db.has_column("Additional Salary", "custom_tax_withholding_category")
+        else "NULL"
+    )
+
     data = frappe.db.sql(
         f"""
         SELECT
@@ -188,7 +196,7 @@ def get_data(filters):
         LEFT JOIN (
             SELECT
                 es.employee AS employee,
-                es.custom_tax_withholding_category AS section,
+                {section_col} AS section,
                 DATE_FORMAT(es.payroll_date, '%%Y-%%m') AS ym,
                 SUM(es.amount) AS tds_amount
 
@@ -227,7 +235,7 @@ def get_data(filters):
 
             GROUP BY
                 es.employee,
-                es.custom_tax_withholding_category,
+                {section_col},
                 DATE_FORMAT(es.payroll_date, '%%Y-%%m')
 
             HAVING

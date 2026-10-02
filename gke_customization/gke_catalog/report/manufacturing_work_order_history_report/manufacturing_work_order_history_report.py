@@ -15,7 +15,6 @@ def get_columns():
         {"label": "Operation", "fieldname": "operation_name", "fieldtype": "Data", "width": 120},
         {"label": "Manufacturing Operation Status", "fieldname": "operation_status", "fieldtype": "Data", "width": 160},
         {"label": "Employee", "fieldname": "employee_name", "fieldtype": "Data", "width": 160},
-        {"label": "Main Slip ID", "fieldname": "main_slip_id", "fieldtype": "Data", "width": 120},
         {"label": "For Sub Contracting", "fieldname": "for_subcontracting", "fieldtype": "Data", "width": 140},
         {"label": "Is Finding", "fieldname": "is_finding", "fieldtype": "Data", "width": 80},
         {"label": "Gross Wt", "fieldname": "gross_wt", "fieldtype": "Float", "width": 90},
@@ -57,7 +56,6 @@ def get_data(filters):
                 WHEN mop.for_subcontracting = 1 THEN mop.subcontractor
                 ELSE emp.employee_name 
             END AS employee_name,
-            mop.main_slip_no AS main_slip_id,
             CASE WHEN mop.for_subcontracting = 1 THEN 'Yes' ELSE 'No' END AS for_subcontracting,
             CASE WHEN mop.is_finding = 1 THEN 'Yes' ELSE 'No' END AS is_finding,
             
