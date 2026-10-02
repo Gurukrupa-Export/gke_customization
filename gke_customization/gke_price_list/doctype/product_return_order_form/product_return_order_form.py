@@ -5044,7 +5044,10 @@ def sync_product_return_form_to_remote(doc, method=None):
 			"item_subcategory": row.item_subcategory,
 			"gold_rate": row.gold_rate,
 			"description": row.description,
-			"image": row.image,
+			# Absolute URL: the receiving site has the path but not the file.
+			"image": frappe.utils.get_url(row.image)
+			if (row.image or "").startswith(("/files/", "/private/files/"))
+			else row.image,
 			"qty": row.qty,
 			"uom": row.uom,
 			"rate": row.rate,
