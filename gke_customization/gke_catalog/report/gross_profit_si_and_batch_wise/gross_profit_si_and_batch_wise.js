@@ -108,4 +108,4 @@ frappe.query_reports["Gross Profit SI and Batch Wise"] = {
 	},
 };
 
-erpnext.utils.add_dimensions("Gross Profit", 15);
+erpnext.utils.add_dimensions("Gross Profit SI and Batch Wise", 15);

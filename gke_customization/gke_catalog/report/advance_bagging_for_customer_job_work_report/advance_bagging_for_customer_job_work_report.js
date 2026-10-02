@@ -35,7 +35,8 @@ frappe.query_reports["Advance Bagging For Customer Job Work Report"] = {
             "reqd": 0,
             "get_data": function(txt) {
                 return frappe.db.get_list("BOM", {
-                    fields: ["distinct item_category as value"],
+                    fields: ["item_category as value"],
+                    group_by: "item_category",
                     filters: {"bom_type": "Template"}
                 }).then(r => {
                     return r
@@ -53,7 +54,8 @@ frappe.query_reports["Advance Bagging For Customer Job Work Report"] = {
             "reqd": 0,
             "get_data": function(txt) {
                 return frappe.db.get_list("BOM", {
-                    fields: ["distinct item_subcategory as value"],
+                    fields: ["item_subcategory as value"],
+                    group_by: "item_subcategory",
                     filters: {"bom_type": "Template"}
                 }).then(r => {
                     return r

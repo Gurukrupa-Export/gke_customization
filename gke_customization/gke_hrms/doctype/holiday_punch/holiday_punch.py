@@ -4,7 +4,7 @@
 import frappe
 from frappe.model.document import Document
 from datetime import datetime, timedelta
-from frappe.utils import get_datetime, get_datetime_str, getdate, get_time, add_to_date, today
+from frappe.utils import get_datetime, get_datetime_str, getdate, get_time, add_to_date, add_days, today
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift_timings
 from gke_customization.gke_hrms.utils import get_employees_by_shift
 
@@ -136,12 +136,16 @@ class HolidayPunch(Document):
 			or_filter = {
 					"time":["between",[get_datetime_str(shift_timings.actual_start), get_datetime_str(shift_timings.actual_end)]]
 			}
-			fields = ["date(time) as date", "log_type as type", "time", "source", "name as employee_checkin", "employee", "employee_name as custom_employee_name"]
+			# v16 rejects SQL functions written as field strings ("date(time) as date"),
+			# so the punch date is derived from the checkin time after the query.
+			fields = ["log_type as type", "time", "source", "name as employee_checkin", "employee", "employee_name as custom_employee_name"]
 			attendance = frappe.db.get_value("Attendance", {"employee": employee, "attendance_date": getdate(shift_datetime), "docstatus":1})
 			if attendance:
 				or_filter["attendance"] = attendance
 
 			data = frappe.get_all("Employee Checkin", filters= {"employee": employee}, or_filters = or_filter, fields=fields, order_by='time')
+			for row in data:
+				row["date"] = getdate(row.time) if row.time else None
 			
 			if data:
 				data_list.append(data)

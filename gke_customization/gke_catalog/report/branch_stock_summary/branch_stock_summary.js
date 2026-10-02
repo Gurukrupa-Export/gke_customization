@@ -1,6 +1,7 @@
 // Copyright (c) 2025, Your Company and contributors
 // For license information, please see license.txt
 
+
 frappe.query_reports["Branch Stock Summary"] = {
     "filters": [
         {
@@ -12,9 +13,18 @@ frappe.query_reports["Branch Stock Summary"] = {
             "reqd": 1,
             "on_change": function() {
                 frappe.query_report.set_filter_value('branch', '');
-                frappe.query_report.set_filter_value('manufacturer', '');
-                frappe.query_report.set_filter_value('department', '');
                 update_branch_options();
+                frappe.query_report.refresh();
+            }
+        },
+        {
+            "fieldname": "as_on_date",
+            "label": __("As On Date"),
+            "fieldtype": "Date",
+            "default": frappe.datetime.get_today(),
+            "reqd": 1,
+            "on_change": function() {
+                frappe.query_report.refresh();
             }
         },
         {
@@ -32,6 +42,7 @@ frappe.query_reports["Branch Stock Summary"] = {
             "label": __("Manufacturer"),
             "fieldtype": "Select",
             "options": ["", "Shubh", "Mangal", "Labh", "Amrut", "Service Center", "Siddhi"].join('\n'),
+            "default": "",
             "reqd": 0,
             "on_change": function() {
                 frappe.query_report.set_filter_value('department', '');
@@ -43,7 +54,7 @@ frappe.query_reports["Branch Stock Summary"] = {
             "fieldname": "raw_material_type",
             "label": __("Raw Material Type"),
             "fieldtype": "Select",
-            "options": ["", "Metal", "Diamond", "Gemstone", "Finding", "Other"].join('\n'),
+            "options": ["", "Metal", "Diamond", "Gemstone", "Finding", "Alloy", "Other"].join('\n'),
             "default": "Metal",
             "reqd": 1,
             "on_change": function() {
@@ -60,10 +71,36 @@ frappe.query_reports["Branch Stock Summary"] = {
             "on_change": function() {
                 frappe.query_report.refresh();
             }
+        },
+        {
+            "fieldname": "include_finished_goods_metal",
+            "label": __("Include Finished Goods Metal"),
+            "fieldtype": "Check",
+            "default": 0,
+            "on_change": function() {
+                frappe.query_report.refresh();
+            }
+        },
+        {
+            "fieldname": "include_work_order_wip",
+            "label": __("Include Work Order / WIP Stock"),
+            "fieldtype": "Check",
+            "default": 0,
+            "on_change": function() {
+                frappe.query_report.refresh();
+            }
         }
     ],
 
+
     "onload": function(report) {
+        // Summary button: explains this report's Grand Total vs the standard
+        // Stock Balance report's total for the same company/item group, and
+        // breaks down where the difference comes from.
+        report.page.add_inner_button(__("Summary"), function () {
+            show_report_summary();
+        });
+
         // Clear Filter button
         report.page.add_inner_button(__("Clear Filter"), function () {
             report.filters.forEach(function (filter) {
@@ -84,6 +121,7 @@ frappe.query_reports["Branch Stock Summary"] = {
             report.run();
         });
 
+
         // Auto-fill user's company and department
         frappe.call({
             method: "frappe.client.get_value",
@@ -94,13 +132,6 @@ frappe.query_reports["Branch Stock Summary"] = {
             },
             callback: function (r) {
                 if (r.message) {
-                    if (r.message.company) {
-                        let company_filter = report.get_filter("company");
-                        if (company_filter) {
-                            company_filter.set_value(r.message.company);
-                        }
-                    }
-
                     if (r.message.department) {
                         setTimeout(function() {
                             update_branch_options();
@@ -124,12 +155,14 @@ frappe.query_reports["Branch Stock Summary"] = {
                         }, 1000);
                     }
 
+
                     setTimeout(function() {
                         report.refresh();
                     }, 2500);
                 }
             }
         });
+
 
         setTimeout(function() {
             update_branch_options();
@@ -139,36 +172,67 @@ frappe.query_reports["Branch Stock Summary"] = {
             update_department_options();
         }, 1000);
 
-        // View Details button handler
-        $(document).off('click', '.view-stock-details');
-        $(document).on('click', '.view-stock-details', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            let department = $(this).attr('data-department');
-            let stock_type = $(this).attr('data-stock-type');
-            let stock_key = $(this).attr('data-stock-key');
-            
-            if (department && stock_type && stock_key) {
-                show_stock_details(department, stock_type, stock_key);
-            }
-        });
+
+        // FIXED: Attach button event handlers
+        attach_view_button_handlers();
     },
+
+
+    // FIXED: Call attach handlers after refresh
+    "refresh": function() {
+        setTimeout(function() {
+            attach_view_button_handlers();
+        }, 1000);
+    },
+
 
     "formatter": function(value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
         
         if (data && data.is_grand_total) {
-            return `<div style="font-weight: bold; text-align: center; font-size: 14px; padding: 5px; border: 1px solid #ccc;">${value}</div>`;
+            return `<div style="font-weight: bold; text-align: center; font-size: 14px; padding: 5px; border: 1px solid var(--border-color); color: var(--text-color); background-color: var(--card-bg);">${value}</div>`;
         }
         
         return value;
     }
 };
 
+
+// FIXED: Separate function to attach button event handlers
+function attach_view_button_handlers() {
+    // Remove existing handlers to prevent duplicates
+    $(document).off('click', '.view-stock-details');
+    
+    // Attach new handlers
+    $(document).on('click', '.view-stock-details', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        let $button = $(this);
+        let department = $button.data('department');
+        let stock_type = $button.data('stock-type');
+        let stock_key = $button.data('stock-key');
+        
+        console.log('Button clicked:', {department, stock_type, stock_key});
+        
+        if (department && stock_type && stock_key) {
+            show_stock_details(department, stock_type, stock_key);
+        } else {
+            console.error('Missing button data:', {department, stock_type, stock_key});
+            frappe.msgprint({
+                title: __('Error'),
+                message: __('Button data is missing. Please refresh the report.'),
+                indicator: 'red'
+            });
+        }
+    });
+}
+
+
 function update_branch_options() {
     let company = frappe.query_report.get_filter_value('company');
     if (!company) return;
+
 
     if (company === "KG GK Jewellers Private Limited") {
         if (frappe.query_report.page.fields_dict.branch) {
@@ -178,6 +242,7 @@ function update_branch_options() {
         }
         return;
     }
+
 
     if (company === "Gurukrupa Export Private Limited") {
         let company_branches = get_company_specific_branches(company);
@@ -197,6 +262,7 @@ function update_branch_options() {
     }
 }
 
+
 function update_department_options() {
     let manufacturer = frappe.query_report.get_filter_value('manufacturer');
     
@@ -207,6 +273,7 @@ function update_department_options() {
         }
         return;
     }
+
 
     frappe.call({
         method: "gke_customization.gke_catalog.report.branch_stock_summary.branch_stock_summary.get_departments_by_manufacturer",
@@ -228,6 +295,7 @@ function update_department_options() {
     });
 }
 
+
 function get_company_specific_branches(company) {
     const company_branch_map = {
         "Gurukrupa Export Private Limited": [
@@ -238,6 +306,7 @@ function get_company_specific_branches(company) {
     };
     return company_branch_map[company] || [];
 }
+
 
 function detect_manufacturer_from_department(department) {
     department = department.trim();
@@ -276,8 +345,153 @@ function detect_manufacturer_from_department(department) {
     return "Shubh";
 }
 
+
+function show_report_summary() {
+    let current_filters = frappe.query_report.get_filter_values();
+
+    if (!current_filters.company) {
+        frappe.msgprint({
+            title: __('Missing Filter'),
+            message: __('Company filter is required to view the summary'),
+            indicator: 'red'
+        });
+        return;
+    }
+    if (!current_filters.raw_material_type) {
+        frappe.msgprint({
+            title: __('Missing Filter'),
+            message: __('Raw Material Type filter is required to view the summary'),
+            indicator: 'red'
+        });
+        return;
+    }
+
+    frappe.show_progress(__('Comparing with Stock Balance'), 50, 100, __('Please wait...'));
+
+    frappe.call({
+        method: "gke_customization.gke_catalog.report.branch_stock_summary.branch_stock_summary.get_summary_comparison",
+        args: {
+            filters: JSON.stringify(current_filters)
+        },
+        callback: function (r) {
+            frappe.hide_progress();
+            if (r.message) {
+                let dialog = new frappe.ui.Dialog({
+                    title: __('Report Summary'),
+                    size: "large",
+                    fields: [
+                        {
+                            fieldtype: "HTML",
+                            fieldname: "summary_html",
+                            options: build_summary_html(r.message)
+                        }
+                    ]
+                });
+                dialog.show();
+            }
+        },
+        error: function () {
+            frappe.hide_progress();
+            frappe.msgprint({
+                title: __('Error'),
+                message: __('Failed to load summary. Check console for details.'),
+                indicator: 'red'
+            });
+        }
+    });
+}
+
+
+function build_summary_html(s) {
+    let fmt = (v) => Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+    let diff_color = Math.abs(s.difference_total) < 0.001 ? 'var(--text-muted)' : 'var(--red-500, #d1414a)';
+
+    let breakdown_rows = (s.scope_gap_breakdown || []).map(row => `
+        <tr>
+            <td style="padding: 6px; border: 1px solid var(--border-color);">${row.department}</td>
+            <td style="padding: 6px; border: 1px solid var(--border-color); text-align: right;">${fmt(row.qty)}</td>
+        </tr>
+    `).join('');
+
+    if (!breakdown_rows) {
+        breakdown_rows = `<tr><td colspan="2" style="padding: 6px; border: 1px solid var(--border-color); text-align: center; color: var(--text-muted);">${__('No untracked stock found')}</td></tr>`;
+    }
+
+    // Work Order/WIP Stock and Finished Goods Metal only exist in the total
+    // when their checkbox filter is ticked, so they are listed as their own
+    // rows here rather than being silently merged into one combined number.
+    let optional_rows = `
+        <tr>
+            <td style="padding: 8px; border: 1px solid var(--border-color);">${__('Core Stock (Raw Material / Reserve / Transit / Scrap / MSL / Manufacturing Wh.)')}</td>
+            <td style="padding: 8px; border: 1px solid var(--border-color); text-align: right;">${fmt(s.core_branch_summary_qty)}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid var(--border-color);">
+                ${__('Work Order / WIP Stock')}
+                ${s.include_work_order_wip ? '' : ` <span style="color: var(--text-muted);">(${__('checkbox not ticked')})</span>`}
+            </td>
+            <td style="padding: 8px; border: 1px solid var(--border-color); text-align: right;">${fmt(s.work_order_wip_qty)}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid var(--border-color);">
+                ${__('Finished Goods Metal')}
+                ${s.include_finished_goods_metal ? '' : ` <span style="color: var(--text-muted);">(${__('checkbox not ticked')})</span>`}
+            </td>
+            <td style="padding: 8px; border: 1px solid var(--border-color); text-align: right;">${fmt(s.finished_goods_qty)}</td>
+        </tr>
+    `;
+
+    return `
+        <div style="padding: 10px; color: var(--text-color); background-color: var(--card-bg);">
+            <p style="color: var(--text-muted); margin-bottom: 15px;">
+                <strong>${s.company}</strong> &bull; ${s.raw_material_type} &bull; as on ${s.as_on_date}
+            </p>
+
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
+                ${optional_rows}
+                <tr>
+                    <td style="padding: 8px; border: 1px solid var(--border-color); font-weight: bold;">${__('Branch Stock Summary Grand Total')}</td>
+                    <td style="padding: 8px; border: 1px solid var(--border-color); text-align: right; font-weight: bold;">${fmt(s.branch_summary_qty)}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border: 1px solid var(--border-color);">${__('Stock Balance Total (same item group)')}</td>
+                    <td style="padding: 8px; border: 1px solid var(--border-color); text-align: right; font-weight: bold;">${fmt(s.stock_balance_qty)}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border: 1px solid var(--border-color); font-weight: bold;">${__('Difference')}</td>
+                    <td style="padding: 8px; border: 1px solid var(--border-color); text-align: right; font-weight: bold; color: ${diff_color};">${fmt(s.difference_total)}</td>
+                </tr>
+            </table>
+
+            <h5 style="margin-bottom: 5px;">${__('Why the totals differ')}</h5>
+
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 5px;">
+                <strong>${__('1. Stock in departments this report does not cover')}</strong> (${fmt(s.scope_gap_total)}) &mdash;
+                ${__('Branch Stock Summary only shows departments that currently have manufacturing work happening in them. The stock below sits in other departments or warehouses (like Purchase or Refinery, or warehouses with no department set), so it shows up in Stock Balance but not here:')}
+            </p>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px;">
+                <thead>
+                    <tr style="background-color: var(--subtle-fg);">
+                        <th style="padding: 6px; border: 1px solid var(--border-color); text-align: left;">${__('Department / Warehouse')}</th>
+                        <th style="padding: 6px; border: 1px solid var(--border-color); text-align: right;">${__('Quantity')}</th>
+                    </tr>
+                </thead>
+                <tbody>${breakdown_rows}</tbody>
+            </table>
+
+            <p style="font-size: 12px; color: var(--text-muted);">
+                <strong>${__('2. Old data corrections')}</strong> (${fmt(s.reconciliation_diff)}) &mdash;
+                ${__('This is a small leftover difference caused by past stock corrections (Stock Reconciliation entries) in the system. Stock Balance automatically adjusts for these old corrections; this report simply adds up the recorded stock movements, so it does not apply that same adjustment.')}
+            </p>
+        </div>
+    `;
+}
+
+
 function show_stock_details(department, stock_type, stock_key) {
     let current_filters = frappe.query_report.get_filter_values();
+    
+    console.log('show_stock_details called with:', {department, stock_type, stock_key, current_filters});
     
     if (!current_filters.raw_material_type) {
         frappe.msgprint({
@@ -300,8 +514,9 @@ function show_stock_details(department, stock_type, stock_key) {
         },
         callback: function(r) {
             frappe.hide_progress();
+            console.log('API Response:', r);
             
-            if (r.message && r.message.length > 0) {
+            if (r.message && Array.isArray(r.message) && r.message.length > 0) {
                 let dialog = new frappe.ui.Dialog({
                     title: `${stock_type} Details - ${department} Department`,
                     size: "large",
@@ -315,11 +530,13 @@ function show_stock_details(department, stock_type, stock_key) {
                     primary_action_label: __('Export to Excel'),
                     primary_action: function() {
                         export_stock_details_to_excel(r.message, stock_type, department);
+                        dialog.hide();
                     }
                 });
                 dialog.show();
                 
             } else {
+                console.log('No data found or empty response:', r);
                 frappe.msgprint({
                     title: __('No Data Found'),
                     message: __(`No ${stock_type.toLowerCase()} data found for ${department} department with the selected raw material type`),
@@ -329,51 +546,52 @@ function show_stock_details(department, stock_type, stock_key) {
         },
         error: function(err) {
             frappe.hide_progress();
+            console.error('API Error:', err);
             frappe.msgprint({
                 title: __('Error'),
-                message: __('Failed to load stock details. Please try again.'),
+                message: __('Failed to load stock details. Check console for details.'),
                 indicator: 'red'
             });
         }
     });
 }
 
-// SIMPLIFIED: Build stock details table with clean, simple formatting
+
 function build_stock_details_table(data, stock_type, department, raw_material_type) {
     if (!data || data.length === 0) {
-        return `<div style="padding: 30px; text-align: center;">
-                    <h4 style="color: #666;">No Data Found</h4>
-                    <p style="color: #999;">No ${stock_type.toLowerCase()} records found for ${department} department.</p>
-                </div>`;
+        return `
+            <div style="padding: 30px; text-align: center; color: var(--text-color); background-color: var(--card-bg);">
+                <h4 style="color: var(--text-muted);">No Data Found</h4>
+                <p style="color: var(--text-muted);">No ${stock_type.toLowerCase()} records found for ${department} department.</p>
+            </div>`;
     }
+
 
     let headers = Object.keys(data[0]);
     let material_filter_text = raw_material_type ? ` (${raw_material_type})` : '';
     
     let html = `
-        <div style="padding: 15px;">
-            <div style="margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
-                <h4 style="margin: 0 0 5px; color: #333; font-size: 16px;">${stock_type} Details</h4>
-                <p style="margin: 0; color: #666; font-size: 12px;">
+        <div style="padding: 15px; color: var(--text-color); background-color: var(--card-bg);">
+            <div style="margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                <h4 style="margin: 0 0 5px; color: var(--text-color); font-size: 16px;">${stock_type} Details</h4>
+                <p style="margin: 0; color: var(--text-muted); font-size: 12px;">
                     <strong>${department}</strong> Department${material_filter_text} • ${data.length} records found
                 </p>
             </div>
-            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); background-color: var(--card-bg);">
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px; color: var(--text-color); background-color: var(--card-bg);">
                     <thead>
-                        <tr style="background-color: #f5f5f5;">`;
+                        <tr style="background-color: var(--subtle-fg);">`;
     
-    // SIMPLIFIED: Basic header formatting without complex styling
     headers.forEach((header) => {
         let headerText = frappe.model.unscrub(header);
-        html += `<th style="padding: 8px; border: 1px solid #ddd; font-weight: bold; font-size: 11px; text-align: left;">${headerText}</th>`;
+        html += `<th style="padding: 8px; border: 1px solid var(--border-color); font-weight: bold; font-size: 11px; text-align: left; color: var(--text-color); background-color: var(--subtle-fg);">${headerText}</th>`;
     });
     
     html += `</tr></thead><tbody>`;
     
-    // SIMPLIFIED: Basic row formatting without complex color coding
     data.forEach((row, rowIndex) => {
-        let bgColor = rowIndex % 2 === 0 ? '#ffffff' : '#f9f9f9';
+        let bgColor = rowIndex % 2 === 0 ? 'var(--card-bg)' : 'var(--subtle-fg)';
         html += `<tr style="background-color: ${bgColor};">`;
         
         headers.forEach((header) => {
@@ -381,21 +599,26 @@ function build_stock_details_table(data, stock_type, department, raw_material_ty
             
             // Simple number formatting
             if (typeof value === 'number' && value !== 0) {
-                value = frappe.format(value, {fieldtype: "Float", precision: 3});
+                if (header.toLowerCase().includes('weight') || header.toLowerCase().includes('qty') || header.toLowerCase().includes('quantity')) {
+                    value = Number(value).toFixed(3);
+                } else {
+                    value = value.toString();
+                }
             }
             
-            html += `<td style="padding: 6px; border: 1px solid #ddd;">${value}</td>`;
+            html += `<td style="padding: 6px; border: 1px solid var(--border-color); color: var(--text-color); background-color: ${bgColor};">${value}</td>`;
         });
         html += '</tr>';
     });
     
     html += `</tbody></table></div>
-        <div style="margin-top: 10px; padding: 10px; background-color: #f9f9f9; border: 1px solid #ddd; font-size: 11px; color: #666;">
+        <div style="margin-top: 10px; padding: 10px; background-color: var(--subtle-fg); border: 1px solid var(--border-color); font-size: 11px; color: var(--text-muted);">
             ${data.length} record${data.length !== 1 ? 's' : ''} found • Material Type: ${raw_material_type || 'All'} • Department: ${department}
         </div></div>`;
     
     return html;
 }
+
 
 function export_stock_details_to_excel(data, stock_type, department) {
     if (!data || data.length === 0) {
@@ -406,6 +629,7 @@ function export_stock_details_to_excel(data, stock_type, department) {
         });
         return;
     }
+
 
     let headers = Object.keys(data[0]);
     let csv_content = headers.map(h => frappe.model.unscrub(h)).join(',') + '\n';
@@ -420,6 +644,7 @@ function export_stock_details_to_excel(data, stock_type, department) {
         });
         csv_content += row_data.join(',') + '\n';
     });
+
 
     let filename = `${stock_type.replace(/\s+/g, '_')}_${department.replace(/\s+/g, '_')}_${frappe.datetime.now_date()}.csv`;
     
@@ -440,3 +665,12 @@ function export_stock_details_to_excel(data, stock_type, department) {
         });
     }
 }
+
+
+// FIXED: Initialize handlers when document is ready
+$(document).ready(function() {
+    // Delay to ensure report is loaded
+    setTimeout(function() {
+        attach_view_button_handlers();
+    }, 3000);
+});

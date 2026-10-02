@@ -112,7 +112,8 @@ frappe.query_reports["Sketch Order form Detailed Count"] = {
             method: "frappe.client.get_list",
             args: {
                 doctype: doctype,
-                fields: [`distinct ${field}`],
+                fields: [field],
+                group_by: field,
                 order_by: `${field} asc`,
                 limit_page_length: 20000,
             },

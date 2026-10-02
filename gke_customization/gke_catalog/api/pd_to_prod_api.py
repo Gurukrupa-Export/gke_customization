@@ -2,10 +2,14 @@
 # For license information, please see license.txt
 
 import frappe
-import pyodbc
 
 
 def _get_connection():
+	try:
+		import pyodbc  # lazy: importing this module must not need the driver
+	except ImportError:
+		frappe.throw("Failed to connect to Jwelex: the pyodbc driver is unavailable on this server")
+
 	return pyodbc.connect(
 		"DRIVER={ODBC Driver 17 for SQL Server};"
 		"SERVER=27.109.25.76,9880;"

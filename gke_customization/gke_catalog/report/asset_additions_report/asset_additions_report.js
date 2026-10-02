@@ -123,7 +123,8 @@ frappe.query_reports["Asset Additions Report"] = {
 				method: "frappe.client.get_list",
 				args: {
 					doctype: doctype,
-					fields: [`distinct ${field}`],
+					fields: [field],
+					group_by: field,
 					order_by: `${field} asc`,
 					limit_page_length: 30000,
 				},

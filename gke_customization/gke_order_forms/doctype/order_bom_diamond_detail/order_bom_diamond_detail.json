@@ -74,7 +74,7 @@
   },
   {
    "fieldname": "size_in_mm",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "Size In MM",
    "mandatory_depends_on": "eval: doc.diamond_sieve_size",
    "options": "Attribute Value"
@@ -139,8 +139,8 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-27 17:10:29.529754",
- "modified_by": "shubham_k@gkexport.com",
+ "modified": "2026-09-13 21:19:20.901574",
+ "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Order BOM Diamond Detail",
  "owner": "Administrator",

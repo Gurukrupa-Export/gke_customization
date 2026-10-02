@@ -122,12 +122,6 @@
   }
  ],
  "index_web_pages_for_search": 1,
- "links": [
-  {
-   "link_doctype": "OT Log",
-   "link_fieldname": "ot_allowance_entry"
-  }
- ],
  "modified": "2025-07-19 10:24:20.062517",
  "modified_by": "Administrator",
  "module": "GKE HRMS",

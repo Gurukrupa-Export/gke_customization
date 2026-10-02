@@ -1,0 +1,81 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-02-10 16:20:36.711286",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "particulars",
+  "city",
+  "9_am",
+  "3_pm",
+  "11_pm",
+  "live_rate",
+  "high_rate",
+  "low_rate"
+ ],
+ "fields": [
+  {
+   "fieldname": "particulars",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Particulars "
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "City"
+  },
+  {
+   "fieldname": "9_am",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "9:30 AM"
+  },
+  {
+   "fieldname": "3_pm",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "3:00 PM"
+  },
+  {
+   "fieldname": "11_pm",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "11:00 PM"
+  },
+  {
+   "fieldname": "live_rate",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Live Rate"
+  },
+  {
+   "fieldname": "high_rate",
+   "fieldtype": "Float",
+   "label": "High Rate"
+  },
+  {
+   "fieldname": "low_rate",
+   "fieldtype": "Float",
+   "label": "Low Rate"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-02-11 09:24:14.132854",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Gold Rates branchs",
+ "owner": "shubham_k@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
