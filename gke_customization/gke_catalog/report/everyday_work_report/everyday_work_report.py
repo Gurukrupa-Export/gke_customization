@@ -21,7 +21,7 @@ def get_columns():
         {"label": "Category", "fieldname": "category", "fieldtype": "Data", "width": 110},
         {"label": "PMO", "fieldname": "g_order_no", "fieldtype": "Data", "width": 120},
         {"label": "Customer Code", "fieldname": "pmo_ref_customer_id", "fieldtype": "Data", "width": 130},
-        {"label": "PO Number", "fieldname": "po_number", "fieldtype": "Data", "width": 100},
+        # {"label": "PO Number", "fieldname": "po_number", "fieldtype": "Data", "width": 100},
         {"label": "Gold wt", "fieldname": "gold_wt", "fieldtype": "Float", "width": 90, "precision": 3},
         {"label": "Diamond pcs", "fieldname": "diamond_pcs", "fieldtype": "Int", "width": 100},
         {"label": "Diamond Wt", "fieldname": "diamond_wt", "fieldtype": "Float", "width": 100, "precision": 3},
