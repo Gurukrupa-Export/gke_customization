@@ -1,4 +1,5 @@
 [pre_model_sync]
+gke_customization.patches.rename_revise_diamond_price_list_doctype
 
 [post_model_sync]
 

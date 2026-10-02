@@ -241,6 +241,12 @@
 import frappe
 from frappe.model.document import Document
 
+def diamond_price_list_has_sales_type():
+    # v16 compatibility: the v16 jewellery_erpnext "Diamond Price List" has no sales_type
+    # field, and filtering or set_value on a missing column fails with "Unknown column".
+    # Match/write Sales Type only where the field exists (e.g. added as a custom field).
+    return frappe.get_meta("Diamond Price List").has_field("sales_type")
+
 class ReviseDiamondPriceList(Document):
     def before_save(self):
         # frappe.throw("hiii")
@@ -253,6 +259,8 @@ class ReviseDiamondPriceList(Document):
 				"customer": self.customer,
                 "sales_type":self.sales_type
 			}
+        if not diamond_price_list_has_sales_type():
+            filters.pop("sales_type")
 
         if self.price_list_type == 'Sieve Size Range':
             if len(self.revise_diamond_price_list_details_sieve_size_range) == 0:
@@ -321,11 +329,15 @@ class ReviseDiamondPriceList(Document):
         else:
             table = 'revise_diamond_price_list_details'
 
+        has_sales_type = diamond_price_list_has_sales_type()
         for i in self.get(table):
             
-            frappe.db.set_value('Diamond Price List',i.diamond_price_list,{'rate':i.revised_rate,
+            values = {'rate':i.revised_rate,
             'supplier_fg_purchase_rate':i.new_outwork_rate,
-            'effective_from':self.date,'sales_type':self.sales_type})
+            'effective_from':self.date,'sales_type':self.sales_type}
+            if not has_sales_type:
+                values.pop('sales_type')
+            frappe.db.set_value('Diamond Price List',i.diamond_price_list,values)
             if not i.diamond_price_list:
                 crate_price_list(self,i)
         frappe.msgprint("Price List Updated")
@@ -466,6 +478,8 @@ def for_weight_in_cts(self,i):
                 "to_weight": i['weight'].split('-')[1],
                 "sales_type":self.sales_type
             }
+    if not diamond_price_list_has_sales_type():
+        rate_filters.pop("sales_type")
     rate = frappe.db.get_value("Diamond Price List",rate_filters,"rate")
     name = frappe.db.get_value("Diamond Price List",rate_filters,"name")
     handling_rate = frappe.db.get_value("Diamond Price List",rate_filters,"handling_rate")
