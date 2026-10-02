@@ -135,10 +135,11 @@ def apply_shift_time(shift_type):
         }
         
        
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def process_salary_adjustment(docname):
    
     doc = frappe.get_doc("Attendance Adjustment Tool", docname)
+    doc.check_permission("read")
     
     # Attachment field se file path lo
     file_path = doc.records
@@ -236,10 +237,11 @@ def process_salary_adjustment(docname):
     frappe.response["message"] = review_data
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def proceed_check_in_modify(docname):
 
     doc = frappe.get_doc("Attendance Adjustment Tool", docname)
+    doc.check_permission("read")
 
     try:
         from_date = doc.from_date
@@ -1300,12 +1302,13 @@ def after_job_failure(job, method, *args, **kwargs):
     
     
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 
 
 def update_proceed_check_in_modify(docname):
 
     doc = frappe.get_doc("Attendance Adjustment Tool", docname)
+    doc.check_permission("read")
 
     try:
         from_date = doc.from_date
