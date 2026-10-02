@@ -24,10 +24,31 @@ frappe.query_reports["Manufacturing Batch Stock Register"] = {
             label: __("Department"),
             fieldtype: "Link",
             options: "Department",
+            reqd: 1,
         },
     ],
 
     onload: function (report) {
+        // Only System Manager / Administrator can view/change other departments.
+        // Everyone else is locked to their own default (Employee) department.
+        // Resolved server-side (not via a direct Employee lookup) since most
+        // report users don't have read permission on the Employee doctype.
+        frappe.call({
+            method: "gke_customization.gke_catalog.report.manufacturing_batch_stock_register.manufacturing_batch_stock_register.get_user_department_filter",
+            callback: function (r) {
+                var res = r.message || {};
+                if (res.can_change_department) return;
+
+                var filter = report.get_filter("department");
+                if (!filter) return;
+
+                filter.set_value(res.department || "");
+                filter.df.read_only = 1;
+                filter.df.get_query = null;
+                filter.refresh();
+            }
+        });
+
         const tabs = [
             { label: "1. Batch Count",   key: "count"   },
             { label: "2. Batch Gold",    key: "gold"    },
