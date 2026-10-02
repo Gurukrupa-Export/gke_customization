@@ -56,7 +56,7 @@ def _serialize_items(items, status_filter=None):
             "rate"                        : row.rate or 0,
             "amount"                      : (row.quantity or 0) * (row.rate or 0),
             "image"                       : item_data.get("image") or "",
-            "custom_catalogue_image"                       : item_data.get("custom_catalogue_image") or "",
+            "custom_catalogue_image"      : item_data.get("custom_catalogue_image") or "",
             "category"                    : item_data.get("item_category") or "",
             "item_category_code"          : item_data.get("item_category_code") or "",
             "gross_weight"                : bom_data.get("gross_weight") or "",
