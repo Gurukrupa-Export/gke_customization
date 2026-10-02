@@ -47,6 +47,7 @@ After the replay (`c9c77f4`), the remaining commits in order:
 | `f482786` | fix(security): require login for the Attendance Adjustment Tool endpoints |
 | `de33ad3` | fix(fixtures): order custom fields so a missing app only skips its own rows |
 | `ecd9b53` | fix(fixtures): keep GK's current layout and flags on 32 fields |
+| `0e6e3dc` | Merge master (#1370) into migration/gk-prod-reconstruction |
 
 …followed by the documentation commit that adds this folder.
 

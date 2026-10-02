@@ -20,7 +20,7 @@
 
 - **507 source commits in 179 units, each accounted for exactly once** (trailer-checked):
   ported 284 (92 units) · already in master 140 (57) · superseded 44 (15) · reverted 30 (12) · excluded as KGGK-only 9 (3).
-- **90 commits on the migration branch**: 71 replayed production commits (original authors and dates, `cherry-pick -x` provenance), 7 consolidated three-way ports for the files both sides changed, 3 fixture commits (curation, row order, GK's current values), 3 business-decision commits, 4 v16-compatibility fix groups for master-only code, 1 security fix and this documentation.
+- **94 commits on the migration branch**: 71 replayed production commits (original authors and dates, `cherry-pick -x` provenance), 7 consolidated three-way ports for the files both sides changed, 3 fixture commits (curation, row order, GK's current values), 3 business-decision commits, 4 v16-compatibility fix groups for master-only code, 1 security fix, 2 commits from master that landed after the cut (#1370: the fix and its PR merge), 1 merge commit bringing them in, and this documentation (2 commits).
 - **The final tree equals an independently assembled oracle** (replay simulation + recorded decisions), so nothing outside the recorded decisions changed.
 - **No master file is lost**: the only 9 deletions are two intentional moves (see 07).
 
