@@ -3,15 +3,36 @@
 
 import frappe
 from frappe import _
-from frappe.utils import flt, getdate
+from frappe.utils import add_days, flt, get_datetime, getdate
 
-GOLD    = "Metal - V"
-DIAMOND = "Diamond - V"
-STONE   = "Gemstone - V"
+from gke_customization.gke_catalog.report.branch_stock_summary.branch_stock_summary import (
+    get_existing_item_groups,
+    get_warehouse_map,
+)
 
-ITEM_GROUP_FIELD = {GOLD: "gold", DIAMOND: "diamond", STONE: "stone"}
+# Report tab (field prefix) -> Branch Stock Summary raw material type. The
+# item groups of each come from that report, so both count the same items.
+MATERIALS = (
+    ("gold",    "Metal"),
+    ("diamond", "Diamond"),
+    ("stone",   "Gemstone"),
+    ("finding", "Finding"),
+)
+
+
+def _item_group_field():
+    """{item_group: material prefix} for every material tab, cached per request."""
+    if not hasattr(frappe.local, "mbsr_item_group_field"):
+        frappe.local.mbsr_item_group_field = {
+            group: label
+            for label, raw_material_type in MATERIALS
+            for group in get_existing_item_groups(raw_material_type)
+        }
+    return frappe.local.mbsr_item_group_field
 
 UNASSIGNED = "Unassigned"
+FINISHED   = "Finished Goods"
+CLOSED     = "Closed Work Order"
 
 DEPARTMENT_OVERRIDE_ROLES = {"System Manager", "Administrator"}
 
@@ -42,184 +63,184 @@ def get_user_department_filter():
     }
 
 # ---------------------------------------------------------------------------
-# Department attribution — derived from the ACTUAL warehouse on each Stock
-# Entry Detail row, not from Manufacturing Work Order.department (which is
-# the work order's final/destination department, not where stock currently
-# sits — a work order parked in "Diamond Setting" can carry legs that only
-# ever moved between e.g. Casting and Waxing warehouses).
-#
-# Same from/to convention as department_stock_issue_report.py:
-#   from_dept = COALESCE(Warehouse(s_warehouse).department, se.department)
-#   to_dept   = COALESCE(se.to_department, Warehouse(t_warehouse).department)
-# Both sides are nullable (shared/central stores, reserve stock, subcontractor/
-# employee/customer warehouses have no department owner); an unresolved side
-# is surfaced as "Unassigned" rather than dropped.
-#
-# No stock_entry_type restriction — department resolution itself is the
-# filter: ANY submitted Stock Entry whose source or target warehouse maps to
-# a department counts (Material Transfer (WORK ORDER)/(DEPARTMENT), Material
-# Transfer From Reserve, Material Receipt, Material Transfer to Employee,
-# etc.) so every real movement into/out of a department is covered, not just
-# the work-order-linked legs. Legs where both sides resolve to the SAME
-# department (pure internal moves, e.g. Manufacture/Repack within one dept's
-# own warehouses) are excluded downstream, not here.
-# ---------------------------------------------------------------------------
-
-_LEG_SQL = """
-    SELECT
-        se.manufacturing_work_order AS mwo,
-        se.name                     AS se_name,
-        sed.item_group              AS item_group,
-        sed.transfer_qty            AS transfer_qty,
-        COALESCE(NULLIF(whs.department, ''), NULLIF(se.department, ''))    AS from_dept,
-        COALESCE(NULLIF(se.to_department, ''), NULLIF(wht.department, '')) AS to_dept
-    FROM `tabStock Entry` se
-    JOIN `tabStock Entry Detail` sed ON sed.parent = se.name
-    LEFT JOIN `tabWarehouse` whs ON whs.name = sed.s_warehouse
-    LEFT JOIN `tabWarehouse` wht ON wht.name = sed.t_warehouse
-    WHERE se.docstatus = 1
-      {date_clause}
-"""
-
-
-# ---------------------------------------------------------------------------
 # Gold/Diamond/Stone ledger — sourced from Stock Ledger Entry (the ground
-# truth running balance Frappe maintains for EVERY stock-affecting doctype,
-# not just Stock Entry), so Opening is the department's actual stock on
-# hand at the start of the period, and Closing = Opening + Receive - Issue
-# is an exact identity rather than an approximation: Issue/Receive are
-# literally the same ledger's negative/positive legs in the period, so
-# their net equals the balance's real change. "Count" (distinct work
-# orders) is NOT part of this — it stays on the Stock-Entry-based logic
-# above, since SLE has no work-order identity and most other voucher types
+# truth Frappe maintains for EVERY stock-affecting doctype, not just Stock
+# Entry). Balances are SUM(actual_qty), the same as Stock Balance and Branch
+# Stock Summary — NOT the "latest" qty_after_transaction row, since several
+# SLEs of one voucher share a posting_datetime and SLE names are random
+# hashes, so there is no reliable "last" row to pick.
+#
+# Warehouse -> department uses Branch Stock Summary's classification
+# (Warehouse.department, else the warehouse employee's department, else a
+# department whose name the warehouse name starts with; subcontractor
+# warehouses excluded), so employee WIP/MSL warehouses with a blank
+# Warehouse.department are counted and Closing matches that report exactly.
+#
+# Closing = Opening + Receive - Issue is an exact identity: Issue/Receive are
+# that same ledger's negative/positive legs in the period. "Count" (distinct
+# work orders) is NOT part of this — it stays on the Stock-Entry-based logic
+# below, since SLE has no work-order identity and most other voucher types
 # (Purchase Receipt, Delivery Note, ...) have no work order at all.
 # ---------------------------------------------------------------------------
 
-def _sle_base(extra_clause="", department=None):
-    dept_clause = "AND NULLIF(wh.department, '') = %(dept)s" if department else ""
+def _get_department_warehouse_map(department):
+    """{warehouse: department} for every department-owned warehouse of the
+    department's company, classified the same way as Branch Stock Summary."""
+    company = frappe.db.get_value("Department", department, "company")
+    companies = [company] if company else frappe.get_all("Company", pluck="name")
+
+    wh_map = {}
+    for c in companies:
+        for wh, info in get_warehouse_map(c).items():
+            if info.group == "department":
+                wh_map[wh] = info.department
+    return wh_map
+
+
+def _department_warehouses(wh_map, department):
+    return [wh for wh, dept in wh_map.items() if dept == department]
+
+
+def _sle_base(warehouses, extra_clause=""):
     return """
         SELECT
-            sle.name                 AS sle_name,
-            sle.item_code             AS item_code,
-            sle.warehouse              AS warehouse,
-            sle.actual_qty              AS actual_qty,
-            sle.qty_after_transaction    AS qty_after_transaction,
-            sle.posting_date              AS posting_date,
-            sle.posting_datetime            AS posting_datetime,
-            sle.voucher_type                 AS voucher_type,
-            sle.voucher_no                    AS voucher_no,
-            i.item_group                       AS item_group,
-            NULLIF(wh.department, '')          AS department
+            sle.name          AS sle_name,
+            sle.item_code     AS item_code,
+            sle.warehouse     AS warehouse,
+            sle.actual_qty    AS actual_qty,
+            sle.posting_date  AS posting_date,
+            sle.voucher_type  AS voucher_type,
+            sle.voucher_no    AS voucher_no,
+            i.item_group      AS item_group
         FROM `tabStock Ledger Entry` sle
         JOIN `tabItem` i ON i.name = sle.item_code
-        JOIN `tabWarehouse` wh ON wh.name = sle.warehouse
         WHERE sle.is_cancelled = 0
-          AND NULLIF(wh.department, '') IS NOT NULL
-          AND i.item_group IN (%(gold)s, %(diamond)s, %(stone)s)
-          {dept_clause}
+          AND sle.warehouse IN %(warehouses)s
+          AND i.item_group IN %(item_groups)s
           {extra_clause}
-    """.format(dept_clause=dept_clause, extra_clause=extra_clause)
+    """.format(extra_clause=extra_clause)
 
 
-def _pivot_item_group(rows, value_cols, suffixes):
-    """rows: dicts with department, item_group, <value_cols...>.
+def _sle_period_clause(from_date, to_date):
+    """Date bounds on sle.posting_datetime rather than posting_date, so the
+    (item_code, warehouse, posting_datetime) index narrows the scan instead
+    of every SLE of the item since the beginning being read and filtered."""
+    clause, params = "", {}
+    if from_date:
+        clause += " AND sle.posting_datetime >= %(from_dt)s"
+        params["from_dt"] = "{} 00:00:00".format(getdate(from_date))
+    if to_date:
+        clause += " AND sle.posting_datetime < %(to_dt)s"
+        params["to_dt"] = "{} 00:00:00".format(add_days(getdate(to_date), 1))
+    return clause, params
+
+
+def _pivot_item_group(rows, department, value_cols, suffixes):
+    """rows: dicts with item_group, <value_cols...> for one department.
     Returns {department: {"<material>_<suffix>": value, ...}}."""
-    merged = {}
+    d = {}
     for r in rows:
-        label = ITEM_GROUP_FIELD.get(r["item_group"])
+        label = _item_group_field().get(r["item_group"])
         if not label:
             continue
-        d = merged.setdefault(r["department"], {})
         for col, suffix in zip(value_cols, suffixes):
-            d["{}_{}".format(label, suffix)] = flt(r.get(col))
-    return merged
+            field = "{}_{}".format(label, suffix)
+            d[field] = d.get(field, 0) + flt(r.get(col))
+    return {department: d}
 
 
-def _get_material_opening(from_date, department):
-    if not from_date:
+def _get_material_opening(from_date, department, wh_map):
+    warehouses = _department_warehouses(wh_map, department)
+    if not from_date or not warehouses:
         return {}
 
-    base = _sle_base(department=department)
+    date_clause, date_params = _sle_period_clause(None, add_days(getdate(from_date), -1))
 
     rows = frappe.db.sql("""
-        SELECT department, item_group, SUM(qty_after_transaction) AS balance
-        FROM (
-            SELECT department, item_group, qty_after_transaction,
-                   ROW_NUMBER() OVER (
-                       PARTITION BY item_code, warehouse
-                       ORDER BY posting_datetime DESC, sle_name DESC
-                   ) AS rn
-            FROM ({base}) sle_f
-            WHERE posting_datetime < %(from_dt)s
-        ) ranked
-        WHERE rn = 1
-        GROUP BY department, item_group
-    """.format(base=base),
-    {"gold": GOLD, "diamond": DIAMOND, "stone": STONE, "dept": department,
-     "from_dt": "{} 00:00:00".format(from_date)},
+        SELECT item_group, SUM(actual_qty) AS balance
+        FROM ({base}) sle_f
+        GROUP BY item_group
+    """.format(base=_sle_base(warehouses, date_clause)),
+    {"item_groups": list(_item_group_field()),
+     "warehouses": warehouses, **date_params},
     as_dict=True)
 
-    return _pivot_item_group(rows, ["balance"], ["opening"])
+    return _pivot_item_group(rows, department, ["balance"], ["opening"])
 
 
-def _get_material_period(from_date, to_date, department):
-    date_clause, date_params = _date_between(from_date, to_date, "sle.posting_date")
-    base = _sle_base(extra_clause=date_clause, department=department)
+def _get_material_period(from_date, to_date, department, wh_map):
+    warehouses = _department_warehouses(wh_map, department)
+    if not warehouses:
+        return {}
+
+    date_clause, date_params = _sle_period_clause(from_date, to_date)
 
     rows = frappe.db.sql("""
-        SELECT department, item_group,
+        SELECT item_group,
             SUM(CASE WHEN actual_qty > 0 THEN actual_qty  ELSE 0 END) AS receive,
             SUM(CASE WHEN actual_qty < 0 THEN -actual_qty ELSE 0 END) AS issue
         FROM ({base}) sle_f
-        GROUP BY department, item_group
-    """.format(base=base),
-    {"gold": GOLD, "diamond": DIAMOND, "stone": STONE, "dept": department, **date_params},
+        GROUP BY item_group
+    """.format(base=_sle_base(warehouses, date_clause)),
+    {"item_groups": list(_item_group_field()),
+     "warehouses": warehouses, **date_params},
     as_dict=True)
 
-    return _pivot_item_group(rows, ["issue", "receive"], ["issue", "receive"])
+    return _pivot_item_group(rows, department, ["issue", "receive"], ["issue", "receive"])
 
 
-def _get_material_counterparty_breakdown(from_date, to_date, department):
-    date_clause, date_params = _date_between(from_date, to_date, "sle.posting_date")
-    self_base = _sle_base(extra_clause=date_clause, department=department)
+def _get_material_counterparty_breakdown(from_date, to_date, department, wh_map):
+    warehouses = _department_warehouses(wh_map, department)
+    if not warehouses:
+        return []
 
-    # Paired legs of one transaction always share the same posting_date, so
-    # bounding `pair` the same way too lets the self-join use the
-    # (item_code, warehouse, posting_datetime) index instead of scanning
-    # unbounded history for a match.
-    pair_date_clause, pair_date_params = _date_between(from_date, to_date, "pair.posting_date")
+    date_clause, date_params = _sle_period_clause(from_date, to_date)
+    params = {"item_groups": list(_item_group_field()), "warehouses": warehouses, **date_params}
 
-    rows = frappe.db.sql("""
-        SELECT department, item_group, actual_qty,
-               COALESCE(pair_department, %(unassigned)s) AS counterparty
-        FROM (
-            SELECT self.department AS department, self.item_group AS item_group, self.actual_qty AS actual_qty,
-                   NULLIF(pairwh.department, '') AS pair_department,
-                   ROW_NUMBER() OVER (PARTITION BY self.sle_name ORDER BY pair.name) AS rn
-            FROM ({self_base}) self
-            LEFT JOIN `tabStock Ledger Entry` pair
-                   ON pair.voucher_type = self.voucher_type
-                  AND pair.voucher_no   = self.voucher_no
-                  AND pair.item_code    = self.item_code
-                  AND pair.actual_qty   = -self.actual_qty
-                  AND pair.warehouse   != self.warehouse
-                  AND pair.is_cancelled = 0
-                  {pair_date_clause}
-            LEFT JOIN `tabWarehouse` pairwh ON pairwh.name = pair.warehouse
-        ) ranked
-        WHERE rn = 1
-    """.format(self_base=self_base, pair_date_clause=pair_date_clause),
-    {"gold": GOLD, "diamond": DIAMOND, "stone": STONE, "dept": department,
-     "unassigned": UNASSIGNED, **date_params, **pair_date_params},
-    as_dict=True)
+    self_rows = frappe.db.sql("SELECT * FROM ({base}) self".format(base=_sle_base(warehouses, date_clause)),
+                              params, as_dict=True)
+    if not self_rows:
+        return []
+
+    # Each leg's counterparty is the other warehouse of the same voucher that
+    # moved the same item by the opposite qty (first by SLE name if several).
+    # Every voucher's ledger rows are fetched once and paired in Python — a
+    # SQL self-join re-scans the whole voucher for every leg, which on large
+    # manufacturing vouchers ran for over an hour on a 20-day range. Paired
+    # legs share the posting_date, so `pair` is bounded by the same dates.
+    def key(voucher_type, voucher_no, item_code, qty):
+        return (voucher_type, voucher_no, item_code, flt(qty, 6))
+
+    candidates = {}
+    vouchers = sorted({r["voucher_no"] for r in self_rows})
+    items    = sorted({r["item_code"]  for r in self_rows})
+    for i in range(0, len(vouchers), 1000):
+        for p in frappe.db.sql("""
+            SELECT sle.name, sle.voucher_type, sle.voucher_no, sle.item_code, sle.warehouse, sle.actual_qty
+            FROM `tabStock Ledger Entry` sle
+            WHERE sle.voucher_no IN %(vouchers)s
+              AND sle.item_code IN %(items)s
+              AND sle.is_cancelled = 0
+              {date_clause}
+            ORDER BY sle.name
+        """.format(date_clause=date_clause),
+        {"vouchers": vouchers[i:i + 1000], "items": items, **date_params}, as_dict=True):
+            candidates.setdefault(
+                key(p["voucher_type"], p["voucher_no"], p["item_code"], p["actual_qty"]), []
+            ).append(p["warehouse"])
 
     merged = {}
-    for r in rows:
-        label = ITEM_GROUP_FIELD.get(r["item_group"])
+    for r in self_rows:
+        label = _item_group_field().get(r["item_group"])
         if not label:
             continue
-        key = (r["department"], r["counterparty"])
-        d = merged.setdefault(key, {})
+        pair_warehouse = next(
+            (wh for wh in candidates.get(key(r["voucher_type"], r["voucher_no"], r["item_code"], -flt(r["actual_qty"])), [])
+             if wh != r["warehouse"]),
+            None,
+        )
+        counterparty = wh_map.get(pair_warehouse) or UNASSIGNED
+        d = merged.setdefault(counterparty, {})
         qty = flt(r["actual_qty"])
         if qty > 0:
             field = "{}_receive".format(label)
@@ -228,7 +249,7 @@ def _get_material_counterparty_breakdown(from_date, to_date, department):
             field = "{}_issue".format(label)
             d[field] = d.get(field, 0) + (-qty)
 
-    return [dict(department=dept, counterparty=cp, **vals) for (dept, cp), vals in merged.items()]
+    return [dict(department=department, counterparty=cp, **vals) for cp, vals in merged.items()]
 
 
 def execute(filters=None):
@@ -269,39 +290,27 @@ def get_data(filters):
     if not dept_list:
         return []
 
-    # "Count" (distinct work orders) — unchanged, Stock-Entry-based.
-    period_count     = _get_all_period(from_date, to_date, department)
-    opening_count    = _get_all_opening(from_date, department)
-    breakdown_count  = _get_counterparty_breakdown(from_date, to_date, department)
-
     # Gold/Diamond/Stone — ground truth from Stock Ledger Entry.
-    period_material    = _get_material_period(from_date, to_date, department)
-    opening_material   = _get_material_opening(from_date, department)
-    breakdown_material = _get_material_counterparty_breakdown(from_date, to_date, department)
+    wh_map             = _get_department_warehouse_map(department)
+    period_material    = _get_material_period(from_date, to_date, department, wh_map)
+    opening_material   = _get_material_opening(from_date, department, wh_map)
+    breakdown_material = _get_material_counterparty_breakdown(from_date, to_date, department, wh_map)
 
-    pc = {r["department"]: r for r in period_count}
-    oc = {r["department"]: r for r in opening_count}
-
-    bc = {}
-    for r in breakdown_count:
-        bc.setdefault(r["department"], []).append(r)
     bm = {}
     for r in breakdown_material:
         bm.setdefault(r["department"], []).append(r)
 
     def counterparty_rows(dept):
-        """Merge the material (SLE-based) and count (Stock-Entry-based)
+        """Merge the material (SLE-based) and PMO count (Department IR-based)
         counterparty breakdowns for one department into one row per
-        counterparty — material columns from bm, count columns from bc."""
+        counterparty — material columns from bm, count columns from pmo."""
         merged = {}
         for r in bm.get(dept, []):
             merged.setdefault(r["counterparty"], {}).update(
                 {k: v for k, v in r.items() if k not in ("department", "counterparty")}
             )
-        for r in bc.get(dept, []):
-            merged.setdefault(r["counterparty"], {}).update(
-                {k: v for k, v in r.items() if k.startswith("count_")}
-            )
+        for cp_name, vals in pmo["counterparty"].items():
+            merged.setdefault(cp_name, {}).update(vals)
         return merged
 
     result = []
@@ -312,46 +321,25 @@ def get_data(filters):
 
         pd_mat = period_material.get(dept, {})
         od_mat = opening_material.get(dept, {})
-        pd_cnt = pc.get(dept, {})
-        od_cnt = oc.get(dept, {})
+        pmo = _get_pmo_counts(from_date, to_date, dept)
 
-        # ── Gold/Diamond/Stone ───────────────────────────────────────────
+        # ── Gold/Diamond/Stone/Finding ────────────────────────────────────
         # Opening/Closing are the department's actual stock-on-hand from the
         # Stock Ledger (ground truth); Issue/Receive are that same ledger's
         # negative/positive legs in the period, so Closing = Opening +
         # Receive - Issue holds exactly, not approximately.
-        go = flt(od_mat.get("gold_opening"))
-        gi = flt(pd_mat.get("gold_issue"))
-        gr = flt(pd_mat.get("gold_receive"))
-        gc = go + gr - gi
+        values = {}
+        for label, _raw_material_type in MATERIALS:
+            o = flt(od_mat.get(label + "_opening"))
+            i = flt(pd_mat.get(label + "_issue"))
+            r = flt(pd_mat.get(label + "_receive"))
+            values.update({label + "_opening": o, label + "_issue": i,
+                           label + "_receive": r, label + "_closing": o + r - i})
 
-        do_ = flt(od_mat.get("diamond_opening"))
-        di  = flt(pd_mat.get("diamond_issue"))
-        dr  = flt(pd_mat.get("diamond_receive"))
-        dc  = do_ + dr - di
+        # ── Count (PMOs) ──────────────────────────────────────────────────
+        values.update(pmo["totals"])
 
-        so = flt(od_mat.get("stone_opening"))
-        si = flt(pd_mat.get("stone_issue"))
-        sr = flt(pd_mat.get("stone_receive"))
-        sc = so + sr - si
-
-        # ── Count ─────────────────────────────────────────────────────────
-        co = flt(od_cnt.get("count_receive")) - flt(od_cnt.get("count_issue"))
-        ci = flt(pd_cnt.get("count_issue"))
-        cr = flt(pd_cnt.get("count_receive"))
-        cc = co + cr - ci
-
-        result.append(frappe._dict(
-            department = dept,
-            opening    = go,
-            issue      = gi,
-            receive    = gr,
-            closing    = gc,
-            gold_opening    = go,  gold_issue    = gi,  gold_receive    = gr,  gold_closing    = gc,
-            diamond_opening = do_, diamond_issue = di,  diamond_receive = dr,  diamond_closing = dc,
-            stone_opening   = so,  stone_issue   = si,  stone_receive   = sr,  stone_closing   = sc,
-            count_opening   = co,  count_issue   = ci,  count_receive   = cr,  count_closing   = cc,
-        ))
+        result.append(_report_row(dept, values))
 
         # ── Level-2: department-to-department breakdown ────────────────────
         # One row per counterparty department this department transacted
@@ -359,152 +347,31 @@ def get_data(filters):
         # "receive" = qty taken in from that counterparty, "closing" = net
         # for that pair only — period-only, no opening carried at this level.
         for cp_name, cp in sorted(counterparty_rows(dept).items()):
-            cgi = flt(cp.get("gold_issue"));    cgr = flt(cp.get("gold_receive"));    cgc = cgr - cgi
-            cdi = flt(cp.get("diamond_issue")); cdr = flt(cp.get("diamond_receive")); cdc = cdr - cdi
-            csi = flt(cp.get("stone_issue"));   csr = flt(cp.get("stone_receive"));   csc = csr - csi
-            cci = flt(cp.get("count_issue"));   ccr = flt(cp.get("count_receive"));   ccc = ccr - cci
+            values = {}
+            for label in [m[0] for m in MATERIALS] + ["count"]:
+                i = flt(cp.get(label + "_issue"))
+                r = flt(cp.get(label + "_receive"))
+                values.update({label + "_opening": 0, label + "_issue": i,
+                               label + "_receive": r, label + "_closing": r - i})
+            # A PMO count has no "net" per counterparty — left blank, not r - i.
+            values["count_closing"] = None
 
-            result.append(frappe._dict(
-                department = "    " + cp_name,
-                opening    = 0,
-                issue      = cgi,
-                receive    = cgr,
-                closing    = cgc,
-                gold_opening    = 0, gold_issue    = cgi, gold_receive    = cgr, gold_closing    = cgc,
-                diamond_opening = 0, diamond_issue = cdi, diamond_receive = cdr, diamond_closing = cdc,
-                stone_opening   = 0, stone_issue   = csi, stone_receive   = csr, stone_closing   = csc,
-                count_opening   = 0, count_issue   = cci, count_receive   = ccr, count_closing   = ccc,
-            ))
+            result.append(_report_row("    " + cp_name, values))
 
     return result
 
 
-def _run_direction_aggregate(date_clause, date_params, department, direction_col, label):
-    """
-    Aggregate the leg subquery by one side (from_dept = outgoing/Issue,
-    to_dept = incoming/Receive), excluding internal same-department moves
-    and legs unattributable on this side.
-    """
-    dept_clause = "AND {col} = %(dept)s".format(col=direction_col) if department else ""
-
-    rows = frappe.db.sql("""
-        SELECT
-            {direction_col} AS department,
-            SUM(CASE WHEN item_group = %(gold)s    THEN transfer_qty ELSE 0 END) AS gold_{label},
-            SUM(CASE WHEN item_group = %(diamond)s THEN transfer_qty ELSE 0 END) AS diamond_{label},
-            SUM(CASE WHEN item_group = %(stone)s   THEN transfer_qty ELSE 0 END) AS stone_{label},
-            COUNT(DISTINCT COALESCE(mwo, se_name)) AS count_{label}
-        FROM (
-            {leg_sql}
-        ) leg
-        WHERE {direction_col} IS NOT NULL
-          AND ({direction_col} != {other_col} OR {other_col} IS NULL)
-          {dept_clause}
-        GROUP BY {direction_col}
-    """.format(
-        direction_col=direction_col,
-        other_col="to_dept" if direction_col == "from_dept" else "from_dept",
-        label=label,
-        leg_sql=_LEG_SQL.format(date_clause=date_clause),
-        dept_clause=dept_clause,
-    ),
-    {"gold": GOLD, "diamond": DIAMOND, "stone": STONE,
-     "dept": department, **date_params},
-    as_dict=True)
-
-    return rows
-
-
-def _get_all_period(from_date, to_date, department):
-    date_clause, date_params = _date_between(from_date, to_date, "se.posting_date")
-
-    issue_rows   = _run_direction_aggregate(date_clause, date_params, department, "from_dept", "issue")
-    receive_rows = _run_direction_aggregate(date_clause, date_params, department, "to_dept",   "receive")
-
-    merged = {}
-    for r in issue_rows:
-        merged.setdefault(r["department"], {}).update({k: v for k, v in r.items() if k != "department"})
-    for r in receive_rows:
-        merged.setdefault(r["department"], {}).update({k: v for k, v in r.items() if k != "department"})
-
-    return [dict(department=dept, **vals) for dept, vals in merged.items()]
-
-
-def _get_all_opening(from_date, department):
-    if not from_date:
-        return []
-
-    date_clause, date_params = "AND se.posting_date < %(fd)s", {"fd": from_date}
-
-    issue_rows   = _run_direction_aggregate(date_clause, date_params, department, "from_dept", "issue")
-    receive_rows = _run_direction_aggregate(date_clause, date_params, department, "to_dept",   "receive")
-
-    merged = {}
-    for r in issue_rows:
-        merged.setdefault(r["department"], {}).update({k: v for k, v in r.items() if k != "department"})
-    for r in receive_rows:
-        merged.setdefault(r["department"], {}).update({k: v for k, v in r.items() if k != "department"})
-
-    return [dict(department=dept, **vals) for dept, vals in merged.items()]
-
-
-def _get_counterparty_breakdown(from_date, to_date, department):
-    date_clause, date_params = _date_between(from_date, to_date, "se.posting_date")
-
-    def side(direction_col, other_col, label):
-        dept_clause = "AND {col} = %(dept)s".format(col=direction_col) if department else ""
-        return frappe.db.sql("""
-            SELECT
-                {direction_col} AS department,
-                COALESCE({other_col}, %(unassigned)s) AS counterparty,
-                SUM(CASE WHEN item_group = %(gold)s    THEN transfer_qty ELSE 0 END) AS gold_{label},
-                SUM(CASE WHEN item_group = %(diamond)s THEN transfer_qty ELSE 0 END) AS diamond_{label},
-                SUM(CASE WHEN item_group = %(stone)s   THEN transfer_qty ELSE 0 END) AS stone_{label},
-                COUNT(DISTINCT COALESCE(mwo, se_name)) AS count_{label}
-            FROM (
-                {leg_sql}
-            ) leg
-            WHERE {direction_col} IS NOT NULL
-              AND ({direction_col} != {other_col} OR {other_col} IS NULL)
-              {dept_clause}
-            GROUP BY {direction_col}, counterparty
-        """.format(
-            direction_col=direction_col,
-            other_col=other_col,
-            label=label,
-            leg_sql=_LEG_SQL.format(date_clause=date_clause),
-            dept_clause=dept_clause,
-        ),
-        {"gold": GOLD, "diamond": DIAMOND, "stone": STONE,
-         "dept": department, "unassigned": UNASSIGNED, **date_params},
-        as_dict=True)
-
-    issue_rows   = side("from_dept", "to_dept", "issue")
-    receive_rows = side("to_dept",   "from_dept", "receive")
-
-    merged = {}
-    for r in issue_rows:
-        key = (r["department"], r["counterparty"])
-        merged.setdefault(key, {}).update({k: v for k, v in r.items() if k not in ("department", "counterparty")})
-    for r in receive_rows:
-        key = (r["department"], r["counterparty"])
-        merged.setdefault(key, {}).update({k: v for k, v in r.items() if k not in ("department", "counterparty")})
-
-    return [dict(department=dept, counterparty=cp, **vals) for (dept, cp), vals in merged.items()]
-
-
-# ---------------------------------------------------------------------------
-# Add these indexes once via a Frappe patch or bench execute
-# ---------------------------------------------------------------------------
-#
-# frappe.db.add_index("Stock Entry",        ["docstatus", "posting_date"])
-# frappe.db.add_index("Stock Entry Detail", ["parent", "item_group"])
-# frappe.db.add_index("Stock Entry Detail", ["s_warehouse"])
-# frappe.db.add_index("Stock Entry Detail", ["t_warehouse"])
-# (Warehouse.department and Stock Entry.department/to_department are plain
-#  columns on small tables — no dedicated index needed.)
-#
-# ---------------------------------------------------------------------------
+def _report_row(department, values):
+    """The display columns default to Gold; the JS tabs swap them for
+    another material's own <material>_* fields client-side."""
+    return frappe._dict(
+        department = department,
+        opening    = values["gold_opening"],
+        issue      = values["gold_issue"],
+        receive    = values["gold_receive"],
+        closing    = values["gold_closing"],
+        **values,
+    )
 
 
 def _get_departments(dept_filter=None):
@@ -520,13 +387,154 @@ def _get_departments(dept_filter=None):
     )
 
 
-# Date helper  (unchanged)
+# ---------------------------------------------------------------------------
+# Batch Count — number of PMOs (Parent Manufacturing Orders) in a department.
+#
+# What moves between departments is the Manufacturing Work Order, through a
+# Department IR: an Issue takes it out of `current_department` (in transit to
+# `next_department`), the matching Receive brings it into `current_department`
+# (from `previous_department`). Several work orders belong to one PMO, and a
+# PMO is one batch, so every figure counts distinct PMOs:
+#
+#   Opening / Closing - PMOs with at least one work order sitting in the
+#                       department at the start of From Date / end of To Date
+#   Receive / Issue   - PMOs received into / issued out of the department in
+#                       the period
+#
+# Each figure is a count of PMOs, so Closing is NOT Opening + Receive - Issue:
+# a PMO whose work orders are partly issued is "issued" and still "in" the
+# department. Closing is the real position, never a running total, so it
+# can't go negative.
+#
+# Where a work order sits at a point in time is its last Department IR before
+# it. Every work order starts in the department of its first Issue (Manufacturing
+# Plan & Management) and stays there from creation until that Issue. After the
+# final Receive (Tagging) the work order is Completed with no further movement,
+# so a Completed work order leaves the flow at its last Receive (issued to
+# "Finished Goods"), and a Closed one when it was closed (last modified).
+# An active work order with no Department IR at all has never moved: it sits in
+# the department of its current Manufacturing Operation since its creation.
+# ---------------------------------------------------------------------------
 
-def _date_between(from_date, to_date, col):
-    if from_date and to_date:
-        return "AND {col} BETWEEN %(fd)s AND %(td)s".format(col=col), {"fd": from_date, "td": to_date}
-    if from_date:
-        return "AND {col} >= %(fd)s".format(col=col), {"fd": from_date}
-    if to_date:
-        return "AND {col} <= %(td)s".format(col=col), {"td": to_date}
-    return "", {}
+def _get_pmo_counts(from_date, to_date, department):
+    start = get_datetime(getdate(from_date)) if from_date else None
+    end   = get_datetime(add_days(getdate(to_date), 1)) if to_date else None
+
+    def in_period(dt):
+        return (start is None or dt >= start) and (end is None or dt < end)
+
+    # Full history of every work order that ever passed through the department
+    # (an Issue from it or a Receive into it — both carry it as current_department).
+    events = frappe.db.sql("""
+        SELECT op.manufacturing_work_order AS mwo, ir.type AS type,
+               ir.current_department AS cur, ir.next_department AS nxt,
+               ir.previous_department AS prev, ir.date_time AS dt
+        FROM `tabDepartment IR` ir
+        JOIN `tabDepartment IR Operation` op ON op.parent = ir.name
+        WHERE ir.docstatus = 1
+          AND op.manufacturing_work_order IN (
+              SELECT op2.manufacturing_work_order
+              FROM `tabDepartment IR` ir2
+              JOIN `tabDepartment IR Operation` op2 ON op2.parent = ir2.name
+              WHERE ir2.docstatus = 1 AND ir2.current_department = %(dept)s
+          )
+        ORDER BY ir.date_time, ir.name
+    """, {"dept": department}, as_dict=True)
+
+    by_mwo = {}
+    for e in events:
+        by_mwo.setdefault(e.mwo, []).append(e)
+
+    work_orders = {
+        w.name: w for w in frappe.get_all(
+            "Manufacturing Work Order",
+            filters={"name": ["in", list(by_mwo)], "docstatus": 1},
+            fields=["name", "manufacturing_order", "status", "creation", "modified"],
+        )
+    } if by_mwo else {}
+
+    never_moved = frappe.db.sql("""
+        SELECT w.name, w.manufacturing_order, w.creation
+        FROM `tabManufacturing Work Order` w
+        JOIN `tabManufacturing Operation` mop ON mop.name = w.manufacturing_operation
+        WHERE w.docstatus = 1
+          AND w.status IN ('Not Started', 'In Process', 'Stopped')
+          AND mop.department = %(dept)s
+          AND NOT EXISTS (
+              SELECT 1
+              FROM `tabDepartment IR Operation` op
+              JOIN `tabDepartment IR` ir ON ir.name = op.parent AND ir.docstatus = 1
+              WHERE op.manufacturing_work_order = w.name
+          )
+    """, {"dept": department}, as_dict=True)
+
+    opening, closing = set(), set()
+    for wo in never_moved:
+        if not wo.manufacturing_order:
+            continue
+        if start is not None and wo.creation < start:
+            opening.add(wo.manufacturing_order)
+        if end is None or wo.creation < end:
+            closing.add(wo.manufacturing_order)
+
+    issued, received = set(), set()
+    cp_issued, cp_received = {}, {}
+
+    for mwo, evs in by_mwo.items():
+        wo = work_orders.get(mwo)
+        if not wo or not wo.manufacturing_order:
+            continue
+        pmo = wo.manufacturing_order
+
+        # (when, department now holding it or None, counterparty) — in order.
+        moves = []
+        if evs[0].type == "Issue":
+            moves.append((wo.creation, evs[0].cur, None))
+        for e in evs:
+            if e.type == "Receive":
+                moves.append((e.dt, e.cur, e.prev))
+                if e.cur == department and in_period(e.dt):
+                    received.add(pmo)
+                    cp_received.setdefault(e.prev or UNASSIGNED, set()).add(pmo)
+            else:
+                moves.append((e.dt, None, e.nxt))
+                if e.cur == department and in_period(e.dt):
+                    issued.add(pmo)
+                    cp_issued.setdefault(e.nxt or UNASSIGNED, set()).add(pmo)
+
+        last = evs[-1]
+        if last.type == "Receive" and wo.status in ("Completed", "Closed"):
+            exit_at = last.dt if wo.status == "Completed" else max(wo.modified, last.dt)
+            moves.append((exit_at, None, None))
+            if last.cur == department and in_period(exit_at):
+                issued.add(pmo)
+                cp_issued.setdefault(FINISHED if wo.status == "Completed" else CLOSED, set()).add(pmo)
+
+        def location(at):
+            loc = None
+            for when, dept, _cp in moves:
+                if at is not None and when >= at:
+                    break
+                loc = dept
+            return loc
+
+        if start is not None and location(start) == department:
+            opening.add(pmo)
+        if location(end) == department:
+            closing.add(pmo)
+
+    counterparty = {}
+    for cp_name, pmos in cp_issued.items():
+        counterparty.setdefault(cp_name, {})["count_issue"] = len(pmos)
+    for cp_name, pmos in cp_received.items():
+        counterparty.setdefault(cp_name, {})["count_receive"] = len(pmos)
+
+    return {
+        "totals": {
+            "count_opening": len(opening),
+            "count_issue":   len(issued),
+            "count_receive": len(received),
+            "count_closing": len(closing),
+        },
+        "counterparty": counterparty,
+    }

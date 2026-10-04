@@ -10,8 +10,8 @@ from gke_customization.gke_catalog.report.mfg_dashboard_script.mfg_dashboard_scr
     DEPARTMENT_SEQUENCE,
 )
 
-# Departments excluded from the Gross Wt pivot columns on this report only.
-EXCLUDED_DEPARTMENTS = ["Manufacturing Plan & Management", "Computer Aided Designing", "Sales"]
+# Departments shown as Gross Wt pivot columns on this report only.
+INCLUDED_DEPARTMENTS = ["Tagging"]
 
 
 
@@ -33,7 +33,7 @@ def execute(filters=None):
 def get_department_name_map():
     """Map each actual Department record (name, which may carry a ' - <company abbr>' suffix)
     to its base department_name, so departments from different companies collapse into one column."""
-    included_departments = [d for d in DEPARTMENT_SEQUENCE if d not in EXCLUDED_DEPARTMENTS]
+    included_departments = [d for d in DEPARTMENT_SEQUENCE if d in INCLUDED_DEPARTMENTS]
 
     department_records = frappe.get_all(
         "Department",
@@ -75,13 +75,14 @@ def get_latest_departments_for_pmos(parent_manufacturing_orders):
         SELECT mwo.manufacturing_order, mwo.department
         FROM (
             SELECT
-                manufacturing_order,
-                department,
-                ROW_NUMBER() OVER (PARTITION BY manufacturing_order ORDER BY modified DESC) as rn
-            FROM `tabManufacturing Work Order`
-            WHERE manufacturing_order IN ({placeholders})
-                AND for_fg = 0
-                AND is_finding_mwo = 0
+                raw_mwo.manufacturing_order,
+                COALESCE(mo.department, raw_mwo.department) as department,
+                ROW_NUMBER() OVER (PARTITION BY raw_mwo.manufacturing_order ORDER BY raw_mwo.modified DESC) as rn
+            FROM `tabManufacturing Work Order` raw_mwo
+            LEFT JOIN `tabManufacturing Operation` mo ON mo.name = raw_mwo.manufacturing_operation
+            WHERE raw_mwo.manufacturing_order IN ({placeholders})
+                AND raw_mwo.for_fg = 0
+                AND raw_mwo.is_finding_mwo = 0
         ) mwo
         WHERE mwo.rn = 1
     """.format(placeholders=placeholders), pmo_names, as_dict=True)
@@ -120,8 +121,8 @@ def get_columns(departments=None):
         {"fieldname": "customer_po_no", "label": _("Customer PO No."), "fieldtype": "Data", "width": 120},
         {"fieldname": "warehouse", "label": _("Warehouse"), "fieldtype": "Link", "options": "Warehouse", "width": 120},
         {"fieldname": "manufacturer", "label": _("Manufacturer"), "fieldtype": "Link", "options": "Manufacturer", "width": 120},
-        {"fieldname": "metal_touch", "label": _("Metal Touch"), "fieldtype": "Data", "width": 100},
-        {"fieldname": "finding_touch", "label": _("Finding Touch"), "fieldtype": "Data", "width": 100},
+        {"fieldname": "metal_touch", "label": _("Metal Purity"), "fieldtype": "Data", "width": 100},
+        {"fieldname": "finding_touch", "label": _("Finding Purity"), "fieldtype": "Data", "width": 100},
     ]
 
     for department in (departments or []):
