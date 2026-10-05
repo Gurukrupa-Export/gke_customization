@@ -881,6 +881,10 @@ class SyncRun:
 		# ordered - not whatever a later plan, or a draft, says for the same item.
 		self.copy_bom_overrides = dict(copy_boms or {})
 
+		# BOMs being pushed right now, outermost first. A child row that needs a BOM already on
+		# this stack is a cycle, and is reported instead of followed.
+		self.bom_stack = set()
+
 		# BOMs an Item in this run points at through a target-only field. They are pushed in
 		# this run too, or the link has nothing to resolve to. Ordered, de-duplicated.
 		self.extra_boms = {}
@@ -2323,6 +2327,57 @@ def _link_exists(config, doctype, value, cache):
 	return cache[key]
 
 
+def _translate_child_links(config, doc, data, run, push_dependency=None):
+	"""Give every Item and BOM link inside a child row the name the target uses.
+
+	`_strip_missing_links` only looks at the parent's own fields, and `_child_rows` only rewrote
+	Company - so a BOM row's `bom_no` (a sub-assembly) went across under our name. Where the
+	target numbered that sub-assembly differently it pointed at nothing, and the parent was
+	refused; where the target happened to have a BOM of that number it pointed at a different
+	recipe and was accepted.
+
+	A BOM link with no known target record is pushed first through ``push_dependency`` and then
+	resolved. One that still cannot be resolved blocks the parent with the row named: dropping a
+	component from a recipe to make it save is not an option.
+
+	Returns a list of blocking problems; empty means every child link resolved.
+	"""
+	blocking = []
+	target_host = host_of(config.to_site)
+	for df in frappe.get_meta(doc.doctype).fields:
+		if df.fieldtype not in TABLE_TYPES or not df.options:
+			continue
+		rows = data.get(df.fieldname)
+		if not rows:
+			continue
+		links = {
+			child.fieldname: child.options
+			for child in frappe.get_meta(df.options).fields
+			if child.fieldtype in LINK_TYPES and child.options in MAPPED_DOCTYPES
+		}
+		for row in rows:
+			for fieldname, link_doctype in links.items():
+				value = row.get(fieldname)
+				if not value:
+					continue
+				remote = remote_link_name(
+					config, link_doctype, value, target_host, run, run.link_cache, probe=True
+				)
+				if remote is None and push_dependency and push_dependency(link_doctype, value):
+					remote = remote_link_name(
+						config, link_doctype, value, target_host, run, run.link_cache, probe=True
+					)
+				if remote is None:
+					blocking.append(
+						f"{df.fieldname} row {row.get('idx') or '?'}: {fieldname} {link_doctype} "
+						f"'{value}' is not on the target and could not be sent first"
+					)
+					continue
+				if remote != value:
+					row[fieldname] = remote
+	return blocking
+
+
 def _strip_missing_links(config, doc, data, run, cache):
 	"""Drop optional Link values the target does not have; refuse on essential ones.
 
@@ -2841,7 +2896,10 @@ def push_item(item_code, config, run, seen=None):
 			continue
 		data[fieldname] = value
 
-	blocking = _strip_missing_links(config, doc, data, run, run.link_cache)
+	blocking = _translate_child_links(
+		config, doc, data, run, push_dependency=_dependency_pusher(config, run)
+	)
+	blocking += _strip_missing_links(config, doc, data, run, run.link_cache)
 	if blocking:
 		message = "required master(s) missing on target - " + "; ".join(blocking)
 		run.item_failed(item_code, message)
@@ -2903,12 +2961,38 @@ def push_item(item_code, config, run, seen=None):
 	return True
 
 
+def _dependency_pusher(config, run):
+	"""``(doctype, name) -> pushed?`` for a BOM a child row needs before its parent can go.
+
+	Guarded against a cycle - a BOM that, through its rows, ends up needing itself - by the set
+	of BOMs this run is in the middle of pushing; such a link is reported, not followed.
+	"""
+
+	def push(doctype, name):
+		if doctype != "BOM" or not name or name in run.bom_stack:
+			return False
+		if not frappe.db.exists("BOM", name):
+			return False
+		run.line("INFO", "BOM", name, "needed by a child row, pushing it first")
+		run.boms_total += 1
+		return push_bom(name, config, run)
+
+	return push
+
+
 def push_bom(bom_name, config, run):
 	"""Create or update one BOM on the target, attachments included."""
 	if not frappe.db.exists("BOM", bom_name):
 		run.bom_failed(bom_name, "BOM does not exist on this site")
 		return False
+	run.bom_stack.add(bom_name)
+	try:
+		return _push_bom(bom_name, config, run)
+	finally:
+		run.bom_stack.discard(bom_name)
 
+
+def _push_bom(bom_name, config, run):
 	doc = frappe.get_doc("BOM", bom_name)
 	sent_version = doc.modified
 
@@ -2928,7 +3012,12 @@ def push_bom(bom_name, config, run):
 
 	allowed = get_target_fields(config, "BOM", run=run)
 	data, attachments = build_payload(doc, allowed, run=run, config=config)
-	blocking = _strip_missing_links(config, doc, data, run, run.link_cache)
+	# Child rows first: a sub-assembly this BOM needs is pushed before it, so that by the time
+	# the parent goes every component already has its name over there.
+	blocking = _translate_child_links(
+		config, doc, data, run, push_dependency=_dependency_pusher(config, run)
+	)
+	blocking += _strip_missing_links(config, doc, data, run, run.link_cache)
 	if blocking:
 		message = "required master(s) missing on target - " + "; ".join(blocking)
 		run.bom_failed(bom_name, message)

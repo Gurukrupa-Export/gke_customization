@@ -2325,6 +2325,85 @@ class TestTargetCompany(unittest.TestCase):
 		self.assertTrue(self._verify(self.TGT, exists=None)[0])
 
 
+class TestChildRowLinks(unittest.TestCase):
+	"""A BOM row's `bom_no` is a sub-assembly, and it has a name of its own over there.
+
+	Only the parent's links were translated, so a renumbered sub-assembly pointed at nothing -
+	or, where KGGK had a BOM of that number, at a different recipe.
+	"""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", headers={})
+		self.run = _run(config=self.cfg)
+		metas = {
+			"BOM": frappe._dict(fields=[frappe._dict(fieldname="items", fieldtype="Table", options="BOM Item")]),
+			"BOM Item": frappe._dict(
+				fields=[
+					frappe._dict(fieldname="item_code", fieldtype="Link", options="Item"),
+					frappe._dict(fieldname="bom_no", fieldtype="Link", options="BOM"),
+					frappe._dict(fieldname="uom", fieldtype="Link", options="UOM"),
+				]
+			),
+		}
+		patcher = patch.object(frappe, "get_meta", side_effect=lambda dt: metas[dt])
+		patcher.start()
+		self.addCleanup(patcher.stop)
+		self.doc = frappe._dict(doctype="BOM", name="B-PARENT")
+
+	def _data(self):
+		return {"items": [{"idx": 1, "item_code": "I-1", "bom_no": "BOM-SUB-002", "uom": "Nos"}]}
+
+	def test_a_sub_assembly_carries_the_targets_name(self):
+		names = {"BOM-SUB-002": "BOM-SUB-001", "I-1": "I-1"}
+		data = self._data()
+		with patch.object(k, "remote_link_name", side_effect=lambda c, dt, v, *a, **kw: names[v]):
+			blocking = k._translate_child_links(self.cfg, self.doc, data, self.run)
+		self.assertEqual(blocking, [])
+		self.assertEqual(data["items"][0]["bom_no"], "BOM-SUB-001")
+		self.assertEqual(data["items"][0]["uom"], "Nos")
+
+	def test_a_renamed_child_item_is_translated_too(self):
+		names = {"BOM-SUB-002": "BOM-SUB-001", "I-1": "I-1-KG"}
+		data = self._data()
+		with patch.object(k, "remote_link_name", side_effect=lambda c, dt, v, *a, **kw: names[v]):
+			k._translate_child_links(self.cfg, self.doc, data, self.run)
+		self.assertEqual(data["items"][0]["item_code"], "I-1-KG")
+
+	def test_an_unsent_sub_assembly_is_pushed_first(self):
+		pushed = []
+		state = {"BOM-SUB-002": None, "I-1": "I-1"}
+
+		def push(doctype, name):
+			pushed.append((doctype, name))
+			state[name] = "BOM-SUB-001"
+			return True
+
+		data = self._data()
+		with patch.object(k, "remote_link_name", side_effect=lambda c, dt, v, *a, **kw: state[v]):
+			blocking = k._translate_child_links(self.cfg, self.doc, data, self.run, push_dependency=push)
+		self.assertEqual(pushed, [("BOM", "BOM-SUB-002")])
+		self.assertEqual(blocking, [])
+		self.assertEqual(data["items"][0]["bom_no"], "BOM-SUB-001")
+
+	def test_an_unresolvable_component_blocks_the_parent_and_is_not_dropped(self):
+		data = self._data()
+		with patch.object(
+			k, "remote_link_name", side_effect=lambda c, dt, v, *a, **kw: None if dt == "BOM" else v
+		):
+			blocking = k._translate_child_links(
+				self.cfg, self.doc, data, self.run, push_dependency=lambda dt, n: False
+			)
+		self.assertEqual(len(blocking), 1)
+		self.assertIn("items row 1: bom_no BOM 'BOM-SUB-002'", blocking[0])
+		self.assertEqual(data["items"][0]["bom_no"], "BOM-SUB-002")
+
+	def test_a_bom_that_needs_itself_is_not_followed(self):
+		self.run.bom_stack.add("B-PARENT")
+		with patch.object(k, "push_bom") as push_bom, patch.object(frappe.db, "exists", return_value=True):
+			self.assertFalse(k._dependency_pusher(self.cfg, self.run)("BOM", "B-PARENT"))
+		push_bom.assert_not_called()
+
+
 class TestTargetOwnedDefaults(unittest.TestCase):
 	"""KGGK's Item Defaults are KGGK's. An update used to replace them with a bare company row."""
 
