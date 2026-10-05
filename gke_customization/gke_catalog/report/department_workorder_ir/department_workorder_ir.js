@@ -58,21 +58,11 @@ frappe.query_reports["Department Workorder IR"] = {
             options: "Department",
             reqd: 0,
             get_query: function() {
+                // Department has no "branch" field, so filter by company only
                 let company = frappe.query_report.get_filter_value("company");
-                let branch = frappe.query_report.get_filter_value("branch");
-
-                let filters = {};
-
-                if (company) {
-                    filters.company = company;
-                }
-
-                if (branch) {
-                    filters.branch = branch;
-                }
 
                 return {
-                    filters: filters
+                    filters: company ? { company: company } : {}
                 };
             }
         },
@@ -90,21 +80,11 @@ frappe.query_reports["Department Workorder IR"] = {
             options: "Department",
             reqd: 0,
             get_query: function() {
+                // Department has no "branch" field, so filter by company only
                 let company = frappe.query_report.get_filter_value("company");
-                let branch = frappe.query_report.get_filter_value("branch");
-
-                let filters = {};
-
-                if (company) {
-                    filters.company = company;
-                }
-
-                if (branch) {
-                    filters.branch = branch;
-                }
 
                 return {
-                    filters: filters
+                    filters: company ? { company: company } : {}
                 };
             }
         },
