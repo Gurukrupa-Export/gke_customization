@@ -681,7 +681,8 @@ class TestTargetSchemaFailuresAreReported(unittest.TestCase):
 	def test_success_returns_union(self):
 		ok = k.Response(status_code=200, data={"data": {"fields": [{"fieldname": "item_code"}]}})
 		custom = k.Response(status_code=200, data={"data": [{"fieldname": "custom_thing"}]})
-		with patch(f"{MOD}.api_get", side_effect=[ok, custom]):
+		setters = k.Response(status_code=200, data={"data": []})
+		with patch(f"{MOD}.api_get", side_effect=[ok, custom, setters]):
 			fields = k.get_target_fields(self.cfg, "Item", run=self.run)
 		self.assertLessEqual({"item_code", "custom_thing"}, fields)
 		self.assertEqual(self.run.problems, [])
@@ -696,7 +697,8 @@ class TestTargetSchemaFailuresAreReported(unittest.TestCase):
 		"""Repointing To Site must not serve the old target's field list."""
 		ok = k.Response(status_code=200, data={"data": {"fields": [{"fieldname": "item_code"}]}})
 		custom = k.Response(status_code=200, data={"data": []})
-		with patch(f"{MOD}.api_get", side_effect=[ok, custom]):
+		setters = k.Response(status_code=200, data={"data": []})
+		with patch(f"{MOD}.api_get", side_effect=[ok, custom, setters]):
 			k.get_target_fields(self.cfg, "Item", run=self.run)
 		self.assertIsNotNone(
 			frappe.cache().get_value("kggk_target_fields::t::Item", expires=True)
@@ -707,10 +709,12 @@ class TestTargetSchemaFailuresAreReported(unittest.TestCase):
 		to the target for every item in the run."""
 		ok = k.Response(status_code=200, data={"data": {"fields": [{"fieldname": "item_code"}]}})
 		custom = k.Response(status_code=200, data={"data": []})
-		with patch(f"{MOD}.api_get", side_effect=[ok, custom]) as get:
+		setters = k.Response(status_code=200, data={"data": []})
+		with patch(f"{MOD}.api_get", side_effect=[ok, custom, setters]) as get:
 			k.get_target_fields(self.cfg, "Item", run=self.run)
 			second = k.get_target_fields(self.cfg, "Item", run=self.run)
-		self.assertEqual(get.call_count, 2)  # DocType + Custom Field, once between them
+		# DocType, Custom Field and Property Setter - once between the two calls.
+		self.assertEqual(get.call_count, 3)
 		self.assertIn("item_code", second)
 
 
@@ -1899,11 +1903,17 @@ class TestSubmittedOnTarget(unittest.TestCase):
 		identity = {f["fieldname"] for f in k.IDENTITY_FIELDS}
 		return [f for f in blocked if f not in identity]
 
+	def _current(self, **values):
+		"""What the target holds now, for the comparison that decides what would change."""
+		return k.Response(status_code=200, data={"data": dict(values)})
+
 	def test_the_fields_that_can_still_change_are_sent_and_the_rest_reported(self):
 		data = {"is_active": 1, "is_default": 1, "quantity": 5, "uom": "Nos"}
 		with patch.object(k, "api_put", side_effect=[self._refusal(), k.Response(status_code=200)]) as put, patch.object(
 			k, "get_target_submit_fields", return_value={"is_active", "is_default"}
-		), patch.object(k, "ensure_identity_fields", return_value=True):
+		), patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "api_get", return_value=self._current(is_active=0, is_default=0, quantity=1, uom="Kg")
+		):
 			response, action, target, blocked = k._send(
 				self.cfg, "BOM", "B-1", data, lookup="B-1"
 			)
@@ -1916,7 +1926,9 @@ class TestSubmittedOnTarget(unittest.TestCase):
 	def test_nothing_sendable_reports_without_a_second_call(self):
 		with patch.object(k, "api_put", return_value=self._refusal()) as put, patch.object(
 			k, "get_target_submit_fields", return_value=set()
-		), patch.object(k, "ensure_identity_fields", return_value=True):
+		), patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "api_get", return_value=self._current(quantity=1)
+		):
 			response, action, target, blocked = k._send(
 				self.cfg, "BOM", "B-1", {"quantity": 5}, lookup="B-1"
 			)
@@ -1928,10 +1940,103 @@ class TestSubmittedOnTarget(unittest.TestCase):
 		with patch.object(k, "api_put", side_effect=[self._refusal(), k.Response(status_code=200)]), patch.object(
 			k, "get_target_submit_fields", return_value={"is_active"}
 		), patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "api_get", return_value=self._current(is_active=0, quantity=1)
+		), patch.object(
 			k, "api_post"
 		) as post:
 			k._send(self.cfg, "BOM", "B-1", {"is_active": 1, "quantity": 5}, lookup="B-1")
 		post.assert_not_called()
+
+	def test_an_unchanged_frozen_field_is_not_a_blocked_change(self):
+		"""Every field was described as blocked whether or not it was being changed."""
+		rows = [{"item_code": "I-1", "qty": 2}]
+		current = self._current(
+			is_active=0, quantity=5, items=[{"name": "row-x", "idx": 1, "item_code": "I-1", "qty": 2}]
+		)
+		with patch.object(k, "api_put", side_effect=[self._refusal(), k.Response(status_code=200)]) as put, patch.object(
+			k, "get_target_submit_fields", return_value={"is_active"}
+		), patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "api_get", return_value=current
+		):
+			response, action, target, blocked = k._send(
+				self.cfg, "BOM", "B-1", {"is_active": 1, "quantity": 5, "items": rows}, lookup="B-1"
+			)
+		self.assertEqual(self._theirs(blocked), [])
+		self.assertEqual(put.call_args.kwargs["json"], {"is_active": 1})
+
+	def test_nothing_changing_is_not_an_error(self):
+		# The target's copy carries the identity stamp `_send` always sends.
+		stamped = dict(k._identity_values("BOM", "B-1"), quantity=5)
+		with patch.object(k, "api_put", return_value=self._refusal()) as put, patch.object(
+			k, "get_target_submit_fields", return_value=set()
+		), patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "api_get", return_value=self._current(**stamped)
+		):
+			response, action, target, blocked = k._send(self.cfg, "BOM", "B-1", {"quantity": 5}, lookup="B-1")
+		self.assertTrue(response.ok)
+		self.assertEqual(blocked, [])
+		self.assertEqual(put.call_count, 1)
+
+	def test_unknown_after_submit_rules_change_nothing(self):
+		"""Deciding on half an answer is how a permitted custom-field change was dropped."""
+		with patch.object(k, "api_put", return_value=self._refusal()) as put, patch.object(
+			k, "get_target_submit_fields", return_value=None
+		), patch.object(k, "ensure_identity_fields", return_value=True), patch.object(k, "api_get") as get:
+			response, action, target, blocked = k._send(self.cfg, "BOM", "B-1", {"quantity": 5}, lookup="B-1")
+		self.assertFalse(response.ok)
+		self.assertIn("could not be read", response.message())
+		self.assertEqual(put.call_count, 1)
+		get.assert_not_called()
+
+
+class TestEffectiveSubmitRules(unittest.TestCase):
+	"""What the target lets change after submit: its DocType, its Custom Fields, its Property
+	Setters. The first was all that was read."""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t-submit-rules", headers={})
+		self.cache = {}
+		cache = frappe._dict(
+			get_value=lambda key, expires=False: self.cache.get(key),
+			set_value=lambda key, value, expires_in_sec=None: self.cache.__setitem__(key, value),
+		)
+		patcher = patch.object(frappe, "cache", return_value=cache)
+		patcher.start()
+		self.addCleanup(patcher.stop)
+
+	def _schema(self, setters):
+		def get(_cfg, path, params=None, **_kw):
+			if path.startswith("/api/resource/DocType/"):
+				return k.Response(
+					status_code=200,
+					data={"data": {"fields": [
+						{"fieldname": "is_active", "allow_on_submit": 1},
+						{"fieldname": "quantity", "allow_on_submit": 0},
+						{"fieldname": "remarks", "allow_on_submit": 0},
+					]}},
+				)
+			if path == "/api/resource/Custom Field":
+				return k.Response(status_code=200, data={"data": [
+					{"fieldname": "custom_note", "allow_on_submit": 1},
+					{"fieldname": "custom_frozen", "allow_on_submit": 0},
+				]})
+			if path == "/api/resource/Property Setter":
+				return setters
+			raise AssertionError(path)
+
+		with patch.object(k, "api_get", side_effect=get):
+			return k.get_target_submit_fields(self.cfg, "BOM")
+
+	def test_custom_fields_and_property_setters_count(self):
+		setters = k.Response(status_code=200, data={"data": [
+			{"field_name": "remarks", "value": "1"},
+			{"field_name": "is_active", "value": "0"},
+		]})
+		self.assertEqual(self._schema(setters), {"custom_note", "remarks"})
+
+	def test_unreadable_property_setters_make_the_rules_unknown(self):
+		self.assertIsNone(self._schema(k.Response(status_code=403)))
+
 
 	def test_this_engine_never_submits_anything_itself(self):
 		"""Submitting is irreversible on someone else's production site, and the REST route

@@ -1888,7 +1888,7 @@ def get_target_fields(config, doctype, run=None):
 		"/api/resource/Custom Field",
 		params={
 			"filters": frappe.as_json([["dt", "=", doctype]]),
-			"fields": frappe.as_json(["fieldname"]),
+			"fields": frappe.as_json(["fieldname", "allow_on_submit"]),
 			"limit_page_length": 0,
 		},
 	)
@@ -1906,12 +1906,48 @@ def get_target_fields(config, doctype, run=None):
 	for row in custom.data.get("data") or []:
 		if row.get("fieldname"):
 			fields.add(row["fieldname"])
+			# A Custom Field carries its own "Allow on Submit". Reading only the DocType's rows
+			# left every custom field the target lets change after submit out of the fallback.
+			if cint(row.get("allow_on_submit")):
+				on_submit.add(row["fieldname"])
+
+	# Property Setters change "Allow on Submit" on standard fields, either way. Without them the
+	# answer is a guess, so an unreadable list makes the after-submit rules unknown rather than
+	# quietly standard - see `get_target_submit_fields`.
+	overrides = _allow_on_submit_overrides(config, doctype)
+	if overrides is not None:
+		for fieldname, allowed in overrides.items():
+			(on_submit.add if allowed else on_submit.discard)(fieldname)
 
 	frappe.cache().set_value(cache_key, sorted(fields), expires_in_sec=_TARGET_FIELD_TTL)
 	frappe.cache().set_value(
-		_submit_fields_key(config, doctype), sorted(on_submit), expires_in_sec=_TARGET_FIELD_TTL
+		_submit_fields_key(config, doctype),
+		{"known": overrides is not None, "fields": sorted(on_submit)},
+		expires_in_sec=_TARGET_FIELD_TTL,
 	)
 	return fields
+
+
+def _allow_on_submit_overrides(config, doctype):
+	"""``{fieldname: allowed}`` from the target's Property Setters, or ``None`` if unreadable."""
+	response = api_get(
+		config,
+		"/api/resource/Property Setter",
+		params={
+			"filters": frappe.as_json(
+				[["doc_type", "=", doctype], ["property", "=", "allow_on_submit"]]
+			),
+			"fields": frappe.as_json(["field_name", "value"]),
+			"limit_page_length": 0,
+		},
+	)
+	if not response.ok:
+		return None
+	return {
+		row.get("field_name"): bool(cint(row.get("value")))
+		for row in response.data.get("data") or []
+		if row.get("field_name")
+	}
 
 
 def _submit_fields_key(config, doctype):
@@ -1919,7 +1955,11 @@ def _submit_fields_key(config, doctype):
 
 
 def get_target_submit_fields(config, doctype, run=None):
-	"""Fields the target still allows to change after a document is submitted.
+	"""Fields the target still allows to change after a document is submitted, or ``None``.
+
+	The target's *effective* rules: its DocType, its Custom Fields' own setting and its Property
+	Setters. ``None`` means they could not all be read - the fallback must then refuse rather
+	than decide on half an answer.
 
 	Populated as a side effect of ``get_target_fields``; this only reads it back, and asks
 	for the schema first if nobody has yet.
@@ -1928,7 +1968,90 @@ def get_target_submit_fields(config, doctype, run=None):
 	if cached is None:
 		get_target_fields(config, doctype, run=run)
 		cached = frappe.cache().get_value(_submit_fields_key(config, doctype), expires=True)
-	return set(cached or [])
+	if not isinstance(cached, dict) or not cached.get("known"):
+		return None
+	return set(cached.get("fields") or [])
+
+
+def _value_differs(current, wanted):
+	"""Would sending ``wanted`` change a field whose value on the target is ``current``?
+
+	Tables are compared row by row on the keys we send, ignoring the target's row names: a
+	submitted BOM's unchanged recipe is not a change, and reporting it as blocked on every
+	update would bury the one that is.
+	"""
+	if isinstance(wanted, list) or isinstance(current, list):
+		mine, theirs = wanted or [], current or []
+		if len(mine) != len(theirs):
+			return True
+		for ours, existing in zip(mine, theirs):
+			for key, value in (ours or {}).items():
+				if key in ("name", "idx") or key in CHILD_EXCLUDE:
+					continue
+				if _value_differs((existing or {}).get(key), value):
+					return True
+		return False
+	if current in (None, "") and wanted in (None, ""):
+		return False
+	if isinstance(wanted, (int, float)) or isinstance(current, (int, float)):
+		try:
+			return flt(current) != flt(wanted)
+		except Exception:
+			pass
+	return str(current) != str(wanted)
+
+
+def _submitted_update(config, doctype, target_id, path, update_data, refusal, run=None):
+	"""Apply what a submitted record on the target still allows, and name the rest.
+
+	Compared against what the target holds now, so only fields that would actually *change*
+	count: an unchanged frozen field is not a blocked change. If the target's after-submit rules
+	or its current values cannot be read, nothing is sent and the record fails with that reason
+	- deciding on a guess is how a permitted change was silently dropped before.
+
+	Returns the same ``(response, action, target_name, blocked)`` as `_send`.
+	"""
+	allowed = get_target_submit_fields(config, doctype, run=run)
+	if allowed is None:
+		return (
+			Response(
+				error="the target has submitted this record, and its after-submit rules (Custom "
+				"Fields / Property Setters) could not be read, so nothing was changed"
+			),
+			"updated",
+			target_id,
+			[],
+		)
+
+	current = api_get(config, path)
+	if not current.ok:
+		return (
+			Response(
+				error="the target has submitted this record, and its current values could not "
+				f"be read to work out what would change - {current.message()}"
+			),
+			"updated",
+			target_id,
+			[],
+		)
+
+	theirs = (current.data or {}).get("data") or {}
+	changed = {k: v for k, v in update_data.items() if _value_differs(theirs.get(k), v)}
+	if not changed:
+		return (
+			Response(status_code=200, data={"data": {"name": target_id}}),
+			"unchanged (submitted on target)",
+			target_id,
+			[],
+		)
+
+	reduced = {k: v for k, v in changed.items() if k in allowed}
+	blocked = sorted(set(changed) - set(reduced))
+	if not reduced:
+		return refusal, "updated", target_id, blocked
+	retry = api_put(config, path, json=reduced)
+	action = "updated (submitted on target)" if retry.ok else "updated"
+	return retry, action, target_id, blocked
 
 # ============================================================================
 # THE PUSH PIPELINE
@@ -2878,14 +3001,7 @@ def _send(config, doctype, name, data, lookup=None, run=None, clears=None):
 		# that would overwrite the record if it went wrong. Records land as drafts and KGGK
 		# submits them.
 		if response.exc_type == "UpdateAfterSubmitError":
-			allowed = get_target_submit_fields(config, doctype, run=run)
-			reduced = {k: v for k, v in update_data.items() if k in allowed}
-			blocked = sorted(set(update_data) - set(reduced))
-			if not reduced:
-				return response, "updated", target_id, blocked
-			retry = api_put(config, path, json=reduced)
-			action = "updated (submitted on target)" if retry.ok else "updated"
-			return retry, action, target_id, blocked
+			return _submitted_update(config, doctype, target_id, path, update_data, response, run=run)
 
 		if not response.not_found:
 			return response, "updated", target_id, []
