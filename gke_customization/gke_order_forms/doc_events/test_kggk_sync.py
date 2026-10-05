@@ -784,6 +784,12 @@ class TestReaperIsScheduledOnItsOwn(unittest.TestCase):
 			"gke_customization.gke_order_forms.doc_events.kggk_sync.reap_stale_runs", methods
 		)
 
+	def test_it_cannot_be_called_over_http(self):
+		"""It rewrites logs with permissions bypassed. Only the scheduler may run it."""
+		self.assertNotIn(k.reap_stale_runs, frappe.whitelisted)
+		with self.assertRaises(frappe.PermissionError):
+			frappe.is_whitelisted(k.reap_stale_runs)
+
 	def test_it_is_not_on_a_long_queue_schedule(self):
 		"""Frappe puts a Cron frequency on `default`; anything with "Long" in the frequency
 		goes to the queue that is already jammed."""

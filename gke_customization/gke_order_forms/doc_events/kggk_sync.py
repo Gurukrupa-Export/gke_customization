@@ -3494,9 +3494,12 @@ def reconcile_changes():
 STALE_SYNC_MINUTES = 30
 
 
-@frappe.whitelist()
 def reap_stale_runs():
 	"""Close runs whose worker died, so their records can be retried.
+
+	Scheduler-only, and deliberately not whitelisted: it bypasses permissions to rewrite logs
+	that only a System Manager may write, so it must not be reachable as an RPC by any
+	logged-in user.
 
 	A sync log is created Running by the worker that picked the job up, and only that worker
 	ever closes it. Killed mid-flight - a deploy, a restart, an out-of-memory, a job timeout -
