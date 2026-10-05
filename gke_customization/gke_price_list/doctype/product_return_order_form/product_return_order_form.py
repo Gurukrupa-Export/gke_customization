@@ -1114,7 +1114,9 @@ class ProductReturnOrderForm(Document):
 			# update_totals("BOM", bom_doc.name)
 
 	def on_submit(self):
-		if self.ref_company == "KG":	
+		# Push KG-ref forms to the KGGK site only once "PRF To Site" is set on Data Migration in KGGK,
+		# the switch Product Return Order uses; until then the form is submitted locally only.
+		if self.ref_company == "KG" and frappe.get_single("Data Migration in KGGK").get("prf_to_site"):
 			sync_product_return_form_to_remote(self)
 
 		# if self.yu: return
@@ -5214,7 +5216,12 @@ def sync_product_return_form_to_remote(doc, method=None):
 	migration_settings = frappe.get_single("Data Migration in KGGK")
 	site_url = (migration_settings.prf_to_site or "").rstrip("/")
 	api_key = migration_settings.api_key
-	api_secret = migration_settings.get_password("api_secret")
+	api_secret = migration_settings.get_password("api_secret", raise_exception=False)
+	if not site_url or not api_key or not api_secret:
+		frappe.throw(
+			"Please set <b>PRF To Site</b>, <b>Api Key</b> and "
+			"<b>Api Secret</b> on <b>Data Migration in KGGK</b>."
+		)
 
 	base_url = site_url
 
