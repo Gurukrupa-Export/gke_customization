@@ -1519,6 +1519,7 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
             item.image,
             item.sketch_image,
             item.custom_catalogue_image, 
+            item.custom_silver_image, 
             item.front_view AS cad_image,
 
             CASE
@@ -1889,6 +1890,7 @@ def catalogue_data22(selectedSubcategory=None, itemCategory=None, itemCode=None,
             item.image,
             item.sketch_image,
             item.custom_catalogue_image, 
+            item.custom_silver_image, 
             item.front_view AS cad_image,
             CASE
                 WHEN item.front_view = item.image THEN 'CAD Image'
@@ -5039,7 +5041,7 @@ def get_similar_item(item_code, customer=None, user=None):
                 item.name,
                 item.item_code,
                 item.image,
-                item.custom_catalogue_image AS catalogue_image,
+                item.custom_catalogue_image AS custom_catalogue_image,
                 item.sketch_image,
                 item.front_view AS cad_image,
         
@@ -6062,7 +6064,7 @@ def get_set_by_itemcode(itemCode=None, customer=None):
             item.creation,
             item.item_code,
             item.item_category,
-            item.custom_catalogue_image AS catalogue_image,
+            item.custom_catalogue_image AS custom_catalogue_image,
             item.image,
             item.sketch_image,
             item.front_view AS cad_image,
