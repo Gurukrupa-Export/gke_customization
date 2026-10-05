@@ -8,7 +8,7 @@ const MIL_RESOLVED_STATUSES = [
 	"Rejected",
 ];
 
-const FULL_DAY_ACTION = "delete_punch_full_day";
+const FULL_DAY_ACTION = "adjust_punch_full_day";
 const MODE_AUTO = "Auto-fill from shift";
 const MODE_MANUAL = "Enter manually";
 
@@ -71,7 +71,7 @@ function get_action_options(options) {
 	}
 
 	list.push(
-		{ label: __("Delete punch & grant Full Day"), value: FULL_DAY_ACTION },
+		{ label: __("Adjust Punch & Grant Full Day"), value: FULL_DAY_ACTION },
 		{ label: __("Reject"), value: "reject" }
 	);
 	return list;
@@ -302,7 +302,7 @@ const b = (v) => `<b>${frappe.utils.escape_html(String(v ?? ""))}</b>`;
 const fmt_dt = (v) => (v ? frappe.datetime.str_to_user(v) : "");
 const alert_html = (cls, msg) => `<div class="alert ${cls}" style="margin-bottom:10px">${msg}</div>`;
 
-// Same conditions the backend enforces in delete_punch_grant_full_day
+// Same conditions the backend enforces in adjust_punch_grant_full_day
 function get_full_day_blocker(options) {
 	if (options.active_ot) {
 		return __(

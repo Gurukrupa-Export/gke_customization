@@ -309,12 +309,15 @@ def get_employee_checkin_history(employee: str, before_dt: datetime) -> list[dic
             ["employee", "=", employee],
             ["time", ">", before_dt - timedelta(hours=HISTORY_WINDOW_HOURS)],
             ["time", "<", before_dt],
+            ["skip_auto_attendance", "=", 0],
         ],
-        fields=["name", "employee", "time", "log_type"],
+        fields=["name", "employee", "time", "log_type", "punch_rule"],
         order_by="time asc",
         limit=50,
     )
-    return rows
+    # punch_rule is sticky: a reset skip flag must not resurrect an excluded
+    # punch (OVERRIDE) or a debounced duplicate (DUP) in the live chain
+    return [r for r in rows if r.punch_rule not in ("DUP", "OVERRIDE")]
 
 
 def determine_punch_in_out(employee: str, punch_dt: datetime) -> dict:
@@ -407,12 +410,16 @@ def reclassify_employee_checkins(employee: str, from_dt: datetime, to_dt: dateti
     Only touches checkins that are not linked to a submitted attendance
     (those are flagged for human review instead of silently rewritten).
     Human-entered punches (Manual Punch / Outdoor Duty) are never touched.
+    Skipped punches (device bounce DUP, HR exclusions OVERRIDE) stay out of
+    the stream even if their skip flag gets reset: never reclassified,
+    never shifting their neighbours.
     """
     punches = frappe.get_all(
         "Employee Checkin",
         filters={
             "employee": employee,
             "time": ["between", [from_dt, to_dt]],
+            "skip_auto_attendance": 0,
         },
         fields=[
             "name",
@@ -428,9 +435,13 @@ def reclassify_employee_checkins(employee: str, from_dt: datetime, to_dt: dateti
             "attendance",
             "source",
             "skip_auto_attendance",
+            "punch_rule",
         ],
         order_by="time asc",
     )
+    # punch_rule is sticky: a reset skip flag must not put a debounced
+    # duplicate (DUP) or an HR-excluded punch (OVERRIDE) back into the chain
+    punches = [p for p in punches if p.punch_rule not in ("DUP", "OVERRIDE")]
     if not punches:
         return {"checked": 0, "corrected": 0, "flagged": 0}
 
@@ -564,26 +575,34 @@ def _create_todos_for_unpaired_checkins(from_dt):
         fields=["name", "employee", "employee_name", "time"],
         order_by="time asc",
     )
+    if not orphans:
+        return
 
-    seen_days = set()
-    for checkin in orphans:
+    # ONE query: every open ToDo already covering any of these checkins
+    covered = set(
+        frappe.get_all(
+            "ToDo",
+            filters={
+                "reference_type": "Employee Checkin",
+                "reference_name": ["in", [c.name for c in orphans]],
+                "status": "Open",
+            },
+            pluck="reference_name",
+        )
+    )
+
+    # group by employee + day (rows are time-ordered, so [0] is the earliest punch)
+    days = {}
+    for c in orphans:
+        days.setdefault((c.employee, c.time.date()), []).append(c)
+
+    for punches in days.values():
+        # one open ToDo per employee/day, whichever punch it points at
+        if any(p.name in covered for p in punches):
+            continue
+
+        checkin = punches[0]
         try:
-            day_key = (checkin.employee, checkin.time.date())
-            if day_key in seen_days:
-                continue
-            seen_days.add(day_key)
-
-            existing = frappe.db.exists(
-                {
-                    "doctype": "ToDo",
-                    "reference_type": "Employee Checkin",
-                    "reference_name": checkin.name,
-                    "status": "Open",
-                }
-            )
-            if existing:
-                continue
-
             frappe.get_doc(
                 {
                     "doctype": "ToDo",
