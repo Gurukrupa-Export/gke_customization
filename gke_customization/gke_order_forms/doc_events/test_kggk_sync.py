@@ -232,11 +232,35 @@ class TestRowSelection(unittest.TestCase):
 		items, boms = k.collect_records(self._plan([row, dict(row)]))
 		self.assertEqual((items, boms), (["I-1"], ["B-1"]))
 
+	def test_the_copy_bom_travels_with_its_item(self):
+		items, boms, copy_boms = k.collect_plan_records(
+			self._plan(
+				[{"item_code": "I-1", "manufacturing_bom": "B-1", "copy_bom": "B-C", "subcontracting": 1}]
+			)
+		)
+		self.assertEqual(boms, ["B-1", "B-C"])
+		self.assertEqual(copy_boms, {"I-1": "B-C"})
+
+	def test_the_prefill_collects_the_copy_bom_too(self):
+		"""A backfill must send what the submit would have; it used to read two columns."""
+		plans = ["MP-1"]
+		rows = [
+			frappe._dict(
+				parent="MP-1", idx=1, item_code="I-1", manufacturing_bom="B-1", copy_bom="B-C", subcontracting=1
+			)
+		]
+		with patch.object(k, "_copy_bom_source_ready", return_value=True), patch.object(
+			frappe, "get_all", side_effect=[plans, rows]
+		) as get_all:
+			_plans, items, boms = k._plan_records()
+		self.assertIn("copy_bom", get_all.call_args.kwargs["fields"])
+		self.assertEqual((items, boms), (["I-1"], ["B-1", "B-C"]))
+
 
 class TestPlanRecordsIsOneQuery(unittest.TestCase):
 	def test_child_rows_are_fetched_once_not_once_per_plan(self):
 		plans = [f"MP-{i}" for i in range(40)]
-		rows = [frappe._dict(item_code="I-1", manufacturing_bom="B-1")]
+		rows = [frappe._dict(item_code="I-1", manufacturing_bom="B-1", subcontracting=1)]
 		with patch.object(frappe, "get_all", side_effect=[plans, rows]) as get_all:
 			out_plans, items, boms = k._plan_records()
 		self.assertEqual(get_all.call_count, 2)
@@ -654,8 +678,9 @@ class TestTargetSchemaFailuresAreReported(unittest.TestCase):
 class _Chunk:
 	"""Drives `sync_records` with every boundary patched, and records what it re-enqueued."""
 
-	def __init__(self, test, items=(), boms=(), clock=None, enqueue_error=None, push=None):
+	def __init__(self, test, items=(), boms=(), clock=None, enqueue_error=None, push=None, copy_boms=None):
 		self.test = test
+		self.copy_boms = copy_boms
 		self.items = list(items)
 		self.boms = list(boms)
 		self.pushed = []
@@ -712,7 +737,9 @@ class _Chunk:
 		p(patch.object(k.SyncRun, "report"))
 		p(patch(f"{MOD}.mark_state"))
 		with stack:
-			return k.sync_records(items=self.items, boms=self.boms, log_name="LOG-1")
+			return k.sync_records(
+				items=self.items, boms=self.boms, log_name="LOG-1", copy_boms=self.copy_boms
+			)
 
 
 class TestChunkBudget(unittest.TestCase):
@@ -1832,7 +1859,7 @@ class TestCopyBomLookup(unittest.TestCase):
 		self.assertEqual(found, {"I-1": "B-NEW"})
 		self.assertEqual(get_all.call_count, 1)
 		self.assertEqual(get_all.call_args.args[0], "Manufacturing Plan Table")
-		self.assertEqual(get_all.call_args.kwargs["order_by"], "creation asc")
+		self.assertEqual(get_all.call_args.kwargs["order_by"], "creation asc, parent asc, idx asc")
 
 	def test_only_manufacturing_plan_rows_are_considered(self):
 		"""`copy_bom` is a plan-table field, but a filter on parenttype is what keeps this
@@ -1875,6 +1902,63 @@ class TestCopyBomLookup(unittest.TestCase):
 			self.assertEqual(k.copy_bom_for(run, "I-1"), "B-1")
 			self.assertEqual(k.copy_bom_for(run, "I-1"), "B-1")
 		self.assertEqual(lookup.call_count, 1)
+
+	def test_only_submitted_subcontracting_rows_can_decide_it(self):
+		"""A newer draft, or an internal row, used to win simply by being newer."""
+		with patch.object(frappe, "get_all", return_value=[]) as get_all:
+			k.copy_bom_map(["I-1"])
+		filters = get_all.call_args.kwargs["filters"]
+		self.assertEqual(filters["docstatus"], 1)
+		self.assertEqual(filters["subcontracting"], 1)
+
+	def test_the_triggering_plans_choice_wins_over_a_later_plan(self):
+		"""MP-A ordered I-1 from B-A. A later plan saying B-B must not rewrite MP-A's push."""
+		run = _run(copy_boms={"I-1": "B-A"})
+		with patch.object(k, "copy_bom_map", return_value={"I-1": "B-B"}) as lookup:
+			self.assertEqual(k.copy_bom_for(run, "I-1"), "B-A")
+		lookup.assert_not_called()
+
+	def test_the_chosen_bom_joins_the_run(self):
+		"""Choosing a Copy BOM and leaving it to arrive by chance is how an Item pointed at a
+		BOM that was never sent."""
+		run = _run()
+		with patch.object(k, "copy_bom_for", return_value="B-COPY"):
+			self.assertEqual(k.target_only_values(run, "Item", "I-1"), {"custom_copy_bom": "B-COPY"})
+		self.assertIn("B-COPY", run.extra_boms)
+
+
+class TestCopyBomJoinsTheRun(unittest.TestCase):
+	"""The chosen Copy BOM is pushed in the same run as the item that points at it."""
+
+	def _chunk(self, **kwargs):
+		chunk = _Chunk(self, clock=iter([0] * 40), **kwargs)
+		record = chunk._record
+
+		def pick_copy_bom(name, run, counter):
+			if name == "I-1":
+				run.extra_boms["B-COPY"] = None
+			return record(name, run, counter)
+
+		chunk._record = pick_copy_bom
+		return chunk
+
+	def test_an_items_copy_bom_is_pushed_after_the_items(self):
+		chunk = self._chunk(items=["I-1"], boms=["B-1"])
+		with patch(f"{MOD}.is_on_target", return_value=False):
+			chunk.run()
+		self.assertEqual(chunk.pushed, ["I-1", "B-1", "B-COPY"])
+
+	def test_a_copy_bom_already_on_the_target_is_not_sent_again(self):
+		chunk = self._chunk(items=["I-1"], boms=["B-1"])
+		with patch(f"{MOD}.is_on_target", return_value=True):
+			chunk.run()
+		self.assertEqual(chunk.pushed, ["I-1", "B-1"])
+
+	def test_a_plans_choices_ride_to_the_next_chunk(self):
+		clock = iter([0, 0, 10**6, 10**6, 10**6])
+		chunk = _Chunk(self, items=["I-1", "I-2"], clock=clock, copy_boms={"I-2": "B-A"})
+		chunk.run()
+		self.assertEqual(chunk.enqueued["copy_boms"], {"I-2": "B-A"})
 
 
 class TestAdoptOnDuplicate(unittest.TestCase):

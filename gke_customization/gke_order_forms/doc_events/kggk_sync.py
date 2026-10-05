@@ -828,6 +828,7 @@ class SyncRun:
 		log_name=None,
 		deferred=None,
 		log=LOG_ALWAYS,
+		copy_boms=None,
 	):
 		self.trigger = trigger
 		self.reference = reference or ""
@@ -874,6 +875,15 @@ class SyncRun:
 		# `item_code -> Copy BOM`, warmed for the whole chunk by `sync_records`. See
 		# `copy_bom_map`.
 		self.copy_bom = {}
+
+		# `item_code -> Copy BOM` from the Manufacturing Plan that started this run. Carried in
+		# the job kwargs to every chunk, because a plan's push must use the BOM that plan
+		# ordered - not whatever a later plan, or a draft, says for the same item.
+		self.copy_bom_overrides = dict(copy_boms or {})
+
+		# BOMs an Item in this run points at through a target-only field. They are pushed in
+		# this run too, or the link has nothing to resolve to. Ordered, de-duplicated.
+		self.extra_boms = {}
 
 		# Links dropped because the record they point at was not on the target *yet*. These
 		# ride between chunks, because the BOM an Item wants is very often pushed later than
@@ -1931,8 +1941,9 @@ TARGET_ONLY_FIELDS = {
 			# Next to Master BOM in the Item list on KGGK, which is where it gets read.
 			"in_list_view": 1,
 			"description": (
-				"Set by the Gurukrupa sync. The Copy BOM of the most recent Manufacturing "
-				"Plan row for this item. Not the item's master BOM."
+				"Set by the Gurukrupa sync. The Copy BOM of the Manufacturing Plan that sent "
+				"this item, otherwise of its latest submitted subcontracting plan row. Not the "
+				"item's master BOM."
 			),
 		},
 	),
@@ -1964,7 +1975,15 @@ def _copy_bom_source_ready():
 
 
 def copy_bom_map(item_codes):
-	"""``item_code -> the Copy BOM of its most recent Manufacturing Plan row`` (or ``None``).
+	"""``item_code -> the Copy BOM of its latest submitted subcontracting plan row`` (or ``None``).
+
+	The rule when no plan is driving the run - an Item or BOM save, the hourly check, a retry.
+	A run started by a plan uses that plan's own rows instead; see `copy_bom_for`.
+
+	Only rows that can actually have ordered something count: submitted, and subcontracting -
+	the rows that send work to KGGK. A draft or an internal row used to win simply by being
+	newer. Ties on creation are broken by plan name and row index, so the same data always
+	gives the same answer.
 
 	Every requested code is a key, so a miss is cached as firmly as a hit.
 	"""
@@ -1979,10 +1998,11 @@ def copy_bom_map(item_codes):
 			"item_code": ("in", list(item_codes)),
 			source_field: ("is", "set"),
 			"parenttype": "Manufacturing Plan",
-			"docstatus": ("<", 2),
+			"docstatus": 1,
+			"subcontracting": 1,
 		},
-		fields=["item_code", f"{source_field} as copy_bom", "creation"],
-		order_by="creation asc",
+		fields=["item_code", f"{source_field} as copy_bom", "creation", "parent", "idx"],
+		order_by="creation asc, parent asc, idx asc",
 	)
 
 	# Oldest first, so the newest row for an item is the one left standing: the field says what
@@ -1994,11 +2014,13 @@ def copy_bom_map(item_codes):
 
 
 def copy_bom_for(run, item_code):
-	"""One item's Copy BOM, from the run's cache.
+	"""One item's Copy BOM: the triggering plan's choice, else the latest submitted row's.
 
 	`sync_records` warms the cache for a whole chunk in one pair of queries. This covers what
 	that missed - a variant's template, or the finished-goods item a BOM pulled in.
 	"""
+	if item_code in run.copy_bom_overrides:
+		return run.copy_bom_overrides[item_code]
 	if item_code not in run.copy_bom:
 		run.copy_bom.update(copy_bom_map([item_code]))
 	return run.copy_bom.get(item_code)
@@ -2042,6 +2064,9 @@ def target_only_values(run, doctype, name):
 			return {}
 		bom = copy_bom_for(run, name) or _linked_bom(name)
 		if bom:
+			# The BOM goes in this run as well. Choosing it here and leaving it to arrive by
+			# chance is how an Item came to point at a BOM that was never sent.
+			run.extra_boms.setdefault(bom, None)
 			return {"custom_copy_bom": bom}
 	return {}
 
@@ -2905,6 +2930,7 @@ def sync_records(
 	deferred=None,
 	expect_target=None,
 	expect_fingerprint=None,
+	copy_boms=None,
 ):
 	"""Push a batch of Items and BOMs. The one entry point every trigger calls.
 
@@ -2966,6 +2992,7 @@ def sync_records(
 		log_name=log_name,
 		deferred=deferred,
 		log=LOG_ON_PROBLEM if trigger in ("Item Update", "BOM Update") else LOG_ALWAYS,
+		copy_boms=copy_boms,
 	)
 	run.items_total = int(totals.get("items") or 0)
 	run.boms_total = int(totals.get("boms") or 0)
@@ -3018,6 +3045,24 @@ def sync_records(
 			# now would fail them all for a reason the next chunk is about to fix.
 			rest_boms = boms + rest_boms
 			boms = []
+
+		# BOMs the items just pushed point at (Copy BOM) and that this run was not already
+		# sending. Pushed here, in the same run, so the item's link has something to resolve
+		# to - a BOM already on the target needs nothing.
+		target_host = host_of(config.to_site)
+		extra = [
+			b
+			for b in run.extra_boms
+			if b not in boms and b not in rest_boms and not is_on_target("BOM", b, target_host)
+		]
+		if extra:
+			if out_of_time:
+				rest_boms = rest_boms + extra
+			else:
+				boms = boms + extra
+			totals["boms"] = int(totals.get("boms") or 0) + len(extra)
+			run.boms_total += len(extra)
+			run.line("INFO", None, None, f"{len(extra)} Copy BOM(s) added to this run: {', '.join(extra[:10])}")
 
 		for position, bom_name in enumerate(boms, start=1):
 			if time.monotonic() > deadline:
@@ -3110,6 +3155,7 @@ def sync_records(
 				deferred=run.deferred,
 				expect_target=expect_target,
 				expect_fingerprint=expect_fingerprint,
+				copy_boms=run.copy_bom_overrides,
 			)
 		except Exception as exc:
 			# The remainder lives only in these kwargs - it is never written down - so a lost
@@ -3168,8 +3214,13 @@ def _abandon_run(log_name, reason):
 		frappe.logger("kggk_sync").exception(f"could not close abandoned run {log_name}")
 
 
-def enqueue_sync(items=None, boms=None, trigger="Manual", reference=None, job_id=None, log_name=None):
-	"""Queue a batch. Never blocks the save or submit that asked for it."""
+def enqueue_sync(
+	items=None, boms=None, trigger="Manual", reference=None, job_id=None, log_name=None, copy_boms=None
+):
+	"""Queue a batch. Never blocks the save or submit that asked for it.
+
+	``copy_boms`` is the triggering plan's ``item_code -> Copy BOM``, when a plan started this.
+	"""
 	items = list(dict.fromkeys(items or []))
 	boms = list(dict.fromkeys(boms or []))
 	if not items and not boms:
@@ -3199,6 +3250,7 @@ def enqueue_sync(items=None, boms=None, trigger="Manual", reference=None, job_id
 		# Bound here, where the target is known to be the one the caller decided on.
 		expect_target=host_of(config.to_site),
 		expect_fingerprint=config.get("fingerprint"),
+		copy_boms=copy_boms or None,
 	)
 	return True
 
@@ -3206,28 +3258,36 @@ def enqueue_sync(items=None, boms=None, trigger="Manual", reference=None, job_id
 # MANUFACTURING PLAN ENTRY POINTS
 # ============================================================================
 
-def collect_records(doc):
-	"""Return ``(items, boms)`` for the subcontracting rows of a Manufacturing Plan."""
-	items = []
-	boms = []
+def _records_from_plan_rows(rows):
+	"""``(items, boms, copy_boms)`` for the subcontracting rows of one or more plans.
 
-	for row in doc.get("manufacturing_plan_table") or []:
+	The one collector for every route that turns plan rows into work - the submit, the prefill
+	and a retry - so all of them send the same dependency set. Each of them used to have its own
+	copy, and the prefill's never learned about Copy BOM.
+
+	``copy_boms`` is ``item_code -> Copy BOM``; within one plan the last row for an item wins.
+	Ordered dicts rather than list membership: a real plan has hundreds of rows, and `x in list`
+	per row made this quadratic.
+	"""
+	items, boms, copy_boms = {}, {}, {}
+
+	for row in rows or []:
 		if not cint(row.get("subcontracting")):
 			continue
 
 		item_code = row.get("item_code")
-		if item_code and item_code not in items:
-			items.append(item_code)
+		if item_code:
+			items.setdefault(item_code, None)
 
 		bom_name = row.get("manufacturing_bom")
 		if bom_name:
-			if bom_name not in boms:
-				boms.append(bom_name)
+			boms.setdefault(bom_name, None)
 		else:
 			# The plan throws on submit when a row has no manufacturing_bom, so this should
 			# be unreachable. Say so rather than quietly pushing an item with no BOM.
 			frappe.logger("kggk_sync").warning(
-				f"{doc.name}: subcontracting row {row.get('idx')} has no manufacturing_bom"
+				f"{row.get('parent') or '-'}: subcontracting row {row.get('idx')} has no "
+				"manufacturing_bom"
 			)
 
 		# The Copy BOM is a different record from the Manufacturing BOM - the origin the row
@@ -3235,9 +3295,22 @@ def collect_records(doc):
 		# to be pushed too, or that link has nothing to resolve to and the item lands on KGGK
 		# pointing at whatever BOM happens to share the name over there.
 		copy_bom = row.get("copy_bom")
-		if copy_bom and copy_bom not in boms:
-			boms.append(copy_bom)
+		if copy_bom:
+			boms.setdefault(copy_bom, None)
+			if item_code:
+				copy_boms[item_code] = copy_bom
 
+	return list(items), list(boms), copy_boms
+
+
+def collect_plan_records(doc):
+	"""``(items, boms, copy_boms)`` for the subcontracting rows of a Manufacturing Plan."""
+	return _records_from_plan_rows(doc.get("manufacturing_plan_table"))
+
+
+def collect_records(doc):
+	"""Return ``(items, boms)`` for the subcontracting rows of a Manufacturing Plan."""
+	items, boms, _copy_boms = collect_plan_records(doc)
 	return items, boms
 
 
@@ -3251,7 +3324,7 @@ def on_submit(doc, method=None):
 	the plan, which is the one outcome this feature must never cause.
 	"""
 	try:
-		items, boms = collect_records(doc)
+		items, boms, copy_boms = collect_plan_records(doc)
 		if not items and not boms:
 			return
 
@@ -3266,6 +3339,7 @@ def on_submit(doc, method=None):
 			trigger="Manufacturing Plan",
 			reference=doc.name,
 			job_id=f"kggk_plan::{doc.name}",
+			copy_boms=copy_boms,
 		)
 	except Exception:
 		frappe.logger("kggk_sync").exception(f"could not queue the KGGK push for {doc.name}")
@@ -3274,8 +3348,14 @@ def on_submit(doc, method=None):
 def sync_plan_now(plan_name):
 	"""Run the push inline. For ``bench execute`` and tests, not for a request."""
 	doc = frappe.get_doc("Manufacturing Plan", plan_name)
-	items, boms = collect_records(doc)
-	return sync_records(items=items, boms=boms, trigger="Manufacturing Plan", reference=plan_name)
+	items, boms, copy_boms = collect_plan_records(doc)
+	return sync_records(
+		items=items,
+		boms=boms,
+		trigger="Manufacturing Plan",
+		reference=plan_name,
+		copy_boms=copy_boms,
+	)
 
 # ============================================================================
 # ITEM AND BOM ENTRY POINTS
@@ -3586,9 +3666,14 @@ def retry_log(log_name):
 	# A run that died before it processed anything lists no records at all, so there is
 	# nothing to read back - and that is exactly the run most worth retrying. For a
 	# Manufacturing Plan the answer is not lost, it is still on the plan, so re-derive it.
-	if not items and not boms and log.trigger == "Manufacturing Plan" and log.reference:
+	copy_boms = None
+	if log.trigger == "Manufacturing Plan" and log.reference:
 		if frappe.db.exists("Manufacturing Plan", log.reference):
-			items, boms = collect_records(frappe.get_doc("Manufacturing Plan", log.reference))
+			plan_items, plan_boms, copy_boms = collect_plan_records(
+				frappe.get_doc("Manufacturing Plan", log.reference)
+			)
+			if not items and not boms:
+				items, boms = plan_items, plan_boms
 
 	if not items and not boms:
 		frappe.throw(_("Nothing in this run failed, so there is nothing to retry."))
@@ -3617,6 +3702,7 @@ def retry_log(log_name):
 		reference=log_name,
 		job_id=f"kggk_retry::{retry.name}",
 		log_name=retry.name,
+		copy_boms=copy_boms,
 	)
 	return retry.name
 
@@ -3709,20 +3795,21 @@ def _plan_records(limit_plans=None):
 	if limit_plans:
 		filters["parent"] = ("in", plans)
 
+	# The same columns the submit path reads, so a backfill sends the same dependency set as
+	# the plan would have. Copy BOM above all: without it a historical plan's items asked for
+	# a Copy BOM that this button never sent.
+	fields = ["parent", "idx", "item_code", "manufacturing_bom", "subcontracting"]
+	if _copy_bom_source_ready():
+		fields.append(COPY_BOM_SOURCE[1])
+
 	rows = frappe.get_all(
 		"Manufacturing Plan Table",
 		filters=filters,
-		fields=["item_code", "manufacturing_bom"],
+		fields=fields,
 		order_by="parent asc, idx asc",
 	)
 
-	items, boms = [], []
-	for row in rows:
-		if row.item_code and row.item_code not in items:
-			items.append(row.item_code)
-		if row.manufacturing_bom and row.manufacturing_bom not in boms:
-			boms.append(row.manufacturing_bom)
-
+	items, boms, _copy_boms = _records_from_plan_rows(rows)
 	return plans, items, boms
 
 
