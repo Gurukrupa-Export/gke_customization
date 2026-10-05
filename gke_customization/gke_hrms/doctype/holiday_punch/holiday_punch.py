@@ -814,18 +814,13 @@ def get_shift(company, shift_type, for_date=None):
 def get_employee_shift(employee, for_date=None):
 	if not for_date:
 		for_date = today()
-
+	
 	for_date = getdate(for_date)
 
-	# =====================================================
-	# Fetch active shift assignment
-	#
-	# Conditions:
+	# Fetch active shift assignment   # Conditions:
 	# 1. start_date <= selected date
-	# 2. end_date is blank
-	#    OR
+	# 2. end_date is blank  #    OR
 	# 3. end_date exists
-	# =====================================================
 	shift = frappe.db.get_all(
 		"Shift Assignment",
 		filters={
@@ -840,23 +835,12 @@ def get_employee_shift(employee, for_date=None):
 			{"end_date": ("is", "set")}
 		],
 		fields=["shift_type as default_shift","employee as name"]
-	)               
-
-	# =====================================================
-	# If valid shift assignment exists,
-	# return assigned shift
-	# =====================================================
+	)
+	# If valid shift assignment exists, # return assigned shift
 	if shift:
 		return shift
-
-	# =====================================================
-	# Fallback to Employee default shift
-	# when no Shift Assignment exists
-	# =====================================================
-	return frappe.db.get_all(
-		"Employee",
-		filters={
-			"name": employee
-		},
+	# Fallback to Employee default shift # when no Shift Assignment exists
+	return frappe.db.get_all("Employee", 
+		filters={"name": employee},
 		fields=["default_shift","name"]
 	)
