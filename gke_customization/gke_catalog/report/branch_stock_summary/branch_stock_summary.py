@@ -531,7 +531,10 @@ def get_bulk_stock_data(company, item_groups, variant_codes, as_on_date, manufac
                 """Resolve which warehouses belong to which department for a stock type.
 
                 Runs only against the small `tabWarehouse` table (~1300 rows), so the
-                OR/CONCAT name-pattern matching here is cheap. Returns {warehouse_name: department}.
+                OR/CONCAT name-pattern matching here is cheap. Returns
+                {warehouse_name: [department, ...]}: a warehouse that matches several
+                departments counts towards each of them, like the per-department queries
+                this replaced and the View drill-downs.
                 """
                 name_conditions = " OR ".join(
                     f"w.warehouse_name = CONCAT(dm.dept_clean, '{suffix}')" for suffix in name_suffixes
@@ -547,12 +550,20 @@ def get_bulk_stock_data(company, item_groups, variant_codes, as_on_date, manufac
                         {dept_condition}{name_conditions}
                     )
                 """, dept_mapping_values, as_dict=True)
-                return {row.warehouse: row.department for row in rows}
+                wh_to_depts = {}
+                for row in rows:
+                    wh_to_depts.setdefault(row.warehouse, []).append(row.department)
+                return wh_to_depts
 
-            def _aggregate_by_warehouse(wh_to_dept):
-                """Sum SLE stock for a resolved warehouse->department map using a sargable
-                `warehouse IN (...)` filter instead of joining Warehouse with OR/CONCAT."""
-                if not wh_to_dept:
+            def _aggregate_by_warehouse(wh_to_depts):
+                """Sum SLE stock for a resolved warehouse->departments map using a sargable
+                `warehouse IN (...)` filter instead of joining Warehouse with OR/CONCAT.
+
+                Balances are fetched signed per warehouse and netted per department + item
+                before the positive-balance rule, so a negative balance in one of a
+                department's warehouses still offsets a positive one in another.
+                """
+                if not wh_to_depts:
                     return {}
                 rows = frappe.db.sql("""
                     SELECT
@@ -568,11 +579,21 @@ def get_bulk_stock_data(company, item_groups, variant_codes, as_on_date, manufac
                       AND sle.docstatus < 2
                       AND sle.is_cancelled = 0
                     GROUP BY sle.warehouse, sle.item_code
-                    HAVING SUM(sle.actual_qty) > 0
-                """, {**values, "warehouses": tuple(wh_to_dept)}, as_dict=True)
+                    HAVING SUM(sle.actual_qty) != 0
+                """, {**values, "warehouses": tuple(wh_to_depts)}, as_dict=True)
+                net_weights = {}
                 for row in rows:
-                    row.department = wh_to_dept.get(row.warehouse)
-                return _accumulate(rows)
+                    for department in wh_to_depts.get(row.warehouse, ()):
+                        key = (department, row.item_code)
+                        net_weights[key] = net_weights.get(key, 0.0) + flt(row.weight)
+                netted = []
+                for (department, item_code), weight in net_weights.items():
+                    # actual_qty is decimal(21,9): rounding drops the float noise of adding
+                    # up several warehouses, so a net of exactly zero is skipped as SQL would.
+                    weight = round(weight, 9)
+                    if weight > 0:
+                        netted.append(frappe._dict(department=department, item_code=item_code, weight=weight))
+                return _accumulate(netted)
 
             # Transit (name-pattern based, no department column on most Warehouses)
             transit_wh_map = _resolve_warehouses(

@@ -1,11 +1,14 @@
-"""Branch Stock Summary: who may run its whitelisted methods, and that every statement
-binds its values (review finding F-01)."""
+"""Branch Stock Summary: who may run its whitelisted methods, that every statement binds
+its values (review finding F-01), and that Transit, Reserve and Scrap balances are netted
+per department and item (review finding F-06)."""
 
 import json
+import re
 from unittest.mock import patch
 
 import frappe
 from frappe.tests import IntegrationTestCase, UnitTestCase
+from frappe.utils import flt
 
 from gke_customization.gke_catalog.report.branch_stock_summary import (
 	branch_stock_summary as bss,
@@ -335,3 +338,246 @@ class TestQueriesOnMariaDB(IntegrationTestCase):
 		with patch(STOCK_BALANCE, return_value=([], [])):
 			bss.get_summary_comparison(json.dumps(filters))
 		self.log_error.assert_not_called()
+
+
+COMPANY = "_Test BSS Company"
+CASTING = "_Test BSS Casting - GEPL"
+WAXING = "_Test BSS Waxing - GEPL"
+ITEM_75 = "_Test-BSS-M-75.0"  # extract_purity_from_item_code -> 75.0
+ITEM_916 = "_Test-BSS-M-91.6"  # -> 91.6
+ITEM_NO_PURITY = "_Test-BSS-M"
+METAL_GROUPS = ["Metal - V", "Metal DNU"]
+AS_ON = "2026-10-05"
+
+
+def _fail_on_swallowed_error(title=None, message=None, *args, **kwargs):
+	"""get_bulk_stock_data logs and swallows exceptions; surface them instead."""
+	raise AssertionError(f"{title}: {message}")
+
+
+class FakeStockDB:
+	"""Answers get_bulk_stock_data's warehouse-resolution and per-warehouse SLE queries.
+
+	The SLE query's HAVING clause is applied the way the database would, so the tests see
+	exactly the rows the real query hands to the netting step. The report's other queries
+	return no rows; Frappe's own queries go to the real database.
+	"""
+
+	def __init__(self, warehouses, balances):
+		self.real_sql = frappe.db.sql
+		self.warehouses = warehouses  # {"Reserve": [(warehouse, department), ...]}
+		self.balances = balances  # {(warehouse, item_code): signed balance}
+
+	def __call__(self, query, *args, **kwargs):
+		if not any(table in str(query) for table in REPORT_TABLES):
+			return self.real_sql(query, *args, **kwargs)
+		values = args[0] if args else kwargs.get("values")
+		if "SELECT DISTINCT w.name as warehouse" in query:
+			stock_type = next(t for t in ("Transit", "Reserve", "Scrap") if f" {t} - GEPL" in query)
+			return [frappe._dict(warehouse=w, department=d) for w, d in self.warehouses.get(stock_type, [])]
+		if "GROUP BY sle.warehouse, sle.item_code" in query:
+			operator = re.search(r"HAVING SUM\(sle\.actual_qty\) (>|!=) 0", query).group(1)
+			return [
+				frappe._dict(warehouse=warehouse, item_code=item_code, weight=qty)
+				for (warehouse, item_code), qty in self.balances.items()
+				if warehouse in values["warehouses"] and (qty > 0 if operator == ">" else qty != 0)
+			]
+		return []
+
+
+class TestWarehouseStockNetting(UnitTestCase):
+	"""Netting rule, with frappe.db.sql answered by FakeStockDB (no site data)."""
+
+	def setUp(self):
+		patcher = patch.object(frappe, "log_error", side_effect=_fail_on_swallowed_error)
+		patcher.start()
+		self.addCleanup(patcher.stop)
+
+	def _bulk(self, warehouses, balances, departments=(CASTING, WAXING)):
+		with patch.object(frappe.db, "sql", new=FakeStockDB(warehouses, balances)):
+			return bss.get_bulk_stock_data(
+				COMPANY,
+				METAL_GROUPS,
+				["M"],
+				AS_ON,
+				"",
+				["Metal"],
+				list(departments),
+				include_finished_goods_metal=False,
+				include_work_order_wip=False,
+			)
+
+	def assertStock(self, entry, quantity, pure_gold):
+		self.assertAlmostEqual(entry["quantity"], quantity, places=9)
+		self.assertAlmostEqual(entry["pure_gold_weight"], pure_gold, places=9)
+
+	def test_negative_balance_in_one_warehouse_offsets_another(self):
+		bulk = self._bulk(
+			{"Reserve": [("RA", CASTING), ("RB", CASTING)]}, {("RA", ITEM_75): 10.0, ("RB", ITEM_75): -3.0}
+		)
+		self.assertStock(bulk["reserve"][CASTING], 7.0, 5.25)
+
+	def test_department_item_net_negative_is_hidden(self):
+		bulk = self._bulk(
+			{"Reserve": [("RA", CASTING), ("RB", CASTING)]}, {("RA", ITEM_75): 3.0, ("RB", ITEM_75): -10.0}
+		)
+		self.assertNotIn(CASTING, bulk["reserve"])
+
+	def test_zero_net_is_dropped_despite_float_noise(self):
+		# 0.1 + 0.2 - 0.3 is 5.55e-17 in float arithmetic but exactly 0 in decimal(21,9)
+		bulk = self._bulk(
+			{"Reserve": [("RA", CASTING), ("RB", CASTING), ("RC", CASTING)]},
+			{("RA", ITEM_75): 0.1, ("RB", ITEM_75): 0.2, ("RC", ITEM_75): -0.3},
+		)
+		self.assertNotIn(CASTING, bulk["reserve"])
+
+	def test_purity_is_applied_per_item_on_the_net(self):
+		bulk = self._bulk(
+			{"Reserve": [("RA", CASTING), ("RB", CASTING)]},
+			{
+				("RA", ITEM_75): 10.0,
+				("RB", ITEM_75): -3.0,  # 7 at 75% -> 5.25
+				("RA", ITEM_916): 5.0,
+				("RB", ITEM_916): -1.0,  # 4 at 91.6% -> 3.664
+				("RB", ITEM_NO_PURITY): -2.0,  # negative-only item: hidden, offsets nothing else
+			},
+		)
+		self.assertStock(bulk["reserve"][CASTING], 11.0, 8.914)
+
+	def test_all_positive_balances_are_unchanged(self):
+		bulk = self._bulk(
+			{"Reserve": [("RA", CASTING), ("RB", CASTING)]},
+			{("RA", ITEM_75): 10.0, ("RB", ITEM_75): 4.0, ("RB", ITEM_916): 2.0},
+		)
+		self.assertStock(bulk["reserve"][CASTING], 16.0, 12.332)
+
+	def test_departments_do_not_offset_each_other(self):
+		bulk = self._bulk(
+			{"Reserve": [("RA", CASTING), ("RW", WAXING)]}, {("RA", ITEM_75): 10.0, ("RW", ITEM_75): -5.0}
+		)
+		self.assertStock(bulk["reserve"][CASTING], 10.0, 7.5)
+		self.assertNotIn(WAXING, bulk["reserve"])
+
+	def test_transit_and_scrap_net_the_same_way(self):
+		bulk = self._bulk(
+			{"Transit": [("TA", CASTING), ("TB", CASTING)], "Scrap": [("SA", CASTING), ("SB", CASTING)]},
+			{("TA", ITEM_75): 10.0, ("TB", ITEM_75): -3.0, ("SA", ITEM_75): 10.0, ("SB", ITEM_75): -3.0},
+		)
+		self.assertStock(bulk["transit"][CASTING], 7.0, 5.25)
+		self.assertStock(bulk["scrap"][CASTING], 7.0, 5.25)
+
+	def test_warehouse_matching_two_departments_counts_in_each(self):
+		bulk = self._bulk({"Reserve": [("RX", CASTING), ("RX", WAXING)]}, {("RX", ITEM_75): 6.0})
+		self.assertStock(bulk["reserve"][CASTING], 6.0, 4.5)  # GK live counted it in both
+		self.assertStock(bulk["reserve"][WAXING], 6.0, 4.5)
+
+	def test_report_rows_and_totals_use_the_net(self):
+		fake = FakeStockDB(
+			{"Reserve": [("RA", CASTING), ("RB", CASTING)]}, {("RA", ITEM_75): 10.0, ("RB", ITEM_75): -3.0}
+		)
+		departments = [{"department": "_Test BSS Casting", "db_department": CASTING}]
+		with (
+			patch.object(frappe.db, "sql", new=fake),
+			patch.object(bss, "get_departments_list", return_value=departments),
+			patch(f"{MOD}.validate_filters_permissions"),
+		):
+			_columns, data = bss.execute({"company": COMPANY, "raw_material_type": "Metal", "as_on_date": AS_ON})
+		totals = {
+			row["section"]: (row["quantity"], row["pure_gold_weight"])
+			for row in data
+			if row.get("is_stock_type") or row.get("is_department_total") or row.get("is_grand_total")
+		}
+		self.assertEqual(
+			totals,
+			{"Reserve Stock": (7.0, 5.25), "_Test BSS Casting Total": (7.0, 5.25), "Grand Total": (7.0, 5.25)},
+		)
+
+
+class TestWarehouseNettingInDatabase(IntegrationTestCase):
+	"""The same rule through the real SQL, checked against the View drill-downs.
+
+	Inserts its own Item / Warehouse / Stock Ledger Entry rows with db_insert (no
+	validations, no site data needed) and rolls them back after each test.
+	"""
+
+	DEPT = "_Test BSS DB Casting - GEPL"
+	DEPT_CLEAN = "_Test BSS DB Casting"
+
+	def setUp(self):
+		super().setUp()
+		self.addCleanup(frappe.db.rollback)
+		patcher = patch.object(frappe, "log_error", side_effect=_fail_on_swallowed_error)
+		patcher.start()
+		self.addCleanup(patcher.stop)
+		for item_code in (ITEM_75, ITEM_916):
+			frappe.get_doc(
+				{
+					"doctype": "Item",
+					"name": item_code,
+					"item_code": item_code,
+					"item_name": item_code,
+					"item_group": "Metal - V",
+					"stock_uom": "Nos",
+				}
+			).db_insert()
+
+	def _warehouse(self, warehouse_name, **fields):
+		name = f"{warehouse_name} - _TBSS"
+		frappe.get_doc(
+			{"doctype": "Warehouse", "name": name, "warehouse_name": warehouse_name, "company": COMPANY, **fields}
+		).db_insert()
+		return name
+
+	def _sle(self, warehouse, item_code, qty):
+		frappe.get_doc(
+			{
+				"doctype": "Stock Ledger Entry",
+				"name": frappe.generate_hash(length=12),
+				"company": COMPANY,
+				"warehouse": warehouse,
+				"item_code": item_code,
+				"posting_date": "2026-01-01",
+				"actual_qty": qty,
+				"docstatus": 1,
+				"is_cancelled": 0,
+			}
+		).db_insert()
+
+	def test_summary_nets_like_the_drill_down(self):
+		cases = (
+			("Reserve", "reserve", bss.get_reserve_stock_details),
+			("Scrap", "scrap", bss.get_scrap_stock_details),
+			("Transit", "transit", bss.get_transit_stock_details),
+		)
+		for stock_type, _key, _details in cases:
+			if stock_type == "Transit":
+				# Transit matches by name only: two names matching different suffixes
+				first = self._warehouse(f"{self.DEPT_CLEAN} Transit - GEPL")
+			else:
+				# matched through the department column, not the name
+				first = self._warehouse(
+					f"{self.DEPT_CLEAN} {stock_type} A", warehouse_type=stock_type, department=self.DEPT
+				)
+			second = self._warehouse(f"{self.DEPT_CLEAN} {stock_type}")  # matched by name
+			self._sle(first, ITEM_75, 10)
+			self._sle(second, ITEM_75, -3)  # nets to 7
+			self._sle(first, ITEM_916, 3)
+			self._sle(second, ITEM_916, -10)  # nets negative: hidden
+
+		bulk = bss.get_bulk_stock_data(
+			COMPANY,
+			METAL_GROUPS,
+			["M"],
+			AS_ON,
+			"",
+			["Metal"],
+			[self.DEPT],
+			include_finished_goods_metal=False,
+			include_work_order_wip=False,
+		)
+		for stock_type, key, get_details in cases:
+			with self.subTest(stock_type):
+				self.assertAlmostEqual(bulk[key][self.DEPT]["quantity"], 7.0, places=9)
+				self.assertAlmostEqual(bulk[key][self.DEPT]["pure_gold_weight"], 5.25, places=9)
+				details = get_details(self.DEPT, COMPANY, "", "", ["Metal"], AS_ON)
+				self.assertEqual([(d["Item Code"], flt(d["Weight"])) for d in details], [(ITEM_75, 7.0)])
