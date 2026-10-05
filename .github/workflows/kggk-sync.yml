@@ -259,8 +259,14 @@ jobs:
       - name: Install the apps
         working-directory: ci-bench
         run: |
-          for app in erpnext hrms india_compliance jewellery_erpnext \
-                     gurukrupa_customizations gke_customization; do
+          # gke_customization before jewellery_erpnext. The two link both ways, and only one order
+          # installs: jewellery's Sketch Order Form has a table of "Design Attribute - Multiselect",
+          # which is gke's DocType, and jewellery's fixtures validate against it - so installed
+          # first, jewellery's workflow_state Custom Field is never built and its Workflow fixture
+          # fails on the missing column. gke's own links into jewellery are not checked at install,
+          # and its fixtures that need jewellery are re-synced by the migrate step below.
+          for app in erpnext hrms india_compliance gke_customization jewellery_erpnext \
+                     gurukrupa_customizations; do
             echo "::group::install $app"
             bench --site ci.localhost install-app "$app"
             echo "::endgroup::"
