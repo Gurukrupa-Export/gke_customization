@@ -1859,6 +1859,90 @@ def get_target_submit_fields(config, doctype, run=None):
 # *is* is a business decision for KGGK, not something a sync does on the side.
 IMMUTABLE_ON_UPDATE = {"Item": {"variant_of", "item_code", "attributes"}, "BOM": {"item"}}
 
+# Fields the target owns once the record exists there. Sent to seed a new record, never to
+# overwrite an existing one.
+#
+# `item_defaults` holds KGGK's own warehouse, expense account and cost centre per company.
+# Rewriting it on every update replaced KGGK's configured row with a bare company row - the
+# REST update replaces a child table wholesale - so their defaults were wiped by an
+# unrelated description edit here.
+TARGET_OWNED_ON_UPDATE = {"Item": {"item_defaults"}}
+
+
+def _update_exclusions(doctype):
+	"""Everything an update must leave alone on the target."""
+	return IMMUTABLE_ON_UPDATE.get(doctype, set()) | TARGET_OWNED_ON_UPDATE.get(doctype, set())
+
+
+def explicit_clears(doc, allowed_fields=None):
+	"""Fields that are empty here and must be emptied on the target too. Updates only.
+
+	The REST update only touches the keys it is given, so a value removed here - a cleared
+	link, the last row of a child table, a removed image - used to stay on the target for ever
+	while the record was stamped Synced. Every field this site owns is sent explicitly empty
+	instead: ``None`` for a scalar, ``[]`` for a table, ``""`` for an attachment, whose File is
+	left alone - only the reference is removed.
+
+	Never cleared: fields the target owns (`TARGET_OWNED_ON_UPDATE`, the identity stamp, the
+	target-only fields), fields an update may not change, and fields the target does not have.
+	"""
+	meta = frappe.get_meta(doc.doctype)
+	skip = (
+		ALWAYS_EXCLUDE
+		| DOCTYPE_EXCLUDE.get(doc.doctype, set())
+		| _update_exclusions(doc.doctype)
+		| {f["fieldname"] for f in IDENTITY_FIELDS}
+		| {f["fieldname"] for f in TARGET_ONLY_FIELDS.get(doc.doctype, ())}
+	)
+	clears = {}
+	for df in meta.fields:
+		name = df.fieldname
+		if not name or df.fieldtype in LAYOUT_TYPES or name in skip:
+			continue
+		if allowed_fields is not None and name not in allowed_fields:
+			continue
+		value = doc.get(name)
+		if df.fieldtype in TABLE_TYPES:
+			if not value:
+				clears[name] = []
+		elif df.fieldtype in ATTACH_TYPES:
+			if not value:
+				clears[name] = ""
+		elif value is None:
+			clears[name] = None
+	return clears
+
+
+def _merge_company_defaults(config, doctype, target_id, update_data, run=None):
+	"""Give an existing target record a row for the Target Company, if it has none.
+
+	A deliberate merge: every row KGGK already has goes back unchanged, with its own `name`,
+	and the one missing company row is added. If the target's rows cannot be read, nothing is
+	sent - preserving KGGK's defaults beats guessing at them.
+	"""
+	table = COMPANY_DEFAULT_TABLES.get(doctype)
+	company = target_company()
+	if not table or not company:
+		return
+
+	response = api_get(config, f"/api/resource/{segment(doctype)}/{segment(target_id)}")
+	if not response.ok:
+		run and run.line(
+			"INFO", doctype, target_id, f"{table}: could not read the target's rows, left unchanged"
+		)
+		return
+
+	rows = ((response.data or {}).get("data") or {}).get(table) or []
+	if any(row.get("company") == company for row in rows):
+		return
+
+	keep = [
+		{key: value for key, value in row.items() if key in ("name", "idx") or key not in CHILD_EXCLUDE}
+		for row in rows
+	]
+	keep.append({"company": company})
+	update_data[table] = keep
+
 # ---------------------------------------------------------------------------------
 # RECORD IDENTITY ON THE TARGET
 # ---------------------------------------------------------------------------------
@@ -2584,10 +2668,14 @@ def _adopt_same_named(config, doctype, name, run=None):
 	return target_id
 
 
-def _send(config, doctype, name, data, lookup=None, run=None):
+def _send(config, doctype, name, data, lookup=None, run=None, clears=None):
 	"""Upsert one record on the target, addressed by where it came from.
 
 	Returns ``(response, action, target_name, blocked_fields)``.
+
+	``data`` is the create payload. An update sends it minus `_update_exclusions`, plus
+	``clears`` - the fields emptied here, see `explicit_clears` - so a removal reaches the
+	target too.
 
 	The record is looked up by its identity - the source site, doctype and name stamped on
 	it - and *not* by its name, which means two different things on two sites. Three answers
@@ -2635,9 +2723,10 @@ def _send(config, doctype, name, data, lookup=None, run=None):
 
 	def update(target_id):
 		"""PUT the payload onto ``target_id``. ``None`` means it is no longer there."""
-		update_data = {
-			k: v for k, v in data.items() if k not in IMMUTABLE_ON_UPDATE.get(doctype, set())
-		}
+		excluded = _update_exclusions(doctype)
+		update_data = {k: v for k, v in (clears or {}).items() if k not in data and k not in excluded}
+		update_data.update({k: v for k, v in data.items() if k not in excluded})
+		_merge_company_defaults(config, doctype, target_id, update_data, run=run)
 		path = f"/api/resource/{segment(doctype)}/{segment(target_id)}"
 		response = api_put(config, path, json=update_data)
 
@@ -2765,6 +2854,7 @@ def push_item(item_code, config, run, seen=None):
 		data,
 		lookup=target_name_if_known("Item", item_code, target_host),
 		run=run,
+		clears=explicit_clears(doc, allowed),
 	)
 	if blocked:
 		run.mismatch(
@@ -2851,6 +2941,7 @@ def push_bom(bom_name, config, run):
 		data,
 		lookup=target_name_if_known("BOM", bom_name, target_host),
 		run=run,
+		clears=explicit_clears(doc, allowed),
 	)
 	if blocked:
 		run.mismatch(

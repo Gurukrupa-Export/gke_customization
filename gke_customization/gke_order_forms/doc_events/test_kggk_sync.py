@@ -1820,14 +1820,16 @@ class TestTargetOnlyFields(unittest.TestCase):
 		"""Run `push_item` against patched boundaries and return the payload `_send` got."""
 		sent = {}
 
-		def _capture(config, doctype, name, data, lookup=None, run=None):
+		def _capture(config, doctype, name, data, lookup=None, run=None, **_kwargs):
 			sent.update(data)
 			return k.Response(status_code=200), "created", name, []
 
 		doc = frappe._dict(doctype="Item", name="I-1", item_code="I-1", modified="now")
 		with patch.object(frappe.db, "exists", return_value=True), patch.object(
 			frappe, "get_doc", return_value=doc
-		), patch.object(k, "get_target_fields", return_value=allowed), patch.object(
+		), patch.object(k, "explicit_clears", return_value={}), patch.object(
+			k, "get_target_fields", return_value=allowed
+		), patch.object(
 			k, "build_payload", return_value=({"item_code": "I-1"}, {})
 		), patch.object(k, "_strip_missing_links", return_value=[]), patch.object(
 			k, "_copy_bom_source_ready", return_value=True
@@ -2321,6 +2323,120 @@ class TestTargetCompany(unittest.TestCase):
 	def test_a_failed_check_does_not_block(self):
 		"""Refusing to sync because a check timed out is worse than what it guards against."""
 		self.assertTrue(self._verify(self.TGT, exists=None)[0])
+
+
+class TestTargetOwnedDefaults(unittest.TestCase):
+	"""KGGK's Item Defaults are KGGK's. An update used to replace them with a bare company row."""
+
+	TGT = "KG GK Jewellers Private Limited"
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", headers={})
+		self.data = {"description": "Ring", "item_defaults": [{"company": self.TGT, "idx": 1}]}
+
+	def _update(self, target_rows=None, readable=True):
+		target = k.Response(status_code=200, data={"data": {"name": "I-1", "item_defaults": target_rows or []}})
+		with patch.object(k, "target_company", return_value=self.TGT), patch.object(
+			k, "ensure_identity_fields", return_value=True
+		), patch.object(
+			k, "api_get", return_value=target if readable else k.Response(status_code=500)
+		), patch.object(k, "api_put", return_value=k.Response(status_code=200)) as put:
+			k._send(self.cfg, "Item", "I-1", self.data, lookup="I-1")
+		return put.call_args.kwargs["json"]
+
+	def test_an_update_leaves_kggks_configured_row_alone(self):
+		sent = self._update([{"name": "r1", "company": self.TGT, "default_warehouse": "Stores - K"}])
+		self.assertNotIn("item_defaults", sent)
+		self.assertEqual(sent["description"], "Ring")
+
+	def test_a_missing_company_row_is_added_without_dropping_the_others(self):
+		other = {"name": "r1", "idx": 1, "company": "Other Co", "default_warehouse": "WH - O", "owner": "x"}
+		sent = self._update([other])
+		self.assertEqual(
+			sent["item_defaults"],
+			[{"name": "r1", "idx": 1, "company": "Other Co", "default_warehouse": "WH - O"}, {"company": self.TGT}],
+		)
+
+	def test_unreadable_target_defaults_are_left_unchanged(self):
+		self.assertNotIn("item_defaults", self._update(readable=False))
+
+	def test_a_new_item_is_still_seeded_with_the_company_row(self):
+		created = k.Response(status_code=200, data={"data": {"name": "I-1"}})
+		with patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "lookup_by_identity", return_value=None
+		), patch.object(k, "api_post", return_value=created) as post:
+			k._send(self.cfg, "Item", "I-1", self.data)
+		self.assertEqual(post.call_args.kwargs["json"]["item_defaults"], [{"company": self.TGT, "idx": 1}])
+
+
+class TestExplicitClears(unittest.TestCase):
+	"""A value removed here has to be removed there; the REST update only touches what it is
+	sent, so an omitted field used to keep its old value on KGGK for ever."""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", headers={})
+
+	def _clears(self, values, allowed=None):
+		fields = [
+			("description", "Text"),
+			("brand", "Link"),
+			("image", "Attach Image"),
+			("finding_detail", "Table"),
+			("item_defaults", "Table"),
+			("variant_of", "Link"),
+			("custom_kggk_source_name", "Data"),
+			("qty", "Float"),
+			("is_stock_item", "Check"),
+			("modified", "Datetime"),
+			("only_here", "Data"),
+		]
+		meta = frappe._dict(fields=[frappe._dict(fieldname=n, fieldtype=t) for n, t in fields])
+		doc = frappe._dict(doctype="Item", name="I-1", **values)
+		with patch.object(frappe, "get_meta", return_value=meta):
+			return k.explicit_clears(doc, allowed)
+
+	def test_empty_values_become_explicit_clears(self):
+		clears = self._clears({"qty": 0, "is_stock_item": 0, "finding_detail": [], "image": ""})
+		self.assertEqual(clears["description"], None)
+		self.assertEqual(clears["brand"], None)
+		self.assertEqual(clears["image"], "")
+		self.assertEqual(clears["finding_detail"], [])
+
+	def test_zero_and_false_are_values_not_clears(self):
+		clears = self._clears({"qty": 0, "is_stock_item": 0})
+		self.assertNotIn("qty", clears)
+		self.assertNotIn("is_stock_item", clears)
+
+	def test_target_owned_and_immutable_fields_are_never_cleared(self):
+		clears = self._clears({})
+		for field in ("item_defaults", "variant_of", "custom_kggk_source_name", "modified"):
+			self.assertNotIn(field, clears)
+
+	def test_fields_the_target_does_not_have_are_never_cleared(self):
+		clears = self._clears({}, allowed={"description", "brand"})
+		self.assertEqual(set(clears), {"description", "brand"})
+
+	def test_clears_go_on_an_update_and_never_on_a_create(self):
+		with patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "api_put", return_value=k.Response(status_code=200)
+		) as put:
+			k._send(self.cfg, "BOM", "B-1", {"item": "I-1", "quantity": 1}, lookup="B-1", clears={"finding_detail": [], "remarks": None})
+		self.assertEqual(put.call_args.kwargs["json"]["finding_detail"], [])
+		self.assertIsNone(put.call_args.kwargs["json"]["remarks"])
+
+		created = k.Response(status_code=200, data={"data": {"name": "B-1"}})
+		with patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "lookup_by_identity", return_value=None
+		), patch.object(k, "api_post", return_value=created) as post:
+			k._send(self.cfg, "BOM", "B-1", {"item": "I-1", "quantity": 1}, clears={"remarks": None})
+		self.assertNotIn("remarks", post.call_args.kwargs["json"])
+
+	def test_a_value_always_beats_a_clear(self):
+		with patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "api_put", return_value=k.Response(status_code=200)
+		) as put:
+			k._send(self.cfg, "BOM", "B-1", {"remarks": "kept"}, lookup="B-1", clears={"remarks": None})
+		self.assertEqual(put.call_args.kwargs["json"]["remarks"], "kept")
 
 
 class TestLegacyHooksStayUnwired(unittest.TestCase):
