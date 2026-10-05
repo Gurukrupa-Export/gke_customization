@@ -2360,6 +2360,12 @@ def _apply_deferred_links(config, run):
 
 	target_host = host_of(config.to_site)
 
+	# The value each deferred link was dropped with - always OUR name for the record it points
+	# at. Whatever this pass resolves it to is transport, valid for this attempt only; what goes
+	# back into the backlog must be the source key, or the next attempt looks up the target's
+	# name as if it were ours and can never resolve it.
+	source_value = {(dt, nm, fn): value for dt, nm, fn, value, _ld in run.deferred}
+
 	# Now, not when the link was dropped: the record it points at may have been pushed since,
 	# and only now do we know what the target decided to call it.
 	remote = {}
@@ -2391,9 +2397,16 @@ def _apply_deferred_links(config, run):
 			# name here is what pointed an Item's Copy BOM at the target's own BOM.
 			still_missing.append((doctype, name, fieldname, link_doctype, value))
 		elif exists.get(link_doctype, {}).get(remote_value):
-			updates.setdefault((doctype, name), {})[fieldname] = remote_value
+			fields = updates.setdefault((doctype, name), {})
+			fields[fieldname] = remote_value
+			# A Dynamic Link was dropped as a pair - the docname and the field naming its
+			# doctype - so it has to come back as a pair, or the target holds a docname with no
+			# doctype to resolve it against.
+			type_field = dynamic_link_fields(doctype).get(fieldname)
+			if type_field:
+				fields[type_field] = link_doctype
 		else:
-			still_missing.append((doctype, name, fieldname, link_doctype, remote_value))
+			still_missing.append((doctype, name, fieldname, link_doctype, value))
 
 	# Records that will still be waiting on something after this pass, whatever happens to
 	# the PUTs below. Only a record on neither list has actually been completed.
@@ -2435,14 +2448,18 @@ def _apply_deferred_links(config, run):
 				kind="RELINK-FAILED",
 			)
 			# A failed relink is not a lost one. Put it back in the backlog so the next chunk,
-			# and failing that the hourly reconciler, tries again.
-			for fieldname, value in fields.items():
+			# and failing that the hourly reconciler, tries again - under the source name it
+			# was dropped with, not the target name this attempt resolved it to.
+			for fieldname in fields:
+				key = (doctype, name, fieldname)
+				if key not in source_value:
+					# The doctype half of a Dynamic Link pair, not a deferred link of its own.
+					continue
 				link_doctype = next(
-					(ld for dt, nm, fn, _v, ld in run.deferred
-					 if (dt, nm, fn) == (doctype, name, fieldname)),
+					(ld for dt, nm, fn, _v, ld in run.deferred if (dt, nm, fn) == key),
 					None,
 				)
-				still_missing.append((doctype, name, fieldname, link_doctype, value))
+				still_missing.append((doctype, name, fieldname, link_doctype, source_value[key]))
 			unfinished.add((doctype, name))
 
 	# Whatever is finished is finished: promote it out of Partial so the reconciler stops

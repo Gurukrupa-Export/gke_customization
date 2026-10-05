@@ -445,6 +445,48 @@ class TestDeferredRelink(unittest.TestCase):
 		put.assert_not_called()
 		self.assertEqual(len(self.run.deferred), 1)
 
+	def test_a_failed_relink_requeues_the_source_name_not_the_targets(self):
+		"""B-SOURCE is called B-TARGET over there. Requeueing B-TARGET makes the next attempt
+		look up the target's name as if it were ours, and it never resolves."""
+		self.run.deferred = [("Item", "I-1", "master_bom", "B-SOURCE", "BOM")]
+		names = {"B-SOURCE": "B-TARGET", "I-1": "I-1"}
+		with patch.object(
+			k, "target_name_if_known", side_effect=lambda dt, n, t: names.get(n)
+		), patch.object(k, "api_exists_many", return_value={"B-TARGET": True}), patch.object(
+			k, "set_state_status"
+		), patch.object(k, "api_put", return_value=k.Response(status_code=503)) as put:
+			k._apply_deferred_links(self.cfg, self.run)
+		self.assertEqual(put.call_args.kwargs["json"], {"master_bom": "B-TARGET"})
+		self.assertEqual(self.run.deferred, [("Item", "I-1", "master_bom", "B-SOURCE", "BOM")])
+
+		# ...and the next attempt, after the outage, resolves it.
+		with patch.object(
+			k, "target_name_if_known", side_effect=lambda dt, n, t: names.get(n)
+		), patch.object(k, "api_exists_many", return_value={"B-TARGET": True}), patch.object(
+			k, "set_state_status"
+		), patch.object(k, "api_put", return_value=k.Response(status_code=200)) as put:
+			k._apply_deferred_links(self.cfg, self.run)
+		self.assertEqual(put.call_args.kwargs["json"], {"master_bom": "B-TARGET"})
+		self.assertEqual(self.run.deferred, [])
+
+	def test_a_dynamic_link_comes_back_with_its_doctype(self):
+		"""It was dropped as a pair; re-applying only the docname leaves nothing to resolve
+		it against."""
+		self.run.deferred = [("BOM", "B-1", "custom_creation_docname", "B-0", "BOM")]
+		with patch.object(
+			k, "dynamic_link_fields",
+			return_value={"custom_creation_docname": "custom_creation_doctype"},
+		), patch.object(k, "target_name_if_known", side_effect=lambda dt, n, t: n), patch.object(
+			k, "api_exists_many", return_value={"B-0": True}
+		), patch.object(k, "set_state_status"), patch.object(
+			k, "api_put", return_value=k.Response(status_code=200)
+		) as put:
+			k._apply_deferred_links(self.cfg, self.run)
+		self.assertEqual(
+			put.call_args.kwargs["json"],
+			{"custom_creation_docname": "B-0", "custom_creation_doctype": "BOM"},
+		)
+
 	def test_deferred_links_survive_a_chunk_boundary(self):
 		"""The item is in chunk 1 and its BOM in chunk 3; both must still be linked."""
 		first = _run(config=self.cfg)
