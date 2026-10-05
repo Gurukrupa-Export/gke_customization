@@ -1327,9 +1327,23 @@ class TestSyncStateIsNotAFeedbackLoop(unittest.TestCase):
 
 class TestReconciler(unittest.TestCase):
 	def test_it_does_nothing_unless_switched_on(self):
-		with patch.object(k, "setting", return_value=0), patch.object(k, "get_sync_config") as config:
+		"""Hourly Change Check off: no drift is looked for. The supervisor still runs first - lost
+		hand-offs are re-sent whatever this switch says - so it is kept out of this question."""
+		with patch.object(k, "setting", return_value=0), patch.object(k, "reap_stale_runs"), patch.object(
+			k, "get_sync_config"
+		) as config, patch.object(k, "_drifted") as drifted, patch.object(k, "enqueue_sync") as enqueue:
 			k.reconcile_changes()
 		config.assert_not_called()
+		drifted.assert_not_called()
+		enqueue.assert_not_called()
+
+	def test_resending_lost_hand_offs_still_obeys_enable_sync(self):
+		with patch.object(k, "get_sync_config", return_value=(None, k.SKIP_DISABLED)), patch.object(
+			frappe, "get_all"
+		) as get_all, patch.object(k, "_safe_enqueue") as enqueue:
+			self.assertEqual(k._redispatch_pending(), [])
+		get_all.assert_not_called()
+		enqueue.assert_not_called()
 
 	def test_it_refuses_when_the_sync_is_not_configured(self):
 		with patch.object(k, "setting", return_value=1), patch.object(
