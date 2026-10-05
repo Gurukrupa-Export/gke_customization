@@ -291,6 +291,24 @@ def get_main_data(filters):
     # submitted Receive - the rule get_data applies - so ORDER BY/LIMIT below work on
     # outstanding operations, not on the whole operation history. <=> matches the
     # NULL employee of subcontracting rows the way get_data's tuple key does.
+    # A filtered run applies its filters inside `outstanding` as well, so it groups only
+    # the matching operations' IR rows instead of the whole IR history. That is exact:
+    # the join below requires the same operation and employee anyway.
+    outstanding_filter = ""
+    if filters.get("employee_id"):
+        outstanding_filter += " AND eir.employee = %(employee_id)s"
+    op_conditions = get_conditions(filters, alias="op")
+    if op_conditions:
+        outstanding_filter += f"""
+                AND eiro.manufacturing_operation IN (
+                    SELECT op.name
+                    FROM `tabManufacturing Operation` op
+                    WHERE op.operation IS NOT NULL
+                        AND op.operation != ''
+                        AND op.status IN ('WIP', 'Finished')
+                        {op_conditions}
+                )"""
+
     query = f"""
         SELECT 
             mo.manufacturing_work_order,
@@ -331,6 +349,7 @@ def get_main_data(filters):
             WHERE
                 eir.type IN ('Issue', 'Receive')
                 AND eir.docstatus = 1
+                {outstanding_filter}
             GROUP BY
                 eiro.manufacturing_operation, eir.employee
             HAVING
@@ -402,7 +421,7 @@ def get_employee_ir_data(filters, manufacturing_operations):
 
     return result
 
-def get_conditions(filters):
+def get_conditions(filters, alias="mo"):
     conditions = ""
 
     # # Branch filter optional - includes NULL values
@@ -410,16 +429,16 @@ def get_conditions(filters):
     #     conditions += " AND (mwo.branch = %(branch)s OR mwo.branch IS NULL)"
     
     if filters.get("manufacturer"):
-        conditions += " AND mo.manufacturer = %(manufacturer)s"
+        conditions += f" AND {alias}.manufacturer = %(manufacturer)s"
         
     if filters.get("department"):
-        conditions += " AND mo.department = %(department)s"
+        conditions += f" AND {alias}.department = %(department)s"
         
     if filters.get("operation"):
-        conditions += " AND mo.operation = %(operation)s"
+        conditions += f" AND {alias}.operation = %(operation)s"
         
     if filters.get("employee_id"):
-        conditions += " AND mo.employee = %(employee_id)s"
+        conditions += f" AND {alias}.employee = %(employee_id)s"
 
     return conditions
 

@@ -63,6 +63,20 @@ class TestEmployeeBatchIssueReceive(UnitTestCase):
 		self.assertIn("outstanding.employee <=> mo.employee", query)
 		self.assertLess(query.index("HAVING"), query.index(f"LIMIT {report.ROW_LIMIT + 1}"))
 
+	def test_filters_are_applied_inside_outstanding(self):
+		"""A filtered run groups only the matching operations' IR rows, not the whole history."""
+		_data, _message, calls = self.run_report([], department="D-1", employee_id="EMP-1")
+		outstanding = calls[0][0].split("GROUP BY")[0]
+		self.assertIn("AND eir.employee = %(employee_id)s", outstanding)
+		self.assertIn("op.department = %(department)s", outstanding)
+		self.assertIn("op.employee = %(employee_id)s", outstanding)
+		self.assertIn("mo.department = %(department)s", calls[0][0])
+
+	def test_unfiltered_run_groups_without_a_subquery(self):
+		_data, _message, calls = self.run_report([])
+		self.assertNotIn("`tabManufacturing Operation` op", calls[0][0])
+		self.assertNotIn("eir.employee = %(employee_id)s", calls[0][0])
+
 	def test_employee_ir_query_reads_only_the_selected_operations(self):
 		_data, _message, calls = self.run_report(
 			[mop("MOP-2"), mop("MOP-1")], [issue("EIR-1", "MOP-1")], department="D-1"
@@ -152,8 +166,8 @@ class TestEmployeeBatchIssueReceiveOnMariaDB(IntegrationTestCase):
 		)
 		return name
 
-	def run_report(self):
-		_columns, data, message = report.execute(frappe._dict(department=self.prefix))
+	def run_report(self, **filters):
+		_columns, data, message = report.execute(frappe._dict(department=self.prefix, **filters))
 		return {row.manufacturing_operation: row for row in data}, message
 
 	def test_old_outstanding_operation_survives_newer_finished_history(self):
@@ -168,6 +182,38 @@ class TestEmployeeBatchIssueReceiveOnMariaDB(IntegrationTestCase):
 		with patch.object(report, "ROW_LIMIT", 3):
 			rows, message = self.run_report()
 		self.assertEqual(list(rows), [old])
+		self.assertIsNone(message)
+
+	def make_matrix(self):
+		"""One operation per edge of the outstanding rule; returns {label: operation}."""
+		ops = {}
+		ops["subcontracted"] = self.make_mop("WIP", None, minutes=1)
+		self.make_ir("Issue", ops["subcontracted"], None, minutes=2)
+		ops["receive_cancelled"] = self.make_mop("WIP", "EMP-A", minutes=3)
+		self.make_ir("Issue", ops["receive_cancelled"], "EMP-A", minutes=4)
+		self.make_ir("Receive", ops["receive_cancelled"], "EMP-A", minutes=5, docstatus=2)
+		ops["received_by_other"] = self.make_mop("WIP", "EMP-A", minutes=6)
+		self.make_ir("Issue", ops["received_by_other"], "EMP-A", minutes=7)
+		self.make_ir("Receive", ops["received_by_other"], "EMP-B", minutes=8)
+		ops["two_issues"] = self.make_mop("WIP", "EMP-A", minutes=9)
+		self.make_ir("Issue", ops["two_issues"], "EMP-A", minutes=10)
+		ops["newest_issue"] = self.make_ir("Issue", ops["two_issues"], "EMP-A", minutes=11)
+		ops["received"] = self.make_mop("Finished", "EMP-A", minutes=12)
+		self.make_ir("Issue", ops["received"], "EMP-A", minutes=13)
+		self.make_ir("Receive", ops["received"], "EMP-A", minutes=14)
+		ops["issue_cancelled"] = self.make_mop("WIP", "EMP-A", minutes=15)
+		self.make_ir("Issue", ops["issue_cancelled"], "EMP-A", minutes=16, docstatus=2)
+		ops["issued_to_other"] = self.make_mop("WIP", "EMP-A", minutes=17)
+		self.make_ir("Issue", ops["issued_to_other"], "EMP-B", minutes=18)
+		ops["blank_employee"] = self.make_mop("WIP", "", minutes=19)
+		self.make_ir("Issue", ops["blank_employee"], None, minutes=20)
+		return ops
+
+	def test_employee_filter_keeps_the_same_rule(self):
+		ops = self.make_matrix()
+		rows, message = self.run_report(employee_id="EMP-A")
+		self.assertEqual(set(rows), {ops["receive_cancelled"], ops["received_by_other"], ops["two_issues"]})
+		self.assertEqual(rows[ops["two_issues"]].issue_ir, ops["newest_issue"])
 		self.assertIsNone(message)
 
 	def test_which_operations_count_as_outstanding(self):
