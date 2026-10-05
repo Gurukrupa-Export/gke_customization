@@ -85,7 +85,7 @@ Each report ran in a read-only transaction with a 30 s per-statement cap, Admini
 | Report | Filter set | Baseline | Candidate | Code changed | Detail |
 |---|---:|---|---|---|---|
 | CAD Order Tracking Report | 0 | OK (200) | OK (201) | True | master's report update (1181bf1) appends a Total row: 200 orders + 1 total row |
-| Employee Batch Issue Receive | 0 | OK (10000) | OK (181) | True | #1360 (kggk_prod, 2026-10-01, not yet on GK live) keeps only the latest issue/receive per operation and employee and shows only issued-but-not-received rows; gk_prod carries kggk_prod's version (plus the restored GK role |
+| Employee Batch Issue Receive | 0 | OK (10000) | OK (181) | True | #1360 (kggk_prod, 2026-10-01, not yet on GK live) keeps only the latest issue/receive per operation and employee and shows only issued-but-not-received rows; gk_prod carries kggk_prod's version plus the restored GK roles. The 181 were only the outstanding operations among the newest 10,000; review fix e1c4db2 selects the outstanding ones before the cap: 4,183 on this copy (see Review fixes) |
 
 ### FAIL_BOTH_DIFFERENT — fails on both, with a different error
 
@@ -281,6 +281,8 @@ Every ported unit was reviewed for guest access, whitelisting, permission checks
 - `f482786` — three Attendance Adjustment Tool endpoints (`process_salary_adjustment`, `proceed_check_in_modify`, `update_proceed_check_in_modify`, production #1209) accepted unauthenticated calls that delete and recreate Employee Checkins and rewrite Additional Salary. They now require login and read permission on the tool document.
 - Literal API key pairs in comments of `item.py` and the KGGK tally report's plaintext database credential (`jewelex_db_config.py`) are no longer in the tree (they remain in git history — rotate them).
 - Per-diamond-row debug `frappe.log_error` calls in Product Return Order Form moved to the logger (they wrote two Error Log rows per row).
+- `9ff3bd9` (review F-01) — Branch Stock Summary's whitelisted `get_summary_comparison` (new to GK with #1360) and `get_stock_details` (as on GK live) ran SQL built from the caller's filters for any logged-in user, and the Summary ran ERPNext Stock Balance without that report's roles. Both now repeat Desk's checks (report roles, Main Slip report permission, read or select on the chosen Company with User Permissions), the Summary also requires Stock Balance access, `execute()` checks the Company itself, and every statement in the module binds its values.
+- `4c24611` (review S-4) — Product Lifecycle's whitelisted `get_finish_tag_history` and `get_serial_no_section_data` (new with #1360) now require access to the report.
 
 **Carried unchanged (identical on GK live and/or master), recommended follow-ups**
 
@@ -288,14 +290,75 @@ Every ported unit was reviewed for guest access, whitelisting, permission checks
 |---|---|---|
 | Guest endpoints | `allow_guest=True` on master's portal, catalogue, login, issues, survey and attendance APIs (≈80 endpoints); designed for the external portal and devices, but they need an audit of what each returns | `gke_catalog/api/*`, `gke_survey`, `gke_hrms/api/attendance*` |
 | Hard-coded secrets | AES-GCM key, HMAC secret and Fernet key in `encryption_response.py` (master); remote URL + API key pair in master commit 4f5c313 and in old `item.py` revisions (history) | public repository — rotate and move to site config |
-| Missing permission checks | many whitelisted report helpers return BOM, pricing, serial and customer data to any logged-in user (e.g. Serial No search, Main Slip popup, Employee Material Stock In Hand, Product Lifecycle, mfg dashboard); the six cross-site pricing endpoints are open by design for the KG↔GK link | `gke_catalog/report/*`, `gke_order_forms/doc_events/item.py` |
-| SQL from user input | f-string SQL with filter values in Branch Stock Summary's whitelisted helpers, Order Detail Report and Order Form `get_customer_order_form` | parameterise in a follow-up |
+| Missing permission checks | many whitelisted report helpers return BOM, pricing, serial and customer data to any logged-in user (e.g. Serial No search, Main Slip popup, Employee Material Stock In Hand, mfg dashboard; Product Lifecycle, new with #1360, is fixed by `4c24611`); the six cross-site pricing endpoints are open by design for the KG↔GK link | `gke_catalog/report/*`, `gke_order_forms/doc_events/item.py` |
+| SQL from user input | f-string SQL with filter values in Order Detail Report and Order Form `get_customer_order_form` (Branch Stock Summary, whose comparison method is new with #1360, is fixed by `9ff3bd9`) | parameterise in a follow-up |
 | Outbound calls | synchronous HTTP in Item/BOM `before_validate` (KGGK replication, only when configured) and in Gold Rates `validate` (bullion feeds, some plain HTTP); no request timeout on the PROF remote push | `item.py`, `gold_rates.py`, `product_return_order_form.py` |
 | Heavy reports | full-table derived tables / window functions on every run (MOP summary, Branch Stock Summary *Summary*, Production Report up to 10,000 rows with per-row lookups, Employee Material Stock In Hand); several reports take 20–270 s on the GK copy | candidates for indexes and filter push-down |
 | N+1 | Order Form exports, Product Return Order Form validate/submit, Gold Rates fetchers | |
 | Error Log noise | Employee Batch/Issue Receive reports write debug rows on every run (production) | |
 
 Changing report SQL or API exposure beyond the fix above was kept out of this PR: each would change what users see or what the external portal receives, and needs the owning team's sign-off.
+
+## Review fixes (2026-10-05)
+
+The review of #1372 found six defects (F-01 to F-06); the fixes and four same-cause siblings are the commits listed in
+[06](06_cherry_pick_plan_and_conflicts.md). Everything below ran on `gkprod-rehearsal.test` through the isolation wrapper
+(gke from the fix worktree, jewellery from GK live's `gurukrupa-prod`, outbound HTTP blocked, private Redis).
+
+**Tests** at `d430472`, all passing:
+
+| Module | Covers | Ran | Result |
+|---|---|---:|---|
+| `gke_customization.gke_price_list.doctype.product_return_order.test_product_return_order` | F-02 serial push gate, F-03 diamond-free serial | 15 | PASS |
+| `gke_customization.gke_price_list.doctype.product_return_order_form.test_product_return_order_form` | S-1 KG-ref form push gate | 4 | PASS |
+| `gke_customization.gke_order_forms.doctype.repair_order.test_repair_order` | S-2 diamond-free serial | 3 | PASS |
+| `gke_customization.patches.test_rename_revise_diamond_price_list_doctype` | F-04 refusal, patch stays pending | 5 | PASS |
+| `gke_customization.patches.v1_0.test_v15_rename_close_setting_to_nova_glow` | S-3 refusal, patch stays pending | 6 | PASS |
+| `gke_customization.gke_catalog.report.employee_batch_issue_receive.test_employee_batch_issue_receive` | F-05, unit and MariaDB | 14 | PASS |
+| `gke_customization.gke_catalog.report.branch_stock_summary.test_branch_stock_summary` | F-01 gate and binding, F-06 netting, unit and MariaDB | 26 | PASS |
+| `gke_customization.gke_catalog.report.product_lifecycle.test_product_lifecycle` | S-4 report gate | 3 | PASS |
+| `gke_customization.gke_order_forms.doc_events.test_kggk_sync` | regression | 30 | PASS |
+
+**Negative control.** The new test files were run against the unfixed code (`cebf9da`) in a throwaway worktree. Every
+module failed, mostly with assertion failures:
+- a blank KG site blocks approval and submit;
+- a metal-only BOM raises IndexError;
+- both patches return instead of refusing;
+- `X' OR '1'='1` returns every company's departments;
+- a user without the report's roles, or limited to another company, gets through.
+
+The rest error on the new interfaces (the report's 3-tuple return, new signatures). Removing the Main Slip company scoping
+or the summary's report gate from the fixed code also fails the tests.
+
+**Before/after on the rehearsal copy** (read-only transaction, Administrator, the `cebf9da` module beside the fixed one):
+
+| Employee Batch Issue Receive | Before | After | Old rule without its cap |
+|---|---:|---:|---:|
+| no filter | 181 | 4,183 | 4,183 |
+| Waxing - GEPL | 162 | 981 | 981 |
+| Model Making - GEPL | 33 | 258 | 258 |
+
+Every row shown before is still shown. A department run takes 2-5 s, an unfiltered run about 7 s.
+
+Branch Stock Summary returned identical output in all 222 comparisons, with no failed statement on either side. They
+covered:
+- 54 report runs over both companies, two GEPL branches, Metal, Diamond and Finding, both flag combinations and three
+  manufacturers;
+- 166 View drill-downs;
+- both companies' Summary dialogs.
+
+So binding the queries, netting per department and item (F-06) and scoping Main Slip figures to the company change no
+figure on this data.
+
+**Review of the fixes.** Six independent read-only reviews (SQL binding, authorization, the outstanding-operations rule,
+PRO/PROF/Repair Order, patches, tests) found no defect in the fixed code. Two follow-ups were applied:
+- `cdb7af6`: a filtered Employee Batch Issue Receive run applies its filters inside the outstanding selection. Department
+  runs had become about twice as slow; the rows are identical.
+- `d430472`: six test assertions were strengthened so that they fail when the fix they guard is undone.
+
+**Site data, not code.** The GK copies carry a site Server Script, *Create Serial No* (Serial No, Before Insert). It posts
+every new Serial No to a hard-coded remote with a hard-coded token and fails the save when the call fails, independent of
+`prf_to_site`. Check GK live for it (README, before deploying, step 5).
 
 ## Not run
 

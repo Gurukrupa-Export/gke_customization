@@ -223,11 +223,11 @@ gke_customization.patches.v1_0.v15_rename_close_setting_to_nova_glow
 
 | Patch | Section | What | Idempotent / fresh install | Rehearsal |
 |---|---|---|---|---|
-| `rename_revise_diamond_price_list_doctype` | pre_model_sync | renames the DocType `Revise Diamond Price  List` (two spaces) to `Revise Diamond Price List` before sync so documents are kept | no-op when the old DocType is absent; fresh install marks it done | ran, no-op (GK copy has no old DocType) |
+| `rename_revise_diamond_price_list_doctype` | pre_model_sync | renames the DocType `Revise Diamond Price  List` (two spaces) to `Revise Diamond Price List` before sync so documents are kept | no-op when the old DocType is absent; refuses (and leaves Patch Log unset) when the new DocType or its table also exists (review fix 7150f49); fresh install marks it done | ran, no-op (GK copy has no old DocType) |
 | `canonicalise_custom_field_names` | pre_model_sync | aligns existing Custom Field document names with the shipped canonical names; refuses (and leaves Patch Log unset) on conflicts it cannot resolve | idempotent; fresh install marks it done | ran, nothing to rename |
 | `gc_ration_master` | post_model_sync | production patch (2026-02) normalising GC Ratio rows | already applied on GK live (line text unchanged) | not pending |
 | `salary_withholding_release_fields` | post_model_sync | production patch (2026-08) adding hrms Salary Withholding fields | already applied on GK live | not pending |
-| `v1_0.v15_rename_close_setting_to_nova_glow` | post_model_sync | master's one-way rename of the *Close* setting master data to *Nova Glow* across ~60 DocTypes | guarded by the `close_setting_to_nova_glow_v2` sentinel it shares with jewellery_erpnext's `v16_0_rename_close_setting_to_nova_glow`; jewellery runs first in installed-app order | ran as a no-op: jewellery's patch had already renamed (abbreviation NGS) |
+| `v1_0.v15_rename_close_setting_to_nova_glow` | post_model_sync | master's one-way rename of the *Close* setting master data to *Nova Glow* across ~60 DocTypes | guarded by the `close_setting_to_nova_glow_v2` sentinel it shares with jewellery_erpnext's `v16_0_rename_close_setting_to_nova_glow`; jewellery runs first in installed-app order; refuses (and leaves Patch Log unset) when an old and a new setting Attribute Value both exist, instead of returning and being recorded as done (review fix 0e13b23) | ran as a no-op: jewellery's patch had already renamed (abbreviation NGS) |
 
 ### Nova Glow deploy note
 
