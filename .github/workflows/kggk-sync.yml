@@ -163,10 +163,6 @@ jobs:
       # Pinned, so that a push to a sibling app's branch cannot change this run's answer.
       # Move a pin deliberately, in its own commit, when the sync needs the newer revision.
       GURUKRUPA_CUSTOMIZATIONS_SHA: d4c046cc6c6c7399c54f93548305794bf2bfe7a6
-      # jewellery PR #1374 - the guard that stops "Making Charge Price Finding Subcategory"
-      # failing a fresh install. On gk_develop already; carried here for gurukrupa-prod until it
-      # reaches that branch, then drop this.
-      JEWELLERY_INSTALL_FIX: 8e149677270aa002313edae523e1d0b88756e75e
     # Forks have no access to the token, and a job that cannot start should not be
     # reported as a failure of the change.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -233,8 +229,10 @@ jobs:
           TOKEN: ${{ secrets.GKE_CI_TOKEN }}
         run: |
           auth() { echo "https://x-access-token:${TOKEN}@github.com/$1"; }
+          # bench clones with `--origin upstream`, not `origin`; ask the clone rather than assume.
+          remote_of() { git -C "apps/$1" remote | head -n 1; }
           pin() {  # pin <app> <sha>: check out exactly that commit of an app already fetched
-            git -C "apps/$1" fetch --quiet --depth 50 origin "$2"
+            git -C "apps/$1" fetch --quiet --depth 50 "$(remote_of "$1")" "$2"
             git -C "apps/$1" checkout --quiet --detach "$2"
             echo "$1 pinned at $(git -C "apps/$1" rev-parse --short HEAD)"
           }
@@ -243,11 +241,6 @@ jobs:
           bench get-app --branch ${{ matrix.frappe }} india_compliance https://github.com/resilient-tech/india-compliance.git
           bench get-app --branch ${{ matrix.jewellery_branch }} jewellery_erpnext "$(auth Gurukrupa-Export/jewellery-erpnext.git)"
           pin jewellery_erpnext "${{ matrix.jewellery_sha }}"
-          if ! git -C apps/jewellery_erpnext merge-base --is-ancestor "$JEWELLERY_INSTALL_FIX" HEAD 2>/dev/null; then
-            git -C apps/jewellery_erpnext fetch --quiet --depth 50 origin "$JEWELLERY_INSTALL_FIX"
-            git -C apps/jewellery_erpnext cherry-pick --no-commit "$JEWELLERY_INSTALL_FIX"
-            echo "carried jewellery #1374 install fix"
-          fi
           bench get-app --branch main gurukrupa_customizations "$(auth Gurukrupa-Export/gurukrupa_customizations.git)"
           pin gurukrupa_customizations "$GURUKRUPA_CUSTOMIZATIONS_SHA"
           bench get-app gke_customization "${GITHUB_WORKSPACE}/gke_customization"
