@@ -1351,6 +1351,24 @@ class TestTargetNaming(unittest.TestCase):
 				k.target_name_for("BOM", "BOM-X-002", "kggk.example.com"), "BOM-X-001"
 			)
 
+	def test_variant_attributes_go_on_create_and_never_on_update(self):
+		"""A stocked variant refuses rebuilt attribute rows, so an ordinary edit must not
+		carry them - but the variant cannot be created without them."""
+		data = {"item_name": "Ring", "attributes": [{"attribute": "Size", "attribute_value": "7"}]}
+		with patch.object(k, "api_put", return_value=k.Response(status_code=200)) as put, patch.object(
+			k, "ensure_identity_fields", return_value=True
+		):
+			k._send(self.cfg, "Item", "I-1", data, lookup="I-1")
+		self.assertNotIn("attributes", put.call_args.kwargs["json"])
+		self.assertEqual(put.call_args.kwargs["json"]["item_name"], "Ring")
+
+		created = k.Response(status_code=200, data={"data": {"name": "I-1"}})
+		with patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "lookup_by_identity", return_value=None
+		), patch.object(k, "api_post", return_value=created) as post:
+			k._send(self.cfg, "Item", "I-1", data)
+		self.assertEqual(post.call_args.kwargs["json"]["attributes"], data["attributes"])
+
 	def test_only_item_and_bom_are_mapped(self):
 		"""Nothing else is pushed by this engine, so nothing else can be known to differ."""
 		with patch.object(frappe, "get_all") as get_all:

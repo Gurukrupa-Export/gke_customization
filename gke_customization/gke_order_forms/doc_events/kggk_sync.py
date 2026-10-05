@@ -1837,7 +1837,13 @@ def get_target_submit_fields(config, doctype, run=None):
 # ============================================================================
 
 # Fields that identify a record and cannot be changed on an existing one.
-IMMUTABLE_ON_UPDATE = {"Item": {"variant_of", "item_code"}, "BOM": {"item"}}
+#
+# `attributes` is a variant's definition, sent when the variant is created and never again.
+# Child rows lose their `name` on the way out, so the target rebuilds them as new rows, and
+# ERPNext refuses any change to a variant's attribute rows once the item has stock - so an
+# ordinary description edit would be rejected on every retry. Changing what a stocked variant
+# *is* is a business decision for KGGK, not something a sync does on the side.
+IMMUTABLE_ON_UPDATE = {"Item": {"variant_of", "item_code", "attributes"}, "BOM": {"item"}}
 
 # ---------------------------------------------------------------------------------
 # RECORD IDENTITY ON THE TARGET
