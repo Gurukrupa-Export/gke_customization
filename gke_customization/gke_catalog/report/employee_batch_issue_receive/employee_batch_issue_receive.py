@@ -5,11 +5,23 @@
 import frappe
 from frappe import _
 
+# Most rows the report returns. get_main_data keeps only issued-but-not-received
+# operations before applying it, so it is reached only when that many are
+# outstanding - and execute() then says so instead of dropping rows silently.
+ROW_LIMIT = 10000
+
 def execute(filters=None):
     columns = get_columns()
     data = get_data(filters)
-    
-    return columns, data
+
+    message = None
+    if len(data) > ROW_LIMIT:
+        data = data[:ROW_LIMIT]
+        message = _(
+            "Only the newest {0} outstanding operations are shown. Narrow the filters to see the rest."
+        ).format(ROW_LIMIT)
+
+    return columns, data, message
 
 def get_columns():
     return [
@@ -209,11 +221,13 @@ def get_columns():
     ]
 
 def get_data(filters):
-    # Get main data
+    # Get main data - outstanding operations only (see get_main_data)
     main_data = get_main_data(filters)
+    if not main_data:
+        return []
 
-    # Get Employee IR data
-    ir_data = get_employee_ir_data(filters)
+    # Get Employee IR data for those operations only
+    ir_data = get_employee_ir_data(filters, [row.get("manufacturing_operation") for row in main_data])
 
     # Create a mapping for faster lookup.
     # ir_data is ordered by date_time DESC, so the first Issue/Receive seen
@@ -246,7 +260,9 @@ def get_data(filters):
 
         row["time_diff"] = get_time_diff_str(row.get("issue_date"), row.get("receive_date"))
 
-    # Only keep rows that were issued to an employee but not yet received
+    # Only keep rows that were issued to an employee but not yet received.
+    # get_main_data already selects these before its LIMIT; this only drops a row
+    # whose latest Issue has no date, as before.
     main_data = [row for row in main_data if row.get("issue_date") and not row.get("receive_date")]
 
     return main_data
@@ -270,7 +286,11 @@ def get_time_diff_str(issue_date, receive_date):
 
 def get_main_data(filters):
     conditions = get_conditions(filters)
-    
+
+    # `outstanding` = each (operation, employee) pair with a submitted Issue and no
+    # submitted Receive - the rule get_data applies - so ORDER BY/LIMIT below work on
+    # outstanding operations, not on the whole operation history. <=> matches the
+    # NULL employee of subcontracting rows the way get_data's tuple key does.
     query = f"""
         SELECT 
             mo.manufacturing_work_order,
@@ -300,7 +320,25 @@ def get_main_data(filters):
             mwo.customer
         FROM 
             `tabManufacturing Operation` mo
-        LEFT JOIN 
+        INNER JOIN (
+            SELECT
+                eiro.manufacturing_operation,
+                eir.employee
+            FROM
+                `tabEmployee IR` eir
+            INNER JOIN
+                `tabEmployee IR Operation` eiro ON eiro.parent = eir.name
+            WHERE
+                eir.type IN ('Issue', 'Receive')
+                AND eir.docstatus = 1
+            GROUP BY
+                eiro.manufacturing_operation, eir.employee
+            HAVING
+                SUM(eir.type = 'Issue') > 0
+                AND SUM(eir.type = 'Receive') = 0
+        ) outstanding ON outstanding.manufacturing_operation = mo.name
+            AND outstanding.employee <=> mo.employee
+        LEFT JOIN
             `tabManufacturing Work Order` mwo ON mo.manufacturing_work_order = mwo.name
         LEFT JOIN 
             `tabEmployee` emp ON mo.employee = emp.name
@@ -311,15 +349,16 @@ def get_main_data(filters):
             {conditions}
         ORDER BY 
             mo.creation DESC
-        LIMIT 10000
+        LIMIT {ROW_LIMIT + 1}
     """
     
     result = frappe.db.sql(query, filters, as_dict=True)
 
     return result
 
-def get_employee_ir_data(filters):
-    # Separate query for Employee IR data - only for Issue/Receive columns
+def get_employee_ir_data(filters, manufacturing_operations):
+    # Separate query for Employee IR data - only for Issue/Receive columns,
+    # and only for the operations get_main_data returned
     operation_conditions = ""
 
     if filters.get("operation"):
@@ -351,14 +390,16 @@ def get_employee_ir_data(filters):
         WHERE 
             eir.type IN ('Issue', 'Receive')
             AND eiro.manufacturing_operation IS NOT NULL
+            AND eiro.manufacturing_operation IN %(manufacturing_operations)s
             AND eir.docstatus = 1
             {operation_conditions}
         ORDER BY 
             eir.date_time DESC
     """
     
-    result = frappe.db.sql(query, filters, as_dict=True)
-    
+    values = {**filters, "manufacturing_operations": tuple(manufacturing_operations)}
+    result = frappe.db.sql(query, values, as_dict=True)
+
     return result
 
 def get_conditions(filters):
