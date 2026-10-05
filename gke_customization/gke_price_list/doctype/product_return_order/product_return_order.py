@@ -310,9 +310,18 @@ class ProductReturnOrder(Document):
 			# self.serial_no = serial.name
 			if serial.name and self.is_jewelex_tag:
 				migration_settings = frappe.get_single("Data Migration in KGGK")
+				# Send the serial to the KGGK site only once "PRF To Site" is set, the switch on_update
+				# uses for mirroring; until then it stays local and the approval goes through.
+				if not migration_settings.get("prf_to_site"):
+					return
 				site_url = (migration_settings.prf_to_site or "").rstrip("/")
 				api_key = migration_settings.api_key
-				api_secret = migration_settings.get_password("api_secret")
+				api_secret = migration_settings.get_password("api_secret", raise_exception=False)
+				if not site_url or not api_key or not api_secret:
+					frappe.throw(
+						"Please set <b>PRF To Site</b>, <b>Api Key</b> and "
+						"<b>Api Secret</b> on <b>Data Migration in KGGK</b>."
+					)
 				remote_url = (
 					site_url +
 					"/api/method/serial_product_return_order"
