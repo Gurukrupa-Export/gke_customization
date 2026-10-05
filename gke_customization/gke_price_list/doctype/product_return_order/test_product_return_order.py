@@ -11,9 +11,69 @@ MOD = "gke_customization.gke_price_list.doctype.product_return_order.product_ret
 SERIAL = "SN-F02-TEST"
 URL = "https://kg.example.invalid/api/method/serial_product_return_order"
 
+# Answers for genrate_serial_no's lookups, shaped like frappe.db.get_value's; no site data is read.
+SERIES_START = "S"
+MANUFACTURER_ABBR = "L"
+ABBREVIATIONS = {"_Test Gold": "G", "_Test VS": "V", "_Test Grade No Abbr": None}
+
+
+def fake_get_value(doctype, filters=None, fieldname=None, *args, **kwargs):
+	if doctype == "Manufacturing Setting":
+		return SERIES_START
+	if doctype == "Manufacturer":
+		return MANUFACTURER_ABBR
+	if doctype == "Attribute Value":
+		return ABBREVIATIONS.get(filters)
+	raise AssertionError(f"unexpected get_value({doctype!r}, {filters!r})")
+
+
+def make_bom(metal=(), diamond=(), gemstone=()):
+	"""BOM stand-in: like a loaded BOM, each child table is a list, [] when empty."""
+	return frappe._dict(
+		metal_detail=[frappe._dict(metal_type=m) for m in metal],
+		diamond_detail=[frappe._dict(diamond_grade=g) for g in diamond],
+		gemstone_detail=[frappe._dict(gemstone_type=g) for g in gemstone],
+	)
+
 
 class TestProductReturnOrder(UnitTestCase):
-	pass
+	"""genrate_serial_no names a returned piece's serial from its BOM."""
+
+	def compose(self, bom):
+		doc = frappe.new_doc("Product Return Order")  # before frappe.get_doc is patched
+		# 2026 gives the year code "2F"; is_utc skips the System Settings time zone read.
+		with self.freeze_time("2026-06-15 12:00:00", is_utc=True), patch(
+			"frappe.get_doc", return_value=bom
+		), patch.object(frappe.db, "get_value", side_effect=fake_get_value):
+			return doc.genrate_serial_no("BOM-TEST")
+
+	def test_metal_only_bom_takes_zero_grade(self):
+		"""A plain-metal return raised IndexError on diamond_detail[0] at Approve."""
+		self.assertEqual(self.compose(make_bom(metal=["_Test Gold"])), "SLG02F.1244")
+
+	def test_metal_and_gemstone_bom_takes_zero_grade(self):
+		bom = make_bom(metal=["_Test Gold"], gemstone=["_Test Ruby"])
+		self.assertEqual(self.compose(bom), "SLG02F.1244")
+
+	def test_diamond_bom_keeps_first_row_grade(self):
+		bom = make_bom(metal=["_Test Gold"], diamond=["_Test VS", "_Test Grade No Abbr"])
+		self.assertEqual(self.compose(bom), "SLGV2F.1244")
+
+	def test_grade_without_abbreviation_is_rejected(self):
+		# (<b>)? because msgprint strips HTML from the message when stdin is a TTY.
+		with self.assertRaisesRegex(frappe.ValidationError, "Diamond Grade:(<b>)?_Test Grade No Abbr"):
+			self.compose(make_bom(metal=["_Test Gold"], diamond=["_Test Grade No Abbr"]))
+
+	def test_ungraded_diamond_row_is_rejected_not_named_zero(self):
+		"""Diamonds without a grade are a data error, not a diamond-free piece."""
+		with self.assertRaisesRegex(frappe.ValidationError, "Diamond Grade:(<b>)?None"):
+			self.compose(make_bom(metal=["_Test Gold"], diamond=[None]))
+
+	def test_diamond_without_metal_reports_only_the_metal(self):
+		with self.assertRaises(frappe.ValidationError) as ctx:
+			self.compose(make_bom(diamond=["_Test VS"]))
+		self.assertIn("Metal Type", str(ctx.exception))
+		self.assertNotIn("Diamond Grade", str(ctx.exception))
 
 
 class _Settings(frappe._dict):
