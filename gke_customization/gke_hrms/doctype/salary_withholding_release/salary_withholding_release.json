@@ -1,0 +1,77 @@
+{
+ "actions": [],
+ "creation": "2026-08-20 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "posting_date",
+  "journal_entry",
+  "amount",
+  "status",
+  "salary_withholding_cycle",
+  "payroll_entry"
+ ],
+ "fields": [
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Posting Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "journal_entry",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Journal Entry",
+   "options": "Journal Entry",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Released Amount",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nReleased\nCancelled",
+   "read_only": 1
+  },
+  {
+   "fieldname": "salary_withholding_cycle",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Salary Withholding Cycle",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payroll_entry",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Payroll Entry",
+   "options": "Payroll Entry",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-21 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "GKE HRMS",
+ "name": "Salary Withholding Release",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
