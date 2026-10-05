@@ -27,7 +27,11 @@ frappe.ui.form.on("KGGK Sync Log", {
 				},
 			]);
 			start_polling(frm);
-			frm.add_custom_button(__("Refresh Now"), () => frm.reload_doc());
+			frm.add_custom_button(__("Refresh Now"), () => {
+				// A deliberate look restarts the watch window for this run.
+				if (frm.__kggk_poll_started) delete frm.__kggk_poll_started[frm.doc.name];
+				frm.reload_doc();
+			});
 		}
 
 		if (["Failed", "Partially Completed"].includes(frm.doc.status)) {
@@ -48,15 +52,49 @@ frappe.ui.form.on("KGGK Sync Log", {
 	},
 });
 
+// When this form started watching each run. Kept on the form, keyed by run, because every
+// reload fires refresh() and refresh() restarts polling - a start time taken inside
+// start_polling() was therefore reset every five seconds and the ceiling never arrived.
+function poll_started(frm) {
+	frm.__kggk_poll_started = frm.__kggk_poll_started || {};
+	if (!frm.__kggk_poll_started[frm.doc.name]) {
+		frm.__kggk_poll_started[frm.doc.name] = Date.now();
+	}
+	return frm.__kggk_poll_started[frm.doc.name];
+}
+
 function start_polling(frm) {
-	const started = Date.now();
+	const name = frm.doc.name;
+	const started = poll_started(frm);
+	if (Date.now() - started > POLL_CEILING_MS) {
+		frm.dashboard.set_headline(
+			__("Stopped refreshing automatically after 10 minutes. Use Refresh Now to check again.")
+		);
+		return;
+	}
 	frm.__kggk_poll = setInterval(() => {
-		if (Date.now() - started > POLL_CEILING_MS) {
+		// Another run opened in this form, or the ceiling reached: stop, do not reload.
+		if (!frm.doc || frm.doc.name !== name || Date.now() - started > POLL_CEILING_MS) {
 			stop_polling(frm);
 			return;
 		}
-		if (!frm.doc || frm.is_dirty()) return;
-		frm.reload_doc();
+		if (frm.is_dirty() || frm.__kggk_inflight) return;
+
+		// Ask for one timestamp, and fetch the whole log only when it has moved. A big run's
+		// log is thousands of rows; downloading it every five seconds to find nothing new is
+		// most of what this form used to cost.
+		frm.__kggk_inflight = true;
+		frappe.db
+			.get_value("KGGK Sync Log", name, "modified")
+			.then((r) => {
+				const modified = r && r.message && r.message.modified;
+				if (modified && frm.doc && frm.doc.name === name && modified !== frm.doc.modified) {
+					return frm.reload_doc();
+				}
+			})
+			.finally(() => {
+				frm.__kggk_inflight = false;
+			});
 	}, POLL_MS);
 }
 
