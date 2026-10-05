@@ -13,6 +13,8 @@ Pinned at the start of the reconstruction (2026-10-01, 14:03 IST) and re-checked
 
 master gained three commits between planning and execution (the #1362 sync and #1363 `order.py`); `gk_prod` was cut from that newer head and pushed as an exact copy of it.
 
+After the PR was opened, master advanced once more, to `a5235d9ce644f4086342bfff1d5b2664fc5b5fd9` (#1370, absolute image URLs in the Product Return push to the KG site, 2 files). It merged cleanly into the migration branch (merge commit `0e6e3dc`), so `gk_prod` receives the latest master with this PR; kggk_prod and gurukrupa-prod had not moved.
+
 ## Merge bases
 
 | Pair | Merge base | Date |

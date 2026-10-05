@@ -12,7 +12,7 @@ Renaming before model sync carries all of that over instead: the table is rename
 child-table parenttype values, Link options and values (amended_from, Custom Field.dt,
 Property Setter.doc_type, Client Script.dt, Workflow.document_type, ...) and Custom
 DocPerm rows follow the new name. This patch must therefore be listed under
-[pre_model_sync]; once model sync has created the new DocType it can only skip.
+[pre_model_sync]; once model sync has created the new DocType it can only refuse.
 
 frappe.rename_doc changes link values, never code. A Client Script of the old DocType
 registers its handlers by name (frappe.ui.form.on("Revise Diamond Price  List", ...)), so
@@ -26,8 +26,14 @@ listed for manual review.
 Safe to run on every site:
 - old DocType absent (fresh installs, and sites that already migrated #825, such as GK
   live): nothing to do.
-- new DocType or its table already present as well: skipped with a warning, because the
-  two tables would have to be reconciled by hand. No data is moved or created.
+- new DocType or its table already present as well: raises before changing anything, so
+  bench migrate stops before model sync and this patch stays pending. Returning would
+  record it as done, and the same migrate would then delete the old DocType record as an
+  orphan, leaving its documents without a DocType and the rename impossible (bench
+  migrate --skip-failing has that effect too). The error lists both tables with their
+  row counts. Reconcile them by hand and migrate again: once the new DocType and its
+  table are gone this patch renames, and once the old DocType record is gone it does
+  nothing.
 """
 
 import frappe
@@ -45,6 +51,19 @@ REVIEW_FIELDS = (
     ("Notification", ("subject", "message", "condition")),
 )
 
+# Appended to the error raised when the new DocType or its table already exists.
+RECONCILE_HELP = (
+    "The new DocType or its table already exists, so the two have to be reconciled by "
+    "hand. Either remove the new side: move any documents you need into the old table, "
+    "then delete the new DocType record (with developer_mode off, or Frappe deletes "
+    "its code too), its customizations and its table; this patch then renames the old "
+    "DocType with its documents. Or remove the old side: move its documents and "
+    "customizations to the new DocType, then delete the old DocType record; this patch "
+    "then does nothing. Run bench migrate again afterwards.\n"
+    "Do not use --skip-failing: the same migrate would then delete the old DocType "
+    "record as an orphan, and the rename could not run afterwards."
+)
+
 
 def execute():
     if not frappe.db.exists("DocType", OLD_DOCTYPE):
@@ -53,11 +72,9 @@ def execute():
     if frappe.db.exists("DocType", NEW_DOCTYPE) or frappe.db.table_exists(
         NEW_DOCTYPE, cached=False
     ):
-        warn(
-            f"Skipped renaming DocType {OLD_DOCTYPE!r} to {NEW_DOCTYPE!r}: the new "
-            "DocType or its table already exists. Reconcile the two tables manually."
-        )
-        return
+        # Refuse rather than skip: a patch that returns is logged as done, and later in
+        # this migrate remove_orphan_doctypes would delete the old DocType record.
+        frappe.throw(conflict_message(), title="DocType rename conflict")
 
     # Read before the rename moves their dt to the new name.
     client_scripts = frappe.get_all(
@@ -76,6 +93,19 @@ def execute():
     rekey_workflow_state_field()
     rename_in_client_scripts(client_scripts)
     report_remaining_references()
+
+
+def conflict_message():
+    lines = [f"Cannot rename DocType {OLD_DOCTYPE!r} to {NEW_DOCTYPE!r}."]
+    for doctype in (OLD_DOCTYPE, NEW_DOCTYPE):
+        record = "present" if frappe.db.exists("DocType", doctype) else "absent"
+        if frappe.db.table_exists(doctype, cached=False):
+            table = f"table `tab{doctype}` with {frappe.db.count(doctype)} rows"
+        else:
+            table = f"no table `tab{doctype}`"
+        lines.append(f"- {doctype!r}: DocType record {record}, {table}.")
+    lines.append(RECONCILE_HELP)
+    return "\n".join(lines)
 
 
 def rekey_workflow_state_field():

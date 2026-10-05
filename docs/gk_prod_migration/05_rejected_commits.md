@@ -811,7 +811,8 @@ Not part of this reconstruction (the source branches were pinned before they mer
 | #1331 | kggk_uat | fix(reports): leave FG work orders out of the employee batch issue/receive reports | 2026-09-25 | KGGK UAT line; promote to gk_prod only if GK needs it |
 | #1323 | kggk_uat | fix(gold rates): run the rate job at 09:00, 15:00 and 23:00, and stop false failures | 2026-09-24 | KGGK UAT line; promote to gk_prod only if GK needs it |
 | #1310 | kggk_uat | fix(monthly-in-out): migrate spent hours from time to duration | 2026-09-22 | KGGK UAT line; promote to gk_prod only if GK needs it |
-| #1370 | master | fix(pro-push): send absolute image URLs to the remote site | 2026-10-01 | reaches gk_prod by merging master into gk_prod after it lands |
 | #1365 | master | Bhavika gkexport | 2026-10-01 | reaches gk_prod by merging master into gk_prod after it lands |
 | #1353 | master | Shruti gkexport | 2026-09-30 | reaches gk_prod by merging master into gk_prod after it lands |
+
+Merged after the cut and **included**: #1370 (master, fix(pro-push): send absolute image URLs to the remote site) — merged into the migration branch with merge commit `0e6e3dc`.
 
