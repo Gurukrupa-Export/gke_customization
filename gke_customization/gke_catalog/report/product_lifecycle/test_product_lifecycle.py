@@ -48,7 +48,8 @@ class TestReportAccessOnSite(IntegrationTestCase):
 		email = f"pl-{frappe.generate_hash(length=8)}@example.invalid"
 		user = frappe.get_doc({"doctype": "User", "email": email, "first_name": "PL Test", "send_welcome_email": 0})
 		user.insert(ignore_permissions=True)
-		user.add_roles("Employee")
+		user.add_roles("Purchase User")  # a desk role outside the report's roles
+		self.assertIn("Purchase User", frappe.get_roles(email))
 		with patch.object(pl, "resolve_item_code") as resolve, self.set_user(email):
 			with self.assertRaises(frappe.PermissionError):
 				pl.get_finish_tag_history(FILTERS)

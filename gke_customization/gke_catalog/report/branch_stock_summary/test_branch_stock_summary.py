@@ -101,18 +101,28 @@ class _Case(UnitTestCase):
 
 
 class TestAccessGate(_Case):
+	@staticmethod
+	def deny_report(report_name):
+		"""Only this report's own gate refuses, so the test fails if that gate is dropped."""
+		if report_name == "Branch Stock Summary":
+			raise frappe.PermissionError
+
 	def test_summary_denied_before_any_query(self):
-		self._patch(f"{MOD}.get_report_doc", side_effect=frappe.PermissionError)
+		gate = self._patch(f"{MOD}.get_report_doc", side_effect=self.deny_report)
+		self._patch(f"{MOD}.validate_filters_permissions")
 		with self.assertRaises(frappe.PermissionError):
 			bss.get_summary_comparison(json.dumps(self.filters()))
+		self.assertEqual(gate.call_args_list[0].args, ("Branch Stock Summary",))
 		self.assertEqual(self.sql.calls, [])
 		self.stock_balance.assert_not_called()
 
 	def test_stock_details_denied_before_any_query(self):
-		self._patch(f"{MOD}.get_report_doc", side_effect=frappe.PermissionError)
+		gate = self._patch(f"{MOD}.get_report_doc", side_effect=self.deny_report)
+		self._patch(f"{MOD}.validate_filters_permissions")
 		for key in STOCK_KEYS:
 			with self.subTest(key), self.assertRaises(frappe.PermissionError):
 				bss.get_stock_details("DP'1", "label", key, json.dumps(self.filters()))
+		self.assertEqual({call.args for call in gate.call_args_list}, {("Branch Stock Summary",)})
 		self.assertEqual(self.sql.calls, [])
 
 	def test_company_checked_with_desk_rule(self):
@@ -182,6 +192,15 @@ class TestBoundQueries(_Case):
 			self.assertIn(marker, bound)
 		self.log_error.assert_not_called()
 
+	def assertMainSlipScoped(self, expected_statements, company="CO'1"):
+		"""Main Slip figures follow the selected company: the condition must be in the SQL,
+		not only its value in the bound parameters."""
+		main_slip = [(query, values) for query, values in self.sql.calls if "`tabMain Slip` ms" in query]
+		self.assertEqual(len(main_slip), expected_statements)
+		for query, values in main_slip:
+			self.assertIn("ms.company = %(company)s", query)
+			self.assertEqual(values["company"], company)
+
 	def test_summary_binds_every_value(self):
 		bss.get_summary_comparison(
 			json.dumps(self.filters(company="CO'1", manufacturer="MF'1", department="DP'1"))
@@ -190,6 +209,7 @@ class TestBoundQueries(_Case):
 		queries = " ".join(query for query, _values in self.sql.calls)
 		for placeholder in ("%(departments)s", "%(dept_0)s", "%(warehouses)s", "%(warehouse_pattern)s"):
 			self.assertIn(placeholder, queries)
+		self.assertMainSlipScoped(2)  # Employee and Supplier MSL
 
 	def test_branch_and_manufacturer_departments_are_bound(self):
 		gepl = "Gurukrupa Export Private Limited"
@@ -204,8 +224,7 @@ class TestBoundQueries(_Case):
 		for key in STOCK_KEYS:
 			bss.get_stock_details("DP'1", "label", key, filters)
 		self.assertNothingSpliced(["CO'1", "MF'1", "DP'1"], minimum=len(STOCK_KEYS))
-		main_slip = [values for query, values in self.sql.calls if "`tabMain Slip` ms" in query]
-		self.assertEqual([values["company"] for values in main_slip], ["CO'1", "CO'1"])
+		self.assertMainSlipScoped(2)  # Employee and Supplier MSL drill-downs
 
 	def test_like_wildcards_are_literal(self):
 		bss.get_finished_goods_details("100%_X - GEPL", "CO'1", "", "", ["Metal"])
@@ -236,16 +255,22 @@ class TestAccessOnSite(IntegrationTestCase):
 		user = frappe.get_doc({"doctype": "User", "email": email, "first_name": "BSS Test", "send_welcome_email": 0})
 		user.insert(ignore_permissions=True)
 		user.add_roles(*roles)
+		self.assertTrue(set(roles) <= set(frappe.get_roles(email)), "a role was stripped on save")
 		return email
 
 	def companies(self):
-		companies = frappe.get_all("Company", pluck="name", order_by="name", limit=2)
-		if len(companies) < 2:
+		"""(allowed, other). `other` is never Gurukrupa Export Private Limited, whose report
+		also requires a branch filter before it checks the Company."""
+		names = frappe.get_all("Company", pluck="name", order_by="name")
+		others = [name for name in names if name != "Gurukrupa Export Private Limited"]
+		if len(names) < 2 or not others:
 			self.skipTest("needs two companies")
-		return companies
+		other = others[0]
+		allowed = next(name for name in names if name != other)
+		return allowed, other
 
 	def test_user_without_report_role_is_denied(self):
-		email = self.make_user("Employee")
+		email = self.make_user("Purchase User")  # a desk role outside the report's roles
 		filters = json.dumps({"company": self.companies()[0], "raw_material_type": "Metal"})
 		with patch.object(bss, "get_departments_list") as departments, self.set_user(email):
 			with self.assertRaises(frappe.PermissionError):
@@ -315,7 +340,8 @@ class TestQueriesOnMariaDB(IntegrationTestCase):
 		)
 		for key in STOCK_KEYS:
 			with self.subTest(key):
-				self.assertEqual(list(bss.get_stock_details("Casting' OR '1'='1", "label", key, filters)), [])
+				department = "Casting' OR 'a'='a' OR 'b'='b"  # still a tautology after the suffix
+				self.assertEqual(list(bss.get_stock_details(department, "label", key, filters)), [])
 		self.log_error.assert_not_called()
 
 	def test_every_statement_runs(self):
@@ -330,14 +356,36 @@ class TestQueriesOnMariaDB(IntegrationTestCase):
 			"include_work_order_wip": 1,
 			"include_finished_goods_metal": 1,
 		}
-		bss.execute(dict(filters))
 		departments = bss.get_departments_list(filters)
-		if departments:
+		if not departments:
+			self.skipTest("the chosen company and branch track no department")
+		real_sql, statements = frappe.db.sql, []
+
+		def recording_sql(query, *args, **kwargs):
+			statements.append(str(query))
+			return real_sql(query, *args, **kwargs)
+
+		with patch.object(frappe.db, "sql", new=recording_sql):
+			bss.execute(dict(filters))
 			for key in STOCK_KEYS:
 				bss.get_stock_details(departments[0]["department"], "label", key, json.dumps(filters))
-		with patch(STOCK_BALANCE, return_value=([], [])):
-			bss.get_summary_comparison(json.dumps(filters))
+			with patch(STOCK_BALANCE, return_value=([], [])):
+				bss.get_summary_comparison(json.dumps(filters))
 		self.log_error.assert_not_called()
+		ran = " ".join(statements)
+		for marker in (
+			"db_department",  # department list
+			"mop.status = 'Not Started'",  # Work Order
+			"mop.for_subcontracting = 0",  # Employee WIP
+			"`tabMain Slip` ms",  # MSL
+			"SELECT DISTINCT w.name as warehouse",  # warehouse maps
+			"w.warehouse_type = 'Raw Material'",
+			"w.warehouse_type = 'Manufacturing'",
+			"`tabSerial No` sn",  # Finished Goods
+			"as 'Item Code'",  # SLE drill-downs
+			"NOT IN %(departments)s",  # scope gap
+		):
+			self.assertIn(marker, ran)
 
 
 COMPANY = "_Test BSS Company"
