@@ -29,7 +29,9 @@ exhaustive and forward-correct. v2 re-runs on sites that already ran v1 (the v1 
 is ignored); the Attribute Value rename and Item Attribute migration are idempotent.
 
 Idempotency: guarded by a `tabDefaultValue` sentinel (`close_setting_to_nova_glow_v2`).
-Re-running is a no-op. Pre-flight checks that the new Attribute Values don't already exist.
+Re-running is a no-op. Pre-flight checks that the new Attribute Values don't already exist;
+if an old and a new one both do, the patch raises and stays pending until they are merged
+(returning would record it as done and leave every setting column on the old name).
 
 ROLLBACK (code revert plus):
     UPDATE `tabAttribute Value` SET `name`='Close', `attribute_value`='Close', `abbreviation`=NULL WHERE `attribute_value`='Nova Glow';
@@ -148,26 +150,23 @@ def _set_sentinel():
     frappe.cache.delete_value("__default")
 
 
-def _preflight_check() -> bool:
-    """Return True if safe to proceed.
+def _preflight_conflicts() -> list[tuple[str, str]]:
+    """Return the (old, new) Attribute Value pairs that both exist; empty when safe to proceed.
 
     Only blocks on a genuine collision: the old master value still exists AND the new one
     already does — renaming would create a duplicate Attribute Value. On a site where v1
     already renamed the masters ('Close' is gone, 'Nova Glow' present), we must NOT block:
-    v2 exists precisely to finish the data-column migration v1 missed. No sentinel is set
-    on failure, so a real conflict keeps surfacing until it is resolved.
+    v2 exists precisely to finish the data-column migration v1 missed. execute() raises on
+    a conflict, so the patch is not recorded as done and runs again once it is resolved.
     """
-    if frappe.db.exists("Attribute Value", {"attribute_value": OLD_SETTING_TYPE}) and frappe.db.exists(
-        "Attribute Value", {"attribute_value": NEW_SETTING_TYPE}
-    ):
-        frappe.logger().error(f"{SENTINEL}: both '{OLD_SETTING_TYPE}' and '{NEW_SETTING_TYPE}' exist")
-        return False
-    if frappe.db.exists(
-        "Attribute Value", {"attribute_value": OLD_SUB_SETTING}
-    ) and frappe.db.exists("Attribute Value", {"attribute_value": NEW_SUB_SETTING}):
-        frappe.logger().error(f"{SENTINEL}: both '{OLD_SUB_SETTING}' and '{NEW_SUB_SETTING}' exist")
-        return False
-    return True
+    conflicts = []
+    for old, new in ((OLD_SETTING_TYPE, NEW_SETTING_TYPE), (OLD_SUB_SETTING, NEW_SUB_SETTING)):
+        if frappe.db.exists("Attribute Value", {"attribute_value": old}) and frappe.db.exists(
+            "Attribute Value", {"attribute_value": new}
+        ):
+            frappe.logger().error(f"{SENTINEL}: both '{old}' and '{new}' exist")
+            conflicts.append((old, new))
+    return conflicts
 
 
 def execute():
@@ -175,8 +174,18 @@ def execute():
         frappe.logger().info(f"{SENTINEL}: sentinel set, already applied — skipping")
         return
 
-    if not _preflight_check():
-        return
+    conflicts = _preflight_conflicts()
+    if conflicts:
+        # Refuse rather than return: a patch that returns is recorded as done and never runs
+        # again, so the setting columns would stay on the old names.
+        pairs = " and ".join(f"'{old}' / '{new}'" for old, new in conflicts)
+        frappe.throw(
+            f"Cannot rename the Close setting to Nova Glow: the Attribute Values {pairs} both "
+            "exist, and renaming would create duplicates. Keep one of each pair (delete the "
+            "other or move its references to it), then run bench migrate again. Do not use "
+            "--skip-failing: it records this patch without migrating any data.",
+            title="Nova Glow rename conflict",
+        )
 
     _apply_rename_and_migrate()
 
