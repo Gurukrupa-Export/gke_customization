@@ -13,6 +13,8 @@ on:
     paths: &sync_paths
       - "gke_customization/gke_order_forms/doc_events/kggk_sync.py"
       - "gke_customization/gke_order_forms/doc_events/test_kggk_sync.py"
+      - "gke_customization/gke_order_forms/doc_events/kggk_receiver.py"
+      - "gke_customization/gke_order_forms/doc_events/test_kggk_receiver.py"
       - "gke_customization/gke_order_forms/doc_events/item.py"
       - "gke_customization/gke_order_forms/doctype/data_migration_in_kggk/**"
       - "gke_customization/gke_order_forms/doctype/kggk_sync_log/**"
@@ -41,20 +43,27 @@ jobs:
   # cannot start.
   # ---------------------------------------------------------------------------------
   static:
-    name: Static checks
+    name: Static checks (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Frappe v15 runs on 3.12 here, v16 on 3.14. The code has to compile on both.
+        python: ["3.12", "3.14"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
 
       - name: Python compiles
         run: |
-          python -m compileall -q \
+          python -W error::SyntaxWarning -m compileall -q \
             gke_customization/gke_order_forms/doc_events/kggk_sync.py \
             gke_customization/gke_order_forms/doc_events/test_kggk_sync.py \
+            gke_customization/gke_order_forms/doc_events/kggk_receiver.py \
+            gke_customization/gke_order_forms/doc_events/test_kggk_receiver.py \
             gke_customization/gke_order_forms/doctype/data_migration_in_kggk \
             gke_customization/gke_order_forms/doctype/kggk_sync_log \
             gke_customization/gke_order_forms/doctype/kggk_sync_log_record \
@@ -136,15 +145,41 @@ jobs:
   # to be installed before it will even migrate - three are private, hence the token.
   # ---------------------------------------------------------------------------------
   tests:
-    name: Tests
+    name: Tests (Frappe ${{ matrix.frappe }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The v15 line - master and gk_develop, where this code is written.
+          - frappe: version-15
+            python: "3.12"
+            node: "20"
+            mariadb: "10.6"
+            jewellery_branch: gk_develop
+            jewellery_sha: 5a4910a87e4174029ebf12f2df4653409d3d56ad
+          # The v16 line it is deployed to - gk_prod, against GK live's jewellery.
+          - frappe: version-16
+            python: "3.14"
+            node: "24"
+            mariadb: "11.8"
+            jewellery_branch: gurukrupa-prod
+            jewellery_sha: 8c1357a81d9c5f83975c3a2a47b0ed972adeb541
+    env:
+      # Pinned, so that a push to a sibling app's branch cannot change this run's answer.
+      # Move a pin deliberately, in its own commit, when the sync needs the newer revision.
+      GURUKRUPA_CUSTOMIZATIONS_SHA: d4c046cc6c6c7399c54f93548305794bf2bfe7a6
+      # jewellery PR #1374 - the guard that stops "Making Charge Price Finding Subcategory"
+      # failing a fresh install. On gk_develop already; carried here for gurukrupa-prod until it
+      # reaches that branch, then drop this.
+      JEWELLERY_INSTALL_FIX: 8e149677270aa002313edae523e1d0b88756e75e
     # Forks have no access to the token, and a job that cannot start should not be
     # reported as a failure of the change.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
 
     services:
       mariadb:
-        image: mariadb:10.6
+        image: mariadb:${{ matrix.mariadb }}
         env:
           MARIADB_ROOT_PASSWORD: root
         ports:
@@ -176,12 +211,12 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
           cache: pip
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ matrix.node }}
 
       - name: MariaDB settings Frappe expects
         run: |
@@ -196,7 +231,7 @@ jobs:
           # --skip-assets: these are backend tests, and building the frontend is most of
           # the wall clock of a bench init.
           bench init --skip-redis-config-generation --skip-assets \
-                     --frappe-branch version-15 --python "$(which python)" ci-bench
+                     --frappe-branch ${{ matrix.frappe }} --python "$(which python)" ci-bench
 
       - name: Fetch the apps
         working-directory: ci-bench
@@ -204,11 +239,23 @@ jobs:
           TOKEN: ${{ secrets.GKE_CI_TOKEN }}
         run: |
           auth() { echo "https://x-access-token:${TOKEN}@github.com/$1"; }
-          bench get-app --branch version-15 erpnext https://github.com/frappe/erpnext.git
-          bench get-app --branch version-15 hrms https://github.com/frappe/hrms.git
-          bench get-app --branch version-15 india_compliance https://github.com/resilient-tech/india-compliance.git
-          bench get-app --branch gk_develop jewellery_erpnext "$(auth Gurukrupa-Export/jewellery-erpnext.git)"
+          pin() {  # pin <app> <sha>: check out exactly that commit of an app already fetched
+            git -C "apps/$1" fetch --quiet --depth 50 origin "$2"
+            git -C "apps/$1" checkout --quiet --detach "$2"
+            echo "$1 pinned at $(git -C "apps/$1" rev-parse --short HEAD)"
+          }
+          bench get-app --branch ${{ matrix.frappe }} erpnext https://github.com/frappe/erpnext.git
+          bench get-app --branch ${{ matrix.frappe }} hrms https://github.com/frappe/hrms.git
+          bench get-app --branch ${{ matrix.frappe }} india_compliance https://github.com/resilient-tech/india-compliance.git
+          bench get-app --branch ${{ matrix.jewellery_branch }} jewellery_erpnext "$(auth Gurukrupa-Export/jewellery-erpnext.git)"
+          pin jewellery_erpnext "${{ matrix.jewellery_sha }}"
+          if ! git -C apps/jewellery_erpnext merge-base --is-ancestor "$JEWELLERY_INSTALL_FIX" HEAD 2>/dev/null; then
+            git -C apps/jewellery_erpnext fetch --quiet --depth 50 origin "$JEWELLERY_INSTALL_FIX"
+            git -C apps/jewellery_erpnext cherry-pick --no-commit "$JEWELLERY_INSTALL_FIX"
+            echo "carried jewellery #1374 install fix"
+          fi
           bench get-app --branch main gurukrupa_customizations "$(auth Gurukrupa-Export/gurukrupa_customizations.git)"
+          pin gurukrupa_customizations "$GURUKRUPA_CUSTOMIZATIONS_SHA"
           bench get-app gke_customization "${GITHUB_WORKSPACE}/gke_customization"
 
       - name: Create the site
@@ -250,8 +297,13 @@ jobs:
           frappe.connect()
           frappe.flags.in_test = True
 
-          suite = unittest.TestLoader().loadTestsFromName(
-              "gke_customization.gke_order_forms.doc_events.test_kggk_sync"
+          loader = unittest.TestLoader()
+          suite = unittest.TestSuite(
+              loader.loadTestsFromName(name)
+              for name in (
+                  "gke_customization.gke_order_forms.doc_events.test_kggk_sync",
+                  "gke_customization.gke_order_forms.doc_events.test_kggk_receiver",
+              )
           )
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           print(f"\nran {result.testsRun}, failures {len(result.failures)}, "

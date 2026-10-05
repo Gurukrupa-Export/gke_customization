@@ -2004,7 +2004,7 @@ class TestPushActsOnTheApprovedCheck(unittest.TestCase):
 			close = enter(patch.object(k, "_close_prefill"))
 			enter(patch.object(k.SyncRun, "_open_log", return_value="LOG-1"))
 			enter(patch.object(k.SyncRun, "flush"))
-			out = k.run_prefill("LOG-1", action=k.ACTION_CHECK)
+			k.run_prefill("LOG-1", action=k.ACTION_CHECK)
 		stored = close.call_args.kwargs["result"]
 		self.assertEqual(stored["missing_items"], ["I-1"])
 		self.assertEqual(stored["fingerprint"], "fp-1")
