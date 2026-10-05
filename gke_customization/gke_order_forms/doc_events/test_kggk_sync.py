@@ -52,6 +52,45 @@ def _gaps(creatable=(), standard=(), informational=(), unreadable=(), expected_a
 	)
 
 
+def _prefill_boundaries(enter, cfg, presence, plans=None, approved=None, recorded=None):
+	"""Patch everything `run_prefill` asks the target or the database.
+
+	``presence`` is ``{doctype: {name: True/False}}`` as the target would answer an identity
+	lookup; a name missing from it is one whose batch could not be asked. ``approved`` is what a
+	check stored for the push to act on.
+	"""
+	presence = presence or {}
+
+	def identity_many(_cfg, doctype, names, run=None):
+		answers = presence.get(doctype, {})
+		asked = {n for n in names if n in answers}
+		return {n: n for n in asked if answers[n]}, asked
+
+	enter(patch.object(k, "get_sync_config", return_value=(cfg, None)))
+	if plans is not None:
+		enter(patch.object(k, "_plan_records", return_value=plans))
+	enter(patch.object(k, "recorded_target_names", side_effect=lambda dt, names, t: dict((recorded or {}).get(dt, {}))))
+	enter(patch.object(k, "_identity_ready", return_value=True))
+	identity = enter(patch.object(k, "api_identity_many", side_effect=identity_many))
+	enter(patch.object(k, "api_exists_many", return_value={}))
+	enter(patch.object(k, "_stored_result", return_value=approved))
+	enter(patch.object(frappe.db, "exists", return_value=True))
+	return identity
+
+
+def _approved(cfg, items=(), boms=(), **extra):
+	out = {
+		"target": cfg.to_site,
+		"fingerprint": cfg.get("fingerprint"),
+		"missing_items": list(items),
+		"missing_boms": list(boms),
+		"scope": {},
+		"unchecked": 0,
+	}
+	out.update(extra)
+	return out
+
+
 class TestConfigGuards(unittest.TestCase):
 	def _resolve(self, settings, secret="secret", hosts=("gk.example.com",)):
 		with patch.object(frappe.db, "get_value", return_value=settings), patch(
@@ -1326,20 +1365,19 @@ class TestPrefillWorker(unittest.TestCase):
 		"""Run `run_prefill` against patched boundaries.
 
 		Returns ``(result, create_mock, enqueue_mock)`` so each test can assert on what the
-		worker did to the target as well as on what it reported.
+		worker did to the target as well as on what it reported. An apply acts on what a check
+		approved, so it is handed the approval a check of ``plans`` would have stored.
 		"""
+		_plans, items, boms = plans
+		approved = _approved(
+			self.cfg,
+			items=[n for n in items if presence.get("Item", {}).get(n) is False],
+			boms=[n for n in boms if presence.get("BOM", {}).get(n) is False],
+		)
 		with ExitStack() as stack:
 			enter = stack.enter_context
-			enter(patch.object(k, "get_sync_config", return_value=(self.cfg, None)))
+			_prefill_boundaries(enter, self.cfg, presence, plans=plans, approved=approved)
 			enter(patch.object(k, "_field_gaps", return_value=gaps))
-			enter(patch.object(k, "_plan_records", return_value=plans))
-			enter(
-				patch.object(
-					k,
-					"api_exists_many",
-					side_effect=lambda cfg, doctype, names, run=None: presence.get(doctype, {}),
-				)
-			)
 			enter(patch.object(k, "_close_prefill"))
 			enter(patch.object(k.SyncRun, "_open_log", return_value="LOG-1"))
 			enter(patch.object(k.SyncRun, "flush"))
@@ -1347,7 +1385,7 @@ class TestPrefillWorker(unittest.TestCase):
 			create = enter(patch.object(k, "_create_custom_field", return_value=create_result))
 			enqueue = enter(patch.object(k, "enqueue_sync", return_value=True))
 
-			result = k.run_prefill("LOG-1", apply=apply)
+			result = k.run_prefill("LOG-1", apply=apply, check_log="CHK-1" if apply else None)
 		return result, create, enqueue
 
 	def test_dry_run_creates_nothing(self):
@@ -1420,17 +1458,15 @@ class TestPrefillReporting(unittest.TestCase):
 		"""Run `run_prefill` and hand back the `_close_prefill` mock."""
 		with ExitStack() as stack:
 			enter = stack.enter_context
-			enter(patch.object(k, "get_sync_config", return_value=(self.cfg, None)))
+			_prefill_boundaries(enter, self.cfg, {}, plans=([], [], []), approved=_approved(self.cfg))
 			enter(patch.object(k, "_field_gaps", return_value=_gaps(creatable=creatable)))
-			enter(patch.object(k, "_plan_records", return_value=([], [], [])))
-			enter(patch.object(k, "api_exists_many", return_value={}))
 			enter(patch.object(k.SyncRun, "_open_log", return_value="LOG-1"))
 			enter(patch.object(k.SyncRun, "flush"))
 			enter(patch.object(k.SyncRun, "report"))
 			enter(patch.object(k, "_create_custom_field", return_value=create_result))
 			enter(patch.object(k, "enqueue_sync", return_value=True))
 			close = enter(patch.object(k, "_close_prefill"))
-			k.run_prefill("LOG-1", apply=1, fields=fields)
+			k.run_prefill("LOG-1", apply=1, fields=fields, check_log="CHK-1")
 		return close.call_args.args[1]
 
 	def test_a_run_that_created_everything_is_completed(self):
@@ -1471,6 +1507,143 @@ class TestPrefillReporting(unittest.TestCase):
 			k._close_prefill("LOG-1", k.STATUS_COMPLETED, "done", run=run)
 
 		self.assertEqual(run.calls, ["flush", "report"])
+
+
+class TestPrefillPresenceIsIdentity(unittest.TestCase):
+	"""A record is on the target when the target holds *this* record - found by the mapping we
+	recorded or by where it came from. A record that merely shares its name is not it."""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", headers={})
+		self.run = _run(config=self.cfg)
+
+	def _presence(self, names, identity_answers, same_named=None, recorded=None, ready=True, exists=None):
+		def identity_many(_cfg, doctype, asked_names, run=None):
+			asked = {n for n in asked_names if n in identity_answers}
+			return {n: identity_answers[n] for n in asked if identity_answers[n]}, asked
+
+		def exists_many(_cfg, doctype, asked_names, run=None):
+			table = exists if (exists is not None and run is not None) else (same_named or {})
+			return {n: table.get(n, False) for n in asked_names}
+
+		with patch.object(k, "recorded_target_names", return_value=recorded or {}), patch.object(
+			k, "api_identity_many", side_effect=identity_many
+		) as identity, patch.object(k, "api_exists_many", side_effect=exists_many):
+			out = k._presence(self.cfg, "BOM", names, self.run, ready)
+		return out, identity
+
+	def test_a_same_named_record_is_a_collision_not_a_presence(self):
+		"""KGGK's own BOM-RING-001 used to answer for ours, and ours was never sent."""
+		(present, unknown, collisions), _ = self._presence(
+			["BOM-RING-001"], {"BOM-RING-001": None}, same_named={"BOM-RING-001": True}
+		)
+		self.assertEqual(present, {"BOM-RING-001": False})
+		self.assertEqual(collisions, ["BOM-RING-001"])
+
+	def test_a_record_found_by_identity_is_present_under_any_name(self):
+		(present, unknown, collisions), _ = self._presence(["B-2"], {"B-2": "B-1"})
+		self.assertEqual(present, {"B-2": True})
+		self.assertEqual(collisions, [])
+
+	def test_a_recorded_mapping_is_checked_by_the_targets_name(self):
+		(present, _u, _c), identity = self._presence(
+			["B-2"], {}, recorded={"B-2": "B-1"}, exists={"B-1": True}
+		)
+		self.assertEqual(present, {"B-2": True})
+		identity.assert_not_called()
+
+	def test_a_mapping_whose_record_vanished_falls_back_to_identity(self):
+		(present, _u, _c), identity = self._presence(
+			["B-2"], {"B-2": None}, recorded={"B-2": "B-1"}, exists={"B-1": False}
+		)
+		self.assertEqual(present, {"B-2": False})
+		identity.assert_called_once()
+
+	def test_an_identity_lookup_that_failed_is_unknown_never_present(self):
+		(present, unknown, _c), _ = self._presence(["B-2"], {})
+		self.assertEqual(present, {})
+		self.assertEqual(unknown, ["B-2"])
+
+	def test_a_target_without_identity_fields_holds_nothing_of_ours(self):
+		(present, unknown, _c), identity = self._presence(["B-2"], {}, ready=False)
+		self.assertEqual(present, {"B-2": False})
+		identity.assert_not_called()
+
+	def test_an_unreadable_schema_leaves_everything_unknown(self):
+		(present, unknown, _c), _ = self._presence(["B-2"], {}, ready=None)
+		self.assertEqual(unknown, ["B-2"])
+
+
+class TestPushActsOnTheApprovedCheck(unittest.TestCase):
+	"""Push Missing Records acts on what the operator read and approved - nothing more."""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", from_site="https://f", headers={}, fingerprint="fp-1")
+
+	def _push(self, approved, presence, plans=(["MP-1", "MP-2"], ["I-1", "I-NEW"], []), local=True):
+		with ExitStack() as stack:
+			enter = stack.enter_context
+			_prefill_boundaries(enter, self.cfg, presence, plans=plans, approved=approved)
+			enter(patch.object(frappe.db, "exists", return_value=local))
+			enter(patch.object(k, "_field_gaps", return_value=_gaps()))
+			plan_records = enter(patch.object(k, "_plan_records", return_value=plans))
+			close = enter(patch.object(k, "_close_prefill"))
+			enter(patch.object(k.SyncRun, "_open_log", return_value="LOG-2"))
+			enter(patch.object(k.SyncRun, "flush"))
+			enter(patch.object(k.SyncRun, "report"))
+			enqueue = enter(patch.object(k, "enqueue_sync", return_value=True))
+			out = k.run_prefill("LOG-2", action=k.ACTION_RECORDS, check_log="CHK-1")
+		return out, enqueue, close, plan_records
+
+	def test_records_planned_after_the_check_wait_for_the_next_one(self):
+		out, enqueue, _close, plan_records = self._push(
+			_approved(self.cfg, items=["I-1"]), {"Item": {"I-1": False, "I-NEW": False}}
+		)
+		plan_records.assert_not_called()
+		self.assertEqual(enqueue.call_args.kwargs["items"], ["I-1"])
+
+	def test_an_approved_record_that_arrived_since_is_not_pushed_again(self):
+		out, enqueue, _close, _p = self._push(
+			_approved(self.cfg, items=["I-1", "I-2"]), {"Item": {"I-1": True, "I-2": False}}
+		)
+		self.assertEqual(enqueue.call_args.kwargs["items"], ["I-2"])
+
+	def test_a_fresh_check_that_cannot_complete_stops_the_push(self):
+		out, enqueue, close, _p = self._push(_approved(self.cfg, items=["I-1"]), {"Item": {}})
+		enqueue.assert_not_called()
+		self.assertEqual(close.call_args.args[1], k.STATUS_FAILED)
+		self.assertEqual(out["unchecked"], 1)
+
+	def test_settings_changed_since_the_check_refuses(self):
+		approved = _approved(self.cfg, items=["I-1"], fingerprint="fp-OLD")
+		out, enqueue, close, _p = self._push(approved, {"Item": {"I-1": False}})
+		enqueue.assert_not_called()
+		self.assertEqual(close.call_args.args[1], k.STATUS_FAILED)
+
+	def test_a_check_without_its_approved_lists_cannot_be_pushed(self):
+		approved = {"target": self.cfg.to_site, "items_missing": 3, "boms_missing": 0}
+		out, enqueue, close, _p = self._push(approved, {"Item": {"I-1": False}})
+		enqueue.assert_not_called()
+		self.assertIn("older version", close.call_args.args[2])
+
+	def test_an_approved_record_deleted_here_is_skipped(self):
+		out, enqueue, _close, _p = self._push(
+			_approved(self.cfg, items=["I-GONE"]), {"Item": {"I-GONE": False}}, local=False
+		)
+		self.assertEqual(out["items_missing"], 0)
+
+	def test_the_check_stores_the_lists_it_approved(self):
+		with ExitStack() as stack:
+			enter = stack.enter_context
+			_prefill_boundaries(enter, self.cfg, {"Item": {"I-1": False}}, plans=(["MP-1"], ["I-1"], []))
+			enter(patch.object(k, "_field_gaps", return_value=_gaps()))
+			close = enter(patch.object(k, "_close_prefill"))
+			enter(patch.object(k.SyncRun, "_open_log", return_value="LOG-1"))
+			enter(patch.object(k.SyncRun, "flush"))
+			out = k.run_prefill("LOG-1", action=k.ACTION_CHECK)
+		stored = close.call_args.kwargs["result"]
+		self.assertEqual(stored["missing_items"], ["I-1"])
+		self.assertEqual(stored["fingerprint"], "fp-1")
 
 
 class TestCustomFieldPayload(unittest.TestCase):
@@ -1627,15 +1800,22 @@ class TestTargetNaming(unittest.TestCase):
 			asked[doctype] = names
 			return {n: True for n in names}
 
-		with patch.object(k, "get_sync_config", return_value=(self.cfg, None)), patch.object(
-			k, "_field_gaps", return_value=_gaps()
-		), patch.object(k, "_plan_records", return_value=(["MP-1"], [], ["BOM-X-002"])), patch.object(
-			k, "target_names", side_effect=lambda dt, names, t: {n: "BOM-X-001" for n in names}
-		), patch.object(k, "api_exists_many", side_effect=exists_many), patch.object(
-			k, "_close_prefill"
-		), patch.object(k.SyncRun, "_open_log", return_value="LOG-1"), patch.object(
-			k.SyncRun, "flush"
-		), patch.object(k.SyncRun, "report"), patch.object(k, "enqueue_sync"):
+		with ExitStack() as stack:
+			enter = stack.enter_context
+			_prefill_boundaries(
+				enter,
+				self.cfg,
+				{},
+				plans=(["MP-1"], [], ["BOM-X-002"]),
+				recorded={"BOM": {"BOM-X-002": "BOM-X-001"}},
+			)
+			enter(patch.object(k, "api_exists_many", side_effect=exists_many))
+			enter(patch.object(k, "_field_gaps", return_value=_gaps()))
+			enter(patch.object(k, "_close_prefill"))
+			enter(patch.object(k.SyncRun, "_open_log", return_value="LOG-1"))
+			enter(patch.object(k.SyncRun, "flush"))
+			enter(patch.object(k.SyncRun, "report"))
+			enter(patch.object(k, "enqueue_sync"))
 			out = k.run_prefill("LOG-1", apply=0)
 
 		self.assertEqual(asked["BOM"], ["BOM-X-001"])

@@ -508,6 +508,57 @@ def api_exists_many(config, doctype, names, run=None):
 	return found
 
 
+def api_identity_many(config, doctype, names, run=None):
+	"""Which of our records the target holds, found by where they came from.
+
+	Returns ``{our name: the target's name}`` for every record the target says came from us.
+	Like `api_exists_many`, a name whose batch could not be asked is **absent** from the
+	answer, and so is a name that was asked about and not found - callers tell the two apart
+	with the third return value, the set of names that were actually asked.
+	"""
+	found, asked = {}, set()
+	names = [n for n in dict.fromkeys(names or []) if n]
+	if not names:
+		return found, asked
+
+	site = source_host()
+	for chunk in _name_chunks(names):
+		response = api_get(
+			config,
+			f"/api/resource/{segment(doctype)}",
+			params={
+				"filters": frappe.as_json(
+					[
+						[IDENTITY_SOURCE_SITE, "=", site],
+						[IDENTITY_SOURCE_DOCTYPE, "=", doctype],
+						[IDENTITY_SOURCE_NAME, "in", chunk],
+					]
+				),
+				"fields": frappe.as_json(["name", IDENTITY_SOURCE_NAME]),
+				"limit_page_length": 0,
+				"order_by": "creation asc",
+			},
+		)
+		if not response.ok:
+			if run:
+				run.mismatch(
+					doctype,
+					None,
+					f"could not ask the target which of {len(chunk)} {doctype}(s) came from this "
+					f"site - {response.message()}",
+					kind="IDENTITY-LOOKUP-FAILED",
+					once_key=f"identitymany::{doctype}",
+				)
+			continue
+		asked.update(chunk)
+		for row in response.data.get("data") or []:
+			source = row.get(IDENTITY_SOURCE_NAME)
+			# Oldest first, and the first one wins - the same choice `lookup_by_identity` makes.
+			if source and source not in found:
+				found[source] = row.get("name")
+	return found, asked
+
+
 # A preflight is allowed one short attempt and no retries. Its whole job is to answer
 # quickly, including - especially - when the answer is bad.
 PREFLIGHT_TIMEOUT = 8
@@ -739,6 +790,35 @@ def target_names(doctype, names, target):
 		frappe.logger("kggk_sync").exception(f"could not read target names for {doctype}")
 
 	return mapping
+
+
+def recorded_target_names(doctype, names, target):
+	"""``{our name: its name on the target}`` for the records we *recorded* - no guesses.
+
+	`target_names` fills the gaps with our own name, which is the right first guess for a push
+	and the wrong one for "is it already there?": a same-named record on the target may be
+	somebody else's.
+	"""
+	names = [n for n in dict.fromkeys(names or []) if n]
+	if not names or not target or doctype not in MAPPED_DOCTYPES:
+		return {}
+	try:
+		return {
+			row.record_name: row.target_name
+			for row in frappe.get_all(
+				STATE_DOCTYPE,
+				filters={
+					"record_doctype": doctype,
+					"record_name": ("in", names),
+					"target_site": target,
+					"target_name": ("is", "set"),
+				},
+				fields=["record_name", "target_name"],
+			)
+		}
+	except Exception:
+		frappe.logger("kggk_sync").exception(f"could not read recorded target names for {doctype}")
+		return {}
 
 
 def target_name_for(doctype, name, target):
@@ -4149,6 +4229,16 @@ def _prefill_in_flight():
 
 def _stored_result(log_name):
 	"""The findings a prefill check wrote onto its log, or ``None``."""
+	if not log_name:
+		return None
+	stored = frappe.db.get_value(LOG_DOCTYPE, log_name, "check_result")
+	if stored:
+		try:
+			return frappe.parse_json(stored)
+		except Exception:
+			return None
+
+	# A log written before the result had a field of its own kept it at the end of `problems`.
 	problems = frappe.db.get_value(LOG_DOCTYPE, log_name, "problems") or ""
 	start = problems.rfind("{")
 	if start == -1:
@@ -4275,11 +4365,10 @@ def start_prefill(action=ACTION_CHECK, limit_plans=None, check_log=None, fields=
 	# from a specific check against this same target. Creating fields does not: it works out
 	# what is missing there and then, so there is no stale answer to act on - which is what
 	# lets it be a single press.
-	if action in (ACTION_RECORDS, ACTION_ALL):
-		if not check_log:
-			frappe.throw(
-				_("Run the check first, then push its result."), title=_("Nothing to Push")
-			)
+	if action in (ACTION_RECORDS, ACTION_ALL) and not check_log:
+		frappe.throw(_("Run the check first, then push its result."), title=_("Nothing to Push"))
+
+	if check_log:
 		log = frappe.db.get_value(
 			LOG_DOCTYPE, check_log, ["trigger", "status", "target_site"], as_dict=True
 		)
@@ -4297,7 +4386,12 @@ def start_prefill(action=ACTION_CHECK, limit_plans=None, check_log=None, fields=
 				),
 				title=_("Target Changed"),
 			)
-		refusal = _blocks_record_push(_stored_result(check_log))
+
+	if action in (ACTION_RECORDS, ACTION_ALL):
+		# The push acts on exactly what that check approved, against the settings it was run
+		# with. The worker checks those records again before sending any of them.
+		approved = _stored_result(check_log)
+		refusal = _approval_refusal(approved, config) or _blocks_record_push(approved)
 		if refusal:
 			frappe.throw(refusal, title=_("Check Not Usable"))
 
@@ -4335,11 +4429,177 @@ def start_prefill(action=ACTION_CHECK, limit_plans=None, check_log=None, fields=
 		action=action,
 		fields=fields,
 		limit_plans=limit_plans,
+		check_log=check_log,
 		expect_target=host_of(config.to_site),
 		expect_fingerprint=config.get("fingerprint"),
 	)
 
 	return {"log": log.name, "target": config.to_site, "connection": message, "action": action}
+
+
+def _identity_ready(config, doctype, run=None):
+	"""Can the target be asked "which record came from ours?" for this doctype.
+
+	``True`` when it has all three identity fields, ``False`` when it has none of them yet (so
+	nothing there can claim to come from us), ``None`` when its schema could not be read.
+	"""
+	fields = get_target_fields(config, doctype, run=run)
+	if fields is None:
+		return None
+	return all(f["fieldname"] in fields for f in IDENTITY_FIELDS)
+
+
+def _presence(config, doctype, names, run, identity_ready):
+	"""Is each of our records on the target - this record, not merely its name?
+
+	Returns ``(present, unknown, collisions)``:
+
+	* ``present``    ``{name: bool}`` for every name that could be answered
+	* ``unknown``    names that could not be checked; never assumed present
+	* ``collisions`` names the target does not hold by identity while it does have a record of
+	  the same name - somebody else's record, or one pushed before identities existed. Reported,
+	  never counted as present: that is how a push of `BOM-RING-001` used to be skipped because
+	  KGGK's own, unrelated `BOM-RING-001` answered for it.
+
+	A recorded mapping is checked by the target's name for the record; anything else is looked
+	up by identity, in batches.
+	"""
+	target_host = host_of(config.to_site)
+	present, unknown, collisions = {}, [], []
+
+	recorded = recorded_target_names(doctype, names, target_host)
+	if recorded:
+		exists = api_exists_many(config, doctype, sorted(set(recorded.values())), run=run)
+		for name, target_name in recorded.items():
+			if target_name not in exists:
+				unknown.append(name)
+			elif exists[target_name]:
+				present[name] = True
+			# Recorded but gone from the target: asked about by identity below.
+
+	rest = [n for n in names if n not in present and n not in unknown]
+	if not rest:
+		return present, unknown, collisions
+
+	if identity_ready is None:
+		return present, unknown + rest, collisions
+
+	if identity_ready:
+		found, asked = api_identity_many(config, doctype, rest, run=run)
+	else:
+		# The target has no identity fields at all, so nothing over there came from us.
+		found, asked = {}, set(rest)
+
+	for name in rest:
+		if name in found:
+			present[name] = True
+		elif name in asked:
+			present[name] = False
+		else:
+			unknown.append(name)
+
+	not_found = [n for n in rest if present.get(n) is False]
+	if not_found:
+		same_named = api_exists_many(config, doctype, not_found)
+		collisions = [n for n in not_found if same_named.get(n)]
+	return present, unknown, collisions
+
+
+# How many names a result keeps for display. The approved lists themselves are never trimmed.
+MAX_LISTED = 200
+
+
+def _assess(config, items, boms, run, scope=None):
+	"""What of ``items`` and ``boms`` the target is missing, by identity."""
+	scope = scope or {}
+	out = {
+		"scope": scope,
+		"plans_scanned": scope.get("plans") or 0,
+		"items_total": len(items),
+		"boms_total": len(boms),
+	}
+	missing, unknown_all, collisions = {}, [], []
+	for doctype, names in (("Item", items), ("BOM", boms)):
+		present, unknown, same_named = _presence(
+			config, doctype, names, run, _identity_ready(config, doctype, run=run)
+		)
+		missing[doctype] = [n for n in names if present.get(n) is False]
+		unknown_all += [f"{doctype} {n}" for n in unknown]
+		collisions += [f"{doctype} {n}" for n in same_named]
+
+	out.update(
+		{
+			"missing_items": missing["Item"],
+			"missing_boms": missing["BOM"],
+			"items_missing": len(missing["Item"]),
+			"boms_missing": len(missing["BOM"]),
+			"unchecked": len(unknown_all),
+			"unchecked_records": unknown_all[:MAX_LISTED],
+			"name_collisions": collisions[:MAX_LISTED],
+		}
+	)
+	if collisions:
+		run.mismatch(
+			None,
+			None,
+			f"{len(collisions)} record(s) are not on the target, though a record of the same "
+			"name is - a different record, or one pushed before source identities existed. They "
+			"count as missing and will be sent: " + ", ".join(collisions[:10]),
+			kind="NAME-COLLISION",
+		)
+	return out
+
+
+# What a check hands to the action that acts on it. Everything else in a result is recomputed.
+APPROVED_KEYS = (
+	"scope",
+	"plans_scanned",
+	"items_total",
+	"boms_total",
+	"missing_items",
+	"missing_boms",
+	"items_missing",
+	"boms_missing",
+	"unchecked",
+	"unchecked_records",
+	"name_collisions",
+)
+
+
+def _approval_refusal(approved, config):
+	"""Why ``approved`` cannot be acted on against ``config``, or ``None``."""
+	if not approved:
+		return _("The check did not record its findings, so there is nothing to act on.")
+	if "missing_items" not in approved or "missing_boms" not in approved:
+		return _("That check was run by an older version and did not record which records it "
+			"approved. Run the check again.")
+	if host_of(approved.get("target")) != host_of(config.to_site):
+		return _("That check was run against {0}, but To Site is now {1}.").format(
+			host_of(approved.get("target")), host_of(config.to_site)
+		)
+	if approved.get("fingerprint") and approved["fingerprint"] != config.get("fingerprint"):
+		return _("The KGGK settings changed after that check was run. Run it again.")
+	return None
+
+
+def _revalidate(config, approved, run):
+	"""Check exactly the approved records again. Never adds one.
+
+	A record approved as missing that has since arrived is dropped; one that no longer exists
+	here is dropped and said; one that cannot be checked now makes the set unusable.
+	"""
+	wanted_items = list(approved.get("missing_items") or [])
+	wanted_boms = list(approved.get("missing_boms") or [])
+	items = [n for n in wanted_items if frappe.db.exists("Item", n)]
+	boms = [n for n in wanted_boms if frappe.db.exists("BOM", n)]
+	gone = (len(wanted_items) - len(items)) + (len(wanted_boms) - len(boms))
+	if gone:
+		run.line("INFO", None, None, f"{gone} approved record(s) no longer exist here, skipped")
+
+	out = _assess(config, items, boms, run, scope=approved.get("scope") or {})
+	out["approved_items"] = len(wanted_items)
+	out["approved_boms"] = len(wanted_boms)
+	return out
 
 
 def run_prefill(
@@ -4350,8 +4610,13 @@ def run_prefill(
 	expect_fingerprint=None,
 	fields=None,
 	apply=None,
+	check_log=None,
 ):
 	"""Work out what the target is missing and, depending on the action, fill it in.
+
+	A record push acts on the set a check approved - ``check_log`` - and nothing else. It is
+	checked again, never widened: plans submitted since the check wait for the next one, and a
+	fresh check that cannot complete stops the push instead of being a footnote to it.
 
 	Never throws for a *sync* problem. A target that rejects one field is reported and the
 	rest continues; the log says what happened either way.
@@ -4382,29 +4647,6 @@ def run_prefill(
 	creatable, standard_gaps, informational_gaps, unreadable, expected_absent = _field_gaps(
 		config, run=run
 	)
-	plans, items, boms = _plan_records(limit_plans)
-
-	run.items_total = len(items)
-	run.boms_total = len(boms)
-
-	# Ask about the names the target uses, not ours - otherwise every record it renamed
-	# reads as missing and gets pushed again, which is how duplicates breed.
-	target_host = host_of(config.to_site)
-	item_map = target_names("Item", items, target_host)
-	bom_map = target_names("BOM", boms, target_host)
-
-	# Batched: one request per fifty names instead of one per name. This is the difference
-	# between twenty requests and a thousand for a real plan.
-	item_presence = api_exists_many(config, "Item", sorted(set(item_map.values())), run=run)
-	bom_presence = api_exists_many(config, "BOM", sorted(set(bom_map.values())), run=run)
-
-	missing_items = [n for n in items if item_presence.get(item_map[n]) is False]
-	missing_boms = [n for n in boms if bom_presence.get(bom_map[n]) is False]
-	# A name whose batch could not be asked about is unknown, never assumed present.
-	unchecked = [n for n in items if item_map[n] not in item_presence] + [
-		n for n in boms if bom_map[n] not in bom_presence
-	]
-
 	for line in standard_gaps:
 		run.mismatch(None, None, f"standard field absent on target: {line}", kind="VERSION-GAP")
 
@@ -4412,7 +4654,8 @@ def run_prefill(
 		"action": action,
 		"applied": action != ACTION_CHECK,
 		"target": config.to_site,
-		"plans_scanned": len(plans),
+		# What the approval is bound to. A push refuses if the settings no longer match.
+		"fingerprint": config.get("fingerprint"),
 		"fields_to_create": [f"{r['dt']}.{r['fieldname']}" for r in creatable],
 		# Which of those the matching depends on, so the form can mark them and warn if they
 		# are unticked rather than letting the push fail later for a reason nobody connects
@@ -4424,26 +4667,42 @@ def run_prefill(
 		"informational_gaps": informational_gaps,
 		"schema_unreadable": unreadable,
 		"expected_absent": expected_absent,
-		"items_total": len(items),
-		"boms_total": len(boms),
-		"items_missing": len(missing_items),
-		"boms_missing": len(missing_boms),
-		"unchecked": len(unchecked),
 	}
+
+	approved = _stored_result(check_log) if check_log else None
+	if action in (ACTION_RECORDS, ACTION_ALL):
+		refusal = _approval_refusal(approved, config)
+		if refusal:
+			run.problem("BLOCKED", None, None, refusal)
+			_close_prefill(log_name, STATUS_FAILED, refusal, result=result, run=run, report=False)
+			return result
+		result.update(_revalidate(config, approved, run))
+	elif approved is not None and not _approval_refusal(approved, config):
+		# Creating fields from a check: carry its approved set forward, so this run's log can
+		# offer the push for the same records the operator already read.
+		result.update({key: approved.get(key) for key in APPROVED_KEYS if key in approved})
+	else:
+		plans, items, boms = _plan_records(limit_plans)
+		result.update(
+			_assess(config, items, boms, run, scope={"limit_plans": limit_plans, "plans": len(plans)})
+		)
+
+	run.items_total = result.get("items_total") or 0
+	run.boms_total = result.get("boms_total") or 0
 	result["blocked_reason"] = _blocks_record_push(result)
 	result["warnings"] = _prefill_warnings(result)
 
 	if action == ACTION_CHECK:
 		result["message"] = _(
 			"Checked {0}. {1} field(s) would be created, {2} item(s) and {3} BOM(s) would be pushed."
-		).format(config.to_site, len(creatable), len(missing_items), len(missing_boms))
+		).format(config.to_site, len(creatable), result["items_missing"], result["boms_missing"])
 		# Only a check that could not answer its own question is incomplete. Version gaps are
 		# a finding, not a fault - they are the answer, not a failure to produce one.
-		incomplete = bool(unchecked) or bool(unreadable)
+		incomplete = bool(result["unchecked"]) or bool(unreadable)
 		if incomplete:
 			result["message"] += _(
 				" Incomplete: {0} record(s) could not be checked, {1} doctype(s) unreadable."
-			).format(len(unchecked), len(unreadable))
+			).format(result["unchecked"], len(unreadable))
 		# `report=False`: a check reads the target and writes nothing to it. Its findings live
 		# in this site's log, which is where the operator who pressed the button looks.
 		_close_prefill(
@@ -4454,6 +4713,14 @@ def run_prefill(
 			run=run,
 			report=False,
 		)
+		return result
+
+	if action in (ACTION_RECORDS, ACTION_ALL) and result["blocked_reason"]:
+		# The approved set could not be checked again just now. Pushing it anyway would act on
+		# an answer this run cannot vouch for.
+		message = _("Nothing was pushed: {0}").format(result["blocked_reason"])
+		run.problem("BLOCKED", None, None, message)
+		_close_prefill(log_name, STATUS_FAILED, message, result=result, run=run, report=False)
 		return result
 
 	created, failed, skipped = [], [], []
@@ -4504,8 +4771,8 @@ def run_prefill(
 	queued = False
 	if action in (ACTION_RECORDS, ACTION_ALL):
 		queued = enqueue_sync(
-			items=missing_items,
-			boms=missing_boms,
+			items=result["missing_items"],
+			boms=result["missing_boms"],
 			trigger="Prefill",
 			reference=f"prefill {log_name}",
 		)
@@ -4520,7 +4787,7 @@ def run_prefill(
 	if action in (ACTION_RECORDS, ACTION_ALL):
 		parts.append(
 			_("{0} item(s) and {1} BOM(s) queued for push.").format(
-				len(missing_items), len(missing_boms)
+				result["items_missing"], result["boms_missing"]
 			)
 		)
 	result.update(
@@ -4573,12 +4840,10 @@ def _close_prefill(log_name, status, message, result=None, run=None, report=True
 		if result:
 			doc.items_total = result.get("items_total") or 0
 			doc.boms_total = result.get("boms_total") or 0
-			# The check's findings, for the button that acts on them.
-			doc.problems = (
-				(doc.problems or "")
-				+ "\n\n"
-				+ frappe.as_json(result, indent=1)
-			)[-MAX_REPORT_CHARS:]
+			# The check's findings, for the button that acts on them. A field of its own: the
+			# approved lists can be thousands of names, and `problems` is trimmed from the
+			# front, which used to cut the opening brace off the JSON and lose the result.
+			doc.check_result = frappe.as_json(result, indent=1)
 		if run and run.rows:
 			for row in run.rows:
 				doc.append("records", row)

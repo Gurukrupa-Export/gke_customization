@@ -145,7 +145,7 @@ function offer_apply(frm) {
 			if (outstanding.length) {
 				frm.add_custom_button(
 					__("Create Missing Fields"),
-					() => choose_fields(out),
+					() => choose_fields(out, frm.doc.name),
 					__("Actions")
 				).addClass("btn-primary");
 			}
@@ -175,7 +175,9 @@ function offer_apply(frm) {
 // Not every missing field is wanted. Some belong to a module the target does not run, and
 // creating them there is clutter nobody will remove - so the list is presented and the
 // operator decides. Everything is ticked by default, because that is the common case.
-function choose_fields(out) {
+// `check_log` carries this run's approved records into the field-creation run, so that run's
+// log can still offer the push for the same set.
+function choose_fields(out, check_log) {
 	const outstanding = out.fields_to_create || [];
 	// Only the identity fields still outstanding. After a partial run the result still lists
 	// every identity field it ever found, and treating an already-created one as "unticked"
@@ -230,7 +232,7 @@ function choose_fields(out) {
 			const dropped = identityLeft.filter((f) => !chosen.includes(f));
 			const go = () => {
 				dialog.hide();
-				run_action({ action: "fields", fields: JSON.stringify(chosen) });
+				run_action({ action: "fields", fields: JSON.stringify(chosen), check_log: check_log });
 			};
 
 			if (dropped.length) {
@@ -290,6 +292,11 @@ function render_summary(frm, out) {
 	</table>`;
 
 	html += field_list(__("Still to be created"), out.fields_to_create);
+	// Not on the target by identity, though something of the same name is. Sent as new.
+	html += field_list(
+		__("Same name on the target, but a different record (will be sent)"),
+		out.name_collisions
+	);
 	html += field_list(__("Created on the target"), out.fields_created);
 	html += field_list(__("Could not be created"), out.fields_failed);
 

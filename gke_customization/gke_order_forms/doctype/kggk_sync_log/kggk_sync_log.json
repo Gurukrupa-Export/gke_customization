@@ -31,7 +31,8 @@
   "records_section",
   "records",
   "problems_section",
-  "problems"
+  "problems",
+  "check_result"
  ],
  "fields": [
   {
@@ -193,12 +194,20 @@
    "fieldtype": "Long Text",
    "label": "Problems",
    "read_only": 1
+  },
+  {
+   "description": "What a prefill check found and approved, kept for the action that acts on it.",
+   "fieldname": "check_result",
+   "fieldtype": "Long Text",
+   "hidden": 1,
+   "label": "Check Result",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-03 10:00:00.000000",
+ "modified": "2026-10-05 12:10:00.000000",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "KGGK Sync Log",
