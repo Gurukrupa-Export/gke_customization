@@ -812,10 +812,10 @@ def get_shift(company, shift_type, for_date=None):
 # Get employee final shift for selected date
 @frappe.whitelist()
 def get_employee_shift(employee, for_date=None):
-    if not for_date:
-        for_date = today()
+	if not for_date:
+		for_date = today()
 
-    for_date = getdate(for_date)
+	for_date = getdate(for_date)
 
 	# =====================================================
 	# Fetch active shift assignment
