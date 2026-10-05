@@ -965,7 +965,12 @@ class TestReporting(unittest.TestCase):
 
 
 class _FakeLog:
-	"""Just enough of a KGGK Sync Log for `flush` to write to."""
+	"""Just enough of a KGGK Sync Log, and of the database under it, for `flush` to write to.
+
+	`flush` appends rows and updates fields without loading the log, so this stands in at those
+	boundaries - row inserts, `set_value`, the savepoint - and keeps the transaction honest: rows
+	inserted by a flush that then fails are rolled back with it.
+	"""
 
 	def __init__(self):
 		self.problems = ""
@@ -975,9 +980,13 @@ class _FakeLog:
 		self.started_on = None
 		self.ended_on = None
 		self.progress = 0
+		self.check_result = None
 		self.flags = frappe._dict()
 		self.saves = 0
+		self.fail = False
+		self._tx = []
 
+	# The document itself, for the few callers that still load it (`_close_prefill`).
 	def append(self, _fieldname, row):
 		self.records.append(row)
 
@@ -986,6 +995,46 @@ class _FakeLog:
 
 	def save(self, **_kwargs):
 		self.saves += 1
+
+	# The database boundaries `flush` uses.
+	def _insert(self, _log_name, _idx, row):
+		self._tx.append(row)
+
+	def _get(self, _doctype, _name, field=None, *args, **kwargs):
+		return getattr(self, field, None) if isinstance(field, str) else None
+
+	def _set(self, _doctype, _name, values, *args, **kwargs):
+		if self.fail:
+			raise RuntimeError("boom")
+		for key, value in values.items():
+			setattr(self, key, value)
+
+	def _commit(self, *args, **kwargs):
+		self.records.extend(self._tx)
+		self._tx = []
+
+	def _rollback(self, *args, **kwargs):
+		self._tx = []
+
+	def patches(self):
+		return [
+			patch.object(frappe, "get_doc", return_value=self),
+			patch.object(frappe.db, "exists", return_value=True),
+			patch.object(frappe.db, "savepoint", side_effect=lambda *_a, **_k: self._rollback()),
+			patch.object(frappe.db, "rollback", side_effect=self._rollback),
+			patch.object(frappe.db, "commit", side_effect=self._commit),
+			patch.object(frappe.db, "get_value", side_effect=self._get),
+			patch.object(frappe.db, "set_value", side_effect=self._set),
+			patch.object(k, "_insert_log_row", side_effect=self._insert),
+			patch.object(k, "_log_row_count", side_effect=lambda _name: len(self.records)),
+		]
+
+
+def _with_log(log):
+	stack = ExitStack()
+	for patcher in log.patches():
+		stack.enter_context(patcher)
+	return stack
 
 
 class TestProblemsAreWrittenOnce(unittest.TestCase):
@@ -1006,7 +1055,7 @@ class TestProblemsAreWrittenOnce(unittest.TestCase):
 		)
 
 	def _flush(self, *statuses):
-		with patch.object(frappe, "get_doc", return_value=self.doc), patch.object(frappe.db, "commit"):
+		with _with_log(self.doc):
 			for status in statuses:
 				self.run.flush(status)
 
@@ -1025,7 +1074,7 @@ class TestProblemsAreWrittenOnce(unittest.TestCase):
 
 	def test_a_save_that_fails_leaves_the_problems_to_be_written_again(self):
 		self.run.item_failed("I-1", "nope")
-		self.doc.save = lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("boom"))
+		self.doc.fail = True
 		self._flush(None)
 
 		self.doc = _FakeLog()
@@ -1057,7 +1106,7 @@ class TestPartialRowsPersist(unittest.TestCase):
 		)
 
 	def _flush(self, status=None):
-		with patch.object(frappe, "get_doc", return_value=self.doc), patch.object(frappe.db, "commit"):
+		with _with_log(self.doc):
 			self.run.flush(status)
 
 	def test_every_status_the_engine_writes_is_a_valid_row_status(self):
@@ -1080,9 +1129,10 @@ class TestPartialRowsPersist(unittest.TestCase):
 
 	def test_a_save_that_fails_keeps_its_rows_for_the_next_flush(self):
 		self.run.row("Item", "I-1", "Partial", "master_bom waiting for its BOM")
-		self.doc.save = lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("boom"))
+		self.doc.fail = True
 		self._flush()
 		self.assertEqual(len(self.run.rows), 1)
+		self.assertEqual(self.doc.records, [])
 
 		self.doc = _FakeLog()
 		self._flush(k.STATUS_PARTIAL)
@@ -1113,6 +1163,79 @@ class TestPartialRowsPersist(unittest.TestCase):
 				)
 				self.assertEqual(saved, ["Partial"])
 				self.assertEqual(run.rows, [])
+			finally:
+				frappe.db.rollback()
+
+
+class TestTheLogIsAppendedNotRewritten(unittest.TestCase):
+	"""Each flush used to load the whole log and save it back - quadratic over a large run -
+	and the 2,000-row cap counted only the current buffer, which every flush emptied."""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", headers={})
+
+	def _run_on(self, log, counters=None):
+		run = _run(config=self.cfg, log_name="LOG-1", log=k.LOG_ALWAYS, counters=counters)
+		return run
+
+	def test_the_cap_holds_across_flushes(self):
+		log = _FakeLog()
+		run = self._run_on(log)
+		with patch.object(k, "MAX_LOG_ROWS", 2), _with_log(log):
+			for name in ("I-1", "I-2", "I-3"):
+				run.row("Item", name, "Synced")
+				run.flush()
+			run.flush(k.STATUS_COMPLETED)
+		self.assertEqual([r["record_name"] for r in log.records], ["I-1", "I-2"])
+		self.assertEqual(run.rows_dropped, 1)
+		self.assertIn("1 more record(s) not listed", log.summary)
+
+	def test_the_cap_holds_across_chunks(self):
+		"""Every continuation builds a new SyncRun; the log it writes to is the same."""
+		log = _FakeLog()
+		log.records = [{"record_name": "I-1"}, {"record_name": "I-2"}]
+		run = self._run_on(log, counters={"rows_dropped": 3})
+		with patch.object(k, "MAX_LOG_ROWS", 2), _with_log(log):
+			run.row("Item", "I-3", "Synced")
+			run.flush(k.STATUS_COMPLETED)
+		self.assertEqual(len(log.records), 2)
+		self.assertEqual(run.rows_dropped, 4)
+
+	def test_a_flush_never_loads_the_whole_log(self):
+		log = _FakeLog()
+		run = self._run_on(log)
+		run.row("Item", "I-1", "Synced")
+		with _with_log(log), patch.object(frappe, "get_doc") as get_doc:
+			run.flush(k.STATUS_RUNNING)
+		get_doc.assert_not_called()
+		self.assertEqual(len(log.records), 1)
+		self.assertEqual(log.status, k.STATUS_RUNNING)
+
+	def test_rows_are_appended_to_a_real_log(self):
+		if not frappe.db.table_exists(k.LOG_DOCTYPE):
+			self.skipTest("KGGK Sync Log is not installed on this site")
+		with patch.object(frappe.db, "commit"):
+			try:
+				run = _run(config=self.cfg, log=k.LOG_ALWAYS, trigger="Manual")
+				run.items_total = 2
+				run.row("Item", "I-1", "Synced")
+				run.items_synced = 1
+				run.flush()
+				run.row("Item", "I-2", "Failed", "nope")
+				run.items_failed = 1
+				run.flush(k.STATUS_PARTIAL)
+				rows = frappe.get_all(
+					k.LOG_ROW_DOCTYPE,
+					filters={"parent": run.log_name},
+					fields=["record_name", "idx"],
+					order_by="idx asc",
+				)
+				self.assertEqual([(r.record_name, r.idx) for r in rows], [("I-1", 1), ("I-2", 2)])
+				saved = frappe.db.get_value(
+					k.LOG_DOCTYPE, run.log_name, ["status", "items_synced", "items_failed", "progress"], as_dict=True
+				)
+				self.assertEqual((saved.status, saved.items_synced, saved.items_failed), (k.STATUS_PARTIAL, 1, 1))
+				self.assertEqual(saved.progress, 100)
 			finally:
 				frappe.db.rollback()
 
@@ -1349,8 +1472,7 @@ class TestCheckIsReadOnly(unittest.TestCase):
 			enter(patch.object(k, "api_exists_many", return_value={"I-1": False}))
 			enter(patch.object(k, "target_names", side_effect=lambda dt, names, t: {n: n for n in names}))
 			enter(patch(f"{MOD}.requests.request", side_effect=request))
-			enter(patch.object(frappe, "get_doc", return_value=log))
-			enter(patch.object(frappe.db, "commit"))
+			enter(_with_log(log))
 			out = k.run_prefill("LOG-1", action=k.ACTION_CHECK)
 
 		self.assertEqual([m for m in methods if m != "GET"], [])

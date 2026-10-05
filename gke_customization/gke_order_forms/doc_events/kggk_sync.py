@@ -603,6 +603,7 @@ STATUS_PARTIAL = "Partially Completed"
 STATUS_FAILED = "Failed"
 
 LOG_DOCTYPE = "KGGK Sync Log"
+LOG_ROW_DOCTYPE = "KGGK Sync Log Record"
 STATE_DOCTYPE = "KGGK Sync State"
 
 # A run of several hundred records must not produce a document nobody can open. Past this
@@ -635,6 +636,27 @@ REPORT_TIMEOUT = 20
 
 def _stamp():
 	return now_datetime().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _insert_log_row(log_name, idx, row):
+	"""Append one record row to a log without loading the log."""
+	child = frappe.get_doc(
+		{
+			"doctype": LOG_ROW_DOCTYPE,
+			"parent": log_name,
+			"parenttype": LOG_DOCTYPE,
+			"parentfield": "records",
+			"idx": idx,
+			**row,
+		}
+	)
+	# The schema still decides what a row may say - the insert skips `validate`, not this.
+	child._validate_selects()
+	child.db_insert()
+
+
+def _log_row_count(log_name):
+	return frappe.db.count(LOG_ROW_DOCTYPE, {"parent": log_name, "parenttype": LOG_DOCTYPE})
 
 
 def log_skip(reason, doctype=None, name=None):
@@ -925,7 +947,6 @@ class SyncRun:
 		self.log_mode = log
 		self.log_name = log_name or (self._open_log() if log == LOG_ALWAYS else None)
 		self.rows = []
-		self.rows_dropped = 0
 
 		# Cumulative across chunks. These ride in the enqueue kwargs, not in the database.
 		counters = counters or {}
@@ -934,6 +955,11 @@ class SyncRun:
 		self.boms_synced = int(counters.get("boms_synced") or 0)
 		self.boms_failed = int(counters.get("boms_failed") or 0)
 		self.mismatches = int(counters.get("mismatches") or 0)
+		# Rows past the display cap, across every chunk of the run, so the summary can say so.
+		self.rows_dropped = int(counters.get("rows_dropped") or 0)
+		# How many rows the log already holds. Asked once per chunk, then counted here; see
+		# `_rows_on_log`.
+		self._rows_written = None
 
 		self.items_total = 0
 		self.boms_total = 0
@@ -996,6 +1022,7 @@ class SyncRun:
 			"boms_synced": self.boms_synced,
 			"boms_failed": self.boms_failed,
 			"mismatches": self.mismatches,
+			"rows_dropped": self.rows_dropped,
 		}
 
 	@property
@@ -1040,7 +1067,9 @@ class SyncRun:
 		"""Buffer one record's outcome. Written to the log once per chunk, not per record."""
 		if status in ("Failed", "Skipped"):
 			self._ensure_log()
-		if len(self.rows) + self.rows_dropped >= MAX_LOG_ROWS:
+		# Against everything the run has written, not this chunk's buffer: every flush emptied
+		# the buffer and every chunk started a new one, so the old check never fired.
+		if self._rows_on_log() + len(self.rows) >= MAX_LOG_ROWS:
 			self.rows_dropped += 1
 			return
 		self.rows.append(
@@ -1054,66 +1083,96 @@ class SyncRun:
 			}
 		)
 
+	def _rows_on_log(self):
+		"""How many record rows the log already has. One indexed count per chunk."""
+		if self._rows_written is None:
+			self._rows_written = 0
+			if self.log_name and self.log_mode != LOG_NEVER:
+				try:
+					self._rows_written = _log_row_count(self.log_name)
+				except Exception:
+					frappe.logger("kggk_sync").exception(f"could not count rows on {self.log_name}")
+		return self._rows_written
+
 	def flush(self, status=None):
-		"""Write this chunk's rows, counters and progress onto the log document."""
+		"""Append this chunk's rows and update counters, progress and status on the log.
+
+		Appends, never rewrites. Loading the whole log and saving it back on every flush made
+		each flush cost the size of the log so far - quadratic over a large run - and the form
+		polling it downloaded the lot every few seconds. New rows are inserted on their own and
+		the parent's fields change in one statement.
+
+		Rows leave the buffer only once their insert has committed; a flush that fails is rolled
+		back to its savepoint and leaves them to be written next time.
+		"""
 		if not self.log_name or self.log_mode == LOG_NEVER:
 			return
 		try:
-			doc = frappe.get_doc(LOG_DOCTYPE, self.log_name)
-		except frappe.DoesNotExistError:
-			# Somebody deleted it mid-run. Stop trying rather than raising every chunk.
-			self.log_name = None
-			return
+			if not frappe.db.exists(LOG_DOCTYPE, self.log_name):
+				# Somebody deleted it mid-run. Stop trying rather than raising every chunk.
+				self.log_name = None
+				return
 		except Exception:
 			frappe.logger("kggk_sync").exception(f"could not load {self.log_name}")
 			return
 
+		written = self._rows_on_log()
 		try:
-			# Appended to the document, but kept in the buffer until the save below has
-			# committed. Clearing first meant a save that raised - a Select value the schema
-			# did not allow was the case - threw away every row it was trying to write.
-			pending_rows = list(self.rows)
-			for row in pending_rows:
-				doc.append("records", row)
+			frappe.db.savepoint("kggk_flush")
 
-			for field, value in self.counters().items():
-				doc.set(field, value)
-			doc.items_total = self.items_total
-			doc.boms_total = self.boms_total
+			pending = list(self.rows)
+			inserted = 0
+			for row in pending:
+				try:
+					_insert_log_row(self.log_name, written + inserted + 1, row)
+					inserted += 1
+				except frappe.ValidationError:
+					# A row the schema refuses is reported and skipped, not allowed to stop
+					# every later flush from writing anything at all.
+					frappe.logger("kggk_sync").exception(f"log row refused: {row}")
+					self.rows_dropped += 1
 
+			values = dict(self.counters())
+			values.pop("rows_dropped", None)
+			values["items_total"] = self.items_total
+			values["boms_total"] = self.boms_total
 			total = self.items_total + self.boms_total
-			doc.progress = min(100.0, (self.done / total) * 100) if total else 100.0
+			values["progress"] = min(100.0, (self.done / total) * 100) if total else 100.0
 
 			if status:
-				doc.status = status
-				doc.summary = self.summary(status)
-				if status == STATUS_RUNNING and not doc.started_on:
+				values["status"] = status
+				values["summary"] = self.summary(status)
+				if status == STATUS_RUNNING:
 					# The log was created Queued by whoever asked for the run; this is the
 					# moment a worker actually picked it up.
-					doc.started_on = now_datetime()
-				if status != STATUS_RUNNING:
-					doc.ended_on = now_datetime()
-					doc.progress = 100.0
+					if not frappe.db.get_value(LOG_DOCTYPE, self.log_name, "started_on"):
+						values["started_on"] = now_datetime()
+				else:
+					values["ended_on"] = now_datetime()
+					values["progress"] = 100.0
 
 			unwritten = self.problems[self._problems_written :]
 			if unwritten:
-				existing = doc.problems or ""
-				doc.problems = (existing + "\n" + "\n".join(unwritten))[-MAX_REPORT_CHARS:]
+				existing = frappe.db.get_value(LOG_DOCTYPE, self.log_name, "problems") or ""
+				values["problems"] = (existing + "\n" + "\n".join(unwritten))[-MAX_REPORT_CHARS:]
 
-			if self.rows_dropped:
-				doc.summary = (
-					(doc.summary or "")
-					+ f" | {self.rows_dropped} more record(s) not listed - the run exceeded "
-					f"{MAX_LOG_ROWS} rows"
+			if status and self.rows_dropped:
+				values["summary"] += (
+					f" | {self.rows_dropped} more record(s) not listed - the run passed the "
+					f"{MAX_LOG_ROWS}-row display limit"
 				)
 
-			doc.flags.ignore_version = True
-			doc.save(ignore_permissions=True)
+			frappe.db.set_value(LOG_DOCTYPE, self.log_name, values)
 			frappe.db.commit()
-			# Only now, so a save that raised leaves them to be written again next flush.
+			# Only now, so a flush that raised leaves them to be written again next time.
+			self._rows_written = written + inserted
 			self._problems_written = len(self.problems)
-			self.rows = self.rows[len(pending_rows) :]
+			self.rows = self.rows[len(pending) :]
 		except Exception:
+			try:
+				frappe.db.rollback(save_point="kggk_flush")
+			except Exception:
+				pass
 			frappe.logger("kggk_sync").exception(f"could not update {self.log_name}")
 
 	# -- logging ---------------------------------------------------------------------
