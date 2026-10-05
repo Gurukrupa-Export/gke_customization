@@ -923,6 +923,82 @@ class TestProblemsAreWrittenOnce(unittest.TestCase):
 		self.assertIn("I-1", post.call_args.kwargs["json"]["error"])
 
 
+class TestPartialRowsPersist(unittest.TestCase):
+	"""An Item that arrives before its BOM is Partial, and the log must be able to say so.
+
+	The row's Select once allowed only Pending/Synced/Failed/Skipped, so the save raised and -
+	because the buffer was cleared before the save - the rows it was writing were lost.
+	"""
+
+	def setUp(self):
+		self.doc = _FakeLog()
+		self.run = _run(
+			config=frappe._dict(to_site="https://t", headers={}),
+			log_name="LOG-1",
+			log=k.LOG_ALWAYS,
+		)
+
+	def _flush(self, status=None):
+		with patch.object(frappe, "get_doc", return_value=self.doc), patch.object(frappe.db, "commit"):
+			self.run.flush(status)
+
+	def test_every_status_the_engine_writes_is_a_valid_row_status(self):
+		import json
+		import os
+
+		path = os.path.join(
+			os.path.dirname(k.__file__),
+			"..",
+			"doctype",
+			"kggk_sync_log_record",
+			"kggk_sync_log_record.json",
+		)
+		with open(path, encoding="utf-8") as handle:
+			schema = json.load(handle)
+		status = next(f for f in schema["fields"] if f["fieldname"] == "status")
+		allowed = set(status["options"].split("\n"))
+		for value in ("Pending", "Synced", "Partial", "Failed", "Skipped"):
+			self.assertIn(value, allowed)
+
+	def test_a_save_that_fails_keeps_its_rows_for_the_next_flush(self):
+		self.run.row("Item", "I-1", "Partial", "master_bom waiting for its BOM")
+		self.doc.save = lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("boom"))
+		self._flush()
+		self.assertEqual(len(self.run.rows), 1)
+
+		self.doc = _FakeLog()
+		self._flush(k.STATUS_PARTIAL)
+		self.assertEqual([r["record_name"] for r in self.doc.records], ["I-1"])
+		self.assertEqual(self.run.rows, [])
+
+	def test_a_partial_row_survives_a_real_save(self):
+		"""Through Frappe's own Select validation, not a fake."""
+		if not frappe.db.table_exists(k.LOG_DOCTYPE):
+			self.skipTest("KGGK Sync Log is not installed on this site")
+		status = frappe.get_meta("KGGK Sync Log Record").get_field("status")
+		if "Partial" not in (status.options or "").split("\n"):
+			self.skipTest("this site's KGGK Sync Log Record schema predates Partial; migrate first")
+
+		with patch.object(frappe.db, "commit"):
+			try:
+				run = _run(
+					config=frappe._dict(to_site="https://t", headers={}),
+					log=k.LOG_ALWAYS,
+					trigger="Manual",
+				)
+				run.row("Item", "I-1", "Partial", "master_bom waiting for its BOM")
+				run.flush(k.STATUS_PARTIAL)
+				saved = frappe.get_all(
+					"KGGK Sync Log Record",
+					filters={"parent": run.log_name},
+					pluck="status",
+				)
+				self.assertEqual(saved, ["Partial"])
+				self.assertEqual(run.rows, [])
+			finally:
+				frappe.db.rollback()
+
+
 class TestCounters(unittest.TestCase):
 	def test_counters_carry_forward(self):
 		"""Chunk state rides in the job kwargs, and must keep doing so.

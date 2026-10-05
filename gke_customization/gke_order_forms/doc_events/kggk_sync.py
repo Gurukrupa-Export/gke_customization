@@ -968,9 +968,12 @@ class SyncRun:
 			return
 
 		try:
-			for row in self.rows:
+			# Appended to the document, but kept in the buffer until the save below has
+			# committed. Clearing first meant a save that raised - a Select value the schema
+			# did not allow was the case - threw away every row it was trying to write.
+			pending_rows = list(self.rows)
+			for row in pending_rows:
 				doc.append("records", row)
-			self.rows = []
 
 			for field, value in self.counters().items():
 				doc.set(field, value)
@@ -1008,6 +1011,7 @@ class SyncRun:
 			frappe.db.commit()
 			# Only now, so a save that raised leaves them to be written again next flush.
 			self._problems_written = len(self.problems)
+			self.rows = self.rows[len(pending_rows) :]
 		except Exception:
 			frappe.logger("kggk_sync").exception(f"could not update {self.log_name}")
 
@@ -3554,8 +3558,10 @@ def retry_log(log_name):
 	if log.status in (STATUS_QUEUED, STATUS_RUNNING):
 		frappe.throw(_("This run is still {0}.").format(log.status))
 
-	items = [r.record_name for r in log.records if r.status in ("Failed", "Pending") and r.record_doctype == "Item"]
-	boms = [r.record_name for r in log.records if r.status in ("Failed", "Pending") and r.record_doctype == "BOM"]
+	# Partial is unfinished work too: the record is on the target and something it needs is not.
+	unfinished = ("Failed", "Pending", "Partial")
+	items = [r.record_name for r in log.records if r.status in unfinished and r.record_doctype == "Item"]
+	boms = [r.record_name for r in log.records if r.status in unfinished and r.record_doctype == "BOM"]
 
 	# A run that died before it processed anything lists no records at all, so there is
 	# nothing to read back - and that is exactly the run most worth retrying. For a
