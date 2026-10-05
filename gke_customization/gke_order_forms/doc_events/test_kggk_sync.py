@@ -1141,8 +1141,8 @@ class TestPartialRowsPersist(unittest.TestCase):
 
 	def test_a_partial_row_survives_a_real_save(self):
 		"""Through Frappe's own Select validation, not a fake."""
-		if not frappe.db.table_exists(k.LOG_DOCTYPE):
-			self.skipTest("KGGK Sync Log is not installed on this site")
+		if not frappe.db.table_exists(k.LOG_DOCTYPE) or not frappe.db.has_column(k.LOG_DOCTYPE, "generation"):
+			self.skipTest("this site's KGGK Sync Log schema predates this change; migrate first")
 		status = frappe.get_meta("KGGK Sync Log Record").get_field("status")
 		if "Partial" not in (status.options or "").split("\n"):
 			self.skipTest("this site's KGGK Sync Log Record schema predates Partial; migrate first")
@@ -1212,8 +1212,8 @@ class TestTheLogIsAppendedNotRewritten(unittest.TestCase):
 		self.assertEqual(log.status, k.STATUS_RUNNING)
 
 	def test_rows_are_appended_to_a_real_log(self):
-		if not frappe.db.table_exists(k.LOG_DOCTYPE):
-			self.skipTest("KGGK Sync Log is not installed on this site")
+		if not frappe.db.table_exists(k.LOG_DOCTYPE) or not frappe.db.has_column(k.LOG_DOCTYPE, "generation"):
+			self.skipTest("this site's KGGK Sync Log schema predates this change; migrate first")
 		with patch.object(frappe.db, "commit"):
 			try:
 				run = _run(config=self.cfg, log=k.LOG_ALWAYS, trigger="Manual")
@@ -1378,7 +1378,7 @@ class TestRetry(unittest.TestCase):
 		new_log = frappe._dict(name="KGGK-SYNC-2026-00002", insert=lambda **kw: None)
 		with patch("frappe.only_for"), patch.object(frappe, "get_doc", side_effect=[log, new_log]), patch.object(
 			k, "get_sync_config", return_value=(frappe._dict(to_site="https://t"), None)
-		), patch.object(k, "enqueue_sync") as enqueue:
+		), patch.object(k, "read_manifest", return_value=None), patch.object(k, "enqueue_sync") as enqueue:
 			k.retry_log(log.name)
 
 		self.assertEqual(enqueue.call_args.kwargs["items"], ["I-1"])
@@ -1386,7 +1386,9 @@ class TestRetry(unittest.TestCase):
 
 	def test_a_clean_run_has_nothing_to_retry(self):
 		log = self._log([{"record_doctype": "Item", "record_name": "I-1", "status": "Synced"}])
-		with patch("frappe.only_for"), patch.object(frappe, "get_doc", return_value=log):
+		with patch("frappe.only_for"), patch.object(frappe, "get_doc", return_value=log), patch.object(
+			k, "get_sync_config", return_value=(frappe._dict(to_site="https://t"), None)
+		), patch.object(k, "read_manifest", return_value=None):
 			with self.assertRaises(frappe.ValidationError):
 				k.retry_log(log.name)
 
@@ -1395,6 +1397,228 @@ class TestRetry(unittest.TestCase):
 		with patch("frappe.only_for"), patch.object(frappe, "get_doc", return_value=log):
 			with self.assertRaises(frappe.ValidationError):
 				k.retry_log(log.name)
+
+
+class TestTheHandOffNeverFailsTheSave(unittest.TestCase):
+	"""F21. `enqueue_after_commit` deferred the hand-off but not its errors: redis failing inside
+	the after-commit callback raised after the document had committed, and the user was told a
+	save failed that had not."""
+
+	def test_a_queue_failure_after_commit_does_not_escape(self):
+		calls = []
+		try:
+			with patch.object(frappe, "enqueue", side_effect=ConnectionError("redis is gone")) as enqueue:
+				k._dispatch(method=k.SYNC_METHOD, job_id="kggk_item::I-1", items=["I-1"])
+				calls.append("dispatched")
+				frappe.db.after_commit.run()
+			self.assertEqual(enqueue.call_count, 1)
+		finally:
+			frappe.db.after_commit.reset()
+		self.assertEqual(calls, ["dispatched"])
+
+	def test_nothing_is_queued_before_the_commit(self):
+		try:
+			with patch.object(frappe, "enqueue") as enqueue:
+				k._dispatch(method=k.SYNC_METHOD, job_id="kggk_item::I-1")
+				enqueue.assert_not_called()
+				frappe.db.after_commit.run()
+			enqueue.assert_called_once()
+		finally:
+			frappe.db.after_commit.reset()
+
+	def test_a_run_writes_down_what_it_owes_before_it_is_queued(self):
+		"""F11. The list of records lived only in the job kwargs; a lost hand-off lost it."""
+		cfg = frappe._dict(to_site="https://t", fingerprint="fp")
+		with patch.object(k, "get_sync_config", return_value=(cfg, None)), patch.object(
+			k, "_open_queued_log", return_value="LOG-9"
+		) as opened, patch.object(k, "_dispatch") as dispatch:
+			k.enqueue_sync(
+				items=["I-1"], boms=["B-1"], trigger="Manufacturing Plan", reference="MP-1",
+				job_id="kggk_plan::MP-1", copy_boms={"I-1": "B-C"},
+			)
+		self.assertEqual(opened.call_args.args[1:3], (["I-1"], ["B-1"]))
+		self.assertEqual(dispatch.call_args.kwargs["log_name"], "LOG-9")
+		self.assertEqual(dispatch.call_args.kwargs["generation"], 1)
+
+	def test_a_single_record_save_leans_on_its_pending_row_not_a_log(self):
+		cfg = frappe._dict(to_site="https://t", fingerprint="fp")
+		with patch.object(k, "get_sync_config", return_value=(cfg, None)), patch.object(
+			k, "_open_queued_log"
+		) as opened, patch.object(k, "_dispatch") as dispatch:
+			k.enqueue_sync(items=["I-1"], trigger="Item Update", reference="I-1")
+		opened.assert_not_called()
+		self.assertIsNone(dispatch.call_args.kwargs["generation"])
+
+
+class TestWhatARunStillOwes(unittest.TestCase):
+	"""F11. Retry works from the list a run was given, not the rows it got round to writing."""
+
+	def _owed(self, names, states, modified):
+		def get_all(doctype, filters=None, fields=None, **_kw):
+			if doctype == k.STATE_DOCTYPE:
+				return [frappe._dict(record_name=n, **row) for n, row in states.items()]
+			return [frappe._dict(name=n, modified=m) for n, m in modified.items()]
+
+		with patch.object(frappe, "get_all", side_effect=get_all):
+			return k.owed_records({"items": names, "boms": []}, "t")[0]
+
+	def test_only_a_current_synced_record_is_settled(self):
+		owed = self._owed(
+			["I-SYNCED", "I-EDITED", "I-PARTIAL", "I-FAILED", "I-NEVER", "I-DELETED"],
+			{
+				"I-SYNCED": {"status": "Synced", "local_modified": "2026-10-05 10:00:00"},
+				"I-EDITED": {"status": "Synced", "local_modified": "2026-10-05 10:00:00"},
+				"I-PARTIAL": {"status": "Partial", "local_modified": "2026-10-05 10:00:00"},
+				"I-FAILED": {"status": "Failed", "local_modified": None},
+			},
+			{
+				"I-SYNCED": "2026-10-05 10:00:00",
+				"I-EDITED": "2026-10-05 11:00:00",
+				"I-PARTIAL": "2026-10-05 10:00:00",
+				"I-FAILED": "2026-10-05 10:00:00",
+				"I-NEVER": "2026-10-05 10:00:00",
+			},
+		)
+		self.assertEqual(owed, ["I-EDITED", "I-PARTIAL", "I-FAILED", "I-NEVER"])
+
+	def test_retry_includes_the_tail_a_lost_chunk_never_reached(self):
+		log = frappe._dict(
+			name="LOG-1",
+			status="Partially Completed",
+			trigger="Manufacturing Plan",
+			reference="MP-1",
+			records=[frappe._dict(record_doctype="Item", record_name="I-1", status="Failed")],
+		)
+		retry = frappe._dict(name="LOG-2", insert=lambda **kw: None)
+		manifest = {"items": ["I-1", "I-2", "I-3"], "boms": ["B-1"], "copy_boms": {"I-2": "B-C"}}
+		with patch("frappe.only_for"), patch.object(frappe, "get_doc", side_effect=[log, retry]), patch.object(
+			k, "get_sync_config", return_value=(frappe._dict(to_site="https://t"), None)
+		), patch.object(k, "read_manifest", return_value=manifest), patch.object(
+			k, "owed_records", return_value=(["I-1", "I-2", "I-3"], ["B-1"])
+		), patch.object(k, "enqueue_sync") as enqueue:
+			k.retry_log("LOG-1")
+		self.assertEqual(enqueue.call_args.kwargs["items"], ["I-1", "I-2", "I-3"])
+		self.assertEqual(enqueue.call_args.kwargs["boms"], ["B-1"])
+		self.assertEqual(enqueue.call_args.kwargs["copy_boms"], {"I-2": "B-C"})
+
+	def test_an_old_plan_log_still_recovers_the_tail_from_the_plan(self):
+		"""Written before manifests: one failed row listed, and the plan knows the rest."""
+		log = frappe._dict(
+			name="LOG-1",
+			status="Partially Completed",
+			trigger="Manufacturing Plan",
+			reference="MP-1",
+			records=[frappe._dict(record_doctype="Item", record_name="I-1", status="Failed")],
+		)
+		plan = frappe._dict(name="MP-1")
+		retry = frappe._dict(name="LOG-2", insert=lambda **kw: None)
+		with patch("frappe.only_for"), patch.object(frappe, "get_doc", side_effect=[log, plan, retry]), patch.object(
+			k, "get_sync_config", return_value=(frappe._dict(to_site="https://t"), None)
+		), patch.object(k, "read_manifest", return_value=None), patch.object(
+			frappe.db, "exists", return_value=True
+		), patch.object(
+			k, "collect_plan_records", return_value=(["I-1", "I-2"], ["B-1"], {})
+		), patch.object(k, "owed_records", return_value=(["I-2"], ["B-1"])), patch.object(
+			k, "enqueue_sync"
+		) as enqueue:
+			k.retry_log("LOG-1")
+		self.assertEqual(enqueue.call_args.kwargs["items"], ["I-1", "I-2"])
+		self.assertEqual(enqueue.call_args.kwargs["boms"], ["B-1"])
+
+
+class TestTheSupervisor(unittest.TestCase):
+	"""F20. A quiet log is not a dead worker. The queue is asked, and a superseded worker is
+	fenced off before anything else happens."""
+
+	def _row(self, status="Queued", job_id="kggk_plan::MP-1", generation=1):
+		return frappe._dict(
+			name="LOG-1", status=status, trigger="Manufacturing Plan", reference="MP-1",
+			job_id=job_id, generation=generation, heartbeat_on=None, modified="2026-10-05 09:00:00",
+		)
+
+	def _supervise(self, row, state, manifest=None):
+		writes = []
+		with ExitStack() as stack:
+			enter = stack.enter_context
+			enter(patch.object(frappe, "get_all", return_value=[row]))
+			enter(patch.object(k, "_job_state", return_value=state))
+			enter(patch.object(k, "read_manifest", return_value=manifest))
+			enter(patch.object(frappe.db, "get_value", return_value=""))
+			enter(patch.object(frappe.db, "set_value", side_effect=lambda *a, **kw: writes.append(a)))
+			enter(patch.object(frappe.db, "commit"))
+			enter(patch.object(k, "_redispatch_pending", return_value=[]))
+			enter(patch.object(k, "get_sync_config", return_value=(frappe._dict(to_site="https://t", fingerprint="fp"), None)))
+			enqueue = enter(patch.object(k, "_safe_enqueue", return_value=True))
+			closed = k.reap_stale_runs()
+		return closed, writes, enqueue
+
+	def test_a_job_still_waiting_in_the_queue_is_left_alone(self):
+		closed, writes, enqueue = self._supervise(self._row(), "queued")
+		self.assertEqual((closed, writes), ([], []))
+		enqueue.assert_not_called()
+
+	def test_a_job_still_running_is_left_alone(self):
+		closed, writes, _ = self._supervise(self._row(status="Running"), "started")
+		self.assertEqual((closed, writes), ([], []))
+
+	def test_a_queue_that_cannot_be_asked_concludes_nothing(self):
+		closed, writes, _ = self._supervise(self._row(), None)
+		self.assertEqual((closed, writes), ([], []))
+
+	def test_a_lost_hand_off_is_resent_from_its_list_under_a_new_generation(self):
+		manifest = {"items": ["I-1"], "boms": ["B-1"], "copy_boms": {}}
+		closed, writes, enqueue = self._supervise(self._row(), "missing", manifest=manifest)
+		self.assertEqual(closed, [])
+		self.assertIn(("KGGK Sync Log", "LOG-1", "generation", 2), [w[:4] for w in writes])
+		job = enqueue.call_args.args[0]
+		self.assertEqual((job["items"], job["boms"], job["generation"]), (["I-1"], ["B-1"], 2))
+		self.assertTrue(job["job_id"].endswith("::g2"))
+
+	def test_a_worker_that_died_mid_run_is_fenced_and_closed(self):
+		closed, writes, enqueue = self._supervise(self._row(status="Running"), "failed")
+		self.assertEqual(closed, ["LOG-1"])
+		self.assertEqual(writes[0][:4], ("KGGK Sync Log", "LOG-1", "generation", 2))
+		self.assertEqual(writes[1][2]["status"], k.STATUS_FAILED)
+		enqueue.assert_not_called()
+
+	def test_resending_stops_after_its_limit(self):
+		row = self._row(generation=k.MAX_REDISPATCH + 1)
+		closed, _w, enqueue = self._supervise(row, "missing", manifest={"items": ["I-1"], "boms": []})
+		self.assertEqual(closed, ["LOG-1"])
+		enqueue.assert_not_called()
+
+	def test_a_superseded_worker_writes_nothing(self):
+		with patch.object(k, "get_sync_config", return_value=(_settings(fingerprint="f"), "")), patch.object(
+			k, "_wrong_target", return_value=None
+		), patch.object(k, "verify_target_company", return_value=(True, "")), patch.object(
+			frappe.db, "get_value", return_value=3
+		), patch.object(k, "push_item") as push:
+			out = k.sync_records(items=["I-1"], log_name="LOG-1", generation=2)
+		self.assertEqual(out, {"status": "Superseded"})
+		push.assert_not_called()
+
+	def test_a_flush_from_a_superseded_worker_is_dropped(self):
+		log = _FakeLog()
+		run = _run(config=frappe._dict(to_site="https://t"), log_name="LOG-1", log=k.LOG_ALWAYS, generation=1)
+		run.row("Item", "I-1", "Synced")
+		with _with_log(log):
+			with patch.object(frappe.db, "get_value", side_effect=lambda dt, name, field, *a, **kw: 2 if field == "generation" else ""):
+				run.flush(k.STATUS_COMPLETED)
+		self.assertTrue(run.fenced)
+		self.assertEqual(log.records, [])
+		self.assertEqual(log.status, "")
+
+	def test_a_lost_single_record_hand_off_is_resent_under_its_own_job_id(self):
+		rows = [frappe._dict(record_doctype="Item", record_name="I-1"), frappe._dict(record_doctype="BOM", record_name="B-1")]
+		with patch.object(k, "get_sync_config", return_value=(frappe._dict(to_site="https://t", fingerprint="fp"), None)), patch.object(
+			k, "setting", return_value=1
+		), patch.object(frappe, "get_all", return_value=rows), patch.object(k, "_safe_enqueue", return_value=True) as enqueue:
+			sent = k._redispatch_pending()
+		self.assertEqual(sent, ["I-1", "B-1"])
+		jobs = [c.args[0] for c in enqueue.call_args_list]
+		self.assertEqual([j["job_id"] for j in jobs], ["kggk_item::I-1", "kggk_bom::B-1"])
+		self.assertEqual(jobs[0]["items"], ["I-1"])
+		self.assertEqual(jobs[1]["boms"], ["B-1"])
 
 
 class TestPrefillStarter(unittest.TestCase):
@@ -1419,13 +1643,15 @@ class TestPrefillStarter(unittest.TestCase):
 		enqueue.assert_not_called()
 
 	def test_it_enqueues_and_returns_without_checking_a_single_record(self):
-		log = frappe._dict(name="KGGK-SYNC-2026-00001", insert=lambda **kw: None)
+		log = frappe._dict(
+			name="KGGK-SYNC-2026-00001", insert=lambda **kw: None, db_set=lambda *a, **kw: None
+		)
 		with patch.object(k, "get_sync_config", return_value=(self.cfg, None)), patch.object(
 			k, "check_connectivity", return_value=(True, "Connected")
 		), patch.object(k, "_prefill_in_flight", return_value=None), patch(
 			"frappe.only_for"
 		), patch.object(frappe, "get_doc", return_value=log), patch.object(
-			frappe, "enqueue"
+			k, "_dispatch"
 		) as enqueue, patch.object(
 			k, "api_exists_many"
 		) as exists, patch.object(

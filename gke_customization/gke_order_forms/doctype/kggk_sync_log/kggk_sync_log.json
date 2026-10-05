@@ -17,6 +17,8 @@
   "column_break_timing",
   "ended_on",
   "job_id",
+  "heartbeat_on",
+  "generation",
   "counts_section",
   "items_total",
   "items_synced",
@@ -32,7 +34,8 @@
   "records",
   "problems_section",
   "problems",
-  "check_result"
+  "check_result",
+  "requested_records"
  ],
  "fields": [
   {
@@ -106,6 +109,21 @@
    "fieldname": "job_id",
    "fieldtype": "Data",
    "label": "Job ID",
+   "read_only": 1
+  },
+  {
+   "description": "Last sign of life from the worker running this.",
+   "fieldname": "heartbeat_on",
+   "fieldtype": "Datetime",
+   "label": "Last Heartbeat",
+   "read_only": 1
+  },
+  {
+   "description": "Bumped whenever the run is handed to a new worker; an older worker that wakes up finds it changed and stops.",
+   "fieldname": "generation",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Generation",
    "read_only": 1
   },
   {
@@ -202,12 +220,20 @@
    "hidden": 1,
    "label": "Check Result",
    "read_only": 1
+  },
+  {
+   "description": "Every record this run was asked to send, written before it was queued. What Retry and the supervisor work from.",
+   "fieldname": "requested_records",
+   "fieldtype": "Long Text",
+   "hidden": 1,
+   "label": "Requested Records",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-05 12:10:00.000000",
+ "modified": "2026-10-05 12:20:00.000000",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "KGGK Sync Log",

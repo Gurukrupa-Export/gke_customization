@@ -935,8 +935,14 @@ class SyncRun:
 		deferred=None,
 		log=LOG_ALWAYS,
 		copy_boms=None,
+		generation=None,
 	):
 		self.trigger = trigger
+
+		# The log's generation this worker was started for. If the supervisor hands the run to
+		# another worker it bumps the log's; this one then finds it changed and stops writing.
+		self.generation = cint(generation) if generation is not None else None
+		self.fenced = False
 		self.reference = reference or ""
 		self.config = config
 		self.chunk_index = chunk_index
@@ -1083,6 +1089,28 @@ class SyncRun:
 			}
 		)
 
+	def heartbeat(self):
+		"""Say this worker is alive. Redis, not the database: it must not touch the transaction
+		a record is being pushed inside, and it is called far more often than a flush."""
+		if not self.log_name:
+			return
+		try:
+			frappe.cache().set_value(f"kggk_hb::{self.log_name}", time.time(), expires_in_sec=6 * 3600)
+		except Exception:
+			pass
+
+	def _superseded(self):
+		"""Has this run been handed to another worker since this one started?"""
+		if self.generation is None or not self.log_name:
+			return False
+		try:
+			current = cint(frappe.db.get_value(LOG_DOCTYPE, self.log_name, "generation"))
+		except Exception:
+			return False
+		if current != self.generation:
+			self.fenced = True
+		return self.fenced
+
 	def _rows_on_log(self):
 		"""How many record rows the log already has. One indexed count per chunk."""
 		if self._rows_written is None:
@@ -1115,7 +1143,11 @@ class SyncRun:
 		except Exception:
 			frappe.logger("kggk_sync").exception(f"could not load {self.log_name}")
 			return
+		if self._superseded():
+			# Another worker owns this run now. Writing would overwrite its account of it.
+			return
 
+		self.heartbeat()
 		written = self._rows_on_log()
 		try:
 			frappe.db.savepoint("kggk_flush")
@@ -1138,6 +1170,7 @@ class SyncRun:
 			values["boms_total"] = self.boms_total
 			total = self.items_total + self.boms_total
 			values["progress"] = min(100.0, (self.done / total) * 100) if total else 100.0
+			values["heartbeat_on"] = now_datetime()
 
 			if status:
 				values["status"] = status
@@ -1490,6 +1523,8 @@ def upload(config, file_url, target_doctype, target_name, fieldname, run=None):
 
 	is_private = cint(file_doc.is_private)
 	file_name = file_doc.file_name or os.path.basename(file_url) or "attachment"
+	# A large attachment is the slowest thing a run does. Alive, not stuck.
+	run and run.heartbeat()
 
 	response = api_post(
 		config,
@@ -2924,6 +2959,7 @@ def _apply_deferred_links(config, run):
 			unfinished.add((doctype, name))
 			continue
 
+		run.heartbeat()
 		response = api_put(
 			config, f"/api/resource/{segment(doctype)}/{segment(known)}", json=fields
 		)
@@ -3451,6 +3487,7 @@ def sync_records(
 	expect_target=None,
 	expect_fingerprint=None,
 	copy_boms=None,
+	generation=None,
 ):
 	"""Push a batch of Items and BOMs. The one entry point every trigger calls.
 
@@ -3493,6 +3530,14 @@ def sync_records(
 	if not items and not boms:
 		return None
 
+	# Handed to another worker since this job was queued - the supervisor re-sent it after this
+	# one looked lost. The newer one owns the run; this one must not write a word of it.
+	if log_name and generation is not None:
+		current = cint(frappe.db.get_value(LOG_DOCTYPE, log_name, "generation"))
+		if current != cint(generation):
+			log_skip(f"run {log_name} belongs to generation {current} now; this worker stops")
+			return {"status": "Superseded"}
+
 	if totals is None:
 		totals = {"items": len(items), "boms": len(boms)}
 
@@ -3511,8 +3556,9 @@ def sync_records(
 		chunk_index=chunk_index,
 		log_name=log_name,
 		deferred=deferred,
-		log=LOG_ON_PROBLEM if trigger in ("Item Update", "BOM Update") else LOG_ALWAYS,
+		log=LOG_ON_PROBLEM if trigger in SINGLE_RECORD_TRIGGERS else LOG_ALWAYS,
 		copy_boms=copy_boms,
+		generation=generation,
 	)
 	run.items_total = int(totals.get("items") or 0)
 	run.boms_total = int(totals.get("boms") or 0)
@@ -3545,6 +3591,7 @@ def sync_records(
 				rest_items = items[position - 1 :] + rest_items
 				out_of_time = True
 				break
+			run.heartbeat()
 			frappe.db.savepoint("kggk_item")
 			try:
 				push_item(item_code, config, run, seen=seen)
@@ -3554,6 +3601,8 @@ def sync_records(
 				frappe.log_error(frappe.get_traceback(), f"KGGK sync: Item {item_code}"[:140])
 			if position % FLUSH_EVERY == 0:
 				run.flush()
+			if run.fenced:
+				break
 
 		# Always, whatever the count. Items and BOMs are the two halves of a run and they fail
 		# for different reasons; knowing the items finished is most of the diagnosis when the
@@ -3589,6 +3638,9 @@ def sync_records(
 				rest_boms = boms[position - 1 :] + rest_boms
 				out_of_time = True
 				break
+			if run.fenced:
+				break
+			run.heartbeat()
 			frappe.db.savepoint("kggk_bom")
 			try:
 				push_bom(bom_name, config, run)
@@ -3607,6 +3659,11 @@ def sync_records(
 				f"chunk {chunk_index + 1} reached its {CHUNK_BUDGET_SECONDS // 60}-minute budget; "
 				f"{len(rest_items)} item(s) and {len(rest_boms)} BOM(s) handed to the next chunk",
 			)
+
+		if run.fenced:
+			# Superseded mid-chunk. The new worker has the whole run; nothing more from here.
+			log_skip(f"run {log_name} was handed to another worker; stopping")
+			return {"status": "Superseded"}
 
 		# The BOMs of this chunk now exist on the target, so the links that were dropped
 		# because they did not - `Item.master_bom` above all - can be put back.
@@ -3648,6 +3705,14 @@ def sync_records(
 		# Every chunk reports its own problems. Only the last one used to, because `finish()`
 		# is the only other caller of `report()` - so on a twenty-chunk run, nineteen chunks
 		# of mismatches went nowhere but the log file.
+		next_job = f"kggk_sync::{run_id or reference or trigger}::chunk{chunk_index + 1}"
+		if run.log_name:
+			# The supervisor asks the queue about the job the log names, so it must name the
+			# job that is actually carrying the run now.
+			try:
+				frappe.db.set_value(LOG_DOCTYPE, run.log_name, "job_id", next_job, update_modified=False)
+			except Exception:
+				frappe.logger("kggk_sync").exception(f"could not record {next_job} on {run.log_name}")
 		run.flush()
 		run.report()
 		frappe.db.commit()
@@ -3661,7 +3726,7 @@ def sync_records(
 				"gke_customization.gke_order_forms.doc_events.kggk_sync.sync_records",
 				queue="long",
 				timeout=JOB_TIMEOUT,
-				job_id=f"kggk_sync::{run_id or reference or trigger}::chunk{chunk_index + 1}",
+				job_id=next_job,
 				deduplicate=True,
 				items=rest_items,
 				boms=rest_boms,
@@ -3676,6 +3741,7 @@ def sync_records(
 				expect_target=expect_target,
 				expect_fingerprint=expect_fingerprint,
 				copy_boms=run.copy_bom_overrides,
+				generation=run.generation,
 			)
 		except Exception as exc:
 			# The remainder lives only in these kwargs - it is never written down - so a lost
@@ -3720,24 +3786,127 @@ def _wrong_target(config, expect_target, expect_fingerprint):
 def _abandon_run(log_name, reason):
 	"""Close a log for a run that refused to proceed, so it does not sit at Running."""
 	try:
-		doc = frappe.get_doc(LOG_DOCTYPE, log_name)
-		doc.status = STATUS_FAILED
-		doc.summary = reason
-		doc.ended_on = now_datetime()
-		doc.problems = ((doc.problems or "") + f"\nABORTED       | - | - | {reason}")[
-			-MAX_REPORT_CHARS:
-		]
-		doc.flags.ignore_version = True
-		doc.save(ignore_permissions=True)
+		problems = frappe.db.get_value(LOG_DOCTYPE, log_name, "problems") or ""
+		frappe.db.set_value(
+			LOG_DOCTYPE,
+			log_name,
+			{
+				"status": STATUS_FAILED,
+				"summary": reason,
+				"ended_on": now_datetime(),
+				"problems": (problems + f"\nABORTED       | - | - | {reason}")[-MAX_REPORT_CHARS:],
+			},
+		)
 		frappe.db.commit()
 	except Exception:
 		frappe.logger("kggk_sync").exception(f"could not close abandoned run {log_name}")
 
 
+# ---------------------------------------------------------------------------------
+# DURABLE INTENT AND THE HAND-OFF TO THE QUEUE
+# ---------------------------------------------------------------------------------
+#
+# A push is asked for inside somebody's transaction - an Item save, a plan submit, a button.
+# Two things must both hold whatever redis does:
+#
+# * the request succeeds once its document has committed, and
+# * the work it asked for is written down, so that if the queue never gets it something can
+#   still find it and send it.
+#
+# So the intent is written in the caller's transaction - a Pending Sync State row for a single
+# record, a Queued log carrying the full list for anything bigger - and the job is handed to
+# the queue only after the commit, by a callback that swallows its own failures. If that
+# hand-off is lost, the supervisor (`reap_stale_runs`) finds the intent and sends it again.
+
+SYNC_METHOD = "gke_customization.gke_order_forms.doc_events.kggk_sync.sync_records"
+
+# Triggers that push one record. Their durable intent is that record's Pending Sync State row,
+# and they open a log only if something goes wrong.
+SINGLE_RECORD_TRIGGERS = ("Item Update", "BOM Update")
+
+
+def _safe_enqueue(job):
+	"""Put ``job`` on the queue. Never raises: the work it carries is already written down."""
+	try:
+		frappe.enqueue(**job)
+		return True
+	except Exception:
+		frappe.logger("kggk_sync").exception(
+			f"could not queue {job.get('job_id')}; the request is recorded and will be re-sent"
+		)
+		return False
+
+
+def _dispatch(**job):
+	"""Hand ``job`` to the queue once the current transaction commits.
+
+	`enqueue_after_commit` would do the deferring, but an error inside its callback escapes the
+	commit - after the document is saved - and the user is told a save failed that did not.
+	This callback cannot raise.
+	"""
+	try:
+		frappe.db.after_commit.add(lambda: _safe_enqueue(job))
+	except Exception:
+		frappe.logger("kggk_sync").exception(f"could not schedule {job.get('job_id')}")
+
+
+def _manifest(items, boms, copy_boms=None):
+	return frappe.as_json(
+		{"items": list(items), "boms": list(boms), "copy_boms": dict(copy_boms or {})}, indent=None
+	)
+
+
+def read_manifest(log_name):
+	"""What a run was asked to send, as written before it was queued, or ``None``."""
+	raw = frappe.db.get_value(LOG_DOCTYPE, log_name, "requested_records") if log_name else None
+	if not raw:
+		return None
+	try:
+		data = frappe.parse_json(raw)
+	except Exception:
+		return None
+	return data if isinstance(data, dict) else None
+
+
+def _open_queued_log(log_name, items, boms, trigger, reference, config, job_id, copy_boms=None):
+	"""The run's log, Queued, carrying everything it owes. Returns its name.
+
+	Written in the caller's transaction, so it commits with the plan or the button press that
+	asked for the run. Before this, the list of records lived only in the queued job: a lost
+	hand-off lost the list, and nothing could say what had been owed.
+	"""
+	values = {
+		"requested_records": _manifest(items, boms, copy_boms),
+		"job_id": job_id,
+		"generation": 1,
+		"items_total": len(items),
+		"boms_total": len(boms),
+	}
+	try:
+		if log_name:
+			frappe.db.set_value(LOG_DOCTYPE, log_name, values)
+			return log_name
+		doc = frappe.get_doc(
+			{
+				"doctype": LOG_DOCTYPE,
+				"trigger": trigger if trigger in TRIGGERS else "Manual",
+				"reference": str(reference or "")[:140],
+				"target_site": config.to_site,
+				"status": STATUS_QUEUED,
+				**values,
+			}
+		)
+		doc.insert(ignore_permissions=True)
+		return doc.name
+	except Exception:
+		frappe.logger("kggk_sync").exception("could not write the run's request down")
+		return log_name
+
+
 def enqueue_sync(
 	items=None, boms=None, trigger="Manual", reference=None, job_id=None, log_name=None, copy_boms=None
 ):
-	"""Queue a batch. Never blocks the save or submit that asked for it.
+	"""Write the request down and queue it after commit. Never blocks or fails the caller.
 
 	``copy_boms`` is the triggering plan's ``item_code -> Copy BOM``, when a plan started this.
 	"""
@@ -3754,12 +3923,19 @@ def enqueue_sync(
 		log_skip(reason)
 		return False
 
-	frappe.enqueue(
-		"gke_customization.gke_order_forms.doc_events.kggk_sync.sync_records",
+	job_id = job_id or f"kggk_sync::{trigger}::{reference or ''}"
+	generation = None
+	if trigger not in SINGLE_RECORD_TRIGGERS:
+		log_name = _open_queued_log(
+			log_name, items, boms, trigger, reference, config, job_id, copy_boms
+		)
+		generation = 1 if log_name else None
+
+	_dispatch(
+		method=SYNC_METHOD,
 		queue="long",
 		timeout=JOB_TIMEOUT,
-		enqueue_after_commit=True,
-		job_id=job_id or f"kggk_sync::{trigger}::{reference or ''}",
+		job_id=job_id,
 		deduplicate=True,
 		items=items,
 		boms=boms,
@@ -3771,6 +3947,7 @@ def enqueue_sync(
 		expect_target=host_of(config.to_site),
 		expect_fingerprint=config.get("fingerprint"),
 		copy_boms=copy_boms or None,
+		generation=generation,
 	)
 	return True
 
@@ -4105,27 +4282,68 @@ def reconcile_changes():
 # ============================================================================
 
 
-# A run whose log has not been touched for this long is a worker that died, not one that is
-# busy. Every chunk flushes its counters, and a chunk is fifty records, so a live run updates
-# `modified` regularly even against a slow target.
+# How long a run's log may go without progress before the supervisor looks at it. Looking is
+# all this decides: a run is closed or re-sent only when the queue confirms no job is behind it.
 STALE_SYNC_MINUTES = 30
+
+# How many times a Queued run whose hand-off was lost is re-sent before it is closed instead.
+MAX_REDISPATCH = 3
+
+# A Pending Sync State row this old has missed its hand-off; see `_redispatch_pending`.
+PENDING_GRACE_MINUTES = 10
+
+# RQ states in which the job still exists and will run, or is running.
+JOB_ALIVE = {"queued", "started", "deferred", "scheduled"}
+
+
+def _job_state(job_id):
+	"""What the queue says about ``job_id``: an RQ status, ``"missing"``, or ``None`` if it could
+	not be asked - in which case nothing may be concluded about the run."""
+	if not job_id:
+		return "missing"
+	try:
+		from frappe.utils.background_jobs import get_job_status
+
+		status = get_job_status(job_id)
+	except Exception:
+		return None
+	if status is None:
+		return "missing"
+	return str(getattr(status, "value", status)).lower()
+
+
+def _heartbeat_age(log_name, heartbeat_on, modified):
+	"""Seconds since the worker last said it was alive."""
+	try:
+		beat = frappe.cache().get_value(f"kggk_hb::{log_name}", expires=True)
+		if beat:
+			return time.time() - float(beat)
+	except Exception:
+		pass
+	return time_diff_in_seconds(now_datetime(), heartbeat_on or modified)
 
 
 def reap_stale_runs():
-	"""Close runs whose worker died, so their records can be retried.
+	"""Supervise runs that have gone quiet: leave the live ones, re-send the lost, close the dead.
 
 	Scheduler-only, and deliberately not whitelisted: it bypasses permissions to rewrite logs
 	that only a System Manager may write, so it must not be reachable as an RPC by any
 	logged-in user.
 
-	A sync log is created Running by the worker that picked the job up, and only that worker
-	ever closes it. Killed mid-flight - a deploy, a restart, an out-of-memory, a job timeout -
-	it says Running for ever: nothing notices, `retry_log` refuses to touch a Running run, and
-	the form does not offer the Retry button. The records in it are then stranded with no
-	route back, which is the one outcome the logging was supposed to prevent.
+	A quiet log used to be proof enough of a dead worker. It is not: a job can wait forty minutes
+	in a busy long queue, or spend that long on one large upload, and declaring it dead let a
+	retry run alongside the original. So the queue is asked about the job the log names:
 
-	Deliberately not gated on "Hourly Change Check" or on the sync being enabled: a stuck
-	document needs tidying whatever the settings say, and this touches nothing but the log.
+	* still queued or running -> left alone; it is slow, not gone
+	* gone, and the run never started -> its hand-off was lost: re-sent from the list written
+	  when it was queued, up to `MAX_REDISPATCH` times
+	* gone after it started -> the worker died: closed, with what it still owes kept for Retry
+
+	Either way the log's generation is bumped first, so a worker that was only paused cannot
+	wake up and write over the run. If the queue cannot be asked at all, nothing is concluded.
+
+	Deliberately not gated on "Hourly Change Check": a stuck run needs tidying whatever the
+	settings say.
 	"""
 	cutoff = add_to_date(now_datetime(), minutes=-STALE_SYNC_MINUTES)
 	stale = frappe.get_all(
@@ -4134,43 +4352,194 @@ def reap_stale_runs():
 			"status": ("in", [STATUS_QUEUED, STATUS_RUNNING]),
 			"modified": ("<", cutoff),
 		},
-		fields=["name", "reference", "trigger"],
+		fields=["name", "status", "trigger", "reference", "job_id", "generation", "heartbeat_on", "modified"],
 		order_by="modified asc",
 		limit=50,
 	)
 
-	closed = []
+	closed, resent = [], []
 	for row in stale:
 		try:
-			doc = frappe.get_doc(LOG_DOCTYPE, row.name)
-			doc.status = STATUS_FAILED
-			doc.ended_on = now_datetime()
-			doc.summary = (
-				f"{doc.summary or ''} | Abandoned: no progress for {STALE_SYNC_MINUTES} "
-				"minutes, so the worker running it is gone. Press Retry Failed to queue it "
-				"again."
-			).strip(" |")
-			doc.flags.ignore_version = True
-			doc.save(ignore_permissions=True)
+			state = _job_state(row.job_id)
+			if state is None:
+				continue
+			if state in JOB_ALIVE:
+				continue
+			if not row.job_id and _heartbeat_age(row.name, row.heartbeat_on, row.modified) < STALE_SYNC_MINUTES * 60:
+				continue
+
+			generation = cint(row.generation) + 1
+			frappe.db.set_value(LOG_DOCTYPE, row.name, "generation", generation, update_modified=False)
+
+			manifest = read_manifest(row.name)
+			if (
+				row.status == STATUS_QUEUED
+				and manifest
+				and row.trigger != "Prefill"
+				and generation <= MAX_REDISPATCH + 1
+				and _redispatch(row, manifest, generation)
+			):
+				resent.append(row.name)
+				continue
+
+			reason = (
+				"the queue has no job for this run any more - its worker stopped or the hand-off "
+				"was lost"
+				if row.status == STATUS_RUNNING
+				else "it could not be handed to a worker"
+			)
+			summary = frappe.db.get_value(LOG_DOCTYPE, row.name, "summary") or ""
+			frappe.db.set_value(
+				LOG_DOCTYPE,
+				row.name,
+				{
+					"status": STATUS_FAILED,
+					"ended_on": now_datetime(),
+					"summary": f"{summary} | Stopped: {reason}. Retry Failed sends what it still "
+					"owes.".strip(" |"),
+				},
+			)
 			closed.append(row.name)
 		except Exception:
-			frappe.logger("kggk_sync").exception(f"could not close stale run {row.name}")
+			frappe.logger("kggk_sync").exception(f"could not supervise run {row.name}")
 
-	if closed:
+	if closed or resent:
 		frappe.db.commit()
 		frappe.logger("kggk_sync").info(
-			f"{_stamp()} | REAPED        | - | - | closed {len(closed)} stale run(s): "
-			+ ", ".join(closed)
+			f"{_stamp()} | SUPERVISED    | - | - | closed {len(closed)}, re-sent {len(resent)}: "
+			+ ", ".join(closed + resent)
 		)
+
+	try:
+		_redispatch_pending()
+	except Exception:
+		frappe.logger("kggk_sync").exception("could not re-send pending records")
 	return closed
+
+
+def _redispatch(row, manifest, generation):
+	"""Send a Queued run again from the list written when it was queued."""
+	config, reason = get_sync_config()
+	if not config:
+		return False
+	job_id = f"{row.job_id or 'kggk_sync::' + row.name}::g{generation}"
+	frappe.db.set_value(LOG_DOCTYPE, row.name, "job_id", job_id, update_modified=False)
+	return _safe_enqueue(
+		dict(
+			method=SYNC_METHOD,
+			queue="long",
+			timeout=JOB_TIMEOUT,
+			job_id=job_id,
+			deduplicate=True,
+			items=manifest.get("items") or [],
+			boms=manifest.get("boms") or [],
+			trigger=row.trigger,
+			reference=row.reference,
+			run_id=frappe.generate_hash(length=8),
+			log_name=row.name,
+			expect_target=host_of(config.to_site),
+			expect_fingerprint=config.get("fingerprint"),
+			copy_boms=manifest.get("copy_boms") or None,
+			generation=generation,
+		)
+	)
+
+
+def _redispatch_pending(limit=50):
+	"""Re-send single-record pushes whose hand-off never reached the queue.
+
+	An Item or BOM save writes a Pending row and queues the push after commit. If redis was down
+	at that moment, the row is the only trace - and the hourly check that would find it is
+	optional. This is the dispatcher's job, not reconciliation, so it runs regardless: the same
+	per-record job id as the save means a push that is merely waiting in the queue is not doubled.
+	"""
+	config, reason = get_sync_config()
+	if not config or not cint(setting("sync_updates", 1)):
+		return []
+	cutoff = add_to_date(now_datetime(), minutes=-PENDING_GRACE_MINUTES)
+	rows = frappe.get_all(
+		STATE_DOCTYPE,
+		filters={
+			"status": "Pending",
+			"target_site": host_of(config.to_site),
+			"modified": ("<", cutoff),
+			"attempts": ("<", MAX_RECONCILE_ATTEMPTS),
+		},
+		fields=["record_doctype", "record_name"],
+		order_by="modified asc",
+		limit=limit,
+	)
+	sent = []
+	for row in rows:
+		key = "items" if row.record_doctype == "Item" else "boms"
+		if _safe_enqueue(
+			dict(
+				method=SYNC_METHOD,
+				queue="long",
+				timeout=JOB_TIMEOUT,
+				job_id=f"kggk_{row.record_doctype.lower()}::{row.record_name}",
+				deduplicate=True,
+				trigger=f"{row.record_doctype} Update",
+				reference=row.record_name,
+				run_id=frappe.generate_hash(length=8),
+				expect_target=host_of(config.to_site),
+				expect_fingerprint=config.get("fingerprint"),
+				**{key: [row.record_name]},
+			)
+		):
+			sent.append(row.record_name)
+	return sent
+
+
+def owed_records(manifest, target):
+	"""Of what a run was asked to send, what is still not current on ``target``.
+
+	Current means Synced at the version this site holds now. Partial, Failed, Pending, never
+	attempted, or edited since: all owed. Two queries for the whole list, not two per record.
+	"""
+	owed = {}
+	for doctype, key in (("Item", "items"), ("BOM", "boms")):
+		names = [n for n in dict.fromkeys(manifest.get(key) or []) if n]
+		if not names:
+			owed[doctype] = []
+			continue
+		states = {
+			row.record_name: row
+			for row in frappe.get_all(
+				STATE_DOCTYPE,
+				filters={"record_doctype": doctype, "record_name": ("in", names), "target_site": target},
+				fields=["record_name", "status", "local_modified"],
+			)
+		}
+		modified = {
+			row.name: row.modified
+			for row in frappe.get_all(doctype, filters={"name": ("in", names)}, fields=["name", "modified"])
+		}
+		owed[doctype] = [
+			n
+			for n in names
+			# Deleted here since: nothing left to send.
+			if n in modified
+			and not (
+				n in states
+				and states[n].status == "Synced"
+				and states[n].local_modified
+				and modified[n] <= states[n].local_modified
+			)
+		]
+	return owed["Item"], owed["BOM"]
 
 
 @frappe.whitelist()
 def retry_log(log_name):
-	"""Re-queue whatever failed in an earlier run, into a new log.
+	"""Re-queue everything an earlier run still owes, into a new log.
 
 	A new document rather than a rewrite of the old one: the failed attempt stays readable
 	exactly as it was, which is the thing you go back to when the retry fails too.
+
+	"Owes" is worked out from the list the run was given when it was queued - so records it never
+	reached, a tail lost with a chunk, and Partial records all count - not from the rows it
+	happened to write, which only describe what it got round to.
 	"""
 	frappe.only_for("System Manager")
 
@@ -4178,29 +4547,38 @@ def retry_log(log_name):
 	if log.status in (STATUS_QUEUED, STATUS_RUNNING):
 		frappe.throw(_("This run is still {0}.").format(log.status))
 
+	config, reason = get_sync_config()
+	if not config:
+		frappe.throw(_(reason), title=_("Sync Not Available"))
+
 	# Partial is unfinished work too: the record is on the target and something it needs is not.
 	unfinished = ("Failed", "Pending", "Partial")
 	items = [r.record_name for r in log.records if r.status in unfinished and r.record_doctype == "Item"]
 	boms = [r.record_name for r in log.records if r.status in unfinished and r.record_doctype == "BOM"]
 
-	# A run that died before it processed anything lists no records at all, so there is
-	# nothing to read back - and that is exactly the run most worth retrying. For a
-	# Manufacturing Plan the answer is not lost, it is still on the plan, so re-derive it.
 	copy_boms = None
-	if log.trigger == "Manufacturing Plan" and log.reference:
+	manifest = read_manifest(log_name)
+	if manifest:
+		owed_items, owed_boms = owed_records(manifest, host_of(config.to_site))
+		items = list(dict.fromkeys(items + owed_items))
+		boms = list(dict.fromkeys(boms + owed_boms))
+		copy_boms = manifest.get("copy_boms") or None
+	elif log.trigger == "Manufacturing Plan" and log.reference:
+		# A log written before runs recorded their list. The plan still has it: everything the
+		# plan names that is not current, alongside whatever the rows say failed - the rows
+		# alone miss the tail a lost chunk never reached.
 		if frappe.db.exists("Manufacturing Plan", log.reference):
 			plan_items, plan_boms, copy_boms = collect_plan_records(
 				frappe.get_doc("Manufacturing Plan", log.reference)
 			)
-			if not items and not boms:
-				items, boms = plan_items, plan_boms
+			owed_items, owed_boms = owed_records(
+				{"items": plan_items, "boms": plan_boms}, host_of(config.to_site)
+			)
+			items = list(dict.fromkeys(items + owed_items))
+			boms = list(dict.fromkeys(boms + owed_boms))
 
 	if not items and not boms:
-		frappe.throw(_("Nothing in this run failed, so there is nothing to retry."))
-
-	config, reason = get_sync_config()
-	if not config:
-		frappe.throw(_(reason), title=_("Sync Not Available"))
+		frappe.throw(_("Nothing in this run is still owed, so there is nothing to retry."))
 
 	retry = frappe.get_doc(
 		{
@@ -4674,16 +5052,18 @@ def start_prefill(action=ACTION_CHECK, limit_plans=None, check_log=None, fields=
 			"reference": labels[action],
 			"target_site": config.to_site,
 			"status": STATUS_QUEUED,
+			"generation": 1,
 		}
 	)
 	log.insert(ignore_permissions=True)
+	job_id = f"kggk_prefill::{log.name}"
+	log.db_set("job_id", job_id, update_modified=False)
 
-	frappe.enqueue(
-		"gke_customization.gke_order_forms.doc_events.kggk_sync.run_prefill",
+	_dispatch(
+		method="gke_customization.gke_order_forms.doc_events.kggk_sync.run_prefill",
 		queue="long",
 		timeout=JOB_TIMEOUT,
-		enqueue_after_commit=True,
-		job_id=f"kggk_prefill::{log.name}",
+		job_id=job_id,
 		deduplicate=True,
 		log_name=log.name,
 		action=action,
