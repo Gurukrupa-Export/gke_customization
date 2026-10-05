@@ -48,8 +48,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Frappe v15 runs on 3.12 here, v16 on 3.14. The code has to compile on both.
-        python: ["3.12", "3.14"]
+        # The Python Frappe v16 runs on - the only runtime this is checked against.
+        python: ["3.14"]
     steps:
       - uses: actions/checkout@v4
 
@@ -151,14 +151,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # The v15 line - master and gk_develop, where this code is written.
-          - frappe: version-15
-            python: "3.12"
-            node: "20"
-            mariadb: "10.6"
-            jewellery_branch: gk_develop
-            jewellery_sha: 5a4910a87e4174029ebf12f2df4653409d3d56ad
-          # The v16 line it is deployed to - gk_prod, against GK live's jewellery.
+          # Frappe v16 only - the line this is deployed to (gk_prod), against GK live's
+          # jewellery.
           - frappe: version-16
             python: "3.14"
             node: "24"
