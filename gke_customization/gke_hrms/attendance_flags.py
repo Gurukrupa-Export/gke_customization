@@ -22,7 +22,7 @@ import frappe
 from frappe.utils import add_days, now_datetime
 
 from gke_customization.gke_hrms.punch_pairing import get_attendance_review_user
-from gke_customization.gke_hrms.ot_resolver import ensure_monthly_in_out_log, try_resolve_with_approved_ot, MIL_DOCTYPE, RES_REJECTED
+from gke_customization.gke_hrms.ot_resolver import ensure_monthly_in_out_log, try_resolve_with_approved_ot, _close_todos, MIL_DOCTYPE, RES_REJECTED
 from gke_customization.gke_hrms.utils import _log_exc
 
 MISSING_OUT = "Missing OUT"
@@ -268,3 +268,12 @@ def _create_todo(doc, error):
             "status": "Open",
         }
     ).insert(ignore_permissions=True)
+
+
+def close_todos_on_attendance_cancel(doc, method=None):
+    """Attendance on_cancel / on_trash hook.
+
+    A direct cancel or delete bypasses the resolver, so the open HR ToDo
+    raised for the punch error is closed here.
+    """
+    _close_todos(doc.name, "Cancelled")

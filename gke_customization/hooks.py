@@ -287,6 +287,8 @@ doc_events = {
     },
     "Attendance": {
         "on_submit": "gke_customization.gke_hrms.attendance_flags.flag_attendance_punch_errors",
+        "on_cancel": "gke_customization.gke_hrms.attendance_flags.close_todos_on_attendance_cancel",
+        "on_trash": "gke_customization.gke_hrms.attendance_flags.close_todos_on_attendance_cancel",
     },
     "Leave Application": {
         "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
