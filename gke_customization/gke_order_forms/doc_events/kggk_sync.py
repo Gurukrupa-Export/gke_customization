@@ -25,6 +25,7 @@ and reverted in one place.
 
 import os
 import time
+from contextlib import contextmanager
 from urllib.parse import quote
 
 import frappe
@@ -2378,8 +2379,21 @@ IDENTITY_FIELDS = (
 # `Item.master_bom`: translated to the target's name for the BOM, dropped if that BOM is not
 # there yet, and re-applied by the relink pass once it arrives.
 
+# The source's `modified` for the version a target record holds. The receiver refuses an older
+# push once this exists, so a late retry cannot put a record back in time.
+SOURCE_VERSION_FIELD = {
+	"fieldname": "custom_kggk_source_version",
+	"label": "Source Version",
+	"fieldtype": "Datetime",
+	"read_only": 1,
+	"no_copy": 1,
+	"description": "Set by the Gurukrupa sync. The version of the source record this holds.",
+}
+
 TARGET_ONLY_FIELDS = {
+	"BOM": (SOURCE_VERSION_FIELD,),
 	"Item": (
+		SOURCE_VERSION_FIELD,
 		{
 			"fieldname": "custom_copy_bom",
 			"label": "Copy BOM",
@@ -3085,10 +3099,142 @@ def _adopt_same_named(config, doctype, name, run=None):
 	return target_id
 
 
-def _send(config, doctype, name, data, lookup=None, run=None, clears=None):
+# The target-side half of the upsert (`kggk_receiver.py` in this app, deployed on KGGK).
+RECEIVER = "gke_customization.gke_order_forms.doc_events.kggk_receiver"
+_RECEIVER_TTL = 600
+_RECEIVER_MISS_TTL = 120
+
+
+def receiver_available(config):
+	"""Does the target run `kggk_receiver`, and so take an atomic, retry-safe upsert?
+
+	Asked once and remembered - ten minutes for a yes, two for a no, so a target that has just
+	been given the receiver starts using it soon after.
+	"""
+	key = f"kggk_receiver::{host_of(config.to_site)}"
+	try:
+		cached = frappe.cache().get_value(key, expires=True)
+	except Exception:
+		cached = None
+	if cached is not None:
+		return bool(cint(cached))
+
+	response = api_get(
+		config, f"/api/method/{RECEIVER}.capabilities", timeout=PREFLIGHT_TIMEOUT, attempts=1
+	)
+	available = bool(response.ok and (response.data.get("message") or {}).get("version"))
+	try:
+		frappe.cache().set_value(
+			key, 1 if available else 0, expires_in_sec=_RECEIVER_TTL if available else _RECEIVER_MISS_TTL
+		)
+	except Exception:
+		pass
+	return available
+
+
+@contextmanager
+def _record_lock(config, doctype, name):
+	"""Let one worker on this site push a given record to a given target at a time.
+
+	A plan job and a save can reach the same BOM together. Serialising them here keeps their
+	pushes in order; the receiver makes the target safe on its own, but the REST fallback has
+	only this to stop two creates racing.
+	"""
+	if frappe.db.db_type == "postgres":
+		yield True
+		return
+	import hashlib
+
+	key = "kggks:" + hashlib.sha1(f"{host_of(config.to_site)}|{doctype}|{name}".encode()).hexdigest()
+	try:
+		got = frappe.db.sql("select get_lock(%s, %s)", (key, 60))
+		locked = bool(got and cint(got[0][0]) == 1)
+	except Exception:
+		locked = True  # cannot lock: fall back to the receiver / identity checks alone
+		key = None
+	try:
+		yield locked
+	finally:
+		if key and locked:
+			try:
+				frappe.db.sql("select release_lock(%s)", (key,))
+			except Exception:
+				pass
+
+
+def _send(config, doctype, name, data, lookup=None, run=None, clears=None, version=None):
 	"""Upsert one record on the target, addressed by where it came from.
 
 	Returns ``(response, action, target_name, blocked_fields)``.
+
+	When the target runs `kggk_receiver`, this is one atomic call there: it locks the record's
+	origin, finds or creates it, and commits - so concurrent pushes and a retried 502 land on
+	one record, and an older ``version`` never overwrites a newer one. Otherwise it is the REST
+	sequence below, which cannot be atomic across two requests: creates are then never re-sent
+	on their own, and an unclear answer is settled by asking the target.
+	"""
+	data = dict(data)
+	data.update(_identity_values(doctype, name))
+
+	identified = ensure_identity_fields(config, doctype, run=run)
+
+	with _record_lock(config, doctype, name) as locked:
+		if not locked:
+			return (
+				Response(error="another push of this record is still running here; it will be retried"),
+				"skipped",
+				name,
+				[],
+			)
+		if identified and receiver_available(config):
+			return _send_via_receiver(config, doctype, name, data, clears, version, run)
+		return _send_via_rest(config, doctype, name, data, lookup, run, clears, identified)
+
+
+def _send_via_receiver(config, doctype, name, data, clears, version, run=None):
+	"""One call to the target's `upsert`. Safe to retry, so the transport's retries stay on."""
+	policy = {
+		"omit": sorted(_update_exclusions(doctype)),
+		"clear": {k: v for k, v in (clears or {}).items() if k not in data},
+	}
+	table = COMPANY_DEFAULT_TABLES.get(doctype)
+	if table and target_company():
+		policy["merge_child"] = {table: "company"}
+
+	response = api_post(
+		config,
+		f"/api/method/{RECEIVER}.upsert",
+		json={
+			"doctype": doctype,
+			"source_site": data[IDENTITY_SOURCE_SITE],
+			"source_name": str(name),
+			"data": data,
+			"source_version": str(version) if version else None,
+			"policy": policy,
+		},
+	)
+	if not response.ok:
+		return response, "failed", name, []
+
+	answer = response.data.get("message") or {}
+	target_id = answer.get("name") or name
+	action = answer.get("action") or "updated"
+	if action == "stale":
+		run and run.line(
+			"STALE", doctype, name, "the target already holds a newer version of this record; left alone"
+		)
+	return (
+		Response(status_code=200, data={"data": {"name": target_id}}),
+		action,
+		target_id,
+		list(answer.get("blocked") or []),
+	)
+
+
+def _send_via_rest(config, doctype, name, data, lookup, run, clears, identified):
+	"""Lookup, then PUT or POST - for a target without the receiver.
+
+	``data`` already carries the identity stamp.
 
 	``data`` is the create payload. An update sends it minus `_update_exclusions`, plus
 	``clears`` - the fields emptied here, see `explicit_clears` - so a removal reaches the
@@ -3107,11 +3253,6 @@ def _send(config, doctype, name, data, lookup=None, run=None, clears=None):
 	``blocked_fields`` is non-empty only when the target has already submitted the record and
 	would not let those fields change.
 	"""
-	data = dict(data)
-	data.update(_identity_values(doctype, name))
-
-	identified = ensure_identity_fields(config, doctype, run=run)
-
 	target_id = lookup
 	if not target_id and identified:
 		found = lookup_by_identity(config, doctype, name, run=run)
@@ -3176,11 +3317,11 @@ def _send(config, doctype, name, data, lookup=None, run=None, clears=None):
 		# create it again rather than failing the record.
 		run and run.line("INFO", doctype, name, f"{target_id} vanished from the target, recreating")
 
-	# Create. Deliberately not retried on a connection error: the record may have been
-	# created and only the answer lost, so we ask the target what happened rather than
-	# sending it a second time.
+	# Create. Never re-sent on its own - not after a connection error, and not after a 5xx
+	# either: a proxy can answer 502 for a create the target committed, and sending it again is
+	# how one BOM became two. An unclear answer is settled by asking the target instead.
 	response = api_post(
-		config, f"/api/resource/{segment(doctype)}", json=data, retry_connection=False
+		config, f"/api/resource/{segment(doctype)}", json=data, attempts=1
 	)
 
 	# The target has a record of this name already and the identity lookup did not find it, so
@@ -3194,7 +3335,8 @@ def _send(config, doctype, name, data, lookup=None, run=None, clears=None):
 			if updated is not None:
 				return updated
 
-	if response.error and identified:
+	unclear = response.error or (response.status_code or 0) >= 500
+	if unclear and identified:
 		settled = lookup_by_identity(config, doctype, name, run=run)
 		if settled is not _LOOKUP_FAILED and settled:
 			run and run.line(
@@ -3269,6 +3411,7 @@ def push_item(item_code, config, run, seen=None):
 		lookup=target_name_if_known("Item", item_code, target_host),
 		run=run,
 		clears=explicit_clears(doc, allowed),
+		version=sent_version,
 	)
 	if blocked:
 		run.mismatch(
@@ -3396,6 +3539,7 @@ def _push_bom(bom_name, config, run):
 		lookup=target_name_if_known("BOM", bom_name, target_host),
 		run=run,
 		clears=explicit_clears(doc, allowed),
+		version=sent_version,
 	)
 	if blocked:
 		run.mismatch(

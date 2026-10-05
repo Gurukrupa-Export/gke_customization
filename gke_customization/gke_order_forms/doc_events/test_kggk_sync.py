@@ -20,6 +20,18 @@ from . import kggk_sync as k
 
 MOD = "gke_customization.gke_order_forms.doc_events.kggk_sync"
 
+# `_send` asks the target whether it runs the receiver. No test may make that call by accident:
+# the default answer is "no", and the tests about the receiver say "yes" themselves.
+_NO_RECEIVER = patch(f"{MOD}.receiver_available", return_value=False)
+
+
+def setUpModule():
+	_NO_RECEIVER.start()
+
+
+def tearDownModule():
+	_NO_RECEIVER.stop()
+
 
 def _settings(**overrides):
 	base = {
@@ -2172,6 +2184,107 @@ class TestTargetNaming(unittest.TestCase):
 
 		self.assertEqual(asked["BOM"], ["BOM-X-001"])
 		self.assertEqual(out["boms_missing"], 0)
+
+
+class TestAtomicUpsert(unittest.TestCase):
+	"""F04. A lookup and then a POST are two requests, and two workers - or one 502 - could make
+	two BOMs out of one. With the receiver on the target it is one locked step there."""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", headers={})
+
+	def _receiver(self, answer=None, ok=True):
+		response = k.Response(status_code=200 if ok else 503, data={"message": answer or {"name": "B-9", "action": "created", "blocked": []}})
+		stack = ExitStack()
+		stack.enter_context(patch.object(k, "receiver_available", return_value=True))
+		stack.enter_context(patch.object(k, "ensure_identity_fields", return_value=True))
+		post = stack.enter_context(patch.object(k, "api_post", return_value=response))
+		return stack, post
+
+	def test_the_target_receiver_is_used_when_it_is_there(self):
+		stack, post = self._receiver()
+		with stack, patch.object(k, "target_company", return_value=None), patch.object(k, "lookup_by_identity") as lookup:
+			response, action, target, blocked = k._send(
+				self.cfg, "Item", "I-1", {"item_name": "Ring", "attributes": [{"attribute": "Size"}]},
+				clears={"brand": None}, version="2026-10-05 10:00:00",
+			)
+		lookup.assert_not_called()
+		self.assertTrue(response.ok)
+		self.assertEqual((action, target), ("created", "B-9"))
+		path = post.call_args.args[1]
+		body = post.call_args.kwargs["json"]
+		self.assertTrue(path.endswith("kggk_receiver.upsert"))
+		self.assertEqual(body["source_name"], "I-1")
+		self.assertEqual(body["source_version"], "2026-10-05 10:00:00")
+		self.assertIn("attributes", body["policy"]["omit"])
+		self.assertIn("item_defaults", body["policy"]["omit"])
+		self.assertEqual(body["policy"]["clear"], {"brand": None})
+		# Idempotent over there, so the transport may retry a 502 - unlike a bare POST.
+		self.assertNotIn("attempts", post.call_args.kwargs)
+
+	def test_kggk_defaults_are_merged_not_replaced_through_the_receiver(self):
+		stack, post = self._receiver()
+		with stack, patch.object(k, "target_company", return_value="KG GK Jewellers Private Limited"):
+			k._send(self.cfg, "Item", "I-1", {"item_defaults": [{"company": "KG GK Jewellers Private Limited"}]})
+		self.assertEqual(post.call_args.kwargs["json"]["policy"]["merge_child"], {"item_defaults": "company"})
+
+	def test_what_the_submitted_record_refused_comes_back(self):
+		stack, _post = self._receiver({"name": "B-9", "action": "updated (submitted)", "blocked": ["quantity"]})
+		with stack:
+			response, action, target, blocked = k._send(self.cfg, "BOM", "B-1", {"quantity": 5})
+		self.assertEqual(blocked, ["quantity"])
+
+	def test_a_receiver_failure_is_a_failed_record(self):
+		stack, _post = self._receiver(ok=False)
+		with stack:
+			response, action, target, blocked = k._send(self.cfg, "BOM", "B-1", {"quantity": 5})
+		self.assertFalse(response.ok)
+
+	def test_without_the_receiver_a_create_is_never_sent_twice(self):
+		"""The proxy said 502; the target had committed. Asking beats sending it again."""
+		with patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "lookup_by_identity", side_effect=[None, "B-7"]
+		), patch.object(k, "api_post", return_value=k.Response(status_code=502)) as post:
+			response, action, target, blocked = k._send(self.cfg, "BOM", "B-1", {"item": "I-1"})
+		self.assertEqual(post.call_count, 1)
+		self.assertEqual(post.call_args.kwargs["attempts"], 1)
+		self.assertTrue(response.ok)
+		self.assertEqual(target, "B-7")
+
+	def test_a_record_another_worker_is_pushing_waits_its_turn(self):
+		@k.contextmanager
+		def busy(*_args):
+			yield False
+
+		with patch.object(k, "ensure_identity_fields", return_value=True), patch.object(
+			k, "_record_lock", side_effect=busy
+		), patch.object(k, "api_post") as post, patch.object(k, "api_put") as put:
+			response, action, target, blocked = k._send(self.cfg, "BOM", "B-1", {"item": "I-1"})
+		self.assertFalse(response.ok)
+		post.assert_not_called()
+		put.assert_not_called()
+
+	def test_the_record_lock_is_taken_and_given_back(self):
+		with k._record_lock(self.cfg, "BOM", "B-LOCK-TEST") as locked:
+			self.assertTrue(locked)
+		key_free = frappe.db.sql("select is_free_lock(%s)", ("kggks:" + __import__("hashlib").sha1(b"t|BOM|B-LOCK-TEST").hexdigest(),))
+		self.assertEqual(int(key_free[0][0]), 1)
+
+	def test_the_receiver_question_is_asked_once(self):
+		_NO_RECEIVER.stop()
+		try:
+			store = {}
+			cache = frappe._dict(
+				get_value=lambda key, expires=False: store.get(key),
+				set_value=lambda key, value, expires_in_sec=None: store.__setitem__(key, value),
+			)
+			yes = k.Response(status_code=200, data={"message": {"version": 1}})
+			with patch.object(frappe, "cache", return_value=cache), patch.object(k, "api_get", return_value=yes) as get:
+				self.assertTrue(k.receiver_available(self.cfg))
+				self.assertTrue(k.receiver_available(self.cfg))
+			self.assertEqual(get.call_count, 1)
+		finally:
+			_NO_RECEIVER.start()
 
 
 class TestTransportRetries(unittest.TestCase):
