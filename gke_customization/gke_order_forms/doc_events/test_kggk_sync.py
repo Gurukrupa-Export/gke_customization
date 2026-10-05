@@ -2689,6 +2689,106 @@ class TestChildRowLinks(unittest.TestCase):
 		push_bom.assert_not_called()
 
 
+class TestOnlyACompleteTransferIsSynced(unittest.TestCase):
+	"""The target accepted the record; that is not the same as the record having arrived.
+
+	A failed attachment, a change a submitted record refused, a custom field the target did not
+	have yet: each was logged, the record was stamped Synced at the new version, and the hourly
+	check - which looks only for newer versions - never went back for it.
+	"""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", headers={})
+		self.run = _run(config=self.cfg)
+
+	def _push_item(self, attachments=None, uploaded=None, follow_up_ok=True, blocked=()):
+		doc = frappe._dict(doctype="Item", name="I-1", item_code="I-1", modified="2026-10-05 10:00:00")
+		with ExitStack() as stack:
+			enter = stack.enter_context
+			enter(patch.object(frappe.db, "exists", return_value=True))
+			enter(patch.object(frappe, "get_doc", return_value=doc))
+			enter(patch.object(k, "get_target_fields", return_value=None))
+			enter(patch.object(k, "build_payload", return_value=({"item_code": "I-1"}, dict(attachments or {}))))
+			enter(patch.object(k, "target_only_values", return_value={}))
+			enter(patch.object(k, "_translate_child_links", return_value=[]))
+			enter(patch.object(k, "_strip_missing_links", return_value=[]))
+			enter(patch.object(k, "explicit_clears", return_value={}))
+			enter(patch.object(k, "target_name_if_known", return_value="I-1"))
+			enter(patch.object(k, "_send", return_value=(k.Response(status_code=200), "updated", "I-1", list(blocked))))
+			enter(patch.object(k, "upload_all", return_value=dict(uploaded or {})))
+			enter(patch.object(k, "api_put", return_value=k.Response(status_code=200 if follow_up_ok else 500)))
+			state = enter(patch.object(k, "mark_state"))
+			self.assertTrue(k.push_item("I-1", self.cfg, self.run))
+		return state.call_args
+
+	def test_a_failed_attachment_keeps_the_item_partial(self):
+		call = self._push_item(attachments={"image": "/files/ring.png"}, uploaded={})
+		self.assertEqual(call.args[2], "Partial")
+		self.assertIn("image", call.kwargs["error"])
+		# The version that was attempted, so the retry knows what it owes.
+		self.assertEqual(call.kwargs["local_modified"], "2026-10-05 10:00:00")
+
+	def test_an_attachment_uploaded_but_not_linked_keeps_the_item_partial(self):
+		call = self._push_item(
+			attachments={"image": "/files/ring.png"}, uploaded={"image": "/files/x.png"}, follow_up_ok=False
+		)
+		self.assertEqual(call.args[2], "Partial")
+		self.assertIn("not linked", call.kwargs["error"])
+
+	def test_a_change_the_submitted_record_refused_keeps_it_partial(self):
+		call = self._push_item(blocked=["description"])
+		self.assertEqual(call.args[2], "Partial")
+		self.assertIn("description", call.kwargs["error"])
+
+	def test_everything_arriving_is_synced(self):
+		call = self._push_item(attachments={"image": "/files/ring.png"}, uploaded={"image": "/files/x.png"})
+		self.assertEqual(call.args[2], "Synced")
+
+	def test_a_custom_field_the_target_lacks_is_owed_a_standard_one_is_not(self):
+		meta = frappe._dict(
+			fields=[
+				frappe._dict(fieldname="custom_metal_note", fieldtype="Data"),
+				frappe._dict(fieldname="new_v16_field", fieldtype="Data"),
+			]
+		)
+		meta.get_field = lambda name: frappe._dict(is_custom_field=1 if name.startswith("custom_") else 0)
+		doc = frappe._dict(doctype="Item", name="I-1", custom_metal_note="22K", new_v16_field="x")
+		with patch.object(frappe, "get_meta", return_value=meta), patch.object(k, "stamp_company"):
+			k.build_payload(doc, allowed_fields={"item_code"}, run=self.run)
+		self.assertIn(("Item", "I-1"), self.run.incomplete)
+		owed = self.run.unfinished_reasons[("Item", "I-1")]
+		self.assertTrue(any("custom_metal_note" in r for r in owed))
+		self.assertFalse(any("new_v16_field" in r for r in owed))
+
+	def test_creating_the_missing_fields_gives_partial_records_their_retries_back(self):
+		with patch.object(frappe.db, "set_value") as set_value:
+			k._reset_partial_attempts("t")
+		self.assertEqual(set_value.call_args.args[1], {"target_site": "t", "status": "Partial"})
+		self.assertEqual(set_value.call_args.args[3], 0)
+
+	def test_a_partial_state_row_keeps_the_version_it_attempted(self):
+		"""Through a real Sync State save."""
+		if not frappe.db.table_exists(k.STATE_DOCTYPE):
+			self.skipTest("KGGK Sync State is not installed on this site")
+		try:
+			k.mark_state(
+				"Item", "I-F03-TEST", "Partial", "t.example", error="image not transferred",
+				local_modified="2026-10-05 10:00:00",
+			)
+			row = frappe.db.get_value(
+				k.STATE_DOCTYPE,
+				{"record_doctype": "Item", "record_name": "I-F03-TEST", "target_site": "t.example"},
+				["status", "local_modified", "last_error", "attempts"],
+				as_dict=True,
+			)
+			self.assertEqual(row.status, "Partial")
+			self.assertEqual(str(row.local_modified), "2026-10-05 10:00:00")
+			self.assertEqual(row.last_error, "image not transferred")
+			self.assertEqual(row.attempts, 1)
+		finally:
+			frappe.db.rollback()
+
+
 class TestTargetOwnedDefaults(unittest.TestCase):
 	"""KGGK's Item Defaults are KGGK's. An update used to replace them with a bare company row."""
 

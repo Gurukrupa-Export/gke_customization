@@ -712,6 +712,10 @@ def mark_state(doctype, name, status, target, error=None, local_modified=None, t
 			# Partial counts too, or a link that will never resolve is retried by the
 			# reconciler every hour until the end of time.
 			doc.attempts = cint(doc.attempts) + 1
+			if status == "Partial" and local_modified:
+				# The version this incomplete transfer attempted. `last_error` says what of it
+				# did not arrive; the reconciler retries it while the status stays Partial.
+				doc.local_modified = local_modified
 
 		doc.flags.ignore_version = True
 		doc.save(ignore_permissions=True)
@@ -980,6 +984,9 @@ class SyncRun:
 		# ever goes back for it. Held as Partial instead, which the reconciler does pick up.
 		self.incomplete = set()
 
+		# Why each of those is unfinished, for its Sync State and its log row.
+		self.unfinished_reasons = {}
+
 	# -- counters carried to the next chunk ------------------------------------------
 
 	def counters(self):
@@ -1137,6 +1144,20 @@ class SyncRun:
 		self._ensure_log()
 		self.problem(kind, doctype, name, message, once_key=once_key)
 
+	def unfinished(self, doctype, name, reason):
+		"""The record reached the target, and ``reason`` did not. Holds it at Partial.
+
+		Only a missing link used to do this. A failed attachment, a change a submitted record
+		refused, a field the target did not have yet - each was logged and the record still
+		stamped Synced at the new version, so the reconciler saw nothing to do and the gap was
+		permanent.
+		"""
+		key = (doctype, name)
+		self.incomplete.add(key)
+		reasons = self.unfinished_reasons.setdefault(key, [])
+		if reason not in reasons:
+			reasons.append(reason)
+
 	def defer_link(self, doctype, name, fieldname, value, link_doctype):
 		"""Remember a link that was dropped only because its target had not arrived yet.
 
@@ -1149,10 +1170,10 @@ class SyncRun:
 		if len(self.deferred) >= MAX_DEFERRED:
 			# Past the ceiling the link is not merely deferred, it is dropped - so the record
 			# must not be allowed to look finished either.
-			self.incomplete.add((doctype, name))
+			self.unfinished(doctype, name, f"{fieldname}: {link_doctype} '{value}' not linked")
 			return
 		self.deferred.append((doctype, name, fieldname, value, link_doctype))
-		self.incomplete.add((doctype, name))
+		self.unfinished(doctype, name, f"{fieldname}: waiting for {link_doctype} '{value}'")
 
 	# -- outcomes --------------------------------------------------------------------
 
@@ -1162,13 +1183,21 @@ class SyncRun:
 	def item_ok(self, name, note="", local_modified=None, target_name=None):
 		self.items_synced += 1
 		status = "Partial" if ("Item", name) in self.incomplete else "Synced"
+		owed = "; ".join(self.unfinished_reasons.get(("Item", name)) or [])
 		self.line("OK", "Item", name, note or "synced")
-		self.row("Item", name, status, note or "synced", action=note)
+		self.row(
+			"Item",
+			name,
+			status,
+			f"{note or 'synced'} | still owed: {owed}" if owed else (note or "synced"),
+			action=note,
+		)
 		mark_state(
 			"Item",
 			name,
 			status,
 			self._target_host(),
+			error=owed if status == "Partial" else None,
 			local_modified=local_modified,
 			target_name=target_name,
 		)
@@ -1183,13 +1212,21 @@ class SyncRun:
 	def bom_ok(self, name, note="", local_modified=None, target_name=None):
 		self.boms_synced += 1
 		status = "Partial" if ("BOM", name) in self.incomplete else "Synced"
+		owed = "; ".join(self.unfinished_reasons.get(("BOM", name)) or [])
 		self.line("OK", "BOM", name, note or "synced")
-		self.row("BOM", name, status, note or "synced", action=note)
+		self.row(
+			"BOM",
+			name,
+			status,
+			f"{note or 'synced'} | still owed: {owed}" if owed else (note or "synced"),
+			action=note,
+		)
 		mark_state(
 			"BOM",
 			name,
 			status,
 			self._target_host(),
+			error=owed if status == "Partial" else None,
 			local_modified=local_modified,
 			target_name=target_name,
 		)
@@ -1687,6 +1724,15 @@ def _child_gap(doc, df, allowed):
 	return missing
 
 
+def _is_custom(doctype, fieldname):
+	"""Is this a Custom Field here - something Create Missing Fields can put on the target?"""
+	try:
+		field = frappe.get_meta(doctype).get_field(fieldname)
+		return bool(field and cint(field.get("is_custom_field")))
+	except Exception:
+		return False
+
+
 def build_payload(doc, allowed_fields=None, run=None, config=None):
 	"""Return ``(payload, attachments)`` for one document.
 
@@ -1730,6 +1776,13 @@ def build_payload(doc, allowed_fields=None, run=None, config=None):
 				child_allowed = get_target_fields(config, df.options, run=run)
 				if child_allowed is not None:
 					missing = _child_gap(doc, df, child_allowed)
+					custom_missing = [m for m in missing if _is_custom(df.options, m)]
+					if run and custom_missing:
+						run.unfinished(
+							doc.doctype,
+							doc.name,
+							f"{name}: {len(custom_missing)} custom field(s) not on the target yet",
+						)
 					if missing:
 						run and run.mismatch(
 							doc.doctype,
@@ -1762,6 +1815,17 @@ def build_payload(doc, allowed_fields=None, run=None, config=None):
 
 	if run and dropped:
 		names = sorted(dropped)
+		# A custom field is one the target can be given - Create Missing Fields does it - so the
+		# value it carries is owed, and the record is held Partial until it can go across. A
+		# standard field the target lacks is a different app version: reported, and not
+		# something a retry can ever fix, so it does not hold the record open.
+		custom = [n for n in names if _is_custom(doc.doctype, n)]
+		if custom:
+			run.unfinished(
+				doc.doctype,
+				doc.name,
+				f"{len(custom)} custom field(s) not on the target yet: " + ", ".join(custom[:10]),
+			)
 		run.mismatch(
 			doc.doctype,
 			doc.name,
@@ -3089,6 +3153,7 @@ def push_item(item_code, config, run, seen=None):
 				kind="FIELD-MISSING",
 				once_key=f"targetonly::Item::{fieldname}",
 			)
+			run.unfinished("Item", item_code, f"{fieldname} not on the target yet")
 			continue
 		data[fieldname] = value
 
@@ -3118,6 +3183,9 @@ def push_item(item_code, config, run, seen=None):
 			"updated: " + ", ".join(blocked[:20]) + (f" (+{len(blocked) - 20} more)" if len(blocked) > 20 else ""),
 			kind="SUBMITTED-ON-TARGET",
 		)
+		run.unfinished(
+			"Item", item_code, f"{len(blocked)} change(s) refused by the submitted record: " + ", ".join(blocked[:10])
+		)
 	if not response.ok:
 		message = response.message()
 		run.item_failed(item_code, message)
@@ -3132,6 +3200,9 @@ def push_item(item_code, config, run, seen=None):
 
 	if attachments:
 		resolved = upload_all(config, attachments, "Item", target_id, run=run)
+		not_sent = sorted(set(attachments) - set(resolved))
+		if not_sent:
+			run.unfinished("Item", item_code, "attachment(s) not transferred: " + ", ".join(not_sent))
 		if resolved:
 			follow_up = api_put(
 				config, f"/api/resource/Item/{segment(target_id)}", json=resolved
@@ -3141,6 +3212,9 @@ def push_item(item_code, config, run, seen=None):
 			else:
 				run.mismatch(
 					"Item", item_code, f"attachment urls could not be set - {follow_up.message()}"
+				)
+				run.unfinished(
+					"Item", item_code, "attachment(s) uploaded but not linked: " + ", ".join(sorted(resolved))
 				)
 				note = f"{note}, attachments uploaded but not linked"
 
@@ -3236,6 +3310,11 @@ def _push_bom(bom_name, config, run):
 			"updated: " + ", ".join(blocked[:20]) + (f" (+{len(blocked) - 20} more)" if len(blocked) > 20 else ""),
 			kind="SUBMITTED-ON-TARGET",
 		)
+		# Never cancelled or amended to force it through - that is KGGK's decision. The change
+		# stays visibly owed instead of the old recipe being stamped as the new version.
+		run.unfinished(
+			"BOM", bom_name, f"{len(blocked)} change(s) refused by the submitted BOM: " + ", ".join(blocked[:10])
+		)
 	if not response.ok:
 		message = response.message()
 		run.bom_failed(bom_name, message)
@@ -3251,12 +3330,18 @@ def _push_bom(bom_name, config, run):
 
 	if attachments:
 		resolved = upload_all(config, attachments, "BOM", target_id, run=run)
+		not_sent = sorted(set(attachments) - set(resolved))
+		if not_sent:
+			run.unfinished("BOM", bom_name, "attachment(s) not transferred: " + ", ".join(not_sent))
 		if resolved:
 			follow_up = api_put(config, f"/api/resource/BOM/{segment(target_id)}", json=resolved)
 			if follow_up.ok:
 				note = f"{note}, {len(resolved)} attachment(s)"
 			else:
 				run.mismatch("BOM", bom_name, f"attachment urls could not be set - {follow_up.message()}")
+				run.unfinished(
+					"BOM", bom_name, "attachment(s) uploaded but not linked: " + ", ".join(sorted(resolved))
+				)
 
 	run.link_cache[("BOM", target_id)] = True
 	run.link_cache[("BOM", bom_name)] = True
@@ -4876,6 +4961,10 @@ def run_prefill(
 				kind="IDENTITY-UNAVAILABLE",
 			)
 
+		if created:
+			# Records held Partial for a field the target did not have can go across now.
+			_reset_partial_attempts(host_of(config.to_site))
+
 		# The target's schema is now different, so anything cached about it is stale.
 		for doctype in _prefill_doctype_names():
 			frappe.cache().delete_value(
@@ -4929,6 +5018,24 @@ def run_prefill(
 		run=run,
 	)
 	return result
+
+
+def _reset_partial_attempts(target):
+	"""Give every Partial record on ``target`` its reconciler retries back.
+
+	A record waiting on a field the target lacked has usually spent its five hourly attempts by
+	the time someone creates the field; without this it would never be looked at again.
+	"""
+	try:
+		frappe.db.set_value(
+			STATE_DOCTYPE,
+			{"target_site": target, "status": "Partial"},
+			"attempts",
+			0,
+			update_modified=False,
+		)
+	except Exception:
+		frappe.logger("kggk_sync").exception("could not reset Partial attempts")
 
 
 def _close_prefill(log_name, status, message, result=None, run=None, report=True):
