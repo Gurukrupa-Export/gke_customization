@@ -4264,12 +4264,15 @@ def run_prefill(
 			result["message"] += _(
 				" Incomplete: {0} record(s) could not be checked, {1} doctype(s) unreadable."
 			).format(len(unchecked), len(unreadable))
+		# `report=False`: a check reads the target and writes nothing to it. Its findings live
+		# in this site's log, which is where the operator who pressed the button looks.
 		_close_prefill(
 			log_name,
 			STATUS_PARTIAL if incomplete else STATUS_COMPLETED,
 			result["message"],
 			result=result,
 			run=run,
+			report=False,
 		)
 		return result
 
@@ -4365,8 +4368,13 @@ def run_prefill(
 	return result
 
 
-def _close_prefill(log_name, status, message, result=None, run=None):
-	"""Write the prefill's answer onto its log. The only place the button's result lives."""
+def _close_prefill(log_name, status, message, result=None, run=None, report=True):
+	"""Write the prefill's answer onto its log. The only place the button's result lives.
+
+	``report`` sends the problem lines to the target's Error Log as well. Only for actions that
+	write to the target anyway - a check is read-only, and posting a report from it broke that
+	promise (and needed a permission the checking account may not have).
+	"""
 	if run:
 		# Flush first. `report` sends the problem lines to the *target's* Error Log, and
 		# `flush` is the only thing that writes them here - so without this, the reason a
@@ -4374,7 +4382,8 @@ def _close_prefill(log_name, status, message, result=None, run=None):
 		# operator pressed the button. `run_prefill` flushes before it creates anything, so
 		# every FIELD-CREATE-FAILED line was raised after the last flush.
 		run.flush()
-		run.report(status)
+		if report:
+			run.report(status)
 	try:
 		doc = frappe.get_doc(LOG_DOCTYPE, log_name)
 		doc.status = status

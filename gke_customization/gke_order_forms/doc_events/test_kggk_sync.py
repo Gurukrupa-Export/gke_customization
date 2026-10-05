@@ -1283,6 +1283,39 @@ class TestPrefillStarter(unittest.TestCase):
 				k.start_prefill(apply=0)
 
 
+class TestCheckIsReadOnly(unittest.TestCase):
+	""""Check only" says it writes nothing. A gap it found used to be POSTed to the target's
+	Error Log on the way out - the clean case wrote nothing, so a smoke test missed it."""
+
+	def test_a_check_with_findings_sends_no_write_to_the_target(self):
+		cfg = frappe._dict(to_site="https://t", from_site="https://f", headers={})
+		methods = []
+
+		def request(method, url, **kwargs):
+			methods.append(method)
+			raw = frappe._dict(status_code=200, text="{}", headers={})
+			raw.json = lambda: {}
+			return raw
+
+		log = _FakeLog()
+		with ExitStack() as stack:
+			enter = stack.enter_context
+			enter(patch.object(k, "get_sync_config", return_value=(cfg, None)))
+			enter(patch.object(k, "_field_gaps", return_value=_gaps(standard=["Item.custom_gone (Data)"])))
+			enter(patch.object(k, "_plan_records", return_value=(["MP-1"], ["I-1"], [])))
+			enter(patch.object(k, "api_exists_many", return_value={"I-1": False}))
+			enter(patch.object(k, "target_names", side_effect=lambda dt, names, t: {n: n for n in names}))
+			enter(patch(f"{MOD}.requests.request", side_effect=request))
+			enter(patch.object(frappe, "get_doc", return_value=log))
+			enter(patch.object(frappe.db, "commit"))
+			out = k.run_prefill("LOG-1", action=k.ACTION_CHECK)
+
+		self.assertEqual([m for m in methods if m != "GET"], [])
+		# ...and the finding is still recorded here, where the operator looks.
+		self.assertIn("VERSION-GAP", log.problems)
+		self.assertEqual(out["standard_field_gaps"], ["Item.custom_gone (Data)"])
+
+
 class TestPrefillWorker(unittest.TestCase):
 	"""The job. First press must change nothing on the target."""
 
