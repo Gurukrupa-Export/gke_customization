@@ -1164,11 +1164,16 @@ def genrate_serial_no(self, new_bom):
 	manufacturer='Labh'
 	errors = []
 	metal_type = new_bom.metal_detail[0].metal_type if new_bom.metal_detail else None
-	diamond_grade_data=new_bom.diamond_detail[0].diamond_grade if new_bom.metal_detail else None
+	diamond_grade_data=new_bom.diamond_detail[0].diamond_grade if new_bom.diamond_detail else None
 	m_abbr = frappe.db.get_value("Attribute Value", metal_type, "abbreviation")
 	mnf_abbr = frappe.db.get_value("Manufacturer", manufacturer, ["custom_abbreviation"])
 	posting_date = datetime.today().date()
-	dg_abbr = frappe.db.get_value("Attribute Value", diamond_grade_data, ["abbreviation"])
+	if new_bom.diamond_detail:
+		dg_abbr = frappe.db.get_value("Attribute Value", diamond_grade_data, ["abbreviation"])
+	else:
+		# Diamond-free piece (plain metal): "0" takes the grade's place, as in jewellery_erpnext's
+		# Manufacturing Operation serials. Diamond rows without a usable grade still fail below.
+		dg_abbr = "0"
 	date = f"{posting_date.year %100:02d}"
 	date_to_letter = {0: "J", 1: "A", 2: "B", 3: "C", 4: "D", 5: "E", 6: "F", 7: "G", 8: "H", 9: "I"}
 	final_date = date[0] + date_to_letter[int(date[1])]
