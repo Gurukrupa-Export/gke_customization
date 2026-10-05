@@ -4,6 +4,9 @@
 import json
 
 import frappe
+from frappe.desk.query_report import get_report_doc
+
+REPORT_NAME = "Product Lifecycle"
 
 
 DOCTYPES = {
@@ -58,6 +61,9 @@ def resolve_item_code(filters):
 
 @frappe.whitelist()
 def get_finish_tag_history(filters=None):
+    # Whitelisted, so any logged-in user can call it directly: repeat Desk's report
+    # access check (the report's roles and report permission on Order Form) first.
+    get_report_doc(REPORT_NAME)
     if isinstance(filters, str):
         filters = json.loads(filters)
     filters = frappe._dict(filters or {})
@@ -88,6 +94,7 @@ def get_finish_tag_history(filters=None):
 @frappe.whitelist()
 def get_serial_no_section_data(filters=None, department=None):
     """Refreshes just the Serial No section, for its inline Department filter."""
+    get_report_doc(REPORT_NAME)
     if isinstance(filters, str):
         filters = json.loads(filters)
     filters = frappe._dict(filters or {})
