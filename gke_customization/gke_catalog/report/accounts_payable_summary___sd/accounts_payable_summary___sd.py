@@ -5,6 +5,7 @@ from gke_customization.gke_catalog.report.accounts_receivable_summary___sd.accou
 	AccountsReceivableSummary,
 )
 
+
 def execute(filters=None):
 	args = {
 		"account_type": "Payable",

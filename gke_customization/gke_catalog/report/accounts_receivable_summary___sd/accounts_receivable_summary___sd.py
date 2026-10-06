@@ -139,7 +139,7 @@ class AccountsReceivableSummary(ReceivablePayableReport):
 			"total_due": 0.0,
 			"future_amount": 0.0,
 			"sales_person": [],
-			"party_type": row.party_type,
+			"party_type": row.get("party_type"),
 		}
 		for fieldname in self.date_fieldnames.values():
 			default_dict[fieldname] = 0.0
