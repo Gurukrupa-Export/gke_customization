@@ -1113,7 +1113,10 @@ class ProductReturnOrderForm(Document):
 
 	def on_submit(self):
 		if self.ref_company == "KG":	
-			sync_product_return_form_to_remote(self)
+			migration_settings = frappe.get_single("Data Migration in KGGK")
+			site_url = (migration_settings.prf_to_site or "").rstrip("/")
+			if site_url:
+				sync_product_return_form_to_remote(self)
 
 		# if self.yu: return
 
