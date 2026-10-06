@@ -922,18 +922,24 @@ class ReceivablePayableReport:
 				total_row[fieldname] = grand_totals.get(fieldname, 0.0)
 			total_row["outstanding"] = total_outstanding
 		else:
-			self.data.append(
-				{
-					"party": _("Total"),
-					"bold": 1,
-					"outstanding": total_outstanding,
-					**{
-						fieldname: grand_totals.get(fieldname, 0.0)
-						for fieldname in self.date_fieldnames.values()
-					},
-				}
-			)
-			self.skip_total_row = 1
+			# The summary report ("summary_type" filter) reads every row of this
+			# report's data and expects real party rows only, so the Total row is
+			# added only for the normal detailed report.
+			if not self.filters.get("summary_type"):
+				self.data.append(
+					frappe._dict(
+						{
+							"party": _("Total"),
+							"bold": 1,
+							"outstanding": total_outstanding,
+							**{
+								fieldname: grand_totals.get(fieldname, 0.0)
+								for fieldname in self.date_fieldnames.values()
+							},
+						}
+					)
+				)
+				self.skip_total_row = 1
 
 	def prepare_ple_query(self):
 		# get all the GL entries filtered by the given filters
