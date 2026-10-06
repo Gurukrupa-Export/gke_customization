@@ -103,10 +103,7 @@ def detect_and_flag_punch_error(doc) -> str | None:
     doc.db_set("punch_error", error)
     _create_todo(doc, error)
 
-    try:
-        ensure_monthly_in_out_log(doc.employee, doc.attendance_date)
-    except Exception:
-        _log_exc("MIL auto-creation failed")
+    ensure_monthly_in_out_log(doc.employee, doc.attendance_date)
 
     # The card usually exists already (created on attendance submit, before the
     # punches were linked). Repopulate it now that the error is on the attendance.

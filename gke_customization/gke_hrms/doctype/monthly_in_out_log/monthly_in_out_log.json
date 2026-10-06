@@ -33,12 +33,12 @@
   "ot_hrs",
   "section_break_44ms",
   "column_break_hexd",
-  "attendance",
   "punch_error",
   "punch_ledger",
   "resolution_status",
   "resolution_remarks",
   "column_break_vipo",
+  "attendance",
   "amended_from"
  ],
  "fields": [
@@ -244,9 +244,9 @@
   },
   {
    "fieldname": "attendance",
-   "fieldtype": "Data",
-   "hidden": 1,
+   "fieldtype": "Link",
    "label": "Attendance",
+   "options": "Attendance",
    "read_only": 1
   },
   {
@@ -287,7 +287,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-21 10:08:01.216102",
+ "modified": "2026-10-06 16:06:27.310368",
  "modified_by": "Administrator",
  "module": "GKE HRMS",
  "name": "Monthly In-Out Log",

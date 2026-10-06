@@ -9,6 +9,7 @@ const MIL_RESOLVED_STATUSES = [
 ];
 
 const FULL_DAY_ACTION = "adjust_punch_full_day";
+const ADD_PUNCHES_ACTION = "add_missing_punches";
 const MODE_AUTO = "Auto-fill from shift";
 const MODE_MANUAL = "Enter manually";
 
@@ -58,20 +59,21 @@ function open_resolve_dialog(frm) {
 function get_action_options(options) {
 	const list = [{ label: "", value: "" }];
 
-	if (options.approved_ot) {
-		list.push({ label: __("Use approved OT"), value: "approve_ot" });
+	// one action for every Missing OUT: prefilled with approved OT when it
+	// exists, else the shift end; HR can override with the actual time
+	if (options.missing_out) {
+		list.push({ label: __("Set Check-out"), value: "set_out" });
 	}
 
-	// backend: both actions only work for a "Missing OUT" error
-	if (options.missing_out) {
-		list.push(
-			{ label: __("Close at shift end (no OT)"), value: "auto_close" },
-			{ label: __("Enter actual check-out time"), value: "set_out" }
-		);
+	if (options.add_punches_allowed) {
+		list.push({
+			label: __("Add Missing Punches (Manual Punch Entry)"),
+			value: ADD_PUNCHES_ACTION,
+		});
 	}
 
 	list.push(
-		{ label: __("Adjust Punch & Grant Full Day"), value: FULL_DAY_ACTION },
+		{ label: __("Adjust Punches & Mark Full Day"), value: FULL_DAY_ACTION },
 		{ label: __("Reject"), value: "reject" }
 	);
 	return list;
@@ -112,14 +114,14 @@ function show_resolve_dialog(frm, options) {
 			},
 			{
 				fieldname: "in_time",
-				label: __("IN Time (date & time)"),
+				label: __("Check-in Time (date & time)"),
 				fieldtype: "Datetime",
 				hidden: 1,
 				onchange: () => render_preview(dialog, options),
 			},
 			{
 				fieldname: "out_time",
-				label: __("Actual Check-out (date & time)"),
+				label: __("Check-out Time (date & time)"),
 				fieldtype: "Datetime",
 				hidden: 1,
 				onchange: () => render_preview(dialog, options),
@@ -130,7 +132,7 @@ function show_resolve_dialog(frm, options) {
 				fieldtype: "Small Text",
 			},
 		],
-		primary_action_label: __("Resolve"),
+		primary_action_label: __("Continue"),
 		primary_action(values) {
 			const args = build_resolve_args(values, options);
 			if (!args) return;
@@ -139,10 +141,17 @@ function show_resolve_dialog(frm, options) {
 
 			if (args.action === FULL_DAY_ACTION) {
 				frappe.confirm(
-					__("This cancels attendance {0} and creates a new Present attendance. Continue?", [
-						frm.doc.attendance || "",
-					]),
+					__(
+						"This will replace the current attendance with a new Present attendance using the selected IN and OUT times. Continue?"
+					),
 					submit
+				);
+			} else if (args.action === ADD_PUNCHES_ACTION) {
+				frappe.confirm(
+					__(
+						"A draft entry will be created with the existing punches. You can add the missing punches and create the attendance from there. Continue?"
+					),
+					() => submit_manual_punch_resolution(frm, dialog, args)
 				);
 			} else {
 				submit();
@@ -168,13 +177,12 @@ function build_resolve_args(values, options) {
 	};
 
 	if (action === "set_out") {
-		if (!values.out_time) return stop(__("Actual check-out time is required."));
+		if (!values.out_time) return stop(__("Check-out time is required."));
 		args.out_time = values.out_time;
 	}
 
 	if (action === FULL_DAY_ACTION) {
-		const blocker = get_full_day_blocker(options);
-		if (blocker) return stop(blocker);
+		if (options.day_fix_blocker) return stop(options.day_fix_blocker);
 
 		const manual = values.inout_mode === MODE_MANUAL;
 		// auto-fill falls back to the shift window if set_value has not landed
@@ -208,6 +216,10 @@ function build_resolve_args(values, options) {
 		args.out_time = out_time;
 	}
 
+	if (action === ADD_PUNCHES_ACTION && options.day_fix_blocker) {
+		return stop(options.day_fix_blocker);
+	}
+
 	return args;
 }
 
@@ -230,6 +242,24 @@ function submit_resolution(frm, dialog, args) {
 	});
 }
 
+function submit_manual_punch_resolution(frm, dialog, args) {
+	frappe
+		.call({
+			method: "gke_customization.gke_hrms.ot_resolver.create_manual_punch_entry_for_resolution",
+			args: {
+				employee: frm.doc.employee,
+				attendance_date: frm.doc.attendance_date,
+				remarks: args.remarks,
+			},
+			freeze: true,
+		})
+		.then((r) => {
+			const result = r.message || {};
+			dialog.hide();
+			frappe.set_route("Form", "Manual Punch Entry", result.manual_punch_entry);
+		});
+}
+
 // ---------------------------------------------------------------------------
 // Field visibility / values (runs when Action or IN/OUT mode changes)
 // ---------------------------------------------------------------------------
@@ -247,7 +277,11 @@ function sync_dialog(dialog, options) {
 	if (action_changed) {
 		f.inout_mode.set_input(MODE_AUTO);
 		f.in_time.set_input("");
-		f.out_time.set_input("");
+		// smart prefill: approved OT when present, else the shift end; HR can
+		// overwrite with the actual time before submitting
+		f.out_time.set_input(
+			is_set_out ? options.expected_out || options.shift_end || "" : ""
+		);
 	}
 
 	const mode = is_full_day
@@ -302,43 +336,29 @@ const b = (v) => `<b>${frappe.utils.escape_html(String(v ?? ""))}</b>`;
 const fmt_dt = (v) => (v ? frappe.datetime.str_to_user(v) : "");
 const alert_html = (cls, msg) => `<div class="alert ${cls}" style="margin-bottom:10px">${msg}</div>`;
 
-// Same conditions the backend enforces in adjust_punch_grant_full_day
-function get_full_day_blocker(options) {
-	if (options.active_ot) {
-		return __(
-			"An active OT Log exists for this day. Settle the OT Log first; this action cannot proceed."
-		);
-	}
-	if (!options.shift_start || !options.shift_end) {
-		return __("This attendance has no shift; Full Day cannot be granted.");
-	}
-	return "";
-}
-
+// Same conditions the backend returns in day_fix_blocker
 function ot_preview_html(options, action, ctx = {}) {
-	if (action === "approve_ot" && options.expected_out) {
+	if (action === "set_out") {
+		const out_time = ctx.out_time;
+		if (!out_time) {
+			return alert_html("alert-info", __("Enter the check-out date & time below."));
+		}
+		let source;
+		if (options.approved_ot && options.expected_out && out_time === options.expected_out) {
+			source = __("shift end + approved overtime {0}", [b(options.approved_ot_hours)]);
+		} else if (options.shift_end && out_time === options.shift_end) {
+			source = __("shift end, no overtime");
+		} else {
+			source = __("your entered time");
+		}
 		return alert_html(
 			"alert-success",
-			__("Check-out will be set to {0} (shift end + approved OT {1}).", [
-				b(fmt_dt(options.expected_out)),
-				b(options.approved_ot_hours),
-			])
+			__("Check-out will be set to {0} ({1}).", [b(fmt_dt(out_time)), source])
 		);
-	}
-
-	if (action === "auto_close" && options.shift_end) {
-		return alert_html(
-			"alert-warning",
-			__("Check-out will be set to {0} (shift end, no OT).", [b(fmt_dt(options.shift_end))])
-		);
-	}
-
-	if (action === "set_out") {
-		return alert_html("alert-info", __("Check-out will be the time you enter below."));
 	}
 
 	if (action === FULL_DAY_ACTION) {
-		const blocker = get_full_day_blocker(options);
+		const blocker = options.day_fix_blocker;
 		if (blocker) return alert_html("alert-danger", blocker);
 
 		const in_time = ctx.manual ? ctx.in_time : options.shift_start;
@@ -375,30 +395,49 @@ function ot_preview_html(options, action, ctx = {}) {
 		return alert_html(
 			"alert-warning",
 			__(
-				"Day will be re-marked Present {0} to {1} ({2} hrs). The {3} linked punch(es) and any stray punches inside the window will be excluded with audit comments; a new attendance will be created.",
-				[b(fmt_dt(in_time)), b(fmt_dt(out_time)), hrs.toFixed(2), options.punch_count || 0]
+				"Attendance will be marked Present from {0} to {1} ({2} hrs). Existing punches in this time range will be excluded and recorded in the audit trail.",
+				[b(fmt_dt(in_time)), b(fmt_dt(out_time)), hrs.toFixed(2)]
+			)
+		);
+	}
+
+	if (action === ADD_PUNCHES_ACTION) {
+		if (options.day_fix_blocker) return alert_html("alert-danger", options.day_fix_blocker);
+		return alert_html(
+			"alert-info",
+			__(
+				"A draft entry will be created with the existing punches. Add the missing punches and click 'Create Attendance' to rebuild attendance."
 			)
 		);
 	}
 
 	if (action === "reject") {
-		return alert_html("alert-danger", __("Attendance will be left as-is and the error stays closed."));
+		return alert_html(
+			"alert-danger",
+			__("No changes will be made to attendance. The punch error will be marked as resolved.")
+		);
 	}
 
 	// no action chosen yet: neutral summary of what is available
 	const lines = [];
 
-	lines.push(
-		options.approved_ot
-			? __("Approved OT Log found ({0}): available as “Use approved OT”, check-out would be {1}.", [
+	if (options.missing_out) {
+		if (options.approved_ot) {
+			lines.push(
+				__("Approved overtime of {0} is available. 'Set Check-out' will use {1} by default.", [
 					b(options.approved_ot_hours),
 					b(fmt_dt(options.expected_out)),
-			  ])
-			: __("No approved OT Log for this day.")
-	);
-
-	if (options.missing_out && options.shift_end) {
-		lines.push(__("“Close at shift end” would set check-out to {0}.", [b(fmt_dt(options.shift_end))]));
+				])
+			);
+		} else if (options.shift_end) {
+			lines.push(
+				__("No approved overtime was found. 'Set Check-out' will use the shift end ({0}) by default.", [
+					b(fmt_dt(options.shift_end)),
+				])
+			);
+		}
+	} else {
+		lines.push(__("The recorded punches need to be corrected. Use 'Add Missing Punches' to update them."));
 	}
 
 	lines.push(__("Select an action below to see exactly what will change."));
