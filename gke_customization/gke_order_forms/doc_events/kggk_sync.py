@@ -3682,6 +3682,15 @@ def sync_records(
 			log_skip(f"run {log_name} belongs to generation {current} now; this worker stops")
 			return {"status": "Superseded"}
 
+	# The plan rule, asked of the request this run was queued with - whoever queued it, and
+	# however long ago. A Retry of an old log, a job queued before a deploy, a run re-sent by
+	# the supervisor: each carries a list that was right once, and only `plan_permitted` says
+	# whether it is right now. The first chunk only: later chunks carry what this run added
+	# itself, such as the Copy BOM an item pulled in, which a plan does not name.
+	skipped = []
+	if chunk_index == 0:
+		items, boms, skipped = plan_permitted(items, boms)
+
 	if totals is None:
 		totals = {"items": len(items), "boms": len(boms)}
 
@@ -3708,6 +3717,15 @@ def sync_records(
 	run.boms_total = int(totals.get("boms") or 0)
 	if chunk_index == 0:
 		run.flush(STATUS_RUNNING)
+
+	if skipped:
+		# Said on the log, row by row, rather than dropped quietly: a retry that "completed"
+		# with nothing to show for half its records would read exactly like a sync bug.
+		for doctype, name in skipped:
+			run.row(doctype, name, "Skipped", NOT_PLAN_LINKED, action="not sent")
+		run.line("SKIP", None, None, f"{len(skipped)} record(s) {NOT_PLAN_LINKED}")
+		if not items and not boms:
+			return {"status": run.finish(), **run.counters()}
 	if rest_items or rest_boms:
 		run.line(
 			"INFO",
@@ -4131,8 +4149,7 @@ def nova_glow_items(item_codes):
 SUBCONTRACTED_PLAN_ROWS = {"parenttype": "Manufacturing Plan", "docstatus": 1, "subcontracting": 1}
 
 NOT_PLAN_LINKED = (
-	"on KGGK, but no submitted Manufacturing Plan links it on a Nova Glow subcontracting row - "
-	"change not sent"
+	"not sent - no submitted Manufacturing Plan links it on a Nova Glow subcontracting row"
 )
 
 
@@ -4184,6 +4201,27 @@ def plan_linked(doctype, names):
 		)
 	eligible = nova_glow_items(row.item_code for row in rows)
 	return {row.bom for row in rows if row.item_code in eligible}
+
+
+def plan_permitted(items, boms):
+	"""``(items, boms, skipped)``: the part of a request the plan rule lets through, and the rest.
+
+	The same rule as every entry point (`plan_linked`), asked again of a list that was written
+	down earlier - an old log's failed rows, a manifest, a job queued before a deploy. That list
+	is evidence of what was once wanted, not of what a plan links now. ``skipped`` is
+	``[(doctype, name), ...]`` so the caller can say what it left out.
+	"""
+	items = [n for n in dict.fromkeys(items or []) if n]
+	boms = [n for n in dict.fromkeys(boms or []) if n]
+	linked_items = plan_linked("Item", items)
+	linked_boms = plan_linked("BOM", boms)
+	skipped = [("Item", n) for n in items if n not in linked_items]
+	skipped += [("BOM", n) for n in boms if n not in linked_boms]
+	return (
+		[n for n in items if n in linked_items],
+		[n for n in boms if n in linked_boms],
+		skipped,
+	)
 
 
 def _records_from_plan_rows(rows):
@@ -4807,6 +4845,19 @@ def retry_log(log_name):
 
 	if not items and not boms:
 		frappe.throw(_("Nothing in this run is still owed, so there is nothing to retry."))
+
+	# What the old run owes is not proof a plan still wants it: the run may predate the plan
+	# rule, or its plan may have been cancelled since. Refused here when none of it qualifies,
+	# so the button says so at once; otherwise the worker skips what does not, row by row.
+	permitted_items, permitted_boms, _skipped = plan_permitted(items, boms)
+	if not permitted_items and not permitted_boms:
+		frappe.throw(
+			_(
+				"None of the {0} record(s) this run still owes is linked by a submitted Manufacturing "
+				"Plan on a Nova Glow subcontracting row, so nothing can be sent to KGGK."
+			).format(len(items) + len(boms)),
+			title=_("Nothing Eligible to Retry"),
+		)
 
 	retry = frappe.get_doc(
 		{

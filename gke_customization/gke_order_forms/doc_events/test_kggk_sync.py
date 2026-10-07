@@ -24,12 +24,23 @@ MOD = "gke_customization.gke_order_forms.doc_events.kggk_sync"
 # the default answer is "no", and the tests about the receiver say "yes" themselves.
 _NO_RECEIVER = patch(f"{MOD}.receiver_available", return_value=False)
 
+# Every run asks `plan_permitted` whether a plan still links what it was given. The records in
+# these tests are not on any plan, so by default the answer is "all of it"; the tests about the
+# plan rule put the real one back and say which records a plan links.
+_REAL_PLAN_PERMITTED = k.plan_permitted
+_EVERY_REQUEST_PLAN_LINKED = patch(
+	f"{MOD}.plan_permitted",
+	side_effect=lambda items, boms: (list(dict.fromkeys(items or [])), list(dict.fromkeys(boms or [])), []),
+)
+
 
 def setUpModule():
 	_NO_RECEIVER.start()
+	_EVERY_REQUEST_PLAN_LINKED.start()
 
 
 def tearDownModule():
+	_EVERY_REQUEST_PLAN_LINKED.stop()
 	_NO_RECEIVER.stop()
 
 
@@ -823,9 +834,13 @@ class TestTargetSchemaFailuresAreReported(unittest.TestCase):
 class _Chunk:
 	"""Drives `sync_records` with every boundary patched, and records what it re-enqueued."""
 
-	def __init__(self, test, items=(), boms=(), clock=None, enqueue_error=None, push=None, copy_boms=None):
+	def __init__(
+		self, test, items=(), boms=(), clock=None, enqueue_error=None, push=None, copy_boms=None, chunk_index=0
+	):
 		self.test = test
 		self.copy_boms = copy_boms
+		self.chunk_index = chunk_index
+		self.rows = []
 		self.items = list(items)
 		self.boms = list(boms)
 		self.pushed = []
@@ -880,10 +895,21 @@ class _Chunk:
 		))
 		p(patch.object(k.SyncRun, "flush"))
 		p(patch.object(k.SyncRun, "report"))
+		p(patch.object(
+			k.SyncRun, "row",
+			autospec=True,
+			side_effect=lambda run, doctype, name, status, message="", action="": self.rows.append(
+				(doctype, name, status)
+			),
+		))
 		p(patch(f"{MOD}.mark_state"))
 		with stack:
 			return k.sync_records(
-				items=self.items, boms=self.boms, log_name="LOG-1", copy_boms=self.copy_boms
+				items=self.items,
+				boms=self.boms,
+				log_name="LOG-1",
+				copy_boms=self.copy_boms,
+				chunk_index=self.chunk_index,
 			)
 
 
@@ -1522,6 +1548,83 @@ class TestRetry(unittest.TestCase):
 		with patch("frappe.only_for"), patch.object(frappe, "get_doc", return_value=log):
 			with self.assertRaises(frappe.ValidationError):
 				k.retry_log(log.name)
+
+
+class TestQueuedWorkMeetsThePlanRule(unittest.TestCase):
+	"""GK-KGGK-RETRY-001. A list written down earlier - an old log's failed rows, a manifest, a
+	job queued before the deploy - is evidence of what was once wanted, not of a plan linking it
+	now. Retry Failed sent such a list to the worker, and the worker pushed it unasked."""
+
+	def _plans_link(self, *names):
+		"""The real `plan_permitted`, with a plan linking exactly ``names``."""
+		stack = ExitStack()
+		stack.enter_context(patch.object(k, "plan_permitted", _REAL_PLAN_PERMITTED))
+		stack.enter_context(
+			patch.object(k, "plan_linked", side_effect=lambda doctype, asked: set(asked) & set(names))
+		)
+		return stack
+
+	def test_the_worker_sends_only_what_a_plan_links_and_logs_the_rest_as_skipped(self):
+		chunk = _Chunk(self, items=["OLD", "I-1"], boms=["B-OLD", "B-1"], clock=iter([0] * 20))
+		with self._plans_link("I-1", "B-1"):
+			chunk.run()
+		self.assertEqual(chunk.pushed, ["I-1", "B-1"])
+		self.assertIn(("Item", "OLD", "Skipped"), chunk.rows)
+		self.assertIn(("BOM", "B-OLD", "Skipped"), chunk.rows)
+
+	def test_a_request_no_plan_links_sends_nothing_and_still_closes_its_run(self):
+		"""An old Item Update log from before the rule - or a plan cancelled after its run was
+		queued. Either way nothing may reach the target, and the log must not sit at Running."""
+		chunk = _Chunk(self, items=["OLD"], clock=iter([0] * 20))
+		with self._plans_link():
+			chunk.run()
+		self.assertEqual(chunk.pushed, [])
+		self.assertEqual(chunk.rows, [("Item", "OLD", "Skipped")])
+		self.assertEqual(chunk.closed, ["auto"])
+
+	def test_a_continuation_chunk_is_not_asked_again(self):
+		"""Later chunks carry what the run added itself - the Copy BOM an item pulled in - which
+		no plan row names. Asking again would drop the very BOM the item now points at."""
+		chunk = _Chunk(self, boms=["B-COPY"], clock=iter([0] * 20), chunk_index=1)
+		with patch.object(k, "plan_permitted") as permitted:
+			chunk.run()
+		permitted.assert_not_called()
+		self.assertEqual(chunk.pushed, ["B-COPY"])
+
+	def _retry(self, rows):
+		log = TestRetry._log(self, rows)
+		new_log = frappe._dict(name="KGGK-SYNC-2026-00002", insert=lambda **kw: None)
+		stack = ExitStack()
+		stack.enter_context(patch("frappe.only_for"))
+		stack.enter_context(patch.object(frappe, "get_doc", side_effect=[log, new_log]))
+		stack.enter_context(
+			patch.object(k, "get_sync_config", return_value=(frappe._dict(to_site="https://t"), None))
+		)
+		stack.enter_context(patch.object(k, "read_manifest", return_value=None))
+		enqueue = stack.enter_context(patch.object(k, "enqueue_sync"))
+		return stack, log, enqueue
+
+	def test_retrying_an_old_log_no_plan_links_is_refused(self):
+		stack, log, enqueue = self._retry(
+			[{"record_doctype": "Item", "record_name": "SYNTH-NOVA-1", "status": "Failed"}]
+		)
+		with stack, self._plans_link():
+			with self.assertRaises(frappe.ValidationError):
+				k.retry_log(log.name)
+		enqueue.assert_not_called()
+
+	def test_retrying_a_log_with_some_eligible_records_still_queues(self):
+		"""The worker then skips the rest row by row, on the new log, where it can be read."""
+		stack, log, enqueue = self._retry(
+			[
+				{"record_doctype": "Item", "record_name": "OLD", "status": "Failed"},
+				{"record_doctype": "Item", "record_name": "I-1", "status": "Failed"},
+			]
+		)
+		with stack, self._plans_link("I-1"):
+			k.retry_log(log.name)
+		enqueue.assert_called_once()
+		self.assertIn("I-1", enqueue.call_args.kwargs["items"])
 
 
 class TestTheHandOffNeverFailsTheSave(unittest.TestCase):
