@@ -1,16 +1,24 @@
 # CI for the KGGK data migration - the Item / BOM / Manufacturing Plan push.
 #
-# Deliberately scoped by `paths`: this app is large and most of it has nothing to do with
-# the sync, so a change to payroll should not wait on a six-app bench install. Everything
-# the sync consists of is listed below, plus hooks.py and patches.txt, because unwiring a
-# hook or dropping a patch breaks the feature just as effectively as editing the module.
+# Every push to master and gk_develop runs it, whatever changed: those are the branches that
+# get deployed, and a commit that breaks the install or the migrate breaks the sync too, even
+# when it never touches a sync file. Before this, master went days without a result.
+#
+# Pull requests stay scoped by `paths`: this app is large and most of it has nothing to do
+# with the sync, so a payroll PR should not wait on a six-app bench install. Everything the
+# sync consists of is listed below, plus hooks.py and patches.txt, because unwiring a hook or
+# dropping a patch breaks the feature just as effectively as editing the module.
+#
+# "Run workflow" in the Actions tab runs it on demand, on any branch.
 
 name: KGGK Sync
 
 on:
   push:
     branches: [master, gk_develop]
-    paths: &sync_paths
+  pull_request:
+    branches: [master, gk_develop]
+    paths:
       - "gke_customization/gke_order_forms/doc_events/kggk_sync.py"
       - "gke_customization/gke_order_forms/doc_events/test_kggk_sync.py"
       - "gke_customization/gke_order_forms/doc_events/kggk_receiver.py"
@@ -24,14 +32,13 @@ on:
       - "gke_customization/patches.txt"
       - "gke_customization/hooks.py"
       - ".github/workflows/kggk-sync.yml"
-  pull_request:
-    branches: [master, gk_develop]
-    paths: *sync_paths
+  workflow_dispatch:
 
-# A second push to the same PR makes the first run's answer irrelevant.
+# A second push to the same PR makes the first run's answer irrelevant. On master and
+# gk_develop a run in progress is left to finish, so each merge that starts one gets a result.
 concurrency:
   group: kggk-sync-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -164,8 +171,8 @@ jobs:
       # Move a pin deliberately, in its own commit, when the sync needs the newer revision.
       GURUKRUPA_CUSTOMIZATIONS_SHA: d4c046cc6c6c7399c54f93548305794bf2bfe7a6
     # Forks have no access to the token, and a job that cannot start should not be
-    # reported as a failure of the change.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # reported as a failure of the change. Pushes and manual runs are always this repo's own.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
     services:
       mariadb:
