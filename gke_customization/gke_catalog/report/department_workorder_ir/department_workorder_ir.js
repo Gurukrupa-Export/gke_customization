@@ -9,7 +9,7 @@ frappe.query_reports["Department Workorder IR"] = {
 
     filters: [
         {
-            fieldname: "jangad_no",
+            fieldname: "department_ir",
             label: __("Department IR"),
             fieldtype: "Link",
             options: "Department IR",

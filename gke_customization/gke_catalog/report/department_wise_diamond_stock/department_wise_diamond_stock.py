@@ -26,6 +26,7 @@ def get_columns():
     return [
         {"label": _("Shape"), "fieldname": "shape", "fieldtype": "Data", "width": 120},
         {"label": _("Purity"), "fieldname": "purity", "fieldtype": "Data", "width": 120},
+        {"label": _("Size"), "fieldname": "size", "fieldtype": "Data", "width": 120},
         {"label": _("Department Stock"), "fieldname": "department_stock", "fieldtype": "Float", "width": 130},
         {"label": _("Batch Stock"), "fieldname": "batch_stock", "fieldtype": "Float", "width": 120},
         {"label": _("Worker Stock"), "fieldname": "worker_stock", "fieldtype": "Float", "width": 120},
@@ -70,10 +71,15 @@ def get_data(filters):
         if not item_details:
             continue
 
-        key = (cstr0(item_details.get("shape")), cstr0(item_details.get("purity")))
+        key = (
+            cstr0(item_details.get("shape")),
+            cstr0(item_details.get("purity")),
+            cstr0(item_details.get("size")),
+        )
         row = grouped.setdefault(key, {
             "shape": item_details.get("shape"),
             "purity": item_details.get("purity"),
+            "size": item_details.get("size"),
             "department_stock": 0.0,
             "batch_stock": 0.0,
             "worker_stock": 0.0,
@@ -132,7 +138,7 @@ def get_data(filters):
 
         data.append(row)
 
-    data.sort(key=lambda d: (cstr0(d.get("shape")), cstr0(d.get("purity"))))
+    data.sort(key=lambda d: (cstr0(d.get("shape")), cstr0(d.get("purity")), cstr0(d.get("size"))))
     return data
 
 
@@ -409,6 +415,7 @@ def get_item_details(item_codes):
             "stock_uom": d.stock_uom,
             "shape": "",
             "purity": "",
+            "size": "",
         }
         for d in items
     }
@@ -436,6 +443,8 @@ def get_item_details(item_codes):
             item_map[row.item_code]["shape"] = row.attribute_value
         elif row.attribute == "Diamond Grade":
             item_map[row.item_code]["purity"] = row.attribute_value
+        elif row.attribute == "Diamond Sieve Size":
+            item_map[row.item_code]["size"] = row.attribute_value
 
     return item_map
 

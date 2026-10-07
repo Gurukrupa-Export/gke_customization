@@ -526,35 +526,50 @@ def get_gross_weight_map(item_code, serials):
 
 
 def get_department_weight_map(serial_names, department):
+    """Weight leaving the department, per serial.
+
+    Manufacturing Operation.serial_no is not populated (the serial is only
+    created at Tagging), so serials are traced back to their PMO via
+    Serial Number Creator, then matched to that PMO's operations at the
+    department. Uses the latest operation's received_gross_wt, falling back
+    to gross_wt when nothing was received (e.g. Tagging).
+    """
     if not serial_names:
         return {}
 
-    mop_rows = frappe.db.sql(
-        """
-        SELECT serial_no, received_gross_wt, creation
-        FROM `tabManufacturing Operation`
-        WHERE department = %(department)s
-          AND serial_no IS NOT NULL
-          AND serial_no != ''
-        """,
-        {"department": department},
-        as_dict=True,
+    snc_rows = frappe.get_all(
+        DOCTYPES["snc"],
+        filters={"fg_serial_no": ["in", serial_names]},
+        fields=["fg_serial_no", "parent_manufacturing_order"],
+    )
+    pmo_by_serial = {
+        row.fg_serial_no: row.parent_manufacturing_order
+        for row in snc_rows
+        if row.parent_manufacturing_order
+    }
+    if not pmo_by_serial:
+        return {}
+
+    mop_rows = frappe.get_all(
+        DOCTYPES["mop"],
+        filters={
+            "manufacturing_order": ["in", list(set(pmo_by_serial.values()))],
+            "department": department,
+        },
+        fields=["manufacturing_order", "gross_wt", "received_gross_wt", "creation"],
+        order_by="creation asc",
     )
 
-    serial_names = set(serial_names)
-    latest_by_serial = {}
+    # ascending order, so the last row per PMO wins
+    weight_by_pmo = {
+        row.manufacturing_order: row.received_gross_wt or row.gross_wt for row in mop_rows
+    }
 
-    for row in mop_rows:
-        tokens = row.serial_no.replace("\r", "\n").replace("\n", ",").split(",")
-        for token in tokens:
-            serial = token.strip()
-            if serial not in serial_names:
-                continue
-            existing = latest_by_serial.get(serial)
-            if not existing or row.creation > existing[0]:
-                latest_by_serial[serial] = (row.creation, row.received_gross_wt)
-
-    return {serial: data[1] for serial, data in latest_by_serial.items()}
+    return {
+        serial: weight_by_pmo[pmo]
+        for serial, pmo in pmo_by_serial.items()
+        if pmo in weight_by_pmo
+    }
 
 
 def get_refining_section(tag_no):

@@ -8,6 +8,15 @@ def execute(filters=None):
     filters = filters or {}
     columns = get_columns()
     data = get_data(filters)
+
+    if data:
+        mwo_count = len({d.get("batch_no") for d in data if d.get("batch_no")})
+        data.append({
+            "current_process": "Grand Total",
+            "batch_no": mwo_count,
+            "is_total_row": 1,
+        })
+
     return columns, data
 
 
@@ -18,9 +27,10 @@ def get_columns():
         {"label": "Worker", "fieldname": "worker", "fieldtype": "Data", "width": 140},
         {"label": "Issue Date", "fieldname": "issue_date", "fieldtype": "Date", "width": 100},
         {"label": "MWO", "fieldname": "batch_no", "fieldtype": "Link", "options": "Manufacturing Work Order", "width": 140},
+        {"label": "Design ID", "fieldname": "design_id", "fieldtype": "Data", "width": 120},
         {"label": "Category", "fieldname": "category", "fieldtype": "Data", "width": 110},
         {"label": "PMO", "fieldname": "g_order_no", "fieldtype": "Data", "width": 120},
-        {"label": "Customer Code", "fieldname": "pmo_ref_customer_id", "fieldtype": "Data", "width": 130},
+        {"label": "Customer Code", "fieldname": "old_customer_code", "fieldtype": "Data", "width": 130},
         # {"label": "PO Number", "fieldname": "po_number", "fieldtype": "Data", "width": 100},
         {"label": "Gold wt", "fieldname": "gold_wt", "fieldtype": "Float", "width": 90, "precision": 3},
         {"label": "Diamond pcs", "fieldname": "diamond_pcs", "fieldtype": "Int", "width": 100},
@@ -44,9 +54,10 @@ def get_data(filters):
             emp.employee_name               AS worker,
             mwo.posting_date                AS issue_date,
             mwo.name                        AS batch_no,
+            mwo.item_code                   AS design_id,
             mwo.item_category               AS category,
             mwo.manufacturing_order         AS g_order_no,
-            pmo.ref_customer                AS pmo_ref_customer_id,
+            cust.old_customer_code          AS old_customer_code,
             NULL                            AS po_number,
             mwo.metal_weight                AS gold_wt,
             mwo.diamond_pcs                 AS diamond_pcs,
@@ -71,6 +82,9 @@ def get_data(filters):
 
         LEFT JOIN `tabParent Manufacturing Order` pmo
             ON pmo.name = mwo.manufacturing_order
+
+        LEFT JOIN `tabCustomer` cust
+            ON cust.name = pmo.ref_customer
 
         WHERE ir.docstatus < 2
             {conditions}

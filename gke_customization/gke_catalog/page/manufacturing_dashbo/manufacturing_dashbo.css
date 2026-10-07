@@ -691,6 +691,16 @@
 	font-weight: 700;
 }
 
+.mfg-node__stats--warn,
+.mfg-node__stats--warn b {
+	color: var(--mfg-red);
+}
+
+.mfg-node__stats--caution,
+.mfg-node__stats--caution b {
+	color: var(--mfg-amber);
+}
+
 .mfg-node__legend {
 	margin-top: 8px;
 	display: flex;

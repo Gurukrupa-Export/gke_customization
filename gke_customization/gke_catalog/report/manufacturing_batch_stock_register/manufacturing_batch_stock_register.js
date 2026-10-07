@@ -49,11 +49,11 @@ frappe.query_reports["Manufacturing Batch Stock Register"] = {
             }
         });
 
-        report.page.add_inner_button(__("1. Batch Count"), () => _switch_tab("count"));
-        report.page.add_inner_button(__("2. Batch Gold"), () => _switch_tab("gold"));
-        report.page.add_inner_button(__("3. Batch Diamond"), () => _switch_tab("diamond"));
-        report.page.add_inner_button(__("4. Batch Stone"), () => _switch_tab("stone"));
-        report.page.add_inner_button(__("5. Batch Finding"), () => _switch_tab("finding"));
+        report.page.add_inner_button(__("1. WO Count"), () => _switch_tab("count"));
+        report.page.add_inner_button(__("2. WO Gold"), () => _switch_tab("gold"));
+        report.page.add_inner_button(__("3. WO Diamond"), () => _switch_tab("diamond"));
+        report.page.add_inner_button(__("4. WO Stone"), () => _switch_tab("stone"));
+        report.page.add_inner_button(__("5. WO Finding"), () => _switch_tab("finding"));
 
         setTimeout(_highlight_tab, 500);
     },
@@ -90,11 +90,11 @@ frappe.query_reports["Manufacturing Batch Stock Register"] = {
 // ---------------------------------------------------------------------------
 var DISPLAY_FIELDS = ["opening", "issue", "receive", "closing"];
 var TAB_LABELS = {
-    count:   "1. Batch Count",
-    gold:    "2. Batch Gold",
-    diamond: "3. Batch Diamond",
-    stone:   "4. Batch Stone",
-    finding: "5. Batch Finding",
+    count:   "1. WO Count",
+    gold:    "2. WO Gold",
+    diamond: "3. WO Diamond",
+    stone:   "4. WO Stone",
+    finding: "5. WO Finding",
 };
 
 function _active_tab() {

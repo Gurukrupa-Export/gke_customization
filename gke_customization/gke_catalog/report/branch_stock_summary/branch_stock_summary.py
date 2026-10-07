@@ -4,9 +4,13 @@
 """
 Branch Stock Summary: where every gram of a raw material actually sits, department-wise.
 
-All quantities come from the Stock Ledger (the same source as the standard
-Stock Balance report), so the Grand Total always matches Stock Balance.
-Each warehouse is placed in exactly one section:
+Quantities come from the Stock Ledger (the same source as the standard Stock
+Balance report), except the department "Work Order" and
+"Employee WIP" lines for Metal / Diamond / Gemstone / Finding: those are the
+weight on Manufacturing Operations (Not Started, resp. WIP with an employee)
+whose latest Department IR status is not In-Transit (see get_operation_stock).
+The Summary button shows the effect of that on the comparison with Stock Balance. Each warehouse is placed in exactly
+one section:
 
 1. Department      - the warehouse's own `department`; else the department of the
                      warehouse's `employee`; else a department whose name the
@@ -23,6 +27,9 @@ Central / Transit), with their raw material content from each piece's BOM in
 the separate "FG Weight (BOM)" / "FG Pure Gold" columns. That BOM weight is not
 part of Stock Balance, so it is kept out of Quantity, and the Quantity Grand
 Total matches Stock Balance.
+
+Section totals are on the section header row (Dept Total columns); the Grand
+Total is Frappe's total row, so Dept Total Qty and Quantity sum to the same.
 """
 
 import json
@@ -34,7 +41,7 @@ from frappe.utils import cint, flt, getdate
 
 STOCK_TYPES = [
     ("raw_material", "Raw Material"),
-    ("manufacturing", "Manufacturing Warehouse"),
+    ("manufacturing", "Work Order"),
     ("employee_wip", "Employee WIP"),
     ("employee_msl", "Employee MSL"),
     ("scrap", "Scrap"),
@@ -58,6 +65,31 @@ WAREHOUSE_TYPE_TO_STOCK_KEY = {
 # Finished piece serial numbers that are still physically held by the company.
 FINISHED_SERIAL_STATUSES = ("Active", "Reserved")
 
+# Roles that may change the Department filter and view every department (and
+# the company-wide Summary). Everyone else is locked to their own department.
+DEPARTMENT_ADMIN_ROLES = {"System Manager", "Manufacturing Manager", "Stock Manager"}
+
+# Manufacturing Operation weight field per raw material type; the department
+# Work Order line is taken from operations for these types.
+OPERATION_WEIGHT_FIELDS = {
+    "Metal": "net_wt",
+    "Diamond": "diamond_wt",
+    "Gemstone": "gemstone_wt",
+    "Finding": "finding_wt",
+}
+
+# Raw material types with a Pure Gold weight. A finding's purity can differ from
+# the work order's metal, so it is always taken from the finding's own item code.
+PURE_GOLD_TYPES = ("Metal", "Finding")
+
+# Department lines taken from Manufacturing Operations instead of the Stock
+# Ledger, with the operation status that puts the weight on that line.
+# Subcontracted WIP operations are with a supplier, not an employee.
+OPERATION_STOCK_CONDITIONS = {
+    "manufacturing": "mop.status = 'Not Started'",
+    "employee_wip": "mop.status = 'WIP' AND mop.for_subcontracting = 0",
+}
+
 
 def execute(filters=None):
     filters = frappe._dict(filters or {})
@@ -67,18 +99,64 @@ def execute(filters=None):
     if not filters.get("raw_material_type"):
         frappe.throw(_("Raw Material Type is required"))
 
+    apply_department_access(filters)
     return get_columns(), get_data(filters)
+
+
+# ---------------------------------------------------------------------------
+# Department access
+# ---------------------------------------------------------------------------
+
+def can_view_all_departments(user=None):
+    user = user or frappe.session.user
+    return user == "Administrator" or bool(DEPARTMENT_ADMIN_ROLES & set(frappe.get_roles(user)))
+
+
+def get_user_department(user=None):
+    """The user's session default Department, else their Employee record's."""
+    user = user or frappe.session.user
+    return (
+        frappe.defaults.get_user_default("department", user=user)
+        or frappe.db.get_value("Employee", {"user_id": user, "status": "Active"}, "department")
+    )
+
+
+def apply_department_access(filters):
+    """Users without a DEPARTMENT_ADMIN_ROLES role only ever see their own department,
+    whatever Department filter the browser sends."""
+    if can_view_all_departments():
+        return filters
+    department = get_user_department()
+    if not department:
+        frappe.throw(_("No Department is set for your user (session default or Employee record)."))
+    filters["department"] = department
+    return filters
+
+
+@frappe.whitelist()
+def get_department_access():
+    """For the report page: whether the Department filter can be changed, and the
+    department to pre-select."""
+    return {
+        "can_change": can_view_all_departments(),
+        "department": get_user_department(),
+    }
 
 
 def get_columns():
     return [
-        {"fieldname": "section_name", "label": _("Section"), "fieldtype": "Data", "width": 380},
+        {"fieldname": "section_name", "label": _("Section"), "fieldtype": "Data", "width": 280},
+        # Department / group totals sit on the section header row (stock lines
+        # leave them blank), so Frappe's total row sums each column exactly once.
+        {"fieldname": "view_details", "label": _("View Details"), "fieldtype": "Data", "width": 110},
         {"fieldname": "quantity", "label": _("Quantity"), "fieldtype": "Float", "width": 150, "precision": 3},
+        {"fieldname": "dept_total_qty", "label": _("Dept Total Qty"), "fieldtype": "Float", "width": 150, "precision": 3},
         {"fieldname": "pure_gold_weight", "label": _("Pure Gold Weight"), "fieldtype": "Float", "width": 170, "precision": 3},
+        {"fieldname": "dept_total_pure_gold", "label": _("Dept Total Pure Gold"), "fieldtype": "Float", "width": 170, "precision": 3},
         {"fieldname": "pieces", "label": _("FG Pieces"), "fieldtype": "Int", "width": 90},
         {"fieldname": "fg_weight", "label": _("FG Weight (BOM)"), "fieldtype": "Float", "width": 140, "precision": 3},
         {"fieldname": "fg_pure_gold", "label": _("FG Pure Gold"), "fieldtype": "Float", "width": 130, "precision": 3},
-        {"fieldname": "view_details", "label": _("View Details"), "fieldtype": "Data", "width": 110},
+        
     ]
 
 
@@ -100,17 +178,24 @@ def strip_company_abbr(department, abbr):
 
 def get_item_groups(raw_material_types):
     # Both the variant ("- V") and template ("- T") groups: template items can't
-    # hold stock, but variants created under the "- T" group do.
+    # hold stock, but variants created under the "- T" group do. Metal and
+    # Finding also include their "Unused/Loose Material" groups.
     item_groups = []
     for rm_type in raw_material_types:
         if rm_type == "Metal":
-            item_groups.extend(["Metal - V", "Metal DNU", "Metal - T"])
+            item_groups.extend([
+                "Metal - V", "Metal DNU", "Metal - T",
+                "Metal Unused/Loose Material - V", "Metal Unused/Loose Material - T",
+            ])
         elif rm_type == "Diamond":
             item_groups.extend(["Diamond - V", "Diamond DNU", "Diamond - T"])
         elif rm_type == "Gemstone":
             item_groups.extend(["Gemstone - V", "Gemstone DNU", "Gemstone - T"])
         elif rm_type == "Finding":
-            item_groups.extend(["Finding - V", "Finding DNU", "Finding - T"])
+            item_groups.extend([
+                "Finding - V", "Finding DNU", "Finding - T",
+                "Finding Unused/Loose Material - V", "Finding Unused/Loose Material - T",
+            ])
         elif rm_type == "Alloy":
             item_groups.extend(["Alloy"])
         elif rm_type == "Other":
@@ -369,7 +454,137 @@ def get_finished_goods(company, raw_material_type, warehouse_map, serial_detail=
     )
 
 
-def summarise_balances(balances, finished, warehouse_map, is_metal):
+def get_operation_stock(company, raw_material_type, filters, stock_key, allowed_departments=None, department=None, detail=False, with_pure_gold=True):
+    """Weight on Manufacturing Operations for a department line (see
+    OPERATION_STOCK_CONDITIONS) whose latest Department IR status is not
+    In-Transit, on submitted work orders. Every qualifying operation is summed,
+    including several of the same work order. Operation status is current, so
+    this reflects today regardless of As On Date. Returns per-department totals,
+    or operation rows. Finding pure gold needs each operation's own finding
+    purity (see set_finding_pure_gold), so Finding is fetched per operation and
+    summed here."""
+    weight_field = OPERATION_WEIGHT_FIELDS.get(raw_material_type)
+    if not weight_field or stock_key not in OPERATION_STOCK_CONDITIONS:
+        return []
+
+    conditions = ""
+    values = {"company": company}
+    if allowed_departments is not None:
+        if not allowed_departments:
+            return []
+        conditions += " AND mop.department IN %(departments)s"
+        values["departments"] = list(allowed_departments)
+    if department:
+        conditions += " AND mop.department = %(department)s"
+        values["department"] = department
+    if filters.get("branch"):
+        # Work orders without a branch are kept, like untagged warehouses.
+        conditions += " AND COALESCE(mwo.branch, '') IN ('', %(branch)s)"
+        values["branch"] = filters.get("branch")
+
+    pure_sql = (
+        "COALESCE(mop.net_wt, 0) * COALESCE(NULLIF(mop.metal_purity, '') + 0, mwo.metal_purity + 0, 0) / 100"
+        if raw_material_type == "Metal" else "0"
+    )
+
+    is_finding = raw_material_type == "Finding"
+    if detail or is_finding:
+        select = f"""
+            mop.name as operation_name, mop.manufacturing_work_order, mop.operation,
+            mop.department, mop.item_code, mop.department_ir_status, mop.employee, emp.employee_name,
+            COALESCE(mop.{weight_field}, 0) as qty, {pure_sql} as pure_gold
+        """
+        tail = f"HAVING qty != 0 ORDER BY qty DESC"
+    else:
+        select = f"""
+            mop.department, COUNT(*) as operations,
+            SUM(COALESCE(mop.{weight_field}, 0)) as qty, SUM({pure_sql}) as pure_gold
+        """
+        tail = "GROUP BY mop.department"
+
+    operations = frappe.db.sql(
+        f"""
+        SELECT {select}
+        FROM `tabManufacturing Operation` mop
+        INNER JOIN `tabManufacturing Work Order` mwo ON mwo.name = mop.manufacturing_work_order
+        LEFT JOIN `tabEmployee` emp ON emp.name = mop.employee
+        WHERE mop.company = %(company)s
+          AND mwo.docstatus = 1
+          AND {OPERATION_STOCK_CONDITIONS[stock_key]}
+          AND COALESCE(mop.department_ir_status, '') != 'In-Transit'
+          AND COALESCE(mop.department, '') != ''
+          {conditions}
+        {tail}
+        """,
+        values,
+        as_dict=True,
+    )
+
+    if is_finding:
+        if with_pure_gold:
+            set_finding_pure_gold(operations)
+        if not detail:
+            operations = sum_operations_by_department(operations)
+    return operations
+
+
+def set_finding_pure_gold(operations):
+    """Pure gold on each operation: its finding_wt times the weighted purity of
+    the finding items it holds, read from their item codes on the operation's
+    live MOP Log balances (latest row per item and batch, as the finding_wt
+    header is built)."""
+    work_orders = list({op.manufacturing_work_order for op in operations})
+    if not work_orders:
+        return
+
+    # Filtered on work order: MOP Log is indexed on it, not on the operation.
+    logs = frappe.db.sql(
+        """
+        SELECT manufacturing_operation, item_code, qty
+        FROM (
+            SELECT
+                l.manufacturing_operation, l.item_code,
+                l.qty_after_transaction_batch_based as qty,
+                ROW_NUMBER() OVER (
+                    PARTITION BY l.manufacturing_operation, l.item_code, l.batch_no
+                    ORDER BY l.creation DESC
+                ) as rn
+            FROM `tabMOP Log` l
+            WHERE l.is_cancelled = 0
+              AND l.item_code LIKE 'F%%'
+              AND l.manufacturing_work_order IN %(work_orders)s
+        ) latest
+        WHERE rn = 1 AND qty > 0
+        """,
+        {"work_orders": work_orders},
+        as_dict=True,
+    )
+
+    log_weight, log_pure_gold = {}, {}
+    for log in logs:
+        name = log.manufacturing_operation
+        log_weight[name] = log_weight.get(name, 0.0) + flt(log.qty)
+        log_pure_gold[name] = log_pure_gold.get(name, 0.0) + get_pure_gold_from_item_code(log.item_code, log.qty)
+
+    for op in operations:
+        weight = log_weight.get(op.operation_name)
+        op.pure_gold = flt(op.qty) * log_pure_gold[op.operation_name] / weight if weight else 0.0
+
+
+def sum_operations_by_department(operations):
+    totals = {}
+    for op in operations:
+        total = totals.setdefault(
+            op.department,
+            frappe._dict(department=op.department, operations=0, qty=0.0, pure_gold=0.0),
+        )
+        total.operations += 1
+        total.qty += flt(op.qty)
+        total.pure_gold += flt(op.pure_gold)
+    return list(totals.values())
+
+
+def summarise_balances(balances, finished, warehouse_map, with_pure_gold):
     """Accumulate ledger balances and finished pieces into
     {(group, key, stock_key): {qty, pure_gold, pieces, fg_weight, fg_pure_gold, label}}.
     Finished pieces' BOM weight is kept in fg_* and never added to qty."""
@@ -389,7 +604,7 @@ def summarise_balances(balances, finished, warehouse_map, is_metal):
         if bucket is None:
             continue
         bucket["qty"] += flt(row.qty)
-        if is_metal:
+        if with_pure_gold:
             bucket["pure_gold"] += get_pure_gold_from_item_code(row.item_code, row.qty)
 
     for row in finished:
@@ -401,6 +616,29 @@ def summarise_balances(balances, finished, warehouse_map, is_metal):
         bucket["pieces"] += cint(row.pieces)
 
     return buckets
+
+
+def apply_operation_stock(buckets, company, raw_material_type, filters, allowed_departments):
+    """Replace the department Work Order / Employee WIP ledger
+    balances with the weight on the matching Manufacturing Operations."""
+    abbr = get_company_abbr(company)
+    for (group, _key, stock_key), bucket in buckets.items():
+        if group == "department" and stock_key in OPERATION_STOCK_CONDITIONS:
+            bucket["qty"] = bucket["pure_gold"] = 0.0
+
+    for stock_key in OPERATION_STOCK_CONDITIONS:
+        for row in get_operation_stock(company, raw_material_type, filters, stock_key, allowed_departments):
+            add_operation_row(buckets, row, stock_key, abbr)
+
+
+def add_operation_row(buckets, row, stock_key, abbr):
+    bucket = buckets.setdefault(
+        ("department", row.department, stock_key),
+        {"qty": 0.0, "pure_gold": 0.0, "pieces": 0, "fg_weight": 0.0, "fg_pure_gold": 0.0,
+         "label": strip_company_abbr(row.department, abbr)},
+    )
+    bucket["qty"] += flt(row.qty)
+    bucket["pure_gold"] += flt(row.pure_gold)
 
 
 def has_stock(bucket):
@@ -443,7 +681,7 @@ def blank_if_zero(value):
 def get_data(filters):
     company = filters.company
     raw_material_type = filters.raw_material_type
-    is_metal = raw_material_type == "Metal"
+    with_pure_gold = raw_material_type in PURE_GOLD_TYPES
     as_on_date = getdate(filters.get("as_on_date")) if filters.get("as_on_date") else getdate()
 
     warehouse_map = get_warehouse_map(company, filters.get("branch"))
@@ -452,17 +690,15 @@ def get_data(filters):
     item_groups = get_existing_item_groups(raw_material_type)
     balances = get_ledger_balances(company, item_groups, as_on_date, warehouses=list(warehouse_map))
     finished = get_finished_goods(company, raw_material_type, warehouse_map)
-    buckets = summarise_balances(balances, finished, warehouse_map, is_metal)
+    buckets = summarise_balances(balances, finished, warehouse_map, with_pure_gold)
 
+    if raw_material_type in OPERATION_WEIGHT_FIELDS:
+        apply_operation_stock(buckets, company, raw_material_type, filters, get_allowed_departments(filters))
+
+    # No total rows in the data: the section total goes on the header row's
+    # Dept Total columns and the Grand Total is Frappe's total row (add_total_row),
+    # which recalculates on column filters/sorting.
     data = []
-    def new_total():
-        return {"qty": 0.0, "pure_gold": 0.0, "pieces": 0, "fg_weight": 0.0, "fg_pure_gold": 0.0}
-
-    grand = new_total()
-
-    def add_total(total, bucket):
-        for field in total:
-            total[field] += bucket[field]
 
     def amounts(values):
         return dict(
@@ -476,30 +712,31 @@ def get_data(filters):
     def stock_row(label, bucket, button):
         return make_row(label, 1, button=button, is_stock_type=True, **amounts(bucket))
 
-    def total_row(label, total, **flags):
-        return make_row(label, 0, **amounts(total), **flags)
+    def header_row(label, section_buckets):
+        row = make_row(label, 0, is_department_header=True)
+        row["dept_total_qty"] = blank_if_zero(sum(b["qty"] for b in section_buckets))
+        row["dept_total_pure_gold"] = blank_if_zero(sum(b["pure_gold"] for b in section_buckets))
+        return row
 
     # 1. Departments
     departments = sorted({key for (group, key, _sk) in buckets if group == "department"})
     for department in departments:
         label = next(b["label"] for (g, k, _sk), b in buckets.items() if g == "department" and k == department)
         rows = []
-        dept_total = new_total()
+        dept_buckets = []
         for stock_key, stock_label in STOCK_TYPES:
             bucket = buckets.get(("department", department, stock_key))
             if not bucket or not has_stock(bucket):
                 continue
-            add_total(dept_total, bucket)
+            dept_buckets.append(bucket)
             rows.append(stock_row(
                 stock_label, bucket,
                 view_button("department", department, stock_key, f"{label} - {stock_label}"),
             ))
         if not rows:
             continue
-        data.append(make_row(label, 0, is_department_header=True))
+        data.append(header_row(label, dept_buckets))
         data.extend(rows)
-        data.append(total_row(f"{label} Total", dept_total, is_department_total=True))
-        add_total(grand, dept_total)
 
     # 2. Supplier / Job Work, 3. Unassigned
     for group, title in (
@@ -512,16 +749,9 @@ def get_data(filters):
         )
         if not group_buckets:
             continue
-        data.append(make_row(title, 0, is_department_header=True))
-        group_total = new_total()
+        data.append(header_row(title, [bucket for _key, bucket in group_buckets]))
         for key, bucket in group_buckets:
-            add_total(group_total, bucket)
             data.append(stock_row(bucket["label"], bucket, view_button(group, key, group, bucket["label"])))
-        data.append(total_row(f"{title} Total", group_total, is_department_total=True))
-        add_total(grand, group_total)
-
-    if data:
-        data.append(total_row(_("Grand Total"), grand, is_grand_total=True))
 
     return data
 
@@ -535,9 +765,34 @@ def get_stock_details(group, key, stock_key, filters):
     """Rows behind one report line: item-wise balances per warehouse (with the
     employee holding it) plus any finished pieces (serial-wise) in those warehouses."""
     filters = frappe._dict(json.loads(filters) if isinstance(filters, str) else filters)
+    apply_department_access(filters)
+    if not can_view_all_departments() and not (group == "department" and key == filters.department):
+        frappe.throw(_("You can only view details of your own department."), frappe.PermissionError)
+
     company = filters.company
     raw_material_type = filters.raw_material_type
     as_on_date = getdate(filters.get("as_on_date")) if filters.get("as_on_date") else getdate()
+
+    if group == "department" and stock_key in OPERATION_STOCK_CONDITIONS and raw_material_type in OPERATION_WEIGHT_FIELDS:
+        operations = get_operation_stock(company, raw_material_type, filters, stock_key, department=key, detail=True)
+        rows = []
+        for op in operations:
+            row = {
+                "Manufacturing Operation": op.operation_name,
+                "Work Order": op.manufacturing_work_order,
+            }
+            if stock_key == "employee_wip":
+                row["Employee"] = f"{op.employee_name or ''} ({op.employee})" if op.employee else ""
+            row.update({
+                "Operation": op.operation,
+                "Item Code": op.item_code,
+                "Department IR Status": op.department_ir_status or "",
+                "Weight": flt(op.qty, 3),
+            })
+            if raw_material_type in PURE_GOLD_TYPES:
+                row["Pure Gold Weight"] = flt(op.pure_gold, 3)
+            rows.append(row)
+        return rows
 
     warehouse_map = get_warehouse_map(company, filters.get("branch"))
 
@@ -551,7 +806,7 @@ def get_stock_details(group, key, stock_key, filters):
 
     pieces = get_finished_goods(company, raw_material_type, selected, serial_detail=True)
 
-    is_metal = raw_material_type == "Metal"
+    with_pure_gold = raw_material_type in PURE_GOLD_TYPES
     show_employee = group == "department" and stock_key in ("employee_wip", "employee_msl")
 
     def detail_row(warehouse, item_code, serial_no, qty, pure_gold):
@@ -563,7 +818,7 @@ def get_stock_details(group, key, stock_key, filters):
         if pieces:
             row["Serial No"] = serial_no
         row["Weight"] = flt(qty, 3)
-        if is_metal:
+        if with_pure_gold:
             row["Pure Gold Weight"] = flt(pure_gold, 3)
         return row
 
@@ -587,6 +842,9 @@ def get_summary_comparison(filters):
         frappe.throw(_("Company is required"))
     if not filters.get("raw_material_type"):
         frappe.throw(_("Raw Material Type is required"))
+    if not can_view_all_departments():
+        frappe.throw(_("The Summary covers the whole company and is only available to {0}.").format(
+            ", ".join(sorted(DEPARTMENT_ADMIN_ROLES))), frappe.PermissionError)
 
     company = filters.company
     raw_material_type = filters.raw_material_type
@@ -604,7 +862,23 @@ def get_summary_comparison(filters):
         sections[group] += flt(row.qty)
         if group == "unassigned":
             unassigned_rows[row.warehouse] = unassigned_rows.get(row.warehouse, 0.0) + flt(row.qty)
-    report_total = sum(sections.values())
+    ledger_total = sum(sections.values())
+
+    # Work Order / Employee WIP lines: ledger balance replaced by operations.
+    uses_operations = raw_material_type in OPERATION_WEIGHT_FIELDS
+    operation_lines = {}
+    for stock_key in OPERATION_STOCK_CONDITIONS:
+        ledger_qty = sum(
+            flt(row.qty) for row in balances
+            if (info := warehouse_map.get(row.warehouse))
+            and info.group == "department" and info.stock_key == stock_key
+        )
+        operations_qty = (
+            sum(flt(r.qty) for r in get_operation_stock(company, raw_material_type, frappe._dict(), stock_key, with_pure_gold=False))
+            if uses_operations else ledger_qty
+        )
+        operation_lines[stock_key] = {"ledger_qty": ledger_qty, "operations_qty": operations_qty}
+    report_total = ledger_total + sum(v["operations_qty"] - v["ledger_qty"] for v in operation_lines.values())
 
     from erpnext.stock.report.stock_balance.stock_balance import execute as stock_balance_execute
 
@@ -635,12 +909,17 @@ def get_summary_comparison(filters):
             for wh, qty in sorted(unassigned_rows.items(), key=lambda kv: -kv[1])
             if abs(qty) > 0.0005
         ],
-        "ledger_total": report_total,
+        "ledger_total": ledger_total,
+        "uses_operations": uses_operations,
+        "ledger_mfg_qty": operation_lines["manufacturing"]["ledger_qty"],
+        "operations_mfg_qty": operation_lines["manufacturing"]["operations_qty"],
+        "ledger_emp_wip_qty": operation_lines["employee_wip"]["ledger_qty"],
+        "operations_emp_wip_qty": operation_lines["employee_wip"]["operations_qty"],
         "finished_goods_qty": finished_qty,
         "finished_goods_pieces": sum(cint(r.pieces) for r in finished),
         "report_total": report_total,
         "stock_balance_qty": stock_balance_qty,
-        "difference": stock_balance_qty - report_total,
+        "difference": stock_balance_qty - ledger_total,
     }
 
 
@@ -655,6 +934,8 @@ def department_query(doctype, txt, searchfield, start, page_len, filters):
 
     warehouse_map = get_warehouse_map(company, filters.get("branch"))
     departments = {info.department for info in warehouse_map.values() if info.group == "department"}
+    if not can_view_all_departments():
+        departments &= {get_user_department()}
     if filters.get("manufacturer"):
         departments &= get_manufacturer_departments(filters.get("manufacturer"))
 

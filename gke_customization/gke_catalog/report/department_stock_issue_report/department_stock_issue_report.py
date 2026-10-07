@@ -17,9 +17,10 @@ def execute(filters=None):
 def enforce_department_restriction(filters):
     """Restrict department filters to the user's own department unless they hold an
     override role. Which field(s) get restricted depends on 'status':
-      - Issued: from_department must be the user's own department
       - Received: to_department must be the user's own department
-      - Transit: either from_department or to_department must be the user's own department
+      - Transit: if another department is picked in from_department or to_department, the
+        other side is forced to the user's own department; with neither picked, either
+        side must be the user's own department
     """
     status = filters.get("status")
     if not status:
@@ -34,12 +35,15 @@ def enforce_department_restriction(filters):
         filters["_force_empty"] = 1
         return
 
-    if status == "Issued":
-        filters["from_department"] = department
-    elif status == "Received":
+    if status == "Received":
         filters["to_department"] = department
     elif status == "Transit":
-        filters["transit_department"] = department
+        if filters.get("from_department") and filters.get("from_department") != department:
+            filters["to_department"] = department
+        elif filters.get("to_department") and filters.get("to_department") != department:
+            filters["from_department"] = department
+        else:
+            filters["transit_department"] = department
     else:
         frappe.throw(_("Invalid Status"))
 
@@ -55,9 +59,7 @@ def get_user_department_filter(status=None):
         return {"can_change_department": True, "department": None, "lock_field": None}
 
     lock_field = None
-    if status == "Issued":
-        lock_field = "from_department"
-    elif status == "Received":
+    if status == "Received":
         lock_field = "to_department"
 
     return {
@@ -160,7 +162,6 @@ def get_raw_data(filters):
                 'N/A'
             ) as to_department,
             CASE
-                WHEN se.stock_entry_type = 'Material Issue' THEN 'Issued'
                 WHEN EXISTS (
                     SELECT 1 FROM `tabStock Entry` se2
                     WHERE (se2.outgoing_stock_entry = se.name OR se2.repack_entry = se.name)
@@ -180,9 +181,9 @@ def get_raw_data(filters):
         LEFT JOIN
             `tabWarehouse` tw ON sed.t_warehouse = tw.name
         WHERE
-            se.stock_entry_type IN ('Material Transfer(Department)', 'Material Transfer (Department)', 'Customer Goods Transfer', 'Material Issue')
+            se.stock_entry_type IN ('Material Transfer(Department)', 'Material Transfer (Department)', 'Customer Goods Transfer')
             AND se.docstatus = 1
-            AND (tw.warehouse_type = 'Transit' OR se.stock_entry_type = 'Material Issue')
+            AND tw.warehouse_type = 'Transit'
             AND sed.serial_no IS NULL
             AND sed.batch_no IS NOT NULL
             {conditions}
@@ -257,19 +258,17 @@ def get_conditions(filters):
     
     if filters.get("status"):
         if filters.get("status") == "Transit":
-            conditions.append("""AND se.stock_entry_type != 'Material Issue' AND NOT EXISTS (
+            conditions.append("""AND NOT EXISTS (
                 SELECT 1 FROM `tabStock Entry` se2
                 WHERE (se2.outgoing_stock_entry = se.name OR se2.repack_entry = se.name)
                 AND se2.docstatus = 1
             )""")
         elif filters.get("status") == "Received":
-            conditions.append("""AND se.stock_entry_type != 'Material Issue' AND EXISTS (
+            conditions.append("""AND EXISTS (
                 SELECT 1 FROM `tabStock Entry` se2
                 WHERE (se2.outgoing_stock_entry = se.name OR se2.repack_entry = se.name)
                 AND se2.docstatus = 1
             )""")
-        elif filters.get("status") == "Issued":
-            conditions.append("AND se.stock_entry_type = 'Material Issue'")
     
     if filters.get("manufacturer"):
         conditions.append("AND se.manufacturer = %(manufacturer)s")
