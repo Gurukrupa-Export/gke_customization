@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from frappe.utils import cint, get_datetime, getdate
+from frappe.utils import cint, get_datetime
 from datetime import datetime, timedelta
 import requests
 
@@ -25,10 +25,6 @@ def sync_biometric_checkins():
     * Shift-aware Log Type (IN / OUT) — works for day *and* night shifts
     * Duplicate prevention via (employee, timestamp) uniqueness
     * Time-threshold filtering to ignore rapid successive punches
-    * Comprehensive error logging
-
-    from gke_customization.gke_hrms.sync_checkin import sync_biometric_checkins
-
     """
     settings = frappe.get_cached_doc("Biometric Settings", "Biometric Settings")
 
@@ -78,7 +74,7 @@ def sync_biometric_checkins():
         return {"status": "error", "message": "Invalid JSON response"}
 
     # ── Sort chronologically (critical for correct IN/OUT toggle) ──────
-    data = sorted(data, key=lambda r: _parse_datetime_safe(r.get("edatetime_e", "")))
+    data = sorted(data, key=lambda r: _parse_datetime_for_sort(r.get("edatetime_e", "")))
 
     created = 0
     skipped = 0
@@ -192,13 +188,13 @@ def _determine_log_type(employee, log_dt):
     disabled in HR Settings.
     """
     from gke_customization.gke_hrms.punch_pairing import (
-        classify_punch,
+        determine_punch_in_out,
         is_session_pairing_enabled,
     )
 
     if is_session_pairing_enabled():
         try:
-            result = classify_punch(employee, get_datetime(log_dt))
+            result = determine_punch_in_out(employee, get_datetime(log_dt))
             # R5 orphans stay direction-less; they are routed to the
             # regularization queue by the nightly reconciliation
             return result.get("log_type") or "IN"
@@ -423,7 +419,7 @@ def _parse_datetime(raw):
         return None
 
 
-def _parse_datetime_safe(raw):
+def _parse_datetime_for_sort(raw):
     """Parse for sorting — returns a very old date on failure so bad
     records don't crash the sort."""
     dt = _parse_datetime(raw)
