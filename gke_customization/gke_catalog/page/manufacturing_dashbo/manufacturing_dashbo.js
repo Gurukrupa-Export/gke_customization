@@ -333,6 +333,20 @@ class ManufacturingDashboard {
 						<div class="mfg-node__stats">
 							<span title="Diamond pieces">Dia Pcs <b>${this.fmt_count(Math.round(dept.diamond_pcs || 0))}</b></span>
 						</div>
+						${
+							dept.not_weighed
+								? `<div class="mfg-node__stats mfg-node__stats--warn">
+									<span title="Pieces past casting whose current operation has no recorded weight - not included in the weights above">⚠ Not weighed <b>${this.fmt_count(dept.not_weighed)}</b></span>
+								</div>`
+								: ''
+						}
+						${
+							dept.not_started
+								? `<div class="mfg-node__stats mfg-node__stats--caution">
+									<span title="In Progress pieces received/issued to this department but work not started yet">⏸ Not started <b>${this.fmt_count(dept.not_started)}</b></span>
+								</div>`
+								: ''
+						}
 						<div class="mfg-node__legend">
 							<span><i style="background:var(--mfg-amber)"></i>${this.fmt_count(dept.pending)}</span>
 							<span><i style="background:var(--mfg-steel)"></i>${this.fmt_count(dept.in_progress)}</span>
@@ -409,11 +423,13 @@ class ManufacturingDashboard {
 			<div class="mfg-tooltip__row"><span>Total pieces</span><b>${this.fmt_count(total)}</b></div>
 			<div class="mfg-tooltip__row pending"><span>Pending</span><b>${this.fmt_count(dept.pending)} (${pct(dept.pending)}%)</b></div>
 			<div class="mfg-tooltip__row progress"><span>In Progress</span><b>${this.fmt_count(dept.in_progress)} (${pct(dept.in_progress)}%)</b></div>
+			<div class="mfg-tooltip__row"><span>&nbsp;&nbsp;of which not started</span><b>${this.fmt_count(dept.not_started)}</b></div>
 			<div class="mfg-tooltip__row completed"><span>Completed</span><b>${this.fmt_count(dept.completed)} (${pct(dept.completed)}%)</b></div>
 			<div class="mfg-tooltip__divider"></div>
 			<div class="mfg-tooltip__row"><span>Metal wt</span><b>${this.fmt_wt(dept.gold_wt, 'g')}</b></div>
 			<div class="mfg-tooltip__row"><span>Diamond wt</span><b>${this.fmt_wt(dept.diamond_wt, 'ct')}</b></div>
-			<div class="mfg-tooltip__row"><span>Diamond pcs</span><b>${this.fmt_count(Math.round(dept.diamond_pcs || 0))}</b></div>`;
+			<div class="mfg-tooltip__row"><span>Diamond pcs</span><b>${this.fmt_count(Math.round(dept.diamond_pcs || 0))}</b></div>
+			<div class="mfg-tooltip__row"><span>Not weighed</span><b>${this.fmt_count(dept.not_weighed)}</b></div>`;
 	}
 
 	position_tooltip($tooltip, node_el) {

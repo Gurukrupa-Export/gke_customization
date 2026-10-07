@@ -6,7 +6,10 @@ from frappe import _
 from frappe.utils import add_days, flt, get_datetime, getdate
 
 from gke_customization.gke_catalog.report.branch_stock_summary.branch_stock_summary import (
+    OPERATION_STOCK_CONDITIONS,
+    OPERATION_WEIGHT_FIELDS,
     get_existing_item_groups,
+    get_operation_stock,
     get_warehouse_map,
 )
 
@@ -74,10 +77,14 @@ def get_user_department_filter():
 # (Warehouse.department, else the warehouse employee's department, else a
 # department whose name the warehouse name starts with; subcontractor
 # warehouses excluded), so employee WIP/MSL warehouses with a blank
-# Warehouse.department are counted and Closing matches that report exactly.
+# Warehouse.department are counted.
 #
-# Closing = Opening + Receive - Issue is an exact identity: Issue/Receive are
-# that same ledger's negative/positive legs in the period. "Count" (distinct
+# Opening/Issue/Receive are ledger figures: Issue/Receive are that ledger's
+# negative/positive legs in the period. Closing is the department total of
+# Branch Stock Summary (As On Date = To Date): the ledger closing, with the
+# Manufacturing Warehouse / Employee WIP lines replaced by the weight on
+# Manufacturing Operations (see _get_operation_line_adjustment). So Closing =
+# Opening + Receive - Issue + that adjustment, not the bare ledger sum. "Count" (distinct
 # work orders) is NOT part of this — it stays on the Stock-Entry-based logic
 # below, since SLE has no work-order identity and most other voucher types
 # (Purchase Receipt, Delivery Note, ...) have no work order at all.
@@ -168,6 +175,49 @@ def _get_material_opening(from_date, department, wh_map):
     return _pivot_item_group(rows, department, ["balance"], ["opening"])
 
 
+def _get_operation_line_adjustment(to_date, department):
+    """{material: operation weight - ledger balance} of the department's
+    Manufacturing Warehouse / Employee WIP lines, the change Branch Stock
+    Summary makes to those lines (its apply_operation_stock). The ledger part
+    is as on To Date; operation weight is current, as in that report."""
+    company = frappe.db.get_value("Department", department, "company")
+    companies = [company] if company else frappe.get_all("Company", pluck="name")
+
+    operation_labels = {label for label, rmt in MATERIALS if rmt in OPERATION_WEIGHT_FIELDS}
+    adjustment = {}
+    warehouses = []
+    for c in companies:
+        warehouses += [
+            wh for wh, info in get_warehouse_map(c).items()
+            if info.group == "department" and info.department == department
+            and info.stock_key in OPERATION_STOCK_CONDITIONS
+        ]
+        for label, raw_material_type in MATERIALS:
+            if label not in operation_labels:
+                continue
+            for stock_key in OPERATION_STOCK_CONDITIONS:
+                for r in get_operation_stock(c, raw_material_type, frappe._dict(), stock_key, department=department):
+                    adjustment[label] = adjustment.get(label, 0) + flt(r.qty)
+
+    if warehouses:
+        date_clause, date_params = _sle_period_clause(None, to_date)
+        rows = frappe.db.sql("""
+            SELECT item_group, SUM(actual_qty) AS balance
+            FROM ({base}) sle_f
+            GROUP BY item_group
+        """.format(base=_sle_base(warehouses, date_clause)),
+        {"item_groups": list(_item_group_field()),
+         "warehouses": warehouses, **date_params},
+        as_dict=True)
+
+        for r in rows:
+            label = _item_group_field().get(r["item_group"])
+            if label in operation_labels:
+                adjustment[label] = adjustment.get(label, 0) - flt(r["balance"])
+
+    return adjustment
+
+
 def _get_material_period(from_date, to_date, department, wh_map):
     warehouses = _department_warehouses(wh_map, department)
     if not warehouses:
@@ -189,6 +239,38 @@ def _get_material_period(from_date, to_date, department, wh_map):
     return _pivot_item_group(rows, department, ["issue", "receive"], ["issue", "receive"])
 
 
+def _loss_variant_map():
+    """{loss template prefix: source template prefix} from Variant Loss Table
+    (ML -> M, FL -> F, DL -> D, GB -> G, ...), cached per request."""
+    if not hasattr(frappe.local, "mbsr_loss_variant_map"):
+        frappe.local.mbsr_loss_variant_map = {
+            r.loss_variant: r.variant
+            for r in frappe.db.sql(
+                "SELECT DISTINCT variant, loss_variant FROM `tabVariant Loss Table` "
+                "WHERE IFNULL(variant, '') != '' AND IFNULL(loss_variant, '') != ''",
+                as_dict=True)
+        }
+    return frappe.local.mbsr_loss_variant_map
+
+
+def _source_item_code(item_code):
+    """ML-G-22KT-91.75-Y -> M-G-22KT-91.75-Y; non-loss items unchanged."""
+    prefix, sep, rest = (item_code or "").partition("-")
+    source = _loss_variant_map().get(prefix)
+    return "{}-{}".format(source, rest) if sep and source else item_code
+
+
+def _loss_twin_item_codes(item_code):
+    """The item itself, its source item and every loss variant of that source."""
+    source = _source_item_code(item_code)
+    prefix, sep, rest = source.partition("-")
+    codes = {item_code, source}
+    if sep:
+        codes.update("{}-{}".format(loss, rest)
+                     for loss, src in _loss_variant_map().items() if src == prefix)
+    return codes
+
+
 def _get_material_counterparty_breakdown(from_date, to_date, department, wh_map):
     warehouses = _department_warehouses(wh_map, department)
     if not warehouses:
@@ -203,17 +285,26 @@ def _get_material_counterparty_breakdown(from_date, to_date, department, wh_map)
         return []
 
     # Each leg's counterparty is the other warehouse of the same voucher that
-    # moved the same item by the opposite qty (first by SLE name if several).
+    # moved the same item by the opposite qty (first by SLE name if several);
+    # failing that, the first other warehouse that moved the same item the
+    # opposite way at all (a Process Loss books many small legs into one
+    # combined loss leg, so their qtys never match one-to-one).
     # Every voucher's ledger rows are fetched once and paired in Python — a
     # SQL self-join re-scans the whole voucher for every leg, which on large
     # manufacturing vouchers ran for over an hour on a 20-day range. Paired
     # legs share the posting_date, so `pair` is bounded by the same dates.
+    # A Process Loss moves the source item (M-G-...) out and its loss variant
+    # (ML-G-..., per Variant Loss Table) into a scrap warehouse, so both legs
+    # are keyed by the source item code to pair them.
     def key(voucher_type, voucher_no, item_code, qty):
-        return (voucher_type, voucher_no, item_code, flt(qty, 6))
+        return (voucher_type, voucher_no, _source_item_code(item_code), flt(qty, 6))
 
-    candidates = {}
+    def item_key(voucher_type, voucher_no, item_code, qty):
+        return (voucher_type, voucher_no, _source_item_code(item_code), flt(qty) > 0)
+
+    candidates, item_candidates = {}, {}
     vouchers = sorted({r["voucher_no"] for r in self_rows})
-    items    = sorted({r["item_code"]  for r in self_rows})
+    items    = sorted({twin for r in self_rows for twin in _loss_twin_item_codes(r["item_code"])})
     for i in range(0, len(vouchers), 1000):
         for p in frappe.db.sql("""
             SELECT sle.name, sle.voucher_type, sle.voucher_no, sle.item_code, sle.warehouse, sle.actual_qty
@@ -225,27 +316,105 @@ def _get_material_counterparty_breakdown(from_date, to_date, department, wh_map)
             ORDER BY sle.name
         """.format(date_clause=date_clause),
         {"vouchers": vouchers[i:i + 1000], "items": items, **date_params}, as_dict=True):
-            candidates.setdefault(
-                key(p["voucher_type"], p["voucher_no"], p["item_code"], p["actual_qty"]), []
-            ).append(p["warehouse"])
+            args = (p["voucher_type"], p["voucher_no"], p["item_code"], p["actual_qty"])
+            candidates.setdefault(key(*args), []).append(p["warehouse"])
+            if flt(p["actual_qty"]):
+                item_candidates.setdefault(item_key(*args), []).append(p["warehouse"])
 
-    merged = {}
+    paired = []
     for r in self_rows:
         label = _item_group_field().get(r["item_group"])
-        if not label:
+        if not label or not flt(r["actual_qty"]):
             continue
+        args = (r["voucher_type"], r["voucher_no"], r["item_code"], -flt(r["actual_qty"]))
         pair_warehouse = next(
-            (wh for wh in candidates.get(key(r["voucher_type"], r["voucher_no"], r["item_code"], -flt(r["actual_qty"])), [])
+            (wh for wh in candidates.get(key(*args), []) + item_candidates.get(item_key(*args), [])
              if wh != r["warehouse"]),
             None,
         )
-        counterparty = wh_map.get(pair_warehouse) or UNASSIGNED
+        paired.append((r, label, pair_warehouse))
+
+    # Loss booked into a Scrap warehouse gets its own row (the scrap warehouse)
+    # instead of being merged into that warehouse's department. A department's
+    # own scrap warehouse receiving from the department shows on the same row.
+    scrap_warehouses = set(frappe.get_all("Warehouse", pluck="name", filters={
+        "warehouse_type": "Scrap",
+        "name": ["in", list({w for r, _, pw in paired for w in (r["warehouse"], pw) if w})],
+    })) if paired else set()
+
+    # Legs that pair with no department warehouse are classified instead of
+    # being left Unassigned:
+    # - paired with a warehouse of no department -> that warehouse;
+    # - a Repack (any Repack-purpose type except Process Loss) converts one
+    #   material into another inside the warehouse -> a row named after the
+    #   conversion, e.g. "Repack (Gold → Finding)";
+    # - a Manufacture consumes the material into the finished item ->
+    #   "Finished Goods" (the same row the PMO count uses);
+    # - any other Stock Entry -> its Stock Entry Type; any other voucher
+    #   (Purchase Receipt, Delivery Note, ...) -> its voucher type.
+    unpaired = [(r, pw) for r, _, pw in paired if not wh_map.get(pw)]
+    unpaired_entries = {se.name: se for se in frappe.get_all("Stock Entry",
+        fields=["name", "purpose", "stock_entry_type"],
+        filters={"name": ["in", list({r["voucher_no"] for r, _ in unpaired if r["voucher_type"] == "Stock Entry"})]},
+    )} if unpaired else {}
+    repack_vouchers = [name for name, se in unpaired_entries.items()
+                       if se.purpose == "Repack" and se.stock_entry_type != "Process Loss"]
+
+    # Both sides of a Repack, named by material tab or, for items outside the
+    # material tabs (e.g. "Metal Unused/Loose Material"), by item group.
+    repack_sides = {}
+    for i in range(0, len(repack_vouchers), 1000):
+        for p in frappe.db.sql("""
+            SELECT sle.voucher_no, sle.actual_qty, i.item_group
+            FROM `tabStock Ledger Entry` sle
+            JOIN `tabItem` i ON i.name = sle.item_code
+            WHERE sle.voucher_no IN %(vouchers)s
+              AND sle.warehouse IN %(warehouses)s
+              AND sle.is_cancelled = 0
+              {date_clause}
+        """.format(date_clause=date_clause),
+        {"vouchers": repack_vouchers[i:i + 1000], "warehouses": warehouses, **date_params}, as_dict=True):
+            if flt(p["actual_qty"]):
+                sides = repack_sides.setdefault(p["voucher_no"], ({}, {}))
+                material = _item_group_field().get(p["item_group"])
+                name = material.title() if material else (p["item_group"] or "").rsplit(" - ", 1)[0]
+                sides[0 if flt(p["actual_qty"]) < 0 else 1][name] = True
+
+    material_order = [m.title() for m, _ in MATERIALS]
+    def side_names(names):
+        ordered = [m for m in material_order if m in names] + sorted(n for n in names if n not in material_order)
+        return "/".join(ordered) or "-"
+
+    def repack_label(voucher_no):
+        out, into = repack_sides.get(voucher_no, ({}, {}))
+        return "Repack ({} → {})".format(side_names(out), side_names(into))
+
+    def unpaired_label(r, pair_warehouse):
+        if pair_warehouse:
+            return pair_warehouse
+        se = unpaired_entries.get(r["voucher_no"]) if r["voucher_type"] == "Stock Entry" else None
+        if not se:
+            return r["voucher_type"] or UNASSIGNED
+        if r["voucher_no"] in repack_sides:
+            return repack_label(r["voucher_no"])
+        if se.purpose == "Manufacture":
+            return FINISHED
+        return se.stock_entry_type or se.purpose or UNASSIGNED
+
+    merged = {}
+    for r, label, pair_warehouse in paired:
+        if pair_warehouse in scrap_warehouses:
+            counterparty = pair_warehouse
+        elif r["warehouse"] in scrap_warehouses and wh_map.get(pair_warehouse) == department:
+            counterparty = r["warehouse"]
+        else:
+            counterparty = wh_map.get(pair_warehouse) or unpaired_label(r, pair_warehouse)
         d = merged.setdefault(counterparty, {})
         qty = flt(r["actual_qty"])
         if qty > 0:
             field = "{}_receive".format(label)
             d[field] = d.get(field, 0) + qty
-        elif qty < 0:
+        else:
             field = "{}_issue".format(label)
             d[field] = d.get(field, 0) + (-qty)
 
@@ -295,6 +464,7 @@ def get_data(filters):
     period_material    = _get_material_period(from_date, to_date, department, wh_map)
     opening_material   = _get_material_opening(from_date, department, wh_map)
     breakdown_material = _get_material_counterparty_breakdown(from_date, to_date, department, wh_map)
+    operation_adjustment = _get_operation_line_adjustment(to_date, department)
 
     bm = {}
     for r in breakdown_material:
@@ -324,17 +494,19 @@ def get_data(filters):
         pmo = _get_pmo_counts(from_date, to_date, dept)
 
         # ── Gold/Diamond/Stone/Finding ────────────────────────────────────
-        # Opening/Closing are the department's actual stock-on-hand from the
-        # Stock Ledger (ground truth); Issue/Receive are that same ledger's
-        # negative/positive legs in the period, so Closing = Opening +
-        # Receive - Issue holds exactly, not approximately.
+        # Opening is the department's stock-on-hand from the Stock Ledger;
+        # Issue/Receive are that same ledger's negative/positive legs in the
+        # period. Closing is that ledger closing (Opening + Receive - Issue)
+        # with the Manufacturing Warehouse / Employee WIP lines taken from
+        # Manufacturing Operations, so it matches Branch Stock Summary.
         values = {}
         for label, _raw_material_type in MATERIALS:
             o = flt(od_mat.get(label + "_opening"))
             i = flt(pd_mat.get(label + "_issue"))
             r = flt(pd_mat.get(label + "_receive"))
+            closing = o + r - i + flt(operation_adjustment.get(label))
             values.update({label + "_opening": o, label + "_issue": i,
-                           label + "_receive": r, label + "_closing": o + r - i})
+                           label + "_receive": r, label + "_closing": closing})
 
         # ── Count (PMOs) ──────────────────────────────────────────────────
         values.update(pmo["totals"])

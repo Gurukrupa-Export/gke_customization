@@ -116,11 +116,12 @@ def get_columns(departments=None):
         {"fieldname": "view_details", "label": _("View"), "fieldtype": "HTML", "width": 80},
         {"fieldname": "category", "label": _("Category"), "fieldtype": "Data", "width": 100},
         {"fieldname": "item_subcategory", "label": _("Sub Category"), "fieldtype": "Data", "width": 100},
+        {"fieldname": "with_chain", "label": _("With Chain"), "fieldtype": "Data", "width": 100},
         {"fieldname": "customer", "label": _("Customer"), "fieldtype": "Link", "options": "Customer", "width": 120},
         {"fieldname": "order_type", "label": _("Order Type"), "fieldtype": "Data", "width": 100},
         {"fieldname": "customer_po_no", "label": _("Customer PO No."), "fieldtype": "Data", "width": 120},
         {"fieldname": "warehouse", "label": _("Warehouse"), "fieldtype": "Link", "options": "Warehouse", "width": 120},
-        {"fieldname": "manufacturer", "label": _("Manufacturer"), "fieldtype": "Link", "options": "Manufacturer", "width": 120},
+        # {"fieldname": "manufacturer", "label": _("Manufacturer"), "fieldtype": "Link", "options": "Manufacturer", "width": 120},
         {"fieldname": "metal_touch", "label": _("Metal Purity"), "fieldtype": "Data", "width": 100},
         {"fieldname": "finding_touch", "label": _("Finding Purity"), "fieldtype": "Data", "width": 100},
     ]
@@ -291,7 +292,8 @@ def get_data(filters, departments=None, department_name_map=None):
                         'metal_touch': metal_touch_display,
                         'finding_touch': finding_touch_display,
                         'category': bom_data.get('item_category', row.get('category', '')),
-                        'item_subcategory': bom_data.get('item_subcategory', '')
+                        'item_subcategory': bom_data.get('item_subcategory', ''),
+                        'with_chain': 'No' if (bom_data.get('chain_type') or '').strip().lower() == 'no' else 'Yes'
                     })
                 else:
                     row.update({
@@ -299,7 +301,7 @@ def get_data(filters, departments=None, department_name_map=None):
                         'gemstone_wt': 0, 'gemstone_pcs': 0, 'other_wt': 0,
                         'metal_wt': 0, 'finding_wt': 0, 'net_wt': 0,
                         'metal_touch': '', 'finding_touch': '', 'pure_wt': 0, 'alloy_wt': 0,
-                        'item_subcategory': ''
+                        'item_subcategory': '', 'with_chain': ''
                     })
 
                 if pmo_data:
@@ -321,7 +323,7 @@ def get_data(filters, departments=None, department_name_map=None):
                     'metal_wt': 0, 'finding_wt': 0, 'net_wt': 0,
                     'metal_touch': '', 'finding_touch': '', 'pure_wt': 0, 'alloy_wt': 0,
                     'order_type': order_type, 'customer_po_no': '', 'parent_manufacturing_order': '',
-                    'item_subcategory': ''
+                    'item_subcategory': '', 'with_chain': ''
                 })
             
             final_data.append(row)
@@ -438,6 +440,7 @@ def get_wip_mwo_rows(filters, departments=None, department_name_map=None):
             'view_details': '',
             'category': m.get('category', ''),
             'item_subcategory': '',
+            'with_chain': '',
             'customer': '',
             'order_type': m.get('order_type', ''),
             'customer_po_no': '',
@@ -644,7 +647,8 @@ def get_serial_specific_bom_data(serial_no, custom_bom_no):
                 bom.finding_metal_touch,
                 bom.item_category,
                 bom.item_subcategory,
-                bom.setting_type
+                bom.setting_type,
+                bom.chain_type
             FROM `tabBOM` bom
             WHERE bom.name = %s
             LIMIT 1

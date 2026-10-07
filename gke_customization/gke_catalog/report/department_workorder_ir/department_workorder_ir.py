@@ -19,18 +19,15 @@ def get_columns():
     return [
         {"label": _("Trans Date"), "fieldname": "trans_date", "fieldtype": "Date", "width": 100},
         {"label": _("Trans Time"), "fieldname": "trans_time", "fieldtype": "Data", "width": 90},
-        {"label": _("Department IR"), "fieldname": "jangad_no", "fieldtype": "Data", "width": 100},
+        {"label": _("Department IR"), "fieldname": "department_ir", "fieldtype": "Link", "options": "Department IR", "width": 180},
         {"label": _("Manufacturing Work Order"), "fieldname": "manufacturing_work_order", "fieldtype": "Link", "options": "Manufacturing Work Order", "width": 180},
         {"label": _("From Dept"), "fieldname": "from_department", "fieldtype": "Link", "options": "Department", "width": 130},
         {"label": _("From Mgr"), "fieldname": "from_manager", "fieldtype": "Data", "width": 110},
         {"label": _("To Dept"), "fieldname": "to_department", "fieldtype": "Link", "options": "Department", "width": 130},
         {"label": _("To Mgr"), "fieldname": "to_manager", "fieldtype": "Data", "width": 110},
         # {"label": _("Transporter"), "fieldname": "transporter", "fieldtype": "Data", "width": 100},
-        {"label": _("Issue Confirm"), "fieldname": "issue_confirm", "fieldtype": "Data", "width": 100},
-        {"label": _("Receive Confirm"), "fieldname": "receive_confirm", "fieldtype": "Data", "width": 110},
-        # {"label": _("Jangad Lock Date"), "fieldname": "jangad_lock_date", "fieldtype": "Data", "width": 130},
-        # {"label": _("Jangad Lock Time"), "fieldname": "jangad_lock_time", "fieldtype": "Data", "width": 130},
-        # {"label": _("Jangad Lock"), "fieldname": "jangad_lock", "fieldtype": "Data", "width": 100},
+        # {"label": _("Issue Confirm"), "fieldname": "issue_confirm", "fieldtype": "Data", "width": 100},
+        # {"label": _("Receive Confirm"), "fieldname": "receive_confirm", "fieldtype": "Data", "width": 110},
         {"label": _("Item Code"), "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 130},
         # {"label": _("Sample No"), "fieldname": "sample_no", "fieldtype": "Data", "width": 120},
         {"label": _("Category"), "fieldname": "category", "fieldtype": "Data", "width": 120},
@@ -57,9 +54,9 @@ def get_data(filters):
         conditions.append("dir.branch = %(branch)s")
         query_filters["branch"] = filters.get("branch")
 
-    if filters.get("jangad_no"):
-        conditions.append("dir.name LIKE %(jangad_no)s")
-        query_filters["jangad_no"] = f"%{filters.get('jangad_no')}%"
+    if filters.get("department_ir"):
+        conditions.append("dir.name = %(department_ir)s")
+        query_filters["department_ir"] = filters.get("department_ir")
 
     if filters.get("from_dept"):
         conditions.append("""
@@ -139,7 +136,7 @@ def get_data(filters):
         SELECT
             DATE(dir.date_time) AS trans_date,
             DATE_FORMAT(dir.date_time, '%%h:%%i %%p') AS trans_time,
-            REPLACE(dir.name, 'Department-IR-', '') AS jangad_no,
+            dir.name AS department_ir,
             /* From Department */
             CASE
                 WHEN dir.type = 'Issue' THEN dir.current_department
@@ -193,9 +190,6 @@ def get_data(filters):
                 WHEN dir.type = 'Receive' THEN 'Yes'
                 ELSE ''
             END AS receive_confirm,
-            '' AS jangad_lock_date,
-            '' AS jangad_lock_time,
-            '' AS jangad_lock,
             mwo.item_code AS item_code,
             item.variant_of AS sample_no,
             mwo.item_category AS category,
@@ -252,17 +246,17 @@ def get_data(filters):
 
 def apply_grouping(data):
     """
-    Blank out Jangad-level fields on repeated rows belonging to the same
-    Jangad No, so each Jangad No group displays its parent-level info
-    only once (on the first row), while item/operation-level fields
-    (Manufacturing Work Order, Item Code, Gross Wt, Pcs, etc.) still
-    display on every row.
+    Blank out Department IR-level fields on repeated rows belonging to the
+    same Department IR, so each Department IR group displays its
+    parent-level info only once (on the first row), while
+    item/operation-level fields (Manufacturing Work Order, Item Code,
+    Gross Wt, Pcs, etc.) still display on every row.
     """
-    # Fields to blank out on repeat rows within the same Jangad No group
+    # Fields to blank out on repeat rows within the same Department IR group
     group_fields = [
         "trans_date",
         "trans_time",
-        "jangad_no",
+        "department_ir",
         "from_department",
         "from_manager",
         "to_department",
@@ -271,17 +265,17 @@ def apply_grouping(data):
         "receive_confirm",
     ]
 
-    last_jangad_no = None
+    last_department_ir = None
 
     for row in data:
-        current_jangad_no = row.get("jangad_no")
+        current_department_ir = row.get("department_ir")
 
-        if current_jangad_no == last_jangad_no:
-            # Same Jangad No as previous row -> blank the group-level fields
+        if current_department_ir == last_department_ir:
+            # Same Department IR as previous row -> blank the group-level fields
             for field in group_fields:
                 row[field] = ""
         else:
-            # New Jangad No group starts here
-            last_jangad_no = current_jangad_no
+            # New Department IR group starts here
+            last_department_ir = current_department_ir
 
     return data

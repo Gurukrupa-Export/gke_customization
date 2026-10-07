@@ -63,6 +63,11 @@ frappe.query_reports["Everyday Work Report"] = {
 
     formatter: function(value, row, column, data, default_formatter) {
 
+        // Grand Total row: show plain bold text (the MWO count is a number, not a link)
+        if (data && data.is_total_row) {
+            return value ? `<b>${value}</b>` : "";
+        }
+
         value = default_formatter(value, row, column, data);
 
 

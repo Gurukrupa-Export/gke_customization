@@ -247,6 +247,66 @@ def _build_so_extra_filter(customer=None, from_date=None, to_date=None):
 	return extra_sql, params
 
 
+# Per-piece weights. MWO's own net_wt/diamond_wt are never populated; the actual weighed values
+# live on the piece's current Manufacturing Operation, and the planned values on the MWO
+# (metal_weight) and its master BOM (total_diamond_weight/pcs). Which one is used depends on
+# the stage the piece is at (business-confirmed):
+#   - Metal: planned before casting (Manufacturing Plan / CAD / Waxing), actual after.
+#   - Diamonds: planned before Diamond Setting; while in Diamond Setting and not yet Finished,
+#     actual if any stones are recorded else planned; actual from there on.
+# Once a piece is past the planned stage, a 0 actual is shown as 0 - never back-filled from the
+# plan - and if the operation was never weighed at all (gross_wt = 0) the piece is counted as
+# "not weighed" so the gap is visible on the dashboard instead of hidden behind planned figures.
+_DEPT_NAME = "COALESCE(dpt.department_name, '')"
+_IS_PRE_CAST = (
+	f"({_DEPT_NAME} LIKE '%%Manufacturing Plan%%'"
+	f" OR {_DEPT_NAME} LIKE '%%Computer Aided Designing%%'"
+	f" OR {_DEPT_NAME} LIKE '%%Waxing%%')"
+)
+_IS_PRE_SETTING = (
+	f"({_IS_PRE_CAST} OR {_DEPT_NAME} LIKE '%%Model Making%%' OR {_DEPT_NAME} LIKE '%%Pre Polish%%')"
+)
+_IS_SETTING_OPEN = f"({_DEPT_NAME} LIKE '%%Diamond Setting%%' AND COALESCE(mo.status, '') != 'Finished')"
+
+
+def _planned_or_actual_diamond(actual, planned):
+	return f"""CASE
+			WHEN {_IS_PRE_SETTING} THEN COALESCE(bom.{planned}, 0)
+			WHEN {_IS_SETTING_OPEN} THEN COALESCE(NULLIF(mo.{actual}, 0), bom.{planned}, 0)
+			ELSE COALESCE(mo.{actual}, 0)
+		END"""
+
+
+# Every piece's last Manufacturing Operation is Tagging, so on MWO data alone all finished pieces
+# pile up in the Tagging card forever. Once tagged, a piece gets a Serial No (via Serial Number
+# Creator) and from then on that serial's status/warehouse is the real location of the piece:
+# sold/delivered -> Sales, moved to product allocation stock -> Product Allocation, out for
+# hallmarking -> Hallmarking. Only pieces whose serial is still in the Tagging FG store (or that
+# have no serial yet) stay in Tagging. NULL means "no override - use the MWO department".
+_POST_TAGGING_STAGE = """CASE
+			WHEN sn.name IS NULL THEN NULL
+			WHEN sn.status = 'Delivered' THEN 'Sales'
+			WHEN sn.warehouse LIKE '%%Product Allocation%%' THEN 'Product Allocation'
+			WHEN sn.warehouse LIKE '%%Hallmarking%%' THEN 'Hallmarking'
+			ELSE NULL
+		END"""
+
+# Dashboard department order: the real Department records plus the post-tagging stages above.
+DASHBOARD_DEPARTMENT_SEQUENCE = [
+	"Manufacturing Plan & Management",
+	"Computer Aided Designing",
+	"Waxing",
+	"Model Making",
+	"Pre Polish",
+	"Diamond Setting",
+	"Final Polish",
+	"Tagging",
+	"Hallmarking",
+	"Product Allocation",
+	"Sales",
+]
+
+
 def _dashboard_cte(extra_so_filter=""):
 	return f"""
 WITH so_base AS (
@@ -263,9 +323,12 @@ main_mwo AS (
 		mwo.name,
 		mwo.manufacturing_order,
 		COALESCE(mo.department, mwo.department) AS department,
-		mwo.net_wt,
-		mwo.diamond_wt,
-		mwo.diamond_pcs,
+		CASE WHEN {_IS_PRE_CAST} THEN COALESCE(mwo.metal_weight, 0)
+			ELSE COALESCE(mo.net_wt, 0)
+		END AS net_wt,
+		{_planned_or_actual_diamond("diamond_wt", "total_diamond_weight")} AS diamond_wt,
+		{_planned_or_actual_diamond("diamond_pcs", "total_diamond_pcs")} AS diamond_pcs,
+		CASE WHEN NOT {_IS_PRE_CAST} AND COALESCE(mo.gross_wt, 0) = 0 THEN 1 ELSE 0 END AS not_weighed,
 		mwo.docstatus,
 		mwo.delivery_date,
 		mo.status AS mop_status,
@@ -276,9 +339,20 @@ main_mwo AS (
 		) AS rn
 	FROM `tabManufacturing Work Order` mwo
 	LEFT JOIN `tabManufacturing Operation` mo ON mo.name = mwo.manufacturing_operation
+	LEFT JOIN `tabBOM` bom ON bom.name = mwo.master_bom
+	LEFT JOIN `tabDepartment` dpt ON dpt.name = COALESCE(mo.department, mwo.department)
 	WHERE mwo.for_fg = 0
 		AND mwo.is_finding_mwo = 0
+		AND mwo.docstatus != 2
 		AND mwo.manufacturing_order IS NOT NULL
+),
+piece_serial AS (
+	SELECT
+		snc.parent_manufacturing_order AS pmo,
+		MAX(COALESCE(NULLIF(snc.fg_serial_no, ''), snc.serial_no)) AS serial_no
+	FROM `tabSerial Number Creator` snc
+	WHERE snc.docstatus = 1
+	GROUP BY snc.parent_manufacturing_order
 ),
 pmo_main AS (
 	SELECT
@@ -288,13 +362,20 @@ pmo_main AS (
 		mm.net_wt AS gold_wt,
 		mm.diamond_wt AS diamond_wt,
 		mm.diamond_pcs AS diamond_pcs,
+		mm.not_weighed AS not_weighed,
 		mm.docstatus AS mwo_docstatus,
 		mm.mop_status AS mop_status,
 		mm.mop_transfer_status AS mop_transfer_status,
-		mm.delivery_date AS due_date
+		mm.delivery_date AS due_date,
+		{_POST_TAGGING_STAGE} AS post_tagging_stage
 	FROM `tabParent Manufacturing Order` pmo
 	LEFT JOIN main_mwo mm ON mm.manufacturing_order = pmo.name AND mm.rn = 1
+	LEFT JOIN piece_serial ps ON ps.pmo = pmo.name
+	LEFT JOIN `tabSerial No` sn ON sn.name = ps.serial_no
 	WHERE pmo.sales_order_item IS NOT NULL
+		-- a cancelled piece stays linked to its (still active) Sales Order Item, so it must be
+		-- dropped explicitly or it keeps counting as a generated / in-progress piece
+		AND pmo.docstatus != 2
 )
 """
 
@@ -344,12 +425,14 @@ def _dashboard_pieces_query(extra_so_filter=""):
 		_dashboard_cte(extra_so_filter)
 		+ """
 SELECT
-	d.department_name AS department_name,
-	d.name AS department_id,
+	COALESCE(pm.post_tagging_stage, d.department_name) AS department_name,
+	-- post-tagging stages aren't Department records, so they get no "View Detail" drill-down
+	MAX(CASE WHEN pm.post_tagging_stage IS NULL THEN d.name END) AS department_id,
 	COUNT(*) AS mwo_count,
 	SUM(COALESCE(pm.gold_wt, 0)) AS gold_wt,
 	SUM(COALESCE(pm.diamond_wt, 0)) AS diamond_wt,
 	SUM(COALESCE(pm.diamond_pcs, 0)) AS diamond_pcs,
+	SUM(COALESCE(pm.not_weighed, 0)) AS not_weighed,
 	SUM(CASE WHEN COALESCE(pm.mop_status, '') != 'Finished'
 			AND (pm.mwo_docstatus = 0 OR COALESCE(pm.mop_transfer_status, '') = 'In-Transit')
 		THEN 1 ELSE 0 END) AS pending,
@@ -358,6 +441,11 @@ SELECT
 			AND COALESCE(pm.mop_transfer_status, '') != 'In-Transit'
 		THEN 1 ELSE 0 END) AS in_progress,
 	SUM(CASE WHEN COALESCE(pm.mop_status, '') = 'Finished' THEN 1 ELSE 0 END) AS completed,
+	-- subset of in_progress: received/submitted but the department hasn't started work on it yet
+	SUM(CASE WHEN pm.mwo_docstatus = 1
+			AND COALESCE(pm.mop_transfer_status, '') != 'In-Transit'
+			AND pm.mop_status = 'Not Started'
+		THEN 1 ELSE 0 END) AS not_started,
 	SUM(CASE WHEN pm.due_date IS NOT NULL
 			AND COALESCE(pm.mop_status, '') != 'Finished'
 			AND pm.due_date BETWEEN CURDATE() AND %(due_soon_upper)s
@@ -385,7 +473,7 @@ SELECT
 FROM pmo_main pm
 INNER JOIN so_base b ON b.soi_name = pm.soi_name
 LEFT JOIN `tabDepartment` d ON d.name = pm.mwo_department AND d.company = %(company)s
-GROUP BY d.department_name, d.name
+GROUP BY COALESCE(pm.post_tagging_stage, d.department_name)
 """
 	)
 
@@ -478,11 +566,15 @@ def get_dashboard_data(company=None, due_soon_days=2, customer=None, from_date=N
 			"gold_wt": flt(row.gold_wt) if row else 0,
 			"diamond_wt": flt(row.diamond_wt) if row else 0,
 			"diamond_pcs": flt(row.diamond_pcs) if row else 0,
+			"not_weighed": cint(row.not_weighed) if row else 0,
+			"not_started": cint(row.not_started) if row else 0,
 		}
 
-	departments = [dept_row(department, dept_map.get(department)) for department in DEPARTMENT_SEQUENCE]
+	departments = [
+		dept_row(department, dept_map.get(department)) for department in DASHBOARD_DEPARTMENT_SEQUENCE
+	]
 
-	other_rows = [row for name, row in dept_map.items() if name not in DEPARTMENT_SEQUENCE]
+	other_rows = [row for name, row in dept_map.items() if name not in DASHBOARD_DEPARTMENT_SEQUENCE]
 	if other_rows:
 		departments.append(
 			{
@@ -497,6 +589,8 @@ def get_dashboard_data(company=None, due_soon_days=2, customer=None, from_date=N
 				"gold_wt": flt(sum(row.gold_wt for row in other_rows)),
 				"diamond_wt": flt(sum(row.diamond_wt for row in other_rows)),
 				"diamond_pcs": flt(sum(row.diamond_pcs for row in other_rows)),
+				"not_weighed": cint(sum(row.not_weighed for row in other_rows)),
+				"not_started": cint(sum(row.not_started for row in other_rows)),
 			}
 		)
 

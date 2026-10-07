@@ -1,15 +1,24 @@
 // Copyright (c) 2024, Gurukrupa Export Private Limited and contributors
 // For license information, please see license.txt
 
-function gke_apply_department_restriction(report) {
+// Set while this script itself is writing From/To Department, so the filters'
+// own on_change handlers don't react to (and refresh on) those programmatic writes.
+var gke_syncing_departments = false;
+
+function gke_set_department_filter(filter, value, read_only) {
+    filter.df.read_only = read_only ? 1 : 0;
+    filter.refresh();
+    return filter.set_value(value);
+}
+
+function gke_apply_department_restriction(report, clear_departments) {
     // Only System Manager / Administrator can view/change other departments.
-    // Everyone else is locked to their own default (Employee) department, with
-    // which field gets locked depending on the selected Status:
-    //   Issued   -> From Department locked to own department
-    //   Received -> To Department locked to own department
-    //   Transit  -> neither field is locked, but either From or To must be the
-    //               user's own department (enforced server-side); default From
-    //               Department to it here purely for convenience.
+    // Everyone else is restricted to their own default (Employee) department,
+    // depending on the selected Status:
+    //   Received -> To Department locked to own department, From is free
+    //   Transit  -> both start free; once a department is picked in either one,
+    //               the other is filled with the user's own department and locked
+    //               (see gke_on_department_change). Enforced server-side too.
     // Resolved server-side (not via a direct Employee lookup) since most report
     // users don't have read permission on the Employee doctype.
     var status = report.get_filter_value('status');
@@ -23,32 +32,102 @@ function gke_apply_department_restriction(report) {
             var to_filter = report.get_filter("to_department");
             if (!from_filter || !to_filter) return;
 
+            report.__gke_department_info = res;
+
+            var updates = [];
             if (res.can_change_department) {
-                from_filter.df.read_only = 0;
-                to_filter.df.read_only = 0;
-                from_filter.refresh();
-                to_filter.refresh();
-                return;
-            }
+                [from_filter, to_filter].forEach(function (f) {
+                    if (clear_departments) {
+                        updates.push(gke_set_department_filter(f, "", false));
+                    } else {
+                        f.df.read_only = 0;
+                        f.refresh();
+                    }
+                });
+            } else {
+                // On a Status change both departments start fresh; otherwise only values
+                // auto-filled/locked for the previous status don't carry over.
+                var lock_to = res.lock_field === "to_department";
+                [from_filter, to_filter].forEach(function (f) {
+                    if (lock_to && f === to_filter) return;
+                    if (clear_departments || f.df.read_only) updates.push(gke_set_department_filter(f, "", false));
+                });
 
-            from_filter.df.read_only = 0;
-            to_filter.df.read_only = 0;
-
-            if (res.lock_field === "from_department") {
-                from_filter.set_value(res.department || "");
-                from_filter.df.read_only = 1;
-            } else if (res.lock_field === "to_department") {
-                to_filter.set_value(res.department || "");
-                to_filter.df.read_only = 1;
-            } else if (status === "Transit") {
-                if (!from_filter.get_value() && !to_filter.get_value()) {
-                    from_filter.set_value(res.department || "");
+                if (lock_to) {
+                    updates.push(gke_set_department_filter(to_filter, res.department || "", true));
+                } else if (status === "Transit") {
+                    // If a department is still selected from before, lock the other side to own.
+                    var picked = from_filter.get_value() ? from_filter : (to_filter.get_value() ? to_filter : null);
+                    if (picked && picked.get_value() !== res.department) {
+                        var other = picked === from_filter ? to_filter : from_filter;
+                        updates.push(gke_set_department_filter(other, res.department || "", true));
+                    }
                 }
             }
 
-            from_filter.refresh();
-            to_filter.refresh();
+            gke_syncing_departments = true;
+            Promise.all(updates).finally(function () {
+                gke_syncing_departments = false;
+                report.refresh();
+            });
         }
+    });
+}
+
+function gke_department_query(fieldname) {
+    var report = frappe.query_report;
+    var company = report.get_filter_value('company');
+    var filters = {
+        'is_group': 0,
+        'disabled': 0
+    };
+    if (company) {
+        filters['company'] = company;
+    }
+
+    // For non-management users, the side that must be their own department only
+    // offers that department: To for Received, and for Transit the side opposite
+    // a department picked in the other field.
+    var res = report.__gke_department_info || {};
+    if (!res.can_change_department && res.department) {
+        var status = report.get_filter_value('status');
+        var other_value = report.get_filter_value(fieldname === "from_department" ? "to_department" : "from_department");
+        if (res.lock_field === fieldname
+            || (status === "Transit" && other_value && other_value !== res.department)) {
+            filters['name'] = res.department;
+        }
+    }
+
+    return { filters: filters };
+}
+
+function gke_on_department_change(report, fieldname) {
+    if (gke_syncing_departments) return;
+
+    var res = report.__gke_department_info || {};
+    var updates = [];
+
+    if (!res.can_change_department && report.get_filter_value('status') === "Transit") {
+        var changed = report.get_filter(fieldname);
+        var other = report.get_filter(fieldname === "from_department" ? "to_department" : "from_department");
+        var value = changed.get_value();
+        var own = res.department || "";
+
+        if (value && value !== own) {
+            // A department other than the user's own was picked: the other side must be own.
+            if (!other.df.read_only || other.get_value() !== own) {
+                updates.push(gke_set_department_filter(other, own, true));
+            }
+        } else if (other.df.read_only) {
+            // Picked side cleared (or set to own): release the auto-filled side.
+            updates.push(gke_set_department_filter(other, "", false));
+        }
+    }
+
+    gke_syncing_departments = true;
+    Promise.all(updates).finally(function () {
+        gke_syncing_departments = false;
+        report.refresh();
     });
 }
 
@@ -91,11 +170,11 @@ frappe.query_reports["Department Stock Issue Report"] = {
             "fieldname": "status",
             "label": __("Status"),
             "fieldtype": "Select",
-            "options": ["", "Transit", "Received", "Issued"],
+            "options": ["", "Transit", "Received"],
             "default": "",
             "reqd": 1,
             "on_change": function () {
-                gke_apply_department_restriction(frappe.query_report);
+                gke_apply_department_restriction(frappe.query_report, true);
             }
         },
         {
@@ -110,15 +189,10 @@ frappe.query_reports["Department Stock Issue Report"] = {
             "fieldtype": "Link",
             "options": "Department",
             "get_query": function() {
-                var company = frappe.query_report.get_filter_value('company');
-                var filters = {
-                    'is_group': 0,
-                    'disabled': 0
-                };
-                if (company) {
-                    filters['company'] = company;
-                }
-                return { filters: filters };
+                return gke_department_query("from_department");
+            },
+            "on_change": function (report) {
+                gke_on_department_change(report, "from_department");
             }
         },
         {
@@ -127,15 +201,10 @@ frappe.query_reports["Department Stock Issue Report"] = {
             "fieldtype": "Link",
             "options": "Department",
             "get_query": function() {
-                var company = frappe.query_report.get_filter_value('company');
-                var filters = {
-                    'is_group': 0,
-                    'disabled': 0
-                };
-                if (company) {
-                    filters['company'] = company;
-                }
-                return { filters: filters };
+                return gke_department_query("to_department");
+            },
+            "on_change": function (report) {
+                gke_on_department_change(report, "to_department");
             }
         },
         {
@@ -214,8 +283,6 @@ frappe.query_reports["Department Stock Issue Report"] = {
                 value = "<span style='color: orange; font-weight: bold;'>Transit</span>";
             } else if (value == "Received") {
                 value = "<span style='color: green; font-weight: bold;'>Received</span>";
-            } else if (value == "Issued") {
-                value = "<span style='color: #2490ef; font-weight: bold;'>Issued</span>";
             }
         }
         

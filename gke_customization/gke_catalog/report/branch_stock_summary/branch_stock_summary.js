@@ -77,11 +77,39 @@ frappe.query_reports["Branch Stock Summary"] = {
 
 
     "onload": function(report) {
-        // Summary button: explains this report's Grand Total vs the standard
-        // Stock Balance report's total for the same company/item group, and
-        // breaks down where the difference comes from.
-        report.page.add_inner_button(__("Summary"), function () {
-            show_report_summary();
+        // Department access: management roles can change the Department filter
+        // (and see the company-wide Summary); everyone else is locked to their
+        // own department. The server enforces the same rule.
+        frappe.call({
+            method: "gke_customization.gke_catalog.report.branch_stock_summary.branch_stock_summary.get_department_access",
+            callback: function (r) {
+                let access = r.message || {};
+                frappe.query_report._bss_department_locked = !access.can_change;
+                frappe.query_report._bss_user_department = access.department || "";
+
+                if (access.can_change) {
+                    // Summary button: explains this report's Grand Total vs the standard
+                    // Stock Balance report's total for the same company/item group.
+                    report.page.add_inner_button(__("Summary"), function () {
+                        show_report_summary();
+                    });
+                }
+
+                if (access.department) {
+                    frappe.query_report._bss_skip_clear = true;
+                    frappe.query_report.set_filter_value('department', access.department);
+                    setTimeout(() => { frappe.query_report._bss_skip_clear = false; }, 1000);
+                }
+
+                if (!access.can_change) {
+                    let field = report.get_filter('department');
+                    if (field) {
+                        field.df.read_only = 1;
+                        field.df.description = __("Department is locked to your department");
+                        field.refresh();
+                    }
+                }
+            }
         });
 
         // Clear Filter button
@@ -99,23 +127,27 @@ frappe.query_reports["Branch Stock Summary"] = {
                     }
                 }
             });
+            if (frappe.query_report._bss_department_locked) {
+                frappe.query_report.set_filter_value('department', frappe.query_report._bss_user_department);
+            }
             setTimeout(() => { frappe.query_report._bss_skip_clear = false; }, 1000);
             report.run();
         });
 
 
-        // Pre-fill branch / manufacturer / department from the user's Employee record
+        // Pre-fill branch / manufacturer from the user's Employee record
+        // (department comes from get_department_access above).
         frappe.db.get_value(
             "Employee",
             { user_id: frappe.session.user, status: "Active" },
-            ["company", "branch", "manufacturer", "department"]
+            ["company", "branch", "manufacturer"]
         ).then(function (r) {
             let emp = r.message;
             if (!emp || !emp.company || emp.company !== frappe.query_report.get_filter_value('company')) {
                 return;
             }
             let values = {};
-            ['branch', 'manufacturer', 'department'].forEach(function (fieldname) {
+            ['branch', 'manufacturer'].forEach(function (fieldname) {
                 if (emp[fieldname]) values[fieldname] = emp[fieldname];
             });
             if (Object.keys(values).length) {
@@ -142,11 +174,8 @@ frappe.query_reports["Branch Stock Summary"] = {
 
     "formatter": function(value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
-        
-        if (data && data.is_grand_total) {
-            return `<div style="font-weight: bold; text-align: center; font-size: 14px; padding: 5px; border: 1px solid var(--border-color); color: var(--text-color); background-color: var(--card-bg);">${value}</div>`;
-        }
-        if (data && (data.is_department_header || data.is_department_total) && column.fieldname !== "view_details") {
+
+        if (data && data.is_department_header && column.fieldname !== "view_details") {
             return `<b>${value}</b>`;
         }
 
@@ -191,6 +220,7 @@ function attach_view_button_handlers() {
 function clear_filters_quietly(fieldnames) {
     if (frappe.query_report._bss_skip_clear) return;
     fieldnames.forEach(function (fieldname) {
+        if (fieldname === 'department' && frappe.query_report._bss_department_locked) return;
         let filter = frappe.query_report.get_filter(fieldname);
         if (filter && filter.get_value()) filter.set_input("");
     });
@@ -290,8 +320,8 @@ function build_summary_html(s, filters) {
                 <tr><td style="${cell}">${__('Unassigned Warehouses')}</td><td style="${cell} text-align: right;">${fmt(s.unassigned_qty)}</td></tr>
                 ${unassigned_rows}
                 <tr>
-                    <td style="${cell} font-weight: bold;">${__('Branch Stock Summary Grand Total')}</td>
-                    <td style="${cell} text-align: right; font-weight: bold;">${fmt(s.report_total)}</td>
+                    <td style="${cell} font-weight: bold;">${__('Stock Ledger Total')}</td>
+                    <td style="${cell} text-align: right; font-weight: bold;">${fmt(s.ledger_total)}</td>
                 </tr>
                 <tr>
                     <td style="${cell}">${__('Stock Balance Total (same item group)')}</td>
@@ -303,8 +333,28 @@ function build_summary_html(s, filters) {
                 </tr>
             </table>
 
+            ${s.uses_operations ? `
+            <h5 style="margin-bottom: 5px;">${__('Work Order and Employee WIP')}</h5>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 13px;">
+                <tr><td style="${cell}">${__('Stock Ledger Total')}</td><td style="${cell} text-align: right;">${fmt(s.ledger_total)}</td></tr>
+                <tr><td style="${cell}">${__('&minus; Department Manufacturing Warehouses (Stock Ledger balance)')}</td><td style="${cell} text-align: right;">${fmt(-s.ledger_mfg_qty)}</td></tr>
+                <tr><td style="${cell}">${__('+ Manufacturing Operations: Not Started, not In-Transit')}</td><td style="${cell} text-align: right;">${fmt(s.operations_mfg_qty)}</td></tr>
+                <tr><td style="${cell}">${__('&minus; Employee WIP warehouses (Stock Ledger balance)')}</td><td style="${cell} text-align: right;">${fmt(-s.ledger_emp_wip_qty)}</td></tr>
+                <tr><td style="${cell}">${__('+ Manufacturing Operations: WIP with employee, not In-Transit')}</td><td style="${cell} text-align: right;">${fmt(s.operations_emp_wip_qty)}</td></tr>
+                <tr>
+                    <td style="${cell} font-weight: bold;">${__('Branch Stock Summary Grand Total')}</td>
+                    <td style="${cell} text-align: right; font-weight: bold;">${fmt(s.report_total)}</td>
+                </tr>
+            </table>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">
+                ${__('The report takes the Work Order and Employee WIP lines from the weight on Manufacturing Operations instead of the Stock Ledger, so its Grand Total differs from Stock Balance by the difference between those figures. Operations reflect today, regardless of As On Date.')}
+            </p>` : `
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">
+                ${__('Branch Stock Summary Grand Total')}: <strong>${fmt(s.report_total)}</strong>
+            </p>`}
+
             <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 5px;">
-                ${__('Both totals are read from the Stock Ledger, so they should match. Unassigned Warehouses are warehouses with no department, no employee and no supplier set; set the department on them (or move their stock) to show it under a department.')}
+                ${__('Stock Ledger and Stock Balance are both read from the same ledger, so they should match. Unassigned Warehouses are warehouses with no department, no employee and no supplier set; set the department on them (or move their stock) to show it under a department.')}
             </p>
             <p style="font-size: 12px; color: var(--text-muted);">
                 ${__('Finished pieces')}: <strong>${s.finished_goods_pieces || 0}</strong>, ${__('BOM weight')} <strong>${fmt(s.finished_goods_qty)}</strong> &mdash;
@@ -414,10 +464,7 @@ function build_stock_details_table(data, label, raw_material_type) {
         html += '</tr>';
     });
     
-    html += `</tbody></table></div>
-        <div style="margin-top: 10px; padding: 10px; background-color: var(--subtle-fg); border: 1px solid var(--border-color); font-size: 11px; color: var(--text-muted);">
-            ${data.length} record${data.length !== 1 ? 's' : ''} found • Material Type: ${raw_material_type || 'All'}
-        </div></div>`;
+    html += `</tbody></table></div></div>`;
     
     return html;
 }
