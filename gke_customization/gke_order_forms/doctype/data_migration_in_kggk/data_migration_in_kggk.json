@@ -170,7 +170,7 @@
   {
    "default": "1",
    "depends_on": "enable_sync",
-   "description": "On: saving an Item or BOM sends it to KGGK - both a new design and a later edit to one KGGK already has. Off: saving sends nothing at all. Manufacturing Plan submits and the buttons above are unaffected either way.",
+   "description": "On: saving an Item or BOM sends the change to KGGK when KGGK already has it and a submitted Manufacturing Plan links it on a subcontracting row whose Item is Nova Glow. A save never creates a record on KGGK - only a Manufacturing Plan submit does, for those same rows. Off: saving sends nothing at all. Manufacturing Plan submits and the buttons above are unaffected either way.",
    "fieldname": "sync_updates",
    "fieldtype": "Check",
    "label": "Sync Item / BOM Saves"
@@ -254,7 +254,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-03 12:00:00.000000",
+ "modified": "2026-10-07 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Data Migration in KGGK",

@@ -4099,26 +4099,120 @@ def enqueue_sync(
 # MANUFACTURING PLAN ENTRY POINTS
 # ============================================================================
 
+# The setting types that make a design KGGK's to make, newest name first.
+#
+# This is an Attribute Value, and it gets renamed: it was "Close Setting", then "Close", and
+# is now "Nova Glow". The old names stay because a rename of the master does not rewrite the
+# thousands of Items already carrying the previous value - and an Item that silently stopped
+# being eligible would look exactly like the sync being broken, with nothing anywhere saying
+# why. Drop a name from this tuple only once no Item still holds it:
+#
+#     select setting_type, count(*) from tabItem group by setting_type;
+#
+# One tuple rather than a literal in two places, so the next rename is one line.
+ELIGIBLE_SETTING_TYPES = ("Nova Glow", "Close", "Close Setting")
+
+
+def nova_glow_items(item_codes):
+	"""The subset of ``item_codes`` whose Item carries an eligible setting type. One query."""
+	codes = [c for c in dict.fromkeys(item_codes or []) if c]
+	if not codes:
+		return set()
+	return set(
+		frappe.get_all(
+			"Item",
+			filters={"name": ("in", codes), "setting_type": ("in", ELIGIBLE_SETTING_TYPES)},
+			pluck="name",
+		)
+	)
+
+
+# The plan rows that send work to KGGK: submitted, and subcontracted.
+SUBCONTRACTED_PLAN_ROWS = {"parenttype": "Manufacturing Plan", "docstatus": 1, "subcontracting": 1}
+
+NOT_PLAN_LINKED = (
+	"on KGGK, but no submitted Manufacturing Plan links it on a Nova Glow subcontracting row - "
+	"change not sent"
+)
+
+
+def plan_linked(doctype, names):
+	"""Which of these records a submitted Manufacturing Plan sends to KGGK.
+
+	The gate for a *later change*. A record is linked when a submitted plan names it on a
+	subcontracting row whose Item is Nova Glow - the rows `_records_from_plan_rows` sends:
+
+	* an Item: the row's item, or the template of one, because a variant takes its template
+	  across with it;
+	* a BOM: the row's Manufacturing BOM or Copy BOM.
+
+	Being on KGGK is not enough on its own. A record that got there any other way - the old
+	save hook pushed every Nova Glow design - is not KGGK's to keep in step.
+	"""
+	names = [n for n in dict.fromkeys(names or []) if n]
+	if not names or doctype not in MAPPED_DOCTYPES:
+		return set()
+
+	if doctype == "Item":
+		# The row item each asked-about name can be vouched for by: itself, or a variant of it.
+		vouched_by = {name: {name} for name in names}
+		for variant in frappe.get_all(
+			"Item", filters={"variant_of": ("in", names)}, fields=["name", "variant_of"]
+		):
+			vouched_by.setdefault(variant.name, set()).add(variant.variant_of)
+
+		row_items = frappe.get_all(
+			"Manufacturing Plan Table",
+			filters={**SUBCONTRACTED_PLAN_ROWS, "item_code": ("in", list(vouched_by))},
+			pluck="item_code",
+		)
+		linked = set()
+		for item_code in nova_glow_items(row_items):
+			linked |= vouched_by[item_code]
+		return linked
+
+	columns = ["manufacturing_bom"]
+	if _copy_bom_source_ready():
+		columns.append(COPY_BOM_SOURCE[1])
+
+	rows = []
+	for column in columns:
+		rows += frappe.get_all(
+			"Manufacturing Plan Table",
+			filters={**SUBCONTRACTED_PLAN_ROWS, column: ("in", names)},
+			fields=["item_code", f"{column} as bom"],
+		)
+	eligible = nova_glow_items(row.item_code for row in rows)
+	return {row.bom for row in rows if row.item_code in eligible}
+
+
 def _records_from_plan_rows(rows):
-	"""``(items, boms, copy_boms)`` for the subcontracting rows of one or more plans.
+	"""``(items, boms, copy_boms)`` for the Nova Glow subcontracting rows of one or more plans.
 
 	The one collector for every route that turns plan rows into work - the submit, the prefill
 	and a retry - so all of them send the same dependency set. Each of them used to have its own
 	copy, and the prefill's never learned about Copy BOM.
 
+	A row goes to KGGK only when it is subcontracted *and* its Item is Nova Glow. Any other row
+	sends nothing: not the item and not its BOMs, because a BOM on the target whose item never
+	arrived has nothing to belong to.
+
 	``copy_boms`` is ``item_code -> Copy BOM``; within one plan the last row for an item wins.
 	Ordered dicts rather than list membership: a real plan has hundreds of rows, and `x in list`
 	per row made this quadratic.
 	"""
-	items, boms, copy_boms = {}, {}, {}
+	rows = [row for row in rows or [] if cint(row.get("subcontracting"))]
+	eligible = nova_glow_items(row.get("item_code") for row in rows)
 
-	for row in rows or []:
-		if not cint(row.get("subcontracting")):
+	items, boms, copy_boms, skipped = {}, {}, {}, {}
+
+	for row in rows:
+		item_code = row.get("item_code")
+		if item_code not in eligible:
+			skipped.setdefault(item_code or f"{row.get('parent') or '-'} row {row.get('idx')}", None)
 			continue
 
-		item_code = row.get("item_code")
-		if item_code:
-			items.setdefault(item_code, None)
+		items.setdefault(item_code, None)
 
 		bom_name = row.get("manufacturing_bom")
 		if bom_name:
@@ -4138,8 +4232,14 @@ def _records_from_plan_rows(rows):
 		copy_bom = row.get("copy_bom")
 		if copy_bom:
 			boms.setdefault(copy_bom, None)
-			if item_code:
-				copy_boms[item_code] = copy_bom
+			copy_boms[item_code] = copy_bom
+
+	if skipped:
+		log_skip(
+			f"subcontracting row(s) not sent - setting type is not "
+			f"{' / '.join(ELIGIBLE_SETTING_TYPES)}: {', '.join(skipped)}",
+			"Item",
+		)
 
 	return list(items), list(boms), copy_boms
 
@@ -4207,46 +4307,22 @@ def sync_plan_now(plan_name):
 # unreachable KGGK site aborted the local save. Nothing below can do that: the whole body
 # is inside a try, and the push itself happens in a background job.
 
-# The setting types that make a design worth sending, newest name first.
-#
-# This is an Attribute Value, and it gets renamed: it was "Close Setting", then "Close", and
-# is now "Nova Glow". The old names stay because a rename of the master does not rewrite the
-# thousands of Items already carrying the previous value - and an Item that silently stopped
-# being eligible would look exactly like the sync being broken, with nothing anywhere saying
-# why. Drop a name from this tuple only once no Item or BOM still holds it:
-#
-#     select setting_type, count(*) from tabItem group by setting_type;
-#
-# One tuple rather than a literal in two places, so the next rename is one line.
-ELIGIBLE_SETTING_TYPES = ("Nova Glow", "Close", "Close Setting")
-
-
-# The rule that first sends a record to KGGK, carried over from the hooks this replaces so
-# nothing that used to cross stops crossing.
-def is_eligible(doc):
-	"""Should this record go to KGGK on its own merit, before any sync history?"""
-	if doc.doctype == "Item":
-		return doc.get("setting_type") in ELIGIBLE_SETTING_TYPES
-	if doc.doctype == "BOM":
-		return (
-			doc.get("setting_type") in ELIGIBLE_SETTING_TYPES
-			and doc.get("bom_type") == "Template"
-		)
-	return False
-
 
 def _on_master_update(doc):
 	"""Queue a push for one Item or BOM. Never blocks, slows or fails the save.
 
-	Two ways to qualify:
+	A later edit goes across when both hold:
 
-	* the record meets `is_eligible` - a closed design, a template BOM - which is exactly
-	  what the old hooks pushed, so this is not a behaviour change; or
-	* KGGK already has it, in which case a later edit here has to reach it there. That is
-	  the whole of "transfer later changes", and it is why Sync State exists.
+	* KGGK already has the record - the whole of "transfer later changes", and why Sync State
+	  exists; and
+	* a submitted Manufacturing Plan still links it on a Nova Glow subcontracting row
+	  (`plan_linked`). A record on KGGK that no such plan sent is not kept in step.
 
-	Anything else is left alone: a live jewellery site holds tens of thousands of items that
-	KGGK has never asked for and does not want.
+	A save never *creates* a record on KGGK. That happens only when a Manufacturing Plan is
+	submitted with the record on a Nova Glow subcontracting row (`on_submit`), or from the
+	Prefill and Retry buttons, which read the same rows. The old hooks also pushed every Nova
+	Glow Item and Template BOM on its first save, so an Order that created a design put it on
+	KGGK before any plan had asked for it.
 	"""
 	try:
 		if in_reentrant_context():
@@ -4262,20 +4338,17 @@ def _on_master_update(doc):
 			log_skip(reason, doc.doctype, doc.name)
 			return
 
-		# The one switch that governs saving. Off means a save sends nothing at all - not an
-		# edit to a record KGGK holds, and not a new design either.
-		#
-		# It used to gate only the first of those, which read as "updates are off" while a
-		# newly eligible Item or BOM still went across on its own merit. That is not a switch
-		# anybody can reason about: an Order submit creates Items, the Items are eligible, and
-		# they appear on KGGK with the switch visibly unticked. One meaning, one checkbox.
+		# The one switch that governs saving. Off means a save sends nothing at all, not even
+		# an edit to a record KGGK already holds.
 		if not cint(setting("sync_updates", 1)):
 			return
 
 		target_host = host_of(config.to_site)
-		already = is_on_target(doc.doctype, doc.name, target_host)
+		if not is_on_target(doc.doctype, doc.name, target_host):
+			return
 
-		if not is_eligible(doc) and not already:
+		if doc.name not in plan_linked(doc.doctype, [doc.name]):
+			log_skip(NOT_PLAN_LINKED, doc.doctype, doc.name)
 			return
 
 		# Durable intent, written before the queue is touched. `frappe.enqueue` can refuse -
@@ -4337,6 +4410,10 @@ def _drifted(doctype, target, limit):
 	This single comparison is what the whole Sync State table exists for: `local_modified`
 	is the source document's timestamp at the moment of the last successful push, so
 	anything edited since sorts out here and nothing else does.
+
+	Only records a plan still links (`plan_linked`) count - the same rule as a save. The limit
+	is applied after that filter, not in the query: otherwise the oldest unlinked rows would
+	fill every pass and the linked ones behind them would never be reached.
 	"""
 	if limit <= 0:
 		return []
@@ -4360,17 +4437,16 @@ def _drifted(doctype, target, limit):
 		             or (state.status = 'Failed' and state.attempts < %(max_attempts)s)
 		         )
 		order by source.modified asc
-		limit    %(limit)s
 		""",
 		{
 			"doctype": doctype,
 			"target": target,
-			"limit": cint(limit),
 			"max_attempts": MAX_RECONCILE_ATTEMPTS,
 		},
 		pluck=True,
 	)
-	return rows or []
+	linked = plan_linked(doctype, rows)
+	return [name for name in rows or [] if name in linked][: cint(limit)]
 
 
 def reconcile_changes():
@@ -4596,12 +4672,16 @@ def _redispatch_pending(limit=50):
 	at that moment, the row is the only trace - and the hourly check that would find it is
 	optional. This is the dispatcher's job, not reconciliation, so it runs regardless: the same
 	per-record job id as the save means a push that is merely waiting in the queue is not doubled.
+
+	Only records a plan still links (`plan_linked`) are re-sent, filtered before the limit for
+	the reason `_drifted` gives. A Pending row left by a save from before that rule existed is
+	never sent.
 	"""
 	config, reason = get_sync_config()
 	if not config or not cint(setting("sync_updates", 1)):
 		return []
 	cutoff = add_to_date(now_datetime(), minutes=-PENDING_GRACE_MINUTES)
-	rows = frappe.get_all(
+	pending = frappe.get_all(
 		STATE_DOCTYPE,
 		filters={
 			"status": "Pending",
@@ -4611,8 +4691,12 @@ def _redispatch_pending(limit=50):
 		},
 		fields=["record_doctype", "record_name"],
 		order_by="modified asc",
-		limit=limit,
 	)
+	linked = {
+		doctype: plan_linked(doctype, [r.record_name for r in pending if r.record_doctype == doctype])
+		for doctype in MAPPED_DOCTYPES
+	}
+	rows = [r for r in pending if r.record_name in linked.get(r.record_doctype, ())][:limit]
 	sent = []
 	for row in rows:
 		key = "items" if row.record_doctype == "Item" else "boms"

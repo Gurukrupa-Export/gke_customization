@@ -256,9 +256,32 @@ class TestConnectivityPreflight(unittest.TestCase):
 		self.assertEqual(get.call_args.kwargs["attempts"], 1)
 
 
+def _every_item_is_nova_glow(test):
+	"""Plan rows here name items that are not in the database; let all of them through."""
+	patcher = patch.object(k, "nova_glow_items", side_effect=lambda codes: {c for c in codes if c})
+	patcher.start()
+	test.addCleanup(patcher.stop)
+
+
 class TestRowSelection(unittest.TestCase):
+	def setUp(self):
+		_every_item_is_nova_glow(self)
+
 	def _plan(self, rows):
 		return frappe._dict(name="MP-0001", manufacturing_plan_table=[frappe._dict(r) for r in rows])
+
+	def test_a_subcontracting_row_that_is_not_nova_glow_sends_nothing(self):
+		"""Not the item, and not its BOMs - a BOM whose item never arrived belongs to nothing."""
+		with patch.object(k, "nova_glow_items", return_value={"I-1"}):
+			items, boms, copy_boms = k.collect_plan_records(
+				self._plan(
+					[
+						{"item_code": "I-1", "manufacturing_bom": "B-1", "subcontracting": 1},
+						{"item_code": "I-2", "manufacturing_bom": "B-2", "copy_bom": "B-C", "subcontracting": 1},
+					]
+				)
+			)
+		self.assertEqual((items, boms, copy_boms), (["I-1"], ["B-1"], {}))
 
 	def test_only_subcontracting_rows(self):
 		items, boms = k.collect_records(
@@ -308,7 +331,80 @@ class TestRowSelection(unittest.TestCase):
 		self.assertEqual((items, boms), (["I-1"], ["B-1", "B-C"]))
 
 
+class TestNovaGlowItems(unittest.TestCase):
+	def test_the_previous_names_of_the_setting_type_still_qualify(self):
+		"""This Attribute Value gets renamed - "Close Setting", then "Close", now "Nova Glow".
+
+		A rename of the master does not rewrite the Items already carrying the old value, so
+		dropping one has to be a deliberate act, not a silent consequence of a rename.
+		"""
+		with patch.object(frappe, "get_all", return_value=["I-1"]) as get_all:
+			self.assertEqual(k.nova_glow_items(["I-1", "I-2", "I-1", None]), {"I-1"})
+		filters = get_all.call_args.kwargs["filters"]
+		self.assertEqual(filters["name"], ("in", ["I-1", "I-2"]))
+		self.assertEqual(set(filters["setting_type"][1]), {"Nova Glow", "Close", "Close Setting"})
+
+	def test_no_items_asks_nothing(self):
+		with patch.object(frappe, "get_all") as get_all:
+			self.assertEqual(k.nova_glow_items([None, ""]), set())
+		get_all.assert_not_called()
+
+
+class TestPlanLinked(unittest.TestCase):
+	"""The gate for a later change: what a submitted plan sends, and nothing else."""
+
+	def _linked(self, doctype, names, rows, nova_glow, variants=()):
+		def get_all(doctype, filters=None, fields=None, pluck=None, **kwargs):
+			if doctype == "Item" and "variant_of" in filters:
+				return [frappe._dict(name=v, variant_of=t) for v, t in variants if t in filters["variant_of"][1]]
+			if doctype == "Item":
+				return [n for n in filters["name"][1] if n in nova_glow]
+			self.assertEqual(doctype, "Manufacturing Plan Table")
+			for key, value in k.SUBCONTRACTED_PLAN_ROWS.items():
+				self.assertEqual(filters[key], value)
+			column = next(c for c in ("item_code", "manufacturing_bom", "copy_bom") if c in filters)
+			hits = [r for r in rows if r.get(column) in filters[column][1]]
+			if pluck:
+				return [r[pluck] for r in hits]
+			return [frappe._dict(item_code=r["item_code"], bom=r[column]) for r in hits]
+
+		with patch.object(frappe, "get_all", side_effect=get_all), patch.object(
+			k, "_copy_bom_source_ready", return_value=True
+		):
+			return k.plan_linked(doctype, names)
+
+	def test_an_item_on_a_nova_glow_subcontracting_row_is_linked(self):
+		self.assertEqual(self._linked("Item", ["I-1"], [{"item_code": "I-1"}], {"I-1"}), {"I-1"})
+
+	def test_an_item_whose_row_is_not_nova_glow_is_not_linked(self):
+		self.assertEqual(self._linked("Item", ["I-1"], [{"item_code": "I-1"}], set()), set())
+
+	def test_an_item_no_plan_names_is_not_linked(self):
+		self.assertEqual(self._linked("Item", ["I-1"], [], {"I-1"}), set())
+
+	def test_a_template_is_linked_through_its_variant(self):
+		"""A variant takes its template to KGGK, so the template's later changes follow it."""
+		linked = self._linked("Item", ["T-1"], [{"item_code": "V-1"}], {"V-1"}, variants=[("V-1", "T-1")])
+		self.assertEqual(linked, {"T-1"})
+
+	def test_a_bom_is_linked_as_a_rows_manufacturing_or_copy_bom(self):
+		rows = [
+			{"item_code": "I-1", "manufacturing_bom": "B-1", "copy_bom": "B-C"},
+			{"item_code": "I-2", "manufacturing_bom": "B-2"},
+		]
+		linked = self._linked("BOM", ["B-1", "B-C", "B-2", "B-X"], rows, {"I-1"})
+		self.assertEqual(linked, {"B-1", "B-C"})
+
+	def test_nothing_asked_asks_nothing(self):
+		with patch.object(frappe, "get_all") as get_all:
+			self.assertEqual(k.plan_linked("Item", []), set())
+		get_all.assert_not_called()
+
+
 class TestPlanRecordsIsOneQuery(unittest.TestCase):
+	def setUp(self):
+		_every_item_is_nova_glow(self)
+
 	def test_child_rows_are_fetched_once_not_once_per_plan(self):
 		plans = [f"MP-{i}" for i in range(40)]
 		rows = [frappe._dict(item_code="I-1", manufacturing_bom="B-1", subcontracting=1)]
@@ -336,10 +432,13 @@ class TestSaveAndSubmitNeverRaise(unittest.TestCase):
 			name="MP-0001",
 			manufacturing_plan_table=[frappe._dict(item_code="I-1", manufacturing_bom="B-1", subcontracting=1)],
 		)
-		with patch.object(k, "get_sync_config", return_value=(frappe._dict(to_site="x"), None)), patch.object(
+		with patch.object(k, "nova_glow_items", return_value={"I-1"}), patch.object(
+			k, "get_sync_config", return_value=(frappe._dict(to_site="x"), None)
+		), patch.object(
 			k, "enqueue_sync", side_effect=ConnectionError("redis is down")
-		):
+		) as enqueue:
 			k.on_submit(doc)  # must not raise
+		enqueue.assert_called_once()
 
 	def test_enqueue_failure_does_not_reach_an_item_save(self):
 		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Nova Glow")
@@ -347,10 +446,13 @@ class TestSaveAndSubmitNeverRaise(unittest.TestCase):
 			k, "setting", return_value=1
 		), patch.object(
 			k, "get_sync_config", return_value=(frappe._dict(to_site="https://t"), None)
-		), patch.object(
+		), patch.object(k, "is_on_target", return_value=True), patch.object(
+			k, "plan_linked", return_value={"I-1"}
+		), patch.object(k, "mark_state"), patch.object(
 			k, "enqueue_sync", side_effect=ConnectionError("redis is down")
-		):
+		) as enqueue:
 			k.item_on_update(doc)  # must not raise
+		enqueue.assert_called_once()
 
 
 class TestUpdateEligibility(unittest.TestCase):
@@ -359,21 +461,31 @@ class TestUpdateEligibility(unittest.TestCase):
 	def setUp(self):
 		self.cfg = frappe._dict(to_site="https://kggk.example.com")
 
-	def _save(self, doc, synced=False, enabled=True, sync_updates=1):
+	def _save(self, doc, synced=False, enabled=True, sync_updates=1, linked=True):
 		with patch.object(k, "is_sync_enabled", return_value=enabled), patch.object(
 			k, "setting", return_value=sync_updates
 		), patch.object(k, "get_sync_config", return_value=(self.cfg, None)), patch.object(
 			k, "is_on_target", return_value=synced
+		), patch.object(
+			k, "plan_linked", return_value={doc.name} if linked else set()
 		), patch.object(
 			k, "enqueue_sync"
 		) as enqueue:
 			k._on_master_update(doc)
 		return enqueue
 
-	def test_a_closed_item_is_pushed_even_if_kggk_has_never_seen_it(self):
-		"""Exactly what the before_validate hook did. Not a behaviour change."""
+	def test_a_nova_glow_item_kggk_has_never_seen_is_not_created_by_a_save(self):
+		"""Only a submitted Manufacturing Plan creates a record on KGGK.
+
+		The before_validate hook pushed every Nova Glow Item on its first save, so an Order that
+		created a design put it on KGGK before any plan had subcontracted it.
+		"""
 		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Nova Glow")
-		enqueue = self._save(doc, synced=False)
+		self._save(doc, synced=False).assert_not_called()
+
+	def test_a_nova_glow_item_kggk_already_has_is_updated(self):
+		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Nova Glow")
+		enqueue = self._save(doc, synced=True)
 		enqueue.assert_called_once()
 		self.assertEqual(enqueue.call_args.kwargs["items"], ["I-1"])
 
@@ -382,32 +494,20 @@ class TestUpdateEligibility(unittest.TestCase):
 		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Open")
 		self._save(doc, synced=False).assert_not_called()
 
-	def test_an_unclosed_item_kggk_already_has_is_still_updated(self):
-		"""This is 'transfer later changes'."""
-		doc = frappe._dict(doctype="Item", name="I-1", setting_type="Open")
-		self._save(doc, synced=True).assert_called_once()
+	def test_a_change_to_a_record_no_plan_links_is_not_sent(self):
+		"""On KGGK is not enough: a submitted plan must still link it on a Nova Glow
+		subcontracting row. The old save hook put designs there that no plan ever asked for."""
+		item = frappe._dict(doctype="Item", name="I-1", setting_type="Nova Glow")
+		self._save(item, synced=True, linked=False).assert_not_called()
 
-	def test_the_previous_names_of_the_setting_type_still_qualify(self):
-		"""This Attribute Value gets renamed - "Close Setting", then "Close", now "Nova Glow".
+		bom = frappe._dict(doctype="BOM", name="B-1", setting_type="Nova Glow", bom_type="Template")
+		self._save(bom, synced=True, linked=False).assert_not_called()
 
-		A rename of the master does not rewrite the Items already carrying the old value, so
-		dropping one has to be a deliberate act, not a silent consequence of a rename.
-		"""
-		for name in ("Nova Glow", "Close", "Close Setting"):
-			doc = frappe._dict(doctype="Item", name="I-1", setting_type=name)
-			self.assertTrue(k.is_eligible(doc), f"{name} should still be eligible")
-
-		self.assertFalse(
-			k.is_eligible(frappe._dict(doctype="Item", name="I-1", setting_type="Open"))
-		)
-
-	def test_a_bom_needs_template_as_well_as_closed(self):
-		"""The BOM gate was stricter than the Item one; it stays stricter."""
-		closed_only = frappe._dict(doctype="BOM", name="B-1", setting_type="Nova Glow", bom_type="Variant")
-		self._save(closed_only, synced=False).assert_not_called()
-
+	def test_a_bom_is_created_only_by_a_plan_and_updated_once_kggk_has_it(self):
 		template = frappe._dict(doctype="BOM", name="B-1", setting_type="Nova Glow", bom_type="Template")
-		enqueue = self._save(template, synced=False)
+		self._save(template, synced=False).assert_not_called()
+
+		enqueue = self._save(template, synced=True)
 		enqueue.assert_called_once()
 		self.assertEqual(enqueue.call_args.kwargs["boms"], ["B-1"])
 
@@ -433,25 +533,15 @@ class TestUpdateEligibility(unittest.TestCase):
 			frappe.flags.in_kggk_sync = False
 
 	def test_the_switch_stops_every_save_driven_push(self):
-		"""One switch, one meaning: off means a save sends nothing.
+		"""One switch, one meaning: off means a save sends nothing, not even an update."""
+		item = frappe._dict(doctype="Item", name="I-1", setting_type="Nova Glow")
+		self._save(item, synced=True, sync_updates=0).assert_not_called()
 
-		It used to stop only edits to records KGGK already had, while a newly eligible design
-		still went across - so an Order submit, which creates eligible Items, put them on
-		KGGK with the switch visibly unticked and no way to reason about why.
-		"""
-		already_there = frappe._dict(doctype="Item", name="I-1", setting_type="Open")
-		self._save(already_there, synced=True, sync_updates=0).assert_not_called()
-
-		brand_new = frappe._dict(doctype="Item", name="I-2", setting_type="Nova Glow")
-		self._save(brand_new, synced=False, sync_updates=0).assert_not_called()
-
-		new_bom = frappe._dict(
-			doctype="BOM", name="B-1", setting_type="Nova Glow", bom_type="Template"
-		)
-		self._save(new_bom, synced=False, sync_updates=0).assert_not_called()
+		bom = frappe._dict(doctype="BOM", name="B-1", setting_type="Nova Glow", bom_type="Template")
+		self._save(bom, synced=True, sync_updates=0).assert_not_called()
 
 		# And on, it still does its job.
-		self._save(brand_new, synced=False, sync_updates=1).assert_called_once()
+		self._save(item, synced=True, sync_updates=1).assert_called_once()
 
 
 class TestDeferredRelink(unittest.TestCase):
@@ -1377,6 +1467,15 @@ class TestReconciler(unittest.TestCase):
 			k.reconcile_changes()
 		self.assertEqual(captured, [200, 199])
 
+	def test_drift_counts_only_plan_linked_records_and_limits_after_filtering(self):
+		"""Unlinked rows sort first here; limiting before the filter would starve I-3 forever."""
+		with patch.object(frappe.db, "sql", return_value=["I-1", "I-2", "I-3", "I-4"]) as sql, patch.object(
+			k, "plan_linked", return_value={"I-3", "I-4"}
+		) as linked:
+			self.assertEqual(k._drifted("Item", "kggk.example.com", 1), ["I-3"])
+		self.assertNotIn("limit", sql.call_args.args[0].lower().split("order by")[1])
+		linked.assert_called_once_with("Item", ["I-1", "I-2", "I-3", "I-4"])
+
 	def test_nothing_drifted_queues_nothing(self):
 		with patch.object(k, "setting", side_effect=lambda f, d=None: 1 if f == "auto_reconcile" else 200), patch.object(
 			k, "get_sync_config", return_value=(frappe._dict(to_site="https://kggk.example.com"), None)
@@ -1638,13 +1737,28 @@ class TestTheSupervisor(unittest.TestCase):
 		rows = [frappe._dict(record_doctype="Item", record_name="I-1"), frappe._dict(record_doctype="BOM", record_name="B-1")]
 		with patch.object(k, "get_sync_config", return_value=(frappe._dict(to_site="https://t", fingerprint="fp"), None)), patch.object(
 			k, "setting", return_value=1
-		), patch.object(frappe, "get_all", return_value=rows), patch.object(k, "_safe_enqueue", return_value=True) as enqueue:
+		), patch.object(frappe, "get_all", return_value=rows), patch.object(
+			k, "plan_linked", side_effect=lambda doctype, names: set(names)
+		), patch.object(k, "_safe_enqueue", return_value=True) as enqueue:
 			sent = k._redispatch_pending()
 		self.assertEqual(sent, ["I-1", "B-1"])
 		jobs = [c.args[0] for c in enqueue.call_args_list]
 		self.assertEqual([j["job_id"] for j in jobs], ["kggk_item::I-1", "kggk_bom::B-1"])
 		self.assertEqual(jobs[0]["items"], ["I-1"])
 		self.assertEqual(jobs[1]["boms"], ["B-1"])
+
+	def test_a_pending_row_no_plan_links_is_never_resent_nor_counts_against_the_limit(self):
+		"""A save from before the plan rule could leave one. It must not be pushed - and as the
+		oldest row it must not hold the one slot that the linked row behind it needs."""
+		rows = [frappe._dict(record_doctype="Item", record_name="OLD"), frappe._dict(record_doctype="Item", record_name="I-1")]
+		with patch.object(k, "get_sync_config", return_value=(frappe._dict(to_site="https://t", fingerprint="fp"), None)), patch.object(
+			k, "setting", return_value=1
+		), patch.object(frappe, "get_all", return_value=rows) as get_all, patch.object(
+			k, "plan_linked", side_effect=lambda doctype, names: {"I-1"} & set(names)
+		), patch.object(k, "_safe_enqueue", return_value=True):
+			sent = k._redispatch_pending(limit=1)
+		self.assertEqual(sent, ["I-1"])
+		self.assertNotIn("limit", get_all.call_args.kwargs)
 
 
 class TestPrefillStarter(unittest.TestCase):
