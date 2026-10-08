@@ -3,7 +3,7 @@
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, cint, flt, getdate, nowdate
+from frappe.utils import add_days, cint, getdate, nowdate
 
 # ---------------------------------------------------------------------------
 # Per-user tab access for the CAD Dashboard's setting-type tabs (All / Open
@@ -81,9 +81,19 @@ def _designer_scope_for_session():
 	"""Employee ID to restrict designer-keyed views to, or None if the
 	current session is exempt (Administrator / management role) and should
 	see every designer's data unrestricted.
+
+	A user hardcoded in TAB_ACCESS_MAP with every tab (ALL_TABS) is implicitly
+	management-level access too - without this, such a user would see every
+	tab but every number would read 0 unless they also happened to hold one
+	of DESIGNER_SCOPE_EXEMPT_ROLES (e.g. chirag_t@gkexport.com / gr@gkexport.com,
+	who were added to TAB_ACCESS_MAP for full tab access but hold no exempt role).
 	"""
 	user = frappe.session.user
-	if user == "Administrator" or (DESIGNER_SCOPE_EXEMPT_ROLES & set(frappe.get_roles(user))):
+	if (
+		user == "Administrator"
+		or (DESIGNER_SCOPE_EXEMPT_ROLES & set(frappe.get_roles(user)))
+		or TAB_ACCESS_MAP.get(user) == ALL_TABS
+	):
 		return None
 
 	employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
@@ -490,8 +500,8 @@ def _status_columns(row):
 
 
 def _build_matrix(source_rows, row_keys_fn, column_keys_fn, risk_of):
-	"""Generic "matrix row x column" qty builder (counts/sums only - no order
-	names; those are resolved on demand by `get_segment_orders`).
+	"""Generic "matrix row x column" order-count builder (counts only - no
+	order names; those are resolved on demand by `get_segment_orders`).
 
 	`row_keys_fn(row)` / `column_keys_fn(row)` each return a list of (key,
 	label) pairs identifying which matrix row(s)/column(s) this order
@@ -503,13 +513,14 @@ def _build_matrix(source_rows, row_keys_fn, column_keys_fn, risk_of):
 	- even where an order is counted more than once.
 
 	`risk_of(row)` returns "overdue" / "due_soon" / None, tallied alongside
-	qty on every cell so the matrix can flag risk (a small dot) without ever
-	shipping the underlying order names - just two extra counts per cell.
+	the order count on every cell so the matrix can flag risk (a small dot)
+	without ever shipping the underlying order names - just two extra
+	counts per cell.
 	"""
 	matrix_rows = {}
 	column_labels = {}
 	for row in source_rows:
-		qty = flt(row.qty)
+		qty = 1
 		risk = risk_of(row)
 		col_keys = column_keys_fn(row)
 		for col_key, col_label in col_keys:
