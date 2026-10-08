@@ -32,6 +32,21 @@ class ManufacturingDashboard {
 
 		this.due_soon_days = 2;
 
+		const api = 'gke_customization.gke_catalog.report.mfg_dashboard_script.mfg_dashboard_script.';
+		this.stage_method = api + 'get_stage_details';
+		this.detail_method = api + 'get_order_details';
+		this.STATUS_COLORS = {
+			'In Progress': 'var(--mfg-steel)',
+			Completed: 'var(--mfg-emerald)',
+			Pending: 'var(--mfg-amber)',
+			'On Hold': 'var(--mfg-red)',
+		};
+		// Drill-down state (sections 4-6): the operation tag picked in section 3, the status row
+		// picked in the stage summary (null = all), the order-list page and the order opened.
+		this.selection = null;
+		this.drill = { status: null, page: 1, order: null };
+		this.page_size = 10;
+
 		this.render_shell();
 		this.setup_page_controls();
 		if (!this.company_field.get_value()) {
@@ -114,6 +129,14 @@ class ManufacturingDashboard {
 		this.$dept_line = this.page.main.find('[data-field="dept-line"]');
 		this.$andon = this.page.main.find('[data-field="andon-board"]');
 		this.$generated_at = this.page.main.find('[data-field="generated-at"]');
+		this.$ops = this.page.main.find('[data-field="ops-board"]');
+		this.$stage = this.page.main.find('[data-field="stage-board"]');
+		this.$stage_title = this.page.main.find('[data-field="stage-title"]');
+		this.$orders = this.page.main.find('[data-field="orders-board"]');
+		this.$orders_title = this.page.main.find('[data-field="orders-title"]');
+		this.$detail = this.page.main.find('[data-field="detail-board"]');
+		this.$detail_title = this.page.main.find('[data-field="detail-title"]');
+		this.render_drill_hints();
 
 		// The department rail only scrolls horizontally, so let a plain vertical mouse-wheel
 		// drive it too - otherwise a wheel over this section does nothing (page has no vertical
@@ -201,6 +224,7 @@ class ManufacturingDashboard {
 		this.$kpi_row.html(loading(__('Loading order summary…')));
 		this.$dept_line.html(loading(__('Loading department flow…')));
 		this.$andon.html(loading(__('Loading alerts…')));
+		this.$ops.html(loading(__('Loading operations…')));
 	}
 
 	render_prompt(text) {
@@ -208,12 +232,16 @@ class ManufacturingDashboard {
 		this.$kpi_row.html(html);
 		this.$dept_line.html('');
 		this.$andon.html('');
+		this.$ops.html('');
+		this.render_drill_hints();
 	}
 
 	render() {
 		this.render_kpis(this.data.order_summary);
 		this.render_departments(this.data.departments);
 		this.render_andon(this.data.alerts);
+		this.render_operations(this.data.operations);
+		this.refresh_drilldown();
 		if (this.data.generated_at) {
 			this.$generated_at.text('as of ' + frappe.datetime.str_to_user(this.data.generated_at));
 		}
@@ -383,6 +411,320 @@ class ManufacturingDashboard {
 			};
 			frappe.set_route('List', 'Manufacturing Work Order', 'Report');
 		});
+	}
+
+	// ---- operation-wise summary (section 3) ----
+
+	render_operations(departments) {
+		if (!departments || !departments.length) {
+			this.$ops.html('<div class="mfgdash__empty mfgdash__empty--compact">No operation data.</div>');
+			return;
+		}
+
+		const line = (dept, key, label, row, modifier) => `
+			<div class="mfg-opline ${modifier || ''} ${row.count ? '' : 'mfg-opline--empty'}"
+				data-field="opline" data-department="${frappe.utils.escape_html(dept.department_id)}"
+				data-department-name="${frappe.utils.escape_html(dept.name)}"
+				data-operation="${frappe.utils.escape_html(key)}" data-label="${frappe.utils.escape_html(label)}"
+				title="${__('Click to view stage-wise summary and orders')}">
+				<div class="mfg-opline__name">${frappe.utils.escape_html(label)}</div>
+				<div class="mfg-opline__vals">
+					<span><small>Pcs</small><b>${this.fmt_count(row.count)}</b></span>
+					<span><small>Metal</small><b>${this.fmt_wt(row.gold_wt, '').trim()}<em>g</em></b></span>
+					<span><small>Dia</small><b>${this.fmt_wt(row.diamond_wt, '').trim()}<em>ct</em></b></span>
+				</div>
+			</div>`;
+
+		const html = departments
+			.map((dept, i) => {
+				const lines = dept.operations.map((op) => line(dept, op.operation, op.label, op));
+				if (dept.awaiting_operation.count) {
+					lines.push(
+						line(dept, '__awaiting__', __('Awaiting Operation'), dept.awaiting_operation, 'mfg-opline--awaiting')
+					);
+				}
+				return `
+					<div class="mfg-opdept" style="--mfg-delay:${i * 60}ms">
+						<div class="mfg-opdept__title">${frappe.utils.escape_html(dept.name)}</div>
+						<div class="mfg-opdept__lines">${lines.join('')}</div>
+						${line(dept, '__all__', __('Total'), dept.total, 'mfg-opline--total')}
+					</div>`;
+			})
+			.join('');
+
+		this.$ops.html(html);
+		this.limit_visible_operations(3);
+		this.mark_selected_operation();
+
+		this.$ops.find('[data-field="opline"]').on('click', (e) => {
+			const d = e.currentTarget.dataset;
+			this.selection = {
+				department: d.department,
+				department_name: d.departmentName,
+				operation: d.operation,
+				label: d.label,
+			};
+			this.drill = { status: null, page: 1, order: null };
+			this.mark_selected_operation();
+			this.load_stage();
+			this.render_detail_hint();
+		});
+	}
+
+	mark_selected_operation() {
+		const sel = this.selection;
+		this.$ops.find('[data-field="opline"]').each((_, el) => {
+			const on = !!sel && el.dataset.department === sel.department && el.dataset.operation === sel.operation;
+			el.classList.toggle('is-selected', on);
+		});
+	}
+
+	// Each department box shows `count` operation cards; the rest scroll inside the box (Total
+	// stays pinned below). Measured rather than a fixed CSS height because long operation names
+	// wrap to two lines, which makes cards different heights.
+	limit_visible_operations(count) {
+		this.$ops.find('.mfg-opdept__lines').each((_, el) => {
+			if (el.children.length <= count) return;
+			const last = el.children[count - 1];
+			// max-height is border-box here, so add the tray's bottom padding + the tag's own gap
+			const height =
+				last.offsetTop +
+				last.offsetHeight +
+				parseFloat(getComputedStyle(last).marginBottom || 0) +
+				parseFloat(getComputedStyle(el).paddingBottom || 0);
+			if (height > 0) el.style.maxHeight = height + 'px';
+			el.classList.add('is-scrollable');
+		});
+	}
+
+	// ---- drill-down: stage-wise summary / order list / order details (sections 4-6) ----
+
+	render_drill_hints() {
+		const hint = (text) => `<div class="mfgdash__empty mfgdash__empty--compact">${text}</div>`;
+		this.$stage_title.text('');
+		this.$orders_title.text('');
+		this.$stage.html(hint(__('Click an operation in the Operation-wise Summary above.')));
+		this.$orders.html(hint(__('Orders of the selected operation will be listed here.')));
+		this.render_detail_hint();
+	}
+
+	render_detail_hint() {
+		this.$detail_title.text('');
+		this.$detail.html(
+			`<div class="mfgdash__empty mfgdash__empty--compact">${__('Click an order in the list to see its details.')}</div>`
+		);
+	}
+
+	// After a dashboard refresh / filter change: keep the drill-down on the same operation (if its
+	// department is still in the operation summary), otherwise clear it.
+	refresh_drilldown() {
+		const sel = this.selection;
+		const still_there =
+			sel && (this.data.operations || []).some((d) => d.department_id === sel.department);
+		if (!still_there) {
+			this.selection = null;
+			this.drill = { status: null, page: 1, order: null };
+			this.render_drill_hints();
+			return;
+		}
+		this.drill.page = 1;
+		this.load_stage();
+		if (this.drill.order) this.load_order(this.drill.order);
+	}
+
+	load_stage() {
+		const sel = this.selection;
+		if (!sel) return;
+		const args = this.build_call_args();
+		const token = (this.stage_token = (this.stage_token || 0) + 1);
+
+		const crumb = `— ${sel.department_name} · ${sel.label}`;
+		this.$stage_title.text(crumb);
+		this.$orders_title.text(`— ${sel.label} · ${this.drill.status || __('All')}`);
+		this.$orders.addClass('is-busy');
+
+		frappe.call({
+			method: this.stage_method,
+			args: {
+				company: args.company,
+				department: sel.department,
+				operation: sel.operation,
+				status: this.drill.status || undefined,
+				page: this.drill.page,
+				page_size: this.page_size,
+				customer: args.customer,
+				from_date: args.from_date,
+				to_date: args.to_date,
+			},
+			freeze: false,
+			callback: (r) => {
+				if (token !== this.stage_token || !r.message) return;
+				this.$orders.removeClass('is-busy');
+				this.render_stage(r.message);
+				this.render_orders(r.message);
+			},
+			error: () => {
+				this.$orders.removeClass('is-busy');
+				this.$stage.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Could not load stages.')}</div>`);
+			},
+		});
+	}
+
+	render_stage(data) {
+		const row = (key, label, s, color) => `
+			<tr class="mfg-stage__row ${this.drill.status === key ? 'is-selected' : ''} ${s.count ? '' : 'is-empty'}"
+				data-field="stage-row" data-status="${key || ''}">
+				<td><i class="mfg-dot" style="background:${color}"></i>${frappe.utils.escape_html(label)}</td>
+				<td>${this.fmt_count(s.count)}</td>
+				<td>${this.fmt_wt(s.gold_wt, '').trim()}</td>
+				<td>${this.fmt_wt(s.diamond_wt, '').trim()}</td>
+			</tr>`;
+
+		const rows = data.stages.map((s) => row(s.status, __(s.status), s, this.STATUS_COLORS[s.status]));
+
+		this.$stage.html(`
+			<table class="mfg-table mfg-stage">
+				<thead><tr><th>${__('Status')}</th><th>${__('Pcs')}</th><th>${__('Metal (g)')}</th><th>${__('Dia (ct)')}</th></tr></thead>
+				<tbody>${rows.join('')}</tbody>
+				<tfoot>${row(null, __('Total'), data.total, 'var(--mfg-brass)')}</tfoot>
+			</table>`);
+
+		this.$stage.find('[data-field="stage-row"]').on('click', (e) => {
+			const status = e.currentTarget.dataset.status || null;
+			this.drill.status = status;
+			this.drill.page = 1;
+			this.load_stage();
+		});
+	}
+
+	render_orders(data) {
+		const orders = data.orders || [];
+		if (!orders.length) {
+			this.$orders.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('No orders.')}</div>`);
+			return;
+		}
+
+		const date = (v) => (v ? frappe.datetime.str_to_user(String(v).split(' ')[0]) : '—');
+		const esc = (v) => frappe.utils.escape_html(v || '—');
+		const rows = orders
+			.map(
+				(o) => `
+				<tr class="mfg-orders__row ${this.drill.order === o.order_no ? 'is-selected' : ''}"
+					data-field="order-row" data-order="${frappe.utils.escape_html(o.order_no)}">
+					<td class="mfg-orders__no">
+						<i class="mfg-dot" style="background:${this.STATUS_COLORS[o.stage_status] || 'var(--mfg-border)'}"
+							title="${frappe.utils.escape_html(o.stage_status)}"></i>${esc(o.order_no)}
+					</td>
+					<td>${esc(o.design_no)}</td>
+					<td>${esc(o.item_category)}</td>
+					<td class="is-num">${this.fmt_wt(o.gold_wt, '').trim()}</td>
+					<td class="is-num">${this.fmt_wt(o.diamond_wt, '').trim()}</td>
+					<td>${date(o.issue_date)}</td>
+					<td>${date(o.due_date)}</td>
+					<td>${esc(o.employee_name || o.employee)}</td>
+				</tr>`
+			)
+			.join('');
+
+		const pages = Math.max(1, Math.ceil((data.order_count || 0) / data.page_size));
+		this.$orders.html(`
+			<div class="mfg-orders__scroll">
+				<table class="mfg-table mfg-orders">
+					<thead><tr>
+						<th>${__('Order No')}</th><th>${__('Design No')}</th><th>${__('Item')}</th>
+						<th class="is-num">${__('Metal (g)')}</th><th class="is-num">${__('Dia (ct)')}</th>
+						<th>${__('Issue Date')}</th><th>${__('Due Date')}</th><th>${__('Employee')}</th>
+					</tr></thead>
+					<tbody>${rows}</tbody>
+				</table>
+			</div>
+			<div class="mfg-pager">
+				<span>${__('Total Records')}: <b>${this.fmt_count(data.order_count)}</b></span>
+				<span class="mfg-pager__nav">
+					<button type="button" data-field="page-prev" ${data.page <= 1 ? 'disabled' : ''}>‹</button>
+					<span>${__('Page {0} of {1}', [data.page, pages])}</span>
+					<button type="button" data-field="page-next" ${data.page >= pages ? 'disabled' : ''}>›</button>
+				</span>
+			</div>`);
+
+		this.$orders.find('[data-field="page-prev"]').on('click', () => {
+			this.drill.page = Math.max(1, data.page - 1);
+			this.load_stage();
+		});
+		this.$orders.find('[data-field="page-next"]').on('click', () => {
+			this.drill.page = Math.min(pages, data.page + 1);
+			this.load_stage();
+		});
+		this.$orders.find('[data-field="order-row"]').on('click', (e) => {
+			this.drill.order = e.currentTarget.dataset.order;
+			this.$orders.find('[data-field="order-row"]').removeClass('is-selected');
+			e.currentTarget.classList.add('is-selected');
+			this.load_order(this.drill.order);
+		});
+	}
+
+	load_order(order_no) {
+		const token = (this.detail_token = (this.detail_token || 0) + 1);
+		this.$detail_title.text('— ' + order_no);
+		this.$detail.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Loading order…')}</div>`);
+
+		frappe.call({
+			method: this.detail_method,
+			args: { company: this.company_field.get_value(), order_no },
+			freeze: false,
+			callback: (r) => {
+				if (token !== this.detail_token || !r.message) return;
+				this.render_order_detail(r.message);
+			},
+			error: () => {
+				this.$detail.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Could not load order.')}</div>`);
+			},
+		});
+	}
+
+	render_order_detail(d) {
+		const esc = (v) => frappe.utils.escape_html(v === null || v === undefined || v === '' ? '—' : String(v));
+		const date = (v) => (v ? frappe.datetime.str_to_user(String(v).split(' ')[0]) : '—');
+		// gross/net are the operation's actual weighings - 0 means not weighed yet, not 0 g
+		const actual = (v, unit) => (v ? this.fmt_wt(v, unit) : '—');
+		const field = (label, value_html) => `<dt>${label}</dt><dd>${value_html}</dd>`;
+
+		const order_link = `<a href="/app/parent-manufacturing-order/${encodeURIComponent(d.order_no)}"
+			target="_blank" rel="noopener">${esc(d.order_no)}</a>`;
+		const status = `<span class="mfg-chip" style="--chip:${this.STATUS_COLORS[d.status] || 'var(--mfg-border)'}">${esc(d.status)}</span>`;
+
+		this.$detail.html(`
+			<div class="mfg-detail">
+				<dl class="mfg-detail__list">
+					${field(__('Order No'), order_link)}
+					${field(__('Sales Order'), esc(d.sales_order))}
+					${field(__('Order Date'), date(d.order_date))}
+					${field(__('Customer'), esc(d.customer_name || d.customer))}
+					${field(__('Design No'), esc(d.design_no))}
+					${field(__('Item'), esc(d.item_category))}
+					${field(__('Sub Category'), esc(d.item_sub_category))}
+					${field(__('Qty'), esc(d.qty))}
+					${field(__('Due Date'), date(d.due_date))}
+					${field(__('Department'), esc(d.department))}
+					${field(__('Operation'), esc(d.operation))}
+					${field(__('Status'), status)}
+					${field(__('Employee'), esc(d.employee_name || d.employee))}
+					${field(__('Issue Date'), date(d.issue_date))}
+					${field(__('Work Order'), esc(d.work_order))}
+				</dl>
+				<div class="mfg-detail__materials">
+					<div class="mfg-detail__heading">${__('Materials & Weight')}</div>
+					<dl class="mfg-detail__list">
+						${field(__('Metal Touch'), esc(d.metal_touch))}
+						${field(__('Metal Colour'), esc(d.metal_colour))}
+						${field(__('Metal Wt'), this.fmt_wt(d.metal_wt, 'g'))}
+						${field(__('Gross Wt'), actual(d.gross_wt, 'g'))}
+						${field(__('Diamond Wt'), this.fmt_wt(d.diamond_wt, 'ct'))}
+						${field(__('Diamond Pcs'), this.fmt_count(Math.round(d.diamond_pcs || 0)))}
+						${field(__('Gemstone Wt'), this.fmt_wt(d.gemstone_wt, 'ct'))}
+					</dl>
+				</div>
+			</div>`);
 	}
 
 	// ---- department node tooltip ----

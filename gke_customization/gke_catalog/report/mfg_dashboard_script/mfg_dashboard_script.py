@@ -328,11 +328,14 @@ main_mwo AS (
 		END AS net_wt,
 		{_planned_or_actual_diamond("diamond_wt", "total_diamond_weight")} AS diamond_wt,
 		{_planned_or_actual_diamond("diamond_pcs", "total_diamond_pcs")} AS diamond_pcs,
+		{_planned_or_actual_diamond("gemstone_wt", "total_gemstone_weight")} AS gemstone_wt,
 		CASE WHEN NOT {_IS_PRE_CAST} AND COALESCE(mo.gross_wt, 0) = 0 THEN 1 ELSE 0 END AS not_weighed,
 		mwo.docstatus,
 		mwo.delivery_date,
 		mo.status AS mop_status,
 		mo.department_ir_status AS mop_transfer_status,
+		mo.operation AS mop_operation,
+		mo.name AS mop_name,
 		ROW_NUMBER() OVER (
 			PARTITION BY mwo.manufacturing_order
 			ORDER BY mwo.modified DESC
@@ -362,10 +365,14 @@ pmo_main AS (
 		mm.net_wt AS gold_wt,
 		mm.diamond_wt AS diamond_wt,
 		mm.diamond_pcs AS diamond_pcs,
+		mm.gemstone_wt AS gemstone_wt,
 		mm.not_weighed AS not_weighed,
 		mm.docstatus AS mwo_docstatus,
 		mm.mop_status AS mop_status,
 		mm.mop_transfer_status AS mop_transfer_status,
+		mm.mop_operation AS mop_operation,
+		mm.name AS mwo_name,
+		mm.mop_name AS mop_name,
 		mm.delivery_date AS due_date,
 		{_POST_TAGGING_STAGE} AS post_tagging_stage
 	FROM `tabParent Manufacturing Order` pmo
@@ -502,7 +509,13 @@ def get_dashboard_data(company=None, due_soon_days=2, customer=None, from_date=N
 	# breakdown - mirroring the tabular report's INNER JOIN semantics for "in progress".
 	dept_map = {row.department_name: row for row in piece_rows if row.department_name}
 	matched_rows = list(dept_map.values())
-	in_progress_rows = [row for row in matched_rows if "Manufacturing Plan" not in row.department_name]
+	# Sold / allocated pieces have left manufacturing, so they aren't "in progress" any more.
+	in_progress_rows = [
+		row
+		for row in matched_rows
+		if "Manufacturing Plan" not in row.department_name
+		and row.department_name not in ("Product Allocation", "Sales")
+	]
 
 	generated_order = sum(row.mwo_count for row in piece_rows)
 	generated_gold_wt = sum(row.gold_wt for row in piece_rows)
@@ -610,5 +623,348 @@ def get_dashboard_data(company=None, due_soon_days=2, customer=None, from_date=N
 				"diamond_wt": flt(sum(row.overdue_diamond_wt for row in piece_rows)),
 			},
 		},
+		"operations": _get_operation_summary(company, extra_so_filter, extra_params),
 		"generated_at": frappe.utils.now(),
+	}
+
+
+# Operation-wise summary (dashboard section 3): every department from Waxing to Final Polish,
+# broken down by the Department Operation each piece's current Manufacturing Operation is on.
+# Same piece set and weight rules as the department cards, so each department's total matches
+# its card. A piece received but not picked up by any operation yet has no operation set (or
+# still carries one from another department) - those are reported as "awaiting operation".
+OPERATION_SUMMARY_DEPARTMENTS = [
+	"Waxing",
+	"Model Making",
+	"Pre Polish",
+	"Diamond Setting",
+	"Final Polish",
+]
+
+
+def _dashboard_operations_query(extra_so_filter=""):
+	return (
+		_dashboard_cte(extra_so_filter)
+		+ """
+SELECT
+	pm.mwo_department AS department,
+	dop.name AS operation,
+	COUNT(*) AS piece_count,
+	SUM(COALESCE(pm.gold_wt, 0)) AS gold_wt,
+	SUM(COALESCE(pm.diamond_wt, 0)) AS diamond_wt,
+	SUM(COALESCE(pm.diamond_pcs, 0)) AS diamond_pcs
+FROM pmo_main pm
+INNER JOIN so_base b ON b.soi_name = pm.soi_name
+LEFT JOIN `tabDepartment Operation` dop
+	ON dop.name = pm.mop_operation AND dop.department = pm.mwo_department
+WHERE pm.mwo_department IN %(departments)s
+	AND pm.post_tagging_stage IS NULL
+GROUP BY pm.mwo_department, dop.name
+"""
+	)
+
+
+def _get_operation_summary(company, extra_so_filter, extra_params):
+	dept_ids = {
+		row.department_name.strip(): row.name
+		for row in frappe.get_all(
+			"Department", filters={"company": company}, fields=["name", "department_name"]
+		)
+	}
+	departments = [(name, dept_ids[name]) for name in OPERATION_SUMMARY_DEPARTMENTS if name in dept_ids]
+	if not departments:
+		return []
+
+	params = {"company": company, "departments": tuple(d for _, d in departments), **extra_params}
+	rows = frappe.db.sql(_dashboard_operations_query(extra_so_filter), params, as_dict=True)
+	row_map = {(row.department, row.operation): row for row in rows}
+
+	operations_by_dept = {}
+	for op in frappe.get_all(
+		"Department Operation",
+		filters={"department": ("in", [d for _, d in departments])},
+		fields=["name", "department"],
+		order_by="name asc",
+	):
+		operations_by_dept.setdefault(op.department, []).append(op.name)
+
+	abbr = frappe.get_cached_value("Company", company, "abbr")
+
+	def strip_abbr(name):
+		suffix = f" - {abbr}"
+		return name[: -len(suffix)].strip() if abbr and name.endswith(suffix) else name.strip()
+
+	def summary(row_list):
+		return {
+			"count": sum(cint(row.piece_count) for row in row_list),
+			"gold_wt": flt(sum(row.gold_wt for row in row_list)),
+			"diamond_wt": flt(sum(row.diamond_wt for row in row_list)),
+			"diamond_pcs": flt(sum(row.diamond_pcs for row in row_list)),
+		}
+
+	result = []
+	for name, dept_id in departments:
+		dept_rows = [row for row in rows if row.department == dept_id]
+		result.append(
+			{
+				"name": name,
+				"department_id": dept_id,
+				"operations": [
+					{"operation": op, "label": strip_abbr(op), **summary([row_map[(dept_id, op)]] if (dept_id, op) in row_map else [])}
+					for op in operations_by_dept.get(dept_id, [])
+				],
+				"awaiting_operation": summary([row for row in dept_rows if row.operation is None]),
+				"total": summary(dept_rows),
+			}
+		)
+	return result
+
+
+# ---------------------------------------------------------------------------
+# Drill-down below the operation-wise summary (dashboard sections 4-6): clicking an operation
+# tag shows its stage-wise (status) summary and order list, and clicking an order shows its
+# details. "Order" here is one piece = one Parent Manufacturing Order, same as everywhere above.
+# ---------------------------------------------------------------------------
+
+ALL_OPERATIONS = "__all__"
+AWAITING_OPERATION = "__awaiting__"
+STAGE_STATUSES = ["In Progress", "Completed", "Pending", "On Hold"]
+
+# Same split as the department cards' pending / in progress / completed, with operations put
+# On Hold carved out of the other buckets.
+_STAGE_STATUS = """CASE
+		WHEN COALESCE(pm.mop_status, '') = 'Finished' THEN 'Completed'
+		WHEN COALESCE(pm.mop_status, '') = 'On Hold' THEN 'On Hold'
+		WHEN pm.mwo_docstatus = 0 OR COALESCE(pm.mop_transfer_status, '') = 'In-Transit' THEN 'Pending'
+		ELSE 'In Progress'
+	END"""
+
+
+def _stage_pieces_query(extra_so_filter, operation):
+	if operation == ALL_OPERATIONS:
+		operation_condition = ""
+	elif operation == AWAITING_OPERATION:
+		operation_condition = "AND dop.name IS NULL"
+	else:
+		operation_condition = "AND dop.name = %(operation)s"
+
+	return f"""
+SELECT
+	pm.pmo_name,
+	pm.mwo_name,
+	pm.mop_name,
+	pm.gold_wt,
+	pm.diamond_wt,
+	pm.diamond_pcs,
+	pm.due_date,
+	{_STAGE_STATUS} AS stage_status
+FROM pmo_main pm
+INNER JOIN so_base b ON b.soi_name = pm.soi_name
+LEFT JOIN `tabDepartment Operation` dop
+	ON dop.name = pm.mop_operation AND dop.department = pm.mwo_department
+WHERE pm.mwo_department = %(department)s
+	AND pm.post_tagging_stage IS NULL
+	{operation_condition}
+"""
+
+
+@frappe.whitelist()
+def get_stage_details(
+	company=None,
+	department=None,
+	operation=None,
+	status=None,
+	page=1,
+	page_size=10,
+	customer=None,
+	from_date=None,
+	to_date=None,
+):
+	if not company or not department:
+		frappe.throw(_("Please select a Company and a Department"))
+
+	operation = operation or ALL_OPERATIONS
+	page = max(cint(page), 1)
+	page_size = min(max(cint(page_size), 1), 100)
+	if status not in STAGE_STATUSES:
+		status = None
+
+	extra_so_filter, extra_params = _build_so_extra_filter(customer, from_date, to_date)
+	params = {
+		"company": company,
+		"department": department,
+		"operation": operation,
+		"status": status,
+		"limit": page_size,
+		"offset": (page - 1) * page_size,
+		**extra_params,
+	}
+	cte = _dashboard_cte(extra_so_filter)
+	pieces = _stage_pieces_query(extra_so_filter, operation)
+
+	summary_rows = frappe.db.sql(
+		cte
+		+ f"""
+SELECT
+	p.stage_status,
+	COUNT(*) AS piece_count,
+	SUM(COALESCE(p.gold_wt, 0)) AS gold_wt,
+	SUM(COALESCE(p.diamond_wt, 0)) AS diamond_wt
+FROM ({pieces}) p
+GROUP BY p.stage_status
+""",
+		params,
+		as_dict=True,
+	)
+	summary_map = {row.stage_status: row for row in summary_rows}
+
+	def summary(row_list):
+		return {
+			"count": sum(cint(row.piece_count) for row in row_list),
+			"gold_wt": flt(sum(row.gold_wt for row in row_list)),
+			"diamond_wt": flt(sum(row.diamond_wt for row in row_list)),
+		}
+
+	stages = [
+		{"status": name, **summary([summary_map[name]] if name in summary_map else [])}
+		for name in STAGE_STATUSES
+	]
+	total = summary(summary_rows)
+
+	orders = frappe.db.sql(
+		cte
+		+ f"""
+SELECT
+	p.pmo_name AS order_no,
+	pmo.item_code AS design_no,
+	pmo.item_category AS item_category,
+	p.gold_wt,
+	p.diamond_wt,
+	p.due_date,
+	p.stage_status,
+	mo.start_time AS issue_date,
+	mo.employee AS employee,
+	emp.employee_name AS employee_name
+FROM ({pieces}) p
+INNER JOIN `tabParent Manufacturing Order` pmo ON pmo.name = p.pmo_name
+LEFT JOIN `tabManufacturing Operation` mo ON mo.name = p.mop_name
+LEFT JOIN `tabEmployee` emp ON emp.name = mo.employee
+WHERE (%(status)s IS NULL OR p.stage_status = %(status)s)
+ORDER BY p.due_date IS NULL, p.due_date ASC, p.pmo_name ASC
+LIMIT %(limit)s OFFSET %(offset)s
+""",
+		params,
+		as_dict=True,
+	)
+
+	return {
+		"stages": stages,
+		"total": total,
+		"status": status,
+		"orders": orders,
+		"order_count": summary_map[status].piece_count if status in summary_map else (0 if status else total["count"]),
+		"page": page,
+		"page_size": page_size,
+	}
+
+
+@frappe.whitelist()
+def get_order_details(company=None, order_no=None):
+	if not company or not order_no:
+		frappe.throw(_("Please select an Order"))
+	frappe.has_permission("Parent Manufacturing Order", doc=order_no, throw=True)
+
+	# Reuses the dashboard's per-piece rules (current operation, planned-vs-actual weights), just
+	# narrowed to the one piece - no Sales Order filters, so a piece always resolves.
+	piece = frappe.db.sql(
+		_dashboard_cte()
+		+ f"""
+SELECT
+	pm.pmo_name,
+	pm.mwo_name,
+	pm.mop_name,
+	pm.gold_wt,
+	pm.diamond_wt,
+	pm.diamond_pcs,
+	pm.gemstone_wt,
+	pm.due_date,
+	COALESCE(pm.post_tagging_stage, d.department_name) AS department,
+	{_STAGE_STATUS} AS stage_status
+FROM pmo_main pm
+LEFT JOIN `tabDepartment` d ON d.name = pm.mwo_department
+WHERE pm.pmo_name = %(order_no)s
+""",
+		{"company": company, "order_no": order_no},
+		as_dict=True,
+	)
+	piece = piece[0] if piece else frappe._dict()
+
+	pmo = frappe.db.get_value(
+		"Parent Manufacturing Order",
+		order_no,
+		[
+			"name",
+			"sales_order",
+			"customer",
+			"item_code",
+			"item_category",
+			"item_sub_category",
+			"metal_type",
+			"metal_touch",
+			"metal_colour",
+			"qty",
+			"po_no",
+		],
+		as_dict=True,
+	)
+	if not pmo:
+		frappe.throw(_("Order {0} not found").format(order_no))
+
+	mo = (
+		frappe.db.get_value(
+			"Manufacturing Operation",
+			piece.mop_name,
+			["operation", "status", "employee", "start_time", "gross_wt", "net_wt"],
+			as_dict=True,
+		)
+		if piece.mop_name
+		else None
+	) or frappe._dict()
+
+	abbr = frappe.get_cached_value("Company", company, "abbr")
+	suffix = f" - {abbr}"
+
+	def strip_abbr(name):
+		return name[: -len(suffix)].strip() if name and abbr and name.endswith(suffix) else name
+
+	return {
+		"order_no": pmo.name,
+		"sales_order": pmo.sales_order,
+		"order_date": frappe.db.get_value("Sales Order", pmo.sales_order, "transaction_date")
+		if pmo.sales_order
+		else None,
+		"customer": pmo.customer,
+		"customer_name": frappe.db.get_value("Customer", pmo.customer, "customer_name") if pmo.customer else None,
+		"design_no": pmo.item_code,
+		"item_category": pmo.item_category,
+		"item_sub_category": pmo.item_sub_category,
+		"qty": pmo.qty,
+		"po_no": pmo.po_no,
+		"due_date": piece.due_date,
+		"work_order": piece.mwo_name,
+		"department": piece.department,
+		"operation": strip_abbr(mo.operation),
+		"status": piece.stage_status,
+		"employee": mo.employee,
+		"employee_name": frappe.db.get_value("Employee", mo.employee, "employee_name") if mo.employee else None,
+		"issue_date": mo.start_time,
+		"metal_type": pmo.metal_type,
+		"metal_touch": pmo.metal_touch,
+		"metal_colour": pmo.metal_colour,
+		"gross_wt": flt(mo.gross_wt),
+		"net_wt": flt(mo.net_wt),
+		"metal_wt": flt(piece.gold_wt),
+		"diamond_wt": flt(piece.diamond_wt),
+		"diamond_pcs": flt(piece.diamond_pcs),
+		"gemstone_wt": flt(piece.gemstone_wt),
 	}
