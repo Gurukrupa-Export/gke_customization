@@ -358,6 +358,9 @@ def get_data(filters):
         frappe.qb.from_(PersonalOutLog)
         .select(
             IfNull(Sum(
+            IF(
+                TIME(PersonalOutLog.out_time) > TIME(shift_end), # NEW: out_time already past shift end?
+                0,                                               # → this personal out shouldn't count at all
                 TIME_TO_SEC(
                     TIMEDIFF(
                         IF(
@@ -368,7 +371,8 @@ def get_data(filters):
                         PersonalOutLog.out_time
                     )
                 )
-            ), 0)
+            )
+        ), 0)
         )
         .where(
             (PersonalOutLog.is_cancelled == 0)
