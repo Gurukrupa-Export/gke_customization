@@ -113,7 +113,8 @@ def make_delivery_note(source_name, target_doc=None, kwargs=None):
 				"rate": "rate",
 				"name": "so_detail",
 				"parent": "against_sales_order",
-				"diamond_grade":"diamond_grade"
+				"diamond_grade":"diamond_grade",
+				"bom":"bom"
 			},
 			"condition": condition,
 			"postprocess": update_item,

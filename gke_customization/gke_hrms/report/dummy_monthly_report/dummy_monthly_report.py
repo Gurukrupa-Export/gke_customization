@@ -387,7 +387,7 @@ def process_data(data, filters):
 	#########################################################
 	
 	checkins = {row.login_date: row.cnt for row in checkins}
-	od = frappe.get_list("Employee Checkin",{'employee':employee,'source':"Outdoor Duty", "time": ['between',[from_date,add_days(to_date,1)]]},'date(time) as login_date', pluck='login_date',group_by='login_date')
+	od = sorted({getdate(t) for t in frappe.get_list("Employee Checkin", filters={'employee':employee,'source':"Outdoor Duty", "time": ['between',[from_date,add_days(to_date,1)]]}, pluck='time')})
 	if shift and not emp_det.get('holiday_list'):
 			emp_det['holiday_list'] = shift_det.get("holiday_list")
 	

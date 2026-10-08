@@ -261,19 +261,33 @@ class ProductReturnOrder(Document):
 
 
 	def on_update(self):
+		# Only Jewelex-tag and KGGK-serial returns are pushed to the KGGK site, the gate master had
+		# before c97b25f (kept for gk_prod by business decision, 2026-10-02).
+		if not (self.is_jewelex_tag or self.is_kggk_serial_no):
+			return
+
 		if self.item_code:
 			item = frappe.get_doc("Item", self.item_code)
 			item_templat = item.variant_of
-			item_template = frappe.get_doc("Item",item_templat)
-			create_item_kggk(item_template)
+			# Items made at the Jewelex "Create Item" step are not variants; push a template only when there is one.
+			if item_templat:
+				item_template = frappe.get_doc("Item",item_templat)
+				create_item_kggk(item_template)
 			create_item_kggk(item)
-		frappe.db.after_commit.add(
-			lambda: sync_product_return_order_to_gk(self)
-		)
+		# Mirror workflow changes to the remote site only once "PRF To Site" is set on
+		# Data Migration in KGGK; until then transitions stay local-only, as on production.
+		if frappe.get_single("Data Migration in KGGK").get("prf_to_site"):
+			frappe.db.after_commit.add(
+				lambda: sync_product_return_order_to_gk(self)
+			)
 
-		
+
 	def on_submit(self):
-		
+		# Jewelex orders approved through the "Create Item" path never reach "BOM Calculated", so
+		# they have no BOM to build a serial from: skip them, as production does (K 68884d3).
+		if self.is_jewelex_tag and not self.new_bom:
+			return
+
 		if not self.serial_no:
 			serial = frappe.new_doc('Serial No')
 			serial.item_code = self.item_code
@@ -296,9 +310,18 @@ class ProductReturnOrder(Document):
 			# self.serial_no = serial.name
 			if serial.name and self.is_jewelex_tag:
 				migration_settings = frappe.get_single("Data Migration in KGGK")
+				# Send the serial to the KGGK site only once "PRF To Site" is set, the switch on_update
+				# uses for mirroring; until then it stays local and the approval goes through.
+				if not migration_settings.get("prf_to_site"):
+					return
 				site_url = (migration_settings.prf_to_site or "").rstrip("/")
 				api_key = migration_settings.api_key
-				api_secret = migration_settings.get_password("api_secret")
+				api_secret = migration_settings.get_password("api_secret", raise_exception=False)
+				if not site_url or not api_key or not api_secret:
+					frappe.throw(
+						"Please set <b>PRF To Site</b>, <b>Api Key</b> and "
+						"<b>Api Secret</b> on <b>Data Migration in KGGK</b>."
+					)
 				remote_url = (
 					site_url +
 					"/api/method/serial_product_return_order"
@@ -403,12 +426,17 @@ class ProductReturnOrder(Document):
 		# )
 		manufacturer='Labh'
 		metal_type = new_bom.metal_detail[0].metal_type if new_bom.metal_detail else None
-		diamond_grade_data=new_bom.diamond_detail[0].diamond_grade if new_bom.metal_detail else None
+		diamond_grade_data=new_bom.diamond_detail[0].diamond_grade if new_bom.diamond_detail else None
 		m_abbr = frappe.db.get_value("Attribute Value", metal_type, "abbreviation")
 		mnf_abbr = frappe.db.get_value("Manufacturer", manufacturer, ["custom_abbreviation"])
 		# diamond_grade = max(diamond_grade_data, key=diamond_grade_data.get) 
 		posting_date = datetime.date.today()
-		dg_abbr = frappe.db.get_value("Attribute Value", diamond_grade_data, ["abbreviation"])
+		if new_bom.diamond_detail:
+			dg_abbr = frappe.db.get_value("Attribute Value", diamond_grade_data, ["abbreviation"])
+		else:
+			# Diamond-free piece (plain metal): "0" takes the grade's place, as in jewellery_erpnext's
+			# Manufacturing Operation serials. Diamond rows without a usable grade still fail below.
+			dg_abbr = "0"
 		date = f"{posting_date.year %100:02d}"
 		date_to_letter = {0: "J", 1: "A", 2: "B", 3: "C", 4: "D", 5: "E", 6: "F", 7: "G", 8: "H", 9: "I"}
 		final_date = date[0] + date_to_letter[int(date[1])]
@@ -437,7 +465,8 @@ class ProductReturnOrder(Document):
 		# 	final_date = {final_date}
 		# 	"""
 		# )
-			
+		if errors:
+			frappe.throw("<br>".join(errors))
 
 		compose_series = str(series_start + mnf_abbr + m_abbr + dg_abbr + final_date + ".1244")
 		return compose_series

@@ -813,11 +813,13 @@
    "options": "With\nWithout\nHalf\nCustom"
   },
   {
+   "depends_on": "eval:doc.making_charges=='Custom'",
    "fieldname": "custom_making_charges",
    "fieldtype": "Float",
    "label": "Custom Making Charges"
   },
   {
+   "depends_on": "eval:doc.gemstone_charges=='Custom'",
    "fieldname": "custom_gemstone_charges",
    "fieldtype": "Float",
    "label": "Custom Gemstone Charges"
@@ -852,6 +854,7 @@
    "options": "With\nWithout\nHalf\nCustom"
   },
   {
+   "depends_on": "eval:doc.handling_charges=='Custom'",
    "fieldname": "custom_handling_charges",
    "fieldtype": "Data",
    "label": "Custom Handling Charges"
@@ -863,6 +866,7 @@
    "options": "With\nWithout\nHalf\nCustom"
   },
   {
+   "depends_on": "eval:doc.wastage_charges=='Custom'",
    "fieldname": "custom_wastage_charges",
    "fieldtype": "Data",
    "label": "Custom Wastage Charges"

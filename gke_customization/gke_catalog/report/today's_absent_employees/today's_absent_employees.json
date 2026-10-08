@@ -1,0 +1,37 @@
+{
+ "_liked_by": "[\"mamata_y@gkexport.com\"]",
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2024-07-19 11:50:21.332875",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "idx": 14,
+ "is_standard": "Yes",
+ "letterhead": null,
+ "modified": "2026-07-22 14:31:13.963092",
+ "modified_by": "sandeep_m@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Today's Absent Employees",
+ "owner": "mamata_y@gkexport.com",
+ "prepared_report": 0,
+ "ref_doctype": "Attendance",
+ "report_name": "Today's Absent Employees",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "HR User"
+  },
+  {
+   "role": "HR Manager"
+  },
+  {
+   "role": "Employee Self Service"
+  }
+ ],
+ "timeout": 0
+}

@@ -59,9 +59,6 @@ def get_csat_clients():
     return [d.client_name for d in clients]
 
 
-import frappe
-import pyodbc
-
 @frappe.whitelist(allow_guest=True)
 def get_last_month_customer_invoices(customer_code):
     if not customer_code:
@@ -69,6 +66,11 @@ def get_last_month_customer_invoices(customer_code):
             "count": 0,
             "invoices": []
         }
+
+    try:
+        import pyodbc  # lazy: the other endpoints in this module must load without it
+    except ImportError:
+        frappe.throw("Failed to fetch last month invoices: the pyodbc driver is unavailable on this server")
 
     conn = None
 
