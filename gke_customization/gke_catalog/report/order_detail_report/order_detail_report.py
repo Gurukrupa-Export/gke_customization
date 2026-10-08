@@ -217,7 +217,8 @@ def build_design_id_with_image(design_id, image):
         fill_js = (
             "var im=document.createElement('img'); "
             f"im.src='{image_url}'; "
-            "im.style.cssText='max-width:150px;max-height:150px;object-fit:contain;display:block;'; "
+            "im.style.cssText='max-width:300px;max-height:300px;object-fit:contain;display:block;'; "
+            "im.onload=function(){t._pos(t._cx,t._cy);}; "
             "t.appendChild(im);"
         )
     else:
@@ -233,13 +234,17 @@ def build_design_id_with_image(design_id, image):
         "if(!t){t=document.createElement('div'); t.id='design-tooltip-box'; document.body.appendChild(t); "
         "t.style.cssText='position:fixed;z-index:99999;border:1px solid #d1d8dd;background:#fff;"
         "padding:4px;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.25);';} "
+        # Flip the tooltip to the other side of the cursor when it would overflow the viewport
+        "t._pos=function(cx,cy){t._cx=cx; t._cy=cy; var w=t.offsetWidth,h=t.offsetHeight,x=cx+15,y=cy+15; "
+        "if(x+w>window.innerWidth){x=cx-w-15;} if(y+h>window.innerHeight){y=cy-h-15;} "
+        "t.style.left=Math.max(0,x)+'px'; t.style.top=Math.max(0,y)+'px';}; "
         "t.innerHTML=''; "
         f"{fill_js} "
-        "t.style.left=(event.clientX+15)+'px'; t.style.top=(event.clientY+15)+'px'; t.style.display='block';"
+        "t.style.display='block'; t._pos(event.clientX,event.clientY);"
     )
     move_js = (
         "var t=document.getElementById('design-tooltip-box'); "
-        "if(t){t.style.left=(event.clientX+15)+'px'; t.style.top=(event.clientY+15)+'px';}"
+        "if(t&&t._pos){t._pos(event.clientX,event.clientY);}"
     )
     hide_js = (
         "var t=document.getElementById('design-tooltip-box'); "
