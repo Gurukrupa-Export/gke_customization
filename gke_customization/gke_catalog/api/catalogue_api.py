@@ -906,10 +906,13 @@ def customer_wise_item(selectedSubcategory=None, customer=None, user=None, metal
 
 
 
-@frappe.whitelist()
-def get_customer_wishlist_items(customer=None):
-    customer = frappe.form_dict.get("customer") or customer
-    # user = frappe.form_dict.get("user") or user
+@frappe.whitelist(allow_guest=True)
+def get_customer_wishlist_items(customer=None, user_type=None, user=None):
+    
+    if user_type == "customer":
+        customer = frappe.form_dict.get("customer") or customer
+    elif user_type == "user":
+        user = frappe.form_dict.get("user") or user
 
     where_clause = """
     idf.company = 'Gurukrupa Export Private Limited'
@@ -922,8 +925,10 @@ def get_customer_wishlist_items(customer=None):
 
     if customer:
         where_clause += f" AND tcm.customer = '{customer}' "
-    # if user:
-    #     where_clause += f" AND icm.user = '{user}' "
+    if user:
+        where_clause += f" AND tcm.user = '{user}' "
+
+    # frappe.throw(where_clause)
 
     db_data = frappe.db.sql(
         f"""SELECT
@@ -933,8 +938,8 @@ def get_customer_wishlist_items(customer=None):
                 tci.trending,
                 tci.name as catalog_item_details_name,
                 tci.folder,
-                tcm.allow_excel_permission,
                 tci.wishlist,
+                tcm.allow_excel_permission,
                 tci.as_per_design,
                 tci.job_work,
                 tci.as_per_customized,
@@ -949,8 +954,10 @@ def get_customer_wishlist_items(customer=None):
                 item.item_category,
                 item.stylebio,
                 MIN(item.image) AS image,
+                item.custom_catalogue_image,
                 item.sketch_image,
                 item.custom_catalogue_image,
+                item.custom_silver_image, 
                 item.front_view as cad_image,
                 CASE
                     WHEN item.front_view = item.image THEN 'CAD Image'
@@ -1098,12 +1105,25 @@ def get_customer_wishlist_items(customer=None):
                     d[fd] = []
                 d[fd].append(row)
 
+
+
+    # secure = SecureJSON()
+    
+    # enc_data = secure.encrypt(
+    #         {
+    #         "db_data": db_data,
+    #         "total": len(db_data),
+    #         "folder": d
+    #     }
+    # ) 
+    
+    # return enc_data
+
     return {
         "db_data": db_data,
         "total": len(db_data),
         "folder": d
     }
-
 
 
 
@@ -3341,12 +3361,14 @@ def get_selected_item_count_for_customet_wise(customer_id, collection):
         return e
     
 
-@frappe.whitelist()
-def get_wishlist_item_for_customer_by_user(items, customers):
+@frappe.whitelist(allow_guest=True)
+def get_wishlist_item_for_customer_by_user(items, customers, user_type):
     """
     Save selected items to 'Cataloge Master' for one or more customers.
     Supports trending value updates.
     """
+
+    # frappe.throw(f"customers {customers}")
 
     # Parse JSON if string
     if isinstance(items, str):
@@ -3373,15 +3395,23 @@ def get_wishlist_item_for_customer_by_user(items, customers):
             filters={"customer": customer},
             fields=["name"]
         )
+        
+
+        user_id = frappe.db.get_list(
+            "Cataloge Master",
+            filters={"user": customer},
+            fields=["name"]
+        )
 
         # frappe.throw(f"{customer_id}")
 
         # ---------------------------------------------------------
         # CUSTOMER EXISTS
         # ---------------------------------------------------------
-        if customer_found:
+        if customer_found or user_id:
 
-            catalog_doc = frappe.get_doc("Cataloge Master", customer_found[0].name)
+            doc_name = customer_found[0].name if customer_found else user_id[0].name
+            catalog_doc = frappe.get_doc("Cataloge Master", doc_name)
             # catalog_doc.flags.ignore_permissions = True
 
             # Build lookup: existing item_code → trending
@@ -3720,7 +3750,27 @@ def get_wishlist_item_for_customer_by_user(items, customers):
         # ---------------------------------------------------------
         else:
             catalog_doc = frappe.new_doc("Cataloge Master")
-            catalog_doc.customer = customer
+            # catalog_doc.customer = customer
+
+            if user_type == "User":
+                user_email  = frappe.db.get_value(
+                    "User",
+                    customer,
+                    "email"
+                )
+                catalog_doc.user = user_email 
+                full_name = user_email or ""
+
+                # Display: Full Name - Username
+                display_name = f"{full_name} - {customer}"
+
+                # Customer field me username save karo
+                # catalog_doc.customer = customer
+
+                # Display ke liye alag field
+               
+            else:
+                catalog_doc.customer = customer
 
             added_items = []
 
@@ -3848,6 +3898,8 @@ def get_wishlist_item_for_customer_by_user(items, customers):
         "status": "success",
         "results": results
     }
+
+
 
    
 # //shubham
