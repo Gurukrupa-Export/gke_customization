@@ -62,6 +62,8 @@ class GKHRMSTestCase(IntegrationTestCase):
 		)
 		if existing:
 			return existing
+		if not frappe.db.exists("Department", "All Departments"):
+			self._insert({"doctype": "Department", "department_name": "All Departments"})
 		return self._insert(
 			{
 				"doctype": "Department",
