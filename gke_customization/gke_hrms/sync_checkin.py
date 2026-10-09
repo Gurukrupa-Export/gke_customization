@@ -1,9 +1,9 @@
-import frappe
-from frappe import _
-from frappe.utils import cint, get_datetime
 from datetime import datetime, timedelta
-import requests
 
+import frappe
+import requests
+from frappe.query_builder import Order
+from frappe.utils import cint, get_datetime
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift_timings
 
 
@@ -13,6 +13,7 @@ def _log_error(title, message):
         print(f"{title} -- {message}")
     else:
         frappe.log_error(title=title, message=message)
+
 
 # ---------------------------------------------------------------------------
 # Main entry point
@@ -78,7 +79,9 @@ def sync_biometric_checkins():
         return {"status": "error", "message": "Invalid JSON response"}
 
     # ── Sort chronologically (critical for correct IN/OUT toggle) ──────
-    data = sorted(data, key=lambda r: _parse_datetime_for_sort(r.get("edatetime_e", "")))
+    data = sorted(
+        data, key=lambda r: _parse_datetime_for_sort(r.get("edatetime_e", ""))
+    )
 
     created = 0
     skipped = 0
@@ -86,7 +89,9 @@ def sync_biometric_checkins():
 
     for log in data:
         try:
-            result = _process_single_log(log, existing, last_punch_map, time_threshold, employee_map)
+            result = _process_single_log(
+                log, existing, last_punch_map, time_threshold, employee_map
+            )
             if result == "created":
                 created += 1
             else:
@@ -162,15 +167,17 @@ def _process_single_log(log, existing, last_punch_map, time_threshold, employee_
     device_name = log.get("device_name", "")
     unique_id = log.get("indexno", "")
 
-    checkin = frappe.get_doc({
-        "doctype": "Employee Checkin",
-        "employee": employee,
-        "time": log_dt_str,
-        "log_type": log_type,
-        "device_id": device_name,
-        "source": "Biometric",
-        "custom_unique_id": unique_id,
-    })
+    checkin = frappe.get_doc(
+        {
+            "doctype": "Employee Checkin",
+            "employee": employee,
+            "time": log_dt_str,
+            "log_type": log_type,
+            "device_id": device_name,
+            "source": "Biometric",
+            "custom_unique_id": unique_id,
+        }
+    )
     checkin.insert(ignore_permissions=True)
 
     # Update tracking structures so subsequent logs in the same batch
@@ -241,7 +248,7 @@ def _determine_log_type_legacy(employee, log_dt):
     #     if not (actual_start <= punch_dt <= actual_end):
     #         # Outside the shift window — treat as a standalone IN
     #         return "IN"
-    
+
     # ── Query last checkin within this shift's actual window ─────────
     # Use actual_start/actual_end (which include the grace period) so that
     # early-arrival punches (e.g. 20:59 for a 21:00 shift) are included
@@ -280,7 +287,7 @@ def _determine_log_type_legacy(employee, log_dt):
     #         (employee, log_date_str, log_dt),
     #         as_dict=True,
     #     )
-    
+
     # new 11-05-2026
     punch_dt = get_datetime(log_dt)
 
@@ -291,28 +298,26 @@ def _determine_log_type_legacy(employee, log_dt):
 
     if actual_start and actual_end:
         outside_shift = not (actual_start <= punch_dt <= actual_end)
-        
+
     query_start = actual_start or curr_shift.get("start_datetime")
     query_end = actual_end or curr_shift.get("end_datetime")
 
     last_log = []
+    EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
 
     # First try current shift window
     if not outside_shift and query_start and query_end:
-        last_log = frappe.db.sql(
-            """
-            SELECT log_type, time
-            FROM `tabEmployee Checkin`
-            WHERE employee = %s
-            AND time >= %s
-            AND time <= %s
-            AND time < %s
-            ORDER BY time DESC
-            LIMIT 1
-            """,
-            (employee, query_start, query_end, log_dt),
-            as_dict=True,
-        )
+        last_log = (
+            frappe.qb.from_(EmployeeCheckin)
+            .select(EmployeeCheckin.log_type, EmployeeCheckin.time)
+            .where(EmployeeCheckin.employee == employee)
+            .where(EmployeeCheckin.time >= query_start)
+            .where(EmployeeCheckin.time <= query_end)
+            .where(EmployeeCheckin.time < log_dt)
+            .orderby(EmployeeCheckin.time, order=Order.desc)
+            .limit(1)
+        ).run(as_dict=True)
+
     # Detect night shift
     is_night_shift = False
 
@@ -321,21 +326,17 @@ def _determine_log_type_legacy(employee, log_dt):
 
     if shift_start and shift_end:
         is_night_shift = shift_end.date() > shift_start.date()
-    
+
     # Fallback to latest punch globally
     if not last_log and is_night_shift:
-        last_log = frappe.db.sql(
-            """
-            SELECT log_type, time
-            FROM `tabEmployee Checkin`
-            WHERE employee = %s
-            AND time < %s
-            ORDER BY time DESC
-            LIMIT 1
-            """,
-            (employee, log_dt),
-            as_dict=True,
-        )
+        last_log = (
+            frappe.qb.from_(EmployeeCheckin)
+            .select(EmployeeCheckin.log_type, EmployeeCheckin.time)
+            .where(EmployeeCheckin.employee == employee)
+            .where(EmployeeCheckin.time < log_dt)
+            .orderby(EmployeeCheckin.time, order=Order.desc)
+            .limit(1)
+        ).run(as_dict=True)
 
     if not last_log:
         return "IN"
@@ -352,10 +353,20 @@ def _resolve_date_range(settings):
     today = datetime.now().date()
 
     if cint(settings.manual):
-        from_date = settings.from_date if isinstance(settings.from_date, datetime) else \
-            datetime.strptime(str(settings.from_date), "%Y-%m-%d").date() if settings.from_date else today
-        to_date = settings.to_date if isinstance(settings.to_date, datetime) else \
-            datetime.strptime(str(settings.to_date), "%Y-%m-%d").date() if settings.to_date else today
+        from_date = (
+            settings.from_date
+            if isinstance(settings.from_date, datetime)
+            else datetime.strptime(str(settings.from_date), "%Y-%m-%d").date()
+            if settings.from_date
+            else today
+        )
+        to_date = (
+            settings.to_date
+            if isinstance(settings.to_date, datetime)
+            else datetime.strptime(str(settings.to_date), "%Y-%m-%d").date()
+            if settings.to_date
+            else today
+        )
         # frappe Date fields may already be date objects
         if hasattr(from_date, "date"):
             from_date = from_date.date()
@@ -381,6 +392,21 @@ def _get_range_bounds(from_date, to_date):
     return start, end
 
 
+def _get_checkins_in_range(from_date, to_date):
+    """Return [{employee, time}, ...] for all Employee Checkins in the date
+    range. Shared by the duplicate set and the time-threshold map so the
+    query lives in one place."""
+    start, end = _get_range_bounds(from_date, to_date)
+    EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
+
+    return (
+        frappe.qb.from_(EmployeeCheckin)
+        .select(EmployeeCheckin.employee, EmployeeCheckin.time)
+        .where(EmployeeCheckin.time >= start)
+        .where(EmployeeCheckin.time < end)
+    ).run(as_dict=True)
+
+
 def _build_employee_map():
     """Return { attendance_device_id: employee } for all active employees.
     One query, instead of one query per punch."""
@@ -399,16 +425,7 @@ def _build_employee_map():
 def _build_existing_checkins_set(from_date, to_date):
     """Return a set of 'employee/YYYY-MM-DD HH:MM' strings for all
     Employee Checkins in the date range — used for O(1) duplicate checks."""
-    start, end = _get_range_bounds(from_date, to_date)
-    rows = frappe.db.sql(
-        """
-        SELECT employee, time
-        FROM `tabEmployee Checkin`
-        WHERE time >= %s AND time < %s
-        """,
-        (start, end),
-        as_dict=True,
-    )
+    rows = _get_checkins_in_range(from_date, to_date)
     result = set()
     for r in rows:
         t = r["time"]
@@ -422,16 +439,7 @@ def _build_last_punch_map(from_date, to_date):
     """Return a dict { employee: [punch_datetime, ...] } for time-threshold
     filtering.  Holds ALL checkin times per employee in the range (not only
     the latest) so a punch can be compared with the checkins around it."""
-    start, end = _get_range_bounds(from_date, to_date)
-    rows = frappe.db.sql(
-        """
-        SELECT employee, time
-        FROM `tabEmployee Checkin`
-        WHERE time >= %s AND time < %s
-        """,
-        (start, end),
-        as_dict=True,
-    )
+    rows = _get_checkins_in_range(from_date, to_date)
     result = {}
     for r in rows:
         t = r["time"]
