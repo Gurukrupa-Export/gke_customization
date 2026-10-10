@@ -1460,16 +1460,14 @@ def create_item_template_from_order(source_name, target_doc=None):
 					"usa_states":"usa_states",
 					"custom_is_photoshop_images":1
 
-                },
-            }
-        },
-        target_doc,
-        post_process,
-    )
-    doc.save()
-    return doc.name, doc.variant_of
-
-	
+				},
+			}
+		},
+		target_doc,
+		post_process,
+	)
+	# doc.save()
+	# return doc.name, doc.variant_of
 	doc.save()
 
 	return doc.name
