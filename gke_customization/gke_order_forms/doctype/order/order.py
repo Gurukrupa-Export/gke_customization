@@ -18,7 +18,8 @@ class Order(Document):
     def on_update(self):
         if self.workflow_state == "Assigned":
             create_timesheet(self)
-
+            
+        
         if self.workflow_state == "Cancelled":
             timesheets = frappe.get_all(
                 "Timesheet", filters={"order": self.name}, fields=["name", "docstatus"]
