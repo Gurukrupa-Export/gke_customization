@@ -300,6 +300,7 @@ class ProductReturnOrder(Document):
 			serial.custom_bom_no=self.new_bom
 			serial.status = 'Delivered'
 			serial.custom_manufacturer='Labh'
+			serial.custom_gross_wt=self.gross_weight
 			compose_series = self.genrate_serial_no(self.new_bom)
 			sr_no = make_autoname(compose_series)
 			serial.serial_no=sr_no
@@ -336,7 +337,8 @@ class ProductReturnOrder(Document):
 				payload = {
 					"name": self.name,
 					"serial_no": serial.name,
-					"customer": self.customer
+					"customer": self.customer,
+					"purchase_document_no":self.purchase_document_no
 				}
 
 				try:
