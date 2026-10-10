@@ -1470,9 +1470,9 @@ def create_item_template_from_order(source_name, target_doc=None):
 	return doc.name, doc.variant_of
 
 	
-	doc.save()
+	# doc.save()
 
-	return doc.name
+	# return doc.name
 
 def create_variant_of_template_from_order(item_template,source_name, target_doc=None):
 	def post_process(source, target):
