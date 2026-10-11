@@ -7,7 +7,7 @@ from frappe.model.naming import make_autoname
 import datetime
 from datetime import date
 import requests,json
-from gke_customization.gke_order_forms.doc_events.item import create_item_kggk
+from gke_customization.gke_order_forms.doc_events.item import create_item_kggk,create_bom_kggk
 
 
 def on_update(self):
@@ -246,6 +246,7 @@ class ProductReturnOrder(Document):
 			new_bom.insert(ignore_permissions=True)
 			# new_bom.save()
 			self.db_set("new_bom", new_bom.name, update_modified=False)
+			create_bom_kggk(new_bom,self.name)
 
 	# def on_update(self):
 	# 	if self.is_jewelex_tag or self.is_kggk_serial_no:
