@@ -696,7 +696,7 @@ def create_item_kggk(doc, method=None):
 
 
 
-def create_bom_kggk(doc, method=None):
+def create_bom_kggk(doc,pro_name, method=None):
     # base_url = "https://kggk-uat.m.frappe.cloud"
     # base_url = "https://gkexport-dummy-v16.m.frappe.cloud"
     from_site = frappe.db.get_single_value("Data Migration in KGGK","from_site")
@@ -711,11 +711,13 @@ def create_bom_kggk(doc, method=None):
         # "Authorization": "token efffaa047a1663f:fe9e9c5b6461c5c",#from local to dummy site dummy site  user
         "Content-Type": "application/json"
     }
-    if doc.setting_type == "Nova Glow" and doc.bom_type == "Template":
+    if doc.bom_type == "Finish Goods":
         bom = doc.name
         if from_site and to_site:
             payload = {
                 "item": doc.item,
+                "custom_kggk_source_name":pro_name,
+                "custom_kggk_source_doctype":"Product Return Order",
                 "bom_type": doc.bom_type,
                 "is_default": doc.is_default,
                 "is_active": doc.is_active,
