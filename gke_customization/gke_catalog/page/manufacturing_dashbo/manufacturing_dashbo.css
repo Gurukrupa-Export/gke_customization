@@ -871,6 +871,56 @@
 	margin-left: 4px;
 }
 
+/* count opens the alert's order list */
+.mfg-lamp__count.is-clickable {
+	cursor: pointer;
+	text-decoration: underline dotted var(--mfg-lamp-color);
+	text-underline-offset: 4px;
+	transition: color 0.15s ease;
+}
+
+.mfg-lamp__count.is-clickable:hover {
+	color: var(--mfg-lamp-color);
+}
+
+/* ---------- due-date alert order list (dialog) ---------- */
+
+/* the dialog body reuses the dashboard's tokens, minus the page-level padding/backdrop */
+.mfgdash--dialog {
+	padding: 0;
+	min-height: 0;
+	background-image: none;
+	border-radius: 8px;
+}
+
+.mfg-alert-orders {
+	padding: 10px 12px;
+	transition: opacity 0.15s ease;
+}
+
+.mfg-alert-orders.is-busy {
+	opacity: 0.55;
+	pointer-events: none;
+}
+
+.mfg-alert-orders .mfg-table tbody tr {
+	cursor: default;
+}
+
+.mfg-alert-orders .mfg-orders__no a {
+	color: var(--mfg-steel);
+}
+
+.mfg-alert-orders__late {
+	color: var(--mfg-red);
+	font-weight: 700;
+}
+
+.mfg-alert-orders__soon {
+	color: var(--mfg-amber);
+	font-weight: 700;
+}
+
 /* four stacked lines: label, value, label, value - kept as two clearly distinct tiers
    (small muted uppercase tag vs. a bold accent-colored figure) rather than one run-on line */
 .mfg-lamp__wts {
@@ -1169,7 +1219,8 @@
 .mfgdash__drill {
 	grid-area: drill;
 	display: grid;
-	grid-template-columns: minmax(300px, 1fr) minmax(0, 1.9fr) minmax(280px, 1.1fr);
+	/* order list gets the 20% taken off order details; both keep the same height (see --tall below) */
+	grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.8fr) minmax(0, 1.2fr);
 	gap: 14px;
 	align-items: start;
 }
@@ -1193,6 +1244,35 @@
 		inset 0 1px 0 var(--mfg-bevel-hi),
 		0 4px 10px -4px var(--mfg-shadow-soft);
 	transition: opacity 0.15s ease;
+}
+
+/* order list + order details: same fixed-height box, content scrolls inside */
+.mfg-drill__body--tall {
+	height: 520px;
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+	scrollbar-width: thin;
+	scrollbar-color: var(--mfg-border) transparent;
+}
+
+.mfg-drill__body--tall .mfg-orders__scroll {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+}
+
+/* header stays visible while the order list scrolls */
+.mfg-drill__body--tall .mfg-orders thead th {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background: var(--mfg-panel);
+}
+
+.mfg-drill__body--tall .mfg-pager {
+	flex: none;
+	border-top: 1px solid var(--mfg-border-soft);
 }
 
 .mfg-drill__body.is-busy {
@@ -1415,6 +1495,126 @@
 
 .mfg-detail__materials dd {
 	font-family: var(--mfg-mono);
+}
+
+/* weights on the left, the item's catalogue image in the free space on the right */
+.mfg-detail__materials-body {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.mfg-detail__materials-body .mfg-detail__list {
+	flex: 1;
+	min-width: 0;
+}
+
+.mfg-detail__image {
+	flex: 0 0 auto;
+	width: 130px;
+	height: 130px;
+	padding: 4px;
+	border: 1px solid var(--mfg-border);
+	border-radius: 6px;
+	background: var(--mfg-panel);
+	box-shadow: 0 2px 6px -2px var(--mfg-shadow-strong), inset 0 1px 0 var(--mfg-bevel-hi);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: zoom-in;
+	transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.mfg-detail__image:hover {
+	border-color: var(--mfg-brass);
+	transform: translateY(-2px);
+}
+
+.mfg-detail__image img {
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+	border-radius: 3px;
+	/* no long-press "save image" callout / text-selection drag on touch devices */
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+}
+
+.mfg-detail__image.is-loading {
+	cursor: progress;
+}
+
+.mfg-detail__image-msg {
+	font-size: 10px;
+	color: var(--mfg-ink-faint);
+}
+
+.mfg-detail__image--empty {
+	cursor: default;
+	font-size: 10px;
+	text-align: center;
+	color: var(--mfg-ink-faint);
+	border-style: dashed;
+	box-shadow: none;
+}
+
+.mfg-detail__image--empty:hover {
+	border-color: var(--mfg-border);
+	transform: none;
+}
+
+/* full-size catalogue image view (appended to <body>, so no theme tokens here) */
+.mfg-lightbox {
+	position: fixed;
+	inset: 0;
+	z-index: 1100;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	padding: 40px;
+	background: rgba(10, 8, 5, 0.85);
+	cursor: zoom-out;
+	animation: mfg-fade-in 0.15s ease-out both;
+}
+
+.mfg-lightbox img {
+	max-width: 100%;
+	max-height: calc(100% - 30px);
+	object-fit: contain;
+	border-radius: 6px;
+	background: #fff;
+	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+}
+
+.mfg-lightbox__caption {
+	color: #f3ecdd;
+	font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+	font-size: 13px;
+}
+
+.mfg-lightbox__close {
+	position: absolute;
+	top: 14px;
+	right: 18px;
+	width: 36px;
+	height: 36px;
+	border: 0;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.12);
+	color: #fff;
+	font-size: 24px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.mfg-lightbox__close:hover {
+	background: rgba(255, 255, 255, 0.25);
 }
 
 .mfg-chip {

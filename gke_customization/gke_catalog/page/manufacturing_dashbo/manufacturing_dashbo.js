@@ -35,6 +35,8 @@ class ManufacturingDashboard {
 		const api = 'gke_customization.gke_catalog.report.mfg_dashboard_script.mfg_dashboard_script.';
 		this.stage_method = api + 'get_stage_details';
 		this.detail_method = api + 'get_order_details';
+		this.alert_method = api + 'get_alert_orders';
+		this.image_method = api + 'get_catalogue_image';
 		this.STATUS_COLORS = {
 			'In Progress': 'var(--mfg-steel)',
 			Completed: 'var(--mfg-emerald)',
@@ -42,10 +44,9 @@ class ManufacturingDashboard {
 			'On Hold': 'var(--mfg-red)',
 		};
 		// Drill-down state (sections 4-6): the operation tag picked in section 3, the status row
-		// picked in the stage summary (null = all), the order-list page and the order opened.
+		// picked in the stage summary (null = all) and the order opened.
 		this.selection = null;
-		this.drill = { status: null, page: 1, order: null };
-		this.page_size = 10;
+		this.drill = { status: null, order: null };
 
 		this.render_shell();
 		this.setup_page_controls();
@@ -437,7 +438,10 @@ class ManufacturingDashboard {
 
 		const html = departments
 			.map((dept, i) => {
-				const lines = dept.operations.map((op) => line(dept, op.operation, op.label, op));
+				// operations with no pieces on them are left out entirely
+				const lines = dept.operations
+					.filter((op) => op.count > 0)
+					.map((op) => line(dept, op.operation, op.label, op));
 				if (dept.awaiting_operation.count) {
 					lines.push(
 						line(dept, '__awaiting__', __('Awaiting Operation'), dept.awaiting_operation, 'mfg-opline--awaiting')
@@ -446,7 +450,10 @@ class ManufacturingDashboard {
 				return `
 					<div class="mfg-opdept" style="--mfg-delay:${i * 60}ms">
 						<div class="mfg-opdept__title">${frappe.utils.escape_html(dept.name)}</div>
-						<div class="mfg-opdept__lines">${lines.join('')}</div>
+						<div class="mfg-opdept__lines">${
+							lines.join('') ||
+							`<div class="mfgdash__empty mfgdash__empty--compact">${__('No orders in this department.')}</div>`
+						}</div>
 						${line(dept, '__all__', __('Total'), dept.total, 'mfg-opline--total')}
 					</div>`;
 			})
@@ -464,7 +471,7 @@ class ManufacturingDashboard {
 				operation: d.operation,
 				label: d.label,
 			};
-			this.drill = { status: null, page: 1, order: null };
+			this.drill = { status: null, order: null };
 			this.mark_selected_operation();
 			this.load_stage();
 			this.render_detail_hint();
@@ -523,11 +530,10 @@ class ManufacturingDashboard {
 			sel && (this.data.operations || []).some((d) => d.department_id === sel.department);
 		if (!still_there) {
 			this.selection = null;
-			this.drill = { status: null, page: 1, order: null };
+			this.drill = { status: null, order: null };
 			this.render_drill_hints();
 			return;
 		}
-		this.drill.page = 1;
 		this.load_stage();
 		if (this.drill.order) this.load_order(this.drill.order);
 	}
@@ -550,8 +556,6 @@ class ManufacturingDashboard {
 				department: sel.department,
 				operation: sel.operation,
 				status: this.drill.status || undefined,
-				page: this.drill.page,
-				page_size: this.page_size,
 				customer: args.customer,
 				from_date: args.from_date,
 				to_date: args.to_date,
@@ -592,7 +596,6 @@ class ManufacturingDashboard {
 		this.$stage.find('[data-field="stage-row"]').on('click', (e) => {
 			const status = e.currentTarget.dataset.status || null;
 			this.drill.status = status;
-			this.drill.page = 1;
 			this.load_stage();
 		});
 	}
@@ -626,7 +629,7 @@ class ManufacturingDashboard {
 			)
 			.join('');
 
-		const pages = Math.max(1, Math.ceil((data.order_count || 0) / data.page_size));
+		// every order is loaded; the table scrolls inside the fixed-height panel (header stays pinned)
 		this.$orders.html(`
 			<div class="mfg-orders__scroll">
 				<table class="mfg-table mfg-orders">
@@ -640,21 +643,8 @@ class ManufacturingDashboard {
 			</div>
 			<div class="mfg-pager">
 				<span>${__('Total Records')}: <b>${this.fmt_count(data.order_count)}</b></span>
-				<span class="mfg-pager__nav">
-					<button type="button" data-field="page-prev" ${data.page <= 1 ? 'disabled' : ''}>‹</button>
-					<span>${__('Page {0} of {1}', [data.page, pages])}</span>
-					<button type="button" data-field="page-next" ${data.page >= pages ? 'disabled' : ''}>›</button>
-				</span>
 			</div>`);
 
-		this.$orders.find('[data-field="page-prev"]').on('click', () => {
-			this.drill.page = Math.max(1, data.page - 1);
-			this.load_stage();
-		});
-		this.$orders.find('[data-field="page-next"]').on('click', () => {
-			this.drill.page = Math.min(pages, data.page + 1);
-			this.load_stage();
-		});
 		this.$orders.find('[data-field="order-row"]').on('click', (e) => {
 			this.drill.order = e.currentTarget.dataset.order;
 			this.$orders.find('[data-field="order-row"]').removeClass('is-selected');
@@ -714,17 +704,97 @@ class ManufacturingDashboard {
 				</dl>
 				<div class="mfg-detail__materials">
 					<div class="mfg-detail__heading">${__('Materials & Weight')}</div>
-					<dl class="mfg-detail__list">
-						${field(__('Metal Touch'), esc(d.metal_touch))}
-						${field(__('Metal Colour'), esc(d.metal_colour))}
-						${field(__('Metal Wt'), this.fmt_wt(d.metal_wt, 'g'))}
-						${field(__('Gross Wt'), actual(d.gross_wt, 'g'))}
-						${field(__('Diamond Wt'), this.fmt_wt(d.diamond_wt, 'ct'))}
-						${field(__('Diamond Pcs'), this.fmt_count(Math.round(d.diamond_pcs || 0)))}
-						${field(__('Gemstone Wt'), this.fmt_wt(d.gemstone_wt, 'ct'))}
-					</dl>
+					<div class="mfg-detail__materials-body">
+						<dl class="mfg-detail__list">
+							${field(__('Metal Touch'), esc(d.metal_touch))}
+							${field(__('Metal Colour'), esc(d.metal_colour))}
+							${field(__('Metal Wt'), this.fmt_wt(d.metal_wt, 'g'))}
+							${field(__('Gross Wt'), actual(d.gross_wt, 'g'))}
+							${field(__('Diamond Wt'), this.fmt_wt(d.diamond_wt, 'ct'))}
+							${field(__('Diamond Pcs'), this.fmt_count(Math.round(d.diamond_pcs || 0)))}
+							${field(__('Gemstone Wt'), this.fmt_wt(d.gemstone_wt, 'ct'))}
+						</dl>
+						${this.catalogue_image_html(d)}
+					</div>
 				</div>
 			</div>`);
+
+		if (d.has_catalogue_image) this.load_catalogue_image(d.order_no, d.design_no);
+	}
+
+	// Item's Catalogue Image (custom_catalogue_image) only - no fallback to the other item images.
+	// Only a placeholder here; load_catalogue_image fills it in.
+	catalogue_image_html(d) {
+		if (!d.has_catalogue_image) {
+			return `<div class="mfg-detail__image mfg-detail__image--empty">${__('No catalogue image')}</div>`;
+		}
+		return `
+			<button type="button" class="mfg-detail__image is-loading" data-field="catalogue-image"
+				title="${__('Click to view full size')}" disabled>
+				<span class="mfg-detail__image-msg">${__('Loading…')}</span>
+			</button>`;
+	}
+
+	// The image is streamed through a permission-checked server method and shown from an in-memory
+	// blob: URL, so the stored image path / S3 link is never in the page, the DOM or the network log.
+	load_catalogue_image(order_no, design_no) {
+		const token = this.detail_token;
+		if (this.catalogue_blob_url) {
+			URL.revokeObjectURL(this.catalogue_blob_url);
+			this.catalogue_blob_url = null;
+		}
+		const $box = this.$detail.find('[data-field="catalogue-image"]');
+		const url = `/api/method/${this.image_method}?order_no=${encodeURIComponent(order_no)}`;
+
+		fetch(url, { credentials: 'same-origin', headers: { 'X-Frappe-CSRF-Token': frappe.csrf_token } })
+			.then((res) => {
+				if (!res.ok) throw new Error(res.status);
+				return res.blob();
+			})
+			.then((blob) => {
+				if (token !== this.detail_token) return;
+				this.catalogue_blob_url = URL.createObjectURL(blob);
+				const img = document.createElement('img');
+				img.src = this.catalogue_blob_url;
+				img.alt = design_no || '';
+				this.protect_image(img);
+				$box.removeClass('is-loading').prop('disabled', false).empty().append(img);
+				$box.on('click', () => this.show_image_full(this.catalogue_blob_url, design_no));
+			})
+			.catch(() => {
+				if (token !== this.detail_token) return;
+				$box.replaceWith(
+					`<div class="mfg-detail__image mfg-detail__image--empty">${__('Image not available')}</div>`
+				);
+			});
+	}
+
+	// no right-click "Save / Copy image address", no drag-out to the desktop
+	protect_image(img) {
+		img.draggable = false;
+		img.addEventListener('contextmenu', (e) => e.preventDefault());
+		img.addEventListener('dragstart', (e) => e.preventDefault());
+	}
+
+	// Full-size lightbox: click anywhere or press Esc to close.
+	show_image_full(src, caption) {
+		const $overlay = $(`
+			<div class="mfg-lightbox">
+				<img src="${src}" alt="" />
+				${caption ? `<div class="mfg-lightbox__caption">${frappe.utils.escape_html(caption)}</div>` : ''}
+				<button type="button" class="mfg-lightbox__close" aria-label="${__('Close')}">&times;</button>
+			</div>`).appendTo(document.body);
+		$overlay.on('contextmenu', (e) => e.preventDefault());
+		this.protect_image($overlay.find('img')[0]);
+
+		const close = () => {
+			$overlay.remove();
+			$(document).off('keydown.mfg-lightbox');
+		};
+		$overlay.on('click', close);
+		$(document).on('keydown.mfg-lightbox', (e) => {
+			if (e.key === 'Escape') close();
+		});
 	}
 
 	// ---- department node tooltip ----
@@ -797,14 +867,17 @@ class ManufacturingDashboard {
 			this.due_soon_days = due_soon.days;
 		}
 
-		const lamp = (label_html, data, color) => {
+		const lamp = (key, label_html, data, color) => {
 			const active = data.count > 0;
 			return `
 				<div class="mfg-lamp ${active ? 'mfg-lamp--active' : ''}" style="--mfg-lamp-color:${color}">
 					<div class="mfg-lamp__bulb"></div>
 					<div>
 						<div class="mfg-lamp__label">${label_html}</div>
-						<div class="mfg-lamp__count">${this.fmt_count(data.count)}<span>orders</span></div>
+						<div class="mfg-lamp__count ${active ? 'is-clickable' : ''}" data-field="alert-count"
+							data-alert="${key}" ${active ? `title="${__('Click to view orders')}"` : ''}>
+							${this.fmt_count(data.count)}<span>orders</span>
+						</div>
 					</div>
 					<div class="mfg-lamp__wts">
 						<div class="mfg-lamp__wt-label">Metal</div>
@@ -819,9 +892,15 @@ class ManufacturingDashboard {
 			<input type="number" class="mfg-lamp__days-input" data-field="due-soon-days"
 				min="0" max="365" step="1" value="${this.due_soon_days}" /> days)`;
 
-		const html = lamp(due_soon_label, due_soon, 'var(--mfg-amber)') + lamp('Overdue', overdue, 'var(--mfg-red)');
+		const html =
+			lamp('due_soon', due_soon_label, due_soon, 'var(--mfg-amber)') +
+			lamp('overdue', 'Overdue', overdue, 'var(--mfg-red)');
 
 		this.$andon.html(html);
+
+		this.$andon.find('[data-field="alert-count"].is-clickable').on('click', (e) => {
+			this.show_alert_orders(e.currentTarget.dataset.alert);
+		});
 
 		this.$andon.find('[data-field="due-soon-days"]').on('change', (e) => {
 			let value = parseInt(e.target.value, 10);
@@ -830,5 +909,105 @@ class ManufacturingDashboard {
 			this.due_soon_days = value;
 			this.refresh_alerts();
 		});
+	}
+
+	// Order list behind a Due Soon / Overdue lamp, in a dialog so the drill-down panels below
+	// keep whatever operation the user had open.
+	show_alert_orders(alert) {
+		const title =
+			alert === 'overdue'
+				? __('Overdue Orders')
+				: __('Orders Due Within {0} Days', [this.due_soon_days]);
+
+		const dialog = new frappe.ui.Dialog({ title, size: 'extra-large' });
+		// wrapped in .mfgdash so the dialog (appended to <body>) picks up the dashboard's theme tokens
+		const $body = $('<div class="mfgdash mfgdash--dialog"><div class="mfg-alert-orders"></div></div>')
+			.appendTo(dialog.$body)
+			.find('.mfg-alert-orders');
+		dialog.show();
+
+		const load = (page) => {
+			const args = this.build_call_args();
+			$body.addClass('is-busy');
+			frappe.call({
+				method: this.alert_method,
+				args: { ...args, alert, page, page_size: 20 },
+				freeze: false,
+				callback: (r) => {
+					$body.removeClass('is-busy');
+					if (r.message) this.render_alert_orders($body, r.message, load);
+				},
+				error: () => {
+					$body.removeClass('is-busy');
+					$body.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Could not load orders.')}</div>`);
+				},
+			});
+		};
+
+		$body.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Loading orders…')}</div>`);
+		load(1);
+	}
+
+	render_alert_orders($body, data, load) {
+		const orders = data.orders || [];
+		if (!orders.length) {
+			$body.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('No orders.')}</div>`);
+			return;
+		}
+
+		const date = (v) => (v ? frappe.datetime.str_to_user(String(v).split(' ')[0]) : '—');
+		const esc = (v) => frappe.utils.escape_html(v || '—');
+		const days = (n) => {
+			if (n < 0) return `<span class="mfg-alert-orders__late">${__('{0} days late', [-n])}</span>`;
+			if (n === 0) return `<span class="mfg-alert-orders__soon">${__('Today')}</span>`;
+			return `<span class="mfg-alert-orders__soon">${__('{0} days left', [n])}</span>`;
+		};
+
+		const rows = orders
+			.map(
+				(o) => `
+				<tr>
+					<td class="mfg-orders__no">
+						<i class="mfg-dot" style="background:${this.STATUS_COLORS[o.stage_status] || 'var(--mfg-border)'}"
+							title="${frappe.utils.escape_html(o.stage_status)}"></i><a
+							href="/app/parent-manufacturing-order/${encodeURIComponent(o.order_no)}"
+							target="_blank" rel="noopener">${esc(o.order_no)}</a>
+					</td>
+					<td>${esc(o.customer)}</td>
+					<td>${esc(o.design_no)}</td>
+					<td>${esc(o.item_category)}</td>
+					<td>${esc(o.department)}</td>
+					<td class="is-num">${this.fmt_wt(o.gold_wt, '').trim()}</td>
+					<td class="is-num">${this.fmt_wt(o.diamond_wt, '').trim()}</td>
+					<td>${date(o.due_date)}</td>
+					<td>${days(o.days_left)}</td>
+				</tr>`
+			)
+			.join('');
+
+		const pages = Math.max(1, Math.ceil((data.order_count || 0) / data.page_size));
+		$body.html(`
+			<div class="mfg-orders__scroll">
+				<table class="mfg-table mfg-orders">
+					<thead><tr>
+						<th>${__('Order No')}</th><th>${__('Customer')}</th><th>${__('Design No')}</th>
+						<th>${__('Item')}</th><th>${__('Department')}</th>
+						<th class="is-num">${__('Metal (g)')}</th><th class="is-num">${__('Dia (ct)')}</th>
+						<th>${__('Due Date')}</th><th>${__('Due')}</th>
+					</tr></thead>
+					<tbody>${rows}</tbody>
+				</table>
+			</div>
+			<div class="mfg-pager">
+				<span>${__('Total Records')}: <b>${this.fmt_count(data.order_count)}</b></span>
+				<span class="mfg-pager__nav">
+					<button type="button" data-field="page-prev" ${data.page <= 1 ? 'disabled' : ''}>‹</button>
+					<span>${__('Page {0} of {1}', [data.page, pages])}</span>
+					<button type="button" data-field="page-next" ${data.page >= pages ? 'disabled' : ''}>›</button>
+				</span>
+			</div>`);
+
+		$body.find('[data-field="page-prev"]').on('click', () => load(Math.max(1, data.page - 1)));
+		$body.find('[data-field="page-next"]').on('click', () => load(Math.min(pages, data.page + 1)));
 	}
 };

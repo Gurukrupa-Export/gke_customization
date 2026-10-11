@@ -628,6 +628,96 @@ def get_dashboard_data(company=None, due_soon_days=2, customer=None, from_date=N
 	}
 
 
+# Due-date alert drill-down: the pieces behind the andon board's Due Soon / Overdue counts. Same
+# piece set and conditions as the due_soon_* / overdue_* sums in _dashboard_pieces_query, so the
+# list's total always matches the lamp it was opened from.
+ALERT_CONDITIONS = {
+	"due_soon": "pm.due_date BETWEEN CURDATE() AND %(due_soon_upper)s",
+	"overdue": "pm.due_date < CURDATE()",
+}
+
+
+@frappe.whitelist()
+def get_alert_orders(
+	company=None,
+	alert=None,
+	due_soon_days=2,
+	page=1,
+	page_size=20,
+	customer=None,
+	from_date=None,
+	to_date=None,
+):
+	if not company:
+		frappe.throw(_("Please select a Company"))
+	if alert not in ALERT_CONDITIONS:
+		frappe.throw(_("Invalid alert type"))
+
+	due_soon_days = max(cint(due_soon_days), 0)
+	page = max(cint(page), 1)
+	page_size = min(max(cint(page_size), 1), 100)
+
+	extra_so_filter, extra_params = _build_so_extra_filter(customer, from_date, to_date)
+	params = {
+		"company": company,
+		"due_soon_upper": add_days(nowdate(), due_soon_days),
+		"limit": page_size,
+		"offset": (page - 1) * page_size,
+		**extra_params,
+	}
+	pieces = f"""
+SELECT
+	pm.pmo_name,
+	pm.mop_name,
+	pm.gold_wt,
+	pm.diamond_wt,
+	pm.due_date,
+	COALESCE(pm.post_tagging_stage, d.department_name) AS department,
+	{_STAGE_STATUS} AS stage_status
+FROM pmo_main pm
+INNER JOIN so_base b ON b.soi_name = pm.soi_name
+LEFT JOIN `tabDepartment` d ON d.name = pm.mwo_department AND d.company = %(company)s
+WHERE pm.due_date IS NOT NULL
+	AND COALESCE(pm.mop_status, '') != 'Finished'
+	AND {ALERT_CONDITIONS[alert]}
+"""
+	cte = _dashboard_cte(extra_so_filter)
+
+	order_count = cint(
+		frappe.db.sql(cte + f"SELECT COUNT(*) FROM ({pieces}) p", params)[0][0]
+	)
+	orders = frappe.db.sql(
+		cte
+		+ f"""
+SELECT
+	p.pmo_name AS order_no,
+	pmo.item_code AS design_no,
+	pmo.item_category AS item_category,
+	pmo.customer AS customer,
+	p.department,
+	p.gold_wt,
+	p.diamond_wt,
+	p.due_date,
+	DATEDIFF(p.due_date, CURDATE()) AS days_left,
+	p.stage_status
+FROM ({pieces}) p
+INNER JOIN `tabParent Manufacturing Order` pmo ON pmo.name = p.pmo_name
+ORDER BY p.due_date ASC, p.pmo_name ASC
+LIMIT %(limit)s OFFSET %(offset)s
+""",
+		params,
+		as_dict=True,
+	)
+
+	return {
+		"alert": alert,
+		"orders": orders,
+		"order_count": order_count,
+		"page": page,
+		"page_size": page_size,
+	}
+
+
 # Operation-wise summary (dashboard section 3): every department from Waxing to Final Polish,
 # broken down by the Department Operation each piece's current Manufacturing Operation is on.
 # Same piece set and weight rules as the department cards, so each department's total matches
@@ -775,7 +865,7 @@ def get_stage_details(
 	operation=None,
 	status=None,
 	page=1,
-	page_size=10,
+	page_size=None,
 	customer=None,
 	from_date=None,
 	to_date=None,
@@ -785,7 +875,8 @@ def get_stage_details(
 
 	operation = operation or ALL_OPERATIONS
 	page = max(cint(page), 1)
-	page_size = min(max(cint(page_size), 1), 100)
+	# no page_size = every order (the dashboard's order list scrolls instead of paging)
+	page_size = min(cint(page_size), 100) if cint(page_size) > 0 else None
 	if status not in STAGE_STATUSES:
 		status = None
 
@@ -796,11 +887,12 @@ def get_stage_details(
 		"operation": operation,
 		"status": status,
 		"limit": page_size,
-		"offset": (page - 1) * page_size,
+		"offset": (page - 1) * page_size if page_size else 0,
 		**extra_params,
 	}
 	cte = _dashboard_cte(extra_so_filter)
 	pieces = _stage_pieces_query(extra_so_filter, operation)
+	limit_clause = "LIMIT %(limit)s OFFSET %(offset)s" if page_size else ""
 
 	summary_rows = frappe.db.sql(
 		cte
@@ -851,7 +943,7 @@ LEFT JOIN `tabManufacturing Operation` mo ON mo.name = p.mop_name
 LEFT JOIN `tabEmployee` emp ON emp.name = mo.employee
 WHERE (%(status)s IS NULL OR p.stage_status = %(status)s)
 ORDER BY p.due_date IS NULL, p.due_date ASC, p.pmo_name ASC
-LIMIT %(limit)s OFFSET %(offset)s
+{limit_clause}
 """,
 		params,
 		as_dict=True,
@@ -946,6 +1038,11 @@ WHERE pm.pmo_name = %(order_no)s
 		"customer": pmo.customer,
 		"customer_name": frappe.db.get_value("Customer", pmo.customer, "customer_name") if pmo.customer else None,
 		"design_no": pmo.item_code,
+		# only a flag - the image itself is streamed by get_catalogue_image so its storage path
+		# never reaches the browser
+		"has_catalogue_image": bool(
+			pmo.item_code and frappe.db.get_value("Item", pmo.item_code, "custom_catalogue_image")
+		),
 		"item_category": pmo.item_category,
 		"item_sub_category": pmo.item_sub_category,
 		"qty": pmo.qty,
@@ -968,3 +1065,58 @@ WHERE pm.pmo_name = %(order_no)s
 		"diamond_pcs": flt(piece.diamond_pcs),
 		"gemstone_wt": flt(piece.gemstone_wt),
 	}
+
+
+# Catalogue image proxy for the dashboard's Order Details panel. The browser only ever gets the
+# image bytes from this endpoint (permission-checked per order); the Item's stored image URL /
+# S3 path is never sent to the client. Remote fetches are limited to S3 over https so the field
+# can't be abused to make the server request arbitrary URLs.
+_CATALOGUE_IMAGE_MAX_BYTES = 15 * 1024 * 1024
+
+
+@frappe.whitelist(methods=["GET"])
+def get_catalogue_image(order_no=None):
+	from urllib.parse import urlparse
+
+	import requests
+
+	if not order_no:
+		frappe.throw(_("Please select an Order"))
+	frappe.has_permission("Parent Manufacturing Order", doc=order_no, throw=True)
+
+	item_code = frappe.db.get_value("Parent Manufacturing Order", order_no, "item_code")
+	url = item_code and frappe.db.get_value("Item", item_code, "custom_catalogue_image")
+	if not url:
+		raise frappe.DoesNotExistError(_("No catalogue image"))
+
+	content_type = None
+	if url.startswith(("/files/", "/private/files/")):
+		file_name = frappe.db.get_value("File", {"file_url": url}, "name")
+		if not file_name:
+			raise frappe.DoesNotExistError(_("No catalogue image"))
+		content = frappe.get_doc("File", file_name).get_content()
+	else:
+		parsed = urlparse(url)
+		if parsed.scheme != "https" or not (parsed.hostname or "").endswith(".amazonaws.com"):
+			raise frappe.DoesNotExistError(_("No catalogue image"))
+		res = requests.get(url, timeout=15, stream=True)
+		if res.status_code != 200:
+			raise frappe.DoesNotExistError(_("No catalogue image"))
+		content_type = (res.headers.get("Content-Type") or "").split(";")[0].strip()
+		content = res.raw.read(_CATALOGUE_IMAGE_MAX_BYTES + 1, decode_content=True)
+		if len(content) > _CATALOGUE_IMAGE_MAX_BYTES:
+			frappe.throw(_("Catalogue image is too large"))
+
+	if not content_type or not content_type.startswith("image/"):
+		import mimetypes
+
+		content_type = mimetypes.guess_type(url)[0] or "image/jpeg"
+	if not content_type.startswith("image/"):
+		raise frappe.DoesNotExistError(_("No catalogue image"))
+
+	frappe.response.type = "download"
+	frappe.response.display_content_as = "inline"
+	frappe.response.content_type = content_type
+	# neutral name - nothing from the storage path
+	frappe.response.filename = f"{item_code}.{content_type.split('/')[-1]}"
+	frappe.response.filecontent = content
