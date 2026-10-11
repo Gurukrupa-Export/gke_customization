@@ -1254,7 +1254,7 @@ def sync_product_return_order_to_gk(doc):
 			"customer": "GJCU0009",
 			"customer_name": "Gurukrupa Export Private Limited - Factory",
 			"item_code": doc.item_code,
-			"new_bom": doc.new_bom,
+			# "new_bom": doc.new_bom,
 			"serial_no": doc.serial_no,
 			"is_jewlex_credit_note": doc.is_jewlex_credit_note,
 			"is_jewelex_tag": doc.is_jewelex_tag,
