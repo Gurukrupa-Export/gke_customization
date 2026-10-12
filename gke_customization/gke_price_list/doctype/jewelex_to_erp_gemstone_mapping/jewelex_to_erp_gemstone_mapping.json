@@ -1,0 +1,63 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-24 12:16:40.221328",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "mapping_type",
+  "column_break_glrs",
+  "section_break_iqkg",
+  "mapping_data"
+ ],
+ "fields": [
+  {
+   "fieldname": "column_break_glrs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "mapping_type",
+   "fieldtype": "Link",
+   "label": "Mapping Type",
+   "options": "Item Attribute"
+  },
+  {
+   "fieldname": "section_break_iqkg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_bulk_edit": 1,
+   "fieldname": "mapping_data",
+   "fieldtype": "Table",
+   "label": "Mapping Data",
+   "options": "Jewelex to ERP Gemstone Mapping item"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-24 12:29:02.890662",
+ "modified_by": "Administrator",
+ "module": "Gke Price List",
+ "name": "Jewelex to ERP Gemstone Mapping",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

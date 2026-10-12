@@ -1,10 +1,10 @@
 {
  "content": null,
- "creation": "2026-09-20 10:45:52.152183",
+ "creation": "2026-09-22 09:18:26.712547",
  "docstatus": 0,
  "doctype": "Page",
  "idx": 0,
- "modified": "2026-09-20 11:44:38.158460",
+ "modified": "2026-10-06 17:02:45.344418",
  "modified_by": "Administrator",
  "module": "GKE Catalog",
  "name": "cad-order-dashboard",
@@ -15,22 +15,31 @@
    "role": "System Manager"
   },
   {
+   "role": "CAD Hod"
+  },
+  {
+   "role": "Computer Aided Designing Executive - ST"
+  },
+  {
+   "role": "CAD/CAM"
+  },
+  {
+   "role": "CAD QC"
+  },
+  {
+   "role": "GK MFG Department HOD"
+  },
+  {
    "role": "Computer Aided Designing Manager - ST"
-  },
-  {
-   "role": "Computer Aided Designer - ST - GE"
-  },
-  {
-   "role": "Computer Aided Designing Designer - ST"
   },
   {
    "role": "Designer"
   },
   {
-   "role": "CAD Hod"
+   "role": "Coordinator - ST - GE"
   },
   {
-   "role": "Coordinator - ST - GE"
+   "role": "Manufacturer HOD"
   }
  ],
  "script": null,

@@ -1,0 +1,138 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-09-03 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "record_doctype",
+  "record_name",
+  "target_name",
+  "column_break_head",
+  "status",
+  "target_site",
+  "sync_section",
+  "local_modified",
+  "synced_on",
+  "column_break_sync",
+  "attempts",
+  "last_error"
+ ],
+ "fields": [
+  {
+   "fieldname": "record_doctype",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Type",
+   "options": "Item\nBOM",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "record_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Record",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "description": "What this record is called on the target. ERPNext names a BOM from the receiving site's own BOM count for that item, so the name there is often not the name here.",
+   "fieldname": "target_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Name on Target",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Pending\nSynced\nPartial\nFailed",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "description": "The host this record was last pushed to. A row belongs to one target only.",
+   "fieldname": "target_site",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Target Site",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "sync_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "description": "The source document's modified timestamp at the moment of the last successful push. The reconciler compares against this.",
+   "fieldname": "local_modified",
+   "fieldtype": "Datetime",
+   "label": "Local Modified",
+   "read_only": 1
+  },
+  {
+   "fieldname": "synced_on",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Synced On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_sync",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Consecutive failures. The reconciler gives up on a record after five.",
+   "fieldname": "attempts",
+   "fieldtype": "Int",
+   "label": "Failed Attempts",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_error",
+   "fieldtype": "Small Text",
+   "label": "Last Error",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-03 13:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "KGGK Sync State",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "record_name",
+ "track_changes": 0
+}
