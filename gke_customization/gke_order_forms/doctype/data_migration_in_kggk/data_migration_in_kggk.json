@@ -36,7 +36,7 @@
   "prf_from_site",
   "column_break_uinj",
   "prf_to_site",
-  "serial_no_section",
+   "serial_no_section",
   "serial_no_from_site",
   "from_site_api_key",
   "column_break_mxsj",
@@ -170,7 +170,7 @@
   {
    "default": "1",
    "depends_on": "enable_sync",
-   "description": "On: saving an Item or BOM sends the change to KGGK when KGGK already has it and a submitted Manufacturing Plan links it on a subcontracting row whose Item is Nova Glow. A save never creates a record on KGGK - only a Manufacturing Plan submit does, for those same rows. Off: saving sends nothing at all. Manufacturing Plan submits and the buttons above are unaffected either way.",
+   "description": "On: saving an Item or BOM sends it to KGGK - both a new design and a later edit to one KGGK already has. Off: saving sends nothing at all. Manufacturing Plan submits and the buttons above are unaffected either way.",
    "fieldname": "sync_updates",
    "fieldtype": "Check",
    "label": "Sync Item / BOM Saves"
@@ -198,7 +198,7 @@
    "fieldtype": "Button",
    "label": "Sync Logs"
   },
-  {
+   {
    "description": "This setting is used to synchronize Product Return Order Forms from the Gurukrupa site to the KGGK site. It synchronizes both the Product Return Order Form and the corresponding Product Return Order between the two sites.",
    "fieldname": "repair_order_section",
    "fieldtype": "Section Break",
@@ -218,7 +218,7 @@
    "fieldname": "prf_to_site",
    "fieldtype": "Data",
    "label": "PRF To Site"
-  },
+},
   {
    "description": "This setting is used to synchronize Serial No. from the KGGK site to the Gurukrupa site. It fetches the Serial No. from the KGGK site when a Product Return Order Form is created for a KGGK return.\n",
    "fieldname": "serial_no_section",
@@ -254,7 +254,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-07 13:00:00.000000",
+ "modified": "2026-09-03 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "Data Migration in KGGK",
