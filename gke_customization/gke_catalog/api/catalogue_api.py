@@ -6300,6 +6300,42 @@ def get_set_by_itemcode(itemCode=None, customer=None):
 
 
 
+DESIGN_MULTISELECT_LABELS = {
+    "Age Group", "Language", "Alphabet/Number", "Occasion", "Animal/Birds",
+    "Rhodium", "Collection", "Religious", "Design Style", "Shapes",
+    "Gender", "Zodiac", "Lines & Rows",
+}
+
+
+def get_design_multiselect_clause():
+    """Item ke Table MultiSelect fields ke liye EXISTS conditions banata hai.
+
+    Fieldnames / doctype names frappe meta se aate hain (user input se nahi),
+    isliye SQL injection ka risk nahi. User ki value sirf %(like_query)s se jaati hai.
+    """
+    meta = frappe.get_meta("Item")
+    clauses = []
+
+    for df in meta.get("fields", {"fieldtype": "Table MultiSelect"}):
+        if df.label not in DESIGN_MULTISELECT_LABELS:
+            continue
+
+        child_meta = frappe.get_meta(df.options)
+        link_df = next((f for f in child_meta.fields if f.fieldtype == "Link"), None)
+        if not link_df:
+            continue
+
+        clauses.append(f"""
+            EXISTS (
+                SELECT 1 FROM `tab{df.options}` AS ms
+                WHERE ms.parent = item.name
+                  AND ms.parentfield = '{df.fieldname}'
+                  AND ms.`{link_df.fieldname}` LIKE %(like_query)s
+            )""")
+
+    return " OR ".join(clauses) if clauses else "1=0"
+
+
 @frappe.whitelist()
 def global_search(query=None, customer=None, user=None):
     if not query or len(query) < 2:
@@ -6307,6 +6343,9 @@ def global_search(query=None, customer=None, user=None):
 
     like_query = f"%{query}%"
     values = {"like_query": like_query}
+
+    # Design Attribute tab ke multiselect fields (Gender, Occasion, Shapes, ...)
+    ms_clause = get_design_multiselect_clause()
 
     # ----------------------------------------------------------------
     # CUSTOMER
@@ -6319,7 +6358,16 @@ def global_search(query=None, customer=None, user=None):
                 item.item_code,
                 item.item_category,
                 item.item_subcategory,
-                item.image,
+                (
+                    SELECT GROUP_CONCAT(DISTINCT ms.design_attribute SEPARATOR ', ')
+                    FROM `tabDesign Attribute - Multiselect` AS ms
+                    WHERE ms.parent = item.name
+                      AND ms.parentfield = 'custom_design_style'
+                ) AS design_style,
+                COALESCE(
+                    NULLIF(item.custom_catalogue_image, ''),
+                    NULLIF(item.custom_silver_image, '')
+                ) AS custom_catalogue_image,
                 bom.metal_touch,
                 bom.metal_colour,
                 FORMAT(bom.gross_weight, 3) AS gross_metal_weight,
@@ -6335,7 +6383,6 @@ def global_search(query=None, customer=None, user=None):
                 ON item.item_code = bom.item
                 AND bom.bom_type = 'Finish Goods'
                 AND bom.is_active = 1
-                # AND bom.is_default = 1
             LEFT JOIN `tabItem Default` AS idf
                 ON item.item_name = idf.parent
             WHERE
@@ -6345,9 +6392,31 @@ def global_search(query=None, customer=None, user=None):
                     item.item_code LIKE %(like_query)s
                     OR item.item_category LIKE %(like_query)s
                     OR item.item_subcategory LIKE %(like_query)s
+                    OR EXISTS (
+                        SELECT 1
+                        FROM `tabDesign Attributes` AS da
+                        WHERE da.parent = item.name
+                          AND (
+                              da.design_attributes LIKE %(like_query)s
+                              OR da.design_attribute_value_1 LIKE %(like_query)s
+                              OR da.design_attribute_value_2 LIKE %(like_query)s
+                              OR da.design_attribute_value_3 LIKE %(like_query)s
+                              OR da.design_attribute_value_4 LIKE %(like_query)s
+                              OR da.design_attribute_value_5 LIKE %(like_query)s
+                              OR da.design_attribute_value_6 LIKE %(like_query)s
+                              OR da.design_attribute_value_7 LIKE %(like_query)s
+                              OR da.design_attribute_value_8 LIKE %(like_query)s
+                          )
+                    )
+                    OR (/*MS_CLAUSE*/)
                 )
+                # AND (
+                #     NULLIF(item.custom_catalogue_image, '') IS NOT NULL
+                #     OR
+                #     NULLIF(item.custom_silver_image, '') IS NOT NULL
+                # )
             ORDER BY item.item_subcategory, item.item_code
-        """, values, as_dict=True)
+        """.replace("/*MS_CLAUSE*/", ms_clause), values, as_dict=True)
 
     # ----------------------------------------------------------------
     # USER
@@ -6355,11 +6424,19 @@ def global_search(query=None, customer=None, user=None):
     elif user:
         db_data = frappe.db.sql("""
             SELECT
-                # item.item_code,
+                item.item_code,
                 item.item_category,
                 item.item_subcategory,
-                item.image,
-                item.custom_catalogue_image,
+                (
+                    SELECT GROUP_CONCAT(DISTINCT ms.design_attribute SEPARATOR ', ')
+                    FROM `tabDesign Attribute - Multiselect` AS ms
+                    WHERE ms.parent = item.name
+                      AND ms.parentfield = 'custom_design_style'
+                ) AS design_style,
+                COALESCE(
+                    NULLIF(item.custom_catalogue_image, ''),
+                    NULLIF(item.custom_silver_image, '')
+                ) AS custom_catalogue_image,
                 bom.metal_touch,
                 bom.metal_colour,
                 FORMAT(bom.gross_weight, 3) AS gross_metal_weight,
@@ -6367,10 +6444,16 @@ def global_search(query=None, customer=None, user=None):
                 bom.diamond_quality
             FROM `tabItem` AS item
             INNER JOIN `tabBOM` AS bom
-                ON item.item_code = bom.item
-                AND bom.bom_type = 'Finish Goods'
-                AND bom.is_active = 1
-                # AND bom.is_default = 1
+                ON bom.name = (
+                    SELECT b.name
+                    FROM `tabBOM` AS b
+                    WHERE b.item = item.item_code
+                      AND b.bom_type = 'Finish Goods'
+                      AND b.is_active = 1
+                      AND b.docstatus = 1
+                    ORDER BY b.modified DESC
+                    LIMIT 1
+                )
             INNER JOIN `tabItem Default` AS idf
                 ON item.item_name = idf.parent
                 AND idf.company = 'Gurukrupa Export Private Limited'
@@ -6380,21 +6463,43 @@ def global_search(query=None, customer=None, user=None):
                     item.item_code LIKE %(like_query)s
                     OR item.item_category LIKE %(like_query)s
                     OR item.item_subcategory LIKE %(like_query)s
+                    OR EXISTS (
+                        SELECT 1
+                        FROM `tabDesign Attributes` AS da
+                        WHERE da.parent = item.name
+                          AND (
+                              da.design_attributes LIKE %(like_query)s
+                              OR da.design_attribute_value_1 LIKE %(like_query)s
+                              OR da.design_attribute_value_2 LIKE %(like_query)s
+                              OR da.design_attribute_value_3 LIKE %(like_query)s
+                              OR da.design_attribute_value_4 LIKE %(like_query)s
+                              OR da.design_attribute_value_5 LIKE %(like_query)s
+                              OR da.design_attribute_value_6 LIKE %(like_query)s
+                              OR da.design_attribute_value_7 LIKE %(like_query)s
+                              OR da.design_attribute_value_8 LIKE %(like_query)s
+                          )
+                    )
+                    OR (/*MS_CLAUSE*/)
                 )
+                # AND (
+                #     NULLIF(item.custom_catalogue_image, '') IS NOT NULL
+                #     OR
+                #     NULLIF(item.custom_silver_image, '') IS NOT NULL
+                # )
             ORDER BY item.item_subcategory, item.item_code
-        """, values, as_dict=True)
+        """.replace("/*MS_CLAUSE*/", ms_clause), values, as_dict=True)
 
     else:
         return []
 
     # ----------------------------------------------------------------
-    # Smart filter — NO LIMIT in SQL, Python mein handle karo
+    # Smart filter — NO LIMIT in SQL, Python handle
     # ----------------------------------------------------------------
     q_lower = query.lower()
 
     # Item code search detect karo
     is_item_code_search = any(
-        row.get("item_code", "").lower().startswith(q_lower)
+        (row.get("item_code") or "").lower().startswith(q_lower)
         for row in db_data
     )
 
@@ -6402,11 +6507,11 @@ def global_search(query=None, customer=None, user=None):
         # Item code search — exact matching items, max 8
         matched = [
             row for row in db_data
-            if row.get("item_code", "").lower().startswith(q_lower)
+            if (row.get("item_code") or "").lower().startswith(q_lower)
         ]
         return matched[:8]
     else:
-        # Category/Subcategory search — GUARANTEED 1 per subcategory, no skip
+        # Category/Subcategory/Design attribute search — 1 per subcategory
         seen = set()
         final = []
         for row in db_data:
@@ -6415,8 +6520,6 @@ def global_search(query=None, customer=None, user=None):
                 final.append(row)
                 seen.add(sub)
         return final
-
-
 
 @frappe.whitelist()
 def remove_trending_item(customer, item_code, trending):
