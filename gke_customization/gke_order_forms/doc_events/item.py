@@ -712,7 +712,7 @@ def create_bom_kggk(doc,pro_name, method=None):
         "Content-Type": "application/json"
     }
     if doc.bom_type == "Finish Goods":
-        bom = doc.name
+        # bom = doc.name
         if from_site and to_site:
             payload = {
                 "item": doc.item,
@@ -1015,21 +1015,21 @@ def create_bom_kggk(doc,pro_name, method=None):
 
             try:
                 # Try update first
-                response = requests.put(
-                    f"{to_site}/api/resource/BOM/{bom}",
+                # response = requests.put(
+                #     f"{to_site}/api/resource/BOM/{bom}",
+                #     headers=headers,
+                #     json=payload,
+                #     timeout=15
+                # )
+
+                # # If item doesn't exist, create it
+                # if response.status_code == 404:
+                response = requests.post(
+                    f"{to_site}/api/resource/BOM",
                     headers=headers,
                     json=payload,
                     timeout=15
                 )
-
-                # If item doesn't exist, create it
-                if response.status_code == 404:
-                    response = requests.post(
-                        f"{to_site}/api/resource/BOM",
-                        headers=headers,
-                        json=payload,
-                        timeout=15
-                    )
 
                 # Log full response for debugging
                 frappe.logger().info(
