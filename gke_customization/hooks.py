@@ -34,6 +34,7 @@ doctype_js = {
     "Employee Onboarding" : "public/js/doctype_js/employee_onboarding.js",
     "Payment Entry" : "public/js/doctype_js/payment_entry.js",
     "Stock Entry" : "public/js/doctype_js/stock_entry.js",
+    "Payroll Entry": "public/js/doctype_js/payroll_entry.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -65,9 +66,7 @@ doctype_js = {
 #	"filters": "gke_customization.utils.jinja_filters"
 # }
 jinja = {
-    "methods": [
-        "gke_customization.gke_hrms.utils.get_account_total_summary_for_print"
-    ]
+    "methods": ["gke_customization.gke_hrms.utils.get_account_total_summary_for_print"]
 }
 # Installation
 # ------------
@@ -122,7 +121,9 @@ has_permission = {
 override_doctype_class = {
 	"Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive",
 	"Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin",
-    "Job Requisition": "gke_customization.overrides.job_requisition.CustomJobRequisition"
+    "Job Requisition": "gke_customization.overrides.job_requisition.CustomJobRequisition",
+    "Payroll Entry": "gke_customization.overrides.payroll_entry.CustomPayrollEntry",
+    "Salary Structure Assignment": "gke_customization.overrides.salary_structure_assignment.CustomSalaryStructureAssignment",
     # "Parent Manufacturing Order": "gke_customization.overrides.parent_manufacturing_order.CustomParentManufacturingOrder"
 }
 
@@ -154,7 +155,7 @@ scheduler_events = {
         "gke_customization.gke_hrms.doc_events.leave_allocation.compOff_leave_allocation"    
     ],
     "hourly": [
-        "gke_customization.gke_hrms.sync_checkin.sync_biometric_checkins" # new script for Sync biometric checkins
+        "gke_customization.gke_hrms.sync_checkin.sync_biometric_checkins"  # new script for Sync biometric checkins
     ],
     "hourly_long": [
         # Catches what the save hooks could not: an edit made while KGGK was down, a job lost
@@ -171,7 +172,7 @@ scheduler_events = {
             "gke_customization.gke_order_forms.doc_events.kggk_sync.reap_stale_runs"
         ],
         "0 6 * * *": [
-		    "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
+            "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
         ],
         "30 10 * * *": [
 			"gke_customization.gke_hrms.report.department_wise_daily_present_report.department_wise_daily_present_report.send_morning_present_report"
@@ -299,7 +300,12 @@ doc_events = {
 	"on_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_submit"
 },
 "Journal Entry": {
-    "on_submit": "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit"
+    "on_submit": [
+        "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit",
+        "gke_customization.gke_hrms.doc_events.journal_entry.update_withholding_release_status",
+    ],
+    "on_cancel": "gke_customization.gke_hrms.doc_events.journal_entry.update_withholding_release_status",
+    "on_trash": "gke_customization.gke_hrms.doc_events.journal_entry.cancel_withholding_releases_on_trash",
 },
 # "Item": {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
@@ -343,7 +349,10 @@ doc_events = {
     "validate": "gke_customization.gke_order_forms.doc_events.timesheet.validate",
     "on_submit": "gke_customization.gke_order_forms.doc_events.timesheet.on_submit",
     "on_update": "gke_customization.gke_order_forms.doc_events.timesheet.on_update"
-    
+
+},
+"Salary Slip": {
+    "before_validate": "gke_customization.overrides.salary_slip.seed_slip_only_formula_fields",
 },
 # "Stock Entry": {
 #     "before_validate": "gke_customization.gke_order_forms.doc_events.stock_entry.before_validate",
