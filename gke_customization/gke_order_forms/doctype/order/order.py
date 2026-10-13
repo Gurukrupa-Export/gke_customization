@@ -18,7 +18,8 @@ class Order(Document):
     def on_update(self):
         if self.workflow_state == "Assigned":
             create_timesheet(self)
-
+            
+        
         if self.workflow_state == "Cancelled":
             timesheets = frappe.get_all(
                 "Timesheet", filters={"order": self.name}, fields=["name", "docstatus"]
@@ -603,6 +604,9 @@ def close_last_timelog(ts_name):
             {"to_time": now, "hours": hours, "completed": 1},
         )
 
+
+def submit_timesheet(ts_name):
+    frappe.db.set_value("Timesheet", ts_name, "docstatus", 1)
 
 def submit_timesheet(ts_name):
     frappe.db.set_value("Timesheet", ts_name, "docstatus", 1)
@@ -1461,16 +1465,18 @@ def create_item_template_from_order(source_name, target_doc=None):
 					"custom_is_photoshop_images":1
 
 				},
-			}
-		},
+				}
+				},
 		target_doc,
 		post_process,
 	)
-	# doc.save()
-	# return doc.name, doc.variant_of
 	doc.save()
+	return doc.name, doc.variant_of
 
-	return doc.name
+	
+	# doc.save()
+
+	# return doc.name
 
 def create_variant_of_template_from_order(item_template,source_name, target_doc=None):
 	def post_process(source, target):
