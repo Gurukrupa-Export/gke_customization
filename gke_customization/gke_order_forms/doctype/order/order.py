@@ -1446,56 +1446,6 @@ def create_only_variant_from_order(self, source_name, target_doc=None):
                 )
 
 
-def create_item_template_from_order(source_name, target_doc=None):
-    def post_process(source, target):
-        target.is_design_code = 1
-        target.has_variants = 1
-
-        if source.designer_assignment:
-            target.designer = source.designer_assignment[0].designer
-        else:
-            if frappe.db.get_value(
-                "Employee", {"user_id": frappe.session.user}, "name"
-            ):
-                target.designer = frappe.db.get_value(
-                    "Employee", {"user_id": frappe.session.user}, "name"
-                )
-            else:
-                target.designer = frappe.db.get_value(
-                    "User", frappe.session.user, "full_name"
-                )
-
-        target.item_group = source.subcategory + " - T"
-
-    doc = get_mapped_doc(
-        "Order",
-        source_name.name,
-        {
-            "Order": {
-                "doctype": "Item",
-                "field_map": {
-                    "category": "item_category",
-                    "subcategory": "item_subcategory",
-                    "setting_type": "setting_type",
-                    "india": "india",
-                    "india_states": "india_states",
-                    "usa": "usa",
-                    "usa_states": "usa_states",
-                    "custom_is_photoshop_images": 1,
-                },
-            }
-        },
-        target_doc,
-        post_process,
-    )
-    doc.save()
-    return doc.name, doc.variant_of
-
-    # doc.save()
-
-    # return doc.name
-
-
 def create_variant_of_template_from_order(item_template, source_name, target_doc=None):
     def post_process(source, target):
         target.order_form_type = "Order"
