@@ -114,3 +114,24 @@ class TestBiometricSyncTimeThreshold(GKHRMSTestCase):
 		result, times = self.run_sync(["09:45", "11:42", "11:44", "11:46", "18:35"])
 
 		self.assertEqual(times, ["09:45", "11:42", "18:35"])
+
+	def test_hourly_cron_reruns_replay_production_scenario(self):
+		"""Replay the production hourly cron against the full-day API response.
+
+		Every hourly run receives the whole day so far (the device server has
+		no offset tracking). Production created 09:45 and 11:42, skipped the
+		11:43/11:44 burst in the first run, then wrongly re-created 11:43 and
+		11:44 on later runs because the threshold check only compared against
+		the latest punch (negative diff). With the both-sides check the burst
+		must stay ignored across every rerun.
+		"""
+		punches = ["09:45", "11:42", "11:43", "11:44", "18:32"]
+
+		for count in range(1, len(punches) + 1):
+			result, times = self.run_sync(punches[:count])
+			# 11:43 is 60s after 11:42, 11:44 is 120s after it: both inside
+			# the 120s threshold on either side, so neither may ever appear
+			self.assertNotIn("11:43", times)
+			self.assertNotIn("11:44", times)
+
+		self.assertEqual(times, ["09:45", "11:42", "18:32"])

@@ -85,23 +85,39 @@ class GKHRMSTestCase(IntegrationTestCase):
 			}
 		).name
 
-	def ensure_holiday_list(self):
+	def ensure_holiday_list(self, company: str | None = None) -> str:
 		"""Reuse an existing Holiday List, or create a test one with Sunday offs."""
 		existing = frappe.get_all("Holiday List", pluck="name", limit=1)
 		if existing:
 			return existing[0]
+
 		today = getdate()
+		values = {
+			"doctype": "Holiday List",
+			"holiday_list_name": "_Test GKE Holiday List",
+			"from_date": today.replace(month=1, day=1),
+			"to_date": today.replace(month=12, day=31),
+			"weekly_off": "Sunday",
+		}
+
+		if frappe.get_meta("Holiday List").has_field("custom_company"):
+			values["custom_company"] = company
+
+		return self._insert(values).name
+	
+	# ---------- company ----------
+	def ensure_warehouse_type(self, warehouse_type: str) -> str:
+		"""Ensure a required Warehouse Type exists before Company creation."""
+		if frappe.db.exists("Warehouse Type", warehouse_type):
+			return warehouse_type
+
 		return self._insert(
 			{
-				"doctype": "Holiday List",
-				"holiday_list_name": "_Test GKE Holiday List",
-				"from_date": today.replace(month=1, day=1),
-				"to_date": today.replace(month=12, day=31),
-				"weekly_off": "Sunday",
+				"doctype": "Warehouse Type",
+				"__newname": warehouse_type,
+				"warehouse_type": warehouse_type,
 			}
 		).name
-
-	# ---------- company ----------
 
 	def create_company(self):
 		"""Reuse the site default company, or create a stub company for tests."""
@@ -110,7 +126,7 @@ class GKHRMSTestCase(IntegrationTestCase):
 		)[0]
 		if name and frappe.db.exists("Company", name):
 			return frappe.get_doc("Company", name)
-
+		self.ensure_warehouse_type("Transit")
 		return self._insert(
 			{
 				"doctype": "Company",
@@ -143,7 +159,7 @@ class GKHRMSTestCase(IntegrationTestCase):
 		)
 		department = self.ensure_department(overrides.pop("department", "Central"), company)
 		approver = self.ensure_user(overrides.pop("approver_email", self.DEFAULT_APPROVER))
-		holiday_list = self.ensure_holiday_list()
+		holiday_list = self.ensure_holiday_list(company)
 		default_shift = (
 			self.ensure_shift(overrides.pop("default_shift", "test shift 9-18"))
 			if meta.has_field("default_shift")
