@@ -45,61 +45,81 @@ def get_pf_data(filters=None):
 
 	# Round(Least(Ifnull(basic.basic, 0), 15000) * 0.0367, 2) AS er_share,
 	sql_query = f"""
-		SELECT 
-			ss.employee,
-			ss.employee_name,
-			ss.department,
-			ss.designation,
-			ss.total_working_days,
-			ss.payment_days,
-			ss.actual_working_hours,
-			ss.gross_pay,
-			ss.total_deduction,
-			ss.rounded_total,
-			emp.uan_number AS uan, ss.absent_days,
-			Least(Ifnull(basic.basic, 0), 15000) AS epf_wage,
-			Least(Ifnull(basic.basic, 0), 15000) AS edli_wage,
-			CASE WHEN Timestampdiff(year, emp.date_of_birth, Curdate()) < 58 THEN Least(Ifnull(basic.basic, 0), 15000) ELSE 0 end AS eps_wage,
-			Round(Least(Ifnull(basic.basic, 0), 15000) * 0.12, 0) AS ee_share,
-			CASE WHEN Timestampdiff(year, emp.date_of_birth, Curdate()) < 58 THEN Round(Least(Ifnull(basic.basic, 0), 15000) * 0.0833, 0) ELSE 0 end AS eps_con,
-			ROUND(
-				ROUND(LEAST(IFNULL(basic.basic, 0), 15000) * 0.12,0)
-				-
-				CASE
-					WHEN TIMESTAMPDIFF(YEAR, emp.date_of_birth, CURDATE()) < 58
-					THEN ROUND(LEAST(IFNULL(basic.basic, 0), 15000) * 0.0833,0)
-					ELSE 0
-				END
-			) AS er_share,
-			CASE
-				WHEN IFNULL(ss.absent_days, 0) > 0
-					THEN ROUND(ss.absent_days, 0)
-				ELSE
-					GREATEST(
-						ROUND(
-							IFNULL(ss.total_working_days, 0)
-							- IFNULL(ss.payment_days, 0),
-							0
-						),
-						0
-					)
-			END AS ncp_days,
-			0 as Refund
-		FROM `tabSalary Slip` ss
-		LEFT JOIN `tabEmployee` emp ON emp.name = ss.employee
-		LEFT JOIN (
-			SELECT parent, Sum(CASE WHEN salary_component = 'Basic' THEN amount ELSE 0 end) AS basic
-			FROM `tabSalary Detail`
-			GROUP BY parent
-		) basic ON basic.parent = ss.name
-		WHERE ss.docstatus = 1
-			AND ss.start_date >= '{start_date}'
+		SELECT
+			u.employee,
+			u.employee_name,
+			u.department,
+			u.designation,
+			u.total_working_days,
+			u.payment_days,
+			u.actual_working_hours,
+			u.gross_pay,
+			u.total_deduction,
+			u.rounded_total,
+			u.uan,
+			u.absent_days,
+			u.epf_wage,
+			u.epf_wage AS edli_wage,
+			u.eps_wage,
+			u.ee_share,
+			u.eps_con,
+			u.ee_share - u.eps_con AS er_share,
+			u.ncp_days,
+			0 AS Refund
+		FROM (
+			SELECT
+				t.*,
+				IF(t.eps_wage * t.eps_rate - FLOOR(t.eps_wage * t.eps_rate) = 0.5,
+				2 * ROUND(t.eps_wage * t.eps_rate / 2, 0),
+				ROUND(t.eps_wage * t.eps_rate, 0)) AS eps_con
+			FROM (
+				SELECT
+					ss.employee,
+					UPPER(TRIM(IFNULL(NULLIF(TRIM(emp.name_as_per_aadhar), ''), ss.employee_name))) AS employee_name,
+					ss.department,
+					ss.designation,
+					ss.total_working_days,
+					ss.payment_days,
+					ss.actual_working_hours,
+					ROUND(ss.gross_pay, 0) AS gross_pay,
+					ss.total_deduction,
+					ss.rounded_total,
+					emp.uan_number AS uan,
+					ss.absent_days,
+					LEAST(ROUND(IFNULL(b.basic, 0), 0), p.wage_ceiling) AS epf_wage,
+					CASE WHEN IFNULL(TIMESTAMPDIFF(YEAR, emp.date_of_birth, CURDATE()), 0) < p.eps_age_limit
+						THEN LEAST(ROUND(IFNULL(b.basic, 0), 0), p.wage_ceiling) ELSE 0 END AS eps_wage,
+					ROUND(LEAST(ROUND(IFNULL(b.basic, 0), 0), p.wage_ceiling) * p.ee_rate, 0) AS ee_share,
+					p.eps_rate AS eps_rate,
+					CASE WHEN IFNULL(ss.absent_days, 0) <> 0
+						THEN ROUND(ss.absent_days, 0)
+						ELSE ROUND(IFNULL(ss.total_working_days, 0) - ROUND(IFNULL(ss.payment_days, 0), 0), 0)
+					END AS ncp_days
+				FROM `tabSalary Slip` ss
+				CROSS JOIN (
+					SELECT
+						25000  AS wage_ceiling,
+						0.12   AS ee_rate,
+						0.0833 AS eps_rate,
+						58     AS eps_age_limit
+				) p
+				LEFT JOIN `tabEmployee` emp ON emp.name = ss.employee
+				LEFT JOIN (
+					SELECT parent, SUM(CASE WHEN salary_component = 'Basic' THEN amount ELSE 0 END) AS basic
+					FROM `tabSalary Detail`
+					GROUP BY parent
+				) b ON b.parent = ss.name
+		WHERE 
+			ss.docstatus = 1 AND 
+			ss.start_date >= '{start_date}'
 			AND ss.end_date <= '{end_date}'
 			AND ss.company = '{filters.get("company")}'
 			AND emp.uan_number IS NOT NULL
 			AND ss._is_pf_applicable = 1
 			{emp_condition}
-		ORDER BY ss.employee_name
+			) t
+		) u
+		ORDER BY u.employee_name
 		"""
 	# frappe.msgprint("<pre>" + sql_query + "</pre>")
 	data = frappe.db.sql(sql_query, as_dict=True)
