@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ordered Items</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f0ea;
+             font-family:'Segoe UI',Arial,sans-serif;">
+
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+
+  <!-- Header -->
+  <div style="background:#1a1a2e;padding:32px 32px 24px;text-align:center;">
+    <span style="display:inline-block;background:#dcfce7;color:#15803d;font-size:12px;font-weight:600;padding:4px 14px;border-radius:99px;margin-bottom:12px;">&#x2713; Order Placed</span>
+    <h2 style="color:#ffffff;font-size:22px;font-weight:600;margin:0 0 4px;">
+      {% if internal %}New Order Received{% else %}Order Confirmation{% endif %}
+    </h2>
+  </div>
+
+  <!-- Body -->
+  <div style="padding:32px;">
+    <p style="font-size:14px;color:#6b7280;margin:0 0 24px;line-height:1.6;">
+      {% if internal %}
+        A new order <strong style="color:#111827;">{{ order_id | e }}</strong> has been placed by
+        <strong>{{ customer_name | e }}</strong> (ordered by {{ order_by | e }}).
+      {% else %}
+        Hello {{ customer_name | e }}, your order
+        <strong style="color:#111827;">{{ order_id | e }}</strong> has been
+        <strong style="color:#15803d;">placed successfully.</strong>
+      {% endif %}
+    </p>
+
+    <!-- Order info strip -->
+    <table style="width:100%;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:24px;">
+      <tr>
+        <td style="padding:12px 16px;">
+          <div style="font-size:11px;color:#9ca3af;">Order ID</div>
+          <div style="font-size:15px;font-weight:600;color:#111827;">{{ order_id | e }}</div>
+        </td>
+        <td style="padding:12px 16px;">
+          <div style="font-size:11px;color:#9ca3af;">Date</div>
+          <div style="font-size:15px;font-weight:600;color:#111827;">{{ order_date | e }}</div>
+        </td>
+        <td style="padding:12px 16px;text-align:right;">
+          <div style="font-size:11px;color:#9ca3af;">Total Qty</div>
+          <div style="font-size:15px;font-weight:600;color:#111827;">{{ total_qty }}</div>
+        </td>
+        {% if show_rate %}
+        <td style="padding:12px 16px;text-align:right;">
+          <div style="font-size:11px;color:#9ca3af;">Total Amount</div>
+          <div style="font-size:15px;font-weight:600;color:#111827;">{{ currency | e }} {{ total_amount_fmt }}</div>
+        </td>
+        {% endif %}
+      </tr>
+    </table>
+
+    {% if notes %}
+    <p style="font-size:13px;color:#6b7280;margin:0 0 24px;"><strong>Notes:</strong> {{ notes | e }}</p>
+    {% endif %}
+
+    <!-- Items -->
+    <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Items in order</div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+      <thead>
+        <tr style="border-bottom:1px solid #e5e7eb;">
+          <th style="font-size:11px;color:#9ca3af;text-align:left;padding:0 12px 10px;text-transform:uppercase;letter-spacing:0.05em;">Item</th>
+          <th style="font-size:11px;color:#9ca3af;text-align:left;padding:0 12px 10px;text-transform:uppercase;letter-spacing:0.05em;">BOM</th>
+          <th style="font-size:11px;color:#9ca3af;text-align:right;padding:0 12px 10px;text-transform:uppercase;letter-spacing:0.05em;">Qty</th>
+          {% if show_rate %}
+          <th style="font-size:11px;color:#9ca3af;text-align:right;padding:0 12px 10px;text-transform:uppercase;letter-spacing:0.05em;">Rate</th>
+          <th style="font-size:11px;color:#9ca3af;text-align:right;padding:0 12px 10px;text-transform:uppercase;letter-spacing:0.05em;">Amount</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr style="border-bottom:1px solid #f3f4f6;">
+          <td style="padding:12px;">
+            <span style="font-family:monospace;font-size:12px;color:#1d4ed8;background:#eff6ff;padding:2px 8px;border-radius:4px;">{{ item.item_code | e }}</span>
+          </td>
+          <td style="padding:12px;font-size:13px;color:#6b7280;">{{ (item.bom or "-") | e }}</td>
+          <td style="padding:12px;text-align:right;">
+            <span style="display:inline-block;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;font-weight:600;padding:2px 10px;color:#111827;">{{ item.quantity }}</span>
+          </td>
+          {% if show_rate %}
+          <td style="padding:12px;text-align:right;font-size:13px;color:#6b7280;">{{ item.rate_fmt }}</td>
+          <td style="padding:12px;text-align:right;font-size:13px;font-weight:600;color:#111827;">{{ item.amount_fmt }}</td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div style="border-top:1px solid #e5e7eb;background:#f9fafb;padding:20px 32px;text-align:center;">
+    <p style="font-size:13px;color:#9ca3af;margin:0;">Thank you — <strong style="color:#6b7280;">Gurukrupa Export</strong></p>
+  </div>
+
+</div>
+
+</body>
+</html>

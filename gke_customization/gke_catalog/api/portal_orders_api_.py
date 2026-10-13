@@ -1316,10 +1316,23 @@ def confirm_cart_orders(customer, order_date=None, notes=None, user=None, row_na
     cart.save(ignore_permissions=True)
 
     frappe.db.commit()
+    
+        # ── Order placed emails ───────────────────────────────────────────────────
+    _send_order_placed_emails(
+        customer=customer,
+        portal_order=portal_order,
+        user=current_user,
+        active_items=active_items,
+        order_rates=order_rates,
+        total_qty=total_qty,
+        total_amount=total_amount,
+        order_date=final_order_date,
+        notes=notes,
+    )
 
     return {
         "success"       : True,
-        "message"       : "Order successfully place ho gaya!",
+        "message"       : "Order successfully placed",
         "portal_order"  : portal_order.name,
         "cart"          : cart.name,
         "order_date"    : str(final_order_date),
@@ -2152,4 +2165,105 @@ def build_item_row(item_code, bom, qty):
       </td>
     </tr>
     """
+
+#Try to send the email to customer and user  
+
     
+ORDER_PLACED_TEMPLATE = "gke_customization/templates/emails/order_placed.html"
+
+# def _get_customer_emails(customer_name):
+#     """Customer ka email_id + linked Contacts ke emails."""
+#     emails = set()
+
+#     email_id = frappe.db.get_value("Customer", customer_name, "email_id")
+#     if email_id:
+#         emails.add(email_id)
+
+#     contacts = frappe.get_all(
+#         "Dynamic Link",
+#         filters={"link_doctype": "Customer", "link_name": customer_name, "parenttype": "Contact"},
+#         pluck="parent",
+#     )
+#     for c in contacts:
+#         for row in frappe.get_all("Contact Email", filters={"parent": c}, fields=["email_id"]):
+#             if row.email_id:
+#                 emails.add(row.email_id)
+
+#     return list(emails)
+
+
+def _get_customer_emails(customer_name):
+    return [
+        "bhavika_p@gkexport.com",
+        "mansi_g@gkexport.com",
+    ]
+
+# def _get_order_team_emails():
+#     """site_config.json: "order_team_emails": ["orders@gkexport.com"]"""
+#     return frappe.conf.get("order_team_emails") or ["orders@gkexport.com"]
+
+def _get_order_team_emails():
+    return [
+        "rajan_m@gkexport.com",
+    ]
+
+def _render_order_email(context, items, internal=False, show_rate=False):
+    return frappe.render_template(
+        ORDER_PLACED_TEMPLATE,
+        {**context, "items": items, "internal": internal, "show_rate": show_rate},
+    )
+
+
+def _send_order_placed_emails(customer, portal_order, user, active_items, order_rates,total_qty, total_amount, order_date, notes=None):
+    try:
+        customer_name = frappe.db.get_value("Customer", customer, "customer_name") or customer
+        sender = "customer_portal@gkexport.com"
+
+        items = []
+        for row in active_items:
+            rate = order_rates.get(row.name, row.rate or 0)
+            amount = round((row.quantity or 0) * rate, 2)
+            items.append({
+                "item_code": row.item_code,
+                "bom": row.bom,
+                "quantity": row.quantity,
+                "rate_fmt": f"{rate:,.2f}",
+                "amount_fmt": f"{amount:,.2f}",
+            })
+
+        context = {
+            "customer_name": customer_name,
+            "order_id": portal_order.name,
+            "order_date": str(order_date),
+            "order_by": user,
+            "notes": notes,
+            "total_qty": total_qty,
+            "total_amount_fmt": f"{total_amount:,.2f}",
+            "currency": portal_order.currency,
+        }
+
+        # Email 1: To user, CC customer
+        frappe.sendmail(
+            recipients=[user],
+            cc=[e for e in _get_customer_emails(customer) if e != user],
+            sender=sender,
+            subject=f"Order Placed - {portal_order.name}",
+            message=_render_order_email(context, items, internal=False, show_rate=False),
+            reference_doctype="Portal Order",
+            reference_name=portal_order.name,
+        )
+
+        # Email 2: To user, CC order team
+        frappe.sendmail(
+            recipients=[user],
+            cc=[e for e in _get_order_team_emails() if e != user],
+            sender=sender,
+            subject=f"[Internal] New Order - {portal_order.name} ({customer_name})",
+            message=_render_order_email(context, items, internal=True, show_rate=True),
+            reference_doctype="Portal Order",
+            reference_name=portal_order.name,
+        )
+
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), f"Order email failed: {portal_order.name}")
+        

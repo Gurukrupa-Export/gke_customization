@@ -906,10 +906,13 @@ def customer_wise_item(selectedSubcategory=None, customer=None, user=None, metal
 
 
 
-@frappe.whitelist()
-def get_customer_wishlist_items(customer=None):
-    customer = frappe.form_dict.get("customer") or customer
-    # user = frappe.form_dict.get("user") or user
+@frappe.whitelist(allow_guest=True)
+def get_customer_wishlist_items(customer=None, user_type=None, user=None):
+    
+    if user_type == "customer":
+        customer = frappe.form_dict.get("customer") or customer
+    elif user_type == "user":
+        user = frappe.form_dict.get("user") or user
 
     where_clause = """
     idf.company = 'Gurukrupa Export Private Limited'
@@ -922,8 +925,10 @@ def get_customer_wishlist_items(customer=None):
 
     if customer:
         where_clause += f" AND tcm.customer = '{customer}' "
-    # if user:
-    #     where_clause += f" AND icm.user = '{user}' "
+    if user:
+        where_clause += f" AND tcm.user = '{user}' "
+
+    # frappe.throw(where_clause)
 
     db_data = frappe.db.sql(
         f"""SELECT
@@ -933,8 +938,8 @@ def get_customer_wishlist_items(customer=None):
                 tci.trending,
                 tci.name as catalog_item_details_name,
                 tci.folder,
-                tcm.allow_excel_permission,
                 tci.wishlist,
+                tcm.allow_excel_permission,
                 tci.as_per_design,
                 tci.job_work,
                 tci.as_per_customized,
@@ -949,8 +954,10 @@ def get_customer_wishlist_items(customer=None):
                 item.item_category,
                 item.stylebio,
                 MIN(item.image) AS image,
+                item.custom_catalogue_image,
                 item.sketch_image,
                 item.custom_catalogue_image,
+                item.custom_silver_image, 
                 item.front_view as cad_image,
                 item.custom_catalogue_image AS custom_catalogue_image
                 CASE
@@ -1099,12 +1106,25 @@ def get_customer_wishlist_items(customer=None):
                     d[fd] = []
                 d[fd].append(row)
 
+
+
+    # secure = SecureJSON()
+    
+    # enc_data = secure.encrypt(
+    #         {
+    #         "db_data": db_data,
+    #         "total": len(db_data),
+    #         "folder": d
+    #     }
+    # ) 
+    
+    # return enc_data
+
     return {
         "db_data": db_data,
         "total": len(db_data),
         "folder": d
     }
-
 
 
 
@@ -2362,7 +2382,7 @@ def get_attribute_data():
 
 
 @frappe.whitelist()
-def get_customers_attribute_data(customer):
+def get_customers_attribute_data1(customer):
     setting_type = frappe.get_all("Attribute Value", filters={"is_setting_type": 1}, pluck="name")
     setting_type = sorted(setting_type)
     setting_type_data = [{"setting_type": name} for name in setting_type]
@@ -2666,108 +2686,143 @@ def get_selected_item_count_for_customet_wise(customer_id, collection):
    
 @frappe.whitelist()
 def get_customers_attribute_data(customer):
-    setting_type = frappe.get_all("Attribute Value", filters={"is_setting_type": 1}, pluck="name")
+    sales_type = frappe.get_all("Sales Type Multiselect",filters={"parent": customer},pluck="sales_type")
+
+    setting_type = frappe.get_all("Attribute Value",filters={"is_setting_type": 1},pluck="name")
     setting_type = sorted(setting_type)
     setting_type_data = [{"setting_type": name} for name in setting_type]
 
     # Metal Criteria
-    metal_touch = frappe.get_all("Metal Criteria", filters={"parent": customer}, pluck="metal_touch")
+    metal_touch = frappe.get_all("Metal Criteria",filters={"parent": customer},pluck="metal_touch")
     metal_touch = sorted(metal_touch)
-    metal_touch_data = [{"metal_touch": name} for name in metal_touch ]
-    
+    metal_touch_data = [{"metal_touch": name} for name in metal_touch]
     # Customer Diamond Grade
-    # diamond_quality = frappe.get_all("Customer Diamond Grade", filters={"parent": customer}, pluck="diamond_quality")
-    # diamond_quality = sorted(diamond_quality)
-    # diamond_quality_data = [{"diamond_quality": name} for name in diamond_quality ]
-    
-    catalog_master = frappe.get_value(
-        "Cataloge Master",
-        {"customer": customer},
-        "name"
-    )
-
+    catalog_master = frappe.get_value("Cataloge Master",{"customer": customer},"name")
+    diamond_quality_data = []
     if catalog_master:
-        catalog_doc = frappe.get_doc("Cataloge Master", catalog_master)
-        cust_dia = frappe.get_all("Customer Diamond Grade", filters={"parent": customer}, pluck="diamond_quality")
-
-        diamond_quality_data = []
+        catalog_doc = frappe.get_doc("Cataloge Master",catalog_master)
+        cust_dia = frappe.get_all("Customer Diamond Grade",filters={"parent": customer},pluck="diamond_quality")
         for row in catalog_doc.diamond_quality:
             if row.diamond_quality in cust_dia:
-                diamond_quality_data.append({"diamond_quality": row.diamond_quality})
-        
-    stone_excluded_values = ["1 Mukhi","2 Mukhi","3 Mukhi","4 Mukhi","5 Mukhi","6 Mukhi","7 Mukhi","8 Mukhi","9 Mukhi","10 Mukhi", "Beeds", "Trillion"]
-    stone_shape = frappe.get_all("Attribute Value", filters={"is_stone_shape": 1}, pluck="name")
-    stone_shape = [name for name in stone_shape if name not in stone_excluded_values]
+                diamond_quality_data.append({
+                    "diamond_quality": row.diamond_quality
+                })
+    stone_excluded_values = [
+        "1 Mukhi", "2 Mukhi", "3 Mukhi", "4 Mukhi",
+        "5 Mukhi", "6 Mukhi", "7 Mukhi", "8 Mukhi",
+        "9 Mukhi", "10 Mukhi", "Beeds", "Trillion"
+    ]
+    stone_shape = frappe.get_all(
+        "Attribute Value",
+        filters={"is_stone_shape": 1},
+        pluck="name"
+    )
+    stone_shape = [
+        name for name in stone_shape
+        if name not in stone_excluded_values
+    ]
     stone_shape = sorted(stone_shape)
-    diamond_stone_shape = [{"stone_shape": name} for name in stone_shape] 
-
-    gemstone_stone = frappe.get_all("Attribute Value", filters={"is_stone_shape": 1}, pluck="name")
+    diamond_stone_shape = [
+        {"stone_shape": name}
+        for name in stone_shape
+    ]
+    gemstone_stone = frappe.get_all(
+        "Attribute Value",
+        filters={"is_stone_shape": 1},
+        pluck="name"
+    )
     gemstone_stone = sorted(gemstone_stone)
-    gemstone_stone_data = [{"gemstone_shape": name} for name in gemstone_stone ]
-
-    metal_color = frappe.get_all("Attribute Value", filters={"is_metal_colour": 1}, pluck="name")
+    gemstone_stone_data = [
+        {"gemstone_shape": name}
+        for name in gemstone_stone
+    ]
+    metal_color = frappe.get_all(
+        "Attribute Value",
+        filters={"is_metal_colour": 1},
+        pluck="name"
+    )
     metal_color = sorted(metal_color)
-    metal_color_data = [{"metal_color": name} for name in metal_color ]
-    
-    finding_sub_category = frappe.get_all("Attribute Value", filters={"is_finding_type": 1}, pluck="name")
+    metal_color_data = [
+        {"metal_color": name}
+        for name in metal_color
+    ]
+    finding_sub_category = frappe.get_all(
+        "Attribute Value",
+        filters={"is_finding_type": 1},
+        pluck="name"
+    )
     finding_sub_category = sorted(finding_sub_category)
-    finding_subcategory_data = [{"finding_sub_category": name} for name in finding_sub_category ]
-    
-       # Get occasion values from Item Attribute child table    
+    finding_subcategory_data = [
+        {"finding_sub_category": name}
+        for name in finding_sub_category
+    ]
+    # Occasion
     occasion = frappe.get_all(
         "Item Attribute Value",
-        filters={"parent":"Occasion"},
+        filters={"parent": "Occasion"},
         pluck="attribute_value"
     )
     occasion = sorted(occasion)
-    occasion_data = [{"occasion":name} for name in occasion]
-    
-     # Age Group — same pattern as occasion
+    occasion_data = [
+        {"occasion": name}
+        for name in occasion
+    ]
+    # Age Group
     age_group = frappe.get_all(
         "Item Attribute Value",
         filters={"parent": "Age Group"},
         pluck="attribute_value"
     )
     age_group = sorted(age_group)
-    age_group_data = [{"age_group": name} for name in age_group]
-    
-      # Gender — original function ki tarah
+    age_group_data = [
+        {"age_group": name}
+        for name in age_group
+    ]
+    # Gender
     gender = frappe.get_all(
         "Attribute Value",
         filters={"parent_attribute_value": "Gender"},
         pluck="name"
     )
     gender = sorted(gender)
-    gender_data = [{"gender": name} for name in gender]
-    
-      # Collection
+    gender_data = [
+        {"gender": name}
+        for name in gender
+    ]
+    # Collection
     collection = frappe.get_all(
         "Attribute Value",
         filters={"parent_attribute_value": "Collection"},
         pluck="name"
     )
-    collection=sorted(collection)
-    get_collection = [{"collection":name} for name in collection]
-    
-    Rhodium = frappe.get_doc("Item Attribute", "Rhodium")
+    collection = sorted(collection)
+    collection_data = [
+        {"collection": name}
+        for name in collection
+    ]
+    # Rhodium
+    rhodium = frappe.get_doc(
+        "Item Attribute",
+        "Rhodium"
+    )
     rhodium_data = [
         {"rhodium": row.attribute_value}
-        for row in Rhodium.item_attribute_values
+        for row in rhodium.item_attribute_values
     ]
-
-    return { 
+    return {
+        "sales_type": sales_type,
         "setting_types": setting_type_data,
         "metal_touch": metal_touch_data,
-        "diamond_quality": diamond_quality_data, 
+        "diamond_quality": diamond_quality_data,
         "metal_color": metal_color_data,
-        "diamond_stone_shape":diamond_stone_shape,
-        "gemstone_stone_data":gemstone_stone_data,
-        "occasion":occasion_data,
-        "finding_subcategory_data":finding_subcategory_data,
-        "age_group":age_group_data,
-        "gender_data":gender_data,
-        "collection_data":get_collection,
-        "rhodium":rhodium_data
+        "diamond_stone_shape": diamond_stone_shape,
+        "gemstone_stone_data": gemstone_stone_data,
+        "occasion": occasion_data,
+        "finding_subcategory_data": finding_subcategory_data,
+        "age_group": age_group_data,
+        "gender_data": gender_data,
+        "collection_data": collection_data,
+        "rhodium": rhodium_data
     }
 
 @frappe.whitelist()
@@ -3338,12 +3393,14 @@ def get_selected_item_count_for_customet_wise(customer_id, collection):
         return e
     
 
-@frappe.whitelist()
-def get_wishlist_item_for_customer_by_user(items, customers):
+@frappe.whitelist(allow_guest=True)
+def get_wishlist_item_for_customer_by_user(items, customers, user_type):
     """
     Save selected items to 'Cataloge Master' for one or more customers.
     Supports trending value updates.
     """
+
+    # frappe.throw(f"customers {customers}")
 
     # Parse JSON if string
     if isinstance(items, str):
@@ -3370,15 +3427,23 @@ def get_wishlist_item_for_customer_by_user(items, customers):
             filters={"customer": customer},
             fields=["name"]
         )
+        
+
+        user_id = frappe.db.get_list(
+            "Cataloge Master",
+            filters={"user": customer},
+            fields=["name"]
+        )
 
         # frappe.throw(f"{customer_id}")
 
         # ---------------------------------------------------------
         # CUSTOMER EXISTS
         # ---------------------------------------------------------
-        if customer_found:
+        if customer_found or user_id:
 
-            catalog_doc = frappe.get_doc("Cataloge Master", customer_found[0].name)
+            doc_name = customer_found[0].name if customer_found else user_id[0].name
+            catalog_doc = frappe.get_doc("Cataloge Master", doc_name)
             # catalog_doc.flags.ignore_permissions = True
 
             # Build lookup: existing item_code → trending
@@ -3717,7 +3782,27 @@ def get_wishlist_item_for_customer_by_user(items, customers):
         # ---------------------------------------------------------
         else:
             catalog_doc = frappe.new_doc("Cataloge Master")
-            catalog_doc.customer = customer
+            # catalog_doc.customer = customer
+
+            if user_type == "User":
+                user_email  = frappe.db.get_value(
+                    "User",
+                    customer,
+                    "email"
+                )
+                catalog_doc.user = user_email 
+                full_name = user_email or ""
+
+                # Display: Full Name - Username
+                display_name = f"{full_name} - {customer}"
+
+                # Customer field me username save karo
+                # catalog_doc.customer = customer
+
+                # Display ke liye alag field
+               
+            else:
+                catalog_doc.customer = customer
 
             added_items = []
 
@@ -3845,6 +3930,8 @@ def get_wishlist_item_for_customer_by_user(items, customers):
         "status": "success",
         "results": results
     }
+
+
 
    
 # //shubham

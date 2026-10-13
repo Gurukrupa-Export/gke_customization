@@ -130,3 +130,4 @@ function set_filters_on_child_table_fields(frm, table_name, fields) {
 		});
 	});
 }
+

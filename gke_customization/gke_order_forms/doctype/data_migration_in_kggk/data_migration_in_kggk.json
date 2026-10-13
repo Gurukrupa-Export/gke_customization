@@ -36,7 +36,7 @@
   "prf_from_site",
   "column_break_uinj",
   "prf_to_site",
-   "serial_no_section",
+  "serial_no_section",
   "serial_no_from_site",
   "from_site_api_key",
   "column_break_mxsj",
@@ -198,7 +198,7 @@
    "fieldtype": "Button",
    "label": "Sync Logs"
   },
-   {
+  {
    "description": "This setting is used to synchronize Product Return Order Forms from the Gurukrupa site to the KGGK site. It synchronizes both the Product Return Order Form and the corresponding Product Return Order between the two sites.",
    "fieldname": "repair_order_section",
    "fieldtype": "Section Break",
@@ -218,7 +218,7 @@
    "fieldname": "prf_to_site",
    "fieldtype": "Data",
    "label": "PRF To Site"
-},
+  },
   {
    "description": "This setting is used to synchronize Serial No. from the KGGK site to the Gurukrupa site. It fetches the Serial No. from the KGGK site when a Product Return Order Form is created for a KGGK return.\n",
    "fieldname": "serial_no_section",

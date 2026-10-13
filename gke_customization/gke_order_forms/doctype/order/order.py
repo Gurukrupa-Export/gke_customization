@@ -608,6 +608,9 @@ def close_last_timelog(ts_name):
 def submit_timesheet(ts_name):
     frappe.db.set_value("Timesheet", ts_name, "docstatus", 1)
 
+def submit_timesheet(ts_name):
+    frappe.db.set_value("Timesheet", ts_name, "docstatus", 1)
+
 
 def validate_timesheet(self):
     if self.customer_order_form:
