@@ -18,8 +18,7 @@ class Order(Document):
     def on_update(self):
         if self.workflow_state == "Assigned":
             create_timesheet(self)
-            
-        
+
         if self.workflow_state == "Cancelled":
             timesheets = frappe.get_all(
                 "Timesheet", filters={"order": self.name}, fields=["name", "docstatus"]
@@ -94,12 +93,24 @@ class Order(Document):
         calculate_gemstone_weights(self)
         calculate_other_weights(self)
         calculate_total(self)
-        if self.workflow_state == 'Approved' and self.repair_order and self.is_repairing:
-            frappe.db.set_value("Repair Order",self.repair_order,"new_item_code",self.item)
-            frappe.db.set_value("Repair Order",self.repair_order,"new_bom",self.new_bom)
-            repair_bom = frappe.db.get_value("Repair Order",self.repair_order,"bom")
-            frappe.db.set_value("Repair Order",self.repair_order,"product_bom",repair_bom)
-            frappe.db.set_value("Repair Order",self.repair_order,"workflow_state","Approved")
+        if (
+            self.workflow_state == "Approved"
+            and self.repair_order
+            and self.is_repairing
+        ):
+            frappe.db.set_value(
+                "Repair Order", self.repair_order, "new_item_code", self.item
+            )
+            frappe.db.set_value(
+                "Repair Order", self.repair_order, "new_bom", self.new_bom
+            )
+            repair_bom = frappe.db.get_value("Repair Order", self.repair_order, "bom")
+            frappe.db.set_value(
+                "Repair Order", self.repair_order, "product_bom", repair_bom
+            )
+            frappe.db.set_value(
+                "Repair Order", self.repair_order, "workflow_state", "Approved"
+            )
         if (
             (
                 self.workflow_state == "Approved"
@@ -608,6 +619,7 @@ def close_last_timelog(ts_name):
 def submit_timesheet(ts_name):
     frappe.db.set_value("Timesheet", ts_name, "docstatus", 1)
 
+
 def submit_timesheet(ts_name):
     frappe.db.set_value("Timesheet", ts_name, "docstatus", 1)
 
@@ -1084,7 +1096,7 @@ def create_line_items(self):
                 "variant_of": item_variant[1],
                 "custom_sketch_order_id": sketch_order_form_id,
                 "custom_sketch_order_form_id": custom_sketch_order_form_id,
-                "custom_is_photoshop_images":1
+                "custom_is_photoshop_images": 1,
             },
         )
         if purchase_type_for_design:
@@ -1254,7 +1266,7 @@ def create_item_template_from_order(source_name, target_doc=None):
                     "india_states": "india_states",
                     "usa": "usa",
                     "usa_states": "usa_states",
-                    "custom_is_photoshop_images":1
+                    "custom_is_photoshop_images": 1,
                 },
             }
         },
@@ -1433,350 +1445,451 @@ def create_only_variant_from_order(self, source_name, target_doc=None):
                     "User", frappe.session.user, "full_name"
                 )
 
+
 def create_item_template_from_order(source_name, target_doc=None):
-	def post_process(source, target):
-		target.is_design_code = 1
-		target.has_variants = 1
+    def post_process(source, target):
+        target.is_design_code = 1
+        target.has_variants = 1
 
-		if source.designer_assignment:
-			target.designer = source.designer_assignment[0].designer
-		else:
-			if frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name'):
-				target.designer = frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name')
-			else:
-				target.designer = frappe.db.get_value('User',frappe.session.user,'full_name')
+        if source.designer_assignment:
+            target.designer = source.designer_assignment[0].designer
+        else:
+            if frappe.db.get_value(
+                "Employee", {"user_id": frappe.session.user}, "name"
+            ):
+                target.designer = frappe.db.get_value(
+                    "Employee", {"user_id": frappe.session.user}, "name"
+                )
+            else:
+                target.designer = frappe.db.get_value(
+                    "User", frappe.session.user, "full_name"
+                )
 
-		target.item_group = source.subcategory + " - T"
-		
-	doc = get_mapped_doc(
-		"Order",
-		source_name.name,
-		{
-			"Order": {
-				"doctype": "Item",
-				"field_map": {
-					"category": "item_category",
-					"subcategory": "item_subcategory",
-					"setting_type": "setting_type",
-					"india":"india",
-					"india_states":"india_states",
-					"usa":"usa",
-					"usa_states":"usa_states",
-					"custom_is_photoshop_images":1
+        target.item_group = source.subcategory + " - T"
 
-				},
-				}
-				},
-		target_doc,
-		post_process,
-	)
-	doc.save()
-	return doc.name, doc.variant_of
+    doc = get_mapped_doc(
+        "Order",
+        source_name.name,
+        {
+            "Order": {
+                "doctype": "Item",
+                "field_map": {
+                    "category": "item_category",
+                    "subcategory": "item_subcategory",
+                    "setting_type": "setting_type",
+                    "india": "india",
+                    "india_states": "india_states",
+                    "usa": "usa",
+                    "usa_states": "usa_states",
+                    "custom_is_photoshop_images": 1,
+                },
+            }
+        },
+        target_doc,
+        post_process,
+    )
+    doc.save()
+    return doc.name, doc.variant_of
 
-	
-	# doc.save()
+    # doc.save()
 
-	# return doc.name
+    # return doc.name
 
-def create_variant_of_template_from_order(item_template,source_name, target_doc=None):
-	def post_process(source, target):
-		target.order_form_type = 'Order'
-		target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V"
-		target.custom_cad_order_id = source_name
-		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
-		target.item_code = f'{item_template}-001'
-		target.sequence = item_template[2:7]
-		subcateogy = frappe.db.get_value('Item',item_template,'item_subcategory')
-		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': subcateogy,'in_item_variant':1},'item_attribute',order_by='idx asc'):
-			attribute_with = i.item_attribute.lower().replace(' ', '_').replace('/', '')
-			if i.item_attribute == 'Rhodium':
-				attribute_with = 'rhodium_'
-			if attribute_with == 'cap/ganthan':
-				attribute_with = 'capganthan'
-			try:
-				attribute_value = frappe.db.get_value('Order',source_name,attribute_with)
-			except:
-				attribute_value = ' '
-			
-			target.append('attributes',{
-				'attribute':i.item_attribute,
-				'variant_of':item_template,
-				'attribute_value':attribute_value
-			})
 
-		if source.designer_assignment:
-			target.designer = source.designer_assignment[0].designer
-		else:
-			if frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name'):
-				target.designer = frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name')
-			else:
-				target.designer = frappe.db.get_value('User',frappe.session.user,'full_name')
+def create_variant_of_template_from_order(item_template, source_name, target_doc=None):
+    def post_process(source, target):
+        target.order_form_type = "Order"
+        target.item_group = (
+            frappe.db.get_value("Order", source_name, "subcategory") + " - V"
+        )
+        target.custom_cad_order_id = source_name
+        target.custom_cad_order_form_id = frappe.db.get_value(
+            "Order", source_name, "cad_order_form"
+        )
+        target.item_code = f"{item_template}-001"
+        target.sequence = item_template[2:7]
+        subcateogy = frappe.db.get_value("Item", item_template, "item_subcategory")
+        for i in frappe.get_all(
+            "Attribute Value Item Attribute Detail",
+            {"parent": subcateogy, "in_item_variant": 1},
+            "item_attribute",
+            order_by="idx asc",
+        ):
+            attribute_with = i.item_attribute.lower().replace(" ", "_").replace("/", "")
+            if i.item_attribute == "Rhodium":
+                attribute_with = "rhodium_"
+            if attribute_with == "cap/ganthan":
+                attribute_with = "capganthan"
+            try:
+                attribute_value = frappe.db.get_value(
+                    "Order", source_name, attribute_with
+                )
+            except:
+                attribute_value = " "
 
-	doc = get_mapped_doc(
-		"Order",
-		source_name,
-		{
-			"Order": {
-				"doctype": "Item",
-				"field_map": {
-					"category": "item_category",
-					"subcategory": "item_subcategory",
-					"setting_type": "setting_type",
-					"metal_target":"approx_gold",
-					"diamond_target":"approx_diamond",
-					"sub_setting_type1":"sub_setting_type",
-					"sub_setting_type2":"sub_setting_type2",
-					"india":"india",
-					"india_states":"india_states",
-					"usa":"usa",
-					"usa_states":"usa_states",
-					"has_serial_no":1
-				} 
-			}
-		},target_doc, post_process
-	)
-	
-	doc.save()
-	return doc.name
+            target.append(
+                "attributes",
+                {
+                    "attribute": i.item_attribute,
+                    "variant_of": item_template,
+                    "attribute_value": attribute_value,
+                },
+            )
 
-def create_only_variant_from_order(self,source_name, target_doc=None):
-	def post_process(source, target):
-		# if db_data['item_group'] == 'Design DNU':
-		# 	index = int(self.design_id.split('-')[1]) + 1
-		# 	suffix = "%.3i" % index
-		# 	item_code = self.design_id.split('-')[0] + '-' + suffix
-		# 	# frappe.throw(f"{item_code}")
-		# else:
-		db_data = frappe.db.get_list('Item',filters={'name':self.design_id},fields=['variant_of','item_group'],order_by='creation desc')[0]
-		if db_data['variant_of']:
-			db_data1 = frappe.db.get_list('Item',filters={'variant_of':db_data['variant_of']},fields=['name'],order_by='creation desc')[0]
-			index = int(db_data1['name'].split('-')[1]) + 1
-			variant_of = db_data['variant_of']
-		else:
-			# variant_of = db_data['variant_of']
-			index =  1
-			variant_of = self.design_id
-		suffix = "%.3i" % index
-		# item_code = db_data['variant_of'] + '-' + suffix
-		item_code = variant_of + '-' + suffix
-		# frappe.throw(f"{item_code}")
-		
-		target.order_form_type = 'Order'
-		if db_data['item_group'] == 'Design DNU':
-			target.item_group = "Design DNU"
-			target.sequence = suffix
-		else:
-			target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V"
-			target.sequence = item_code[2:7]
-		target.item_code = item_code
-		target.custom_cad_order_id = source_name
-		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
-		target.has_serial_no = 1
-		target.variant_of = variant_of
+        if source.designer_assignment:
+            target.designer = source.designer_assignment[0].designer
+        else:
+            if frappe.db.get_value(
+                "Employee", {"user_id": frappe.session.user}, "name"
+            ):
+                target.designer = frappe.db.get_value(
+                    "Employee", {"user_id": frappe.session.user}, "name"
+                )
+            else:
+                target.designer = frappe.db.get_value(
+                    "User", frappe.session.user, "full_name"
+                )
 
-		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': self.subcategory,'in_item_variant':1},'item_attribute',order_by='idx asc'):
-			attribute_with = i.item_attribute.lower().replace(' ', '_').replace('/', '')
-			if i.item_attribute == 'Rhodium':
-				attribute_with = 'rhodium_'
-			if attribute_with == 'cap/ganthan':
-				attribute_with = 'capganthan'
-			try:
-				attribute_value = frappe.db.get_value('Order',source_name,attribute_with)
-			except:
-				attribute_value = ' '
-			
-			# target.append('attributes',{
-			# 	'attribute':i.item_attribute,
-			# 	'variant_of':item_template,
-			# 	'attribute_value':attribute_value
-			# })
-			target.append('attributes',{
-				'attribute':i.item_attribute,
-				'variant_of':variant_of,
-				'attribute_value':attribute_value
-			})
+    doc = get_mapped_doc(
+        "Order",
+        source_name,
+        {
+            "Order": {
+                "doctype": "Item",
+                "field_map": {
+                    "category": "item_category",
+                    "subcategory": "item_subcategory",
+                    "setting_type": "setting_type",
+                    "metal_target": "approx_gold",
+                    "diamond_target": "approx_diamond",
+                    "sub_setting_type1": "sub_setting_type",
+                    "sub_setting_type2": "sub_setting_type2",
+                    "india": "india",
+                    "india_states": "india_states",
+                    "usa": "usa",
+                    "usa_states": "usa_states",
+                    "has_serial_no": 1,
+                },
+            }
+        },
+        target_doc,
+        post_process,
+    )
 
-		if source.designer_assignment:
-			target.designer = source.designer_assignment[0].designer
-		else:
-			if frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name'):
-				target.designer = frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name')
-			else:
-				target.designer = frappe.db.get_value('User',frappe.session.user,'full_name')
-		
-	doc = get_mapped_doc(
-		"Order",
-		source_name,
-		{
-			"Order": {
-				"doctype": "Item",
-				"field_map": {
-					"category": "item_category",
-					"subcategory": "item_subcategory",
-					"metal_target":"approx_gold",
-					"diamond_target":"approx_diamond",
-					"setting_type": "setting_type",
-					"sub_setting_type1":"sub_setting_type",
-					"sub_setting_type2":"sub_setting_type2",
-					"india":"india",
-					"india_states":"india_states",
-					"usa":"usa",
-					"usa_states":"usa_states",
-					"age_group":"custom_age_group",
-					"alphabetnumber":"custom_alphabetnumber",
-					"animalbirds":"custom_animalbirds",
-					"collection":"custom_collection",
-					"design_style":"custom_design_style",
-					"gender":"custom_gender",
-					"lines_rows":"custom_lines__rows",
-					"language":"custom_language",
-					"occasion":"custom_occasion",
-					"rhodium":"custom_rhodium",
-					"shapes":"custom_religious",
-					"religious":"custom_shapes",
-					"zodiac":"custom_zodiac",
-					"has_serial_no":1,
-					"custom_is_photoshop_images":1
-				} 
-			}
-		},target_doc, post_process
-	)
-	doc.save()
-	return doc.name,doc.variant_of
+    doc.save()
+    return doc.name
+
+
+def create_only_variant_from_order(self, source_name, target_doc=None):
+    def post_process(source, target):
+        # if db_data['item_group'] == 'Design DNU':
+        # 	index = int(self.design_id.split('-')[1]) + 1
+        # 	suffix = "%.3i" % index
+        # 	item_code = self.design_id.split('-')[0] + '-' + suffix
+        # 	# frappe.throw(f"{item_code}")
+        # else:
+        db_data = frappe.db.get_list(
+            "Item",
+            filters={"name": self.design_id},
+            fields=["variant_of", "item_group"],
+            order_by="creation desc",
+        )[0]
+        if db_data["variant_of"]:
+            db_data1 = frappe.db.get_list(
+                "Item",
+                filters={"variant_of": db_data["variant_of"]},
+                fields=["name"],
+                order_by="creation desc",
+            )[0]
+            index = int(db_data1["name"].split("-")[1]) + 1
+            variant_of = db_data["variant_of"]
+        else:
+            # variant_of = db_data['variant_of']
+            index = 1
+            variant_of = self.design_id
+        suffix = "%.3i" % index
+        # item_code = db_data['variant_of'] + '-' + suffix
+        item_code = variant_of + "-" + suffix
+        # frappe.throw(f"{item_code}")
+
+        target.order_form_type = "Order"
+        if db_data["item_group"] == "Design DNU":
+            target.item_group = "Design DNU"
+            target.sequence = suffix
+        else:
+            target.item_group = (
+                frappe.db.get_value("Order", source_name, "subcategory") + " - V"
+            )
+            target.sequence = item_code[2:7]
+        target.item_code = item_code
+        target.custom_cad_order_id = source_name
+        target.custom_cad_order_form_id = frappe.db.get_value(
+            "Order", source_name, "cad_order_form"
+        )
+        target.has_serial_no = 1
+        target.variant_of = variant_of
+
+        for i in frappe.get_all(
+            "Attribute Value Item Attribute Detail",
+            {"parent": self.subcategory, "in_item_variant": 1},
+            "item_attribute",
+            order_by="idx asc",
+        ):
+            attribute_with = i.item_attribute.lower().replace(" ", "_").replace("/", "")
+            if i.item_attribute == "Rhodium":
+                attribute_with = "rhodium_"
+            if attribute_with == "cap/ganthan":
+                attribute_with = "capganthan"
+            try:
+                attribute_value = frappe.db.get_value(
+                    "Order", source_name, attribute_with
+                )
+            except:
+                attribute_value = " "
+
+            # target.append('attributes',{
+            # 	'attribute':i.item_attribute,
+            # 	'variant_of':item_template,
+            # 	'attribute_value':attribute_value
+            # })
+            target.append(
+                "attributes",
+                {
+                    "attribute": i.item_attribute,
+                    "variant_of": variant_of,
+                    "attribute_value": attribute_value,
+                },
+            )
+
+        if source.designer_assignment:
+            target.designer = source.designer_assignment[0].designer
+        else:
+            if frappe.db.get_value(
+                "Employee", {"user_id": frappe.session.user}, "name"
+            ):
+                target.designer = frappe.db.get_value(
+                    "Employee", {"user_id": frappe.session.user}, "name"
+                )
+            else:
+                target.designer = frappe.db.get_value(
+                    "User", frappe.session.user, "full_name"
+                )
+
+    doc = get_mapped_doc(
+        "Order",
+        source_name,
+        {
+            "Order": {
+                "doctype": "Item",
+                "field_map": {
+                    "category": "item_category",
+                    "subcategory": "item_subcategory",
+                    "metal_target": "approx_gold",
+                    "diamond_target": "approx_diamond",
+                    "setting_type": "setting_type",
+                    "sub_setting_type1": "sub_setting_type",
+                    "sub_setting_type2": "sub_setting_type2",
+                    "india": "india",
+                    "india_states": "india_states",
+                    "usa": "usa",
+                    "usa_states": "usa_states",
+                    "age_group": "custom_age_group",
+                    "alphabetnumber": "custom_alphabetnumber",
+                    "animalbirds": "custom_animalbirds",
+                    "collection": "custom_collection",
+                    "design_style": "custom_design_style",
+                    "gender": "custom_gender",
+                    "lines_rows": "custom_lines__rows",
+                    "language": "custom_language",
+                    "occasion": "custom_occasion",
+                    "rhodium": "custom_rhodium",
+                    "shapes": "custom_religious",
+                    "religious": "custom_shapes",
+                    "zodiac": "custom_zodiac",
+                    "has_serial_no": 1,
+                    "custom_is_photoshop_images": 1,
+                },
+            }
+        },
+        target_doc,
+        post_process,
+    )
+    doc.save()
+    return doc.name, doc.variant_of
+
 
 def create_sufix_of_variant_template_from_order(source_name, target_doc=None):
-	variant_of = frappe.db.get_value("Item",source_name.design_id,'variant_of')
-	if variant_of == None:
-		frappe.throw(f'Template of {variant_of} is not available')
+    variant_of = frappe.db.get_value("Item", source_name.design_id, "variant_of")
+    if variant_of == None:
+        frappe.throw(f"Template of {variant_of} is not available")
 
-	def post_process(source, target):
-		target.is_design_code = 1
-		target.has_variants = 1
-		target.item_group = source.subcategory + " - T"
-		# query = """
-		# SELECT name, modified_sequence, `sequence`
-		# FROM `tabItem` ti
-		# WHERE name LIKE %s AND has_variants = 1
-		# ORDER BY creation DESC
-		# """
+    def post_process(source, target):
+        target.is_design_code = 1
+        target.has_variants = 1
+        target.item_group = source.subcategory + " - T"
+        # query = """
+        # SELECT name, modified_sequence, `sequence`
+        # FROM `tabItem` ti
+        # WHERE name LIKE %s AND has_variants = 1
+        # ORDER BY creation DESC
+        # """
 
-		# results = frappe.db.sql(query, (f"%{variant_of}/%",), as_dict=True)
-		# if results:
-		# 	modified_sequence = int(results[0]['modified_sequence']) + 1
-		# 	modified_sequence = f"{modified_sequence:02}"
-		# else:
-		# 	modified_sequence = '01'
-		
-		# target.item_code = variant_of + '/' + modified_sequence
-		# # frappe.throw(target.item_code)
-		# target.modified_sequence = modified_sequence
-		# target.order_form_type = 'Order'
-		# target.custom_cad_order_id = source_name
-		# target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
+        # results = frappe.db.sql(query, (f"%{variant_of}/%",), as_dict=True)
+        # if results:
+        # 	modified_sequence = int(results[0]['modified_sequence']) + 1
+        # 	modified_sequence = f"{modified_sequence:02}"
+        # else:
+        # 	modified_sequence = '01'
 
-		if source.designer_assignment:
-			target.designer = source.designer_assignment[0].designer
-		else:
-			if frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name'):
-				target.designer = frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name')
-			else:
-				target.designer = frappe.db.get_value('User',frappe.session.user,'full_name')
-	
-	doc = get_mapped_doc(
-		"Order",
-		source_name.name,
-		{
-			"Order": {
-				"doctype": "Item",
-				"field_map": {
-					"category": "item_category",
-					"subcategory": "item_subcategory",
-					"setting_type": "setting_type",
-					"india":"india",
-					"india_states":"india_states",
-					"usa":"usa",
-					"usa_states":"usa_states",
-				} 
-			}
-		},target_doc, post_process
-	)
-	doc.save()
-	return doc.name
+        # target.item_code = variant_of + '/' + modified_sequence
+        # # frappe.throw(target.item_code)
+        # target.modified_sequence = modified_sequence
+        # target.order_form_type = 'Order'
+        # target.custom_cad_order_id = source_name
+        # target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
 
-def create_variant_of_sufix_of_variant_from_order(self,item_template,source_name, target_doc=None):
-	def post_process(source, target):
-		target.order_form_type = 'Order'
-		target.item_group = frappe.db.get_value('Order',source_name,'subcategory') + " - V"
-		target.custom_cad_order_id = source_name
-		target.custom_cad_order_form_id = frappe.db.get_value('Order',source_name,'cad_order_form')
-		target.item_code = f'{item_template}-001'
-		target.sequence = item_template[2:7]
-		subcateogy = frappe.db.get_value('Item',item_template,'item_subcategory')
-		for i in frappe.get_all("Attribute Value Item Attribute Detail",{'parent': subcateogy,'in_item_variant':1},'item_attribute',order_by='idx asc'):
-			attribute_with = i.item_attribute.lower().replace(' ', '_').replace('/', '')	
-			if attribute_with == 'rhodium':
-				attribute_with = 'rhodium_'
-			if attribute_with == 'cap/ganthan':
-				attribute_with = 'capganthan'
-			try:
-				attribute_value = frappe.db.get_value('Order',source_name,attribute_with)
-			except:
-				attribute_value = ' '
+        if source.designer_assignment:
+            target.designer = source.designer_assignment[0].designer
+        else:
+            if frappe.db.get_value(
+                "Employee", {"user_id": frappe.session.user}, "name"
+            ):
+                target.designer = frappe.db.get_value(
+                    "Employee", {"user_id": frappe.session.user}, "name"
+                )
+            else:
+                target.designer = frappe.db.get_value(
+                    "User", frappe.session.user, "full_name"
+                )
 
-			target.append('attributes',{
-				'attribute':i.item_attribute,
-				'variant_of':item_template,
-				'attribute_value':frappe.db.get_value('Order',source_name,attribute_with)
-			})
+    doc = get_mapped_doc(
+        "Order",
+        source_name.name,
+        {
+            "Order": {
+                "doctype": "Item",
+                "field_map": {
+                    "category": "item_category",
+                    "subcategory": "item_subcategory",
+                    "setting_type": "setting_type",
+                    "india": "india",
+                    "india_states": "india_states",
+                    "usa": "usa",
+                    "usa_states": "usa_states",
+                },
+            }
+        },
+        target_doc,
+        post_process,
+    )
+    doc.save()
+    return doc.name
 
-		if source.designer_assignment:
-			target.designer = source.designer_assignment[0].designer
-		else:
-			if frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name'):
-				target.designer = frappe.db.get_value('Employee',{'user_id':frappe.session.user},'name')
-			else:
-				target.designer = frappe.db.get_value('User',frappe.session.user,'full_name')
-	
-	doc = get_mapped_doc(
-		"Order",
-		source_name,
-		{
-			"Order": {
-				"doctype": "Item",
-				"field_map": {
-					"category": "item_category",
-					"subcategory": "item_subcategory",
-					"setting_type": "setting_type",
-					"metal_target":"approx_gold",
-					"diamond_target":"approx_diamond",
-					"sub_setting_type1":"sub_setting_type",
-					"sub_setting_type2":"sub_setting_type2",
-					"india":"india",
-					"india_states":"india_states",
-					"usa":"usa",
-					"usa_states":"usa_states",
-					"has_serial_no":1
-				} 
-			}
-		},target_doc, post_process
-	)
-	doc.save()
-	return doc.name
 
-def updatet_item_template(item_template):
-	frappe.db.set_value('Item',item_template,{
-		"is_design_code":0,
-		"item_code":item_template,
-		"custom_cad_order_id":"",
-		"custom_cad_order_form_id":"",
-	})
+def create_variant_of_sufix_of_variant_from_order(
+    self, item_template, source_name, target_doc=None
+):
+    def post_process(source, target):
+        target.order_form_type = "Order"
+        target.item_group = (
+            frappe.db.get_value("Order", source_name, "subcategory") + " - V"
+        )
+        target.custom_cad_order_id = source_name
+        target.custom_cad_order_form_id = frappe.db.get_value(
+            "Order", source_name, "cad_order_form"
+        )
+        target.item_code = f"{item_template}-001"
+        target.sequence = item_template[2:7]
+        subcateogy = frappe.db.get_value("Item", item_template, "item_subcategory")
+        for i in frappe.get_all(
+            "Attribute Value Item Attribute Detail",
+            {"parent": subcateogy, "in_item_variant": 1},
+            "item_attribute",
+            order_by="idx asc",
+        ):
+            attribute_with = i.item_attribute.lower().replace(" ", "_").replace("/", "")
+            if attribute_with == "rhodium":
+                attribute_with = "rhodium_"
+            if attribute_with == "cap/ganthan":
+                attribute_with = "capganthan"
+            try:
+                attribute_value = frappe.db.get_value(
+                    "Order", source_name, attribute_with
+                )
+            except:
+                attribute_value = " "
 
-def update_item_variant(item_variant,item_template):
-	frappe.db.set_value('Item',item_variant,{
-		"is_design_code":1,
-		"variant_of" : item_template
-	})
+            target.append(
+                "attributes",
+                {
+                    "attribute": i.item_attribute,
+                    "variant_of": item_template,
+                    "attribute_value": frappe.db.get_value(
+                        "Order", source_name, attribute_with
+                    ),
+                },
+            )
 
+        if source.designer_assignment:
+            target.designer = source.designer_assignment[0].designer
+        else:
+            if frappe.db.get_value(
+                "Employee", {"user_id": frappe.session.user}, "name"
+            ):
+                target.designer = frappe.db.get_value(
+                    "Employee", {"user_id": frappe.session.user}, "name"
+                )
+            else:
+                target.designer = frappe.db.get_value(
+                    "User", frappe.session.user, "full_name"
+                )
+
+    doc = get_mapped_doc(
+        "Order",
+        source_name,
+        {
+            "Order": {
+                "doctype": "Item",
+                "field_map": {
+                    "category": "item_category",
+                    "subcategory": "item_subcategory",
+                    "setting_type": "setting_type",
+                    "metal_target": "approx_gold",
+                    "diamond_target": "approx_diamond",
+                    "sub_setting_type1": "sub_setting_type",
+                    "sub_setting_type2": "sub_setting_type2",
+                    "india": "india",
+                    "india_states": "india_states",
+                    "usa": "usa",
+                    "usa_states": "usa_states",
+                    "has_serial_no": 1,
+                },
+            }
+        },
+        target_doc,
+        post_process,
+    )
+    doc.save()
+    return doc.name
+
+
+def update_item_template(item_template):
+    frappe.db.set_value(
+        "Item",
+        item_template,
+        {
+            "is_design_code": 0,
+            "item_code": item_template,
+            "custom_cad_order_id": "",
+            "custom_cad_order_form_id": "",
+        },
+    )
+
+
+def update_item_variant(item_variant, item_template):
+    frappe.db.set_value(
+        "Item", item_variant, {"is_design_code": 1, "variant_of": item_template}
+    )
 
 
 # def create_bom(self, item_variant):
@@ -1837,7 +1950,7 @@ def update_item_variant(item_variant,item_template):
 # 		new_bom_doc.metal_target = total_metal_weight
 # 		new_bom_doc.total_metal_weight = total_metal_weight
 
-	
+
 # 	new_bom_doc.save()
 # 	return new_bom_doc.name
 
@@ -1855,25 +1968,24 @@ def create_bom(self, item_variant):
     new_bom_doc.custom_order_form_type = "Order"
     new_bom_doc.custom_cad_order_form_id = self.cad_order_form
     new_bom_doc.custom_order_id = self.name
-    new_bom_doc.metal_type_=self.metal_type
-    new_bom_doc.diamond_type=self.diamond_type
-    new_bom_doc.metal_purity=self.metal_purity
-    if self.metal_type=='Silver':
-        new_bom_doc.gold_to_diamond_ratio=0
-        new_bom_doc.metal_to_diamond_ratio_excl_of_finding=0
-        new_bom_doc.diamond_ratio=0
+    new_bom_doc.metal_type_ = self.metal_type
+    new_bom_doc.diamond_type = self.diamond_type
+    new_bom_doc.metal_purity = self.metal_purity
+    if self.metal_type == "Silver":
+        new_bom_doc.gold_to_diamond_ratio = 0
+        new_bom_doc.metal_to_diamond_ratio_excl_of_finding = 0
+        new_bom_doc.diamond_ratio = 0
     for i in new_bom_doc.diamond_detail:
-        i.diamond_type=self.diamond_type
-        if i.diamond_type != 'AD':
-            i.quantity=i.quantity *1.7
-            i.weight_per_pcs =i.weight_per_pcs *1.7
+        i.diamond_type = self.diamond_type
+        if i.diamond_type != "AD":
+            i.quantity = i.quantity * 1.7
+            i.weight_per_pcs = i.weight_per_pcs * 1.7
     for i in new_bom_doc.finding_detail:
-        i.metal_type=self.metal_type
-        i.metal_colour=self.metal_colour
+        i.metal_type = self.metal_type
+        i.metal_colour = self.metal_colour
         i.metal_touch = self.metal_touch
-        i.metal_purity=self.metal_purity
-       
-        
+        i.metal_purity = self.metal_purity
+
     # If metal_type is Silver, update metal details and convert quantities
     if (
         self.metal_type
@@ -1897,7 +2009,7 @@ def create_bom(self, item_variant):
             new_row.metal_touch = self.metal_touch
             new_row.metal_colour = self.metal_colour
             new_row.metal_purity = self.metal_purity
-            if self.metal_touch=="20KT":
+            if self.metal_touch == "20KT":
                 new_row.metal_purity = "85.0"
 
                 # Perform conversion based on original metal_touch
@@ -1922,8 +2034,8 @@ def create_bom(self, item_variant):
                     # If not matched, keep original quantity
                     converted_qty = original_row.quantity
                 new_row.quantity = converted_qty
-            elif self.metal_touch=="22KT":
-                new_row.metal_purity = "92.5"  
+            elif self.metal_touch == "22KT":
+                new_row.metal_purity = "92.5"
                 if original_row.metal_touch == "10KT":
                     converted_qty = (
                         original_row.quantity / wax_to_gold_10
@@ -1940,7 +2052,7 @@ def create_bom(self, item_variant):
                     # frappe.throw(f"{wax_to_gold_22}")
                     converted_qty = (
                         original_row.quantity / wax_to_gold_22
-                    ) * wax_to_22_silver_ratio 
+                    ) * wax_to_22_silver_ratio
                 else:
                     # If not matched, keep original quantity
                     converted_qty = original_row.quantity
@@ -1953,7 +2065,7 @@ def create_bom(self, item_variant):
             new_row.metal_touch = self.metal_touch
             new_row.metal_colour = self.metal_colour
             new_row.metal_purity = self.metal_purity
-            if self.metal_touch=="20KT":
+            if self.metal_touch == "20KT":
                 new_row.metal_purity = "85.0"
 
                 # Perform conversion based on original metal_touch
@@ -1978,8 +2090,8 @@ def create_bom(self, item_variant):
                     # If not matched, keep original quantity
                     converted_qty = original_row.quantity
                 new_row.quantity = converted_qty
-            elif self.metal_touch=="22KT":
-                new_row.metal_purity = "92.5"  
+            elif self.metal_touch == "22KT":
+                new_row.metal_purity = "92.5"
                 if original_row.metal_touch == "10KT":
                     converted_qty = (
                         original_row.quantity / wax_to_gold_10
@@ -1996,18 +2108,18 @@ def create_bom(self, item_variant):
                     # frappe.throw(f"{wax_to_gold_22}")
                     converted_qty = (
                         original_row.quantity / wax_to_gold_22
-                    ) * wax_to_22_silver_ratio 
+                    ) * wax_to_22_silver_ratio
                 else:
                     # If not matched, keep original quantity
                     converted_qty = original_row.quantity
 
-                new_row.quantity = converted_qty    
+                new_row.quantity = converted_qty
         # Update BOM-level fields
         new_bom_doc.metal_type = self.metal_type
         new_bom_doc.metal_touch = self.metal_touch
         new_bom_doc.metal_colour = self.metal_colour
-        if self.metal_touch=="22KT":
-            new_bom_doc.metal_purity = "92.5" 
+        if self.metal_touch == "22KT":
+            new_bom_doc.metal_purity = "92.5"
         else:
             new_bom_doc.metal_purity = "85.0"
         # frappe.msgprint(f"{new_bom_doc.metal_purity}")
@@ -2030,45 +2142,45 @@ def create_bom_for_touch(self, item_variant=None):
     # and v16 rejects non-str/int link values.
     is_silver = self.metal_type == "Silver"
     touch_purity = {"22KT": "91.9", "20KT": "85.0", "18KT": "75.4"}
-    new_bom_doc.metal_type=self.metal_type
-    new_bom_doc.metal_type_=self.metal_type
-    new_bom_doc.diamond_type=self.diamond_type
-    new_bom_doc.metal_colour=self.metal_colour
+    new_bom_doc.metal_type = self.metal_type
+    new_bom_doc.metal_type_ = self.metal_type
+    new_bom_doc.diamond_type = self.diamond_type
+    new_bom_doc.metal_colour = self.metal_colour
     if is_silver:
-        new_bom_doc.gold_to_diamond_ratio=0
-        new_bom_doc.metal_to_diamond_ratio_excl_of_finding=0
-        new_bom_doc.diamond_ratio=0
+        new_bom_doc.gold_to_diamond_ratio = 0
+        new_bom_doc.metal_to_diamond_ratio_excl_of_finding = 0
+        new_bom_doc.diamond_ratio = 0
     for i in new_bom_doc.metal_detail:
         i.quantity = flt(i.quantity) * (
             flt(self.metal_touch.replace("KT", ""))
             / flt(i.metal_touch.replace("KT", ""))
         )
         qty = i.quantity
-        i.metal_type=self.metal_type
-        i.metal_colour=self.metal_colour
+        i.metal_type = self.metal_type
+        i.metal_colour = self.metal_colour
         i.metal_touch = self.metal_touch
         if is_silver:
-            i.metal_purity=self.metal_purity
+            i.metal_purity = self.metal_purity
         elif i.metal_touch in touch_purity:
             i.metal_purity = touch_purity[i.metal_touch]
 
     for i in new_bom_doc.finding_detail:
-        i.metal_type=self.metal_type
-        i.metal_colour=self.metal_colour
+        i.metal_type = self.metal_type
+        i.metal_colour = self.metal_colour
         i.metal_touch = self.metal_touch
         if is_silver:
-            i.metal_purity=self.metal_purity
+            i.metal_purity = self.metal_purity
         elif i.metal_touch in touch_purity:
             i.metal_purity = touch_purity[i.metal_touch]
     for i in new_bom_doc.diamond_detail:
-        i.diamond_type=self.diamond_type
+        i.diamond_type = self.diamond_type
         # Stone rescaling belongs to the Silver flow; a gold touch change keeps stone weights.
-        if is_silver and i.diamond_type != 'AD':
-            i.quantity=i.quantity *1.7
-            i.weight_per_pcs =i.weight_per_pcs *1.7
+        if is_silver and i.diamond_type != "AD":
+            i.quantity = i.quantity * 1.7
+            i.weight_per_pcs = i.weight_per_pcs * 1.7
     new_bom_doc.metal_touch = self.metal_touch
     if is_silver:
-        new_bom_doc.metal_purity=self.metal_purity
+        new_bom_doc.metal_purity = self.metal_purity
     elif self.metal_touch in touch_purity:
         new_bom_doc.metal_purity = touch_purity[self.metal_touch]
     new_bom_doc.metal_target = qty
@@ -2387,7 +2499,7 @@ def make_quotation_batch(order_names, target_doc=None):
                 "po_no": order.po_no,
                 "custom_jewelex_batch_no": order.jewelex_batch_no,
                 "qty": order.qty,
-                "metal_type":order.metal_type
+                "metal_type": order.metal_type,
             },
         )
 
@@ -2421,11 +2533,18 @@ def make_quotation_fill_defaults(quotation, order):
     if taxes.get("taxes"):
         quotation.update(taxes)
     cad_order_form = frappe.db.get_value(
-    "Order Form",
-    {"name": order.cad_order_form},
-    ["sales_type", "customer_gold", "customer_stone","customer_diamond","customer_good","customer_finding"],
-	as_dict=True
-	)
+        "Order Form",
+        {"name": order.cad_order_form},
+        [
+            "sales_type",
+            "customer_gold",
+            "customer_stone",
+            "customer_diamond",
+            "customer_good",
+            "customer_finding",
+        ],
+        as_dict=True,
+    )
 
     quotation.quotation_to = "Customer"
     quotation.company = order.company
