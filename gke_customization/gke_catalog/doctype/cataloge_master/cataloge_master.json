@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "company",
+  "user",
   "column_break_pijk",
   "customer",
   "customer_name",
@@ -105,13 +106,18 @@
    "fieldtype": "Table",
    "label": "Diamond Quality",
    "options": "Customer Diamond Grade"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Data",
+   "label": "User"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-22 16:03:48.664481",
- "modified_by": "bhavika_patel@gkexport.com",
+ "modified": "2026-10-01 09:52:10.015643",
+ "modified_by": "mansi_g@gkexport.com",
  "module": "GKE Catalog",
  "name": "Cataloge Master",
  "naming_rule": "By \"Naming Series\" field",
