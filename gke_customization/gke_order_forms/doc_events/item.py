@@ -928,7 +928,7 @@ def create_bom_kggk(doc,pro_name, method=None):
                 "back_side_size":doc.back_side_size,
                 "charm":doc.charm,
                 "metal_target":doc.metal_target,
-                "diamond_target":float(doc.diamond_target),
+                "diamond_target":float(doc.diamond_target or 0),
                 "metal_purity":doc.metal_purity,
                 "metal_colour":doc.metal_colour,
                 "metal_touch":doc.metal_touch,
