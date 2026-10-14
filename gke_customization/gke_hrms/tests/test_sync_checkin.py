@@ -37,7 +37,7 @@ class TestBiometricSyncTimeThreshold(GKHRMSTestCase):
 		super().setUp()
 		# attendance_device_id is unique; sync commits internally, so the
 		# employee of a previous test can survive its rollback
-		self.device_id = f"{DEVICE_ID}-{frappe.generate_hash(length=6)}"
+		self.device_id = f"{DEVICE_ID}-{self._testMethodName}-{frappe.generate_hash(length=6)}"
 		self.ensure_server_scripts()
 		self.employee = self.create_employee("Test Threshold Sync", attendance_device_id=self.device_id)
 		apply_sync_settings()
