@@ -179,11 +179,11 @@ class ProductReturnOrderForm(Document):
 	def before_validate(self):
 		
 		gold_gst_rate = frappe.db.get_single_value("Jewellery Settings", "gold_gst_rate")
-		for row in self.items:
-			if flt(row.physical_gross_weight) >flt(row.gross_weight):
-				frappe.throw("Physical  GrossWeight should not be greater than Gross weight ")
-			if flt(row.physical_net_weight) >flt(row.net_weight):
-				frappe.throw("Physical Net Weight should not be greater than Net weight ")
+		# for row in self.items:
+		# 	if flt(row.physical_gross_weight) >flt(row.gross_weight):
+		# 		frappe.throw("Physical  GrossWeight should not be greater than Gross weight ")
+		# 	if flt(row.physical_net_weight) >flt(row.net_weight):
+		# 		frappe.throw("Physical Net Weight should not be greater than Net weight ")
 		# 	row.rate = row.rate
 		# 	row.amount = row.amount
 		# 	row.base_rate=row.rate
