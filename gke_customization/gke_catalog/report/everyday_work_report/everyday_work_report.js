@@ -37,7 +37,7 @@ frappe.query_reports["Everyday Work Report"] = {
         },
         {
             fieldname: "operation",
-            label: __("Current Process"),
+            label: __("Operation"),
             fieldtype: "MultiSelectList",
             get_data: function(txt) {
                 return frappe.db.get_list("Employee IR", {
@@ -60,7 +60,7 @@ frappe.query_reports["Everyday Work Report"] = {
         },
         {
             fieldname: "employee",
-            label: __("Worker"),
+            label: __("Employee"),
             fieldtype: "MultiSelectList",
             get_data: function(txt) {
                 return frappe.db.get_link_options("Employee", txt);

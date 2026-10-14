@@ -33,7 +33,6 @@ Total is Frappe's total row, so Dept Total Qty and Quantity sum to the same.
 """
 
 import json
-import re
 
 import frappe
 from frappe import _
@@ -78,9 +77,16 @@ OPERATION_WEIGHT_FIELDS = {
     "Finding": "finding_wt",
 }
 
-# Raw material types with a Pure Gold weight. A finding's purity can differ from
-# the work order's metal, so it is always taken from the finding's own item code.
+# Raw material types with a Pure Gold weight. Purity is always the "Metal Purity"
+# attribute of the raw material item itself (see get_item_purities): the ledger
+# item, the items on an operation's MOP Log, or the metal items of a piece's BOM.
 PURE_GOLD_TYPES = ("Metal", "Finding")
+
+# MOP Log items whose purity makes up an operation's pure gold, per type.
+OPERATION_LOG_ITEMS = {
+    "Metal": "M-%",
+    "Finding": "F%",
+}
 
 # Department lines taken from Manufacturing Operations instead of the Stock
 # Ledger, with the operation status that puts the weight on that line.
@@ -229,20 +235,32 @@ def get_bom_weight_sql(raw_material_type):
     }.get(raw_material_type)
 
 
-def extract_purity_from_item_code(item_code):
-    if not item_code:
-        return 0.0
+def get_item_purities(item_codes):
+    """{item_code: purity}: the Purity Percentage of each item's "Metal Purity"
+    attribute value (e.g. 99.9 -> 100). Items without it are left out, so their
+    pure gold is 0."""
+    item_codes = list({code for code in item_codes if code})
+    if not item_codes:
+        return {}
 
-    match = re.search(r"-(\d+(?:\.\d+)?)($|-)", item_code)
-    if match:
-        return flt(match.group(1))
+    return {
+        item_code: flt(purity)
+        for item_code, purity in frappe.db.sql(
+            """
+            SELECT iva.parent, av.purity_percentage
+            FROM `tabItem Variant Attribute` iva
+            INNER JOIN `tabAttribute Value` av ON av.name = iva.attribute_value
+            WHERE iva.parenttype = 'Item'
+              AND iva.attribute = 'Metal Purity'
+              AND iva.parent IN %(item_codes)s
+            """,
+            {"item_codes": item_codes},
+        )
+    }
 
-    return 0.0
 
-
-def get_pure_gold_from_item_code(item_code, weight):
-    purity = extract_purity_from_item_code(item_code)
-    return flt(weight) * purity / 100 if purity else 0.0
+def get_pure_gold(weight, purity):
+    return flt(weight) * flt(purity) / 100
 
 
 def get_manufacturer_departments(manufacturer):
@@ -415,30 +433,27 @@ def get_ledger_balances(company, item_groups, as_on_date, warehouses=None):
 
 def get_finished_goods(company, raw_material_type, warehouse_map, serial_detail=False):
     """Finished pieces (Serial Nos) per warehouse with their BOM raw material weight.
-    Serial No status is current, so this reflects today regardless of As On Date."""
+    Metal pure gold uses the purity of the BOM's metal items (see
+    get_bom_metal_purities). Serial No status is current, so this reflects today
+    regardless of As On Date."""
     weight_sql = get_bom_weight_sql(raw_material_type)
     if not weight_sql or not warehouse_map:
         return []
 
-    pure_sql = (
-        "COALESCE(b.metal_weight, 0) * COALESCE(b.metal_purity + 0, 0) / 100"
-        if raw_material_type == "Metal" else "0"
-    )
-
     if serial_detail:
         select = f"""
             sn.name as serial_no, sn.item_code, sn.warehouse, sn.status,
-            {weight_sql} as qty, {pure_sql} as pure_gold, 1 as pieces
+            sn.custom_bom_no as bom, {weight_sql} as qty, 1 as pieces
         """
         group_by = "ORDER BY sn.warehouse, sn.name"
     else:
         select = f"""
-            sn.warehouse, COUNT(*) as pieces,
-            SUM({weight_sql}) as qty, SUM({pure_sql}) as pure_gold
+            sn.warehouse, sn.custom_bom_no as bom, COUNT(*) as pieces,
+            SUM({weight_sql}) as qty
         """
-        group_by = "GROUP BY sn.warehouse"
+        group_by = "GROUP BY sn.warehouse, sn.custom_bom_no"
 
-    return frappe.db.sql(
+    pieces = frappe.db.sql(
         f"""
         SELECT {select}
         FROM `tabSerial No` sn
@@ -453,6 +468,47 @@ def get_finished_goods(company, raw_material_type, warehouse_map, serial_detail=
         as_dict=True,
     )
 
+    bom_purities = get_bom_metal_purities({p.bom for p in pieces}) if raw_material_type == "Metal" else {}
+    for p in pieces:
+        p.pure_gold = get_pure_gold(p.qty, bom_purities.get(p.bom))
+
+    if serial_detail:
+        return pieces
+
+    totals = {}
+    for p in pieces:
+        total = totals.setdefault(p.warehouse, frappe._dict(warehouse=p.warehouse, pieces=0, qty=0.0, pure_gold=0.0))
+        total.pieces += cint(p.pieces)
+        total.qty += flt(p.qty)
+        total.pure_gold += flt(p.pure_gold)
+    return list(totals.values())
+
+
+def get_bom_metal_purities(boms):
+    """{bom: purity}: the weighted purity of each BOM's metal items
+    (BOM Metal Detail item_variant), from their item attribute."""
+    boms = [bom for bom in boms if bom]
+    if not boms:
+        return {}
+
+    metals = frappe.db.sql(
+        """
+        SELECT parent as bom, item_variant, quantity
+        FROM `tabBOM Metal Detail`
+        WHERE parenttype = 'BOM' AND parent IN %(boms)s
+        """,
+        {"boms": boms},
+        as_dict=True,
+    )
+    item_purities = get_item_purities(m.item_variant for m in metals)
+
+    weight, pure_gold = {}, {}
+    for m in metals:
+        weight[m.bom] = weight.get(m.bom, 0.0) + flt(m.quantity)
+        pure_gold[m.bom] = pure_gold.get(m.bom, 0.0) + get_pure_gold(m.quantity, item_purities.get(m.item_variant))
+
+    return {bom: pure_gold[bom] * 100 / weight[bom] for bom in weight if weight[bom]}
+
 
 def get_operation_stock(company, raw_material_type, filters, stock_key, allowed_departments=None, department=None, detail=False, with_pure_gold=True):
     """Weight on Manufacturing Operations for a department line (see
@@ -460,8 +516,8 @@ def get_operation_stock(company, raw_material_type, filters, stock_key, allowed_
     In-Transit, on submitted work orders. Every qualifying operation is summed,
     including several of the same work order. Operation status is current, so
     this reflects today regardless of As On Date. Returns per-department totals,
-    or operation rows. Finding pure gold needs each operation's own finding
-    purity (see set_finding_pure_gold), so Finding is fetched per operation and
+    or operation rows. Pure gold needs each operation's own item purities (see
+    set_operation_pure_gold), so Metal / Finding are fetched per operation and
     summed here."""
     weight_field = OPERATION_WEIGHT_FIELDS.get(raw_material_type)
     if not weight_field or stock_key not in OPERATION_STOCK_CONDITIONS:
@@ -482,23 +538,18 @@ def get_operation_stock(company, raw_material_type, filters, stock_key, allowed_
         conditions += " AND COALESCE(mwo.branch, '') IN ('', %(branch)s)"
         values["branch"] = filters.get("branch")
 
-    pure_sql = (
-        "COALESCE(mop.net_wt, 0) * COALESCE(NULLIF(mop.metal_purity, '') + 0, mwo.metal_purity + 0, 0) / 100"
-        if raw_material_type == "Metal" else "0"
-    )
-
-    is_finding = raw_material_type == "Finding"
-    if detail or is_finding:
+    log_items = OPERATION_LOG_ITEMS.get(raw_material_type) if with_pure_gold else None
+    if detail or log_items:
         select = f"""
             mop.name as operation_name, mop.manufacturing_work_order, mop.operation,
             mop.department, mop.item_code, mop.department_ir_status, mop.employee, emp.employee_name,
-            COALESCE(mop.{weight_field}, 0) as qty, {pure_sql} as pure_gold
+            COALESCE(mop.{weight_field}, 0) as qty, 0.0 as pure_gold
         """
         tail = f"HAVING qty != 0 ORDER BY qty DESC"
     else:
         select = f"""
             mop.department, COUNT(*) as operations,
-            SUM(COALESCE(mop.{weight_field}, 0)) as qty, SUM({pure_sql}) as pure_gold
+            SUM(COALESCE(mop.{weight_field}, 0)) as qty, 0.0 as pure_gold
         """
         tail = "GROUP BY mop.department"
 
@@ -520,19 +571,18 @@ def get_operation_stock(company, raw_material_type, filters, stock_key, allowed_
         as_dict=True,
     )
 
-    if is_finding:
-        if with_pure_gold:
-            set_finding_pure_gold(operations)
+    if log_items:
+        set_operation_pure_gold(operations, log_items)
         if not detail:
             operations = sum_operations_by_department(operations)
     return operations
 
 
-def set_finding_pure_gold(operations):
-    """Pure gold on each operation: its finding_wt times the weighted purity of
-    the finding items it holds, read from their item codes on the operation's
-    live MOP Log balances (latest row per item and batch, as the finding_wt
-    header is built)."""
+def set_operation_pure_gold(operations, log_items):
+    """Pure gold on each operation: its weight (net_wt / finding_wt) times the
+    weighted purity of the items it holds, from their item attribute, on the
+    operation's live MOP Log balances (latest row per item and batch, as the
+    weight header is built). log_items is the item code LIKE pattern."""
     work_orders = list({op.manufacturing_work_order for op in operations})
     if not work_orders:
         return
@@ -551,20 +601,21 @@ def set_finding_pure_gold(operations):
                 ) as rn
             FROM `tabMOP Log` l
             WHERE l.is_cancelled = 0
-              AND l.item_code LIKE 'F%%'
+              AND l.item_code LIKE %(log_items)s
               AND l.manufacturing_work_order IN %(work_orders)s
         ) latest
         WHERE rn = 1 AND qty > 0
         """,
-        {"work_orders": work_orders},
+        {"work_orders": work_orders, "log_items": log_items},
         as_dict=True,
     )
+    item_purities = get_item_purities(log.item_code for log in logs)
 
     log_weight, log_pure_gold = {}, {}
     for log in logs:
         name = log.manufacturing_operation
         log_weight[name] = log_weight.get(name, 0.0) + flt(log.qty)
-        log_pure_gold[name] = log_pure_gold.get(name, 0.0) + get_pure_gold_from_item_code(log.item_code, log.qty)
+        log_pure_gold[name] = log_pure_gold.get(name, 0.0) + get_pure_gold(log.qty, item_purities.get(log.item_code))
 
     for op in operations:
         weight = log_weight.get(op.operation_name)
@@ -589,6 +640,7 @@ def summarise_balances(balances, finished, warehouse_map, with_pure_gold):
     {(group, key, stock_key): {qty, pure_gold, pieces, fg_weight, fg_pure_gold, label}}.
     Finished pieces' BOM weight is kept in fg_* and never added to qty."""
     buckets = {}
+    item_purities = get_item_purities(row.item_code for row in balances) if with_pure_gold else {}
 
     def bucket_for(warehouse):
         info = warehouse_map.get(warehouse)
@@ -605,7 +657,7 @@ def summarise_balances(balances, finished, warehouse_map, with_pure_gold):
             continue
         bucket["qty"] += flt(row.qty)
         if with_pure_gold:
-            bucket["pure_gold"] += get_pure_gold_from_item_code(row.item_code, row.qty)
+            bucket["pure_gold"] += get_pure_gold(row.qty, item_purities.get(row.item_code))
 
     for row in finished:
         bucket = bucket_for(row.warehouse)
@@ -740,7 +792,7 @@ def get_data(filters):
 
     # 2. Supplier / Job Work, 3. Unassigned
     for group, title in (
-        ("supplier", _("Supplier / Job Work")),
+        ("supplier", _("Supplier / Sub-Contracting")),
         ("unassigned", _("Unassigned Warehouses")),
     ):
         group_buckets = sorted(
@@ -807,6 +859,7 @@ def get_stock_details(group, key, stock_key, filters):
     pieces = get_finished_goods(company, raw_material_type, selected, serial_detail=True)
 
     with_pure_gold = raw_material_type in PURE_GOLD_TYPES
+    item_purities = get_item_purities(b.item_code for b in balances) if with_pure_gold else {}
     show_employee = group == "department" and stock_key in ("employee_wip", "employee_msl")
 
     def detail_row(warehouse, item_code, serial_no, qty, pure_gold):
@@ -823,7 +876,7 @@ def get_stock_details(group, key, stock_key, filters):
         return row
 
     rows = [
-        detail_row(b.warehouse, b.item_code, "", b.qty, get_pure_gold_from_item_code(b.item_code, b.qty))
+        detail_row(b.warehouse, b.item_code, "", b.qty, get_pure_gold(b.qty, item_purities.get(b.item_code)))
         for b in sorted(balances, key=lambda r: (r.warehouse, -flt(r.qty)))
     ]
     rows += [detail_row(p.warehouse, p.item_code, p.serial_no, p.qty, p.pure_gold) for p in pieces]

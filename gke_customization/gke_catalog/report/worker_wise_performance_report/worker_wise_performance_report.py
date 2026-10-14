@@ -17,7 +17,7 @@ def validate_department_access(filters):
     is_admin = user == "Administrator" or "System Manager" in frappe.get_roles(user)
 
     if not is_admin:
-        user_department = frappe.defaults.get_user_default("department")
+        user_department = frappe.defaults.get_user_default("Department")
 
         if not user_department:
             frappe.throw(_("User default Department is not set."))
