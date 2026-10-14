@@ -30,14 +30,25 @@ def _serialize_items(items, status_filter=None):
         else:
             if row_status in ("Cancel Order", "Cancelled"):
                 continue
+            
  
         # ── Item & BOM extra data ──────────────────────────────────────────────
         item_data = frappe.db.get_value(
             "Item",
             row.item_code,
-            ["image", "name", "item_group"],
+            ["image", "name", "item_group","custom_catalogue_image", "custom_silver_image"],
             as_dict=True,
         ) or {}
+        
+        # item_image = (
+        #     item_data.get("custom_catalogue_image")
+        #     or
+        #     item_data.get("custom_silver_image")
+        # )
+        
+        # if not item_image:
+        #     continue 
+            
  
         bom_data = frappe.db.get_value(
             "BOM",
@@ -54,7 +65,11 @@ def _serialize_items(items, status_filter=None):
             "quantity"                    : row.quantity or 0,
             "rate"                        : row.rate or 0,
             "amount"                      : (row.quantity or 0) * (row.rate or 0),
+            "custom_catalogue_image"      : item_data.get("custom_catalogue_image") or "",
+            "custom_silver_image"         : item_data.get("custom_silver_image") or "",
             "image"                       : item_data.get("image") or "",
+            # "custom_catalogue_image"      : (item_data.get("custom_catalogue_image") or item_data.get("custom_silver_image")),
+            # "custom_catalogue_image"      : item_image,
             "category"                    : item_data.get("item_group") or "",
             "gross_weight"                : bom_data.get("gross_weight") or "",
             "net_weight"                  : bom_data.get("metal_and_finding_weight") or "",
@@ -84,16 +99,6 @@ def _normalize_json(val):
     except Exception:
         return v
 
-
-# def _recalculate_totals(doc):
-#     """Total quantity aur total amount recalculate karo."""
-#     total_qty    = 0
-#     total_amount = 0
-#     for row in doc.items:
-#         total_qty    += (row.quantity or 0)
-#         total_amount += (row.amount   or 0)
-#     doc.total_quantity = total_qty
-#     doc.total_amount   = total_amount
   
   
 def _recalculate_totals(doc):
@@ -107,6 +112,7 @@ def _recalculate_totals(doc):
         total_amount += (row.amount   or 0)
     doc.total_quantity = total_qty
     doc.total_amount   = total_amount  
+ 
  
 # -- Helper: Cart totals recalculate -----------------------------------------------
 def _recalculate_cart_totals(cart):
@@ -134,52 +140,7 @@ def _recalculate_cart_totals(cart):
   
   
   
-# def _recalculate_totals(doc):
-#     """Total quantity, sub total, GST aur total amount recalculate karo (Cancelled rows exclude)."""
-#     total_qty = 0
-#     sub_total = 0
 
-#     for row in doc.items:
-#         if (row.status or "") == "Cancelled":
-#             continue
-#         total_qty += (row.quantity or 0)
-#         sub_total += (row.amount   or 0)
-
-#     gst_amount = round(sub_total * 0.03, 2)   
-
-#     doc.total_quantity = total_qty
-#     doc.sub_total       = sub_total                        
-#     doc.gst_amount       = gst_amount                       
-#     doc.total_amount   = round(sub_total + gst_amount, 2)   
-
-
-# # ── Helper: Cart totals recalculate ───────────────────────────────────────────
-# def _recalculate_cart_totals(cart):
-#     """
-#     Cart ke active items se total_quantity, sub_total, GST(3%) aur
-#     total_amount compute karo. cancelled wali rows skip hongi.
-#     cart.save() se pehle call karo.
-#     """
-#     total_qty = 0.0
-#     sub_total = 0.0
-
-#     for row in cart.items:
-#         row_status = (getattr(row, "status", "Add To Cart") or "Add To Cart")
-#         if row_status == "Cancelled":
-#             continue
-
-#         row_qty  = float(row.quantity or 0)
-#         row_rate = float(row.rate or 0)
-
-#         total_qty += row_qty
-#         sub_total += row_qty * row_rate
-
-#     gst_amount = round(sub_total * 0.03, 2)   # ← added: 3% GST
-
-#     cart.total_quantity = total_qty
-#     cart.sub_total       = sub_total                        # ← added
-#     cart.gst_amount       = gst_amount                       # ← added
-#     cart.total_amount   = round(sub_total + gst_amount, 2)   # ← GST included    
 
 
 
@@ -197,172 +158,7 @@ def _get_active_cart(customer):
 
   
 
-# ── Main API ───────────────────────────────────────────────────────────────────
 
-# @frappe.whitelist()
-# def add_to_cart(
-#     customer,
-#     item_code,
-#     quantity=1,
-#     rate=0,
-#     bom=None,
-#     uom=None,
-#     user=None,
-#     as_per_design=0,         # checkbox → 0 or 1
-#     as_per_customization=0,  # checkbox → 0 or 1
-#     customized_data=None,    # JSON string
-#     job_work=0,
-#     out_right=0,
-#     hybrid=0,
-#     added_by=None,
-#     added_date=None,):
-#     """
-#     Smart Add To Cart API — 'Add To Cart Portal Item' doctype ke liye.
- 
-#     Fingerprint (match ke liye ye fields same hone chahiye):
-#         item_code + as_per_design + as_per_customization
-#         + job_work + out_right + hybrid + customized_data (JSON normalized) + bom
- 
-#       Sab same  → existing row ki quantity badha do
-#       Kuch alag → naya row add karo
- 
-#     Params:
-#         customer              : Customer name (required)
-#         item_code             : Item code (required)
-#         quantity              : Quantity to add (default 1)
-#         rate                  : Rate (0 ho toh 0 hi rahega)
-#         bom                   : BOM name (auto-fetched if not passed)
-#         uom                   : Unit of measure (auto-fetched from Item if not passed)
-#         user                  : User (default: session user)
-#         as_per_design         : checkbox 0/1 (default 0)
-#         as_per_customization  : checkbox 0/1 (default 0)
-#         customized_data       : JSON string with customization details
-#         job_work              : checkbox 0/1 (default 0)
-#         out_right             : checkbox 0/1 (default 0)
-#         hybrid                : checkbox 0/1 (default 0)
-#         added_by              : Added by (default: session user)
-#         added_date            : Date (default: today)
-#     """
- 
-#     if not customer:
-#         frappe.throw(_("Customer required hai."))
-#     if not item_code:
-#         frappe.throw(_("Item Code required hai."))
- 
-#     qty             = int(quantity or 1)
-#     calculated_rate = float(rate or 0)
- 
-#     # ── BOM auto-fetch ─────────────────────────────────────────────────────────
-#     if not bom:
-#         bom = frappe.db.get_value(
-#             "BOM",
-#             {"item": item_code, "is_active": 1, "is_default": 1},
-#             "name",
-#             order_by="creation desc",
-#         )
- 
-#     # ── UOM auto-fetch ─────────────────────────────────────────────────────────
-#     if not uom:
-#         uom = frappe.db.get_value("Item", item_code, "stock_uom") or ""
- 
-#     # ── Item image ─────────────────────────────────────────────────────────────
-#     item_image = frappe.db.get_value("Item", item_code, "image") or ""
- 
-#     # ── Checkbox flags ─────────────────────────────────────────────────────────
-#     is_as_per_design        = int(as_per_design        or 0)
-#     is_as_per_customization = int(as_per_customization or 0)
-#     is_job_work             = int(job_work             or 0)
-#     is_out_right            = int(out_right            or 0)
-#     is_hybrid               = int(hybrid               or 0)
- 
-#     # ── User validate ──────────────────────────────────────────────────────────
-#     raw_user     = user or frappe.session.user
-#     current_user = raw_user if frappe.db.exists("User", raw_user) else ""
- 
-#     # ── Normalize incoming values ──────────────────────────────────────────────
-#     incoming_customized_data = _normalize_json(customized_data)
-#     incoming_bom             = (bom or "").strip()
- 
-#     # ── Get or create cart ─────────────────────────────────────────────────────
-#     doc    = _get_active_cart(customer)
-#     is_new = False
- 
-#     if not doc:
-#         is_new         = True
-#         doc            = frappe.new_doc("Add To Cart Portal Item")
-#         doc.customer   = customer
-#         doc.added_by   = added_by or frappe.session.user
-#         doc.added_date = added_date or frappe.utils.today()
-#         doc.status     = "Add To Cart"
-#         doc.company    = (
-#             frappe.defaults.get_user_default("company")
-#             or frappe.db.get_single_value("Global Defaults", "default_company")
-#         )
-#         doc.currency   = frappe.defaults.get_user_default("currency") or "INR"
- 
-#     # ── Match existing row using fingerprint ───────────────────────────────────
-#     item_found = False
- 
-#     for row in doc.items:
-#         if row.item_code != item_code:
-#             continue
- 
-#         if (
-#             int(row.as_per_design        or 0) == is_as_per_design
-#             and int(row.as_per_customization or 0) == is_as_per_customization
-#             and int(row.job_work             or 0) == is_job_work
-#             and int(row.out_right            or 0) == is_out_right
-#             and int(row.hybrid               or 0) == is_hybrid
-#             and _normalize_json(row.customized_data) == incoming_customized_data
-#             and (row.bom or "").strip()              == incoming_bom
-#         ):
-#             # Match mila → quantity badha do
-#             row.quantity = (row.quantity or 0) + qty
-#             row.rate     = calculated_rate
-#             row.amount   = row.quantity * calculated_rate
-#             row.user     = current_user
-#             item_found   = True
-#             break
- 
-#     # ── Naya row ───────────────────────────────────────────────────────────────
-#     if not item_found:
-#         doc.append("items", {
-#             "item_code"             : item_code,
-#             "bom"                   : bom or "",
-#             "uom"                   : uom,
-#             "quantity"              : qty,
-#             "rate"                  : calculated_rate,
-#             "amount"                : qty * calculated_rate,
-#             "image"                 : item_image,
-#             "user"                  : current_user,
-#             "status"                : "Add To Cart",
-#             "as_per_design"         : is_as_per_design,
-#             "as_per_customization"  : is_as_per_customization,
-#             "job_work"              : is_job_work,
-#             "out_right"             : is_out_right,
-#             "hybrid"                : is_hybrid,
-#             "customized_data"       : customized_data or "",
-#         })
- 
-#     # ── Save ───────────────────────────────────────────────────────────────────
-#     _recalculate_totals(doc)
- 
-#     if is_new:
-#         doc.insert(ignore_permissions=True)
-#     else:
-#         doc.save(ignore_permissions=True)
- 
-#     frappe.db.commit()
- 
-#     return {
-#         "success"        : True,
-#         "action"         : "created" if is_new else "updated",
-#         "item_action"    : "row_added" if not item_found else "qty_updated",
-#         "order"          : doc.name,
-#         "total_quantity" : doc.total_quantity,
-#         "total_amount"   : doc.total_amount,
-#         "item_rate"      : calculated_rate,
-#     }
 
 
 @frappe.whitelist()
@@ -382,8 +178,8 @@ def add_to_cart(
     hybrid=0,
     added_by=None,
     added_date=None,
-    diamond_quality=None,   # ← added
-    metal_touch=None,       # ← added
+    diamond_quality=None,   
+    metal_touch=None,       
 ):
     if not customer:
         frappe.throw(_("Customer required hai."))
@@ -397,7 +193,7 @@ def add_to_cart(
     if not bom:
         bom = frappe.db.get_value(
             "BOM",
-            {"item": item_code, "is_active": 1, "is_default": 1, "bom_type": "Finish Goods"},  # ← added
+            {"item": item_code, "is_active": 1}, 
             "name",
             order_by="creation desc",
         )
@@ -416,6 +212,8 @@ def add_to_cart(
 
     # ── Item image ─────────────────────────────────────────────────────────────
     item_image = frappe.db.get_value("Item", item_code, "image") or ""
+    # custom_catalogue_image = frappe.db.get_value("custom_catalogue_image", item_code, "custom_silver_image") or ""
+    # custom_silver_image = frappe.db.get_value("custom_silver_image", item_code, "custom_silver_image") or ""
 
     # ── Checkbox flags ─────────────────────────────────────────────────────────
     is_as_per_design        = int(as_per_design        or 0)
@@ -474,7 +272,7 @@ def add_to_cart(
         )
         doc.currency   = frappe.defaults.get_user_default("currency") or "INR"
 
-    # ── Match existing row using fingerprint ───────────────────────────────────
+    #  Match existing row using fingerprint
     item_found = False
 
     for row in doc.items:
@@ -500,7 +298,7 @@ def add_to_cart(
             item_found   = True
             break
 
-    # ── Naya row ───────────────────────────────────────────────────────────────
+    #  New row 
     if not item_found:
         doc.append("items", {
             "item_code"            : item_code,
@@ -510,6 +308,8 @@ def add_to_cart(
             "rate"                 : calculated_rate,
             "amount"               : qty * calculated_rate,
             "image"                : item_image,
+            # "custom_catalogue_image"  : custom_catalogue_image,
+            # "custom_silver_image"  :custom_silver_image,
             "user"                 : current_user,
             "status"               : "Add To Cart",
             "as_per_design"        : is_as_per_design,
@@ -520,7 +320,7 @@ def add_to_cart(
             "customized_data"      : customized_data or "",
         })
 
-    # ── Save ───────────────────────────────────────────────────────────────────
+    #  Save 
     _recalculate_totals(doc)
 
     if is_new:
@@ -614,129 +414,28 @@ def _refresh_cart_prices(cart):
     return cart
 
 
-@frappe.whitelist(methods=["GET", "POST"])
-def get_cart_orders(customer=None, user=None, status_filter=None):
-    """
-    Cart orders fetch karo — customer ya user se.
-
-    Case 1 — customer pass karo:
-        Us customer ka active 'Add To Cart' doc return karega.
-
-    Case 2 — user pass karo:
-        Us user ke saare assigned customers ke active carts return karega.
-
-    status_filter (optional):
-        Sirf us status ki item rows return karega.
-        None ho toh "Cancelled" wali rows automatically skip hongi.
-
-    Postman:
-        GET .../get_cart_orders?customer=Rajan Shah
-        GET .../get_cart_orders?user=rajan@example.com
-        GET .../get_cart_orders?customer=Rajan Shah&status_filter=Add To Cart
-    """
-
-    # ── Case 1: Customer se fetch ──────────────────────────────────────────────
-    if customer:
-        active_cart = frappe.db.get_value(
-            "Add To Cart Portal Item",
-            {"customer": customer, "status": "Add To Cart"},
-            "name",
-            order_by="creation asc",
-        )
-
-        if not active_cart:
-            return {"success": True, "orders": []}
-
-        cart  = frappe.get_doc("Add To Cart Portal Item", active_cart)
-        cart  = _refresh_cart_prices(cart)  
-        items = _serialize_items(cart.items, status_filter=status_filter or "Add To Cart")
-
-        return {
-            "success": True,
-            "orders": [{
-                "name"           : cart.name,
-                "customer"       : cart.customer,
-                "added_by"       : cart.added_by or "",
-                "added_date"     : str(cart.added_date or ""),
-                "status"         : cart.status,
-                "company"        : cart.company or "",
-                "currency"       : cart.currency or "",
-                "total_quantity" : cart.total_quantity or 0,
-                "total_amount"   : cart.total_amount or 0,
-                "items"          : items,
-            }]
-        }
-
-    # ── Case 2: User se fetch (assigned customers ke carts) ───────────────────
-    if user:
-        assigned_customers = frappe.get_all(
-            "Customer Representatives",
-            filters={"user_id": user},
-            pluck="parent",
-        )
-
-        if not assigned_customers:
-            return {"success": True, "orders": []}
-
-        result = []
-        for cust in assigned_customers:
-            active_cart = frappe.db.get_value(
-                "Add To Cart Portal Item",
-                {"customer": cust, "status": "Add To Cart"},
-                "name",
-                order_by="creation asc",
-            )
-
-            if not active_cart:
-                continue
-
-            cart  = frappe.get_doc("Add To Cart Portal Item", active_cart)
-            cart  = _refresh_cart_prices(cart)  
-            items = _serialize_items(cart.items, status_filter=status_filter)
-
-            if not items:
-                continue
-
-            result.append({
-                "name"           : cart.name,
-                "customer"       : cart.customer,
-                "added_by"       : cart.added_by or "",
-                "added_date"     : str(cart.added_date or ""),
-                "status"         : cart.status,
-                "company"        : cart.company or "",
-                "currency"       : cart.currency or "",
-                "total_quantity" : cart.total_quantity or 0,
-                "total_amount"   : cart.total_amount or 0,
-                "items"          : items,
-            })
-
-        return {"success": True, "orders": result}
-
-    frappe.throw(_("Customer or User required."))
-
-
 # @frappe.whitelist(methods=["GET", "POST"])
 # def get_cart_orders(customer=None, user=None, status_filter=None):
 #     """
 #     Cart orders fetch karo — customer ya user se.
- 
+
 #     Case 1 — customer pass karo:
 #         Us customer ka active 'Add To Cart' doc return karega.
- 
+
 #     Case 2 — user pass karo:
 #         Us user ke saare assigned customers ke active carts return karega.
- 
+
 #     status_filter (optional):
 #         Sirf us status ki item rows return karega.
 #         None ho toh "Cancelled" wali rows automatically skip hongi.
- 
+
 #     Postman:
-#         GET .../get_cart_orders?customer=Rajan Shah
+#         GET .../get_cart_orders?customer=Rajan Kumar
 #         GET .../get_cart_orders?user=rajan@example.com
-#         GET .../get_cart_orders?customer=Rajan Shah&status_filter=Add To Cart
+#         GET .../get_cart_orders?customer=Rajan Kumar&status_filter=Add To Cart
 #     """
- 
-#     # ── Case 1: Customer se fetch ──────────────────────────────────────────────
+
+#     # ── Case 1: Customer se fetch 
 #     if customer:
 #         active_cart = frappe.db.get_value(
 #             "Add To Cart Portal Item",
@@ -744,13 +443,14 @@ def get_cart_orders(customer=None, user=None, status_filter=None):
 #             "name",
 #             order_by="creation asc",
 #         )
- 
+
 #         if not active_cart:
 #             return {"success": True, "orders": []}
- 
+
 #         cart  = frappe.get_doc("Add To Cart Portal Item", active_cart)
+#         cart  = _refresh_cart_prices(cart)  
 #         items = _serialize_items(cart.items, status_filter=status_filter or "Add To Cart")
- 
+
 #         return {
 #             "success": True,
 #             "orders": [{
@@ -766,7 +466,7 @@ def get_cart_orders(customer=None, user=None, status_filter=None):
 #                 "items"          : items,
 #             }]
 #         }
- 
+
 #     # ── Case 2: User se fetch (assigned customers ke carts) ───────────────────
 #     if user:
 #         assigned_customers = frappe.get_all(
@@ -774,10 +474,10 @@ def get_cart_orders(customer=None, user=None, status_filter=None):
 #             filters={"user_id": user},
 #             pluck="parent",
 #         )
- 
+
 #         if not assigned_customers:
 #             return {"success": True, "orders": []}
- 
+
 #         result = []
 #         for cust in assigned_customers:
 #             active_cart = frappe.db.get_value(
@@ -786,16 +486,17 @@ def get_cart_orders(customer=None, user=None, status_filter=None):
 #                 "name",
 #                 order_by="creation asc",
 #             )
- 
+
 #             if not active_cart:
 #                 continue
- 
+
 #             cart  = frappe.get_doc("Add To Cart Portal Item", active_cart)
+#             cart  = _refresh_cart_prices(cart)  
 #             items = _serialize_items(cart.items, status_filter=status_filter)
- 
+
 #             if not items:
 #                 continue
- 
+
 #             result.append({
 #                 "name"           : cart.name,
 #                 "customer"       : cart.customer,
@@ -808,47 +509,112 @@ def get_cart_orders(customer=None, user=None, status_filter=None):
 #                 "total_amount"   : cart.total_amount or 0,
 #                 "items"          : items,
 #             })
- 
+
 #         return {"success": True, "orders": result}
- 
+
 #     frappe.throw(_("Customer or User required."))
 
 
-# ── Remove Row ─────────────────────────────────────────────────────────────────
+@frappe.whitelist(methods=["GET", "POST"])
+def get_cart_orders(customer=None, user=None, status_filter=None):
+    """
+    Cart orders fetch karo — customer ya user se.
+ 
+    Case 1 — customer pass karo:
+        Us customer ka active 'Add To Cart' doc return karega.
+ 
+    Case 2 — user pass karo:
+        Us user ke saare assigned customers ke active carts return karega.
+ 
+    status_filter (optional):
+        Sirf us status ki item rows return karega.
+        None ho toh "Cancelled" wali rows automatically skip hongi.
+ 
+    Postman:
+        GET .../get_cart_orders?customer=Rajan Shah
+        GET .../get_cart_orders?user=rajan@example.com
+        GET .../get_cart_orders?customer=Rajan Shah&status_filter=Add To Cart
+    """
+ 
+    # ── Case 1: Customer se fetch ──────────────────────────────────────────────
+    if customer:
+        active_cart = frappe.db.get_value(
+            "Add To Cart Portal Item",
+            {"customer": customer, "status": "Add To Cart"},
+            "name",
+            order_by="creation asc",
+        )
+ 
+        if not active_cart:
+            return {"success": True, "orders": []}
+ 
+        cart  = frappe.get_doc("Add To Cart Portal Item", active_cart)
+        items = _serialize_items(cart.items, status_filter=status_filter or "Add To Cart")
+ 
+        return {
+            "success": True,
+            "orders": [{
+                "name"           : cart.name,
+                "customer"       : cart.customer,
+                "added_by"       : cart.added_by or "",
+                "added_date"     : str(cart.added_date or ""),
+                "status"         : cart.status,
+                "company"        : cart.company or "",
+                "currency"       : cart.currency or "",
+                "total_quantity" : cart.total_quantity or 0,
+                "total_amount"   : cart.total_amount or 0,
+                "items"          : items,
+            }]
+        }
+ 
+    # ── Case 2: User se fetch (assigned customers ke carts) ───────────────────
+    if user:
+        assigned_customers = frappe.get_all(
+            "Customer Representatives",
+            filters={"user_id": user},
+            pluck="parent",
+        )
+ 
+        if not assigned_customers:
+            return {"success": True, "orders": []}
+ 
+        result = []
+        for cust in assigned_customers:
+            active_cart = frappe.db.get_value(
+                "Add To Cart Portal Item",
+                {"customer": cust, "status": "Add To Cart"},
+                "name",
+                order_by="creation asc",
+            )
+ 
+            if not active_cart:
+                continue
+ 
+            cart  = frappe.get_doc("Add To Cart Portal Item", active_cart)
+            items = _serialize_items(cart.items, status_filter=status_filter)
+ 
+            if not items:
+                continue
+ 
+            result.append({
+                "name"           : cart.name,
+                "customer"       : cart.customer,
+                "added_by"       : cart.added_by or "",
+                "added_date"     : str(cart.added_date or ""),
+                "status"         : cart.status,
+                "company"        : cart.company or "",
+                "currency"       : cart.currency or "",
+                "total_quantity" : cart.total_quantity or 0,
+                "total_amount"   : cart.total_amount or 0,
+                "items"          : items,
+            })
+ 
+        return {"success": True, "orders": result}
+ 
+    frappe.throw(_("Customer or User required."))
 
-# @frappe.whitelist()
-# def remove_from_cart(customer, row_name):
-#     """
-#     Cart ki specific row ka status 'Cancelled' karo.
-#     row_name = child table row ka unique 'name' field
-#     """
-#     if not customer:
-#         frappe.throw(_("Customer required hai."))
 
-#     doc = _get_active_cart(customer)
-#     if not doc:
-#         frappe.throw(_("Koi active cart nahi hai."))
-
-#     # ── Row dhundo aur status Cancelled karo ──────────────────────────────────
-#     row_found = False
-#     for row in doc.items:
-#         if row.name == row_name:
-#             row.status = "Cancelled"
-#             row_found  = True
-#             break
-
-#     if not row_found:
-#         frappe.throw(_(f"Row '{row_name}' can't find item."))
-
-#     _recalculate_cart_totals(doc)
-#     doc.save(ignore_permissions=True)
-#     frappe.db.commit()
-
-#     return {
-#         "success": True,
-#         "message": "Cancelled Item.",
-#         "name"   : doc.name,
-#     }
+# ── Remove Row ───
 
 @frappe.whitelist()
 def cancel_cart_item(order_name, item_code, row_name=None, user=None):
@@ -879,10 +645,10 @@ def cancel_cart_item(order_name, item_code, row_name=None, user=None):
         if getattr(r, "status", "Add To Cart") == "Add To Cart"
     ]
 
-    # Agar saare items cancel ho gaye to order bhi cancel kar do
+    # if all item has been cancel then cancel the order automatically
     # if not active_items:
-    #     doc.status = "Cancel Order"   # Agar parent order me ye status hai
-        # Ya doc.status = "Cancelled" agar parent me Cancelled hai
+    #     doc.status = "Cancel Order"   
+        # Ya doc.status = "Cancelled" 
 
     _recalculate_totals_draft_only(doc)
     doc.save(ignore_permissions=True)
@@ -895,267 +661,7 @@ def cancel_cart_item(order_name, item_code, row_name=None, user=None):
         "remaining_active_items": len(active_items),
     }
 
-# ── confirm cart order ─────────────────────────────────────────────────────────────────
-
-# @frappe.whitelist()
-# def confirm_cart_orders(customer, order_date=None, notes=None, user=None, row_names=None):
-#     """
-#     Cart ke selected ya saare "Add To Cart" items ko Portal Order mein place karo.
- 
-#     Flow:
-#         1. Customer ka active cart dhundo (Add To Cart Portal Item)
-#         2. row_names pass kiye hain -> sirf wo items place karo
-#            row_names nahi pass kiye -> saare "Add To Cart" items place karo
-#         3. Naya Portal Order doc banao un items ke saath
-#         4. Cart ke wo items delete karo (status change nahi, directly remove)
-#         5. Cart ke totals recalculate karo
- 
-#     Postman - Saare items:
-#         { "customer": "Rajan Shah", "order_date": "2024-06-27" }
- 
-#     Postman - Selected items:
-#         { "customer": "Rajan Shah", "row_names": ["abc123", "def456"] }
-#     """
- 
-#     if not customer:
-#         frappe.throw(_("Customer required hai."))
- 
-#     # ── Active cart dhundo ─────────────────────────────────────────────────────
-#     cart_name = frappe.db.get_value(
-#         "Add To Cart Portal Item",
-#         {"customer": customer, "status": "Add To Cart"},
-#         "name",
-#         order_by="creation asc",
-#     )
- 
-#     if not cart_name:
-#         frappe.throw(_("Koi active cart nahi mila."))
- 
-#     cart = frappe.get_doc("Add To Cart Portal Item", cart_name)
- 
-#     # ── row_names parse karo (string se list) ─────────────────────────────────
-#     if isinstance(row_names, str):
-#         row_names = json.loads(row_names)
- 
-#     # ── Items filter karo ─────────────────────────────────────────────────────
-#     if row_names:
-#         # Sirf selected rows lo — "Add To Cart" status bhi check karo
-#         selected = set(row_names)
-#         active_items = [
-#             r for r in cart.items
-#             if r.name in selected
-#             and (getattr(r, "status", "") or "") == "Add To Cart"
-#         ]
-#         if not active_items:
-#             frappe.throw(_("Selected items cart mein nahi mile ya already placed hain."))
-#     else:
-#         # Saare "Add To Cart" status wale items lo
-#         active_items = [r for r in cart.items if (getattr(r, "status", "") or "") == "Add To Cart"]
-#         if not active_items:
-#             frappe.throw(_("Cart mein koi active item nahi hai."))
- 
-#     final_order_date = frappe.utils.getdate(order_date) if order_date else frappe.utils.today()
-#     current_user     = user or frappe.session.user
- 
-#     # ── Naya Portal Order banao ────────────────────────────────────────────────
-#     portal_order            = frappe.new_doc("Portal Order")
-#     portal_order.customer   = customer
-#     portal_order.order_by   = current_user
-#     portal_order.order_date = final_order_date
-#     portal_order.status     = "Ordered"
-#     portal_order.company    = cart.company or (
-#         frappe.defaults.get_user_default("company")
-#         or frappe.db.get_single_value("Global Defaults", "default_company")
-#     )
-#     portal_order.currency   = cart.currency or "INR"
- 
-#     if notes:
-#         portal_order.notes = notes
- 
-#     # ── Cart items → Portal Order items ───────────────────────────────────────
-#     for row in active_items:
-#         portal_order.append("items", {
-#             "item_code"         : row.item_code,
-#             "bom"               : row.bom or "",
-#             "uom"               : row.uom or "",
-#             "quantity"          : row.quantity or 0,
-#             "rate"              : row.rate or 0,
-#             "amount"            : (row.quantity or 0) * (row.rate or 0),
-#             "user"              : getattr(row, "user", "") or "",
-#             "status"            : "Ordered",
-#             "as_per_design"     : getattr(row, "as_per_design", 0) or 0,
-#             "as_per_customization"        : getattr(row, "as_per_customization", 0) or 0,
-#             "job_work"           : getattr(row, "job_work", 0) or 0,
-#             "out_right"          : getattr(row, "out_right", 0) or 0,
-#             "hybrid"            : getattr(row, "hybrid", 0) or 0,
-#             "customized_data"   : getattr(row, "customized_data", "") or "",
-#         })
- 
-#     portal_order.insert(ignore_permissions=True)
- 
-#     # ── Placed items cart se hata do (status change nahi, delete karo) ──────────
-#     placed_item_names = {row.name for row in active_items}
-#     cart.items = [row for row in cart.items if row.name not in placed_item_names]
- 
-#     # ── Cart totals recalculate karo ───────────────────────────────────────────
-#     _recalculate_totals(cart)
-#     cart.save(ignore_permissions=True)
-    
-#     # if not cart.items:
-#     #     frappe.delete_doc("Add To Cart Portal Item", cart.name, ignore_permissions=True)
- 
-#     frappe.db.commit()
- 
-#     return {
-#         "success"       : True,
-#         "message"       : "Your Order has been Placed!",
-#         "portal_order"  : portal_order.name,
-#         "cart"          : cart.name,
-#         "order_date"    : str(final_order_date),
-#         "order_by"      : current_user,
-#         "total_quantity": portal_order.total_quantity or 0,
-#         "total_amount"  : portal_order.total_amount or 0,
-#         "items_ordered" : len(active_items),
-#     }
-    
-# Confirm Cart order---------------
-
-
-# @frappe.whitelist()
-# def confirm_cart_orders(customer, order_date=None, notes=None, user=None, row_names=None):
-#     """
-#     Cart ke selected ya saare "Add To Cart" items ko Portal Order mein place karo.
- 
-#     Flow:
-#         1. Customer ka active cart dhundo (Add To Cart Portal Item)
-#         2. row_names pass kiye hain -> sirf wo items place karo
-#            row_names nahi pass kiye -> saare "Add To Cart" items place karo
-#         3. Naya Portal Order doc banao un items ke saath
-#         4. Cart ke wo items delete karo (status change nahi, directly remove)
-#         5. Cart ke totals recalculate karo
- 
-#     Postman - Saare items:
-#         { "customer": "Rajan Shah", "order_date": "2024-06-27" }
- 
-#     Postman - Selected items:
-#         { "customer": "Rajan Shah", "row_names": ["abc123", "def456"] }
-#     """
- 
-#     if not customer:
-#         frappe.throw(_("Customer required hai."))
- 
-#     # ── Active cart dhundo ─────────────────────────────────────────────────────
-#     cart_name = frappe.db.get_value(
-#         "Add To Cart Portal Item",
-#         {"customer": customer, "status": "Add To Cart"},
-#         "name",
-#         order_by="creation asc",
-#     )
- 
-#     if not cart_name:
-#         frappe.throw(_("Koi active cart nahi mila."))
- 
-#     cart = frappe.get_doc("Add To Cart Portal Item", cart_name)
- 
-#     # ── row_names parse karo (string se list) ─────────────────────────────────
-#     if isinstance(row_names, str):
-#         row_names = json.loads(row_names)
- 
-#     # ── Items filter karo ─────────────────────────────────────────────────────
-#     if row_names:
-#         # Sirf selected rows lo — "Add To Cart" status bhi check karo
-#         selected = set(row_names)
-#         active_items = [
-#             r for r in cart.items
-#             if r.name in selected
-#             and (getattr(r, "status", "") or "") == "Add To Cart"
-#         ]
-#         if not active_items:
-#             frappe.throw(_("Selected items cart mein nahi mile ya already placed hain."))
-#     else:
-#         # Saare "Add To Cart" status wale items lo
-#         active_items = [r for r in cart.items if (getattr(r, "status", "") or "") == "Add To Cart"]
-#         if not active_items:
-#             frappe.throw(_("Cart mein koi active item nahi hai."))
- 
-#     final_order_date = frappe.utils.getdate(order_date) if order_date else frappe.utils.today()
-#     current_user     = user or frappe.session.user
- 
-#     # ── Naya Portal Order banao ────────────────────────────────────────────────
-#     portal_order            = frappe.new_doc("Portal Order")
-#     portal_order.customer   = customer
-#     portal_order.order_by   = current_user
-#     portal_order.order_date = final_order_date
-#     portal_order.status     = "Ordered"
-#     portal_order.company    = cart.company or (
-#         frappe.defaults.get_user_default("company")
-#         or frappe.db.get_single_value("Global Defaults", "default_company")
-#     )
-#     portal_order.currency   = cart.currency or "INR"
- 
-#     if notes:
-#         portal_order.notes = notes
- 
-#     # ── Cart items → Portal Order items ───────────────────────────────────────
-#     for row in active_items:
-#         row_qty    = row.quantity or 0
-#         row_rate   = row.rate or 0
-#         row_amount = round(row_qty * row_rate, 2)
- 
-#         portal_order.append("items", {
-#             "item_code"         : row.item_code,
-#             "bom"               : row.bom or "",
-#             "uom"               : row.uom or "",
-#             "quantity"          : row_qty,
-#             "rate"              : row_rate,
-#             "amount"            : row_amount,
-#             "user"              : getattr(row, "user", "") or "",
-#             "status"            : "Ordered",
-#             "as_per_design"     : getattr(row, "as_per_design", 0) or 0,
-#             "as_per_customization"        : getattr(row, "as_per_customization", 0) or 0,
-#             "job_work"           : getattr(row, "job_work", 0) or 0,
-#             "out_right"          : getattr(row, "out_right", 0) or 0,
-#             "hybrid"            : getattr(row, "hybrid", 0) or 0,
-#             "customized_data"   : getattr(row, "customized_data", "") or "",
-#         })
- 
-#     portal_order.insert(ignore_permissions=True)
- 
-#     # ── Portal Order totals directly DB mein set karo (controller override se bachne ke liye) ──
-#     total_qty    = sum(row.quantity or 0 for row in active_items)
-#     total_amount = round(sum((row.quantity or 0) * (row.rate or 0) for row in active_items), 2)
- 
-#     frappe.db.set_value(
-#         "Portal Order",
-#         portal_order.name,
-#         {
-#             "total_quantity" : total_qty,
-#             "total_amount"   : total_amount,
-#         },
-#         update_modified=False,
-#     )
- 
-#     # ── Placed items cart se hata do (status change nahi, delete karo) ──────────
-#     placed_item_names = {row.name for row in active_items}
-#     cart.items = [row for row in cart.items if row.name not in placed_item_names]
- 
-#     # ── Cart totals recalculate karo ───────────────────────────────────────────
-#     _recalculate_totals(cart)
-#     cart.save(ignore_permissions=True)
- 
-#     frappe.db.commit()
- 
-#     return {
-#         "success"       : True,
-#         "message"       : "Order successfully place ho gaya!",
-#         "portal_order"  : portal_order.name,
-#         "cart"          : cart.name,
-#         "order_date"    : str(final_order_date),
-#         "order_by"      : current_user,
-#         "total_quantity": portal_order.total_quantity or 0,
-#         "total_amount"  : portal_order.total_amount or 0,
-#         "items_ordered" : len(active_items),
-#     }
+# ── confirm cart order ─────
  
  
 @frappe.whitelist()
@@ -1344,120 +850,6 @@ def confirm_cart_orders(customer, order_date=None, notes=None, user=None, row_na
         "items_ordered" : len(active_items),
     } 
  
- 
-# @frappe.whitelist(methods=["POST"])
-# def update_order_item_qty(cart_name=None, customer=None, row_name=None, item_code=None, quantity=None):
-#     """
-#     Cart item ki quantity update karo.
-
-#     Params:
-#         cart_name   (optional) : Direct cart doc name
-#         customer    (optional) : Customer name se active cart dhundhega
-#         row_name    (optional) : Child row ka name (sabse accurate)
-#         item_code   (optional) : item_code se row dhundho (row_name nahi ho toh)
-#         quantity    (required) : Naya quantity (0 = row delete)
-
-#     Priority: row_name > item_code
-
-#     Postman:
-#         POST .../update_cart_item_qty
-#         Body: { "cart_name": "ATC-0001", "row_name": "ATC-0001-1", "quantity": 5 }
-#     """
-
-#     # ── Validation ─────────────────────────────────────────────────────────────
-#     if not row_name and not item_code:
-#         frappe.throw(_("row_name ya item_code required hai."))
-
-#     if quantity is None:
-#         frappe.throw(_("quantity required hai."))
-
-#     try:
-#         quantity = float(quantity)
-#     except (ValueError, TypeError):
-#         frappe.throw(_("quantity valid number hona chahiye."))
-
-#     if quantity < 0:
-#         frappe.throw(_("quantity negative nahi ho sakti."))
-
-#     # ── Cart resolve karo ──────────────────────────────────────────────────────
-#     if not cart_name and not customer:
-#         frappe.throw(_("cart_name ya customer required hai."))
-
-#     if not cart_name:
-#         cart_name = frappe.db.get_value(
-#             "Add To Cart Portal Item",
-#             {"customer": customer, "status": "Add To Cart"},
-#             "name",
-#             order_by="creation asc",
-#         )
-#         if not cart_name:
-#             frappe.throw(_("Customer '{0}' ka koi active cart nahi mila.").format(customer))
-
-#     # ── Doc load karo ─────────────────────────────────────────────────────────
-#     cart = frappe.get_doc("Add To Cart Portal Item", cart_name)
-
-#     if cart.status != "Add To Cart":
-#         frappe.throw(
-#             _("Sirf active carts update ho sakte hain. Current status: {0}").format(cart.status)
-#         )
-
-#     # ── Target row dhundho ────────────────────────────────────────────────────
-#     target_row = None
-
-#     if row_name:
-#         # Direct name se — most accurate
-#         for row in cart.items:
-#             if row.name == row_name:
-#                 target_row = row
-#                 break
-#         if not target_row:
-#             frappe.throw(_("Row '{0}' cart '{1}' mein nahi mila.").format(row_name, cart_name))
-
-#     else:
-#         # item_code se — pehla match lega
-#         for row in cart.items:
-#             if row.item_code == item_code:
-#                 target_row = row
-#                 break
-#         if not target_row:
-#             frappe.throw(_("item_code '{0}' cart mein nahi mila.").format(item_code))
-
-#     # ── Update ya Delete ───────────────────────────────────────────────────────
-#     if quantity == 0:
-#         cart.remove(target_row)
-#         action = "deleted"
-
-#         # Cart empty ho gayi toh status update karo
-#         active_rows = [
-#             r for r in cart.items
-#             if (getattr(r, "status", "Add To Cart") or "Add To Cart") != "Cancelled"
-#         ]
-#         if not active_rows:
-#             cart.status = "Empty"
-
-#     else:
-#         target_row.quantity = quantity
-#         action = "updated"
-
-#     # ── Cart totals recalculate karo ──────────────────────────────────────────
-#     _recalculate_cart_totals(cart)
-
-#     # ── Save ───────────────────────────────────────────────────────────────────
-#     cart.save(ignore_permissions=True)
-#     frappe.db.commit()
-
-#     # ── Response ───────────────────────────────────────────────────────────────
-#     items = _serialize_items(cart.items, status_filter=None)
-
-#     return {
-#         "success"        : True,
-#         "action"         : action,        
-#         "cart_name"      : cart.name,
-#         "customer"       : cart.customer,
-#         "total_quantity" : cart.total_quantity or 0,
-#         "total_amount"   : cart.total_amount or 0,
-#         "items"          : items,
-#     }
 
 
 @frappe.whitelist()
@@ -1609,7 +1001,7 @@ def _serialize_cancelled_items(items):
         item_data = frappe.db.get_value(
             "Item",
             row.item_code,
-            ["image", "name", "item_group"],
+            ["image", "name", "item_group", "custom_catalogue_image", "custom_silver_image"],
             as_dict=True,
         ) or {}
 
@@ -1629,6 +1021,8 @@ def _serialize_cancelled_items(items):
             "rate"                        : row.rate or 0,
             "amount"                      : (row.quantity or 0) * (row.rate or 0),
             "image"                       : item_data.get("image") or "",
+            "custom_catalogue_image"      : item_data.get("custom_catalogue_image") or "",
+            "custom_silver_image"         : item_data.get("custom_silver_image") or "",
             "category"                    : item_data.get("item_group") or "",
             "gross_weight"                : bom_data.get("gross_weight") or "",
             "net_weight"                  : bom_data.get("metal_and_finding_weight") or "",
@@ -1788,6 +1182,9 @@ def restore_cancelled_item_from_cart(customer,row_name):
     }
     
   
+  
+  
+  
   # ─────────────────────────────────────────────
 
 
@@ -1924,6 +1321,16 @@ def get_placed_orders(customer=None, user=None):
     result = []
     for order in orders:
         doc = frappe.get_doc("Portal Order", order["name"])
+        
+        
+        items = _serialize_items(
+            doc.items,
+            status_filter="Ordered"
+        ) 
+
+        if not items:
+            continue
+        
         result.append({
             "name": doc.name,
             "customer": doc.customer,
@@ -1932,10 +1339,12 @@ def get_placed_orders(customer=None, user=None):
             "status": doc.status,
             "total_quantity": doc.total_quantity,
             "total_amount": doc.total_amount,
-            "items": _serialize_items(doc.items, status_filter="Ordered"), 
+            # "items": _serialize_items(doc.items, status_filter="Ordered"), 
+            "items": items,
         })
 
     return {"success": True, "count": len(result), "orders": result}
+
 
 @frappe.whitelist()
 def cancel_order(order_name):
@@ -2082,7 +1491,7 @@ def send_customer_order_notification(user, order_id, customer_item_array):
     message = get_email_template(customer, order_id, items_html)
     
     frappe.sendmail(
-        recipients=users,
+        recipients="bhavika_p@gkexport.com",
         sender="customer_portal@gkexport.com",
         subject=f"Order Update - {order_id}",
         message=message
@@ -2130,18 +1539,18 @@ def get_email_template(customer, order_id, items_html):
         <div style="font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px;">Items in order</div>
 
         <!-- Items table -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
-          <thead>
-            <tr style="border-bottom: 1px solid #e5e7eb;">
-              <th style="font-size: 11px; color: #9ca3af; text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">Item</th>
-              <th style="font-size: 11px; color: #9ca3af; text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">BOM</th>
-              <th style="font-size: 11px; color: #9ca3af; text-align: right; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">Qty</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items_html}
-          </tbody>
-        </table>
+        # <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+        #   <thead>
+        #     <tr style="border-bottom: 1px solid #e5e7eb;">
+        #       <th style="font-size: 11px; color: #9ca3af; text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">Item</th>
+        #       <th style="font-size: 11px; color: #9ca3af; text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">BOM</th>
+        #       <th style="font-size: 11px; color: #9ca3af; text-align: right; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">Qty</th>
+        #     </tr>
+        #   </thead>
+        #   <tbody>
+        #     {items_html}
+        #   </tbody>
+        # </table>
       </div>
 
       <!-- Footer -->
@@ -2165,7 +1574,11 @@ def build_item_row(item_code, bom, qty):
       </td>
     </tr>
     """
-
+    
+    
+    
+    
+    
 #Try to send the email to customer and user  
 
     
@@ -2214,7 +1627,8 @@ def _render_order_email(context, items, internal=False, show_rate=False):
     )
 
 
-def _send_order_placed_emails(customer, portal_order, user, active_items, order_rates,total_qty, total_amount, order_date, notes=None):
+def _send_order_placed_emails(customer, portal_order, user, active_items, order_rates,
+                              total_qty, total_amount, order_date, notes=None):
     try:
         customer_name = frappe.db.get_value("Customer", customer, "customer_name") or customer
         sender = "customer_portal@gkexport.com"
