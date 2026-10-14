@@ -4,6 +4,7 @@
 import frappe
 from frappe.utils import get_site_path,today, getdate
 import os
+import math
 from gke_customization.gke_hrms.report.pf_contribution_report.pf_contribution_report import get_pf_data
 
 def execute(filters=None):
@@ -302,17 +303,17 @@ def export_txt(filters=None):
 			eps_wages = 0
 			eps_contribution = 0
 			
-			epf_wages = 15000 if basic_ear > 15000 else basic_ear
+			epf_wages = 25000 if basic_ear > 25000 else basic_ear
 
 			if age >= 58:
 				eps_wages = 0
 			else:
-				eps_wages = 15000 if basic_ear > 15000 else basic_ear
+				eps_wages = 25000 if basic_ear > 25000 else basic_ear
 
-			edli_wages = 15000 if basic_ear > 15000 else basic_ear
+			edli_wages = 25000 if basic_ear > 25000 else basic_ear
 			ctc = round(float(row.get("custom_gross_salary") or 0)) 
 
-			if basic_ear < 15000:
+			if basic_ear < 25000:
 				epf_contribution = round((basic_ear or 0) * 0.12)
 				if age >= 58:
 					eps_contribution = 0
@@ -323,13 +324,14 @@ def export_txt(filters=None):
 				if age >= 58:
 					eps_contribution = 0
 				else:
-					eps_contribution = round(15000 * 0.0833)
+					eps_contribution = round(25000 * 0.0833)
 
 			contribution = (epf_contribution - eps_contribution) or 0
 
 			ncp = 0
 			total_working_days = row.get("total_working_days") or 0
-			payment_days = round(row.get("payment_days") or 0)
+			# payment_days = round(row.get("payment_days") or 0)
+			payment_days = math.floor((row.get("payment_days") or 0) + 0.5)
 			
 			if row.get("absent_days"):
 				ncp = round(row.get("absent_days") or 0)
