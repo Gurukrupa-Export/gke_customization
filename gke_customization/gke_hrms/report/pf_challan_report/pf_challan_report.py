@@ -4,6 +4,7 @@
 import frappe
 from frappe.utils import get_site_path,today, getdate
 import os
+import math
 from gke_customization.gke_hrms.report.pf_contribution_report.pf_contribution_report import get_pf_data
 
 def execute(filters=None):
@@ -329,7 +330,8 @@ def export_txt(filters=None):
 
 			ncp = 0
 			total_working_days = row.get("total_working_days") or 0
-			payment_days = round(row.get("payment_days") or 0)
+			# payment_days = round(row.get("payment_days") or 0)
+			payment_days = math.floor((row.get("payment_days") or 0) + 0.5)
 			
 			if row.get("absent_days"):
 				ncp = round(row.get("absent_days") or 0)
