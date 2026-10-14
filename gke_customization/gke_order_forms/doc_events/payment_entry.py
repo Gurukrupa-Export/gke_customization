@@ -349,8 +349,8 @@ def on_submit(self, method):
             gl_entry.insert(ignore_permissions=True)
             gl_entry.submit()
             frappe.flags.ignore_permissions = False
-			
-	if self.custom_partner_capital and self.payment_type == 'Receive':
+            
+    if self.custom_partner_capital and self.payment_type == 'Receive':
         bussiness_patner = frappe.db.get_value("Partner Capital",self.custom_partner_capital,"lender")
         unsecured_laon_account = frappe.db.sql(f"""select partner_capital_account from `tabLoan Accounts` where parent = '{bussiness_patner}' and company = '{self.company}'""",as_dict=1)
         if not unsecured_laon_account:
