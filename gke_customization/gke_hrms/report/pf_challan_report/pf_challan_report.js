@@ -100,9 +100,9 @@ frappe.query_reports["PF Challan Report"] = {
 			}
 			});
 		}).addClass("btn-secondary");
-		report.page.add_inner_button(__("PF Contribution Report"), function () {
+		report.page.add_inner_button(__("PF Contribution"), function () {
 			var filters = report.get_values();
-			frappe.set_route("query-report", "PF Contribution Report", { month: filters.month, year: filters.year, company: filters.company });
+			frappe.set_route("query-report", "PF Contribution", { month: filters.month, year: filters.year, company: filters.company });
 		}); 
 	},
 	"after_datatable_render": function (datatable_obj) {

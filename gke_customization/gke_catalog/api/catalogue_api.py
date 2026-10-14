@@ -4364,513 +4364,513 @@ def get_selected_item_count_for_customet_wise(customer_id, collection):
         return e
     
 
-@frappe.whitelist()
-def get_wishlist_item_for_customer_by_user(items, customers):
-    """
-    Save selected items to 'Cataloge Master' for one or more customers.
-    Supports trending value updates.
-    """
+# @frappe.whitelist()
+# def get_wishlist_item_for_customer_by_user(items, customers):
+#     """
+#     Save selected items to 'Cataloge Master' for one or more customers.
+#     Supports trending value updates.
+#     """
 
-    # Parse JSON if string
-    if isinstance(items, str):
-        items = frappe.parse_json(items)
+#     # Parse JSON if string
+#     if isinstance(items, str):
+#         items = frappe.parse_json(items)
 
-    if isinstance(customers, str):
-        customers = json.loads(customers)
+#     if isinstance(customers, str):
+#         customers = json.loads(customers)
 
-    if not items or not customers:
-        frappe.throw("Both 'items' and 'customers' are required.")
+#     if not items or not customers:
+#         frappe.throw("Both 'items' and 'customers' are required.")
 
-    # if user_type == "User":
-    #     frappe.throw("User is not allowed to add the item to wishlist.")
+#     # if user_type == "User":
+#     #     frappe.throw("User is not allowed to add the item to wishlist.")
 
-    # items = [ { item1: trending1, item2: trending2 } ]
-    items_dict = items[0]
+#     # items = [ { item1: trending1, item2: trending2 } ]
+#     items_dict = items[0]
 
-    results = []
+#     results = []
 
-    for customer in customers:
+#     for customer in customers:
 
-        customer_found = frappe.db.get_all(
-            "Cataloge Master",
-            filters={"customer": customer},
-            fields=["name"]
-        )
+#         customer_found = frappe.db.get_all(
+#             "Cataloge Master",
+#             filters={"customer": customer},
+#             fields=["name"]
+#         )
 
-        # frappe.throw(f"{customer_id}")
+#         # frappe.throw(f"{customer_id}")
 
-        # ---------------------------------------------------------
-        # CUSTOMER EXISTS
-        # ---------------------------------------------------------
-        if customer_found:
+#         # ---------------------------------------------------------
+#         # CUSTOMER EXISTS
+#         # ---------------------------------------------------------
+#         if customer_found:
 
-            catalog_doc = frappe.get_doc("Cataloge Master", customer_found[0].name)
-            # catalog_doc.flags.ignore_permissions = True
+#             catalog_doc = frappe.get_doc("Cataloge Master", customer_found[0].name)
+#             # catalog_doc.flags.ignore_permissions = True
 
-            # Build lookup: existing item_code → trending
-            existing_items = {
-                row.item_code: row
-                for row in catalog_doc.cataloge_item_details
-            }
+#             # Build lookup: existing item_code → trending
+#             existing_items = {
+#                 row.item_code: row
+#                 for row in catalog_doc.cataloge_item_details
+#             }
 
-            added = []
-            updated = []
+#             added = []
+#             updated = []
 
          
-            for item_code, trending_value in items_dict.items():
+#             for item_code, trending_value in items_dict.items():
 
-                # skip metadata fields
-                if item_code in [
-                    "item",
-                    "is_folder",
-                    "status",
-                    "folder_name",
-                    "name",
-                    "as_per_customized",
-                    "job_work",
-                    "customized_data",
-                    "customer_gold",
-                    "customer_diamond",
-                    "customer_stone",
-                    "as_per_design",
-                    "is_duplicate"
-                ]:
-                    continue
+#                 # skip metadata fields
+#                 if item_code in [
+#                     "item",
+#                     "is_folder",
+#                     "status",
+#                     "folder_name",
+#                     "name",
+#                     "as_per_customized",
+#                     "job_work",
+#                     "customized_data",
+#                     "customer_gold",
+#                     "customer_diamond",
+#                     "customer_stone",
+#                     "as_per_design",
+#                     "is_duplicate"
+#                 ]:
+#                     continue
 
-                is_folder = items_dict.get("is_folder")
-                as_per_design = items_dict.get("as_per_design")
-                job_work = items_dict.get("job_work")
-                as_per_customized = items_dict.get("as_per_customized")
-                customized_data = items_dict.get("customized_data")
-                status = items_dict.get("status")
-                folder_name = items_dict.get("folder_name")
-                is_duplicate  = items_dict.get("is_duplicate")
-                name = items_dict.get("name")
-                customer_gold = items_dict.get("customer_gold")
-                customer_diamond = items_dict.get("customer_diamond")
-                customer_stone = items_dict.get("customer_stone")
+#                 is_folder = items_dict.get("is_folder")
+#                 as_per_design = items_dict.get("as_per_design")
+#                 job_work = items_dict.get("job_work")
+#                 as_per_customized = items_dict.get("as_per_customized")
+#                 customized_data = items_dict.get("customized_data")
+#                 status = items_dict.get("status")
+#                 folder_name = items_dict.get("folder_name")
+#                 is_duplicate  = items_dict.get("is_duplicate")
+#                 name = items_dict.get("name")
+#                 customer_gold = items_dict.get("customer_gold")
+#                 customer_diamond = items_dict.get("customer_diamond")
+#                 customer_stone = items_dict.get("customer_stone")
                 
-                # ----------------- NEW ITEM -----------------
-                if item_code not in existing_items:
+#                 # ----------------- NEW ITEM -----------------
+#                 if item_code not in existing_items:
 
-                    row_data = {
-                        "item_code": item_code,
-                        "item_name": item_code,
-                        "wishlist": trending_value,
-                        "job_work": job_work,
-                        "as_per_customized": as_per_customized,
-                        "as_per_design": as_per_design,
-                        "customized_data": customized_data,
-                        "customer_stone": customer_stone,
-                        "customer_diamond": customer_diamond,
-                        "customer_gold": customer_gold
-                    }
+#                     row_data = {
+#                         "item_code": item_code,
+#                         "item_name": item_code,
+#                         "wishlist": trending_value,
+#                         "job_work": job_work,
+#                         "as_per_customized": as_per_customized,
+#                         "as_per_design": as_per_design,
+#                         "customized_data": customized_data,
+#                         "customer_stone": customer_stone,
+#                         "customer_diamond": customer_diamond,
+#                         "customer_gold": customer_gold
+#                     }
 
-                    catalog_doc.append(
-                        "cataloge_item_details",
-                        row_data
-                    )
+#                     catalog_doc.append(
+#                         "cataloge_item_details",
+#                         row_data
+#                     )
 
-                    added.append(item_code)
+#                     added.append(item_code)
 
-                    # =====================================================
-                    # SAVE FIRST BEFORE FOLDER CREATION
-                    # =====================================================
+#                     # =====================================================
+#                     # SAVE FIRST BEFORE FOLDER CREATION
+#                     # =====================================================
 
-                    catalog_doc.flags.ignore_version = True
+#                     catalog_doc.flags.ignore_version = True
 
-                    catalog_doc.save(
-                        ignore_permissions=True,
-                        ignore_version=True
-                    )
+#                     catalog_doc.save(
+#                         ignore_permissions=True,
+#                         ignore_version=True
+#                     )
 
-                    frappe.db.commit()
+#                     frappe.db.commit()
 
-                    # reload latest doc to avoid timestamp mismatch
-                    # catalog_doc.reload()
+#                     # reload latest doc to avoid timestamp mismatch
+#                     # catalog_doc.reload()
 
-                    # rebuild existing_items
-                    existing_items = {
-                        row.item_code: row
-                        for row in catalog_doc.cataloge_item_details
-                    }
+#                     # rebuild existing_items
+#                     existing_items = {
+#                         row.item_code: row
+#                         for row in catalog_doc.cataloge_item_details
+#                     }
 
-                    # =====================================================
-                    # ADD IN FOLDER
-                    # =====================================================
+#                     # =====================================================
+#                     # ADD IN FOLDER
+#                     # =====================================================
 
-                    if (
-                        is_folder == "Yes"
-                        and as_per_design == 1
-                    ):
+#                     if (
+#                         is_folder == "Yes"
+#                         and as_per_design == 1
+#                     ):
 
-                        add_item_in_folder(
-                            status,
-                            folder_name,
-                            items_dict.get("item"),
-                            customer
-                        )
+#                         add_item_in_folder(
+#                             status,
+#                             folder_name,
+#                             items_dict.get("item"),
+#                             customer
+#                         )
 
-                    elif (
-                        is_folder == "Yes"
-                        and as_per_customized == 1
-                        and (
-                            customer_gold == 1
-                            or customer_diamond == 1
-                            or customer_stone == 1
-                        )
-                        and customized_data
-                    ):
+#                     elif (
+#                         is_folder == "Yes"
+#                         and as_per_customized == 1
+#                         and (
+#                             customer_gold == 1
+#                             or customer_diamond == 1
+#                             or customer_stone == 1
+#                         )
+#                         and customized_data
+#                     ):
 
-                        add_item_in_folder(
-                            status,
-                            folder_name,
-                            items_dict.get("item"),
-                            customer
-                        )
+#                         add_item_in_folder(
+#                             status,
+#                             folder_name,
+#                             items_dict.get("item"),
+#                             customer
+#                         )
 
-                    elif (
-                        is_folder == "Yes"
-                        and job_work == 1
-                        and as_per_customized == 1
-                        and (
-                            customer_gold == 1
-                            or customer_diamond == 1
-                            or customer_stone == 1
-                        )
-                        and customized_data
-                    ):
+#                     elif (
+#                         is_folder == "Yes"
+#                         and job_work == 1
+#                         and as_per_customized == 1
+#                         and (
+#                             customer_gold == 1
+#                             or customer_diamond == 1
+#                             or customer_stone == 1
+#                         )
+#                         and customized_data
+#                     ):
 
-                        add_item_in_folder(
-                            status,
-                            folder_name,
-                            items_dict.get("item"),
-                            customer
-                        )
+#                         add_item_in_folder(
+#                             status,
+#                             folder_name,
+#                             items_dict.get("item"),
+#                             customer
+#                         )
 
-                    elif (
-                        is_folder == "Yes"
-                        and job_work == 1
-                        and (
-                            customer_gold == 1
-                            or customer_diamond == 1
-                            or customer_stone == 1
-                        )
-                        and customized_data
-                    ):
+#                     elif (
+#                         is_folder == "Yes"
+#                         and job_work == 1
+#                         and (
+#                             customer_gold == 1
+#                             or customer_diamond == 1
+#                             or customer_stone == 1
+#                         )
+#                         and customized_data
+#                     ):
 
-                        add_item_in_folder(
-                            status,
-                            folder_name,
-                            items_dict.get("item"),
-                            customer
-                        )
+#                         add_item_in_folder(
+#                             status,
+#                             folder_name,
+#                             items_dict.get("item"),
+#                             customer
+#                         )
 
-                # ----------------- UPDATE ITEM -----------------
-                else:
-                    old_val = existing_items[item_code]
+#                 # ----------------- UPDATE ITEM -----------------
+#                 else:
+#                     old_val = existing_items[item_code]
 
-                    if old_val != trending_value:
+#                     if old_val != trending_value:
                         
-                        if is_duplicate == 1:
-                            row_data = {
-                                "item_code": item_code,
-                                "item_name": item_code,
-                                "wishlist": trending_value,
-                                "job_work": job_work,
-                                "as_per_customized": as_per_customized,
-                                "as_per_design": as_per_design,
-                                "customized_data": customized_data,
-                                "customer_stone": customer_stone,
-                                "customer_diamond": customer_diamond,
-                                "customer_gold": customer_gold
-                            }
+#                         if is_duplicate == 1:
+#                             row_data = {
+#                                 "item_code": item_code,
+#                                 "item_name": item_code,
+#                                 "wishlist": trending_value,
+#                                 "job_work": job_work,
+#                                 "as_per_customized": as_per_customized,
+#                                 "as_per_design": as_per_design,
+#                                 "customized_data": customized_data,
+#                                 "customer_stone": customer_stone,
+#                                 "customer_diamond": customer_diamond,
+#                                 "customer_gold": customer_gold
+#                             }
                             
-                            catalog_doc.append(
-                                "cataloge_item_details",
-                                row_data
-                            )
+#                             catalog_doc.append(
+#                                 "cataloge_item_details",
+#                                 row_data
+#                             )
 
-                            added.append(item_code)
+#                             added.append(item_code)
 
-                            # =====================================================
-                            # SAVE FIRST BEFORE FOLDER CREATION
-                            # =====================================================
+#                             # =====================================================
+#                             # SAVE FIRST BEFORE FOLDER CREATION
+#                             # =====================================================
 
-                            catalog_doc.flags.ignore_version = True
+#                             catalog_doc.flags.ignore_version = True
 
-                            catalog_doc.save(
-                                ignore_permissions=True,
-                                ignore_version=True
-                            )
+#                             catalog_doc.save(
+#                                 ignore_permissions=True,
+#                                 ignore_version=True
+#                             )
 
-                            frappe.db.commit()      
-                        else:
-                            row = next(
-                                (d for d in catalog_doc.cataloge_item_details if d.item_code == item_code),
-                                None
-                            )
-                            # frappe.throw(f"{row.name}")
-                            if row:
-                                    row.wishlist = trending_value
-                                    row.job_work = job_work
-                                    row.as_per_customized = as_per_customized
-                                    row.as_per_design = as_per_design
-                                    row.customized_data = customized_data
-                                    row.customer_gold = customer_gold
-                                    row.customer_diamond = customer_diamond
-                                    row.customer_stone = customer_stone
+#                             frappe.db.commit()      
+#                         else:
+#                             row = next(
+#                                 (d for d in catalog_doc.cataloge_item_details if d.item_code == item_code),
+#                                 None
+#                             )
+#                             # frappe.throw(f"{row.name}")
+#                             if row:
+#                                     row.wishlist = trending_value
+#                                     row.job_work = job_work
+#                                     row.as_per_customized = as_per_customized
+#                                     row.as_per_design = as_per_design
+#                                     row.customized_data = customized_data
+#                                     row.customer_gold = customer_gold
+#                                     row.customer_diamond = customer_diamond
+#                                     row.customer_stone = customer_stone
 
-                                    updated.append(item_code)
+#                                     updated.append(item_code)
                                     
-                                    catalog_doc.flags.ignore_version = True
+#                                     catalog_doc.flags.ignore_version = True
                                     
-                                    catalog_doc.save(
-                                        ignore_permissions=True,
-                                        ignore_version=True
-                                    )
+#                                     catalog_doc.save(
+#                                         ignore_permissions=True,
+#                                         ignore_version=True
+#                                     )
 
-                                    frappe.db.commit()
+#                                     frappe.db.commit()
                             
                                 
-                                    # same conditions here
-                                    if (
-                                        is_folder == "Yes"
-                                        and as_per_design == 1
-                                    ):
-                                        # if row.as_per_design == as_per_design and row.item_code == item_code:
-                                        #     frappe.throw(f"Item {row.item_code} Is alreday Exist With Design and Folder")
+#                                     # same conditions here
+#                                     if (
+#                                         is_folder == "Yes"
+#                                         and as_per_design == 1
+#                                     ):
+#                                         # if row.as_per_design == as_per_design and row.item_code == item_code:
+#                                         #     frappe.throw(f"Item {row.item_code} Is alreday Exist With Design and Folder")
                                         
-                                        add_item_in_folder(
-                                            status,
-                                            folder_name,
-                                            items_dict.get("item"),
-                                            customer
-                                        )
+#                                         add_item_in_folder(
+#                                             status,
+#                                             folder_name,
+#                                             items_dict.get("item"),
+#                                             customer
+#                                         )
 
-                                    elif (
-                                        is_folder == "Yes"
-                                        and as_per_customized == 1
-                                        and customized_data
-                                    ):
-                                        # if row.as_per_customized == as_per_customized and row.item_code == item_code and row.customized_data == customized_data:
-                                            # frappe.throw(f"Item {row.item_code} Is alreday Exist With Customized and Folder")
+#                                     elif (
+#                                         is_folder == "Yes"
+#                                         and as_per_customized == 1
+#                                         and customized_data
+#                                     ):
+#                                         # if row.as_per_customized == as_per_customized and row.item_code == item_code and row.customized_data == customized_data:
+#                                             # frappe.throw(f"Item {row.item_code} Is alreday Exist With Customized and Folder")
                                         
-                                        add_item_in_folder(
-                                            status,
-                                            folder_name,
-                                            items_dict.get("item"),
-                                            customer
-                                        )
+#                                         add_item_in_folder(
+#                                             status,
+#                                             folder_name,
+#                                             items_dict.get("item"),
+#                                             customer
+#                                         )
                                         
-                                    elif (
-                                        is_folder == "Yes"
-                                        and job_work == 1
-                                        and (customer_gold == 1 
-                                            or customer_diamond == 1 
-                                            or customer_stone == 1
-                                            )
-                                        and customized_data
-                                        ):
+#                                     elif (
+#                                         is_folder == "Yes"
+#                                         and job_work == 1
+#                                         and (customer_gold == 1 
+#                                             or customer_diamond == 1 
+#                                             or customer_stone == 1
+#                                             )
+#                                         and customized_data
+#                                         ):
                                         
-                                        # if row.job_work == job_work and row.item_code == item_code and row.customized_data == customized_data and (row.customer_gold == customer_gold or row.customer_diamond == customer_diamond or row.customer_stone == customer_stone):
-                                            # frappe.throw(f"Item {row.item_code} Is alreday Exist With Job Work and Folder")
+#                                         # if row.job_work == job_work and row.item_code == item_code and row.customized_data == customized_data and (row.customer_gold == customer_gold or row.customer_diamond == customer_diamond or row.customer_stone == customer_stone):
+#                                             # frappe.throw(f"Item {row.item_code} Is alreday Exist With Job Work and Folder")
                                             
-                                        add_item_in_folder(
-                                            status,
-                                            folder_name,
-                                            items_dict.get("item"),
-                                            customer
-                                        )
+#                                         add_item_in_folder(
+#                                             status,
+#                                             folder_name,
+#                                             items_dict.get("item"),
+#                                             customer
+#                                         )
 
-                                    elif (
-                                        is_folder == "Yes"
-                                        and job_work == 1 and as_per_customized == 1
-                                        and customized_data
-                                        and (customer_gold == 1 
-                                            or customer_diamond == 1 
-                                            or customer_stone == 1
-                                        )
-                                    ):
-                                        # if row.job_work == job_work and row.as_per_customized == as_per_customized and row.item_code == item_code and row.customized_data == customized_data and (row.customer_gold == customer_gold or row.customer_diamond == customer_diamond or row.customer_stone == customer_stone):
-                                            # frappe.throw(f"Item {row.item_code} Is alreday Exist With Job Work and Folder")
+#                                     elif (
+#                                         is_folder == "Yes"
+#                                         and job_work == 1 and as_per_customized == 1
+#                                         and customized_data
+#                                         and (customer_gold == 1 
+#                                             or customer_diamond == 1 
+#                                             or customer_stone == 1
+#                                         )
+#                                     ):
+#                                         # if row.job_work == job_work and row.as_per_customized == as_per_customized and row.item_code == item_code and row.customized_data == customized_data and (row.customer_gold == customer_gold or row.customer_diamond == customer_diamond or row.customer_stone == customer_stone):
+#                                             # frappe.throw(f"Item {row.item_code} Is alreday Exist With Job Work and Folder")
                                             
-                                        add_item_in_folder(
-                                            status,
-                                            folder_name,
-                                            items_dict.get("item"),
-                                            customer
-                                        )          
-                    else:
-                           row.wishlist = trending_value
-                           row.job_work = job_work
-                           row.as_per_customized = as_per_customized
-                           row.as_per_design = as_per_design
-                           row.customized_data = customized_data
-                           row.customer_gold = customer_gold
-                           row.customer_diamond = customer_diamond
-                           row.customer_stone = customer_stone 
+#                                         add_item_in_folder(
+#                                             status,
+#                                             folder_name,
+#                                             items_dict.get("item"),
+#                                             customer
+#                                         )          
+#                     else:
+#                            row.wishlist = trending_value
+#                            row.job_work = job_work
+#                            row.as_per_customized = as_per_customized
+#                            row.as_per_design = as_per_design
+#                            row.customized_data = customized_data
+#                            row.customer_gold = customer_gold
+#                            row.customer_diamond = customer_diamond
+#                            row.customer_stone = customer_stone 
                            
-                           updated.append(item_code)
+#                            updated.append(item_code)
                            
-                           catalog_doc.flags.ignore_version = True
+#                            catalog_doc.flags.ignore_version = True
 
-                           catalog_doc.save(
-                                ignore_permissions=True,
-                                ignore_version=True
-                            )
+#                            catalog_doc.save(
+#                                 ignore_permissions=True,
+#                                 ignore_version=True
+#                             )
 
-                           frappe.db.commit()
+#                            frappe.db.commit()
                            
-                           add_item_in_folder(
-                                status,
-                                folder_name,
-                                items_dict.get("item"),
-                                customer
-                           )
+#                            add_item_in_folder(
+#                                 status,
+#                                 folder_name,
+#                                 items_dict.get("item"),
+#                                 customer
+#                            )
 
-            results.append({
-                "customer": customer,
-                "added_items": added,
-                "updated_items": updated,
-                "message": f"Added {len(added)}, Updated {len(updated)} for customer {customer}"
-            })
+#             results.append({
+#                 "customer": customer,
+#                 "added_items": added,
+#                 "updated_items": updated,
+#                 "message": f"Added {len(added)}, Updated {len(updated)} for customer {customer}"
+#             })
 
-            # notify_user(customer_id[0].email_id, f"Cataloge Master Added {len(added)}, Updated {len(updated)} for customer You", f"Cataloge Master Added {len(added)}, Updated {len(updated)} for customer You")
+#             # notify_user(customer_id[0].email_id, f"Cataloge Master Added {len(added)}, Updated {len(updated)} for customer You", f"Cataloge Master Added {len(added)}, Updated {len(updated)} for customer You")
 
-        # ---------------------------------------------------------
-        # NEW CUSTOMER → CREATE CATALOG
-        # ---------------------------------------------------------
-        else:
-            catalog_doc = frappe.new_doc("Cataloge Master")
-            catalog_doc.customer = customer
+#         # ---------------------------------------------------------
+#         # NEW CUSTOMER → CREATE CATALOG
+#         # ---------------------------------------------------------
+#         else:
+#             catalog_doc = frappe.new_doc("Cataloge Master")
+#             catalog_doc.customer = customer
 
-            added_items = []
+#             added_items = []
 
-            for item_code, trending_value in items_dict.items():
+#             for item_code, trending_value in items_dict.items():
 
-                # skip metadata fields
-                if item_code in [
-                    "item",
-                    "is_folder",
-                    "status",
-                    "name",
-                    "folder_name",
-                    "as_per_customized",
-                    "job_work",
-                    "customized_data",
-                    "customer_gold",
-                    "customer_diamond",
-                    "customer_stone",
-                    "as_per_design"
-                ]:
-                    continue
+#                 # skip metadata fields
+#                 if item_code in [
+#                     "item",
+#                     "is_folder",
+#                     "status",
+#                     "name",
+#                     "folder_name",
+#                     "as_per_customized",
+#                     "job_work",
+#                     "customized_data",
+#                     "customer_gold",
+#                     "customer_diamond",
+#                     "customer_stone",
+#                     "as_per_design"
+#                 ]:
+#                     continue
 
-                is_folder = items_dict.get("is_folder")
-                as_per_design = items_dict.get("as_per_design")
-                job_work = items_dict.get("job_work")
-                as_per_customized = items_dict.get("as_per_customized")
-                customized_data = items_dict.get("customized_data")
-                status = items_dict.get("status")
-                name = items_dict.get("name")
-                folder_name = items_dict.get("folder_name")
+#                 is_folder = items_dict.get("is_folder")
+#                 as_per_design = items_dict.get("as_per_design")
+#                 job_work = items_dict.get("job_work")
+#                 as_per_customized = items_dict.get("as_per_customized")
+#                 customized_data = items_dict.get("customized_data")
+#                 status = items_dict.get("status")
+#                 name = items_dict.get("name")
+#                 folder_name = items_dict.get("folder_name")
 
-                customer_gold = items_dict.get("customer_gold")
-                customer_diamond = items_dict.get("customer_diamond")
-                customer_stone = items_dict.get("customer_stone")
+#                 customer_gold = items_dict.get("customer_gold")
+#                 customer_diamond = items_dict.get("customer_diamond")
+#                 customer_stone = items_dict.get("customer_stone")
 
-                # if folder and design type == As Per Design
-                catalog_doc.append("cataloge_item_details", {
-                        "item_code": item_code,
-                        "item_name": item_code,
-                        "wishlist": trending_value,
-                        "job_work" : job_work,
-                        "as_per_customized":as_per_customized,
-                        "customer_gold":customer_gold,
-                        "customer_stone" : customer_stone,
-                        "customer_diamond" : customer_diamond,
-                        "customized_data": customized_data
-                })
+#                 # if folder and design type == As Per Design
+#                 catalog_doc.append("cataloge_item_details", {
+#                         "item_code": item_code,
+#                         "item_name": item_code,
+#                         "wishlist": trending_value,
+#                         "job_work" : job_work,
+#                         "as_per_customized":as_per_customized,
+#                         "customer_gold":customer_gold,
+#                         "customer_stone" : customer_stone,
+#                         "customer_diamond" : customer_diamond,
+#                         "customized_data": customized_data
+#                 })
 
-                added_items.append(item_code)
+#                 added_items.append(item_code)
 
-                catalog_doc.insert(ignore_permissions=True)
+#                 catalog_doc.insert(ignore_permissions=True)
                 
-                catalog_doc.save(
-                            ignore_permissions=True,
-                            ignore_version=True
-                )
+#                 catalog_doc.save(
+#                             ignore_permissions=True,
+#                             ignore_version=True
+#                 )
 
-                frappe.db.commit()
+#                 frappe.db.commit()
                 
-                if (
-                    is_folder == "Yes"
-                    and as_per_design == 1
-                ):            
-                    add_item_in_folder(
-                            status,
-                            folder_name,
-                            items_dict.get("item"),
-                            customer
-                    )
+#                 if (
+#                     is_folder == "Yes"
+#                     and as_per_design == 1
+#                 ):            
+#                     add_item_in_folder(
+#                             status,
+#                             folder_name,
+#                             items_dict.get("item"),
+#                             customer
+#                     )
 
-                elif (
-                    is_folder == "Yes"
-                    and as_per_customized == 1
-                    and customized_data
-                ):               
-                    add_item_in_folder(
-                        status,
-                        folder_name,
-                        items_dict.get("item"),
-                        customer
-                    )
+#                 elif (
+#                     is_folder == "Yes"
+#                     and as_per_customized == 1
+#                     and customized_data
+#                 ):               
+#                     add_item_in_folder(
+#                         status,
+#                         folder_name,
+#                         items_dict.get("item"),
+#                         customer
+#                     )
                     
-                elif (is_folder == "Yes" 
-                      and job_work == 1 
-                      and (customer_gold == 1 
-                            or customer_diamond == 1 
-                            or customer_stone == 1
-                        ) 
-                      and customized_data
-                    ):               
-                        add_item_in_folder(
-                            status,
-                            folder_name,
-                            items_dict.get("item"),
-                            customer
-                        )
+#                 elif (is_folder == "Yes" 
+#                       and job_work == 1 
+#                       and (customer_gold == 1 
+#                             or customer_diamond == 1 
+#                             or customer_stone == 1
+#                         ) 
+#                       and customized_data
+#                     ):               
+#                         add_item_in_folder(
+#                             status,
+#                             folder_name,
+#                             items_dict.get("item"),
+#                             customer
+#                         )
                 
-                elif (is_folder == "Yes" 
-                      and job_work == 1 and as_per_customized == 1
-                      and (customer_gold == 1 
-                            or customer_diamond == 1 
-                            or customer_stone == 1
-                        ) 
-                      and customized_data
-                    ):                 
-                        add_item_in_folder(
-                            status,
-                            folder_name,
-                            items_dict.get("item"),
-                            customer
-                        )           
+#                 elif (is_folder == "Yes" 
+#                       and job_work == 1 and as_per_customized == 1
+#                       and (customer_gold == 1 
+#                             or customer_diamond == 1 
+#                             or customer_stone == 1
+#                         ) 
+#                       and customized_data
+#                     ):                 
+#                         add_item_in_folder(
+#                             status,
+#                             folder_name,
+#                             items_dict.get("item"),
+#                             customer
+#                         )           
 
                 
 
-            results.append({
-                "customer": customer,
-                "added_items": added_items,
-                "updated_items": [],
-                "message": f"Created new Cataloge Master for {customer}"
-            })
-            # notify_user(customer_id[0].email_id, "Cataloge Master New Catloug Master Created For You", "Cataloge Master New Catloug Master Created For You")
+#             results.append({
+#                 "customer": customer,
+#                 "added_items": added_items,
+#                 "updated_items": [],
+#                 "message": f"Created new Cataloge Master for {customer}"
+#             })
+#             # notify_user(customer_id[0].email_id, "Cataloge Master New Catloug Master Created For You", "Cataloge Master New Catloug Master Created For You")
             
 
-    return {
-        "status": "success",
-        "results": results
-    }
+#     return {
+#         "status": "success",
+#         "results": results
+#     }
 
 
 @frappe.whitelist()
@@ -6300,6 +6300,42 @@ def get_set_by_itemcode(itemCode=None, customer=None):
 
 
 
+DESIGN_MULTISELECT_LABELS = {
+    "Age Group", "Language", "Alphabet/Number", "Occasion", "Animal/Birds",
+    "Rhodium", "Collection", "Religious", "Design Style", "Shapes",
+    "Gender", "Zodiac", "Lines & Rows",
+}
+
+
+def get_design_multiselect_clause():
+    """Item ke Table MultiSelect fields ke liye EXISTS conditions banata hai.
+
+    Fieldnames / doctype names frappe meta se aate hain (user input se nahi),
+    isliye SQL injection ka risk nahi. User ki value sirf %(like_query)s se jaati hai.
+    """
+    meta = frappe.get_meta("Item")
+    clauses = []
+
+    for df in meta.get("fields", {"fieldtype": "Table MultiSelect"}):
+        if df.label not in DESIGN_MULTISELECT_LABELS:
+            continue
+
+        child_meta = frappe.get_meta(df.options)
+        link_df = next((f for f in child_meta.fields if f.fieldtype == "Link"), None)
+        if not link_df:
+            continue
+
+        clauses.append(f"""
+            EXISTS (
+                SELECT 1 FROM `tab{df.options}` AS ms
+                WHERE ms.parent = item.name
+                  AND ms.parentfield = '{df.fieldname}'
+                  AND ms.`{link_df.fieldname}` LIKE %(like_query)s
+            )""")
+
+    return " OR ".join(clauses) if clauses else "1=0"
+
+
 @frappe.whitelist()
 def global_search(query=None, customer=None, user=None):
     if not query or len(query) < 2:
@@ -6307,6 +6343,9 @@ def global_search(query=None, customer=None, user=None):
 
     like_query = f"%{query}%"
     values = {"like_query": like_query}
+
+    # Design Attribute tab ke multiselect fields (Gender, Occasion, Shapes, ...)
+    ms_clause = get_design_multiselect_clause()
 
     # ----------------------------------------------------------------
     # CUSTOMER
@@ -6319,7 +6358,16 @@ def global_search(query=None, customer=None, user=None):
                 item.item_code,
                 item.item_category,
                 item.item_subcategory,
-                item.image,
+                (
+                    SELECT GROUP_CONCAT(DISTINCT ms.design_attribute SEPARATOR ', ')
+                    FROM `tabDesign Attribute - Multiselect` AS ms
+                    WHERE ms.parent = item.name
+                      AND ms.parentfield = 'custom_design_style'
+                ) AS design_style,
+                COALESCE(
+                    NULLIF(item.custom_catalogue_image, ''),
+                    NULLIF(item.custom_silver_image, '')
+                ) AS custom_catalogue_image,
                 bom.metal_touch,
                 bom.metal_colour,
                 FORMAT(bom.gross_weight, 3) AS gross_metal_weight,
@@ -6335,7 +6383,6 @@ def global_search(query=None, customer=None, user=None):
                 ON item.item_code = bom.item
                 AND bom.bom_type = 'Finish Goods'
                 AND bom.is_active = 1
-                # AND bom.is_default = 1
             LEFT JOIN `tabItem Default` AS idf
                 ON item.item_name = idf.parent
             WHERE
@@ -6345,9 +6392,31 @@ def global_search(query=None, customer=None, user=None):
                     item.item_code LIKE %(like_query)s
                     OR item.item_category LIKE %(like_query)s
                     OR item.item_subcategory LIKE %(like_query)s
+                    OR EXISTS (
+                        SELECT 1
+                        FROM `tabDesign Attributes` AS da
+                        WHERE da.parent = item.name
+                          AND (
+                              da.design_attributes LIKE %(like_query)s
+                              OR da.design_attribute_value_1 LIKE %(like_query)s
+                              OR da.design_attribute_value_2 LIKE %(like_query)s
+                              OR da.design_attribute_value_3 LIKE %(like_query)s
+                              OR da.design_attribute_value_4 LIKE %(like_query)s
+                              OR da.design_attribute_value_5 LIKE %(like_query)s
+                              OR da.design_attribute_value_6 LIKE %(like_query)s
+                              OR da.design_attribute_value_7 LIKE %(like_query)s
+                              OR da.design_attribute_value_8 LIKE %(like_query)s
+                          )
+                    )
+                    OR (/*MS_CLAUSE*/)
                 )
+                # AND (
+                #     NULLIF(item.custom_catalogue_image, '') IS NOT NULL
+                #     OR
+                #     NULLIF(item.custom_silver_image, '') IS NOT NULL
+                # )
             ORDER BY item.item_subcategory, item.item_code
-        """, values, as_dict=True)
+        """.replace("/*MS_CLAUSE*/", ms_clause), values, as_dict=True)
 
     # ----------------------------------------------------------------
     # USER
@@ -6355,11 +6424,19 @@ def global_search(query=None, customer=None, user=None):
     elif user:
         db_data = frappe.db.sql("""
             SELECT
-                # item.item_code,
+                item.item_code,
                 item.item_category,
                 item.item_subcategory,
-                item.image,
-                item.custom_catalogue_image,
+                (
+                    SELECT GROUP_CONCAT(DISTINCT ms.design_attribute SEPARATOR ', ')
+                    FROM `tabDesign Attribute - Multiselect` AS ms
+                    WHERE ms.parent = item.name
+                      AND ms.parentfield = 'custom_design_style'
+                ) AS design_style,
+                COALESCE(
+                    NULLIF(item.custom_catalogue_image, ''),
+                    NULLIF(item.custom_silver_image, '')
+                ) AS custom_catalogue_image,
                 bom.metal_touch,
                 bom.metal_colour,
                 FORMAT(bom.gross_weight, 3) AS gross_metal_weight,
@@ -6367,10 +6444,16 @@ def global_search(query=None, customer=None, user=None):
                 bom.diamond_quality
             FROM `tabItem` AS item
             INNER JOIN `tabBOM` AS bom
-                ON item.item_code = bom.item
-                AND bom.bom_type = 'Finish Goods'
-                AND bom.is_active = 1
-                # AND bom.is_default = 1
+                ON bom.name = (
+                    SELECT b.name
+                    FROM `tabBOM` AS b
+                    WHERE b.item = item.item_code
+                      AND b.bom_type = 'Finish Goods'
+                      AND b.is_active = 1
+                      AND b.docstatus = 1
+                    ORDER BY b.modified DESC
+                    LIMIT 1
+                )
             INNER JOIN `tabItem Default` AS idf
                 ON item.item_name = idf.parent
                 AND idf.company = 'Gurukrupa Export Private Limited'
@@ -6380,21 +6463,43 @@ def global_search(query=None, customer=None, user=None):
                     item.item_code LIKE %(like_query)s
                     OR item.item_category LIKE %(like_query)s
                     OR item.item_subcategory LIKE %(like_query)s
+                    OR EXISTS (
+                        SELECT 1
+                        FROM `tabDesign Attributes` AS da
+                        WHERE da.parent = item.name
+                          AND (
+                              da.design_attributes LIKE %(like_query)s
+                              OR da.design_attribute_value_1 LIKE %(like_query)s
+                              OR da.design_attribute_value_2 LIKE %(like_query)s
+                              OR da.design_attribute_value_3 LIKE %(like_query)s
+                              OR da.design_attribute_value_4 LIKE %(like_query)s
+                              OR da.design_attribute_value_5 LIKE %(like_query)s
+                              OR da.design_attribute_value_6 LIKE %(like_query)s
+                              OR da.design_attribute_value_7 LIKE %(like_query)s
+                              OR da.design_attribute_value_8 LIKE %(like_query)s
+                          )
+                    )
+                    OR (/*MS_CLAUSE*/)
                 )
+                # AND (
+                #     NULLIF(item.custom_catalogue_image, '') IS NOT NULL
+                #     OR
+                #     NULLIF(item.custom_silver_image, '') IS NOT NULL
+                # )
             ORDER BY item.item_subcategory, item.item_code
-        """, values, as_dict=True)
+        """.replace("/*MS_CLAUSE*/", ms_clause), values, as_dict=True)
 
     else:
         return []
 
     # ----------------------------------------------------------------
-    # Smart filter — NO LIMIT in SQL, Python mein handle karo
+    # Smart filter — NO LIMIT in SQL, Python handle
     # ----------------------------------------------------------------
     q_lower = query.lower()
 
     # Item code search detect karo
     is_item_code_search = any(
-        row.get("item_code", "").lower().startswith(q_lower)
+        (row.get("item_code") or "").lower().startswith(q_lower)
         for row in db_data
     )
 
@@ -6402,11 +6507,11 @@ def global_search(query=None, customer=None, user=None):
         # Item code search — exact matching items, max 8
         matched = [
             row for row in db_data
-            if row.get("item_code", "").lower().startswith(q_lower)
+            if (row.get("item_code") or "").lower().startswith(q_lower)
         ]
         return matched[:8]
     else:
-        # Category/Subcategory search — GUARANTEED 1 per subcategory, no skip
+        # Category/Subcategory/Design attribute search — 1 per subcategory
         seen = set()
         final = []
         for row in db_data:
@@ -6415,8 +6520,6 @@ def global_search(query=None, customer=None, user=None):
                 final.append(row)
                 seen.add(sub)
         return final
-
-
 
 @frappe.whitelist()
 def remove_trending_item(customer, item_code, trending):
