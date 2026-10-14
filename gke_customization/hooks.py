@@ -1,9 +1,9 @@
-from . import __version__ as app_version
-import gke_customization.overrides
+from . import __version__
+
 app_name = "gke_customization"
 app_title = "Gke Customization"
 app_publisher = "Gurukrupa Export"
-app_description = "App made for gurukrupa\'s internal development team"
+app_description = "App made for gurukrupa's internal development team"
 app_email = "vishal@gurukrupaexport.in"
 app_license = "MIT"
 
@@ -48,7 +48,7 @@ doctype_js = {
 
 # website user home page (by Role)
 # role_home_page = {
-#	"Role": "home_page"
+# "Role": "home_page"
 # }
 
 # Generators
@@ -62,8 +62,8 @@ doctype_js = {
 
 # add methods and filters to jinja environment
 # jinja = {
-#	"methods": "gke_customization.utils.jinja_methods",
-#	"filters": "gke_customization.utils.jinja_filters"
+# "methods": "gke_customization.utils.jinja_methods",
+# "filters": "gke_customization.utils.jinja_filters"
 # }
 jinja = {
     "methods": ["gke_customization.gke_hrms.utils.get_account_total_summary_for_print"]
@@ -107,11 +107,11 @@ jinja = {
 # Permissions evaluated in scripted ways
 
 # permission_query_conditions = {
-#	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
+# "Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
 # }
 #
 has_permission = {
-	"Task": "gke_customization.gke_order_forms.doc_events.task.has_permission",
+    "Task": "gke_customization.gke_order_forms.doc_events.task.has_permission",
 }
 
 # DocType Class
@@ -152,7 +152,7 @@ scheduler_events = {
         "gke_customization.gke_hrms.utils.check_sadwitch_rule",
         "gke_customization.gke_hrms.doc_events.leave_allocation.get_earned_leave_allocation",
         "gke_customization.gke_hrms.doc_events.leave_allocation.infirmary_leave_allocation",
-        "gke_customization.gke_hrms.doc_events.leave_allocation.compOff_leave_allocation"    
+        "gke_customization.gke_hrms.doc_events.leave_allocation.compOff_leave_allocation",
     ],
     "hourly": [
         "gke_customization.gke_hrms.sync_checkin.sync_biometric_checkins"  # new script for Sync biometric checkins
@@ -174,28 +174,37 @@ scheduler_events = {
         "0 6 * * *": [
             "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
         ],
+        "0 9 * * *": [
+            "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
+        ],
+        "0 15 * * *": [
+            "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
+        ],
+        "0 23 * * *": [
+            "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
+        ],
         "30 10 * * *": [
-			"gke_customization.gke_hrms.report.department_wise_daily_present_report.department_wise_daily_present_report.send_morning_present_report"
-		],
+            "gke_customization.gke_hrms.report.department_wise_daily_present_report.department_wise_daily_present_report.send_morning_present_report"
+        ],
         "30 8 * * *": [
-			"gke_customization.gke_hrms.report.department_wise_daily_attendance.department_wise_daily_attendance.send_daily_attendance_report"
-		]
+            "gke_customization.gke_hrms.report.department_wise_daily_attendance.department_wise_daily_attendance.send_daily_attendance_report"
+        ],
     },
 }
 
 # Testing
 # -------
 
+# payroll/withholding tests need the hrms test fixtures (_Test Company), on dev sites too
 # before_tests = "gke_customization.install.before_tests"
-
 # Overriding Methods
 # ------------------------------
 #
 override_whitelisted_methods = {
-	"hrms.hr.doctype.job_offer.job_offer.make_employee": "gke_customization.gke_hrms.doc_events.job_offer.make_employee",
-    "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note":"gke_customization.gke_customization.doc_events.sales_order.make_delivery_note",
-    "erpnext.selling.doctype.delivery_note.delivery_note.make_sales_invoice":"gke_customization.gke_customization.doc_events.delivery_note.make_sales_invoice",
-    "hrms.hr.doctype.employee_attendance_tool.employee_attendance_tool.mark_employee_attendance":"gke_customization.gke_hrms.api.attendance_tool.mark_employee_attendance"
+    "hrms.hr.doctype.job_offer.job_offer.make_employee": "gke_customization.gke_hrms.doc_events.job_offer.make_employee",
+    "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note": "gke_customization.gke_customization.doc_events.sales_order.make_delivery_note",
+    "erpnext.selling.doctype.delivery_note.delivery_note.make_sales_invoice": "gke_customization.gke_customization.doc_events.delivery_note.make_sales_invoice",
+    "hrms.hr.doctype.employee_attendance_tool.employee_attendance_tool.mark_employee_attendance": "gke_customization.gke_hrms.api.attendance_tool.mark_employee_attendance",
 }
 #
 # each overriding function accepts a `data` argument;
@@ -228,37 +237,37 @@ override_doctype_dashboards = {
 # --------------------
 
 # user_data_fields = [
-#	{
-#		"doctype": "{doctype_1}",
-#		"filter_by": "{filter_by}",
-#		"redact_fields": ["{field_1}", "{field_2}"],
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_2}",
-#		"filter_by": "{filter_by}",
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_3}",
-#		"strict": False,
-#	},
-#	{
-#		"doctype": "{doctype_4}"
-#	}
+# {
+# "doctype": "{doctype_1}",
+# "filter_by": "{filter_by}",
+# "redact_fields": ["{field_1}", "{field_2}"],
+# "partial": 1,
+# },
+# {
+# "doctype": "{doctype_2}",
+# "filter_by": "{filter_by}",
+# "partial": 1,
+# },
+# {
+# "doctype": "{doctype_3}",
+# "strict": False,
+# },
+# {
+# "doctype": "{doctype_4}"
+# }
 # ]
 
 # Authentication and authorization
 # --------------------------------
 
 # auth_hooks = [
-#	"gke_customization.auth.validate"
+# "gke_customization.auth.validate"
 # ]
 
 app_include_js = "gke_customization.gke_catalog.api.item_list.get_item_list"
 app_include_js = "gke_customization.gke_catalog.api.item_list.get_bom_list"
 
-app_include_js = "gke_customization.gke_catalog.api.attendance.attendance" 
+app_include_js = "gke_customization.gke_catalog.api.attendance.attendance"
 
 app_include_js = "gke_customization.gke_catalog.api.item_catalog.merge_data"
 
@@ -364,11 +373,14 @@ doc_events = {
 
 fixtures = [
     {
-		"dt": "Custom Field", 
-		"filters": [["module", "in", ["GKE Order Forms", "GKE Catalog"]]]
-	},
+        "dt": "Custom Field",
+        "filters": [["module", "in", ["GKE Order Forms", "GKE Catalog"]]],
+    },
     {
-		"dt": "DocType", 
-		"filters": [["module", "in", ["GKE Order Forms", "GKE Catalog"]], ['custom', "=", 1]]
-	},
+        "dt": "DocType",
+        "filters": [
+            ["module", "in", ["GKE Order Forms", "GKE Catalog"]],
+            ["custom", "=", 1],
+        ],
+    },
 ]

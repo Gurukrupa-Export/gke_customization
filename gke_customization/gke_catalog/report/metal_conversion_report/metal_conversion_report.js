@@ -1,27 +1,6 @@
 frappe.query_reports["Metal Conversion Report"] = {
     "filters": [
         {
-            "fieldname": "company",
-            "label": __("Company"),
-            "fieldtype": "Link",
-            "options": "Company",
-            "default": frappe.defaults.get_user_default("Company"),
-            "reqd": 1
-        },
-        {
-            "fieldname": "branch",
-            "label": __("Branch"),
-            "fieldtype": "Link",
-            "options": "Branch",
-            "get_query": function() {
-                return {
-                    "filters": {
-                        "company": frappe.query_report.get_filter_value('company')
-                    }
-                }
-            }
-        },
-        {
             "fieldname": "manufacturer",
             "label": __("Manufacturer"),
             "fieldtype": "Link",
@@ -45,20 +24,19 @@ frappe.query_reports["Metal Conversion Report"] = {
             "fieldname": "department",
             "label": __("Department"),
             "fieldtype": "Link",
-            "options": "Department",
-            "get_query": function() {
-                return {
-                    "filters": {
-                        "company": frappe.query_report.get_filter_value('company')
-                    }
-                }
-            }
+            "options": "Department"
         },
         {
             "fieldname": "is_customer_metal",
             "label": __("Is Customer Metal"),
             "fieldtype": "Select",
             "options": "\nYes\nNo"
+        },
+        {
+            "fieldname": "conversion_type",
+            "label": __("Conversion Type"),
+            "fieldtype": "Select",
+            "options": "\nTouch to Pure\nPure to Touch\nOther Conversions"
         }
     ],
     

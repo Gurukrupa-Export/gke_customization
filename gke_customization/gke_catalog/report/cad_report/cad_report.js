@@ -92,7 +92,8 @@ frappe.query_reports["CAD Report"] = {
         }
 
         return frappe.db.get_list("Order", {
-            fields: ["distinct setting_type as value"],
+            fields: ["setting_type as value"],
+            group_by: "setting_type",
             filters: filters,
             limit: 20
         }).then(r => {
@@ -123,7 +124,8 @@ frappe.query_reports["CAD Report"] = {
             reqd: 0,
             get_data: function(txt) {
                 return frappe.db.get_list("Order", {
-                    fields: ["distinct workflow_state as value"],
+                    fields: ["workflow_state as value"],
+                    group_by: "workflow_state",
                 }).then(r => {
                     return r.map(d => {
                         return {

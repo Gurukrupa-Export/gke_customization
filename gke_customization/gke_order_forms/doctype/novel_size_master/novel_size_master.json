@@ -19,7 +19,8 @@
   "column_break_1gtdf",
   "abbr",
   "product_size",
-  "product_size_in"
+  "product_size_in",
+  "size_umo"
  ],
  "fields": [
   {
@@ -85,12 +86,18 @@
    "fieldname": "product_size_in",
    "fieldtype": "Data",
    "label": "Product Size In"
+  },
+  {
+   "fieldname": "size_umo",
+   "fieldtype": "Select",
+   "label": "Size UOM",
+   "options": "\nInch\nMM\nCM"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-09 15:35:52.828311",
- "modified_by": "Administrator",
+ "modified": "2026-03-18 11:16:20.100576",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Novel Size Master",
  "naming_rule": "Expression",
@@ -109,6 +116,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

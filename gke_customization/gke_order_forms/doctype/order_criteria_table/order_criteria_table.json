@@ -14,7 +14,8 @@
   "cad_appoval_timefrom_ibm_team",
   "cad_approval_day",
   "cad_submission_time",
-  "disable"
+  "disable",
+  "sketch_approval_day"
  ],
  "fields": [
   {
@@ -63,6 +64,11 @@
    "fieldname": "sketch_submission_time",
    "fieldtype": "Time",
    "label": "Sketch Submission Time"
+  },
+   {
+   "fieldname": "sketch_approval_day",
+   "fieldtype": "Float",
+   "label": "Sketch Approval Day"
   }
  ],
  "index_web_pages_for_search": 1,

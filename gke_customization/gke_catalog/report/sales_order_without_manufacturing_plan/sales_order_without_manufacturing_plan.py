@@ -50,14 +50,16 @@ def get_data(filters):
             `tabSales Order` so
         LEFT JOIN 
             `tabSales Order Item` soi ON soi.parent = so.name
-        LEFT JOIN 
+        LEFT JOIN
             `tabQuotation` q ON soi.prevdoc_docname = q.name
-        LEFT JOIN 
-            `tabManufacturing Plan Sales Order` mps ON mps.sales_order = so.name
-        WHERE 
+        WHERE
             so.docstatus = 1
             AND q.name IS NOT NULL
-            AND mps.name IS NULL
+            AND NOT EXISTS (
+                SELECT 1
+                FROM `tabManufacturing Plan Table` mpt
+                WHERE mpt.sales_order = so.name
+            )
             {condition_sql}
         GROUP BY 
             so.name

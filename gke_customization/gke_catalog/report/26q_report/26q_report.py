@@ -97,7 +97,7 @@ def get_data(filters):
 
     query = """
         SELECT
-            pi.tax_withholding_category AS section,
+            twi.tax_withholding_category AS section,
             pi.supplier_name,
             s.pan,
             pi.name AS invoice_no,
@@ -112,10 +112,17 @@ def get_data(filters):
             ) AS tds_rate,
             IFNULL(SUM(ptc.tax_amount), 0) AS tds_amount
         FROM `tabPurchase Invoice` pi
+        INNER JOIN (
+            SELECT parent, MAX(tax_withholding_category) AS tax_withholding_category
+            FROM `tabPurchase Invoice Item`
+            WHERE IFNULL(tax_withholding_category, '') != ''
+            GROUP BY parent
+        ) twi
+            ON twi.parent = pi.name
         LEFT JOIN `tabSupplier` s
             ON pi.supplier = s.name
         LEFT JOIN `tabTax Withholding Category` twc
-            ON pi.tax_withholding_category = twc.name
+            ON twi.tax_withholding_category = twc.name
         INNER JOIN `tabPurchase Taxes and Charges` ptc
             ON ptc.parent = pi.name
             AND ptc.account_head LIKE %s
@@ -123,8 +130,6 @@ def get_data(filters):
         WHERE pi.docstatus = 1
             AND pi.company = %s
             AND pi.posting_date BETWEEN %s AND %s
-            AND pi.tax_withholding_category IS NOT NULL
-            AND pi.tax_withholding_category != ''
             AND (twc.tds_section IS NULL OR twc.tds_section NOT IN ('192', '192B'))
         GROUP BY pi.name
         HAVING tds_amount > 0

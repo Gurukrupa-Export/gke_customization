@@ -32,7 +32,8 @@ frappe.query_reports["Advance Bagging Summary Report"] = {
             reqd: 0,
             get_data: function(txt) {
                 return frappe.db.get_list("Material Request", {
-                    fields: ["distinct workflow_state as value"],
+                    fields: ["workflow_state as value"],
+                    group_by: "workflow_state",
                     filters: {
                         "material_request_type": "Manufacture",
                         "workflow_state": ["!=", "Material Transferred to MOP"]
@@ -67,7 +68,8 @@ frappe.query_reports["Advance Bagging Summary Report"] = {
             reqd: 0,
             get_data: function(txt) {
                 return frappe.db.get_list("Parent Manufacturing Order", {
-                    fields: ["distinct item_category as value"],
+                    fields: ["item_category as value"],
+                    group_by: "item_category",
                     order_by: "item_category"
                 }).then(r => {
                     return r
@@ -89,7 +91,8 @@ frappe.query_reports["Advance Bagging Summary Report"] = {
             reqd: 0,
             get_data: function(txt) {
                 return frappe.db.get_list("Parent Manufacturing Order", {
-                    fields: ["distinct setting_type as value"],
+                    fields: ["setting_type as value"],
+                    group_by: "setting_type",
                     order_by: "setting_type"
                 }).then(r => {
                     return r

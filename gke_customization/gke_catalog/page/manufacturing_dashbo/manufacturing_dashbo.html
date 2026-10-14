@@ -1,0 +1,51 @@
+<div class="mfgdash">
+	<div class="mfgdash__topbar">
+		<div class="mfgdash__meta">
+			<span class="mfgdash__meta-label">Live Production Snapshot</span>
+			<span class="mfgdash__meta-time" data-field="generated-at">--</span>
+		</div>
+		<div class="mfgdash__filters">
+			<div class="mfgdash__filter">
+				<label>Company</label>
+				<div data-field="company-field"></div>
+			</div>
+			<div class="mfgdash__filter">
+				<label>Customer</label>
+				<div data-field="customer-field"></div>
+			</div>
+			<div class="mfgdash__filter mfgdash__filter--daterange">
+				<label>Order Date</label>
+				<div data-field="daterange-field"></div>
+			</div>
+			<button type="button" class="mfgdash__clear-filters" data-field="clear-filters" title="Clear Filter">
+				<span class="mfgdash__clear-filters-icon">&#x21bb;</span>
+				Clear Filter
+			</button>
+		</div>
+	</div>
+
+	<div class="mfgdash__grid">
+		<section class="mfgdash__kpis" data-field="kpi-row">
+			<div class="mfgdash__loading">Loading order summary…</div>
+		</section>
+
+		<section class="mfgdash__line-wrap">
+			<div class="mfgdash__section-title">Department-wise Production Flow</div>
+			<div class="mfg-legend-key">
+				<span><i style="background:var(--mfg-amber)"></i>Pending</span>
+				<span><i style="background:var(--mfg-steel)"></i>In Progress</span>
+				<span><i style="background:var(--mfg-emerald)"></i>Completed</span>
+			</div>
+			<div class="mfg-line" data-field="dept-line">
+				<div class="mfgdash__loading">Loading department flow…</div>
+			</div>
+		</section>
+
+		<aside class="mfgdash__andon">
+			<div class="mfgdash__section-title">Due-Date Alerts</div>
+			<div class="mfg-andon" data-field="andon-board">
+				<div class="mfgdash__loading">Loading alerts…</div>
+			</div>
+		</aside>
+	</div>
+</div>

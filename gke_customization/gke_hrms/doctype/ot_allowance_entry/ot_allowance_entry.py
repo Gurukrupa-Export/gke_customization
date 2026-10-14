@@ -775,7 +775,8 @@ class OTAllowanceEntry(Document):
 			Employee.company,
 			Employee.designation,
 			Employee.department,
-			Employee.branch
+			Employee.branch,
+			Employee.old_employee_code
 		)
 		if self.employee:
 			query = query.where(Employee.name == self.employee)

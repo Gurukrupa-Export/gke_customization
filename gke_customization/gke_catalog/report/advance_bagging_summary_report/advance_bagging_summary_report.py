@@ -15,6 +15,8 @@ def execute(filters=None):
 def get_columns():
     return [
         {"label": "Item Code", "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 200},
+        # === EDIT 1: New column added here ===
+        {"label": "Alternative Item", "fieldname": "custom_alternative_item", "fieldtype": "Link", "options": "Item", "width": 200},
         {"label": "Sum of Quantity", "fieldname": "sum_of_quantity", "fieldtype": "Float", "width": 150, "precision": 3},
         {"label": "Count of Pcs", "fieldname": "count_of_pcs", "fieldtype": "Int", "width": 120}
     ]
@@ -25,9 +27,7 @@ def get_data(filters=None):
     
     # Group by item_code for summary
     item_summary = {}
-    total_qty = 0
-    total_pcs = 0
-    
+
     for row in base_data:
         item_code = row.get("item_code")
         if not item_code:
@@ -39,27 +39,19 @@ def get_data(filters=None):
         if item_code not in item_summary:
             item_summary[item_code] = {
                 "item_code": item_code,
+                # === EDIT 2: Carry alternate item into the grouped summary row ===
+                "custom_alternative_item": row.get("custom_alternative_item"),
                 "sum_of_quantity": 0,
                 "count_of_pcs": 0
             }
         
         item_summary[item_code]["sum_of_quantity"] += qty
         item_summary[item_code]["count_of_pcs"] += pcs
-        
-        total_qty += qty
-        total_pcs += pcs
-    
+
     # Convert to list and sort by item_code
     result = list(item_summary.values())
     result.sort(key=lambda x: x["item_code"])
-    
-    # Add Grand Total row
-    result.append({
-        "item_code": "Grand Total",
-        "sum_of_quantity": total_qty,
-        "count_of_pcs": total_pcs
-    })
-    
+
     return result
 
 def get_base_report_data(filters):
@@ -102,8 +94,9 @@ def get_base_report_data(filters):
             continue
 
         # Get MR items
+        # === EDIT 3: Added "custom_alternative_item" to the fields being fetched ===
         mr_items = frappe.get_all("Material Request Item",
-            fields=["item_code", "qty", "pcs"],
+            fields=["item_code", "qty", "pcs", "custom_alternative_item"],
             filters={"parent": mr.name}
         )
 
@@ -122,7 +115,9 @@ def get_base_report_data(filters):
             row = {
                 "item_code": item.item_code,
                 "qty": item.qty,
-                "pcs": item.pcs
+                "pcs": item.pcs,
+                # === EDIT 3 continued: carry it into each row dict ===
+                "custom_alternative_item": item.custom_alternative_item
             }
             data.append(row)
 

@@ -3,25 +3,25 @@
 
 frappe.query_reports["Order Detail Report"] = {
     filters: [
-        {
-            fieldname: "company",
-            label: __("Company"),
-            fieldtype: "MultiSelectList",
-            reqd: 0,
-            get_data: function(txt) {
-                return frappe.db.get_link_options("Company", txt);
-            }
-        },
-        {
-            fieldname: "branch",
-            label: __("Branch"),
-            fieldtype: "MultiSelectList",
-            options: "Branch",
-            reqd: 0,
-            get_data: function (txt) {
-                return frappe.db.get_link_options("Branch", txt);
-            },
-        },
+        // {
+        //     fieldname: "company",
+        //     label: __("Company"),
+        //     fieldtype: "MultiSelectList",
+        //     reqd: 0,
+        //     get_data: function(txt) {
+        //         return frappe.db.get_link_options("Company", txt);
+        //     }
+        // },
+        // {
+        //     fieldname: "branch",
+        //     label: __("Branch"),
+        //     fieldtype: "MultiSelectList",
+        //     options: "Branch",
+        //     reqd: 0,
+        //     get_data: function (txt) {
+        //         return frappe.db.get_link_options("Branch", txt);
+        //     },
+        // },
         {
             label: __("Manufacturing Work Order"),
             fieldname: "mp",
@@ -87,7 +87,18 @@ frappe.query_reports["Order Detail Report"] = {
         {
             fieldname: "posting_date",
             label: __("Posting Date"),
-            fieldtype: "Date",
+            fieldtype: "DateRange",
+            default: [
+                frappe.datetime.add_days(frappe.datetime.now_date(), -90),
+                frappe.datetime.now_date(),
+            ],
+            reqd: 0,
+        },
+        {
+            fieldname: "hide_finished",
+            label: __("Hide Finished Operations"),
+            fieldtype: "Check",
+            default: 1,
             reqd: 0,
         },
     ],
@@ -143,13 +154,20 @@ frappe.query_reports["Order Detail Report"] = {
         }
     });
 
-    // ✅ Fetch dynamic options (unchanged from before)
+    // ✅ Fetch dynamic options (fixed: use group_by instead of inline "distinct" in fields,
+    // for compatibility across v15/v16 and future versions)
     function fetchOptions(doctype, field, filterField) {
         frappe.call({
             method: "frappe.client.get_list",
             args: {
                 doctype: doctype,
-                fields: [`distinct ${field}`],
+
+                // IMPORTANT FIX
+                // Do not use:
+                // fields: [`distinct ${field}`]
+                fields: [field],
+                group_by: field,   // ✅ achieves same unique-values result, compatible with v15 & v16
+
                 order_by: `${field} asc`,
                 limit_page_length: 20000,
             },
@@ -179,4 +197,33 @@ frappe.query_reports["Order Detail Report"] = {
     fetchOptions("Manufacturing Operation", "department", "department");
     fetchOptions("Parent Manufacturing Order", "item_category", "category");
 },
+
+    // ✅ Columns that should show a unique count (instead of a sum) in the
+    // fixed total row at the bottom of the report.
+    get_datatable_options(options) {
+        const unique_count_fields = [
+            "mwo_id",
+            "mwo_mp_id",
+            "mwo_customer",
+            "mwo_design_id",
+            "parent_mfg_order",
+            "pmo_name",
+            "pmo_sales_order_id",
+            "pmo_order_form_id",
+            "pmo_quotation_id",
+        ];
+
+        options.hooks = options.hooks || {};
+        options.hooks.columnTotal = function (values, column, type) {
+            if (unique_count_fields.includes(column.column.fieldname)) {
+                const unique_values = new Set(
+                    values.filter((v) => v !== null && v !== undefined && v !== "")
+                );
+                return unique_values.size ? String(unique_values.size) : "";
+            }
+            return frappe.utils.report_column_total(values, column, type);
+        };
+
+        return options;
+    },
 };

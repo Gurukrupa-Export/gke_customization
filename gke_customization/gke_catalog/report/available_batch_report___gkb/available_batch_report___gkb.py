@@ -86,6 +86,11 @@ def get_data(filters):
 
 
 def set_batchwise_certificate_id(data):
+	# custom_certificate_id is a DB-only custom field that no fixture ships;
+	# leave Certificate ID empty on sites where the column does not exist.
+	if not frappe.db.has_column("Purchase Receipt Item", "custom_certificate_id"):
+		return
+
 	batch_nos = {d.batch_no for d in data if d.get("batch_no")}
 	if not batch_nos:
 		return

@@ -35,7 +35,7 @@ class EmployeeUpdate(Document):
 			"attendance_device_id","allowed_personal_hours","product_incentive_applicable","default_shift",
 			"holiday_list","shift_request_approver","salary_mode","ctc",
 			"bank_name", "bank_ac_no", "ifsc_code", "micr_code", "iban", "marital_status",
-			"family_background", "blood_group", "health_details", 
+			"blood_group", "health_details",
 			"health_insurance_provider", 
 			"passport_number", "valid_upto", "date_of_issue", "place_of_issue",
 			"resignation_letter_date", "relieving_date", "held_on", "new_workplace", 

@@ -1,0 +1,152 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-12-16 10:16:32.662820",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Sadguru Diamond",
+ "letterhead": null,
+ "modified": "2025-12-22 11:11:26.344598",
+ "modified_by": "sahil_g@gkexport.com",
+ "module": "GKE Catalog",
+ "name": "Sales Invoice Detail Report",
+ "owner": "sahil_g@gkexport.com",
+ "prepared_report": 0,
+ "ref_doctype": "Sales Invoice",
+ "report_name": "Sales Invoice Detail Report",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Sr. Acc. Exec. - GK"
+  },
+  {
+   "role": "Acc. Exec. - GK"
+  },
+  {
+   "role": "Sr. Mgr. Acc. - GK"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Employee Self Service"
+  },
+  {
+   "role": "Acc. Exec. - SD"
+  },
+  {
+   "role": "Sr. Acc. Exec. - SD"
+  },
+  {
+   "role": "Account Supervisor - CH - GK"
+  },
+  {
+   "role": "Account Supervisor - ST - GK"
+  },
+  {
+   "role": "Acc. Exec. - KG"
+  },
+  {
+   "role": "GK Buying"
+  },
+  {
+   "role": "SD Account Extra"
+  },
+  {
+   "role": "Chartered Accountant -ST - GK"
+  },
+  {
+   "role": "Sr. Mgr. Acc. - SD"
+  },
+  {
+   "role": "Gemstone Bagging Executive - ST"
+  },
+  {
+   "role": "Dispatch Executive - ST"
+  },
+  {
+   "role": "Gemstone Bagging Manager - ST"
+  },
+  {
+   "role": "Product Allocation Executive - KGJPL"
+  },
+  {
+   "role": "Account Executive - KGJPL"
+  },
+  {
+   "role": "Account Manager - BL"
+  },
+  {
+   "role": "Product Allocation Executive - CH"
+  },
+  {
+   "role": "Product Allocation Executive - ST"
+  },
+  {
+   "role": "Product Allocation Manager - ST"
+  },
+  {
+   "role": "Product Allocation Manager - CH"
+  },
+  {
+   "role": "Account Executive - TH"
+  },
+  {
+   "role": "Account Manager - CH"
+  },
+  {
+   "role": "Account Executive - MUM"
+  },
+  {
+   "role": "Account Manager - MUM"
+  },
+  {
+   "role": "Account Executive - CB"
+  },
+  {
+   "role": "Account Manager - CB"
+  },
+  {
+   "role": "Account Senior Manager - ST"
+  },
+  {
+   "role": "Account Executive - SD"
+  },
+  {
+   "role": "Sales Manager - ST"
+  },
+  {
+   "role": "Sr. Mgr. Regional Sales & Marketing"
+  },
+  {
+   "role": "Account Coordinator - ST"
+  },
+  {
+   "role": "Account Supervisor KG"
+  },
+  {
+   "role": "Account Doctype"
+  },
+  {
+   "role": "Account Supervisor GK"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Sales & Marketing Manager - CH"
+  },
+  {
+   "role": "Sales Executive - CH"
+  }
+ ],
+ "timeout": 0
+}

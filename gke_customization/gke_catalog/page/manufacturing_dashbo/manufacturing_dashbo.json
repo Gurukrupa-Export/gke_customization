@@ -1,0 +1,24 @@
+{
+ "content": null,
+ "creation": "2026-08-18 09:49:17.781272",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-08-18 09:49:17.781272",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "manufacturing-dashbo",
+ "owner": "Administrator",
+ "page_name": "manufacturing-dashbo",
+ "restrict_to_domain": "Manufacturing",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Manufacturing dashboard"
+}

@@ -27,7 +27,8 @@ frappe.query_reports["Employee Issue Receive Report"] = {
             fieldtype: "MultiSelectList",
             get_data: function (txt) {
                 return frappe.db.get_list("Employee IR", {
-                    fields: ["distinct department as value"],
+                    fields: ["department as value"],
+                    group_by: "department",
                     filters: [["department", "like", "%" + txt + "%"]],
                     limit: 50
                 }).then(records => {

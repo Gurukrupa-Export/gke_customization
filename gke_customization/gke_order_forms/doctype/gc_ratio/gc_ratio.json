@@ -9,14 +9,18 @@
   "section_break_314a",
   "metal_to_gold_ratio_group",
   "gc",
-  "rating"
+  "rating",
+  "type",
+  "range_1",
+  "range_2"
  ],
  "fields": [
   {
    "fieldname": "metal_to_gold_ratio_group",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Metal To Gold Ratio Group"
+   "label": "Metal To Gold Ratio Group",
+   "read_only": 1
   },
   {
    "fieldname": "gc",
@@ -33,17 +37,39 @@
   {
    "fieldname": "section_break_314a",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "\nRange\nAbove\nBelow",
+   "reqd": 1
+  },
+  {
+   "fieldname": "range_1",
+   "fieldtype": "Float",
+   "label": "Range 1",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.type == \"Range\"",
+   "fieldname": "range_2",
+   "fieldtype": "Float",
+   "label": "Range 2",
+   "mandatory_depends_on": "eval:doc.type == \"Range\""
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-09 17:30:25.301383",
+ "modified": "2026-02-11 18:27:03.006198",
  "modified_by": "Administrator",
  "module": "GKE Order Forms",
  "name": "GC Ratio",
  "owner": "Administrator",
  "permissions": [],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

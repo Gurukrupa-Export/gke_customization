@@ -1,0 +1,31 @@
+{
+ "add_total_row": 1,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2026-09-07 09:37:02.078956",
+ "disable_prepared_report_automation": 0,
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "doctype_to_sync": [],
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": null,
+ "modified": "2026-09-07 09:37:02.078956",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "Product Certificate IR",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Product Certification",
+ "report_name": "Product Certificate IR",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
+ "snapshot_report": 0,
+ "timeout": 0
+}

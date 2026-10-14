@@ -26,7 +26,12 @@ def mark_employee_attendance(
 
     date = getdate(date)
 
+    # HRMS v16 makes the tool's shift mandatory only with filter_by_shift; without a
+    # shift, leave in/out time and working hours unset as stock HRMS does.
+    shift_found = False
+
     if shift and frappe.db.exists("Shift Type", shift):
+        shift_found = True
         shift_doc = frappe.db.get_values("Shift Type", shift, ["start_time", "end_time", "shift_hours"], as_dict=True)
         start_time = get_time(shift_doc[0].start_time)
         end_time = get_time(shift_doc[0].end_time)
@@ -58,12 +63,12 @@ def mark_employee_attendance(
             "custom_is_employee_attendance_tool": True,
         })
 
-        if shift:
+        if shift_found:
             attendance_dict.update({
                 "in_time": shift_start_datetime,
                 "out_time": shift_end_datetime,
             })
-        if status in ["Present", "Work From Home", "Half Day"]:
+        if shift_found and status in ["Present", "Work From Home", "Half Day"]:
             attendance_dict.update({
                 "working_hours": working_hours
             })
@@ -83,4 +88,3 @@ def mark_employee_attendance(
             ).set(Attendance.half_day_status, half_day_status).set(Attendance.shift, shift).set(
                 Attendance.late_entry, late_entry
             ).set(Attendance.early_exit, early_exit).set(Attendance.modify_half_day_status, 0).run()
-

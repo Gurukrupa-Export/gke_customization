@@ -1,0 +1,91 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2026-09-07 10:39:15.057063",
+ "disable_prepared_report_automation": 0,
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "doctype_to_sync": [],
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": null,
+ "modified": "2026-09-07 10:39:15.057063",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "Diamond Rate Report",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Purchase Receipt",
+ "report_name": "Diamond Rate Report",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Stock User"
+  },
+  {
+   "role": "Purchase User"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Stock Manager"
+  },
+  {
+   "role": "Acc. Exec. - GK"
+  },
+  {
+   "role": "Sr. Acc. Exec. - GK"
+  },
+  {
+   "role": "Acc. Exec. - SD"
+  },
+  {
+   "role": "Sr. Acc. Exec. - SD"
+  },
+  {
+   "role": "Account Supervisor - ST - GK"
+  },
+  {
+   "role": "Account Supervisor GK"
+  },
+  {
+   "role": "Chartered Accountant -ST - GK"
+  },
+  {
+   "role": "Account Doctype"
+  },
+  {
+   "role": "GK Store"
+  },
+  {
+   "role": "GK Buying"
+  },
+  {
+   "role": "Acc. Exec. - KG"
+  },
+  {
+   "role": "Account Supervisor KG"
+  },
+  {
+   "role": "GK Chennai Sales"
+  },
+  {
+   "role": "GK Buying 1"
+  },
+  {
+   "role": "SD Account Extra"
+  },
+  {
+   "role": "Gemstone Bagging Executive - ST"
+  },
+  {
+   "role": "Purchase Manager"
+  }
+ ],
+ "snapshot_report": 0,
+ "timeout": 0
+}

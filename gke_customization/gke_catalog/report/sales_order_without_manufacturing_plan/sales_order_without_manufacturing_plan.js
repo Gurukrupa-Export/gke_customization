@@ -47,7 +47,8 @@ frappe.query_reports["Sales order without manufacturing plan"] = {
             fieldtype: "MultiSelectList",
             get_data: function(txt) {
                 return frappe.db.get_list("Sales Order", {
-                    fields: ["distinct order_type as value"],
+                    fields: ["order_type as value"],
+                    group_by: "order_type",
                     filters: [["order_type", "like", "%" + txt + "%"]],
                     limit: 50
                 }).then(records => {

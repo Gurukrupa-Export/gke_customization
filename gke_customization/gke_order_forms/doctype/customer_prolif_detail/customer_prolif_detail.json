@@ -12,7 +12,8 @@
   "description_prolif",
   "column_break_jfcf",
   "gk_d",
-  "gk_g"
+  "gk_g",
+  "customer_diamond_quality"
  ],
  "fields": [
   {
@@ -53,17 +54,24 @@
    "in_list_view": 1,
    "label": "GK G",
    "options": "Attribute Value"
+  },
+  {
+   "fieldname": "customer_diamond_quality",
+   "fieldtype": "Data",
+   "label": "Customer Diamond Quality"
   }
  ],
+ "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-12-16 10:00:04.558200",
- "modified_by": "Administrator",
+ "modified": "2026-03-18 12:37:10.888660",
+ "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Customer Prolif Detail",
  "owner": "Administrator",
  "permissions": [],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

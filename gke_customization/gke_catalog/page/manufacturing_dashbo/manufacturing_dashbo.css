@@ -1,0 +1,1067 @@
+/*
+ * Manufacturing Dashboard — "Foundry Control Deck" theme.
+ * An instrument-panel look built for a jewellery manufacturing floor:
+ * brass/copper accents, LCD-style numeric readouts, a conveyor-style
+ * department rail and an andon-style alert board. No chart libraries —
+ * every gauge/ring below is plain CSS (conic-gradient) or inline SVG.
+ *
+ * Tracks Frappe's own theme switch: `data-theme="dark"`/`"light"` on <html>
+ * (frappe/public/js/frappe/ui/theme_switcher.js already resolves "Automatic"
+ * against the OS preference before writing that attribute, so this file only
+ * needs to branch on the attribute itself, not prefers-color-scheme again).
+ * Light is the default palette; the [data-theme="dark"] block overrides it.
+ */
+
+.mfgdash {
+	/* light palette (default) — warm parchment workshop-floor look */
+	--mfg-bg: #f3ecdd;
+	--mfg-panel: #fffbf2;
+	--mfg-panel-alt: #f8f0dd;
+	--mfg-border: #ddccA4;
+	--mfg-border-soft: #e9dcbd;
+	--mfg-ink: #221808;
+	--mfg-ink-dim: #4f3f24;
+	--mfg-ink-faint: #6e5c3c;
+	--mfg-brass: #a8781f;
+	--mfg-brass-bright: #c2953a;
+	--mfg-copper: #a5572a;
+	--mfg-steel: #2f6f92;
+	--mfg-emerald: #2c8a5f;
+	--mfg-amber: #ad7115;
+	--mfg-red: #bb3d2f;
+	--mfg-track: #e9dcc0;
+	--mfg-lamp-idle-a: #ffffff;
+	--mfg-lamp-idle-b: #d8c8a4;
+	/* 3D depth tokens: soft/strong drop shadows + a bevel highlight/shade pair for embossed edges */
+	--mfg-shadow-soft: rgba(60, 44, 16, 0.16);
+	--mfg-shadow-strong: rgba(60, 44, 16, 0.28);
+	--mfg-bevel-hi: rgba(255, 255, 255, 0.75);
+	--mfg-bevel-lo: rgba(60, 44, 16, 0.18);
+	--mfg-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+	--mfg-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+	background: var(--mfg-bg);
+	color: var(--mfg-ink);
+	font-family: var(--mfg-sans);
+	padding: 18px 20px 40px;
+	min-height: 100%;
+	background-image:
+		radial-gradient(ellipse 900px 400px at 15% -10%, rgba(217, 173, 92, 0.08), transparent 60%),
+		radial-gradient(ellipse 700px 500px at 100% 0%, rgba(111, 168, 201, 0.06), transparent 55%);
+}
+
+.mfgdash * {
+	box-sizing: border-box;
+}
+
+/* dark palette override — original "Foundry Control Deck" nighttime look */
+[data-theme="dark"] .mfgdash {
+	--mfg-bg: #0e0c09;
+	--mfg-panel: #241d15;
+	--mfg-panel-alt: #2c2318;
+	--mfg-border: #4a3a24;
+	--mfg-border-soft: #362a1a;
+	--mfg-ink: #fbf4e6;
+	--mfg-ink-dim: #c8b799;
+	--mfg-ink-faint: #a3927a;
+	--mfg-brass: #d9ad5c;
+	--mfg-brass-bright: #f0c877;
+	--mfg-copper: #c97a4a;
+	--mfg-steel: #6fa8c9;
+	--mfg-emerald: #55b389;
+	--mfg-amber: #e0a83e;
+	--mfg-red: #e2574c;
+	--mfg-track: #0d0b08;
+	--mfg-lamp-idle-a: #444444;
+	--mfg-lamp-idle-b: #333333;
+	/* dark mode: a plain black drop shadow barely reads against an already-near-black page, so
+	   the depth cue here leans much harder on the bevel edges (a bright top highlight + a heavy
+	   black bottom shade) than on the shadow itself, and the page/panel colors above were also
+	   pulled further apart (darker bg, lighter panel) so the elevation has something to show against */
+	--mfg-shadow-soft: rgba(0, 0, 0, 0.55);
+	--mfg-shadow-strong: rgba(0, 0, 0, 0.85);
+	--mfg-bevel-hi: rgba(255, 226, 175, 0.28);
+	--mfg-bevel-lo: rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- top bar ---------- */
+
+.mfgdash__topbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 12px;
+	padding-bottom: 14px;
+	margin-bottom: 18px;
+	border-bottom: 1px solid var(--mfg-border-soft);
+}
+
+.mfgdash__meta {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+}
+
+.mfgdash__meta-label {
+	font-size: 11px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--mfg-ink-faint);
+}
+
+.mfgdash__meta-label::before {
+	content: "";
+	display: inline-block;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--mfg-emerald);
+	box-shadow: 0 0 6px 1px var(--mfg-emerald);
+	margin-right: 8px;
+	vertical-align: middle;
+}
+
+.mfgdash__meta-time {
+	font-family: var(--mfg-mono);
+	font-size: 12px;
+	color: var(--mfg-ink-dim);
+}
+
+/* ---------- filter bar (company / customer / order date) ---------- */
+
+.mfgdash__filters {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 16px;
+}
+
+.mfgdash__filter {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.mfgdash__filter label {
+	margin: 0;
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--mfg-ink-faint);
+	white-space: nowrap;
+}
+
+.mfgdash__filter [data-field="company-field"],
+.mfgdash__filter [data-field="customer-field"] {
+	width: 220px;
+}
+
+.mfgdash__filter--daterange [data-field="daterange-field"] {
+	width: 230px;
+}
+
+.mfgdash__filter .control-input-wrapper,
+.mfgdash__filter .control-input {
+	width: 100%;
+}
+
+.mfgdash__filter input.form-control,
+.mfgdash__filter input.input-with-feedback {
+	background: var(--mfg-track);
+	border: 1px solid var(--mfg-border);
+	color: var(--mfg-ink);
+	height: 30px;
+	font-size: 12.5px;
+	/* pressed-in slot, like a punched control panel input rather than a flat web input */
+	box-shadow: inset 0 2px 3px var(--mfg-bevel-lo);
+}
+
+.mfgdash__filter input.form-control:focus {
+	border-color: var(--mfg-brass);
+	box-shadow: inset 0 2px 3px var(--mfg-bevel-lo);
+}
+
+.mfgdash__filter .awesomplete ul {
+	background: var(--mfg-panel);
+	border: 1px solid var(--mfg-border);
+}
+
+.mfgdash__clear-filters {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 30px;
+	padding: 0 12px;
+	margin-top: 16px;
+	border: 1px solid var(--mfg-border);
+	border-radius: 5px;
+	background: var(--mfg-panel-alt);
+	color: var(--mfg-ink-faint);
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: color 0.15s, border-color 0.15s, background 0.15s;
+	box-shadow: 0 1px 0 var(--mfg-bevel-hi) inset;
+}
+
+.mfgdash__clear-filters:hover {
+	color: var(--mfg-red);
+	border-color: var(--mfg-red);
+	background: var(--mfg-panel);
+}
+
+.mfgdash__clear-filters:active {
+	box-shadow: inset 0 2px 3px var(--mfg-bevel-lo);
+}
+
+.mfgdash__clear-filters-icon {
+	font-size: 13px;
+	line-height: 1;
+	transition: transform 0.25s ease;
+}
+
+.mfgdash__clear-filters:hover .mfgdash__clear-filters-icon {
+	transform: rotate(-70deg);
+}
+
+/* ---------- layout grid ---------- */
+
+.mfgdash__grid {
+	display: grid;
+	grid-template-columns: 1fr 300px;
+	grid-template-areas:
+		"kpis   kpis"
+		"line   andon";
+	gap: 20px;
+}
+
+.mfgdash__kpis {
+	grid-area: kpis;
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	gap: 14px;
+}
+
+.mfgdash__line-wrap {
+	grid-area: line;
+	min-width: 0;
+}
+
+.mfgdash__andon {
+	grid-area: andon;
+}
+
+@media (max-width: 1150px) {
+	.mfgdash__kpis {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+@media (max-width: 900px) {
+	.mfgdash__grid {
+		grid-template-columns: 1fr;
+		grid-template-areas:
+			"kpis"
+			"andon"
+			"line";
+	}
+	.mfgdash__kpis {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+.mfgdash__section-title {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--mfg-ink-faint);
+	margin: 0 0 12px 2px;
+}
+
+/* ---------- entrance + gauge-fill animation ---------- */
+
+/* opacity-only on purpose: CSS animations sit above normal author rules in the cascade, so an
+   entrance animation that also animates `transform` (with fill-mode both/forwards) would
+   permanently pin `transform` and silently swallow any :hover transform (lift/tilt) declared
+   as a normal rule - opacity has no such conflict with the 3D hover/tilt effects below. */
+@keyframes mfg-fade-in {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+/* lets the conic-gradient ring fill animate smoothly instead of snapping in;
+   browsers without @property support just skip the transition, no harm done */
+@property --pct {
+	syntax: "<number>";
+	inherits: true;
+	initial-value: 0;
+}
+
+/* ---------- KPI gauge cards ---------- */
+
+.mfg-kpi {
+	--mfg-lift: 0px;
+	--tilt-x: 0deg;
+	--tilt-y: 0deg;
+	position: relative;
+	background: linear-gradient(155deg, var(--mfg-panel), var(--mfg-panel-alt));
+	border: 1px solid var(--mfg-border);
+	padding: 14px 14px 12px;
+	overflow: hidden;
+	cursor: pointer;
+	/* raised-panel depth: outer drop shadow for lift off the page, inset top/bottom bevel for
+	   a beveled-metal edge; :hover just swaps in a bigger, accent-tinted shadow below */
+	box-shadow:
+		0 8px 16px -10px var(--mfg-shadow-strong),
+		0 2px 4px var(--mfg-shadow-soft),
+		inset 0 1px 0 var(--mfg-bevel-hi),
+		inset 0 -1px 0 var(--mfg-bevel-lo);
+	transform: translateY(var(--mfg-lift)) perspective(700px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+	transition: border-color 0.15s ease, transform 0.12s ease-out, box-shadow 0.15s ease;
+	clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+	animation: mfg-fade-in 0.45s ease-out both;
+	animation-delay: var(--mfg-delay, 0ms);
+}
+
+.mfg-kpi:hover {
+	--mfg-lift: -4px;
+	border-color: var(--mfg-accent, var(--mfg-brass));
+	box-shadow:
+		0 16px 28px -12px var(--mfg-accent, var(--mfg-shadow-strong)),
+		0 4px 10px var(--mfg-shadow-soft),
+		inset 0 1px 0 var(--mfg-bevel-hi),
+		inset 0 -1px 0 var(--mfg-bevel-lo);
+}
+
+/* cut-corner wedge, sitting in the notch the clip-path carves out of the top-right */
+.mfg-kpi::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 0;
+	height: 0;
+	border-style: solid;
+	border-width: 0 20px 20px 0;
+	border-color: transparent var(--mfg-accent, var(--mfg-brass)) transparent transparent;
+}
+
+/* thin circuit-trace baseline */
+/* pulses outward from the center like a sonar ping, looping */
+@keyframes mfg-border-flow {
+	0% {
+		clip-path: inset(0 50% 0 50%);
+		opacity: 1;
+	}
+	65% {
+		clip-path: inset(0 0% 0 0%);
+		opacity: 0.55;
+	}
+	100% {
+		clip-path: inset(0 0% 0 0%);
+		opacity: 0;
+	}
+}
+
+.mfg-kpi::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 2px;
+	background: linear-gradient(90deg, transparent, var(--mfg-accent, var(--mfg-brass)), transparent);
+	animation: mfg-border-flow 2.6s ease-out infinite;
+	animation-delay: var(--mfg-delay, 0ms);
+}
+
+.mfg-kpi__label {
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.09em;
+	text-transform: uppercase;
+	color: var(--mfg-ink-dim);
+	margin-bottom: 10px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	padding-right: 14px;
+}
+
+.mfg-kpi__body {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+/* two quick beats then a pause, like a real pulse rather than a plain in-out bounce */
+@keyframes mfg-heartbeat {
+	0%, 100% { transform: scale(1); }
+	14% { transform: scale(1.2); }
+	28% { transform: scale(1); }
+	42% { transform: scale(1.14); }
+	60% { transform: scale(1); }
+}
+
+.mfg-kpi__icon {
+	margin-left: auto;
+	flex: none;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 16px;
+	line-height: 1;
+	background: var(--mfg-track);
+	border: 1.5px solid var(--mfg-accent, var(--mfg-brass));
+	box-shadow:
+		0 0 12px -3px var(--mfg-accent, var(--mfg-brass)),
+		0 2px 3px var(--mfg-shadow-soft),
+		inset 0 1px 0 var(--mfg-bevel-hi);
+	animation: mfg-heartbeat 2.4s ease-in-out infinite;
+	animation-delay: var(--mfg-delay, 0ms);
+}
+
+.mfg-kpi__ring {
+	position: relative;
+	width: 54px;
+	height: 54px;
+	border-radius: 50%;
+	flex: none;
+	background: conic-gradient(var(--mfg-accent, var(--mfg-brass)) calc(var(--pct, 0) * 1%), var(--mfg-track) 0);
+	box-shadow: inset 0 1px 0 var(--mfg-bevel-hi), inset 0 -1px 1px var(--mfg-bevel-lo);
+	transition: --pct 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mfg-kpi__ring::after {
+	content: "";
+	position: absolute;
+	inset: 6px;
+	border-radius: 50%;
+	background: var(--mfg-panel);
+	box-shadow: inset 0 1px 3px var(--mfg-bevel-lo);
+}
+
+.mfg-kpi__ring-pct {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-family: var(--mfg-mono);
+	font-size: 11px;
+	color: var(--mfg-ink-dim);
+	z-index: 1;
+}
+
+.mfg-kpi__count {
+	font-family: var(--mfg-mono);
+	font-size: 25px;
+	font-weight: 600;
+	line-height: 1;
+	color: var(--mfg-ink);
+	letter-spacing: -0.02em;
+}
+
+.mfg-kpi__readout {
+	margin-top: 10px;
+	padding-top: 9px;
+	border-top: 1px dashed var(--mfg-border-soft);
+	display: flex;
+	justify-content: space-between;
+	gap: 6px;
+	font-family: var(--mfg-mono);
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--mfg-ink-dim);
+}
+
+.mfg-kpi__readout span b {
+	color: var(--mfg-ink);
+	font-weight: 700;
+}
+
+/* ---------- department production rail ---------- */
+
+.mfg-line {
+	position: relative;
+	display: flex;
+	align-items: stretch;
+	gap: 0;
+	overflow-x: auto;
+	padding: 6px 4px 14px;
+	scrollbar-width: thin;
+}
+
+.mfg-line::-webkit-scrollbar {
+	height: 6px;
+}
+
+.mfg-line::-webkit-scrollbar-thumb {
+	background: var(--mfg-border);
+	border-radius: 3px;
+	cursor: grab;
+}
+
+.mfg-line::-webkit-scrollbar-thumb:active {
+	cursor: grabbing;
+}
+
+.mfg-node {
+	--mfg-lift: 0px;
+	position: relative;
+	flex: 0 0 148px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 14px 8px 12px;
+	border-radius: 14px;
+	cursor: pointer;
+	transform: translateY(var(--mfg-lift));
+	transition: transform 0.18s ease;
+	animation: mfg-fade-in 0.4s ease-out both;
+	animation-delay: var(--mfg-delay, 0ms);
+}
+
+.mfg-node:hover {
+	--mfg-lift: -3px;
+}
+
+.mfg-node:hover .mfg-node__ring {
+	box-shadow:
+		0 0 0 3px var(--mfg-panel),
+		0 0 16px 0 var(--mfg-brass),
+		inset 0 1px 0 var(--mfg-bevel-hi),
+		inset 0 -2px 2px var(--mfg-bevel-lo);
+}
+
+/* threads through the ring's top punch hole (see .mfg-node__ring::before) - top offset must
+   match that hole's vertical center: node padding-top (14px) + hole center on the ring's
+   inner border (7px, where the colored band meets the inner panel) */
+/* the dashes scroll through the (fixed) line position, like a moving conveyor belt - one
+   full cycle exactly matches the 12px dash+gap repeat so the loop is seamless */
+@keyframes mfg-belt-roll {
+	from { background-position-x: 0; }
+	to { background-position-x: 12px; }
+}
+
+.mfg-node:not(:first-child)::before {
+	content: "";
+	position: absolute;
+	top: 21px;
+	left: -50%;
+	width: 100%;
+	height: 2px;
+	background: repeating-linear-gradient(
+		90deg,
+		var(--mfg-brass) 0,
+		var(--mfg-brass) 6px,
+		transparent 6px,
+		transparent 12px
+	);
+	animation: mfg-belt-roll 0.6s linear infinite;
+	z-index: 0;
+}
+
+.mfg-node__ring {
+	position: relative;
+	width: 82px;
+	height: 82px;
+	border-radius: 20px;
+	z-index: 1;
+	background: var(--mfg-track);
+	/* embossed token/coin look: drop shadow lifts it off the card, inset bevel pair on the
+	   band gives it a raised metal-ring edge */
+	box-shadow:
+		0 5px 10px -4px var(--mfg-shadow-strong),
+		inset 0 1px 0 var(--mfg-bevel-hi),
+		inset 0 -2px 2px var(--mfg-bevel-lo);
+	transition: box-shadow 0.18s ease;
+}
+
+/* a faint bright arc continuously sweeping around the ring's outer edge - a thin conic-gradient
+   square, masked down to just its border thickness so only a traveling arc of light is visible,
+   rather than a filled shape */
+@keyframes mfg-ring-sweep {
+	to { transform: rotate(360deg); }
+}
+
+.mfg-node__ring-glow {
+	position: absolute;
+	inset: -2px;
+	border-radius: 22px;
+	padding: 2px;
+	background: conic-gradient(from 0deg, transparent 0%, transparent 85%, rgba(255, 255, 255, 0.85) 93%, transparent 100%);
+	-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	-webkit-mask-composite: xor;
+	mask-composite: exclude;
+	animation: mfg-ring-sweep 3s linear infinite;
+	pointer-events: none;
+	z-index: 3;
+}
+
+/* punch-hole: sits on the ring's inner border (where the colored band meets the inner panel),
+   not floating past the outer edge - the connecting dashed line reads as threading through it,
+   like a tag on a chain */
+.mfg-node__ring::before {
+	content: "";
+	position: absolute;
+	top: 2px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: var(--mfg-bg);
+	border: 1px solid var(--mfg-border);
+	box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+	z-index: 2;
+}
+
+[data-theme="dark"] .mfg-node__ring::before {
+	border-color: #ffffff;
+}
+
+.mfg-node__ring::after {
+	content: "";
+	position: absolute;
+	inset: 7px;
+	border-radius: 14px;
+	background: var(--mfg-panel);
+	border: 1px solid var(--mfg-border-soft);
+	/* recessed disk, sunk below the raised band around it */
+	box-shadow: inset 0 2px 4px var(--mfg-bevel-lo);
+}
+
+.mfg-node__count {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	z-index: 1;
+	font-family: var(--mfg-mono);
+}
+
+.mfg-node__count b {
+	font-size: 15px;
+	color: var(--mfg-ink);
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.mfg-node__count small {
+	font-size: 8px;
+	letter-spacing: 0.06em;
+	color: var(--mfg-ink-faint);
+	margin-top: 2px;
+}
+
+.mfg-node__name {
+	margin-top: 10px;
+	font-size: 11px;
+	font-weight: 600;
+	text-align: center;
+	color: var(--mfg-ink);
+	line-height: 1.25;
+	min-height: 28px;
+}
+
+.mfg-node__stats {
+	margin-top: 6px;
+	display: flex;
+	gap: 8px;
+	font-family: var(--mfg-mono);
+	font-size: 10.5px;
+	font-weight: 600;
+	color: var(--mfg-ink-dim);
+}
+
+.mfg-node__stats b {
+	color: var(--mfg-ink);
+	font-weight: 700;
+}
+
+.mfg-node__legend {
+	margin-top: 8px;
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.mfg-node__legend span {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	font-size: 9.5px;
+	font-weight: 700;
+	font-family: var(--mfg-mono);
+	color: var(--mfg-ink-dim);
+}
+
+.mfg-node__legend i {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	display: inline-block;
+}
+
+.mfg-node__detail {
+	margin-top: 10px;
+	padding: 4px 10px;
+	background: transparent;
+	border: 1px solid var(--mfg-border);
+	border-radius: 12px;
+	color: var(--mfg-ink-dim);
+	font-family: var(--mfg-sans);
+	font-size: 9.5px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.mfg-node__detail:hover {
+	border-color: var(--mfg-brass);
+	color: var(--mfg-ink);
+	background: var(--mfg-track);
+}
+
+.mfg-legend-key {
+	display: flex;
+	gap: 16px;
+	margin: 2px 2px 10px;
+	font-size: 10.5px;
+	font-weight: 600;
+	color: var(--mfg-ink-dim);
+}
+
+.mfg-legend-key span {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.mfg-legend-key i {
+	width: 8px;
+	height: 8px;
+	border-radius: 2px;
+	display: inline-block;
+}
+
+/* ---------- andon alert board ---------- */
+
+.mfg-andon {
+	background: linear-gradient(180deg, var(--mfg-panel), var(--mfg-panel-alt));
+	border: 1px solid var(--mfg-border);
+	border-radius: 10px;
+	padding: 14px;
+	box-shadow: 0 10px 20px -12px var(--mfg-shadow-strong), inset 0 1px 0 var(--mfg-bevel-hi);
+}
+
+.mfg-lamp {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 10px;
+	border-radius: 8px;
+	background: var(--mfg-track);
+	border: 1px solid var(--mfg-border-soft);
+	margin-bottom: 10px;
+	/* recessed slot the lamp sits in, like a socket cut into the panel */
+	box-shadow: inset 0 2px 4px var(--mfg-bevel-lo);
+}
+
+.mfg-lamp:last-child {
+	margin-bottom: 0;
+}
+
+.mfg-lamp__bulb {
+	flex: none;
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	background: radial-gradient(circle at 35% 30%, var(--mfg-lamp-idle-a), var(--mfg-lamp-color, var(--mfg-lamp-idle-b)) 70%);
+	box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.2) inset;
+}
+
+.mfg-lamp--active .mfg-lamp__bulb {
+	box-shadow: 0 0 14px 3px var(--mfg-lamp-color), 0 0 0 3px rgba(0, 0, 0, 0.25) inset;
+	animation: mfg-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes mfg-pulse {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.72; }
+}
+
+.mfg-lamp__label {
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--mfg-ink-dim);
+}
+
+.mfg-lamp__days-input {
+	width: 40px;
+	margin: 0 3px;
+	padding: 1px 4px;
+	background: var(--mfg-panel);
+	border: 1px solid var(--mfg-border);
+	border-radius: 4px;
+	color: var(--mfg-ink);
+	font-family: var(--mfg-mono);
+	font-size: 11px;
+	font-weight: 600;
+	text-align: center;
+	text-transform: none;
+	letter-spacing: normal;
+	-moz-appearance: textfield;
+}
+
+.mfg-lamp__days-input:focus {
+	outline: none;
+	border-color: var(--mfg-brass);
+}
+
+.mfg-lamp__count {
+	font-family: var(--mfg-mono);
+	font-size: 20px;
+	font-weight: 600;
+	color: var(--mfg-ink);
+	line-height: 1.1;
+}
+
+.mfg-lamp__count span {
+	font-size: 11px;
+	font-weight: 400;
+	color: var(--mfg-ink-faint);
+	margin-left: 4px;
+}
+
+/* four stacked lines: label, value, label, value - kept as two clearly distinct tiers
+   (small muted uppercase tag vs. a bold accent-colored figure) rather than one run-on line */
+.mfg-lamp__wts {
+	margin-left: auto;
+	text-align: right;
+	flex: none;
+}
+
+.mfg-lamp__wt-label {
+	font-family: var(--mfg-sans);
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--mfg-ink-faint);
+}
+
+.mfg-lamp__wt-label:not(:first-child) {
+	margin-top: 5px;
+}
+
+.mfg-lamp__wt-value {
+	font-family: var(--mfg-mono);
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--mfg-brass-bright);
+	line-height: 1.3;
+}
+
+.mfg-andon__ok {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 16px 10px;
+	color: var(--mfg-ink-faint);
+	font-size: 11.5px;
+	justify-content: center;
+}
+
+/* ---------- misc ---------- */
+
+.mfgdash__empty {
+	padding: 60px 20px;
+	text-align: center;
+	color: var(--mfg-ink-faint);
+	font-size: 13px;
+}
+
+.mfgdash__loading {
+	padding: 60px 20px;
+	text-align: center;
+	color: var(--mfg-ink-faint);
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 14px;
+}
+
+.mfgdash__loading-text {
+	animation: mfg-cyclone-fade 1.6s ease-in-out infinite;
+}
+
+.mfg-cyclone {
+	position: relative;
+	width: 46px;
+	height: 46px;
+}
+
+.mfg-cyclone__ring {
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	border: 2px solid transparent;
+	border-top-color: var(--mfg-copper, #c07a3e);
+	border-right-color: var(--mfg-brass, #b8934a);
+	animation: mfg-cyclone-spin 0.9s linear infinite;
+}
+
+.mfg-cyclone__ring:nth-child(1) {
+	inset: 0;
+	animation-duration: 0.75s;
+	opacity: 0.9;
+}
+
+.mfg-cyclone__ring:nth-child(2) {
+	inset: 8px;
+	border-top-color: var(--mfg-emerald, #3e9c76);
+	border-right-color: transparent;
+	animation-duration: 1.1s;
+	animation-direction: reverse;
+	opacity: 0.7;
+}
+
+.mfg-cyclone__ring:nth-child(3) {
+	inset: 16px;
+	border-top-color: var(--mfg-steel, #5b7fa6);
+	border-right-color: transparent;
+	animation-duration: 1.4s;
+	opacity: 0.55;
+}
+
+.mfg-cyclone__core {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 6px;
+	height: 6px;
+	margin: -3px 0 0 -3px;
+	border-radius: 50%;
+	background: var(--mfg-amber, #d9a441);
+	animation: mfg-cyclone-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes mfg-cyclone-spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes mfg-cyclone-pulse {
+	0%, 100% {
+		transform: scale(0.8);
+		opacity: 0.6;
+	}
+	50% {
+		transform: scale(1.3);
+		opacity: 1;
+	}
+}
+
+@keyframes mfg-cyclone-fade {
+	0%, 100% {
+		opacity: 0.55;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+
+/* ---------- department node tooltip ---------- */
+
+.mfg-tooltip {
+	position: fixed;
+	z-index: 1000;
+	width: 210px;
+	background: var(--mfg-panel);
+	border: 1px solid var(--mfg-brass);
+	border-radius: 8px;
+	padding: 10px 12px;
+	box-shadow: 0 14px 32px -10px rgba(0, 0, 0, 0.45), 0 0 18px -6px var(--mfg-brass);
+	opacity: 0;
+	transform: translateY(6px);
+	pointer-events: none;
+	transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.mfg-tooltip.is-visible {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+.mfg-tooltip__title {
+	font-size: 12px;
+	font-weight: 700;
+	color: var(--mfg-ink);
+	margin-bottom: 7px;
+	padding-bottom: 7px;
+	border-bottom: 1px solid var(--mfg-border-soft);
+}
+
+.mfg-tooltip__divider {
+	height: 1px;
+	margin: 6px 0;
+	background: var(--mfg-border-soft);
+}
+
+.mfg-tooltip__row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-family: var(--mfg-mono);
+	font-size: 10.5px;
+	font-weight: 600;
+	color: var(--mfg-ink-dim);
+	padding: 2px 0;
+}
+
+.mfg-tooltip__row b {
+	margin-left: auto;
+	color: var(--mfg-ink);
+	font-weight: 700;
+}
+
+.mfg-tooltip__row.pending::before,
+.mfg-tooltip__row.progress::before,
+.mfg-tooltip__row.completed::before {
+	content: "";
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	margin-right: 6px;
+	flex: none;
+}
+
+.mfg-tooltip__row.pending::before { background: var(--mfg-amber); }
+.mfg-tooltip__row.progress::before { background: var(--mfg-steel); }
+.mfg-tooltip__row.completed::before { background: var(--mfg-emerald); }

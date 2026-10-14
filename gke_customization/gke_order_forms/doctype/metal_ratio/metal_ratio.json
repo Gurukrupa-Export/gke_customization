@@ -1,0 +1,65 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-04-10 11:15:07.220299",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "touch",
+  "metal_color",
+  "wax_to_gold_ratio",
+  "setting_type"
+ ],
+ "fields": [
+  {
+   "fieldname": "touch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Touch",
+   "link_filters": "[[\"Attribute Value\",\"is_metal_touch\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "metal_color",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Metal Color",
+   "link_filters": "[[\"Attribute Value\",\"is_metal_colour\",\"=\",1]]",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "wax_to_gold_ratio",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Wax To Gold Ratio"
+  },
+  {
+   "fieldname": "setting_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Setting Type",
+   "link_filters": "[[\"Attribute Value\",\"is_setting_type\",\"=\",1]]",
+   "options": "Attribute Value"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-15 13:01:37.332242",
+ "modified_by": "Administrator",
+ "module": "GKE Order Forms",
+ "name": "Metal Ratio",
+ "owner": "shubham_k@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
