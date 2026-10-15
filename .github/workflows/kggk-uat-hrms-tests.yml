@@ -1,0 +1,252 @@
+# CI for gke_customization's HRMS module (gke_hrms) on the kggk_uat line.
+#
+# Every pull request and every direct push to kggk_uat runs it. The suite under
+# gke_customization/gke_hrms/tests is the only test code in the repo today, so this
+# pipeline is scoped to it: one bench, one suite, plus free static and security
+# checks (pip-audit for dependency CVEs, gitleaks for secrets, actionlint for the
+# workflows).
+#
+# Deliberately separate from kggk-sync.yml (master/gk_develop): each line has its
+# own triggers and tracks its siblings at their branch heads, so a breaking change
+# in any app surfaces here on the next run. If the branches merge later, the two
+# files coexist or merge trivially.
+#
+# "Run workflow" in the Actions tab runs it on demand, on any branch.
+
+name: KGGK UAT HRMS Tests
+
+on:
+  push:
+    branches: [kggk_uat]
+  pull_request:
+    branches: [kggk_uat]
+  workflow_dispatch:
+
+# A second push to the same PR makes the first run's answer irrelevant. On kggk_uat
+# a run in progress is left to finish, so each push that starts one gets a result.
+concurrency:
+  group: kggk-uat-hrms-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------------
+  # Validates every workflow file in the repo, this one included. Catches broken YAML
+  # and unsafe workflow constructs before they silently kill all the other checks.
+  # ---------------------------------------------------------------------------------
+  actionlint:
+    name: Actionlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run actionlint
+        run: |
+          curl -fsSL -o /tmp/actionlint.tar.gz \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz
+          tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
+          /tmp/actionlint -color
+
+  # ---------------------------------------------------------------------------------
+  # Known CVEs in the app's declared dependencies (pyproject.toml). frappe core runs
+  # the same check on itself. If a finding has no upstream fix, add --ignore-vuln
+  # with the reason in a comment, never silently.
+  # ---------------------------------------------------------------------------------
+  pip-audit:
+    name: pip-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install and run pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit --desc on .
+
+  # ---------------------------------------------------------------------------------
+  # Secret scan over the full history. jewellery_erpnext, gurukrupa_customizations
+  # and gurukrupa_biometric are public today, but this org moves tokens and site
+  # credentials around; this keeps new ones from landing. A legacy finding is
+  # resolved either by removal or by one fingerprint line in .gitleaksignore.
+  # ---------------------------------------------------------------------------------
+  gitleaks:
+    name: Gitleaks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        run: |
+          curl -fsSL -o /tmp/gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          /tmp/gitleaks detect --source . --report-path /tmp/gitleaks.sarif --redact --verbose
+
+  # ---------------------------------------------------------------------------------
+  # The real suite, on a real site. gke_customization's doctypes link into erpnext,
+  # hrms, india_compliance, jewellery_erpnext and gurukrupa_customizations, so all of
+  # them have to be installed before it will even migrate. gurukrupa_biometric is
+  # installed as well: without its Biometric Settings doctype the suite skips itself
+  # and this job would go green having tested nothing (the runner below refuses such
+  # a pass). All sibling repos are public today, so no token is needed; if one goes
+  # private again, get-app fails here with a git auth error.
+  # ---------------------------------------------------------------------------------
+  tests:
+    name: HRMS Tests (kggk_uat)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      FRAPPE_BRANCH: version-16
+
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=5s --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gke_customization
+
+      # Fails in seconds on a syntax error, before fifteen minutes of bench build.
+      - name: Python compiles
+        run: python -m compileall -q gke_customization/gke_customization
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: MariaDB settings Frappe expects
+        run: |
+          mysql --host 127.0.0.1 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
+          mysql --host 127.0.0.1 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
+
+      - name: Install bench
+        run: pip install frappe-bench
+
+      - name: Build the bench
+        run: |
+          # --skip-assets: these are backend tests, and building the frontend is most
+          # of the wall clock of a bench init.
+          bench init --skip-redis-config-generation --skip-assets \
+                     --frappe-branch ${{ env.FRAPPE_BRANCH }} --python "$(which python)" ci-bench
+
+      - name: Fetch the apps
+        working-directory: ci-bench
+        run: |
+          # Every sibling app is fetched at its branch head on purpose: when someone
+          # changes jewellery_erpnext or another sibling (a renamed function, a changed
+          # fixture), the next run here must fail against that change instead of hiding
+          # behind an old pinned revision. A red run whose log points into a sibling
+          # app belongs to that app's owner, not to the PR that happened to be running.
+          bench get-app --branch ${{ env.FRAPPE_BRANCH }} erpnext https://github.com/frappe/erpnext.git
+          bench get-app --branch ${{ env.FRAPPE_BRANCH }} hrms https://github.com/frappe/hrms.git
+          bench get-app --branch ${{ env.FRAPPE_BRANCH }} india_compliance https://github.com/resilient-tech/india-compliance.git
+          bench get-app --branch gurukrupa-prod jewellery_erpnext https://github.com/Gurukrupa-Export/jewellery-erpnext.git
+          bench get-app --branch main gurukrupa_customizations https://github.com/Gurukrupa-Export/gurukrupa_customizations.git
+          bench get-app --branch master gurukrupa_biometric https://github.com/Gurukrupa-Export/gurukrupa_biometric.git
+          bench get-app gke_customization "${GITHUB_WORKSPACE}/gke_customization"
+
+      - name: Create the site
+        working-directory: ci-bench
+        run: |
+          bench set-config -g db_host 127.0.0.1
+          bench set-config -g redis_cache "redis://127.0.0.1:6379"
+          bench set-config -g redis_queue "redis://127.0.0.1:6379"
+          bench set-config -g redis_socketio "redis://127.0.0.1:6379"
+          bench new-site ci.localhost \
+            --db-root-password root --admin-password admin --no-mariadb-socket
+          # The gke_hrms test setup creates Server Script records, and frappe refuses
+          # to create them unless this is on (it is on every real bench here).
+          bench --site ci.localhost set-config server_script_enabled true
+          bench --site ci.localhost set-config allow_tests true
+
+      - name: Install the apps
+        working-directory: ci-bench
+        run: |
+          # gke_customization before jewellery_erpnext. The two link both ways, and only one
+          # order installs: jewellery's Sketch Order Form has a table of "Design Attribute - Multiselect",
+          # which is gke's DocType, and jewellery's fixtures validate against it - so installed
+          # first, jewellery's workflow_state Custom Field is never built and its Workflow fixture
+          # fails on the missing column. gke's own links into jewellery are not checked at install,
+          # and its fixtures that need jewellery are re-synced by the migrate step below.
+          # gurukrupa_biometric last: it only adds doc_events and the Biometric Settings doctype.
+          for app in erpnext hrms india_compliance gke_customization jewellery_erpnext \
+                     gurukrupa_customizations gurukrupa_biometric; do
+            echo "::group::install $app"
+            bench --site ci.localhost install-app "$app"
+            echo "::endgroup::"
+          done
+
+      - name: Patches apply cleanly
+        working-directory: ci-bench
+        run: bench --site ci.localhost migrate
+
+      - name: HRMS suite with coverage
+        working-directory: ci-bench/sites
+        run: |
+          # Not `bench run-tests`: that bootstraps test records for every installed app
+          # first, and india_compliance's fixtures fail before this module is reached.
+          # Loading the module directly runs the same tests and exits non-zero on
+          # failure. It also refuses to pass if the suite skipped itself.
+          ../env/bin/pip install coverage
+          cat > run_hrms_tests.py <<'PY'
+          import sys, unittest
+
+          import frappe
+
+          frappe.init(site="ci.localhost")
+          frappe.connect()
+          frappe.conf.max_number_of_jobs = 100000  # tolerate a full/stale RQ queue
+          frappe.flags.in_test = True
+
+          loader = unittest.TestLoader()
+          suite = loader.loadTestsFromName("gke_customization.gke_hrms.tests.test_sync_checkin")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          print(f"\nran {result.testsRun}, failures {len(result.failures)}, "
+                f"errors {len(result.errors)}, skipped {len(result.skipped)}")
+          for test, reason in result.skipped:
+              print(f"SKIPPED: {test} -> {reason}")
+          if result.skipped:
+              sys.exit("the suite skipped itself - this job must really run the tests")
+          sys.exit(0 if result.wasSuccessful() else 1)
+          PY
+          ../env/bin/coverage run --source=gke_customization run_hrms_tests.py
+          ../env/bin/coverage report -m --omit="*/tests/*"
+          ../env/bin/coverage xml -o coverage.xml
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-kggk-uat
+          path: ci-bench/sites/coverage.xml
+          if-no-files-found: ignore
