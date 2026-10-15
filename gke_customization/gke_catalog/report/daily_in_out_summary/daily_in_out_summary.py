@@ -1,5 +1,5 @@
-# Copyright (c) 2026
-# Daily In-Out Report (Script Report, Purchase Receipt / Delivery Note)
+# Copyright (c) 2026, Gurukrupa Export and contributors
+# For license information, please see license.txt
 
 from collections import defaultdict
 
@@ -32,6 +32,7 @@ def get_columns():
 		{"label": _("Return Qty (Crt)"), "fieldname": "return_qty", "fieldtype": "Float", "width": 140},
 		{"label": _("Total Stock (Crt)"), "fieldname": "total_stock", "fieldtype": "Float", "width": 140},
 		{"label": _("Supply Crt (Sold Qty)"), "fieldname": "supply_qty", "fieldtype": "Float", "width": 160},
+		{"label": _("Sales return Qty (Crt)"), "fieldname": "sales_return_qty", "fieldtype": "Float", "width": 140},
 		{"label": _("Closing Stock (Crt)"), "fieldname": "closing_stock", "fieldtype": "Float", "width": 150},
 	]
 
@@ -41,6 +42,7 @@ def get_data(company, from_date, to_date):
 
 	pr_daily = get_daily_purchase_receipt_data(company, from_date, to_date)
 	dn_daily = get_daily_delivery_note_data(company, from_date, to_date)
+	si_return_daily = get_daily_sales_invoice_return_data(company, from_date, to_date)
 
 	data = []
 	current_date = from_date
@@ -49,12 +51,13 @@ def get_data(company, from_date, to_date):
 	while current_date <= to_date:
 		pr = pr_daily.get(current_date, {"inward": 0.0, "return": 0.0})
 		supply = dn_daily.get(current_date, 0.0)
+		sales_return_qty = si_return_daily.get(current_date, 0.0)
 
 		opening = balance
 		inward = pr["inward"]
 		return_qty = pr["return"]
 		total_stock = opening + inward - return_qty
-		closing = total_stock - supply
+		closing = total_stock - supply + sales_return_qty
 
 		data.append(
 			{
@@ -64,6 +67,7 @@ def get_data(company, from_date, to_date):
 				"return_qty": return_qty,
 				"total_stock": total_stock,
 				"supply_qty": supply,
+				"sales_return_qty": sales_return_qty,
 				"closing_stock": closing,
 			}
 		)
@@ -78,51 +82,34 @@ def get_opening_balance(company, from_date):
 	company_condition = ""
 	params = {"from_date": from_date}
 	if company:
-		company_condition = "AND pr.company = %(company)s"
+		company_condition = "AND sle.company = %(company)s"
 		params["company"] = company
 
-	pr_result = frappe.db.sql(
+	result = frappe.db.sql(
 		f"""
-		SELECT
-			SUM(CASE WHEN pr.is_return = 0 THEN pri.qty ELSE 0 END) AS inward,
-			SUM(CASE WHEN pr.is_return = 1 THEN ABS(pri.qty) ELSE 0 END) AS return_qty
-		FROM `tabPurchase Receipt Item` pri
-		INNER JOIN `tabPurchase Receipt` pr ON pr.name = pri.parent
-		WHERE pr.docstatus = 1
-			AND pr.posting_date < %(from_date)s
-			AND {ITEM_LIKE_CONDITIONS.replace("item_code", "pri.item_code")}
-			{company_condition}
+		SELECT SUM(t.qty_after_transaction) AS opening_stock
+		FROM (
+			SELECT
+				sle.item_code,
+				sle.warehouse,
+				sle.qty_after_transaction,
+				ROW_NUMBER() OVER (
+					PARTITION BY sle.item_code, sle.warehouse
+					ORDER BY sle.posting_datetime DESC, sle.creation DESC
+				) AS rn
+			FROM `tabStock Ledger Entry` sle
+			WHERE sle.is_cancelled = 0
+				AND sle.posting_date < %(from_date)s
+				AND {ITEM_LIKE_CONDITIONS.replace("item_code", "sle.item_code")}
+				{company_condition}
+		) t
+		WHERE t.rn = 1
 		""",
 		params,
 		as_dict=True,
 	)
 
-	dn_company_condition = ""
-	dn_params = {"from_date": from_date}
-	if company:
-		dn_company_condition = "AND dn.company = %(company)s"
-		dn_params["company"] = company
-
-	dn_result = frappe.db.sql(
-		f"""
-		SELECT
-			SUM(CASE WHEN dn.is_return = 0 THEN dni.qty ELSE -dni.qty END) AS net_supply
-		FROM `tabDelivery Note Item` dni
-		INNER JOIN `tabDelivery Note` dn ON dn.name = dni.parent
-		WHERE dn.docstatus = 1
-			AND dn.posting_date < %(from_date)s
-			AND {ITEM_LIKE_CONDITIONS.replace("item_code", "dni.item_code")}
-			{dn_company_condition}
-		""",
-		dn_params,
-		as_dict=True,
-	)
-
-	inward = flt(pr_result[0].inward) if pr_result else 0.0
-	return_qty = flt(pr_result[0].return_qty) if pr_result else 0.0
-	net_supply = flt(dn_result[0].net_supply) if dn_result else 0.0
-
-	return inward - return_qty - net_supply
+	return flt(result[0].opening_stock) if result else 0.0
 
 
 def get_daily_purchase_receipt_data(company, from_date, to_date):
@@ -136,8 +123,8 @@ def get_daily_purchase_receipt_data(company, from_date, to_date):
 		f"""
 		SELECT
 			pr.posting_date AS posting_date,
-			SUM(CASE WHEN pr.is_return = 0 THEN pri.qty ELSE 0 END) AS inward,
-			SUM(CASE WHEN pr.is_return = 1 THEN ABS(pri.qty) ELSE 0 END) AS return_qty
+			SUM(CASE WHEN pri.qty > 0 THEN pri.qty ELSE 0 END) AS inward,
+			SUM(CASE WHEN pri.qty < 0 THEN ABS(pri.qty) ELSE 0 END) AS return_qty
 		FROM `tabPurchase Receipt Item` pri
 		INNER JOIN `tabPurchase Receipt` pr ON pr.name = pri.parent
 		WHERE pr.docstatus = 1
@@ -174,7 +161,7 @@ def get_daily_delivery_note_data(company, from_date, to_date):
 			SUM(CASE WHEN dn.is_return = 0 THEN dni.qty ELSE -dni.qty END) AS net_supply
 		FROM `tabDelivery Note Item` dni
 		INNER JOIN `tabDelivery Note` dn ON dn.name = dni.parent
-		WHERE dn.docstatus = 1
+		WHERE dn.status != 'Cancelled'
 			AND dn.posting_date BETWEEN %(from_date)s AND %(to_date)s
 			AND {ITEM_LIKE_CONDITIONS.replace("item_code", "dni.item_code")}
 			{company_condition}
@@ -185,3 +172,32 @@ def get_daily_delivery_note_data(company, from_date, to_date):
 	)
 
 	return {getdate(row.posting_date): flt(row.net_supply) for row in rows}
+
+
+def get_daily_sales_invoice_return_data(company, from_date, to_date):
+	company_condition = ""
+	params = {"from_date": from_date, "to_date": to_date}
+	if company:
+		company_condition = "AND si.company = %(company)s"
+		params["company"] = company
+
+	rows = frappe.db.sql(
+		f"""
+		SELECT
+			si.posting_date AS posting_date,
+			SUM(ABS(sii.qty)) AS return_qty
+		FROM `tabSales Invoice Item` sii
+		INNER JOIN `tabSales Invoice` si ON si.name = sii.parent
+		WHERE si.docstatus = 1
+			AND si.is_return = 1
+			AND si.update_stock = 1
+			AND si.posting_date BETWEEN %(from_date)s AND %(to_date)s
+			AND {ITEM_LIKE_CONDITIONS.replace("item_code", "sii.item_code")}
+			{company_condition}
+		GROUP BY si.posting_date
+		""",
+		params,
+		as_dict=True,
+	)
+
+	return {getdate(row.posting_date): flt(row.return_qty) for row in rows}
