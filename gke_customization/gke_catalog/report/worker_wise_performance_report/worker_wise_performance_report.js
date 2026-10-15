@@ -57,15 +57,10 @@ frappe.query_reports["Worker Wise Performance Report"] = {
             label: __("Department"),
             fieldtype: "Link",
             options: "Department",
-            default: frappe.defaults.get_user_default("Department"),
-            get_query: function() {
-                return {
-                    filters: {}
-                };
-            },
-            on_change: function(report) {
-                report.set_filter_value("employee", "");
-                report.refresh();
+            read_only: !(frappe.user.has_role("System Manager") || frappe.session.user === "Administrator"),
+            on_change: function() {
+                // Clear employee when department changes
+                frappe.query_report.set_filter_value("employee", "");
             }
         },
 
@@ -95,18 +90,14 @@ frappe.query_reports["Worker Wise Performance Report"] = {
     ],
 
     onload: function(report) {
-        const is_admin = frappe.user.has_role("System Manager") || frappe.session.user === "Administrator";
-
-        if (!is_admin) {
-            const user_department = frappe.defaults.get_user_default("Department");
-
-            if (user_department) {
-                report.set_filter_value("department", user_department);
+        // Pre-select the Department from the user's Employee record
+        frappe.call({
+            method: "gke_customization.gke_catalog.report.worker_wise_performance_report.worker_wise_performance_report.get_default_department",
+            callback: function(r) {
+                if (r.message) {
+                    frappe.query_report.set_filter_value("department", r.message);
+                }
             }
-
-            report.page.fields_dict.department.df.read_only = 1;
-            report.page.fields_dict.department.df.description = __("Department is locked as per user default");
-            report.page.fields_dict.department.refresh();
-        }
+        });
     }
 };

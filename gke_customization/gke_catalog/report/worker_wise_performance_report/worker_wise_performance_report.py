@@ -17,14 +17,22 @@ def validate_department_access(filters):
     is_admin = user == "Administrator" or "System Manager" in frappe.get_roles(user)
 
     if not is_admin:
-        user_department = frappe.defaults.get_user_default("Department")
+        user_department = get_default_department()
 
         if not user_department:
-            frappe.throw(_("User default Department is not set."))
+            frappe.throw(_("Department is not set on your Employee record."))
 
         filters["department"] = user_department
 
     return filters
+
+
+@frappe.whitelist()
+def get_default_department():
+    """Department to pre-select on the report page: the user's Employee record's."""
+    return frappe.db.get_value(
+        "Employee", {"user_id": frappe.session.user, "status": "Active"}, "department"
+    )
 
 
 def get_columns():

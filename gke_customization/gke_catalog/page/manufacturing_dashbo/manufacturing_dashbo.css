@@ -700,9 +700,12 @@
 	font-weight: 700;
 }
 
-.mfg-node__stats--warn,
-.mfg-node__stats--warn b {
-	color: var(--mfg-red);
+.mfg-node__stats--link {
+	cursor: pointer;
+}
+
+.mfg-node__stats--link:hover span {
+	text-decoration: underline;
 }
 
 .mfg-node__stats--caution,
@@ -903,10 +906,53 @@
 	pointer-events: none;
 }
 
+/* whole list on one page: the table scrolls inside the dialog, header stays visible */
+.mfg-alert-orders .mfg-orders__scroll {
+	max-height: 65vh;
+	overflow: auto;
+}
+
+.mfg-alert-orders .mfg-orders thead {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+}
+
+.mfg-alert-orders .mfg-orders thead th {
+	background: var(--mfg-panel);
+}
+
+.mfg-orders__search-row th {
+	padding-top: 4px;
+	padding-bottom: 6px;
+}
+
+.mfg-orders__search {
+	width: 100%;
+	min-width: 60px;
+	padding: 3px 6px;
+	background: var(--mfg-panel-alt);
+	border: 1px solid var(--mfg-border);
+	border-radius: 4px;
+	color: var(--mfg-ink);
+	font-size: 11px;
+	font-weight: 400;
+	letter-spacing: normal;
+	text-transform: none;
+}
+
+.mfg-orders__search:focus {
+	outline: none;
+	border-color: var(--mfg-brass);
+}
+
+.mfg-alert-orders .mfg-pager {
+	border-top: 1px solid var(--mfg-border-soft);
+}
+
 .mfg-alert-orders .mfg-table tbody tr {
 	cursor: default;
 }
-
 .mfg-alert-orders .mfg-orders__no a {
 	color: var(--mfg-steel);
 }
@@ -1651,6 +1697,17 @@
 	flex-direction: column;
 	align-items: center;
 	gap: 14px;
+}
+
+/* inside the drill-down panels (stage summary / order list / order details) */
+.mfgdash__loading--compact {
+	padding: 28px 20px;
+	gap: 10px;
+}
+
+.mfgdash__loading--compact .mfg-cyclone {
+	width: 34px;
+	height: 34px;
 }
 
 .mfgdash__loading-text {

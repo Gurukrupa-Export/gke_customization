@@ -383,6 +383,14 @@ def get_conditions(filters):
     return conditions
 
 
+@frappe.whitelist()
+def get_default_department():
+    """Department to pre-select on the report page: the user's Employee record's."""
+    return frappe.db.get_value(
+        "Employee", {"user_id": frappe.session.user, "status": "Active"}, "department"
+    )
+
+
 # Whitelisted method to get employees by operation
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
