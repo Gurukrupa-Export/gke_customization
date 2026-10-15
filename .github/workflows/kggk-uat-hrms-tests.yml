@@ -19,7 +19,9 @@ on:
   push:
     branches: [kggk_uat]
   pull_request:
-    branches: [kggk_uat]
+    # kggk_uat_dummy is TEMPORARY, for testing the PR path without touching
+    # kggk_uat. Remove it from this list before this file lands on kggk_uat.
+    branches: [kggk_uat, kggk_uat_dummy]
   workflow_dispatch:
 
 # A second push to the same PR makes the first run's answer irrelevant. On kggk_uat
