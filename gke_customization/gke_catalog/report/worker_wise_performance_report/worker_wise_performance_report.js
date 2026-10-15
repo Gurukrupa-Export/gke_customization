@@ -57,7 +57,7 @@ frappe.query_reports["Worker Wise Performance Report"] = {
             label: __("Department"),
             fieldtype: "Link",
             options: "Department",
-            default: frappe.defaults.get_user_default("department"),
+            default: frappe.defaults.get_user_default("Department"),
             get_query: function() {
                 return {
                     filters: {}
@@ -98,7 +98,7 @@ frappe.query_reports["Worker Wise Performance Report"] = {
         const is_admin = frappe.user.has_role("System Manager") || frappe.session.user === "Administrator";
 
         if (!is_admin) {
-            const user_department = frappe.defaults.get_user_default("department");
+            const user_department = frappe.defaults.get_user_default("Department");
 
             if (user_department) {
                 report.set_filter_value("department", user_department);

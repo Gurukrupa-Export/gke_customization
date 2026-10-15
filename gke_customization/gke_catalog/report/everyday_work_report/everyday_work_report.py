@@ -4,7 +4,25 @@
 import frappe
 from frappe.utils import flt, cint
 
-STATUS_ORDER = ("WIP", "Not Issued", "Received")
+STATUS_ORDER = ("WIP", "Not Issued", "Received", "")
+
+# Jin departments me Employee Issue/Receive hota hi nahi, wahan status blank rahega.
+# (Department ke naam ki shuruaat se match hota hai, e.g. "Tagging - GEPL")
+NO_EMPLOYEE_IR_DEPARTMENTS = ("Tagging",)
+
+
+def has_no_employee_ir(department):
+    return any((department or "").startswith(p) for p in NO_EMPLOYEE_IR_DEPARTMENTS)
+
+# Ye MWO report me nahi aayenge. "Completed" = MWO submitted, isliye wo report me dikhta hai.
+EXCLUDE_MWO_STATUS = ("Closed", "Stopped")
+
+# Department-wise concept:
+#   Har MWO sirf apne PRESENT department (MWO.department) me dikhta hai.
+#   Status MWO ki present MOP (MWO.manufacturing_operation) ke submitted Employee IR se:
+#     Issue hua, Receive nahi hua     -> WIP
+#     Issue hi nahi hua               -> Not Issued
+#     Issue hoke Receive ho gaya      -> Received (MWO abhi isi department me hai)
 
 
 def execute(filters=None):
@@ -16,13 +34,14 @@ def get_columns():
     return [
         {"label": "Department", "fieldname": "department", "fieldtype": "Link", "options": "Department", "width": 140},
         {"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 130},
-        {"label": "Current Process", "fieldname": "current_process", "fieldtype": "Data", "width": 130},
-        {"label": "Worker Code", "fieldname": "worker_code", "fieldtype": "Link", "options": "Employee", "width": 110},
-        {"label": "Worker", "fieldname": "worker", "fieldtype": "Data", "width": 140},
+        {"label": "Operation", "fieldname": "current_process", "fieldtype": "Data", "width": 130},
+        {"label": "Employee", "fieldname": "worker_code", "fieldtype": "Link", "options": "Employee", "width": 110},
+        {"label": "Employee Name", "fieldname": "worker", "fieldtype": "Data", "width": 140},
         {"label": "Issue Date", "fieldname": "issue_date", "fieldtype": "Date", "width": 100},
         {"label": "MWO", "fieldname": "batch_no", "fieldtype": "Link", "options": "Manufacturing Work Order", "width": 140},
-        {"label": "Design ID", "fieldname": "design_id", "fieldtype": "Data", "width": 120},
+        {"label": "Item Code", "fieldname": "design_id", "fieldtype": "Data", "width": 120},
         {"label": "Category", "fieldname": "category", "fieldtype": "Data", "width": 110},
+        {"label": "Sub Category", "fieldname": "sub_category", "fieldtype": "Data", "width": 130},
         {"label": "PMO", "fieldname": "g_order_no", "fieldtype": "Data", "width": 120},
         {"label": "Customer Code", "fieldname": "old_customer_code", "fieldtype": "Data", "width": 130},
         {"label": "Gold wt", "fieldname": "gold_wt", "fieldtype": "Float", "width": 90, "precision": 3},
@@ -30,58 +49,56 @@ def get_columns():
         {"label": "Diamond Wt", "fieldname": "diamond_wt", "fieldtype": "Float", "width": 100, "precision": 3},
         {"label": "Day Pending", "fieldname": "day_pending", "fieldtype": "Int", "width": 100},
         {"label": "Metal Touch", "fieldname": "metal_touch", "fieldtype": "Data", "width": 100},
-        {"label": "Metal Ratio", "fieldname": "metal_purity", "fieldtype": "Data", "width": 130},
+        {"label": "Metal Purity", "fieldname": "metal_purity", "fieldtype": "Data", "width": 130},
         {"label": "Due date", "fieldname": "due_date", "fieldtype": "Date", "width": 100},
         {"label": "Order type", "fieldname": "order_type", "fieldtype": "Data", "width": 100},
     ]
 
 
 def get_data(filters):
-    values = {}
+    values = {"excluded_status": tuple(EXCLUDE_MWO_STATUS)}
 
     wanted_status = set(as_list(filters["status"])) if filters.get("status") else None
-    dept_filter = set(as_list(filters["department"])) if filters.get("department") else None
+    dept_filter = as_list(filters["department"]) if filters.get("department") else None
     emp_filter = set(as_list(filters["employee"])) if filters.get("employee") else None
     op_filter = set(as_list(filters["operation"])) if filters.get("operation") else None
     has_worker_filter = bool(emp_filter or op_filter)
 
-    # Which parts of the report are needed for these filters?
-    need_a = wanted_status is None or bool(wanted_status & {"WIP", "Received"})
-    need_b = (
-        (wanted_status is None or "Not Issued" in wanted_status)
-        and not has_worker_filter  # Not Issued rows have no worker / process
-    )
-    if not (need_a or need_b):
-        return []
-
-    # ---- MWO level conditions (only things that live on the MWO) ----
-    conds = []
+    # ---- MWO level conditions ----
+    conds = ["mwo.status NOT IN %(excluded_status)s"]
     if filters.get("from_date"):
         conds.append("mwo.posting_date >= %(from_date)s")
         values["from_date"] = filters["from_date"]
     if filters.get("to_date"):
         conds.append("mwo.posting_date <= %(to_date)s")
         values["to_date"] = filters["to_date"]
+    if dept_filter:
+        conds.append("mwo.department IN %(department)s")
+        values["department"] = tuple(dept_filter)
     if filters.get("manufacturing_work_order"):
-        conds.append("mwo.name in %(manufacturing_work_order)s")
-        values["manufacturing_work_order"] = as_list(filters["manufacturing_work_order"])
+        conds.append("mwo.name IN %(manufacturing_work_order)s")
+        values["manufacturing_work_order"] = tuple(as_list(filters["manufacturing_work_order"]))
     if filters.get("order_type"):
         conds.append("mwo.order_type = %(order_type)s")
         values["order_type"] = filters["order_type"]
     where = "".join(f" AND {c}" for c in conds)
 
-    # ---- Query 1: MWO list (one row per MWO, no GROUP BY) ----
+    # ---- Query 1: MWO list (ek MWO = ek row) ----
     mwo_rows = frappe.db.sql(
         f"""
         SELECT
             mwo.name                        AS batch_no,
             mwo.department                  AS mwo_department,
-            mwo.status                      AS mwo_status,
+            mwo.manufacturing_operation     AS cur_mop,
+            cmop.status                     AS cur_mop_status,
+            cmop.previous_mop               AS prev_mop,
+            pmop.department                 AS prev_mop_dept,
             mwo.posting_date                AS issue_date,
             mwo.item_code                   AS design_id,
             COALESCE(NULLIF(itm.custom_catalogue_image, ''), itm.image)
                                             AS item_image,
             mwo.item_category               AS category,
+            mwo.item_sub_category           AS sub_category,
             mwo.manufacturing_order         AS g_order_no,
             cust.old_customer_code          AS old_customer_code,
             mwo.metal_weight                AS gold_wt,
@@ -99,6 +116,10 @@ def get_data(filters):
             ON cust.name = pmo.ref_customer
         LEFT JOIN `tabItem` itm
             ON itm.name = mwo.item_code
+        LEFT JOIN `tabManufacturing Operation` cmop
+            ON cmop.name = mwo.manufacturing_operation
+        LEFT JOIN `tabManufacturing Operation` pmop
+            ON pmop.name = cmop.previous_mop
         WHERE mwo.docstatus < 2
           {where}
         """,
@@ -108,130 +129,111 @@ def get_data(filters):
     if not mwo_rows:
         return []
 
-    # ---- Query 2: all Employee IR rows for those MWOs (one flat query) ----
-    ir_rows = frappe.db.sql(
-        f"""
-        SELECT
-            eiro.manufacturing_work_order   AS mwo,
-            eiro.manufacturing_operation    AS mop,
-            ir.name                         AS ir_name,
-            ir.type                         AS ir_type,
-            ir.employee                     AS employee,
-            ir.operation                    AS operation,
-            ir.department                   AS department,
-            ir.creation                     AS creation
-        FROM `tabManufacturing Work Order` mwo
-        JOIN `tabEmployee IR Operation` eiro
-            ON eiro.manufacturing_work_order = mwo.name
-        JOIN `tabEmployee IR` ir
-            ON ir.name = eiro.parent
-        WHERE mwo.docstatus < 2
-          AND ir.docstatus < 2
-          {where}
-        """,
-        values,
-        as_dict=1,
-    )
+    # ---- Query 2: present MOP ke submitted Employee IR (Issue / Receive) ----
+    # Receive ke baad usi department me nayi khali MOP banti hai, isliye
+    # usi department ki previous MOP ke Employee IR bhi dekhte hain.
+    mop_set = set()
+    for r in mwo_rows:
+        if r.cur_mop:
+            mop_set.add(r.cur_mop)
+        if r.prev_mop and r.prev_mop_dept == r.mwo_department:
+            mop_set.add(r.prev_mop)
+    cur_mops = list(mop_set)
+    last_issue = {}   # mop -> latest submitted Issue
+    last_recv = {}    # mop -> latest submitted Receive time
 
-    # ---- Build lookups in Python ----
-    has_ir = set()          # MWOs having any Employee IR row
-    issues = {}             # mwo -> {ir_name: {...}}
-    rcv_by_mop = {}         # (employee, operation, mop) -> last receive creation
-    rcv_by_mwo = {}         # (employee, operation, mwo) -> last receive creation
-
-    for o in ir_rows:
-        has_ir.add(o.mwo)
-
-        if o.ir_type == "Issue":
-            doc = issues.setdefault(o.mwo, {}).setdefault(o.ir_name, {
-                "employee": o.employee,
-                "operation": o.operation,
-                "department": o.department,
-                "creation": o.creation,
-                "mops": [],
-            })
-            doc["mops"].append(o.mop or "")
-
-        elif o.ir_type == "Receive":
-            if o.mop:
-                k = (o.employee, o.operation, o.mop)
-                if k not in rcv_by_mop or o.creation > rcv_by_mop[k]:
-                    rcv_by_mop[k] = o.creation
-            k = (o.employee, o.operation, o.mwo)
-            if k not in rcv_by_mwo or o.creation > rcv_by_mwo[k]:
-                rcv_by_mwo[k] = o.creation
-
-    def is_received(mwo_name, issue):
-        for mop in issue["mops"]:
-            if mop:
-                last = rcv_by_mop.get((issue["employee"], issue["operation"], mop))
-            else:
-                last = rcv_by_mwo.get((issue["employee"], issue["operation"], mwo_name))
-            if last and last >= issue["creation"]:
-                return True
-        return False
+    for i in range(0, len(cur_mops), 1000):
+        part = cur_mops[i:i + 1000]
+        ir_rows = frappe.db.sql(
+            """
+            SELECT
+                eiro.manufacturing_operation        AS mop,
+                ir.type                             AS ir_type,
+                ir.employee                         AS employee,
+                ir.operation                        AS operation,
+                COALESCE(ir.date_time, ir.creation) AS ir_time
+            FROM `tabEmployee IR Operation` eiro
+            JOIN `tabEmployee IR` ir
+                ON ir.name = eiro.parent
+            WHERE ir.docstatus = 1
+              AND eiro.manufacturing_operation IN %(mops)s
+            ORDER BY COALESCE(ir.date_time, ir.creation) ASC
+            """,
+            {"mops": tuple(part)},
+            as_dict=1,
+        )
+        for o in ir_rows:
+            if o.ir_type == "Issue":
+                last_issue[o.mop] = o        # ASC order => last wins = latest
+            elif o.ir_type == "Receive":
+                last_recv[o.mop] = o.ir_time
 
     # ---- Build report rows ----
     rows = []
     for base in mwo_rows:
-        mwo_name = base.batch_no
         mwo_dept = base.pop("mwo_department")
-        mwo_status = base.pop("mwo_status")
+        cur_mop = base.pop("cur_mop")
+        cur_mop_status = base.pop("cur_mop_status")
+        prev_mop = base.pop("prev_mop")
+        prev_mop_dept = base.pop("prev_mop_dept")
 
-        if mwo_name in issues:
-            # Part A: MWO has been issued at least once
-            if not need_a:
+        row = dict(base)
+        row["department"] = mwo_dept
+        row["worker"] = None  # naam neeche sirf WIP rows ke liye bharta hai
+
+        # Employee IR kis MOP par dekhna hai:
+        #   1) current MOP par Issue hai  -> wahi
+        #   2) nahi hai, current MOP Finished nahi hai, aur usi department ki previous MOP
+        #      par Issue hai (Receive ke baad nayi khali MOP bani)  -> previous MOP
+        src_mop = None
+        if cur_mop and last_issue.get(cur_mop):
+            src_mop = cur_mop
+        elif (
+            prev_mop
+            and cur_mop_status != "Finished"
+            and prev_mop_dept == mwo_dept
+            and last_issue.get(prev_mop)
+        ):
+            src_mop = prev_mop
+
+        iss = last_issue.get(src_mop) if src_mop else None
+        if iss:
+            row["current_process"] = iss.operation
+            row["issue_date"] = iss.ir_time.date() if hasattr(iss.ir_time, "date") else iss.ir_time
+            recv_time = last_recv.get(src_mop)
+            if recv_time and recv_time >= iss.ir_time:
+                row["status"] = "Received"
+                row["worker_code"] = None
+            else:
+                row["status"] = "WIP"
+                row["worker_code"] = iss.employee
+
+            if emp_filter and iss.employee not in emp_filter:
                 continue
-
-            mwo_issues = issues[mwo_name]
-            latest = max(i["creation"] for i in mwo_issues.values())
-
-            for issue in mwo_issues.values():
-                if issue["creation"] != latest:
-                    continue  # only latest Issue per MWO
-                if dept_filter and issue["department"] not in dept_filter:
-                    continue
-                if emp_filter and issue["employee"] not in emp_filter:
-                    continue
-                if op_filter and issue["operation"] not in op_filter:
-                    continue
-
-                row = dict(base)
-                row["department"] = issue["department"]
-                row["current_process"] = issue["operation"]
-                if is_received(mwo_name, issue):
-                    row["status"] = "Received"
-                    row["worker_code"] = None
-                    row["worker"] = None
-                else:
-                    row["status"] = "WIP"
-                    row["worker_code"] = issue["employee"]
-                    row["worker"] = None  # filled below
-                rows.append(row)
-
-        elif mwo_name not in has_ir:
-            # Part B: never issued
-            if not need_b or (mwo_status or "") == "Cancelled":
+            if op_filter and iss.operation not in op_filter:
                 continue
-            if dept_filter and mwo_dept not in dept_filter:
+        else:
+            # Not Issued: process / worker nahi hota
+            if has_worker_filter:
                 continue
-
-            row = dict(base)
-            row["department"] = mwo_dept
+            # Current MOP Finished, ya aisa department jahan Employee IR hota hi nahi
+            # (jaise Tagging) => status blank
+            if cur_mop_status == "Finished" or has_no_employee_ir(mwo_dept):
+                row["status"] = ""
+            else:
+                row["status"] = "Not Issued"
             row["current_process"] = None
             row["worker_code"] = None
-            row["worker"] = None
-            row["status"] = "Not Issued"
-            rows.append(row)
 
-    if wanted_status:
-        rows = [r for r in rows if r["status"] in wanted_status]
+        if wanted_status and row["status"] not in wanted_status:
+            continue
+        rows.append(row)
 
     if not rows:
         return []
 
-    # ---- Worker names: single query only for WIP workers ----
-    emp_ids = list({r["worker_code"] for r in rows if r.get("worker_code")})
+    # ---- Worker ka naam sirf WIP rows ke liye (single query) ----
+    emp_ids = list({r["worker_code"] for r in rows if r.get("status") == "WIP" and r.get("worker_code")})
     if emp_ids:
         names = dict(frappe.get_all(
             "Employee",
@@ -241,10 +243,10 @@ def get_data(filters):
             limit_page_length=0,
         ))
         for r in rows:
-            if r.get("worker_code"):
+            if r.get("status") == "WIP" and r.get("worker_code"):
                 r["worker"] = names.get(r["worker_code"])
 
-    # sort: latest issue date first, then (stable) by department and status order
+    # sort: department, status order, phir latest issue date pehle
     rows.sort(key=lambda r: str(r.get("issue_date") or ""), reverse=True)
     rows.sort(key=lambda r: (
         r.get("department") or "",
@@ -256,11 +258,11 @@ def get_data(filters):
 
 
 def get_total_row(rows):
-    """Grand total row: MWO count + sum of Gold wt, Diamond pcs, Diamond wt."""
+    """Grand total row: distinct PMO count + sum of Gold wt, Diamond pcs, Diamond wt."""
     return {
         "is_total_row": 1,
         "department": "Total",
-        "batch_no": len(rows),
+        "g_order_no": len({r.get("g_order_no") for r in rows if r.get("g_order_no")}),
         "gold_wt": flt(sum(flt(r.get("gold_wt")) for r in rows), 3),
         "diamond_pcs": sum(cint(r.get("diamond_pcs")) for r in rows),
         "diamond_wt": flt(sum(flt(r.get("diamond_wt")) for r in rows), 3),
