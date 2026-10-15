@@ -636,8 +636,7 @@
    "fieldname": "product_size",
    "fieldtype": "Data",
    "label": "Product Size",
-   "read_only_depends_on": "eval:doc.workflow_state != 'Draft'",
-   "reqd": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
   },
   {
    "allow_on_submit": 1,
@@ -853,8 +852,7 @@
    "fieldtype": "Link",
    "label": "Enamal",
    "options": "Attribute Value",
-   "read_only_depends_on": "eval:doc.workflow_state != 'Draft'",
-   "reqd": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
   },
   {
    "fieldname": "column_break_69",
@@ -1574,8 +1572,7 @@
    "fieldtype": "Link",
    "label": "Rhodium",
    "options": "Attribute Value",
-   "read_only_depends_on": "eval:doc.workflow_state != 'Draft'",
-   "reqd": 1
+   "read_only_depends_on": "eval:doc.workflow_state != 'Draft'"
   },
   {
    "fetch_from": "cad_order_form_detail.gemstone_type1",
