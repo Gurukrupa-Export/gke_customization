@@ -270,7 +270,7 @@
    "fieldtype": "Select",
    "label": "Resolution Status",
    "no_copy": 1,
-   "options": "\nPending HR\nAuto-Resolved (Approved OT)\nAuto-Closed (Shift End)\nHR-Approved\nRejected"
+   "options": "\nPending HR\nAuto-Resolved (Approved OT)\nAuto-Closed (Shift End)\nHR-Approved\nRejected\nCancelled"
   },
   {
    "fieldname": "resolution_remarks",
