@@ -1,0 +1,411 @@
+<div class="sadguru-dashboard">
+	<ul class="sadguru-tabs">
+		<li class="sadguru-tab active" data-tab="purchase"><a href="#">Purchase</a></li>
+		<li class="sadguru-tab" data-tab="sales"><a href="#">Sales</a></li>
+	</ul>
+
+	<div class="sadguru-kpi-grid"></div>
+
+	<div class="sadguru-card sadguru-chart-card">
+		<h4><span class="sadguru-title-bar"></span><span class="sadguru-chart-title">Purchase — Month wise</span></h4>
+		<div class="sadguru-chart-subtitle">Amount in ₹ Lakhs</div>
+		<div class="sadguru-month-chart"></div>
+	</div>
+
+	<div class="sadguru-card">
+		<div class="sadguru-tab-pane" data-tab-pane="purchase">
+			<h4><span class="sadguru-title-bar"></span>Purchase — Supplier wise</h4>
+			<div class="table-responsive">
+				<table class="sadguru-table sadguru-purchase-table">
+					<thead></thead>
+					<tbody></tbody>
+				</table>
+			</div>
+		</div>
+
+		<div class="sadguru-tab-pane" data-tab-pane="sales" style="display: none;">
+			<h4><span class="sadguru-title-bar"></span>Sales — Customer wise</h4>
+			<div class="table-responsive">
+				<table class="sadguru-table sadguru-sales-table">
+					<thead></thead>
+					<tbody></tbody>
+				</table>
+			</div>
+
+			<h4 class="sadguru-subsection-title"><span class="sadguru-title-bar"></span>Sales — Grade wise</h4>
+			<div class="table-responsive">
+				<table class="sadguru-table sadguru-sales-grade-table">
+					<thead></thead>
+					<tbody></tbody>
+				</table>
+			</div>
+
+			<div class="sadguru-matrix-header sadguru-subsection-title">
+				<h4><span class="sadguru-title-bar"></span>Customer × Grade Matrix</h4>
+				<div class="sadguru-matrix-controls">
+					<select class="sadguru-matrix-month"></select>
+					<div class="sadguru-matrix-toggle" data-mode="amount">
+						<span class="sadguru-matrix-toggle-label sadguru-matrix-toggle-qty">Qty</span>
+						<span class="sadguru-matrix-switch"><span class="sadguru-matrix-switch-knob"></span></span>
+						<span class="sadguru-matrix-toggle-label sadguru-matrix-toggle-value">Value</span>
+					</div>
+				</div>
+			</div>
+			<div class="table-responsive">
+				<table class="sadguru-table sadguru-matrix-table">
+					<thead></thead>
+					<tbody></tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<div class="sadguru-card sadguru-trend-card">
+		<h4><span class="sadguru-title-bar"></span>Sales vs Purchase — Monthly Detail</h4>
+		<div class="table-responsive">
+			<table class="sadguru-table sadguru-trend-table">
+				<thead>
+					<tr>
+						<th>Month</th>
+						<th>Purchase Qty</th>
+						<th>Purchase Rate</th>
+						<th>Purchase Amount</th>
+						<th>Sales Qty</th>
+						<th>Sales Rate</th>
+						<th>Sales Amount</th>
+					</tr>
+				</thead>
+				<tbody></tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+<style>
+	.sadguru-dashboard {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+		padding-top: 18px;
+		padding-bottom: 20px;
+	}
+
+	/* KPI cards */
+	.sadguru-kpi-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+		gap: 14px;
+	}
+	.sadguru-chart-subtitle {
+		font-size: 11px;
+		color: var(--text-muted);
+		margin: -10px 0 8px;
+	}
+	.sadguru-kpi-card {
+		background: var(--card-bg);
+		border: 1px solid var(--border-color);
+		border-radius: var(--border-radius-lg);
+		padding: 18px 20px;
+		min-height: 150px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		transition: border-color 0.15s ease;
+	}
+	.sadguru-kpi-card:hover {
+		border-color: #b8860b;
+	}
+
+	/* Flip cards (value-wise avg <-> carat-weight-wise avg) */
+	.sadguru-kpi-flip {
+		background: transparent;
+		border: none;
+		padding: 0;
+		perspective: 1200px;
+		cursor: pointer;
+	}
+	.sadguru-kpi-flip:hover {
+		border-color: transparent;
+	}
+	.sadguru-kpi-flip-inner {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		min-height: 150px;
+		transition: transform 0.5s;
+		transform-style: preserve-3d;
+	}
+	.sadguru-kpi-flip.flipped .sadguru-kpi-flip-inner {
+		transform: rotateY(180deg);
+	}
+	.sadguru-kpi-face {
+		position: absolute;
+		inset: 0;
+		backface-visibility: hidden;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		background: var(--card-bg);
+		border: 1px solid var(--border-color);
+		border-radius: var(--border-radius-lg);
+		padding: 18px 20px;
+	}
+	.sadguru-kpi-flip:hover .sadguru-kpi-face {
+		border-color: #b8860b;
+	}
+	.sadguru-kpi-back {
+		transform: rotateY(180deg);
+	}
+	.sadguru-kpi-icon {
+		width: 30px;
+		height: 30px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		background: rgba(184, 134, 11, 0.1);
+		color: #b8860b;
+		margin-bottom: 12px;
+	}
+	.sadguru-kpi-icon svg {
+		width: 15px;
+		height: 15px;
+	}
+	.sadguru-kpi-value {
+		font-family: "Cormorant Garamond", Didot, Georgia, "Times New Roman", serif;
+		font-size: 25px;
+		font-weight: 600;
+		letter-spacing: 0.015em;
+		color: var(--heading-color);
+		font-variant-numeric: tabular-nums lining-nums;
+		line-height: 1.25;
+	}
+	.sadguru-kpi-label {
+		font-size: 10.5px;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--text-muted);
+		margin-top: 4px;
+	}
+
+	/* Section cards */
+	.sadguru-card {
+		background: var(--card-bg);
+		border: 1px solid var(--border-color);
+		border-radius: var(--border-radius-lg);
+		padding: 20px;
+		box-shadow: var(--card-shadow);
+	}
+	.sadguru-card h4 {
+		display: flex;
+		align-items: center;
+		margin: 0 0 16px;
+		font-family: Georgia, "Times New Roman", serif;
+		font-size: 15px;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+		color: var(--heading-color);
+	}
+	.sadguru-title-bar {
+		display: inline-block;
+		width: 4px;
+		height: 16px;
+		margin-right: 10px;
+		border-radius: 2px;
+		background: linear-gradient(180deg, #e6c86e, #b8860b);
+	}
+	.sadguru-subsection-title {
+		margin-top: 24px !important;
+		padding-top: 20px;
+		border-top: 1px solid var(--border-color);
+	}
+
+	/* Customer x Grade matrix */
+	.sadguru-matrix-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 12px;
+	}
+	.sadguru-matrix-header h4 {
+		margin: 0;
+	}
+	.sadguru-matrix-controls {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+	}
+	.sadguru-matrix-month {
+		font-size: 12px;
+		padding: 6px 10px;
+		border-radius: var(--border-radius-md);
+		border: 1px solid var(--border-color);
+		background: var(--card-bg);
+		color: var(--text-color);
+	}
+	.sadguru-matrix-toggle {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		cursor: pointer;
+		user-select: none;
+	}
+	.sadguru-matrix-toggle-label {
+		font-size: 12px;
+		font-weight: 600;
+		letter-spacing: 0.03em;
+		color: var(--text-muted);
+		transition: color 0.15s ease;
+	}
+	.sadguru-matrix-toggle[data-mode="qty"] .sadguru-matrix-toggle-qty,
+	.sadguru-matrix-toggle[data-mode="amount"] .sadguru-matrix-toggle-value {
+		color: #b8860b;
+	}
+	.sadguru-matrix-switch {
+		position: relative;
+		width: 36px;
+		height: 20px;
+		border-radius: 10px;
+		background: rgba(184, 134, 11, 0.25);
+		transition: background 0.2s ease;
+	}
+	.sadguru-matrix-switch-knob {
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 16px;
+		height: 16px;
+		border-radius: 50%;
+		background: #b8860b;
+		transition: transform 0.2s ease;
+	}
+	.sadguru-matrix-toggle[data-mode="amount"] .sadguru-matrix-switch-knob {
+		transform: translateX(16px);
+	}
+	.sadguru-matrix-table td:first-child {
+		font-weight: 600;
+	}
+	.sadguru-matrix-table .sadguru-matrix-total {
+		font-weight: 700;
+		color: #b8860b;
+	}
+
+	/* Tabs — gold underline */
+	.sadguru-tabs {
+		display: flex;
+		justify-content: center;
+		gap: 36px;
+		list-style: none;
+		margin: 0;
+		padding: 0 0 10px;
+		border-bottom: 1px solid var(--border-color);
+	}
+	.sadguru-tab {
+		position: relative;
+		cursor: pointer;
+		padding-bottom: 10px;
+	}
+	.sadguru-tab a {
+		font-size: 13px;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		text-decoration: none;
+		transition: color 0.15s ease;
+	}
+	.sadguru-tab:hover a {
+		color: var(--heading-color);
+	}
+	.sadguru-tab.active a {
+		color: var(--heading-color);
+	}
+	.sadguru-tab::after {
+		content: "";
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: -1px;
+		height: 2px;
+		background: transparent;
+		transition: background 0.2s ease;
+	}
+	.sadguru-tab.active::after {
+		background: linear-gradient(90deg, #b8860b, #f0d98c);
+	}
+
+	/* Tables */
+	.sadguru-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 13px;
+	}
+	.sadguru-table thead th {
+		text-align: left;
+		padding: 10px 12px;
+		border-bottom: 2px solid var(--border-color);
+		color: var(--text-muted);
+		font-weight: 600;
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		white-space: nowrap;
+	}
+	.sadguru-table tbody td {
+		padding: 10px 12px;
+		border-bottom: 1px solid var(--border-color);
+	}
+	.sadguru-table tbody tr:hover {
+		background: var(--control-bg-on-gray);
+	}
+	.sadguru-table th:not(:first-child),
+	.sadguru-table td:not(:first-child) {
+		text-align: right;
+	}
+	.sadguru-table td:not(:first-child) {
+		font-family: "Cormorant Garamond", Didot, Georgia, "Times New Roman", serif;
+		font-size: 14.5px;
+		font-weight: 600;
+		letter-spacing: 0.01em;
+		font-variant-numeric: tabular-nums lining-nums;
+	}
+	.sadguru-sortable {
+		cursor: pointer;
+		user-select: none;
+	}
+	.sadguru-sortable:hover {
+		color: #b8860b;
+	}
+	.sadguru-sortable.active-sort {
+		color: #b8860b;
+	}
+
+	.sadguru-amount-cell {
+		position: relative;
+	}
+	.sadguru-bar {
+		position: absolute;
+		left: 0;
+		top: 4px;
+		bottom: 4px;
+		border-radius: var(--border-radius-sm);
+		z-index: 0;
+	}
+	.sadguru-bar {
+		background: linear-gradient(90deg, rgba(184, 134, 11, 0.04), rgba(184, 134, 11, 0.14));
+	}
+	.sadguru-amount-text {
+		position: relative;
+		z-index: 1;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.sadguru-trend-chart {
+		margin-bottom: 16px;
+	}
+</style>

@@ -9,6 +9,10 @@ from frappe.utils import date_diff, flt, formatdate, get_url, getdate, nowdate
 from frappe.utils.pdf import get_pdf
 
 DEFAULT_COMPANY = "Sadguru Diamond"
+
+# Supplier Type filter: "All Suppliers" (default) ya "Diamonds"
+# Diamonds = supplier ke NAAM me "Diamond" word aaye (Diamond / Diamonds dono pakde jaate hain)
+DIAMOND_KEYWORD = "Diamond"
 MONTH_NAMES = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
@@ -17,20 +21,33 @@ MONTH_NAMES = [
 
 # ------------------------------------------------------------------ entry
 def execute(filters=None):
+    filters = frappe._dict(filters or {})
     company = DEFAULT_COMPANY
     as_on = getdate(nowdate())
+    supplier_type = get_supplier_type(filters.get("supplier_type"))
 
-    summary = build_summary(get_invoices(company), as_on)
-    link = "/api/method/{0}.download_pdf".format(__name__)
+    summary = build_summary(get_invoices(company, supplier_type), as_on)
+    link = "/api/method/{0}.download_pdf?{1}".format(
+        __name__, urlencode({"supplier_type": supplier_type}))
 
     # Frappe ko ek column + ek row chahiye; asli report neeche message (HTML) me hai
     columns = [{"label": " ", "fieldname": "x", "fieldtype": "Data", "width": 10}]
     data = [{"x": ""}]
-    return columns, data, build_html(summary, company, as_on, link)
+    return columns, data, build_html(summary, company, as_on, link, supplier_type)
 
 
 # ------------------------------------------------------------------- data
-def get_invoices(company):
+def get_supplier_type(value):
+    return "Diamonds" if value == "Diamonds" else "All Suppliers"
+
+
+def get_invoices(company, supplier_type="All Suppliers"):
+    conditions = ""
+    values = {"company": company}
+    if supplier_type == "Diamonds":
+        conditions = " and supplier_name like %(sname)s"
+        values["sname"] = "%" + DIAMOND_KEYWORD + "%"
+
     return frappe.db.sql(
         """
         select name, supplier, supplier_name, posting_date, status, currency,
@@ -40,9 +57,10 @@ def get_invoices(company):
         where docstatus = 1
             and outstanding_amount > 0
             and company = %(company)s
+        """ + conditions + """
         order by coalesce(due_date, posting_date), name
         """,
-        {"company": company},
+        values,
         as_dict=True,
     )
 
@@ -185,9 +203,9 @@ def card(inner, extra=""):
 
 
 # ------------------------------------------------------------- drill-down links
-def inv_url(key, as_on):
+def inv_url(key, as_on, supplier_type="All Suppliers"):
     return get_url("/api/method/{0}.invoice_list?{1}".format(
-        __name__, urlencode({"key": key, "as_on": str(as_on)})))
+        __name__, urlencode({"key": key, "as_on": str(as_on), "supplier_type": supplier_type})))
 
 
 def linked(text, url, value):
@@ -200,11 +218,11 @@ def linked(text, url, value):
     )
 
 
-def build_tables(s, company, as_on):
+def build_tables(s, company, as_on, supplier_type="All Suppliers"):
     # table 1: Total Payable, 1-30, 31-60, 61-90, 91-120, 120+, Total Overdue, Open
-    urls1 = [inv_url(k, as_on) for k in ["all", "od0", "od1", "od2", "od3", "od4", "od_all", "open"]]
+    urls1 = [inv_url(k, as_on, supplier_type) for k in ["all", "od0", "od1", "od2", "od3", "od4", "od_all", "open"]]
     # upcoming: Total Upcoming, Due Today, 1-30, 31-60, 61-90, 91+
-    urls_u = [inv_url(k, as_on) for k in ["open", "up0", "up1", "up2", "up3", "up4"]]
+    urls_u = [inv_url(k, as_on, supplier_type) for k in ["open", "up0", "up1", "up2", "up3", "up4"]]
 
     # ---------- table 1
     t1 = ['<table style="border-collapse:collapse;table-layout:fixed;width:1330px;">']
@@ -214,8 +232,8 @@ def build_tables(s, company, as_on):
         'font-size:20px;letter-spacing:1.5px;%s background:%s;background:linear-gradient(90deg,%s,%s);">'
         "ACCOUNTS PAYABLE AGING SUMMARY"
         '<span style="font-size:14px;font-weight:600;letter-spacing:0.5px;margin-left:18px;">'
-        "(Aging as on %s)</span></td></tr>"
-        % (INK, FONT, TOTAL_BG, TOTAL_BG, PRIMARY2, formatdate(as_on))
+        "(Aging as on %s &nbsp;|&nbsp; Supplier: %s)</span></td></tr>"
+        % (INK, FONT, TOTAL_BG, TOTAL_BG, PRIMARY2, formatdate(as_on), supplier_type)
     )
 
     head_bg = [(PRIMARY, INK)] * 7 + [(RED_BG, RED_INK), (GREEN_BG, GREEN_INK)]
@@ -284,7 +302,7 @@ def build_tables(s, company, as_on):
     )
     m_cnt, m_amt = 0, 0.0
     for n, (label, c, a, yr, mo) in enumerate(s.month_rows):
-        m_url = inv_url("m-%d-%02d" % (yr, mo), as_on)
+        m_url = inv_url("m-%d-%02d" % (yr, mo), as_on, supplier_type)
         m_cnt += c
         m_amt += a
         bg = "#FFFFFF" if n % 2 == 0 else ZEBRA
@@ -301,7 +319,7 @@ def build_tables(s, company, as_on):
         '<tr><td style="%stext-align:left;">Total Payable</td>'
         '<td style="%stext-align:right;">%s</td>'
         '<td style="%stext-align:right;">%s</td></tr>'
-        % (tot, tot, linked(inr(m_cnt, 0), inv_url("all", as_on), m_cnt),
+        % (tot, tot, linked(inr(m_cnt, 0), inv_url("all", as_on, supplier_type), m_cnt),
            tot, inr(m_amt, 2))
     )
     t2.append("</table>")
@@ -310,7 +328,7 @@ def build_tables(s, company, as_on):
     return card("".join(t1)) + gap + card("".join(tu)) + gap + card("".join(t2))
 
 
-def build_html(s, company, as_on, link):
+def build_html(s, company, as_on, link, supplier_type="All Suppliers"):
     btn = (
         '<a href="%s" target="_blank" style="display:inline-block;background:#B3261E;color:#fff;font-weight:700;'
         "%spadding:8px 18px;text-decoration:none;margin-bottom:10px;"
@@ -325,18 +343,19 @@ def build_html(s, company, as_on, link):
     )
     return (
         css + '<div class="ap-aging-excel" style="overflow-x:auto;padding:8px 4px 24px;">'
-        + btn + build_tables(s, company, as_on) + "</div>"
+        + btn + build_tables(s, company, as_on, supplier_type) + "</div>"
     )
 
 
 # ------------------------------------------------------------- PDF download
 @frappe.whitelist()
-def download_pdf():
+def download_pdf(supplier_type=None):
     frappe.has_permission("Purchase Invoice", "read", throw=True)
 
     company = DEFAULT_COMPANY
     as_on = getdate(nowdate())
-    s = build_summary(get_invoices(company), as_on)
+    supplier_type = get_supplier_type(supplier_type)
+    s = build_summary(get_invoices(company, supplier_type), as_on)
 
     html = (
         '<!DOCTYPE html><html><head><meta charset="utf-8"><style>'
@@ -344,7 +363,7 @@ def download_pdf():
         "body{margin:0;background:#fff;}"
         ".ap-card{page-break-inside:avoid;}"
         "</style></head><body>"
-        + build_tables(s, company, as_on)
+        + build_tables(s, company, as_on, supplier_type)
         + "</body></html>"
     )
     pdf = get_pdf(html, {
@@ -357,7 +376,8 @@ def download_pdf():
         "margin-right": "8mm",
     })
 
-    frappe.response["filename"] = "AP_Aging_Summary_{0}.pdf".format(str(as_on))
+    suffix = "_Diamonds" if supplier_type == "Diamonds" else ""
+    frappe.response["filename"] = "AP_Aging_Summary{0}_{1}.pdf".format(suffix, str(as_on))
     frappe.response["filecontent"] = pdf
     frappe.response["type"] = "download"
 
@@ -381,12 +401,13 @@ BUCKET_LABELS = {
 
 
 @frappe.whitelist()
-def invoice_list(key, as_on=None):
+def invoice_list(key, as_on=None, supplier_type=None):
     """Report ke kisi bhi cell pe click -> us cell ke SAARE invoices (no pagination)."""
     frappe.has_permission("Purchase Invoice", "read", throw=True)
 
     company = DEFAULT_COMPANY
     as_on = getdate(as_on or nowdate())
+    supplier_type = get_supplier_type(supplier_type)
 
     if key in BUCKET_LABELS:
         label = BUCKET_LABELS[key]
@@ -396,7 +417,7 @@ def invoice_list(key, as_on=None):
     else:
         frappe.throw("Invalid bucket")
 
-    rows = [inv for inv in get_invoices(company) if key in bucket_keys(inv, as_on)]
+    rows = [inv for inv in get_invoices(company, supplier_type) if key in bucket_keys(inv, as_on)]
 
     th = ("border:1px solid %s;padding:8px 10px;background:%s;color:%s;font-weight:700;"
           "white-space:nowrap;text-align:%%s;" % (CARD_LINE, PRIMARY, INK))
@@ -438,9 +459,11 @@ def invoice_list(key, as_on=None):
     out.append("</table>")
 
     head = (
-        '<div style="%s margin-bottom:12px;"><b>%s</b> &nbsp;|&nbsp; %s &nbsp;|&nbsp; as on <b>%s</b>'
+        '<div style="%s margin-bottom:12px;"><b>%s</b> &nbsp;|&nbsp; Supplier: <b>%s</b> &nbsp;|&nbsp; %s '
+        "&nbsp;|&nbsp; as on <b>%s</b>"
         " &nbsp;|&nbsp; <b>%d</b> invoices &nbsp;|&nbsp; Outstanding <b>%s</b></div>"
-        % (FONT, frappe.utils.escape_html(company), label, formatdate(as_on), len(rows), inr(total))
+        % (FONT, frappe.utils.escape_html(company), supplier_type, label, formatdate(as_on),
+           len(rows), inr(total))
     )
     frappe.respond_as_web_page(
         "AP Aging - " + label,

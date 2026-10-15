@@ -7,7 +7,15 @@ const AP_AGING_HIDE_CSS =
 	"{display:none !important;}";
 
 const AP_AGING_REPORT = {
-	filters: [],
+	filters: [
+		{
+			fieldname: "supplier_type",
+			label: __("Supplier Type"),
+			fieldtype: "Select",
+			options: "All Suppliers\nDiamonds",
+			default: "All Suppliers",
+		},
+	],
 
 	onload: function (report) {
 		if (!document.getElementById("ap-aging-summary-style")) {
