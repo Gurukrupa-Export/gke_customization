@@ -71,7 +71,10 @@ jobs:
 
       - name: Install and run pip-audit
         run: |
+          echo "::group::install pip-audit"
           pip install pip-audit
+          echo "::endgroup::"
+          echo "== auditing dependencies declared in pyproject.toml =="
           pip-audit --desc on .
 
   # ---------------------------------------------------------------------------------
@@ -158,8 +161,11 @@ jobs:
         run: |
           # --skip-assets: these are backend tests, and building the frontend is most
           # of the wall clock of a bench init.
+          echo "::group::bench init (frappe ${{ env.FRAPPE_BRANCH }})"
           bench init --skip-redis-config-generation --skip-assets \
                      --frappe-branch ${{ env.FRAPPE_BRANCH }} --python "$(which python)" ci-bench
+          echo "::endgroup::"
+          echo "== bench ready =="
 
       - name: Fetch the apps
         working-directory: ci-bench
@@ -169,13 +175,28 @@ jobs:
           # fixture), the next run here must fail against that change instead of hiding
           # behind an old pinned revision. A red run whose log points into a sibling
           # app belongs to that app's owner, not to the PR that happened to be running.
+          echo "::group::fetch erpnext (${{ env.FRAPPE_BRANCH }})"
           bench get-app --branch ${{ env.FRAPPE_BRANCH }} erpnext https://github.com/frappe/erpnext.git
+          echo "::endgroup::"
+          echo "::group::fetch hrms (${{ env.FRAPPE_BRANCH }})"
           bench get-app --branch ${{ env.FRAPPE_BRANCH }} hrms https://github.com/frappe/hrms.git
+          echo "::endgroup::"
+          echo "::group::fetch india_compliance (${{ env.FRAPPE_BRANCH }})"
           bench get-app --branch ${{ env.FRAPPE_BRANCH }} india_compliance https://github.com/resilient-tech/india-compliance.git
+          echo "::endgroup::"
+          echo "::group::fetch jewellery_erpnext (gurukrupa-prod)"
           bench get-app --branch gurukrupa-prod jewellery_erpnext https://github.com/Gurukrupa-Export/jewellery-erpnext.git
+          echo "::endgroup::"
+          echo "::group::fetch gurukrupa_customizations (main)"
           bench get-app --branch main gurukrupa_customizations https://github.com/Gurukrupa-Export/gurukrupa_customizations.git
+          echo "::endgroup::"
+          echo "::group::fetch gurukrupa_biometric (master)"
           bench get-app --branch master gurukrupa_biometric https://github.com/Gurukrupa-Export/gurukrupa_biometric.git
+          echo "::endgroup::"
+          echo "::group::fetch gke_customization (this branch)"
           bench get-app gke_customization "${GITHUB_WORKSPACE}/gke_customization"
+          echo "::endgroup::"
+          echo "== all 7 apps fetched =="
 
       - name: Create the site
         working-directory: ci-bench
@@ -184,12 +205,15 @@ jobs:
           bench set-config -g redis_cache "redis://127.0.0.1:6379"
           bench set-config -g redis_queue "redis://127.0.0.1:6379"
           bench set-config -g redis_socketio "redis://127.0.0.1:6379"
+          echo "::group::new-site ci.localhost"
           bench new-site ci.localhost \
             --db-root-password root --admin-password admin --no-mariadb-socket
+          echo "::endgroup::"
           # The gke_hrms test setup creates Server Script records, and frappe refuses
           # to create them unless this is on (it is on every real bench here).
           bench --site ci.localhost set-config server_script_enabled true
           bench --site ci.localhost set-config allow_tests true
+          echo "== site ci.localhost created =="
 
       - name: Install the apps
         working-directory: ci-bench
@@ -207,21 +231,26 @@ jobs:
             bench --site ci.localhost install-app "$app"
             echo "::endgroup::"
           done
+          echo "== all 7 apps installed =="
 
       - name: Patches apply cleanly
         working-directory: ci-bench
-        run: bench --site ci.localhost migrate
+        run: |
+          echo "::group::bench migrate"
+          bench --site ci.localhost migrate
+          echo "::endgroup::"
+          echo "== migrations applied =="
 
-      - name: HRMS suite with coverage
+      - name: Run the HRMS test suite
         working-directory: ci-bench/sites
         run: |
           # Not `bench run-tests`: that bootstraps test records for every installed app
           # first, and india_compliance's fixtures fail before this module is reached.
           # Loading the module directly runs the same tests and exits non-zero on
           # failure. It also refuses to pass if the suite skipped itself.
-          ../env/bin/pip install coverage
+          ../env/bin/pip install --quiet coverage
           cat > run_hrms_tests.py <<'PY'
-          import sys, unittest
+          import os, sys, unittest
 
           import frappe
 
@@ -233,15 +262,36 @@ jobs:
           loader = unittest.TestLoader()
           suite = loader.loadTestsFromName("gke_customization.gke_hrms.tests.test_sync_checkin")
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          print(f"\nran {result.testsRun}, failures {len(result.failures)}, "
-                f"errors {len(result.errors)}, skipped {len(result.skipped)}")
+
+          failures, errors, skipped = len(result.failures), len(result.errors), len(result.skipped)
+          print(f"\nran {result.testsRun}, failures {failures}, errors {errors}, skipped {skipped}")
           for test, reason in result.skipped:
               print(f"SKIPPED: {test} -> {reason}")
-          if result.skipped:
+
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_path:
+              with open(summary_path, "a") as summary:
+                  summary.write("## HRMS test suite result\n\n")
+                  summary.write("| check | count |\n|---|---|\n")
+                  summary.write(f"| tests ran | {result.testsRun} |\n")
+                  summary.write(f"| failures | {failures} |\n")
+                  summary.write(f"| errors | {errors} |\n")
+                  summary.write(f"| skipped | {skipped} |\n\n")
+                  summary.write("suite module: `gke_customization.gke_hrms.tests.test_sync_checkin`\n")
+
+          if skipped:
               sys.exit("the suite skipped itself - this job must really run the tests")
           sys.exit(0 if result.wasSuccessful() else 1)
           PY
           ../env/bin/coverage run --source=gke_customization run_hrms_tests.py
+          echo ""
+          echo "=========================================="
+          echo "  HRMS TEST SUITE: PASSED"
+          echo "=========================================="
+
+      - name: Coverage report
+        working-directory: ci-bench/sites
+        run: |
           ../env/bin/coverage report -m --omit="*/tests/*"
           ../env/bin/coverage xml -o coverage.xml
 
