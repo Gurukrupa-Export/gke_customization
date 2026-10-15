@@ -27,31 +27,66 @@ EXCLUDE_MWO_STATUS = ("Closed", "Stopped")
 
 def execute(filters=None):
     filters = filters or {}
-    return get_columns(), get_data(filters)
+    columns = get_columns()
+    data = get_data(filters)
+    fit_column_widths(columns, data)
+
+    # Text/date columns left align, sirf numbers right align
+    for col in columns:
+        col["align"] = "right" if col.get("fieldtype") in ("Float", "Int", "Currency") else "left"
+
+    return columns, data
+
+
+def fit_column_widths(columns, data):
+    """Har column ki width header aur data ki sabse lambi value ke hisaab se set karta hai,
+    taaki user ko column expand na karna pade."""
+    PX_PER_CHAR = 10     # ek character ki approx width (px)
+    CELL_PAD = 40        # cell ka padding
+    HEADER_PAD = 56      # header ke sort arrow / menu ke liye jagah
+    MIN_W, MAX_W = 90, 500
+
+    for col in columns:
+        fn = col["fieldname"]
+        longest = 0
+        for r in data:
+            v = r.get(fn)
+            if v is None or v == "":
+                continue
+            if col.get("fieldtype") == "Float":
+                text = "{:,.{p}f}".format(flt(v), p=col.get("precision") or 3)
+            else:
+                text = str(v)
+            longest = max(longest, len(text))
+
+        content_w = longest * PX_PER_CHAR + CELL_PAD
+        header_w = len(col["label"]) * PX_PER_CHAR + HEADER_PAD
+        col["width"] = int(min(max(content_w, header_w, MIN_W), MAX_W))
 
 
 def get_columns():
     return [
-        {"label": "Department", "fieldname": "department", "fieldtype": "Link", "options": "Department", "width": 140},
-        {"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 130},
-        {"label": "Operation", "fieldname": "current_process", "fieldtype": "Data", "width": 130},
-        {"label": "Employee", "fieldname": "worker_code", "fieldtype": "Link", "options": "Employee", "width": 110},
-        {"label": "Employee Name", "fieldname": "worker", "fieldtype": "Data", "width": 140},
-        {"label": "Issue Date", "fieldname": "issue_date", "fieldtype": "Date", "width": 100},
-        {"label": "MWO", "fieldname": "batch_no", "fieldtype": "Link", "options": "Manufacturing Work Order", "width": 140},
+        {"label": "Department", "fieldname": "department", "fieldtype": "Link", "options": "Department", "width": 270},
+        {"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 110},
+        {"label": "Operation", "fieldname": "current_process", "fieldtype": "Data", "width": 180},
+        {"label": "Employee", "fieldname": "worker_code", "fieldtype": "Link", "options": "Employee", "width": 130},
+        {"label": "Employee Name", "fieldname": "worker", "fieldtype": "Data", "width": 200},
+        {"label": "Issue Date", "fieldname": "issue_date", "fieldtype": "Date", "width": 110},
+        {"label": "MWO", "fieldname": "batch_no", "fieldtype": "Link", "options": "Manufacturing Work Order", "width": 300},
+        {"label": "Tree Number", "fieldname": "tree_number", "fieldtype": "Data", "width": 130},
         {"label": "Item Code", "fieldname": "design_id", "fieldtype": "Data", "width": 120},
         {"label": "Category", "fieldname": "category", "fieldtype": "Data", "width": 110},
-        {"label": "Sub Category", "fieldname": "sub_category", "fieldtype": "Data", "width": 130},
-        {"label": "PMO", "fieldname": "g_order_no", "fieldtype": "Data", "width": 120},
-        {"label": "Customer Code", "fieldname": "old_customer_code", "fieldtype": "Data", "width": 130},
-        {"label": "Gold wt", "fieldname": "gold_wt", "fieldtype": "Float", "width": 90, "precision": 3},
-        {"label": "Diamond pcs", "fieldname": "diamond_pcs", "fieldtype": "Int", "width": 100},
-        {"label": "Diamond Wt", "fieldname": "diamond_wt", "fieldtype": "Float", "width": 100, "precision": 3},
-        {"label": "Day Pending", "fieldname": "day_pending", "fieldtype": "Int", "width": 100},
-        {"label": "Metal Touch", "fieldname": "metal_touch", "fieldtype": "Data", "width": 100},
-        {"label": "Metal Purity", "fieldname": "metal_purity", "fieldtype": "Data", "width": 130},
-        {"label": "Due date", "fieldname": "due_date", "fieldtype": "Date", "width": 100},
-        {"label": "Order type", "fieldname": "order_type", "fieldtype": "Data", "width": 100},
+        {"label": "Sub Category", "fieldname": "sub_category", "fieldtype": "Data", "width": 170},
+        {"label": "PMO", "fieldname": "g_order_no", "fieldtype": "Data", "width": 210},
+        {"label": "Customer Code", "fieldname": "old_customer_code", "fieldtype": "Data", "width": 140},
+        {"label": "Gold wt", "fieldname": "gold_wt", "fieldtype": "Float", "width": 100, "precision": 3},
+        {"label": "Diamond pcs", "fieldname": "diamond_pcs", "fieldtype": "Int", "width": 125},
+        {"label": "Diamond Wt", "fieldname": "diamond_wt", "fieldtype": "Float", "width": 120, "precision": 3},
+        {"label": "Day Pending", "fieldname": "day_pending", "fieldtype": "Int", "width": 125},
+        {"label": "Metal Touch", "fieldname": "metal_touch", "fieldtype": "Data", "width": 120},
+        {"label": "Metal Purity", "fieldname": "metal_purity", "fieldtype": "Data", "width": 120},
+        {"label": "Due date", "fieldname": "due_date", "fieldtype": "Date", "width": 110},
+        {"label": "Order type", "fieldname": "order_type", "fieldtype": "Data", "width": 120},
     ]
 
 
@@ -94,6 +129,7 @@ def get_data(filters):
             cmop.previous_mop               AS prev_mop,
             pmop.department                 AS prev_mop_dept,
             mwo.posting_date                AS issue_date,
+            mwo.tree_number                 AS tree_number,
             mwo.item_code                   AS design_id,
             COALESCE(NULLIF(itm.custom_catalogue_image, ''), itm.image)
                                             AS item_image,

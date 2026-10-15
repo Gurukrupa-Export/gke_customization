@@ -27,7 +27,6 @@ frappe.query_reports["Employee Work Order Issue Receive"] = {
             "label": __("Department"),
             "fieldtype": "Link",
             "options": "Department",
-            "default": frappe.defaults.get_user_default("Department"),
             "read_only": !(frappe.user.has_role("System Manager") || frappe.session.user === "Administrator"),
             "on_change": function() {
                 // Clear operation and employee when department changes
@@ -94,6 +93,18 @@ frappe.query_reports["Employee Work Order Issue Receive"] = {
                 }
             }
         }
-        
-    ]
+
+    ],
+
+    "onload": function(report) {
+        // Pre-select the Department from the user's Employee record
+        frappe.call({
+            method: "gke_customization.gke_catalog.report.employee_work_order_issue_receive.employee_work_order_issue_receive.get_default_department",
+            callback: function(r) {
+                if (r.message) {
+                    frappe.query_report.set_filter_value("department", r.message);
+                }
+            }
+        });
+    }
 };

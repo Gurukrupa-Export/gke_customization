@@ -2,6 +2,14 @@
 // For license information, please see license.txt
 
 
+// Selected values of a (multi-select) filter, always as an array
+function ewr_selected(fieldname) {
+    const v = frappe.query_report.get_filter_value(fieldname);
+    if (Array.isArray(v)) return v;
+    return v ? [v] : [];
+}
+
+
 frappe.query_reports["Everyday Work Report"] = {
 
     filters: [
@@ -23,6 +31,21 @@ frappe.query_reports["Everyday Work Report"] = {
             fieldtype: "MultiSelectList",
             get_data: function(txt) {
                 return frappe.db.get_link_options("Department", txt);
+            },
+            // Department badalne par neeche ke dependent filters reset ho jaate hain
+            on_change: function(report) {
+                const cleared = {};
+                ["operation", "employee", "manufacturing_work_order"].forEach(function(fn) {
+                    const v = report.get_filter_value(fn);
+                    if (Array.isArray(v) && v.length) {
+                        cleared[fn] = [];
+                    }
+                });
+                if (Object.keys(cleared).length) {
+                    report.set_filter_value(cleared);   // sab saath set hote hain, refresh ek baar
+                } else {
+                    report.refresh();
+                }
             }
         },
         {
@@ -36,16 +59,23 @@ frappe.query_reports["Everyday Work Report"] = {
             }
         },
         {
+            // Sirf selected department(s) ke operations
             fieldname: "operation",
             label: __("Operation"),
             fieldtype: "MultiSelectList",
             get_data: function(txt) {
+                const depts = ewr_selected("department");
+                const f = [
+                    ["Employee IR", "operation", "is", "set"],
+                    ["Employee IR", "docstatus", "=", 1],
+                ];
+                if (depts.length) f.push(["Employee IR", "department", "in", depts]);
+                if (txt) f.push(["Employee IR", "operation", "like", `%${txt}%`]);
+
                 return frappe.db.get_list("Employee IR", {
                     fields: ["operation"],
+                    filters: f,
                     group_by: "operation",
-                    filters: txt
-                        ? { operation: ["like", `%${txt}%`] }
-                        : { operation: ["is", "set"] },
                     order_by: "operation",
                     limit: 0
                 }).then(r => {
@@ -59,22 +89,75 @@ frappe.query_reports["Everyday Work Report"] = {
             }
         },
         {
+            // Sirf selected department(s) me jinko issue hua hai
             fieldname: "employee",
             label: __("Employee"),
             fieldtype: "MultiSelectList",
             get_data: function(txt) {
-                return frappe.db.get_link_options("Employee", txt);
+                const depts = ewr_selected("department");
+                if (!depts.length) {
+                    return frappe.db.get_link_options("Employee", txt);
+                }
+
+                const f = [
+                    ["Employee IR", "employee", "is", "set"],
+                    ["Employee IR", "docstatus", "=", 1],
+                    ["Employee IR", "department", "in", depts],
+                ];
+                return frappe.db.get_list("Employee IR", {
+                    fields: ["employee"],
+                    filters: f,
+                    group_by: "employee",
+                    limit: 0
+                }).then(rows => {
+                    const ids = rows.map(r => r.employee).filter(Boolean);
+                    if (!ids.length) return [];
+                    return frappe.db.get_list("Employee", {
+                        fields: ["name", "employee_name"],
+                        filters: [["Employee", "name", "in", ids]],
+                        limit: 0
+                    }).then(emps => {
+                        const t = (txt || "").toLowerCase();
+                        return emps
+                            .filter(e => !t
+                                || e.name.toLowerCase().includes(t)
+                                || (e.employee_name || "").toLowerCase().includes(t))
+                            .map(e => ({ value: e.name, description: e.employee_name || "" }));
+                    });
+                });
             }
         },
         {
+            // Sirf selected department(s) ke MWO (date range ke andar)
             fieldname: "manufacturing_work_order",
             label: __("Manufacturing Work Order"),
             fieldtype: "MultiSelectList",
             get_data: function(txt) {
-                return frappe.db.get_link_options(
-                    "Manufacturing Work Order",
-                    txt
-                );
+                const depts = ewr_selected("department");
+                if (!depts.length) {
+                    return frappe.db.get_link_options(
+                        "Manufacturing Work Order",
+                        txt
+                    );
+                }
+
+                const M = "Manufacturing Work Order";
+                const f = [
+                    [M, "department", "in", depts],
+                    [M, "docstatus", "<", 2],
+                ];
+                const from_date = frappe.query_report.get_filter_value("from_date");
+                const to_date = frappe.query_report.get_filter_value("to_date");
+                if (from_date) f.push([M, "posting_date", ">=", from_date]);
+                if (to_date) f.push([M, "posting_date", "<=", to_date]);
+                if (txt) f.push([M, "name", "like", `%${txt}%`]);
+
+                return frappe.db.get_list(M, {
+                    fields: ["name"],
+                    filters: f,
+                    order_by: "creation desc",
+                    limit: 50
+                }).then(r => r.map(d => ({ value: d.name, description: "" })));
             }
         }
     ],

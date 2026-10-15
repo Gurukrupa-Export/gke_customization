@@ -235,7 +235,23 @@ def _build_so_extra_filter(customer=None, from_date=None, to_date=None):
 	conditions = []
 	params = {}
 	if customer:
-		conditions.append("so.customer = %(customer)s")
+		# customer is matched on the piece's PMO (ref_customer); Sales Order Items with no
+		# piece generated yet have no PMO, so those fall back to the Sales Order's ref_customer
+		# (so.customer is the internal billing customer, not the actual one)
+		# (uncorrelated IN subqueries so MariaDB materializes each once - a correlated EXISTS
+		# per Sales Order Item made the dashboard ~15x slower)
+		conditions.append(
+			"""(soi.name IN (
+				SELECT cpmo.sales_order_item FROM `tabParent Manufacturing Order` cpmo
+				WHERE cpmo.docstatus != 2 AND cpmo.ref_customer = %(customer)s
+			) OR (
+				so.ref_customer = %(customer)s
+				AND soi.name NOT IN (
+					SELECT cpmo.sales_order_item FROM `tabParent Manufacturing Order` cpmo
+					WHERE cpmo.docstatus != 2 AND cpmo.sales_order_item IS NOT NULL
+				)
+			))"""
+		)
 		params["customer"] = customer
 	if from_date:
 		conditions.append("so.transaction_date >= %(from_date)s")
@@ -247,34 +263,11 @@ def _build_so_extra_filter(customer=None, from_date=None, to_date=None):
 	return extra_sql, params
 
 
-# Per-piece weights. MWO's own net_wt/diamond_wt are never populated; the actual weighed values
-# live on the piece's current Manufacturing Operation, and the planned values on the MWO
-# (metal_weight) and its master BOM (total_diamond_weight/pcs). Which one is used depends on
-# the stage the piece is at (business-confirmed):
-#   - Metal: planned before casting (Manufacturing Plan / CAD / Waxing), actual after.
-#   - Diamonds: planned before Diamond Setting; while in Diamond Setting and not yet Finished,
-#     actual if any stones are recorded else planned; actual from there on.
-# Once a piece is past the planned stage, a 0 actual is shown as 0 - never back-filled from the
-# plan - and if the operation was never weighed at all (gross_wt = 0) the piece is counted as
-# "not weighed" so the gap is visible on the dashboard instead of hidden behind planned figures.
-_DEPT_NAME = "COALESCE(dpt.department_name, '')"
-_IS_PRE_CAST = (
-	f"({_DEPT_NAME} LIKE '%%Manufacturing Plan%%'"
-	f" OR {_DEPT_NAME} LIKE '%%Computer Aided Designing%%'"
-	f" OR {_DEPT_NAME} LIKE '%%Waxing%%')"
-)
-_IS_PRE_SETTING = (
-	f"({_IS_PRE_CAST} OR {_DEPT_NAME} LIKE '%%Model Making%%' OR {_DEPT_NAME} LIKE '%%Pre Polish%%')"
-)
-_IS_SETTING_OPEN = f"({_DEPT_NAME} LIKE '%%Diamond Setting%%' AND COALESCE(mo.status, '') != 'Finished')"
-
-
-def _planned_or_actual_diamond(actual, planned):
-	return f"""CASE
-			WHEN {_IS_PRE_SETTING} THEN COALESCE(bom.{planned}, 0)
-			WHEN {_IS_SETTING_OPEN} THEN COALESCE(NULLIF(mo.{actual}, 0), bom.{planned}, 0)
-			ELSE COALESCE(mo.{actual}, 0)
-		END"""
+# Per-piece weights are the design weights from the MWO's master (Design Code) BOM at every stage
+# (business-confirmed) - neither the Manufacturing Operation's weighed values nor the stock ledger
+# are used, so a piece never shows a missing weight just because it wasn't weighed yet.
+# Diamonds use diamond_weight (the sum of the BOM's diamond rows): total_diamond_weight is left at
+# 0 on many BOMs that do carry diamonds.
 
 
 # Every piece's last Manufacturing Operation is Tagging, so on MWO data alone all finished pieces
@@ -323,13 +316,10 @@ main_mwo AS (
 		mwo.name,
 		mwo.manufacturing_order,
 		COALESCE(mo.department, mwo.department) AS department,
-		CASE WHEN {_IS_PRE_CAST} THEN COALESCE(mwo.metal_weight, 0)
-			ELSE COALESCE(mo.net_wt, 0)
-		END AS net_wt,
-		{_planned_or_actual_diamond("diamond_wt", "total_diamond_weight")} AS diamond_wt,
-		{_planned_or_actual_diamond("diamond_pcs", "total_diamond_pcs")} AS diamond_pcs,
-		{_planned_or_actual_diamond("gemstone_wt", "total_gemstone_weight")} AS gemstone_wt,
-		CASE WHEN NOT {_IS_PRE_CAST} AND COALESCE(mo.gross_wt, 0) = 0 THEN 1 ELSE 0 END AS not_weighed,
+		COALESCE(bom.total_metal_weight, 0) AS net_wt,
+		COALESCE(bom.diamond_weight, 0) AS diamond_wt,
+		COALESCE(bom.total_diamond_pcs, 0) AS diamond_pcs,
+		COALESCE(bom.gemstone_weight, 0) AS gemstone_wt,
 		mwo.docstatus,
 		mwo.delivery_date,
 		mo.status AS mop_status,
@@ -343,7 +333,6 @@ main_mwo AS (
 	FROM `tabManufacturing Work Order` mwo
 	LEFT JOIN `tabManufacturing Operation` mo ON mo.name = mwo.manufacturing_operation
 	LEFT JOIN `tabBOM` bom ON bom.name = mwo.master_bom
-	LEFT JOIN `tabDepartment` dpt ON dpt.name = COALESCE(mo.department, mwo.department)
 	WHERE mwo.for_fg = 0
 		AND mwo.is_finding_mwo = 0
 		AND mwo.docstatus != 2
@@ -366,7 +355,6 @@ pmo_main AS (
 		mm.diamond_wt AS diamond_wt,
 		mm.diamond_pcs AS diamond_pcs,
 		mm.gemstone_wt AS gemstone_wt,
-		mm.not_weighed AS not_weighed,
 		mm.docstatus AS mwo_docstatus,
 		mm.mop_status AS mop_status,
 		mm.mop_transfer_status AS mop_transfer_status,
@@ -439,7 +427,6 @@ SELECT
 	SUM(COALESCE(pm.gold_wt, 0)) AS gold_wt,
 	SUM(COALESCE(pm.diamond_wt, 0)) AS diamond_wt,
 	SUM(COALESCE(pm.diamond_pcs, 0)) AS diamond_pcs,
-	SUM(COALESCE(pm.not_weighed, 0)) AS not_weighed,
 	SUM(CASE WHEN COALESCE(pm.mop_status, '') != 'Finished'
 			AND (pm.mwo_docstatus = 0 OR COALESCE(pm.mop_transfer_status, '') = 'In-Transit')
 		THEN 1 ELSE 0 END) AS pending,
@@ -579,7 +566,6 @@ def get_dashboard_data(company=None, due_soon_days=2, customer=None, from_date=N
 			"gold_wt": flt(row.gold_wt) if row else 0,
 			"diamond_wt": flt(row.diamond_wt) if row else 0,
 			"diamond_pcs": flt(row.diamond_pcs) if row else 0,
-			"not_weighed": cint(row.not_weighed) if row else 0,
 			"not_started": cint(row.not_started) if row else 0,
 		}
 
@@ -602,7 +588,6 @@ def get_dashboard_data(company=None, due_soon_days=2, customer=None, from_date=N
 				"gold_wt": flt(sum(row.gold_wt for row in other_rows)),
 				"diamond_wt": flt(sum(row.diamond_wt for row in other_rows)),
 				"diamond_pcs": flt(sum(row.diamond_pcs for row in other_rows)),
-				"not_weighed": cint(sum(row.not_weighed for row in other_rows)),
 				"not_started": cint(sum(row.not_started for row in other_rows)),
 			}
 		)
@@ -642,8 +627,6 @@ def get_alert_orders(
 	company=None,
 	alert=None,
 	due_soon_days=2,
-	page=1,
-	page_size=20,
 	customer=None,
 	from_date=None,
 	to_date=None,
@@ -654,15 +637,11 @@ def get_alert_orders(
 		frappe.throw(_("Invalid alert type"))
 
 	due_soon_days = max(cint(due_soon_days), 0)
-	page = max(cint(page), 1)
-	page_size = min(max(cint(page_size), 1), 100)
 
 	extra_so_filter, extra_params = _build_so_extra_filter(customer, from_date, to_date)
 	params = {
 		"company": company,
 		"due_soon_upper": add_days(nowdate(), due_soon_days),
-		"limit": page_size,
-		"offset": (page - 1) * page_size,
 		**extra_params,
 	}
 	pieces = f"""
@@ -681,11 +660,8 @@ WHERE pm.due_date IS NOT NULL
 	AND COALESCE(pm.mop_status, '') != 'Finished'
 	AND {ALERT_CONDITIONS[alert]}
 """
+	# the whole list is returned in one go - the dialog shows it as a single scrollable table
 	cte = _dashboard_cte(extra_so_filter)
-
-	order_count = cint(
-		frappe.db.sql(cte + f"SELECT COUNT(*) FROM ({pieces}) p", params)[0][0]
-	)
 	orders = frappe.db.sql(
 		cte
 		+ f"""
@@ -693,7 +669,7 @@ SELECT
 	p.pmo_name AS order_no,
 	pmo.item_code AS design_no,
 	pmo.item_category AS item_category,
-	pmo.customer AS customer,
+	pmo.ref_customer AS customer,
 	p.department,
 	p.gold_wt,
 	p.diamond_wt,
@@ -703,7 +679,6 @@ SELECT
 FROM ({pieces}) p
 INNER JOIN `tabParent Manufacturing Order` pmo ON pmo.name = p.pmo_name
 ORDER BY p.due_date ASC, p.pmo_name ASC
-LIMIT %(limit)s OFFSET %(offset)s
 """,
 		params,
 		as_dict=True,
@@ -712,10 +687,147 @@ LIMIT %(limit)s OFFSET %(offset)s
 	return {
 		"alert": alert,
 		"orders": orders,
-		"order_count": order_count,
-		"page": page,
-		"page_size": page_size,
+		"order_count": len(orders),
 	}
+
+
+# Excel download of the alert list - same rows and columns as the dialog table.
+@frappe.whitelist()
+def export_alert_orders(
+	company=None,
+	alert=None,
+	due_soon_days=2,
+	customer=None,
+	from_date=None,
+	to_date=None,
+	order_nos=None,
+):
+	from frappe.utils.xlsxutils import build_xlsx_response
+
+	orders = get_alert_orders(company, alert, due_soon_days, customer, from_date, to_date)["orders"]
+	# order_nos is sent only while a column search is active in the dialog - export just those rows
+	if order_nos is not None:
+		keep = set(frappe.parse_json(order_nos) or [])
+		orders = [o for o in orders if o.order_no in keep]
+
+	def due_label(n):
+		if n < 0:
+			return _("{0} days late").format(-n)
+		if n == 0:
+			return _("Today")
+		return _("{0} days left").format(n)
+
+	data = [
+		[
+			_("Order No"),
+			_("Customer"),
+			_("Design No"),
+			_("Item"),
+			_("Department"),
+			_("Metal (g)"),
+			_("Dia (ct)"),
+			_("Due Date"),
+			_("Due"),
+		]
+	]
+	data += [
+		[
+			o.order_no,
+			o.customer,
+			o.design_no,
+			o.item_category,
+			o.department,
+			flt(o.gold_wt, 3),
+			flt(o.diamond_wt, 3),
+			o.due_date,
+			due_label(o.days_left),
+		]
+		for o in orders
+	]
+
+	title = _("Overdue Orders") if alert == "overdue" else _("Due Soon Orders")
+	build_xlsx_response(data, f"{title} {nowdate()}")
+
+
+# Department card drill-down: the pieces behind a card's "Not started" count.
+# Same piece set and conditions as the not_started sum in _dashboard_pieces_query,
+# and the same department grouping as the cards (post-tagging stage overrides the MWO department),
+# so the list's total always matches the number on the card.
+DEPARTMENT_PIECE_CONDITIONS = {
+	"not_started": """pm.mwo_docstatus = 1
+		AND COALESCE(pm.mop_transfer_status, '') != 'In-Transit'
+		AND pm.mop_status = 'Not Started'""",
+}
+# sent instead of a department name for the "Other" card, which groups every department
+# outside DASHBOARD_DEPARTMENT_SEQUENCE
+OTHER_DEPARTMENTS = "__other__"
+
+
+@frappe.whitelist()
+def get_department_pieces(
+	company=None,
+	department=None,
+	kind=None,
+	customer=None,
+	from_date=None,
+	to_date=None,
+):
+	if not company or not department:
+		frappe.throw(_("Please select a Company and a Department"))
+	if kind not in DEPARTMENT_PIECE_CONDITIONS:
+		frappe.throw(_("Invalid list type"))
+
+	extra_so_filter, extra_params = _build_so_extra_filter(customer, from_date, to_date)
+	params = {
+		"company": company,
+		"department": department,
+		"sequence": tuple(DASHBOARD_DEPARTMENT_SEQUENCE),
+		**extra_params,
+	}
+	stage = "COALESCE(pm.post_tagging_stage, d.department_name)"
+	if department == OTHER_DEPARTMENTS:
+		department_condition = f"{stage} IS NOT NULL AND {stage} NOT IN %(sequence)s"
+	else:
+		department_condition = f"{stage} = %(department)s"
+
+	orders = frappe.db.sql(
+		_dashboard_cte(extra_so_filter)
+		+ f"""
+SELECT
+	pm.pmo_name AS order_no,
+	pmo.ref_customer AS customer,
+	pmo.item_code AS design_no,
+	pmo.item_category AS item_category,
+	{stage} AS department,
+	mo.operation AS operation,
+	pm.gold_wt,
+	pm.diamond_wt,
+	mo.start_time AS issue_date,
+	pm.due_date,
+	emp.employee_name AS employee_name,
+	mo.employee AS employee,
+	{_STAGE_STATUS} AS stage_status
+FROM pmo_main pm
+INNER JOIN so_base b ON b.soi_name = pm.soi_name
+LEFT JOIN `tabDepartment` d ON d.name = pm.mwo_department AND d.company = %(company)s
+INNER JOIN `tabParent Manufacturing Order` pmo ON pmo.name = pm.pmo_name
+LEFT JOIN `tabManufacturing Operation` mo ON mo.name = pm.mop_name
+LEFT JOIN `tabEmployee` emp ON emp.name = mo.employee
+WHERE {department_condition}
+	AND {DEPARTMENT_PIECE_CONDITIONS[kind]}
+ORDER BY pm.due_date IS NULL, pm.due_date ASC, pm.pmo_name ASC
+""",
+		params,
+		as_dict=True,
+	)
+
+	abbr = frappe.get_cached_value("Company", company, "abbr")
+	suffix = f" - {abbr}"
+	for o in orders:
+		if o.operation and abbr and o.operation.endswith(suffix):
+			o.operation = o.operation[: -len(suffix)].strip()
+
+	return {"orders": orders, "order_count": len(orders)}
 
 
 # Operation-wise summary (dashboard section 3): every department from Waxing to Final Polish,
@@ -997,7 +1109,7 @@ WHERE pm.pmo_name = %(order_no)s
 		[
 			"name",
 			"sales_order",
-			"customer",
+			"ref_customer",
 			"item_code",
 			"item_category",
 			"item_sub_category",
@@ -1035,8 +1147,10 @@ WHERE pm.pmo_name = %(order_no)s
 		"order_date": frappe.db.get_value("Sales Order", pmo.sales_order, "transaction_date")
 		if pmo.sales_order
 		else None,
-		"customer": pmo.customer,
-		"customer_name": frappe.db.get_value("Customer", pmo.customer, "customer_name") if pmo.customer else None,
+		"customer": pmo.ref_customer,
+		"customer_name": frappe.db.get_value("Customer", pmo.ref_customer, "customer_name")
+		if pmo.ref_customer
+		else None,
 		"design_no": pmo.item_code,
 		# only a flag - the image itself is streamed by get_catalogue_image so its storage path
 		# never reaches the browser

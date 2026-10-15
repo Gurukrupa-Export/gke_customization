@@ -36,6 +36,8 @@ class ManufacturingDashboard {
 		this.stage_method = api + 'get_stage_details';
 		this.detail_method = api + 'get_order_details';
 		this.alert_method = api + 'get_alert_orders';
+		this.alert_export_method = api + 'export_alert_orders';
+		this.department_pieces_method = api + 'get_department_pieces';
 		this.image_method = api + 'get_catalogue_image';
 		this.STATUS_COLORS = {
 			'In Progress': 'var(--mfg-steel)',
@@ -209,19 +211,22 @@ class ManufacturingDashboard {
 		});
 	}
 
-	render_loading() {
-		const cyclone = `
-			<div class="mfg-cyclone">
-				<span class="mfg-cyclone__ring"></span>
-				<span class="mfg-cyclone__ring"></span>
-				<span class="mfg-cyclone__ring"></span>
-				<span class="mfg-cyclone__core"></span>
-			</div>`;
-		const loading = (text) => `
-			<div class="mfgdash__loading">
-				${cyclone}
+	// compact = the smaller variant used inside the drill-down panels
+	loading_html(text, compact = false) {
+		return `
+			<div class="mfgdash__loading ${compact ? 'mfgdash__loading--compact' : ''}">
+				<div class="mfg-cyclone">
+					<span class="mfg-cyclone__ring"></span>
+					<span class="mfg-cyclone__ring"></span>
+					<span class="mfg-cyclone__ring"></span>
+					<span class="mfg-cyclone__core"></span>
+				</div>
 				<div class="mfgdash__loading-text">${frappe.utils.escape_html(text)}</div>
 			</div>`;
+	}
+
+	render_loading() {
+		const loading = (text) => this.loading_html(text);
 		this.$kpi_row.html(loading(__('Loading order summary…')));
 		this.$dept_line.html(loading(__('Loading department flow…')));
 		this.$andon.html(loading(__('Loading alerts…')));
@@ -363,16 +368,10 @@ class ManufacturingDashboard {
 							<span title="Diamond pieces">Dia Pcs <b>${this.fmt_count(Math.round(dept.diamond_pcs || 0))}</b></span>
 						</div>
 						${
-							dept.not_weighed
-								? `<div class="mfg-node__stats mfg-node__stats--warn">
-									<span title="Pieces past casting whose current operation has no recorded weight - not included in the weights above">⚠ Not weighed <b>${this.fmt_count(dept.not_weighed)}</b></span>
-								</div>`
-								: ''
-						}
-						${
 							dept.not_started
-								? `<div class="mfg-node__stats mfg-node__stats--caution">
-									<span title="In Progress pieces received/issued to this department but work not started yet">⏸ Not started <b>${this.fmt_count(dept.not_started)}</b></span>
+								? `<div class="mfg-node__stats mfg-node__stats--caution mfg-node__stats--link"
+										data-field="piece-list" data-kind="not_started">
+									<span title="In Progress pieces received/issued to this department but work not started yet. Click to view the list">⏸ Not started <b>${this.fmt_count(dept.not_started)}</b></span>
 								</div>`
 								: ''
 						}
@@ -393,6 +392,15 @@ class ManufacturingDashboard {
 		this.$dept_line.html(html);
 		this.bind_node_tooltips(shown);
 		this.bind_view_detail_buttons();
+
+		// "Not started" opens the list of those pieces
+		this.$dept_line.find('[data-field="piece-list"]').on('click', (e) => {
+			e.stopPropagation();
+			const dept = shown[Number($(e.currentTarget).closest('[data-field="node"]').data('index'))];
+			// the "Other" card groups several departments, so it has no single department name to send
+			const department = dept.name === __('Other') && !dept.department_id ? '__other__' : dept.name;
+			this.show_department_pieces(department, dept.name, e.currentTarget.dataset.kind);
+		});
 	}
 
 	// Jumps to the standard Manufacturing Work Order report view, pre-filtered to the exact
@@ -538,7 +546,9 @@ class ManufacturingDashboard {
 		if (this.drill.order) this.load_order(this.drill.order);
 	}
 
-	load_stage() {
+	// keep_stage: only the status filter changed, so the stage table stays on screen (dimmed)
+	// instead of being swapped for a spinner
+	load_stage({ keep_stage = false } = {}) {
 		const sel = this.selection;
 		if (!sel) return;
 		const args = this.build_call_args();
@@ -547,7 +557,12 @@ class ManufacturingDashboard {
 		const crumb = `— ${sel.department_name} · ${sel.label}`;
 		this.$stage_title.text(crumb);
 		this.$orders_title.text(`— ${sel.label} · ${this.drill.status || __('All')}`);
-		this.$orders.addClass('is-busy');
+		if (keep_stage) {
+			this.$stage.addClass('is-busy');
+		} else {
+			this.$stage.html(this.loading_html(__('Loading stages…'), true));
+		}
+		this.$orders.html(this.loading_html(__('Loading orders…'), true));
 
 		frappe.call({
 			method: this.stage_method,
@@ -563,13 +578,15 @@ class ManufacturingDashboard {
 			freeze: false,
 			callback: (r) => {
 				if (token !== this.stage_token || !r.message) return;
-				this.$orders.removeClass('is-busy');
+				this.$stage.removeClass('is-busy');
 				this.render_stage(r.message);
 				this.render_orders(r.message);
 			},
 			error: () => {
-				this.$orders.removeClass('is-busy');
+				if (token !== this.stage_token) return;
+				this.$stage.removeClass('is-busy');
 				this.$stage.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Could not load stages.')}</div>`);
+				this.$orders.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Could not load orders.')}</div>`);
 			},
 		});
 	}
@@ -596,7 +613,7 @@ class ManufacturingDashboard {
 		this.$stage.find('[data-field="stage-row"]').on('click', (e) => {
 			const status = e.currentTarget.dataset.status || null;
 			this.drill.status = status;
-			this.load_stage();
+			this.load_stage({ keep_stage: true });
 		});
 	}
 
@@ -656,7 +673,7 @@ class ManufacturingDashboard {
 	load_order(order_no) {
 		const token = (this.detail_token = (this.detail_token || 0) + 1);
 		this.$detail_title.text('— ' + order_no);
-		this.$detail.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Loading order…')}</div>`);
+		this.$detail.html(this.loading_html(__('Loading order…'), true));
 
 		frappe.call({
 			method: this.detail_method,
@@ -667,6 +684,7 @@ class ManufacturingDashboard {
 				this.render_order_detail(r.message);
 			},
 			error: () => {
+				if (token !== this.detail_token) return;
 				this.$detail.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Could not load order.')}</div>`);
 			},
 		});
@@ -840,8 +858,7 @@ class ManufacturingDashboard {
 			<div class="mfg-tooltip__divider"></div>
 			<div class="mfg-tooltip__row"><span>Metal wt</span><b>${this.fmt_wt(dept.gold_wt, 'g')}</b></div>
 			<div class="mfg-tooltip__row"><span>Diamond wt</span><b>${this.fmt_wt(dept.diamond_wt, 'ct')}</b></div>
-			<div class="mfg-tooltip__row"><span>Diamond pcs</span><b>${this.fmt_count(Math.round(dept.diamond_pcs || 0))}</b></div>
-			<div class="mfg-tooltip__row"><span>Not weighed</span><b>${this.fmt_count(dept.not_weighed)}</b></div>`;
+			<div class="mfg-tooltip__row"><span>Diamond pcs</span><b>${this.fmt_count(Math.round(dept.diamond_pcs || 0))}</b></div>`;
 	}
 
 	position_tooltip($tooltip, node_el) {
@@ -914,41 +931,100 @@ class ManufacturingDashboard {
 	// Order list behind a Due Soon / Overdue lamp, in a dialog so the drill-down panels below
 	// keep whatever operation the user had open.
 	show_alert_orders(alert) {
-		const title =
-			alert === 'overdue'
-				? __('Overdue Orders')
-				: __('Orders Due Within {0} Days', [this.due_soon_days]);
+		const days = (n) => {
+			if (n < 0) return `<span class="mfg-alert-orders__late">${__('{0} days late', [-n])}</span>`;
+			if (n === 0) return `<span class="mfg-alert-orders__soon">${__('Today')}</span>`;
+			return `<span class="mfg-alert-orders__soon">${__('{0} days left', [n])}</span>`;
+		};
 
-		const dialog = new frappe.ui.Dialog({ title, size: 'extra-large' });
+		this.show_order_list({
+			title:
+				alert === 'overdue'
+					? __('Overdue Orders')
+					: __('Orders Due Within {0} Days', [this.due_soon_days]),
+			method: this.alert_method,
+			export_method: this.alert_export_method,
+			args: { alert },
+			columns: [
+				{ label: __('Customer'), value: (o, esc) => esc(o.customer) },
+				{ label: __('Design No'), value: (o, esc) => esc(o.design_no) },
+				{ label: __('Item'), value: (o, esc) => esc(o.item_category) },
+				{ label: __('Department'), value: (o, esc) => esc(o.department) },
+				{ label: __('Metal (g)'), num: true, value: (o) => this.fmt_wt(o.gold_wt, '').trim() },
+				{ label: __('Dia (ct)'), num: true, value: (o) => this.fmt_wt(o.diamond_wt, '').trim() },
+				{ label: __('Due Date'), value: (o, esc, date) => date(o.due_date) },
+				{ label: __('Due'), value: (o) => days(o.days_left) },
+			],
+		});
+	}
+
+	// Pieces behind a department card's "Not started" count.
+	show_department_pieces(department, name, kind) {
+		this.show_order_list({
+			title: __('{0} - Not Started', [name]),
+			method: this.department_pieces_method,
+			args: { department, kind },
+			columns: [
+				{ label: __('Customer'), value: (o, esc) => esc(o.customer) },
+				{ label: __('Design No'), value: (o, esc) => esc(o.design_no) },
+				{ label: __('Item'), value: (o, esc) => esc(o.item_category) },
+				{ label: __('Operation'), value: (o, esc) => esc(o.operation) },
+				{ label: __('Metal (g)'), num: true, value: (o) => this.fmt_wt(o.gold_wt, '').trim() },
+				{ label: __('Dia (ct)'), num: true, value: (o) => this.fmt_wt(o.diamond_wt, '').trim() },
+				{ label: __('Issue Date'), value: (o, esc, date) => date(o.issue_date) },
+				{ label: __('Due Date'), value: (o, esc, date) => date(o.due_date) },
+				{ label: __('Employee'), value: (o, esc) => esc(o.employee_name || o.employee) },
+			],
+		});
+	}
+
+	// Shared order-list dialog: the whole list in one scrollable table with a search box under
+	// every column header. The first column is always the Order No, linked to its Parent
+	// Manufacturing Order. An Export Excel button is added only when export_method is given.
+	show_order_list({ title, method, export_method, args, columns }) {
+		// undefined filters are dropped - open_url_post would send them as the string "undefined"
+		args = { ...this.build_call_args(), ...args };
+		Object.keys(args).forEach((k) => args[k] === undefined && delete args[k]);
+
+		const dialog = new frappe.ui.Dialog({
+			title,
+			size: 'extra-large',
+			...(export_method
+				? {
+						primary_action_label: __('Export Excel'),
+						primary_action: () => {
+							// while a column search is active, only the rows left on screen are exported
+							const visible = $body.data('visible_orders');
+							open_url_post(frappe.request.url, {
+								cmd: export_method,
+								...args,
+								...(visible ? { order_nos: visible } : {}),
+							});
+						},
+				  }
+				: {}),
+		});
 		// wrapped in .mfgdash so the dialog (appended to <body>) picks up the dashboard's theme tokens
 		const $body = $('<div class="mfgdash mfgdash--dialog"><div class="mfg-alert-orders"></div></div>')
 			.appendTo(dialog.$body)
 			.find('.mfg-alert-orders');
 		dialog.show();
 
-		const load = (page) => {
-			const args = this.build_call_args();
-			$body.addClass('is-busy');
-			frappe.call({
-				method: this.alert_method,
-				args: { ...args, alert, page, page_size: 20 },
-				freeze: false,
-				callback: (r) => {
-					$body.removeClass('is-busy');
-					if (r.message) this.render_alert_orders($body, r.message, load);
-				},
-				error: () => {
-					$body.removeClass('is-busy');
-					$body.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Could not load orders.')}</div>`);
-				},
-			});
-		};
-
 		$body.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Loading orders…')}</div>`);
-		load(1);
+		frappe.call({
+			method,
+			args,
+			freeze: false,
+			callback: (r) => {
+				if (r.message) this.render_order_list($body, r.message, columns);
+			},
+			error: () => {
+				$body.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Could not load orders.')}</div>`);
+			},
+		});
 	}
 
-	render_alert_orders($body, data, load) {
+	render_order_list($body, data, columns) {
 		const orders = data.orders || [];
 		if (!orders.length) {
 			$body.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('No orders.')}</div>`);
@@ -957,57 +1033,66 @@ class ManufacturingDashboard {
 
 		const date = (v) => (v ? frappe.datetime.str_to_user(String(v).split(' ')[0]) : '—');
 		const esc = (v) => frappe.utils.escape_html(v || '—');
-		const days = (n) => {
-			if (n < 0) return `<span class="mfg-alert-orders__late">${__('{0} days late', [-n])}</span>`;
-			if (n === 0) return `<span class="mfg-alert-orders__soon">${__('Today')}</span>`;
-			return `<span class="mfg-alert-orders__soon">${__('{0} days left', [n])}</span>`;
-		};
 
 		const rows = orders
 			.map(
 				(o) => `
-				<tr>
+				<tr data-order="${frappe.utils.escape_html(o.order_no)}">
 					<td class="mfg-orders__no">
 						<i class="mfg-dot" style="background:${this.STATUS_COLORS[o.stage_status] || 'var(--mfg-border)'}"
 							title="${frappe.utils.escape_html(o.stage_status)}"></i><a
 							href="/app/parent-manufacturing-order/${encodeURIComponent(o.order_no)}"
 							target="_blank" rel="noopener">${esc(o.order_no)}</a>
 					</td>
-					<td>${esc(o.customer)}</td>
-					<td>${esc(o.design_no)}</td>
-					<td>${esc(o.item_category)}</td>
-					<td>${esc(o.department)}</td>
-					<td class="is-num">${this.fmt_wt(o.gold_wt, '').trim()}</td>
-					<td class="is-num">${this.fmt_wt(o.diamond_wt, '').trim()}</td>
-					<td>${date(o.due_date)}</td>
-					<td>${days(o.days_left)}</td>
+					${columns.map((c) => `<td${c.num ? ' class="is-num"' : ''}>${c.value(o, esc, date)}</td>`).join('')}
 				</tr>`
 			)
 			.join('');
 
-		const pages = Math.max(1, Math.ceil((data.order_count || 0) / data.page_size));
+		const headers = [{ label: __('Order No') }, ...columns]
+			.map((c) => `<th${c.num ? ' class="is-num"' : ''}>${c.label}</th>`)
+			.join('');
+		// a search box under every column header
+		const search_row = Array.from(
+			{ length: columns.length + 1 },
+			(_, i) => `<th><input type="search" class="mfg-orders__search" data-col="${i}"
+				placeholder="${__('Search')}" autocomplete="off"></th>`
+		).join('');
+
+		// whole list in one table; it scrolls inside the dialog with the header pinned
 		$body.html(`
 			<div class="mfg-orders__scroll">
 				<table class="mfg-table mfg-orders">
-					<thead><tr>
-						<th>${__('Order No')}</th><th>${__('Customer')}</th><th>${__('Design No')}</th>
-						<th>${__('Item')}</th><th>${__('Department')}</th>
-						<th class="is-num">${__('Metal (g)')}</th><th class="is-num">${__('Dia (ct)')}</th>
-						<th>${__('Due Date')}</th><th>${__('Due')}</th>
-					</tr></thead>
+					<thead>
+						<tr>${headers}</tr>
+						<tr class="mfg-orders__search-row">${search_row}</tr>
+					</thead>
 					<tbody>${rows}</tbody>
 				</table>
 			</div>
 			<div class="mfg-pager">
-				<span>${__('Total Records')}: <b>${this.fmt_count(data.order_count)}</b></span>
-				<span class="mfg-pager__nav">
-					<button type="button" data-field="page-prev" ${data.page <= 1 ? 'disabled' : ''}>‹</button>
-					<span>${__('Page {0} of {1}', [data.page, pages])}</span>
-					<button type="button" data-field="page-next" ${data.page >= pages ? 'disabled' : ''}>›</button>
-				</span>
+				<span>${__('Total Records')}: <b data-field="shown">${this.fmt_count(data.order_count)}</b></span>
 			</div>`);
 
-		$body.find('[data-field="page-prev"]').on('click', () => load(Math.max(1, data.page - 1)));
-		$body.find('[data-field="page-next"]').on('click', () => load(Math.min(pages, data.page + 1)));
+		// rows are matched on the text shown in each cell (case-insensitive, all searches must match)
+		const $rows = $body.find('tbody tr');
+		const cell_text = $rows.toArray().map((tr) => Array.from(tr.cells, (td) => td.textContent.trim().toLowerCase()));
+		const $inputs = $body.find('.mfg-orders__search');
+
+		$inputs.on('input', frappe.utils.debounce(() => {
+			const terms = $inputs.toArray().map((el) => [Number(el.dataset.col), el.value.trim().toLowerCase()]).filter(([, t]) => t);
+			const visible = [];
+			$rows.each((i, tr) => {
+				const match = terms.every(([col, t]) => cell_text[i][col].includes(t));
+				tr.style.display = match ? '' : 'none';
+				if (match) visible.push(tr.dataset.order);
+			});
+			$body.data('visible_orders', terms.length ? visible : null);
+			$body.find('[data-field="shown"]').text(
+				terms.length
+					? __('{0} of {1}', [this.fmt_count(visible.length), this.fmt_count(data.order_count)])
+					: this.fmt_count(data.order_count)
+			);
+		}, 200));
 	}
 };
