@@ -33,13 +33,64 @@ ROLE_TAB_ACCESS = {
 }
 
 
+def _tab_key_for_order_row(setting_type, sub_setting_type1):
+	"""Classify one order's actual setting type into a tab key, or None if it
+	doesn't belong to any tab (blank/unrecognized setting_type) - used to
+	build a Designer's dynamic tab set from their real assignments, as
+	opposed to `_tab_key_for_filters` which classifies a requested filter."""
+	if sub_setting_type1 == "Close-Open Setting":
+		return "close_open_setting"
+	if setting_type == "Open":
+		return "open_setting"
+	if setting_type == "Nova Glow":
+		return "nova_glow"
+	return None
+
+
+def _dynamic_designer_tabs(user):
+	"""A plain Designer-role user's tabs aren't a static grant - they're
+	whichever setting type(s) that designer actually has CAD orders assigned
+	to. A designer who has only ever been assigned Open Setting work sees
+	just the Open tab; one assigned both Open and Close-Open work sees both
+	(plus the derived All tab via `_derived_all_combo`). No Employee match or
+	no assignments at all -> no tabs, same as anyone else granted nothing.
+	"""
+	employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+	if not employee:
+		return set()
+
+	rows = frappe.db.sql(
+		"""
+		SELECT DISTINCT o.setting_type, o.sub_setting_type1
+		FROM `tabOrder` o
+		JOIN `tabDesigner Assignment - CAD` da ON da.parent = o.name
+		WHERE da.designer = %(employee)s
+			AND da.parentfield = 'designer_assignment'
+			AND o.bom_or_cad = 'CAD'
+			AND o.docstatus != 2
+		""",
+		{"employee": employee},
+		as_dict=True,
+	)
+	return {
+		tab_key
+		for row in rows
+		if (tab_key := _tab_key_for_order_row(row.setting_type, row.sub_setting_type1))
+	}
+
+
 def _allowed_tabs(user):
 	"""Priority order:
 	1. Administrator / System Manager -> every tab, always.
 	2. A user listed in TAB_ACCESS_MAP -> exactly the tabs listed there
 	   (this overrides role-based access, so e.g. a CAD Hod listed with only
 	   "nova_glow" does NOT also inherit the CAD Hod role's all-tabs access).
-	3. Everyone else -> union of the tabs granted by their roles.
+	3. A user whose only tab-granting role is plain "Designer" (no other role
+	   from ROLE_TAB_ACCESS, e.g. CAD Hod/Coordinator, which stay full-access
+	   management views) -> tabs derived from their actual assignments
+	   instead of the static ALL_TABS a Designer would otherwise get, so they
+	   only see tabs for setting types they've actually been assigned.
+	4. Everyone else -> union of the tabs granted by their roles.
 	"""
 	if user == "Administrator":
 		return set(ALL_TABS)
@@ -50,6 +101,9 @@ def _allowed_tabs(user):
 
 	if user in TAB_ACCESS_MAP:
 		return set(TAB_ACCESS_MAP[user])
+
+	if "Designer" in roles and not (roles & (set(ROLE_TAB_ACCESS) - {"Designer"})):
+		return _dynamic_designer_tabs(user)
 
 	allowed = set()
 	for role in roles:
@@ -132,17 +186,51 @@ def _tab_key_for_filters(setting_type, sub_setting_type1):
 	return "all"
 
 
-def _enforce_tab_access(setting_type, sub_setting_type1):
+SUB_TABS = {"open_setting", "nova_glow", "close_open_setting"}
+
+
+def _derived_all_combo(allowed):
+	"""Which of the three sub-tabs a session should see combined into an "All"
+	tab it wasn't explicitly granted.
+
+	A session with 2+ of {Open, Nova Glow, Close-Open} but no explicit "all"
+	grant still gets an "All" tab - it just shows the union of those specific
+	tabs rather than every order in the system (that would leak a setting
+	type the session was never granted).
+	"""
+	return allowed & SUB_TABS if len(allowed & SUB_TABS) >= 2 else set()
+
+
+def _resolve_tab_access(setting_type, sub_setting_type1):
+	"""Enforce tab access for one request and report how to scope it.
+
+	Returns None when no extra scoping is needed on top of the
+	setting_type/sub_setting_type1 filter already built - either a specific
+	tab was requested, or the session has true explicit "all" access. Returns
+	a (non-empty) set of tab keys when this is a derived "All" tab request -
+	the caller must restrict the query to just the union of those tabs.
+	"""
 	tab_key = _tab_key_for_filters(setting_type, sub_setting_type1)
-	if tab_key not in _allowed_tabs(frappe.session.user):
+	allowed = _allowed_tabs(frappe.session.user)
+
+	if tab_key != "all":
+		if tab_key not in allowed:
+			frappe.throw(_("You are not permitted to view this tab."), frappe.PermissionError)
+		return None
+
+	if "all" in allowed:
+		return None
+	combo = _derived_all_combo(allowed)
+	if not combo:
 		frappe.throw(_("You are not permitted to view this tab."), frappe.PermissionError)
+	return combo
 
 
 @frappe.whitelist()
 def get_my_tab_access():
 	allowed = _allowed_tabs(frappe.session.user)
 	return {
-		"allow_all": "all" in allowed,
+		"allow_all": "all" in allowed or bool(_derived_all_combo(allowed)),
 		"allow_open_setting": "open_setting" in allowed,
 		"allow_nova_glow": "nova_glow" in allowed,
 		"allow_close_open_setting": "close_open_setting" in allowed,
@@ -184,13 +272,13 @@ def get_my_matrix_view_access():
 #   - designing_on_hold: Designing - On-Hold
 #   - rework           : Design Rework in Progress
 #   - qc               : Sent to QC, Sent to QC - On-Hold
-#   - approved         : Approved                        (CAD design signed off)
+#   - approved         : Approved, plus everything after it (Update BOM, Update
+#                        Item, Creating BOM, BOM QC, Customer Approval, ...) -
+#                        once an order is Approved it has moved past the CAD
+#                        design stage into BOM creation/QC, but it's still
+#                        tagged bom_or_cad = 'CAD' (that field isn't revised
+#                        once set) and still counts as Approved here.
 #   - rejected         : Rejected, Cancelled, Customer Design Rejected
-#   - bom_stage        : everything else (Update BOM, Update Item, Creating BOM,
-#                        BOM QC, Customer Approval, ...) - the order has moved on
-#                        past the CAD design stage into BOM creation/QC, but is
-#                        still tagged bom_or_cad = 'CAD' since that field is not
-#                        revised once set.
 #
 # Designer is read from the `designer_assignment` child table
 # (Designer Assignment - CAD: designer [Employee], designer_name). An order
@@ -258,7 +346,31 @@ STATUS_ROW_ORDER = [
 	"qc",
 	"approved",
 	"rejected",
-	"bom_stage",
+]
+
+# The "approved" bucket on the CAD Order Dashboard page now folds in every
+# post-Approved state (Update BOM, Update Item, Customer Approval, ...), so
+# it's displayed there as "Completed" instead of "Approved" - this is a
+# page-only label override, not a rename of BUCKET_LABELS itself, so the
+# separate "Cad Dashboard Script" report's own Approved row is unaffected.
+PAGE_BUCKET_LABELS = {**BUCKET_LABELS, "approved": "Completed", "customer_approval": "Customer Approval"}
+
+# Matrix-tables-only row/column order: same pipeline as STATUS_ROW_ORDER, but
+# with "Customer Approval" broken back out of "Completed" into its own line
+# (see `_matrix_bucket_of`). The KPI "Completed" tile and everything else on
+# the page keeps using STATUS_ROW_ORDER/_bucket_of unchanged - a matrix row's
+# "Completed" + "Customer Approval" counts always sum to that KPI total.
+MATRIX_STATUS_ROW_ORDER = [
+	"pending",
+	"assigned",
+	"assigned_on_hold",
+	"designing",
+	"designing_on_hold",
+	"rework",
+	"qc",
+	"approved",
+	"customer_approval",
+	"rejected",
 ]
 
 UNCATEGORIZED = _("Uncategorized")
@@ -306,6 +418,28 @@ def get_columns():
 	]
 
 
+def _scope_tabs_condition(scope_tabs):
+	"""SQL for a derived "All" tab: the union of just the sub-tabs in
+	`scope_tabs` (see `_derived_all_combo`), expressed with the same
+	conditions each tab's own filter would use."""
+	conditions = []
+	params = {}
+	if "open_setting" in scope_tabs:
+		conditions.append(
+			"(o.setting_type = %(scope_open_setting)s "
+			"AND (o.sub_setting_type1 IS NULL OR o.sub_setting_type1 != %(scope_exclude_close_open)s))"
+		)
+		params["scope_open_setting"] = "Open"
+		params["scope_exclude_close_open"] = "Close-Open Setting"
+	if "nova_glow" in scope_tabs:
+		conditions.append("o.setting_type = %(scope_nova_glow)s")
+		params["scope_nova_glow"] = "Nova Glow"
+	if "close_open_setting" in scope_tabs:
+		conditions.append("o.sub_setting_type1 = %(scope_close_open)s")
+		params["scope_close_open"] = "Close-Open Setting"
+	return "(" + " OR ".join(conditions) + ")", params
+
+
 def _build_extra_filter(
 	designer=None,
 	from_date=None,
@@ -317,13 +451,19 @@ def _build_extra_filter(
 	branch=None,
 	department=None,
 	assigned_to=None,
+	scope_tabs=None,
 ):
 	conditions = []
 	params = {}
+	if scope_tabs:
+		scope_sql, scope_params = _scope_tabs_condition(scope_tabs)
+		conditions.append(scope_sql)
+		params.update(scope_params)
 	if designer:
 		conditions.append(
 			"EXISTS (SELECT 1 FROM `tabDesigner Assignment - CAD` da "
-			"WHERE da.parent = o.name AND da.designer = %(designer)s)"
+			"WHERE da.parent = o.name AND da.parentfield = 'designer_assignment' "
+			"AND da.designer = %(designer)s)"
 		)
 		params["designer"] = designer
 	if assigned_to:
@@ -353,6 +493,15 @@ def _build_extra_filter(
 	if setting_type:
 		conditions.append("o.setting_type = %(setting_type)s")
 		params["setting_type"] = setting_type
+		if sub_setting_type1 != "Close-Open Setting":
+			# Close-Open Setting is its own dedicated tab even though it's
+			# stored as a sub_setting_type1 of "Open" - without this, an
+			# Open-tab query (which only filters on setting_type) also pulls
+			# in every Close-Open order, double-counting it against both tabs.
+			conditions.append(
+				"(o.sub_setting_type1 IS NULL OR o.sub_setting_type1 != %(exclude_close_open)s)"
+			)
+			params["exclude_close_open"] = "Close-Open Setting"
 	if category:
 		conditions.append("o.category = %(category)s")
 		params["category"] = category
@@ -375,6 +524,7 @@ def _fetch_filtered_rows(
 	branch=None,
 	department=None,
 	assigned_to=None,
+	scope_tabs=None,
 ):
 	extra_filter, extra_params = _build_extra_filter(
 		designer=designer,
@@ -387,6 +537,7 @@ def _fetch_filtered_rows(
 		branch=branch,
 		department=department,
 		assigned_to=assigned_to,
+		scope_tabs=scope_tabs,
 	)
 	params = {"company": company, **extra_params}
 	return frappe.db.sql(
@@ -413,6 +564,12 @@ def _fetch_filtered_rows(
 
 
 def _fetch_assignments_by_order(order_names):
+	"""CAD designer rows only (parentfield="designer_assignment") - the Order
+	doctype reuses this same child doctype for the unrelated BOM-stage
+	assignee (parentfield="bom_assignment"), stored in the same physical
+	table. Without this filter, a BOM assignee would show up as a "designer"
+	in the workload list/matrices/drill-downs built from this data.
+	"""
 	if not order_names:
 		return {}
 	assignment_rows = frappe.db.sql(
@@ -420,6 +577,7 @@ def _fetch_assignments_by_order(order_names):
 		SELECT parent, designer, designer_name
 		FROM `tabDesigner Assignment - CAD`
 		WHERE parent IN %(order_names)s
+			AND parentfield = 'designer_assignment'
 		""",
 		{"order_names": order_names},
 		as_dict=True,
@@ -431,10 +589,25 @@ def _fetch_assignments_by_order(order_names):
 
 
 def _bucket_of(state):
+	"""Any workflow_state not in BUCKET_STATES is something past Approved
+	(Update BOM, Update Item, Creating BOM, BOM QC, Customer Approval, ...) -
+	those all still count as Approved on this dashboard."""
 	for bucket, states in BUCKET_STATES.items():
 		if state in states:
 			return bucket
-	return "bom_stage"
+	return "approved"
+
+
+def _matrix_bucket_of(state):
+	"""Matrix-tables-only variant of `_bucket_of` - breaks "Customer Approval"
+	back out into its own bucket instead of leaving it folded into
+	"approved"/Completed. Used only by the matrix row/column classifiers
+	(`_status_row_keys`, `_status_columns`) and their matching status-filter/
+	drill-down logic - the KPI strip, designer workload, and alerts keep
+	using `_bucket_of` unchanged."""
+	if state == "Customer Approval":
+		return "customer_approval"
+	return _bucket_of(state)
 
 
 def _classify_stock(row):
@@ -455,8 +628,8 @@ def _designer_row_keys(row, assignments_by_order):
 
 
 def _status_row_keys(row):
-	bucket = _bucket_of(row.workflow_state)
-	return [(bucket, _(BUCKET_LABELS[bucket]))]
+	bucket = _matrix_bucket_of(row.workflow_state)
+	return [(bucket, _(PAGE_BUCKET_LABELS[bucket]))]
 
 
 def _customer_row_keys(row):
@@ -475,7 +648,7 @@ def _apply_matrix_filter(rows, matrix_filter, status_filter=None):
 	if matrix_filter in ("gk_stock", "customer_stock", "customer_order"):
 		rows = [row for row in rows if _classify_stock(row) == matrix_filter]
 	if status_filter:
-		rows = [row for row in rows if _bucket_of(row.workflow_state) == status_filter]
+		rows = [row for row in rows if _matrix_bucket_of(row.workflow_state) == status_filter]
 	return rows
 
 
@@ -495,8 +668,8 @@ def _category_columns(row):
 
 
 def _status_columns(row):
-	bucket = _bucket_of(row.workflow_state)
-	return [(bucket, _(BUCKET_LABELS[bucket]))]
+	bucket = _matrix_bucket_of(row.workflow_state)
+	return [(bucket, _(PAGE_BUCKET_LABELS[bucket]))]
 
 
 def _build_matrix(source_rows, row_keys_fn, column_keys_fn, risk_of):
@@ -567,7 +740,7 @@ def get_dashboard_data(
 	if not company:
 		frappe.throw(_("Please select a Company"))
 
-	_enforce_tab_access(setting_type, sub_setting_type1)
+	scope_tabs = _resolve_tab_access(setting_type, sub_setting_type1)
 	designer_scope = _designer_scope_for_session()
 	if designer_scope is not None:
 		designer = designer_scope
@@ -589,17 +762,18 @@ def get_dashboard_data(
 		branch=branch,
 		department=department,
 		assigned_to=assigned_to,
+		scope_tabs=scope_tabs,
 	)
 	assignments_by_order = _fetch_assignments_by_order([row.name for row in rows])
 	assignments_by_order = _scope_assignments(assignments_by_order, designer_scope)
 
 	# ---- status summary ----
-	status_counts = {key: 0 for key in list(BUCKET_STATES.keys()) + ["bom_stage"]}
+	status_counts = {key: 0 for key in BUCKET_STATES.keys()}
 	for row in rows:
 		status_counts[_bucket_of(row.workflow_state)] += 1
 
 	status_summary = [
-		{"key": bucket, "label": _(BUCKET_LABELS[bucket]), "count": status_counts[bucket]}
+		{"key": bucket, "label": _(PAGE_BUCKET_LABELS[bucket]), "count": status_counts[bucket]}
 		for bucket in STATUS_ROW_ORDER
 	]
 	total_orders = len(rows)
@@ -625,7 +799,7 @@ def get_dashboard_data(
 	designer_map = {}
 	for row in rows:
 		bucket = _bucket_of(row.workflow_state)
-		is_active = bucket not in ("approved", "rejected", "bom_stage")
+		is_active = bucket not in ("approved", "rejected")
 		is_completed = bucket == "approved"
 		for designer_id, designer_name in _designer_row_keys(row, assignments_by_order):
 			entry = designer_map.setdefault(
@@ -680,14 +854,14 @@ def get_dashboard_data(
 		matrix_source_rows, _status_row_keys, _category_columns, risk_of
 	)
 	s_categories = sorted(s_category_totals.keys(), key=lambda c: s_category_totals[c]["qty"], reverse=True)
-	for bucket in STATUS_ROW_ORDER:
+	for bucket in MATRIX_STATUS_ROW_ORDER:
 		s_rows.setdefault(
-			bucket, {"key": bucket, "name": _(BUCKET_LABELS[bucket]), "cells": {}, "total": _new_matrix_metric()}
+			bucket, {"key": bucket, "name": _(PAGE_BUCKET_LABELS[bucket]), "cells": {}, "total": _new_matrix_metric()}
 		)
 	status_category_matrix = {
 		"categories": s_categories,
 		"category_labels": {c: c for c in s_categories},
-		"rows": [s_rows[bucket] for bucket in STATUS_ROW_ORDER],
+		"rows": [s_rows[bucket] for bucket in MATRIX_STATUS_ROW_ORDER],
 		"category_totals": s_category_totals,
 		"grand_total": s_grand_total,
 	}
@@ -699,8 +873,8 @@ def get_dashboard_data(
 		matrix_source_rows, lambda row: _designer_row_keys(row, assignments_by_order), _status_columns, risk_of
 	)
 	designer_status_matrix = {
-		"categories": STATUS_ROW_ORDER,
-		"category_labels": {bucket: _(BUCKET_LABELS[bucket]) for bucket in STATUS_ROW_ORDER},
+		"categories": MATRIX_STATUS_ROW_ORDER,
+		"category_labels": {bucket: _(PAGE_BUCKET_LABELS[bucket]) for bucket in MATRIX_STATUS_ROW_ORDER},
 		"rows": sorted(ds_rows.values(), key=lambda r: r["total"]["qty"], reverse=True),
 		"category_totals": ds_column_totals,
 		"grand_total": ds_grand_total,
@@ -725,8 +899,8 @@ def get_dashboard_data(
 		matrix_source_rows, _customer_row_keys, _status_columns, risk_of
 	)
 	customer_status_matrix = {
-		"categories": STATUS_ROW_ORDER,
-		"category_labels": {bucket: _(BUCKET_LABELS[bucket]) for bucket in STATUS_ROW_ORDER},
+		"categories": MATRIX_STATUS_ROW_ORDER,
+		"category_labels": {bucket: _(PAGE_BUCKET_LABELS[bucket]) for bucket in MATRIX_STATUS_ROW_ORDER},
 		"rows": sorted(cs_rows.values(), key=lambda r: r["total"]["qty"], reverse=True),
 		"category_totals": cs_column_totals,
 		"grand_total": cs_grand_total,
@@ -801,7 +975,7 @@ def get_segment_orders(
 	if not company:
 		frappe.throw(_("Please select a Company"))
 
-	_enforce_tab_access(setting_type, sub_setting_type1)
+	scope_tabs = _resolve_tab_access(setting_type, sub_setting_type1)
 	designer_scope = _designer_scope_for_session()
 	if designer_scope is not None:
 		designer = designer_scope
@@ -826,6 +1000,7 @@ def get_segment_orders(
 		branch=branch,
 		department=department,
 		assigned_to=assigned_to,
+		scope_tabs=scope_tabs,
 	)
 
 	if seg_type == "total":
@@ -857,7 +1032,7 @@ def get_segment_orders(
 			if designer_key not in keys:
 				continue
 			bucket = _bucket_of(row.workflow_state)
-			is_active = bucket not in ("approved", "rejected", "bom_stage")
+			is_active = bucket not in ("approved", "rejected")
 			is_completed = bucket == "approved"
 			if metric == "total" or (metric == "completed" and is_completed) or (metric == "in_progress" and is_active):
 				names.append(row.name)
@@ -893,7 +1068,7 @@ def get_segment_orders(
 		for row in filtered_rows:
 			if cell_category is not None:
 				if view in ("designer_status", "customer_status"):
-					if _bucket_of(row.workflow_state) != cell_category:
+					if _matrix_bucket_of(row.workflow_state) != cell_category:
 						continue
 				elif (row.category or UNCATEGORIZED) != cell_category:
 					continue
@@ -960,7 +1135,7 @@ def get_designer_status_breakdown(
 	if not company:
 		frappe.throw(_("Please select a Company"))
 
-	_enforce_tab_access(setting_type, sub_setting_type1)
+	scope_tabs = _resolve_tab_access(setting_type, sub_setting_type1)
 	designer_scope = _designer_scope_for_session()
 	if designer_scope is not None:
 		designer = designer_scope
@@ -977,6 +1152,7 @@ def get_designer_status_breakdown(
 		branch=branch,
 		department=department,
 		assigned_to=assigned_to,
+		scope_tabs=scope_tabs,
 	)
 	assignments_by_order = _fetch_assignments_by_order([row.name for row in rows])
 	assignments_by_order = _scope_assignments(assignments_by_order, designer_scope)
@@ -987,7 +1163,7 @@ def get_designer_status_breakdown(
 		if designer_key not in keys:
 			continue
 		bucket = _bucket_of(row.workflow_state)
-		if bucket in ("approved", "rejected", "bom_stage"):
+		if bucket in ("approved", "rejected"):
 			continue
 		counts[bucket] = counts.get(bucket, 0) + 1
 
@@ -1035,24 +1211,40 @@ def get_order_thumbnails(order_names):
 # ---------------------------------------------------------------------------
 
 
+# Only Mention/Tagged notifications are surfaced on the dashboard's Order
+# Notifications tile - Assignment/Share/Energy Point/Alert notifications on
+# an Order still go to the navbar bell as usual, just not counted/listed here.
+ORDER_NOTIFICATION_TYPES = ["Mention"]
+
+
 @frappe.whitelist()
 def get_order_notification_count():
 	return frappe.db.count(
 		"Notification Log",
-		filters={"for_user": frappe.session.user, "document_type": "Order", "read": 0},
+		filters={
+			"for_user": frappe.session.user,
+			"document_type": "Order",
+			"read": 0,
+			"type": ["in", ORDER_NOTIFICATION_TYPES],
+		},
 	)
 
 
 @frappe.whitelist()
 def get_order_notifications():
-	"""Unread Order notifications for the current user, grouped by type
-	(Assignment / Mention / ... - whatever `Notification Log.type` holds) so
-	the popup can show them as categories instead of one flat list.
+	"""Unread Mention/Tagged Order notifications for the current user,
+	grouped by type so the popup can show them as categories instead of one
+	flat list.
 	"""
 	user = frappe.session.user
 	rows = frappe.get_all(
 		"Notification Log",
-		filters={"for_user": user, "document_type": "Order", "read": 0},
+		filters={
+			"for_user": user,
+			"document_type": "Order",
+			"read": 0,
+			"type": ["in", ORDER_NOTIFICATION_TYPES],
+		},
 		fields=["name", "subject", "type", "document_name", "from_user", "creation"],
 		order_by="creation desc",
 		limit_page_length=0,
@@ -1082,7 +1274,12 @@ def mark_order_notification_read(name):
 def mark_all_order_notifications_read():
 	frappe.db.set_value(
 		"Notification Log",
-		{"for_user": frappe.session.user, "document_type": "Order", "read": 0},
+		{
+			"for_user": frappe.session.user,
+			"document_type": "Order",
+			"read": 0,
+			"type": ["in", ORDER_NOTIFICATION_TYPES],
+		},
 		"read",
 		1,
 	)

@@ -38,7 +38,6 @@ class CadDashboard {
 			qc: 'var(--cad-pink)',
 			approved: 'var(--cad-green)',
 			rejected: 'var(--cad-red)',
-			bom_stage: 'var(--cad-cyan)',
 		};
 
 		this.due_soon_days = 2;
@@ -288,11 +287,11 @@ class CadDashboard {
 	}
 
 	matrix_view_title() {
-		if (this.matrix_view === 'status') return __('Status × Category (Qty)');
-		if (this.matrix_view === 'designer_status') return __('Designer × Status (Qty)');
-		if (this.matrix_view === 'customer') return __('Customer × Category (Qty)');
-		if (this.matrix_view === 'customer_status') return __('Customer × Status (Qty)');
-		return __('Designer × Category (Qty)');
+		if (this.matrix_view === 'status') return __('Status × Category (Orders)');
+		if (this.matrix_view === 'designer_status') return __('Designer × Status (Orders)');
+		if (this.matrix_view === 'customer') return __('Customer × Category (Orders)');
+		if (this.matrix_view === 'customer_status') return __('Customer × Status (Orders)');
+		return __('Designer × Category (Orders)');
 	}
 
 	matrix_row_label() {
@@ -508,6 +507,17 @@ class CadDashboard {
 				const esc = frappe.utils.escape_html;
 				const strip_html = (s) => $('<div>').html(s || '').text();
 
+				// Notification Log "type" options (frappe/desk/doctype/notification_log) -
+				// a small glyph per type so categories are scannable at a glance.
+				const TYPE_ICONS = {
+					Mention: '@',
+					Assignment: '\u{1F4CC}',
+					Share: '\u{1F517}',
+					'Energy Point': '⭐',
+					Alert: '⚠',
+				};
+				const type_icon = (type) => TYPE_ICONS[type] || '\u{1F514}';
+
 				const item_html = (item) => `
 					<div class="cad-order-notifications__item" data-name="${esc(item.name)}" data-order="${esc(item.document_name)}">
 						<div class="cad-order-notifications__subject">${strip_html(item.subject)}</div>
@@ -521,6 +531,7 @@ class CadDashboard {
 						(cat) => `
 						<div class="cad-order-notifications__category">
 							<div class="cad-order-notifications__category-title">
+								<span class="cad-order-notifications__category-icon">${type_icon(cat.type)}</span>
 								${esc(cat.type)} <span class="cad-order-notifications__category-count">${cat.items.length}</span>
 							</div>
 							${cat.items.map(item_html).join('')}
@@ -806,7 +817,6 @@ class CadDashboard {
 			total_tile,
 			bucket_tile('pending'),
 			bucket_tile('assigned'),
-			assigned_to_designer_tile(),
 			bucket_tile('assigned_on_hold'),
 			bucket_tile('rework'),
 			bucket_tile('designing'),
@@ -814,6 +824,7 @@ class CadDashboard {
 			bucket_tile('qc'),
 			bucket_tile('approved'),
 			bucket_tile('rejected'),
+			assigned_to_designer_tile(),
 			notifications_tile,
 		].join('');
 
@@ -959,7 +970,7 @@ class CadDashboard {
 						<div class="cad-designer__stats">
 							<span class="cad-designer__count" data-segment="${seg('total')}">${this.fmt_count(d.count)} total</span>
 							<span class="cad-designer__inprogress" data-segment="${seg('in_progress')}">${this.fmt_count(d.in_progress)} in progress</span>
-							<span class="cad-designer__completed" data-segment="${seg('completed')}">${this.fmt_count(d.completed)} approved</span>
+							<span class="cad-designer__completed" data-segment="${seg('completed')}">${this.fmt_count(d.completed)} completed</span>
 						</div>
 					</div>`;
 			})
