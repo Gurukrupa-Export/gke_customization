@@ -4,7 +4,7 @@
 frappe.query_reports["Accounts Payable Aging Summary"] = {
 	filters: [],
 
-	// The aging table is rendered by the server as the report message (above this table).
+	// The aging tables are rendered by the server as the report message (above this table).
 	// This formatter is for the month-wise table.
 	formatter: function (value, row, column, data, default_formatter) {
 		if (!data) {
