@@ -102,7 +102,10 @@ jobs:
   # ---------------------------------------------------------------------------------
   # The real suite, on a real site. gke_customization's doctypes link into erpnext,
   # hrms, india_compliance, jewellery_erpnext and gurukrupa_customizations, so all of
-  # them have to be installed before it will even migrate. gurukrupa_biometric is
+  # them have to be installed before it will even migrate. The frappe companion apps
+  # (lending, payments, telephony) are installed as well: gke's fixture dump references
+  # the Loan doctype from lending, and without it the fixture import aborts and every
+  # custom field after that point is silently never created. gurukrupa_biometric is
   # installed as well: without its Biometric Settings doctype the suite skips itself
   # and this job would go green having tested nothing (the runner below refuses such
   # a pass). All sibling repos are public today, so no token is needed; if one goes
@@ -139,6 +142,12 @@ jobs:
       # Fails in seconds on a syntax error, before fifteen minutes of bench build.
       - name: Python compiles
         run: python -m compileall -q gke_customization/gke_customization
+
+      # Fails in seconds with the FULL list of fixture problems (duplicates, dead
+      # references, rows owned by other apps, misordered dynamic links) before any
+      # bench build. scripts/validate_fixtures.py --help documents every check.
+      - name: Validate fixture files
+        run: python3 gke_customization/scripts/validate_fixtures.py
 
       - uses: actions/setup-python@v5
         with:
@@ -178,6 +187,22 @@ jobs:
           echo "::group::fetch erpnext (${{ env.FRAPPE_BRANCH }})"
           bench get-app --branch ${{ env.FRAPPE_BRANCH }} erpnext https://github.com/frappe/erpnext.git
           echo "::endgroup::"
+          # Companion apps of the frappe v16 line. gke's fixture dump references the
+          # Loan doctype from lending, so lending must be installed before migrate
+          # syncs fixtures, or the whole custom_field.json import aborts there.
+          # telephony ships no version-16 branch; develop is its only line.
+          echo "::group::fetch lending (${{ env.FRAPPE_BRANCH }})"
+          bench get-app --branch ${{ env.FRAPPE_BRANCH }} lending https://github.com/frappe/lending.git
+          echo "::endgroup::"
+          echo "::group::fetch payments (${{ env.FRAPPE_BRANCH }})"
+          bench get-app --branch ${{ env.FRAPPE_BRANCH }} payments https://github.com/frappe/payments.git
+          echo "::endgroup::"
+          echo "::group::fetch telephony (develop)"
+          bench get-app --branch develop telephony https://github.com/frappe/telephony.git
+          echo "::endgroup::"
+          echo "::group::fetch helpdesk (main)"
+          bench get-app --branch main helpdesk https://github.com/frappe/helpdesk.git
+          echo "::endgroup::"
           echo "::group::fetch hrms (${{ env.FRAPPE_BRANCH }})"
           bench get-app --branch ${{ env.FRAPPE_BRANCH }} hrms https://github.com/frappe/hrms.git
           echo "::endgroup::"
@@ -196,7 +221,7 @@ jobs:
           echo "::group::fetch gke_customization (this branch)"
           bench get-app gke_customization "${GITHUB_WORKSPACE}/gke_customization"
           echo "::endgroup::"
-          echo "== all 7 apps fetched =="
+          echo "== all 11 apps fetched =="
 
       - name: Create the site
         working-directory: ci-bench
@@ -215,20 +240,6 @@ jobs:
           bench --site ci.localhost set-config allow_tests true
           echo "== site ci.localhost created =="
 
-      # gke's fixtures are a raw dump of a production site (1300+ custom fields attributed
-      # to the "Jewellery Erpnext" module, and entries referencing doctypes that only exist
-      # on live benches). Syncing them during gke's own install inserts jewellery-module
-      # DocTypes, and frappe's DocType insert auto-creates the "Jewellery Erpnext" Module
-      # Def - so jewellery_erpnext's own installer then dies on the duplicate primary key.
-      # Park the folder for the installs and let the migrate step below sync it once every
-      # app is present and the Module Def already exists. Same approach jewellery_erpnext's
-      # own CI takes to this dump.
-      - name: Park gke fixtures during installs
-        working-directory: ci-bench/apps/gke_customization/gke_customization
-        run: |
-          mv fixtures fixtures_parked_during_install
-          echo "gke fixtures parked"
-
       - name: Install the apps
         working-directory: ci-bench
         run: |
@@ -239,19 +250,18 @@ jobs:
           # fails on the missing column. gke's own links into jewellery are not checked at install,
           # and its fixtures that need jewellery are re-synced by the migrate step below.
           # gurukrupa_biometric last: it only adds doc_events and the Biometric Settings doctype.
-          for app in erpnext hrms india_compliance gke_customization jewellery_erpnext \
-                     gurukrupa_customizations gurukrupa_biometric; do
+          # lending, payments, telephony, helpdesk before migrate: the fixture sync imports
+          # gke's custom_field.json, whose entries reference the Loan doctype (lending) and
+          # HD Ticket (helpdesk) - without those apps the file aborts there and every custom
+          # field after that point is silently never created on the fresh site.
+          for app in erpnext lending payments telephony helpdesk hrms india_compliance \
+                     gke_customization jewellery_erpnext gurukrupa_customizations \
+                     gurukrupa_biometric; do
             echo "::group::install $app"
             bench --site ci.localhost install-app "$app"
             echo "::endgroup::"
           done
-          echo "== all 7 apps installed =="
-
-      - name: Unpark gke fixtures
-        working-directory: ci-bench/apps/gke_customization/gke_customization
-        run: |
-          mv fixtures_parked_during_install fixtures
-          echo "gke fixtures restored - the migrate step below syncs them"
+          echo "== all 11 apps installed =="
 
       - name: Patches apply cleanly
         working-directory: ci-bench
