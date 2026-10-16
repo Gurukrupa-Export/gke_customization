@@ -1,0 +1,297 @@
+# CI for gke_customization's HRMS module (gke_hrms) on the kggk_uat line.
+#
+# Every pull request and every direct push to kggk_uat runs it. The suite under
+# gke_customization/gke_hrms/tests is the only test code in the repo today, so this
+# pipeline is scoped to it: one bench, one suite, plus free static and security
+# checks (pip-audit for dependency CVEs, gitleaks for secrets, actionlint for the
+# workflows).
+#
+# Deliberately separate from kggk-sync.yml (master/gk_develop): each line has its
+# own triggers and tracks its siblings at their branch heads, so a breaking change
+# in any app surfaces here on the next run.
+#
+# "Run workflow" in the Actions tab runs it on demand, on any branch.
+
+name: KGGK UAT HRMS Tests
+
+on:
+  push:
+    branches: [kggk_uat]
+  pull_request:
+    # kggk_uat_dummy is TEMPORARY, for testing the PR path without touching
+    # kggk_uat. Remove it from this list before this file lands on kggk_uat.
+    # (Fixed: the old name had a typo, "kgggk_uat_dummy", so it never matched.)
+    branches: [kggk_uat, kggk_uat_dummy]
+  workflow_dispatch:
+
+concurrency:
+  group: kggk-uat-hrms-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  actionlint:
+    name: Actionlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run actionlint
+        run: |
+          curl -fsSL -o /tmp/actionlint.tar.gz \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz
+          tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
+          /tmp/actionlint -color
+
+  pip-audit:
+    name: pip-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install and run pip-audit
+        run: |
+          echo "::group::install pip-audit"
+          pip install pip-audit
+          echo "::endgroup::"
+          echo "== auditing dependencies declared in pyproject.toml =="
+          pip-audit --desc on .
+
+  gitleaks:
+    name: Gitleaks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        run: |
+          curl -fsSL -o /tmp/gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          /tmp/gitleaks detect --source . --report-format sarif \
+            --report-path /tmp/gitleaks.sarif --redact --verbose
+
+  tests:
+    name: HRMS Tests (kggk_uat)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      FRAPPE_BRANCH: version-16
+      # The jewellery_erpnext repo's own CI (.github/actions/setup) checks out the
+      # `git_action_v16` branch and its tests install and migrate cleanly on it.
+      # `gurukrupa-prod` is what failed here at install/migrate. If git_action_v16
+      # turns out to be stale for gke, switch this back to gurukrupa-prod.
+      JEWELLERY_BRANCH: git_action_v16
+
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=5s --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gke_customization
+
+      - name: Python compiles
+        run: python -m compileall -q gke_customization/gke_customization
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # Same system packages jewellery_erpnext's setup action installs.
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y redis-tools mariadb-client wkhtmltopdf \
+            build-essential libffi-dev libssl-dev
+
+      - name: MariaDB settings Frappe expects
+        run: |
+          mysql --host 127.0.0.1 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
+          mysql --host 127.0.0.1 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
+
+      - name: Install bench
+        run: pip install frappe-bench
+
+      - name: Build the bench
+        run: |
+          echo "::group::bench init (frappe ${{ env.FRAPPE_BRANCH }})"
+          bench init --skip-redis-config-generation --skip-assets \
+                     --frappe-branch ${{ env.FRAPPE_BRANCH }} --python "$(which python)" ci-bench
+          echo "::endgroup::"
+
+      - name: Fetch the apps
+        working-directory: ci-bench
+        run: |
+          # --skip-assets on every get-app: without it each app runs its own yarn
+          # install + build (helpdesk's frontend alone is minutes). Backend tests
+          # do not need any of it.
+          # Sibling apps are fetched at their branch head on purpose, so a change in
+          # one of them fails here instead of hiding behind a pinned revision.
+          get() {
+            echo "::group::fetch $2 ($1)"
+            bench get-app --skip-assets --branch "$1" "$2" "$3"
+            echo "::endgroup::"
+          }
+          get "${FRAPPE_BRANCH}" erpnext https://github.com/frappe/erpnext.git
+          get "${FRAPPE_BRANCH}" lending https://github.com/frappe/lending.git
+          get "${FRAPPE_BRANCH}" payments https://github.com/frappe/payments.git
+          get develop telephony https://github.com/frappe/telephony.git
+          get main helpdesk https://github.com/frappe/helpdesk.git
+          get "${FRAPPE_BRANCH}" hrms https://github.com/frappe/hrms.git
+          get "${FRAPPE_BRANCH}" india_compliance https://github.com/resilient-tech/india-compliance.git
+          get "${JEWELLERY_BRANCH}" jewellery_erpnext https://github.com/Gurukrupa-Export/jewellery-erpnext.git
+          get main gurukrupa_customizations https://github.com/Gurukrupa-Export/gurukrupa_customizations.git
+          get master gurukrupa_biometric https://github.com/Gurukrupa-Export/gurukrupa_biometric.git
+          echo "::group::fetch gke_customization (this branch)"
+          bench get-app --skip-assets gke_customization "${GITHUB_WORKSPACE}/gke_customization"
+          echo "::endgroup::"
+          echo "== all 11 apps fetched =="
+
+      - name: Create the site
+        working-directory: ci-bench
+        run: |
+          bench set-config -g db_host 127.0.0.1
+          bench set-config -g redis_cache "redis://127.0.0.1:6379"
+          bench set-config -g redis_queue "redis://127.0.0.1:6379"
+          bench set-config -g redis_socketio "redis://127.0.0.1:6379"
+          echo "::group::new-site ci.localhost"
+          bench new-site ci.localhost \
+            --db-root-password root --admin-password admin --no-mariadb-socket
+          echo "::endgroup::"
+          bench --site ci.localhost set-config server_script_enabled true
+          bench --site ci.localhost set-config allow_tests true
+
+      - name: Install the apps
+        working-directory: ci-bench
+        run: |
+          # Order matters: gke_customization before jewellery_erpnext (they link
+          # both ways and only this order installs); lending/payments/telephony/
+          # helpdesk before the fixture sync; gurukrupa_biometric last.
+          for app in erpnext lending payments telephony helpdesk hrms india_compliance \
+                     gke_customization jewellery_erpnext gurukrupa_customizations \
+                     gurukrupa_biometric; do
+            echo "::group::install $app"
+            bench --site ci.localhost install-app "$app"
+            echo "::endgroup::"
+          done
+          echo "== all apps installed =="
+
+      - name: Patches apply cleanly
+        working-directory: ci-bench
+        run: |
+          echo "::group::bench migrate"
+          bench --site ci.localhost migrate
+          echo "::endgroup::"
+
+      - name: Run the HRMS test suite
+        working-directory: ci-bench/sites
+        run: |
+          ../env/bin/pip install --quiet coverage
+          cat > run_hrms_tests.py <<'PY'
+          import os, sys, unittest
+
+          import frappe
+
+          frappe.init(site="ci.localhost")
+          frappe.connect()
+          frappe.conf.max_number_of_jobs = 100000
+          frappe.flags.in_test = True
+
+          # `bench run-tests` runs every installed app's `before_tests` hook first.
+          # ERPNext's hook completes the setup wizard on a fresh site (Fiscal Year,
+          # Warehouse Types, Item Groups, enabled currencies, default roles...).
+          # `bench new-site` + `install-app` alone never does that, and
+          # GKHRMSTestCase.setup_master_data (Company, Warehouse Type "Transit",
+          # Department, Employee) assumes a completed setup. Running the same
+          # hooks here keeps the custom runner equivalent to run-tests.
+          frappe.clear_cache()
+          for _app in frappe.get_installed_apps():
+              for _hook in frappe.get_hooks("before_tests", app_name=_app):
+                  print(f"before_tests: {_app} -> {_hook}")
+                  frappe.get_attr(_hook)()
+          frappe.db.commit()
+
+          loader = unittest.TestLoader()
+          suite = loader.loadTestsFromName("gke_customization.gke_hrms.tests.test_sync_checkin")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+
+          failures, errors, skipped = len(result.failures), len(result.errors), len(result.skipped)
+          print(f"\nran {result.testsRun}, failures {failures}, errors {errors}, skipped {skipped}")
+          for test, reason in result.skipped:
+              print(f"SKIPPED: {test} -> {reason}")
+
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_path:
+              with open(summary_path, "a") as summary:
+                  summary.write("## HRMS test suite result\n\n")
+                  summary.write("| check | count |\n|---|---|\n")
+                  summary.write(f"| tests ran | {result.testsRun} |\n")
+                  summary.write(f"| failures | {failures} |\n")
+                  summary.write(f"| errors | {errors} |\n")
+                  summary.write(f"| skipped | {skipped} |\n\n")
+                  summary.write("suite module: `gke_customization.gke_hrms.tests.test_sync_checkin`\n")
+
+          if skipped:
+              sys.exit("the suite skipped itself - this job must really run the tests")
+          sys.exit(0 if result.wasSuccessful() else 1)
+          PY
+          ../env/bin/coverage run --source=gke_customization run_hrms_tests.py
+          echo "HRMS TEST SUITE: PASSED"
+
+      - name: Coverage report
+        if: always()
+        working-directory: ci-bench/sites
+        run: |
+          ../env/bin/coverage report -m --omit="*/tests/*" || true
+          ../env/bin/coverage xml -o coverage.xml || true
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-kggk-uat
+          path: ci-bench/sites/coverage.xml
+          if-no-files-found: ignore
+
+      # When install/migrate/tests die, the console tail is rarely enough.
+      - name: Dump bench and site logs on failure
+        if: failure()
+        run: |
+          for f in ci-bench/logs/*.log ci-bench/sites/ci.localhost/logs/*.log; do
+            if [ -f "$f" ]; then
+              echo "::group::$f"
+              tail -n 200 "$f"
+              echo "::endgroup::"
+            fi
+          done || true
