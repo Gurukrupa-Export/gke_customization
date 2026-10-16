@@ -540,13 +540,13 @@ frappe.ui.form.on('Repair Order Form Detail', {
 		var row = locals[cdt][cdn];
 		row.delivery_date = frm.doc.delivery_date;
 		row.diamond_quality = frm.doc.diamond_quality;
-		frappe.db.get_value("Customer", frm.doc.customer_code, "customer_name").then((r)=> {
-			if(r.message.customer_name){
-				if(r.message.customer_name.includes("Gurukrupa Export Private Limited")){
-					row.product_type = 'Company Goods'
-				}
-			}
-		});
+		// frappe.db.get_value("Customer", frm.doc.customer_code, "customer_name").then((r)=> {
+		// 	// if(r.message.customer_name){
+		// 	// 	if(r.message.customer_name.includes("Gurukrupa Export Private Limited")){
+		// 	// 		row.product_type = 'Company Goods'
+		// 	// 	}
+		// 	// }
+		// });
 		refresh_field("order_details");
 	},
 	category: function (frm, cdt, cdn) {
