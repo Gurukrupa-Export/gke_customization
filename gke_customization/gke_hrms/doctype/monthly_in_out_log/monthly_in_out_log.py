@@ -83,6 +83,13 @@ class MonthlyInOutLog(Document):
             if atten_doc:
                 self.db_set("attendance", atten_doc)
 
+    def on_cancel(self):
+        self.db_set(
+            "resolution_status",
+            "Cancelled",
+            update_modified=False,
+        )
+
     def validate_duplicate_entry(self):
         """One Monthly In-Out Log per employee + date."""
         if not (self.employee and self.attendance_date):
