@@ -123,8 +123,9 @@ override_doctype_class = {
 	"Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin",
     "Job Requisition": "gke_customization.overrides.job_requisition.CustomJobRequisition",
     "Payroll Entry": "gke_customization.overrides.payroll_entry.CustomPayrollEntry",
+    "Timesheet": "gke_customization.overrides.timesheet.CustomTimesheet",
     "Salary Structure Assignment": "gke_customization.overrides.salary_structure_assignment.CustomSalaryStructureAssignment",
-    # "Parent Manufacturing Order": "gke_customization.overrides.parent_manufacturing_order.CustomParentManufacturingOrder"
+    #   "Parent Manufacturing Order": "gke_customization.overrides.parent_manufacturing_order.CustomParentManufacturingOrder"
 }
 
 # Document Events
