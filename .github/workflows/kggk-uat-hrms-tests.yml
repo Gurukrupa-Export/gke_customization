@@ -215,6 +215,20 @@ jobs:
           bench --site ci.localhost set-config allow_tests true
           echo "== site ci.localhost created =="
 
+      # gke's fixtures are a raw dump of a production site (1300+ custom fields attributed
+      # to the "Jewellery Erpnext" module, and entries referencing doctypes that only exist
+      # on live benches). Syncing them during gke's own install inserts jewellery-module
+      # DocTypes, and frappe's DocType insert auto-creates the "Jewellery Erpnext" Module
+      # Def - so jewellery_erpnext's own installer then dies on the duplicate primary key.
+      # Park the folder for the installs and let the migrate step below sync it once every
+      # app is present and the Module Def already exists. Same approach jewellery_erpnext's
+      # own CI takes to this dump.
+      - name: Park gke fixtures during installs
+        working-directory: ci-bench/apps/gke_customization/gke_customization
+        run: |
+          mv fixtures fixtures_parked_during_install
+          echo "gke fixtures parked"
+
       - name: Install the apps
         working-directory: ci-bench
         run: |
@@ -232,6 +246,12 @@ jobs:
             echo "::endgroup::"
           done
           echo "== all 7 apps installed =="
+
+      - name: Unpark gke fixtures
+        working-directory: ci-bench/apps/gke_customization/gke_customization
+        run: |
+          mv fixtures_parked_during_install fixtures
+          echo "gke fixtures restored - the migrate step below syncs them"
 
       - name: Patches apply cleanly
         working-directory: ci-bench
