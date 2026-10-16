@@ -192,6 +192,26 @@ class SketchDashboard {
 			this.due_soon_days = Math.max(parseInt($(e.currentTarget).val(), 10) || 0, 0);
 			this.refresh();
 		});
+		// Tooltips inside scrolling tables: float the box above the table so it is not clipped
+		this.$body.on("mouseenter", ".sd-scrollbox .sd-tip", (e) => {
+			const tip = e.currentTarget;
+			const box = tip.querySelector(".sd-tip-box");
+			if (!box) return;
+			const r = tip.getBoundingClientRect();
+			const width = 300;
+			const left = Math.max(8, Math.min(r.right - width, window.innerWidth - width - 8));
+			box.style.position = "fixed";
+			box.style.left = left + "px";
+			box.style.right = "auto";
+			box.style.top = r.bottom + 6 + "px";
+			box.style.display = "block";
+			const bh = box.getBoundingClientRect().height;
+			if (r.bottom + 6 + bh > window.innerHeight) box.style.top = Math.max(8, r.top - bh - 6) + "px";
+		});
+		this.$body.on("mouseleave", ".sd-scrollbox .sd-tip", (e) => {
+			const box = e.currentTarget.querySelector(".sd-tip-box");
+			if (box) box.removeAttribute("style");
+		});
 		this.$body.on("input", ".sd-search", (e) => {
 			const table = $(e.currentTarget).attr("data-table");
 			this.search[table] = ($(e.currentTarget).val() || "").toLowerCase();
@@ -551,6 +571,27 @@ class SketchDashboard {
 		return `${this.num(approved)}/${this.num(total)} <span class="sd-rate ${cls}">${rate}%</span>`;
 	}
 
+	final_gap_tip(p, cell) {
+		// Explain why final sketches reviewed differ from rough sketches passed
+		const waiting = p.gap_waiting || 0;
+		const cancelled = p.gap_cancelled || 0;
+		const notTaken = p.gap_not_taken || 0;
+		if (!waiting && !cancelled && !notTaken) return cell;
+		const lines = [];
+		if (waiting) lines.push(`<b>${this.num(waiting)}</b> ${__("are waiting for the HOD final check (order still in progress).")}`);
+		if (cancelled) lines.push(`<b>${this.num(cancelled)}</b> ${__("were in orders that got cancelled.")}`);
+		if (notTaken) lines.push(`<b>${this.num(notTaken)}</b> ${__("were not taken to a final sketch (order moved ahead with fewer designs).")}`);
+		return `
+			<span class="sd-tip sd-tip-right">
+				${cell} <span class="sd-tip-icon">ⓘ</span>
+				<span class="sd-tip-box">
+					<b>${__("Rough passed")} ${this.num(p.rough_approved)} ${__("vs")} ${__("Final checked")} ${this.num(p.final_total)}</b><br>
+					${__("Rough and final are two separate HOD checks. Not every rough sketch has reached the final check yet.")}
+					<span class="sd-tip-list"><b>${__("Why {0} have not reached the final check yet", [this.num(waiting + cancelled + notTaken)])}:</b><br>${lines.join("<br>")}</span>
+				</span>
+			</span>`;
+	}
+
 	render_performance(d) {
 		const f = this.get_filters();
 		const period =
@@ -577,7 +618,7 @@ class SketchDashboard {
 					<td>${this.esc(p.name)}${flag}</td>
 					<td class="sd-n">${this.rate_cell(p.rough_approved, p.rough_total, p.rough_rate)}</td>
 					<td class="sd-n">${this.num(p.rough_rejected)}</td>
-					<td class="sd-n">${this.rate_cell(p.final_approved, p.final_total, p.final_rate)}</td>
+					<td class="sd-n">${this.final_gap_tip(p, this.rate_cell(p.final_approved, p.final_total, p.final_rate))}</td>
 					<td class="sd-n">${this.num(p.final_rejected)}</td>
 					<td class="sd-n">${this.num(p.final_hold)}</td>
 					<td class="sd-n">${this.num(p.cmo_approved)}</td>
@@ -604,7 +645,7 @@ class SketchDashboard {
 						<td>${__("Total")}</td>
 						<td class="sd-n">${this.rate_cell(t.rough_approved, t.rough_total, t.rough_rate)}</td>
 						<td class="sd-n">${this.num(t.rough_rejected)}</td>
-						<td class="sd-n">${this.rate_cell(t.final_approved, t.final_total, t.final_rate)}</td>
+						<td class="sd-n">${this.final_gap_tip(t, this.rate_cell(t.final_approved, t.final_total, t.final_rate))}</td>
 						<td class="sd-n">${this.num(t.final_rejected)}</td>
 						<td class="sd-n">${this.num(t.final_hold)}</td>
 						<td class="sd-n">${this.num(t.cmo_approved)}</td>
@@ -971,6 +1012,7 @@ class SketchDashboard {
 			padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color);
 			background: var(--card-bg); color: var(--text-color); font-size: 12.5px; line-height: 1.45;
 			box-shadow: 0 6px 20px rgba(0, 0, 0, .15); white-space: normal; }
+		.sd-tip-right .sd-tip-box { left: auto; right: 0; text-align: left; }
 		.sd-tip:hover .sd-tip-box, .sd-tip:focus-within .sd-tip-box { display: block; }
 		.sd-tip-list { display: block; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-color); color: var(--text-muted); }
 		.sd-tag-warn { color: var(--sd-stopped); background: rgba(181, 71, 58, .12); }

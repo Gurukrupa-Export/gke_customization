@@ -365,8 +365,51 @@ def _designer_performance(f):
 		e = entry(r.designer, r.designer_name)
 		e["cmo_approved"] += cint(r.c)
 
+	# Why "rough sketch approved" and "final sketch reviewed" differ: per order and
+	# designer, rough sketches passed minus final sketches reviewed, grouped by the
+	# order's current stage.
+	gap_rows = frappe.db.sql(
+		f"""
+		select x.parent, x.dkey, max(x.dname) as dname, sum(x.rough_pass) as rough_pass,
+			sum(x.final_seen) as final_seen, max(so.workflow_state) as workflow_state,
+			max(so.docstatus) as docstatus
+		from (
+			select t.parent, ifnull(t.designer, t.designer_name) as dkey, t.designer_name as dname,
+				ifnull(t.approved, 0) as rough_pass, 0 as final_seen
+			from `tabRough Sketch Approval` t
+			join `tabSketch Order` so on so.name = t.parent
+			where t.parenttype = 'Sketch Order' and {where} {extra}
+			union all
+			select t.parent, ifnull(t.designer, t.designer_name), t.designer_name, 0,
+				ifnull(t.approved, 0) + ifnull(t.reject, 0) + ifnull(t.hold, 0)
+			from `tabFinal Sketch Approval HOD` t
+			join `tabSketch Order` so on so.name = t.parent
+			where t.parenttype = 'Sketch Order' and {where} {extra}
+		) x
+		join `tabSketch Order` so on so.name = x.parent
+		group by x.parent, x.dkey
+		""",
+		params,
+		as_dict=True,
+	)
+	for g in gap_rows:
+		missing = cint(g.rough_pass) - cint(g.final_seen)
+		if missing <= 0:
+			continue
+		e = entry(g.dkey if g.dkey != g.dname else None, g.dname)
+		b = _bucket(g)
+		if b == "cancelled":
+			kind = "gap_cancelled"
+		elif b in ("draft", "assigned", "rough_hod", "final_hod", "customer_approval", "on_hold"):
+			kind = "gap_waiting"
+		else:
+			kind = "gap_not_taken"
+		e[kind] = e.get(kind, 0) + missing
+
 	result = []
 	for e in perf.values():
+		for k in ("gap_waiting", "gap_cancelled", "gap_not_taken"):
+			e.setdefault(k, 0)
 		rough_total = e["rough_approved"] + e["rough_rejected"]
 		final_total = e["final_approved"] + e["final_rejected"] + e["final_hold"]
 		e["rough_total"] = rough_total
@@ -386,6 +429,9 @@ def _designer_performance(f):
 			"final_rejected",
 			"final_hold",
 			"cmo_approved",
+			"gap_waiting",
+			"gap_cancelled",
+			"gap_not_taken",
 		)
 	}
 	totals["rough_total"] = totals["rough_approved"] + totals["rough_rejected"]
