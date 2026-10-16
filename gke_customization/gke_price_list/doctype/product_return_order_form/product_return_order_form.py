@@ -181,11 +181,11 @@ class ProductReturnOrderForm(Document):
 	def before_validate(self):
 		
 		gold_gst_rate = frappe.db.get_single_value("Jewellery Settings", "gold_gst_rate")
-		for row in self.items:
-			if flt(row.physical_gross_weight) >flt(row.gross_weight):
-				frappe.throw("Physical  GrossWeight should not be greater than Gross weight ")
-			if flt(row.physical_net_weight) >flt(row.net_weight):
-				frappe.throw("Physical Net Weight should not be greater than Net weight ")
+		# for row in self.items:
+		# 	if flt(row.physical_gross_weight) >flt(row.gross_weight):
+		# 		frappe.throw("Physical  GrossWeight should not be greater than Gross weight ")
+		# 	if flt(row.physical_net_weight) >flt(row.net_weight):
+		# 		frappe.throw("Physical Net Weight should not be greater than Net weight ")
 		# 	row.rate = row.rate
 		# 	row.amount = row.amount
 		# 	row.base_rate=row.rate
@@ -1241,11 +1241,16 @@ class ProductReturnOrderForm(Document):
 				if summary_totals.get("gross_wt") is not None:
 					product_order.gross_weight = summary_totals.get("gross_wt")
 
-				product_order.metal_amount = totals.get("metal_totals", {}).get("total_amount")
-				product_order.diamond_amount = totals.get("diamond_totals", {}).get("total_amount")
-				product_order.gemstone_amount = totals.get("stone_totals", {}).get("total_amount")
-				product_order.finding_amount = totals.get("finding_totals", {}).get("total_amount")
-				product_order.other_material_amount = totals.get("other_totals", {}).get("total_amount")
+				# product_order.metal_amount = totals.get("metal_totals", {}).get("total_amount")
+				# product_order.diamond_amount = totals.get("diamond_totals", {}).get("total_amount")
+				# product_order.gemstone_amount = totals.get("stone_totals", {}).get("total_amount")
+				# product_order.finding_amount = totals.get("finding_totals", {}).get("total_amount")
+				# product_order.other_material_amount = totals.get("other_totals", {}).get("total_amount")
+				product_order.metal_amount = item_row.metal_amount
+				product_order.diamond_amount = item_row.diamond_amount
+				product_order.gemstone_amount = item_row.gemstone_amount
+				product_order.finding_amount = item_row.finding_amount
+				product_order.other_material_amount = item_row.other_material_amount
 
 				product_order.making_amount = flt(charges_info.get("metal_making_amount")) + flt(charges_info.get("chain_making_amount"))
 				product_order.certification_amount = charges_info.get("certificate_charges")
