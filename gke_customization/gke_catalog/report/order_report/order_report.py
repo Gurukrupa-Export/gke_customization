@@ -238,7 +238,7 @@ def get_data(filters):
     b.item_subcategory AS bom_subcategory,
     b.metal_target AS bom_metal_target,
     b.diamond_target AS bom_dia_target,
-    b.gemstone_type1 AS bom_gemstone_type,
+    b.gemstone_type AS bom_gemstone_type,
 
     bmd.metal_type AS bom_metal_type,
 	bmd.metal_touch AS bom_metal_touch,
