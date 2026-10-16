@@ -1038,6 +1038,8 @@ def create_line_items(self):
 
     if self.item_type == "Template and Variant":
         item_template = create_item_template_from_order(self)
+        if isinstance(item_template, (tuple, list)):
+            item_template = item_template[0]
         update_item_template(item_template)
         item_variant = create_variant_of_template_from_order(item_template, self.name)
         update_item_variant(item_variant, item_template)
