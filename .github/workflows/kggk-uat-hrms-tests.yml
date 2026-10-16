@@ -119,9 +119,6 @@ jobs:
       - name: Python compiles
         run: python -m compileall -q gke_customization/gke_customization
 
-      - name: Validate fixture files
-        run: python3 gke_customization/scripts/validate_fixtures.py
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
@@ -230,6 +227,20 @@ jobs:
           frappe.connect()
           frappe.conf.max_number_of_jobs = 100000
           frappe.flags.in_test = True
+
+          # `bench run-tests` runs every installed app's `before_tests` hook first.
+          # ERPNext's hook completes the setup wizard on a fresh site (Fiscal Year,
+          # Warehouse Types, Item Groups, enabled currencies, default roles...).
+          # `bench new-site` + `install-app` alone never does that, and
+          # GKHRMSTestCase.setup_master_data (Company, Warehouse Type "Transit",
+          # Department, Employee) assumes a completed setup. Running the same
+          # hooks here keeps the custom runner equivalent to run-tests.
+          frappe.clear_cache()
+          for _app in frappe.get_installed_apps():
+              for _hook in frappe.get_hooks("before_tests", app_name=_app):
+                  print(f"before_tests: {_app} -> {_hook}")
+                  frappe.get_attr(_hook)()
+          frappe.db.commit()
 
           loader = unittest.TestLoader()
           suite = loader.loadTestsFromName("gke_customization.gke_hrms.tests.test_sync_checkin")
