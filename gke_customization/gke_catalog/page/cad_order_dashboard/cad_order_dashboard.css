@@ -764,6 +764,11 @@
 	font-weight: 400;
 }
 
+.cad-order-notifications__category-icon {
+	display: inline-block;
+	margin-right: 4px;
+}
+
 .cad-order-notifications__item {
 	padding: 8px;
 	border-bottom: 1px solid var(--border-color);
