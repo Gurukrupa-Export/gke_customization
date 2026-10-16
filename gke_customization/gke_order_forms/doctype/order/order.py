@@ -1026,7 +1026,7 @@ def create_line_items(self):
 
     if self.item_type == "Template and Variant":
         item_template = create_item_template_from_order(self)
-        updatet_item_template(item_template)
+        update_item_template(item_template)
         item_variant = create_variant_of_template_from_order(item_template, self.name)
         update_item_variant(item_variant, item_template)
 
@@ -1763,7 +1763,12 @@ def create_variant_of_sufix_of_variant_from_order(self,item_template,source_name
 	doc.save()
 	return doc.name
 
-def updatet_item_template(item_template):
+def update_item_template(item_template):
+	if isinstance(item_template, (tuple, list)):
+		item_template = item_template[0]
+
+	if not item_template:
+		frappe.throw("Item template is missing.")
 	frappe.db.set_value('Item',item_template,{
 		"is_design_code":0,
 		"item_code":item_template,
