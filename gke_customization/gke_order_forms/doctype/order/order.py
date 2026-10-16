@@ -1026,7 +1026,7 @@ def create_line_items(self):
 
     if self.item_type == "Template and Variant":
         item_template = create_item_template_from_order(self)
-        update_item_template(item_template)
+        updatet_item_template(item_template)
         item_variant = create_variant_of_template_from_order(item_template, self.name)
         update_item_variant(item_variant, item_template)
 
