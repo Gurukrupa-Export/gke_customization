@@ -13,30 +13,30 @@
  */
 
 .mfgdash {
-	/* light palette (default) — warm parchment workshop-floor look */
-	--mfg-bg: #f3ecdd;
-	--mfg-panel: #fffbf2;
-	--mfg-panel-alt: #f8f0dd;
-	--mfg-border: #ddccA4;
-	--mfg-border-soft: #e9dcbd;
-	--mfg-ink: #221808;
-	--mfg-ink-dim: #4f3f24;
-	--mfg-ink-faint: #6e5c3c;
-	--mfg-brass: #a8781f;
-	--mfg-brass-bright: #c2953a;
-	--mfg-copper: #a5572a;
-	--mfg-steel: #2f6f92;
-	--mfg-emerald: #2c8a5f;
-	--mfg-amber: #ad7115;
-	--mfg-red: #bb3d2f;
-	--mfg-track: #e9dcc0;
+	/* light palette (default) — soft blush / pink brand look */
+	--mfg-bg: #fbeef2;
+	--mfg-panel: #fffafb;
+	--mfg-panel-alt: #fdeef3;
+	--mfg-border: #e8c3d0;
+	--mfg-border-soft: #f1d9e2;
+	--mfg-ink: #2a1219;
+	--mfg-ink-dim: #5c3a47;
+	--mfg-ink-faint: #7d5766;
+	--mfg-brass: #b83a6b;          /* primary brand pink (replaces brass) */
+	--mfg-brass-bright: #d9608f;   /* lighter pink for highlights/hover */
+	--mfg-copper: #c4553f;         /* warm coral accent */
+	--mfg-steel: #4d6aa3;          /* cool periwinkle for contrast/info */
+	--mfg-emerald: #2a8a63;
+	--mfg-amber: #b57412;
+	--mfg-red: #b3202f;            /* deep crimson so errors don't blend with brand pink */
+	--mfg-track: #f3dce5;
 	--mfg-lamp-idle-a: #ffffff;
-	--mfg-lamp-idle-b: #d8c8a4;
-	/* 3D depth tokens: soft/strong drop shadows + a bevel highlight/shade pair for embossed edges */
-	--mfg-shadow-soft: rgba(60, 44, 16, 0.16);
-	--mfg-shadow-strong: rgba(60, 44, 16, 0.28);
-	--mfg-bevel-hi: rgba(255, 255, 255, 0.75);
-	--mfg-bevel-lo: rgba(60, 44, 16, 0.18);
+	--mfg-lamp-idle-b: #e6c9d5;
+	/* 3D depth tokens */
+	--mfg-shadow-soft: rgba(90, 30, 55, 0.14);
+	--mfg-shadow-strong: rgba(90, 30, 55, 0.26);
+	--mfg-bevel-hi: rgba(255, 255, 255, 0.8);
+	--mfg-bevel-lo: rgba(90, 30, 55, 0.16);
 	--mfg-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 	--mfg-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
@@ -46,8 +46,8 @@
 	padding: 18px 20px 40px;
 	min-height: 100%;
 	background-image:
-		radial-gradient(ellipse 900px 400px at 15% -10%, rgba(217, 173, 92, 0.08), transparent 60%),
-		radial-gradient(ellipse 700px 500px at 100% 0%, rgba(111, 168, 201, 0.06), transparent 55%);
+		radial-gradient(ellipse 900px 400px at 15% -10%, rgba(232, 120, 160, 0.12), transparent 60%),
+		radial-gradient(ellipse 700px 500px at 100% 0%, rgba(77, 106, 163, 0.06), transparent 55%);
 }
 
 .mfgdash * {
@@ -491,6 +491,13 @@
 	font-size: 11px;
 	font-weight: 600;
 	color: var(--mfg-ink-dim);
+}
+
+/* second readout line (On Hold / Cancelled split), tucked under the weights */
+.mfg-kpi__readout--sub {
+	margin-top: 5px;
+	padding-top: 0;
+	border-top: 0;
 }
 
 .mfg-kpi__readout span b {
@@ -1308,11 +1315,14 @@
 	overflow: auto;
 }
 
-/* header stays visible while the order list scrolls */
-.mfg-drill__body--tall .mfg-orders thead th {
+/* header (column names + search boxes) stays visible while the order list scrolls */
+.mfg-drill__body--tall .mfg-orders thead {
 	position: sticky;
 	top: 0;
-	z-index: 1;
+	z-index: 2;
+}
+
+.mfg-drill__body--tall .mfg-orders thead th {
 	background: var(--mfg-panel);
 }
 
@@ -1445,6 +1455,17 @@
 	scrollbar-width: thin;
 }
 
+/* Total row: pinned to the bottom of the scrolling table, like the header is to the top */
+.mfg-orders__total td {
+	position: sticky;
+	bottom: 0;
+	z-index: 1;
+	background: var(--mfg-panel);
+	border-top: 1px solid var(--mfg-border);
+	border-bottom: 0;
+	font-weight: 700;
+}
+
 .mfg-orders__no {
 	font-family: var(--mfg-mono);
 	font-size: 11px;
@@ -1484,6 +1505,22 @@
 	line-height: 1;
 	cursor: pointer;
 	box-shadow: 0 1px 0 var(--mfg-bevel-hi) inset;
+}
+
+.mfg-pager__export {
+	padding: 3px 10px;
+	border: 1px solid var(--mfg-border);
+	border-radius: 4px;
+	background: var(--mfg-panel-alt);
+	color: var(--mfg-ink);
+	font-size: 11px;
+	font-weight: 600;
+	cursor: pointer;
+	box-shadow: 0 1px 0 var(--mfg-bevel-hi) inset;
+}
+
+.mfg-pager__export:hover {
+	border-color: var(--mfg-brass);
 }
 
 .mfg-pager__nav button:hover:not([disabled]) {
