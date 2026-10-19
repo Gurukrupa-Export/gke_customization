@@ -32,12 +32,20 @@ class ManufacturingDashboard {
 
 		this.due_soon_days = 2;
 
+		// KPI cards that open an order list on click, keyed by order_summary key
+		this.KPI_LISTS = {
+			pending: __('Pending to Generate'),
+			in_progress: __('In Progress Orders'),
+			on_hold: __('On Hold / Cancelled Orders'),
+		};
+
 		const api = 'gke_customization.gke_catalog.report.mfg_dashboard_script.mfg_dashboard_script.';
 		this.stage_method = api + 'get_stage_details';
 		this.detail_method = api + 'get_order_details';
 		this.alert_method = api + 'get_alert_orders';
-		this.alert_export_method = api + 'export_alert_orders';
+		this.export_method = api + 'export_order_list';
 		this.department_pieces_method = api + 'get_department_pieces';
+		this.summary_orders_method = api + 'get_summary_orders';
 		this.image_method = api + 'get_catalogue_image';
 		this.STATUS_COLORS = {
 			'In Progress': 'var(--mfg-steel)',
@@ -274,8 +282,18 @@ class ManufacturingDashboard {
 				const pct = total ? Math.min(100, Math.round((row.count / total) * 1000) / 10) : 0;
 				const accent = this.ACCENTS[row.key] || 'var(--mfg-brass)';
 				const icon = this.ICONS[row.key] || '📊';
+				const clickable = row.key in this.KPI_LISTS;
+				// On Hold / Cancelled also splits its count into the two under the weights
+				const split =
+					row.key === 'on_hold'
+						? `<div class="mfg-kpi__readout mfg-kpi__readout--sub">
+								<span>On Hold <b>${this.fmt_count(row.on_hold)}</b></span>
+								<span>Cancelled <b>${this.fmt_count(row.cancelled)}</b></span>
+							</div>`
+						: '';
 				return `
-					<div class="mfg-kpi" style="--mfg-accent:${accent};--mfg-delay:${i * 60}ms" data-key="${row.key}">
+					<div class="mfg-kpi" style="--mfg-accent:${accent};--mfg-delay:${i * 60}ms" data-key="${row.key}"
+						${clickable ? `title="${__('Click to view orders')}"` : ''}>
 						<div class="mfg-kpi__label">${frappe.utils.escape_html(row.label)}</div>
 						<div class="mfg-kpi__body">
 							<div class="mfg-kpi__ring" data-field="ring" data-pct="${pct}" style="--pct:0">
@@ -288,11 +306,17 @@ class ManufacturingDashboard {
 							<span>Metal <b>${this.fmt_wt(row.gold_wt, 'g')}</b></span>
 							<span>Dia <b>${this.fmt_wt(row.diamond_wt, 'ct')}</b></span>
 						</div>
+						${split}
 					</div>`;
 			})
 			.join('');
 
 		this.$kpi_row.html(html);
+
+		this.$kpi_row.find('.mfg-kpi').on('click', (e) => {
+			const key = e.currentTarget.dataset.key;
+			if (key in this.KPI_LISTS) this.show_summary_orders(key);
+		});
 
 		// two-step so the browser paints --pct:0 first, then transitions to the real value
 		// (a CSS transition never fires if the target value is already there on first paint).
@@ -635,6 +659,7 @@ class ManufacturingDashboard {
 						<i class="mfg-dot" style="background:${this.STATUS_COLORS[o.stage_status] || 'var(--mfg-border)'}"
 							title="${frappe.utils.escape_html(o.stage_status)}"></i>${esc(o.order_no)}
 					</td>
+					<td>${this.mwo_link_html(o.mwo)}</td>
 					<td>${esc(o.design_no)}</td>
 					<td>${esc(o.item_category)}</td>
 					<td class="is-num">${this.fmt_wt(o.gold_wt, '').trim()}</td>
@@ -646,21 +671,79 @@ class ManufacturingDashboard {
 			)
 			.join('');
 
+		// columns after Order No, as far as the Total row is concerned
+		const total_columns = [
+			{ value: () => '' },
+			{ value: () => '' },
+			{ value: () => '' },
+			{ num: true, sum: 'gold_wt', value: (o) => this.fmt_wt(o.gold_wt, '').trim() },
+			{ num: true, sum: 'diamond_wt', value: (o) => this.fmt_wt(o.diamond_wt, '').trim() },
+			{ value: () => '' },
+			{ value: () => '' },
+			{ value: () => '' },
+		];
+
 		// every order is loaded; the table scrolls inside the fixed-height panel (header stays pinned)
 		this.$orders.html(`
 			<div class="mfg-orders__scroll">
 				<table class="mfg-table mfg-orders">
-					<thead><tr>
-						<th>${__('Order No')}</th><th>${__('Design No')}</th><th>${__('Item')}</th>
-						<th class="is-num">${__('Metal (g)')}</th><th class="is-num">${__('Dia (ct)')}</th>
-						<th>${__('Issue Date')}</th><th>${__('Due Date')}</th><th>${__('Employee')}</th>
-					</tr></thead>
+					<thead>
+						<tr>
+							<th>${__('Order No')}</th><th>${__('MWO')}</th><th>${__('Design No')}</th><th>${__('Item')}</th>
+							<th class="is-num">${__('Metal (g)')}</th><th class="is-num">${__('Dia (ct)')}</th>
+							<th>${__('Issue Date')}</th><th>${__('Due Date')}</th><th>${__('Employee')}</th>
+						</tr>
+						${this.search_row_html(total_columns.length + 1)}
+					</thead>
 					<tbody>${rows}</tbody>
+					<tfoot>${this.order_totals_row(total_columns, orders)}</tfoot>
 				</table>
 			</div>
 			<div class="mfg-pager">
-				<span>${__('Total Records')}: <b>${this.fmt_count(data.order_count)}</b></span>
+				<span>${__('Total Records')}: <b data-field="shown">${this.fmt_count(data.order_count)}</b></span>
+				<button type="button" class="mfg-pager__export" data-field="export-orders">${__('Export Excel')}</button>
 			</div>`);
+
+		// rows left on screen after the column searches - what the Total row and the export cover
+		let shown = orders;
+		this.bind_column_search(this.$orders, orders, (rows, searching) => {
+			shown = rows;
+			this.$orders.find('tfoot').html(this.order_totals_row(total_columns, shown));
+			this.$orders.find('[data-field="shown"]').text(
+				searching
+					? __('{0} of {1}', [this.fmt_count(shown.length), this.fmt_count(data.order_count)])
+					: this.fmt_count(data.order_count)
+			);
+		});
+
+		// same Excel export as the order-list dialogs: the rows on screen, plus the Total row
+		this.$orders.find('[data-field="export-orders"]').on('click', () => {
+			const sum = (field) => flt(shown.reduce((acc, o) => acc + (Number(o[field]) || 0), 0), 3);
+			const day = (v) => (v ? frappe.datetime.str_to_user(String(v).split(' ')[0]) : '');
+			const sel = this.selection;
+			open_url_post(frappe.request.url, {
+				cmd: this.export_method,
+				title: `${__('Order List')} ${sel ? sel.label : ''} ${this.drill.status || __('All')}`,
+				rows: JSON.stringify([
+					[__('Order No'), __('MWO'), __('Design No'), __('Item'), __('Metal (g)'), __('Dia (ct)'), __('Issue Date'), __('Due Date'), __('Employee')],
+					...shown.map((o) => [
+						o.order_no || '',
+						o.mwo || '',
+						o.design_no || '',
+						o.item_category || '',
+						flt(o.gold_wt, 3),
+						flt(o.diamond_wt, 3),
+						day(o.issue_date),
+						day(o.due_date),
+						o.employee_name || o.employee || '',
+					]),
+					[__('Total'), '', '', '', sum('gold_wt'), sum('diamond_wt'), '', '', ''],
+				]),
+			});
+		});
+
+		// the MWO link opens in a new tab without also selecting the row
+		this.$orders.find('[data-field="order-row"] a').on('click', (e) => e.stopPropagation());
 
 		this.$orders.find('[data-field="order-row"]').on('click', (e) => {
 			this.drill.order = e.currentTarget.dataset.order;
@@ -718,7 +801,7 @@ class ManufacturingDashboard {
 					${field(__('Status'), status)}
 					${field(__('Employee'), esc(d.employee_name || d.employee))}
 					${field(__('Issue Date'), date(d.issue_date))}
-					${field(__('Work Order'), esc(d.work_order))}
+					${field(__('Work Order'), this.mwo_link_html(d.work_order))}
 				</dl>
 				<div class="mfg-detail__materials">
 					<div class="mfg-detail__heading">${__('Materials & Weight')}</div>
@@ -943,15 +1026,14 @@ class ManufacturingDashboard {
 					? __('Overdue Orders')
 					: __('Orders Due Within {0} Days', [this.due_soon_days]),
 			method: this.alert_method,
-			export_method: this.alert_export_method,
 			args: { alert },
 			columns: [
 				{ label: __('Customer'), value: (o, esc) => esc(o.customer) },
 				{ label: __('Design No'), value: (o, esc) => esc(o.design_no) },
 				{ label: __('Item'), value: (o, esc) => esc(o.item_category) },
 				{ label: __('Department'), value: (o, esc) => esc(o.department) },
-				{ label: __('Metal (g)'), num: true, value: (o) => this.fmt_wt(o.gold_wt, '').trim() },
-				{ label: __('Dia (ct)'), num: true, value: (o) => this.fmt_wt(o.diamond_wt, '').trim() },
+				{ label: __('Metal (g)'), num: true, sum: 'gold_wt', value: (o) => this.fmt_wt(o.gold_wt, '').trim() },
+				{ label: __('Dia (ct)'), num: true, sum: 'diamond_wt', value: (o) => this.fmt_wt(o.diamond_wt, '').trim() },
 				{ label: __('Due Date'), value: (o, esc, date) => date(o.due_date) },
 				{ label: __('Due'), value: (o) => days(o.days_left) },
 			],
@@ -969,8 +1051,8 @@ class ManufacturingDashboard {
 				{ label: __('Design No'), value: (o, esc) => esc(o.design_no) },
 				{ label: __('Item'), value: (o, esc) => esc(o.item_category) },
 				{ label: __('Operation'), value: (o, esc) => esc(o.operation) },
-				{ label: __('Metal (g)'), num: true, value: (o) => this.fmt_wt(o.gold_wt, '').trim() },
-				{ label: __('Dia (ct)'), num: true, value: (o) => this.fmt_wt(o.diamond_wt, '').trim() },
+				{ label: __('Metal (g)'), num: true, sum: 'gold_wt', value: (o) => this.fmt_wt(o.gold_wt, '').trim() },
+				{ label: __('Dia (ct)'), num: true, sum: 'diamond_wt', value: (o) => this.fmt_wt(o.diamond_wt, '').trim() },
 				{ label: __('Issue Date'), value: (o, esc, date) => date(o.issue_date) },
 				{ label: __('Due Date'), value: (o, esc, date) => date(o.due_date) },
 				{ label: __('Employee'), value: (o, esc) => esc(o.employee_name || o.employee) },
@@ -978,31 +1060,75 @@ class ManufacturingDashboard {
 		});
 	}
 
+	// Rows behind the Pending to Generate / In Progress / On Hold-Cancelled KPI cards. Pending and
+	// On Hold/Cancelled are Sales Order Items (no manufacturing order yet), In Progress is pieces.
+	show_summary_orders(kind) {
+		const title = this.KPI_LISTS[kind];
+		const common = [
+			{ label: __('Customer'), value: (o, esc) => esc(o.customer) },
+			{ label: __('Design No'), value: (o, esc) => esc(o.design_no) },
+			{ label: __('Item'), value: (o, esc) => esc(o.item_category) },
+		];
+
+		if (kind === 'in_progress') {
+			this.show_order_list({
+				title,
+				method: this.summary_orders_method,
+				args: { kind },
+				columns: [
+					...common,
+					{ label: __('Department'), value: (o, esc) => esc(o.department) },
+					{ label: __('Operation'), value: (o, esc) => esc(o.operation) },
+					{ label: __('Metal (g)'), num: true, sum: 'gold_wt', value: (o) => this.fmt_wt(o.gold_wt, '').trim() },
+					{ label: __('Dia (ct)'), num: true, sum: 'diamond_wt', value: (o) => this.fmt_wt(o.diamond_wt, '').trim() },
+					{ label: __('Due Date'), value: (o, esc, date) => date(o.due_date) },
+				],
+			});
+			return;
+		}
+
+		this.show_order_list({
+			title,
+			method: this.summary_orders_method,
+			args: { kind },
+			link: { label: __('Sales Order'), route: 'sales-order', field: 'sales_order' },
+			columns: [
+				...common,
+				{ label: __('Qty'), num: true, sum: 'qty', value: (o) => this.fmt_count(o.qty) },
+				{ label: __('Metal (g)'), num: true, sum: 'gold_wt', value: (o) => this.fmt_wt(o.gold_wt, '').trim() },
+				{ label: __('Dia (ct)'), num: true, sum: 'diamond_wt', value: (o) => this.fmt_wt(o.diamond_wt, '').trim() },
+				{ label: __('Order Date'), value: (o, esc, date) => date(o.order_date) },
+				{ label: __('Delivery Date'), value: (o, esc, date) => date(o.due_date) },
+				...(kind === 'on_hold' ? [{ label: __('Status'), value: (o, esc) => esc(o.so_status) }] : []),
+			],
+		});
+	}
+
 	// Shared order-list dialog: the whole list in one scrollable table with a search box under
-	// every column header. The first column is always the Order No, linked to its Parent
-	// Manufacturing Order. An Export Excel button is added only when export_method is given.
-	show_order_list({ title, method, export_method, args, columns }) {
-		// undefined filters are dropped - open_url_post would send them as the string "undefined"
+	// every column header. The first column is the Order No linked to its Parent Manufacturing
+	// Order, unless `link` names another doctype field. Export Excel downloads the table as it is
+	// on screen (rows left after any column search, plus the Total row).
+	show_order_list({ title, method, args, columns, link }) {
+		// undefined filters are dropped so they aren't sent as the string "undefined"
 		args = { ...this.build_call_args(), ...args };
 		Object.keys(args).forEach((k) => args[k] === undefined && delete args[k]);
 
 		const dialog = new frappe.ui.Dialog({
 			title,
 			size: 'extra-large',
-			...(export_method
-				? {
-						primary_action_label: __('Export Excel'),
-						primary_action: () => {
-							// while a column search is active, only the rows left on screen are exported
-							const visible = $body.data('visible_orders');
-							open_url_post(frappe.request.url, {
-								cmd: export_method,
-								...args,
-								...(visible ? { order_nos: visible } : {}),
-							});
-						},
-				  }
-				: {}),
+			primary_action_label: __('Export Excel'),
+			primary_action: () => {
+				const export_rows = $body.data('export_rows');
+				if (!export_rows) {
+					frappe.show_alert({ message: __('Nothing to export'), indicator: 'orange' });
+					return;
+				}
+				open_url_post(frappe.request.url, {
+					cmd: this.export_method,
+					title,
+					rows: JSON.stringify(export_rows()),
+				});
+			},
 		});
 		// wrapped in .mfgdash so the dialog (appended to <body>) picks up the dashboard's theme tokens
 		const $body = $('<div class="mfgdash mfgdash--dialog"><div class="mfg-alert-orders"></div></div>')
@@ -1016,7 +1142,7 @@ class ManufacturingDashboard {
 			args,
 			freeze: false,
 			callback: (r) => {
-				if (r.message) this.render_order_list($body, r.message, columns);
+				if (r.message) this.render_order_list($body, r.message, columns, link);
 			},
 			error: () => {
 				$body.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Could not load orders.')}</div>`);
@@ -1024,7 +1150,24 @@ class ManufacturingDashboard {
 		});
 	}
 
-	render_order_list($body, data, columns) {
+	mwo_link_html(mwo) {
+		if (!mwo) return '—';
+		return `<a href="/app/manufacturing-work-order/${encodeURIComponent(mwo)}" target="_blank"
+			rel="noopener">${frappe.utils.escape_html(mwo)}</a>`;
+	}
+
+	// "Total" footer row for an order table: every column with a `sum` field is added up over
+	// `orders` and shown through the column's own formatter; the rest stay blank.
+	order_totals_row(columns, orders) {
+		const cells = columns.map((c) => {
+			if (!c.sum) return '<td></td>';
+			const total = orders.reduce((acc, o) => acc + (Number(o[c.sum]) || 0), 0);
+			return `<td${c.num ? ' class="is-num"' : ''}>${c.value({ [c.sum]: total })}</td>`;
+		});
+		return `<tr class="mfg-orders__total"><td>${__('Total')}</td>${cells.join('')}</tr>`;
+	}
+
+	render_order_list($body, data, columns, link) {
 		const orders = data.orders || [];
 		if (!orders.length) {
 			$body.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('No orders.')}</div>`);
@@ -1033,66 +1176,109 @@ class ManufacturingDashboard {
 
 		const date = (v) => (v ? frappe.datetime.str_to_user(String(v).split(' ')[0]) : '—');
 		const esc = (v) => frappe.utils.escape_html(v || '—');
+		// lists keyed on the Parent Manufacturing Order also show its main "-01" MWO next to it
+		if (!link) {
+			link = { label: __('Order No'), route: 'parent-manufacturing-order', field: 'order_no' };
+			columns = [{ label: __('MWO'), value: (o) => this.mwo_link_html(o.mwo) }, ...columns];
+		}
 
 		const rows = orders
 			.map(
 				(o) => `
-				<tr data-order="${frappe.utils.escape_html(o.order_no)}">
+				<tr data-order="${frappe.utils.escape_html(o[link.field])}">
 					<td class="mfg-orders__no">
-						<i class="mfg-dot" style="background:${this.STATUS_COLORS[o.stage_status] || 'var(--mfg-border)'}"
-							title="${frappe.utils.escape_html(o.stage_status)}"></i><a
-							href="/app/parent-manufacturing-order/${encodeURIComponent(o.order_no)}"
-							target="_blank" rel="noopener">${esc(o.order_no)}</a>
+						${
+							o.stage_status
+								? `<i class="mfg-dot" style="background:${this.STATUS_COLORS[o.stage_status] || 'var(--mfg-border)'}"
+									title="${frappe.utils.escape_html(o.stage_status)}"></i>`
+								: ''
+						}<a href="/app/${link.route}/${encodeURIComponent(o[link.field])}"
+							target="_blank" rel="noopener">${esc(o[link.field])}</a>
 					</td>
 					${columns.map((c) => `<td${c.num ? ' class="is-num"' : ''}>${c.value(o, esc, date)}</td>`).join('')}
 				</tr>`
 			)
 			.join('');
 
-		const headers = [{ label: __('Order No') }, ...columns]
+		const headers = [{ label: link.label }, ...columns]
 			.map((c) => `<th${c.num ? ' class="is-num"' : ''}>${c.label}</th>`)
 			.join('');
-		// a search box under every column header
-		const search_row = Array.from(
-			{ length: columns.length + 1 },
-			(_, i) => `<th><input type="search" class="mfg-orders__search" data-col="${i}"
-				placeholder="${__('Search')}" autocomplete="off"></th>`
-		).join('');
-
 		// whole list in one table; it scrolls inside the dialog with the header pinned
 		$body.html(`
 			<div class="mfg-orders__scroll">
 				<table class="mfg-table mfg-orders">
 					<thead>
 						<tr>${headers}</tr>
-						<tr class="mfg-orders__search-row">${search_row}</tr>
+						${this.search_row_html(columns.length + 1)}
 					</thead>
 					<tbody>${rows}</tbody>
+					<tfoot>${this.order_totals_row(columns, orders)}</tfoot>
 				</table>
 			</div>
 			<div class="mfg-pager">
 				<span>${__('Total Records')}: <b data-field="shown">${this.fmt_count(data.order_count)}</b></span>
 			</div>`);
 
-		// rows are matched on the text shown in each cell (case-insensitive, all searches must match)
-		const $rows = $body.find('tbody tr');
+		// rows left on screen after the column searches - what the Total row and the export cover
+		let shown = orders;
+
+		// Excel rows: same columns and text as the table; summed columns go out as plain numbers
+		// (3 decimals) so they stay numeric in Excel
+		const strip = (html) => {
+			const text = $('<div>').html(html).text().trim();
+			return text === '—' ? '' : text;
+		};
+		$body.data('export_rows', () => [
+			[link.label, ...columns.map((c) => c.label)],
+			...shown.map((o) => [
+				o[link.field] || '',
+				...columns.map((c) => (c.sum ? flt(o[c.sum], 3) : strip(c.value(o, esc, date)))),
+			]),
+			[
+				__('Total'),
+				...columns.map((c) => (c.sum ? flt(shown.reduce((acc, o) => acc + (Number(o[c.sum]) || 0), 0), 3) : '')),
+			],
+		]);
+
+		this.bind_column_search($body, orders, (rows, searching) => {
+			shown = rows;
+			// the Total row always adds up just the rows left on screen
+			$body.find('tfoot').html(this.order_totals_row(columns, shown));
+			$body.find('[data-field="shown"]').text(
+				searching
+					? __('{0} of {1}', [this.fmt_count(shown.length), this.fmt_count(data.order_count)])
+					: this.fmt_count(data.order_count)
+			);
+		});
+	}
+
+	// a search box under every column header of an order table
+	search_row_html(count) {
+		const cells = Array.from(
+			{ length: count },
+			(_, i) => `<th><input type="search" class="mfg-orders__search" data-col="${i}"
+				placeholder="${__('Search')}" autocomplete="off"></th>`
+		).join('');
+		return `<tr class="mfg-orders__search-row">${cells}</tr>`;
+	}
+
+	// Filters the table's body rows as the search boxes are typed in: rows are matched on the text
+	// shown in each cell (case-insensitive, all searches must match). `orders` is in row order;
+	// on_filter gets the orders left on screen and whether any search is active.
+	bind_column_search($scope, orders, on_filter) {
+		const $rows = $scope.find('tbody tr');
 		const cell_text = $rows.toArray().map((tr) => Array.from(tr.cells, (td) => td.textContent.trim().toLowerCase()));
-		const $inputs = $body.find('.mfg-orders__search');
+		const $inputs = $scope.find('.mfg-orders__search');
 
 		$inputs.on('input', frappe.utils.debounce(() => {
 			const terms = $inputs.toArray().map((el) => [Number(el.dataset.col), el.value.trim().toLowerCase()]).filter(([, t]) => t);
-			const visible = [];
+			const shown = [];
 			$rows.each((i, tr) => {
 				const match = terms.every(([col, t]) => cell_text[i][col].includes(t));
 				tr.style.display = match ? '' : 'none';
-				if (match) visible.push(tr.dataset.order);
+				if (match) shown.push(orders[i]);
 			});
-			$body.data('visible_orders', terms.length ? visible : null);
-			$body.find('[data-field="shown"]').text(
-				terms.length
-					? __('{0} of {1}', [this.fmt_count(visible.length), this.fmt_count(data.order_count)])
-					: this.fmt_count(data.order_count)
-			);
+			on_filter(shown, terms.length > 0);
 		}, 200));
 	}
 };
