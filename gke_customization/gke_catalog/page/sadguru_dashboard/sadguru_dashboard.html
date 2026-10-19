@@ -340,12 +340,20 @@
 	}
 
 	/* Tables */
+	.sadguru-dashboard .table-responsive {
+		max-height: 420px;
+		overflow: auto;
+		position: relative;
+	}
 	.sadguru-table {
 		width: 100%;
 		border-collapse: collapse;
 		font-size: 13px;
 	}
 	.sadguru-table thead th {
+		position: sticky;
+		top: 0;
+		z-index: 2;
 		text-align: left;
 		padding: 10px 12px;
 		border-bottom: 2px solid var(--border-color);
@@ -355,6 +363,7 @@
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
 		white-space: nowrap;
+		background: var(--card-bg);
 	}
 	.sadguru-table tbody td {
 		padding: 10px 12px;
@@ -366,6 +375,20 @@
 	.sadguru-table th:not(:first-child),
 	.sadguru-table td:not(:first-child) {
 		text-align: right;
+	}
+	.sadguru-table th:first-child,
+	.sadguru-table td:first-child {
+		position: sticky;
+		left: 0;
+		z-index: 1;
+		background: var(--card-bg);
+		white-space: nowrap;
+	}
+	.sadguru-table thead th:first-child {
+		z-index: 3;
+	}
+	.sadguru-table tbody tr:hover td:first-child {
+		background: var(--control-bg-on-gray);
 	}
 	.sadguru-table td:not(:first-child) {
 		font-family: "Cormorant Garamond", Didot, Georgia, "Times New Roman", serif;

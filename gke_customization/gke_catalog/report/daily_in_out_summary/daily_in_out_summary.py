@@ -78,6 +78,129 @@ def get_data(company, from_date, to_date):
 	return data
 
 
+@frappe.whitelist()
+def get_summary(company=None):
+	today = getdate(nowdate())
+
+	current_month_start = get_first_day(today)
+
+	previous_month_end = add_days(current_month_start, -1)
+	previous_month_start = get_first_day(previous_month_end)
+
+	fiscal_year = frappe.db.get_value(
+		"Fiscal Year",
+		{"year_start_date": ["<=", today], "year_end_date": [">=", today]},
+		["year_start_date"],
+	)
+	fy_start = getdate(fiscal_year) if fiscal_year else get_first_day(today, 0)
+
+	periods = {
+		"today": (today, today),
+		"current_month": (current_month_start, today),
+		"previous_month": (previous_month_start, previous_month_end),
+		"current_fy": (fy_start, today),
+	}
+
+	summary = {}
+	for key, (from_date, to_date) in periods.items():
+		summary[key] = get_period_summary(company, from_date, to_date)
+		summary[key]["from_date"] = from_date
+		summary[key]["to_date"] = to_date
+
+	return summary
+
+
+def get_period_summary(company, from_date, to_date):
+	opening = get_opening_balance(company, from_date)
+
+	pr_daily = get_daily_purchase_receipt_data(company, from_date, to_date)
+	dn_daily = get_daily_delivery_note_data(company, from_date, to_date)
+	si_return_daily = get_daily_sales_invoice_return_data(company, from_date, to_date)
+
+	inward = sum(row["inward"] for row in pr_daily.values())
+	return_qty = sum(row["return"] for row in pr_daily.values())
+	supply_qty = sum(dn_daily.values())
+	sales_return_qty = sum(si_return_daily.values())
+
+	total_stock = opening + inward - return_qty
+	closing = total_stock - supply_qty + sales_return_qty
+
+	return {
+		"opening_stock": opening,
+		"inward_qty": inward,
+		"return_qty": return_qty,
+		"total_stock": total_stock,
+		"supply_qty": supply_qty,
+		"sales_return_qty": sales_return_qty,
+		"closing_stock": closing,
+	}
+
+
+@frappe.whitelist()
+def get_detail_vouchers(company=None, from_date=None, to_date=None, key=None):
+	from_date = getdate(from_date)
+	to_date = getdate(to_date)
+
+	params = {"from_date": from_date, "to_date": to_date, "company": company}
+
+	if key in ("inward_qty", "return_qty"):
+		doctype = "Purchase Receipt"
+		company_condition = "AND pr.company = %(company)s" if company else ""
+		qty_condition = "pri.qty > 0" if key == "inward_qty" else "pri.qty < 0"
+		rows = frappe.db.sql(
+			f"""
+			SELECT DISTINCT pr.name
+			FROM `tabPurchase Receipt Item` pri
+			INNER JOIN `tabPurchase Receipt` pr ON pr.name = pri.parent
+			WHERE pr.docstatus = 1
+				AND pr.posting_date BETWEEN %(from_date)s AND %(to_date)s
+				AND {qty_condition}
+				AND {ITEM_LIKE_CONDITIONS.replace("item_code", "pri.item_code")}
+				{company_condition}
+			""",
+			params,
+			as_list=True,
+		)
+	elif key == "supply_qty":
+		doctype = "Delivery Note"
+		company_condition = "AND dn.company = %(company)s" if company else ""
+		rows = frappe.db.sql(
+			f"""
+			SELECT DISTINCT dn.name
+			FROM `tabDelivery Note Item` dni
+			INNER JOIN `tabDelivery Note` dn ON dn.name = dni.parent
+			WHERE dn.status != 'Cancelled'
+				AND dn.posting_date BETWEEN %(from_date)s AND %(to_date)s
+				AND {ITEM_LIKE_CONDITIONS.replace("item_code", "dni.item_code")}
+				{company_condition}
+			""",
+			params,
+			as_list=True,
+		)
+	elif key == "sales_return_qty":
+		doctype = "Sales Invoice"
+		company_condition = "AND si.company = %(company)s" if company else ""
+		rows = frappe.db.sql(
+			f"""
+			SELECT DISTINCT si.name
+			FROM `tabSales Invoice Item` sii
+			INNER JOIN `tabSales Invoice` si ON si.name = sii.parent
+			WHERE si.docstatus = 1
+				AND si.is_return = 1
+				AND si.update_stock = 1
+				AND si.posting_date BETWEEN %(from_date)s AND %(to_date)s
+				AND {ITEM_LIKE_CONDITIONS.replace("item_code", "sii.item_code")}
+				{company_condition}
+			""",
+			params,
+			as_list=True,
+		)
+	else:
+		frappe.throw(_("Invalid detail key: {0}").format(key))
+
+	return {"doctype": doctype, "names": [row[0] for row in rows]}
+
+
 def get_opening_balance(company, from_date):
 	company_condition = ""
 	params = {"from_date": from_date}

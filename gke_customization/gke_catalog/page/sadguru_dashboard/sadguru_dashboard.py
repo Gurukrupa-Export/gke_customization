@@ -3,6 +3,20 @@ from frappe.utils import flt
 
 DEFAULT_COMPANY = "Sadguru Diamond"
 
+# Only these two item lines are this company's actual diamond trading business —
+# other items (metals, expenses, assets) bought/sold under the same company are
+# out of scope for this dashboard.
+ITEM_CODE_PATTERNS = ["D-Polished%", "D-LGD%"]
+
+
+def _item_condition(item_alias):
+	clauses = " or ".join(f"{item_alias}.item_code like %({item_alias}_pattern_{i})s" for i in range(len(ITEM_CODE_PATTERNS)))
+	return f"and ({clauses})"
+
+
+def _item_params(item_alias):
+	return {f"{item_alias}_pattern_{i}": pattern for i, pattern in enumerate(ITEM_CODE_PATTERNS)}
+
 
 def _sort_rows(rows, sort_by, sort_order):
 	if sort_by not in ("qty", "rate", "amount"):
@@ -16,10 +30,10 @@ def _sort_rows(rows, sort_by, sort_order):
 def get_purchase_kpis(from_date=None, to_date=None, company=None, supplier=None):
 	company = company or DEFAULT_COMPANY
 
-	conditions = ""
-	params = {"company": company, "from_date": from_date, "to_date": to_date}
+	conditions = _item_condition("pii")
+	params = {"company": company, "from_date": from_date, "to_date": to_date, **_item_params("pii")}
 	if supplier:
-		conditions = "and pi.supplier = %(supplier)s"
+		conditions += " and pi.supplier = %(supplier)s"
 		params["supplier"] = supplier
 
 	totals = frappe.db.sql(
@@ -54,8 +68,8 @@ def get_purchase_kpis(from_date=None, to_date=None, company=None, supplier=None)
 def get_sales_kpis(from_date=None, to_date=None, company=None, customer=None, grade=None):
 	company = company or DEFAULT_COMPANY
 
-	conditions = ""
-	params = {"company": company, "from_date": from_date, "to_date": to_date}
+	conditions = _item_condition("sii")
+	params = {"company": company, "from_date": from_date, "to_date": to_date, **_item_params("sii")}
 	if customer:
 		conditions += " and si.customer = %(customer)s"
 		params["customer"] = customer
@@ -82,7 +96,7 @@ def get_sales_kpis(from_date=None, to_date=None, company=None, customer=None, gr
 	# Company-wide benchmark, independent of the customer filter, so "Avg Per
 	# Customer" stays meaningful (not trivially 1) when a customer is selected.
 	company_wide = frappe.db.sql(
-		"""
+		f"""
 		select coalesce(sum(sii.amount), 0) as amount,
 			coalesce(sum(sii.qty), 0) as qty,
 			count(distinct si.customer) as customer_count
@@ -90,8 +104,9 @@ def get_sales_kpis(from_date=None, to_date=None, company=None, customer=None, gr
 		join `tabSales Invoice` si on si.name = sii.parent
 		where si.docstatus = 1 and si.company = %(company)s
 			and si.posting_date between %(from_date)s and %(to_date)s
+			{_item_condition("sii")}
 		""",
-		{"company": company, "from_date": from_date, "to_date": to_date},
+		{"company": company, "from_date": from_date, "to_date": to_date, **_item_params("sii")},
 		as_dict=True,
 	)[0]
 
@@ -117,10 +132,10 @@ def get_purchase_breakdown(
 ):
 	company = company or DEFAULT_COMPANY
 
-	conditions = ""
-	params = {"company": company, "from_date": from_date, "to_date": to_date}
+	conditions = _item_condition("pii")
+	params = {"company": company, "from_date": from_date, "to_date": to_date, **_item_params("pii")}
 	if supplier:
-		conditions = "and pi.supplier = %(supplier)s"
+		conditions += " and pi.supplier = %(supplier)s"
 		params["supplier"] = supplier
 
 	rows = frappe.db.sql(
@@ -153,8 +168,8 @@ def get_sales_breakdown(
 ):
 	company = company or DEFAULT_COMPANY
 
-	conditions = ""
-	params = {"company": company, "from_date": from_date, "to_date": to_date}
+	conditions = _item_condition("sii")
+	params = {"company": company, "from_date": from_date, "to_date": to_date, **_item_params("sii")}
 	if customer:
 		conditions += " and si.customer = %(customer)s"
 		params["customer"] = customer
@@ -192,10 +207,10 @@ def get_sales_grade_breakdown(
 ):
 	company = company or DEFAULT_COMPANY
 
-	conditions = ""
-	params = {"company": company, "from_date": from_date, "to_date": to_date}
+	conditions = _item_condition("sii")
+	params = {"company": company, "from_date": from_date, "to_date": to_date, **_item_params("sii")}
 	if customer:
-		conditions = "and si.customer = %(customer)s"
+		conditions += " and si.customer = %(customer)s"
 		params["customer"] = customer
 
 	rows = frappe.db.sql(
@@ -226,8 +241,8 @@ def get_sales_grade_breakdown(
 def get_sales_matrix(from_date=None, to_date=None, company=None, customer=None, month=None):
 	company = company or DEFAULT_COMPANY
 
-	conditions = ""
-	params = {"company": company, "from_date": from_date, "to_date": to_date}
+	conditions = _item_condition("sii")
+	params = {"company": company, "from_date": from_date, "to_date": to_date, **_item_params("sii")}
 	if customer:
 		conditions += " and si.customer = %(customer)s"
 		params["customer"] = customer
@@ -273,10 +288,10 @@ def get_sales_matrix(from_date=None, to_date=None, company=None, customer=None, 
 def get_purchase_monthly(from_date=None, to_date=None, company=None, supplier=None):
 	company = company or DEFAULT_COMPANY
 
-	conditions = ""
-	params = {"company": company, "from_date": from_date, "to_date": to_date}
+	conditions = _item_condition("pii")
+	params = {"company": company, "from_date": from_date, "to_date": to_date, **_item_params("pii")}
 	if supplier:
-		conditions = "and pi.supplier = %(supplier)s"
+		conditions += " and pi.supplier = %(supplier)s"
 		params["supplier"] = supplier
 
 	rows = frappe.db.sql(
@@ -308,8 +323,8 @@ def get_purchase_monthly(from_date=None, to_date=None, company=None, supplier=No
 def get_sales_monthly(from_date=None, to_date=None, company=None, customer=None, grade=None):
 	company = company or DEFAULT_COMPANY
 
-	conditions = ""
-	params = {"company": company, "from_date": from_date, "to_date": to_date}
+	conditions = _item_condition("sii")
+	params = {"company": company, "from_date": from_date, "to_date": to_date, **_item_params("sii")}
 	if customer:
 		conditions += " and si.customer = %(customer)s"
 		params["customer"] = customer
@@ -347,7 +362,7 @@ def get_monthly_trend(from_date=None, to_date=None, company=None):
 	company = company or DEFAULT_COMPANY
 
 	purchase_rows = frappe.db.sql(
-		"""
+		f"""
 		select date_format(pi.posting_date, '%%Y-%%m') as month,
 			sum(pii.qty) as qty,
 			sum(pii.amount) as amount
@@ -355,14 +370,15 @@ def get_monthly_trend(from_date=None, to_date=None, company=None):
 		join `tabPurchase Invoice` pi on pi.name = pii.parent
 		where pi.docstatus = 1 and pi.company = %(company)s
 			and pi.posting_date between %(from_date)s and %(to_date)s
+			{_item_condition("pii")}
 		group by month
 		""",
-		{"company": company, "from_date": from_date, "to_date": to_date},
+		{"company": company, "from_date": from_date, "to_date": to_date, **_item_params("pii")},
 		as_dict=True,
 	)
 
 	sales_rows = frappe.db.sql(
-		"""
+		f"""
 		select date_format(si.posting_date, '%%Y-%%m') as month,
 			sum(sii.qty) as qty,
 			sum(sii.amount) as amount
@@ -370,9 +386,10 @@ def get_monthly_trend(from_date=None, to_date=None, company=None):
 		join `tabSales Invoice` si on si.name = sii.parent
 		where si.docstatus = 1 and si.company = %(company)s
 			and si.posting_date between %(from_date)s and %(to_date)s
+			{_item_condition("sii")}
 		group by month
 		""",
-		{"company": company, "from_date": from_date, "to_date": to_date},
+		{"company": company, "from_date": from_date, "to_date": to_date, **_item_params("sii")},
 		as_dict=True,
 	)
 
