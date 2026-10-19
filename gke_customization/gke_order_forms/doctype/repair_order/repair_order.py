@@ -489,6 +489,7 @@ def set_value_in_cad_child_table(order_form_doc,self,sketch_item_code):
 	order_details.design_image_1 = self.design_image1
 	order_details.stone_changeable = self.stone_changeable
 	order_details.metal_colour = self.metal_colour
+	order_details.mod_reason = self.mod_reason
 	subcategory_attributes = frappe.db.sql(f"""select item_attribute from `tabAttribute Value Item Attribute Detail` where parent = '{self.subcategory}' and in_cad = 1""",as_dict=1)
 	for i in subcategory_attributes:
 		a = getattr(self, i['item_attribute'].replace(' ','_').lower().replace('item_subcategory','subcategory').replace('item_category','category').replace('custom_metal_target','metal_target').replace('/',''))
@@ -737,6 +738,7 @@ def make_quotation(source_name, target_doc=None):
 		"custom_required_design":snd_order.get("required_design"),
 		"custom_new_item_code":snd_order.get("new_item_code"),
 		"custom_new_bom":snd_order.get("new_bom"),
+		"custom_mod_reason":snd_order.get("mod_reason"),
 
 	})
 	set_missing_values(snd_order, target_doc)
