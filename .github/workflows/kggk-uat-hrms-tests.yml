@@ -21,7 +21,7 @@ on:
     # kggk_uat_dummy is TEMPORARY, for testing the PR path without touching
     # kggk_uat. Remove it from this list before this file lands on kggk_uat.
     # (Fixed: the old name had a typo, "kgggk_uat_dummy", so it never matched.)
-    branches: [kggk_uat, kggk_uat_dummy]
+    branches: [kggk_uat, kgggk_uat_dummy]
   workflow_dispatch:
 
 concurrency:
