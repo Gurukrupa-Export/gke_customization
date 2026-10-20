@@ -271,6 +271,18 @@ def close_todos_on_attendance_cancel(doc, method=None):
     """Attendance on_cancel / on_trash hook.
 
     A direct cancel or delete bypasses the resolver, so the open HR ToDo
-    raised for the punch error is closed here.
+    raised for the punch error is closed here, and the Monthly In-Out Log
+    linked to this attendance is cancelled so its resolution status reflects
+    the cancellation (previously done by a Server Script).
     """
     _close_todos(doc.name, "Cancelled")
+
+    from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log import (
+        cancel_monthly_in_out_log,
+    )
+
+    try:
+        cancel_monthly_in_out_log(doc)
+    except Exception:
+        _log_exc(f"Monthly In-Out Log cancel failed for attendance {doc.name}")
+    
