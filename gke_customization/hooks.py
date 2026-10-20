@@ -72,7 +72,8 @@ jinja = {
 # ------------
 
 # before_install = "gke_customization.install.before_install"
-# after_install = "gke_customization.install.after_install"
+after_install = "gke_customization.install.after_install"
+after_sync = "gke_customization.install.after_sync"
 
 # Uninstallation
 # ------------
@@ -361,11 +362,17 @@ doc_events = {
 #     '/assets/gke_customization/js/solitaire_calculator.js'
 # ]
 
+# "Custom Field" is deliberately NOT a fixture here. Frappe's native
+# sync_fixtures() re-inserts fixtures/custom_field.json via plain doc.insert(),
+# which runs full validation -- and 4 of this app's legacy Dynamic Link
+# records point at Select fields, not Link/options=DocType fields, so that
+# validation throws an uncaught ValidationError that aborts the ENTIRE
+# `bench install-app` run. `install.py`'s provision_schema() (after_install,
+# runs before sync_fixtures) and reconcile_own_fixtures() (after_sync) create
+# the same fields with ignore_validate=True / per-record error handling, so
+# native fixture sync of "Custom Field" is both redundant and the thing that
+# actually crashes installs. See gke_customization/install.py.
 fixtures = [
-    {
-        "dt": "Custom Field",
-        "filters": [["module", "in", ["GKE Order Forms", "GKE Catalog"]]],
-    },
     {
         "dt": "DocType",
         "filters": [
