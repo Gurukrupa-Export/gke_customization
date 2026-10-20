@@ -2,7 +2,7 @@ name: KGGK UAT HRMS Tests
 
 on:
   pull_request:
-    branches: [kggk_uat, kgggk_uat_dummy]
+    branches: [kggk_uat]
   workflow_dispatch:
 
 concurrency:
