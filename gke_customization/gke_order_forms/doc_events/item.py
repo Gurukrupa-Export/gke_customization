@@ -693,7 +693,7 @@ def create_item_kggk(doc, method=None):
 
 
 
-
+@frappe.whitelist()
 def create_bom_kggk(doc,pro_name, method=None):
     # base_url = "https://kggk-uat.m.frappe.cloud"
     # base_url = "https://gkexport-dummy-v16.m.frappe.cloud"
@@ -708,7 +708,7 @@ def create_bom_kggk(doc,pro_name, method=None):
         "Authorization": f"token {api_key}:{api_secret}", #from dummy site to uat kggk  uat kgkg user
         "Content-Type": "application/json"
     }
-    if doc.bom_type == "Finish Goods":
+    if doc.setting_type == "Nova Glow":
         bom = doc.name
         if from_site and to_site:
             payload = {

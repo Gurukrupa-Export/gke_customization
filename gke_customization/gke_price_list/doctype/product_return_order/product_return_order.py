@@ -243,6 +243,7 @@ class ProductReturnOrder(Document):
 			new_bom.total_diamond_weight_in_gms = self.total_diamond_weight_in_gram
 			new_bom.bom_type = "Finish Goods"
 			new_bom.item = self.item_code
+			new_bom.setting_type = "Nova Glow"
 			new_bom.insert(ignore_permissions=True)
 			# new_bom.save()
 			self.db_set("new_bom", new_bom.name, update_modified=False)
