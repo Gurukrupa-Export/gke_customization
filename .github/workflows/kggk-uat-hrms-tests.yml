@@ -50,7 +50,7 @@ jobs:
           /tmp/gitleaks detect --source . --redact --verbose
 
   test:
-    name: Sync Checkin Tests
+    name: HRMS Tests
     needs: [pip-audit, gitleaks]
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -84,8 +84,10 @@ jobs:
       - name: Setup CI Environment
         uses: ./.github/actions/setup
 
-      - name: Run Sync Checkin Tests
+      - name: Run HRMS Tests
         run: |
           cd ~/frappe-bench
-          echo "Running test_sync_checkin..."
-          bench --site test_site run-tests --app gke_customization --module gke_customization.gke_hrms.tests.test_sync_checkin
+          for module in test_sync_checkin test_salary_withholding_release test_salary_slip test_payroll_entry; do
+            echo "Running $module..."
+            bench --site test_site run-tests --app gke_customization --module gke_customization.gke_hrms.tests.$module
+          done
