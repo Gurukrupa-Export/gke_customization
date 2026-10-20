@@ -2,11 +2,84 @@
 // For license information, please see license.txt
 
 
+const EWR_REPORT = "Everyday Work Report";
+
+// Cascade order: har filter ke options uske pehle wale filters ke hisaab se aate hain
+const EWR_ORDER = ["department", "is_finding_mwo", "status", "operation", "employee", "manufacturing_work_order"];
+
+const ewr_cache = {};   // key -> {t, rows}  (60 sec)
+
+
 // Selected values of a (multi-select) filter, always as an array
 function ewr_selected(fieldname) {
     const v = frappe.query_report.get_filter_value(fieldname);
     if (Array.isArray(v)) return v;
     return v ? [v] : [];
+}
+
+
+// Kya "upto" list ke filters me se koi bhi selected hai?
+function ewr_any_selected(upto) {
+    return upto.some(fn => ewr_selected(fn).length > 0);
+}
+
+
+// Report ko dates + "upto" filters ke saath chalakar uski rows laata hai
+function ewr_get_rows(upto) {
+    const f = {};
+    ["from_date", "to_date"].forEach(function(fn) {
+        const v = frappe.query_report.get_filter_value(fn);
+        if (v) f[fn] = v;
+    });
+    upto.forEach(function(fn) {
+        const v = ewr_selected(fn);
+        if (v.length) f[fn] = v;
+    });
+
+    const key = JSON.stringify(f);
+    const hit = ewr_cache[key];
+    if (hit && Date.now() - hit.t < 60000) {
+        return Promise.resolve(hit.rows);
+    }
+
+    return frappe.xcall("frappe.desk.query_report.run", {
+        report_name: EWR_REPORT,
+        filters: f,
+        ignore_prepared_report: true
+    }).then(function(res) {
+        const all = (res && res.result) || [];
+        // sirf asli MWO rows (total row me batch_no nahi hota)
+        const rows = all.filter(r => r && !Array.isArray(r) && r.batch_no);
+        ewr_cache[key] = { t: Date.now(), rows: rows };
+        return rows;
+    });
+}
+
+
+// Filter badalne par uske baad wale filters clear ho jaate hain
+function ewr_on_change(fieldname) {
+    return function(report) {
+        const idx = EWR_ORDER.indexOf(fieldname);
+        const cleared = {};
+        EWR_ORDER.slice(idx + 1).forEach(function(fn) {
+            const v = report.get_filter_value(fn);
+            if (Array.isArray(v) && v.length) {
+                cleared[fn] = [];
+            }
+        });
+        if (Object.keys(cleared).length) {
+            report.set_filter_value(cleared);   // sab saath set hote hain
+        } else {
+            report.refresh();
+        }
+    };
+}
+
+
+function ewr_match(txt, ...parts) {
+    const t = (txt || "").toLowerCase();
+    if (!t) return true;
+    return parts.some(p => (p || "").toLowerCase().includes(t));
 }
 
 
@@ -32,135 +105,151 @@ frappe.query_reports["Everyday Work Report"] = {
             get_data: function(txt) {
                 return frappe.db.get_link_options("Department", txt);
             },
-            // Department badalne par neeche ke dependent filters reset ho jaate hain
-            on_change: function(report) {
-                const cleared = {};
-                ["operation", "employee", "manufacturing_work_order"].forEach(function(fn) {
-                    const v = report.get_filter_value(fn);
-                    if (Array.isArray(v) && v.length) {
-                        cleared[fn] = [];
-                    }
-                });
-                if (Object.keys(cleared).length) {
-                    report.set_filter_value(cleared);   // sab saath set hote hain, refresh ek baar
-                } else {
-                    report.refresh();
-                }
-            }
+            on_change: ewr_on_change("department")
         },
         {
+            fieldname: "is_finding_mwo",
+            label: __("Is Finding MWO"),
+            fieldtype: "Select",
+            options: ["", "Yes", "No"],
+            on_change: ewr_on_change("is_finding_mwo")
+        },
+        {
+            // Department + Is Finding MWO ke hisaab se
             fieldname: "status",
             label: __("Status"),
             fieldtype: "MultiSelectList",
             get_data: function(txt) {
-                return ["WIP", "Not Issued", "Received"]
-                    .filter(s => !txt || s.toLowerCase().includes(txt.toLowerCase()))
+                const order = ["WIP", "Not Issued", "Received"];
+                const toOptions = list => list
+                    .filter(s => ewr_match(txt, s))
                     .map(s => ({ value: s, description: "" }));
-            }
+
+                if (!ewr_any_selected(["department", "is_finding_mwo"])) {
+                    return toOptions(order);
+                }
+                return ewr_get_rows(["department", "is_finding_mwo"]).then(function(rows) {
+                    const present = new Set(rows.map(r => r.status).filter(Boolean));
+                    return toOptions(order.filter(s => present.has(s)));
+                });
+            },
+            on_change: ewr_on_change("status")
         },
         {
-            // Sirf selected department(s) ke operations
+            // Department + Is Finding MWO + Status ke hisaab se
             fieldname: "operation",
             label: __("Operation"),
             fieldtype: "MultiSelectList",
             get_data: function(txt) {
-                const depts = ewr_selected("department");
-                const f = [
-                    ["Employee IR", "operation", "is", "set"],
-                    ["Employee IR", "docstatus", "=", 1],
-                ];
-                if (depts.length) f.push(["Employee IR", "department", "in", depts]);
-                if (txt) f.push(["Employee IR", "operation", "like", `%${txt}%`]);
+                const upto = ["department", "is_finding_mwo", "status"];
 
-                return frappe.db.get_list("Employee IR", {
-                    fields: ["operation"],
-                    filters: f,
-                    group_by: "operation",
-                    order_by: "operation",
-                    limit: 0
-                }).then(r => {
-                    return r
+                if (!ewr_any_selected(upto)) {
+                    return frappe.db.get_list("Employee IR", {
+                        fields: ["operation"],
+                        group_by: "operation",
+                        filters: txt
+                            ? { operation: ["like", `%${txt}%`] }
+                            : { operation: ["is", "set"] },
+                        order_by: "operation",
+                        limit: 0
+                    }).then(r => r
                         .filter(d => d.operation)
-                        .map(d => ({
-                            value: d.operation,
-                            description: ""
-                        }));
+                        .map(d => ({ value: d.operation, description: "" })));
+                }
+
+                return ewr_get_rows(upto).then(function(rows) {
+                    const ops = Array.from(
+                        new Set(rows.map(r => r.current_process).filter(Boolean))
+                    ).sort();
+                    return ops
+                        .filter(o => ewr_match(txt, o))
+                        .map(o => ({ value: o, description: "" }));
                 });
-            }
+            },
+            on_change: ewr_on_change("operation")
         },
         {
-            // Sirf selected department(s) me jinko issue hua hai
+            // Department + Is Finding MWO + Status + Operation ke hisaab se
             fieldname: "employee",
             label: __("Employee"),
             fieldtype: "MultiSelectList",
             get_data: function(txt) {
-                const depts = ewr_selected("department");
-                if (!depts.length) {
+                const upto = ["department", "is_finding_mwo", "status", "operation"];
+
+                if (!ewr_any_selected(upto)) {
                     return frappe.db.get_link_options("Employee", txt);
                 }
 
-                const f = [
-                    ["Employee IR", "employee", "is", "set"],
-                    ["Employee IR", "docstatus", "=", 1],
-                    ["Employee IR", "department", "in", depts],
-                ];
-                return frappe.db.get_list("Employee IR", {
-                    fields: ["employee"],
-                    filters: f,
-                    group_by: "employee",
-                    limit: 0
-                }).then(rows => {
-                    const ids = rows.map(r => r.employee).filter(Boolean);
-                    if (!ids.length) return [];
-                    return frappe.db.get_list("Employee", {
-                        fields: ["name", "employee_name"],
-                        filters: [["Employee", "name", "in", ids]],
-                        limit: 0
-                    }).then(emps => {
-                        const t = (txt || "").toLowerCase();
-                        return emps
-                            .filter(e => !t
-                                || e.name.toLowerCase().includes(t)
-                                || (e.employee_name || "").toLowerCase().includes(t))
-                            .map(e => ({ value: e.name, description: e.employee_name || "" }));
+                return ewr_get_rows(upto).then(function(rows) {
+                    const seen = {};
+                    const out = [];
+                    rows.forEach(function(r) {
+                        if (r.worker_code && !seen[r.worker_code]) {
+                            seen[r.worker_code] = 1;
+                            out.push({ value: r.worker_code, description: r.worker || "" });
+                        }
                     });
+                    return out
+                        .filter(o => ewr_match(txt, o.value, o.description))
+                        .sort((a, b) => a.description.localeCompare(b.description));
                 });
-            }
+            },
+            on_change: ewr_on_change("employee")
         },
         {
-            // Sirf selected department(s) ke MWO (date range ke andar)
+            // Department + Is Finding MWO + Status + Operation + Employee ke hisaab se
             fieldname: "manufacturing_work_order",
             label: __("Manufacturing Work Order"),
             fieldtype: "MultiSelectList",
             get_data: function(txt) {
-                const depts = ewr_selected("department");
-                if (!depts.length) {
+                const upto = ["department", "is_finding_mwo", "status", "operation", "employee"];
+
+                if (!ewr_any_selected(upto)) {
                     return frappe.db.get_link_options(
                         "Manufacturing Work Order",
                         txt
                     );
                 }
 
-                const M = "Manufacturing Work Order";
-                const f = [
-                    [M, "department", "in", depts],
-                    [M, "docstatus", "<", 2],
-                ];
-                const from_date = frappe.query_report.get_filter_value("from_date");
-                const to_date = frappe.query_report.get_filter_value("to_date");
-                if (from_date) f.push([M, "posting_date", ">=", from_date]);
-                if (to_date) f.push([M, "posting_date", "<=", to_date]);
-                if (txt) f.push([M, "name", "like", `%${txt}%`]);
-
-                return frappe.db.get_list(M, {
-                    fields: ["name"],
-                    filters: f,
-                    order_by: "creation desc",
-                    limit: 50
-                }).then(r => r.map(d => ({ value: d.name, description: "" })));
+                return ewr_get_rows(upto).then(function(rows) {
+                    return rows
+                        .filter(r => ewr_match(txt, r.batch_no))
+                        .slice(0, 100)
+                        .map(r => ({ value: r.batch_no, description: r.status || "" }));
+                });
             }
         }
     ],
+
+
+    // Frozen Grand Total row (Frappe ka built-in total row; "Add Total Row" ON hona chahiye).
+    // PMO ka distinct count, aur Gold wt / Diamond pcs / Diamond Wt ka sum.
+    get_datatable_options: function(options) {
+        // Frozen total row hamesha dikhao, chahe report me "Add Total Row" ON ho ya OFF
+        options.showTotalRow = true;
+
+        options.hooks = Object.assign({}, options.hooks, {
+            columnTotal: function(values, column, type) {
+                const fn = (column.column && column.column.fieldname) || column.id;
+                const vals = values || [];
+
+                if (fn === "department") {
+                    return __("Total");
+                }
+                if (fn === "g_order_no") {
+                    return new Set(vals.filter(v => v !== null && v !== undefined && v !== "")).size;
+                }
+                if (fn === "gold_wt" || fn === "diamond_wt") {
+                    return vals.reduce((a, v) => a + flt(v), 0).toFixed(3);
+                }
+                if (fn === "diamond_pcs") {
+                    return vals.reduce((a, v) => a + cint(v), 0);
+                }
+                return "";
+            }
+        });
+        return options;
+    },
 
 
     formatter: function(value, row, column, data, default_formatter) {
