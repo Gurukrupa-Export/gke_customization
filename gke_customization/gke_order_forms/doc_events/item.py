@@ -459,7 +459,7 @@ def create_item_kggk(doc, method=None):
                 "item_group": doc.item_group,
                 "stock_uom": doc.stock_uom,
                 "description": doc.description,
-                "master_bom": doc.master_bom,
+                # "master_bom": doc.master_bom,
                 "has_variants":doc.has_variants,
                 "disabled": doc.disabled,
                 "is_stock_item": doc.is_stock_item,
