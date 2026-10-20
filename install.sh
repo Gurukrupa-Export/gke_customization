@@ -30,7 +30,7 @@ bench get-app telephony --branch develop
 bench get-app https://github.com/resilient-tech/india-compliance.git --branch version-16
 bench get-app https://github.com/Gurukrupa-Export/jewellery-erpnext.git --branch kggk_uat
 bench get-app https://github.com/Gurukrupa-Export/gurukrupa_biometric.git --branch master
-bench get-app https://github.com/Gurukrupa-Export/gurukrupa_customizations.git --branch main
+bench get-app https://github.com/Gurukrupa-Export/gurukrupa_customizations.git --branch chore/remove-reports-to-ps
 
 echo "::endgroup::"
 
