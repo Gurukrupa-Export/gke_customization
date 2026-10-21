@@ -201,7 +201,34 @@ def attendance(from_date = None,to_date = None,employee = None):
 		shift_end,
 		Attendance.out_time
 	)
-	
+
+	# --- NEW: clamped deduction subquery (separate from display subquery) --- #<-- changes
+	pol_deduction_subquery = (
+		frappe.qb.from_(PersonalOutLog)
+		.select(
+			IfNull(Sum(
+			IF(
+				TIME(PersonalOutLog.out_time) > TIME(shift_end),
+				0,
+				TIME_TO_SEC(
+					TIMEDIFF(
+						IF(
+							TIME(PersonalOutLog.in_time) > TIME(shift_end),
+							TIME(shift_end),
+							PersonalOutLog.in_time
+						),
+						PersonalOutLog.out_time
+					)
+				)
+			)
+		), 0)
+		)
+		.where(
+			(PersonalOutLog.is_cancelled == 0)
+			& (PersonalOutLog.employee == Attendance.employee)
+			& (PersonalOutLog.date == Attendance.attendance_date)
+		)
+	)
 	query = (
 		frappe.qb.from_(Attendance)
 		.left_join(Employee).on(Attendance.employee == Employee.name)
@@ -272,6 +299,7 @@ def attendance(from_date = None,to_date = None,employee = None):
 
 			
 			pol_subquery.hrs.as_('p_out_hrs'),
+			pol_deduction_subquery.as_('p_out_deduction_hrs'), #<-- changes
 
 	################################################
 			# ✅ FIXED NET WORKING HOURS -- Negative hours Issue solved
@@ -283,7 +311,8 @@ def attendance(from_date = None,to_date = None,employee = None):
 						TIME_TO_SEC(
 							TIMEDIFF(effective_out, effective_in)
 						)
-						- IfNull(TIME_TO_SEC(pol_subquery.hrs), 0)
+						# - IfNull(TIME_TO_SEC(pol_subquery.hrs), 0)
+						- pol_deduction_subquery #<-- changes
 					),
 					0
 				)
@@ -485,18 +514,20 @@ def process_data(data,from_date,to_date, employee):
 					row.total_pay_hrs = timedelta(0)
 				elif row.late_hrs or row.p_out_hrs:
 					late = row.late_hrs or timedelta(0)
-					p_out = row.p_out_hrs or timedelta(0)
+					# p_out = row.p_out_hrs or timedelta(0)
+					p_out = timedelta(seconds=row.p_out_deduction_hrs or 0) #<-- changes
 					total = late + p_out
 					
 					row.net_wrk_hrs = timedelta(hours=shift_hours) - total
-					row.total_pay_hrs = timedelta(0)
+					# row.total_pay_hrs = timedelta(0)
+					row.total_pay_hrs = row.net_wrk_hrs + (row.ot_hours or timedelta(0)) #<-- changes
 				else:
 					row.net_wrk_hrs = timedelta(hours=shift_hours)
 					row.total_pay_hrs = row.net_wrk_hrs + (row.ot_hours or timedelta(0))
 
 		if row.lh:
 			row.status = STATUS.get(row.status) or 'LH'
-		shift_hours_in_sec = ''
+		shift_hours_in_sec = 0 #<-- changes
 		if row.shift_hours:
 			shift_hours_in_sec = row.shift_hours * 3600
 			if row.status not in ['Leave Without Pay', 'Absent']:
@@ -755,14 +786,20 @@ def get_totals(data, employee):
 	totals["shift_hours"] = 0.0
 	half_day_count = 0
 	shift = ''
+	personal_out = timedelta(0) #<-- changes
+	personal_out_dedu = timedelta(0)
 
 	for row in data:
+		personal_out += (row.get("p_out_hrs") or timedelta(0)) #<-- changes
+		personal_out_dedu += timedelta(seconds=(row.get("p_out_deduction_hrs") or 0)) #<-- changes
+				
 		totals["net_wrk_hrs"] += (row.get("net_wrk_hrs") or timedelta(0))
 		totals["total_pay_hrs"] += (row.get("total_pay_hrs") or timedelta(0))
 		totals["ot_hours"] += (row.get("ot_hours") or timedelta(0))
 		totals["early_hrs"] += (row.get("early_hrs") or timedelta(0))
 		totals["late_hrs"] += (row.get("late_hrs") or timedelta(0))
-		totals["p_out_hrs"] += (row.get("p_out_hrs") or timedelta(0))
+		# totals["p_out_hrs"] += (row.get("p_out_hrs") or timedelta(0))
+		totals["p_out_hrs"] = (personal_out_dedu or timedelta(0))  #<-- changes
 		totals["spent_hours"] += (row.get("spent_hours") or timedelta(0))
 		shift = row.get("shift_name")
 
