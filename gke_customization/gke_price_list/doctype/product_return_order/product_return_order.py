@@ -300,7 +300,7 @@ class ProductReturnOrder(Document):
 			serial.custom_jwelex_tag_no = self.jewelex_tag
 			serial.custom_bom_no=self.new_bom
 			serial.status = 'Delivered'
-			serial.custom_manufacturer='Labh'
+			serial.custom_manufacturer='Shubh'
 			serial.sales_type='Repair'
 			serial.order_type='Repair'
 			compose_series = self.genrate_serial_no(self.new_bom)
@@ -421,7 +421,7 @@ class ProductReturnOrder(Document):
 		errors = []
 		new_bom = frappe.get_doc("BOM",new_bom)
 			# series_start = frappe.db.get_value("Manufacturing Setting", doc.company, ["series_start"])
-		series_start = frappe.db.get_value("Manufacturing Setting", {"manufacturer":'Labh'}, ["series_start"])
+		series_start = frappe.db.get_value("Manufacturing Setting", {"manufacturer":'Shubh'}, ["series_start"])
 		# metal_type, manufacturer, posting_date = frappe.db.get_value(
 		# 	"Manufacturing Work Order",
 		# 	mwo_no,
