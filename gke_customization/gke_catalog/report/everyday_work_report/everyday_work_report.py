@@ -2,7 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
-from frappe.utils import flt, cint
+from frappe.utils import flt, cint, getdate
 
 STATUS_ORDER = ("WIP", "Not Issued", "Received", "")
 
@@ -74,6 +74,7 @@ def get_columns():
         {"label": "Issue Date", "fieldname": "issue_date", "fieldtype": "Date", "width": 110},
         {"label": "MWO", "fieldname": "batch_no", "fieldtype": "Link", "options": "Manufacturing Work Order", "width": 300},
         {"label": "Tree Number", "fieldname": "tree_number", "fieldtype": "Data", "width": 130},
+        {"label": "Is Finding MWO", "fieldname": "is_finding_mwo", "fieldtype": "Data", "width": 140},
         {"label": "Item Code", "fieldname": "design_id", "fieldtype": "Data", "width": 120},
         {"label": "Category", "fieldname": "category", "fieldtype": "Data", "width": 110},
         {"label": "Sub Category", "fieldname": "sub_category", "fieldtype": "Data", "width": 170},
@@ -98,15 +99,54 @@ def get_data(filters):
     emp_filter = set(as_list(filters["employee"])) if filters.get("employee") else None
     op_filter = set(as_list(filters["operation"])) if filters.get("operation") else None
     has_worker_filter = bool(emp_filter or op_filter)
+    finding_filter = set(as_list(filters["is_finding_mwo"])) if filters.get("is_finding_mwo") else set()
 
     # ---- MWO level conditions ----
     conds = ["mwo.status NOT IN %(excluded_status)s"]
-    if filters.get("from_date"):
-        conds.append("mwo.posting_date >= %(from_date)s")
-        values["from_date"] = filters["from_date"]
-    if filters.get("to_date"):
-        conds.append("mwo.posting_date <= %(to_date)s")
-        values["to_date"] = filters["to_date"]
+
+    # ---- Date filter: "Issue Date" column par ----
+    # Issue Date = latest Employee IR (Issue) ki date (WIP / Received).
+    # Jinko Issue nahi hua unki dikhne wali date MWO ki posting date hai.
+    # Pehle candidate MWOs nikalte hain: (range me Employee IR Issue) YA (range me posting date).
+    from_date = filters.get("from_date")
+    to_date = filters.get("to_date")
+    if from_date:
+        values["from_date"] = from_date
+    if to_date:
+        values["to_date"] = to_date
+
+    if from_date or to_date:
+        issue_conds = [
+            "ir.docstatus = 1",
+            "ir.type = 'Issue'",
+            "IFNULL(eiro.manufacturing_work_order, '') != ''",
+        ]
+        if from_date:
+            issue_conds.append("COALESCE(ir.date_time, ir.creation) >= %(from_date)s")
+        if to_date:
+            issue_conds.append("COALESCE(ir.date_time, ir.creation) < DATE_ADD(%(to_date)s, INTERVAL 1 DAY)")
+        issued_mwos = frappe.db.sql(
+            f"""
+            SELECT DISTINCT eiro.manufacturing_work_order
+            FROM `tabEmployee IR Operation` eiro
+            JOIN `tabEmployee IR` ir ON ir.name = eiro.parent
+            WHERE {' AND '.join(issue_conds)}
+            """,
+            values,
+            pluck="manufacturing_work_order",
+        )
+
+        posted_conds = []
+        if from_date:
+            posted_conds.append("mwo.posting_date >= %(from_date)s")
+        if to_date:
+            posted_conds.append("mwo.posting_date <= %(to_date)s")
+        date_cond = "(" + " AND ".join(posted_conds) + ")"
+        if issued_mwos:
+            date_cond = f"({date_cond} OR mwo.name IN %(issued_mwos)s)"
+            values["issued_mwos"] = tuple(issued_mwos)
+        conds.append(date_cond)
+
     if dept_filter:
         conds.append("mwo.department IN %(department)s")
         values["department"] = tuple(dept_filter)
@@ -116,6 +156,11 @@ def get_data(filters):
     if filters.get("order_type"):
         conds.append("mwo.order_type = %(order_type)s")
         values["order_type"] = filters["order_type"]
+    # Is Finding MWO: sirf "Yes" ya sirf "No" select ho to filter lagta hai (dono ya khali = sab)
+    if finding_filter == {"Yes"}:
+        conds.append("IFNULL(mwo.is_finding_mwo, 0) = 1")
+    elif finding_filter == {"No"}:
+        conds.append("IFNULL(mwo.is_finding_mwo, 0) = 0")
     where = "".join(f" AND {c}" for c in conds)
 
     # ---- Query 1: MWO list (ek MWO = ek row) ----
@@ -130,6 +175,8 @@ def get_data(filters):
             pmop.department                 AS prev_mop_dept,
             mwo.posting_date                AS issue_date,
             mwo.tree_number                 AS tree_number,
+            IF(mwo.is_finding_mwo = 1, 'Yes', 'No')
+                                            AS is_finding_mwo,
             mwo.item_code                   AS design_id,
             COALESCE(NULLIF(itm.custom_catalogue_image, ''), itm.image)
                                             AS item_image,
@@ -261,6 +308,16 @@ def get_data(filters):
             row["current_process"] = None
             row["worker_code"] = None
 
+        # Dikhne wali Issue Date range ke andar honi chahiye
+        if from_date or to_date:
+            shown = getdate(row["issue_date"]) if row.get("issue_date") else None
+            if (
+                shown is None
+                or (from_date and shown < getdate(from_date))
+                or (to_date and shown > getdate(to_date))
+            ):
+                continue
+
         if wanted_status and row["status"] not in wanted_status:
             continue
         rows.append(row)
@@ -289,20 +346,9 @@ def get_data(filters):
         STATUS_ORDER.index(r["status"]),
     ))
 
-    rows.append(get_total_row(rows))
+    # Total row Frappe ka built-in frozen row dikhata hai (JS ke get_datatable_options me
+    # PMO ka distinct count aur sums set hote hain), isliye yahan total row nahi jodte.
     return rows
-
-
-def get_total_row(rows):
-    """Grand total row: distinct PMO count + sum of Gold wt, Diamond pcs, Diamond wt."""
-    return {
-        "is_total_row": 1,
-        "department": "Total",
-        "g_order_no": len({r.get("g_order_no") for r in rows if r.get("g_order_no")}),
-        "gold_wt": flt(sum(flt(r.get("gold_wt")) for r in rows), 3),
-        "diamond_pcs": sum(cint(r.get("diamond_pcs")) for r in rows),
-        "diamond_wt": flt(sum(flt(r.get("diamond_wt")) for r in rows), 3),
-    }
 
 
 def as_list(value):
