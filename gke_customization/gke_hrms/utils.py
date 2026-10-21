@@ -5,6 +5,12 @@ from datetime import date, timedelta
 from typing import Optional, List
 import calendar
 from dateutil import relativedelta
+from gke_customization.gke_hrms.sandwich_rule import (
+    LOOKUP_PADDING_DAYS,
+    get_attendance_request_dates,
+    get_day_status_map,
+    get_sandwiched_holidays,
+)
 from gke_customization.gke_hrms.report.pf_challan_report.pf_challan_report import get_account_total_summary
 
 @frappe.whitelist()
@@ -142,189 +148,120 @@ def get_account_total_summary_for_print(company, from_date, to_date):
 #     frappe.db.commit()
 
 # 21-01-2026 by Aditya
-@frappe.whitelist()
-def check_sadwitch_rule():
+SANDWICH_CHECK_WINDOW_DAYS = 15
 
-    manual = int(frappe.db.get_value("Biometric Settings", "Biometric Settings", "manual"))
 
-    # --------------------------------------------------
-    # Date range calculation
-    # --------------------------------------------------
-    if manual:
-        formatted_from_date = frappe.db.get_value("Biometric Settings", "Biometric Settings", "from_date")
-        formatted_to_date = frappe.db.get_value("Biometric Settings", "Biometric Settings", "to_date")
-    else:
-        today = date.today()
-        # today = getdate('2025-12-28')
-        formatted_to_date = today
-
-        if today.weekday() == 6:  # Sunday
-            days_since_last_sunday = today.weekday() + 1
-            week_off = timedelta(days=days_since_last_sunday)
-        else:
-            week_off = timedelta(days=today.weekday() + 1)
-
-        formatted_from_date = today - week_off
-
-    # --------------------------------------------------
-    # Fetch Absent + On Leave attendances
-    # --------------------------------------------------
-    absent_attendances = frappe.get_all(
-        "Attendance",
-        filters={
-            "status": ["in", ["Absent", "On Leave"]],
-            "docstatus": 1,
-            "attendance_date": ["between", [formatted_from_date, formatted_to_date]]
-        },
-        fields=["name", "employee", "attendance_date"]
+def get_sandwich_check_dates():
+    biometric_settings = frappe.db.get_value(
+        "Biometric Settings",
+        "Biometric Settings",
+        ["manual", "from_date", "to_date"],
+        as_dict=True,
     )
 
-    # Group by employee
-    employee_attendance_map = {}
-    for attendance in absent_attendances:
-        employee_attendance_map.setdefault(
-            attendance["employee"], []
-        ).append(attendance)
+    if biometric_settings and int(biometric_settings.manual or 0):
+        return getdate(biometric_settings.from_date), getdate(biometric_settings.to_date)
 
-    holidays_to_insert = []
+    to_date = getdate(today())
+    return add_days(to_date, -SANDWICH_CHECK_WINDOW_DAYS), to_date
 
-    # --------------------------------------------------
-    # Employee-wise sandwich evaluation
-    # --------------------------------------------------
-    for employee, attendances in employee_attendance_map.items():
 
-        employee_data = frappe.db.get_value("Employee", employee, ["holiday_list", "status"], as_dict=True)
-        
-        if not employee_data:
-            continue
+@frappe.whitelist()
+def check_sadwitch_rule():
+    from_date, to_date = get_sandwich_check_dates()
+    lookup_from = add_days(from_date, -LOOKUP_PADDING_DAYS)
+    lookup_to = add_days(to_date, LOOKUP_PADDING_DAYS)
 
-        if not employee_data.holiday_list or employee_data.status != "Active":
-            continue
-
-        # Paid Holidays
-        holidays = frappe.get_all(
-            "Holiday",
-            filters={
-                "parent": employee_data.holiday_list,
-                "holiday_date": ["between", [formatted_from_date, formatted_to_date]],
-                "weekly_off": 0
-            },
-            fields=["holiday_date"],
-            order_by="holiday_date asc"
-        )
-
-        # Weekoffs
-        weekoff_holidays = frappe.get_all(
-            "Holiday",
-            filters={
-                "parent": employee_data.holiday_list,
-                "holiday_date": ["between", [formatted_from_date, formatted_to_date]],
-                "weekly_off": 1
-            },
-            fields=["holiday_date"],
-            order_by="holiday_date asc"
-        )
-
-        holiday_dates = {
-            getdate(h["holiday_date"]) for h in holidays
-        }
-        weekoff_dates = {
-            getdate(h["holiday_date"]) for h in weekoff_holidays
-        }
-
-        attendance_dates = {
-            getdate(a["attendance_date"]) for a in attendances
-        }
-
-        # --------------------------------------------------
-        # Sandwich logic per holiday
-        # --------------------------------------------------
-        for holiday in holiday_dates:
-
-            prev_day = add_days(holiday, -1)
-            next_day = add_days(holiday, 1)
-
-            prev_chain_days = set()
-            next_chain_days = set()
-
-            prev_real_absent = set()
-            next_real_absent = set()
-
-            # ---------- Previous side ----------
-            while (
-                prev_day in attendance_dates
-                or prev_day in holiday_dates
-                or prev_day in weekoff_dates
-            ):
-                prev_chain_days.add(prev_day)
-
-                if prev_day in attendance_dates:
-                    prev_real_absent.add(prev_day)
-
-                prev_day = add_days(prev_day, -1)
-
-            # ---------- Next side ----------
-            while (
-                next_day in attendance_dates
-                or next_day in holiday_dates
-                or next_day in weekoff_dates
-            ):
-                next_chain_days.add(next_day)
-
-                if next_day in attendance_dates:
-                    next_real_absent.add(next_day)
-
-                next_day = add_days(next_day, 1)
-
-            # --------------------------------------------------
-            # STRICT sandwich condition
-            # --------------------------------------------------
-            if prev_real_absent and next_real_absent:
-
-                all_lop_dates = (
-                    prev_chain_days | {holiday} | next_chain_days
-                )
-
-                for day in sorted(all_lop_dates):
-                    if day not in weekoff_dates:
-                        holidays_to_insert.append({
-                            "employee": employee,
-                            "date": day
-                        })
-
-    # --------------------------------------------------
-    # Insert Attendance (LWP)
-    # --------------------------------------------------
-    for entry in holidays_to_insert:
-
-        employee = entry["employee"]
-        holiday_date = entry["date"]
-
-        existing = frappe.get_all(
+    employees = set(
+        frappe.get_all(
             "Attendance",
             filters={
-                "employee": employee,
-                "attendance_date": holiday_date,
-                "docstatus": ["!=", 2]
+                "status": ["in", ["Absent", "Half Day", "On Leave"]],
+                "docstatus": 1,
+                "attendance_date": ["between", [from_date, to_date]],
             },
-            fields=["name"]
+            pluck="employee",
+        )
+    )
+
+    if not employees:
+        return
+
+    employee_details = frappe.get_all(
+        "Employee",
+        filters={"name": ["in", list(employees)], "status": "Active", "holiday_list": ["is", "set"]},
+        fields=["name", "holiday_list", "company"],
+    )
+
+    if not employee_details:
+        return
+
+    employee_names = [employee.name for employee in employee_details]
+    holiday_lists = {employee.holiday_list for employee in employee_details}
+
+    holiday_dates_by_list = {}
+    holidays = frappe.get_all(
+        "Holiday",
+        filters={
+            "parent": ["in", list(holiday_lists)],
+            "holiday_date": ["between", [lookup_from, lookup_to]],
+        },
+        fields=["parent", "holiday_date", "weekly_off"],
+    )
+    for holiday in holidays:
+        public_holidays, weekly_offs = holiday_dates_by_list.setdefault(holiday.parent, (set(), set()))
+        if holiday.weekly_off:
+            weekly_offs.add(getdate(holiday.holiday_date))
+        else:
+            public_holidays.add(getdate(holiday.holiday_date))
+
+    status_map = get_day_status_map(employee_names, lookup_from, lookup_to)
+    attendance_request_dates = get_attendance_request_dates(employee_names, lookup_from, lookup_to)
+
+    existing_attendance = {
+        (attendance.employee, getdate(attendance.attendance_date))
+        for attendance in frappe.get_all(
+            "Attendance",
+            filters={
+                "employee": ["in", employee_names],
+                "docstatus": ["!=", 2],
+                "attendance_date": ["between", [lookup_from, lookup_to]],
+            },
+            fields=["employee", "attendance_date"],
+        )
+    }
+
+    for employee in employee_details:
+        public_holidays, weekly_offs = holiday_dates_by_list.get(employee.holiday_list, (set(), set()))
+        holidays_in_window = {d for d in public_holidays if from_date <= d <= to_date}
+
+        if not holidays_in_window:
+            continue
+
+        sandwiched_holidays = get_sandwiched_holidays(
+            public_holidays,
+            weekly_offs,
+            holidays_in_window,
+            lambda date, employee=employee: status_map.get((employee.name, date), "Present"),
+            attendance_request_dates.get(employee.name, set()),
         )
 
-        if not existing:
+        for holiday in sorted(sandwiched_holidays):
+            if (employee.name, holiday) in existing_attendance:
+                continue
+
             frappe.get_doc({
                 "doctype": "Attendance",
-                "employee": employee,
-                "attendance_date": holiday_date,
+                "employee": employee.name,
+                "attendance_date": holiday,
                 "status": "On Leave",
                 "leave_type": "Leave Without Pay",
-                "company": frappe.db.get_value(
-                    "Employee", employee, "company"
-                ),
+                "company": employee.company,
                 "docstatus": 1
             }).insert(ignore_permissions=True)
 
     frappe.db.commit()
-    
+
 # prachi
 @frappe.whitelist()
 def check():

@@ -2,6 +2,12 @@ from frappe.utils import getdate, nowdate, add_days , today
 from frappe import _
 import frappe
 from datetime import timedelta , datetime 
+from gke_customization.gke_hrms.sandwich_rule import (
+    LOOKUP_PADDING_DAYS,
+    get_attendance_request_dates,
+    get_day_status_map,
+    get_sandwiched_holidays,
+)
 
 
 def validate(doc, method):
@@ -337,9 +343,13 @@ def get_sandwich_dates(doc):
     Sandwich Rule:
         A holiday block becomes Leave if:
 
-            (Left Boundary  = Casual Leave OR Absent)
+            (Left Boundary  = Casual Leave OR Half Day OR Absent)
             AND
-            (Right Boundary = Casual Leave OR Absent)
+            (Right Boundary = Casual Leave OR Half Day OR Absent)
+
+        Weekly offs next to a holiday are part of the holiday block and are never
+        converted. A boundary that is Present, Sick Leave, Marriage Leave, Outdoor Duty
+        or covered by an Attendance Request blocks the sandwich.
 
     Handles:
         - Single holiday
@@ -361,39 +371,40 @@ def get_sandwich_dates(doc):
     employee = doc.employee
 
     public_holidays, weekly_offs = get_holiday_dates(employee)
-    holiday_dates = sorted(public_holidays)
 
     from_date = getdate(doc.from_date)
     to_date = getdate(doc.to_date)
 
-    holidays_in_range = [
-        d for d in holiday_dates if from_date <= d <= to_date
-    ]
+    holidays_in_range = {
+        d for d in public_holidays if from_date <= d <= to_date
+    }
 
     if not holidays_in_range:
         return []
 
-    sandwich_dates = []
-    holiday_blocks = get_continuous_blocks(holidays_in_range)
+    lookup_from = add_days(from_date, -LOOKUP_PADDING_DAYS)
+    lookup_to = add_days(to_date, LOOKUP_PADDING_DAYS)
 
-    for block in holiday_blocks:
+    status_map = get_day_status_map([employee], lookup_from, lookup_to)
+    attendance_request_dates = get_attendance_request_dates(
+        [employee], lookup_from, lookup_to
+    ).get(employee, set())
 
-        block_start = block[0]
-        block_end = block[-1]
+    def get_status(date):
+        if from_date <= date <= to_date:
+            return doc.leave_type
+        return status_map.get((employee, date), "Present")
 
-        left_day = add_days(block_start, -1)
-        right_day = add_days(block_end, 1)
-
-        left_status = get_day_status(employee, left_day, doc)
-        right_status = get_day_status(employee, right_day, doc)
-
-        if (
-            left_status in ["Casual Leave", "Absent"]
-            and right_status in ["Casual Leave", "Absent"]
-        ):
-            sandwich_dates.extend(block)
-
-    return sandwich_dates
+    return sorted(
+        get_sandwiched_holidays(
+            public_holidays,
+            weekly_offs,
+            holidays_in_range,
+            get_status,
+            attendance_request_dates,
+            casual_leave_applied=True,
+        )
+    )
 
 def get_continuous_blocks(dates):
     """
