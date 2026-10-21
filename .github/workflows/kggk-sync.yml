@@ -15,9 +15,9 @@ name: KGGK Sync
 
 on:
   push:
-    branches: [master, gk_develop]
+    branches: [master,gurukupa-prod,gurukrupa-uat]
   pull_request:
-    branches: [master, gk_develop]
+    branches: [master,gurukupa-prod,gurukrupa-uat]
     paths:
       - "gke_customization/gke_order_forms/doc_events/kggk_sync.py"
       - "gke_customization/gke_order_forms/doc_events/test_kggk_sync.py"
