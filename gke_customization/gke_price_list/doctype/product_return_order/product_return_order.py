@@ -421,7 +421,7 @@ class ProductReturnOrder(Document):
 		errors = []
 		new_bom = frappe.get_doc("BOM",new_bom)
 			# series_start = frappe.db.get_value("Manufacturing Setting", doc.company, ["series_start"])
-		series_start = frappe.db.get_value("Manufacturing Setting", {"manufacturer":'Labh'}, ["series_start"])
+		series_start = frappe.db.get_value("Manufacturing Setting", {"manufacturer":'Shubh'}, ["series_start"])
 		# metal_type, manufacturer, posting_date = frappe.db.get_value(
 		# 	"Manufacturing Work Order",
 		# 	mwo_no,
