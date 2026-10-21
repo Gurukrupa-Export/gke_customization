@@ -4351,10 +4351,11 @@ def _on_master_update(doc):
 
 	A later edit goes across when both hold:
 
-	* KGGK already has the record - the whole of "transfer later changes", and why Sync State
-	  exists; and
 	* a submitted Manufacturing Plan still links it on a Nova Glow subcontracting row
-	  (`plan_linked`). A record on KGGK that no such plan sent is not kept in step.
+	  (`plan_linked`). A record on KGGK that no such plan sent is not kept in step; and
+	* KGGK already has the record - the whole of "transfer later changes", and why Sync State
+	  exists. A record with no Sync State row may still be there, created by hand on KGGK before
+	  this sync went live, so that case is asked about in the background (`adopt_and_update`).
 
 	A save never *creates* a record on KGGK. That happens only when a Manufacturing Plan is
 	submitted with the record on a Nova Glow subcontracting row (`on_submit`), or from the
@@ -4382,11 +4383,14 @@ def _on_master_update(doc):
 			return
 
 		target_host = host_of(config.to_site)
-		if not is_on_target(doc.doctype, doc.name, target_host):
-			return
-
 		if doc.name not in plan_linked(doc.doctype, [doc.name]):
 			log_skip(NOT_PLAN_LINKED, doc.doctype, doc.name)
+			return
+
+		if not is_on_target(doc.doctype, doc.name, target_host):
+			# No Sync State row: KGGK may still hold it - created there by hand before this sync
+			# went live. Asking means HTTP, which never runs inside a save, so it is queued.
+			_queue_probe(doc.doctype, doc.name, target_host)
 			return
 
 		# Durable intent, written before the queue is touched. `frappe.enqueue` can refuse -
@@ -4427,6 +4431,118 @@ def bom_on_update(doc, method=None):
 	post-submit BOM edits never reach KGGK - which is most BOM edits.
 	"""
 	_on_master_update(doc)
+
+
+# ============================================================================
+# RECORDS KGGK HOLDS THAT THIS SITE NEVER SENT
+# ============================================================================
+
+# Before this sync went live, Items and BOMs were made by hand on KGGK. This site has no Sync
+# State row for them, so `is_on_target` says no and their edits were never sent. A plan-linked
+# record without a row is therefore asked about on its next save: if KGGK holds it - by identity,
+# or by the same name and nothing claiming it - it is adopted and the edit goes across.
+
+PROBE_METHOD = "gke_customization.gke_order_forms.doc_events.kggk_sync.adopt_and_update"
+
+# A record KGGK answered "not there" for is not asked about again on every save for this long.
+ABSENT_TTL = 3600
+
+NOT_ON_TARGET = "not on KGGK - a save never creates a record there"
+
+
+def _absent_key(doctype, name, target_host):
+	return f"kggk_sync::absent::{target_host}::{doctype}::{name}"
+
+
+def _queue_probe(doctype, name, target_host):
+	"""Ask KGGK about this record after the save commits, unless it recently said "not there"."""
+	if frappe.cache().get_value(_absent_key(doctype, name, target_host), expires=True):
+		return
+	_dispatch(
+		method=PROBE_METHOD,
+		queue="long",
+		job_id=f"kggk_probe::{doctype}::{name}",
+		deduplicate=True,
+		doctype=doctype,
+		name=name,
+	)
+
+
+def adopt_and_update(doctype, name):
+	"""Background half of a save: if KGGK holds this record, claim it and send the edit.
+
+	Never creates anything on KGGK, and never raises - whatever goes wrong is logged and the
+	record simply stays unsent, exactly as before this existed.
+	"""
+	try:
+		if in_reentrant_context() or doctype not in MAPPED_DOCTYPES:
+			return
+
+		config, reason = get_sync_config()
+		if not config:
+			log_skip(reason, doctype, name)
+			return
+
+		target_host = host_of(config.to_site)
+		if not is_on_target(doctype, name, target_host):
+			target_name = _find_existing_on_target(config, doctype, name, target_host)
+			if not target_name:
+				return
+			mark_state(doctype, name, "Pending", target_host, target_name=target_name)
+
+		key = "items" if doctype == "Item" else "boms"
+		enqueue_sync(
+			**{key: [name]},
+			trigger=f"{doctype} Update",
+			reference=name,
+			job_id=f"kggk_{doctype.lower()}::{name}",
+		)
+	except Exception:
+		frappe.logger("kggk_sync").exception(f"could not check KGGK for {doctype} {name}")
+
+
+def _find_existing_on_target(config, doctype, name, target_host):
+	"""What KGGK calls this record if it already holds it, adopting a hand-made one; else ``None``.
+
+	* By identity: an earlier run sent it and this site lost the Sync State row.
+	* By the same name, unclaimed: made by hand on KGGK. A BOM must also be for the same Item,
+	  because BOM names are numbered per site and the same name can be a different BOM there.
+	  `_adopt_same_named` stamps it as ours, and refuses one that another site claims.
+	"""
+	found = lookup_by_identity(config, doctype, name)
+	if found is _LOOKUP_FAILED:
+		return None
+	if found:
+		return found
+
+	response = api_get(config, f"/api/resource/{segment(doctype)}/{segment(name)}")
+	if response.not_found:
+		frappe.cache().set_value(
+			_absent_key(doctype, name, target_host), 1, expires_in_sec=ABSENT_TTL
+		)
+		log_skip(NOT_ON_TARGET, doctype, name)
+		return None
+	if not response.ok:
+		log_skip(f"could not ask KGGK about it - {response.message()}", doctype, name)
+		return None
+
+	if doctype == "BOM":
+		theirs = ((response.data or {}).get("data") or {}).get("item")
+		ours = frappe.db.get_value("BOM", name, "item")
+		if theirs != ours:
+			log_skip(
+				f"KGGK's {name} is a BOM for {theirs or '?'}, not {ours} - a different BOM under "
+				"the same name, so it is not updated",
+				doctype,
+				name,
+			)
+			return None
+
+	adopted = _adopt_same_named(config, doctype, name)
+	if not adopted:
+		log_skip("KGGK holds a record under this name that could not be claimed", doctype, name)
+	return adopted
+
 
 # ============================================================================
 # THE HOURLY RECONCILER

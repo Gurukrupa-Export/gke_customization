@@ -481,7 +481,9 @@ class TestUpdateEligibility(unittest.TestCase):
 			k, "plan_linked", return_value={doc.name} if linked else set()
 		), patch.object(
 			k, "enqueue_sync"
-		) as enqueue:
+		) as enqueue, patch.object(
+			k, "_queue_probe"
+		):
 			k._on_master_update(doc)
 		return enqueue
 
@@ -554,6 +556,143 @@ class TestUpdateEligibility(unittest.TestCase):
 		# And on, it still does its job.
 		self._save(item, synced=True, sync_updates=1).assert_called_once()
 
+
+
+class _Response(frappe._dict):
+	"""Just enough of the API response for the probe: ok / not_found / data / message()."""
+
+	def message(self):
+		return self.get("text") or "boom"
+
+
+def _found(data):
+	return _Response(ok=True, not_found=False, data={"data": data})
+
+
+_NOT_FOUND = _Response(ok=False, not_found=True, data={})
+_FAILED = _Response(ok=False, not_found=False, data={}, text="timeout")
+
+
+class TestHandMadeRecordsOnKggk(unittest.TestCase):
+	"""Items and BOMs made by hand on KGGK before the sync went live get their edits too.
+
+	This site has no Sync State row for them, so the save path used to stop at `is_on_target`.
+	A plan-linked record without a row is now asked about in the background and, if KGGK holds
+	it, adopted and updated. A save still never creates anything on KGGK.
+	"""
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://kggk.example.com")
+
+	def _save(self, doc, synced=False, linked=True):
+		with patch.object(k, "is_sync_enabled", return_value=True), patch.object(
+			k, "setting", return_value=1
+		), patch.object(k, "get_sync_config", return_value=(self.cfg, None)), patch.object(
+			k, "is_on_target", return_value=synced
+		), patch.object(k, "plan_linked", return_value={doc.name} if linked else set()), patch.object(
+			k, "enqueue_sync"
+		) as enqueue, patch.object(k, "_queue_probe") as probe:
+			k._on_master_update(doc)
+		return enqueue, probe
+
+	def test_a_plan_linked_record_without_sync_state_is_asked_about_not_pushed(self):
+		enqueue, probe = self._save(frappe._dict(doctype="Item", name="I-1"))
+		enqueue.assert_not_called()
+		probe.assert_called_once_with("Item", "I-1", "kggk.example.com")
+
+	def test_a_record_no_plan_links_is_not_even_asked_about(self):
+		enqueue, probe = self._save(frappe._dict(doctype="Item", name="I-1"), linked=False)
+		enqueue.assert_not_called()
+		probe.assert_not_called()
+
+	def test_a_record_kggk_already_has_takes_the_normal_path(self):
+		with patch.object(k, "mark_state"):
+			enqueue, probe = self._save(frappe._dict(doctype="BOM", name="B-1"), synced=True)
+		probe.assert_not_called()
+		self.assertEqual(enqueue.call_args.kwargs["boms"], ["B-1"])
+
+	def test_a_recent_not_there_answer_is_not_asked_again(self):
+		with patch.object(k.frappe, "cache") as cache, patch.object(k, "_dispatch") as dispatch:
+			cache.return_value.get_value.return_value = 1
+			k._queue_probe("Item", "I-1", "kggk.example.com")
+			dispatch.assert_not_called()
+
+			cache.return_value.get_value.return_value = None
+			k._queue_probe("Item", "I-1", "kggk.example.com")
+		self.assertEqual(dispatch.call_args.kwargs["method"], k.PROBE_METHOD)
+		self.assertEqual(dispatch.call_args.kwargs["job_id"], "kggk_probe::Item::I-1")
+
+	def _probe(self, doctype, name, identity=None, by_name=_NOT_FOUND, adopted=None, our_bom_item=None):
+		with ExitStack() as stack:
+			stack.enter_context(patch.object(k, "get_sync_config", return_value=(self.cfg, None)))
+			stack.enter_context(patch.object(k, "is_on_target", return_value=False))
+			stack.enter_context(patch.object(k, "lookup_by_identity", return_value=identity))
+			get = stack.enter_context(patch.object(k, "api_get", return_value=by_name))
+			adopt = stack.enter_context(patch.object(k, "_adopt_same_named", return_value=adopted))
+			mark = stack.enter_context(patch.object(k, "mark_state"))
+			enqueue = stack.enter_context(patch.object(k, "enqueue_sync"))
+			cache = stack.enter_context(patch.object(k.frappe, "cache"))
+			stack.enter_context(patch.object(k, "log_skip"))
+			stack.enter_context(patch.object(k.frappe.db, "get_value", return_value=our_bom_item))
+			k.adopt_and_update(doctype, name)
+		return frappe._dict(api=get, adopt=adopt, mark=mark, enqueue=enqueue, cache=cache)
+
+	def test_a_record_an_earlier_run_sent_is_found_by_identity_and_updated(self):
+		r = self._probe("Item", "I-1", identity="I-1")
+		r.api.assert_not_called()
+		r.adopt.assert_not_called()
+		r.mark.assert_called_once_with("Item", "I-1", "Pending", "kggk.example.com", target_name="I-1")
+		self.assertEqual(r.enqueue.call_args.kwargs["items"], ["I-1"])
+		self.assertEqual(r.enqueue.call_args.kwargs["trigger"], "Item Update")
+
+	def test_a_hand_made_item_with_the_same_name_is_adopted_and_updated(self):
+		r = self._probe("Item", "I-1", by_name=_found({"name": "I-1"}), adopted="I-1")
+		r.adopt.assert_called_once_with(self.cfg, "Item", "I-1")
+		r.mark.assert_called_once_with("Item", "I-1", "Pending", "kggk.example.com", target_name="I-1")
+		self.assertEqual(r.enqueue.call_args.kwargs["items"], ["I-1"])
+
+	def test_a_hand_made_bom_for_the_same_item_is_adopted_and_updated(self):
+		r = self._probe(
+			"BOM", "BOM-I-1-001", by_name=_found({"name": "BOM-I-1-001", "item": "I-1"}),
+			adopted="BOM-I-1-001", our_bom_item="I-1",
+		)
+		r.adopt.assert_called_once_with(self.cfg, "BOM", "BOM-I-1-001")
+		self.assertEqual(r.enqueue.call_args.kwargs["boms"], ["BOM-I-1-001"])
+
+	def test_a_same_named_bom_for_another_item_is_left_alone(self):
+		"""BOM names are numbered per site: KGGK's BOM-I-1-001 can be a different BOM."""
+		r = self._probe(
+			"BOM", "BOM-I-1-001", by_name=_found({"name": "BOM-I-1-001", "item": "OTHER"}),
+			adopted="BOM-I-1-001", our_bom_item="I-1",
+		)
+		r.adopt.assert_not_called()
+		r.mark.assert_not_called()
+		r.enqueue.assert_not_called()
+
+	def test_a_record_kggk_does_not_have_is_never_created_and_is_remembered(self):
+		r = self._probe("Item", "I-1", by_name=_NOT_FOUND)
+		r.adopt.assert_not_called()
+		r.mark.assert_not_called()
+		r.enqueue.assert_not_called()
+		r.cache.return_value.set_value.assert_called_once_with(
+			"kggk_sync::absent::kggk.example.com::Item::I-1", 1, expires_in_sec=k.ABSENT_TTL
+		)
+
+	def test_a_failed_question_neither_creates_nor_remembers_absence(self):
+		for identity, by_name in ((k._LOOKUP_FAILED, _NOT_FOUND), (None, _FAILED)):
+			r = self._probe("Item", "I-1", identity=identity, by_name=by_name)
+			r.adopt.assert_not_called()
+			r.enqueue.assert_not_called()
+			r.cache.return_value.set_value.assert_not_called()
+
+	def test_a_same_named_record_another_site_claims_is_not_updated(self):
+		r = self._probe("Item", "I-1", by_name=_found({"name": "I-1"}), adopted=None)
+		r.mark.assert_not_called()
+		r.enqueue.assert_not_called()
+
+	def test_the_probe_never_raises(self):
+		with patch.object(k, "get_sync_config", side_effect=RuntimeError("redis down")):
+			k.adopt_and_update("Item", "I-1")
 
 class TestDeferredRelink(unittest.TestCase):
 	"""Item.master_bom: dropped on the way out, and until now never put back."""
