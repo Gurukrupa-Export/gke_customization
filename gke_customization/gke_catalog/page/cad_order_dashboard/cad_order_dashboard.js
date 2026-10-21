@@ -37,6 +37,7 @@ class CadDashboard {
 			rework: 'var(--cad-amber)',
 			qc: 'var(--cad-pink)',
 			approved: 'var(--cad-green)',
+			completed: 'var(--cad-teal)',
 			rejected: 'var(--cad-red)',
 		};
 
@@ -823,8 +824,9 @@ class CadDashboard {
 			bucket_tile('designing_on_hold'),
 			bucket_tile('qc'),
 			bucket_tile('approved'),
+			bucket_tile('completed'),
 			bucket_tile('rejected'),
-			assigned_to_designer_tile(),
+			// assigned_to_designer_tile() hidden - replacement card pending.
 			notifications_tile,
 		].join('');
 
