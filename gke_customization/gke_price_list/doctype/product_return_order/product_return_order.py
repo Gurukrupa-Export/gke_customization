@@ -300,7 +300,7 @@ class ProductReturnOrder(Document):
 			serial.custom_jwelex_tag_no = self.jewelex_tag
 			serial.custom_bom_no=self.new_bom
 			serial.status = 'Delivered'
-			serial.custom_manufacturer='Labh'
+			serial.custom_manufacturer='Shubh'
 			serial.sales_type='Repair'
 			serial.order_type='Repair'
 			compose_series = self.genrate_serial_no(self.new_bom)
