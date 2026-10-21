@@ -21,6 +21,12 @@ from hrms.payroll.doctype.payroll_entry.payroll_entry import (
     create_salary_slips_for_employees,
     submit_salary_slips_for_employees,
 )
+from hrms.payroll.doctype.salary_component.test_salary_component import (
+    create_salary_component,
+)
+from hrms.payroll.doctype.salary_structure.test_salary_structure import (
+    make_salary_structure,
+)
 
 from gke_customization.gke_hrms.tests.base import GKHRMSTestCase
 
@@ -108,52 +114,33 @@ class PayrollTestCase(GKHRMSTestCase):
     def ensure_salary_component(
         cls, component: str, component_type: str, **extra
     ) -> str:
-        if frappe.db.exists("Salary Component", component):
-            return component
-        return cls._insert(
-            {
-                "doctype": "Salary Component",
-                "salary_component": component,
-                "salary_component_abbr": component.replace("_Test GKE ", "TG")[
-                    :10
-                ].upper(),
-                "type": component_type,
-                **extra,
-            }
-        ).name
+        """Reuses the hrms core helper, which only accepts the component type,
+        so any extra fields (for example statistical_component) are set after."""
+        salary_component = create_salary_component(component, type=component_type)
+        for fieldname, value in extra.items():
+            if salary_component.get(fieldname) != value:
+                salary_component.db_set(fieldname, value)
+        return salary_component.name
 
     @classmethod
     def ensure_salary_structure(cls) -> str:
         if frappe.db.exists("Salary Structure", SALARY_STRUCTURE):
             return SALARY_STRUCTURE
-        structure = frappe.get_doc(
-            {
-                "doctype": "Salary Structure",
-                "__newname": SALARY_STRUCTURE,
-                "name": SALARY_STRUCTURE,
-                "company": cls.company,
-                "is_active": "Yes",
-                "payroll_frequency": "Monthly",
-                "currency": "INR",
-                "earnings": [
-                    {"salary_component": BASIC_COMPONENT, "amount": BASIC_AMOUNT},
-                    {
-                        "salary_component": STATISTICAL_COMPONENT,
-                        "amount": STATISTICAL_AMOUNT,
-                    },
-                ],
-                "deductions": [
-                    {
-                        "salary_component": DEDUCTION_COMPONENT,
-                        "amount": DEDUCTION_AMOUNT,
-                    }
-                ],
-            }
-        )
-        structure.flags.name_set = True
-        structure.insert(ignore_permissions=True)
-        structure.submit()
-        return structure.name
+        return make_salary_structure(
+            SALARY_STRUCTURE,
+            "Monthly",
+            company=cls.company,
+            earnings=[
+                {"salary_component": BASIC_COMPONENT, "amount": BASIC_AMOUNT},
+                {
+                    "salary_component": STATISTICAL_COMPONENT,
+                    "amount": STATISTICAL_AMOUNT,
+                },
+            ],
+            deductions=[
+                {"salary_component": DEDUCTION_COMPONENT, "amount": DEDUCTION_AMOUNT}
+            ],
+        ).name
 
     @classmethod
     def set_employee_wise_accounting(cls, enabled: bool):
@@ -167,6 +154,8 @@ class PayrollTestCase(GKHRMSTestCase):
 
     @classmethod
     def create_payroll_employee(cls, label: str) -> str:
+        # The core create_salary_structure_assignment is not used: it hardcodes
+        # _Test Company, base 50000 and deletes other assignments.
         device_id = f"GKE-T-PAY-{label}-{frappe.generate_hash(length=6)}"
         employee = cls.create_employee(f"Payroll {label}", device_id)
         cls._insert(
