@@ -355,6 +355,27 @@ STATUS_ROW_ORDER = [
 # separate "Cad Dashboard Script" report's own Approved row is unaffected.
 PAGE_BUCKET_LABELS = {**BUCKET_LABELS, "approved": "Completed", "customer_approval": "Customer Approval"}
 
+# KPI-strip-only split of the folded "approved" bucket above into two cards:
+# "Approved" (workflow_state literally "Approved") and "Completed" (everything
+# past it - Update BOM, Update Item, Creating BOM, BOM QC, Customer Approval,
+# ...). Only the KPI strip (`status_summary`) and its matching `status_bucket`
+# drill-down are split this way - the matrix tables, designer workload
+# "completed" count, and alerts all keep treating the whole folded "approved"
+# bucket as one thing via `_bucket_of`/`PAGE_BUCKET_LABELS` above.
+KPI_BUCKET_LABELS = {**BUCKET_LABELS, "approved": "Approved", "completed": "Completed"}
+KPI_STATUS_ROW_ORDER = [
+	"pending",
+	"assigned",
+	"assigned_on_hold",
+	"designing",
+	"designing_on_hold",
+	"rework",
+	"qc",
+	"approved",
+	"completed",
+	"rejected",
+]
+
 # Matrix-tables-only row/column order: same pipeline as STATUS_ROW_ORDER, but
 # with "Customer Approval" broken back out of "Completed" into its own line
 # (see `_matrix_bucket_of`). The KPI "Completed" tile and everything else on
@@ -772,9 +793,18 @@ def get_dashboard_data(
 	for row in rows:
 		status_counts[_bucket_of(row.workflow_state)] += 1
 
+	# Split the folded "approved" count (see `KPI_BUCKET_LABELS`) into its own
+	# "Approved" (literal Approved state) and "Completed" (everything past it)
+	# cards for the KPI strip only.
+	approved_literal_count = sum(1 for row in rows if row.workflow_state in APPROVED_STATES)
+	kpi_counts = {
+		**status_counts,
+		"approved": approved_literal_count,
+		"completed": status_counts["approved"] - approved_literal_count,
+	}
 	status_summary = [
-		{"key": bucket, "label": _(PAGE_BUCKET_LABELS[bucket]), "count": status_counts[bucket]}
-		for bucket in STATUS_ROW_ORDER
+		{"key": bucket, "label": _(KPI_BUCKET_LABELS[bucket]), "count": kpi_counts[bucket]}
+		for bucket in KPI_STATUS_ROW_ORDER
 	]
 	total_orders = len(rows)
 
@@ -1008,6 +1038,18 @@ def get_segment_orders(
 
 	if seg_type == "status_bucket":
 		bucket = segment.get("bucket")
+		# "approved"/"completed" are a KPI-strip-only split of the folded
+		# "approved" bucket (see `KPI_BUCKET_LABELS`) - resolve them against the
+		# literal Approved state instead of `_bucket_of`, which still folds both
+		# into one "approved" bucket for every other section of the page.
+		if bucket == "approved":
+			return sorted(row.name for row in rows if row.workflow_state in APPROVED_STATES)
+		if bucket == "completed":
+			return sorted(
+				row.name
+				for row in rows
+				if _bucket_of(row.workflow_state) == "approved" and row.workflow_state not in APPROVED_STATES
+			)
 		return sorted(row.name for row in rows if _bucket_of(row.workflow_state) == bucket)
 
 	if seg_type == "stock_split":
