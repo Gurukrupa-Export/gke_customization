@@ -13,6 +13,22 @@ from gke_customization.gke_catalog.report.mfg_dashboard_script.mfg_dashboard_scr
 # Departments shown as Gross Wt pivot columns on this report only.
 INCLUDED_DEPARTMENTS = ["Tagging"]
 
+# Only jewellery items - those whose Item Group sits anywhere under this group in the tree.
+JEWELLERY_ITEM_GROUP = "Designs"
+
+
+
+def get_jewellery_item_group_condition(item_alias):
+    """SQL condition (one %s param: JEWELLERY_ITEM_GROUP) keeping only items whose
+    item group is a descendant of the jewellery root group (nested set lft/rgt)."""
+    return """{item_alias}.item_group IN (
+        SELECT child_ig.name
+        FROM `tabItem Group` child_ig
+        INNER JOIN `tabItem Group` root_ig
+            ON child_ig.lft >= root_ig.lft AND child_ig.rgt <= root_ig.rgt
+        WHERE root_ig.name = %s
+    )""".format(item_alias=item_alias)
+
 
 
 def execute(filters=None):
@@ -204,11 +220,10 @@ def get_data(filters, departments=None, department_name_map=None):
     ) pmo3 ON pmo3.serial_no = sn.name
     LEFT JOIN `tabOrder` ord3 ON pmo3.order_form_id = ord3.name
     WHERE sn.item_code NOT LIKE %s
-    AND (item.item_group IS NULL OR LOWER(item.item_group) NOT LIKE %s)
-    AND (item.item_group IS NULL OR LOWER(item.item_group) NOT LIKE %s)
-    """
-    
-    base_params = ['SN%', '%sample%', '%consumable%']
+    AND {jewellery_condition}
+    """.format(jewellery_condition=get_jewellery_item_group_condition("item"))
+
+    base_params = ['SN%', JEWELLERY_ITEM_GROUP]
     
     if conditions:
         base_query = base_query + " AND " + conditions
@@ -376,10 +391,9 @@ def get_wip_mwo_rows(filters, departments=None, department_name_map=None):
 
     exclusion_conditions = [
         "mwo.item_code NOT LIKE %s",
-        "(item.item_group IS NULL OR LOWER(item.item_group) NOT LIKE %s)",
-        "(item.item_group IS NULL OR LOWER(item.item_group) NOT LIKE %s)"
+        get_jewellery_item_group_condition("item")
     ]
-    params.extend(['SN%', '%sample%', '%consumable%'])
+    params.extend(['SN%', JEWELLERY_ITEM_GROUP])
 
     order_type_conditions = []
     if filters.get("order_type"):
