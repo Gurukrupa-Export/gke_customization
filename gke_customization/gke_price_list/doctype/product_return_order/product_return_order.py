@@ -429,7 +429,7 @@ class ProductReturnOrder(Document):
 		# 	mwo_no,
 		# 	["metal_type", "manufacturer", "posting_date"],
 		# )
-		manufacturer='Labh'
+		manufacturer='Shubh'
 		metal_type = new_bom.metal_detail[0].metal_type if new_bom.metal_detail else None
 		diamond_grade_data=new_bom.diamond_detail[0].diamond_grade if new_bom.diamond_detail else None
 		m_abbr = frappe.db.get_value("Attribute Value", metal_type, "abbreviation")
