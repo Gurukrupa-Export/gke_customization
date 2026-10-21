@@ -550,9 +550,9 @@ frappe.ui.form.on('Order Form Detail', {
 		let order_detail = locals[cdt][cdn];
 
 		var fields = ['design_id'];
-		if (order_detail.design_type == 'Sketch Design'){
-			set_filter_for_sketch_design_n_serial(frm,fields)
-		}
+		// if (order_detail.design_type == 'Sketch Design'){
+		// 	set_filter_for_sketch_design_n_serial(frm,fields)
+		// }
 		// else{
 		// 	set_filter_for_design_n_serial(frm,fields)
 		// }

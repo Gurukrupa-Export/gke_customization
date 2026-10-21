@@ -74,7 +74,7 @@
   },
   {
    "fieldname": "size_in_mm",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "label": "Size In MM",
    "mandatory_depends_on": "eval: doc.diamond_sieve_size",
    "options": "Attribute Value"
