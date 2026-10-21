@@ -31,6 +31,7 @@ class ManufacturingDashboard {
 		};
 
 		this.due_soon_days = 2;
+		this.production_days = 7;
 
 		// KPI cards that open an order list on click, keyed by order_summary key
 		this.KPI_LISTS = {
@@ -46,6 +47,8 @@ class ManufacturingDashboard {
 		this.export_method = api + 'export_order_list';
 		this.department_pieces_method = api + 'get_department_pieces';
 		this.summary_orders_method = api + 'get_summary_orders';
+		this.production_method = api + 'get_production_summary';
+		this.production_pieces_method = api + 'get_production_pieces';
 		this.image_method = api + 'get_catalogue_image';
 		this.STATUS_COLORS = {
 			'In Progress': 'var(--mfg-steel)',
@@ -63,6 +66,19 @@ class ManufacturingDashboard {
 		if (!this.company_field.get_value()) {
 			this.refresh();
 		}
+		this.start_auto_refresh();
+	}
+
+	// Reloads the whole dashboard every 10 minutes with the current filters (the open operation /
+	// order drill-down is kept). Skipped while the user is on another desk page or the browser tab
+	// is hidden, so a dashboard left open in the background doesn't keep hitting the server.
+	start_auto_refresh() {
+		const AUTO_REFRESH_MS = 10 * 60 * 1000;
+		setInterval(() => {
+			if (document.hidden) return;
+			if (frappe.get_route()[0] !== 'manufacturing-dashbo') return;
+			this.refresh();
+		}, AUTO_REFRESH_MS);
 	}
 
 	// The filter controls are rendered inside our own template (not via page.add_field's
@@ -74,6 +90,11 @@ class ManufacturingDashboard {
 		page.set_secondary_action(__('Refresh'), () => this.refresh(), 'refresh');
 
 		this.page.main.find('[data-field="clear-filters"]').on('click', () => this.clear_filters());
+
+		// unticked by default: completed (tagged / sold) pieces are left out of every number.
+		// Set up before the Company default below, which can trigger the first refresh.
+		this.$include_completed = this.page.main.find('[data-field="include-completed"]');
+		this.$include_completed.on('change', () => this.refresh());
 
 		this.company_field = frappe.ui.form.make_control({
 			df: {
@@ -131,6 +152,7 @@ class ManufacturingDashboard {
 		this.company_field.set_value('');
 		this.customer_field.set_value('');
 		this.daterange_field.set_value('');
+		this.$include_completed.prop('checked', false);
 		this.refresh();
 	}
 
@@ -139,6 +161,7 @@ class ManufacturingDashboard {
 		this.$kpi_row = this.page.main.find('[data-field="kpi-row"]');
 		this.$dept_line = this.page.main.find('[data-field="dept-line"]');
 		this.$andon = this.page.main.find('[data-field="andon-board"]');
+		this.$production = this.page.main.find('[data-field="production-board"]');
 		this.$generated_at = this.page.main.find('[data-field="generated-at"]');
 		this.$ops = this.page.main.find('[data-field="ops-board"]');
 		this.$stage = this.page.main.find('[data-field="stage-board"]');
@@ -170,6 +193,7 @@ class ManufacturingDashboard {
 			customer: this.customer_field.get_value() || undefined,
 			from_date: from_date || undefined,
 			to_date: to_date || undefined,
+			include_completed: this.$include_completed.prop('checked') ? 1 : 0,
 		};
 	}
 
@@ -181,6 +205,7 @@ class ManufacturingDashboard {
 		}
 
 		this.render_loading();
+		this.refresh_production();
 
 		frappe.call({
 			method: this.method,
@@ -238,6 +263,7 @@ class ManufacturingDashboard {
 		this.$kpi_row.html(loading(__('Loading order summary…')));
 		this.$dept_line.html(loading(__('Loading department flow…')));
 		this.$andon.html(loading(__('Loading alerts…')));
+		this.$production.html(loading(__('Loading production…')));
 		this.$ops.html(loading(__('Loading operations…')));
 	}
 
@@ -246,6 +272,7 @@ class ManufacturingDashboard {
 		this.$kpi_row.html(html);
 		this.$dept_line.html('');
 		this.$andon.html('');
+		this.$production.html('');
 		this.$ops.html('');
 		this.render_drill_hints();
 	}
@@ -374,7 +401,9 @@ class ManufacturingDashboard {
 
 				return `
 					<div class="mfg-node" data-field="node" data-index="${i}" style="--mfg-delay:${i * 70}ms">
-						<div class="mfg-node__ring" style="background:${ring}">
+						<div class="mfg-node__ring mfg-node__ring--link" style="background:${ring}"
+							data-field="piece-list" data-kind="all" title="Click to view the list">
+
 							<div class="mfg-node__ring-glow"></div>
 							<div class="mfg-node__count">
 								<b>${this.fmt_count(total)}</b>
@@ -399,50 +428,20 @@ class ManufacturingDashboard {
 								</div>`
 								: ''
 						}
-						<div class="mfg-node__legend">
-							<span><i style="background:var(--mfg-amber)"></i>${this.fmt_count(dept.pending)}</span>
-							<span><i style="background:var(--mfg-steel)"></i>${this.fmt_count(dept.in_progress)}</span>
-							<span><i style="background:var(--mfg-emerald)"></i>${this.fmt_count(dept.completed)}</span>
-						</div>
-						${
-							dept.department_id
-								? `<button type="button" class="mfg-node__detail" data-field="view-detail" data-department="${frappe.utils.escape_html(dept.department_id)}">View Detail →</button>`
-								: ''
-						}
 					</div>`;
 			})
 			.join('');
 
 		this.$dept_line.html(html);
 		this.bind_node_tooltips(shown);
-		this.bind_view_detail_buttons();
 
-		// "Not started" opens the list of those pieces
+		// the pieces ring opens the department's full piece list, "Not started" just those pieces
 		this.$dept_line.find('[data-field="piece-list"]').on('click', (e) => {
 			e.stopPropagation();
 			const dept = shown[Number($(e.currentTarget).closest('[data-field="node"]').data('index'))];
 			// the "Other" card groups several departments, so it has no single department name to send
 			const department = dept.name === __('Other') && !dept.department_id ? '__other__' : dept.name;
 			this.show_department_pieces(department, dept.name, e.currentTarget.dataset.kind);
-		});
-	}
-
-	// Jumps to the standard Manufacturing Work Order report view, pre-filtered to the exact
-	// same pieces this department's card is summarizing - so "View Detail" is a drill-down,
-	// not a separate ad-hoc filter the user has to rebuild themselves.
-	bind_view_detail_buttons() {
-		this.$dept_line.find('[data-field="view-detail"]').on('click', (e) => {
-			e.stopPropagation();
-			const department = e.currentTarget.dataset.department;
-			const company = this.company_field.get_value();
-
-			frappe.route_options = {
-				company: company,
-				department: department,
-				for_fg: 0,
-				is_finding_mwo: 0,
-			};
-			frappe.set_route('List', 'Manufacturing Work Order', 'Report');
 		});
 	}
 
@@ -598,6 +597,7 @@ class ManufacturingDashboard {
 				customer: args.customer,
 				from_date: args.from_date,
 				to_date: args.to_date,
+				include_completed: args.include_completed,
 			},
 			freeze: false,
 			callback: (r) => {
@@ -655,29 +655,31 @@ class ManufacturingDashboard {
 				(o) => `
 				<tr class="mfg-orders__row ${this.drill.order === o.order_no ? 'is-selected' : ''}"
 					data-field="order-row" data-order="${frappe.utils.escape_html(o.order_no)}">
-					<td class="mfg-orders__no">
-						<i class="mfg-dot" style="background:${this.STATUS_COLORS[o.stage_status] || 'var(--mfg-border)'}"
-							title="${frappe.utils.escape_html(o.stage_status)}"></i>${esc(o.order_no)}
-					</td>
 					<td>${this.mwo_link_html(o.mwo)}</td>
+					<td>${esc(o.employee_name || o.employee)}</td>
 					<td>${esc(o.design_no)}</td>
 					<td>${esc(o.item_category)}</td>
 					<td class="is-num">${this.fmt_wt(o.gold_wt, '').trim()}</td>
 					<td class="is-num">${this.fmt_wt(o.diamond_wt, '').trim()}</td>
+					<td class="is-num">${this.fmt_count(Math.round(o.diamond_pcs || 0))}</td>
 					<td>${date(o.issue_date)}</td>
 					<td>${date(o.due_date)}</td>
-					<td>${esc(o.employee_name || o.employee)}</td>
+					<td class="mfg-orders__no">
+						<i class="mfg-dot" style="background:${this.STATUS_COLORS[o.stage_status] || 'var(--mfg-border)'}"
+							title="${frappe.utils.escape_html(o.stage_status)}"></i>${esc(o.order_no)}
+					</td>
 				</tr>`
 			)
 			.join('');
 
-		// columns after Order No, as far as the Total row is concerned
+		// columns after MWO (the first column, which holds the "Total" label), as far as the Total row is concerned
 		const total_columns = [
 			{ value: () => '' },
 			{ value: () => '' },
 			{ value: () => '' },
 			{ num: true, sum: 'gold_wt', value: (o) => this.fmt_wt(o.gold_wt, '').trim() },
 			{ num: true, sum: 'diamond_wt', value: (o) => this.fmt_wt(o.diamond_wt, '').trim() },
+			{ num: true, sum: 'diamond_pcs', value: (o) => this.fmt_count(Math.round(o.diamond_pcs || 0)) },
 			{ value: () => '' },
 			{ value: () => '' },
 			{ value: () => '' },
@@ -689,9 +691,10 @@ class ManufacturingDashboard {
 				<table class="mfg-table mfg-orders">
 					<thead>
 						<tr>
-							<th>${__('Order No')}</th><th>${__('MWO')}</th><th>${__('Design No')}</th><th>${__('Item')}</th>
+							<th>${__('MWO')}</th><th>${__('Employee')}</th><th>${__('Design No')}</th><th>${__('Item')}</th>
 							<th class="is-num">${__('Metal (g)')}</th><th class="is-num">${__('Dia (ct)')}</th>
-							<th>${__('Issue Date')}</th><th>${__('Due Date')}</th><th>${__('Employee')}</th>
+							<th class="is-num">${__('Dia Pcs')}</th>
+							<th>${__('Issue Date')}</th><th>${__('Due Date')}</th><th>${__('Order No')}</th>
 						</tr>
 						${this.search_row_html(total_columns.length + 1)}
 					</thead>
@@ -725,19 +728,20 @@ class ManufacturingDashboard {
 				cmd: this.export_method,
 				title: `${__('Order List')} ${sel ? sel.label : ''} ${this.drill.status || __('All')}`,
 				rows: JSON.stringify([
-					[__('Order No'), __('MWO'), __('Design No'), __('Item'), __('Metal (g)'), __('Dia (ct)'), __('Issue Date'), __('Due Date'), __('Employee')],
+					[__('MWO'), __('Employee'), __('Design No'), __('Item'), __('Metal (g)'), __('Dia (ct)'), __('Dia Pcs'), __('Issue Date'), __('Due Date'), __('Order No')],
 					...shown.map((o) => [
-						o.order_no || '',
 						o.mwo || '',
+						o.employee_name || o.employee || '',
 						o.design_no || '',
 						o.item_category || '',
 						flt(o.gold_wt, 3),
 						flt(o.diamond_wt, 3),
+						Math.round(o.diamond_pcs || 0),
 						day(o.issue_date),
 						day(o.due_date),
-						o.employee_name || o.employee || '',
+						o.order_no || '',
 					]),
-					[__('Total'), '', '', '', sum('gold_wt'), sum('diamond_wt'), '', '', ''],
+					[__('Total'), '', '', '', sum('gold_wt'), sum('diamond_wt'), Math.round(sum('diamond_pcs')), '', '', ''],
 				]),
 			});
 		});
@@ -1011,6 +1015,124 @@ class ManufacturingDashboard {
 		});
 	}
 
+	// ---- production (tagged pieces) ----
+
+	// Its own light call, so changing the day count doesn't reload the rest of the dashboard.
+	refresh_production() {
+		const args = this.build_call_args();
+		if (!args.company) return;
+		const token = (this.production_token = (this.production_token || 0) + 1);
+
+		frappe.call({
+			method: this.production_method,
+			args: {
+				company: args.company,
+				days: this.production_days,
+				customer: args.customer,
+				from_date: args.from_date,
+				to_date: args.to_date,
+			},
+			freeze: false,
+			callback: (r) => {
+				if (token !== this.production_token || !r.message) return;
+				this.render_production(r.message);
+			},
+			error: () => {
+				this.$production.html(`<div class="mfgdash__empty">${__('Could not load production.')}</div>`);
+			},
+		});
+	}
+
+	render_production(data) {
+		const active = data.count > 0;
+		const label = `Production (last
+			<input type="number" class="mfg-lamp__days-input" data-field="production-days"
+				min="1" max="365" step="1" value="${this.production_days}" /> days)`;
+		this.$production.html(`
+			<div class="mfg-lamp ${active ? 'mfg-lamp--active' : ''}" style="--mfg-lamp-color:var(--mfg-emerald)">
+				<div class="mfg-lamp__bulb"></div>
+				<div>
+					<div class="mfg-lamp__label">${label}</div>
+					<div class="mfg-lamp__count ${active ? 'is-clickable' : ''}" data-field="production-count"
+						${active ? `title="${__('Click to view pieces')}"` : ''}>
+						${this.fmt_count(data.count)}<span>pcs</span>
+					</div>
+				</div>
+				<div class="mfg-lamp__wts">
+					<div class="mfg-lamp__wt-label">Gold</div>
+					<div class="mfg-lamp__wt-value">${this.fmt_wt(data.gold_wt, 'g')}</div>
+					<div class="mfg-lamp__wt-label">Dia</div>
+					<div class="mfg-lamp__wt-value">${this.fmt_wt(data.diamond_wt, 'ct')}</div>
+				</div>
+			</div>`);
+
+		this.$production.find('[data-field="production-count"].is-clickable').on('click', () => this.show_production_pieces());
+
+		this.$production.find('[data-field="production-days"]').on('change', (e) => {
+			let value = parseInt(e.target.value, 10);
+			if (isNaN(value) || value < 1) value = 1;
+			e.target.value = value;
+			this.production_days = value;
+			this.refresh_production();
+		});
+	}
+
+	show_production_pieces() {
+		const wt = (field) => ({ num: true, sum: field, value: (o) => this.fmt_wt(o[field], '').trim() });
+		const days_title = __('Production - Last {0} Days', [this.production_days]);
+		this.show_order_list({
+			title: days_title,
+			method: this.production_pieces_method,
+			args: { days: this.production_days },
+			// Serial No Date range inside the list: when both ends are picked it overrides the
+			// lamp's "last N days"; cleared, the list goes back to the days count
+			filter_bar: ($bar, reload) => {
+				$bar.addClass('mfgdash__filter mfg-list-filter').html(
+					`<label>${__('Serial No Date')}</label><div data-field="list-range"></div>`
+				);
+				const range = frappe.ui.form.make_control({
+					df: {
+						fieldname: 'serial_no_date',
+						fieldtype: 'DateRange',
+						placeholder: __('Last {0} days', [this.production_days]),
+						onchange: () => {
+							const value = range.get_value();
+							const [from, to] = value && value[0] && value[1] ? value : [null, null];
+							reload(
+								{ production_from: from || undefined, production_to: to || undefined },
+								from
+									? __('Production - {0} to {1}', [
+											frappe.datetime.str_to_user(from),
+											frappe.datetime.str_to_user(to),
+									  ])
+									: days_title
+							);
+						},
+					},
+					parent: $bar.find('[data-field="list-range"]'),
+					render_input: true,
+				});
+				range.refresh();
+			},
+			link: { label: __('Serial No'), route: 'serial-no', field: 'serial_no' },
+			columns: [
+				{ label: __('Serial No Date'), value: (o, esc, date) => date(o.serial_date) },
+				{
+					label: __('PMO'),
+					value: (o, esc) =>
+						o.pmo
+							? `<a href="/app/parent-manufacturing-order/${encodeURIComponent(o.pmo)}" target="_blank"
+								rel="noopener">${esc(o.pmo)}</a>`
+							: '—',
+				},
+				{ label: __('Net Wt (g)'), ...wt('net_wt') },
+				{ label: __('Finding Wt (g)'), ...wt('finding_wt') },
+				{ label: __('Dia Wt (ct)'), ...wt('diamond_wt') },
+				{ label: __('Gold Wt (g)'), ...wt('gold_wt') },
+			],
+		});
+	}
+
 	// Order list behind a Due Soon / Overdue lamp, in a dialog so the drill-down panels below
 	// keep whatever operation the user had open.
 	show_alert_orders(alert) {
@@ -1034,16 +1156,17 @@ class ManufacturingDashboard {
 				{ label: __('Department'), value: (o, esc) => esc(o.department) },
 				{ label: __('Metal (g)'), num: true, sum: 'gold_wt', value: (o) => this.fmt_wt(o.gold_wt, '').trim() },
 				{ label: __('Dia (ct)'), num: true, sum: 'diamond_wt', value: (o) => this.fmt_wt(o.diamond_wt, '').trim() },
+				{ label: __('Dia Pcs'), num: true, sum: 'diamond_pcs', value: (o) => this.fmt_count(Math.round(o.diamond_pcs || 0)) },
 				{ label: __('Due Date'), value: (o, esc, date) => date(o.due_date) },
 				{ label: __('Due'), value: (o) => days(o.days_left) },
 			],
 		});
 	}
 
-	// Pieces behind a department card's "Not started" count.
+	// Pieces behind a department card's total or "Not started" count.
 	show_department_pieces(department, name, kind) {
 		this.show_order_list({
-			title: __('{0} - Not Started', [name]),
+			title: kind === 'all' ? __('{0} - All Pieces', [name]) : __('{0} - Not Started', [name]),
 			method: this.department_pieces_method,
 			args: { department, kind },
 			columns: [
@@ -1053,6 +1176,7 @@ class ManufacturingDashboard {
 				{ label: __('Operation'), value: (o, esc) => esc(o.operation) },
 				{ label: __('Metal (g)'), num: true, sum: 'gold_wt', value: (o) => this.fmt_wt(o.gold_wt, '').trim() },
 				{ label: __('Dia (ct)'), num: true, sum: 'diamond_wt', value: (o) => this.fmt_wt(o.diamond_wt, '').trim() },
+				{ label: __('Dia Pcs'), num: true, sum: 'diamond_pcs', value: (o) => this.fmt_count(Math.round(o.diamond_pcs || 0)) },
 				{ label: __('Issue Date'), value: (o, esc, date) => date(o.issue_date) },
 				{ label: __('Due Date'), value: (o, esc, date) => date(o.due_date) },
 				{ label: __('Employee'), value: (o, esc) => esc(o.employee_name || o.employee) },
@@ -1081,6 +1205,7 @@ class ManufacturingDashboard {
 					{ label: __('Operation'), value: (o, esc) => esc(o.operation) },
 					{ label: __('Metal (g)'), num: true, sum: 'gold_wt', value: (o) => this.fmt_wt(o.gold_wt, '').trim() },
 					{ label: __('Dia (ct)'), num: true, sum: 'diamond_wt', value: (o) => this.fmt_wt(o.diamond_wt, '').trim() },
+					{ label: __('Dia Pcs'), num: true, sum: 'diamond_pcs', value: (o) => this.fmt_count(Math.round(o.diamond_pcs || 0)) },
 					{ label: __('Due Date'), value: (o, esc, date) => date(o.due_date) },
 				],
 			});
@@ -1097,6 +1222,7 @@ class ManufacturingDashboard {
 				{ label: __('Qty'), num: true, sum: 'qty', value: (o) => this.fmt_count(o.qty) },
 				{ label: __('Metal (g)'), num: true, sum: 'gold_wt', value: (o) => this.fmt_wt(o.gold_wt, '').trim() },
 				{ label: __('Dia (ct)'), num: true, sum: 'diamond_wt', value: (o) => this.fmt_wt(o.diamond_wt, '').trim() },
+				{ label: __('Dia Pcs'), num: true, sum: 'diamond_pcs', value: (o) => this.fmt_count(Math.round(o.diamond_pcs || 0)) },
 				{ label: __('Order Date'), value: (o, esc, date) => date(o.order_date) },
 				{ label: __('Delivery Date'), value: (o, esc, date) => date(o.due_date) },
 				...(kind === 'on_hold' ? [{ label: __('Status'), value: (o, esc) => esc(o.so_status) }] : []),
@@ -1107,8 +1233,9 @@ class ManufacturingDashboard {
 	// Shared order-list dialog: the whole list in one scrollable table with a search box under
 	// every column header. The first column is the Order No linked to its Parent Manufacturing
 	// Order, unless `link` names another doctype field. Export Excel downloads the table as it is
-	// on screen (rows left after any column search, plus the Total row).
-	show_order_list({ title, method, args, columns, link }) {
+	// on screen (rows left after any column search, plus the Total row). `filter_bar($bar, reload)`
+	// can put controls above the list; reload(extra_args, new_title) re-fetches it with them.
+	show_order_list({ title, method, args, columns, link, filter_bar }) {
 		// undefined filters are dropped so they aren't sent as the string "undefined"
 		args = { ...this.build_call_args(), ...args };
 		Object.keys(args).forEach((k) => args[k] === undefined && delete args[k]);
@@ -1131,23 +1258,43 @@ class ManufacturingDashboard {
 			},
 		});
 		// wrapped in .mfgdash so the dialog (appended to <body>) picks up the dashboard's theme tokens
-		const $body = $('<div class="mfgdash mfgdash--dialog"><div class="mfg-alert-orders"></div></div>')
-			.appendTo(dialog.$body)
-			.find('.mfg-alert-orders');
+		const $wrap = $('<div class="mfgdash mfgdash--dialog"><div class="mfg-alert-orders"></div></div>').appendTo(
+			dialog.$body
+		);
+		const $body = $wrap.find('.mfg-alert-orders');
 		dialog.show();
 
-		$body.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Loading orders…')}</div>`);
-		frappe.call({
-			method,
-			args,
-			freeze: false,
-			callback: (r) => {
-				if (r.message) this.render_order_list($body, r.message, columns, link);
-			},
-			error: () => {
-				$body.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Could not load orders.')}</div>`);
-			},
-		});
+		let token = 0;
+		const load = (call_args) => {
+			const my_token = ++token;
+			$body.removeData('export_rows');
+			$body.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Loading orders…')}</div>`);
+			frappe.call({
+				method,
+				args: call_args,
+				freeze: false,
+				callback: (r) => {
+					if (my_token === token && r.message) this.render_order_list($body, r.message, columns, link);
+				},
+				error: () => {
+					if (my_token !== token) return;
+					$body.html(`<div class="mfgdash__empty mfgdash__empty--compact">${__('Could not load orders.')}</div>`);
+				},
+			});
+		};
+
+		if (filter_bar) {
+			filter_bar($('<div>').prependTo($wrap), (extra, new_title) => {
+				const call_args = { ...args, ...extra };
+				Object.keys(call_args).forEach((k) => call_args[k] === undefined && delete call_args[k]);
+				if (new_title) {
+					title = new_title;
+					dialog.set_title(title);
+				}
+				load(call_args);
+			});
+		}
+		load(args);
 	}
 
 	mwo_link_html(mwo) {

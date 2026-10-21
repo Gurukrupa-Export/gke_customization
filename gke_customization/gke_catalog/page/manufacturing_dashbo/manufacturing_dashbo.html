@@ -17,6 +17,10 @@
 				<label>Order Date</label>
 				<div data-field="daterange-field"></div>
 			</div>
+			<label class="mfgdash__check" title="Tick to also count completed orders (tagging or sale done)">
+				<input type="checkbox" data-field="include-completed" />
+				Include Completed
+			</label>
 			<button type="button" class="mfgdash__clear-filters" data-field="clear-filters" title="Clear Filter">
 				<span class="mfgdash__clear-filters-icon">&#x21bb;</span>
 				Clear Filter
@@ -45,6 +49,9 @@
 			<div class="mfgdash__section-title">Due-Date Alerts</div>
 			<div class="mfg-andon" data-field="andon-board">
 				<div class="mfgdash__loading">Loading alerts…</div>
+			</div>
+			<div class="mfg-andon mfg-andon--stacked" data-field="production-board">
+				<div class="mfgdash__loading">Loading production…</div>
 			</div>
 		</aside>
 
