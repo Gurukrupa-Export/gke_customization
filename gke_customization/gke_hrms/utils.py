@@ -6,10 +6,11 @@ from typing import Optional, List
 import calendar
 from dateutil import relativedelta
 from gke_customization.gke_hrms.sandwich_rule import (
-    LOOKUP_PADDING_DAYS,
     get_attendance_request_dates,
     get_day_status_map,
+    get_lookup_window,
     get_sandwiched_holidays,
+    split_holidays,
 )
 from gke_customization.gke_hrms.report.pf_challan_report.pf_challan_report import get_account_total_summary
 
@@ -169,8 +170,7 @@ def get_sandwich_check_dates():
 @frappe.whitelist()
 def check_sadwitch_rule():
     from_date, to_date = get_sandwich_check_dates()
-    lookup_from = add_days(from_date, -LOOKUP_PADDING_DAYS)
-    lookup_to = add_days(to_date, LOOKUP_PADDING_DAYS)
+    lookup_from, lookup_to = get_lookup_window(from_date, to_date)
 
     employees = set(
         frappe.get_all(
@@ -181,6 +181,7 @@ def check_sadwitch_rule():
                 "attendance_date": ["between", [from_date, to_date]],
             },
             pluck="employee",
+            group_by="employee",
         )
     )
 
@@ -196,10 +197,13 @@ def check_sadwitch_rule():
     if not employee_details:
         return
 
-    employee_names = [employee.name for employee in employee_details]
-    holiday_lists = {employee.holiday_list for employee in employee_details}
+    employee_names = []
+    holiday_lists = set()
 
-    holiday_dates_by_list = {}
+    for employee in employee_details:
+        employee_names.append(employee.name)
+        holiday_lists.add(employee.holiday_list)
+        
     holidays = frappe.get_all(
         "Holiday",
         filters={
@@ -208,12 +212,12 @@ def check_sadwitch_rule():
         },
         fields=["parent", "holiday_date", "weekly_off"],
     )
+    holidays_by_list = {}
     for holiday in holidays:
-        public_holidays, weekly_offs = holiday_dates_by_list.setdefault(holiday.parent, (set(), set()))
-        if holiday.weekly_off:
-            weekly_offs.add(getdate(holiday.holiday_date))
-        else:
-            public_holidays.add(getdate(holiday.holiday_date))
+        holidays_by_list.setdefault(holiday.parent, []).append(holiday)
+    holiday_dates_by_list = {
+        holiday_list: split_holidays(rows) for holiday_list, rows in holidays_by_list.items()
+    }
 
     status_map = get_day_status_map(employee_names, lookup_from, lookup_to)
     attendance_request_dates = get_attendance_request_dates(employee_names, lookup_from, lookup_to)
@@ -225,7 +229,7 @@ def check_sadwitch_rule():
             filters={
                 "employee": ["in", employee_names],
                 "docstatus": ["!=", 2],
-                "attendance_date": ["between", [lookup_from, lookup_to]],
+                "attendance_date": ["between", [from_date, to_date]],
             },
             fields=["employee", "attendance_date"],
         )

@@ -10,11 +10,46 @@ It never applies when a side is Present, Sick Leave, Marriage Leave, Outdoor Dut
 covered by an Attendance Request. Weekly offs are never converted.
 """
 
-import frappe
-from frappe.utils import add_days, getdate
+from datetime import timedelta
 
+import frappe
+from frappe.utils import getdate
+
+ONE_DAY = timedelta(days=1)
 SANDWICH_SIDE_STATUSES = {"Casual Leave", "Half Day", "Absent"}
 LOOKUP_PADDING_DAYS = 10
+
+
+def get_dates_between(start_date, end_date):
+	dates = []
+	current_day = start_date
+	while current_day <= end_date:
+		dates.append(current_day)
+		current_day += ONE_DAY
+
+	return dates
+
+
+def get_lookup_window(from_date, to_date):
+	return (
+		getdate(from_date) - timedelta(days=LOOKUP_PADDING_DAYS),
+		getdate(to_date) + timedelta(days=LOOKUP_PADDING_DAYS),
+	)
+
+
+def split_holidays(holidays):
+	"""Returns (public_holidays, weekly_offs) as sets of dates from Holiday rows."""
+	public_holidays = set()
+	weekly_offs = set()
+
+	for holiday in holidays:
+		holiday_date = getdate(holiday.holiday_date)
+		if holiday.weekly_off:
+			weekly_offs.add(holiday_date)
+		else:
+			public_holidays.add(holiday_date)
+
+	return public_holidays, weekly_offs
 
 
 def is_sandwiched(left_status, right_status, casual_leave_applied=False):
@@ -46,24 +81,22 @@ def get_sandwiched_holidays(
 			continue
 
 		block_start = holiday
-		while add_days(block_start, -1) in non_working_days:
-			block_start = add_days(block_start, -1)
+		while block_start - ONE_DAY in non_working_days:
+			block_start = block_start - ONE_DAY
 
 		block_end = holiday
-		while add_days(block_end, 1) in non_working_days:
-			block_end = add_days(block_end, 1)
+		while block_end + ONE_DAY in non_working_days:
+			block_end = block_end + ONE_DAY
 
-		block_days = []
-		current_day = block_start
-		while current_day <= block_end:
-			block_days.append(current_day)
-			current_day = add_days(current_day, 1)
+		block_days = get_dates_between(block_start, block_end)
 		checked_days.update(block_days)
 
-		left_day = add_days(block_start, -1)
-		right_day = add_days(block_end, 1)
+		left_day = block_start - ONE_DAY
+		right_day = block_end + ONE_DAY
 
-		if any(day in attendance_request_dates for day in block_days + [left_day, right_day]):
+		if attendance_request_dates and any(
+			day in attendance_request_dates for day in block_days + [left_day, right_day]
+		):
 			continue
 
 		if is_sandwiched(get_status(left_day), get_status(right_day), casual_leave_applied):
@@ -73,12 +106,17 @@ def get_sandwiched_holidays(
 
 
 def get_day_status_map(employees, from_date, to_date):
-	"""Returns {(employee, date): status} for submitted attendance between the dates."""
+	"""
+	Returns {(employee, date): status} for submitted Absent, Half Day and On Leave attendance.
+
+	Dates missing from the map are Present for the sandwich rule.
+	"""
 	attendances = frappe.get_all(
 		"Attendance",
 		filters={
 			"employee": ["in", employees],
 			"docstatus": 1,
+			"status": ["in", ["Absent", "Half Day", "On Leave"]],
 			"attendance_date": ["between", [from_date, to_date]],
 		},
 		fields=["employee", "attendance_date", "status", "leave_type"],
@@ -88,10 +126,8 @@ def get_day_status_map(employees, from_date, to_date):
 	for attendance in attendances:
 		if attendance.status == "On Leave":
 			status = attendance.leave_type or "On Leave"
-		elif attendance.status in ("Absent", "Half Day"):
-			status = attendance.status
 		else:
-			status = "Present"
+			status = attendance.status
 
 		status_map[(attendance.employee, getdate(attendance.attendance_date))] = status
 
@@ -113,12 +149,8 @@ def get_attendance_request_dates(employees, from_date, to_date):
 
 	request_dates = {}
 	for request in attendance_requests:
-		current_day = max(getdate(request.from_date), getdate(from_date))
+		first_day = max(getdate(request.from_date), getdate(from_date))
 		last_day = min(getdate(request.to_date), getdate(to_date))
-		dates = request_dates.setdefault(request.employee, set())
-
-		while current_day <= last_day:
-			dates.add(current_day)
-			current_day = add_days(current_day, 1)
+		request_dates.setdefault(request.employee, set()).update(get_dates_between(first_day, last_day))
 
 	return request_dates
