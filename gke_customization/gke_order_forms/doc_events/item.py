@@ -1354,3 +1354,31 @@ def get_diamond_range_rate(
         "name": gpc[0].name,
         "doc":  doc.as_dict(),
     }
+
+
+def set_numeric_attribute_values(doc, method=None):
+    """Copy `numeric_values` and the range from each numeric Item Attribute onto the Item's rows.
+
+    ERPNext validates a variant against its template's row, and only the Item form fills these
+    columns - an Item made by Data Import, the API or a script keeps `numeric_values = 0` and
+    then refuses every value of that attribute. KGGK sync sends the rows as they are, so a
+    wrong row here becomes a wrong row there.
+    """
+    if not (doc.has_variants or doc.variant_of):
+        return
+
+    for row in doc.get("attributes") or []:
+        if not row.attribute:
+            continue
+
+        attribute = frappe.get_cached_value(
+            "Item Attribute",
+            row.attribute,
+            ["numeric_values", "from_range", "to_range", "increment"],
+            as_dict=True,
+        )
+        if attribute and attribute.numeric_values:
+            row.numeric_values = 1
+            row.from_range = attribute.from_range
+            row.to_range = attribute.to_range
+            row.increment = attribute.increment
