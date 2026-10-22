@@ -148,7 +148,7 @@ def execute(filters=None):
         SELECT name, image,
             two_in_one, back_belt, back_belt_length, back_side_size, black_bead_line,
             chain_length, chain_type, count_of_spiral_turns, detachable, diamond_target,
-            distance_between_kadi_to_mugappu, enamal, feature, gemstone_type1, lock_type,
+            distance_between_kadi_to_mugappu, enamal, feature, gemstone_type AS gemstone_type1, lock_type,
             metal_colour, number_of_ant, product_size, rhodium, sizer_type,
             space_between_mugappu, stone_changeable
         FROM tabBOM
