@@ -1,4 +1,4 @@
-"""Bring every Item's attribute rows for a numeric Item Attribute in line with the attribute.
+"""Bring every template's attribute rows for a numeric Item Attribute in line with the attribute.
 
 ERPNext checks a new variant against its *template's* row: `Item.validate_variant` reads
 `numeric_values` off that row, and a row that is not numeric must find the value in the
@@ -12,6 +12,10 @@ that arrived by Data Import or a script kept the default 0 and a 0/0/0 range - 4
 
 The range goes with the flag: a numeric row with an increment of 0 is refused too ("Increment
 for Attribute ... cannot be 0"). Rows of list attributes are not touched.
+
+Templates only: the check never reads a variant's own row, and rewriting a stocked variant's
+rows would make ERPNext refuse its next save ("Cannot change Attributes after stock
+transaction").
 """
 
 import frappe
@@ -21,6 +25,7 @@ def execute():
 	frappe.db.sql(
 		"""
 		update `tabItem Variant Attribute` iva
+		join   `tabItem` i on i.name = iva.parent and i.has_variants = 1
 		join   `tabItem Attribute` ia on ia.name = iva.attribute
 		set    iva.numeric_values = 1,
 		       iva.from_range = ia.from_range,

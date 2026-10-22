@@ -23,6 +23,7 @@ Everything lives in this single file on purpose so the whole feature can be read
 and reverted in one place.
 """
 
+import copy
 import os
 import time
 from contextlib import contextmanager
@@ -988,6 +989,10 @@ class SyncRun:
 		# "Does this master exist on the target" answers, reused across the chunk so fifty
 		# items do not ask about the same Item Group fifty times.
 		self.link_cache = {}
+
+		# The target's copy of a template, by its name there, as `align_template_attributes` last
+		# read or wrote it - so the variants of one template do not each read it again.
+		self.template_cache = {}
 
 		# `item_code -> Copy BOM`, warmed for the whole chunk by `sync_records`. See
 		# `copy_bom_map`.
@@ -3373,8 +3378,11 @@ def align_template_attributes(config, doc, run):
 	* a list row here leaves the target's row alone: a numeric row over there never consults a
 	  list, and turning it into one could only refuse more.
 
-	One read, and a write only when something differs. Returns False when the template could not
-	be read or corrected; the variant is pushed anyway, and the target has the last word.
+	One read per template per run (`run.template_cache`), and a write only when something
+	differs. The write carries the `modified` it was read at, so it is refused rather than
+	overwriting a template another worker corrected in between; that case is read again and
+	retried once. Returns False when the template could not be read or corrected; the variant is
+	pushed anyway, and the target has the last word.
 	"""
 	template = doc.variant_of
 	needed = list(
@@ -3397,20 +3405,77 @@ def align_template_attributes(config, doc, run):
 	}
 
 	target_id = target_name_for("Item", template, host_of(config.to_site))
-	response = api_get(config, f"/api/resource/Item/{segment(target_id)}")
-	if not response.ok:
+	cache = run.template_cache
+
+	for attempt in range(2):
+		data = cache.get(target_id)
+		if data is None:
+			response = api_get(config, f"/api/resource/Item/{segment(target_id)}")
+			if not response.ok:
+				run.mismatch(
+					"Item",
+					template,
+					f"could not read the target's {target_id} to check the attributes {doc.name} "
+					f"needs - {response.message()}",
+					kind="TEMPLATE-ATTRIBUTES",
+				)
+				return False
+			data = cache[target_id] = (response.data or {}).get("data") or {}
+
+		# A copy: the cached read must stay what the target holds until a write succeeds.
+		rows = copy.deepcopy(data.get("attributes") or [])
+		changes = _template_attribute_changes(rows, needed, ours)
+		if not changes:
+			return True
+
+		# Every row, under the target's own row names. A PUT replaces the whole table, so a row
+		# left out is a row deleted - and ERPNext refuses that for an attribute the variants still
+		# use.
+		body = {
+			"attributes": [
+				{key: value for key, value in row.items() if key == "name" or key not in CHILD_EXCLUDE}
+				for row in rows
+			]
+		}
+		if data.get("modified"):
+			# Frappe's `check_if_latest` refuses the save if the template changed since this read.
+			body["modified"] = data["modified"]
+
+		put = api_put(config, f"/api/resource/Item/{segment(target_id)}", json=body)
+		if put.ok:
+			saved = (put.data or {}).get("data")
+			if saved:
+				cache[target_id] = saved
+			else:
+				cache.pop(target_id, None)
+			run.line(
+				"ALIGNED",
+				"Item",
+				template,
+				f"the target's {target_id} now takes {doc.name}: {'; '.join(changes)}",
+			)
+			return True
+
+		cache.pop(target_id, None)
+		if put.exc_type == "TimestampMismatchError" and attempt == 0:
+			continue
+
 		run.mismatch(
 			"Item",
 			template,
-			f"could not read the target's {target_id} to check the attributes {doc.name} needs - "
-			f"{response.message()}",
+			f"the target's {target_id} would refuse {doc.name} ({'; '.join(changes)}) and could "
+			f"not be corrected - {put.message()}",
 			kind="TEMPLATE-ATTRIBUTES",
 		)
 		return False
 
-	rows = ((response.data or {}).get("data") or {}).get("attributes") or []
-	theirs = {row.get("attribute"): row for row in rows}
 
+def _template_attribute_changes(rows, needed, ours):
+	"""Bring the target's template ``rows`` in line with ours for ``needed``, in place.
+
+	Returns what changed, for the log. See `align_template_attributes` for the rules.
+	"""
+	theirs = {row.get("attribute"): row for row in rows}
 	changes = []
 	for attribute in needed:
 		source = ours.get(attribute)
@@ -3431,31 +3496,7 @@ def align_template_attributes(config, doc, run):
 				f"{attribute} numeric {flt(source.from_range)}-{flt(source.to_range)} "
 				f"by {flt(source.increment)}"
 			)
-
-	if not changes:
-		return True
-
-	# Every row, under the target's own row names. A PUT replaces the whole table, so a row left
-	# out is a row deleted - and ERPNext refuses that for an attribute the variants still use.
-	payload = [
-		{key: value for key, value in row.items() if key == "name" or key not in CHILD_EXCLUDE}
-		for row in rows
-	]
-	put = api_put(config, f"/api/resource/Item/{segment(target_id)}", json={"attributes": payload})
-	if not put.ok:
-		run.mismatch(
-			"Item",
-			template,
-			f"the target's {target_id} would refuse {doc.name} ({'; '.join(changes)}) and could "
-			f"not be corrected - {put.message()}",
-			kind="TEMPLATE-ATTRIBUTES",
-		)
-		return False
-
-	run.line(
-		"ALIGNED", "Item", template, f"the target's {target_id} now takes {doc.name}: {'; '.join(changes)}"
-	)
-	return True
+	return changes
 
 
 def push_item(item_code, config, run, seen=None):
