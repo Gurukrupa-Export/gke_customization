@@ -3892,6 +3892,88 @@ class TestTemplateAttributesFollowTheSource(unittest.TestCase):
 		self.assertIn("TEMPLATE-ATTRIBUTES", problems)
 		self.assertIn("MU-002", problems)
 
+	# -- reads, writes and races -----------------------------------------------------
+
+	STALE = "2026-08-08 10:29:31.110845"
+	FRESH = "2026-10-22 18:00:00.000000"
+
+	def _template(self, modified, **flags):
+		return {"name": "MU", "modified": modified, "attributes": [self._theirs("row-1", 1, "Distance", **flags)]}
+
+	def _boundaries(self, gets, puts):
+		"""Patch the target with queued answers; return the mocks."""
+		stack = ExitStack()
+		self.addCleanup(stack.close)
+		enter = stack.enter_context
+		enter(patch.object(frappe, "get_all", return_value=[frappe._dict(self._flags("Distance", 1, 0.0, 1000.0, 0.01))]))
+		enter(patch.object(k, "target_name_for", side_effect=lambda doctype, name, target: name))
+		api_get = enter(patch.object(k, "api_get", side_effect=gets))
+		api_put = enter(patch.object(k, "api_put", side_effect=puts))
+		return api_get, api_put
+
+	def test_the_write_carries_the_modified_it_was_read_at(self):
+		"""So a template another worker corrected in between is refused, not overwritten."""
+		_get, api_put = self._boundaries(
+			gets=[k.Response(status_code=200, data={"data": self._template(self.STALE)})],
+			puts=[k.Response(status_code=200)],
+		)
+
+		self.assertTrue(k.align_template_attributes(self.cfg, self._variant(Distance="7"), self.run))
+		self.assertEqual(api_put.call_args.kwargs["json"]["modified"], self.STALE)
+
+	def test_a_template_changed_in_between_is_read_again_and_retried_once(self):
+		aligned = self._template(self.FRESH, numeric=1, start=0.0, end=1000.0, step=0.01)
+		api_get, api_put = self._boundaries(
+			gets=[
+				k.Response(status_code=200, data={"data": self._template(self.STALE)}),
+				k.Response(status_code=200, data={"data": aligned}),
+			],
+			puts=[k.Response(status_code=417, data={"exc_type": "TimestampMismatchError"})],
+		)
+
+		# The second read finds it already aligned by the other worker, so nothing is written.
+		self.assertTrue(k.align_template_attributes(self.cfg, self._variant(Distance="7"), self.run))
+		self.assertEqual(api_get.call_count, 2)
+		self.assertEqual(api_put.call_count, 1)
+		self.assertEqual(self.run.mismatches, 0)
+
+	def test_a_second_timestamp_refusal_is_reported(self):
+		_get, api_put = self._boundaries(
+			gets=[k.Response(status_code=200, data={"data": self._template(self.STALE)})] * 2,
+			puts=[k.Response(status_code=417, data={"exc_type": "TimestampMismatchError"})] * 2,
+		)
+
+		self.assertFalse(k.align_template_attributes(self.cfg, self._variant(Distance="7"), self.run))
+		self.assertEqual(api_put.call_count, 2)
+		self.assertIn("TEMPLATE-ATTRIBUTES", "\n".join(self.run.problems))
+
+	def test_the_variants_of_one_template_read_it_once_per_run(self):
+		"""The write's answer replaces the cached read, so the next variant finds it aligned."""
+		aligned = self._template(self.FRESH, numeric=1, start=0.0, end=1000.0, step=0.01)
+		api_get, api_put = self._boundaries(
+			gets=[k.Response(status_code=200, data={"data": self._template(self.STALE)})],
+			puts=[k.Response(status_code=200, data={"data": aligned})],
+		)
+
+		for name in ("MU-002", "MU-003"):
+			variant = self._variant(Distance="7")
+			variant.name = variant.item_code = name
+			self.assertTrue(k.align_template_attributes(self.cfg, variant, self.run))
+
+		self.assertEqual(api_get.call_count, 1)
+		self.assertEqual(api_put.call_count, 1)
+
+	def test_a_failed_write_does_not_leave_its_edit_in_the_cache(self):
+		api_get, _put = self._boundaries(
+			gets=[k.Response(status_code=200, data={"data": self._template(self.STALE)})] * 2,
+			puts=[k.Response(status_code=417, text="refused"), k.Response(status_code=200)],
+		)
+
+		self.assertFalse(k.align_template_attributes(self.cfg, self._variant(Distance="7"), self.run))
+		self.assertTrue(k.align_template_attributes(self.cfg, self._variant(Distance="7"), self.run))
+		# Read again after the refusal, rather than trusting a copy that was never written.
+		self.assertEqual(api_get.call_count, 2)
+
 	# -- when `push_item` asks for it ------------------------------------------------
 
 	def _push(self, template_exists, variant_known=None):

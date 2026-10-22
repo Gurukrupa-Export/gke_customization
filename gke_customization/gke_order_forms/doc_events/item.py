@@ -1357,14 +1357,18 @@ def get_diamond_range_rate(
 
 
 def set_numeric_attribute_values(doc, method=None):
-    """Copy `numeric_values` and the range from each numeric Item Attribute onto the Item's rows.
+    """Copy `numeric_values` and the range from each numeric Item Attribute onto a template's rows.
 
     ERPNext validates a variant against its template's row, and only the Item form fills these
-    columns - an Item made by Data Import, the API or a script keeps `numeric_values = 0` and
+    columns - a template made by Data Import, the API or a script keeps `numeric_values = 0` and
     then refuses every value of that attribute. KGGK sync sends the rows as they are, so a
     wrong row here becomes a wrong row there.
+
+    Templates only. A variant's own row is never read by that check, and a variant with stock
+    may not have its attribute rows changed at all ("Cannot change Attributes after stock
+    transaction"), so touching it would block every later save of the variant.
     """
-    if not (doc.has_variants or doc.variant_of):
+    if not doc.has_variants:
         return
 
     for row in doc.get("attributes") or []:
