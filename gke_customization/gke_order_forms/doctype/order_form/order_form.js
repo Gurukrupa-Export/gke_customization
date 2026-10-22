@@ -794,9 +794,9 @@ frappe.ui.form.on('Order Form Detail', {
 		row.customer_code = frm.doc.customer_code
 		row.is_finding_order = frm.doc.is_finding_order
 		var fields = ['design_id'];
-		if (row.design_type == 'Sketch Design'){
-			set_filter_for_sketch_design_n_serial(frm,fields)
-		}
+		// if (row.design_type == 'Sketch Design'){
+		// 	set_filter_for_sketch_design_n_serial(frm,fields)
+		// }
 		// else{
 		// 	set_filter_for_design_n_serial(frm,fields)
 		// }
@@ -818,9 +818,9 @@ frappe.ui.form.on('Order Form Detail', {
 	design_type: function (frm, cdt, cdn) {
 		var row = locals[cdt][cdn];
 		var fields = ['design_id'];
-		if (row.design_type == 'Sketch Design'){
-			set_filter_for_sketch_design_n_serial(frm,fields)
-		}
+		// if (row.design_type == 'Sketch Design'){
+		// 	set_filter_for_sketch_design_n_serial(frm,fields)
+		// }
 	},
 
 	category: function (frm, cdt, cdn) {
