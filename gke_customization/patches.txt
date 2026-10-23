@@ -9,3 +9,4 @@ gke_customization.patches.punch_pairing_fields #1
 gke_customization.patches.convert_mil_hours_to_duration
 gke_customization.patches.add_rounding_half_down_option #1
 gke_customization.patches.disable_attendance_accrual_server_script
+gke_customization.patches.sync_numeric_item_variant_attributes
