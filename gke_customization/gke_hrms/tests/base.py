@@ -1,5 +1,7 @@
 """Base test case for gke_customization HRMS tests."""
 
+import json
+
 import frappe
 from frappe.tests import IntegrationTestCase
 from frappe.utils import getdate
@@ -227,6 +229,7 @@ class GKHRMSTestCase(IntegrationTestCase):
 		"""
 		if frappe.db.exists("Company", TEST_COMPANY):
 			return frappe.get_doc("Company", TEST_COMPANY)
+		cls.ensure_warehouse_custom_fields()
 		return cls._insert(
 			{
 				"doctype": "Company",
@@ -238,6 +241,24 @@ class GKHRMSTestCase(IntegrationTestCase):
 				"valuation_method": "FIFO",
 			}
 		)
+
+	@staticmethod
+	def ensure_warehouse_custom_fields():
+		"""Company creation inserts a root Warehouse, and the jewellery_erpnext
+		Warehouse validate hook reads its custom fields directly. Sites that were
+		not migrated for that app lack them, so create them from the app's fixture."""
+		if "jewellery_erpnext" not in frappe.get_installed_apps():
+			return
+		if frappe.get_meta("Warehouse").has_field("department"):
+			return
+
+		from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+		fixture_path = frappe.get_app_path(
+			"jewellery_erpnext", "jewellery_erpnext", "custom_fields", "warehouse.json"
+		)
+		with open(fixture_path) as fixture_file:
+			create_custom_fields(json.load(fixture_file))
 
 	# ---------- employee ----------
 

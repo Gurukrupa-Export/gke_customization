@@ -62,3 +62,55 @@ def make_api_log(punch_time, indexno, userid):
 		"indexno": str(indexno),
 		"edatetime_e": punch_dt.strftime("%d/%m/%Y %H:%M"),
 	}
+
+
+def make_leave_allocation(employee, leave_type, from_date, to_date, days):
+	"""Create and submit a Leave Allocation."""
+	allocation = frappe.get_doc(
+		{
+			"doctype": "Leave Allocation",
+			"employee": employee,
+			"leave_type": leave_type,
+			"from_date": from_date,
+			"to_date": to_date,
+			"new_leaves_allocated": days,
+		}
+	)
+	allocation.insert(ignore_permissions=True)
+	allocation.submit()
+	return allocation
+
+
+def make_attendance(employee, attendance_date, status, leave_type=None):
+	"""Create and submit an Attendance. leave_type is only used for On Leave."""
+	attendance = frappe.get_doc(
+		{
+			"doctype": "Attendance",
+			"employee": employee,
+			"attendance_date": attendance_date,
+			"status": status,
+			"leave_type": leave_type,
+		}
+	)
+	attendance.insert(ignore_permissions=True)
+	attendance.submit()
+	return attendance
+
+
+def make_attendance_request(employee, from_date, to_date, company):
+	"""Create an On Duty Attendance Request and mark it submitted without running
+	on_submit, which would create attendance rows of its own."""
+	request = frappe.get_doc(
+		{
+			"doctype": "Attendance Request",
+			"employee": employee,
+			"from_date": from_date,
+			"to_date": to_date,
+			"reason": "On Duty",
+			"company": company,
+		}
+	)
+	request.flags.ignore_mandatory = True
+	request.insert(ignore_permissions=True)
+	frappe.db.set_value("Attendance Request", request.name, "docstatus", 1)
+	return request

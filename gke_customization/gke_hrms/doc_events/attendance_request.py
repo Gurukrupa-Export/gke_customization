@@ -15,7 +15,11 @@ from datetime import datetime
 def validate(self, method):
     validate_attendance_request(self, method)
 
-    shift_doc = frappe.get_doc("Shift Type", self.shift)
+    shift_type = self.shift or frappe.db.get_value("Employee", self.employee, "default_shift")
+    if not shift_type:
+        return
+
+    shift_doc = frappe.get_doc("Shift Type", shift_type)
     shift_start = shift_doc.start_time
     shift_end = shift_doc.end_time
     is_night_shift = shift_end <= shift_start # Night shift detection
