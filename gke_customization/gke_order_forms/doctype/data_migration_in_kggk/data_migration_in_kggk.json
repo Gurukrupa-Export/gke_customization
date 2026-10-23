@@ -68,8 +68,8 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "api_secret",
-   "fieldtype": "Data",
+    "fieldname": "api_secret",
+   "fieldtype": "Password",
    "label": "API Secret"
   },
   {
