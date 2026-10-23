@@ -17,6 +17,10 @@
 				<label>Order Date</label>
 				<div data-field="daterange-field"></div>
 			</div>
+			<div class="mfgdash__filter mfgdash__filter--daterange">
+				<label>Delivery Date</label>
+				<div data-field="delivery-range-field"></div>
+			</div>
 			<label class="mfgdash__check" title="Tick to also count completed orders (tagging or sale done)">
 				<input type="checkbox" data-field="include-completed" />
 				Include Completed
@@ -35,11 +39,7 @@
 
 		<section class="mfgdash__line-wrap">
 			<div class="mfgdash__section-title">Department-wise Production Flow</div>
-			<div class="mfg-legend-key">
-				<span><i style="background:var(--mfg-amber)"></i>Pending</span>
-				<span><i style="background:var(--mfg-steel)"></i>In Progress</span>
-				<span><i style="background:var(--mfg-emerald)"></i>Completed</span>
-			</div>
+			<div class="mfg-legend-key" data-field="status-legend"></div>
 			<div class="mfg-line" data-field="dept-line">
 				<div class="mfgdash__loading">Loading department flow…</div>
 			</div>
