@@ -66,7 +66,7 @@ def get_data(filters=None):
             mil.status AS status,
             mil.in_time AS in_time,
             mil.out_time AS out_time,
-            mil.spent_hrs AS spent_hrs,
+            ROUND(mil.spent_hrs / 3600, 2) AS spent_hrs,
             mil.net_wrk_hrs AS net_wrk_hrs,
             mil.p_out_hrs AS p_out_hrs,
             mil.late_hrs AS late_hrs,

@@ -37,6 +37,7 @@ def execute():
                 fieldtype="Data",
                 read_only=1,
                 no_copy=1,
+                hidden=1,
                 insert_after="offshift",
             ),
             # NOTE: 'source' and 'custom_unique_id' are referenced by the sync

@@ -4,7 +4,6 @@
 
 import frappe
 from frappe import _
-import json
 
 def execute(filters=None):
     columns = get_columns()
@@ -212,34 +211,24 @@ def get_columns():
 def get_data(filters):
     # Get main data
     main_data = get_main_data(filters)
-    
-    # Debug log
-    frappe.log_error(
-        f"Main data count: {len(main_data)}\nFilters: {json.dumps(filters)}", 
-        "Employee Batch Report - Main Data"
-    )
-    
+
     # Get Employee IR data
     ir_data = get_employee_ir_data(filters)
-    
-    # Debug log
-    frappe.log_error(
-        f"IR data count: {len(ir_data)}", 
-        "Employee Batch Report - IR Data"
-    )
-    
-    # Create a mapping for faster lookup
+
+    # Create a mapping for faster lookup.
+    # ir_data is ordered by date_time DESC, so the first Issue/Receive seen
+    # for a given key is the most recent one - keep that, ignore older ones.
     ir_mapping = {}
     for ir_row in ir_data:
         key = (ir_row.get("manufacturing_operation"), ir_row.get("employee"))
         if key not in ir_mapping:
             ir_mapping[key] = {"issue": None, "receive": None}
-        
-        if ir_row.get("type") == "Issue":
+
+        if ir_row.get("type") == "Issue" and not ir_mapping[key]["issue"]:
             ir_mapping[key]["issue"] = ir_row
-        elif ir_row.get("type") == "Receive":
+        elif ir_row.get("type") == "Receive" and not ir_mapping[key]["receive"]:
             ir_mapping[key]["receive"] = ir_row
-    
+
     # Merge Employee IR data into main data
     for row in main_data:
         key = (row.get("manufacturing_operation"), row.get("employee_id"))
@@ -257,12 +246,9 @@ def get_data(filters):
 
         row["time_diff"] = get_time_diff_str(row.get("issue_date"), row.get("receive_date"))
 
-    # Final debug log
-    frappe.log_error(
-        f"Final data count: {len(main_data)}\nFirst 5 MOPs: {[r.get('manufacturing_operation') for r in main_data[:5]]}", 
-        "Employee Batch Report - Final Data"
-    )
-    
+    # Only keep rows that were issued to an employee but not yet received
+    main_data = [row for row in main_data if row.get("issue_date") and not row.get("receive_date")]
+
     return main_data
 
 def get_time_diff_str(issue_date, receive_date):
@@ -328,33 +314,14 @@ def get_main_data(filters):
         LIMIT 10000
     """
     
-    # Enhanced debug logging
-    frappe.log_error(
-        f"Conditions: {conditions}\n\nFilters: {json.dumps(filters)}\n\nFull Query:\n{query}", 
-        "Employee Batch Report - SQL Query"
-    )
-    
     result = frappe.db.sql(query, filters, as_dict=True)
-    
-    # Log query result
-    frappe.log_error(
-        f"Query returned {len(result)} rows\nFirst 10 MOPs: {[r.get('manufacturing_operation') for r in result[:10]]}", 
-        "Employee Batch Report - Query Result"
-    )
-    
+
     return result
 
 def get_employee_ir_data(filters):
     # Separate query for Employee IR data - only for Issue/Receive columns
-    date_condition = ""
     operation_conditions = ""
-    
-    if filters.get("from_date") and filters.get("to_date"):
-        date_condition = """
-            AND DATE(eir.date_time) >= %(from_date)s
-            AND DATE(eir.date_time) <= %(to_date)s
-        """
-    
+
     if filters.get("operation"):
         operation_conditions += " AND mo.operation = %(operation)s"
     
@@ -385,7 +352,6 @@ def get_employee_ir_data(filters):
             eir.type IN ('Issue', 'Receive')
             AND eiro.manufacturing_operation IS NOT NULL
             AND eir.docstatus = 1
-            {date_condition}
             {operation_conditions}
         ORDER BY 
             eir.date_time DESC
@@ -413,14 +379,7 @@ def get_conditions(filters):
         
     if filters.get("employee_id"):
         conditions += " AND mo.employee = %(employee_id)s"
-    
-    # Date filtering on MOP creation
-    if filters.get("from_date") and filters.get("to_date"):
-        conditions += """
-            AND mo.creation >= %(from_date)s
-            AND mo.creation <= DATE_ADD(%(to_date)s, INTERVAL 1 DAY)
-        """
-    
+
     return conditions
 
 

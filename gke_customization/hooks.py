@@ -160,7 +160,7 @@ scheduler_events = {
     "cron": {
         "0 4 * * *": [
             # session pairing: correct delayed/out-of-order punches, flag broken sequences
-            "gke_customization.gke_hrms.punch_pairing.nightly_reconciliation",
+            "gke_customization.gke_hrms.punch_pairing.run_nightly_punch_reconciliation",
         ],
         "5 8 * * *": [
             # error-punch resolution + flagging after the daily auto-attendance run (07:25)
@@ -287,10 +287,16 @@ doc_events = {
     },
     "Attendance": {
         "on_submit": "gke_customization.gke_hrms.attendance_flags.flag_attendance_punch_errors",
+        "on_cancel": "gke_customization.gke_hrms.attendance_flags.close_todos_on_attendance_cancel",
+        "on_trash": "gke_customization.gke_hrms.attendance_flags.close_todos_on_attendance_cancel",
     },
     "Leave Application": {
         "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
         "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit",
+    },
+    # attendance-wise earned leave credit (port of the "Leave accural attendance wise" server script)
+    "Leave Allocation": {
+        "before_submit": "gke_customization.gke_hrms.doc_events.leave_allocation.apply_attendance_based_allocation",
     },
     "Loan Application": {
         "validate": "gke_customization.gke_hrms.doc_events.loan_application.validate"
