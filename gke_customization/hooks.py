@@ -170,15 +170,15 @@ scheduler_events = {
         "0 6 * * *": [
             "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
         ],
-        "0 9 * * *": [
+        "10 9 * * *": [
             "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
         ],
-        "0 15 * * *": [
-            "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
-        ],
-        "0 23 * * *": [
-            "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
-        ],
+        # "0 15 * * *": [
+        #     "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
+        # ],
+        # "0 23 * * *": [
+        #     "gke_customization.gke_price_list.doctype.gold_rates.gold_rates.run_gold_rate_scheduler"
+        # ],
         "30 10 * * *": [
             "gke_customization.gke_hrms.report.department_wise_daily_present_report.department_wise_daily_present_report.send_morning_present_report"
         ],
@@ -324,15 +324,12 @@ doc_events = {
         "on_cancel": "gke_customization.gke_hrms.doc_events.journal_entry.update_withholding_release_status",
         "on_trash": "gke_customization.gke_hrms.doc_events.journal_entry.cancel_withholding_releases_on_trash",
     },
-    "Item": {
-        "before_validate": [
-            "gke_customization.gke_order_forms.doc_events.item.set_numeric_attribute_values",
-            "gke_customization.gke_order_forms.doc_events.item.create_item_kggk",
-        ]
-    },
-    "BOM": {
-        "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_bom_kggk"
-    },
+    # "Item": {
+    #     "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_item_kggk"
+    # },
+    # "BOM": {
+    #     "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_bom_kggk"
+    # },
     # "Department IR": {
     #     "autoname": "gke_customization.gke_order_forms.doc_events.department_ir.autoname"
     # },
