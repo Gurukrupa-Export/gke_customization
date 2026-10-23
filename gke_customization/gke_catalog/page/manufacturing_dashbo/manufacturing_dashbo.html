@@ -17,6 +17,14 @@
 				<label>Order Date</label>
 				<div data-field="daterange-field"></div>
 			</div>
+			<div class="mfgdash__filter mfgdash__filter--daterange">
+				<label>Delivery Date</label>
+				<div data-field="delivery-range-field"></div>
+			</div>
+			<label class="mfgdash__check" title="Tick to also count completed orders (tagging or sale done)">
+				<input type="checkbox" data-field="include-completed" />
+				Include Completed
+			</label>
 			<button type="button" class="mfgdash__clear-filters" data-field="clear-filters" title="Clear Filter">
 				<span class="mfgdash__clear-filters-icon">&#x21bb;</span>
 				Clear Filter
@@ -31,11 +39,7 @@
 
 		<section class="mfgdash__line-wrap">
 			<div class="mfgdash__section-title">Department-wise Production Flow</div>
-			<div class="mfg-legend-key">
-				<span><i style="background:var(--mfg-amber)"></i>Pending</span>
-				<span><i style="background:var(--mfg-steel)"></i>In Progress</span>
-				<span><i style="background:var(--mfg-emerald)"></i>Completed</span>
-			</div>
+			<div class="mfg-legend-key" data-field="status-legend"></div>
 			<div class="mfg-line" data-field="dept-line">
 				<div class="mfgdash__loading">Loading department flow…</div>
 			</div>
@@ -46,6 +50,37 @@
 			<div class="mfg-andon" data-field="andon-board">
 				<div class="mfgdash__loading">Loading alerts…</div>
 			</div>
+			<div class="mfg-andon mfg-andon--stacked" data-field="production-board">
+				<div class="mfgdash__loading">Loading production…</div>
+			</div>
 		</aside>
+
+		<section class="mfgdash__ops-wrap">
+			<div class="mfgdash__section-title">Operation-wise Summary</div>
+			<div class="mfg-ops" data-field="ops-board">
+				<div class="mfgdash__loading">Loading operations…</div>
+			</div>
+		</section>
+
+		<section class="mfgdash__drill">
+			<div class="mfg-drill">
+				<div class="mfgdash__section-title">
+					Stage-wise Summary<span class="mfgdash__section-sub" data-field="stage-title"></span>
+				</div>
+				<div class="mfg-drill__body" data-field="stage-board"></div>
+			</div>
+			<div class="mfg-drill">
+				<div class="mfgdash__section-title">
+					Order List<span class="mfgdash__section-sub" data-field="orders-title"></span>
+				</div>
+				<div class="mfg-drill__body mfg-drill__body--tall" data-field="orders-board"></div>
+			</div>
+			<div class="mfg-drill">
+				<div class="mfgdash__section-title">
+					Order Details<span class="mfgdash__section-sub" data-field="detail-title"></span>
+				</div>
+				<div class="mfg-drill__body mfg-drill__body--tall" data-field="detail-board"></div>
+			</div>
+		</section>
 	</div>
 </div>
