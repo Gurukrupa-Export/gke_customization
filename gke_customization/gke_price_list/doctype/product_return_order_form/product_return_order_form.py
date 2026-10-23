@@ -3681,7 +3681,7 @@ def get_kggk_serial_no(tag_no):
             # Child table
             # ----------------------------------------------------
 
-            "custom_serial_no_table": child_rows,
+            # "custom_serial_no_table": child_rows,
         }
 
         try:
