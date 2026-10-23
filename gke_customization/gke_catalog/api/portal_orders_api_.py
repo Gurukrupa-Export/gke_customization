@@ -36,7 +36,7 @@ def _serialize_items(items, status_filter=None):
         item_data = frappe.db.get_value(
             "Item",
             row.item_code,
-            ["image", "name", "item_group","custom_catalogue_image", "custom_silver_image"],
+            ["image", "name", "item_group","custom_catalogue_image", "custom_silver_image","sketch_image", "front_view"],
             as_dict=True,
         ) or {}
         
@@ -68,6 +68,9 @@ def _serialize_items(items, status_filter=None):
             "custom_catalogue_image"      : item_data.get("custom_catalogue_image") or "",
             "custom_silver_image"         : item_data.get("custom_silver_image") or "",
             "image"                       : item_data.get("image") or "",
+            "cad_image"                   : item_data.get("front_view") or "",
+            "sketch_image"                : item_data.get("sketch_image") or "",
+            
             # "custom_catalogue_image"      : (item_data.get("custom_catalogue_image") or item_data.get("custom_silver_image")),
             # "custom_catalogue_image"      : item_image,
             "category"                    : item_data.get("item_group") or "",
@@ -182,9 +185,9 @@ def add_to_cart(
     metal_touch=None,       
 ):
     if not customer:
-        frappe.throw(_("Customer required hai."))
+        frappe.throw(_("Customer required."))
     if not item_code:
-        frappe.throw(_("Item Code required hai."))
+        frappe.throw(_("Item Code required."))
 
     qty             = int(quantity or 1)
     calculated_rate = float(rate or 0)
@@ -1188,79 +1191,6 @@ def restore_cancelled_item_from_cart(customer,row_name):
   # ─────────────────────────────────────────────
 
 
-
-
-
-# Helper Function for Placed order-----------------------------------------
-# def _recalculate_totals_draft_only(doc):
-#     """only Draft items total calculate"""
-#     total_qty = 0
-#     total_amt = 0
-#     for row in doc.items:
-#         # cancelled items Skip
-#         if getattr(row, "status", "Draft") == "Cancel Order":
-#             continue
-#         total_qty += row.quantity or 0
-#         total_amt += (row.quantity or 0) * (row.rate or 0)
-#     doc.total_quantity = total_qty
-#     doc.total_amount = total_amt
-
-
-# @frappe.whitelist()
-# def get_placed_orders(customer=None, user=None):
-#     # --case 1: customer login-
-#     if customer:
-#         filters = {"customer": customer, "status": "Ordered"}
-#         orders = frappe.get_all(
-#             "Portal Order",
-#             filters  = filters,
-#             fields = ["name", "customer", "user", "order_date", "status", "total_quantity", "total_amount"],
-#             order_by = "order_date desc"
-#         )   
-    
-#     # case 2: Rep/User Login
-#     elif user:
-#         assigned_customers = frappe.get_all(
-#             "Customer Representatives",
-#             filters={"user_id", user},
-#             pluck="parent"
-#         )
-        
-#         if not assigned_customers:
-#             return {"success":True, "count":0, "orders": []}
-        
-#         orders = frappe.db.get_all(
-#             "Portal Order",
-#             filters={
-#                 "customer": ["in", assigned_customers],
-#                 "status": "Ordered"
-#             }
-#             fields = ["name", "Customer", "user", "order_date", "status", "total_quantity", "total_amount"],
-#             order_by="order_date desc"
-#         )
-#     else:
-#         frappe.throw(_("Customer or User Required"))
-    
-#     if not orders:
-#         return {"success": True, "count":0, "orders": []}
-    
-#     result = []
-#     for order in orders:
-#         doc = frappe.get_doc("Portal Order", order["name"])
-#         result.append({
-#             "name": doc.name,
-#             "customer": doc.customer,
-#             "order_by": getattr(doc, "order_by", "") or "",
-#             "order_date": str(doc.order_date) if doc.order_date else "",
-#             "status": doc.status,
-#             "total_quantity": doc.total_quantity,
-#             "total_amount": doc.total_amount,
-#             "items": _serialize_items(doc.items, status_filter="Ordered"), 
-#         })
-#     return {"success": True, "count": len(result), "orders": result}
-    
-
-
 # # --------------------------------------------------------------------------------------------
 # #  GET PLACED ORDERS  (Ordered)
 # # ─────────────────────────────────────────────
@@ -1575,10 +1505,7 @@ def build_item_row(item_code, bom, qty):
     </tr>
     """
     
-    
-    
-    
-    
+
 #Try to send the email to customer and user  
 
     

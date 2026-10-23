@@ -37,7 +37,7 @@ def _serialize_items(items, status_filter=None):
         item_data = frappe.db.get_value(
             "Item",
             row.item_code,
-            ["image", "name", "item_group","custom_catalogue_image", "custom_silver_image"],
+            ["image", "name", "item_group","custom_catalogue_image", "custom_silver_image","sketch_image","front_view"],
             as_dict=True,
         ) or {}
         
@@ -66,10 +66,12 @@ def _serialize_items(items, status_filter=None):
             "quantity"                    : row.quantity or 0,
             "rate"                        : row.rate or 0,
             "amount"                      : (row.quantity or 0) * (row.rate or 0),
-            "image"                       : item_data.get("image") or "",
+
             "custom_catalogue_image"      : item_data.get("custom_catalogue_image") or "",
             "custom_silver_image"         : item_data.get("custom_silver_image") or "",
-            # "custom_catalogue_image"      : (item_data.get("custom_catalogue_image") or item_data.get("custom_silver_image")),
+            "image"                       : item_data.get("image") or "",
+            "cad_image"                   : item_data.get("front_view") or "",
+            "sketch_image"                : item_data.get("sketch_image") or "",
             "category"                    : item_data.get("item_group") or "",
             "gross_weight"                : bom_data.get("gross_weight") or "",
             "net_weight"                  : bom_data.get("metal_and_finding_weight") or "",
@@ -99,16 +101,6 @@ def _normalize_json(val):
     except Exception:
         return v
 
-
-# def _recalculate_totals(doc):
-#     """Total quantity aur total amount recalculate karo."""
-#     total_qty    = 0
-#     total_amount = 0
-#     for row in doc.items:
-#         total_qty    += (row.quantity or 0)
-#         total_amount += (row.amount   or 0)
-#     doc.total_quantity = total_qty
-#     doc.total_amount   = total_amount
   
   
 def _recalculate_totals(doc):
@@ -215,170 +207,6 @@ def _get_active_cart(customer):
 
 # ── Main API ───────────────────────────────────────────────────────────────────
 
-# @frappe.whitelist()
-# def add_to_cart(
-#     customer,
-#     item_code,
-#     quantity=1,
-#     rate=0,
-#     bom=None,
-#     uom=None,
-#     user=None,
-#     as_per_design=0,         # checkbox → 0 or 1
-#     as_per_customization=0,  # checkbox → 0 or 1
-#     customized_data=None,    # JSON string
-#     job_work=0,
-#     out_right=0,
-#     hybrid=0,
-#     added_by=None,
-#     added_date=None,):
-#     """
-#     Smart Add To Cart API — 'Add To Cart Portal Item' doctype ke liye.
- 
-#     Fingerprint (match ke liye ye fields same hone chahiye):
-#         item_code + as_per_design + as_per_customization
-#         + job_work + out_right + hybrid + customized_data (JSON normalized) + bom
- 
-#       Sab same  → existing row ki quantity badha do
-#       Kuch alag → naya row add karo
- 
-#     Params:
-#         customer              : Customer name (required)
-#         item_code             : Item code (required)
-#         quantity              : Quantity to add (default 1)
-#         rate                  : Rate (0 ho toh 0 hi rahega)
-#         bom                   : BOM name (auto-fetched if not passed)
-#         uom                   : Unit of measure (auto-fetched from Item if not passed)
-#         user                  : User (default: session user)
-#         as_per_design         : checkbox 0/1 (default 0)
-#         as_per_customization  : checkbox 0/1 (default 0)
-#         customized_data       : JSON string with customization details
-#         job_work              : checkbox 0/1 (default 0)
-#         out_right             : checkbox 0/1 (default 0)
-#         hybrid                : checkbox 0/1 (default 0)
-#         added_by              : Added by (default: session user)
-#         added_date            : Date (default: today)
-#     """
- 
-#     if not customer:
-#         frappe.throw(_("Customer required hai."))
-#     if not item_code:
-#         frappe.throw(_("Item Code required hai."))
- 
-#     qty             = int(quantity or 1)
-#     calculated_rate = float(rate or 0)
- 
-#     # ── BOM auto-fetch ─────────────────────────────────────────────────────────
-#     if not bom:
-#         bom = frappe.db.get_value(
-#             "BOM",
-#             {"item": item_code, "is_active": 1, "is_default": 1},
-#             "name",
-#             order_by="creation desc",
-#         )
- 
-#     # ── UOM auto-fetch ─────────────────────────────────────────────────────────
-#     if not uom:
-#         uom = frappe.db.get_value("Item", item_code, "stock_uom") or ""
- 
-#     # ── Item image ─────────────────────────────────────────────────────────────
-#     item_image = frappe.db.get_value("Item", item_code, "image") or ""
- 
-#     # ── Checkbox flags ─────────────────────────────────────────────────────────
-#     is_as_per_design        = int(as_per_design        or 0)
-#     is_as_per_customization = int(as_per_customization or 0)
-#     is_job_work             = int(job_work             or 0)
-#     is_out_right            = int(out_right            or 0)
-#     is_hybrid               = int(hybrid               or 0)
- 
-#     # ── User validate ──────────────────────────────────────────────────────────
-#     raw_user     = user or frappe.session.user
-#     current_user = raw_user if frappe.db.exists("User", raw_user) else ""
- 
-#     # ── Normalize incoming values ──────────────────────────────────────────────
-#     incoming_customized_data = _normalize_json(customized_data)
-#     incoming_bom             = (bom or "").strip()
- 
-#     # ── Get or create cart ─────────────────────────────────────────────────────
-#     doc    = _get_active_cart(customer)
-#     is_new = False
- 
-#     if not doc:
-#         is_new         = True
-#         doc            = frappe.new_doc("Add To Cart Portal Item")
-#         doc.customer   = customer
-#         doc.added_by   = added_by or frappe.session.user
-#         doc.added_date = added_date or frappe.utils.today()
-#         doc.status     = "Add To Cart"
-#         doc.company    = (
-#             frappe.defaults.get_user_default("company")
-#             or frappe.db.get_single_value("Global Defaults", "default_company")
-#         )
-#         doc.currency   = frappe.defaults.get_user_default("currency") or "INR"
- 
-#     # ── Match existing row using fingerprint ───────────────────────────────────
-#     item_found = False
- 
-#     for row in doc.items:
-#         if row.item_code != item_code:
-#             continue
- 
-#         if (
-#             int(row.as_per_design        or 0) == is_as_per_design
-#             and int(row.as_per_customization or 0) == is_as_per_customization
-#             and int(row.job_work             or 0) == is_job_work
-#             and int(row.out_right            or 0) == is_out_right
-#             and int(row.hybrid               or 0) == is_hybrid
-#             and _normalize_json(row.customized_data) == incoming_customized_data
-#             and (row.bom or "").strip()              == incoming_bom
-#         ):
-#             # Match mila → quantity badha do
-#             row.quantity = (row.quantity or 0) + qty
-#             row.rate     = calculated_rate
-#             row.amount   = row.quantity * calculated_rate
-#             row.user     = current_user
-#             item_found   = True
-#             break
- 
-#     # ── Naya row ───────────────────────────────────────────────────────────────
-#     if not item_found:
-#         doc.append("items", {
-#             "item_code"             : item_code,
-#             "bom"                   : bom or "",
-#             "uom"                   : uom,
-#             "quantity"              : qty,
-#             "rate"                  : calculated_rate,
-#             "amount"                : qty * calculated_rate,
-#             "image"                 : item_image,
-#             "user"                  : current_user,
-#             "status"                : "Add To Cart",
-#             "as_per_design"         : is_as_per_design,
-#             "as_per_customization"  : is_as_per_customization,
-#             "job_work"              : is_job_work,
-#             "out_right"             : is_out_right,
-#             "hybrid"                : is_hybrid,
-#             "customized_data"       : customized_data or "",
-#         })
- 
-#     # ── Save ───────────────────────────────────────────────────────────────────
-#     _recalculate_totals(doc)
- 
-#     if is_new:
-#         doc.insert(ignore_permissions=True)
-#     else:
-#         doc.save(ignore_permissions=True)
- 
-#     frappe.db.commit()
- 
-#     return {
-#         "success"        : True,
-#         "action"         : "created" if is_new else "updated",
-#         "item_action"    : "row_added" if not item_found else "qty_updated",
-#         "order"          : doc.name,
-#         "total_quantity" : doc.total_quantity,
-#         "total_amount"   : doc.total_amount,
-#         "item_rate"      : calculated_rate,
-#     }
 
 
 @frappe.whitelist()
@@ -413,7 +241,7 @@ def add_to_cart(
     if not bom:
         bom = frappe.db.get_value(
             "BOM",
-            {"item": item_code, "is_active": 1, "is_default": 1, "bom_type": "Finish Goods"},  # ← added
+            {"item": item_code, "is_active": 1}, #-- "is_default": 1, "bom_type": "Finish Goods"
             "name",
             order_by="creation desc",
         )
@@ -636,7 +464,7 @@ def _refresh_cart_prices(cart):
     return cart
 
 
-@frappe.whitelist(methods=["GET", "POST"], allow_guest=True)
+@frappe.whitelist(methods=["GET", "POST"])
 def get_cart_orders(customer=None, user=None, status_filter=None):
     """
     Cart orders fetch karo — customer ya user se.
@@ -736,11 +564,10 @@ def get_cart_orders(customer=None, user=None, status_filter=None):
             })
 
         data =  {"success": True, "orders": result}
-        # secure = SecureJSON()
-        # enc_data = secure.encrypt(data)
-        # return enc_data
-        return data
-    
+        secure = SecureJSON()
+        enc_data = secure.encrypt(data)
+        return enc_data
+        # return data
 
     frappe.throw(_("Customer or User required."))
 
@@ -2160,7 +1987,7 @@ def send_customer_order_notification(user, order_id, customer_item_array):
     message = get_email_template(customer, order_id, items_html)
     
     frappe.sendmail(
-        recipients=users,
+        recipients="bhavika_p@gkexport.com",
         sender="customer_portal@gkexport.com",
         subject=f"Order Update - {order_id}",
         message=message
@@ -2212,18 +2039,18 @@ def get_email_template(customer, order_id, items_html):
         <div style="font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px;">Items in order</div>
 
         <!-- Items table -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
-          <thead>
-            <tr style="border-bottom: 1px solid #e5e7eb;">
-              <th style="font-size: 11px; color: #9ca3af; text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">Item</th>
-              <th style="font-size: 11px; color: #9ca3af; text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">BOM</th>
-              <th style="font-size: 11px; color: #9ca3af; text-align: right; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">Qty</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items_html}
-          </tbody>
-        </table>
+        # <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+        #   <thead>
+        #     <tr style="border-bottom: 1px solid #e5e7eb;">
+        #       <th style="font-size: 11px; color: #9ca3af; text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">Item</th>
+        #       <th style="font-size: 11px; color: #9ca3af; text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">BOM</th>
+        #       <th style="font-size: 11px; color: #9ca3af; text-align: right; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">Qty</th>
+        #     </tr>
+        #   </thead>
+        #   <tbody>
+        #     {items_html}
+        #   </tbody>
+        # </table>
       </div>
 
       <!-- Footer -->
@@ -2281,6 +2108,7 @@ ORDER_PLACED_TEMPLATE = "gke_customization/templates/emails/order_placed.html"
 def _get_customer_emails(customer_name):
     return [
         "bhavika_p@gkexport.com",
+        "mansi_g@gkexport.com"
     ]
 
 # def _get_order_team_emails():
@@ -2289,7 +2117,7 @@ def _get_customer_emails(customer_name):
 
 def _get_order_team_emails():
     return [
-        "mansi_g@gkexport.com",
+        "rajan_m@gkexport.com",
     ]
 
 def _render_order_email(context, items, internal=False, show_rate=False):
@@ -2353,8 +2181,6 @@ def _send_order_placed_emails(customer, portal_order,user, active_items, order_r
     except Exception:
         frappe.log_error(frappe.get_traceback(), f"Order email failed: {portal_order.name}")
         
-
-
 
 
 
