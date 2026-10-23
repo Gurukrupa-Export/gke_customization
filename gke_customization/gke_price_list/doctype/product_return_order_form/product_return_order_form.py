@@ -3597,13 +3597,13 @@ def get_kggk_serial_no(tag_no):
             # Location / Employee
             # ----------------------------------------------------
 
-            "location": serial_data.get(
-                "location"
-            ),
+            # "location": serial_data.get(
+            #     "location"
+            # ),
 
-            "employee": serial_data.get(
-                "employee"
-            ),
+            # "employee": serial_data.get(
+            #     "employee"
+            # ),
 
             # ----------------------------------------------------
             # Warranty
@@ -3637,17 +3637,17 @@ def get_kggk_serial_no(tag_no):
             # Reference information
             # ----------------------------------------------------
 
-            "work_order": serial_data.get(
-                "work_order"
-            ),
+            # "work_order": serial_data.get(
+            #     "work_order"
+            # ),
 
             "reference_doctype": serial_data.get(
                 "reference_doctype"
             ),
 
-            "reference_name": serial_data.get(
-                "reference_name"
-            ),
+            # "reference_name": serial_data.get(
+            #     "reference_name"
+            # ),
 
             "posting_date": serial_data.get(
                 "posting_date"
@@ -3671,7 +3671,7 @@ def get_kggk_serial_no(tag_no):
                 bom_details.get("gross_weight")
             ),
 
-            "custom_is_auto_created": 1,
+            # "custom_is_auto_created": 1,
 
             # IMPORTANT:
             # Copy the tag number to local Serial No
