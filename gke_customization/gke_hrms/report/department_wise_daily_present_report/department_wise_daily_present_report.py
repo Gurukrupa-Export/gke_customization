@@ -453,7 +453,7 @@ def send_morning_present_report(date=None, department=None):
 			recipients=manager_string,
 			# cc=["angat_p@gkexport.com"],
 			cc=cc,
-			sender="alerts@gkexport.com",
+			sender="alerts@kggk.in",
 			subject=f"Present Report — {dept} — {formatdate(date, 'dd-mm-yyyy')}",
 			message=html,
 			now=True,expose_recipients="header"
