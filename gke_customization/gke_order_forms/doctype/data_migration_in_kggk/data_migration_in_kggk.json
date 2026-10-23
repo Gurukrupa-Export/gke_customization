@@ -21,7 +21,12 @@
   "section_break_cadsite_section",
   "cad_from_site",
   "column_break_cadsite_column",
-  "cad_to_site"
+  "cad_to_site",
+  "section_break_rsdx",
+  "serial_no_activate_site",
+  "column_break_rwhz",
+  "serial_no_api_key",
+  "serial_no_secret"
  ],
  "fields": [
   {
@@ -104,6 +109,29 @@
   {
    "fieldname": "column_break_cadsite_column",
    "fieldtype": "Column Break"
+  },
+   {
+   "fieldname": "section_break_rsdx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "serial_no_activate_site",
+   "fieldtype": "Data",
+   "label": "Serial no Activate Site "
+  },
+  {
+   "fieldname": "column_break_rwhz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "serial_no_api_key",
+   "fieldtype": "Data",
+   "label": "Serial No API key"
+  },
+  {
+   "fieldname": "serial_no_secret",
+   "fieldtype": "Password",
+   "label": "Serial No Secret"
   }
  ],
  "grid_page_length": 50,
