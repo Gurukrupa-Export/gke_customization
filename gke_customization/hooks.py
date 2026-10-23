@@ -325,7 +325,10 @@ doc_events = {
         "on_trash": "gke_customization.gke_hrms.doc_events.journal_entry.cancel_withholding_releases_on_trash",
     },
     "Item": {
-        "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_item_kggk"
+        "before_validate": [
+            "gke_customization.gke_order_forms.doc_events.item.set_numeric_attribute_values",
+            "gke_customization.gke_order_forms.doc_events.item.create_item_kggk",
+        ]
     },
     "BOM": {
         "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_bom_kggk"
