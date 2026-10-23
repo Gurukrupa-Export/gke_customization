@@ -275,6 +275,9 @@ app_include_js = "gke_customization.gke_catalog.api.reposne.get_submited_data"
 app_include_js = "gke_customization.gke_catalog.api.price_list.diamond_price_list"
 
 doc_events = {
+    "Employee": {
+        "validate": "gke_customization.gke_hrms.doc_events.employee.validate_reports_to"
+    },
     "SolitaireCalculator": {
         "validate": "gke_customization.gke_custom_export.doctype.solitaire_calculator.solitaire_calculator.calculate_rate"
     },
