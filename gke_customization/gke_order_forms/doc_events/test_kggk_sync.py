@@ -3595,6 +3595,317 @@ class TestExplicitClears(unittest.TestCase):
 		self.assertEqual(put.call_args.kwargs["json"]["remarks"], "kept")
 
 
+class TestTemplateAttributesFollowTheSource(unittest.TestCase):
+	"""A new variant is checked against its template's rows on the target, not against ours.
+
+	MU06453's "Distance Between Kadi To Mugappu" row was made numeric here after the template
+	had gone across. KGGK kept the old row, refused MU06453-002 - "Attribute Value 7.0 is not
+	valid for the selected attribute" - and with it the BOM, and the Purchase Order behind both.
+	"""
+
+	META = {
+		"owner": "someone@kggk",
+		"creation": "2026-08-08 10:29:31",
+		"modified": "2026-08-08 10:29:31",
+		"modified_by": "someone@kggk",
+		"docstatus": 0,
+		"doctype": "Item Variant Attribute",
+		"parent": "MU",
+		"parentfield": "attributes",
+		"parenttype": "Item",
+	}
+
+	def setUp(self):
+		self.cfg = frappe._dict(to_site="https://t", headers={})
+		self.run = _run(config=self.cfg)
+
+	@staticmethod
+	def _variant(**values):
+		attributes = [frappe._dict(attribute=a, attribute_value=v) for a, v in values.items()]
+		return frappe._dict(doctype="Item", name="MU-002", item_code="MU-002", variant_of="MU", attributes=attributes)
+
+	@staticmethod
+	def _flags(attribute, numeric=0, start=0.0, end=0.0, step=0.0):
+		return {
+			"attribute": attribute,
+			"numeric_values": numeric,
+			"from_range": start,
+			"to_range": end,
+			"increment": step,
+		}
+
+	def _theirs(self, name, idx, attribute, **flags):
+		"""A row as the target's REST API returns it - Frappe's own columns included."""
+		return {"name": name, "idx": idx, **self.META, **self._flags(attribute, **flags)}
+
+	def _align(self, variant, ours, theirs, get_ok=True, put_ok=True):
+		get = (
+			k.Response(status_code=200, data={"data": {"name": "MU", "attributes": theirs}})
+			if get_ok
+			else k.Response(status_code=500, text="target down")
+		)
+		put = k.Response(status_code=200) if put_ok else k.Response(status_code=417, text="refused")
+		with patch.object(frappe, "get_all", return_value=[frappe._dict(r) for r in ours]) as get_all, patch.object(
+			k, "target_name_for", side_effect=lambda doctype, name, target: name
+		), patch.object(k, "api_get", return_value=get) as api_get, patch.object(
+			k, "api_put", return_value=put
+		) as api_put:
+			result = k.align_template_attributes(self.cfg, variant, self.run)
+		return result, frappe._dict(get_all=get_all, api_get=api_get, api_put=api_put)
+
+	def test_a_stale_numeric_row_is_corrected_in_place(self):
+		result, calls = self._align(
+			self._variant(**{"Metal Colour": "Yellow", "Distance": "7"}),
+			ours=[self._flags("Metal Colour"), self._flags("Distance", 1, 0.0, 1000.0, 0.01)],
+			theirs=[self._theirs("row-1", 1, "Metal Colour"), self._theirs("row-2", 2, "Distance")],
+		)
+
+		self.assertTrue(result)
+		calls.api_put.assert_called_once()
+		self.assertEqual(calls.api_put.call_args.args[1], "/api/resource/Item/MU")
+		first, second = calls.api_put.call_args.kwargs["json"]["attributes"]
+		# The same row, under the target's own name - corrected, not deleted and re-made.
+		self.assertEqual(second["name"], "row-2")
+		self.assertEqual(
+			(second["numeric_values"], second["from_range"], second["to_range"], second["increment"]),
+			(1, 0.0, 1000.0, 0.01),
+		)
+		# A PUT replaces the table, so the row that was fine goes back too, as it was.
+		self.assertEqual(first, {"name": "row-1", "idx": 1, **self._flags("Metal Colour")})
+		for row in (first, second):
+			self.assertFalse(set(row) & set(self.META), row)
+
+	def test_an_attribute_the_template_lacks_is_added(self):
+		"""NE00491's variants: "Attribute Sizer Type is not valid for the selected template"."""
+		result, calls = self._align(
+			self._variant(**{"Metal Colour": "Yellow", "Sizer Type": "Screw"}),
+			ours=[self._flags("Metal Colour"), self._flags("Sizer Type")],
+			theirs=[self._theirs("row-1", 1, "Metal Colour")],
+		)
+
+		self.assertTrue(result)
+		rows = calls.api_put.call_args.kwargs["json"]["attributes"]
+		self.assertEqual([row["attribute"] for row in rows], ["Metal Colour", "Sizer Type"])
+		self.assertEqual(rows[1], self._flags("Sizer Type"))
+
+	def test_only_the_attributes_the_variant_carries_are_considered(self):
+		"""They are what the target checks on create; the rest of the template is its own."""
+		result, calls = self._align(
+			self._variant(**{"Metal Colour": "Yellow", "Back Side Size": ""}),
+			ours=[self._flags("Metal Colour")],
+			theirs=[self._theirs("row-1", 1, "Metal Colour")],
+		)
+
+		self.assertTrue(result)
+		self.assertEqual(calls.get_all.call_args.kwargs["filters"]["attribute"], ("in", ["Metal Colour"]))
+		calls.api_put.assert_not_called()
+
+	def test_a_template_already_in_step_is_not_written(self):
+		result, calls = self._align(
+			self._variant(Distance="7"),
+			ours=[self._flags("Distance", 1, 0.0, 1000.0, 0.01)],
+			theirs=[self._theirs("row-1", 1, "Distance", numeric=1, start=0.0, end=1000.0, step=0.01)],
+		)
+
+		self.assertTrue(result)
+		calls.api_put.assert_not_called()
+
+	def test_a_list_attribute_here_leaves_a_numeric_row_there_alone(self):
+		"""A numeric row there never consults a list; turning it into one could only refuse more."""
+		result, calls = self._align(
+			self._variant(**{"Metal Colour": "Yellow"}),
+			ours=[self._flags("Metal Colour")],
+			theirs=[self._theirs("row-1", 1, "Metal Colour", numeric=1, start=0.0, end=10.0, step=1.0)],
+		)
+
+		self.assertTrue(result)
+		calls.api_put.assert_not_called()
+
+	def test_a_variant_with_no_values_asks_nothing(self):
+		result, calls = self._align(self._variant(Distance=""), ours=[], theirs=[])
+
+		self.assertTrue(result)
+		calls.api_get.assert_not_called()
+
+	def test_a_template_that_cannot_be_read_is_reported_and_not_written(self):
+		result, calls = self._align(
+			self._variant(Distance="7"),
+			ours=[self._flags("Distance", 1, 0.0, 1000.0, 0.01)],
+			theirs=[],
+			get_ok=False,
+		)
+
+		self.assertFalse(result)
+		calls.api_put.assert_not_called()
+		self.assertEqual(self.run.mismatches, 1)
+		self.assertIn("TEMPLATE-ATTRIBUTES", "\n".join(self.run.problems))
+
+	def test_a_refused_correction_is_reported(self):
+		result, _calls = self._align(
+			self._variant(Distance="7"),
+			ours=[self._flags("Distance", 1, 0.0, 1000.0, 0.01)],
+			theirs=[self._theirs("row-1", 1, "Distance")],
+			put_ok=False,
+		)
+
+		self.assertFalse(result)
+		problems = "\n".join(self.run.problems)
+		self.assertIn("TEMPLATE-ATTRIBUTES", problems)
+		self.assertIn("MU-002", problems)
+
+	# -- reads, writes and races -----------------------------------------------------
+
+	STALE = "2026-08-08 10:29:31.110845"
+	FRESH = "2026-10-22 18:00:00.000000"
+
+	def _template(self, modified, **flags):
+		return {"name": "MU", "modified": modified, "attributes": [self._theirs("row-1", 1, "Distance", **flags)]}
+
+	def _boundaries(self, gets, puts):
+		"""Patch the target with queued answers; return the mocks."""
+		stack = ExitStack()
+		self.addCleanup(stack.close)
+		enter = stack.enter_context
+		enter(patch.object(frappe, "get_all", return_value=[frappe._dict(self._flags("Distance", 1, 0.0, 1000.0, 0.01))]))
+		enter(patch.object(k, "target_name_for", side_effect=lambda doctype, name, target: name))
+		api_get = enter(patch.object(k, "api_get", side_effect=gets))
+		api_put = enter(patch.object(k, "api_put", side_effect=puts))
+		return api_get, api_put
+
+	def test_the_write_carries_the_modified_it_was_read_at(self):
+		"""So a template another worker corrected in between is refused, not overwritten."""
+		_get, api_put = self._boundaries(
+			gets=[k.Response(status_code=200, data={"data": self._template(self.STALE)})],
+			puts=[k.Response(status_code=200)],
+		)
+
+		self.assertTrue(k.align_template_attributes(self.cfg, self._variant(Distance="7"), self.run))
+		self.assertEqual(api_put.call_args.kwargs["json"]["modified"], self.STALE)
+
+	def test_a_template_changed_in_between_is_read_again_and_retried_once(self):
+		aligned = self._template(self.FRESH, numeric=1, start=0.0, end=1000.0, step=0.01)
+		api_get, api_put = self._boundaries(
+			gets=[
+				k.Response(status_code=200, data={"data": self._template(self.STALE)}),
+				k.Response(status_code=200, data={"data": aligned}),
+			],
+			puts=[k.Response(status_code=417, data={"exc_type": "TimestampMismatchError"})],
+		)
+
+		# The second read finds it already aligned by the other worker, so nothing is written.
+		self.assertTrue(k.align_template_attributes(self.cfg, self._variant(Distance="7"), self.run))
+		self.assertEqual(api_get.call_count, 2)
+		self.assertEqual(api_put.call_count, 1)
+		self.assertEqual(self.run.mismatches, 0)
+
+	def test_a_second_timestamp_refusal_is_reported(self):
+		_get, api_put = self._boundaries(
+			gets=[k.Response(status_code=200, data={"data": self._template(self.STALE)})] * 2,
+			puts=[k.Response(status_code=417, data={"exc_type": "TimestampMismatchError"})] * 2,
+		)
+
+		self.assertFalse(k.align_template_attributes(self.cfg, self._variant(Distance="7"), self.run))
+		self.assertEqual(api_put.call_count, 2)
+		self.assertIn("TEMPLATE-ATTRIBUTES", "\n".join(self.run.problems))
+
+	def test_the_variants_of_one_template_read_it_once_per_run(self):
+		"""The write's answer replaces the cached read, so the next variant finds it aligned."""
+		aligned = self._template(self.FRESH, numeric=1, start=0.0, end=1000.0, step=0.01)
+		api_get, api_put = self._boundaries(
+			gets=[k.Response(status_code=200, data={"data": self._template(self.STALE)})],
+			puts=[k.Response(status_code=200, data={"data": aligned})],
+		)
+
+		for name in ("MU-002", "MU-003"):
+			variant = self._variant(Distance="7")
+			variant.name = variant.item_code = name
+			self.assertTrue(k.align_template_attributes(self.cfg, variant, self.run))
+
+		self.assertEqual(api_get.call_count, 1)
+		self.assertEqual(api_put.call_count, 1)
+
+	def test_a_failed_write_does_not_leave_its_edit_in_the_cache(self):
+		api_get, _put = self._boundaries(
+			gets=[k.Response(status_code=200, data={"data": self._template(self.STALE)})] * 2,
+			puts=[k.Response(status_code=417, text="refused"), k.Response(status_code=200)],
+		)
+
+		self.assertFalse(k.align_template_attributes(self.cfg, self._variant(Distance="7"), self.run))
+		self.assertTrue(k.align_template_attributes(self.cfg, self._variant(Distance="7"), self.run))
+		# Read again after the refusal, rather than trusting a copy that was never written.
+		self.assertEqual(api_get.call_count, 2)
+
+	# -- when `push_item` asks for it ------------------------------------------------
+
+	def _push(self, template_exists, variant_known=None):
+		"""Push the variant against patched boundaries; return the order things happened in."""
+		order = []
+		doc = self._variant(Distance="7")
+		doc.modified = "2026-10-20 14:17:21"
+		with ExitStack() as stack:
+			enter = stack.enter_context
+			enter(patch.object(frappe.db, "exists", return_value=True))
+			enter(patch.object(frappe, "get_doc", return_value=doc))
+			enter(patch.object(k, "target_name_for", side_effect=lambda doctype, name, target: name))
+			enter(patch.object(k, "api_exists", return_value=template_exists))
+			enter(patch.object(k, "target_name_if_known", return_value=variant_known))
+			enter(patch.object(k, "get_target_fields", return_value=None))
+			enter(patch.object(k, "build_payload", return_value=({"item_code": "MU-002"}, {})))
+			enter(patch.object(k, "target_only_values", return_value={}))
+			enter(patch.object(k, "_translate_child_links", return_value=[]))
+			enter(patch.object(k, "_strip_missing_links", return_value=[]))
+			enter(patch.object(k, "explicit_clears", return_value={}))
+			enter(patch.object(k, "mark_state"))
+			enter(
+				patch.object(
+					k,
+					"align_template_attributes",
+					side_effect=lambda config, variant, run: order.append(("align", variant.name)),
+				)
+			)
+			enter(
+				patch.object(
+					k,
+					"_send",
+					side_effect=lambda config, doctype, name, data, **kwargs: (
+						order.append(("send", name)) or (k.Response(status_code=200), "created", name, [])
+					),
+				)
+			)
+			push_item = k.push_item
+			# The recursive call for the template resolves through the module, so it lands here.
+			pushed_template = enter(patch.object(k, "push_item", return_value=True))
+			self.assertTrue(push_item("MU-002", self.cfg, self.run))
+		return order, pushed_template
+
+	def test_a_new_variant_has_its_existing_template_aligned_before_it_is_sent(self):
+		order, pushed_template = self._push(template_exists=True)
+
+		self.assertEqual(order, [("align", "MU-002"), ("send", "MU-002")])
+		pushed_template.assert_not_called()
+
+	def test_a_variant_the_target_already_holds_is_not_aligned(self):
+		"""An update never sends attributes, so the template's rows cannot refuse it."""
+		order, _pushed_template = self._push(template_exists=True, variant_known="MU-002")
+
+		self.assertEqual(order, [("send", "MU-002")])
+
+	def test_a_template_created_in_this_run_is_not_aligned(self):
+		"""It was just made from our rows."""
+		order, pushed_template = self._push(template_exists=False)
+
+		pushed_template.assert_called_once()
+		self.assertEqual(pushed_template.call_args.args[0], "MU")
+		self.assertEqual(order, [("send", "MU-002")])
+
+	def test_an_unanswered_existence_check_changes_nothing(self):
+		"""Neither pushed nor aligned on a guess - the variant goes as it always did."""
+		order, pushed_template = self._push(template_exists=None)
+
+		pushed_template.assert_not_called()
+		self.assertEqual(order, [("send", "MU-002")])
+
+
 class TestLegacyHooksStayUnwired(unittest.TestCase):
 	def test_the_blocking_before_validate_push_is_not_registered(self):
 		"""It aborted a local save when KGGK was down. A merge must not bring it back."""
