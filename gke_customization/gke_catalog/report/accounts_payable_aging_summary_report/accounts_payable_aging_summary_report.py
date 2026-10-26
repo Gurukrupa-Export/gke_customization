@@ -1,473 +1,1609 @@
-# Copyright (c) 2026
-# Accounts Payable Aging Summary - Script Report (Purchase Invoice)
-# Report page par Excel jaisa layout (HTML) + "Download PDF" button
+# Copyright (c) 2026, Gurukrupa Export and contributors
+# For license information, please see license.txt
 
-from urllib.parse import urlencode
+"""
+Accounts Payable Aging Summary Report  (single self-contained file, no other report dependency)
+
+Part 1 - PayableReport: payable-only, Payment Ledger based logic
+Part 2 - Summary report: aging / upcoming due / month-wise tables, drill-down and PDF
+"""
+
+import calendar
+import re
+from collections import OrderedDict, defaultdict
 
 import frappe
-from frappe.utils import date_diff, flt, formatdate, get_url, getdate, nowdate
-from frappe.utils.pdf import get_pdf
+from frappe import _, qb, query_builder, scrub
+from frappe.database.schema import get_definition
+from frappe.query_builder import Criterion
+from frappe.query_builder.functions import Date, Substring, Sum
+from frappe.utils import cint, cstr, escape_html, flt, formatdate, getdate, nowdate
 
-DEFAULT_COMPANY = "Sadguru Diamond"
+from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
+	get_accounting_dimensions,
+	get_dimension_with_children,
+)
+from erpnext.accounts.utils import (
+	build_qb_match_conditions,
+	get_advance_payment_doctypes,
+	get_currency_precision,
+	get_party_types_from_account_type,
+)
 
-# Supplier Type filter: "All Suppliers" (default) ya "Diamonds"
-# Diamonds = supplier ke NAAM me "Diamond" word aaye (Diamond / Diamonds dono pakde jaate hain)
-DIAMOND_KEYWORD = "Diamond"
-MONTH_NAMES = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+ACCOUNT_TYPE = "Payable"
+
+
+# ======================================================================
+# PART 1 - PAYABLE LOGIC
+# ======================================================================
+class PayableReport:
+	def __init__(self, filters=None):
+		self.filters = frappe._dict(filters or {})
+		self.qb_selection_filter = []
+		self.ple = qb.DocType("Payment Ledger Entry")
+		self.filters.report_date = getdate(self.filters.report_date or nowdate())
+		self.age_as_on = (
+			getdate(nowdate())
+			if "calculate_ageing_with" not in self.filters
+			or self.filters.calculate_ageing_with == "Today Date"
+			else self.filters.report_date
+		)
+
+		self.filters.from_date = getdate(self.filters.get("from_date") or nowdate())
+		self.filters.to_date = getdate(self.filters.get("to_date") or nowdate())
+		self.ple_fetch_method = (
+			frappe.db.get_single_value("Accounts Settings", "receivable_payable_fetch_method")
+			or "Buffered Cursor"
+		)  # Fail Safe
+		self.advance_payment_doctypes = get_advance_payment_doctypes()
+
+	def run(self, args):
+		self.filters.update(args)
+		self.set_defaults()
+		self.party_naming_by = frappe.db.get_value(args.get("naming_by")[0], None, args.get("naming_by")[1])
+		self.get_data()
+		self.get_columns()
+		self.get_chart_data()
+		return self.columns, self.data, None, self.chart, None, self.skip_total_row
+
+	def set_defaults(self):
+		if not self.filters.get("company"):
+			self.filters.company = frappe.db.get_single_value("Global Defaults", "default_company")
+		self.company_currency = frappe.get_cached_value(
+			"Company", self.filters.get("company"), "default_currency"
+		)
+		self.currency_precision = get_currency_precision() or 2
+		self.account_type = ACCOUNT_TYPE
+		self.party_type = get_party_types_from_account_type(self.account_type)
+		self.party_details = {}
+		self.skip_total_row = 0
+		self.advance_payment_doctypes = get_advance_payment_doctypes()
+
+		if self.filters.get("group_by_party"):
+			self.previous_party = ""
+			self.total_row_map = {}
+			self.skip_total_row = 1
+
+		if self.filters.get("in_party_currency"):
+			if self.filters.get("party") and len(self.filters.get("party")) == 1:
+				self.skip_total_row = 0
+			else:
+				self.skip_total_row = 1
+
+	def get_data(self):
+		# Get invoice details like bill_no, due_date etc for all invoices
+		self.get_invoice_details()
+
+		# fetch future payments against invoices
+		self.get_future_payments()
+
+		# Get return (debit note) entries
+		if not self.filters.party_type or self.filters.party_type == "Supplier":
+			self.get_return_entries()
+		else:
+			self.return_entries = frappe._dict()
+
+		# Get Exchange Rate Revaluations
+		self.get_exchange_rate_revaluations()
+
+		self.prepare_ple_query()
+		self.data = []
+		self.voucher_balance = OrderedDict()
+
+		if self.ple_fetch_method == "Buffered Cursor":
+			self.fetch_ple_in_buffered_cursor()
+		elif self.ple_fetch_method == "UnBuffered Cursor":
+			self.fetch_ple_in_unbuffered_cursor()
+		elif self.ple_fetch_method == "Raw SQL":
+			self.fetch_ple_in_sql_procedures()
+
+		self.build_data()
+		self.assign_date_columns()
+
+	# ------------------------------------------------------------------
+	# Payment Ledger fetching
+	# ------------------------------------------------------------------
+	def fetch_ple_in_buffered_cursor(self):
+		self.ple_entries = self.ple_query.run(as_dict=True)
+
+		for ple in self.ple_entries:
+			self.init_voucher_balance(ple)  # invoiced, paid, credit_note, outstanding
+
+		# This is unavoidable. Initialization and allocation cannot happen in same loop
+		for ple in self.ple_entries:
+			self.update_voucher_balance(ple)
+
+		delattr(self, "ple_entries")
+
+	def fetch_ple_in_unbuffered_cursor(self):
+		self.ple_entries = []
+		with frappe.db.unbuffered_cursor():
+			for ple in self.ple_query.run(as_dict=True, as_iterator=True):
+				self.init_voucher_balance(ple)  # invoiced, paid, credit_note, outstanding
+				self.ple_entries.append(ple)
+
+		# This is unavoidable. Initialization and allocation cannot happen in same loop
+		for ple in self.ple_entries:
+			self.update_voucher_balance(ple)
+		delattr(self, "ple_entries")
+
+	def build_voucher_dict(self, ple):
+		return frappe._dict(
+			voucher_type=ple.voucher_type,
+			voucher_no=ple.voucher_no,
+			party=ple.party,
+			party_account=ple.account,
+			posting_date=ple.posting_date,
+			account_currency=ple.account_currency,
+			remarks=ple.remarks,
+			invoiced=0.0,
+			paid=0.0,
+			credit_note=0.0,
+			outstanding=0.0,
+			invoiced_in_account_currency=0.0,
+			paid_in_account_currency=0.0,
+			credit_note_in_account_currency=0.0,
+			outstanding_in_account_currency=0.0,
+		)
+
+	def init_voucher_balance(self, ple):
+		if self.filters.get("ignore_accounts"):
+			key = (ple.voucher_type, ple.voucher_no, ple.party)
+		else:
+			key = (ple.account, ple.voucher_type, ple.voucher_no, ple.party)
+
+		if key not in self.voucher_balance:
+			self.voucher_balance[key] = self.build_voucher_dict(ple)
+
+		if (ple.voucher_type == ple.against_voucher_type and ple.voucher_no == ple.against_voucher_no) or (
+			ple.voucher_type in ("Payment Entry", "Journal Entry")
+			and ple.against_voucher_type in self.advance_payment_doctypes
+		):
+			self.voucher_balance[key].cost_center = ple.cost_center
+
+		if self.filters.get("group_by_party"):
+			self.init_subtotal_row(ple.party)
+
+		if self.filters.get("group_by_party") and not self.filters.get("in_party_currency"):
+			self.init_subtotal_row("Total")
+
+	def init_subtotal_row(self, party):
+		if not self.total_row_map.get(party):
+			self.total_row_map.setdefault(party, {"party": party, "bold": 1})
+
+			for field in self.get_currency_fields():
+				self.total_row_map[party][field] = 0.0
+
+	def get_currency_fields(self):
+		return [
+			"invoiced",
+			"paid",
+			"credit_note",
+			"outstanding",
+			"total_due",
+			"future_amount",
+			"remaining_balance",
+		]
+
+	def get_voucher_balance(self, ple):
+		if self.filters.get("ignore_accounts"):
+			key = (ple.against_voucher_type, ple.against_voucher_no, ple.party)
+		else:
+			key = (ple.account, ple.against_voucher_type, ple.against_voucher_no, ple.party)
+
+		# If payment is made against a debit note
+		# and the debit note is made against a Purchase Invoice
+		# then consider the payment against the original Purchase Invoice.
+		if ple.against_voucher_type == "Purchase Invoice":
+			if ple.against_voucher_no in self.return_entries:
+				return_against = self.return_entries.get(ple.against_voucher_no)
+				if return_against:
+					if self.filters.get("ignore_accounts"):
+						key = (ple.against_voucher_type, return_against, ple.party)
+					else:
+						key = (ple.account, ple.against_voucher_type, return_against, ple.party)
+
+		row = self.voucher_balance.get(key)
+
+		# Build and use a separate row for Employee Advances.
+		# This allows Payments or Journals made against Emp Advance to be processed.
+		if (
+			not row
+			and ple.against_voucher_type == "Employee Advance"
+			and self.filters.handle_employee_advances
+		):
+			_d = self.build_voucher_dict(ple)
+			_d.voucher_type = ple.against_voucher_type
+			_d.voucher_no = ple.against_voucher_no
+			row = self.voucher_balance[key] = _d
+
+		if not row:
+			# no invoice, this is an invoice / stand-alone payment / debit note
+			if self.filters.get("ignore_accounts"):
+				row = self.voucher_balance.get((ple.voucher_type, ple.voucher_no, ple.party))
+			else:
+				row = self.voucher_balance.get((ple.account, ple.voucher_type, ple.voucher_no, ple.party))
+
+		if row:
+			row.party_type = ple.party_type
+		return row
+
+	def update_voucher_balance(self, ple):
+		# get the row where this balance needs to be updated
+		# if its a payment, it will return the linked invoice or will be considered as advance
+		row = self.get_voucher_balance(ple)
+		if not row:
+			return
+
+		if self.filters.get("in_party_currency") or self.filters.get("party_account"):
+			amount = ple.amount_in_account_currency
+		else:
+			amount = ple.amount
+		amount_in_account_currency = ple.amount_in_account_currency
+
+		# update voucher
+		if ple.amount > 0:
+			if (
+				ple.voucher_type in ["Journal Entry", "Payment Entry"]
+				and ple.voucher_no != ple.against_voucher_no
+			):
+				row.paid -= amount
+				row.paid_in_account_currency -= amount_in_account_currency
+			else:
+				row.invoiced += amount
+				row.invoiced_in_account_currency += amount_in_account_currency
+		else:
+			if self.is_invoice(ple):
+				if row.voucher_no == ple.voucher_no == ple.against_voucher_no:
+					row.paid -= amount
+					row.paid_in_account_currency -= amount_in_account_currency
+				else:
+					row.credit_note -= amount
+					row.credit_note_in_account_currency -= amount_in_account_currency
+			else:
+				row.paid -= amount
+				row.paid_in_account_currency -= amount_in_account_currency
+
+	def fetch_ple_in_sql_procedures(self):
+		self.proc = InitSQLProceduresForAR()
+
+		build_balance = f"""
+		begin not atomic
+		declare done boolean default false;
+		declare rec1 row type of `{self.proc._row_def_table_name}`;
+		declare ple cursor for {self.ple_query.get_sql()};
+		declare continue handler for not found set done = true;
+
+		open ple;
+		fetch ple into rec1;
+		while not done do
+			call {self.proc.init_procedure_name}(rec1);
+			fetch ple into rec1;
+		end while;
+		close ple;
+
+		set done = false;
+		open ple;
+		fetch ple into rec1;
+		while not done do
+			call {self.proc.allocate_procedure_name}(rec1);
+			fetch ple into rec1;
+		end while;
+		close ple;
+		end;
+		"""
+		frappe.db.sql(build_balance)
+
+		balances = frappe.db.sql(
+			f"""select
+			name,
+			voucher_type,
+			voucher_no,
+			party,
+			party_account `account`,
+			posting_date,
+			account_currency,
+			cost_center,
+			sum(invoiced) `invoiced`,
+			sum(paid) `paid`,
+			sum(credit_note) `credit_note`,
+			sum(invoiced) - sum(paid) - sum(credit_note) `outstanding`,
+			sum(invoiced_in_account_currency) `invoiced_in_account_currency`,
+			sum(paid_in_account_currency) `paid_in_account_currency`,
+			sum(credit_note_in_account_currency) `credit_note_in_account_currency`,
+			sum(invoiced_in_account_currency) - sum(paid_in_account_currency) - sum(credit_note_in_account_currency) `outstanding_in_account_currency`
+			from `{self.proc._voucher_balance_name}` group by name order by posting_date;""",
+			as_dict=True,
+		)
+		for x in balances:
+			if self.filters.get("ignore_accounts"):
+				key = (x.voucher_type, x.voucher_no, x.party)
+			else:
+				key = (x.account, x.voucher_type, x.voucher_no, x.party)
+
+			_d = self.build_voucher_dict(x)
+			for field in [
+				"invoiced",
+				"paid",
+				"credit_note",
+				"outstanding",
+				"invoiced_in_account_currency",
+				"paid_in_account_currency",
+				"credit_note_in_account_currency",
+				"outstanding_in_account_currency",
+				"cost_center",
+			]:
+				_d[field] = x.get(field)
+
+			self.voucher_balance[key] = _d
+
+	# ------------------------------------------------------------------
+	# Sub totals / row building
+	# ------------------------------------------------------------------
+	def update_sub_total_row(self, row, party):
+		total_row = self.total_row_map.get(party)
+
+		if total_row:
+			for field in self.get_currency_fields():
+				total_row[field] += row.get(field, 0.0)
+			total_row["currency"] = row.get("currency", "")
+
+	def append_subtotal_row(self, party):
+		sub_total_row = self.total_row_map.get(party)
+
+		if sub_total_row:
+			self.data.append(sub_total_row)
+			self.data.append({})
+			self.update_sub_total_row(sub_total_row, "Total")
+
+	def build_data(self):
+		# set outstanding for all the accumulated balances
+		# as we can use this to filter out invoices without outstanding
+		for _key, row in self.voucher_balance.items():
+			row.outstanding = flt(row.invoiced - row.paid - row.credit_note, self.currency_precision)
+			row.outstanding_in_account_currency = flt(
+				row.invoiced_in_account_currency
+				- row.paid_in_account_currency
+				- row.credit_note_in_account_currency,
+				self.currency_precision,
+			)
+
+			row.invoice_grand_total = row.invoiced
+
+			must_consider = False
+			if self.filters.get("for_revaluation_journals"):
+				if (abs(row.outstanding) >= 1.0 / 10**self.currency_precision) or (
+					abs(row.outstanding_in_account_currency) >= 1.0 / 10**self.currency_precision
+				):
+					must_consider = True
+			else:
+				if (abs(row.outstanding) >= 1.0 / 10**self.currency_precision) and (
+					(abs(row.outstanding_in_account_currency) >= 1.0 / 10**self.currency_precision)
+					or (row.voucher_no in self.err_journals)
+				):
+					must_consider = True
+
+			if must_consider:
+				# non-zero oustanding, we must consider this row
+
+				if self.is_invoice(row) and self.filters.based_on_payment_terms:
+					# is an invoice, allocate based on fifo
+					# adds a list `payment_terms` which contains new rows for each term
+					self.allocate_outstanding_based_on_payment_terms(row)
+
+					if row.payment_terms:
+						# make separate rows for each payment term
+						for d in row.payment_terms:
+							if d.outstanding > 0:
+								self.append_row(d)
+
+						# if there is overpayment, add another row
+						self.allocate_extra_payments_or_credits(row)
+					else:
+						self.append_row(row)
+				else:
+					self.append_row(row)
+
+		if self.filters.get("group_by_party"):
+			self.append_subtotal_row(self.previous_party)
+			if self.data:
+				self.data.append(self.total_row_map.get("Total", {}))
+
+	def append_row(self, row):
+		self.allocate_future_payments(row)
+		self.set_invoice_details(row)
+		self.set_party_details(row)
+		self.set_ageing(row)
+
+		if self.filters.get("group_by_party"):
+			self.update_sub_total_row(row, row.party)
+			if self.previous_party and (self.previous_party != row.party):
+				self.append_subtotal_row(self.previous_party)
+			self.previous_party = row.party
+
+		self.data.append(row)
+
+	def set_invoice_details(self, row):
+		invoice_details = self.invoice_details.get(row.voucher_no, {})
+		if row.due_date:
+			invoice_details.pop("due_date", None)
+		row.update(invoice_details)
+
+	def get_invoice_details(self):
+		self.invoice_details = frappe._dict()
+
+		# Purchase Invoices
+		# nosemgrep
+		invoices = frappe.get_list(
+			"Purchase Invoice",
+			filters={
+				"posting_date": ("<=", self.filters.report_date),
+				"company": self.filters.company,
+				"docstatus": 1,
+			},
+			fields=["name", "due_date", "bill_no", "bill_date"],
+		)
+
+		for pi in invoices:
+			self.invoice_details.setdefault(pi.name, pi)
+
+		# Invoices booked via Journal Entries
+		# nosemgrep
+		journal_entries = frappe.get_list(
+			"Journal Entry",
+			filters={
+				"posting_date": ("<=", self.filters.report_date),
+				"company": self.filters.company,
+				"docstatus": 1,
+			},
+			fields=["name", "due_date", "bill_no", "bill_date"],
+		)
+
+		for je in journal_entries:
+			if je.bill_no:
+				self.invoice_details.setdefault(je.name, je)
+
+	def set_party_details(self, row):
+		if not row.party:
+			return
+		# supplier name / group
+		party_details = self.get_party_details(row.party) or {}
+		row.update(party_details)
+
+		if self.filters.get("in_party_currency") or self.filters.get("party_account"):
+			row.currency = row.account_currency
+		else:
+			row.currency = self.company_currency
+
+	def get_party_details(self, party):
+		if party not in self.party_details:
+			self.party_details[party] = frappe.db.get_value(
+				"Supplier", party, ["supplier_name", "supplier_group"], as_dict=True
+			)
+
+		return self.party_details[party]
+
+	# ------------------------------------------------------------------
+	# Payment terms
+	# ------------------------------------------------------------------
+	def allocate_outstanding_based_on_payment_terms(self, row):
+		self.get_payment_terms(row)
+		for term in row.payment_terms:
+			# update "paid" and "outstanding" for this term
+			if not term.paid:
+				self.allocate_closing_to_term(row, term, "paid")
+
+			# update "credit_note" and "outstanding" for this term
+			if term.outstanding:
+				self.allocate_closing_to_term(row, term, "credit_note")
+
+		row.payment_terms = sorted(row.payment_terms, key=lambda x: x["due_date"])
+
+	def get_payment_terms(self, row):
+		# build payment_terms for row
+		# nosemgrep
+		payment_terms_details = frappe.db.sql(
+			f"""
+			select
+				si.name, si.party_account_currency, si.currency, si.conversion_rate,
+				si.total_advance, ps.due_date, ps.payment_term, ps.payment_amount, ps.base_payment_amount,
+				ps.description, ps.paid_amount, ps.base_paid_amount, ps.discounted_amount
+			from `tab{row.voucher_type}` si, `tabPayment Schedule` ps
+			where
+				si.name = ps.parent and ps.parenttype = '{row.voucher_type}' and
+				si.name = %s and
+				si.is_return = 0
+			order by ps.paid_amount desc, due_date
+		""",
+			row.voucher_no,
+			as_dict=1,
+		)
+
+		original_row = frappe._dict(row)
+		row.payment_terms = []
+
+		# Debit Note's don't have Payment Terms
+		if not payment_terms_details:
+			return
+
+		# Advance allocated during invoicing is not considered in payment terms
+		# Deduct that from paid amount pre allocation
+		row.paid -= flt(payment_terms_details[0].total_advance)
+
+		company_currency = frappe.get_value("Company", self.filters.get("company"), "default_currency")
+
+		# If single payment terms, no need to split the row
+		if len(payment_terms_details) == 1 and payment_terms_details[0].payment_term:
+			self.append_payment_term(row, payment_terms_details[0], original_row, company_currency)
+			return
+
+		for d in payment_terms_details:
+			term = frappe._dict(original_row)
+			self.append_payment_term(row, d, term, company_currency)
+
+	def append_payment_term(self, row, d, term, company_currency):
+		invoiced = d.base_payment_amount
+		paid_amount = d.base_paid_amount
+
+		if company_currency == d.party_account_currency or self.filters.get("in_party_currency"):
+			invoiced = d.payment_amount
+			paid_amount = d.paid_amount
+
+		row.payment_terms.append(
+			term.update(
+				{
+					"due_date": d.due_date,
+					"invoiced": invoiced,
+					"invoice_grand_total": row.invoiced,
+					"payment_term": d.description or d.payment_term,
+					"paid": paid_amount + d.discounted_amount,
+					"credit_note": 0.0,
+					"outstanding": invoiced - paid_amount - d.discounted_amount,
+				}
+			)
+		)
+
+		if paid_amount:
+			row["paid"] -= paid_amount + d.discounted_amount
+
+	def allocate_closing_to_term(self, row, term, key):
+		if row[key]:
+			if row[key] > term.outstanding:
+				term[key] = term.outstanding
+				row[key] -= term.outstanding
+			else:
+				term[key] = row[key]
+				row[key] = 0
+		term.outstanding -= term[key]
+
+	def allocate_extra_payments_or_credits(self, row):
+		# allocate extra payments / credits
+		additional_row = None
+		for key in ("paid", "credit_note"):
+			if row[key] > 0:
+				if not additional_row:
+					additional_row = frappe._dict(row)
+				additional_row.invoiced = 0.0
+				additional_row[key] = row[key]
+
+		if additional_row:
+			additional_row.outstanding = (
+				additional_row.invoiced - additional_row.paid - additional_row.credit_note
+			)
+			self.append_row(additional_row)
+
+	# ------------------------------------------------------------------
+	# Future payments
+	# ------------------------------------------------------------------
+	def get_future_payments(self):
+		if self.filters.show_future_payments:
+			self.future_payments = frappe._dict()
+			future_payments = list(self.get_future_payments_from_payment_entry())
+			future_payments += list(self.get_future_payments_from_journal_entry())
+			if future_payments:
+				for d in future_payments:
+					if d.future_amount and d.invoice_no:
+						self.future_payments.setdefault((d.invoice_no, d.party), []).append(d)
+
+	def get_future_payments_from_payment_entry(self):
+		pe = frappe.qb.DocType("Payment Entry")
+		pe_ref = frappe.qb.DocType("Payment Entry Reference")
+		ifelse = query_builder.CustomFunction("IF", ["condition", "then", "else"])
+
+		return (
+			frappe.qb.from_(pe)
+			.inner_join(pe_ref)
+			.on(pe_ref.parent == pe.name)
+			.select(
+				(pe_ref.reference_name).as_("invoice_no"),
+				pe.party,
+				pe.party_type,
+				(pe.posting_date).as_("future_date"),
+				(pe_ref.allocated_amount).as_("future_amount"),
+				(pe.reference_no).as_("future_ref"),
+				ifelse(
+					pe.payment_type == "Receive",
+					pe.source_exchange_rate * pe_ref.allocated_amount,
+					pe.target_exchange_rate * pe_ref.allocated_amount,
+				).as_("future_amount_in_base_currency"),
+			)
+			.where(
+				(pe.docstatus < 2)
+				& (pe.posting_date > self.filters.report_date)
+				& (pe.party_type.isin(self.party_type))
+			)
+		).run(as_dict=True)
+
+	def get_future_payments_from_journal_entry(self):
+		je = frappe.qb.DocType("Journal Entry")
+		jea = frappe.qb.DocType("Journal Entry Account")
+		query = (
+			frappe.qb.from_(je)
+			.inner_join(jea)
+			.on(jea.parent == je.name)
+			.select(
+				jea.reference_name.as_("invoice_no"),
+				jea.party,
+				jea.party_type,
+				je.posting_date.as_("future_date"),
+				je.cheque_no.as_("future_ref"),
+			)
+			.where(
+				(je.docstatus < 2)
+				& (je.posting_date > self.filters.report_date)
+				& (jea.party_type.isin(self.party_type))
+				& (jea.reference_name.isnotnull())
+				& (jea.reference_name != "")
+			)
+		)
+
+		if self.filters.get("party"):
+			query = query.select(
+				Sum(jea.debit_in_account_currency - jea.credit_in_account_currency).as_("future_amount")
+			)
+			query = query.select(Sum(jea.debit - jea.credit).as_("future_amount_in_base_currency"))
+		else:
+			query = query.select(Sum(jea.debit).as_("future_amount_in_base_currency"))
+			query = query.select(Sum(jea.debit_in_account_currency).as_("future_amount"))
+
+		query = query.having(qb.Field("future_amount") > 0)
+		return query.run(as_dict=True)
+
+	def allocate_future_payments(self, row):
+		# future payments are captured in additional columns
+		# this method allocates pending future payments against a voucher to
+		# the current row (which could be generated from payment terms)
+		if not self.filters.show_future_payments:
+			return
+
+		row.remaining_balance = row.outstanding
+		row.future_amount = 0.0
+		for future in self.future_payments.get((row.voucher_no, row.party), []):
+			if self.filters.in_party_currency:
+				future_amount_field = "future_amount"
+			else:
+				future_amount_field = "future_amount_in_base_currency"
+
+			if row.remaining_balance != 0 and future.get(future_amount_field):
+				if future.get(future_amount_field) > row.outstanding:
+					row.future_amount = row.outstanding
+					future[future_amount_field] = future.get(future_amount_field) - row.outstanding
+					row.remaining_balance = 0
+				else:
+					row.future_amount += future.get(future_amount_field)
+					future[future_amount_field] = 0
+					row.remaining_balance = row.outstanding - row.future_amount
+
+				row.setdefault("future_ref", []).append(
+					cstr(future.future_ref) + "/" + cstr(future.future_date)
+				)
+
+		if row.future_ref:
+			row.future_ref = ", ".join(row.future_ref)
+
+	# ------------------------------------------------------------------
+	# Returns / revaluation
+	# ------------------------------------------------------------------
+	def get_return_entries(self):
+		filters = {
+			"posting_date": ("<=", self.filters.report_date),
+			"is_return": 1,
+			"docstatus": 1,
+			"company": self.filters.company,
+			"update_outstanding_for_self": 0,
+		}
+
+		or_filters = {}
+		if party_type := self.filters.party_type:
+			party_field = scrub(party_type)
+			if parties := self.filters.get("party"):
+				or_filters.update({party_field: ["in", parties]})
+
+		self.return_entries = frappe._dict(
+			frappe.get_all(
+				"Purchase Invoice",
+				filters=filters,
+				or_filters=or_filters,
+				fields=["name", "return_against"],
+				as_list=1,
+			)
+		)
+
+	def get_exchange_rate_revaluations(self):
+		je = qb.DocType("Journal Entry")
+		results = (
+			qb.from_(je)
+			.select(je.name)
+			.where(
+				(je.company == self.filters.company)
+				& (je.posting_date.lte(self.filters.report_date))
+				& (
+					(je.voucher_type == "Exchange Rate Revaluation")
+					| (je.voucher_type == "Exchange Gain Or Loss")
+				)
+			)
+			.run()
+		)
+		self.err_journals = [x[0] for x in results] if results else []
+
+	# ------------------------------------------------------------------
+	# Ageing / date columns
+	# ------------------------------------------------------------------
+	def set_ageing(self, row):
+		if self.filters.ageing_based_on == "Due Date":
+			# use posting date as a fallback for advances posted via journal and payment entry
+			# when ageing viewed by due date
+			entry_date = row.due_date or row.posting_date
+		elif self.filters.ageing_based_on == "Supplier Invoice Date":
+			entry_date = row.bill_date
+		else:
+			entry_date = row.posting_date
+
+		self.get_ageing_data(entry_date, row)
+
+		row.total_due = row.outstanding if row.entry_date else 0.0
+
+	def get_ageing_data(self, entry_date, row):
+		row.entry_date = None
+		row.age = 0
+
+		if not (self.age_as_on and entry_date):
+			return
+
+		row.age = (getdate(self.age_as_on) - getdate(entry_date)).days or 0
+		row.entry_date = getdate(entry_date)
+
+	def assign_date_columns(self):
+		# one column per unique payable date within the from/to date range, instead of ageing buckets
+		unique_dates = sorted(
+			{
+				row["entry_date"]
+				for row in self.data
+				if isinstance(row, dict)
+				and row.get("entry_date")
+				and self.filters.from_date <= row["entry_date"] <= self.filters.to_date
+			}
+		)
+		self.date_fieldnames = OrderedDict(
+			(date, "date_" + date.strftime("%Y%m%d")) for date in unique_dates
+		)
+
+		if not self.date_fieldnames:
+			return
+
+		total_row = self.total_row_map.get("Total") if self.filters.get("group_by_party") else None
+		group_totals = defaultdict(float)
+		grand_totals = defaultdict(float)
+
+		for row in self.data:
+			if not isinstance(row, dict) or not row or row is total_row:
+				continue
+
+			if row.get("entry_date"):
+				for fieldname in self.date_fieldnames.values():
+					row.setdefault(fieldname, 0.0)
+
+				if self.filters.from_date <= row["entry_date"] <= self.filters.to_date:
+					fieldname = self.date_fieldnames[row["entry_date"]]
+					row[fieldname] = row.get("outstanding", 0.0)
+					group_totals[fieldname] += row[fieldname]
+					grand_totals[fieldname] += row[fieldname]
+
+			elif row.get("bold"):
+				for fieldname in self.date_fieldnames.values():
+					row[fieldname] = group_totals.get(fieldname, 0.0)
+				group_totals = defaultdict(float)
+
+		total_outstanding = sum(grand_totals.values())
+
+		if total_row:
+			for fieldname in self.date_fieldnames.values():
+				total_row[fieldname] = grand_totals.get(fieldname, 0.0)
+			total_row["outstanding"] = total_outstanding
+		else:
+			# The summary report ("summary_type" filter) reads every row of this
+			# report's data and expects real party rows only, so the Total row is
+			# added only for the normal detailed report.
+			if not self.filters.get("summary_type"):
+				self.data.append(
+					frappe._dict(
+						{
+							"party": _("Total"),
+							"bold": 1,
+							"outstanding": total_outstanding,
+							**{
+								fieldname: grand_totals.get(fieldname, 0.0)
+								for fieldname in self.date_fieldnames.values()
+							},
+						}
+					)
+				)
+				self.skip_total_row = 1
+
+	# ------------------------------------------------------------------
+	# Payment Ledger query + filters
+	# ------------------------------------------------------------------
+	def prepare_ple_query(self):
+		# get all the ledger entries filtered by the given filters
+		self.prepare_conditions()
+
+		if self.filters.show_future_payments:
+			self.qb_selection_filter.append(
+				self.ple.posting_date.lte(self.filters.report_date)
+				| (
+					(self.ple.voucher_no == self.ple.against_voucher_no)
+					& (Date(self.ple.creation).lte(self.filters.report_date))
+				)
+			)
+		else:
+			self.qb_selection_filter.append(self.ple.posting_date.lte(self.filters.report_date))
+
+		ple = qb.DocType("Payment Ledger Entry")
+		query = (
+			qb.from_(ple)
+			.select(
+				ple.name,
+				ple.account,
+				ple.voucher_type,
+				ple.voucher_no,
+				ple.against_voucher_type,
+				ple.against_voucher_no,
+				ple.party_type,
+				ple.cost_center,
+				ple.party,
+				ple.posting_date,
+				ple.due_date,
+				ple.account_currency,
+				ple.amount,
+				ple.amount_in_account_currency,
+			)
+			.where(ple.delinked == 0)
+			.where(Criterion.all(self.qb_selection_filter))
+			.where(Criterion.any(self.or_filters))
+		)
+
+		if self.filters.get("show_remarks"):
+			if remarks_length := frappe.db.get_single_value(
+				"Accounts Settings", "receivable_payable_remarks_length"
+			):
+				query = query.select(Substring(ple.remarks, 1, remarks_length).as_("remarks"))
+			else:
+				query = query.select(ple.remarks)
+
+		if match_conditions := build_qb_match_conditions("Payment Ledger Entry"):
+			query = query.where(Criterion.all(match_conditions))
+
+		if self.filters.get("group_by_party"):
+			query = query.orderby(self.ple.party, self.ple.posting_date)
+		else:
+			query = query.orderby(self.ple.posting_date, self.ple.party)
+
+		self.ple_query = query
+
+	def prepare_conditions(self):
+		self.qb_selection_filter = []
+		self.or_filters = []
+
+		self.add_common_filters()
+		self.add_supplier_filters()
+
+		if self.filters.cost_center:
+			self.get_cost_center_conditions()
+
+		self.add_accounting_dimensions_filters()
+
+	def get_cost_center_conditions(self):
+		lft, rgt = frappe.db.get_value("Cost Center", self.filters.cost_center, ["lft", "rgt"])
+		cost_center_list = [
+			center.name
+			for center in frappe.get_list("Cost Center", filters={"lft": (">=", lft), "rgt": ("<=", rgt)})
+		]
+		self.qb_selection_filter.append(self.ple.cost_center.isin(cost_center_list))
+
+	def add_common_filters(self):
+		if self.filters.company:
+			self.qb_selection_filter.append(self.ple.company == self.filters.company)
+
+		if self.filters.finance_book:
+			self.qb_selection_filter.append(self.ple.finance_book == self.filters.finance_book)
+
+		if self.filters.get("party_type"):
+			self.qb_selection_filter.append(self.filters.party_type == self.ple.party_type)
+
+		if self.filters.get("party"):
+			self.qb_selection_filter.append(self.ple.party.isin(self.filters.party))
+
+		if self.filters.party_account:
+			self.qb_selection_filter.append(self.ple.account == self.filters.party_account)
+		else:
+			# get ledger entries on all "Payable" accounts of the company
+			accounts = [
+				d.name
+				for d in frappe.get_all(
+					"Account", filters={"account_type": self.account_type, "company": self.filters.company}
+				)
+			]
+
+			if accounts:
+				self.qb_selection_filter.append(self.ple.account.isin(accounts))
+
+	def add_supplier_filters(self):
+		supplier = qb.DocType("Supplier")
+		if self.filters.get("supplier_group"):
+			self.qb_selection_filter.append(
+				self.ple.party.isin(
+					qb.from_(supplier)
+					.select(supplier.name)
+					.where(supplier.supplier_group == self.filters.get("supplier_group"))
+				)
+			)
+
+		if self.filters.get("payment_terms_template"):
+			# NOTE: the original code compared against filters.supplier_group here (bug).
+			self.qb_selection_filter.append(
+				self.ple.party.isin(
+					qb.from_(supplier)
+					.select(supplier.name)
+					.where(supplier.payment_terms == self.filters.get("payment_terms_template"))
+				)
+			)
+
+	def add_accounting_dimensions_filters(self):
+		accounting_dimensions = get_accounting_dimensions(as_list=False)
+
+		if accounting_dimensions:
+			for dimension in accounting_dimensions:
+				if self.filters.get(dimension.fieldname):
+					if frappe.get_cached_value("DocType", dimension.document_type, "is_tree"):
+						self.filters[dimension.fieldname] = get_dimension_with_children(
+							dimension.document_type, self.filters.get(dimension.fieldname)
+						)
+						self.qb_selection_filter.append(
+							self.ple[dimension.fieldname].isin(self.filters[dimension.fieldname])
+						)
+					else:
+						self.qb_selection_filter.append(
+							self.ple[dimension.fieldname].isin(self.filters[dimension.fieldname])
+						)
+
+	def is_invoice(self, ple):
+		return ple.voucher_type == "Purchase Invoice"
+
+	# ------------------------------------------------------------------
+	# Columns / chart
+	# ------------------------------------------------------------------
+	def get_columns(self):
+		self.columns = []
+		self.add_column(_("Posting Date"), fieldname="posting_date", fieldtype="Date")
+		self.add_column(label=_("Party Type"), fieldname="party_type", fieldtype="Data", width=100)
+		self.add_column(
+			label=_("Party"),
+			fieldname="party",
+			fieldtype="Dynamic Link",
+			options="party_type",
+			width=180,
+		)
+		self.add_column(
+			label=_("Payable Account"),
+			fieldname="party_account",
+			fieldtype="Link",
+			options="Account",
+			width=180,
+		)
+
+		if self.party_naming_by == "Naming Series":
+			self.add_column(label=_("Supplier Name"), fieldname="supplier_name", fieldtype="Data")
+
+		self.add_column(label=_("Cost Center"), fieldname="cost_center", fieldtype="Data")
+		self.add_column(label=_("Voucher Type"), fieldname="voucher_type", fieldtype="Data")
+		self.add_column(
+			label=_("Voucher No"),
+			fieldname="voucher_no",
+			fieldtype="Dynamic Link",
+			options="voucher_type",
+			width=180,
+		)
+
+		self.add_column(label=_("Due Date"), fieldname="due_date", fieldtype="Date")
+		self.add_column(label=_("Bill No"), fieldname="bill_no", fieldtype="Data")
+		self.add_column(label=_("Bill Date"), fieldname="bill_date", fieldtype="Date")
+
+		if self.filters.based_on_payment_terms:
+			self.add_column(label=_("Payment Term"), fieldname="payment_term", fieldtype="Data")
+			self.add_column(label=_("Invoice Grand Total"), fieldname="invoice_grand_total")
+
+		self.add_column(_("Invoiced Amount"), fieldname="invoiced")
+		self.add_column(_("Paid Amount"), fieldname="paid")
+		# note: fieldname is still `credit_note`
+		self.add_column(_("Debit Note"), fieldname="credit_note")
+		self.add_column(_("Outstanding Amount"), fieldname="outstanding")
+
+		self.add_column(label=_("Age (Days)"), fieldname="age", fieldtype="Int", width=80)
+		self.setup_date_columns()
+
+		self.add_column(
+			label=_("Currency"), fieldname="currency", fieldtype="Link", options="Currency", width=80
+		)
+
+		if self.filters.show_future_payments:
+			self.add_column(label=_("Future Payment Ref"), fieldname="future_ref", fieldtype="Data")
+			self.add_column(label=_("Future Payment Amount"), fieldname="future_amount")
+			self.add_column(label=_("Remaining Balance"), fieldname="remaining_balance")
+
+		self.add_column(
+			label=_("Supplier Group"),
+			fieldname="supplier_group",
+			fieldtype="Link",
+			options="Supplier Group",
+		)
+
+		if self.filters.show_remarks:
+			self.add_column(label=_("Remarks"), fieldname="remarks", fieldtype="Text", width=200)
+
+	def add_column(self, label, fieldname=None, fieldtype="Currency", options=None, width=120):
+		if not fieldname:
+			fieldname = scrub(label)
+		if fieldtype == "Currency":
+			options = "currency"
+		if fieldtype == "Date":
+			width = 90
+
+		self.columns.append(
+			dict(label=label, fieldname=fieldname, fieldtype=fieldtype, options=options, width=width)
+		)
+
+	def setup_date_columns(self):
+		for date, fieldname in self.date_fieldnames.items():
+			self.add_column(label=formatdate(date), fieldname=fieldname)
+
+	def get_chart_data(self):
+		precision = cint(frappe.db.get_default("float_precision")) or 2
+		labels = [formatdate(date) for date in self.date_fieldnames]
+		totals = defaultdict(float)
+
+		for row in self.data:
+			row = frappe._dict(row)
+			if not cint(row.bold):
+				for fieldname in self.date_fieldnames.values():
+					totals[fieldname] += flt(row.get(fieldname), precision)
+
+		self.chart = {
+			"data": {
+				"labels": labels,
+				"datasets": [{"values": [totals[fieldname] for fieldname in self.date_fieldnames.values()]}],
+			},
+			"type": "bar",
+		}
+
+
+class InitSQLProceduresForAR:
+	"""
+	Initialize SQL Procedures, Functions and Temporary tables to build the Payable report
+	(only used when Accounts Settings > fetch method is "Raw SQL").
+	"""
+
+	_varchar_type = get_definition("Data")
+	_currency_type = get_definition("Currency")
+	# Temporary Tables
+	_voucher_balance_name = "_ar_voucher_balance"
+	_voucher_balance_definition = f"""
+		create temporary table `{_voucher_balance_name}`(
+		name {_varchar_type},
+		voucher_type {_varchar_type},
+		voucher_no {_varchar_type},
+		party {_varchar_type},
+		party_account {_varchar_type},
+		posting_date date,
+		account_currency {_varchar_type},
+		cost_center {_varchar_type},
+		invoiced {_currency_type},
+		paid {_currency_type},
+		credit_note {_currency_type},
+		invoiced_in_account_currency {_currency_type},
+		paid_in_account_currency {_currency_type},
+		credit_note_in_account_currency {_currency_type}) engine=memory;
+	"""
+
+	_row_def_table_name = "_ar_ple_row"
+	_row_def_table_definition = f"""
+		create temporary table `{_row_def_table_name}`(
+		name {_varchar_type},
+		account {_varchar_type},
+		voucher_type {_varchar_type},
+		voucher_no {_varchar_type},
+		against_voucher_type {_varchar_type},
+		against_voucher_no {_varchar_type},
+		party_type {_varchar_type},
+		cost_center {_varchar_type},
+		party {_varchar_type},
+		posting_date date,
+		due_date date,
+		account_currency {_varchar_type},
+		amount {_currency_type},
+		amount_in_account_currency {_currency_type}) engine=memory;
+	"""
+
+	# Function
+	genkey_function_name = "ar_genkey"
+	genkey_function_sql = f"""
+	create function `{genkey_function_name}`(rec row type of `{_row_def_table_name}`, allocate bool) returns char(40)
+	begin
+		if allocate then
+			return sha1(concat_ws(',', rec.account, rec.against_voucher_type, rec.against_voucher_no, rec.party));
+		else
+			return sha1(concat_ws(',', rec.account, rec.voucher_type, rec.voucher_no, rec.party));
+		end if;
+	end
+	"""
+
+	# Procedures
+	init_procedure_name = "ar_init_tmp_table"
+	init_procedure_sql = f"""
+	create procedure ar_init_tmp_table(in ple row type of `{_row_def_table_name}`)
+	begin
+		if not exists (select name from `{_voucher_balance_name}` where name = `{genkey_function_name}`(ple, false))
+		then
+			insert into `{_voucher_balance_name}` values (`{genkey_function_name}`(ple, false), ple.voucher_type, ple.voucher_no, ple.party, ple.account, ple.posting_date, ple.account_currency, ple.cost_center, 0, 0, 0, 0, 0, 0);
+		end if;
+	end;
+	"""
+
+	allocate_procedure_name = "ar_allocate_to_tmp_table"
+	allocate_procedure_sql = f"""
+	create procedure ar_allocate_to_tmp_table(in ple row type of `{_row_def_table_name}`)
+	begin
+		declare invoiced {_currency_type} default 0;
+		declare invoiced_in_account_currency {_currency_type} default 0;
+		declare paid {_currency_type} default 0;
+		declare paid_in_account_currency {_currency_type} default 0;
+		declare credit_note {_currency_type} default 0;
+		declare credit_note_in_account_currency {_currency_type} default 0;
+
+
+		if ple.amount > 0 then
+			if (ple.voucher_type in ("Journal Entry", "Payment Entry") and (ple.voucher_no != ple.against_voucher_no)) then
+				set paid = -1 * ple.amount;
+				set paid_in_account_currency = -1 * ple.amount_in_account_currency;
+			else
+				set invoiced = ple.amount;
+				set invoiced_in_account_currency = ple.amount_in_account_currency;
+			end if;
+		else
+
+		if ple.voucher_type in ("Sales Invoice", "Purchase Invoice") then
+			if (ple.voucher_no = ple.against_voucher_no) then
+				set paid = -1 * ple.amount;
+				set paid_in_account_currency = -1 * ple.amount_in_account_currency;
+			else
+				set credit_note = -1 * ple.amount;
+				set credit_note_in_account_currency = -1 * ple.amount_in_account_currency;
+		end if;
+		else
+			set paid = -1 * ple.amount;
+			set paid_in_account_currency = -1 * ple.amount_in_account_currency;
+		end if;
+
+		end if;
+
+		insert into `{_voucher_balance_name}` values (`{genkey_function_name}`(ple, true), ple.against_voucher_type, ple.against_voucher_no, ple.party, ple.account, ple.posting_date, ple.account_currency,'', invoiced, paid, 0, invoiced_in_account_currency, paid_in_account_currency, 0);
+	end;
+	"""
+
+	def __init__(self):
+		existing_procedures = frappe.db.get_routines()
+
+		if self.genkey_function_name not in existing_procedures:
+			frappe.db.sql(self.genkey_function_sql)
+
+		if self.init_procedure_name not in existing_procedures:
+			frappe.db.sql(self.init_procedure_sql)
+
+		if self.allocate_procedure_name not in existing_procedures:
+			frappe.db.sql(self.allocate_procedure_sql)
+
+		frappe.db.sql(f"drop table if exists `{self._voucher_balance_name}`")
+		frappe.db.sql(self._voucher_balance_definition)
+
+		frappe.db.sql(f"drop table if exists `{self._row_def_table_name}`")
+		frappe.db.sql(self._row_def_table_definition)
+
+
+# ======================================================================
+# PART 2 - SUMMARY REPORT
+# ======================================================================
+# (key, from_days, to_days)  -- to_days None = open ended
+OVERDUE_BUCKETS = [
+	("od_1_30", 1, 30),
+	("od_31_60", 31, 60),
+	("od_61_90", 61, 90),
+	("od_91_120", 91, 120),
+	("od_120_plus", 121, None),
+]
+UPCOMING_BUCKETS = [
+	("up_today", 0, 0),
+	("up_1_30", 1, 30),
+	("up_31_60", 31, 60),
+	("up_61_90", 61, 90),
+	("up_91_plus", 91, None),
+]
+
+# (header, bucket key, tone)
+AGING_COLUMNS = [
+	("Total<br>Payable", "total", ""),
+	("1 - 30 Days<br>Overdue", "od_1_30", ""),
+	("31 - 60 Days<br>Overdue", "od_31_60", ""),
+	("61 - 90 Days<br>Overdue", "od_61_90", ""),
+	("91 - 120 Days<br>Overdue", "od_91_120", ""),
+	("120+ Days<br>Overdue", "od_120_plus", ""),
+	("Total<br>Overdue", "overdue", "bad"),
+	("Open<br>(Not Yet Due)", "open", "good"),
+]
+UPCOMING_COLUMNS = [
+	("Total<br>Upcoming", "open", "good"),
+	("Due<br>Today", "up_today", ""),
+	("Due in 1 - 30<br>Days", "up_1_30", ""),
+	("Due in 31 - 60<br>Days", "up_31_60", ""),
+	("Due in 61 - 90<br>Days", "up_61_90", ""),
+	("Due in 91+<br>Days", "up_91_plus", ""),
 ]
 
 
-# ------------------------------------------------------------------ entry
+# ----------------------------------------------------------------------
+# Entry points
+# ----------------------------------------------------------------------
 def execute(filters=None):
-    filters = frappe._dict(filters or {})
-    company = DEFAULT_COMPANY
-    as_on = getdate(nowdate())
-    supplier_type = get_supplier_type(filters.get("supplier_type"))
+	filters = frappe._dict(filters or {})
 
-    summary = build_summary(get_invoices(company, supplier_type), as_on)
-    link = "/api/method/{0}.download_pdf?{1}".format(
-        __name__, urlencode({"supplier_type": supplier_type}))
+	rows, age_as_on = get_payable_rows(filters)
+	stats = build_stats(rows)
+	message = build_html(stats, filters, age_as_on, interactive=True)
 
-    # Frappe ko ek column + ek row chahiye; asli report neeche message (HTML) me hai
-    columns = [{"label": " ", "fieldname": "x", "fieldtype": "Data", "width": 10}]
-    data = [{"x": ""}]
-    return columns, data, build_html(summary, company, as_on, link, supplier_type)
+	# The HTML is carried in a single data row; the JS (after_datatable_render) draws it
+	# and hides the grid. (`message` is not displayed by the report page.)
+	columns = [{"fieldname": "html", "label": _("Summary"), "fieldtype": "Data", "width": 10}]
+	return columns, [{"html": message}], None, None, None, 1
 
 
-# ------------------------------------------------------------------- data
-def get_supplier_type(value):
-    return "Diamonds" if value == "Diamonds" else "All Suppliers"
-
-
-def get_invoices(company, supplier_type="All Suppliers"):
-    conditions = ""
-    values = {"company": company}
-    if supplier_type == "Diamonds":
-        conditions = " and supplier_name like %(sname)s"
-        values["sname"] = "%" + DIAMOND_KEYWORD + "%"
-
-    return frappe.db.sql(
-        """
-        select name, supplier, supplier_name, posting_date, status, currency,
-            grand_total, outstanding_amount,
-            coalesce(due_date, posting_date) as due_date
-        from `tabPurchase Invoice`
-        where docstatus = 1
-            and outstanding_amount > 0
-            and company = %(company)s
-        """ + conditions + """
-        order by coalesce(due_date, posting_date), name
-        """,
-        values,
-        as_dict=True,
-    )
-
-
-def od_index(days):
-    """overdue bucket: 0 = 1-30, 1 = 31-60, 2 = 61-90, 3 = 91-120, 4 = 120+"""
-    return 0 if days <= 30 else 1 if days <= 60 else 2 if days <= 90 else 3 if days <= 120 else 4
-
-
-def up_index(ahead):
-    """upcoming bucket: 0 = Due Today, 1 = 1-30, 2 = 31-60, 3 = 61-90, 4 = 91+"""
-    return 0 if ahead == 0 else 1 if ahead <= 30 else 2 if ahead <= 60 else 3 if ahead <= 90 else 4
-
-
-def bucket_keys(inv, as_on):
-    """Ek invoice kin-kin cells me count hota hai (drill-down keys)."""
-    due = getdate(inv.due_date)
-    days = date_diff(as_on, due)
-    keys = ["all", "m-%d-%02d" % (due.year, due.month)]
-    if days <= 0:
-        keys += ["open", "up%d" % up_index(-days)]
-    else:
-        keys += ["od_all", "od%d" % od_index(days)]
-    return keys
-
-
-def build_summary(invoices, as_on):
-    # buckets: 0 = 1-30, 1 = 31-60, 2 = 61-90, 3 = 91-120, 4 = 120+
-    cnt = [0, 0, 0, 0, 0]
-    amt = [0.0, 0.0, 0.0, 0.0, 0.0]
-    # upcoming buckets: 0 = Due Today, 1 = due in 1-30, 2 = 31-60, 3 = 61-90, 4 = 91+
-    up_cnt = [0, 0, 0, 0, 0]
-    up_amt = [0.0, 0.0, 0.0, 0.0, 0.0]
-    open_cnt, open_amt = 0, 0.0
-    total_cnt, total_amt = 0, 0.0
-    months = {}
-
-    for inv in invoices:
-        a = flt(inv.outstanding_amount)
-        total_cnt += 1
-        total_amt += a
-
-        due = getdate(inv.due_date)
-        key = (due.year, due.month)
-        c, s = months.get(key, (0, 0.0))
-        months[key] = (c + 1, s + a)
-
-        days = date_diff(as_on, due)  # > 0 => overdue
-        if days <= 0:
-            open_cnt += 1
-            open_amt += a
-            ahead = -days  # kitne din baad due hai
-            uidx = up_index(ahead)
-            up_cnt[uidx] += 1
-            up_amt[uidx] += a
-            continue
-        idx = od_index(days)
-        cnt[idx] += 1
-        amt[idx] += a
-
-    multi_year = len({k[0] for k in months}) > 1
-    month_rows = []
-    for (year, month) in sorted(months):
-        c, a = months[(year, month)]
-        label = MONTH_NAMES[month - 1] + (" %s" % year if multi_year else "")
-        month_rows.append((label, c, a, year, month))
-
-    return frappe._dict(
-        cnt=cnt, amt=amt, up_cnt=up_cnt, up_amt=up_amt,
-        open_cnt=open_cnt, open_amt=open_amt,
-        total_cnt=total_cnt, total_amt=total_amt, month_rows=month_rows,
-    )
-
-
-def inr(x, dec=2):
-    """Indian digit grouping: 1,78,05,86,124.97"""
-    neg = x < 0
-    x = abs(x)
-    s = ("%." + str(dec) + "f") % x
-    ip, _, fp = s.partition(".")
-    if len(ip) > 3:
-        last3, rest, groups = ip[-3:], ip[:-3], []
-        while len(rest) > 2:
-            groups.insert(0, rest[-2:])
-            rest = rest[:-2]
-        if rest:
-            groups.insert(0, rest)
-        ip = ",".join(groups) + "," + last3
-    out = ip + ("." + fp if fp else "")
-    return "-" + out if neg else out
-
-
-# ------------------------------------------------------------- HTML layout
-HEAD1 = [
-    "Metric", "Total<br>Payable", "1 - 30 Days<br>Overdue", "31 - 60 Days<br>Overdue",
-    "61 - 90 Days<br>Overdue", "91 - 120 Days<br>Overdue", "120+ Days<br>Overdue", "Total<br>Overdue",
-    "Open<br>(Not Yet Due)",
-]
-
-HEAD2 = [
-    "Metric", "Total<br>Upcoming", "Due<br>Today", "Due in 1 - 30<br>Days",
-    "Due in 31 - 60<br>Days", "Due in 61 - 90<br>Days", "Due in 91+<br>Days",
-]
-
-# ---- colour palette: light blue tones (yahin se badal sakte hain)
-PRIMARY = "#C2DCF2"     # header background (light blue)
-PRIMARY2 = "#DAEAF8"    # title gradient end
-TOTAL_BG = "#A8CBE9"    # Total Payable row
-INK = "#000000"         # header / label text (black)
-RED_BG = "#F5D0D4"      # Total Overdue header
-RED_INK = "#8E2433"
-RED = "#A32F3E"         # Total Overdue numbers
-GREEN_BG = "#CFEBD6"    # Open header
-GREEN_INK = "#1E6B38"
-GREEN = "#1E7A3C"       # Open numbers
-TINT = "#E2EEF9"        # label cells
-ZEBRA = "#F2F8FD"       # alternate rows
-TINT_RED = "#FDF1F2"
-TINT_GREEN = "#EEF8EF"
-LINE = "#C3D6E8"        # cell borders
-CARD_LINE = "#9BBBD7"   # outer border
-TEXT = "#000000"
-
-FONT = ("font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;"
-        "font-size:14px;font-variant-numeric:tabular-nums;")
-CELL = "border:1px solid %s;padding:10px 14px;white-space:nowrap;%s" % (LINE, FONT)
-
-
-def hdr(bg=PRIMARY, align="center", ink=INK):
-    return (CELL + "background:%s;color:%s;font-weight:700;text-align:%s;"
-            "border-color:%s;line-height:1.35;" % (bg, ink, align, CARD_LINE))
-
-
-def card(inner, extra=""):
-    return (
-        '<div class="ap-card" style="display:inline-block;vertical-align:top;overflow:hidden;'
-        'border:1px solid %s;box-shadow:0 2px 10px rgba(0,0,0,.12);%s">%s</div>'
-        % (CARD_LINE, extra, inner)
-    )
-
-
-# ------------------------------------------------------------- drill-down links
-def inv_url(key, as_on, supplier_type="All Suppliers"):
-    return get_url("/api/method/{0}.invoice_list?{1}".format(
-        __name__, urlencode({"key": key, "as_on": str(as_on), "supplier_type": supplier_type})))
-
-
-def linked(text, url, value):
-    if not url or not value:            # 0 wale cell clickable nahi
-        return text
-    return (
-        '<a href="%s" target="_blank" title="Invoices dekhein" '
-        'style="color:inherit;text-decoration:none;border-bottom:1px dotted currentColor;">%s</a>'
-        % (frappe.utils.escape_html(url), text)
-    )
-
-
-def build_tables(s, company, as_on, supplier_type="All Suppliers"):
-    # table 1: Total Payable, 1-30, 31-60, 61-90, 91-120, 120+, Total Overdue, Open
-    urls1 = [inv_url(k, as_on, supplier_type) for k in ["all", "od0", "od1", "od2", "od3", "od4", "od_all", "open"]]
-    # upcoming: Total Upcoming, Due Today, 1-30, 31-60, 61-90, 91+
-    urls_u = [inv_url(k, as_on, supplier_type) for k in ["open", "up0", "up1", "up2", "up3", "up4"]]
-
-    # ---------- table 1
-    t1 = ['<table style="border-collapse:collapse;table-layout:fixed;width:1330px;">']
-    t1.append('<colgroup><col style="width:190px">' + '<col style="width:155px">' * 8 + "</colgroup>")
-    t1.append(
-        '<tr><td colspan="9" style="padding:16px;text-align:center;color:%s;font-weight:700;'
-        'font-size:20px;letter-spacing:1.5px;%s background:%s;background:linear-gradient(90deg,%s,%s);">'
-        "ACCOUNTS PAYABLE AGING SUMMARY"
-        '<span style="font-size:14px;font-weight:600;letter-spacing:0.5px;margin-left:18px;">'
-        "(Aging as on %s &nbsp;|&nbsp; Supplier: %s)</span></td></tr>"
-        % (INK, FONT, TOTAL_BG, TOTAL_BG, PRIMARY2, formatdate(as_on), supplier_type)
-    )
-
-    head_bg = [(PRIMARY, INK)] * 7 + [(RED_BG, RED_INK), (GREEN_BG, GREEN_INK)]
-    t1.append("<tr>" + "".join(
-        '<td style="%s">%s</td>' % (hdr(head_bg[i][0], "left" if i == 0 else "center", head_bg[i][1]), h)
-        for i, h in enumerate(HEAD1)) + "</tr>")
-
-    def data_row(label, vals, dec, bg, urls):
-        cells = '<td style="%sbackground:%s;color:%s;font-weight:700;text-align:left;">%s</td>' % (
-            CELL, TINT, INK, label)
-        for i, v in enumerate(vals):
-            style = CELL + "background:%s;color:%s;text-align:right;font-weight:400;" % (bg, TEXT)
-            if i == 0:                      # Total Payable
-                style += "font-weight:700;color:%s;" % INK
-            elif i == 5:                    # 120+ days
-                style += "color:%s;font-weight:600;" % TEXT
-            elif i == 6:                    # Total Overdue
-                style += "background:%s;color:%s;font-weight:700;" % (TINT_RED, RED)
-            elif i == 7:                    # Open
-                style += "background:%s;color:%s;font-weight:700;" % (TINT_GREEN, GREEN)
-            cells += '<td style="%s">%s</td>' % (style, linked(inr(v, dec), urls[i], v))
-        return "<tr>" + cells + "</tr>"
-
-    t1.append(data_row("Headcount (Invoices)",
-                       [s.total_cnt] + s.cnt + [sum(s.cnt), s.open_cnt], 0, "#FFFFFF", urls1))
-    t1.append(data_row("Total Amount",
-                       [s.total_amt] + s.amt + [sum(s.amt), s.open_amt], 0, ZEBRA, [None] * 8))  # amount clickable nahi
-    t1.append("</table>")
-
-    # ---------- upcoming table (not yet due)
-    tu = ['<table style="border-collapse:collapse;table-layout:fixed;width:1120px;">']
-    tu.append('<colgroup><col style="width:190px">' + '<col style="width:155px">' * 6 + "</colgroup>")
-    tu.append(
-        '<tr><td colspan="7" style="padding:16px;text-align:center;color:%s;font-weight:700;'
-        'font-size:20px;letter-spacing:1.5px;%s background:%s;background:linear-gradient(90deg,%s,%s);">'
-        "UPCOMING DUE SUMMARY (NOT YET DUE)</td></tr>" % (INK, FONT, TOTAL_BG, TOTAL_BG, PRIMARY2)
-    )
-    head_bg_u = [(PRIMARY, INK), (GREEN_BG, GREEN_INK)] + [(PRIMARY, INK)] * 5
-    tu.append("<tr>" + "".join(
-        '<td style="%s">%s</td>' % (hdr(head_bg_u[i][0], "left" if i == 0 else "center", head_bg_u[i][1]), h)
-        for i, h in enumerate(HEAD2)) + "</tr>")
-
-    def up_row(label, vals, dec, bg, urls):
-        cells = '<td style="%sbackground:%s;color:%s;font-weight:700;text-align:left;">%s</td>' % (
-            CELL, TINT, INK, label)
-        for i, v in enumerate(vals):
-            style = CELL + "background:%s;color:%s;text-align:right;font-weight:400;" % (bg, TEXT)
-            if i == 0:                      # Total Upcoming
-                style += "background:%s;color:%s;font-weight:700;" % (TINT_GREEN, GREEN)
-            cells += '<td style="%s">%s</td>' % (style, linked(inr(v, dec), urls[i], v))
-        return "<tr>" + cells + "</tr>"
-
-    tu.append(up_row("Headcount (Invoices)", [s.open_cnt] + s.up_cnt, 0, "#FFFFFF", urls_u))
-    tu.append(up_row("Total Amount", [s.open_amt] + s.up_amt, 0, ZEBRA, [None] * 6))  # amount clickable nahi
-    tu.append("</table>")
-
-    # ---------- table 2 (month-wise)
-    t2 = ['<table style="border-collapse:collapse;table-layout:fixed;width:595px;">']
-    t2.append('<colgroup><col style="width:190px"><col style="width:195px"><col style="width:210px"></colgroup>')
-    t2.append(
-        "<tr>"
-        '<td style="%s">Metric</td>'
-        '<td style="%s">Headcount (Invoices)</td>'
-        '<td style="%s">Total Amount Payable</td></tr>'
-        % (hdr(PRIMARY, "left"), hdr(PRIMARY, "right"), hdr(PRIMARY, "right"))
-    )
-    m_cnt, m_amt = 0, 0.0
-    for n, (label, c, a, yr, mo) in enumerate(s.month_rows):
-        m_url = inv_url("m-%d-%02d" % (yr, mo), as_on, supplier_type)
-        m_cnt += c
-        m_amt += a
-        bg = "#FFFFFF" if n % 2 == 0 else ZEBRA
-        t2.append(
-            '<tr><td style="%sbackground:%s;color:%s;font-weight:700;text-align:left;">%s</td>'
-            '<td style="%sbackground:%s;color:%s;text-align:right;">%s</td>'
-            '<td style="%sbackground:%s;color:%s;font-weight:700;text-align:right;">%s</td></tr>'
-            % (CELL, TINT, INK, label,
-               CELL, bg, TEXT, linked(inr(c, 0), m_url, c),
-               CELL, bg, TEXT, inr(a, 2))
-        )
-    tot = CELL + "background:%s;color:%s;font-weight:700;border-color:%s;" % (TOTAL_BG, INK, CARD_LINE)
-    t2.append(
-        '<tr><td style="%stext-align:left;">Total Payable</td>'
-        '<td style="%stext-align:right;">%s</td>'
-        '<td style="%stext-align:right;">%s</td></tr>'
-        % (tot, tot, linked(inr(m_cnt, 0), inv_url("all", as_on, supplier_type), m_cnt),
-           tot, inr(m_amt, 2))
-    )
-    t2.append("</table>")
-
-    gap = '<div style="height:32px"></div>'
-    return card("".join(t1)) + gap + card("".join(tu)) + gap + card("".join(t2))
-
-
-def build_html(s, company, as_on, link, supplier_type="All Suppliers"):
-    btn = (
-        '<a href="%s" target="_blank" style="display:inline-block;background:#B3261E;color:#fff;font-weight:700;'
-        "%spadding:8px 18px;text-decoration:none;margin-bottom:10px;"
-        'box-shadow:0 1px 3px rgba(0,0,0,.2);">&#11015;&nbsp; Download PDF</a>' % (link, FONT)
-    )
-    css = (
-        "<style>"
-        ".report-wrapper:has(.ap-aging-excel) .datatable,"
-        ".report-wrapper:has(.ap-aging-excel) .report-summary,"
-        ".report-wrapper:has(.ap-aging-excel) .chart-wrapper{display:none !important;}"
-        "</style>"
-    )
-    return (
-        css + '<div class="ap-aging-excel" style="overflow-x:auto;padding:8px 4px 24px;">'
-        + btn + build_tables(s, company, as_on, supplier_type) + "</div>"
-    )
-
-
-# ------------------------------------------------------------- PDF download
 @frappe.whitelist()
-def download_pdf(supplier_type=None):
-    frappe.has_permission("Purchase Invoice", "read", throw=True)
+def get_bucket_invoices(filters, bucket):
+	"""Invoices behind a headcount number (drill-down dialog)."""
+	frappe.only_for(("Accounts User", "Accounts Manager", "Purchase User", "Auditor"))
+	filters = frappe._dict(frappe.parse_json(filters))
+	rows, _age_as_on = get_payable_rows(filters)
 
-    company = DEFAULT_COMPANY
-    as_on = getdate(nowdate())
-    supplier_type = get_supplier_type(supplier_type)
-    s = build_summary(get_invoices(company, supplier_type), as_on)
-
-    html = (
-        '<!DOCTYPE html><html><head><meta charset="utf-8"><style>'
-        "*{-webkit-print-color-adjust:exact;print-color-adjust:exact;}"
-        "body{margin:0;background:#fff;}"
-        ".ap-card{page-break-inside:avoid;}"
-        "</style></head><body>"
-        + build_tables(s, company, as_on, supplier_type)
-        + "</body></html>"
-    )
-    pdf = get_pdf(html, {
-        "orientation": "Landscape",
-        "page-size": "A4",
-        "zoom": "0.75",          # 1330px wali table A4 landscape me fit karne ke liye
-        "margin-top": "10mm",
-        "margin-bottom": "10mm",
-        "margin-left": "8mm",
-        "margin-right": "8mm",
-    })
-
-    suffix = "_Diamonds" if supplier_type == "Diamonds" else ""
-    frappe.response["filename"] = "AP_Aging_Summary{0}_{1}.pdf".format(suffix, str(as_on))
-    frappe.response["filecontent"] = pdf
-    frappe.response["type"] = "download"
+	out = []
+	for row in rows:
+		if bucket in get_bucket_keys(row.age, row.entry_date):
+			out.append(
+				{
+					"voucher_type": row.voucher_type,
+					"voucher_no": row.voucher_no,
+					"party": row.party,
+					"posting_date": row.posting_date,
+					"due_date": row.get("due_date"),
+					"bill_no": row.get("bill_no"),
+					"age": row.age,
+					"outstanding": row.outstanding,
+				}
+			)
+	out.sort(key=lambda d: d["age"], reverse=True)
+	return out
 
 
-# --------------------------------------------------------- drill-down page
-BUCKET_LABELS = {
-    "all": "Total Payable",
-    "od_all": "Total Overdue",
-    "od0": "1 - 30 Days Overdue",
-    "od1": "31 - 60 Days Overdue",
-    "od2": "61 - 90 Days Overdue",
-    "od3": "91 - 120 Days Overdue",
-    "od4": "120+ Days Overdue",
-    "open": "Open (Not Yet Due)",
-    "up0": "Due Today",
-    "up1": "Due in 1 - 30 Days",
-    "up2": "Due in 31 - 60 Days",
-    "up3": "Due in 61 - 90 Days",
-    "up4": "Due in 91+ Days",
+@frappe.whitelist()
+def download_pdf(html):
+	"""PDF of exactly what is on screen: the browser posts the rendered report HTML."""
+	from frappe.utils.pdf import get_pdf
+
+	frappe.only_for(("Accounts User", "Accounts Manager", "Purchase User", "Auditor"))
+
+	html = html or ""
+	# This HTML only ever contains our own tables with inline styles. Anything that could
+	# load files / run scripts is rejected before it reaches the PDF engine.
+	blocked = (
+		r"<\s*(script|iframe|img|link|object|embed|style|svg|base|meta|form|input|video|audio)"
+		r"|\b(src|href|srcset|action|formaction)\s*="
+		r"|url\s*\(|@import|javascript:|expression\s*\(|\bon\w+\s*="
+	)
+	if not html.strip() or len(html) > 2_000_000 or re.search(blocked, html, re.I):
+		frappe.throw(_("Invalid report content"))
+
+	document = (
+		"<html><head><meta charset='utf-8'>"
+		"<style>body{margin:0;} *{-webkit-print-color-adjust:exact;}</style></head>"
+		f"<body>{html}</body></html>"
+	)
+
+	frappe.local.response.filename = f"Accounts Payable Aging Summary {nowdate()}.pdf"
+	frappe.local.response.filecontent = get_pdf(document, {"orientation": "Landscape", "page-size": "A3"})
+	frappe.local.response.type = "pdf"
+
+
+# ----------------------------------------------------------------------
+# Data
+# ----------------------------------------------------------------------
+def get_payable_rows(filters):
+	"""Run the payable report logic and return one row per open voucher with a fresh `age`."""
+	report_date = getdate(filters.get("report_date") or nowdate())
+	calculate_ageing_with = filters.get("calculate_ageing_with") or "Report Date"
+	age_as_on = getdate(nowdate()) if calculate_ageing_with == "Today Date" else report_date
+
+	company = (
+		filters.get("company")
+		or frappe.defaults.get_user_default("Company")
+		or frappe.db.get_single_value("Global Defaults", "default_company")
+	)
+	# Filter has two options: "All Suppliers" (no restriction) or "Diamond" (a Supplier Group)
+	supplier_group = filters.get("supplier_group")
+	if supplier_group == "All Suppliers":
+		supplier_group = None
+
+	report_filters = {
+		"company": company,
+		"report_date": report_date,
+		"ageing_based_on": filters.get("ageing_based_on") or "Due Date",
+		"calculate_ageing_with": calculate_ageing_with,
+		"party_type": "Supplier",
+		"party": None,
+		"supplier_group": supplier_group,
+		"finance_book": filters.get("finance_book"),
+		"cost_center": filters.get("cost_center"),
+		# from > to => no per-date columns are built (not needed here)
+		"from_date": "2999-12-31",
+		"to_date": "1900-01-01",
+		# stops the report from appending its own "Total" row to the data
+		"summary_type": "Summary",
+	}
+	args = {
+		"account_type": "Payable",
+		"naming_by": ["Buying Settings", "supp_master_name"],
+	}
+	data = PayableReport(report_filters).run(args)[1]
+
+	rows = []
+	for row in data:
+		if not row or not row.get("voucher_no"):
+			continue
+		entry_date = getdate(row.get("entry_date") or row.get("posting_date"))
+		rows.append(frappe._dict(row, age=(age_as_on - entry_date).days, entry_date=entry_date))
+
+	return rows, age_as_on
+
+
+def get_bucket_keys(age, entry_date):
+	"""All summary buckets a voucher belongs to."""
+	keys = ["total"]
+
+	if age > 0:
+		keys.append("overdue")
+		buckets, days = OVERDUE_BUCKETS, age
+	else:
+		keys.append("open")
+		buckets, days = UPCOMING_BUCKETS, -age
+
+	for key, low, high in buckets:
+		if days >= low and (high is None or days <= high):
+			keys.append(key)
+			break
+
+	keys.append(f"m_{entry_date.year}_{entry_date.month:02d}")
+	return keys
+
+
+def build_stats(rows):
+	stats = {}
+	for row in rows:
+		for key in get_bucket_keys(row.age, row.entry_date):
+			bucket = stats.setdefault(key, {"vouchers": set(), "amount": 0.0})
+			bucket["vouchers"].add((row.voucher_type, row.voucher_no))
+			bucket["amount"] += flt(row.outstanding)
+	return stats
+
+
+# ----------------------------------------------------------------------
+# HTML
+# ----------------------------------------------------------------------
+def fmt_inr(value, decimals=0):
+	"""Indian digit grouping: 2,15,62,40,978"""
+	value = flt(value, decimals)
+	negative = value < 0
+	whole, _sep, fraction = f"{abs(value):.{decimals}f}".partition(".")
+
+	if len(whole) > 3:
+		head, tail = whole[:-3], whole[-3:]
+		parts = []
+		while len(head) > 2:
+			parts.insert(0, head[-2:])
+			head = head[:-2]
+		if head:
+			parts.insert(0, head)
+		whole = ",".join(parts + [tail])
+
+	result = whole + (f".{fraction}" if decimals else "")
+	return f"-{result}" if negative else result
+
+
+FONT = "font-family:Inter,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;"
+TABLE = FONT + "border-collapse:collapse;table-layout:fixed;font-size:13px;background:#ffffff;"
+CELL = "padding:10px 12px;border:1px solid #d3e2f0;height:38px;font-size:13px;white-space:nowrap;"
+NUM = "text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;"
+TONES = {
+	"": {"th": "background:#bcd6ee;color:#1b2a3a;", "count": "background:#ffffff;color:#1b2a3a;", "amount": "background:#f1f7fc;color:#1b2a3a;"},
+	"bad": {"th": "background:#f8d3d7;color:#b3202c;", "count": "background:#fdf2f3;color:#b3202c;", "amount": "background:#fdf2f3;color:#b3202c;"},
+	"good": {"th": "background:#d2edd5;color:#1a6b34;", "count": "background:#f1faf2;color:#1a6b34;", "amount": "background:#f1faf2;color:#1a6b34;"},
 }
+LABEL_CELL = CELL + "background:#e3eef9;color:#1b2a3a;font-weight:700;text-align:left;"
+BANNER = (
+	"padding:14px 12px;border:1px solid #d3e2f0;text-align:center;font-size:14px;font-weight:700;"
+	"letter-spacing:.8px;text-transform:uppercase;color:#14283c;"
+	"background:#cfe1f2;background:linear-gradient(90deg,#b4d1ea,#e1ecf7);"
+)
+CARD = (
+	"display:inline-block;border-radius:0;overflow:hidden;border:1px solid #8fb0d0;"
+	"box-shadow:0 2px 10px rgba(40,80,130,.25);"
+)
+
+LABEL_WIDTH = 190
+COL_WIDTH = 130
 
 
-@frappe.whitelist()
-def invoice_list(key, as_on=None, supplier_type=None):
-    """Report ke kisi bhi cell pe click -> us cell ke SAARE invoices (no pagination)."""
-    frappe.has_permission("Purchase Invoice", "read", throw=True)
+def _colgroup(first, widths):
+	return "<colgroup>" + "".join(f'<col style="width:{w}px">' for w in [first] + list(widths)) + "</colgroup>"
 
-    company = DEFAULT_COMPANY
-    as_on = getdate(as_on or nowdate())
-    supplier_type = get_supplier_type(supplier_type)
 
-    if key in BUCKET_LABELS:
-        label = BUCKET_LABELS[key]
-    elif key.startswith("m-") and len(key) == 9:
-        y, m = int(key[2:6]), int(key[7:9])
-        label = "Due in %s %s" % (MONTH_NAMES[m - 1], y)
-    else:
-        frappe.throw("Invalid bucket")
+def _count_and_amount(stats, key):
+	bucket = stats.get(key)
+	return (len(bucket["vouchers"]), bucket["amount"]) if bucket else (0, 0.0)
 
-    rows = [inv for inv in get_invoices(company, supplier_type) if key in bucket_keys(inv, as_on)]
 
-    th = ("border:1px solid %s;padding:8px 10px;background:%s;color:%s;font-weight:700;"
-          "white-space:nowrap;text-align:%%s;" % (CARD_LINE, PRIMARY, INK))
-    td = "border:1px solid %s;padding:7px 10px;white-space:nowrap;text-align:%%s;" % LINE
-    heads = [("#", "right"), ("Invoice", "left"), ("Supplier", "left"),
-             ("Posting Date", "left"), ("Due Date", "left"), ("Days", "right"),
-             ("Status", "left"), ("Currency", "left"), ("Grand Total", "right"),
-             ("Outstanding", "right")]
+def _count_link(count, key, label, interactive):
+	if not count or not interactive:
+		return str(count)
+	return (
+		f'<a class="apsd-drill" data-bucket="{key}" data-label="{escape_html(label)}" '
+		'style="cursor:pointer;color:inherit;text-decoration:none;border-bottom:0;">'
+		f"{count}</a>"
+	)
 
-    out = ['<table style="border-collapse:collapse;width:100%%;%s">' % FONT]
-    out.append("<tr>" + "".join('<th style="%s">%s</th>' % (th % a, h) for h, a in heads) + "</tr>")
 
-    total = 0.0
-    for n, inv in enumerate(rows, 1):
-        days = date_diff(as_on, getdate(inv.due_date))
-        total += flt(inv.outstanding_amount)
-        bg = "#FFFFFF" if n % 2 else ZEBRA
-        inv_link = '<a href="/app/purchase-invoice/%s" target="_blank">%s</a>' % (
-            frappe.utils.escape_html(inv.name), frappe.utils.escape_html(inv.name))
-        cells = [
-            (str(n), "right"),
-            (inv_link, "left"),
-            (frappe.utils.escape_html(inv.supplier_name or inv.supplier or ""), "left"),
-            (formatdate(inv.posting_date), "left"),
-            (formatdate(inv.due_date), "left"),
-            (("%d overdue" % days) if days > 0 else ("in %d" % -days) if days < 0 else "today", "right"),
-            (frappe.utils.escape_html(inv.status or ""), "left"),
-            (frappe.utils.escape_html(inv.currency or ""), "left"),
-            (inr(flt(inv.grand_total)), "right"),
-            (inr(flt(inv.outstanding_amount)), "right"),
-        ]
-        out.append('<tr style="background:%s">' % bg
-                   + "".join('<td style="%s">%s</td>' % (td % a, v) for v, a in cells) + "</tr>")
+def _metric_table(title, columns, stats, interactive):
+	span = len(columns) + 1
+	head = "".join(
+		f'<th style="{CELL}{TONES[tone]["th"]}font-weight:700;text-align:center;line-height:1.3;">{header}</th>'
+		for header, _key, tone in columns
+	)
+	counts, amounts = "", ""
+	for header, key, tone in columns:
+		count, amount = _count_and_amount(stats, key)
+		label = header.replace("<br>", " ")
+		counts += (
+			f'<td style="{CELL}{NUM}{TONES[tone]["count"]}">'
+			f"{_count_link(count, key, label, interactive)}</td>"
+		)
+		amounts += f'<td style="{CELL}{NUM}{TONES[tone]["amount"]}">{fmt_inr(amount)}</td>'
 
-    out.append(
-        '<tr style="background:%s;font-weight:700;"><td colspan="9" style="%s">Total (%d invoices)</td>'
-        '<td style="%s">%s</td></tr>' % (TOTAL_BG, td % "right", len(rows), td % "right", inr(total))
-    )
-    out.append("</table>")
+	# size each column to its own longest header line / number so nothing overlaps
+	col_widths = []
+	for header, key, _tone in columns:
+		count, amount = _count_and_amount(stats, key)
+		header_chars = max(len(line) for line in header.split("<br>"))
+		value_chars = max(len(fmt_inr(amount)), len(str(count)))
+		col_widths.append(max(COL_WIDTH, int(header_chars * 8.6) + 28, int(value_chars * 9) + 30))
+	width = LABEL_WIDTH + sum(col_widths)
+	return f"""
+	<div style="{CARD}">
+	<table style="{TABLE}width:{width}px;">
+		{_colgroup(LABEL_WIDTH, col_widths)}
+		<tr><th colspan="{span}" style="{BANNER}">{title}</th></tr>
+		<tr><th style="{CELL}{TONES[""]["th"]}text-align:left;font-weight:700;">Metric</th>{head}</tr>
+		<tr><td style="{LABEL_CELL}">Headcount (Invoices)</td>{counts}</tr>
+		<tr><td style="{LABEL_CELL}">Total Amount</td>{amounts}</tr>
+	</table>
+	</div>"""
 
-    head = (
-        '<div style="%s margin-bottom:12px;"><b>%s</b> &nbsp;|&nbsp; Supplier: <b>%s</b> &nbsp;|&nbsp; %s '
-        "&nbsp;|&nbsp; as on <b>%s</b>"
-        " &nbsp;|&nbsp; <b>%d</b> invoices &nbsp;|&nbsp; Outstanding <b>%s</b></div>"
-        % (FONT, frappe.utils.escape_html(company), supplier_type, label, formatdate(as_on),
-           len(rows), inr(total))
-    )
-    frappe.respond_as_web_page(
-        "AP Aging - " + label,
-        head + '<div style="overflow-x:auto;">' + "".join(out) + "</div>",
-        primary_action=None,
-        width=1300,
-    )
+
+def _month_table(stats, interactive):
+	body = ""
+	for index, key in enumerate(sorted(k for k in stats if k.startswith("m_"))):
+		_prefix, year, month = key.split("_")
+		label = f"{calendar.month_name[int(month)]} {year}"
+		count, amount = _count_and_amount(stats, key)
+		shade = "#ffffff" if index % 2 == 0 else "#f5f9fd"
+		body += f"""<tr>
+			<td style="{LABEL_CELL}">{label}</td>
+			<td style="{CELL}{NUM}background:{shade};">{_count_link(count, key, label, interactive)}</td>
+			<td style="{CELL}{NUM}background:{shade};font-weight:600;">{fmt_inr(amount, 2)}</td>
+		</tr>"""
+
+	count, amount = _count_and_amount(stats, "total")
+	amount_width = max(190, int(len(fmt_inr(amount, 2)) * 9) + 30)
+	foot = f"""<tr>
+		<td style="{CELL}background:#a9c7e6;font-weight:700;font-size:13.5px;">Total Payable</td>
+		<td style="{CELL}{NUM}background:#a9c7e6;font-weight:700;">{_count_link(count, "total", "Total Payable", interactive)}</td>
+		<td style="{CELL}{NUM}background:#a9c7e6;font-weight:700;">{fmt_inr(amount, 2)}</td>
+	</tr>"""
+
+	return f"""
+	<div style="{CARD}">
+	<table style="{TABLE}width:{170 + 170 + amount_width}px;">
+		<colgroup><col style="width:170px"><col style="width:170px"><col style="width:{amount_width}px"></colgroup>
+		<tr>
+			<th style="{CELL}{TONES[""]["th"]}text-align:left;">Metric</th>
+			<th style="{CELL}{TONES[""]["th"]}text-align:center;">Headcount (Invoices)</th>
+			<th style="{CELL}{TONES[""]["th"]}text-align:center;">Total Amount Payable</th>
+		</tr>
+		{body}{foot}
+	</table>
+	</div>"""
+
+
+def build_html(stats, filters, age_as_on, interactive=True):
+	supplier = filters.get("supplier_group") or "All Suppliers"
+	title = (
+		"Accounts Payable Aging Summary "
+		'<span style="font-weight:400;letter-spacing:0;text-transform:none;font-size:13px;margin-left:8px;">'
+		f"(Aging as on {age_as_on.strftime('%d-%m-%Y')} | Supplier: {escape_html(supplier)})</span>"
+	)
+
+	button = (
+		'<button class="apsd-pdf" style="background:#c0392b;color:#ffffff;border:0;border-radius:0;'
+		"padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;"
+		'white-space:nowrap;line-height:1.2;box-shadow:0 1px 4px rgba(0,0,0,.25);">&#8595; Download PDF</button>'
+		if interactive
+		else ""
+	)
+	button_row = f'<div style="margin-bottom:14px;">{button}</div>' if interactive else ""
+
+	return f"""
+	<div style="padding:8px 0;{FONT}overflow-x:auto;">
+		{button_row}
+		<div>
+			{_metric_table(title, AGING_COLUMNS, stats, interactive)}
+		</div>
+		<div style="margin-top:26px;">
+			{_metric_table("Upcoming Due Summary (Not Yet Due)", UPCOMING_COLUMNS, stats, interactive)}
+		</div>
+		<div style="margin-top:26px;">
+			{_month_table(stats, interactive)}
+		</div>
+	</div>"""
