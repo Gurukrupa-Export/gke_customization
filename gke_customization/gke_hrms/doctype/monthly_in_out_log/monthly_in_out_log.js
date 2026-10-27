@@ -214,6 +214,7 @@ function build_resolve_args(values, options) {
 		}
 		args.in_time = in_time;
 		args.out_time = out_time;
+		args.auto_fill = manual ? 0 : 1;
 	}
 
 	if (action === ADD_PUNCHES_ACTION && options.day_fix_blocker) {
