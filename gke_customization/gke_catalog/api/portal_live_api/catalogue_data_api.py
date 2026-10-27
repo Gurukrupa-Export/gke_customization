@@ -3079,19 +3079,35 @@ def get_customer_wishlist_items(customer=None, user_type=None, user=None):
     elif user_type == "user":
         user = frappe.form_dict.get("user") or user
 
+    # where_clause = """
+    # idf.company = 'Gurukrupa Export Private Limited'
+    # AND bom.bom_type = 'Finish Goods'
+    # AND bom.name IS NOT NULL
+    # AND bom.is_active = 1
+    # # AND bom.is_default = 1
+    # AND tci.wishlist = 1
+    # """
+
+    # if customer:
+    #     where_clause += f" AND tcm.customer = '{customer}' "
+    # if user:
+    #     where_clause += f" AND tcm.user = '{user}' "
+    
     where_clause = """
     idf.company = 'Gurukrupa Export Private Limited'
     AND bom.bom_type = 'Finish Goods'
     AND bom.name IS NOT NULL
     AND bom.is_active = 1
-    # AND bom.is_default = 1
     AND tci.wishlist = 1
     """
-
+    params = {}
+    
     if customer:
-        where_clause += f" AND tcm.customer = '{customer}' "
+        where_clause += " AND tcm.customer = %(customer)s "
+        params["customer"] = customer
     if user:
-        where_clause += f" AND tcm.user = '{user}' "
+        where_clause += " AND tcm.user = %(user)s "
+        params["user"] = user
 
     # frappe.throw(where_clause)
 
@@ -3257,6 +3273,7 @@ def get_customer_wishlist_items(customer=None, user_type=None, user=None):
             ORDER BY
                 MIN(item.name) DESC
         """,
+                params,          
         as_dict=True
     )
 
