@@ -13,30 +13,39 @@
  */
 
 .mfgdash {
-	/* light palette (default) — warm parchment workshop-floor look */
-	--mfg-bg: #f3ecdd;
-	--mfg-panel: #fffbf2;
-	--mfg-panel-alt: #f8f0dd;
-	--mfg-border: #ddccA4;
-	--mfg-border-soft: #e9dcbd;
-	--mfg-ink: #221808;
-	--mfg-ink-dim: #4f3f24;
-	--mfg-ink-faint: #6e5c3c;
-	--mfg-brass: #a8781f;
-	--mfg-brass-bright: #c2953a;
-	--mfg-copper: #a5572a;
-	--mfg-steel: #2f6f92;
-	--mfg-emerald: #2c8a5f;
-	--mfg-amber: #ad7115;
-	--mfg-red: #bb3d2f;
-	--mfg-track: #e9dcc0;
+	/* light palette (default) — soft blush / pink brand look */
+	--mfg-bg: #fbeef2;
+	--mfg-panel: #fffafb;
+	--mfg-panel-alt: #fdeef3;
+	--mfg-border: #e8c3d0;
+	--mfg-border-soft: #f1d9e2;
+	--mfg-ink: #2a1219;
+	--mfg-ink-dim: #5c3a47;
+	--mfg-ink-faint: #7d5766;
+	--mfg-brass: #b83a6b;          /* primary brand pink (replaces brass) */
+	--mfg-brass-bright: #d9608f;   /* lighter pink for highlights/hover */
+	--mfg-copper: #c4553f;         /* warm coral accent */
+	--mfg-steel: #4d6aa3;          /* cool periwinkle for contrast/info */
+	--mfg-emerald: #2a8a63;
+	--mfg-amber: #b57412;
+	--mfg-red: #b3202f;            /* deep crimson so errors don't blend with brand pink */
+	--mfg-track: #f3dce5;
 	--mfg-lamp-idle-a: #ffffff;
-	--mfg-lamp-idle-b: #d8c8a4;
-	/* 3D depth tokens: soft/strong drop shadows + a bevel highlight/shade pair for embossed edges */
-	--mfg-shadow-soft: rgba(60, 44, 16, 0.16);
-	--mfg-shadow-strong: rgba(60, 44, 16, 0.28);
-	--mfg-bevel-hi: rgba(255, 255, 255, 0.75);
-	--mfg-bevel-lo: rgba(60, 44, 16, 0.18);
+	--mfg-lamp-idle-b: #e6c9d5;
+	/* operation summary: awaiting-operation stripes and the Total plate */
+	--mfg-await: #d9608f;
+	--mfg-await-ink: #b83a6b;
+	--mfg-total-a: #fdeaf1;
+	--mfg-total-b: #f6d3e0;
+	--mfg-total-ink: #7a1d45;
+	--mfg-total-ink-dim: rgba(122, 29, 69, 0.7);
+	--mfg-total-line: rgba(122, 29, 69, 0.3);
+	--mfg-total-hi: rgba(255, 255, 255, 0.7);
+	/* 3D depth tokens */
+	--mfg-shadow-soft: rgba(90, 30, 55, 0.14);
+	--mfg-shadow-strong: rgba(90, 30, 55, 0.26);
+	--mfg-bevel-hi: rgba(255, 255, 255, 0.8);
+	--mfg-bevel-lo: rgba(90, 30, 55, 0.16);
 	--mfg-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 	--mfg-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
@@ -46,8 +55,8 @@
 	padding: 18px 20px 40px;
 	min-height: 100%;
 	background-image:
-		radial-gradient(ellipse 900px 400px at 15% -10%, rgba(217, 173, 92, 0.08), transparent 60%),
-		radial-gradient(ellipse 700px 500px at 100% 0%, rgba(111, 168, 201, 0.06), transparent 55%);
+		radial-gradient(ellipse 900px 400px at 15% -10%, rgba(232, 120, 160, 0.12), transparent 60%),
+		radial-gradient(ellipse 700px 500px at 100% 0%, rgba(77, 106, 163, 0.06), transparent 55%);
 }
 
 .mfgdash * {
@@ -74,6 +83,14 @@
 	--mfg-track: #0d0b08;
 	--mfg-lamp-idle-a: #444444;
 	--mfg-lamp-idle-b: #333333;
+	--mfg-await: #e0a83e;
+	--mfg-await-ink: #e0a83e;
+	--mfg-total-a: #f0c877;
+	--mfg-total-b: #d9ad5c;
+	--mfg-total-ink: #2a1d08;
+	--mfg-total-ink-dim: rgba(42, 29, 8, 0.7);
+	--mfg-total-line: rgba(60, 40, 10, 0.4);
+	--mfg-total-hi: rgba(255, 240, 200, 0.45);
 	/* dark mode: a plain black drop shadow barely reads against an already-near-black page, so
 	   the depth cue here leans much harder on the bevel edges (a bright top highlight + a heavy
 	   black bottom shade) than on the shadow itself, and the page/panel colors above were also
@@ -130,17 +147,28 @@
 
 /* ---------- filter bar (company / customer / order date) ---------- */
 
+/* all filters stay on one line: the inputs share the space instead of having fixed widths */
+/* bottom-aligned so the checkbox and Clear Filter line up with the inputs, not the labels */
 .mfgdash__filters {
 	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 16px;
+	align-items: flex-end;
+	flex-wrap: nowrap;
+	gap: 12px;
+	min-width: 0;
 }
 
+/* label above its input */
 .mfgdash__filter {
 	display: flex;
-	align-items: center;
-	gap: 10px;
+	flex-direction: column;
+	gap: 4px;
+	flex: 0 1 210px;
+	min-width: 120px;
+}
+
+.mfgdash__filter--daterange {
+	flex-basis: 220px;
+	min-width: 150px;
 }
 
 .mfgdash__filter label {
@@ -153,13 +181,51 @@
 	white-space: nowrap;
 }
 
-.mfgdash__filter [data-field="company-field"],
-.mfgdash__filter [data-field="customer-field"] {
-	width: 220px;
+/* the control's own (empty) label row, help text and bottom margin would leave a gap under
+   the input and throw off the bottom alignment */
+.mfgdash__filter .form-group,
+.mfgdash__filter .frappe-control {
+	margin: 0;
 }
 
-.mfgdash__filter--daterange [data-field="daterange-field"] {
-	width: 230px;
+.mfgdash__filter .frappe-control .clearfix,
+.mfgdash__filter .frappe-control .control-label,
+.mfgdash__filter .frappe-control .help-box {
+	display: none;
+}
+
+/* too narrow for one line - let the filters wrap rather than overflow the page */
+@media (max-width: 1150px) {
+	.mfgdash__filters {
+		flex-wrap: wrap;
+		justify-content: flex-start;
+	}
+}
+
+/* Serial No Date range at the top of the Production list dialog */
+.mfg-list-filter {
+	margin-bottom: 10px;
+}
+
+.mfg-list-filter [data-field="list-range"] {
+	width: 240px;
+}
+
+/* the control's own (empty) label row and help text push its input below our label - drop them
+   so the label and the input sit on one line */
+.mfg-list-filter .form-group,
+.mfg-list-filter .frappe-control {
+	margin: 0;
+}
+
+.mfg-list-filter .frappe-control .clearfix,
+.mfg-list-filter .frappe-control .control-label,
+.mfg-list-filter .frappe-control .help-box {
+	display: none;
+}
+
+.mfg-list-filter > label {
+	line-height: 30px;
 }
 
 .mfgdash__filter .control-input-wrapper,
@@ -178,6 +244,18 @@
 	box-shadow: inset 0 2px 3px var(--mfg-bevel-lo);
 }
 
+/* Customer multi-select: its box is a div, not an input - styled to match the other filters */
+.mfgdash__filter .multiselect-list > .form-control {
+	display: flex;
+	align-items: center;
+	background: var(--mfg-track);
+	border: 1px solid var(--mfg-border);
+	color: var(--mfg-ink);
+	height: 30px;
+	font-size: 12.5px;
+	box-shadow: inset 0 2px 3px var(--mfg-bevel-lo);
+}
+
 .mfgdash__filter input.form-control:focus {
 	border-color: var(--mfg-brass);
 	box-shadow: inset 0 2px 3px var(--mfg-bevel-lo);
@@ -188,13 +266,35 @@
 	border: 1px solid var(--mfg-border);
 }
 
+.mfgdash__check {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 30px;
+	margin: 0;
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--mfg-ink-faint);
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.mfgdash__check input {
+	margin: 0;
+	width: 14px;
+	height: 14px;
+	accent-color: var(--mfg-brass);
+	cursor: pointer;
+}
+
 .mfgdash__clear-filters {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
 	height: 30px;
 	padding: 0 12px;
-	margin-top: 16px;
 	border: 1px solid var(--mfg-border);
 	border-radius: 5px;
 	background: var(--mfg-panel-alt);
@@ -236,8 +336,15 @@
 	grid-template-columns: 1fr 300px;
 	grid-template-areas:
 		"kpis   kpis"
-		"line   andon";
+		"line   andon"
+		"ops    ops"
+		"drill  drill";
 	gap: 20px;
+}
+
+.mfgdash__ops-wrap {
+	grid-area: ops;
+	min-width: 0;
 }
 
 .mfgdash__kpis {
@@ -268,7 +375,9 @@
 		grid-template-areas:
 			"kpis"
 			"andon"
-			"line";
+			"line"
+			"ops"
+			"drill";
 	}
 	.mfgdash__kpis {
 		grid-template-columns: repeat(2, 1fr);
@@ -283,6 +392,8 @@
 	color: var(--mfg-ink-faint);
 	margin: 0 0 12px 2px;
 }
+
+
 
 /* ---------- entrance + gauge-fill animation ---------- */
 
@@ -484,6 +595,19 @@
 	color: var(--mfg-ink-dim);
 }
 
+/* second readout line (On Hold / Cancelled split), tucked under the weights */
+.mfg-kpi__readout--sub {
+	margin-top: 3px;
+	padding-top: 0;
+	border-top: 0;
+}
+
+/* On Hold / Cancelled lines: count - metal - dia on one line each, a touch smaller to fit */
+.mfg-kpi__readout--split {
+	font-size: 10px;
+	white-space: nowrap;
+}
+
 .mfg-kpi__readout span b {
 	color: var(--mfg-ink);
 	font-weight: 700;
@@ -518,7 +642,7 @@
 .mfg-node {
 	--mfg-lift: 0px;
 	position: relative;
-	flex: 0 0 148px;
+	flex: 0 0 164px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -681,7 +805,8 @@
 	display: flex;
 	gap: 8px;
 	font-family: var(--mfg-mono);
-	font-size: 10.5px;
+	font-size: 12.5px;
+	white-space: nowrap;
 	font-weight: 600;
 	color: var(--mfg-ink-dim);
 }
@@ -691,56 +816,27 @@
 	font-weight: 700;
 }
 
-.mfg-node__legend {
-	margin-top: 8px;
-	display: flex;
-	gap: 6px;
-	flex-wrap: wrap;
-	justify-content: center;
-}
-
-.mfg-node__legend span {
-	display: inline-flex;
-	align-items: center;
-	gap: 3px;
-	font-size: 9.5px;
-	font-weight: 700;
-	font-family: var(--mfg-mono);
-	color: var(--mfg-ink-dim);
-}
-
-.mfg-node__legend i {
-	width: 6px;
-	height: 6px;
-	border-radius: 50%;
-	display: inline-block;
-}
-
-.mfg-node__detail {
-	margin-top: 10px;
-	padding: 4px 10px;
-	background: transparent;
-	border: 1px solid var(--mfg-border);
-	border-radius: 12px;
-	color: var(--mfg-ink-dim);
-	font-family: var(--mfg-sans);
-	font-size: 9.5px;
-	font-weight: 700;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
+.mfg-node__stats--link {
 	cursor: pointer;
-	transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
-.mfg-node__detail:hover {
-	border-color: var(--mfg-brass);
-	color: var(--mfg-ink);
-	background: var(--mfg-track);
+.mfg-node__stats--link:hover span {
+	text-decoration: underline;
+}
+
+.mfg-node__stats--caution,
+.mfg-node__stats--caution b {
+	color: var(--mfg-amber);
+}
+
+.mfg-node__ring--link {
+	cursor: pointer;
 }
 
 .mfg-legend-key {
 	display: flex;
-	gap: 16px;
+	flex-wrap: wrap;
+	gap: 6px 16px;
 	margin: 2px 2px 10px;
 	font-size: 10.5px;
 	font-weight: 600;
@@ -768,6 +864,11 @@
 	border-radius: 10px;
 	padding: 14px;
 	box-shadow: 0 10px 20px -12px var(--mfg-shadow-strong), inset 0 1px 0 var(--mfg-bevel-hi);
+}
+
+/* Production lamp: sits right under the Due-Date Alerts box with no heading of its own */
+.mfg-andon--stacked {
+	margin-top: 10px;
 }
 
 .mfg-lamp {
@@ -852,6 +953,99 @@
 	margin-left: 4px;
 }
 
+/* count opens the alert's order list */
+.mfg-lamp__count.is-clickable {
+	cursor: pointer;
+	text-decoration: underline dotted var(--mfg-lamp-color);
+	text-underline-offset: 4px;
+	transition: color 0.15s ease;
+}
+
+.mfg-lamp__count.is-clickable:hover {
+	color: var(--mfg-lamp-color);
+}
+
+/* ---------- due-date alert order list (dialog) ---------- */
+
+/* the dialog body reuses the dashboard's tokens, minus the page-level padding/backdrop */
+.mfgdash--dialog {
+	padding: 0;
+	min-height: 0;
+	background-image: none;
+	border-radius: 8px;
+}
+
+.mfg-alert-orders {
+	padding: 10px 12px;
+	transition: opacity 0.15s ease;
+}
+
+.mfg-alert-orders.is-busy {
+	opacity: 0.55;
+	pointer-events: none;
+}
+
+/* whole list on one page: the table scrolls inside the dialog, header stays visible */
+.mfg-alert-orders .mfg-orders__scroll {
+	max-height: 65vh;
+	overflow: auto;
+}
+
+.mfg-alert-orders .mfg-orders thead {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+}
+
+.mfg-alert-orders .mfg-orders thead th {
+	background: var(--mfg-panel);
+}
+
+.mfg-orders__search-row th {
+	padding-top: 4px;
+	padding-bottom: 6px;
+}
+
+.mfg-orders__search {
+	width: 100%;
+	min-width: 60px;
+	padding: 3px 6px;
+	background: var(--mfg-panel-alt);
+	border: 1px solid var(--mfg-border);
+	border-radius: 4px;
+	color: var(--mfg-ink);
+	font-size: 11px;
+	font-weight: 400;
+	letter-spacing: normal;
+	text-transform: none;
+}
+
+.mfg-orders__search:focus {
+	outline: none;
+	border-color: var(--mfg-brass);
+}
+
+.mfg-alert-orders .mfg-pager {
+	border-top: 1px solid var(--mfg-border-soft);
+}
+
+.mfg-alert-orders .mfg-table tbody tr {
+	cursor: default;
+}
+.mfg-alert-orders .mfg-orders__no a {
+	color: var(--mfg-steel);
+}
+
+.mfg-alert-orders__late {
+	color: var(--mfg-red);
+	font-weight: 700;
+}
+
+.mfg-alert-orders__soon {
+	color: var(--mfg-amber);
+	font-weight: 700;
+}
+
 /* four stacked lines: label, value, label, value - kept as two clearly distinct tiers
    (small muted uppercase tag vs. a bold accent-colored figure) rather than one run-on line */
 .mfg-lamp__wts {
@@ -891,6 +1085,704 @@
 	justify-content: center;
 }
 
+/* ---------- operation-wise summary (section 3) ---------- */
+
+.mfg-ops {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 12px;
+}
+
+.mfg-opdept {
+	display: flex;
+	flex-direction: column;
+	padding: 12px 14px;
+	background: linear-gradient(180deg, var(--mfg-panel), var(--mfg-panel-alt));
+	border: 1px solid var(--mfg-border);
+	border-radius: 10px;
+	box-shadow:
+		inset 0 1px 0 var(--mfg-bevel-hi),
+		0 4px 10px -4px var(--mfg-shadow-soft);
+	animation: mfg-fade-in 0.35s ease-out both;
+	animation-delay: var(--mfg-delay, 0ms);
+}
+
+.mfg-opdept__title {
+	font-size: 11.5px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--mfg-brass);
+	margin-bottom: 8px;
+}
+
+/* The operation tags hang in a recessed tray (the department box's "slot"), like price tags
+   on a jewellery display rail - deliberately echoing the Tagging stage rather than generic cards. */
+.mfg-opdept__lines {
+	flex: 1;
+	/* children's offsetTop is measured against this box (see limit_visible_operations in JS) */
+	position: relative;
+	padding: 8px 8px 2px;
+	border-radius: 6px;
+	background: var(--mfg-track);
+	box-shadow:
+		inset 0 2px 4px var(--mfg-bevel-lo),
+		inset 0 -1px 0 var(--mfg-bevel-hi);
+}
+
+/* more than 3 operations: the JS sets the exact max-height of 3 tags; this is only the
+   fallback if it couldn't measure (e.g. rendered while the page was hidden) */
+.mfg-opdept__lines.is-scrollable {
+	flex: 0 0 auto;
+	max-height: 240px;
+	overflow-y: auto;
+	overflow-x: hidden;
+	scrollbar-width: thin;
+	scrollbar-color: var(--mfg-border) transparent;
+}
+
+.mfg-opdept__lines.is-scrollable::-webkit-scrollbar {
+	width: 5px;
+}
+
+.mfg-opdept__lines.is-scrollable::-webkit-scrollbar-thumb {
+	background: var(--mfg-border);
+	border-radius: 3px;
+}
+
+/* ---- the tag: pointed left end + punched string hole ---- */
+
+.mfg-opline {
+	--tag-point: 16px;
+	--tag-face: var(--mfg-panel);
+	position: relative;
+	margin-bottom: 6px;
+	padding: 8px 10px 8px calc(var(--tag-point) + 14px);
+	background: var(--tag-face);
+	clip-path: polygon(
+		var(--tag-point) 0,
+		100% 0,
+		100% 100%,
+		var(--tag-point) 100%,
+		0 50%
+	);
+	transition: transform 0.15s ease;
+}
+
+.mfg-opline:hover {
+	transform: translateX(2px);
+}
+
+/* punched hole the tag would hang from */
+.mfg-opline::before {
+	content: "";
+	position: absolute;
+	left: calc(var(--tag-point) - 4px);
+	top: 50%;
+	width: 7px;
+	height: 7px;
+	margin-top: -3.5px;
+	border-radius: 50%;
+	background: var(--mfg-track);
+	box-shadow:
+		inset 0 1px 2px var(--mfg-bevel-lo),
+		0 0 0 1.5px var(--mfg-border);
+}
+
+.mfg-opline__name {
+	font-size: 11.5px;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	line-height: 1.3;
+	color: var(--mfg-ink);
+	/* letterpress / engraved feel */
+	text-shadow: 0 1px 0 var(--mfg-bevel-hi);
+	/* full operation name, wrapped if long - never truncated */
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+/* perforation between the tag's name and its stamped readings */
+.mfg-opline__vals {
+	/* wraps to a second row when the tag is too narrow, instead of overlapping/overflowing */
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 14px;
+	margin-top: 6px;
+	padding-top: 6px;
+	border-top: 1px dashed var(--mfg-border);
+}
+
+.mfg-opline__vals span {
+	display: flex;
+	flex-direction: column;
+	flex: 0 0 auto;
+}
+
+.mfg-opline__vals small {
+	font-size: 8.5px;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--mfg-ink-faint);
+}
+
+.mfg-opline__vals b {
+	font-family: var(--mfg-mono);
+	font-size: 12px;
+	font-weight: 700;
+	color: var(--mfg-ink);
+	white-space: nowrap;
+}
+
+.mfg-opline__vals em {
+	margin-left: 2px;
+	font-family: var(--mfg-sans);
+	font-size: 9px;
+	font-style: normal;
+	font-weight: 600;
+	color: var(--mfg-ink-faint);
+}
+
+/* no pieces on this operation: a blank, unstamped tag */
+.mfg-opline--empty {
+	opacity: 0.45;
+	filter: grayscale(0.6);
+}
+
+/* awaiting operation: caution-stripe hatching across the tag's point */
+.mfg-opline--awaiting {
+	background:
+		repeating-linear-gradient(
+			-45deg,
+			var(--mfg-await) 0 4px,
+			transparent 4px 8px
+		) left / calc(var(--tag-point) + 6px) 100% no-repeat,
+		var(--tag-face);
+}
+
+.mfg-opline--awaiting::before {
+	background: var(--tag-face);
+}
+
+.mfg-opline--awaiting .mfg-opline__name {
+	color: var(--mfg-await-ink);
+}
+
+/* total: a solid plate with engraved lettering - soft blush in light, brass in dark */
+.mfg-opline--total {
+	margin: 8px 0 0;
+	background: linear-gradient(180deg, var(--mfg-total-a), var(--mfg-total-b));
+	box-shadow: inset 0 0 0 1px var(--mfg-total-line);
+	opacity: 1;
+	filter: none;
+}
+
+.mfg-opline--total:hover {
+	transform: none;
+}
+
+.mfg-opline--total::before {
+	background: var(--mfg-panel-alt);
+	box-shadow:
+		inset 0 1px 2px rgba(0, 0, 0, 0.45),
+		0 0 0 1.5px var(--mfg-total-line);
+}
+
+.mfg-opline--total .mfg-opline__name {
+	color: var(--mfg-total-ink);
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	text-shadow: 0 1px 0 var(--mfg-total-hi);
+}
+
+.mfg-opline--total .mfg-opline__vals {
+	border-top-color: var(--mfg-total-line);
+}
+
+.mfg-opline--total .mfg-opline__vals small,
+.mfg-opline--total .mfg-opline__vals em {
+	color: var(--mfg-total-ink-dim);
+}
+
+.mfg-opline--total .mfg-opline__vals b {
+	color: var(--mfg-total-ink);
+	text-shadow: 0 1px 0 var(--mfg-total-hi);
+}
+
+/* selected operation tag (drives sections 4-6) */
+.mfg-opline {
+	cursor: pointer;
+}
+
+.mfg-opline.is-selected {
+	--tag-face: var(--mfg-panel-alt);
+	transform: translateX(4px);
+	box-shadow: inset 0 0 0 2px var(--mfg-copper);
+}
+
+.mfg-opline.is-selected .mfg-opline__name {
+	color: var(--mfg-copper);
+}
+
+.mfg-opline--total.is-selected {
+	box-shadow: inset 0 0 0 2px var(--mfg-total-ink);
+}
+
+.mfg-opline--total.is-selected .mfg-opline__name {
+	color: var(--mfg-total-ink);
+}
+
+/* ---------- drill-down row: stage summary / order list / order details ---------- */
+
+.mfgdash__section-sub {
+	margin-left: 8px;
+	color: var(--mfg-brass);
+	text-transform: none;
+	letter-spacing: 0.02em;
+}
+
+.mfgdash__drill {
+	grid-area: drill;
+	display: grid;
+	/* order list gets the 20% taken off order details; both keep the same height (see --tall below) */
+	grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.8fr) minmax(0, 1.2fr);
+	gap: 14px;
+	align-items: start;
+}
+
+@media (max-width: 1150px) {
+	.mfgdash__drill {
+		grid-template-columns: 1fr;
+	}
+}
+
+.mfg-drill {
+	min-width: 0;
+}
+
+.mfg-drill__body {
+	background: linear-gradient(180deg, var(--mfg-panel), var(--mfg-panel-alt));
+	border: 1px solid var(--mfg-border);
+	border-radius: 10px;
+	padding: 10px 12px;
+	box-shadow:
+		inset 0 1px 0 var(--mfg-bevel-hi),
+		0 4px 10px -4px var(--mfg-shadow-soft);
+	transition: opacity 0.15s ease;
+}
+
+/* order list + order details: same fixed-height box, content scrolls inside */
+.mfg-drill__body--tall {
+	height: 520px;
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+	scrollbar-width: thin;
+	scrollbar-color: var(--mfg-border) transparent;
+}
+
+.mfg-drill__body--tall .mfg-orders__scroll {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+}
+
+/* header (column names + search boxes) stays visible while the order list scrolls */
+.mfg-drill__body--tall .mfg-orders thead {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+}
+
+.mfg-drill__body--tall .mfg-orders thead th {
+	background: var(--mfg-panel);
+}
+
+.mfg-drill__body--tall .mfg-pager {
+	flex: none;
+	border-top: 1px solid var(--mfg-border-soft);
+}
+
+.mfg-drill__body.is-busy {
+	opacity: 0.55;
+	pointer-events: none;
+}
+
+.mfg-dot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	margin-right: 7px;
+	border-radius: 2px;
+	vertical-align: middle;
+	flex: 0 0 auto;
+}
+
+/* shared ledger-style table */
+.mfg-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 11.5px;
+	color: var(--mfg-ink);
+}
+
+.mfg-table th {
+	padding: 6px 8px;
+	font-size: 9.5px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--mfg-ink-faint);
+	text-align: left;
+	white-space: nowrap;
+	border-bottom: 1px solid var(--mfg-border);
+}
+
+.mfg-table td {
+	padding: 7px 8px;
+	border-bottom: 1px dashed var(--mfg-border-soft);
+	white-space: nowrap;
+}
+
+.mfg-table .is-num {
+	text-align: right;
+	font-family: var(--mfg-mono);
+}
+
+.mfg-table tbody tr {
+	cursor: pointer;
+	transition: background 0.12s ease;
+}
+
+.mfg-table tbody tr:hover {
+	background: var(--mfg-track);
+}
+
+.mfg-table tbody tr.is-selected {
+	background: var(--mfg-track);
+	box-shadow: inset 3px 0 0 var(--mfg-copper);
+}
+
+/* stage-wise summary: compact cells, status label may wrap, numbers never do - and the table
+   can never be wider than its panel */
+.mfg-stage {
+	table-layout: fixed;
+	font-size: 11px;
+}
+
+.mfg-stage th,
+.mfg-stage td {
+	padding: 6px 4px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.mfg-stage th:first-child,
+.mfg-stage td:first-child {
+	width: 32%;
+	padding-left: 6px;
+	white-space: normal;
+}
+
+.mfg-stage th:nth-child(2),
+.mfg-stage td:nth-child(2) {
+	width: 16%;
+}
+
+.mfg-stage td:not(:first-child),
+.mfg-stage th:not(:first-child) {
+	text-align: right;
+	font-family: var(--mfg-mono);
+	font-size: 10.5px;
+}
+
+.mfg-stage th:not(:first-child) {
+	font-family: var(--mfg-sans);
+	font-size: 9px;
+	letter-spacing: 0.06em;
+}
+
+.mfg-stage tr.is-empty td {
+	color: var(--mfg-ink-faint);
+}
+
+.mfg-stage tfoot tr {
+	cursor: pointer;
+	font-weight: 700;
+}
+
+.mfg-stage tfoot td {
+	border-bottom: 0;
+	border-top: 1px solid var(--mfg-border);
+}
+
+.mfg-stage tfoot tr.is-selected {
+	background: var(--mfg-track);
+	box-shadow: inset 3px 0 0 var(--mfg-copper);
+}
+
+/* order list */
+.mfg-orders__scroll {
+	overflow-x: auto;
+	scrollbar-width: thin;
+}
+
+/* Total row: pinned to the bottom of the scrolling table, like the header is to the top */
+.mfg-orders__total td {
+	position: sticky;
+	bottom: 0;
+	z-index: 1;
+	background: var(--mfg-panel);
+	border-top: 1px solid var(--mfg-border);
+	border-bottom: 0;
+	font-weight: 700;
+}
+
+.mfg-orders__no {
+	font-family: var(--mfg-mono);
+	font-size: 11px;
+	color: var(--mfg-steel);
+}
+
+.mfg-pager {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 4px 2px;
+	font-size: 11px;
+	color: var(--mfg-ink-dim);
+}
+
+.mfg-pager b {
+	font-family: var(--mfg-mono);
+	color: var(--mfg-ink);
+}
+
+.mfg-pager__nav {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	font-family: var(--mfg-mono);
+}
+
+.mfg-pager__nav button {
+	width: 26px;
+	height: 24px;
+	border: 1px solid var(--mfg-border);
+	border-radius: 4px;
+	background: var(--mfg-panel-alt);
+	color: var(--mfg-ink);
+	font-size: 14px;
+	line-height: 1;
+	cursor: pointer;
+	box-shadow: 0 1px 0 var(--mfg-bevel-hi) inset;
+}
+
+.mfg-pager__export {
+	padding: 3px 10px;
+	border: 1px solid var(--mfg-border);
+	border-radius: 4px;
+	background: var(--mfg-panel-alt);
+	color: var(--mfg-ink);
+	font-size: 11px;
+	font-weight: 600;
+	cursor: pointer;
+	box-shadow: 0 1px 0 var(--mfg-bevel-hi) inset;
+}
+
+.mfg-pager__export:hover {
+	border-color: var(--mfg-brass);
+}
+
+.mfg-pager__nav button:hover:not([disabled]) {
+	border-color: var(--mfg-brass);
+}
+
+.mfg-pager__nav button[disabled] {
+	opacity: 0.4;
+	cursor: default;
+}
+
+/* order details */
+.mfg-detail__list {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 5px 12px;
+	margin: 0;
+	font-size: 11.5px;
+}
+
+.mfg-detail__list dt {
+	font-weight: 600;
+	color: var(--mfg-ink-faint);
+	white-space: nowrap;
+}
+
+.mfg-detail__list dd {
+	margin: 0;
+	color: var(--mfg-ink);
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.mfg-detail__list dd a {
+	color: var(--mfg-steel);
+	font-family: var(--mfg-mono);
+}
+
+.mfg-detail__materials {
+	margin-top: 12px;
+	padding: 10px 12px;
+	border-radius: 6px;
+	background: var(--mfg-track);
+	box-shadow: inset 0 2px 4px var(--mfg-bevel-lo);
+}
+
+.mfg-detail__heading {
+	margin-bottom: 8px;
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--mfg-brass);
+}
+
+.mfg-detail__materials dd {
+	font-family: var(--mfg-mono);
+}
+
+/* weights on the left, the item's catalogue image in the free space on the right */
+.mfg-detail__materials-body {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.mfg-detail__materials-body .mfg-detail__list {
+	flex: 1;
+	min-width: 0;
+}
+
+.mfg-detail__image {
+	flex: 0 0 auto;
+	width: 130px;
+	height: 130px;
+	padding: 4px;
+	border: 1px solid var(--mfg-border);
+	border-radius: 6px;
+	background: var(--mfg-panel);
+	box-shadow: 0 2px 6px -2px var(--mfg-shadow-strong), inset 0 1px 0 var(--mfg-bevel-hi);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: zoom-in;
+	transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.mfg-detail__image:hover {
+	border-color: var(--mfg-brass);
+	transform: translateY(-2px);
+}
+
+.mfg-detail__image img {
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+	border-radius: 3px;
+	/* no long-press "save image" callout / text-selection drag on touch devices */
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+}
+
+.mfg-detail__image.is-loading {
+	cursor: progress;
+}
+
+.mfg-detail__image-msg {
+	font-size: 10px;
+	color: var(--mfg-ink-faint);
+}
+
+.mfg-detail__image--empty {
+	cursor: default;
+	font-size: 10px;
+	text-align: center;
+	color: var(--mfg-ink-faint);
+	border-style: dashed;
+	box-shadow: none;
+}
+
+.mfg-detail__image--empty:hover {
+	border-color: var(--mfg-border);
+	transform: none;
+}
+
+/* full-size catalogue image view (appended to <body>, so no theme tokens here) */
+.mfg-lightbox {
+	position: fixed;
+	inset: 0;
+	z-index: 1100;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	padding: 40px;
+	background: rgba(10, 8, 5, 0.85);
+	cursor: zoom-out;
+	animation: mfg-fade-in 0.15s ease-out both;
+}
+
+.mfg-lightbox img {
+	max-width: 100%;
+	max-height: calc(100% - 30px);
+	object-fit: contain;
+	border-radius: 6px;
+	background: #fff;
+	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+}
+
+.mfg-lightbox__caption {
+	color: #f3ecdd;
+	font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+	font-size: 13px;
+}
+
+.mfg-lightbox__close {
+	position: absolute;
+	top: 14px;
+	right: 18px;
+	width: 36px;
+	height: 36px;
+	border: 0;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.12);
+	color: #fff;
+	font-size: 24px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.mfg-lightbox__close:hover {
+	background: rgba(255, 255, 255, 0.25);
+}
+
+.mfg-chip {
+	display: inline-block;
+	padding: 1px 8px;
+	border-radius: 10px;
+	border: 1px solid var(--chip);
+	color: var(--chip);
+	font-size: 10.5px;
+	font-weight: 700;
+}
+
 /* ---------- misc ---------- */
 
 .mfgdash__empty {
@@ -898,6 +1790,10 @@
 	text-align: center;
 	color: var(--mfg-ink-faint);
 	font-size: 13px;
+}
+
+.mfgdash__empty--compact {
+	padding: 24px 20px;
 }
 
 .mfgdash__loading {
@@ -911,6 +1807,17 @@
 	flex-direction: column;
 	align-items: center;
 	gap: 14px;
+}
+
+/* inside the drill-down panels (stage summary / order list / order details) */
+.mfgdash__loading--compact {
+	padding: 28px 20px;
+	gap: 10px;
+}
+
+.mfgdash__loading--compact .mfg-cyclone {
+	width: 34px;
+	height: 34px;
 }
 
 .mfgdash__loading-text {
