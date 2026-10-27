@@ -4060,28 +4060,73 @@ class TestReviseFieldGoesAcross(unittest.TestCase):
 		doc.update(values)
 		return doc
 
-	def test_a_save_queues_the_push_after_commit(self):
-		with patch.object(k, "in_reentrant_context", return_value=False), patch.object(
-			k, "is_sync_enabled", return_value=True
-		), patch.object(k, "setting", return_value=1), patch.object(k, "_dispatch") as dispatch:
-			k.queue_revise_field(self._revision(sizer_type="Anna"))
+	# -- the save ----------------------------------------------------------------------
 
+	def _save(self, revision, enabled=True, log_name="LOG-1"):
+		with ExitStack() as stack:
+			enter = stack.enter_context
+			enter(patch.object(k, "in_reentrant_context", return_value=False))
+			enter(patch.object(k, "is_sync_enabled", return_value=enabled))
+			enter(patch.object(k, "setting", return_value=1))
+			enter(patch.object(k, "get_sync_config", return_value=(self.cfg, None)))
+			state = enter(patch.object(k, "mark_state"))
+			open_log = enter(patch.object(k, "_open_revise_field_log", return_value=log_name))
+			dispatch = enter(patch.object(k, "_dispatch"))
+			k.queue_revise_field(revision)
+		return state, open_log, dispatch
+
+	def test_a_save_writes_a_pending_state_and_a_log_then_queues_the_push(self):
+		state, open_log, dispatch = self._save(self._revision(sizer_type="Anna"))
+
+		state.assert_called_once_with("Revise Field", "UP-7", "Pending", "kggk.example.com")
+		open_log.assert_called_once_with("UP-7", self.cfg, "kggk_revise_field::UP-7")
 		dispatch.assert_called_once()
 		self.assertEqual(dispatch.call_args.kwargs["method"], k.REVISE_FIELD_METHOD)
 		self.assertEqual(dispatch.call_args.kwargs["name"], "UP-7")
+		self.assertEqual(dispatch.call_args.kwargs["log_name"], "LOG-1")
 
-	def test_nothing_is_queued_with_the_sync_off_or_nothing_to_send(self):
-		with patch.object(k, "in_reentrant_context", return_value=False), patch.object(
-			k, "is_sync_enabled", return_value=False
-		), patch.object(k, "_dispatch") as dispatch:
-			k.queue_revise_field(self._revision(sizer_type="Anna"))
-		dispatch.assert_not_called()
+	def test_nothing_is_written_with_the_sync_off_or_nothing_to_send(self):
+		for revision, enabled in ((self._revision(sizer_type="Anna"), False), (self._revision(), True)):
+			state, open_log, dispatch = self._save(revision, enabled=enabled)
+			state.assert_not_called()
+			open_log.assert_not_called()
+			dispatch.assert_not_called()
 
+	def test_a_queueing_error_reaches_the_error_log_and_does_not_fail_the_save(self):
 		with patch.object(k, "in_reentrant_context", return_value=False), patch.object(
 			k, "is_sync_enabled", return_value=True
-		), patch.object(k, "setting", return_value=1), patch.object(k, "_dispatch") as dispatch:
-			k.queue_revise_field(self._revision())
-		dispatch.assert_not_called()
+		), patch.object(k, "setting", return_value=1), patch.object(
+			k, "get_sync_config", side_effect=RuntimeError("boom")
+		), patch.object(k.frappe, "log_error") as log_error:
+			k.queue_revise_field(self._revision(sizer_type="Anna"))
+
+		log_error.assert_called_once()
+
+	def test_the_queued_log_is_written_for_the_revise_field(self):
+		with patch.object(k.frappe.db, "get_value", return_value=None), patch.object(
+			k.frappe, "get_doc"
+		) as get_doc:
+			get_doc.return_value.name = "LOG-9"
+			name = k._open_revise_field_log("UP-7", self.cfg, "kggk_revise_field::UP-7")
+
+		values = get_doc.call_args.args[0]
+		self.assertEqual(name, "LOG-9")
+		self.assertEqual(
+			(values["trigger"], values["reference"], values["status"], values["job_id"]),
+			("Revise Field", "UP-7", k.STATUS_QUEUED, "kggk_revise_field::UP-7"),
+		)
+		get_doc.return_value.insert.assert_called_once()
+
+	def test_a_second_save_reuses_the_log_still_waiting_in_the_queue(self):
+		with patch.object(k.frappe.db, "get_value", return_value="LOG-3"), patch.object(
+			k.frappe, "get_doc"
+		) as get_doc:
+			name = k._open_revise_field_log("UP-7", self.cfg, "kggk_revise_field::UP-7")
+
+		self.assertEqual(name, "LOG-3")
+		get_doc.assert_not_called()
+
+	# -- the job -----------------------------------------------------------------------
 
 	def _push(self, revision, target_item="MU06453-002-K", response=None, found=None):
 		"""Run the push; `target_item` is Sync State's name, `found` what KGGK says when asked."""
@@ -4095,11 +4140,18 @@ class TestReviseFieldGoesAcross(unittest.TestCase):
 			enter(patch.object(k, "target_name_if_known", return_value=target_item))
 			enter(patch.object(k, "lookup_by_identity", self.lookup))
 			enter(patch.object(k, "verify_target_company", return_value=(True, "")))
-			enter(patch.object(k, "LOG_ON_PROBLEM", k.LOG_NEVER))
+			enter(patch.object(k.SyncRun, "_open_log", return_value=None))
 			post = enter(patch.object(k, "api_post", return_value=response))
 			mismatch = enter(patch.object(k.SyncRun, "mismatch", autospec=True))
+			finish = enter(patch.object(k.SyncRun, "finish", autospec=True))
+			row = enter(patch.object(k.SyncRun, "row", autospec=True))
+			self.state = enter(patch.object(k, "mark_state"))
 			k.push_revise_field("UP-7")
+		self.finish, self.row = finish, row
 		return post, mismatch
+
+	def _rows(self):
+		return [c.args[1:4] for c in self.row.call_args_list]
 
 	def test_the_revision_is_created_on_kggk_against_kggks_item_name(self):
 		post, mismatch = self._push(self._revision(sizer_type="Anna", chain_length=0, lock_type=""))
@@ -4111,6 +4163,15 @@ class TestReviseFieldGoesAcross(unittest.TestCase):
 			post.call_args.kwargs["json"], {"item": "MU06453-002-K", "sizer_type": "Anna", "chain_length": 0}
 		)
 		mismatch.assert_not_called()
+
+	def test_a_success_completes_the_log_and_marks_the_revise_field_synced(self):
+		self._push(self._revision(sizer_type="Anna"))
+
+		self.assertEqual(self._rows(), [("Item", "MU06453-002", "Synced")])
+		self.assertEqual(self.finish.call_args.args[1], k.STATUS_COMPLETED)
+		self.state.assert_called_once_with(
+			"Revise Field", "UP-7", "Synced", "kggk.example.com", target_name="MU06453-002-K"
+		)
 
 	def test_sync_states_name_is_used_without_asking_kggk(self):
 		self._push(self._revision(sizer_type="Anna"), target_item="KG-MU06453-002")
@@ -4126,7 +4187,7 @@ class TestReviseFieldGoesAcross(unittest.TestCase):
 		self.assertEqual(self.lookup.call_args.args[1:3], ("Item", "MU06453-002"))
 		self.assertEqual(post.call_args.kwargs["json"]["item"], "KG-MU06453-002")
 
-	def test_a_failed_identity_lookup_is_reported_and_nothing_is_sent(self):
+	def test_a_failed_identity_lookup_fails_the_log_and_the_state_and_sends_nothing(self):
 		post, mismatch = self._push(
 			self._revision(sizer_type="Anna"), target_item=None, found=k._LOOKUP_FAILED
 		)
@@ -4134,44 +4195,79 @@ class TestReviseFieldGoesAcross(unittest.TestCase):
 		post.assert_not_called()
 		mismatch.assert_called_once()
 		self.assertEqual(mismatch.call_args.kwargs["kind"], "REVISE-FIELD")
+		self.assertEqual(self._rows(), [("Item", "MU06453-002", "Failed")])
+		self.assertEqual(self.finish.call_args.args[1], k.STATUS_FAILED)
+		self.assertEqual(self.state.call_args.args[:3], ("Revise Field", "UP-7", "Failed"))
 
-	def test_an_item_kggk_does_not_hold_is_skipped(self):
+	def test_an_item_kggk_does_not_hold_is_skipped_and_closed_out(self):
 		post, mismatch = self._push(self._revision(sizer_type="Anna"), target_item=None, found=None)
 
 		self.lookup.assert_called_once()
 		post.assert_not_called()
 		mismatch.assert_not_called()
+		self.assertEqual(self._rows(), [("Item", "MU06453-002", "Skipped")])
+		self.assertEqual(self.finish.call_args.args[1], k.STATUS_COMPLETED)
+		# Not left Pending: nothing is owed to KGGK, and the note says why nothing was sent.
+		self.assertEqual(self.state.call_args.args[:3], ("Revise Field", "UP-7", "Synced"))
+		self.assertIn("not on KGGK", self.state.call_args.kwargs["error"])
 
-	def test_a_refusal_is_reported_and_the_item_state_left_alone(self):
-		with patch.object(k, "mark_state") as mark_state:
-			_post, mismatch = self._push(
-				self._revision(sizer_type="Anna"),
-				response=k.Response(status_code=417, text="Attribute Value Anna not found"),
-			)
+	def test_a_refusal_fails_the_log_and_the_revise_fields_own_state(self):
+		_post, mismatch = self._push(
+			self._revision(sizer_type="Anna"),
+			response=k.Response(status_code=417, text="Attribute Value Anna not found"),
+		)
 
 		mismatch.assert_called_once()
 		self.assertEqual(mismatch.call_args.kwargs["kind"], "REVISE-FIELD")
 		self.assertIn("UP-7", mismatch.call_args.args[3])
-		mark_state.assert_not_called()
+		self.assertEqual(self._rows(), [("Item", "MU06453-002", "Failed")])
+		self.assertEqual(self.finish.call_args.args[1], k.STATUS_FAILED)
+		self.state.assert_called_once()
+		self.assertEqual(self.state.call_args.args, ("Revise Field", "UP-7", "Failed", "kggk.example.com"))
+		self.assertEqual(self.state.call_args.kwargs["target_name"], "MU06453-002-K")
+		self.assertIn("UP-7", self.state.call_args.kwargs["error"])
 
-	def test_an_unexpected_error_reaches_the_error_log_and_does_not_raise(self):
+	def test_the_items_own_state_is_never_touched(self):
+		self._push(self._revision(sizer_type="Anna"))
+		ok = list(self.state.call_args_list)
+		self._push(
+			self._revision(sizer_type="Anna"), response=k.Response(status_code=417, text="refused")
+		)
+
+		for call in ok + list(self.state.call_args_list):
+			self.assertEqual(call.args[0], "Revise Field")
+
+	def test_an_unexpected_error_reaches_the_error_log_and_closes_the_queued_log(self):
 		with patch.object(k, "in_reentrant_context", return_value=False), patch.object(
 			k, "get_sync_config", side_effect=RuntimeError("boom")
-		), patch.object(k.frappe, "log_error") as log_error:
-			k.push_revise_field("UP-7")
+		), patch.object(k.frappe, "log_error") as log_error, patch.object(
+			k, "_close_revise_field_log"
+		) as close:
+			k.push_revise_field("UP-7", log_name="LOG-1")
 
 		log_error.assert_called_once()
 		self.assertIn("UP-7", log_error.call_args.args[1])
+		close.assert_called_once()
+		self.assertEqual(close.call_args.args[:2], ("LOG-1", k.STATUS_FAILED))
 
-	def test_a_queueing_error_reaches_the_error_log_and_does_not_fail_the_save(self):
-		with patch.object(k, "in_reentrant_context", return_value=False), patch.object(
-			k, "is_sync_enabled", return_value=True
-		), patch.object(k, "setting", return_value=1), patch.object(
-			k, "_dispatch", side_effect=RuntimeError("boom")
-		), patch.object(k.frappe, "log_error") as log_error:
-			k.queue_revise_field(self._revision(sizer_type="Anna"))
+	def test_the_log_queued_at_save_is_the_one_the_run_completes(self):
+		with ExitStack() as stack:
+			enter = stack.enter_context
+			enter(patch.object(k, "in_reentrant_context", return_value=False))
+			enter(patch.object(k, "get_sync_config", return_value=(self.cfg, None)))
+			enter(patch.object(frappe, "get_doc", return_value=self._revision(sizer_type="Anna")))
+			enter(patch.object(k, "target_name_if_known", return_value="MU06453-002-K"))
+			enter(patch.object(k, "verify_target_company", return_value=(True, "")))
+			enter(patch.object(k, "api_post", return_value=k.Response(status_code=200)))
+			enter(patch.object(k, "mark_state"))
+			enter(patch.object(k.SyncRun, "finish", autospec=True))
+			open_log = enter(patch.object(k.SyncRun, "_open_log", return_value="OTHER"))
+			init = enter(patch.object(k.SyncRun, "flush", autospec=True))
+			k.push_revise_field("UP-7", log_name="LOG-1")
 
-		log_error.assert_called_once()
+		# Given the log's name, the run does not open a second one.
+		open_log.assert_not_called()
+		self.assertEqual(init.call_args_list[0].args[0].log_name, "LOG-1")
 
 	def test_revise_field_is_a_trigger_the_log_accepts(self):
 		self.assertIn("Revise Field", k.TRIGGERS)
@@ -4179,6 +4275,17 @@ class TestReviseFieldGoesAcross(unittest.TestCase):
 			fields = json.load(f)["fields"]
 		options = next(x for x in fields if x["fieldname"] == "trigger")["options"].split("\n")
 		self.assertIn("Revise Field", options)
+
+	def test_sync_state_can_hold_a_revise_field(self):
+		path = frappe.get_app_path(
+			"gke_customization", "gke_order_forms", "doctype", "kggk_sync_state", "kggk_sync_state.json"
+		)
+		with open(path) as f:
+			fields = json.load(f)["fields"]
+		options = next(x for x in fields if x["fieldname"] == "record_doctype")["options"].split("\n")
+		self.assertIn("Revise Field", options)
+		# The reconciler and the pending re-sender only look at these, so a Revise Field row is for looking at.
+		self.assertNotIn("Revise Field", k.MAPPED_DOCTYPES)
 
 
 class TestLegacyHooksStayUnwired(unittest.TestCase):

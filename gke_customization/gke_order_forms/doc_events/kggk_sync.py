@@ -4725,8 +4725,58 @@ def _report_revise_field_error(stage, name):
 		pass
 
 
+def _open_revise_field_log(name, config, job_id):
+	"""The push's KGGK Sync Log, Queued, written in the save's own transaction.
+
+	Written at save so the revision is visible before any worker picks it up, and so a hand-off
+	that is lost leaves a log for `reap_stale_runs` to close instead of nothing. A second save
+	while the first is still queued reuses that log: the job id is deduplicated, so a second log
+	would have no job behind it.
+	"""
+	try:
+		existing = frappe.db.get_value(
+			LOG_DOCTYPE, {"trigger": "Revise Field", "reference": name, "status": STATUS_QUEUED}, "name"
+		)
+		if existing:
+			return existing
+		doc = frappe.get_doc(
+			{
+				"doctype": LOG_DOCTYPE,
+				"trigger": "Revise Field",
+				"reference": name,
+				"target_site": config.to_site,
+				"status": STATUS_QUEUED,
+				"job_id": job_id,
+				"generation": 1,
+				"items_total": 1,
+			}
+		)
+		doc.insert(ignore_permissions=True)
+		return doc.name
+	except Exception:
+		frappe.logger("kggk_sync").exception(f"could not open the KGGK Sync Log for Revise Field {name}")
+		return None
+
+
+def _close_revise_field_log(log_name, status, summary):
+	"""End a queued log whose push stopped before a run took it over. Never raises."""
+	if not log_name:
+		return
+	try:
+		frappe.db.set_value(
+			LOG_DOCTYPE,
+			log_name,
+			{"status": status, "summary": summary[:500], "ended_on": now_datetime(), "progress": 100.0},
+		)
+	except Exception:
+		frappe.logger("kggk_sync").exception(f"could not close {log_name}")
+
+
 def queue_revise_field(doc):
-	"""Revise Field ``on_update``: queue its push to KGGK after commit. Never fails the save.
+	"""Revise Field ``on_update``: write the push down and queue it after commit.
+
+	Saving writes a Pending Sync State row and a Queued KGGK Sync Log in the save's transaction,
+	then hands the push to the queue - the way an Item save does. Never fails the save.
 
 	Not limited to plan-linked items like an Item save: a revision is a deliberate change to an
 	item KGGK already holds, and `push_revise_field` checks that it does.
@@ -4740,30 +4790,45 @@ def queue_revise_field(doc):
 			return
 		if not doc.item or not revise_field_values(doc):
 			return
+
+		config, reason = get_sync_config()
+		if not config:
+			log_skip(reason, "Revise Field", doc.name)
+			return
+
+		job_id = f"kggk_revise_field::{doc.name}"
+		mark_state("Revise Field", doc.name, "Pending", host_of(config.to_site))
+		log_name = _open_revise_field_log(doc.name, config, job_id)
 		_dispatch(
 			method=REVISE_FIELD_METHOD,
 			queue="long",
-			job_id=f"kggk_revise_field::{doc.name}",
+			job_id=job_id,
 			deduplicate=True,
 			name=doc.name,
+			log_name=log_name,
 		)
 	except Exception:
 		_report_revise_field_error("queue", doc.name)
 
 
-def push_revise_field(name):
+def push_revise_field(name, log_name=None):
 	"""Create the same Revise Field on KGGK, against KGGK's name for the item.
 
 	Every attribute field the revision sets is sent, not only the ones that changed here, so
 	saving the Revise Field again re-sends it; KGGK's own `validate` writes only rows that differ.
-	A problem opens a KGGK Sync Log (trigger "Revise Field"); a success writes none. The Item's
-	Sync State is left alone: an Item push cannot carry attributes, so marking it failed would
-	only send the reconciler after something it cannot fix.
+
+	The outcome is kept in two places. The KGGK Sync Log queued at save is completed - Completed,
+	or Failed with the reason, with one row for the Item. The Revise Field's own Sync State row
+	goes from Pending to Synced or Failed. That row is for looking at only: the reconciler and the
+	pending re-sender read Item and BOM rows, so a resend is a save of the Revise Field. The
+	Item's own Sync State is left alone: an Item push cannot carry attributes, so marking it
+	failed would only send the reconciler after something it cannot fix.
 	"""
 	from gke_customization.gke_order_forms.doctype.revise_field.revise_field import (
 		revise_field_values,
 	)
 
+	run = site = item = None
 	try:
 		if in_reentrant_context():
 			return
@@ -4771,55 +4836,81 @@ def push_revise_field(name):
 		config, reason = get_sync_config()
 		if not config:
 			log_skip(reason, "Revise Field", name)
+			_close_revise_field_log(log_name, STATUS_FAILED, f"Not sent: {reason}")
 			return
+		site = host_of(config.to_site)
 
 		doc = frappe.get_doc("Revise Field", name)
+		item = doc.item
 		values = revise_field_values(doc)
-		if not doc.item or not values:
+		if not item or not values:
+			_close_revise_field_log(log_name, STATUS_COMPLETED, "Nothing to send: no attribute is set.")
 			return
 
-		run = SyncRun(trigger="Revise Field", reference=name, config=config, log=LOG_ON_PROBLEM)
+		run = SyncRun(
+			trigger="Revise Field", reference=name, config=config, log_name=log_name, log=LOG_ALWAYS
+		)
+		run.items_total = 1
+		run.flush(STATUS_RUNNING)
+		action = f"Revise Field {name}"
+
+		def failed(message, target_item=None):
+			run.mismatch("Item", item, message, kind="REVISE-FIELD")
+			run.row("Item", item, "Failed", message, action=action)
+			run.items_failed += 1
+			mark_state("Revise Field", name, "Failed", site, error=message, target_name=target_item)
+			run.finish(STATUS_FAILED)
 
 		# KGGK's name for the item, which need not be ours: Sync State first, then KGGK itself, by
 		# the source identity stamped on the item it holds. Never the same name by assumption.
-		target_item = target_name_if_known("Item", doc.item, host_of(config.to_site))
+		target_item = target_name_if_known("Item", item, site)
 		if not target_item:
-			found = lookup_by_identity(config, "Item", doc.item, run=run)
+			found = lookup_by_identity(config, "Item", item, run=run)
 			if found is _LOOKUP_FAILED:
-				run.mismatch(
-					"Item",
-					doc.item,
-					f"Revise Field {name}: could not ask KGGK which item came from {doc.item}",
-					kind="REVISE-FIELD",
-				)
-				run.finish()
+				failed(f"Revise Field {name}: could not ask KGGK which item came from {item}")
 				return
 			target_item = found
 		if not target_item:
-			log_skip("item not on KGGK - it takes its attributes when it is created there", "Revise Field", name)
+			note = "item not on KGGK - it takes its attributes when it is created there"
+			log_skip(note, "Revise Field", name)
+			run.row("Item", item, "Skipped", note, action=action)
+			mark_state("Revise Field", name, "Synced", site, error=note)
+			run.finish(STATUS_COMPLETED)
 			return
 
 		company_ok, company_message = verify_target_company(config, run=run)
 		if not company_ok:
-			run.mismatch("Item", doc.item, company_message, kind="REVISE-FIELD")
-			run.finish()
+			failed(company_message, target_item)
 			return
 
 		response = api_post(config, "/api/resource/Revise Field", json={"item": target_item, **values})
-		if response.ok:
-			run.line(
-				"REVISED", "Item", doc.item, f"{name} applied to KGGK's {target_item}: {', '.join(sorted(values))}"
-			)
-		else:
-			run.mismatch(
-				"Item",
-				doc.item,
+		if not response.ok:
+			failed(
 				f"Revise Field {name} could not be applied to KGGK's {target_item} - {response.message()}",
-				kind="REVISE-FIELD",
+				target_item,
 			)
-		run.finish()
-	except Exception:
+			return
+
+		message = f"{name} applied to KGGK's {target_item}: {', '.join(sorted(values))}"
+		run.line("REVISED", "Item", item, message)
+		run.row("Item", item, "Synced", message, action=action)
+		run.items_synced += 1
+		mark_state("Revise Field", name, "Synced", site, target_name=target_item)
+		run.finish(STATUS_COMPLETED)
+	except Exception as exc:
 		_report_revise_field_error("push", name)
+		message = f"unexpected error: {exc}"
+		if site:
+			mark_state("Revise Field", name, "Failed", site, error=message)
+		if run:
+			try:
+				run.row("Item", item or "-", "Failed", message, action=f"Revise Field {name}")
+				run.items_failed += 1
+				run.finish(STATUS_FAILED)
+			except Exception:
+				frappe.logger("kggk_sync").exception(f"could not finish the log for Revise Field {name}")
+		else:
+			_close_revise_field_log(log_name, STATUS_FAILED, message)
 
 
 # ============================================================================
