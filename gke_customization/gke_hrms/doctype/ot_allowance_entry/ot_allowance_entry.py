@@ -394,7 +394,6 @@ from frappe.query_builder.functions import IfNull, Sum, Timestamp, Date
 from frappe.query_builder import CustomFunction
 from collections import defaultdict
 
-
 class OTAllowanceEntry(Document):
 	def autoname(self):
 		company_abbr = frappe.db.get_value("Company", self.company, "abbr")
@@ -648,18 +647,12 @@ class OTAllowanceEntry(Document):
 			return
 		data = sorted(data, key=lambda x:x.get("attendance_date")) 
 
-		shift_start_times = {}
-		attendance_employee_names, employee_names = self.get_employee_names(data)
-		ot_request_hours = self.get_ot_request_hrs_map(data)
-
 		for row in data:
 			if self.branch:
 				if row.get("branch") != self.branch:
 					continue
 
-			if row["shift"] not in shift_start_times:
-				shift_start_times[row["shift"]] = frappe.db.get_value("Shift Type", row["shift"], "start_time")
-			shift_start = shift_start_times[row["shift"]]
+			shift_start = frappe.db.get_value("Shift Type", row["shift"], "start_time")
 			
 			# If employee came early → FULL early OT must be allowed
 			if row.get("first_in") and shift_start and row["first_in"] < shift_start:
@@ -674,81 +667,19 @@ class OTAllowanceEntry(Document):
 				continue
 
 			if row.get("attendance"):
-				row.update({"employee_name": attendance_employee_names.get(row["attendance"])})
+				row.update({"employee_name": frappe.db.get_value("Attendance", row["attendance"], "employee_name")})
 			else:
-				row.update({"employee_name": employee_names.get(row["employee"])})
+				row.update({"employee_name": frappe.db.get_value("Employee", row["employee"], "employee_name")})
 
 
 			# Lookup OT Request Hours (optional)
-			row["ot_request_hrs"] = None
-			if row.get("employee") and row.get("attendance_date"):
-				row["ot_request_hrs"] = ot_request_hours.get(
-					(row["employee"], getdate(row["attendance_date"]))
-				)
+			row["ot_request_hrs"] = self.get_ot_request_hrs(
+				row.get("employee"),
+				row.get("attendance_date")
+			)
 			#frappe.msgprint(f"Row: {row}")
 
 			self.append("ot_details", row)
-
-	def get_employee_names(self, data):
-		attendance_names = list({row["attendance"] for row in data if row.get("attendance")})
-		employees = list({row["employee"] for row in data if not row.get("attendance")})
-
-		attendance_employee_names = {}
-		if attendance_names:
-			attendance_employee_names = dict(
-				frappe.get_all(
-					"Attendance",
-					filters={"name": ["in", attendance_names]},
-					fields=["name", "employee_name"],
-					as_list=True,
-				)
-			)
-
-		employee_names = {}
-		if employees:
-			employee_names = dict(
-				frappe.get_all(
-					"Employee",
-					filters={"name": ["in", employees]},
-					fields=["name", "employee_name"],
-					as_list=True,
-				)
-			)
-
-		return attendance_employee_names, employee_names
-
-	def get_ot_request_hrs_map(self, data):
-		"""Batch version of get_ot_request_hrs, keyed by (employee, work start date)."""
-		employees = list({row["employee"] for row in data if row.get("employee")})
-		if not employees:
-			return {}
-
-		OTRequest = frappe.qb.DocType("OT Request")
-		OTRequestDetail = frappe.qb.DocType("Overtime Request Details")
-
-		rows = (
-			frappe.qb.from_(OTRequestDetail)
-			.inner_join(OTRequest).on(OTRequestDetail.parent == OTRequest.name)
-			.select(
-				OTRequestDetail.employee_id,
-				OTRequestDetail.work_start_date,
-				OTRequestDetail.ot_hours,
-			)
-			.where(
-				(OTRequest.docstatus == 1)
-				& (OTRequest.workflow_state == "Create Checkin")
-				& (OTRequestDetail.enable_ot_duration == 1)
-				& (OTRequestDetail.employee_id.isin(employees))
-				& (OTRequestDetail.work_start_date >= getdate(self.from_date))
-				& (OTRequestDetail.work_start_date < add_to_date(getdate(self.to_date), days=1))
-			)
-			.run(as_dict=True)
-		)
-
-		ot_request_hours = {}
-		for row in rows:
-			ot_request_hours.setdefault((row.employee_id, getdate(row.work_start_date)), row.ot_hours)
-		return ot_request_hours
 
 	def get_ot_request_hrs(self, employee, attendance_date):
 		"""Fetch ot_hours from Overtime Request Details child table of a submitted OT Request.
@@ -799,19 +730,14 @@ class OTAllowanceEntry(Document):
 	def get_weekoffs_ot_per_employee(self, from_log=False, emp = None, holidays = []):
 		res = []
 		final_result = []
-		shift_assignments = self.__dict__.setdefault("_weekly_off_shift_assignments", {})
 		for holiday in holidays:
-			# The lookup uses self.employee, so the result is the same for every employee on a given holiday
-			shift_assignment_key = (self.employee, getdate(holiday.holiday_date))
-			if shift_assignment_key not in shift_assignments:
-				shift_assignments[shift_assignment_key] = frappe.db.get_value("Shift Assignment",
+			shift_ass = frappe.db.get_value("Shift Assignment",
 					{"employee": self.employee,
 	  					"start_date": ["<=", holiday.holiday_date],
 						"end_date": [">=", holiday.holiday_date],
 						"docstatus": 1
 	  				},
 					['name','shift_type'], as_dict=1)
-			shift_ass = shift_assignments[shift_assignment_key]
 			default_shift = ''
 			holiday_date = getdate(holiday.holiday_date)
 			
