@@ -29,6 +29,69 @@ frappe.ui.form.on("OT Allowance Entry", {
 	// after_save: function(frm) {
 	// 	frm.call("get_ot_details",{"from_log":true})
 	// },
+	search(frm) {
+		const method = "gke_customization.gke_hrms.doctype.ot_allowance_entry.ot_allowance_entry";
+		const search_button = frm.fields_dict.search.$input;
+		const skip_fields = ["name", "owner", "creation", "modified", "modified_by", "docstatus", "idx", "parent", "parentfield", "parenttype", "doctype"];
+
+		const fill_ot_details = (ot_details) => {
+			frm.clear_table("ot_details");
+			(ot_details || []).forEach((row) => {
+				skip_fields.forEach((fieldname) => delete row[fieldname]);
+				frm.add_child("ot_details", row);
+			});
+			frm.refresh_field("ot_details");
+			frm.dirty();
+		};
+
+		const wait_for_background_search = () => {
+			frappe.show_alert({ message: __("Fetching OT details..."), indicator: "blue" });
+			frappe.realtime.off("ot_allowance_entry_search_done");
+			frappe.realtime.on("ot_allowance_entry_search_done", (data) => {
+				frappe.realtime.off("ot_allowance_entry_search_done");
+				search_button.prop("disabled", false);
+				if (!data.success) {
+					frappe.msgprint({ title: __("Search Failed"), message: data.error, indicator: "red" });
+					return;
+				}
+				if (data.saved) {
+					if (cur_frm && cur_frm.doctype === frm.doctype && cur_frm.docname === data.docname) {
+						cur_frm.reload_doc();
+					}
+					return;
+				}
+				frappe.call({
+					method: `${method}.get_ot_details_result`,
+					callback: (r) => {
+						if (!r.message) return;
+						const result = JSON.parse(r.message);
+						fill_ot_details(result.ot_details);
+						(result.messages || []).forEach((m) => {
+							const message = typeof m === "string" ? JSON.parse(m) : m;
+							frappe.msgprint(message.message || message);
+						});
+					},
+				});
+			});
+		};
+
+		search_button.prop("disabled", true);
+		frappe.call({
+			method: `${method}.start_get_ot_details`,
+			args: { doc: frm.doc },
+			callback: (r) => {
+				if (!r.message) {
+					search_button.prop("disabled", false);
+				} else if (r.message.background) {
+					wait_for_background_search();
+				} else {
+					search_button.prop("disabled", false);
+					fill_ot_details(r.message.ot_details);
+				}
+			},
+			error: () => search_button.prop("disabled", false),
+		});
+	},
 	employee(frm) {
 		if (frm.doc.employee) {
 			frappe.db.get_value("Employee", frm.doc.employee, 
