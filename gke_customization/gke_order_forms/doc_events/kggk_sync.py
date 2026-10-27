@@ -682,6 +682,7 @@ TRIGGERS = (
 	"Prefill",
 	"Reconcile",
 	"Retry",
+	"Revise Field",
 )
 
 
@@ -4698,6 +4699,127 @@ def _find_existing_on_target(config, doctype, name, target_host):
 	if not adopted:
 		log_skip("KGGK holds a record under this name that could not be claimed", doctype, name)
 	return adopted
+
+
+# ============================================================================
+# REVISE FIELD
+# ============================================================================
+
+# Revise Field changes a variant's attribute rows with `frappe.db.set_value`, so the Item is never
+# saved: `item_on_update` never fires and the Item's `modified` never moves for the reconciler.
+# An Item push would not carry them anyway - `attributes` is in IMMUTABLE_ON_UPDATE, because a
+# normal save on KGGK refuses attribute changes once the variant has stock. So the revision
+# itself goes across: KGGK runs the same Revise Field, which applies it the same way.
+
+REVISE_FIELD_METHOD = "gke_customization.gke_order_forms.doc_events.kggk_sync.push_revise_field"
+
+
+def _report_revise_field_error(stage, name):
+	"""An error nobody planned for, in queueing ("queue") or sending ("push"). It goes to the Error
+	Log as well as the bench log: a revision that never reached KGGK must not go unnoticed. Never
+	raises - the save, or the job, is not worth failing over the report."""
+	frappe.logger("kggk_sync").exception(f"could not {stage} Revise Field {name} for KGGK")
+	try:
+		frappe.log_error(frappe.get_traceback(), f"KGGK sync: Revise Field {name} ({stage})"[:140])
+	except Exception:
+		pass
+
+
+def queue_revise_field(doc):
+	"""Revise Field ``on_update``: queue its push to KGGK after commit. Never fails the save.
+
+	Not limited to plan-linked items like an Item save: a revision is a deliberate change to an
+	item KGGK already holds, and `push_revise_field` checks that it does.
+	"""
+	from gke_customization.gke_order_forms.doctype.revise_field.revise_field import (
+		revise_field_values,
+	)
+
+	try:
+		if in_reentrant_context() or not is_sync_enabled() or not cint(setting("sync_updates", 1)):
+			return
+		if not doc.item or not revise_field_values(doc):
+			return
+		_dispatch(
+			method=REVISE_FIELD_METHOD,
+			queue="long",
+			job_id=f"kggk_revise_field::{doc.name}",
+			deduplicate=True,
+			name=doc.name,
+		)
+	except Exception:
+		_report_revise_field_error("queue", doc.name)
+
+
+def push_revise_field(name):
+	"""Create the same Revise Field on KGGK, against KGGK's name for the item.
+
+	Every attribute field the revision sets is sent, not only the ones that changed here, so
+	saving the Revise Field again re-sends it; KGGK's own `validate` writes only rows that differ.
+	A problem opens a KGGK Sync Log (trigger "Revise Field"); a success writes none. The Item's
+	Sync State is left alone: an Item push cannot carry attributes, so marking it failed would
+	only send the reconciler after something it cannot fix.
+	"""
+	from gke_customization.gke_order_forms.doctype.revise_field.revise_field import (
+		revise_field_values,
+	)
+
+	try:
+		if in_reentrant_context():
+			return
+
+		config, reason = get_sync_config()
+		if not config:
+			log_skip(reason, "Revise Field", name)
+			return
+
+		doc = frappe.get_doc("Revise Field", name)
+		values = revise_field_values(doc)
+		if not doc.item or not values:
+			return
+
+		run = SyncRun(trigger="Revise Field", reference=name, config=config, log=LOG_ON_PROBLEM)
+
+		# KGGK's name for the item, which need not be ours: Sync State first, then KGGK itself, by
+		# the source identity stamped on the item it holds. Never the same name by assumption.
+		target_item = target_name_if_known("Item", doc.item, host_of(config.to_site))
+		if not target_item:
+			found = lookup_by_identity(config, "Item", doc.item, run=run)
+			if found is _LOOKUP_FAILED:
+				run.mismatch(
+					"Item",
+					doc.item,
+					f"Revise Field {name}: could not ask KGGK which item came from {doc.item}",
+					kind="REVISE-FIELD",
+				)
+				run.finish()
+				return
+			target_item = found
+		if not target_item:
+			log_skip("item not on KGGK - it takes its attributes when it is created there", "Revise Field", name)
+			return
+
+		company_ok, company_message = verify_target_company(config, run=run)
+		if not company_ok:
+			run.mismatch("Item", doc.item, company_message, kind="REVISE-FIELD")
+			run.finish()
+			return
+
+		response = api_post(config, "/api/resource/Revise Field", json={"item": target_item, **values})
+		if response.ok:
+			run.line(
+				"REVISED", "Item", doc.item, f"{name} applied to KGGK's {target_item}: {', '.join(sorted(values))}"
+			)
+		else:
+			run.mismatch(
+				"Item",
+				doc.item,
+				f"Revise Field {name} could not be applied to KGGK's {target_item} - {response.message()}",
+				kind="REVISE-FIELD",
+			)
+		run.finish()
+	except Exception:
+		_report_revise_field_error("push", name)
 
 
 # ============================================================================
