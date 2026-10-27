@@ -995,18 +995,17 @@ def get_shift(employee, date, default_shift):
 SEARCH_RESULT_EXPIRY_IN_SECONDS = 3600
 SEARCH_BACKGROUND_TIMEOUT_IN_SECONDS = 900
 # Searches covering more employee days than this run in the background
-DEFAULT_SEARCH_BACKGROUND_THRESHOLD = 1000
+SEARCH_BACKGROUND_THRESHOLD = 1000
 
 
 @frappe.whitelist()
 def start_get_ot_details(doc, from_log=False):
 	"""Run small searches inline and queue large ones so they are not limited by the request timeout."""
-	frappe.has_permission("OT Allowance Entry", "read", throw=True)
 	doc_dict = frappe.parse_json(doc)
+	entry = frappe.get_doc(doc_dict)
+	entry.check_permission("read")
 
-	threshold = frappe.conf.get("ot_allowance_search_background_threshold") or DEFAULT_SEARCH_BACKGROUND_THRESHOLD
-	if get_employee_days_to_search(doc_dict) <= threshold:
-		entry = frappe.get_doc(doc_dict)
+	if get_employee_days_to_search(doc_dict) <= SEARCH_BACKGROUND_THRESHOLD:
 		entry.get_ot_details(from_log)
 		return {"background": False, "ot_details": [row.as_dict() for row in entry.ot_details]}
 
@@ -1030,9 +1029,10 @@ def get_employee_days_to_search(doc_dict):
 	if doc_dict.get("employee") or doc_dict.get("punch_id"):
 		employee_count = 1
 	else:
+		# Branch is left out on purpose: the weekly off pass walks every employee of these filters
 		filters = {
 			fieldname: doc_dict[fieldname]
-			for fieldname in ("company", "branch", "department", "designation")
+			for fieldname in ("company", "department", "designation")
 			if doc_dict.get(fieldname)
 		}
 		employee_count = frappe.db.count("Employee", filters)
@@ -1043,43 +1043,63 @@ def get_employee_days_to_search(doc_dict):
 	return employee_count * max(days, 1)
 
 
+def get_search_result_key(user, docname):
+	return f"ot_allowance_entry_search_result::{user}::{docname}"
+
+
 def run_get_ot_details(doc, from_log, user):
-	result_key = f"ot_allowance_entry_search_result::{user}"
+	docname = doc.get("name")
 	try:
 		entry = frappe.get_doc(doc)
 		entry.get_ot_details(from_log)
+		messages = list(frappe.local.message_log)
+		frappe.local.message_log = []
 
-		# A saved draft keeps the result even if the user has left the form
-		if entry.docstatus == 0 and frappe.db.exists("OT Allowance Entry", entry.name):
+		# A saved draft keeps the result even if the user has left the form.
+		# Entries in the Create OT state are not saved here because saving creates OT Logs.
+		if (
+			entry.docstatus == 0
+			and entry.workflow_state != "Create OT"
+			and frappe.db.exists("OT Allowance Entry", entry.name)
+		):
 			entry.save()
 			frappe.db.commit()
 			frappe.publish_realtime(
 				"ot_allowance_entry_search_done",
-				{"success": True, "saved": True, "docname": entry.name},
+				{"success": True, "saved": True, "docname": entry.name, "messages": messages},
 				user=user,
 			)
 			return
 
-		result = {
-			"ot_details": [row.as_dict() for row in entry.ot_details],
-			"messages": list(frappe.local.message_log),
-		}
-		frappe.local.message_log = []
-		frappe.cache.set_value(result_key, frappe.as_json(result), expires_in_sec=SEARCH_RESULT_EXPIRY_IN_SECONDS)
-		frappe.publish_realtime("ot_allowance_entry_search_done", {"success": True, "saved": False}, user=user)
+		result = {"ot_details": [row.as_dict() for row in entry.ot_details], "messages": messages}
+		frappe.cache.set_value(
+			get_search_result_key(user, docname),
+			frappe.as_json(result),
+			expires_in_sec=SEARCH_RESULT_EXPIRY_IN_SECONDS,
+		)
+		frappe.publish_realtime(
+			"ot_allowance_entry_search_done",
+			{"success": True, "saved": False, "docname": docname},
+			user=user,
+		)
 	except Exception:
+		frappe.db.rollback()
 		frappe.log_error(title="OT Allowance Entry Search Failed")
 		frappe.publish_realtime(
 			"ot_allowance_entry_search_done",
-			{"success": False, "error": frappe.get_traceback(with_context=False).splitlines()[-1]},
+			{
+				"success": False,
+				"docname": docname,
+				"error": frappe.get_traceback(with_context=False).splitlines()[-1],
+			},
 			user=user,
 		)
 
 
 @frappe.whitelist()
-def get_ot_details_result():
+def get_ot_details_result(docname):
 	frappe.has_permission("OT Allowance Entry", "read", throw=True)
-	result_key = f"ot_allowance_entry_search_result::{frappe.session.user}"
+	result_key = get_search_result_key(frappe.session.user, docname)
 	result = frappe.cache.get_value(result_key)
 	frappe.cache.delete_value(result_key)
 	return result

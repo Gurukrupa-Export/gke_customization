@@ -44,52 +44,64 @@ frappe.ui.form.on("OT Allowance Entry", {
 			frm.dirty();
 		};
 
-		const wait_for_background_search = () => {
-			frappe.show_alert({ message: __("Fetching OT details..."), indicator: "blue" });
+		const show_messages = (messages) => {
+			(messages || []).forEach((m) => {
+				const message = typeof m === "string" ? JSON.parse(m) : m;
+				frappe.msgprint(message.message || message);
+			});
+		};
+
+		const stop_waiting = () => {
+			clearTimeout(frm.search_wait_timer);
+			frappe.realtime.off("ot_allowance_entry_search_done");
+			search_button.prop("disabled", false);
+		};
+
+		// Registered before the server call so that a job which fails fast is not missed
+		const listen_for_background_search = () => {
+			const docname = frm.docname;
 			frappe.realtime.off("ot_allowance_entry_search_done");
 			frappe.realtime.on("ot_allowance_entry_search_done", (data) => {
-				frappe.realtime.off("ot_allowance_entry_search_done");
-				search_button.prop("disabled", false);
+				if (data.docname !== docname) return;
+				stop_waiting();
 				if (!data.success) {
 					frappe.msgprint({ title: __("Search Failed"), message: data.error, indicator: "red" });
 					return;
 				}
 				if (data.saved) {
 					if (cur_frm && cur_frm.doctype === frm.doctype && cur_frm.docname === data.docname) {
-						cur_frm.reload_doc();
+						cur_frm.reload_doc().then(() => show_messages(data.messages));
 					}
 					return;
 				}
+				if (cur_frm !== frm || frm.docname !== docname) return;
 				frappe.call({
 					method: `${method}.get_ot_details_result`,
+					args: { docname: docname },
 					callback: (r) => {
 						if (!r.message) return;
 						const result = JSON.parse(r.message);
 						fill_ot_details(result.ot_details);
-						(result.messages || []).forEach((m) => {
-							const message = typeof m === "string" ? JSON.parse(m) : m;
-							frappe.msgprint(message.message || message);
-						});
+						show_messages(result.messages);
 					},
 				});
 			});
+			frappe.show_alert({ message: __("Fetching OT details..."), indicator: "blue" });
+			// Fallback so the button cannot stay disabled if the realtime event is lost
+			frm.search_wait_timer = setTimeout(stop_waiting, 20 * 60 * 1000);
 		};
 
 		search_button.prop("disabled", true);
+		listen_for_background_search();
 		frappe.call({
 			method: `${method}.start_get_ot_details`,
 			args: { doc: frm.doc },
 			callback: (r) => {
-				if (!r.message) {
-					search_button.prop("disabled", false);
-				} else if (r.message.background) {
-					wait_for_background_search();
-				} else {
-					search_button.prop("disabled", false);
-					fill_ot_details(r.message.ot_details);
-				}
+				if (r.message && r.message.background) return;
+				stop_waiting();
+				if (r.message) fill_ot_details(r.message.ot_details);
 			},
-			error: () => search_button.prop("disabled", false),
+			error: () => stop_waiting(),
 		});
 	},
 	employee(frm) {
