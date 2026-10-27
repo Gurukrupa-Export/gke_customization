@@ -23,6 +23,7 @@ Everything lives in this single file on purpose so the whole feature can be read
 and reverted in one place.
 """
 
+import copy
 import os
 import time
 from contextlib import contextmanager
@@ -988,6 +989,10 @@ class SyncRun:
 		# "Does this master exist on the target" answers, reused across the chunk so fifty
 		# items do not ask about the same Item Group fifty times.
 		self.link_cache = {}
+
+		# The target's copy of a template, by its name there, as `align_template_attributes` last
+		# read or wrote it - so the variants of one template do not each read it again.
+		self.template_cache = {}
 
 		# `item_code -> Copy BOM`, warmed for the whole chunk by `sync_records`. See
 		# `copy_bom_map`.
@@ -3348,6 +3353,152 @@ def _send_via_rest(config, doctype, name, data, lookup, run, clears, identified)
 	return response, "created", assigned, []
 
 
+# The columns of a template's attribute row that decide which values a variant may carry.
+#
+# ERPNext checks a new variant against its *template's* rows, not against the Item Attribute:
+# `Item.validate_variant` reads `numeric_values` off the template's row, and a row that is not
+# numeric must find the value in the attribute's own list - which a numeric attribute does not
+# have. So a template whose row was made numeric here after it went across refuses every new
+# variant of it over there: "Attribute Value 7.0 is not valid for the selected attribute ...".
+#
+# Nothing else ever repairs that. An existing template is not pushed again before its variant,
+# and an update never carries `attributes` (IMMUTABLE_ON_UPDATE).
+TEMPLATE_ATTRIBUTE_FLAGS = ("numeric_values", "from_range", "to_range", "increment")
+
+
+def align_template_attributes(config, doc, run):
+	"""Make the target's copy of ``doc``'s template accept the attributes ``doc`` carries.
+
+	Only those attributes - they are what the target checks when it creates ``doc`` - and only
+	in the direction of accepting more:
+
+	* an attribute the target's template lacks is added with this site's settings, or the
+	  create fails with "Attribute ... is not valid for the selected template";
+	* a numeric row here makes the target's row numeric, with the same range and increment;
+	* a list row here leaves the target's row alone: a numeric row over there never consults a
+	  list, and turning it into one could only refuse more.
+
+	One read per template per run (`run.template_cache`), and a write only when something
+	differs. The write carries the `modified` it was read at, so it is refused rather than
+	overwriting a template another worker corrected in between; that case is read again and
+	retried once. Returns False when the template could not be read or corrected; the variant is
+	pushed anyway, and the target has the last word.
+	"""
+	template = doc.variant_of
+	needed = list(
+		dict.fromkeys(
+			row.attribute
+			for row in doc.get("attributes") or []
+			if row.attribute and str(row.attribute_value or "").strip()
+		)
+	)
+	if not needed:
+		return True
+
+	ours = {
+		row.attribute: row
+		for row in frappe.get_all(
+			"Item Variant Attribute",
+			filters={"parenttype": "Item", "parent": template, "attribute": ("in", needed)},
+			fields=["attribute", *TEMPLATE_ATTRIBUTE_FLAGS],
+		)
+	}
+
+	target_id = target_name_for("Item", template, host_of(config.to_site))
+	cache = run.template_cache
+
+	for attempt in range(2):
+		data = cache.get(target_id)
+		if data is None:
+			response = api_get(config, f"/api/resource/Item/{segment(target_id)}")
+			if not response.ok:
+				run.mismatch(
+					"Item",
+					template,
+					f"could not read the target's {target_id} to check the attributes {doc.name} "
+					f"needs - {response.message()}",
+					kind="TEMPLATE-ATTRIBUTES",
+				)
+				return False
+			data = cache[target_id] = (response.data or {}).get("data") or {}
+
+		# A copy: the cached read must stay what the target holds until a write succeeds.
+		rows = copy.deepcopy(data.get("attributes") or [])
+		changes = _template_attribute_changes(rows, needed, ours)
+		if not changes:
+			return True
+
+		# Every row, under the target's own row names. A PUT replaces the whole table, so a row
+		# left out is a row deleted - and ERPNext refuses that for an attribute the variants still
+		# use.
+		body = {
+			"attributes": [
+				{key: value for key, value in row.items() if key == "name" or key not in CHILD_EXCLUDE}
+				for row in rows
+			]
+		}
+		if data.get("modified"):
+			# Frappe's `check_if_latest` refuses the save if the template changed since this read.
+			body["modified"] = data["modified"]
+
+		put = api_put(config, f"/api/resource/Item/{segment(target_id)}", json=body)
+		if put.ok:
+			saved = (put.data or {}).get("data")
+			if saved:
+				cache[target_id] = saved
+			else:
+				cache.pop(target_id, None)
+			run.line(
+				"ALIGNED",
+				"Item",
+				template,
+				f"the target's {target_id} now takes {doc.name}: {'; '.join(changes)}",
+			)
+			return True
+
+		cache.pop(target_id, None)
+		if put.exc_type == "TimestampMismatchError" and attempt == 0:
+			continue
+
+		run.mismatch(
+			"Item",
+			template,
+			f"the target's {target_id} would refuse {doc.name} ({'; '.join(changes)}) and could "
+			f"not be corrected - {put.message()}",
+			kind="TEMPLATE-ATTRIBUTES",
+		)
+		return False
+
+
+def _template_attribute_changes(rows, needed, ours):
+	"""Bring the target's template ``rows`` in line with ours for ``needed``, in place.
+
+	Returns what changed, for the log. See `align_template_attributes` for the rules.
+	"""
+	theirs = {row.get("attribute"): row for row in rows}
+	changes = []
+	for attribute in needed:
+		source = ours.get(attribute)
+		if not source:
+			# Not on our own template either, so there is nothing to copy. The variant could not
+			# have been saved here like that; the target's refusal is the honest answer.
+			continue
+		wanted = {field: source.get(field) for field in TEMPLATE_ATTRIBUTE_FLAGS}
+		row = theirs.get(attribute)
+		if row is None:
+			rows.append({"attribute": attribute, **wanted})
+			changes.append(f"added {attribute}")
+		elif cint(source.numeric_values) and any(
+			_value_differs(row.get(field), value) for field, value in wanted.items()
+		):
+			row.update(wanted)
+			changes.append(
+				f"{attribute} numeric {flt(source.from_range)}-{flt(source.to_range)} "
+				f"by {flt(source.increment)}"
+			)
+	return changes
+
+
 def push_item(item_code, config, run, seen=None):
 	"""Create or update one Item on the target, attachments included."""
 	seen = seen if seen is not None else set()
@@ -3370,10 +3521,15 @@ def push_item(item_code, config, run, seen=None):
 	# A variant cannot be created before its template exists on the target.
 	if doc.get("variant_of"):
 		template = doc.variant_of
-		if api_exists(config, "Item", target_name_for("Item", template, target_host)) is False:
+		template_exists = api_exists(config, "Item", target_name_for("Item", template, target_host))
+		if template_exists is False:
 			run.line("INFO", "Item", item_code, f"template {template} missing on target, pushing it first")
 			run.items_total += 1
 			push_item(template, config, run, seen=seen)
+		elif template_exists and not target_name_if_known("Item", item_code, target_host):
+			# There, but with the attribute rows it arrived with - see `align_template_attributes`.
+			# Only before a create: an update never sends attributes, so they cannot refuse it.
+			align_template_attributes(config, doc, run)
 
 	allowed = get_target_fields(config, "Item", run=run)
 	data, attachments = build_payload(doc, allowed, run=run, config=config)

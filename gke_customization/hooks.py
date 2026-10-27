@@ -328,6 +328,7 @@ doc_events = {
 # BOM needs both events: Frappe runs `on_update` for a save and a submit, but a *different*
 # event for an edit after submit, and BOMs here are submitted.
 "Item": {
+    "before_validate": "gke_customization.gke_order_forms.doc_events.item.set_numeric_attribute_values",
     "on_update": "gke_customization.gke_order_forms.doc_events.kggk_sync.item_on_update"
 },
 "BOM": {
