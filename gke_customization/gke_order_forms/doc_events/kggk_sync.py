@@ -4714,6 +4714,17 @@ def _find_existing_on_target(config, doctype, name, target_host):
 REVISE_FIELD_METHOD = "gke_customization.gke_order_forms.doc_events.kggk_sync.push_revise_field"
 
 
+def _report_revise_field_error(stage, name):
+	"""An error nobody planned for, in queueing ("queue") or sending ("push"). It goes to the Error
+	Log as well as the bench log: a revision that never reached KGGK must not go unnoticed. Never
+	raises - the save, or the job, is not worth failing over the report."""
+	frappe.logger("kggk_sync").exception(f"could not {stage} Revise Field {name} for KGGK")
+	try:
+		frappe.log_error(frappe.get_traceback(), f"KGGK sync: Revise Field {name} ({stage})"[:140])
+	except Exception:
+		pass
+
+
 def queue_revise_field(doc):
 	"""Revise Field ``on_update``: queue its push to KGGK after commit. Never fails the save.
 
@@ -4737,7 +4748,7 @@ def queue_revise_field(doc):
 			name=doc.name,
 		)
 	except Exception:
-		frappe.logger("kggk_sync").exception(f"could not queue the KGGK push for Revise Field {doc.name}")
+		_report_revise_field_error("queue", doc.name)
 
 
 def push_revise_field(name):
@@ -4808,7 +4819,7 @@ def push_revise_field(name):
 			)
 		run.finish()
 	except Exception:
-		frappe.logger("kggk_sync").exception(f"could not push Revise Field {name} to KGGK")
+		_report_revise_field_error("push", name)
 
 
 # ============================================================================

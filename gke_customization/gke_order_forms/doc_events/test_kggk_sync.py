@@ -4154,6 +4154,25 @@ class TestReviseFieldGoesAcross(unittest.TestCase):
 		self.assertIn("UP-7", mismatch.call_args.args[3])
 		mark_state.assert_not_called()
 
+	def test_an_unexpected_error_reaches_the_error_log_and_does_not_raise(self):
+		with patch.object(k, "in_reentrant_context", return_value=False), patch.object(
+			k, "get_sync_config", side_effect=RuntimeError("boom")
+		), patch.object(k.frappe, "log_error") as log_error:
+			k.push_revise_field("UP-7")
+
+		log_error.assert_called_once()
+		self.assertIn("UP-7", log_error.call_args.args[1])
+
+	def test_a_queueing_error_reaches_the_error_log_and_does_not_fail_the_save(self):
+		with patch.object(k, "in_reentrant_context", return_value=False), patch.object(
+			k, "is_sync_enabled", return_value=True
+		), patch.object(k, "setting", return_value=1), patch.object(
+			k, "_dispatch", side_effect=RuntimeError("boom")
+		), patch.object(k.frappe, "log_error") as log_error:
+			k.queue_revise_field(self._revision(sizer_type="Anna"))
+
+		log_error.assert_called_once()
+
 	def test_revise_field_is_a_trigger_the_log_accepts(self):
 		self.assertIn("Revise Field", k.TRIGGERS)
 		with open(frappe.get_app_path("gke_customization", "gke_order_forms", "doctype", "kggk_sync_log", "kggk_sync_log.json")) as f:
