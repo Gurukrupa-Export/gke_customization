@@ -295,7 +295,8 @@ class ProductReturnOrder(Document):
 			serial.item_code = self.item_code
 			serial.customer = self.customer
 			serial.company=self.company
-			serial.purchase_document_no = self.name
+			serial.reference_name = self.name
+			serial.reference_doctype = "Product Return Order"
 			serial.description=self.description
 			self.item_name=self.item_name
 			serial.custom_jwelex_tag_no = self.jewelex_tag
