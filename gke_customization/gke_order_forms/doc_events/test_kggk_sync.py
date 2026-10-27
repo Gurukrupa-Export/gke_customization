@@ -4170,8 +4170,13 @@ class TestReviseFieldGoesAcross(unittest.TestCase):
 		self.assertEqual(self._rows(), [("Item", "MU06453-002", "Synced")])
 		self.assertEqual(self.finish.call_args.args[1], k.STATUS_COMPLETED)
 		self.state.assert_called_once_with(
-			"Revise Field", "UP-7", "Synced", "kggk.example.com", target_name="MU06453-002-K"
+			"Revise Field", "UP-7", "Synced", "kggk.example.com", target_name="MU06453-002-K", local_modified=None
 		)
+
+	def test_synced_is_stamped_with_the_version_the_job_sent_not_the_latest(self):
+		self._push(self._revision(sizer_type="Anna", modified="2026-10-27 10:00:00"))
+
+		self.assertEqual(self.state.call_args.kwargs["local_modified"], "2026-10-27 10:00:00")
 
 	def test_sync_states_name_is_used_without_asking_kggk(self):
 		self._push(self._revision(sizer_type="Anna"), target_item="KG-MU06453-002")
@@ -4242,13 +4247,86 @@ class TestReviseFieldGoesAcross(unittest.TestCase):
 			k, "get_sync_config", side_effect=RuntimeError("boom")
 		), patch.object(k.frappe, "log_error") as log_error, patch.object(
 			k, "_close_revise_field_log"
-		) as close:
+		) as close, patch.object(k, "_settle_revise_field_state") as settle:
 			k.push_revise_field("UP-7", log_name="LOG-1")
 
 		log_error.assert_called_once()
 		self.assertIn("UP-7", log_error.call_args.args[1])
 		close.assert_called_once()
 		self.assertEqual(close.call_args.args[:2], ("LOG-1", k.STATUS_FAILED))
+		# The Pending row written at the save does not stay Pending.
+		self.assertEqual(settle.call_args.args[:2], ("UP-7", "Failed"))
+
+	# -- a save made while the push is running --------------------------------------------
+
+	def _passes(self, modified_after, queued_log="LOG-2"):
+		"""Run the wrapper with `_push_revise_field_once` mocked: the first pass reads `modified` 'T1'
+		and a later one 'T2' (what a save made meanwhile leaves), and the database says
+		`modified_after` once a push is over."""
+		with patch.object(k, "_push_revise_field_once", side_effect=["T1", "T2", "T2"]) as once, patch.object(
+			k.frappe.db, "commit"
+		), patch.object(
+			k.frappe.db, "get_value", side_effect=lambda dt, *a, **kw: queued_log if dt == k.LOG_DOCTYPE else modified_after
+		):
+			k.push_revise_field("UP-7", log_name="LOG-1")
+		return once
+
+	def test_a_save_made_while_the_push_runs_is_sent_by_a_second_pass_on_its_own_log(self):
+		once = self._passes(modified_after="T2")
+
+		self.assertEqual(once.call_count, 2)
+		self.assertEqual(once.call_args_list[0].args, ("UP-7", "LOG-1"))
+		self.assertEqual(once.call_args_list[1].args, ("UP-7", "LOG-2"))
+
+	def test_no_second_pass_when_the_revise_field_did_not_move(self):
+		self.assertEqual(self._passes(modified_after="T1").call_count, 1)
+
+	def test_nothing_sent_means_no_second_pass(self):
+		with patch.object(k, "_push_revise_field_once", return_value=None) as once, patch.object(
+			k.frappe.db, "get_value"
+		) as get_value:
+			k.push_revise_field("UP-7")
+
+		once.assert_called_once()
+		get_value.assert_not_called()
+
+	def test_the_passes_are_bounded(self):
+		with patch.object(k, "_push_revise_field_once", return_value="T1") as once, patch.object(
+			k.frappe.db, "commit"
+		), patch.object(k.frappe.db, "get_value", return_value="always-newer"):
+			k.push_revise_field("UP-7")
+
+		self.assertEqual(once.call_count, k.REVISE_FIELD_MAX_PASSES)
+
+	# -- a push that stops before a run could end it ---------------------------------------
+
+	def test_a_lost_hand_off_does_not_leave_the_state_pending(self):
+		row = frappe._dict(
+			name="LOG-1", status=k.STATUS_QUEUED, trigger="Revise Field", reference="UP-7",
+			job_id="kggk_revise_field::UP-7", generation=1, heartbeat_on=None, modified=None,
+		)
+		with ExitStack() as stack:
+			enter = stack.enter_context
+			enter(patch.object(k.frappe, "get_all", return_value=[row]))
+			enter(patch.object(k, "_job_state", return_value="finished"))
+			enter(patch.object(k, "read_manifest", return_value=None))
+			enter(patch.object(k.frappe.db, "set_value"))
+			enter(patch.object(k.frappe.db, "commit"))
+			enter(patch.object(k, "_redispatch_pending"))
+			settle = enter(patch.object(k, "_settle_revise_field_state"))
+			k.reap_stale_runs()
+
+		settle.assert_called_once()
+		self.assertEqual(settle.call_args.args[:2], ("UP-7", "Failed"))
+
+	def test_settling_only_touches_rows_still_pending(self):
+		with patch.object(k.frappe.db, "set_value") as set_value:
+			k._settle_revise_field_state("UP-7", "Failed", "Stopped: lost")
+
+		doctype, filters, values = set_value.call_args.args
+		self.assertEqual(doctype, k.STATE_DOCTYPE)
+		self.assertEqual(filters, {"record_doctype": "Revise Field", "record_name": "UP-7", "status": "Pending"})
+		self.assertEqual(values, {"status": "Failed", "last_error": "Stopped: lost"})
 
 	def test_the_log_queued_at_save_is_the_one_the_run_completes(self):
 		with ExitStack() as stack:

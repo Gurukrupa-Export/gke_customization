@@ -4772,6 +4772,20 @@ def _close_revise_field_log(log_name, status, summary):
 		frappe.logger("kggk_sync").exception(f"could not close {log_name}")
 
 
+def _settle_revise_field_state(name, status, note):
+	"""Give a Revise Field's Pending Sync State rows an ending when the push stopped before a run
+	could: the run's own `mark_state` does it otherwise. Only Pending rows - one a run has
+	already settled is not touched. Never raises."""
+	try:
+		frappe.db.set_value(
+			STATE_DOCTYPE,
+			{"record_doctype": "Revise Field", "record_name": name, "status": "Pending"},
+			{"status": status, "last_error": str(note or "")[:500]},
+		)
+	except Exception:
+		frappe.logger("kggk_sync").exception(f"could not settle the Sync State of Revise Field {name}")
+
+
 def queue_revise_field(doc):
 	"""Revise Field ``on_update``: write the push down and queue it after commit.
 
@@ -4811,8 +4825,40 @@ def queue_revise_field(doc):
 		_report_revise_field_error("queue", doc.name)
 
 
-def push_revise_field(name, log_name=None):
-	"""Create the same Revise Field on KGGK, against KGGK's name for the item.
+# How many times one job sends a Revise Field that was saved again while it was running.
+REVISE_FIELD_MAX_PASSES = 3
+
+
+def push_revise_field(name, log_name=None, _pass=1):
+	"""Send the Revise Field to KGGK; then again if it was saved again while that ran.
+
+	The job id is deduplicated, and a running job counts as already there: a save made while the
+	push is running queues nothing, and the push has read its values by then. So when it ends it
+	looks at `modified` again and, if the Revise Field moved, sends it once more - using the log
+	that second save queued. Bounded by `REVISE_FIELD_MAX_PASSES`.
+	"""
+	sent = _push_revise_field_once(name, log_name)
+	if not sent or _pass >= REVISE_FIELD_MAX_PASSES:
+		return
+	try:
+		# End this job's snapshot first, or a save committed meanwhile cannot be seen.
+		frappe.db.commit()
+		current = frappe.db.get_value("Revise Field", name, "modified")
+		if current and current != sent:
+			follow = frappe.db.get_value(
+				LOG_DOCTYPE,
+				{"trigger": "Revise Field", "reference": name, "status": STATUS_QUEUED},
+				"name",
+			)
+			push_revise_field(name, log_name=follow, _pass=_pass + 1)
+	except Exception:
+		_report_revise_field_error("push", name)
+
+
+def _push_revise_field_once(name, log_name=None):
+	"""One send of the Revise Field to KGGK, against KGGK's name for the item.
+
+	Returns the `modified` of the Revise Field it read, or None when it sent nothing.
 
 	Every attribute field the revision sets is sent, not only the ones that changed here, so
 	saving the Revise Field again re-sends it; KGGK's own `validate` writes only rows that differ.
@@ -4828,7 +4874,7 @@ def push_revise_field(name, log_name=None):
 		revise_field_values,
 	)
 
-	run = site = item = None
+	run = site = item = sent = None
 	try:
 		if in_reentrant_context():
 			return
@@ -4837,6 +4883,7 @@ def push_revise_field(name, log_name=None):
 		if not config:
 			log_skip(reason, "Revise Field", name)
 			_close_revise_field_log(log_name, STATUS_FAILED, f"Not sent: {reason}")
+			_settle_revise_field_state(name, "Failed", f"Not sent: {reason}")
 			return
 		site = host_of(config.to_site)
 
@@ -4845,7 +4892,9 @@ def push_revise_field(name, log_name=None):
 		values = revise_field_values(doc)
 		if not item or not values:
 			_close_revise_field_log(log_name, STATUS_COMPLETED, "Nothing to send: no attribute is set.")
+			_settle_revise_field_state(name, "Synced", "Nothing to send: no attribute is set.")
 			return
+		sent = doc.get("modified")
 
 		run = SyncRun(
 			trigger="Revise Field", reference=name, config=config, log_name=log_name, log=LOG_ALWAYS
@@ -4868,20 +4917,20 @@ def push_revise_field(name, log_name=None):
 			found = lookup_by_identity(config, "Item", item, run=run)
 			if found is _LOOKUP_FAILED:
 				failed(f"Revise Field {name}: could not ask KGGK which item came from {item}")
-				return
+				return sent
 			target_item = found
 		if not target_item:
 			note = "item not on KGGK - it takes its attributes when it is created there"
 			log_skip(note, "Revise Field", name)
 			run.row("Item", item, "Skipped", note, action=action)
-			mark_state("Revise Field", name, "Synced", site, error=note)
+			mark_state("Revise Field", name, "Synced", site, error=note, local_modified=sent)
 			run.finish(STATUS_COMPLETED)
-			return
+			return sent
 
 		company_ok, company_message = verify_target_company(config, run=run)
 		if not company_ok:
 			failed(company_message, target_item)
-			return
+			return sent
 
 		response = api_post(config, "/api/resource/Revise Field", json={"item": target_item, **values})
 		if not response.ok:
@@ -4889,19 +4938,22 @@ def push_revise_field(name, log_name=None):
 				f"Revise Field {name} could not be applied to KGGK's {target_item} - {response.message()}",
 				target_item,
 			)
-			return
+			return sent
 
 		message = f"{name} applied to KGGK's {target_item}: {', '.join(sorted(values))}"
 		run.line("REVISED", "Item", item, message)
 		run.row("Item", item, "Synced", message, action=action)
 		run.items_synced += 1
-		mark_state("Revise Field", name, "Synced", site, target_name=target_item)
+		mark_state("Revise Field", name, "Synced", site, target_name=target_item, local_modified=sent)
 		run.finish(STATUS_COMPLETED)
+		return sent
 	except Exception as exc:
 		_report_revise_field_error("push", name)
 		message = f"unexpected error: {exc}"
 		if site:
 			mark_state("Revise Field", name, "Failed", site, error=message)
+		else:
+			_settle_revise_field_state(name, "Failed", message)
 		if run:
 			try:
 				run.row("Item", item or "-", "Failed", message, action=f"Revise Field {name}")
@@ -5142,6 +5194,9 @@ def reap_stale_runs():
 					"owes.".strip(" |"),
 				},
 			)
+			if row.trigger == "Revise Field":
+				# Its Sync State was written Pending at the save; nothing else will end it.
+				_settle_revise_field_state(row.reference, "Failed", f"Stopped: {reason}.")
 			closed.append(row.name)
 		except Exception:
 			frappe.logger("kggk_sync").exception(f"could not supervise run {row.name}")
