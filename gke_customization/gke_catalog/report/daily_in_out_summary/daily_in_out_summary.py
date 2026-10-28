@@ -169,7 +169,7 @@ def get_detail_vouchers(company=None, from_date=None, to_date=None, key=None):
 			SELECT DISTINCT dn.name
 			FROM `tabDelivery Note Item` dni
 			INNER JOIN `tabDelivery Note` dn ON dn.name = dni.parent
-			WHERE dn.status != 'Cancelled'
+			WHERE dn.docstatus = 1
 				AND dn.posting_date BETWEEN %(from_date)s AND %(to_date)s
 				AND {ITEM_LIKE_CONDITIONS.replace("item_code", "dni.item_code")}
 				{company_condition}
@@ -281,10 +281,10 @@ def get_daily_delivery_note_data(company, from_date, to_date):
 		f"""
 		SELECT
 			dn.posting_date AS posting_date,
-			SUM(CASE WHEN dn.is_return = 0 THEN dni.qty ELSE -dni.qty END) AS net_supply
+			SUM(dni.qty) AS net_supply
 		FROM `tabDelivery Note Item` dni
 		INNER JOIN `tabDelivery Note` dn ON dn.name = dni.parent
-		WHERE dn.status != 'Cancelled'
+		WHERE dn.docstatus = 1
 			AND dn.posting_date BETWEEN %(from_date)s AND %(to_date)s
 			AND {ITEM_LIKE_CONDITIONS.replace("item_code", "dni.item_code")}
 			{company_condition}
