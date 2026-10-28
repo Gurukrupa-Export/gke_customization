@@ -635,7 +635,7 @@ def auto_close_at_shift_end(attendance_doc, resolved_by=None, remarks=None) -> d
 
 
 def adjust_punch_grant_full_day(
-    attendance, in_time=None, out_time=None, resolved_by=None, remarks=None
+    attendance, in_time=None, out_time=None, resolved_by=None, remarks=None, auto_fill=False
 ) -> dict:
     """'Adjust Punch & Grant Full Day'.
  
@@ -691,16 +691,6 @@ def adjust_punch_grant_full_day(
             ).format(shift_start, shift_end)
         )
  
-    # a 'Full Day' must actually be one: not below the shift's half-day threshold
-    working_hours = round((new_out - new_in).total_seconds() / 3600, 2)
-    threshold = st.working_hours_threshold_for_half_day or 0
-    if threshold and working_hours < threshold:
-        frappe.throw(
-            _(
-                "The selected working hours ({0} hrs) are below the full-day requirement of {1} hrs."
-            ).format(working_hours, threshold)
-        )
- 
     # ---- ONE punch read, classified in Python ------------------------------
     # was 3 reads: linked punches, overlap guard, stray unlinked punches.
     # [lo, hi] is a superset of [new_in, new_out]; punches linked to this
@@ -714,6 +704,36 @@ def adjust_punch_grant_full_day(
         or_filters=[["attendance", "=", att.name], ["time", "between", [lo, hi]]],
         fields=["name", "time", "source", "attendance", "skip_auto_attendance"],
     )
+    if auto_fill:
+        # shift-start IN may collide with a punch owned by another attendance;
+        # move the IN to one minute after the last such punch instead of failing
+        foreign_times = [
+            get_datetime(r.time)
+            for r in rows
+            if r.attendance
+            and r.attendance != att.name
+            and new_in <= get_datetime(r.time) <= new_out
+        ]
+        if foreign_times:
+            new_in = max(foreign_times) + timedelta(minutes=1)
+            if new_in >= new_out:
+                frappe.throw(
+                    _(
+                        "A punch in this time range is already linked to another attendance record."
+                        " Please resolve that attendance first."
+                    )
+                )
+
+    # a 'Full Day' must actually be one: not below the shift's half-day threshold
+    working_hours = round((new_out - new_in).total_seconds() / 3600, 2)
+    threshold = st.working_hours_threshold_for_half_day or 0
+    if threshold and working_hours < threshold:
+        frappe.throw(
+            _(
+                "The selected working hours ({0} hrs) are below the full-day requirement of {1} hrs."
+            ).format(working_hours, threshold)
+        )
+
     linked, strays, conflicts = [], [], set()
     for r in rows:
         if r.attendance == att.name:
@@ -1072,7 +1092,7 @@ def get_day_fix_blocker(employee, attendance_date, att=None, ot_names=None) -> s
 
 @frappe.whitelist()
 def resolve_error_day(
-    employee, attendance_date, action, out_time=None, in_time=None, remarks=None
+    employee, attendance_date, action, out_time=None, in_time=None, remarks=None, auto_fill=0
 ):
     """HR actions from the Monthly In-Out Log.
 
@@ -1146,6 +1166,7 @@ def resolve_error_day(
             out_time=out_time,
             resolved_by=user,
             remarks=remarks,
+            auto_fill=frappe.utils.cint(auto_fill),
         )
 
     # set_out
