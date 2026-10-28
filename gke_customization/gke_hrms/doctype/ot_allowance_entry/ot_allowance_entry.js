@@ -113,7 +113,8 @@ frappe.ui.form.on("OT Allowance Entry", {
 				stop_waiting();
 				if (r.message) fill_ot_details(r.message.ot_details);
 			},
-			error: () => stop_waiting(),
+			// Keep listening: the error may be "already running" for a job started earlier
+			error: () => search_button.prop("disabled", false),
 		});
 	},
 	employee(frm) {
