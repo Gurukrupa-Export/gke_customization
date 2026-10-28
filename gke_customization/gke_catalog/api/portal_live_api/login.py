@@ -12,6 +12,7 @@ from frappe.integrations.oauth2 import get_oauth_server
 import requests
 import json
 from frappe.utils import validate_email_address
+from gke_customization.gke_catalog.api.encryption_response import SecureJSON
 
 
 @frappe.whitelist()
@@ -481,7 +482,11 @@ def get_address_by_link_name(user_type, link_name):
 
             merged_data = {**emp_info, "customer_representatives": customer_info}
 
-            return merged_data
+            # return merged_data
+            secure = SecureJSON()
+            enc_data = secure.encrypt(merged_data)
+            return enc_data
+        
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "get_address_by_link_name")
         return {"success": False, "message": str(e)}
