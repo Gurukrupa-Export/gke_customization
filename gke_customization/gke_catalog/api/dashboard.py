@@ -12,6 +12,7 @@ from frappe.integrations.oauth2 import get_oauth_server
 import requests
 import json
 from frappe.utils import validate_email_address, now_datetime
+from gke_customization.gke_catalog.api.encryption_response import SecureJSON 
 
 
 from gke_customization.gke_catalog.api.notifications import notify_user
@@ -190,7 +191,11 @@ def get_quotation_form(customer, id=None):
                 count[docstatus][status] = count[docstatus].get(status, 0) + 1
 
 
-        return count
+        # return count
+        secure = SecureJSON()
+        enc_data = secure.encrypt(count)
+        return enc_data
+     
     except Exception as e:
         frappe.log_error(f"Error in get_quotation_form: {str(e)}")
         return {"success": False, "message": "Failed to fetch Quotation"}
@@ -450,8 +455,14 @@ def get_customer_wise_count(customer):
         distinct=True
     )
 
-    return {
+    data =  {
         "get_catalouge_item_details_count": len(assigned_items),
         "trending_count": len(trending_items),
         "wishlist_count": len(wishlist_items)
     }
+    # return data
+    secure = SecureJSON()
+    enc_data = secure.encrypt(data)
+    return enc_data
+    
+    
