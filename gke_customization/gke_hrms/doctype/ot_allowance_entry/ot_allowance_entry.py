@@ -725,9 +725,11 @@ class OTAllowanceEntry(Document):
 
     def get_shift_times(self, shift_times, shift):
         if shift not in shift_times:
-            shift_times[shift] = frappe.db.get_value(
-                "Shift Type", shift, ["start_time", "end_time"]
-            )
+            shift_times[shift] = (
+                frappe.db.get_value("Shift Type", shift, ["start_time", "end_time"])
+                if shift
+                else None
+            ) or (None, None)
         return shift_times[shift]
 
     def get_ot_request_hrs(self, employee, attendance_date):
