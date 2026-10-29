@@ -47,20 +47,30 @@ def create_asset_material_req(items, user, branch):
 		frappe.throw(_("Required By date is missing."))
 
 	employee_detail = frappe.db.get_value("Employee", {'user_id': user}, ['company','name','branch','department'], as_dict=True)
-	if not employee_detail:
-		frappe.throw(_("User Id is not linked to Employee."))
+
+	company = ''
+	department = ''
+	if user == "it_srt@gkexport.com":
+		department = "Computer Hardware & Networking - KGJPL"
+		company = "KG GK Jewellers Private Limited"
+	else:
+		if employee_detail:
+			department = employee_detail.department
+			company = employee_detail.company
+		else:
+			frappe.throw(_("User Id is not linked to Employee."))
 
 	warehouse_filters = {
 		"custom_branch": branch,
-		"company": employee_detail.company,
+		"company": company,
 		"warehouse_type": "Consumables"
 	}
 
 	warehouse = None
 
 	# First preference: Department-specific warehouse
-	if employee_detail.department:
-		warehouse = frappe.db.get_value("Warehouse", {**warehouse_filters, "department": employee_detail.department}, "name" )
+	if department:
+		warehouse = frappe.db.get_value("Warehouse", {**warehouse_filters, "department": department}, "name" )
 
 	# Fallback: Warehouse with no department assigned
 	if not warehouse:
@@ -74,7 +84,7 @@ def create_asset_material_req(items, user, branch):
 	material_req.material_request_type = 'Purchase'
 	material_req.schedule_date = required_by
 	material_req.set_warehouse = warehouse
-	material_req.company = employee_detail.company
+	material_req.company = company
 
 	for item in items:
 		item_code = item.get("item_code")
