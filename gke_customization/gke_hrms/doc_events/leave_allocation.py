@@ -1,3 +1,5 @@
+import math
+
 import frappe
 from frappe import _
 from frappe.utils import (
@@ -254,6 +256,8 @@ def round_earned_leaves(earned_units, rounding):
 
     if rounding == "0.5":
         earned_units = flt(earned_units) * flt(rounding)
+    elif rounding == "0.5 Down":
+        earned_units = math.floor(flt(earned_units) * 2) / 2.0
     else:
         earned_units = round(earned_units)
 
@@ -513,3 +517,58 @@ def is_holiday_or_weekoff(date, employee):
         })
     
     return getdate(date) if holiday_date else None
+
+
+def apply_attendance_based_allocation(doc, method=None):
+    """Attendance-wise earned leave credit on Leave Allocation submit.
+
+    Port of the "Leave accural attendance wise" server script: overwrites the
+    allocated leaves with attendance count based earning before the ledger
+    entry is created. Shares rounding with get_earned_leave_allocation so the
+    submit credit and the daily scheduler credit stay consistent.
+    """
+    today = getdate()
+
+    if not doc.from_date:
+        frappe.throw(_("From Date is not set"))
+
+    from_date = getdate(doc.from_date)
+
+    e_leave_type = frappe.db.get_value(
+        "Leave Type",
+        {
+            "is_earned_leave": 1,
+            "name": doc.leave_type,
+            "earned_leave_frequency": ["is", "set"],
+        },
+        ["name", "applicable_after", "rounding", "earned_leave_frequency"],
+        as_dict=True,
+    )
+
+    if not e_leave_type:
+        return
+
+    # accrual not configured on this site; leave the allocation untouched
+    if not e_leave_type.applicable_after or flt(e_leave_type.applicable_after) <= 0:
+        return
+
+    total_attendance = frappe.db.count("Attendance", {
+        "status": ["in", ["Present", "Work From Home"]],
+        "docstatus": 1,
+        "employee": doc.employee,
+        "attendance_date": ["between", [from_date, today]],
+    })
+
+    earned_leaves = get_monthly_attendance_wise_leave(
+        annual_leaves=None,
+        leave_frequency=e_leave_type.earned_leave_frequency,
+        leave_applicable=e_leave_type.applicable_after,
+        leave_rounding=e_leave_type.rounding,
+        total_attendance=total_attendance,
+    )
+
+    if from_date < today:
+        doc.new_leaves_allocated = earned_leaves
+        doc.total_leaves_allocated = earned_leaves
+
+    frappe.msgprint(_("Allocation has been updated as per attendance count"))
