@@ -4,6 +4,7 @@
 import frappe
 
 NEW_OPTION = "0.5 Down"
+CASUAL_LEAVE = "Casual Leave"
 
 
 def execute():
@@ -34,3 +35,13 @@ def execute():
 		# user-generated setters survive future doctype syncs; this patch runs only once per site
 		is_system_generated=False,
 	)
+	set_casual_leave_rounding()
+
+
+def set_casual_leave_rounding():
+    if not frappe.db.exists("Leave Type", CASUAL_LEAVE):
+        return
+
+    frappe.db.set_value(
+        "Leave Type", CASUAL_LEAVE, "rounding", NEW_OPTION, update_modified=False
+    )
