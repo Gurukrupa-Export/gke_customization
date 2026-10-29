@@ -75,16 +75,20 @@ frappe.query_reports["Accounts Payable Aging Summary Report"] = {
 };
 
 function apsd_show_invoices(label, rows) {
+	const esc = (v) => frappe.utils.escape_html(v || "");
+	const date = (v) => frappe.datetime.str_to_user(v) || "";
+
 	const body = rows
 		.map(
 			(d) => `<tr>
-				<td><a href="${frappe.utils.get_form_link(d.voucher_type, d.voucher_no)}" target="_blank">${frappe.utils.escape_html(d.voucher_no)}</a></td>
-				<td>${frappe.utils.escape_html(d.party || "")}</td>
-				<td>${frappe.datetime.str_to_user(d.posting_date) || ""}</td>
-				<td>${frappe.datetime.str_to_user(d.due_date) || ""}</td>
-				<td>${frappe.utils.escape_html(d.bill_no || "")}</td>
-				<td style="text-align:right">${d.age}</td>
-				<td style="text-align:right">${format_currency(d.outstanding)}</td>
+				<td class="nw"><a href="${frappe.utils.get_form_link(d.voucher_type, d.voucher_no)}" target="_blank">${esc(d.voucher_no)}</a></td>
+				<td class="nw">${esc(d.party)}</td>
+				<td class="name">${esc(d.supplier_name)}</td>
+				<td class="nw">${date(d.posting_date)}</td>
+				<td class="nw">${date(d.due_date)}</td>
+				<td class="nw">${esc(d.bill_no)}</td>
+				<td class="nw num">${d.age}</td>
+				<td class="nw num amt">${format_currency(d.outstanding)}</td>
 			</tr>`
 		)
 		.join("");
@@ -94,16 +98,35 @@ function apsd_show_invoices(label, rows) {
 		size: "extra-large",
 		fields: [{ fieldtype: "HTML", fieldname: "list" }],
 	});
+
+	// use the screen width instead of the narrow default modal
+	dialog.$wrapper.find(".modal-dialog").css({ "max-width": "min(1500px, 96vw)", width: "96vw" });
+
 	dialog.fields_dict.list.$wrapper.html(`
-		<div style="max-height:60vh;overflow:auto">
-		<table class="table table-bordered table-sm">
+		<style>
+			.apsd-list { max-height: 65vh; overflow: auto; }
+			.apsd-list table { width: 100%; border-collapse: collapse; font-size: 13px; }
+			.apsd-list th, .apsd-list td { padding: 8px 12px; border: 1px solid #e3e8ee; vertical-align: middle; }
+			.apsd-list th { position: sticky; top: 0; z-index: 1; background: #eef3f9; font-weight: 700; white-space: nowrap; }
+			.apsd-list tbody tr:nth-child(even) td { background: #fafcfe; }
+			.apsd-list .nw { white-space: nowrap; }
+			.apsd-list .name { min-width: 260px; width: 100%; white-space: normal; }
+			.apsd-list .num { text-align: right; font-variant-numeric: tabular-nums; }
+			.apsd-list .amt { font-weight: 600; }
+		</style>
+		<div class="apsd-list">
+		<table>
 			<thead><tr>
-				<th>${__("Voucher")}</th><th>${__("Supplier")}</th><th>${__("Posting Date")}</th>
-				<th>${__("Due Date")}</th><th>${__("Bill No")}</th>
-				<th style="text-align:right">${__("Age (Days)")}</th>
-				<th style="text-align:right">${__("Outstanding")}</th>
+				<th>${__("Voucher")}</th>
+				<th>${__("Supplier")}</th>
+				<th>${__("Supplier Name")}</th>
+				<th>${__("Posting Date")}</th>
+				<th>${__("Due Date")}</th>
+				<th>${__("Bill No")}</th>
+				<th class="num">${__("Age (Days)")}</th>
+				<th class="num">${__("Outstanding")}</th>
 			</tr></thead>
-			<tbody>${body || `<tr><td colspan="7">${__("No records")}</td></tr>`}</tbody>
+			<tbody>${body || `<tr><td colspan="8">${__("No records")}</td></tr>`}</tbody>
 		</table></div>`);
 	dialog.show();
 }
