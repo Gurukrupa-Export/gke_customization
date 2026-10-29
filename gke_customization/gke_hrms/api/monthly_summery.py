@@ -530,7 +530,22 @@ def process_data1(data,from_date,to_date, employee):
 		row.status = STATUS.get(row.status) or row.status
 		processed[row.attendance_date] = row
 
-	ot_for_wo = frappe.get_all("OT Log", {"employee":employee,"attendance_date": ["between",[from_date,to_date]], "is_cancelled":0}, ["attendance_date","allowed_ot as ot_hours", "first_in as in_time", "last_out as out_time"])
+	# ot_for_wo = frappe.get_all("OT Log", {"employee":employee,"attendance_date": ["between",[from_date,to_date]], "is_cancelled":0}, ["attendance_date","allowed_ot as ot_hours", "first_in as in_time", "last_out as out_time"])
+	ot_for_wo = frappe.db.sql("""
+			SELECT
+				attendance_date,
+				allowed_ot as ot_hours,
+				first_in as in_time,
+				last_out as out_time
+			FROM `tabOT Log`
+			WHERE employee = %(employee)s
+				AND attendance_date BETWEEN %(from_date)s AND %(to_date)s
+				AND is_cancelled = 0
+		""", {
+			'employee': employee,
+			'from_date': from_date,
+			'to_date': to_date
+		}, as_dict=1)
 	ot_for_wo = {row.attendance_date: row for row in ot_for_wo}
 	date_range = get_date_range(from_date, to_date)
 
@@ -774,7 +789,7 @@ def process_data(data,from_date,to_date, employee):
 			shift_name = f"{format_time(shift_det.get('start_time'))} To {format_time(shift_det.get('end_time'))}"
 			row.shift = shift_name
 			
-			leave_status = frappe.db.get_value('Leave Type',{'name': row.status,'is_earned_leave': 0}, ['name'])
+			leave_status = frappe.db.get_value('Leave Type',{'name': row.status,'is_earned_leave': 1}, ['name'])
 			e_leave_status = frappe.db.get_value('Leave Type', {'name': row.status,'max_continuous_days_allowed': ['>',0]}, ['name'])
 			
 			# FIXED: Check if LWP specifically
@@ -794,7 +809,22 @@ def process_data(data,from_date,to_date, employee):
 		row.status = STATUS.get(row.status) or row.status
 		processed[row.attendance_date] = row
 
-	ot_for_wo = frappe.get_all("OT Log", {"employee":employee,"attendance_date": ["between",[from_date,to_date]], "is_cancelled":0}, ["attendance_date","allowed_ot as ot_hours", "first_in as in_time", "last_out as out_time"])
+	# ot_for_wo = frappe.get_all("OT Log", {"employee":employee,"attendance_date": ["between",[from_date,to_date]], "is_cancelled":0}, ["attendance_date","allowed_ot as ot_hours", "first_in as in_time", "last_out as out_time"])
+	ot_for_wo = frappe.db.sql("""
+			SELECT
+				attendance_date,
+				allowed_ot as ot_hours,
+				first_in as in_time,
+				last_out as out_time
+			FROM `tabOT Log`
+			WHERE employee = %(employee)s
+				AND attendance_date BETWEEN %(from_date)s AND %(to_date)s
+				AND is_cancelled = 0
+		""", {
+			'employee': employee,
+			'from_date': from_date,
+			'to_date': to_date
+		}, as_dict=1)
 	ot_for_wo = {row.attendance_date: row for row in ot_for_wo}
 	date_range = get_date_range(from_date, to_date)
 	
