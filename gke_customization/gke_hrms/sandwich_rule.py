@@ -157,15 +157,19 @@ def get_day_status_map(employees, from_date, to_date):
 
 
 def get_attendance_request_dates(employees, from_date, to_date):
-    """Returns {employee: set of dates} covered by submitted Attendance Requests."""
+    """Returns {employee: set of dates} covered by Attendance Requests that are
+    Approved (draft) or already submitted."""
     attendance_requests = frappe.get_all(
         "Attendance Request",
         filters={
             "employee": ["in", employees],
-            "docstatus": 1,
             "from_date": ["<=", to_date],
             "to_date": [">=", from_date],
         },
+        or_filters=[
+            {"docstatus": 1},
+            {"docstatus": 0, "workflow_state": "Approved"},
+        ],
         fields=["employee", "from_date", "to_date"],
     )
 
