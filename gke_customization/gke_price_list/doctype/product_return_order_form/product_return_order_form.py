@@ -3441,12 +3441,30 @@ def get_kggk_serial_no(tag_no):
     # ============================================================
 
     bom_details = {}
+    local_bom = None
 
     if remote_bom:
 
+        local_bom = frappe.db.get_value(
+            "BOM",
+            {
+                "custom_kggk_source_name": remote_bom,
+                "custom_kggk_source_doctype": "BOM",
+            },
+            "name",
+        )
+
+        if not local_bom:
+
+            frappe.throw(
+                f"BOM with source name <b>{remote_bom}</b> linked with "
+                f"Serial No <b>{remote_serial_no}</b> "
+                f"was not found on the current site."
+            )
+
         bom_details = frappe.db.get_value(
             "BOM",
-            remote_bom,
+            local_bom,
             [
                 "metal_and_finding_weight",
                 "gross_weight",
@@ -3466,14 +3484,6 @@ def get_kggk_serial_no(tag_no):
             ],
             as_dict=True,
         ) or {}
-
-        if not bom_details:
-
-            frappe.throw(
-                f"BOM <b>{remote_bom}</b> linked with "
-                f"Serial No <b>{remote_serial_no}</b> "
-                f"was not found on the current site."
-            )
 
     # ============================================================
     # 7. PREPARE LOCAL SERIAL NO CHILD TABLE
@@ -3587,13 +3597,13 @@ def get_kggk_serial_no(tag_no):
             # Location / Employee
             # ----------------------------------------------------
 
-            "location": serial_data.get(
-                "location"
-            ),
+            # "location": serial_data.get(
+            #     "location"
+            # ),
 
-            "employee": serial_data.get(
-                "employee"
-            ),
+            # "employee": serial_data.get(
+            #     "employee"
+            # ),
 
             # ----------------------------------------------------
             # Warranty
@@ -3627,17 +3637,17 @@ def get_kggk_serial_no(tag_no):
             # Reference information
             # ----------------------------------------------------
 
-            "work_order": serial_data.get(
-                "work_order"
-            ),
+            # "work_order": serial_data.get(
+            #     "work_order"
+            # ),
 
             "reference_doctype": serial_data.get(
                 "reference_doctype"
             ),
 
-            "reference_name": serial_data.get(
-                "reference_name"
-            ),
+            # "reference_name": serial_data.get(
+            #     "reference_name"
+            # ),
 
             "posting_date": serial_data.get(
                 "posting_date"
@@ -3655,13 +3665,13 @@ def get_kggk_serial_no(tag_no):
                 "custom_order_type"
             ),
 
-            "custom_bom_no": remote_bom,
+            "custom_bom_no": local_bom,
 
             "custom_gross_wt": (
                 bom_details.get("gross_weight")
             ),
 
-            "custom_is_auto_created": 1,
+            # "custom_is_auto_created": 1,
 
             # IMPORTANT:
             # Copy the tag number to local Serial No
@@ -3671,7 +3681,7 @@ def get_kggk_serial_no(tag_no):
             # Child table
             # ----------------------------------------------------
 
-            "custom_serial_no_table": child_rows,
+            # "custom_serial_no_table": child_rows,
         }
 
         try:
@@ -3694,7 +3704,7 @@ def get_kggk_serial_no(tag_no):
                     f"Item Code: {item_code}\n"
                     f"Company: "
                     f"Gurukrupa Export Private Limited\n"
-                    f"BOM: {remote_bom}\n"
+                    f"BOM: {local_bom}\n"
                     f"Child Rows: {len(child_rows)}"
                 )
             )
@@ -3740,7 +3750,7 @@ def get_kggk_serial_no(tag_no):
         # BOM
         # --------------------------------------------------------
 
-        "bom": remote_bom,
+        "bom": local_bom,
 
         "net_weight": bom_details.get(
             "metal_and_finding_weight"
@@ -3824,8 +3834,6 @@ def get_kggk_serial_no(tag_no):
 
         "custom_serial_no_table": child_rows,
     }
-
-
 
 
 

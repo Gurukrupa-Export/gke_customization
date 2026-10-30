@@ -23,6 +23,7 @@ Everything lives in this single file on purpose so the whole feature can be read
 and reverted in one place.
 """
 
+import copy
 import os
 import time
 from contextlib import contextmanager
@@ -681,6 +682,7 @@ TRIGGERS = (
 	"Prefill",
 	"Reconcile",
 	"Retry",
+	"Revise Field",
 )
 
 
@@ -988,6 +990,10 @@ class SyncRun:
 		# "Does this master exist on the target" answers, reused across the chunk so fifty
 		# items do not ask about the same Item Group fifty times.
 		self.link_cache = {}
+
+		# The target's copy of a template, by its name there, as `align_template_attributes` last
+		# read or wrote it - so the variants of one template do not each read it again.
+		self.template_cache = {}
 
 		# `item_code -> Copy BOM`, warmed for the whole chunk by `sync_records`. See
 		# `copy_bom_map`.
@@ -3348,6 +3354,152 @@ def _send_via_rest(config, doctype, name, data, lookup, run, clears, identified)
 	return response, "created", assigned, []
 
 
+# The columns of a template's attribute row that decide which values a variant may carry.
+#
+# ERPNext checks a new variant against its *template's* rows, not against the Item Attribute:
+# `Item.validate_variant` reads `numeric_values` off the template's row, and a row that is not
+# numeric must find the value in the attribute's own list - which a numeric attribute does not
+# have. So a template whose row was made numeric here after it went across refuses every new
+# variant of it over there: "Attribute Value 7.0 is not valid for the selected attribute ...".
+#
+# Nothing else ever repairs that. An existing template is not pushed again before its variant,
+# and an update never carries `attributes` (IMMUTABLE_ON_UPDATE).
+TEMPLATE_ATTRIBUTE_FLAGS = ("numeric_values", "from_range", "to_range", "increment")
+
+
+def align_template_attributes(config, doc, run):
+	"""Make the target's copy of ``doc``'s template accept the attributes ``doc`` carries.
+
+	Only those attributes - they are what the target checks when it creates ``doc`` - and only
+	in the direction of accepting more:
+
+	* an attribute the target's template lacks is added with this site's settings, or the
+	  create fails with "Attribute ... is not valid for the selected template";
+	* a numeric row here makes the target's row numeric, with the same range and increment;
+	* a list row here leaves the target's row alone: a numeric row over there never consults a
+	  list, and turning it into one could only refuse more.
+
+	One read per template per run (`run.template_cache`), and a write only when something
+	differs. The write carries the `modified` it was read at, so it is refused rather than
+	overwriting a template another worker corrected in between; that case is read again and
+	retried once. Returns False when the template could not be read or corrected; the variant is
+	pushed anyway, and the target has the last word.
+	"""
+	template = doc.variant_of
+	needed = list(
+		dict.fromkeys(
+			row.attribute
+			for row in doc.get("attributes") or []
+			if row.attribute and str(row.attribute_value or "").strip()
+		)
+	)
+	if not needed:
+		return True
+
+	ours = {
+		row.attribute: row
+		for row in frappe.get_all(
+			"Item Variant Attribute",
+			filters={"parenttype": "Item", "parent": template, "attribute": ("in", needed)},
+			fields=["attribute", *TEMPLATE_ATTRIBUTE_FLAGS],
+		)
+	}
+
+	target_id = target_name_for("Item", template, host_of(config.to_site))
+	cache = run.template_cache
+
+	for attempt in range(2):
+		data = cache.get(target_id)
+		if data is None:
+			response = api_get(config, f"/api/resource/Item/{segment(target_id)}")
+			if not response.ok:
+				run.mismatch(
+					"Item",
+					template,
+					f"could not read the target's {target_id} to check the attributes {doc.name} "
+					f"needs - {response.message()}",
+					kind="TEMPLATE-ATTRIBUTES",
+				)
+				return False
+			data = cache[target_id] = (response.data or {}).get("data") or {}
+
+		# A copy: the cached read must stay what the target holds until a write succeeds.
+		rows = copy.deepcopy(data.get("attributes") or [])
+		changes = _template_attribute_changes(rows, needed, ours)
+		if not changes:
+			return True
+
+		# Every row, under the target's own row names. A PUT replaces the whole table, so a row
+		# left out is a row deleted - and ERPNext refuses that for an attribute the variants still
+		# use.
+		body = {
+			"attributes": [
+				{key: value for key, value in row.items() if key == "name" or key not in CHILD_EXCLUDE}
+				for row in rows
+			]
+		}
+		if data.get("modified"):
+			# Frappe's `check_if_latest` refuses the save if the template changed since this read.
+			body["modified"] = data["modified"]
+
+		put = api_put(config, f"/api/resource/Item/{segment(target_id)}", json=body)
+		if put.ok:
+			saved = (put.data or {}).get("data")
+			if saved:
+				cache[target_id] = saved
+			else:
+				cache.pop(target_id, None)
+			run.line(
+				"ALIGNED",
+				"Item",
+				template,
+				f"the target's {target_id} now takes {doc.name}: {'; '.join(changes)}",
+			)
+			return True
+
+		cache.pop(target_id, None)
+		if put.exc_type == "TimestampMismatchError" and attempt == 0:
+			continue
+
+		run.mismatch(
+			"Item",
+			template,
+			f"the target's {target_id} would refuse {doc.name} ({'; '.join(changes)}) and could "
+			f"not be corrected - {put.message()}",
+			kind="TEMPLATE-ATTRIBUTES",
+		)
+		return False
+
+
+def _template_attribute_changes(rows, needed, ours):
+	"""Bring the target's template ``rows`` in line with ours for ``needed``, in place.
+
+	Returns what changed, for the log. See `align_template_attributes` for the rules.
+	"""
+	theirs = {row.get("attribute"): row for row in rows}
+	changes = []
+	for attribute in needed:
+		source = ours.get(attribute)
+		if not source:
+			# Not on our own template either, so there is nothing to copy. The variant could not
+			# have been saved here like that; the target's refusal is the honest answer.
+			continue
+		wanted = {field: source.get(field) for field in TEMPLATE_ATTRIBUTE_FLAGS}
+		row = theirs.get(attribute)
+		if row is None:
+			rows.append({"attribute": attribute, **wanted})
+			changes.append(f"added {attribute}")
+		elif cint(source.numeric_values) and any(
+			_value_differs(row.get(field), value) for field, value in wanted.items()
+		):
+			row.update(wanted)
+			changes.append(
+				f"{attribute} numeric {flt(source.from_range)}-{flt(source.to_range)} "
+				f"by {flt(source.increment)}"
+			)
+	return changes
+
+
 def push_item(item_code, config, run, seen=None):
 	"""Create or update one Item on the target, attachments included."""
 	seen = seen if seen is not None else set()
@@ -3370,10 +3522,15 @@ def push_item(item_code, config, run, seen=None):
 	# A variant cannot be created before its template exists on the target.
 	if doc.get("variant_of"):
 		template = doc.variant_of
-		if api_exists(config, "Item", target_name_for("Item", template, target_host)) is False:
+		template_exists = api_exists(config, "Item", target_name_for("Item", template, target_host))
+		if template_exists is False:
 			run.line("INFO", "Item", item_code, f"template {template} missing on target, pushing it first")
 			run.items_total += 1
 			push_item(template, config, run, seen=seen)
+		elif template_exists and not target_name_if_known("Item", item_code, target_host):
+			# There, but with the attribute rows it arrived with - see `align_template_attributes`.
+			# Only before a create: an update never sends attributes, so they cannot refuse it.
+			align_template_attributes(config, doc, run)
 
 	allowed = get_target_fields(config, "Item", run=run)
 	data, attachments = build_payload(doc, allowed, run=run, config=config)
@@ -4545,6 +4702,270 @@ def _find_existing_on_target(config, doctype, name, target_host):
 
 
 # ============================================================================
+# REVISE FIELD
+# ============================================================================
+
+# Revise Field changes a variant's attribute rows with `frappe.db.set_value`, so the Item is never
+# saved: `item_on_update` never fires and the Item's `modified` never moves for the reconciler.
+# An Item push would not carry them anyway - `attributes` is in IMMUTABLE_ON_UPDATE, because a
+# normal save on KGGK refuses attribute changes once the variant has stock. So the revision
+# itself goes across: KGGK runs the same Revise Field, which applies it the same way.
+
+REVISE_FIELD_METHOD = "gke_customization.gke_order_forms.doc_events.kggk_sync.push_revise_field"
+
+
+def _report_revise_field_error(stage, name):
+	"""An error nobody planned for, in queueing ("queue") or sending ("push"). It goes to the Error
+	Log as well as the bench log: a revision that never reached KGGK must not go unnoticed. Never
+	raises - the save, or the job, is not worth failing over the report."""
+	frappe.logger("kggk_sync").exception(f"could not {stage} Revise Field {name} for KGGK")
+	try:
+		frappe.log_error(frappe.get_traceback(), f"KGGK sync: Revise Field {name} ({stage})"[:140])
+	except Exception:
+		pass
+
+
+def _open_revise_field_log(name, config, job_id):
+	"""The push's KGGK Sync Log, Queued, written in the save's own transaction.
+
+	Written at save so the revision is visible before any worker picks it up, and so a hand-off
+	that is lost leaves a log for `reap_stale_runs` to close instead of nothing. A second save
+	while the first is still queued reuses that log: the job id is deduplicated, so a second log
+	would have no job behind it.
+	"""
+	try:
+		existing = frappe.db.get_value(
+			LOG_DOCTYPE, {"trigger": "Revise Field", "reference": name, "status": STATUS_QUEUED}, "name"
+		)
+		if existing:
+			return existing
+		doc = frappe.get_doc(
+			{
+				"doctype": LOG_DOCTYPE,
+				"trigger": "Revise Field",
+				"reference": name,
+				"target_site": config.to_site,
+				"status": STATUS_QUEUED,
+				"job_id": job_id,
+				"generation": 1,
+				"items_total": 1,
+			}
+		)
+		doc.insert(ignore_permissions=True)
+		return doc.name
+	except Exception:
+		frappe.logger("kggk_sync").exception(f"could not open the KGGK Sync Log for Revise Field {name}")
+		return None
+
+
+def _close_revise_field_log(log_name, status, summary):
+	"""End a queued log whose push stopped before a run took it over. Never raises."""
+	if not log_name:
+		return
+	try:
+		frappe.db.set_value(
+			LOG_DOCTYPE,
+			log_name,
+			{"status": status, "summary": summary[:500], "ended_on": now_datetime(), "progress": 100.0},
+		)
+	except Exception:
+		frappe.logger("kggk_sync").exception(f"could not close {log_name}")
+
+
+def _settle_revise_field_state(name, status, note):
+	"""Give a Revise Field's Pending Sync State rows an ending when the push stopped before a run
+	could: the run's own `mark_state` does it otherwise. Only Pending rows - one a run has
+	already settled is not touched. Never raises."""
+	try:
+		frappe.db.set_value(
+			STATE_DOCTYPE,
+			{"record_doctype": "Revise Field", "record_name": name, "status": "Pending"},
+			{"status": status, "last_error": str(note or "")[:500]},
+		)
+	except Exception:
+		frappe.logger("kggk_sync").exception(f"could not settle the Sync State of Revise Field {name}")
+
+
+def queue_revise_field(doc):
+	"""Revise Field ``on_update``: write the push down and queue it after commit.
+
+	Saving writes a Pending Sync State row and a Queued KGGK Sync Log in the save's transaction,
+	then hands the push to the queue - the way an Item save does. Never fails the save.
+
+	Not limited to plan-linked items like an Item save: a revision is a deliberate change to an
+	item KGGK already holds, and `push_revise_field` checks that it does.
+	"""
+	from gke_customization.gke_order_forms.doctype.revise_field.revise_field import (
+		revise_field_values,
+	)
+
+	try:
+		if in_reentrant_context() or not is_sync_enabled() or not cint(setting("sync_updates", 1)):
+			return
+		if not doc.item or not revise_field_values(doc):
+			return
+
+		config, reason = get_sync_config()
+		if not config:
+			log_skip(reason, "Revise Field", doc.name)
+			return
+
+		job_id = f"kggk_revise_field::{doc.name}"
+		mark_state("Revise Field", doc.name, "Pending", host_of(config.to_site))
+		log_name = _open_revise_field_log(doc.name, config, job_id)
+		_dispatch(
+			method=REVISE_FIELD_METHOD,
+			queue="long",
+			job_id=job_id,
+			deduplicate=True,
+			name=doc.name,
+			log_name=log_name,
+		)
+	except Exception:
+		_report_revise_field_error("queue", doc.name)
+
+
+# How many times one job sends a Revise Field that was saved again while it was running.
+REVISE_FIELD_MAX_PASSES = 3
+
+
+def push_revise_field(name, log_name=None, _pass=1):
+	"""Send the Revise Field to KGGK; then again if it was saved again while that ran.
+
+	The job id is deduplicated, and a running job counts as already there: a save made while the
+	push is running queues nothing, and the push has read its values by then. So when it ends it
+	looks at `modified` again and, if the Revise Field moved, sends it once more - using the log
+	that second save queued. Bounded by `REVISE_FIELD_MAX_PASSES`.
+	"""
+	sent = _push_revise_field_once(name, log_name)
+	if not sent or _pass >= REVISE_FIELD_MAX_PASSES:
+		return
+	try:
+		# End this job's snapshot first, or a save committed meanwhile cannot be seen.
+		frappe.db.commit()
+		current = frappe.db.get_value("Revise Field", name, "modified")
+		if current and current != sent:
+			follow = frappe.db.get_value(
+				LOG_DOCTYPE,
+				{"trigger": "Revise Field", "reference": name, "status": STATUS_QUEUED},
+				"name",
+			)
+			push_revise_field(name, log_name=follow, _pass=_pass + 1)
+	except Exception:
+		_report_revise_field_error("push", name)
+
+
+def _push_revise_field_once(name, log_name=None):
+	"""One send of the Revise Field to KGGK, against KGGK's name for the item.
+
+	Returns the `modified` of the Revise Field it read, or None when it sent nothing.
+
+	Every attribute field the revision sets is sent, not only the ones that changed here, so
+	saving the Revise Field again re-sends it; KGGK's own `validate` writes only rows that differ.
+
+	The outcome is kept in two places. The KGGK Sync Log queued at save is completed - Completed,
+	or Failed with the reason, with one row for the Item. The Revise Field's own Sync State row
+	goes from Pending to Synced or Failed. That row is for looking at only: the reconciler and the
+	pending re-sender read Item and BOM rows, so a resend is a save of the Revise Field. The
+	Item's own Sync State is left alone: an Item push cannot carry attributes, so marking it
+	failed would only send the reconciler after something it cannot fix.
+	"""
+	from gke_customization.gke_order_forms.doctype.revise_field.revise_field import (
+		revise_field_values,
+	)
+
+	run = site = item = sent = None
+	try:
+		if in_reentrant_context():
+			return
+
+		config, reason = get_sync_config()
+		if not config:
+			log_skip(reason, "Revise Field", name)
+			_close_revise_field_log(log_name, STATUS_FAILED, f"Not sent: {reason}")
+			_settle_revise_field_state(name, "Failed", f"Not sent: {reason}")
+			return
+		site = host_of(config.to_site)
+
+		doc = frappe.get_doc("Revise Field", name)
+		item = doc.item
+		values = revise_field_values(doc)
+		if not item or not values:
+			_close_revise_field_log(log_name, STATUS_COMPLETED, "Nothing to send: no attribute is set.")
+			_settle_revise_field_state(name, "Synced", "Nothing to send: no attribute is set.")
+			return
+		sent = doc.get("modified")
+
+		run = SyncRun(
+			trigger="Revise Field", reference=name, config=config, log_name=log_name, log=LOG_ALWAYS
+		)
+		run.items_total = 1
+		run.flush(STATUS_RUNNING)
+		action = f"Revise Field {name}"
+
+		def failed(message, target_item=None):
+			run.mismatch("Item", item, message, kind="REVISE-FIELD")
+			run.row("Item", item, "Failed", message, action=action)
+			run.items_failed += 1
+			mark_state("Revise Field", name, "Failed", site, error=message, target_name=target_item)
+			run.finish(STATUS_FAILED)
+
+		# KGGK's name for the item, which need not be ours: Sync State first, then KGGK itself, by
+		# the source identity stamped on the item it holds. Never the same name by assumption.
+		target_item = target_name_if_known("Item", item, site)
+		if not target_item:
+			found = lookup_by_identity(config, "Item", item, run=run)
+			if found is _LOOKUP_FAILED:
+				failed(f"Revise Field {name}: could not ask KGGK which item came from {item}")
+				return sent
+			target_item = found
+		if not target_item:
+			note = "item not on KGGK - it takes its attributes when it is created there"
+			log_skip(note, "Revise Field", name)
+			run.row("Item", item, "Skipped", note, action=action)
+			mark_state("Revise Field", name, "Synced", site, error=note, local_modified=sent)
+			run.finish(STATUS_COMPLETED)
+			return sent
+
+		company_ok, company_message = verify_target_company(config, run=run)
+		if not company_ok:
+			failed(company_message, target_item)
+			return sent
+
+		response = api_post(config, "/api/resource/Revise Field", json={"item": target_item, **values})
+		if not response.ok:
+			failed(
+				f"Revise Field {name} could not be applied to KGGK's {target_item} - {response.message()}",
+				target_item,
+			)
+			return sent
+
+		message = f"{name} applied to KGGK's {target_item}: {', '.join(sorted(values))}"
+		run.line("REVISED", "Item", item, message)
+		run.row("Item", item, "Synced", message, action=action)
+		run.items_synced += 1
+		mark_state("Revise Field", name, "Synced", site, target_name=target_item, local_modified=sent)
+		run.finish(STATUS_COMPLETED)
+		return sent
+	except Exception as exc:
+		_report_revise_field_error("push", name)
+		message = f"unexpected error: {exc}"
+		if site:
+			mark_state("Revise Field", name, "Failed", site, error=message)
+		else:
+			_settle_revise_field_state(name, "Failed", message)
+		if run:
+			try:
+				run.row("Item", item or "-", "Failed", message, action=f"Revise Field {name}")
+				run.items_failed += 1
+				run.finish(STATUS_FAILED)
+			except Exception:
+				frappe.logger("kggk_sync").exception(f"could not finish the log for Revise Field {name}")
+		else:
+			_close_revise_field_log(log_name, STATUS_FAILED, message)
+
+
+# ============================================================================
 # THE HOURLY RECONCILER
 # ============================================================================
 
@@ -4773,6 +5194,9 @@ def reap_stale_runs():
 					"owes.".strip(" |"),
 				},
 			)
+			if row.trigger == "Revise Field":
+				# Its Sync State was written Pending at the save; nothing else will end it.
+				_settle_revise_field_state(row.reference, "Failed", f"Stopped: {reason}.")
 			closed.append(row.name)
 		except Exception:
 			frappe.logger("kggk_sync").exception(f"could not supervise run {row.name}")

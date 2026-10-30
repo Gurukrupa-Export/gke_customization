@@ -244,6 +244,7 @@ class ProductReturnOrder(Document):
 			new_bom.bom_type = "Finish Goods"
 			new_bom.item = self.item_code
 			new_bom.setting_type = "Nova Glow"
+			new_bom.custom_kggk_source_doctype = "Product Return Order"
 			new_bom.insert(ignore_permissions=True)
 			# new_bom.save()
 			self.db_set("new_bom", new_bom.name, update_modified=False)
@@ -295,7 +296,8 @@ class ProductReturnOrder(Document):
 			serial.item_code = self.item_code
 			serial.customer = self.customer
 			serial.company=self.company
-			serial.purchase_document_no = self.name
+			serial.reference_name = self.name
+			serial.reference_doctype = "Product Return Order"
 			serial.description=self.description
 			self.item_name=self.item_name
 			serial.custom_jwelex_tag_no = self.jewelex_tag
@@ -429,7 +431,7 @@ class ProductReturnOrder(Document):
 		# 	mwo_no,
 		# 	["metal_type", "manufacturer", "posting_date"],
 		# )
-		manufacturer='Shubh'
+		manufacturer='Labh'
 		metal_type = new_bom.metal_detail[0].metal_type if new_bom.metal_detail else None
 		diamond_grade_data=new_bom.diamond_detail[0].diamond_grade if new_bom.diamond_detail else None
 		m_abbr = frappe.db.get_value("Attribute Value", metal_type, "abbreviation")
