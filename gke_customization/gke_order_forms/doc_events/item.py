@@ -744,7 +744,7 @@ def create_bom_kggk(doc,pro_name, method=None):
         "Authorization": f"token {api_key}:{api_secret}", #from dummy site to uat kggk  uat kgkg user
         "Content-Type": "application/json"
     }
-    if doc.setting_type == "Nova Glow":
+    if doc.setting_type == "Nova Glow" and doc.custom_kggk_source_doctype == "Product Return Order":
         bom = doc.name
         if from_site and to_site:
             payload = {

@@ -244,6 +244,7 @@ class ProductReturnOrder(Document):
 			new_bom.bom_type = "Finish Goods"
 			new_bom.item = self.item_code
 			new_bom.setting_type = "Nova Glow"
+			new_bom.custom_kggk_source_doctype = "Product Return Order"
 			new_bom.insert(ignore_permissions=True)
 			# new_bom.save()
 			self.db_set("new_bom", new_bom.name, update_modified=False)
