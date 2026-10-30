@@ -330,6 +330,7 @@ doc_events = {
     "on_update": "gke_customization.gke_order_forms.doc_events.kggk_sync.item_on_update"
 },
 "BOM": {
+    "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_bom_kggk",
     "on_update": "gke_customization.gke_order_forms.doc_events.kggk_sync.bom_on_update",
     "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.kggk_sync.bom_on_update"
 },
