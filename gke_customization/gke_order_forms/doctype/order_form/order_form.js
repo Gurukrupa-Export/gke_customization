@@ -1419,13 +1419,18 @@ function set_filters_on_child_table_fields(frm, fields) {
 function set_filters_on_parent_table_fields(frm, fields) {
 	fields.map(function (field) {
 		frm.set_query(field[0], function (doc) {
+			let filters = { 'item_attribute': field[1], "customer_code": doc.customer_code };
+			if (field[0] == 'diamond_quality' && doc.sales_type == 'Outright') {
+				filters.exclude_value = 'Customer Diamond Quality';
+			}
 			return {
 				query: 'jewellery_erpnext.query.item_attribute_query',
-				filters: { 'item_attribute': field[1], "customer_code": doc.customer_code }
+				filters: filters
 			};
 		});
 	});
 };
+
 
 //public function to set order type 
 function set_order_type_from_design_by(frm) {
