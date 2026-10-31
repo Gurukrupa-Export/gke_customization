@@ -37,7 +37,7 @@ def _serialize_items(items, status_filter=None):
         item_data = frappe.db.get_value(
             "Item",
             row.item_code,
-            ["image", "name", "item_group","custom_catalogue_image", "custom_silver_image"],
+            ["image", "name", "item_group","custom_catalogue_image", "custom_silver_image","sketch_image","front_view"],
             as_dict=True,
         ) or {}
         
@@ -69,6 +69,8 @@ def _serialize_items(items, status_filter=None):
             "image"                       : item_data.get("image") or "",
             "custom_catalogue_image"      : item_data.get("custom_catalogue_image") or "",
             "custom_silver_image"         : item_data.get("custom_silver_image") or "",
+            "cad_image"                   : item_data.get("front_image") or "",
+            "sketch_image"                : item_data.get("sketch_image") or "",
             # "custom_catalogue_image"      : (item_data.get("custom_catalogue_image") or item_data.get("custom_silver_image")),
             "category"                    : item_data.get("item_group") or "",
             "gross_weight"                : bom_data.get("gross_weight") or "",
@@ -636,7 +638,7 @@ def _refresh_cart_prices(cart):
     return cart
 
 
-@frappe.whitelist(methods=["GET", "POST"], allow_guest=True)
+@frappe.whitelist(methods=["GET", "POST"])
 def get_cart_orders(customer=None, user=None, status_filter=None):
     """
     Cart orders fetch karo — customer ya user se.
@@ -736,10 +738,10 @@ def get_cart_orders(customer=None, user=None, status_filter=None):
             })
 
         data =  {"success": True, "orders": result}
-        # secure = SecureJSON()
-        # enc_data = secure.encrypt(data)
-        # return enc_data
-        return data
+        secure = SecureJSON()
+        enc_data = secure.encrypt(data)
+        return enc_data
+        # return data
     
 
     frappe.throw(_("Customer or User required."))
@@ -2160,7 +2162,7 @@ def send_customer_order_notification(user, order_id, customer_item_array):
     message = get_email_template(customer, order_id, items_html)
     
     frappe.sendmail(
-        recipients=users,
+        recipients="bhavika_p@gkexport.com",
         sender="customer_portal@gkexport.com",
         subject=f"Order Update - {order_id}",
         message=message
@@ -2212,18 +2214,18 @@ def get_email_template(customer, order_id, items_html):
         <div style="font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px;">Items in order</div>
 
         <!-- Items table -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
-          <thead>
-            <tr style="border-bottom: 1px solid #e5e7eb;">
-              <th style="font-size: 11px; color: #9ca3af; text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">Item</th>
-              <th style="font-size: 11px; color: #9ca3af; text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">BOM</th>
-              <th style="font-size: 11px; color: #9ca3af; text-align: right; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">Qty</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items_html}
-          </tbody>
-        </table>
+        # <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+        #   <thead>
+        #     <tr style="border-bottom: 1px solid #e5e7eb;">
+        #       <th style="font-size: 11px; color: #9ca3af; text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">Item</th>
+        #       <th style="font-size: 11px; color: #9ca3af; text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">BOM</th>
+        #       <th style="font-size: 11px; color: #9ca3af; text-align: right; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;">Qty</th>
+        #     </tr>
+        #   </thead>
+        #   <tbody>
+        #     {items_html}
+        #   </tbody>
+        # </table>
       </div>
 
       <!-- Footer -->
@@ -2281,6 +2283,7 @@ ORDER_PLACED_TEMPLATE = "gke_customization/templates/emails/order_placed.html"
 def _get_customer_emails(customer_name):
     return [
         "bhavika_p@gkexport.com",
+        "mansi_g@gkexport.com"
     ]
 
 # def _get_order_team_emails():
@@ -2289,7 +2292,7 @@ def _get_customer_emails(customer_name):
 
 def _get_order_team_emails():
     return [
-        "mansi_g@gkexport.com",
+        "rajan_m@gkexport.com",
     ]
 
 def _render_order_email(context, items, internal=False, show_rate=False):
