@@ -1288,6 +1288,15 @@ UPCOMING_COLUMNS = [
 ]
 
 
+REPORT_NAME = "Accounts Payable Aging Summary Report"
+
+
+def check_report_permission():
+	"""Same rule Frappe uses to open the report (Report > Roles + Role Permission for Page and Report)."""
+	if not frappe.get_doc("Report", REPORT_NAME).is_permitted():
+		frappe.throw(_("You are not permitted to access this report"), frappe.PermissionError)
+
+
 # ----------------------------------------------------------------------
 # Entry points
 # ----------------------------------------------------------------------
@@ -1307,7 +1316,7 @@ def execute(filters=None):
 @frappe.whitelist()
 def get_bucket_invoices(filters, bucket):
 	"""Invoices behind a headcount number (drill-down dialog)."""
-	frappe.only_for(("Accounts User", "Accounts Manager", "Purchase User", "Auditor"))
+	check_report_permission()
 	filters = frappe._dict(frappe.parse_json(filters))
 	rows, _age_as_on = get_payable_rows(filters)
 
@@ -1319,6 +1328,7 @@ def get_bucket_invoices(filters, bucket):
 					"voucher_type": row.voucher_type,
 					"voucher_no": row.voucher_no,
 					"party": row.party,
+					"supplier_name": row.get("supplier_name"),
 					"posting_date": row.posting_date,
 					"due_date": row.get("due_date"),
 					"bill_no": row.get("bill_no"),
@@ -1335,7 +1345,7 @@ def download_pdf(html):
 	"""PDF of exactly what is on screen: the browser posts the rendered report HTML."""
 	from frappe.utils.pdf import get_pdf
 
-	frappe.only_for(("Accounts User", "Accounts Manager", "Purchase User", "Auditor"))
+	check_report_permission()
 
 	html = html or ""
 	# This HTML only ever contains our own tables with inline styles. Anything that could
