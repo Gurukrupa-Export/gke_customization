@@ -8,8 +8,14 @@
 
 	<div class="sadguru-card sadguru-chart-card">
 		<h4><span class="sadguru-title-bar"></span><span class="sadguru-chart-title">Purchase — Month wise</span></h4>
-		<div class="sadguru-chart-subtitle">Amount in ₹ Lakhs</div>
+		<div class="sadguru-chart-subtitle">Amount in ₹ Crores</div>
 		<div class="sadguru-month-chart"></div>
+	</div>
+
+	<div class="sadguru-card sadguru-chart-card">
+		<h4><span class="sadguru-title-bar"></span><span class="sadguru-qty-chart-title">Purchase — Ct Wt Month wise</span></h4>
+		<div class="sadguru-chart-subtitle">Qty in Carats</div>
+		<div class="sadguru-qty-month-chart"></div>
 	</div>
 
 	<div class="sadguru-card">
@@ -19,6 +25,7 @@
 				<table class="sadguru-table sadguru-purchase-table">
 					<thead></thead>
 					<tbody></tbody>
+					<tfoot></tfoot>
 				</table>
 			</div>
 		</div>
@@ -29,6 +36,7 @@
 				<table class="sadguru-table sadguru-sales-table">
 					<thead></thead>
 					<tbody></tbody>
+					<tfoot></tfoot>
 				</table>
 			</div>
 
@@ -37,6 +45,7 @@
 				<table class="sadguru-table sadguru-sales-grade-table">
 					<thead></thead>
 					<tbody></tbody>
+					<tfoot></tfoot>
 				</table>
 			</div>
 
@@ -55,6 +64,7 @@
 				<table class="sadguru-table sadguru-matrix-table">
 					<thead></thead>
 					<tbody></tbody>
+					<tfoot></tfoot>
 				</table>
 			</div>
 		</div>
@@ -76,6 +86,7 @@
 					</tr>
 				</thead>
 				<tbody></tbody>
+				<tfoot></tfoot>
 			</table>
 		</div>
 	</div>
@@ -397,6 +408,24 @@
 		letter-spacing: 0.01em;
 		font-variant-numeric: tabular-nums lining-nums;
 	}
+	.sadguru-table tfoot td {
+		position: sticky;
+		bottom: 0;
+		z-index: 2;
+		padding: 10px 12px;
+		border-top: 2px solid var(--border-color);
+		background: var(--card-bg);
+		font-weight: 700;
+		color: var(--heading-color);
+	}
+	.sadguru-table tfoot td:first-child {
+		z-index: 3;
+	}
+	.sadguru-table tfoot .sadguru-amount-text,
+	.sadguru-table tfoot td:not(:first-child) {
+		color: #b8860b;
+	}
+
 	.sadguru-sortable {
 		cursor: pointer;
 		user-select: none;

@@ -358,8 +358,14 @@ def get_sales_monthly(from_date=None, to_date=None, company=None, customer=None,
 
 
 @frappe.whitelist()
-def get_monthly_trend(from_date=None, to_date=None, company=None):
+def get_monthly_trend(from_date=None, to_date=None, company=None, supplier=None, customer=None, grade=None):
 	company = company or DEFAULT_COMPANY
+
+	purchase_conditions = _item_condition("pii")
+	purchase_params = {"company": company, "from_date": from_date, "to_date": to_date, **_item_params("pii")}
+	if supplier:
+		purchase_conditions += " and pi.supplier = %(supplier)s"
+		purchase_params["supplier"] = supplier
 
 	purchase_rows = frappe.db.sql(
 		f"""
@@ -370,12 +376,21 @@ def get_monthly_trend(from_date=None, to_date=None, company=None):
 		join `tabPurchase Invoice` pi on pi.name = pii.parent
 		where pi.docstatus = 1 and pi.company = %(company)s
 			and pi.posting_date between %(from_date)s and %(to_date)s
-			{_item_condition("pii")}
+			{purchase_conditions}
 		group by month
 		""",
-		{"company": company, "from_date": from_date, "to_date": to_date, **_item_params("pii")},
+		purchase_params,
 		as_dict=True,
 	)
+
+	sales_conditions = _item_condition("sii")
+	sales_params = {"company": company, "from_date": from_date, "to_date": to_date, **_item_params("sii")}
+	if customer:
+		sales_conditions += " and si.customer = %(customer)s"
+		sales_params["customer"] = customer
+	if grade:
+		sales_conditions += " and sii.diamond_grade = %(grade)s"
+		sales_params["grade"] = grade
 
 	sales_rows = frappe.db.sql(
 		f"""
@@ -386,10 +401,10 @@ def get_monthly_trend(from_date=None, to_date=None, company=None):
 		join `tabSales Invoice` si on si.name = sii.parent
 		where si.docstatus = 1 and si.company = %(company)s
 			and si.posting_date between %(from_date)s and %(to_date)s
-			{_item_condition("sii")}
+			{sales_conditions}
 		group by month
 		""",
-		{"company": company, "from_date": from_date, "to_date": to_date, **_item_params("sii")},
+		sales_params,
 		as_dict=True,
 	)
 

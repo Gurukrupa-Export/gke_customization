@@ -43,6 +43,9 @@ class SadguruDashboard {
 			this.page.body
 				.find(".sadguru-chart-title")
 				.text(tab === "sales" ? "Sales — Month wise" : "Purchase — Month wise");
+			this.page.body
+				.find(".sadguru-qty-chart-title")
+				.text(tab === "sales" ? "Sales — Ct Wt Month wise" : "Purchase — Ct Wt Month wise");
 			this.load_kpis();
 			this.load_chart();
 		});
@@ -99,6 +102,7 @@ class SadguruDashboard {
 				this.load_purchase();
 				this.load_kpis();
 				this.load_chart();
+				this.load_trend_table();
 			},
 		});
 
@@ -113,6 +117,7 @@ class SadguruDashboard {
 				this.load_kpis();
 				this.load_chart();
 				this.load_matrix();
+				this.load_trend_table();
 			},
 		});
 		this.customer_field.$wrapper.hide();
@@ -127,6 +132,7 @@ class SadguruDashboard {
 				this.load_sales();
 				this.load_kpis();
 				this.load_chart();
+				this.load_trend_table();
 			},
 		});
 		this.grade_field.$wrapper.hide();
@@ -208,49 +214,49 @@ class SadguruDashboard {
 
 	render_purchase_kpis(d) {
 		this.render_kpi_tiles([
-			{ icon: SADGURU_ICONS.stack, label: "Total Purchase", value: sadguru_format_currency(d.total_purchase, 0) },
-			{ icon: SADGURU_ICONS.scale, label: "Total Qty Purchased (Ct Wt)", value: sadguru_format_number(d.total_qty_purchased, 0) },
+			{ icon: SADGURU_ICONS.stack, label: "Total Purchase", value: sadguru_format_currency(d.total_purchase) },
+			{ icon: SADGURU_ICONS.scale, label: "Total Qty Purchased (Ct Wt)", value: sadguru_format_number(d.total_qty_purchased) },
 			{
 				icon: SADGURU_ICONS.building,
 				label: "Avg Per Supplier",
-				value: sadguru_format_currency(d.avg_per_supplier, 0),
+				value: sadguru_format_currency(d.avg_per_supplier),
 				back_label: "Avg Per Supplier (Ct Wt)",
-				back_value: `${sadguru_format_number(d.avg_per_supplier_qty, 2)}`,
+				back_value: `${sadguru_format_number(d.avg_per_supplier_qty)}`,
 			},
 			{
 				icon: SADGURU_ICONS.calendar,
 				label: "Avg Monthly Purchase",
-				value: sadguru_format_currency(d.avg_monthly_purchase, 0),
+				value: sadguru_format_currency(d.avg_monthly_purchase),
 				back_label: "Avg Monthly Purchase (Ct Wt)",
-				back_value: `${sadguru_format_number(d.avg_monthly_purchase_qty, 2)}`,
+				back_value: `${sadguru_format_number(d.avg_monthly_purchase_qty)}`,
 			},
 		]);
 	}
 
 	render_sales_kpis(d) {
 		this.render_kpi_tiles([
-			{ icon: SADGURU_ICONS.stack, label: "Total Sales", value: sadguru_format_currency(d.total_sales, 0) },
-			{ icon: SADGURU_ICONS.scale, label: "Total Qty Sold (Ct Wt)", value: sadguru_format_number(d.total_qty_sold, 0) },
+			{ icon: SADGURU_ICONS.stack, label: "Total Sales", value: sadguru_format_currency(d.total_sales) },
+			{ icon: SADGURU_ICONS.scale, label: "Total Qty Sold (Ct Wt)", value: sadguru_format_number(d.total_qty_sold) },
 			{
 				icon: SADGURU_ICONS.user,
 				label: "Avg Per Customer",
-				value: sadguru_format_currency(d.avg_per_customer, 0),
+				value: sadguru_format_currency(d.avg_per_customer),
 				back_label: "Avg Per Customer (Ct Wt)",
-				back_value: `${sadguru_format_number(d.avg_per_customer_qty, 2)}`,
+				back_value: `${sadguru_format_number(d.avg_per_customer_qty)}`,
 			},
 			{
 				icon: SADGURU_ICONS.gem,
 				label: "Avg Per Grade",
-				value: sadguru_format_currency(d.avg_per_grade, 0),
+				value: sadguru_format_currency(d.avg_per_grade),
 				back_label: "Avg Per Grade (Ct Wt)",
-				back_value: `${sadguru_format_number(d.avg_per_grade_qty, 2)}`,
+				back_value: `${sadguru_format_number(d.avg_per_grade_qty)}`,
 			},
 			{
 				icon: SADGURU_ICONS.calendar,
 				label: "Avg Monthly Sales",
-				value: sadguru_format_currency(d.avg_monthly_sales, 0),
+				value: sadguru_format_currency(d.avg_monthly_sales),
 				back_label: "Avg Monthly Sales (Ct Wt)",
-				back_value: `${sadguru_format_number(d.avg_monthly_sales_qty, 2)}`,
+				back_value: `${sadguru_format_number(d.avg_monthly_sales_qty)}`,
 			},
 		]);
 	}
@@ -402,6 +408,7 @@ class SadguruDashboard {
 		const $table = this.page.body.find(".sadguru-matrix-table");
 		const $thead = $table.find("thead");
 		const $tbody = $table.find("tbody").empty();
+		const $tfoot = $table.find("tfoot").empty();
 
 		$thead.html(`
 			<tr>
@@ -420,7 +427,7 @@ class SadguruDashboard {
 
 		const format_cell = (cell) => {
 			if (!cell) return "—";
-			return this.matrix_mode === "qty" ? sadguru_format_number(cell.qty) : sadguru_format_currency(cell.amount, 0);
+			return this.matrix_mode === "qty" ? sadguru_format_number(cell.qty) : sadguru_format_currency(cell.amount);
 		};
 
 		rows.forEach((row) => {
@@ -439,6 +446,23 @@ class SadguruDashboard {
 				</tr>
 			`);
 		});
+
+		const format_grade_total = (g) => {
+			const qty = rows.reduce((sum, row) => sum + (row.cells[g]?.qty || 0), 0);
+			const amount = rows.reduce((sum, row) => sum + (row.cells[g]?.amount || 0), 0);
+			return this.matrix_mode === "qty" ? sadguru_format_number(qty) : sadguru_format_currency(amount);
+		};
+		const grand_total =
+			this.matrix_mode === "qty"
+				? sadguru_format_number(rows.reduce((sum, row) => sum + (row.total_qty || 0), 0))
+				: sadguru_format_currency(rows.reduce((sum, row) => sum + (row.total_amount || 0), 0));
+		$tfoot.append(`
+			<tr class="sadguru-table-total">
+				<td>Total</td>
+				${grades.map((g) => `<td>${format_grade_total(g)}</td>`).join("")}
+				<td class="sadguru-matrix-total">${grand_total}</td>
+			</tr>
+		`);
 	}
 
 	render_sortable_table($table, rows, label_field, label_header, sort_state, on_sort) {
@@ -470,6 +494,7 @@ class SadguruDashboard {
 		});
 
 		const $tbody = $table.find("tbody").empty();
+		const $tfoot = $table.find("tfoot").empty();
 		if (!rows.length) {
 			$tbody.append(`<tr><td colspan="4" class="text-muted">No data for this period.</td></tr>`);
 			return;
@@ -489,6 +514,18 @@ class SadguruDashboard {
 				</tr>
 			`);
 		});
+
+		const total_qty = rows.reduce((sum, row) => sum + (row.qty || 0), 0);
+		const total_amount = rows.reduce((sum, row) => sum + (row.amount || 0), 0);
+		const total_rate = total_qty ? total_amount / total_qty : 0;
+		$tfoot.append(`
+			<tr class="sadguru-table-total">
+				<td>Total</td>
+				<td>${sadguru_format_number(total_qty)}</td>
+				<td>${sadguru_format_currency(total_rate)}</td>
+				<td>${sadguru_format_currency(total_amount)}</td>
+			</tr>
+		`);
 	}
 
 	load_chart() {
@@ -501,14 +538,22 @@ class SadguruDashboard {
 					customer: this.customer_field.get_value(),
 					grade: this.grade_field.get_value(),
 				},
-				callback: (r) => this.render_chart(r.message || [], "Sales (₹L)"),
+				callback: (r) => {
+					const rows = r.message || [];
+					this.render_chart(rows, "Sales");
+					this.render_qty_chart(rows, "Sales");
+				},
 			});
 		} else {
 			frappe.call({
 				method:
 					"gke_customization.gke_catalog.page.sadguru_dashboard.sadguru_dashboard.get_purchase_monthly",
 				args: { ...this.get_dates(), supplier: this.supplier_field.get_value() },
-				callback: (r) => this.render_chart(r.message || [], "Purchase (₹L)"),
+				callback: (r) => {
+					const rows = r.message || [];
+					this.render_chart(rows, "Purchase");
+					this.render_qty_chart(rows, "Purchase");
+				},
 			});
 		}
 	}
@@ -519,11 +564,11 @@ class SadguruDashboard {
 			$chart_wrapper.append(`<div class="text-muted">No data for this period.</div>`);
 			return;
 		}
-		const to_lakh = (v) => +(v / 100000).toFixed(2);
+		const to_crore = (v) => v / 10000000;
 		new frappe.Chart($chart_wrapper[0], {
 			data: {
 				labels: rows.map((r) => sadguru_format_month(r.month)),
-				datasets: [{ name: series_name, values: rows.map((r) => to_lakh(r.amount)) }],
+				datasets: [{ name: series_name, values: rows.map((r) => to_crore(r.amount)) }],
 			},
 			type: "bar",
 			height: 260,
@@ -531,7 +576,29 @@ class SadguruDashboard {
 			barOptions: { spaceRatio: 0.65 },
 			axisOptions: { xAxisMode: "tick", yAxisMode: "tick" },
 			tooltipOptions: {
-				formatTooltipY: (value) => sadguru_format_currency(value * 100000),
+				formatTooltipY: (value) => sadguru_format_currency(value * 10000000),
+			},
+		});
+	}
+
+	render_qty_chart(rows, series_name) {
+		const $chart_wrapper = this.page.body.find(".sadguru-qty-month-chart").empty();
+		if (!rows.length) {
+			$chart_wrapper.append(`<div class="text-muted">No data for this period.</div>`);
+			return;
+		}
+		new frappe.Chart($chart_wrapper[0], {
+			data: {
+				labels: rows.map((r) => sadguru_format_month(r.month)),
+				datasets: [{ name: series_name, values: rows.map((r) => r.qty || 0) }],
+			},
+			type: "bar",
+			height: 260,
+			colors: ["#b8860b"],
+			barOptions: { spaceRatio: 0.65 },
+			axisOptions: { xAxisMode: "tick", yAxisMode: "tick" },
+			tooltipOptions: {
+				formatTooltipY: (value) => sadguru_format_number(value),
 			},
 		});
 	}
@@ -540,13 +607,19 @@ class SadguruDashboard {
 		frappe.call({
 			method:
 				"gke_customization.gke_catalog.page.sadguru_dashboard.sadguru_dashboard.get_monthly_trend",
-			args: this.get_dates(),
+			args: {
+				...this.get_dates(),
+				supplier: this.supplier_field.get_value(),
+				customer: this.customer_field.get_value(),
+				grade: this.grade_field.get_value(),
+			},
 			callback: (r) => this.render_trend_table(r.message || []),
 		});
 	}
 
 	render_trend_table(rows) {
 		const $tbody = this.page.body.find(".sadguru-trend-table tbody").empty();
+		const $tfoot = this.page.body.find(".sadguru-trend-table tfoot").empty();
 		if (!rows.length) {
 			$tbody.append(`<tr><td colspan="7" class="text-muted">No data for this period.</td></tr>`);
 			return;
@@ -564,6 +637,23 @@ class SadguruDashboard {
 				</tr>
 			`);
 		});
+
+		const sum = (field) => rows.reduce((total, row) => total + (row[field] || 0), 0);
+		const total_purchase_qty = sum("purchase_qty");
+		const total_purchase_amount = sum("purchase_amount");
+		const total_sales_qty = sum("sales_qty");
+		const total_sales_amount = sum("sales_amount");
+		$tfoot.append(`
+			<tr class="sadguru-table-total">
+				<td>Total</td>
+				<td>${sadguru_format_number(total_purchase_qty)}</td>
+				<td>${sadguru_format_currency(total_purchase_qty ? total_purchase_amount / total_purchase_qty : 0)}</td>
+				<td>${sadguru_format_currency(total_purchase_amount)}</td>
+				<td>${sadguru_format_number(total_sales_qty)}</td>
+				<td>${sadguru_format_currency(total_sales_qty ? total_sales_amount / total_sales_qty : 0)}</td>
+				<td>${sadguru_format_currency(total_sales_amount)}</td>
+			</tr>
+		`);
 	}
 }
 
