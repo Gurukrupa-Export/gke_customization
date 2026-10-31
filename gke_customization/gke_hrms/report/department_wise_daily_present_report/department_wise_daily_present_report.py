@@ -97,8 +97,49 @@ def is_late_entry(shift_name, in_time, date):
 
 	threshold = shift_start_dt + timedelta(minutes=grace_minutes)
 	return get_datetime(in_time) > threshold
+
+
+def get_holiday_status(shift_name, date):
+	"""Return "WO" (weekly off) or "Holiday" if `date` is in the shift's
+	Holiday List, otherwise None."""
+	if not shift_name:
+		return None
+
+	holiday_list = frappe.db.get_value("Shift Type", shift_name, "holiday_list")
+	if not holiday_list:
+		return None
+
+	holiday = frappe.db.get_value(
+		"Holiday",
+		{"parent": holiday_list, "parenttype": "Holiday List", "holiday_date": date},
+		["weekly_off"],
+		as_dict=True,
+	)
+	if not holiday:
+		return None
+
+	return "Week-Off (WO)" if holiday.weekly_off else "Holiday"
  
  
+def get_shift_request_map(emp_ids, date):
+	"""Approved Shift Requests covering `date`, keyed by employee id -> shift_type."""
+	if not emp_ids:
+		return {}
+	rows = frappe.get_all(
+		"Shift Request",
+		filters={
+			"employee": ["in", emp_ids],
+			"status": "Approved",
+			"docstatus": 1,
+			"from_date": ["<=", date],
+			"to_date": [">=", date],
+		},
+		fields=["employee", "shift_type"],
+		order_by="creation asc",
+	)
+	return {r.employee: r.shift_type for r in rows}
+
+
 def build_rows_for_department(department, date):
 	employees = frappe.get_all(
 		"Employee",
@@ -111,8 +152,12 @@ def build_rows_for_department(department, date):
 	emp_ids = [e.name for e in employees]
 	leave_by_emp = get_employees_on_leave(emp_ids, date)
 
+	shift_request_by_emp = get_shift_request_map(emp_ids, date)
+
 	rows = []
 	for emp in employees:
+		# approved Shift Request for this date wins over Employee.default_shift
+		default_shift = shift_request_by_emp.get(emp.name) or emp.default_shift
 		base = {
 			"employee_id": emp.name,
 			"employee_name": emp.employee_name,
@@ -132,14 +177,16 @@ def build_rows_for_department(department, date):
 		in_time, out_time, checkin_shift = get_checkin_info(emp.name, date)
 
 		if not in_time:
+			# no checkin: WO / Holiday if the shift's holiday list has this date, else Absent
+			holiday_status = get_holiday_status(default_shift, date)
 			rows.append({
 				**base,
-				"shift": emp.default_shift or "", "in_time": "", "out_time": "",
-				"status": "Absent", "late_entry": "", "leave_type": "",
+				"shift": default_shift or "", "in_time": "", "out_time": "",
+				"status": holiday_status or "Absent", "late_entry": "", "leave_type": "",
 			})
 			continue
 
-		shift = checkin_shift or emp.default_shift
+		shift = checkin_shift or default_shift
 		late = is_late_entry(shift, in_time, date)
 		rows.append({
 			**base,
@@ -159,12 +206,16 @@ def build_summary_rows(data):
 	present = sum(1 for r in data if r["status"] == "Present")
 	absent = sum(1 for r in data if r["status"] == "Absent")
 	leave = sum(1 for r in data if r["status"] == "On Leave")
+	wo = sum(1 for r in data if r["status"] == "Week-Off (WO)")
+	holiday = sum(1 for r in data if r["status"] == "Holiday")
 	late = sum(1 for r in data if r["late_entry"] == "Yes")
- 
+
 	return [
 		{"status": "Present", "late_entry": present},
 		{"status": "Absent", "late_entry": absent},
 		{"status": "On Leave", "late_entry": leave},
+		{"status": "Week-Off (WO)", "late_entry": wo},
+		{"status": "Holiday", "late_entry": holiday},
 		{"status": "Late Entry", "late_entry": late},
 		{"status": "Total", "late_entry": total},
 	]
@@ -186,21 +237,21 @@ def execute(filters=None):
 	allowed_departments = None
 	if manager:
 		user_id = frappe.db.get_value("Employee", manager, "user_id")
-		allowed_departments = get_manager_departments(user_id) or []
+	allowed_departments = get_manager_departments(user_id) or []
  
 	departments = frappe.get_all("Department", filters=dept_filters, pluck="name", order_by="name asc")
 	if allowed_departments is not None:
 		departments = [d for d in departments if d in allowed_departments]
- 
+
 	columns = get_columns()
 	data = []
 	for dept in departments:
 		rows = build_rows_for_department(dept, date)
 		rows.sort(key=lambda r: r["employee_name"] or "")
 		data.extend(rows)
- 
+
 	data.extend(build_summary_rows(data))
- 
+
 	return columns, data
 
 """for auto mail at 10 AM """
@@ -243,8 +294,8 @@ def get_branch_hr_emails(department):
 	return [u for u in users if u]
 
 def build_department_report(department, date):
-	"""Return (present_rows, leave_rows, absent_rows, summary_dict) for one
-	department, or None if empty."""
+	"""Return (present_rows, leave_rows, absent_rows, holiday_rows, summary_dict)
+	for one department, or None if empty."""
 	employees = frappe.get_all(
 		"Employee",
 		filters={"department": department, "status": "Active"},
@@ -256,12 +307,16 @@ def build_department_report(department, date):
 	emp_ids = [e.name for e in employees]
 	leave_by_emp = get_employees_on_leave(emp_ids, date)
  
-	summary = {"Total Employees": len(employees), "Present": 0, "Absent": 0, "On Leave": 0, "Late Entry": 0}
+	shift_request_by_emp = get_shift_request_map(emp_ids, date)
+	summary = {"Total Employees": len(employees), "Present": 0, "Absent": 0, "On Leave": 0, "Week-Off (WO)": 0, "Holiday": 0, "Late Entry": 0}
 	present_rows = []
 	leave_rows = []
 	absent_rows = []
+	holiday_rows = []
  
 	for emp in employees:
+		# approved Shift Request for this date wins over Employee.default_shift
+		default_shift = shift_request_by_emp.get(emp.name) or emp.default_shift
 		if emp.name in leave_by_emp:
 			summary["On Leave"] += 1
 			leave = leave_by_emp[emp.name]
@@ -278,17 +333,29 @@ def build_department_report(department, date):
 		in_time, out_time, checkin_shift = get_checkin_info(emp.name, date)
  
 		if not in_time:
+			holiday_status = get_holiday_status(default_shift, date)
+			if holiday_status:
+				summary[holiday_status] += 1
+				holiday_rows.append({
+					"employee_name": emp.employee_name,
+					"employee_id": emp.name,
+					"department": department,
+					"shift": default_shift or "",
+					"status": holiday_status,
+				})
+				continue
+
 			summary["Absent"] += 1
 			absent_rows.append({
 				"employee_name": emp.employee_name,
 				"employee_id": emp.name,
 				"department": department,
-				"shift": emp.default_shift or "",
+				"shift": default_shift or "",
 			})
 			continue
  
 		summary["Present"] += 1
-		shift = checkin_shift or emp.default_shift
+		shift = checkin_shift or default_shift
 		late = is_late_entry(shift, in_time, date)
 		if late:
 			summary["Late Entry"] += 1
@@ -304,7 +371,7 @@ def build_department_report(department, date):
 			"late_entry": "Yes" if late else "No",
 		})
  
-	return present_rows, leave_rows, absent_rows, summary
+	return present_rows, leave_rows, absent_rows, holiday_rows, summary
  
  
 def render_absent_table(absent_rows):
@@ -325,6 +392,32 @@ def render_absent_table(absent_rows):
 		<thead style="background:#f2f2f2;">
 			<tr>
 				<th>Sr No</th><th>Employee Name</th><th>Employee ID</th><th>Shift</th>
+			</tr>
+		</thead>
+		<tbody>{rows_html}</tbody>
+	</table>
+	"""
+
+
+def render_holiday_table(holiday_rows):
+	if not holiday_rows:
+		return ""
+
+	rows_html = "".join(f"""
+		<tr>
+			<td>{i}</td>
+			<td>{r['employee_name']}</td>
+			<td>{r['employee_id']}</td>
+			<td>{r['shift']}</td>
+			<td>{r['status']}</td>
+		</tr>""" for i, r in enumerate(holiday_rows, start=1))
+
+	return f"""
+	<h4 style="margin-top:16px;">WO / Holiday</h4>
+	<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; font-size:13px;">
+		<thead style="background:#f2f2f2;">
+			<tr>
+				<th>Sr No</th><th>Employee Name</th><th>Employee ID</th><th>Shift</th><th>Status</th>
 			</tr>
 		</thead>
 		<tbody>{rows_html}</tbody>
@@ -360,7 +453,7 @@ def render_leave_table(leave_rows):
 	"""
  
  
-def render_email_html(department, date, rows, leave_rows, absent_rows, summary):
+def render_email_html(department, date, rows, leave_rows, absent_rows, holiday_rows, summary):
 	rows_html = "".join(f"""
 		<tr>
 			<td>{i}</td>
@@ -375,7 +468,7 @@ def render_email_html(department, date, rows, leave_rows, absent_rows, summary):
 		</tr>""" for i, r in enumerate(rows, start=1)) or "<tr><td colspan='9' style='text-align:center;'>No employees present</td></tr>"
 
 	return f"""
-	<h3>Present Report — {department} — {formatdate(date, "dd-mm-yyyy")}</h3>
+	<h3>Present Report — {department} — {formatdate(date, "dd-MM-yyyy")}</h3>
 	<p>{frappe.local.site}</p>
 	<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; font-size:13px;">
 		<thead style="background:#f2f2f2;">
@@ -388,6 +481,7 @@ def render_email_html(department, date, rows, leave_rows, absent_rows, summary):
 		<tbody>{rows_html}</tbody>
 	</table>
 	{render_leave_table(leave_rows)}
+	{render_holiday_table(holiday_rows)}
 	{render_absent_table(absent_rows)}
 	<h4 style="margin-top:16px;">Department Summary</h4>
 	<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
@@ -395,6 +489,8 @@ def render_email_html(department, date, rows, leave_rows, absent_rows, summary):
 		<tr><td>Present</td><td>{summary['Present']}</td></tr>
 		<tr><td>Absent</td><td>{summary['Absent']}</td></tr>
 		<tr><td>Leave</td><td>{summary['On Leave']}</td></tr>
+		<tr><td>WO</td><td>{summary['WO']}</td></tr>
+		<tr><td>Holiday</td><td>{summary['Holiday']}</td></tr>
 		<tr><td>Late Entry</td><td>{summary['Late Entry']}</td></tr>
 	</table>
 	"""
@@ -427,7 +523,7 @@ def send_morning_present_report(date=None, department=None):
 		if not result:
 			skipped.append(dept)
 			continue
-		rows, leave_rows,absent_rows, summary = result
+		rows, leave_rows, absent_rows, holiday_rows, summary = result
  
 		manager_emails = get_department_manager_emails(dept)
 		
@@ -448,13 +544,13 @@ def send_morning_present_report(date=None, department=None):
 		cc = [e for e in dict.fromkeys(fixed_cc + hr_emails) if e not in manager_emails]
 		# frappe.throw(f"cc mail {cc} manager_string {manager_string}")
 
-		html = render_email_html(dept, date, rows, leave_rows, absent_rows, summary)
+		html = render_email_html(dept, date, rows, leave_rows, absent_rows, holiday_rows, summary)
 		frappe.sendmail(
 			recipients=manager_string,
 			# cc=["angat_p@gkexport.com"],
 			cc=cc,
-			sender="alerts@kggk.in",
-			subject=f"Present Report — {dept} — {formatdate(date, 'dd-mm-yyyy')}",
+			sender="alerts@gkexport.com",
+			subject=f"Present Report — {dept} — {formatdate(date, 'dd-MM-yyyy')}",
 			message=html,
 			now=True,expose_recipients="header"
 		)
