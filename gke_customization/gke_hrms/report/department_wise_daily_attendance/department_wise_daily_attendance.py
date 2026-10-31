@@ -103,6 +103,8 @@ def get_data(filters):
 	shift_type_map = get_shift_type_map()
 	checkin_map = get_checkin_details_map(date, employee_names)
 	remark_map = get_remark_map(date, employee_names)
+	holiday_map = get_holiday_map(date, employees)
+	shift_assignment_map = get_shift_assignment_map(date, employee_names)
 
 	summary = get_empty_summary()
 	data = []
@@ -110,7 +112,13 @@ def get_data(filters):
 	for emp in employees:
 		summary["total_employees"] += 1
 
-		shift_name = emp.default_shift
+		checkin = checkin_map.get(emp.name)
+
+		shift_name = (
+			shift_assignment_map.get(emp.name)
+			or (checkin.shift if checkin else None)
+			or emp.default_shift
+		)
 		shift = shift_type_map.get(shift_name)
 		shift_label = get_shift_label(shift_name, shift_type_map)
 
@@ -127,10 +135,14 @@ def get_data(filters):
 			"remark": ", ".join(remark_map.get(emp.name, [])),
 		}
 
-		checkin = checkin_map.get(emp.name)
 		cnt = checkin.cnt if checkin else 0
+		holiday = holiday_map.get(emp.name)
 
-		if cnt == 0:
+		if cnt == 0 and holiday:
+			row["status"] = "Week-Off (WO)" if holiday.weekly_off else "Holiday (H)"
+			summary["week_off" if holiday.weekly_off else "holiday"] += 1
+
+		elif cnt == 0:
 			row["status"] = "Absent"
 			summary["absent"] += 1
 
@@ -207,6 +219,8 @@ def get_employees(filters):
 			Employee.employee_name,
 			Employee.department,
 			Employee.default_shift,
+			Employee.holiday_list,
+			Employee.company,
 		)
 		.where(Employee.status == "Active")
 		.orderby(Employee.department)
@@ -257,6 +271,36 @@ def get_shift_type_map():
 	return {row.name: row for row in rows}
 
 
+def get_shift_assignment_map(date, employee_names):
+	"""employee -> shift_type from the active Shift Assignment covering `date`,
+	taking priority over Employee.default_shift. Picks the most recently
+	started assignment when more than one is active for an employee."""
+	ShiftAssignment = frappe.qb.DocType("Shift Assignment")
+
+	rows = (
+		frappe.qb.from_(ShiftAssignment)
+		.select(
+			ShiftAssignment.employee,
+			ShiftAssignment.shift_type,
+			ShiftAssignment.start_date,
+		)
+		.where(
+			(ShiftAssignment.employee.isin(employee_names))
+			& (ShiftAssignment.docstatus == 1)
+			& (ShiftAssignment.status == "Active")
+			& (ShiftAssignment.start_date <= date)
+			& (ShiftAssignment.end_date.isnull() | (ShiftAssignment.end_date >= date))
+		)
+		.orderby(ShiftAssignment.start_date, order=frappe.qb.desc)
+	).run(as_dict=True)
+
+	shift_map = {}
+	for row in rows:
+		shift_map.setdefault(row.employee, row.shift_type)
+
+	return shift_map
+
+
 def get_checkin_details_map(date, employee_names):
 	EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
 
@@ -267,6 +311,7 @@ def get_checkin_details_map(date, employee_names):
 			Count(EmployeeCheckin.name).as_("cnt"),
 			Min(EmployeeCheckin.time).as_("first_time"),
 			Max(EmployeeCheckin.time).as_("last_time"),
+			Max(EmployeeCheckin.shift).as_("shift"),
 		)
 		.where(
 			(Date(EmployeeCheckin.time) == date)
@@ -294,6 +339,40 @@ def get_remark_map(date, employee_names):
 		remark_map.setdefault(emp, []).append(label)
 
 	return remark_map
+
+
+def get_holiday_map(date, employees):
+	"""employee -> Holiday row (weekly_off, description) for `date`, resolved
+	via Employee.holiday_list, falling back to Company.default_holiday_list."""
+	company_default_list = {}
+	companies = {emp.company for emp in employees if emp.company}
+	for company in companies:
+		company_default_list[company] = frappe.get_cached_value("Company", company, "default_holiday_list")
+
+	employee_holiday_list = {}
+	for emp in employees:
+		holiday_list = emp.holiday_list or company_default_list.get(emp.company)
+		if holiday_list:
+			employee_holiday_list[emp.name] = holiday_list
+
+	holiday_lists = set(employee_holiday_list.values())
+	if not holiday_lists:
+		return {}
+
+	Holiday = frappe.qb.DocType("Holiday")
+	rows = (
+		frappe.qb.from_(Holiday)
+		.select(Holiday.parent, Holiday.weekly_off, Holiday.description)
+		.where((Holiday.holiday_date == date) & (Holiday.parent.isin(list(holiday_lists))))
+	).run(as_dict=True)
+
+	holiday_by_list = {row.parent: row for row in rows}
+
+	return {
+		emp_name: holiday_by_list[holiday_list]
+		for emp_name, holiday_list in employee_holiday_list.items()
+		if holiday_list in holiday_by_list
+	}
 
 
 def get_ot_request_employees(date, employee_names):
@@ -381,6 +460,8 @@ def get_empty_summary():
 		"present": 0,
 		"absent": 0,
 		"half_day": 0,
+		"holiday": 0,
+		"week_off": 0,
 		"late_entry": 0,
 		"early_exit": 0,
 		"error": 0,
@@ -399,6 +480,8 @@ def get_report_summary(summary, date):
 		{"label": _("Present"), "value": summary["present"], "indicator": "Green", "datatype": "Int"},
 		{"label": _("Absent"), "value": summary["absent"], "indicator": "Red", "datatype": "Int"},
 		{"label": _("Half Day"), "value": summary["half_day"], "indicator": "Yellow", "datatype": "Int"},
+		{"label": _("Holiday"), "value": summary["holiday"], "indicator": "Blue", "datatype": "Int"},
+		{"label": _("Week Off"), "value": summary["week_off"], "indicator": "Blue", "datatype": "Int"},
 		{"label": _("Late Entry"), "value": summary["late_entry"], "indicator": "Orange", "datatype": "Int"},
 		{"label": _("Early Exit"), "value": summary["early_exit"], "indicator": "Orange", "datatype": "Int"},
 		{"label": _("Error"), "value": summary["error"], "indicator": "Red", "datatype": "Int"},
@@ -481,6 +564,8 @@ def render_email_html(department, date, rows, summary):
 		<tr><td>Present</td><td>{summary['present']}</td></tr>
 		<tr><td>Absent</td><td>{summary['absent']}</td></tr>
 		<tr><td>Half Day</td><td>{summary['half_day']}</td></tr>
+		<tr><td>Holiday</td><td>{summary['holiday']}</td></tr>
+		<tr><td>Week Off</td><td>{summary['week_off']}</td></tr>
 		<tr><td>Late Entry</td><td>{summary['late_entry']}</td></tr>
 		<tr><td>Early Exit</td><td>{summary['early_exit']}</td></tr>
 		<tr><td>Error</td><td>{summary['error']}</td></tr>
@@ -538,9 +623,9 @@ def send_daily_attendance_report(date=None, department=None):
 		html = render_email_html(dept, date, rows, summary)
 		frappe.sendmail(
 			recipients=manager_string,
-			# cc=["angat_p@gkexport.com","hr_srt@gkexport.com"],
+			# cc=["raghav_r@gkexport.com"],
 			cc=cc,
-			sender="alerts@kggk.in",
+			sender="alerts@gkexport.com",
 			subject=f"Daily Attendance Report — {dept} — {formatdate(date, 'dd-mm-yyyy')}",
 			message=html,
 			now=True,expose_recipients="header"
