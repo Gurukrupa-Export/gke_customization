@@ -1,0 +1,109 @@
+/* Path: apps/gke_customization/gke_customization/gke_catalog/page/employee_analysis/employee_analysis.css */
+
+.employee-dashboard-wrapper {
+    margin-top: 25px; 
+    display: none; 
+    width: 100%; 
+    flex-direction: column; 
+    gap: 20px;
+}
+
+/* Header Info Banner configuration styles */
+.profile-identity-card {
+    background: var(--card-bg, #fff); 
+    border: 1px solid var(--border-color, #e2e8f0); 
+    border-radius: 12px; 
+    padding: 24px; 
+    display: flex; 
+    align-items: center; 
+    gap: 20px; 
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.avatar-circle-placeholder {
+    width: 64px; 
+    height: 64px; 
+    border-radius: 50%; 
+    border: 2px solid var(--primary-color, #1b86e6); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    background: var(--bg-light-gray, #f8fafc); 
+    flex-shrink: 0;
+}
+
+.avatar-circle-placeholder svg {
+    color: #64748b;
+}
+
+.identity-info-block h2 {
+    margin: 0 0 4px 0; 
+    font-size: 20px; 
+    font-weight: 700; 
+    color: var(--text-color, #1e293b);
+}
+
+.identity-info-block p {
+    margin: 0 0 8px 0; 
+    font-size: 13px; 
+    color: var(--text-muted, #64748b); 
+    font-weight: 500;
+}
+
+#badge_status {
+    padding: 3px 10px; 
+    font-size: 10px; 
+    font-weight: 700; 
+    border-radius: 4px; 
+    letter-spacing: 0.05em; 
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+/* Responsive Split Grid Panels framework layout style */
+.details-split-grid {
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); 
+    gap: 20px; 
+    width: 100%;
+}
+
+.metrics-content-card {
+    background: var(--card-bg, #fff); 
+    border: 1px solid var(--border-color, #e2e8f0); 
+    border-radius: 12px; 
+    padding: 24px; 
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.card-section-title {
+    margin-top: 0; 
+    margin-bottom: 20px; 
+    font-size: 12px; 
+    font-weight: 700; 
+    color: #475569; 
+    text-transform: uppercase; 
+    letter-spacing: 0.05em; 
+    border-bottom: 1px solid var(--border-color, #f1f5f9); 
+    padding-bottom: 10px;
+}
+
+.row-item-container {
+    display: flex; 
+    flex-direction: column; 
+    gap: 14px;
+}
+
+.data-row-flex {
+    display: flex; 
+    justify-content: space-between; 
+    font-size: 13px;
+}
+
+.data-row-flex span {
+    color: #64748b;
+}
+
+.data-row-flex strong {
+    color: #1e293b;
+}

@@ -1,0 +1,23 @@
+{
+ "content": null,
+ "creation": "2026-10-20 15:05:00.881326",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-10-20 15:05:00.881326",
+ "modified_by": "Administrator",
+ "module": "GKE Catalog",
+ "name": "employee_analysis",
+ "owner": "Administrator",
+ "page_name": "employee_analysis",
+ "roles": [
+  {
+   "role": "GK HR"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Employee"
+}
