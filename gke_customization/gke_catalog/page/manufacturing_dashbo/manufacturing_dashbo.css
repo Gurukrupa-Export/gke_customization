@@ -202,7 +202,8 @@
 	}
 }
 
-/* Serial No Date range at the top of the Production list dialog */
+/* Serial No Date range and Customer at the top of the Production list dialog - laid out like the
+   dashboard's own filter bar (.mfgdash__filters / .mfgdash__filter) */
 .mfg-list-filter {
 	margin-bottom: 10px;
 }
@@ -211,21 +212,8 @@
 	width: 240px;
 }
 
-/* the control's own (empty) label row and help text push its input below our label - drop them
-   so the label and the input sit on one line */
-.mfg-list-filter .form-group,
-.mfg-list-filter .frappe-control {
-	margin: 0;
-}
-
-.mfg-list-filter .frappe-control .clearfix,
-.mfg-list-filter .frappe-control .control-label,
-.mfg-list-filter .frappe-control .help-box {
-	display: none;
-}
-
-.mfg-list-filter > label {
-	line-height: 30px;
+.mfg-list-filter .mfgdash__filter {
+	flex-basis: 260px;
 }
 
 .mfgdash__filter .control-input-wrapper,
@@ -1402,6 +1390,51 @@
 .mfg-drill__body--tall .mfg-pager {
 	flex: none;
 	border-top: 1px solid var(--mfg-border-soft);
+}
+
+/* Department Transfer, under the stage-wise summary - title on one line, a small department
+   dropdown under it */
+.mfg-transfer__title {
+	margin-top: 16px;
+	margin-bottom: 6px;
+	white-space: nowrap;
+}
+
+.mfg-transfer__select {
+	display: block;
+	width: 180px;
+	max-width: 100%;
+	height: 26px;
+	margin: 0 0 8px 2px;
+	padding: 2px 6px;
+	font-size: 12px;
+	color: var(--mfg-ink);
+	background: var(--mfg-panel);
+	border: 1px solid var(--mfg-border);
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+/* "issued out" icon in place of the lamp bulb: an arrow leaving a tray, coloured when anything
+   was issued in the period, faint at 0 */
+.mfg-transfer__icon {
+	flex: none;
+	width: 30px;
+	height: 30px;
+	fill: none;
+	stroke: var(--mfg-ink-faint);
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.mfg-lamp--active .mfg-transfer__icon {
+	stroke: var(--mfg-lamp-color);
+}
+
+.mfg-transfer__select:focus {
+	outline: none;
+	border-color: var(--mfg-brass);
 }
 
 .mfg-drill__body.is-busy {

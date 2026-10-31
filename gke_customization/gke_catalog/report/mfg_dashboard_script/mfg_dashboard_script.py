@@ -465,34 +465,60 @@ WHERE so.docstatus = 1
 """
 
 
-# Sales Orders that are On Hold or Cancelled are kept out of so_base entirely (see
-# _dashboard_cte) and counted here instead, so they never double up with the "active" figures.
-# Weights are the item's master BOM times qty, like the pending pieces. Cheap, CTE-free, standalone.
-def _dashboard_hold_cancel_query(extra_so_filter=""):
-	return f"""
-SELECT
-	COALESCE(SUM(soi.qty), 0) AS qty,
-	COALESCE(SUM(CASE WHEN so.docstatus = 2 THEN 0 ELSE soi.qty END), 0) AS on_hold_qty,
-	COALESCE(SUM(CASE WHEN so.docstatus = 2 THEN soi.qty ELSE 0 END), 0) AS cancelled_qty,
-	COALESCE(SUM(soi.qty * COALESCE(bom.total_metal_weight, 0)), 0) AS gold_wt,
-	COALESCE(SUM(soi.qty * COALESCE(bom.diamond_weight, 0)), 0) AS diamond_wt,
-	COALESCE(SUM(CASE WHEN so.docstatus = 2 THEN 0
-		ELSE soi.qty * COALESCE(bom.total_metal_weight, 0) END), 0) AS on_hold_gold_wt,
-	COALESCE(SUM(CASE WHEN so.docstatus = 2 THEN 0
-		ELSE soi.qty * COALESCE(bom.diamond_weight, 0) END), 0) AS on_hold_diamond_wt,
-	COALESCE(SUM(CASE WHEN so.docstatus = 2
-		THEN soi.qty * COALESCE(bom.total_metal_weight, 0) ELSE 0 END), 0) AS cancelled_gold_wt,
-	COALESCE(SUM(CASE WHEN so.docstatus = 2
-		THEN soi.qty * COALESCE(bom.diamond_weight, 0) ELSE 0 END), 0) AS cancelled_diamond_wt
-FROM `tabSales Order Item` soi
+# On Hold / Cancelled counts pieces, not ordered qty: only pieces whose work had already begun
+# (a main MWO was generated) and were then stopped. Qty never generated on a held / cancelled
+# order isn't counted anywhere.
+#   Cancelled - the piece itself is cancelled, or its Sales Order is (whether that order is
+#               still active or not)
+#   On Hold   - the piece's Sales Order is On Hold and the piece isn't tagged yet (a tagged
+#               piece is finished, not held)
+# Pieces on On Hold / Cancelled Sales Orders are kept out of so_base (see _dashboard_cte), so they
+# never double up with the "active" figures. Weights are the item's master BOM per piece.
+# Shared by the card and its order list so the two always agree.
+_HOLD_CANCEL_IS_CANCELLED = "(pmo.docstatus = 2 OR so.docstatus = 2)"
+_HOLD_CANCEL_PIECES = """FROM `tabParent Manufacturing Order` pmo
+INNER JOIN `tabSales Order Item` soi ON soi.name = pmo.sales_order_item
 INNER JOIN `tabSales Order` so ON so.name = soi.parent
-LEFT JOIN `tabItem` item ON item.name = soi.item_code
+LEFT JOIN `tabItem` item ON item.name = pmo.item_code
 LEFT JOIN `tabBOM` bom ON bom.name = item.master_bom
 WHERE so.company = %(company)s
-	AND (
-		(so.docstatus = 1 AND so.status = 'On Hold')
-		OR so.docstatus = 2
+	-- work began: a main MWO was generated (cancelled with the piece, so any docstatus)
+	AND pmo.name IN (
+		SELECT mwo.manufacturing_order FROM `tabManufacturing Work Order` mwo
+		WHERE mwo.for_fg = 0 AND mwo.is_finding_mwo = 0 AND mwo.manufacturing_order IS NOT NULL
 	)
+	AND (
+		pmo.docstatus = 2
+		OR so.docstatus = 2
+		OR (
+			so.docstatus = 1
+			AND so.status = 'On Hold'
+			AND pmo.name NOT IN (
+				SELECT snc.parent_manufacturing_order FROM `tabSerial Number Creator` snc
+				WHERE snc.docstatus = 1 AND snc.parent_manufacturing_order IS NOT NULL
+			)
+		)
+	)"""
+
+
+def _dashboard_hold_cancel_query(extra_so_filter=""):
+	cancelled = _HOLD_CANCEL_IS_CANCELLED
+	return f"""
+SELECT
+	COUNT(*) AS qty,
+	COALESCE(SUM(CASE WHEN {cancelled} THEN 0 ELSE 1 END), 0) AS on_hold_qty,
+	COALESCE(SUM(CASE WHEN {cancelled} THEN 1 ELSE 0 END), 0) AS cancelled_qty,
+	COALESCE(SUM(COALESCE(bom.total_metal_weight, 0)), 0) AS gold_wt,
+	COALESCE(SUM(COALESCE(bom.diamond_weight, 0)), 0) AS diamond_wt,
+	COALESCE(SUM(CASE WHEN {cancelled} THEN 0
+		ELSE COALESCE(bom.total_metal_weight, 0) END), 0) AS on_hold_gold_wt,
+	COALESCE(SUM(CASE WHEN {cancelled} THEN 0
+		ELSE COALESCE(bom.diamond_weight, 0) END), 0) AS on_hold_diamond_wt,
+	COALESCE(SUM(CASE WHEN {cancelled}
+		THEN COALESCE(bom.total_metal_weight, 0) ELSE 0 END), 0) AS cancelled_gold_wt,
+	COALESCE(SUM(CASE WHEN {cancelled}
+		THEN COALESCE(bom.diamond_weight, 0) ELSE 0 END), 0) AS cancelled_diamond_wt
+{_HOLD_CANCEL_PIECES}
 	{extra_so_filter}
 """
 
@@ -860,6 +886,50 @@ def _attach_mwo(orders):
 		o.mwo = mwo_map.get(o.get("order_no"))
 
 
+# Order lists that show the employee: a split piece's MWOs can be with different employees, so
+# the piece gets one row per main MWO - from the one _main_mwo picks to the last one - each with
+# the employee on that MWO's current operation. The piece's own fields (weights, dates ...) repeat
+# on every row; the lists' Total row counts and sums each piece once.
+def _expand_mwos(orders):
+	pmos = list({o.get("order_no") for o in orders if o.get("order_no")})
+	if not pmos:
+		return orders
+	start = _main_mwo(pmos)
+	mwos = {}
+	for m in frappe.db.sql(
+		"""
+SELECT mwo.manufacturing_order AS pmo, mwo.name AS mwo, mo.employee, emp.employee_name
+FROM `tabManufacturing Work Order` mwo
+LEFT JOIN `tabManufacturing Operation` mo ON mo.name = mwo.manufacturing_operation
+LEFT JOIN `tabEmployee` emp ON emp.name = mo.employee
+WHERE mwo.manufacturing_order IN %(pmos)s
+	AND mwo.for_fg = 0
+	AND mwo.is_finding_mwo = 0
+	AND mwo.docstatus != 2
+-- numeric suffix, so -10 sorts after -09 (same as _main_mwo)
+ORDER BY mwo.manufacturing_order, CAST(SUBSTRING_INDEX(mwo.name, '-', -1) AS UNSIGNED), mwo.name
+""",
+		{"pmos": tuple(pmos)},
+		as_dict=True,
+	):
+		mwos.setdefault(m.pmo, []).append(m)
+
+	rows = []
+	for o in orders:
+		piece_mwos = mwos.get(o.get("order_no"), [])
+		names = [m.mwo for m in piece_mwos]
+		first = start.get(o.get("order_no"))
+		if first in names:
+			piece_mwos = piece_mwos[names.index(first) :]
+		if not piece_mwos:
+			o.mwo = None
+			rows.append(o)
+			continue
+		for m in piece_mwos:
+			rows.append(frappe._dict(o, mwo=m.mwo, employee=m.employee, employee_name=m.employee_name))
+	return rows
+
+
 # Excel download for every dashboard order list. The dialog sends the table exactly as it is on
 # screen - header, the rows left after any column search, and the Total row - so the file always
 # matches what the user is looking at, whichever list it came from.
@@ -972,9 +1042,9 @@ ORDER BY pm.due_date IS NULL, pm.due_date ASC, pm.pmo_name ASC
 	for o in orders:
 		if o.operation and abbr and o.operation.endswith(suffix):
 			o.operation = o.operation[: -len(suffix)].strip()
-	_attach_mwo(orders)
 
-	return {"orders": orders, "order_count": len(orders)}
+	# order_count stays the piece count, which is what the card shows
+	return {"orders": _expand_mwos(orders), "order_count": len(orders)}
 
 
 # Production: a piece counts as produced on the day it was tagged, i.e. the day its Serial Number
@@ -1083,6 +1153,7 @@ def get_production_pieces(
 				AND cmo.operation = %(casting_operation)s
 		)
 	) AS production_days,
+	so.ref_customer AS customer,
 	snc.parent_manufacturing_order AS pmo,
 	COALESCE(bom.total_metal_weight, 0) AS net_wt,
 	COALESCE(bom.finding_weight_, 0) AS finding_wt,
@@ -1096,10 +1167,119 @@ def get_production_pieces(
 	return {"orders": orders, "order_count": len(orders)}
 
 
+# Department transfers: the actual weights issued out of a department to the next one, as
+# recorded on the submitted Department IR (Issue, Next Department - Repairing issues are left out)
+# rows. Only main MWOs: the Department IR's own "Is Finding" tick isn't reliable, so finding / FG
+# MWOs are dropped on the MWO's flags. Metal = net + finding wt. Company only - the dashboard's
+# Customer / Order / Delivery Date filters don't apply. Dates are the Department IR's date.
+def _transfer_query(select, joins=""):
+	return f"""
+SELECT {select}
+FROM `tabDepartment IR` dir
+INNER JOIN `tabDepartment IR Operation` dio ON dio.parent = dir.name
+INNER JOIN `tabManufacturing Work Order` mwo ON mwo.name = dio.manufacturing_work_order
+{joins}
+WHERE dir.docstatus = 1
+	AND dir.type = 'Issue'
+	AND dir.transfer_type = 'Next Department'
+	AND dir.company = %(company)s
+	AND dir.current_department = %(department)s
+	AND dir.date_time >= %(from_date)s
+	AND dir.date_time < %(to_date_next)s
+	AND mwo.for_fg = 0
+	AND mwo.is_finding_mwo = 0
+"""
+
+
+def _transfer_params(company, department, from_date, to_date):
+	if not company:
+		frappe.throw(_("Please select a Company"))
+	# a department of another company (Company was switched) is dropped
+	if department and frappe.db.get_value("Department", department, "company") != company:
+		department = None
+	# no department picked yet: start on Waxing, the first department metal is issued out of
+	department = department or frappe.db.get_value(
+		"Department", {"company": company, "department_name": "Waxing"}, "name"
+	)
+	from_date = from_date or nowdate()
+	to_date = to_date or from_date
+	return {
+		"company": company,
+		"department": department,
+		"from_date": from_date,
+		"to_date": to_date,
+		"to_date_next": add_days(to_date, 1),
+	}
+
+
+@frappe.whitelist()
+def get_department_transfer_summary(company=None, department=None, from_date=None, to_date=None):
+	params = _transfer_params(company, department, from_date, to_date)
+	row = frappe.db.sql(
+		_transfer_query(
+			"""COUNT(DISTINCT COALESCE(dio.parent_manufacturing_order, mwo.manufacturing_order)) AS pcs,
+	COALESCE(SUM(COALESCE(dio.net_wt, 0) + COALESCE(dio.finding_wt, 0)), 0) AS gold_wt,
+	COALESCE(SUM(COALESCE(dio.diamond_wt, 0)), 0) AS diamond_wt"""
+		),
+		params,
+		as_dict=True,
+	)[0]
+	# the section's department dropdown: only departments that have issued work out on a Department
+	# IR (not Accounts, HR ...), in production-flow order, the rest after them by name
+	departments = frappe.db.sql(
+		"""
+SELECT d.name, d.department_name
+FROM `tabDepartment` d
+WHERE d.company = %(company)s
+	AND d.name IN (
+		SELECT dir.current_department FROM `tabDepartment IR` dir
+		WHERE dir.docstatus = 1 AND dir.type = 'Issue' AND dir.company = %(company)s
+	)
+""",
+		params,
+		as_dict=True,
+	)
+	sequence = {name: i for i, name in enumerate(DASHBOARD_DEPARTMENT_SEQUENCE)}
+	departments.sort(
+		key=lambda d: (sequence.get((d.department_name or "").strip(), len(sequence)), d.department_name or d.name)
+	)
+
+	return {
+		"departments": [{"value": d.name, "label": (d.department_name or d.name).strip()} for d in departments],
+		"department": params["department"],
+		"from_date": params["from_date"],
+		"to_date": params["to_date"],
+		"count": cint(row.pcs),
+		"gold_wt": flt(row.gold_wt),
+		"diamond_wt": flt(row.diamond_wt),
+	}
+
+
+@frappe.whitelist()
+def get_department_transfers(company=None, department=None, from_date=None, to_date=None):
+	params = _transfer_params(company, department, from_date, to_date)
+	orders = frappe.db.sql(
+		_transfer_query(
+			"""COALESCE(dio.parent_manufacturing_order, mwo.manufacturing_order) AS order_no,
+	dio.manufacturing_work_order AS mwo,
+	dir.name AS department_ir,
+	dir.date_time AS transfer_date,
+	COALESCE(nd.department_name, dir.next_department) AS next_department,
+	mwo.item_code AS design_no,
+	COALESCE(dio.net_wt, 0) + COALESCE(dio.finding_wt, 0) AS gold_wt,
+	COALESCE(dio.diamond_wt, 0) AS diamond_wt""",
+			joins="LEFT JOIN `tabDepartment` nd ON nd.name = dir.next_department",
+		)
+		+ "ORDER BY dir.date_time DESC, dir.name DESC, dio.idx ASC",
+		params,
+		as_dict=True,
+	)
+	return {"orders": orders, "order_count": len(orders)}
+
+
 # KPI card drill-down: the rows behind the KPI cards, built from the same piece sets as
-# get_dashboard_data so the totals match the cards. Total, Pending and On Hold/Cancelled are
-# listed per Sales Order Item (qty = pieces); Generated and In Progress per piece like the other
-# lists.
+# get_dashboard_data so the totals match the cards. Total and Pending are listed per Sales Order
+# Item (qty = pieces); Generated, In Progress and On Hold/Cancelled per piece like the other lists.
 SUMMARY_ORDER_KINDS = ("total", "generated", "pending", "in_progress", "on_hold")
 
 
@@ -1232,17 +1412,39 @@ ORDER BY pm.due_date IS NULL, pm.due_date ASC, pm.pmo_name ASC
 
 		return {"orders": orders, "order_count": len(orders)}
 
-	if kind == "pending":
-		# active Sales Order Items with fewer pieces generated than ordered (see so_base / pmo_main)
-		qty = _PENDING_QTY
-		condition = f"""so.docstatus = 1
+	if kind == "on_hold":
+		# one row per piece, same piece set as the card (see _HOLD_CANCEL_PIECES)
+		orders = frappe.db.sql(
+			f"""
+SELECT
+	pmo.name AS order_no,
+	soi.parent AS sales_order,
+	COALESCE(NULLIF(pmo.ref_customer, ''), so.ref_customer) AS customer,
+	pmo.item_code AS design_no,
+	pmo.item_category AS item_category,
+	COALESCE(bom.total_metal_weight, 0) AS gold_wt,
+	COALESCE(bom.diamond_weight, 0) AS diamond_wt,
+	COALESCE(bom.total_diamond_pcs, 0) AS diamond_pcs,
+	so.transaction_date AS order_date,
+	COALESCE(so.custom_updated_delivery_date, soi.delivery_date) AS due_date,
+	CASE WHEN {_HOLD_CANCEL_IS_CANCELLED} THEN 'Cancelled' ELSE 'On Hold' END AS so_status
+{_HOLD_CANCEL_PIECES}
+	{extra_so_filter}
+ORDER BY due_date IS NULL, due_date ASC, pmo.name ASC
+""",
+			params,
+			as_dict=True,
+		)
+		_attach_mwo(orders)
+		return {"orders": orders, "order_count": len(orders)}
+
+	# pending: active Sales Order Items with fewer pieces generated than ordered (see so_base /
+	# pmo_main)
+	qty = _PENDING_QTY
+	condition = f"""so.docstatus = 1
 		AND so.status NOT IN ('Completed', 'Closed', 'On Hold')
 		AND {qty} > 0"""
-		status = "so.status"
-	else:
-		qty = "soi.qty"
-		condition = """((so.docstatus = 1 AND so.status = 'On Hold') OR so.docstatus = 2)"""
-		status = "CASE WHEN so.docstatus = 2 THEN 'Cancelled' ELSE 'On Hold' END"
+	status = "so.status"
 
 	orders = frappe.db.sql(
 		f"""
@@ -1522,13 +1724,13 @@ ORDER BY p.due_date IS NULL, p.due_date ASC, p.pmo_name ASC
 		params,
 		as_dict=True,
 	)
-	_attach_mwo(orders)
 
 	return {
 		"stages": stages,
 		"total": total,
 		"status": status,
-		"orders": orders,
+		# one row per MWO; order_count below stays the piece count
+		"orders": _expand_mwos(orders),
 		"order_count": summary_map[status].piece_count if status in summary_map else (0 if status else total["count"]),
 		"page": page,
 		"page_size": page_size,
@@ -1651,6 +1853,33 @@ WHERE pm.pmo_name = %(order_no)s
 # can't be abused to make the server request arbitrary URLs.
 _CATALOGUE_IMAGE_MAX_BYTES = 15 * 1024 * 1024
 
+_S3_SIGN_URL = "https://g0hkuajs9d.execute-api.ap-south-1.amazonaws.com/S3_image/S3_image/image"
+
+
+def _get_signed_s3_url(url):
+	"""The catalogue folder is private, so the plain S3 URL returns AccessDenied.
+	Ask the signing Lambda for a short-lived presigned URL (server-side, with the
+	secret key)."""
+	from urllib.parse import unquote, urlparse
+
+	import requests
+
+	key = unquote(urlparse(url).path.lstrip("/"))
+	if not key:
+		return None
+	try:
+		res = requests.get(
+			_S3_SIGN_URL,
+			params={"key": key},
+			headers={"x-api-key": frappe.conf.get("s3_image_lambda_key") or ""},
+			timeout=10,
+		)
+		res.raise_for_status()
+		return res.json().get("url")
+	except Exception:
+		frappe.log_error(title="Catalogue image signing failed", message=frappe.get_traceback())
+		return None
+
 
 @frappe.whitelist(methods=["GET"])
 def get_catalogue_image(order_no=None):
@@ -1677,7 +1906,10 @@ def get_catalogue_image(order_no=None):
 		parsed = urlparse(url)
 		if parsed.scheme != "https" or not (parsed.hostname or "").endswith(".amazonaws.com"):
 			raise frappe.DoesNotExistError(_("No catalogue image"))
-		res = requests.get(url, timeout=15, stream=True)
+		signed_url = _get_signed_s3_url(url)
+		if not signed_url:
+			raise frappe.DoesNotExistError(_("No catalogue image"))
+		res = requests.get(signed_url, timeout=15, stream=True)
 		if res.status_code != 200:
 			raise frappe.DoesNotExistError(_("No catalogue image"))
 		content_type = (res.headers.get("Content-Type") or "").split(";")[0].strip()
