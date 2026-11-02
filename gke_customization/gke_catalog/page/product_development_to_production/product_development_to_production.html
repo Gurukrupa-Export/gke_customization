@@ -1,0 +1,134 @@
+<div class="pdtp">
+	<div class="pdtp__topbar">
+		<div class="pdtp__meta">
+			<span class="pdtp__meta-label">
+				<span class="pdtp__meta-badge"></span>
+				Sketch &rarr; Production Funnel
+			</span>
+			<span class="pdtp__meta-time" data-field="generated-at">--</span>
+		</div>
+		<div class="pdtp__filters">
+			<div class="pdtp__filter">
+				<label>From</label>
+				<input type="date" class="pdtp__date-input" data-field="from-date" />
+			</div>
+			<div class="pdtp__filter">
+				<label>To</label>
+				<input type="date" class="pdtp__date-input" data-field="to-date" />
+			</div>
+			<button type="button" class="pdtp__load" data-field="load-btn">
+				<span>Load</span>
+			</button>
+			<button type="button" class="pdtp__refresh" data-field="refresh-btn" title="Refresh">
+				<span class="pdtp__refresh-icon">&#x21bb;</span>
+			</button>
+		</div>
+	</div>
+
+	<div class="pdtp__filters-extra">
+		<div class="pdtp__filter pdtp__filter--text">
+			<label>Item Code</label>
+			<textarea
+				class="pdtp__text-input"
+				rows="1"
+				data-field="filter-item-code"
+				placeholder="e.g. NE02779"
+			></textarea>
+		</div>
+		<div class="pdtp__filter pdtp__filter--text">
+			<label>Sketch Order</label>
+			<textarea
+				class="pdtp__text-input"
+				rows="1"
+				data-field="filter-sketch-order-no"
+				placeholder="e.g. S/ORD/00031"
+			></textarea>
+		</div>
+		<div class="pdtp__filter pdtp__filter--text">
+			<label>CAD Order</label>
+			<textarea
+				class="pdtp__text-input"
+				rows="1"
+				data-field="filter-cad-order-no"
+				placeholder="e.g. ORD/C/03991"
+			></textarea>
+		</div>
+		<div class="pdtp__filter pdtp__filter--text">
+			<label>StyleBio</label>
+			<textarea
+				class="pdtp__text-input"
+				rows="1"
+				data-field="filter-stylebio"
+				placeholder="e.g. XGFTA01604"
+			></textarea>
+		</div>
+		<div class="pdtp__filter pdtp__filter--text">
+			<label>Tag</label>
+			<textarea
+				class="pdtp__text-input"
+				rows="1"
+				data-field="filter-tag"
+				placeholder="e.g. SXC02104"
+			></textarea>
+		</div>
+		<div class="pdtp__filter pdtp__filter--text">
+			<label>Setting (ERP)</label>
+			<select class="pdtp__select-input" data-field="filter-setting-type">
+				<option value="">All</option>
+			</select>
+		</div>
+		<button type="button" class="pdtp__clear-filters" data-field="clear-filters-btn">Clear</button>
+	</div>
+
+	<div class="pdtp__stage" data-field="stage">
+		<div class="pdtp__overlay" data-field="overlay">
+			<div class="pdtp__spinner"><span></span><span></span></div>
+			<div class="pdtp__overlay-text" data-field="overlay-text">Loading dashboard…</div>
+		</div>
+
+		<div class="pdtp__body" data-field="body">
+			<section class="pdtp__summary-wrap">
+				<div class="pdtp-summary" data-field="summary-row"></div>
+			</section>
+
+			<section class="pdtp__funnel-wrap">
+				<div class="pdtp__section-title pdtp__section-title--funnel">Pipeline Funnel</div>
+				<div class="pdtp-funnel" data-field="funnel-row"></div>
+			</section>
+
+			<div class="pdtp__row-split">
+				<section class="pdtp__blockers-wrap">
+					<div class="pdtp__section-title pdtp__section-title--blockers">Blockers</div>
+					<div class="pdtp-blockers" data-field="blockers-row"></div>
+				</section>
+
+				<section class="pdtp__ratio-wrap">
+					<div class="pdtp__section-title pdtp__section-title--ratio">StyleBio &amp; Tag Coverage</div>
+					<div class="pdtp-ratio" data-field="ratio-row"></div>
+				</section>
+			</div>
+
+			<section class="pdtp__leadtime-wrap">
+				<div class="pdtp__section-title pdtp__section-title--leadtime">Average Lead Time</div>
+				<div class="pdtp-leadtime" data-field="leadtime-row"></div>
+			</section>
+
+			<section class="pdtp__monthly-wrap">
+				<div class="pdtp__section-title pdtp__section-title--monthly">Designs Completed · Month Wise</div>
+				<div class="pdtp-monthly" data-field="monthly-row"></div>
+			</section>
+
+			<div class="pdtp__grid">
+				<section class="pdtp__category-wrap">
+					<div class="pdtp__section-title pdtp__section-title--category">Category Breakdown</div>
+					<div class="pdtp-category" data-field="category-table"></div>
+				</section>
+
+				<section class="pdtp__customer-wrap">
+					<div class="pdtp__section-title pdtp__section-title--customer">Customer Workload</div>
+					<div class="pdtp-customer" data-field="customer-list"></div>
+				</section>
+			</div>
+		</div>
+	</div>
+</div>

@@ -99,6 +99,7 @@ class PersonalOutEntry(Document):
 				ShiftType.end_time.as_('shift_end'),
 			)
 			.where(EmployeeCheckin.log_type == 'OUT')
+			.where(EmployeeCheckin.skip_auto_attendance == 0)   # <-- add
 			.groupby(
 				EmployeeCheckin.employee,
 				Date(EmployeeCheckin.time),
@@ -118,6 +119,7 @@ class PersonalOutEntry(Document):
 
 			)
 			.where(EmployeeCheckin.log_type == 'OUT')
+			.where(EmployeeCheckin.skip_auto_attendance == 0)   # <-- add
 		).as_('check_out')
 
 		check_in = (
@@ -129,6 +131,7 @@ class PersonalOutEntry(Document):
 				# EmployeeCheckin.shift.as_('shift'),  # optional
 			)
 			.where(EmployeeCheckin.log_type == 'IN')
+			.where(EmployeeCheckin.skip_auto_attendance == 0)   # <-- add
 		).as_('check_in')
 
 		pol = (
