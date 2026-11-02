@@ -1,6 +1,8 @@
 # Copyright (c) 2026, Gurukrupa Export and contributors
 # For license information, please see license.txt
 
+import re
+
 import frappe
 from frappe import _
 from frappe.utils import flt
@@ -61,10 +63,12 @@ def get_columns():
         {"fieldname": "tag_no", "label": _("Serial No"), "fieldtype": "Link", "options": "Serial No", "width": 130},
         {"fieldname": "customer", "label": _("Customer"), "fieldtype": "Data", "width": 200},
         {"fieldname": "detail", "label": _("Detail"), "fieldtype": "Data", "width": 220},
+        
         {"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 100},
         {"fieldname": "category", "label": _("Category"), "fieldtype": "Data", "width": 110},
         {"fieldname": "sub_category", "label": _("Sub Category"), "fieldtype": "Data", "width": 120},
         {"fieldname": "style_bio", "label": _("Item_Code"), "fieldtype": "Data", "width": 130},
+        {"fieldname": "warehouse", "label": _("Warehouse"), "fieldtype": "Link", "options": "Warehouse", "width": 150},
         {"fieldname": "touch", "label": _("Touch"), "fieldtype": "Data", "width": 90},
         {"fieldname": "diamond_quality", "label": _("Diamond Quality"), "fieldtype": "Data", "width": 100},
         {"fieldname": "diamond_grade", "label": _("Diamond Grade"), "fieldtype": "Data", "width": 100},
@@ -84,8 +88,26 @@ def get_columns():
     ]
 
 
+def parse_bulk_serial_nos(raw_text):
+    if not raw_text:
+        return []
+
+    parts = re.split(r"[\n,;|\t ]+", raw_text.strip())
+    seen = set()
+    cleaned = []
+
+    for part in parts:
+        value = (part or "").strip()
+        if not value or value.upper() in seen:
+            continue
+        seen.add(value.upper())
+        cleaned.append(value)
+
+    return cleaned
+
+
 def get_conditions(filters):
-    conditions = []
+    conditions = ["COALESCE(bom.item_category, i.item_category, '') != ''"]
     query_filters = {}
 
     if filters.get("company"):
@@ -95,6 +117,10 @@ def get_conditions(filters):
     if filters.get("branch"):
         conditions.append("pmo.branch = %(branch)s")
         query_filters["branch"] = filters.get("branch")
+
+    if filters.get("warehouse"):
+        conditions.append("sn.warehouse = %(warehouse)s")
+        query_filters["warehouse"] = filters.get("warehouse")
 
     if filters.get("from_date"):
         conditions.append("DATE(sn.creation) >= %(from_date)s")
@@ -120,7 +146,12 @@ def get_conditions(filters):
         conditions.append("bom.setting_type = %(setting_type)s")
         query_filters["setting_type"] = filters.get("setting_type")
 
-    if filters.get("tag_no"):
+    if filters.get("tag_no_list"):
+        serial_nos = parse_bulk_serial_nos(filters.get("tag_no_list"))
+        if serial_nos:
+            conditions.append("sn.name IN %(tag_no_list)s")
+            query_filters["tag_no_list"] = tuple(serial_nos)
+    elif filters.get("tag_no"):
         conditions.append("sn.name = %(tag_no)s")
         query_filters["tag_no"] = filters.get("tag_no")
 
@@ -140,6 +171,7 @@ def get_data(filters):
             sn.name AS tag_no,
             COALESCE(sn.customer, bom.customer, so.customer_name, '') AS customer,
             CONCAT_WS(' - ', COALESCE(snc.po_no, so.po_no), COALESCE(itcd.sku_code, sn.item_code)) AS detail,
+            sn.warehouse AS warehouse,
             ({STATUS_CASE_SQL}) AS status,
             COALESCE(bom.item_category, i.item_category, '') AS category,
             COALESCE(bom.item_subcategory, i.item_subcategory, '') AS sub_category,
@@ -213,7 +245,7 @@ def get_report_summary(data):
         status_counts[status] = status_counts.get(status, 0) + 1
 
     summary = [
-        {"value": total_tags, "indicator": "Blue", "label": _("Total Tags"), "datatype": "Int"},
+        {"value": total_tags, "indicator": "Blue", "label": _("Total Serial No."), "datatype": "Int"},
         {"value": total_gross_wt, "indicator": "Blue", "label": _("Gross Wt."), "datatype": "Float", "precision": 3},
         {"value": total_gold_wt, "indicator": "Blue", "label": _("Gold Wt"), "datatype": "Float", "precision": 3},
         {"value": total_chain_wt, "indicator": "Blue", "label": _("Chain Wt."), "datatype": "Float", "precision": 3},

@@ -10,7 +10,7 @@ frappe.query_reports["Department Wise Diamond Stock"] = {
 			fieldtype: "Link",
 			options: "Company",
 			default: frappe.defaults.get_user_default("Company"),
-			hidden: 1
+			reqd: 1
 		},
 		{
 			fieldname: "branch",
@@ -23,13 +23,15 @@ frappe.query_reports["Department Wise Diamond Stock"] = {
 			fieldname: "department",
 			label: __("Department"),
 			fieldtype: "Link",
-			options: "Department"
+			options: "Department",
+			reqd: 1
 		},
 		{
 			fieldname: "manufacturer",
 			label: __("Manufacturer"),
 			fieldtype: "Link",
-			options: "Manufacturer"
+			options: "Manufacturer",
+			hidden: 1
 		}
 	]
 };

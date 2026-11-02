@@ -9,29 +9,63 @@ DEPARTMENT_OVERRIDE_ROLES = {"System Manager", "Administrator"}
 def execute(filters=None):
     filters = filters or {}
     enforce_department_restriction(filters)
-    columns, data = [], []
     columns = get_columns()
-    data = get_data(filters)
+    raw_data = get_raw_data(filters)
+    data = group_by_stock_entry(raw_data)
     return columns, data
 
 def enforce_department_restriction(filters):
-    """Lock 'from_department' to the user's own department unless they hold an override role."""
+    """Restrict department filters to the user's own department unless they hold an
+    override role. Which field(s) get restricted depends on 'status':
+      - Received: to_department must be the user's own department
+      - Transit: if another department is picked in from_department or to_department, the
+        other side is forced to the user's own department; with neither picked, either
+        side must be the user's own department
+    """
+    status = filters.get("status")
+    if not status:
+        frappe.throw(_("Status is mandatory"))
+
     if DEPARTMENT_OVERRIDE_ROLES & set(frappe.get_roles()):
         return
 
-    filters["from_department"] = get_employee_department(frappe.session.user)
+    department = get_employee_department(frappe.session.user)
+    if not department:
+        # Restricted user with no resolvable department: show nothing rather than everything.
+        filters["_force_empty"] = 1
+        return
+
+    if status == "Received":
+        filters["to_department"] = department
+    elif status == "Transit":
+        if filters.get("from_department") and filters.get("from_department") != department:
+            filters["to_department"] = department
+        elif filters.get("to_department") and filters.get("to_department") != department:
+            filters["from_department"] = department
+        else:
+            filters["transit_department"] = department
+    else:
+        frappe.throw(_("Invalid Status"))
 
 def get_employee_department(user):
     return frappe.db.get_value("Employee", {"user_id": user}, "department")
 
 @frappe.whitelist()
-def get_user_department_filter():
-    """Used by the report's JS to prefill/lock 'From Department' without requiring
+def get_user_department_filter(status=None):
+    """Used by the report's JS to prefill/lock department filters without requiring
     the caller to have read permission on Employee (a plain Stock/report user usually won't)."""
     can_change_department = bool(DEPARTMENT_OVERRIDE_ROLES & set(frappe.get_roles()))
+    if can_change_department:
+        return {"can_change_department": True, "department": None, "lock_field": None}
+
+    lock_field = None
+    if status == "Received":
+        lock_field = "to_department"
+
     return {
-        "can_change_department": can_change_department,
-        "department": None if can_change_department else get_employee_department(frappe.session.user),
+        "can_change_department": False,
+        "department": get_employee_department(frappe.session.user),
+        "lock_field": lock_field,
     }
 
 def get_columns():
@@ -111,9 +145,9 @@ def get_columns():
         }
     ]
 
-def get_data(filters):
+def get_raw_data(filters):
     conditions = get_conditions(filters)
-    
+
     query = """
         SELECT 
             se.posting_date as date,
@@ -128,7 +162,6 @@ def get_data(filters):
                 'N/A'
             ) as to_department,
             CASE
-                WHEN se.stock_entry_type = 'Material Issue' THEN 'Issued'
                 WHEN EXISTS (
                     SELECT 1 FROM `tabStock Entry` se2
                     WHERE (se2.outgoing_stock_entry = se.name OR se2.repack_entry = se.name)
@@ -148,21 +181,17 @@ def get_data(filters):
         LEFT JOIN
             `tabWarehouse` tw ON sed.t_warehouse = tw.name
         WHERE
-            se.stock_entry_type IN ('Material Transfer(Department)', 'Material Transfer (Department)', 'Customer Goods Transfer', 'Material Issue')
+            se.stock_entry_type IN ('Material Transfer(Department)', 'Material Transfer (Department)', 'Customer Goods Transfer')
             AND se.docstatus = 1
-            AND (tw.warehouse_type = 'Transit' OR se.stock_entry_type = 'Material Issue')
+            AND tw.warehouse_type = 'Transit'
             AND sed.serial_no IS NULL
             AND sed.batch_no IS NOT NULL
             {conditions}
-        ORDER BY 
+        ORDER BY
             se.posting_date DESC, se.name, sed.item_code
     """.format(conditions=conditions)
-    
-    raw_data = frappe.db.sql(query, filters, as_dict=1)
-    
-    grouped_data = group_by_stock_entry(raw_data)
-    
-    return grouped_data
+
+    return frappe.db.sql(query, filters, as_dict=1)
 
 def group_by_stock_entry(raw_data):
     result = []
@@ -211,7 +240,10 @@ def group_by_stock_entry(raw_data):
 
 def get_conditions(filters):
     conditions = []
-    
+
+    if filters.get("_force_empty"):
+        return "AND 1=0"
+
     # if filters.get("company"):
     #     conditions.append("AND se.company = %(company)s")
     
@@ -226,19 +258,17 @@ def get_conditions(filters):
     
     if filters.get("status"):
         if filters.get("status") == "Transit":
-            conditions.append("""AND se.stock_entry_type != 'Material Issue' AND NOT EXISTS (
+            conditions.append("""AND NOT EXISTS (
                 SELECT 1 FROM `tabStock Entry` se2
                 WHERE (se2.outgoing_stock_entry = se.name OR se2.repack_entry = se.name)
                 AND se2.docstatus = 1
             )""")
         elif filters.get("status") == "Received":
-            conditions.append("""AND se.stock_entry_type != 'Material Issue' AND EXISTS (
+            conditions.append("""AND EXISTS (
                 SELECT 1 FROM `tabStock Entry` se2
                 WHERE (se2.outgoing_stock_entry = se.name OR se2.repack_entry = se.name)
                 AND se2.docstatus = 1
             )""")
-        elif filters.get("status") == "Issued":
-            conditions.append("AND se.stock_entry_type = 'Material Issue'")
     
     if filters.get("manufacturer"):
         conditions.append("AND se.manufacturer = %(manufacturer)s")
@@ -252,7 +282,13 @@ def get_conditions(filters):
     
     if filters.get("to_department"):
         conditions.append("AND EXISTS (SELECT 1 FROM `tabWarehouse` WHERE name = sed.t_warehouse AND department = %(to_department)s)")
-       
+
+    if filters.get("transit_department"):
+        conditions.append("""AND (
+            COALESCE((SELECT department FROM `tabWarehouse` WHERE name = sed.s_warehouse), se.department) = %(transit_department)s
+            OR COALESCE(se.to_department, (SELECT department FROM `tabWarehouse` WHERE name = sed.t_warehouse)) = %(transit_department)s
+        )""")
+
     if filters.get("raw_material"):
         conditions.append("AND sed.item_code = %(raw_material)s")
     

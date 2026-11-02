@@ -29,7 +29,7 @@ def execute(filters=None):
         {"label": "Material Type", "fieldname": "material_type", "fieldtype": "Data", "width": 130},
         {"label": "Item Code", "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 210},
         # {"label": "Item Attributes", "fieldname": "item_attributes", "fieldtype": "Data", "width": 700},
-        # {"label": "Alternative Item", "fieldname": "custom_alternative_item", "fieldtype": "Link", "options": "Item", "width": 150},
+        {"label": "Alternative Item", "fieldname": "custom_alternative_item", "fieldtype": "Link", "options": "Item", "width": 150},
         {"label": "Quantity", "fieldname": "qty", "fieldtype": "Float", "width": 100},
         {"label": "Pcs", "fieldname": "pcs", "fieldtype": "Int", "width": 80},
         {"label": "Customer PO", "fieldname": "custom_customer_po_no", "fieldtype": "Data", "width": 150},

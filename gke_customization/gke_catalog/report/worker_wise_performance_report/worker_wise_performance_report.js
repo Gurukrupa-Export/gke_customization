@@ -90,9 +90,19 @@ frappe.query_reports["Worker Wise Performance Report"] = {
             fieldname: "touch",
             label: __("Touch"),
             fieldtype: "Select",
-            options: ["", "10KT", "18KT", "20KT", "22KT", "24KT"]
+            options: ["", "10KT", "18KT", "20KT", "22KT", "24KT", "CHAIN"]
         }
     ],
+
+    formatter: function(value, row, column, data, default_formatter) {
+        value = default_formatter(value, row, column, data);
+
+        if (data && data.process === __("Grand Total")) {
+            value = "<b>" + value + "</b>";
+        }
+
+        return value;
+    },
 
     onload: function(report) {
         const is_admin = frappe.user.has_role("System Manager") || frappe.session.user === "Administrator";

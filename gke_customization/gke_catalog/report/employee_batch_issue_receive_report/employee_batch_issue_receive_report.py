@@ -1,10 +1,9 @@
-# Employee Batch Issue Receive Report
+# Employee Batch Issue Receive
 # Copyright (c) 2024, Jewellery ERP and contributors
 # For license information, please see license.txt
 
 import frappe
 from frappe import _
-import json
 
 def execute(filters=None):
     columns = get_columns()
@@ -34,20 +33,20 @@ def get_columns():
             "fieldtype": "Data",
             "width": 100
         },
-        {
-            "label": _("Company"),
-            "fieldname": "company",
-            "fieldtype": "Link",
-            "options": "Company",
-            "width": 150
-        },
-        {
-            "label": _("Branch"),
-            "fieldname": "branch",
-            "fieldtype": "Link",
-            "options": "Branch",
-            "width": 120
-        },
+        # {
+        #     "label": _("Company"),
+        #     "fieldname": "company",
+        #     "fieldtype": "Link",
+        #     "options": "Company",
+        #     "width": 150
+        # },
+        # {
+        #     "label": _("Branch"),
+        #     "fieldname": "branch",
+        #     "fieldtype": "Link",
+        #     "options": "Branch",
+        #     "width": 120
+        # },
         {
             "label": _("Manufacturer"),
             "fieldname": "manufacturer",
@@ -69,10 +68,18 @@ def get_columns():
             "width": 150
         },
         {
-            "label": _("Main Slip"),
-            "fieldname": "main_slip",
-            "fieldtype": "Data",
-            "width": 120
+            "label": _("Issue ID"),
+            "fieldname": "issue_ir",
+            "fieldtype": "Link",
+            "options": "Employee IR",
+            "width": 130
+        },
+        {
+            "label": _("Receive ID"),
+            "fieldname": "receive_ir",
+            "fieldtype": "Link",
+            "options": "Employee IR",
+            "width": 130
         },
         {
             "label": _("Employee Name"),
@@ -163,13 +170,6 @@ def get_columns():
             "precision": 3
         },
         {
-            "label": _("Allow Loss %"),
-            "fieldname": "allow_loss",
-            "fieldtype": "Float",
-            "width": 110,
-            "precision": 2
-        },
-        {
             "label": _("Issue Date"),
             "fieldname": "issue_date",
             "fieldtype": "Datetime",
@@ -179,6 +179,12 @@ def get_columns():
             "label": _("Receive Date"),
             "fieldname": "receive_date",
             "fieldtype": "Datetime",
+            "width": 150
+        },
+        {
+            "label": _("Time Diff (D:H:M)"),
+            "fieldname": "time_diff",
+            "fieldtype": "Data",
             "width": 150
         },
         {
@@ -205,53 +211,62 @@ def get_columns():
 def get_data(filters):
     # Get main data
     main_data = get_main_data(filters)
-    
-    # Debug log
-    frappe.log_error(
-        f"Main data count: {len(main_data)}\nFilters: {json.dumps(filters)}", 
-        "Employee Batch Report - Main Data"
-    )
-    
+
     # Get Employee IR data
     ir_data = get_employee_ir_data(filters)
-    
-    # Debug log
-    frappe.log_error(
-        f"IR data count: {len(ir_data)}", 
-        "Employee Batch Report - IR Data"
-    )
-    
-    # Create a mapping for faster lookup
+
+    # Create a mapping for faster lookup.
+    # ir_data is ordered by date_time DESC, so the first Issue/Receive seen
+    # for a given key is the most recent one - keep that, ignore older ones.
     ir_mapping = {}
     for ir_row in ir_data:
         key = (ir_row.get("manufacturing_operation"), ir_row.get("employee"))
         if key not in ir_mapping:
             ir_mapping[key] = {"issue": None, "receive": None}
-        
-        if ir_row.get("type") == "Issue":
+
+        if ir_row.get("type") == "Issue" and not ir_mapping[key]["issue"]:
             ir_mapping[key]["issue"] = ir_row
-        elif ir_row.get("type") == "Receive":
+        elif ir_row.get("type") == "Receive" and not ir_mapping[key]["receive"]:
             ir_mapping[key]["receive"] = ir_row
-    
+
     # Merge Employee IR data into main data
     for row in main_data:
         key = (row.get("manufacturing_operation"), row.get("employee_id"))
+
         if key in ir_mapping:
             if ir_mapping[key]["issue"]:
                 row["issue_date"] = ir_mapping[key]["issue"].get("date_time")
                 row["issue_by"] = ir_mapping[key]["issue"].get("full_name") or ir_mapping[key]["issue"].get("owner")
-            
+                row["issue_ir"] = ir_mapping[key]["issue"].get("employee_ir")
+
             if ir_mapping[key]["receive"]:
                 row["receive_date"] = ir_mapping[key]["receive"].get("date_time")
                 row["receive_by"] = ir_mapping[key]["receive"].get("full_name") or ir_mapping[key]["receive"].get("owner")
-    
-    # Final debug log
-    frappe.log_error(
-        f"Final data count: {len(main_data)}\nFirst 5 MOPs: {[r.get('manufacturing_operation') for r in main_data[:5]]}", 
-        "Employee Batch Report - Final Data"
-    )
-    
+                row["receive_ir"] = ir_mapping[key]["receive"].get("employee_ir")
+
+        row["time_diff"] = get_time_diff_str(row.get("issue_date"), row.get("receive_date"))
+
+    # Only keep rows that were issued to an employee but not yet received
+    main_data = [row for row in main_data if row.get("issue_date") and not row.get("receive_date")]
+
     return main_data
+
+def get_time_diff_str(issue_date, receive_date):
+    if not issue_date or not receive_date:
+        return ""
+
+    issue_date = frappe.utils.get_datetime(issue_date)
+    receive_date = frappe.utils.get_datetime(receive_date)
+
+    seconds = (receive_date - issue_date).total_seconds()
+    if seconds < 0:
+        return ""
+
+    days, remainder = divmod(int(seconds), 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes = remainder // 60
+
+    return f"{days}d:{hours:02d}h:{minutes:02d}m"
 
 def get_main_data(filters):
     conditions = get_conditions(filters)
@@ -266,7 +281,6 @@ def get_main_data(filters):
             mo.manufacturer,
             mo.department,
             mo.operation,
-            mo.main_slip_no as main_slip,
             emp.employee_name,
             mo.employee as employee_id,
             mo.gross_wt,
@@ -283,7 +297,6 @@ def get_main_data(filters):
                 WHEN mo.loss_wt < 0 THEN ABS(mo.loss_wt)
                 ELSE NULL 
             END as loss_wt,
-            mo.allowed_loss_percentage as allow_loss,
             mwo.customer
         FROM 
             `tabManufacturing Operation` mo
@@ -301,33 +314,14 @@ def get_main_data(filters):
         LIMIT 10000
     """
     
-    # Enhanced debug logging
-    frappe.log_error(
-        f"Conditions: {conditions}\n\nFilters: {json.dumps(filters)}\n\nFull Query:\n{query}", 
-        "Employee Batch Report - SQL Query"
-    )
-    
     result = frappe.db.sql(query, filters, as_dict=True)
-    
-    # Log query result
-    frappe.log_error(
-        f"Query returned {len(result)} rows\nFirst 10 MOPs: {[r.get('manufacturing_operation') for r in result[:10]]}", 
-        "Employee Batch Report - Query Result"
-    )
-    
+
     return result
 
 def get_employee_ir_data(filters):
     # Separate query for Employee IR data - only for Issue/Receive columns
-    date_condition = ""
     operation_conditions = ""
-    
-    if filters.get("from_date") and filters.get("to_date"):
-        date_condition = """
-            AND DATE(eir.date_time) >= %(from_date)s
-            AND DATE(eir.date_time) <= %(to_date)s
-        """
-    
+
     if filters.get("operation"):
         operation_conditions += " AND mo.operation = %(operation)s"
     
@@ -336,12 +330,10 @@ def get_employee_ir_data(filters):
     
     if filters.get("employee_id"):
         operation_conditions += " AND eir.employee = %(employee_id)s"
-    
-    if filters.get("company"):
-        operation_conditions += " AND mo.company = %(company)s"
-    
+
     query = f"""
-        SELECT 
+        SELECT
+            eir.name as employee_ir,
             eiro.manufacturing_operation,
             eir.employee,
             eir.type,
@@ -360,7 +352,6 @@ def get_employee_ir_data(filters):
             eir.type IN ('Issue', 'Receive')
             AND eiro.manufacturing_operation IS NOT NULL
             AND eir.docstatus = 1
-            {date_condition}
             {operation_conditions}
         ORDER BY 
             eir.date_time DESC
@@ -372,13 +363,10 @@ def get_employee_ir_data(filters):
 
 def get_conditions(filters):
     conditions = ""
-    
-    if filters.get("company"):
-        conditions += " AND mo.company = %(company)s"
-    
-    # Branch filter optional - includes NULL values
-    if filters.get("branch"):
-        conditions += " AND (mwo.branch = %(branch)s OR mwo.branch IS NULL)"
+
+    # # Branch filter optional - includes NULL values
+    # if filters.get("branch"):
+    #     conditions += " AND (mwo.branch = %(branch)s OR mwo.branch IS NULL)"
     
     if filters.get("manufacturer"):
         conditions += " AND mo.manufacturer = %(manufacturer)s"
@@ -391,14 +379,7 @@ def get_conditions(filters):
         
     if filters.get("employee_id"):
         conditions += " AND mo.employee = %(employee_id)s"
-    
-    # Date filtering on MOP creation
-    if filters.get("from_date") and filters.get("to_date"):
-        conditions += """
-            AND mo.creation >= %(from_date)s
-            AND mo.creation <= DATE_ADD(%(to_date)s, INTERVAL 1 DAY)
-        """
-    
+
     return conditions
 
 
@@ -409,45 +390,39 @@ def get_employees_by_operation(doctype, txt, searchfield, start, page_len, filte
     """Get employees who worked on a specific operation"""
     department = filters.get("department")
     operation = filters.get("operation")
-    company = filters.get("company")
-    
-    # If no operation selected, return all active employees in company
+
+    # If no operation selected, return all active employees
     if not operation:
         return frappe.db.sql("""
-            SELECT DISTINCT 
+            SELECT DISTINCT
                 emp.name,
                 emp.employee_name
             FROM `tabEmployee` emp
-            WHERE 
-                emp.company = %(company)s
-                AND emp.status = 'Active'
+            WHERE
+                emp.status = 'Active'
                 AND (emp.name LIKE %(txt)s OR emp.employee_name LIKE %(txt)s)
             ORDER BY emp.employee_name
             LIMIT %(start)s, %(page_len)s
         """, {
-            "company": company,
             "txt": "%" + txt + "%",
             "start": start,
             "page_len": page_len
         })
-    
+
     # If operation selected, filter employees who worked on that operation
     conditions = "mo.operation = %(operation)s"
-    
+
     if department:
         conditions += " AND mo.department = %(department)s"
-    
-    if company:
-        conditions += " AND mo.company = %(company)s"
-    
+
     return frappe.db.sql(f"""
-        SELECT DISTINCT 
+        SELECT DISTINCT
             emp.name,
             emp.employee_name
         FROM `tabEmployee` emp
-        INNER JOIN `tabManufacturing Operation` mo 
+        INNER JOIN `tabManufacturing Operation` mo
             ON mo.employee = emp.name
-        WHERE 
+        WHERE
             {conditions}
             AND emp.status = 'Active'
             AND (emp.name LIKE %(txt)s OR emp.employee_name LIKE %(txt)s)
@@ -456,7 +431,6 @@ def get_employees_by_operation(doctype, txt, searchfield, start, page_len, filte
     """, {
         "department": department,
         "operation": operation,
-        "company": company,
         "txt": "%" + txt + "%",
         "start": start,
         "page_len": page_len

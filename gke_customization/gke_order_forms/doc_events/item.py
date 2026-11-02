@@ -359,7 +359,7 @@ def get_same_ref_doc(self,table_name, type):
 #         "Authorization": "token 94efdb20934f180:7cf6b4e2bdf7217", #from dummy site to uat kggk
 #         "Content-Type": "application/json"
 #     }
-#     if doc.setting_type == "Close":
+#     if doc.setting_type == "Nova Glow":
 #         if from_site and to_site:
 #             item_code = doc.name
 
@@ -480,7 +480,7 @@ def create_item_kggk(doc, method=None):
         "Authorization": f"token {api_key}:{api_secret}", #from dummy site to uat kggk
         "Content-Type": "application/json"
     }
-    if doc.setting_type == "Close":
+    if doc.setting_type == "Nova Glow":
         if from_site and to_site:
             item_code = doc.name
 
@@ -603,7 +603,7 @@ def create_item_kggk(doc, method=None):
 #         # "Authorization": "token efffaa047a1663f:fe9e9c5b6461c5c",#from local to dummy site dummy site  user
 #         "Content-Type": "application/json"
 #     }
-#     if doc.setting_type == "Close" and doc.bom_type == "Template":
+#     if doc.setting_type == "Nova Glow" and doc.bom_type == "Template":
 #         bom = doc.name
 #         if from_site and to_site:
 #             payload = {
@@ -974,7 +974,7 @@ def create_bom_kggk(doc, method=None):
         # "Authorization": "token efffaa047a1663f:fe9e9c5b6461c5c",#from local to dummy site dummy site  user
         "Content-Type": "application/json"
     }
-    if doc.setting_type == "Close" and doc.bom_type == "Template":
+    if doc.setting_type == "Nova Glow" and doc.bom_type == "Template":
         bom = doc.name
         if from_site and to_site:
             payload = {

@@ -14,7 +14,7 @@ def get_columns():
         {"fieldname": "item_code", "label": _("Item Code"), "fieldtype": "Link", "options":"Item", "width": 300},
         # {"fieldname": "name", "label": _("Item Name"), "fieldtype": "Link", "options":"Item", "width": 120},
         {"fieldname": "image", "label": _("Image"), "fieldtype": "HTML", "width": 100},
-        {"fieldname": "Diamond_Sieve_Size", "label": _("Diamond Sieve Size"), "fieldtype": "Data", "width": 120},
+        {"fieldname": "Diamond_Sieve_Size", "label": _("Diamond Size"), "fieldtype": "Data", "width": 120},
         {"fieldname": "Diameter", "label": _("Diameter"), "fieldtype": "Float", "width": 120},
         {"fieldname": "Diamond_Type", "label": _("Diamond Type"), "fieldtype": "Data", "width": 120},
         {"fieldname": "Stone_Shape", "label": _("Stone Shape"), "fieldtype": "Data", "width": 120},
@@ -27,7 +27,10 @@ def get_data(filters):
    SELECT 
     i.item_code AS item_code,
     i.image,
-    MAX(CASE WHEN iv.attribute = 'Diamond Sieve Size' THEN iv.attribute_value ELSE NULL END) AS "Diamond_Sieve_Size",
+    COALESCE(
+        MAX(CASE WHEN iv.attribute = 'Diamond Sieve Size' THEN NULLIF(iv.attribute_value, '') ELSE NULL END),
+        MAX(CASE WHEN iv.attribute = 'Diamond Sieve Size Range' THEN NULLIF(iv.attribute_value, '') ELSE NULL END)
+    ) AS "Diamond_Sieve_Size",
      MAX(av.diameter) AS "Diameter",
     MAX(CASE WHEN iv.attribute = 'Diamond Type' THEN iv.attribute_value ELSE NULL END) AS "Diamond_Type",
     MAX(CASE WHEN iv.attribute = 'Stone Shape' THEN iv.attribute_value ELSE NULL END) AS "Stone_Shape",

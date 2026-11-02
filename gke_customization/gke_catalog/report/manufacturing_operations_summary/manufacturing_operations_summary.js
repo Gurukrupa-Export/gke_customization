@@ -77,10 +77,16 @@ frappe.query_reports["Manufacturing Operations Summary"] = {
 
         if (!data) return value;
 
+        const is_dark = document.documentElement.getAttribute("data-theme") === "dark";
+
         if (data.is_grand_total) {
-            value = `<span style="font-weight:700; background-color:#bbf7d0; display:block; padding:2px 6px;">${value}</span>`;
+            const bg = is_dark ? "#14532d" : "#bbf7d0";
+            const color = is_dark ? "#dcfce7" : "#14532d";
+            value = `<span style="font-weight:700; background-color:${bg}; color:${color}; display:block; padding:2px 6px;">${value}</span>`;
         } else if (data.is_total || data.bold) {
-            value = `<span style="font-weight:600; background-color:#fef3c7; display:block; padding:2px 6px;">${value}</span>`;
+            const bg = is_dark ? "#78350f" : "#fef3c7";
+            const color = is_dark ? "#fef3c7" : "#78350f";
+            value = `<span style="font-weight:600; background-color:${bg}; color:${color}; display:block; padding:2px 6px;">${value}</span>`;
         }
 
         return value;
