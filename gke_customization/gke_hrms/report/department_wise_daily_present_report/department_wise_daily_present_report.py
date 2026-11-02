@@ -14,7 +14,7 @@ def get_columns():
 		{"label": "Shift", "fieldname": "shift", "fieldtype": "Link", "options": "Shift Type", "width": 110},
 		{"label": "In Time", "fieldname": "in_time", "fieldtype": "Data", "width": 90},
 		{"label": "Out Time", "fieldname": "out_time", "fieldtype": "Data", "width": 90},
-		{"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 90},
+		{"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 120},
 		{"label": "Late Entry", "fieldname": "late_entry", "fieldtype": "Data", "width": 90},
 		{"label": "Leave Type", "fieldname": "leave_type", "fieldtype": "Data", "width": 110},
 	]
@@ -209,7 +209,7 @@ def build_summary_rows(data):
 	wo = sum(1 for r in data if r["status"] == "Week-Off (WO)")
 	holiday = sum(1 for r in data if r["status"] == "Holiday")
 	late = sum(1 for r in data if r["late_entry"] == "Yes")
-
+ 
 	return [
 		{"status": "Present", "late_entry": present},
 		{"status": "Absent", "late_entry": absent},
@@ -237,21 +237,21 @@ def execute(filters=None):
 	allowed_departments = None
 	if manager:
 		user_id = frappe.db.get_value("Employee", manager, "user_id")
-	allowed_departments = get_manager_departments(user_id) or []
+		allowed_departments = get_manager_departments(user_id) or []
  
 	departments = frappe.get_all("Department", filters=dept_filters, pluck="name", order_by="name asc")
 	if allowed_departments is not None:
 		departments = [d for d in departments if d in allowed_departments]
-
+ 
 	columns = get_columns()
 	data = []
 	for dept in departments:
 		rows = build_rows_for_department(dept, date)
 		rows.sort(key=lambda r: r["employee_name"] or "")
 		data.extend(rows)
-
+ 
 	data.extend(build_summary_rows(data))
-
+ 
 	return columns, data
 
 """for auto mail at 10 AM """
@@ -489,7 +489,7 @@ def render_email_html(department, date, rows, leave_rows, absent_rows, holiday_r
 		<tr><td>Present</td><td>{summary['Present']}</td></tr>
 		<tr><td>Absent</td><td>{summary['Absent']}</td></tr>
 		<tr><td>Leave</td><td>{summary['On Leave']}</td></tr>
-		<tr><td>WO</td><td>{summary['WO']}</td></tr>
+		<tr><td>WO</td><td>{summary['Week-Off (WO)']}</td></tr>
 		<tr><td>Holiday</td><td>{summary['Holiday']}</td></tr>
 		<tr><td>Late Entry</td><td>{summary['Late Entry']}</td></tr>
 	</table>
@@ -545,11 +545,12 @@ def send_morning_present_report(date=None, department=None):
 		# frappe.throw(f"cc mail {cc} manager_string {manager_string}")
 
 		html = render_email_html(dept, date, rows, leave_rows, absent_rows, holiday_rows, summary)
+		sender_id = frappe.db.get_value("Biometric Settings", "Biometric Settings", "auto_mail_id") or "alerts@kggk.in"
 		frappe.sendmail(
 			recipients=manager_string,
 			# cc=["angat_p@gkexport.com"],
 			cc=cc,
-			sender="alerts@gkexport.com",
+			sender=sender_id,
 			subject=f"Present Report — {dept} — {formatdate(date, 'dd-MM-yyyy')}",
 			message=html,
 			now=True,expose_recipients="header"
