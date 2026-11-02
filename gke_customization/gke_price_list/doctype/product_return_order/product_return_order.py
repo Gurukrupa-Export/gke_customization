@@ -7,7 +7,11 @@ from frappe.model.naming import make_autoname
 import datetime
 from datetime import date
 import requests,json
-from gke_customization.gke_order_forms.doc_events.item import create_item_kggk,create_bom_kggk
+from gke_customization.gke_order_forms.doc_events.item import create_item_kggk
+from gke_customization.gke_price_list.kggk_push import push_after_commit
+
+KGGK_ITEM_PUSH = "gke_customization.gke_order_forms.doc_events.item.create_item_kggk"
+KGGK_BOM_PUSH = "gke_customization.gke_order_forms.doc_events.item.create_bom_kggk"
 
 
 def on_update(self):
@@ -249,7 +253,8 @@ class ProductReturnOrder(Document):
 			new_bom.insert(ignore_permissions=True)
 			# new_bom.save()
 			self.db_set("new_bom", new_bom.name, update_modified=False)
-			create_bom_kggk(new_bom,self.name)
+			# Pushed to KGGK after commit (see on_update), not inside this save.
+			self.flags.kggk_push_steps = [(KGGK_BOM_PUSH, "BOM", new_bom.name, {"pro_name": self.name})]
 
 	# def on_update(self):
 	# 	if self.is_jewelex_tag or self.is_kggk_serial_no:
@@ -265,19 +270,23 @@ class ProductReturnOrder(Document):
 
 
 	def on_update(self):
+		# KGGK pushes run in one job after this save commits, in the order they used to run inline:
+		# the BOM built in validate, then the template, then the item.
+		steps = self.flags.pop("kggk_push_steps", None) or []
+
 		# Only Jewelex-tag and KGGK-serial returns are pushed to the KGGK site, the gate master had
 		# before c97b25f (kept for gk_prod by business decision, 2026-10-02).
-		if not (self.is_jewelex_tag or self.is_kggk_serial_no):
-			return
-
-		if self.item_code:
-			item = frappe.get_doc("Item", self.item_code)
-			item_templat = item.variant_of
+		pushed_to_kggk = self.is_jewelex_tag or self.is_kggk_serial_no
+		if pushed_to_kggk and self.item_code:
+			item_templat = frappe.db.get_value("Item", self.item_code, "variant_of")
 			# Items made at the Jewelex "Create Item" step are not variants; push a template only when there is one.
 			if item_templat:
-				item_template = frappe.get_doc("Item",item_templat)
-				create_item_kggk(item_template)
-			create_item_kggk(item)
+				steps.append((KGGK_ITEM_PUSH, "Item", item_templat, {}))
+			steps.append((KGGK_ITEM_PUSH, "Item", self.item_code, {}))
+		push_after_commit(self.doctype, self.name, steps)
+
+		if not pushed_to_kggk:
+			return
 		# Mirror workflow changes to the remote site only once "PRF To Site" is set on
 		# Data Migration in KGGK; until then transitions stay local-only, as on production.
 		if frappe.get_single("Data Migration in KGGK").get("prf_to_site"):
@@ -1401,7 +1410,7 @@ def sync_product_return_order_to_gk(doc):
 		remote_data = {}
 
 		try:
-			get_resp = requests.get(remote_url, headers=headers)
+			get_resp = requests.get(remote_url, headers=headers, timeout=30)
 			get_resp.raise_for_status()
 			remote_exists = True
 			remote_data = get_resp.json().get("data", {})
@@ -1434,7 +1443,8 @@ def sync_product_return_order_to_gk(doc):
 			try:
 				create_resp = requests.post(
 					base_url, headers=headers,
-					data=json.dumps(create_payload, default=str)
+					data=json.dumps(create_payload, default=str),
+					timeout=30
 				)
 				create_resp.raise_for_status()
 
@@ -1453,7 +1463,7 @@ def sync_product_return_order_to_gk(doc):
 				)
 
 			try:
-				get_resp = requests.get(remote_url, headers=headers)
+				get_resp = requests.get(remote_url, headers=headers, timeout=30)
 				get_resp.raise_for_status()
 				remote_data = get_resp.json().get("data", {})
 				remote_workflow_state = remote_data.get("workflow_state")
@@ -1477,7 +1487,8 @@ def sync_product_return_order_to_gk(doc):
 		try:
 			update_resp = requests.put(
 				remote_url, headers=headers,
-				data=json.dumps(update_payload, default=str)
+				data=json.dumps(update_payload, default=str),
+				timeout=30
 			)
 			update_resp.raise_for_status()
 			remote_data = update_resp.json().get("data", {})
@@ -1562,7 +1573,8 @@ def sync_product_return_order_to_gk(doc):
 			try:
 				workflow_resp = requests.post(
 					workflow_url, headers=headers,
-					data=json.dumps(workflow_payload, default=str)
+					data=json.dumps(workflow_payload, default=str),
+					timeout=30
 				)
 				workflow_resp.raise_for_status()
 
@@ -1593,7 +1605,7 @@ def sync_product_return_order_to_gk(doc):
 			# =================================================
 
 			try:
-				final_resp = requests.get(remote_url, headers=headers)
+				final_resp = requests.get(remote_url, headers=headers, timeout=30)
 				final_resp.raise_for_status()
 				final_workflow_state = final_resp.json().get("data", {}).get("workflow_state")
 

@@ -399,7 +399,8 @@
    "fieldtype": "Link",
    "label": "Order Form",
    "options": "Order Form",
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   },
   {
    "fetch_from": "cad_order_form_detail.design_by",
@@ -464,7 +465,8 @@
    "fieldtype": "Link",
    "label": "Item",
    "options": "Item",
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   },
   {
    "depends_on": "eval:doc.design_type == \"Mod - Old Stylebio & Tag No\"",
@@ -1792,7 +1794,7 @@
    "link_fieldname": "order"
   }
  ],
- "modified": "2026-07-26 00:16:01.742406",
+ "modified": "2026-11-02 15:00:00.000000",
  "modified_by": "shubham_k@gkexport.com",
  "module": "GKE Order Forms",
  "name": "Order",

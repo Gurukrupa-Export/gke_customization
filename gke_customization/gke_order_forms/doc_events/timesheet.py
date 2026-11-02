@@ -170,10 +170,8 @@ def validate(doc, method):
 
 
 
-def on_submit(doc, method):
-    if doc.order:
-        update_order_status_from_timesheets(doc.order)
-
+# No on_submit hook: Frappe runs on_update on submit as well, so a second call there ran the
+# whole status update twice (and could cancel two timesheets in the "Update Designer" case).
 def on_update(doc, method):
     if doc.order:
         update_order_status_from_timesheets(doc.order)
@@ -185,13 +183,17 @@ import frappe
 
 def update_order_status_from_timesheets(order_name):
    
-    workflow_type = frappe.db.get_value("Order", order_name, "workflow_type")
-    bom_or_cad = frappe.db.get_value("Order", order_name, "bom_or_cad")
-    item_remark = frappe.db.get_value("Order", order_name, "item_remark")  
-    bom_type = frappe.db.get_value("Order", order_name, "bom_type")  # added line
-
-    if workflow_type != "CAD":
+    order = frappe.db.get_value(
+        "Order",
+        order_name,
+        ["workflow_type", "bom_or_cad", "item_remark", "bom_type", "workflow_state"],
+        as_dict=True,
+    )
+    if not order or order.workflow_type != "CAD":
         return
+    bom_or_cad = order.bom_or_cad
+    item_remark = order.item_remark
+    bom_type = order.bom_type
 
     #  Fetch all timesheets linked to this order excluding cancelled
     timesheets = frappe.get_all(
@@ -204,7 +206,7 @@ def update_order_status_from_timesheets(order_name):
     if not timesheets:
         return
 
-    current_order_state = frappe.db.get_value("Order", order_name, "workflow_state")
+    current_order_state = order.workflow_state
 
     #  Handle Update Designer case
     if current_order_state == "Update Designer" and len(timesheets) > 1:
@@ -245,7 +247,6 @@ def update_order_status_from_timesheets(order_name):
         #  Update Order only if state actually changed
         if current_order_state != new_state:
             frappe.db.set_value("Order", order_name, "workflow_state", new_state)
-            frappe.db.commit()
     else:
         return
 

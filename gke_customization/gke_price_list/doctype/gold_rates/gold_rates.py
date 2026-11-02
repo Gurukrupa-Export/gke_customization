@@ -19,22 +19,15 @@ def run_gold_rate_scheduler():
 
         if name:
             doc = frappe.get_doc("Gold Rates", name)
-            # action = "Updated"
+            action = "Updated"
         else:
             doc = frappe.new_doc("Gold Rates")
             doc.date = today
             doc.add_default_rows()
-            # action = "Created"
+            action = "Created"
 
-        doc.set_gold_value()
-        doc.get_gold_value_1()
-        doc.set_gold_rate_2()
-        doc.get_gold_rate_3()
-        doc.get_gold_rate_4()
-        doc.set_gold_rate_5()
-        # doc.set_gold_value_6()
-
-        
+        # save() runs validate, which fetches all the rates; fetching them here as well
+        # doubled every HTTP call.
         doc.save(ignore_permissions=True)
         frappe.db.commit()
 

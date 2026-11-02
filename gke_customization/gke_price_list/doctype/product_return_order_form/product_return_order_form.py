@@ -11,6 +11,7 @@ import requests
 from pypika import Order
 from frappe.query_builder import DocType
 from frappe.model.document import Document
+from gke_customization.gke_price_list.kggk_push import push_after_commit
 from frappe.utils import flt
 from gke_customization.gke_price_list.doctype.product_return_order_form.e_invoice_logic import validate_e_invoice_items
 from gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form_api import trigger_pricing_calculation
@@ -1118,7 +1119,13 @@ class ProductReturnOrderForm(Document):
 			migration_settings = frappe.get_single("Data Migration in KGGK")
 			site_url = (migration_settings.prf_to_site or "").rstrip("/")
 			if site_url:
-				sync_product_return_form_to_remote(self)
+				# Created on the remote site only after this submit commits, so the remote round-trips
+				# no longer hold the submit's locks, and a submit that fails later no longer leaves an
+				# orphan form on the remote site.
+				push_after_commit(self.doctype, self.name, [(
+					"gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form.sync_product_return_form_to_remote",
+					self.doctype, self.name, {},
+				)])
 
 		# if self.yu: return
 
@@ -5259,7 +5266,8 @@ def sync_product_return_form_to_remote(doc, method=None):
 		resp = requests.post(
 			url,
 			headers=headers,
-			data=json.dumps(payload, default=str)
+			data=json.dumps(payload, default=str),
+			timeout=30
 		)
 		resp.raise_for_status()
 		response = resp.json()
@@ -5308,7 +5316,8 @@ def sync_product_return_form_to_remote(doc, method=None):
 
 		remote_resp = requests.get(
 			get_url,
-			headers=headers
+			headers=headers,
+			timeout=30
 		)
 		remote_resp.raise_for_status()
 		remote_response = remote_resp.json()
@@ -5346,7 +5355,8 @@ def sync_product_return_form_to_remote(doc, method=None):
 			submit_resp = requests.put(
 				submit_url,
 				headers=headers,
-				data=json.dumps(submit_payload)
+				data=json.dumps(submit_payload),
+				timeout=30
 			)
 			submit_resp.raise_for_status()
 			submit_response = submit_resp.json()
