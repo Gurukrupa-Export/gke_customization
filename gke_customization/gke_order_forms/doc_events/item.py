@@ -2,6 +2,10 @@ import frappe
 
 import requests
 
+# (connect, read) seconds for each KGGK sync request: an unreachable site fails
+# fast instead of holding the document save open.
+SYNC_TIMEOUT = (5, 15)
+
 
 def before_validate(self,method):
     if self.custom_is_similar_item:
@@ -540,7 +544,7 @@ def create_item_kggk(doc, method=None):
                     f"{to_site}/api/resource/Item/{item_code}",
                     headers=headers,
                     json=update_payload,
-                    timeout=15
+                    timeout=SYNC_TIMEOUT
                 )
 
                 # If item doesn't exist, create it
@@ -549,7 +553,7 @@ def create_item_kggk(doc, method=None):
                         f"{to_site}/api/resource/Item",
                         headers=headers,
                         json=payload,
-                        timeout=15
+                        timeout=SYNC_TIMEOUT
                     )
 
                 # Log full response for debugging
@@ -1280,7 +1284,7 @@ def create_bom_kggk(doc, method=None):
                     f"{to_site}/api/resource/BOM/{bom}",
                     headers=headers,
                     json=payload,
-                    timeout=15
+                    timeout=SYNC_TIMEOUT
                 )
 
                 # If item doesn't exist, create it
@@ -1289,7 +1293,7 @@ def create_bom_kggk(doc, method=None):
                         f"{to_site}/api/resource/BOM",
                         headers=headers,
                         json=payload,
-                        timeout=15
+                        timeout=SYNC_TIMEOUT
                     )
 
                 # Log full response for debugging
