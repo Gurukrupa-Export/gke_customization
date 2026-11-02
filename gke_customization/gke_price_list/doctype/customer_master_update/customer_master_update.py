@@ -393,7 +393,7 @@ class CustomerMasterUpdate(Document):
                     
                 if self.new_customer:
                     address_links = address_doc.append("links", {})
-                    address_links.link_doctype = "Customer",
+                    address_links.link_doctype = "Customer"
                     address_links.link_name = self.new_customer 
                 
                 address_doc.insert(ignore_permissions=True)
@@ -424,7 +424,7 @@ class CustomerMasterUpdate(Document):
                 
                 if self.new_customer:
                     contact_links = contact_doc.append("links", {})
-                    contact_links.link_doctype = "Customer",
+                    contact_links.link_doctype = "Customer"
                     contact_links.link_name = self.new_customer 
                 
                 contact_doc.insert(ignore_permissions=True)
