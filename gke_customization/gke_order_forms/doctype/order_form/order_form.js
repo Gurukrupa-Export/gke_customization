@@ -211,6 +211,11 @@ frappe.ui.form.on('Order Form', {
 		// 	};
 		// }
 	},
+	sales_type(frm) {
+		if (frm.doc.sales_type == 'Outright' && frm.doc.diamond_quality == 'Customer Diamond Quality') {
+			frm.set_value('diamond_quality', '');
+		}
+	},
 	refresh(frm){
 		frm.add_custom_button(__("Get Customer Order Form"), function(){
             erpnext.utils.map_current_doc({
