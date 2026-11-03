@@ -139,11 +139,23 @@ def get_employee_checkins(employee, date):
         "Employee Checkin",
         filters={
             "employee": employee,
-            "time": ["between", [start_dt, end_dt]]
+            "shift_actual_start": ["between", [f"{date} 00:00:00", f"{date} 23:59:59"]]
         },
         fields=["time", "log_type"],
         order_by="time asc"
     )
+
+    # fallback for checkins without shift data
+    if not checkins:
+        checkins = frappe.get_all(
+            "Employee Checkin",
+            filters={
+                "employee": employee,
+                "time": ["between", [start_dt, end_dt]]
+            },
+            fields=["time", "log_type"],
+            order_by="time asc"
+        )
 
     in_times = []
     out_times = []
