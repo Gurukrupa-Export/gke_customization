@@ -15,7 +15,26 @@ def before_validate(self,method):
 
     if self.custom_is_set_item:
         create_group_for_set(self)
+    defaults = [
+        {
+            "company": "Gurukrupa Export Private Limited",
+            "default_warehouse": "Product Allocation FG - GEPL"
+        },
+        {
+            "company": "KG GK Jewellers Private Limited",
+            "default_warehouse": "Product Allocation FG - KGJPL"
+        }
+    ]
 
+    for item in defaults:
+        exists = any(
+            row.company == item["company"]
+            and row.default_warehouse == item["default_warehouse"]
+            for row in self.item_defaults
+        )
+
+        if not exists:
+            self.append("item_defaults", item)
 def create_group_for_similar(self):
     old_len = frappe.db.sql(f"""select count(*) from `tabSimilar Item Table` where parent = '{self.name}'""",as_dict=1)[0]['count(*)']
     

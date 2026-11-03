@@ -63,6 +63,9 @@ class Order(Document):
                 self.reload()
 
     def validate(self):
+        max_row = max(self.diamond_detail, key=lambda x: x.pcs or 0, default=None)
+        if max_row:
+            self.sub_setting_type1 = max_row.sub_setting_type
         update_new_designer_timesheet(self)
         if self.workflow_state in ["Update Item", "Design Rework in Progress"]:
             timesheet_validation(self)
