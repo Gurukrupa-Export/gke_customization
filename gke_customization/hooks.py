@@ -251,19 +251,21 @@ override_doctype_dashboards = {
 # "gke_customization.auth.validate"
 # ]
 
-app_include_js = "gke_customization.gke_catalog.api.item_list.get_item_list"
-app_include_js = "gke_customization.gke_catalog.api.item_list.get_bom_list"
+# API method paths (several no longer exist), not JS assets: as app_include_js they only
+# made every Desk page request a file that does not exist. Hooks never whitelist a method.
+# app_include_js = "gke_customization.gke_catalog.api.item_list.get_item_list"
+# app_include_js = "gke_customization.gke_catalog.api.item_list.get_bom_list"
 
-app_include_js = "gke_customization.gke_catalog.api.attendance.attendance"
+# app_include_js = "gke_customization.gke_catalog.api.attendance.attendance"
 
-app_include_js = "gke_customization.gke_catalog.api.item_catalog.merge_data"
+# app_include_js = "gke_customization.gke_catalog.api.item_catalog.merge_data"
 
-app_include_js = "gke_customization.gke_catalog.api.item_catalog.get_attribute_values()"
-app_include_js = "gke_customization.gke_catalog.api.item_catalog.update_xyz"
+# app_include_js = "gke_customization.gke_catalog.api.item_catalog.get_attribute_values()"
+# app_include_js = "gke_customization.gke_catalog.api.item_catalog.update_xyz"
 
-app_include_js = "gke_customization.gke_catalog.api.reposne.get_submited_data"
+# app_include_js = "gke_customization.gke_catalog.api.reposne.get_submited_data"
 
-app_include_js = "gke_customization.gke_catalog.api.price_list.diamond_price_list"
+# app_include_js = "gke_customization.gke_catalog.api.price_list.diamond_price_list"
 
 doc_events = {
     "SolitaireCalculator": {
