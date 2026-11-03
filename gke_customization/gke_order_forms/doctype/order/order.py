@@ -168,6 +168,7 @@ def bom_creation(self):
     bom.diamond_type = self.diamond_type
     bom.metal_target = self.metal_target
     bom.diamond_target = self.diamond_target
+    bom.navratna = self.navratna
     bom.stone_changeable = self.stone_changeable
     bom.capganthan = self.capganthan
     bom.chain_weight = self.chain_weight
@@ -253,8 +254,9 @@ def bom_creation(self):
                 "diamond_type": row.diamond_type,
                 "stone_shape": row.stone_shape,
                 "sub_setting_type": row.sub_setting_type,
-                "size_in_mm": row.size_in_mm,
-                "diamond_sieve_size": row.diamond_sieve_size,
+                "size_in_mm": row.size_in_mm if row.stone_shape == "Round" else None,
+                "diamond_size_in_mm": row.size_in_mm if row.stone_shape != "Round" else None,
+                "diamond_sieve_size": row.size_in_mm if row.stone_shape != "Round" else row.diamond_sieve_size,
                 "sieve_size_range": row.sieve_size_range,
                 "pcs": row.pcs,
                 "weight_per_pcs": row.weight_per_pcs,
