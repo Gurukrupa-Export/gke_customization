@@ -43,7 +43,7 @@ frappe.query_reports["Accounts Payable Aging Summary Report"] = {
 		report.page.wrapper.addClass("apsd-report");
 		if (!$("#apsd-style").length) {
 			$("<style id='apsd-style'>")
-				.text(".apsd-report .datatable { display: none !important; } .apsd-drill, .apsd-drill:hover, .apsd-drill:focus { text-decoration: none !important; border-bottom: 0 !important; } .apsd-drill:hover { color: #0b5ed7 !important; } .apsd-pdf:hover { filter: brightness(1.12); }")
+				.text(".apsd-report .datatable { display: none !important; } .apsd-drill, .apsd-drill:hover, .apsd-drill:focus { text-decoration: none !important; border-bottom: 0 !important; } .apsd-drill:hover { color: #0b5ed7 !important; } .apsd-pdf:hover, .apsd-dl-pdf:hover, .apsd-dl-excel:hover { filter: brightness(1.12); }")
 				.appendTo("head");
 		}
 
@@ -52,14 +52,12 @@ frappe.query_reports["Accounts Payable Aging Summary Report"] = {
 			.on("click.apsd", ".apsd-drill", function () {
 				const bucket = $(this).data("bucket");
 				const label = $(this).data("label") || bucket;
+				const filters = frappe.query_report.get_filter_values();
 				frappe.call({
 					method: `${APSD_METHOD}.get_bucket_invoices`,
-					args: {
-						filters: frappe.query_report.get_filter_values(),
-						bucket: bucket,
-					},
+					args: { filters: filters, bucket: bucket },
 					freeze: true,
-					callback: (r) => apsd_show_invoices(label, r.message || []),
+					callback: (r) => apsd_show_invoices(label, r.message || [], bucket, filters),
 				});
 			});
 
@@ -74,7 +72,7 @@ frappe.query_reports["Accounts Payable Aging Summary Report"] = {
 	},
 };
 
-function apsd_show_invoices(label, rows) {
+function apsd_show_invoices(label, rows, bucket, filters) {
 	const esc = (v) => frappe.utils.escape_html(v || "");
 	const date = (v) => frappe.datetime.str_to_user(v) || "";
 
@@ -129,4 +127,29 @@ function apsd_show_invoices(label, rows) {
 			<tbody>${body || `<tr><td colspan="8">${__("No records")}</td></tr>`}</tbody>
 		</table></div>`);
 	dialog.show();
+
+	// Download PDF / Download Excel in the dialog header
+	const post = (method) =>
+		open_url_post(`/api/method/${APSD_METHOD}.${method}`, {
+			// the exact rows shown in this dialog
+			rows: JSON.stringify(rows),
+			label: label,
+			filters: JSON.stringify(filters),
+		});
+
+	const btn = "border:0;border-radius:0;color:#ffffff;font-weight:600;padding:6px 14px;box-shadow:none;";
+	const $buttons = $(`
+		<span class="apsd-export" style="display:inline-flex;gap:8px;margin-right:12px;">
+			<button type="button" class="btn btn-sm apsd-dl-pdf" style="${btn}background:#c0392b;">${__("Download PDF")}</button>
+			<button type="button" class="btn btn-sm apsd-dl-excel" style="${btn}background:#1e8449;">${__("Download Excel")}</button>
+		</span>`);
+	$buttons.find(".apsd-dl-pdf").on("click", () => post("download_bucket_pdf"));
+	$buttons.find(".apsd-dl-excel").on("click", () => post("download_bucket_excel"));
+
+	const $actions = dialog.$wrapper.find(".modal-header .modal-actions");
+	if ($actions.length) {
+		$actions.prepend($buttons);
+	} else {
+		dialog.$wrapper.find(".modal-header").append($buttons);
+	}
 }
