@@ -14,6 +14,8 @@ import calendar
 from frappe.utils import getdate, get_first_day, get_first_day, get_last_day
 from datetime import timedelta, datetime
 
+
+# added new comment 
 def set_shift_details(employee, from_date):
     # frappe.throw(f"{employee} {from_date}")
     if not from_date:
