@@ -210,3 +210,51 @@ class TestJewelexSerialPush(UnitTestCase):
 		self.assertTrue(self.serial.inserted)
 		self.get_single.assert_not_called()
 		self.post.assert_not_called()
+
+
+class TestKGGKPushAfterCommit(UnitTestCase):
+	"""on_update queues the KGGK pushes for after commit, in the order they used to run inline."""
+
+	def setUp(self):
+		self.doc = frappe.get_doc(
+			{
+				"doctype": "Product Return Order",
+				"name": "PRO-PUSH-TEST",
+				"item_code": "_PUSH Item",
+				"is_jewelex_tag": 1,
+			}
+		)
+		self.push = self._patch(f"{MOD}.push_after_commit")
+		self.get_single = self._patch("frappe.get_single", return_value=_settings(prf_to_site=None))
+		self.variant_of = self._patch("frappe.db.get_value", return_value="_PUSH Template")
+
+	def _patch(self, target, **kwargs):
+		patcher = patch(target, **kwargs)
+		self.addCleanup(patcher.stop)
+		return patcher.start()
+
+	def steps(self):
+		self.push.assert_called_once()
+		doctype, name, steps = self.push.call_args.args
+		self.assertEqual((doctype, name), ("Product Return Order", "PRO-PUSH-TEST"))
+		return steps
+
+	def test_bom_then_template_then_item(self):
+		self.doc.flags.kggk_push_steps = [("m", "BOM", "BOM-PUSH", {"pro_name": "PRO-PUSH-TEST"})]
+		self.doc.on_update()
+		self.assertEqual(
+			[(doctype, name) for _, doctype, name, _ in self.steps()],
+			[("BOM", "BOM-PUSH"), ("Item", "_PUSH Template"), ("Item", "_PUSH Item")],
+		)
+
+	def test_item_without_template_pushes_only_the_item(self):
+		self.variant_of.return_value = None
+		self.doc.on_update()
+		self.assertEqual([name for _, _, name, _ in self.steps()], ["_PUSH Item"])
+
+	def test_return_not_pushed_to_kggk_still_queues_its_bom(self):
+		self.doc.is_jewelex_tag = 0
+		self.doc.flags.kggk_push_steps = [("m", "BOM", "BOM-PUSH", {})]
+		self.doc.on_update()
+		self.assertEqual([name for _, _, name, _ in self.steps()], ["BOM-PUSH"])
+		self.get_single.assert_not_called()

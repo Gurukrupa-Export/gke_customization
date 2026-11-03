@@ -21,10 +21,11 @@ class TestProductReturnOrderForm(UnitTestCase):
 
 
 class TestKGRefFormPush(UnitTestCase):
-	"""on_submit pushes a KG-ref form to the KGGK site only once PRF To Site is set.
+	"""on_submit queues the push of a KG-ref form to the KGGK site only once PRF To Site is set.
 
-	The push itself is patched out; past it, on_submit's own checks run, and a form without
-	items stops at the first of them, which shows the local submit carried on.
+	The push runs after the submit commits, so on_submit only queues it (patched out here); past
+	it, on_submit's own checks run, and a form without items stops at the first of them, which
+	shows the local submit carried on.
 	"""
 
 	def setUp(self):
@@ -33,7 +34,7 @@ class TestKGRefFormPush(UnitTestCase):
 		)
 		self.settings = _settings()
 		self._patch("frappe.get_single", side_effect=lambda doctype: self.settings)
-		self.push = self._patch(f"{MOD}.sync_product_return_form_to_remote")
+		self.push = self._patch(f"{MOD}.push_after_commit")
 
 	def _patch(self, target, **kwargs):
 		patcher = patch(target, **kwargs)
@@ -51,7 +52,11 @@ class TestKGRefFormPush(UnitTestCase):
 
 	def test_configured_site_gets_the_kg_form(self):
 		self.submit()
-		self.push.assert_called_once_with(self.doc)
+		self.push.assert_called_once_with(
+			"Product Return Order Form",
+			"PROF-S1-TEST",
+			[(f"{MOD}.sync_product_return_form_to_remote", "Product Return Order Form", "PROF-S1-TEST", {})],
+		)
 
 	def test_gk_ref_form_is_never_pushed(self):
 		self.doc.ref_company = "GK"

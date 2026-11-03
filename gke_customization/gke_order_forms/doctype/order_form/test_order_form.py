@@ -291,3 +291,45 @@ def make_order_form(**args):
     apply_workflow(order_form, "Approve")
 
     return order_form
+
+
+class TestOrderFormAttributeCheck(FrappeTestCase):
+	"""validate_filed_value checks each row value against its Item Attribute, loading each
+	attribute once per validate however many rows use it."""
+
+	ALLOWED = {"Design Type": ["New Design", "Sketch Design"], "Metal Type": ["Gold"]}
+
+	def setUp(self):
+		from unittest.mock import patch
+
+		self.doc = frappe.get_doc(
+			{
+				"doctype": "Order Form",
+				"order_details": [
+					{"design_type": "New Design", "metal_type": "Gold"},
+					{"design_type": "Sketch Design", "metal_type": "Gold"},
+					{"design_type": "New Design"},
+				],
+			}
+		)
+		self.loaded = []
+
+		def get_doc(doctype, name=None, *args, **kwargs):
+			assert doctype == "Item Attribute", doctype
+			self.loaded.append(name)
+			return frappe._dict(
+				item_attribute_values=[frappe._dict(attribute_value=v) for v in self.ALLOWED[name]]
+			)
+
+		patcher = patch("frappe.get_doc", side_effect=get_doc)
+		patcher.start()
+		self.addCleanup(patcher.stop)
+
+	def test_each_attribute_is_loaded_once(self):
+		self.doc.validate_filed_value()
+		self.assertEqual(sorted(self.loaded), ["Design Type", "Metal Type"])
+
+	def test_value_outside_the_attribute_is_rejected(self):
+		self.doc.order_details[2].metal_type = "Platinum"
+		with self.assertRaisesRegex(frappe.ValidationError, "Metal Type is not Correct"):
+			self.doc.validate_filed_value()

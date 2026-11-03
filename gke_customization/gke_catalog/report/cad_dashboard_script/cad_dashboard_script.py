@@ -1035,6 +1035,9 @@ def get_order_thumbnails(order_names):
 # ---------------------------------------------------------------------------
 
 
+ORDER_NOTIFICATIONS_LIMIT = 200
+
+
 @frappe.whitelist()
 def get_order_notification_count():
 	return frappe.db.count(
@@ -1050,12 +1053,14 @@ def get_order_notifications():
 	the popup can show them as categories instead of one flat list.
 	"""
 	user = frappe.session.user
+	# The popup lists the latest unread notifications; "Mark all as read" works on the table,
+	# not on this list, so a user with a large backlog no longer pulls every row.
 	rows = frappe.get_all(
 		"Notification Log",
 		filters={"for_user": user, "document_type": "Order", "read": 0},
 		fields=["name", "subject", "type", "document_name", "from_user", "creation"],
 		order_by="creation desc",
-		limit_page_length=0,
+		limit_page_length=ORDER_NOTIFICATIONS_LIMIT,
 	)
 
 	groups = {}
@@ -1068,7 +1073,7 @@ def get_order_notifications():
 		groups[key].append(row)
 
 	return {
-		"count": len(rows),
+		"count": len(rows) if len(rows) < ORDER_NOTIFICATIONS_LIMIT else get_order_notification_count(),
 		"categories": [{"type": key, "items": groups[key]} for key in order],
 	}
 

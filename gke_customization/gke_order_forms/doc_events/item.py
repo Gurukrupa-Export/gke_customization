@@ -585,23 +585,28 @@ def sync_attached_file_to_remote(local_file_url, to_site, api_key, api_secret):
 #                 raise
 
 
+KGGK_ITEM_IMAGE_FIELDS = (
+    "custom_catalogue_image", "sketch_image", "front_view", "top_view", "finish_front_view", "image",
+)
+
+
 def create_item_kggk(doc, method=None):
     import requests
-    from_site = frappe.db.get_single_value("Data Migration in KGGK","from_site")
-    to_site= frappe.db.get_single_value("Data Migration in KGGK","to_site")
-    api_key = frappe.db.get_single_value("Data Migration in KGGK", "api_key")
-    # api_secret = frappe.db.get_single_value("Data Migration in KGGK", "api_secret")
-    migration_settings = frappe.get_single("Data Migration in KGGK")
-    api_secret = migration_settings.get_password("api_secret")
     # base_url = "https://kggk-uat.m.frappe.cloud"
     # base_url = "https://gkexport-dummy-v16.m.frappe.cloud"
 
-    headers = {
-        "Authorization": f"token {api_key}:{api_secret}", #from dummy site to uat kggk
-        "Content-Type": "application/json"
-    }
+    # Only Nova Glow items are pushed, so other items skip the settings reads entirely.
     if doc.setting_type == "Nova Glow":
+        migration_settings = frappe.get_single("Data Migration in KGGK")
+        from_site = migration_settings.from_site
+        to_site = migration_settings.to_site
+        api_key = migration_settings.api_key
         if from_site and to_site:
+            api_secret = migration_settings.get_password("api_secret")
+            headers = {
+                "Authorization": f"token {api_key}:{api_secret}", #from dummy site to uat kggk
+                "Content-Type": "application/json"
+            }
             item_code = doc.name
 
             numeric_attributes = set(
@@ -650,15 +655,16 @@ def create_item_kggk(doc, method=None):
                 "asset_category": doc.asset_category,
                 "is_grouped_asset": doc.is_grouped_asset,
                 "auto_create_assets": doc.auto_create_assets,
-                "custom_catalogue_image": sync_attached_file_to_remote(doc.get("custom_catalogue_image"), to_site, api_key, api_secret),
-                "sketch_image": sync_attached_file_to_remote(doc.sketch_image, to_site, api_key, api_secret),
-                "front_view": sync_attached_file_to_remote(doc.front_view, to_site, api_key, api_secret),
-                "top_view": sync_attached_file_to_remote(doc.top_view, to_site, api_key, api_secret),
-                "finish_front_view": sync_attached_file_to_remote(doc.finish_front_view, to_site, api_key, api_secret),
-                "image": sync_attached_file_to_remote(doc.image, to_site, api_key, api_secret),
-
             }
-            
+
+            # Images are uploaded only once the GET below decides to create or update the item;
+            # an existing template is skipped, so its uploads were wasted round-trips.
+            def add_images():
+                for fieldname in KGGK_ITEM_IMAGE_FIELDS:
+                    payload[fieldname] = sync_attached_file_to_remote(
+                        doc.get(fieldname), to_site, api_key, api_secret
+                    )
+
 
             try:
                 # Check whether the item exists on the remote
@@ -670,6 +676,7 @@ def create_item_kggk(doc, method=None):
 
                 # Item does not exist -> create it
                 if get_response.status_code == 404:
+                    add_images()
                     response = requests.post(
                         f"{to_site}/api/resource/Item",
                         headers=headers,
@@ -688,6 +695,7 @@ def create_item_kggk(doc, method=None):
                         return
 
                     remote_item = get_response.json().get("data", {})
+                    add_images()
 
                     # Exclude variant_of and attributes: these are set only at item
                     # creation. Once stock exists on the remote item, ERPNext blocks
@@ -1131,6 +1139,8 @@ def create_item_kggk(doc, method=None):
 def create_bom_kggk(doc,pro_name, method=None):
     # base_url = "https://kggk-uat.m.frappe.cloud"
     # base_url = "https://gkexport-dummy-v16.m.frappe.cloud"
+    if not (doc.setting_type == "Nova Glow" and doc.custom_kggk_source_doctype == "Product Return Order"):
+        return
     from_site = frappe.db.get_single_value("Data Migration in KGGK","from_site")
     to_site= frappe.db.get_single_value("Data Migration in KGGK","to_site")
     api_key = frappe.db.get_single_value("Data Migration in KGGK", "api_key")
