@@ -15,11 +15,11 @@ KGGK_BOM_PUSH = "gke_customization.gke_order_forms.doc_events.item.create_bom_kg
 
 
 def on_update(self):
-    sync_product_return_order_to_gk(self)
-
-    if self.item_code:
-        item = frappe.get_doc("Item", self.item_code)
-        create_item_kggk(item)
+	if self.ref_company == "KG":
+		sync_product_return_order_to_gk(self)
+		if self.item_code:
+			item = frappe.get_doc("Item", self.item_code)
+			create_item_kggk(item)
 
 
 SYSTEM_FIELDS = {
@@ -248,13 +248,14 @@ class ProductReturnOrder(Document):
 			new_bom.bom_type = "Finish Goods"
 			new_bom.item = self.item_code
 			new_bom.setting_type = "Nova Glow"
-			new_bom.custom_kggk_source_doctype = "Product Return Order"
+			new_bom.custom_kggk_source_doctype = "Product Return Order" if self.ref_company == "KG" else ""
 			new_bom.custom_kggk_source_name = self.name
 			new_bom.insert(ignore_permissions=True)
 			# new_bom.save()
 			self.db_set("new_bom", new_bom.name, update_modified=False)
 			# Pushed to KGGK after commit (see on_update), not inside this save.
-			self.flags.kggk_push_steps = [(KGGK_BOM_PUSH, "BOM", new_bom.name, {"pro_name": self.name})]
+			if self.ref_company == "KG":
+				self.flags.kggk_push_steps = [(KGGK_BOM_PUSH, "BOM", new_bom.name, {"pro_name": self.name})]
 
 	# def on_update(self):
 	# 	if self.is_jewelex_tag or self.is_kggk_serial_no:
@@ -277,7 +278,7 @@ class ProductReturnOrder(Document):
 		# Only Jewelex-tag and KGGK-serial returns are pushed to the KGGK site, the gate master had
 		# before c97b25f (kept for gk_prod by business decision, 2026-10-02).
 		pushed_to_kggk = self.is_jewelex_tag or self.is_kggk_serial_no
-		if pushed_to_kggk and self.item_code:
+		if pushed_to_kggk and self.item_code and self.ref_company == "KG":
 			item_templat = frappe.db.get_value("Item", self.item_code, "variant_of")
 			# Items made at the Jewelex "Create Item" step are not variants; push a template only when there is one.
 			if item_templat:
@@ -289,7 +290,7 @@ class ProductReturnOrder(Document):
 			return
 		# Mirror workflow changes to the remote site only once "PRF To Site" is set on
 		# Data Migration in KGGK; until then transitions stay local-only, as on production.
-		if frappe.get_single("Data Migration in KGGK").get("prf_to_site"):
+		if frappe.get_single("Data Migration in KGGK").get("prf_to_site") and self.ref_company == "KG":
 			frappe.db.after_commit.add(
 				lambda: sync_product_return_order_to_gk(self)
 			)
@@ -306,8 +307,8 @@ class ProductReturnOrder(Document):
 			serial.item_code = self.item_code
 			serial.customer = self.customer
 			serial.company=self.company
-			serial.reference_name = self.name
-			serial.reference_doctype = "Product Return Order"
+			serial.purchase_document_no = self.name
+			serial.reference_doctype = "Product Return Order" if self.ref_company == "KG" else ""
 			serial.description=self.description
 			self.item_name=self.item_name
 			serial.custom_jwelex_tag_no = self.jewelex_tag
@@ -325,7 +326,7 @@ class ProductReturnOrder(Document):
 			# serial.save()
 			self.db_set("serial_no", serial.name, update_modified=False)
 			# self.serial_no = serial.name
-			if serial.name and self.is_jewelex_tag:
+			if serial.name and self.is_jewelex_tag and self.ref_company == "KG":
 				migration_settings = frappe.get_single("Data Migration in KGGK")
 				# Send the serial to the KGGK site only once "PRF To Site" is set, the switch on_update
 				# uses for mirroring; until then it stays local and the approval goes through.
