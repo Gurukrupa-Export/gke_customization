@@ -1678,6 +1678,35 @@ def translate_company(fieldtype, options, value):
 	return target_company() or value
 
 
+def target_company_abbr():
+	"""The Company abbreviation on the target, or ``None`` to send tax template names as they are."""
+	cached = getattr(frappe.local, "kggk_target_company_abbr", "unset")
+	if cached == "unset":
+		value = setting("target_company_abbr")
+		cached = str(value).strip() or None if value else None
+		frappe.local.kggk_target_company_abbr = cached
+	return cached
+
+
+def translate_tax_template(fieldtype, options, value):
+	"""Swap the company suffix of an Item Tax Template link for the target's.
+
+	"GST 12% - GEPL" becomes "GST 12% - KGJPL". A name that does not end with its own
+	company's suffix is returned unchanged.
+	"""
+	if not value or fieldtype not in LINK_TYPES or options != "Item Tax Template":
+		return value
+	target_abbr = target_company_abbr()
+	if not target_abbr:
+		return value
+	company = frappe.get_cached_value("Item Tax Template", value, "company")
+	source_abbr = company and frappe.get_cached_value("Company", company, "abbr")
+	suffix = f" - {source_abbr}" if source_abbr else None
+	if not suffix or not value.endswith(suffix) or source_abbr == target_abbr:
+		return value
+	return value[: -len(suffix)] + f" - {target_abbr}"
+
+
 # A confirmed company is remembered for the run rather than asked once per record.
 _COMPANY_CHECK_TTL = 600
 
@@ -1799,6 +1828,7 @@ def _child_rows(doc, df, allowed=None):
 			# Child rows carry Company too - `Item.item_defaults` above all - and one wrong
 			# company in a row rejects the whole parent just as surely as the parent's own.
 			value = translate_company(child_df.fieldtype, child_df.options, value)
+			value = translate_tax_template(child_df.fieldtype, child_df.options, value)
 			data[child_df.fieldname] = value
 		if row.get("idx") is not None:
 			data["idx"] = row.get("idx")
