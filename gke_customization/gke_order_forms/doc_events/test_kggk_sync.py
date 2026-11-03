@@ -758,6 +758,40 @@ class TestDynamicLinks(unittest.TestCase):
 		self.assertEqual(self.data["custom_creation_docname"], "MP-1")
 
 
+class TestTaxTemplateRemap(unittest.TestCase):
+	"""An Item's tax templates carry the company suffix: GST 12% - GEPL here, GST 12% - KGJPL there.
+
+	They used to cross unchanged, so the target either refused the Item or kept a template for
+	a company it is not.
+	"""
+
+	def _translate(self, value, abbr="KGJPL", company="Gurukrupa", source_abbr="GEPL", options="Item Tax Template"):
+		with patch.object(k, "target_company_abbr", return_value=abbr), patch.object(
+			frappe,
+			"get_cached_value",
+			side_effect=lambda doctype, name, field: company if doctype == "Item Tax Template" else source_abbr,
+		):
+			return k.translate_tax_template("Link", options, value)
+
+	def test_the_source_suffix_becomes_the_targets(self):
+		self.assertEqual(self._translate("GST 12% - GEPL"), "GST 12% - KGJPL")
+
+	def test_a_name_already_on_the_target_suffix_is_unchanged(self):
+		self.assertEqual(self._translate("GST 12% - KGJPL", source_abbr="KGJPL"), "GST 12% - KGJPL")
+
+	def test_nothing_is_renamed_until_a_target_abbr_is_set(self):
+		self.assertEqual(self._translate("GST 12% - GEPL", abbr=None), "GST 12% - GEPL")
+
+	def test_a_name_without_its_companys_suffix_is_unchanged(self):
+		self.assertEqual(self._translate("Custom Template"), "Custom Template")
+
+	def test_only_item_tax_template_links_are_touched(self):
+		self.assertEqual(self._translate("Gurukrupa - GEPL", options="Company"), "Gurukrupa - GEPL")
+
+	def test_the_suffix_is_only_replaced_at_the_end(self):
+		self.assertEqual(self._translate("GEPL - GEPL"), "GEPL - KGJPL")
+
+
 class TestTargetSchemaFailuresAreReported(unittest.TestCase):
 	"""Every route to `None` must say so - a silent one looks like a clean run."""
 
