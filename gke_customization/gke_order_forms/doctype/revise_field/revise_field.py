@@ -5,7 +5,53 @@ import frappe
 from frappe.model.document import Document
 from frappe import _
 
+# Revise Field's fields and the Item Attribute each one revises on the variant.
+FIELD_TO_ATTRIBUTE = {
+	"metal_colour": "Metal Colour",
+	"diamond_target": "Diamond Target",
+	"stone_changeable": "Stone Changeable",
+	"gemstone_type": "Gemstone Type",
+	"chain_type": "Chain Type",
+	"chain_length": "Chain Length",
+	"feature": "Feature",
+	"rhodium": "Rhodium",
+	"enamal": "Enamal",
+	"detachable": "Detachable",
+	"capganthan": "Cap/Ganthan",
+	"two_in_one": "Two in One",
+	"product_size": "Product Size",
+	"sizer_type": "Sizer Type",
+	"lock_type": "Lock Type",
+	"black_bead_line": "Black Bead Line",
+	"charm": "Charm",
+	"count_of_spiral_turns": "Count of Spiral Turns",
+	"number_of_ant": "Number of Ant",
+	"back_side_size": "Back Side Size",
+	"space_between_mugappu": "Space between Mugappu",
+	"distance_between_kadi_to_mugappu": "Distance Between Kadi To Mugappu",
+	"back_belt": "Back Belt",
+	"back_belt_length": "Back Belt Length",
+}
+
+
+def revise_field_values(doc):
+	"""The attribute fields this revision sets: those with a value, 0 included - the same rows
+	`ReviseField.validate` writes."""
+	return {
+		fieldname: doc.get(fieldname)
+		for fieldname in FIELD_TO_ATTRIBUTE
+		if doc.get(fieldname) is not None and doc.get(fieldname) != ""
+	}
+
+
 class ReviseField(Document):
+	def on_update(self):
+		# The rows are written with `frappe.db.set_value`, so the Item is never saved and the
+		# Item push never runs; KGGK gets the revision itself instead.
+		from gke_customization.gke_order_forms.doc_events.kggk_sync import queue_revise_field
+
+		queue_revise_field(self)
+
 	def validate(self):
 		if not self.item:
 			return
@@ -16,37 +62,10 @@ class ReviseField(Document):
 		if not item_doc.variant_of:
 			return
 
-		# Field to Attribute Mapping
-		field_to_attribute = {
-			"metal_colour": "Metal Colour",
-			"diamond_target": "Diamond Target",
-			"stone_changeable": "Stone Changeable",
-			"gemstone_type": "Gemstone Type",
-			"chain_type": "Chain Type",
-			"chain_length": "Chain Length",
-			"feature": "Feature",
-			"rhodium": "Rhodium",
-			"enamal": "Enamal",
-			"detachable": "Detachable",
-			"capganthan": "Cap/Ganthan",
-			"two_in_one": "Two in One",
-			"product_size": "Product Size",
-			"sizer_type": "Sizer Type",
-			"lock_type": "Lock Type",
-			"black_bead_line": "Black Bead Line",
-			"charm": "Charm",
-			"count_of_spiral_turns": "Count of Spiral Turns",
-			"number_of_ant": "Number of Ant",
-			"back_side_size": "Back Side Size",
-			"space_between_mugappu": "Space between Mugappu",
-			"distance_between_kadi_to_mugappu": "Distance Between Kadi To Mugappu",
-			"back_belt": "Back Belt",
-			"back_belt_length": "Back Belt Length"
-		}
 		
 		updated = False
 
-		for fieldname, attribute in field_to_attribute.items():
+		for fieldname, attribute in FIELD_TO_ATTRIBUTE.items():
 			new_value = self.get(fieldname)
 
 			# Allow 0 but skip None or empty

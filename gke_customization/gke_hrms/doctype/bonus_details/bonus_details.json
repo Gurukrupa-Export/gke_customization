@@ -1,0 +1,283 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-09-17 10:38:29.639085",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "company",
+  "employee_status",
+  "column_break_column",
+  "designation",
+  "department",
+  "branch",
+  "hold_bonus",
+  "jv",
+  "bonus_details_section",
+  "jan_salary",
+  "feb_salary",
+  "mar_salary",
+  "apr_salary",
+  "may_salary",
+  "jun_salary",
+  "jul_salary",
+  "aug_salary",
+  "sep_salary",
+  "oct_salary",
+  "nov_salary",
+  "dec_salary",
+  "column_break_mhnw",
+  "jan_bonus",
+  "feb_bonus",
+  "mar_bonus",
+  "apr_bonus",
+  "may_bonus",
+  "jun_bonus",
+  "jul_bonus",
+  "aug_bonus",
+  "sep_bonus",
+  "oct_bonus",
+  "nov_bonus",
+  "dec_bonus",
+  "section_break_utfl",
+  "total_salary",
+  "column_break_tabn",
+  "total_bonus"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.employee",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name"
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fetch_from": "employee.status",
+   "fieldname": "employee_status",
+   "fieldtype": "Data",
+   "label": "Employee Status"
+  },
+  {
+   "fieldname": "column_break_column",
+   "fieldtype": "Column Break",
+   "label": "Column Break"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fetch_from": "employee.branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fieldname": "hold_bonus",
+   "fieldtype": "Check",
+   "label": "Hold Bonus"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fieldname": "jv",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "JV"
+  },
+  {
+   "fieldname": "bonus_details_section",
+   "fieldtype": "Section Break",
+   "label": "Bonus Details"
+  },
+  {
+   "fieldname": "jan_salary",
+   "fieldtype": "Float",
+   "label": "Jan Salary"
+  },
+  {
+   "fieldname": "feb_salary",
+   "fieldtype": "Float",
+   "label": "Feb Salary"
+  },
+  {
+   "fieldname": "mar_salary",
+   "fieldtype": "Float",
+   "label": "Mar Salary"
+  },
+  {
+   "fieldname": "apr_salary",
+   "fieldtype": "Float",
+   "label": "Apr Salary"
+  },
+  {
+   "fieldname": "may_salary",
+   "fieldtype": "Float",
+   "label": "May Salary"
+  },
+  {
+   "fieldname": "jun_salary",
+   "fieldtype": "Float",
+   "label": "Jun Salary"
+  },
+  {
+   "fieldname": "jul_salary",
+   "fieldtype": "Float",
+   "label": "Jul Salary"
+  },
+  {
+   "fieldname": "aug_salary",
+   "fieldtype": "Float",
+   "label": "Aug Salary"
+  },
+  {
+   "fieldname": "sep_salary",
+   "fieldtype": "Float",
+   "label": "Sep Salary"
+  },
+  {
+   "fieldname": "oct_salary",
+   "fieldtype": "Float",
+   "label": "Oct Salary"
+  },
+  {
+   "fieldname": "nov_salary",
+   "fieldtype": "Float",
+   "label": "Nov Salary"
+  },
+  {
+   "fieldname": "dec_salary",
+   "fieldtype": "Float",
+   "label": "Dec Salary"
+  },
+  {
+   "fieldname": "column_break_mhnw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "jan_bonus",
+   "fieldtype": "Float",
+   "label": "Jan Bonus"
+  },
+  {
+   "fieldname": "feb_bonus",
+   "fieldtype": "Float",
+   "label": "Feb Bonus"
+  },
+  {
+   "fieldname": "mar_bonus",
+   "fieldtype": "Float",
+   "label": "Mar Bonus"
+  },
+  {
+   "fieldname": "apr_bonus",
+   "fieldtype": "Float",
+   "label": "Apr Bonus"
+  },
+  {
+   "fieldname": "may_bonus",
+   "fieldtype": "Float",
+   "label": "May Bonus"
+  },
+  {
+   "fieldname": "jun_bonus",
+   "fieldtype": "Float",
+   "label": "Jun Bonus"
+  },
+  {
+   "fieldname": "aug_bonus",
+   "fieldtype": "Float",
+   "label": "Aug Bonus"
+  },
+  {
+   "fieldname": "sep_bonus",
+   "fieldtype": "Float",
+   "label": "Sep Bonus"
+  },
+  {
+   "fieldname": "oct_bonus",
+   "fieldtype": "Float",
+   "label": "Oct Bonus"
+  },
+  {
+   "fieldname": "nov_bonus",
+   "fieldtype": "Float",
+   "label": "Nov Bonus"
+  },
+  {
+   "fieldname": "dec_bonus",
+   "fieldtype": "Float",
+   "label": "Dec Bonus"
+  },
+  {
+   "fieldname": "section_break_utfl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_salary",
+   "fieldtype": "Float",
+   "label": "Total Salary "
+  },
+  {
+   "fieldname": "column_break_tabn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_bonus",
+   "fieldtype": "Float",
+   "label": "Total Bonus"
+  },
+  {
+   "fieldname": "jul_bonus",
+   "fieldtype": "Float",
+   "label": "Jul Bonus"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-26 15:33:50.104374",
+ "modified_by": "bhavika_patel@gkexport.com",
+ "module": "GKE HRMS",
+ "name": "Bonus Details",
+ "owner": "rajan_k@gkexport.com",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -862,10 +862,10 @@ def process_data(data, filters):
         else:
             status = "XX"
 
-        if has_checkin_error:
-            #row["status"] = "ERR" 
-            row['net_wrk_hrs'] = timedelta(0)
-            row['total_pay_hrs'] = timedelta(0)
+        # if has_checkin_error:  #<-- changes1
+        #     #row["status"] = "ERR" 
+        #     row['net_wrk_hrs'] = timedelta(0)
+        #     row['total_pay_hrs'] = timedelta(0)
 
         temp = {
             "login_date": date,

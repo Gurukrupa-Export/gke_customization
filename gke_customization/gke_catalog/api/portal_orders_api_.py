@@ -36,7 +36,7 @@ def _serialize_items(items, status_filter=None):
         item_data = frappe.db.get_value(
             "Item",
             row.item_code,
-            ["image", "name", "item_group","custom_catalogue_image", "custom_silver_image"],
+            ["image", "name", "item_group","custom_catalogue_image", "custom_silver_image","sketch_image", "front_view"],
             as_dict=True,
         ) or {}
         
@@ -68,6 +68,8 @@ def _serialize_items(items, status_filter=None):
             "custom_catalogue_image"      : item_data.get("custom_catalogue_image") or "",
             "custom_silver_image"         : item_data.get("custom_silver_image") or "",
             "image"                       : item_data.get("image") or "",
+            "cad_image"                   : item_data.get("front_view") or "",
+            "sketch_image"                : item_data.get("sketch_image")  or "",
             # "custom_catalogue_image"      : (item_data.get("custom_catalogue_image") or item_data.get("custom_silver_image")),
             # "custom_catalogue_image"      : item_image,
             "category"                    : item_data.get("item_group") or "",
@@ -182,9 +184,9 @@ def add_to_cart(
     metal_touch=None,       
 ):
     if not customer:
-        frappe.throw(_("Customer required hai."))
+        frappe.throw(_("Customer required."))
     if not item_code:
-        frappe.throw(_("Item Code required hai."))
+        frappe.throw(_("Item Code required."))
 
     qty             = int(quantity or 1)
     calculated_rate = float(rate or 0)

@@ -1,0 +1,188 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:EMP-BNS-{#####}",
+ "creation": "2026-09-17 11:55:54.814405",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_kwve",
+  "amended_from",
+  "from_date",
+  "company",
+  "department",
+  "designation",
+  "branch",
+  "column_break_blxr",
+  "to_date",
+  "employee",
+  "employee_name",
+  "bonus_percent",
+  "wage_eligibility_limit",
+  "search",
+  "status",
+  "bonus_details_section",
+  "bonus_details",
+  "section_break_ic0d",
+  "total_employee_count",
+  "totalbonus_amt"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_kwve",
+   "fieldtype": "Section Break",
+   "label": "Filters"
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "From Date",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fetch_from": "employee.branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "column_break_blxr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "To Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.employee",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "bonus_percent",
+   "fieldtype": "Percent",
+   "label": "Bonus Percent",
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "fieldname": "search",
+   "fieldtype": "Button",
+   "label": "Search"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Status",
+   "options": "Completed\nHold"
+  },
+  {
+   "fieldname": "bonus_details_section",
+   "fieldtype": "Section Break",
+   "label": "Bonus Details"
+  },
+  {
+   "fieldname": "bonus_details",
+   "fieldtype": "Table",
+   "label": "Bonus",
+   "options": "Bonus Details"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Bonus",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "wage_eligibility_limit",
+   "fieldtype": "Float",
+   "label": "Wage Eligibility Limit",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_ic0d",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_employee_count",
+   "fieldtype": "Float",
+   "label": "Total Employee"
+  },
+  {
+   "fieldname": "totalbonus_amt",
+   "fieldtype": "Float",
+   "label": "Total Bonus"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-10-26 15:07:00.025001",
+ "modified_by": "bhavika_patel@gkexport.com",
+ "module": "GKE HRMS",
+ "name": "Bonus",
+ "naming_rule": "Expression",
+ "owner": "rajan_k@gkexport.com",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1
+}
