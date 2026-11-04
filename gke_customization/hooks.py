@@ -319,7 +319,7 @@ doc_events = {
 },
 "Item": {
     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
-},
+}, 
 # The KGGK push. `on_update`, not `before_validate`: the old hooks called
 # `item.create_item_kggk` / `item.create_bom_kggk`, which did blocking HTTP inside the save
 # and `frappe.throw` on any API error - so an unreachable KGGK site aborted a local Item or
