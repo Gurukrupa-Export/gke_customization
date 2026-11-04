@@ -1,0 +1,12 @@
+{
+	"name": "Update Leave And Attendance Based On Leave Applied",
+	"script_type": "DocType Event",
+	"reference_doctype": "Employee Checkin",
+	"event_frequency": "All",
+	"doctype_event": "Before Save",
+	"allow_guest": 0,
+	"disabled": 0,
+	"enable_rate_limit": 0,
+	"rate_limit_count": 5,
+	"rate_limit_seconds": 86400
+}
