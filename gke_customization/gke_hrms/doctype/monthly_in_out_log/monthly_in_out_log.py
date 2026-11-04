@@ -575,7 +575,9 @@ def get_conditions(filters):
     if not filters.get("from_date"):
         frappe.throw(_("Attendance Date is required"))
 
-    conditions = [Attendance.attendance_date == filters.get("from_date")]
+    from_date = filters.get("from_date")
+    to_date = filters.get("to_date") or from_date
+    conditions = [Attendance.attendance_date.between(from_date, to_date)]
 
     if filters.get("employee"):
         conditions.append(Attendance.employee == filters.get("employee"))
@@ -922,11 +924,7 @@ def process_data(data, filters):
                 # Check-ins WITHOUT attendance field: likely incomplete OT work on WO day
                 for ci in first_in_last_out:
                     # Check if this check-in is linked to an Attendance record
-                    if frappe.db.get_value(
-                        "Employee Checkin",
-                        {"name": ci.get("employee_checkin")},
-                        "attendance",
-                    ):
+                    if ci.get("attendance"):
                         # This check-in belongs to a previous shift's attendance record
                         # Don't show times to avoid confusion (previous shift's data)
                         has_checkin_error = (
