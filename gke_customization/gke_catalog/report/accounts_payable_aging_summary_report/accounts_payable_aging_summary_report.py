@@ -1313,12 +1313,9 @@ def execute(filters=None):
 	return columns, [{"html": message}], None, None, None, 1
 
 
-@frappe.whitelist()
-def get_bucket_invoices(filters, bucket):
-	"""Invoices behind a headcount number (drill-down dialog)."""
-	check_report_permission()
-	filters = frappe._dict(frappe.parse_json(filters))
-	rows, _age_as_on = get_payable_rows(filters)
+def get_bucket_rows(filters, bucket):
+	"""Voucher rows behind one headcount number, oldest first."""
+	rows, age_as_on = get_payable_rows(filters)
 
 	out = []
 	for row in rows:
@@ -1337,7 +1334,136 @@ def get_bucket_invoices(filters, bucket):
 				}
 			)
 	out.sort(key=lambda d: d["age"], reverse=True)
-	return out
+	return out, age_as_on
+
+
+@frappe.whitelist()
+def get_bucket_invoices(filters, bucket):
+	"""Invoices behind a headcount number (drill-down dialog)."""
+	check_report_permission()
+	filters = frappe._dict(frappe.parse_json(filters))
+	return get_bucket_rows(filters, bucket)[0]
+
+
+# Exports use exactly the rows shown in the dialog (posted by the browser), same columns, same order.
+EXPORT_COLUMNS = [
+	("Voucher", "voucher_no"),
+	("Supplier", "party"),
+	("Supplier Name", "supplier_name"),
+	("Posting Date", "posting_date"),
+	("Due Date", "due_date"),
+	("Bill No", "bill_no"),
+	("Age (Days)", "age"),
+	("Outstanding", "outstanding"),
+]
+
+
+def _safe_name(label):
+	return re.sub(r"[^A-Za-z0-9 +_-]", "", label or "Invoices").strip() or "Invoices"
+
+
+def _posted_rows(rows):
+	"""Rows as shown in the dialog -> clean list of dicts (known keys only)."""
+	rows = frappe.parse_json(rows) or []
+	if not isinstance(rows, list) or len(rows) > 100000:
+		frappe.throw(_("Invalid report content"))
+
+	keys = [key for _title, key in EXPORT_COLUMNS]
+	return [{key: row.get(key) for key in keys} for row in rows if isinstance(row, dict)]
+
+
+def _file_title(label, count):
+	"""Same text as the dialog title, e.g. 'Accounts Payable Aging Summary 91 - 120 Days Overdue (5)'"""
+	name = re.sub(r"[^A-Za-z0-9 +()_-]", "", label or "Invoices").strip() or "Invoices"
+	return f"Accounts Payable Aging Summary {name} ({count})"
+
+
+def _date_text(value):
+	return formatdate(value) if value else ""
+
+
+@frappe.whitelist()
+def download_bucket_excel(rows, label=None, filters=None):
+	"""Excel with exactly the rows shown in the drill-down dialog."""
+	from frappe.utils.xlsxutils import make_xlsx
+
+	check_report_permission()
+	rows = _posted_rows(rows)
+
+	data = [[title for title, _key in EXPORT_COLUMNS]]
+	for row in rows:
+		data.append(
+			[
+				cstr(row.get("voucher_no")),
+				cstr(row.get("party")),
+				cstr(row.get("supplier_name")),
+				_date_text(row.get("posting_date")),
+				_date_text(row.get("due_date")),
+				cstr(row.get("bill_no")),
+				cint(row.get("age")),
+				flt(row.get("outstanding"), 2),
+			]
+		)
+
+	xlsx_file = make_xlsx(data, _safe_name(label)[:31])
+	frappe.response["filename"] = f"{_file_title(label, len(rows))}.xlsx"
+	frappe.response["filecontent"] = xlsx_file.getvalue()
+	frappe.response["type"] = "binary"
+
+
+@frappe.whitelist()
+def download_bucket_pdf(rows, label=None, filters=None):
+	"""PDF with exactly the rows shown in the drill-down dialog."""
+	from frappe.utils.pdf import get_pdf
+
+	check_report_permission()
+	rows = _posted_rows(rows)
+	filters = frappe._dict(frappe.parse_json(filters) or {})
+	age_as_on = getdate(filters.get("report_date") or nowdate())
+
+	th = "padding:6px 8px;border:1px solid #c9d6e4;background:#dbe9f6;font-size:11px;text-align:left;white-space:nowrap;"
+	td = "padding:5px 8px;border:1px solid #d8e2ee;font-size:11px;"
+	body = ""
+	total = 0.0
+	for row in rows:
+		total += flt(row.get("outstanding"))
+		body += (
+			"<tr>"
+			f'<td style="{td}white-space:nowrap;">{escape_html(cstr(row.get("voucher_no")))}</td>'
+			f'<td style="{td}white-space:nowrap;">{escape_html(cstr(row.get("party")))}</td>'
+			f'<td style="{td}">{escape_html(cstr(row.get("supplier_name")))}</td>'
+			f'<td style="{td}white-space:nowrap;">{_date_text(row.get("posting_date"))}</td>'
+			f'<td style="{td}white-space:nowrap;">{_date_text(row.get("due_date"))}</td>'
+			f'<td style="{td}white-space:nowrap;">{escape_html(cstr(row.get("bill_no")))}</td>'
+			f'<td style="{td}text-align:right;">{cint(row.get("age"))}</td>'
+			f'<td style="{td}text-align:right;white-space:nowrap;">{fmt_inr(row.get("outstanding"), 2)}</td>'
+			"</tr>"
+		)
+
+	supplier = escape_html(filters.get("supplier_group") or "All Suppliers")
+	html = f"""<html><head><meta charset='utf-8'></head>
+	<body style="font-family:Arial,sans-serif;">
+		<h3 style="margin:0 0 4px 0;">Accounts Payable Aging Summary {escape_html(label or "Invoices")} ({len(rows)})</h3>
+		<div style="font-size:11px;margin-bottom:10px;color:#444;">
+			Aging as on {age_as_on.strftime('%d-%m-%Y')} | Supplier: {supplier} | {len(rows)} invoices
+		</div>
+		<table style="border-collapse:collapse;width:100%;">
+			<thead><tr>
+				<th style="{th}">Voucher</th><th style="{th}">Supplier</th><th style="{th}">Supplier Name</th>
+				<th style="{th}">Posting Date</th><th style="{th}">Due Date</th><th style="{th}">Bill No</th>
+				<th style="{th}text-align:right;">Age (Days)</th><th style="{th}text-align:right;">Outstanding</th>
+			</tr></thead>
+			<tbody>{body}</tbody>
+			<tfoot><tr>
+				<td colspan="7" style="{td}font-weight:bold;background:#a9c7e6;">Total</td>
+				<td style="{td}font-weight:bold;background:#a9c7e6;text-align:right;white-space:nowrap;">{fmt_inr(total, 2)}</td>
+			</tr></tfoot>
+		</table>
+	</body></html>"""
+
+	frappe.local.response.filename = f"{_file_title(label, len(rows))}.pdf"
+	frappe.local.response.filecontent = get_pdf(html, {"orientation": "Landscape"})
+	frappe.local.response.type = "binary"  # attachment -> browser downloads instead of opening a tab
 
 
 @frappe.whitelist()
@@ -1366,7 +1492,7 @@ def download_pdf(html):
 
 	frappe.local.response.filename = f"Accounts Payable Aging Summary {nowdate()}.pdf"
 	frappe.local.response.filecontent = get_pdf(document, {"orientation": "Landscape", "page-size": "A3"})
-	frappe.local.response.type = "pdf"
+	frappe.local.response.type = "binary"  # attachment -> browser downloads instead of opening a tab
 
 
 # ----------------------------------------------------------------------
