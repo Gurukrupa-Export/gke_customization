@@ -27,6 +27,21 @@ frappe.query_reports["Daily In Out Summary"] = {
 		report.page.add_inner_button(__("Summary"), function () {
 			show_summary_dialog(report);
 		});
+
+		report.page.add_inner_button(__("Send Test Mail"), function () {
+			frappe.call({
+				method:
+					"gke_customization.gke_catalog.report.daily_in_out_summary.daily_in_out_summary.send_test_mail",
+				args: { company: report.get_filter_value("company") },
+				freeze: true,
+				freeze_message: __("Sending mail..."),
+				callback: function (r) {
+					if (r.message) {
+						frappe.msgprint(__("Test mail sent to {0}", [r.message]));
+					}
+				}
+			});
+		});
 	}
 };
 
@@ -122,10 +137,10 @@ function render_summary_dialog(summary, company) {
 	const html = `
 		<div class="sadguru-summary">
 			<div class="sadguru-report-head">
-				<div class="sadguru-brand">${DIAMOND_GLYPH}<span>${__("Stock Statement")}</span></div>
+				<div class="sadguru-brand">${DIAMOND_GLYPH}<span>${__("Sadguru Stock Statement")}</span></div>
 				<div class="sadguru-report-meta">
 					<div>${__("As on")} <b>${generated_on}</b></div>
-					<div class="sadguru-report-sub">${__("Quantities in Carats (Crt)")}</div>
+					<div class="sadguru-report-sub">${__("Quantity in Carats (Cts)")}</div>
 				</div>
 			</div>
 			<div class="sadguru-accent-bar"></div>
@@ -144,7 +159,7 @@ function render_summary_dialog(summary, company) {
 		</div>`;
 
 	const dialog = new frappe.ui.Dialog({
-		title: __("Sadguru In/Out Stock Summary"),
+		title: "",
 		size: "extra-large",
 		fields: [
 			{
@@ -205,11 +220,9 @@ function export_summary_pdf(summary, generated_on) {
 				* { box-sizing: border-box; }
 				body { font-family: "Helvetica Neue", Arial, sans-serif; color: #2b1420; margin: 32px; }
 				.head { display: flex; align-items: center; justify-content: space-between; }
-				.brand { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700;
-					text-transform: uppercase; letter-spacing: 1px; color: #b23a6b; }
+				.brand { display: flex; align-items: center; gap: 8px; font-family: Georgia, "Times New Roman", serif;
+					font-size: 21px; font-weight: 700; letter-spacing: 0.2px; color: #b23a6b; }
 				.brand svg { color: #b23a6b; }
-				.title { font-family: Georgia, "Times New Roman", serif; font-size: 21px; font-weight: 700;
-					letter-spacing: 0.2px; color: #3a1526; margin-top: 4px; }
 				.meta { font-size: 12.5px; color: #8a6473; text-align: right; }
 				.meta b { color: #3a1526; font-weight: 600; }
 				.meta-sub { font-size: 10.5px; color: #b08a9a; margin-top: 3px; font-style: italic; }
@@ -235,12 +248,11 @@ function export_summary_pdf(summary, generated_on) {
 		<body>
 			<div class="head">
 				<div>
-					<div class="brand">${DIAMOND_GLYPH}<span>${__("Stock Statement")}</span></div>
-					<div class="title">${__("Sadguru In / Out Stock Summary")}</div>
+					<div class="brand">${DIAMOND_GLYPH}<span>${__("Sadguru Stock Statement")}</span></div>
 				</div>
 				<div class="meta">
 					<div>${__("As on")} <b>${generated_on}</b></div>
-					<div class="meta-sub">${__("Quantities in Carats (Crt)")}</div>
+					<div class="meta-sub">${__("Quantity in Carats (Cts)")}</div>
 				</div>
 			</div>
 			<div class="accent-bar"></div>
@@ -283,10 +295,10 @@ const SADGURU_SUMMARY_CSS = `
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	font-size: 12px;
+	font-family: Georgia, "Times New Roman", serif;
+	font-size: 20px;
 	font-weight: 700;
-	text-transform: uppercase;
-	letter-spacing: 1px;
+	letter-spacing: 0.2px;
 	color: #c2447a;
 }
 .sadguru-report-meta {

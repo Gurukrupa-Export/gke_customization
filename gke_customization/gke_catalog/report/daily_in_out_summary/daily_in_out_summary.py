@@ -324,3 +324,150 @@ def get_daily_sales_invoice_return_data(company, from_date, to_date):
 	)
 
 	return {getdate(row.posting_date): flt(row.return_qty) for row in rows}
+
+
+##### auto mail code #####
+from frappe.utils import formatdate
+from frappe.utils.pdf import get_pdf
+
+SUMMARY_SECTIONS = [
+	("today", "Today"),
+	("current_month", "Current Month"),
+	("previous_month", "Previous Month"),
+	("current_fy", "Current Financial Year"),
+]
+
+SUMMARY_COLUMNS = [
+	("Opening Stock", "opening_stock"),
+	("Inward Qty", "inward_qty"),
+	("Return Qty", "return_qty"),
+	("Total Stock", "total_stock"),
+	("Supply (Sold)", "supply_qty"),
+	("Sales Return", "sales_return_qty"),
+	("Closing Stock", "closing_stock"),
+]
+
+
+def build_summary_html(summary, as_on_date):
+	rows = ""
+	for key, title in SUMMARY_SECTIONS:
+		row = summary.get(key) or {}
+		if key == "today":
+			period = formatdate(row["from_date"])
+		else:
+			period = f"{formatdate(row['from_date'])} – {formatdate(row['to_date'])}"
+
+		rows += f"""
+			<tr>
+				<td class="col-period">
+					<div class="period-title">{title}</div>
+					<div class="period-range">{period}</div>
+				</td>"""
+		for label, field in SUMMARY_COLUMNS:
+			cls = "closing" if field == "closing_stock" else "subtotal" if field == "total_stock" else ""
+			rows += f'<td class="{cls}">{flt(row.get(field)):,.3f}</td>'
+		rows += "</tr>"
+
+	headers = "".join(f"<th>{label}</th>" for label, field in SUMMARY_COLUMNS)
+
+	return f"""
+	<html>
+	<head>
+		<meta charset="utf-8">
+		<style>
+			body {{ font-family: Arial, sans-serif; color: #2b1420; }}
+			.brand {{ font-family: Georgia, serif; font-size: 21px; font-weight: bold; color: #b23a6b; }}
+			.meta {{ font-size: 12px; color: #8a6473; text-align: right; }}
+			.meta-sub {{ font-size: 10px; color: #b08a9a; font-style: italic; }}
+			.accent-bar {{ height: 2px; margin: 14px 0 22px; background: #e8a3c2; }}
+			table.data {{ width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #f1d7e2; }}
+			table.data th {{ text-align: right; font-size: 10px; text-transform: uppercase; color: #9c6b7e;
+				background: #fdf2f7; border-bottom: 1px solid #f1d7e2; padding: 12px 14px; }}
+			table.data td {{ text-align: right; padding: 13px 14px; border-bottom: 1px solid #f8eaf0; }}
+			.col-period {{ text-align: left !important; min-width: 200px; }}
+			.period-title {{ font-weight: bold; font-size: 13px; }}
+			.period-range {{ font-size: 10px; color: #9c6b7e; }}
+			.subtotal {{ background: #eef2f7; font-weight: bold; }}
+			.closing {{ font-weight: bold; color: #9c2c5c; background: #fbe7ef; }}
+			.footer {{ margin-top: 18px; font-size: 10px; color: #b08a9a; text-align: right; font-style: italic; }}
+		</style>
+	</head>
+	<body>
+		<table style="width:100%">
+			<tr>
+				<td class="brand">Sadguru Stock Statement</td>
+				<td class="meta">
+					<div>As on <b>{formatdate(as_on_date)}</b></div>
+					<div class="meta-sub">Quantity in Carats (Cts)</div>
+				</td>
+			</tr>
+		</table>
+		<div class="accent-bar"></div>
+		<table class="data">
+			<thead><tr><th class="col-period" style="text-align:left">Period</th>{headers}</tr></thead>
+			<tbody>{rows}</tbody>
+		</table>
+		<div class="footer">Generated automatically</div>
+	</body>
+	</html>"""
+
+def get_mail_summary(company, as_on_date):
+	today = getdate(as_on_date)
+
+	current_month_start = get_first_day(today)
+	previous_month_end = add_days(current_month_start, -1)
+	previous_month_start = get_first_day(previous_month_end)
+
+	fiscal_year = frappe.db.get_value(
+		"Fiscal Year",
+		{"year_start_date": ["<=", today], "year_end_date": [">=", today]},
+		["year_start_date"],
+	)
+	fy_start = getdate(fiscal_year) if fiscal_year else get_first_day(today, 0)
+
+	periods = {
+		"today": (today, today),
+		"current_month": (current_month_start, today),
+		"previous_month": (previous_month_start, previous_month_end),
+		"current_fy": (fy_start, today),
+	}
+
+	summary = {}
+	for key, (from_date, to_date) in periods.items():
+		summary[key] = get_period_summary(company, from_date, to_date)
+		summary[key]["from_date"] = from_date
+		summary[key]["to_date"] = to_date
+
+	return summary
+
+def send_summary_mail(recipients, as_on_date=None, company=None):
+	as_on_date = as_on_date or add_days(nowdate(), -1)
+
+	summary = get_mail_summary(company, as_on_date)
+	pdf = get_pdf(build_summary_html(summary, as_on_date), {"orientation": "Landscape"})
+
+	sender_id = frappe.db.get_value("Biometric Settings", "Biometric Settings", "auto_mail_id") or "alerts@gkexport.com"
+	cc = ["ishika_r@sgdiam.com","bhavesh_j@sgdiam.com"]
+	
+	frappe.sendmail(
+		recipients=recipients,
+		sender=sender_id,
+		cc=cc,
+		subject=f"Sadguru Stock Statement",
+		message=f"Please find attached the Daily In Out Summary as on {formatdate(as_on_date)}.",
+		attachments=[{"fname": f"Sadguru-In-Out-Summary-{as_on_date}.pdf", "fcontent": pdf}],
+		now=True,
+	)
+
+
+def send_daily_summary_mail():
+	# 8 AM scheduler: always reports the previous day
+	send_summary_mail(["jdr@sgdiam.com"])
+
+
+@frappe.whitelist()
+def send_test_mail(company=None):
+	receiver = ["jdr@sgdiam.com"]
+	prev_date = add_days(nowdate(), -1)
+	send_summary_mail(receiver, prev_date, company)
+	return ", ".join(receiver)

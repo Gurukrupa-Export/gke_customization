@@ -167,6 +167,9 @@ scheduler_events = {
 		],
         "30 8 * * *": [
 			"gke_customization.gke_hrms.report.department_wise_daily_attendance.department_wise_daily_attendance.send_daily_attendance_report"
+		],
+        "30 8 * * *": [
+			"gke_customization.gke_catalog.report.daily_in_out_summary.daily_in_out_summary.send_daily_summary_mail"
 		]
     },
 }
