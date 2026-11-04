@@ -25,7 +25,9 @@
   "options",
   "help_text",
   "require_rating",
-  "require_remark"
+  "require_remark",
+  "amount",
+  "attach_img"
  ],
  "fields": [
   {
@@ -135,13 +137,23 @@
    "fieldname": "require_remark",
    "fieldtype": "Check",
    "label": "Require Remark"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Data",
+   "label": "Amount"
+  },
+  {
+   "fieldname": "attach_img",
+   "fieldtype": "Attach",
+   "label": "Attach"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-31 16:39:39.091285",
- "modified_by": "bhavika_patel@gkexport.com",
+ "modified": "2026-11-04 17:36:57.743440",
+ "modified_by": "mansi_g@gkexport.com",
  "module": "GKE SURVEY",
  "name": "Questionnaire Question",
  "naming_rule": "By \"Naming Series\" field",
