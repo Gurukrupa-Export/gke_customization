@@ -15,6 +15,7 @@ def before_validate(self,method):
 
     if self.custom_is_set_item:
         create_group_for_set(self)
+    frappe.msgprint("Hiii")
     defaults = [
         {
             "company": "Gurukrupa Export Private Limited",
