@@ -158,7 +158,8 @@ def update_attendance_wise_leave(
 ):
 
     allocation = frappe.get_doc("Leave Allocation", allocation.name)
-    already_allocated = flt(allocation.total_leaves_allocated)
+    # the ledger is the source of truth, so the limits are checked against it
+    already_allocated = flt(allocation.get_existing_leave_count())
 
     # -------------------------
     # get total earned with rounding
