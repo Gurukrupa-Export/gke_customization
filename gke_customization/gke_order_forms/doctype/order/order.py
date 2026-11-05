@@ -62,6 +62,9 @@ class Order(Document):
                 self.reload()
 
     def validate(self):
+        max_row = max(self.diamond_detail, key=lambda x: x.pcs or 0, default=None)
+        if max_row:
+            self.sub_setting_type1 = max_row.sub_setting_type
         update_new_designer_timesheet(self)
         if self.workflow_state in ["Update Item", "Design Rework in Progress"]:
             timesheet_validation(self)
@@ -175,6 +178,7 @@ def bom_creation(self):
     bom.metal_touch = self.metal_touch
     bom.metal_colour = self.metal_colour
     bom.diamond_type = self.diamond_type
+    bom.navratna = self.navratna
     bom.metal_target = self.metal_target
     bom.diamond_target = self.diamond_target
     bom.stone_changeable = self.stone_changeable
@@ -257,13 +261,13 @@ def bom_creation(self):
         diamond_weight += row.quantity or 0
         total_diamond_pcs += row.pcs or 0
         bom.append(
-            "diamond_detail",
             {
                 "diamond_type": row.diamond_type,
                 "stone_shape": row.stone_shape,
                 "sub_setting_type": row.sub_setting_type,
-                "size_in_mm": row.size_in_mm,
-                "diamond_sieve_size": row.diamond_sieve_size,
+                "size_in_mm": row.size_in_mm if row.stone_shape == "Round" else None,
+                "diamond_size_in_mm": row.size_in_mm if row.stone_shape != "Round" else None,
+                "diamond_sieve_size": row.size_in_mm if row.stone_shape != "Round" else row.diamond_sieve_size,
                 "sieve_size_range": row.sieve_size_range,
                 "pcs": row.pcs,
                 "weight_per_pcs": row.weight_per_pcs,
