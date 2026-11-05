@@ -62,8 +62,12 @@ def capabilities():
 
 
 @frappe.whitelist(methods=["POST"])
-def upsert(doctype, source_site, source_name, data, source_version=None, policy=None):
+def upsert(doctype, source_site, source_name, data, source_version=None, policy=None, known_name=None):
 	"""Create or update the record that came from ``source_name`` on ``source_site``.
+
+	``known_name`` is the name the sender last saw this record under here. It is only used when no
+	record carries this origin: a BOM that exists under that name, for the same item and with no
+	origin of its own, is claimed instead of a second one being created.
 
 	``data`` is the full create payload. ``policy`` says what an update must do differently:
 
@@ -91,7 +95,9 @@ def upsert(doctype, source_site, source_name, data, source_version=None, policy=
 	_lock(key)
 	frappe.flags.in_kggk_sync = True
 	try:
-		existing = _find(doctype, source_site, source_name)
+		existing = _find(doctype, source_site, source_name) or _claim_known(
+			doctype, known_name, source_site, source_name, data
+		)
 		if existing:
 			result = _update(doctype, existing, data, source_version, policy)
 		else:
@@ -165,6 +171,30 @@ def _find(doctype, source_site, source_name):
 		limit=1,
 	)
 	return found[0] if found else None
+
+
+def _claim_known(doctype, known_name, source_site, source_name, data):
+	"""The record the sender already knows by name, if it is safe to take as this origin's.
+
+	Items have their own rule in ``_create`` (the name is the code). This is for the others, whose
+	names are a series: without it, a record whose origin stamp is missing is created again.
+	Refused unless it is the same item's record, not cancelled, and either unclaimed or already
+	claimed by this very origin.
+	"""
+	if doctype == "Item" or not known_name or not frappe.db.exists(doctype, known_name):
+		return None
+	row = frappe.db.get_value(
+		doctype, known_name, ["docstatus", "item", SOURCE_SITE, SOURCE_DOCTYPE, SOURCE_NAME], as_dict=True
+	) if doctype == "BOM" else None
+	if not row or row.docstatus == 2 or (data.get("item") and row.item != data.get("item")):
+		return None
+	ours = {SOURCE_SITE: source_site, SOURCE_DOCTYPE: doctype, SOURCE_NAME: source_name}
+	claimed = {k: row.get(k) for k in ours}
+	if any(claimed.values()) and claimed != ours:
+		return None
+	if not any(claimed.values()):
+		frappe.db.set_value(doctype, known_name, ours, update_modified=False)
+	return known_name
 
 
 def _create(doctype, data, source_site, source_name, source_version, policy):

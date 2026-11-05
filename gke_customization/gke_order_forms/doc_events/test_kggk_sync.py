@@ -4410,3 +4410,28 @@ class TestLegacyHooksStayUnwired(unittest.TestCase):
 		self.assertNotIn("create_bom_kggk", wired)
 		self.assertIn("kggk_sync.item_on_update", wired)
 		self.assertIn("kggk_sync.bom_on_update", wired)
+
+
+class TestAnEditDuringAPushIsNotLost(unittest.TestCase):
+	"""A save made while a push runs has its own enqueue refused; marking Synced must not erase it."""
+
+	def _written_status(self, sent, current, doctype="Item"):
+		doc = frappe._dict(flags=frappe._dict(), save=lambda **kw: None)
+		with patch.object(frappe.db, "get_value", side_effect=lambda dt, *a, **kw: current if a[-1] == "modified" else None), patch.object(
+			frappe, "get_doc", return_value=doc
+		), patch.object(frappe.db, "savepoint"):
+			k.mark_state(doctype, "I-1", "Synced", "kggk.example.com", local_modified=sent)
+		return doc.status
+
+	def test_a_record_saved_after_the_sent_version_stays_pending(self):
+		self.assertEqual(self._written_status("2026-11-05 10:00:00", "2026-11-05 10:00:07"), "Pending")
+
+	def test_an_unchanged_record_is_synced(self):
+		self.assertEqual(self._written_status("2026-11-05 10:00:00", "2026-11-05 10:00:00"), "Synced")
+
+	def test_only_items_and_boms_are_held_back(self):
+		self.assertEqual(self._written_status("2026-11-05 10:00:00", "2026-11-05 10:00:07", "Revise Field"), "Synced")
+
+	def test_the_notice_is_by_modified_not_by_clock(self):
+		self.assertFalse(k._edited_since("Item", "I-1", None))
+
