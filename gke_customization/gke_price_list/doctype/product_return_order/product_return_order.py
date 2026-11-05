@@ -436,13 +436,17 @@ class ProductReturnOrder(Document):
 		errors = []
 		new_bom = frappe.get_doc("BOM",new_bom)
 			# series_start = frappe.db.get_value("Manufacturing Setting", doc.company, ["series_start"])
-		series_start = frappe.db.get_value("Manufacturing Setting", {"manufacturer":'Labh'}, ["series_start"])
+		if self.ref_company == "KG":
+			manufacturer = "Labh"
+		elif self.ref_company == "GK":
+			manufacturer = "Shubh"
+		series_start = frappe.db.get_value("Manufacturing Setting", {"manufacturer": manufacturer}, ["series_start"])
 		# metal_type, manufacturer, posting_date = frappe.db.get_value(
 		# 	"Manufacturing Work Order",
 		# 	mwo_no,
 		# 	["metal_type", "manufacturer", "posting_date"],
 		# )
-		manufacturer='Labh'
+		manufacturer='Labh' if self.ref_company == "KG" else "Shubh"
 		metal_type = new_bom.metal_detail[0].metal_type if new_bom.metal_detail else None
 		diamond_grade_data=new_bom.diamond_detail[0].diamond_grade if new_bom.diamond_detail else None
 		m_abbr = frappe.db.get_value("Attribute Value", metal_type, "abbreviation")
