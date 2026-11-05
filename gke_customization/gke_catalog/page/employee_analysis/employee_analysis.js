@@ -302,18 +302,18 @@ frappe.pages['employee_analysis'].on_page_load = function (wrapper) {
     });
 };
 
-employee_filter.on_change = function() {
-    let selected_employee = employee_filter.get_value(); 
-    if (selected_employee) { 
-        let last_stored_data = card.data('raw-response'); 
-        if (last_stored_data) { 
-            render_salary_split_chart($('#lbl_comp_ctc').data('raw-ctc'), $('#lbl_comp_grade').data('raw-variable')); 
-            render_increment_trend_chart(last_stored_data.compensation || []); 
-            render_performance_section(last_stored_data.performance_overview || []); 
-            render_attendance_and_leave_section(last_stored_data); 
-        } 
-    }
-};
+// employee_filter.on_change = function() {
+//     let selected_employee = employee_filter.get_value(); 
+//     if (selected_employee) { 
+//         let last_stored_data = card.data('raw-response'); 
+//         if (last_stored_data) { 
+//             render_salary_split_chart($('#lbl_comp_ctc').data('raw-ctc'), $('#lbl_comp_grade').data('raw-variable')); 
+//             render_increment_trend_chart(last_stored_data.compensation || []); 
+//             render_performance_section(last_stored_data.performance_overview || []); 
+//             render_attendance_and_leave_section(last_stored_data); 
+//         } 
+//     }
+// };
 
 /**
  * Handles ajax query execution pathways and triggers timeline tracking generation loops safely.
