@@ -56,6 +56,7 @@ def correct_leave_type_allocations(leave_type, today):
     attendance_count = get_attendance_count_by_allocation(allocations, today)
     annual_allocation = get_annual_allocation_by_policy(allocations, leave_type.name)
     balance = get_ledger_balance_by_employee(allocations, leave_type.name)
+    allocation_credit = get_ledger_credit_by_allocation(allocations)
 
     for allocation in allocations:
         target = get_target_credit(
@@ -63,8 +64,8 @@ def correct_leave_type_allocations(leave_type, today):
             attendance_count.get(allocation.name, 0),
             annual_allocation.get(allocation.leave_policy),
         )
-        difference = flt(target - flt(allocation.total_leaves_allocated), 2)
-        if not difference:
+        difference = flt(target - flt(allocation_credit.get(allocation.name)), 2)
+        if not difference and flt(allocation.total_leaves_allocated) == target:
             continue
 
         if flt(balance.get(allocation.employee)) + difference < 0:
@@ -74,7 +75,7 @@ def correct_leave_type_allocations(leave_type, today):
             )
             continue
 
-        post_credit_difference(allocation.name, difference, today)
+        post_credit_difference(allocation.name, target, difference, today)
 
 
 def get_target_credit(leave_type, attendance_days, annual_allocation):
@@ -143,12 +144,29 @@ def get_ledger_balance_by_employee(allocations, leave_type):
     return {row.employee: flt(row.balance) for row in rows}
 
 
-def post_credit_difference(allocation_name, difference, today):
-    allocation = frappe.get_doc("Leave Allocation", allocation_name)
-    new_total = flt(allocation.total_leaves_allocated) + difference
+def get_ledger_credit_by_allocation(allocations):
+    rows = frappe.get_all(
+        "Leave Ledger Entry",
+        filters={
+            "transaction_type": "Leave Allocation",
+            "transaction_name": ["in", [d.name for d in allocations]],
+            "docstatus": 1,
+            "is_carry_forward": 0,
+        },
+        fields=["transaction_name", {"SUM": "leaves", "as": "credit"}],
+        group_by="transaction_name",
+    )
+    return {row.transaction_name: flt(row.credit) for row in rows}
 
-    allocation.db_set("new_leaves_allocated", new_total, update_modified=False)
-    allocation.db_set("total_leaves_allocated", new_total, update_modified=False)
+
+def post_credit_difference(allocation_name, target, difference, today):
+    allocation = frappe.get_doc("Leave Allocation", allocation_name)
+
+    allocation.db_set("new_leaves_allocated", target, update_modified=False)
+    allocation.db_set("total_leaves_allocated", target, update_modified=False)
+
+    if not difference:
+        return
 
     create_leave_ledger_entry(
         allocation,
