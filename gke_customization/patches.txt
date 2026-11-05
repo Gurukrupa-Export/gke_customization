@@ -10,3 +10,4 @@ gke_customization.patches.v1_0.enforce_kggk_sync_state_uniqueness
 gke_customization.patches.v1_0.sync_numeric_item_variant_attributes
 gke_customization.patches.salary_withholding_release_fields
 gke_customization.patches.add_employee_checkin_attendance_index
+gke_customization.patches.add_incremental_absent_marking_fields #1
