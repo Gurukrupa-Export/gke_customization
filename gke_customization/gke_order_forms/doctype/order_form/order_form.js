@@ -211,6 +211,11 @@ frappe.ui.form.on('Order Form', {
 		// 	};
 		// }
 	},
+	sales_type(frm) {
+		if (frm.doc.sales_type == 'Outright' && frm.doc.diamond_quality == 'Customer Diamond Quality') {
+			frm.set_value('diamond_quality', '');
+		}
+	},
 	refresh(frm){
 		frm.add_custom_button(__("Get Customer Order Form"), function(){
             erpnext.utils.map_current_doc({
@@ -794,9 +799,9 @@ frappe.ui.form.on('Order Form Detail', {
 		row.customer_code = frm.doc.customer_code
 		row.is_finding_order = frm.doc.is_finding_order
 		var fields = ['design_id'];
-		if (row.design_type == 'Sketch Design'){
-			set_filter_for_sketch_design_n_serial(frm,fields)
-		}
+		// if (row.design_type == 'Sketch Design'){
+		// 	set_filter_for_sketch_design_n_serial(frm,fields)
+		// }
 		// else{
 		// 	set_filter_for_design_n_serial(frm,fields)
 		// }
@@ -818,9 +823,9 @@ frappe.ui.form.on('Order Form Detail', {
 	design_type: function (frm, cdt, cdn) {
 		var row = locals[cdt][cdn];
 		var fields = ['design_id'];
-		if (row.design_type == 'Sketch Design'){
-			set_filter_for_sketch_design_n_serial(frm,fields)
-		}
+		// if (row.design_type == 'Sketch Design'){
+		// 	set_filter_for_sketch_design_n_serial(frm,fields)
+		// }
 	},
 
 	category: function (frm, cdt, cdn) {
@@ -1419,9 +1424,13 @@ function set_filters_on_child_table_fields(frm, fields) {
 function set_filters_on_parent_table_fields(frm, fields) {
 	fields.map(function (field) {
 		frm.set_query(field[0], function (doc) {
+			let filters = { 'item_attribute': field[1], "customer_code": doc.customer_code };
+			if (field[0] == 'diamond_quality' && doc.sales_type == 'Outright') {
+				filters.exclude_value = 'Customer Diamond Quality';
+			}
 			return {
 				query: 'jewellery_erpnext.query.item_attribute_query',
-				filters: { 'item_attribute': field[1], "customer_code": doc.customer_code }
+				filters: filters
 			};
 		});
 	});
