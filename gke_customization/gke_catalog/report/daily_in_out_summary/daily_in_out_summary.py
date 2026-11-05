@@ -447,7 +447,7 @@ def send_summary_mail(recipients, as_on_date=None, company=None):
 	pdf = get_pdf(build_summary_html(summary, as_on_date), {"orientation": "Landscape"})
 
 	sender_id = frappe.db.get_value("Biometric Settings", "Biometric Settings", "auto_mail_id") or "alerts@gkexport.com"
-	cc = ["ishika_r@sgdiam.com","bhavesh_j@sgdiam.com","mohit_s@gkexport.com]
+	cc = ["ishika_r@sgdiam.com","bhavesh_j@sgdiam.com","mohit_s@gkexport.com"]
 	
 	frappe.sendmail(
 		recipients=recipients,
