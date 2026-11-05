@@ -447,15 +447,13 @@ def send_summary_mail(recipients, as_on_date=None, company=None):
 	pdf = get_pdf(build_summary_html(summary, as_on_date), {"orientation": "Landscape"})
 
 	sender_id = frappe.db.get_value("Biometric Settings", "Biometric Settings", "auto_mail_id") or "alerts@gkexport.com"
-	cc = ["ishika_r@sgdiam.com","bhavesh_j@sgdiam.com"]
+	cc = ["ishika_r@sgdiam.com","bhavesh_j@sgdiam.com","mohit_s@gkexport.com]
 	
 	frappe.sendmail(
 		recipients=recipients,
 		sender=sender_id,
 		cc=cc,
-		subject=f"Sadguru Stock Statement",
-		message=f"Please find attached the Daily In Out Summary as on {formatdate(as_on_date)}.",
-		attachments=[{"fname": f"Sadguru-In-Out-Summary-{as_on_date}.pdf", "fcontent": pdf}],
+		subject=f"Sadguru Stock Statement",message=build_summary_html(summary, as_on_date),
 		now=True,
 	)
 
