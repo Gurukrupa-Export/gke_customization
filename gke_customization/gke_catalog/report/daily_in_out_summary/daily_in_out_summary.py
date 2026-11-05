@@ -453,7 +453,8 @@ def send_summary_mail(recipients, as_on_date=None, company=None):
 		recipients=recipients,
 		sender=sender_id,
 		cc=cc,
-		subject=f"Sadguru Stock Statement",message=build_summary_html(summary, as_on_date),
+		subject=f"Sadguru Stock Statement",
+		message=build_summary_html(summary, as_on_date),
 		now=True,
 	)
 
