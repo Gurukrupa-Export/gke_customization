@@ -317,9 +317,9 @@ doc_events = {
     "on_cancel": "gke_customization.gke_hrms.doc_events.journal_entry.update_withholding_release_status",
     "on_trash": "gke_customization.gke_hrms.doc_events.journal_entry.cancel_withholding_releases_on_trash",
 },
-# "Item": {
-#     "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
-# },
+"Item": {
+    "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
+}, 
 # The KGGK push. `on_update`, not `before_validate`: the old hooks called
 # `item.create_item_kggk` / `item.create_bom_kggk`, which did blocking HTTP inside the save
 # and `frappe.throw` on any API error - so an unreachable KGGK site aborted a local Item or
@@ -328,7 +328,7 @@ doc_events = {
 # BOM needs both events: Frappe runs `on_update` for a save and a submit, but a *different*
 # event for an edit after submit, and BOMs here are submitted.
 "Item": {
-    "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate",
+    # "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate",
     "before_validate": "gke_customization.gke_order_forms.doc_events.item.set_numeric_attribute_values",
     "on_update": "gke_customization.gke_order_forms.doc_events.kggk_sync.item_on_update"
 },

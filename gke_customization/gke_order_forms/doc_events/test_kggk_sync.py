@@ -897,6 +897,40 @@ class TestDynamicLinks(unittest.TestCase):
 		self.assertEqual(self.data["custom_creation_docname"], "MP-1")
 
 
+class TestTaxTemplateRemap(unittest.TestCase):
+	"""An Item's tax templates carry the company suffix: GST 12% - GEPL here, GST 12% - KGJPL there.
+
+	They used to cross unchanged, so the target either refused the Item or kept a template for
+	a company it is not.
+	"""
+
+	def _translate(self, value, abbr="KGJPL", company="Gurukrupa", source_abbr="GEPL", options="Item Tax Template"):
+		with patch.object(k, "target_company_abbr", return_value=abbr), patch.object(
+			frappe,
+			"get_cached_value",
+			side_effect=lambda doctype, name, field: company if doctype == "Item Tax Template" else source_abbr,
+		):
+			return k.translate_tax_template("Link", options, value)
+
+	def test_the_source_suffix_becomes_the_targets(self):
+		self.assertEqual(self._translate("GST 12% - GEPL"), "GST 12% - KGJPL")
+
+	def test_a_name_already_on_the_target_suffix_is_unchanged(self):
+		self.assertEqual(self._translate("GST 12% - KGJPL", source_abbr="KGJPL"), "GST 12% - KGJPL")
+
+	def test_nothing_is_renamed_until_a_target_abbr_is_set(self):
+		self.assertEqual(self._translate("GST 12% - GEPL", abbr=None), "GST 12% - GEPL")
+
+	def test_a_name_without_its_companys_suffix_is_unchanged(self):
+		self.assertEqual(self._translate("Custom Template"), "Custom Template")
+
+	def test_only_item_tax_template_links_are_touched(self):
+		self.assertEqual(self._translate("Gurukrupa - GEPL", options="Company"), "Gurukrupa - GEPL")
+
+	def test_the_suffix_is_only_replaced_at_the_end(self):
+		self.assertEqual(self._translate("GEPL - GEPL"), "GEPL - KGJPL")
+
+
 class TestTargetSchemaFailuresAreReported(unittest.TestCase):
 	"""Every route to `None` must say so - a silent one looks like a clean run."""
 
@@ -4376,3 +4410,28 @@ class TestLegacyHooksStayUnwired(unittest.TestCase):
 		self.assertNotIn("create_bom_kggk", wired)
 		self.assertIn("kggk_sync.item_on_update", wired)
 		self.assertIn("kggk_sync.bom_on_update", wired)
+
+
+class TestAnEditDuringAPushIsNotLost(unittest.TestCase):
+	"""A save made while a push runs has its own enqueue refused; marking Synced must not erase it."""
+
+	def _written_status(self, sent, current, doctype="Item"):
+		doc = frappe._dict(flags=frappe._dict(), save=lambda **kw: None)
+		with patch.object(frappe.db, "get_value", side_effect=lambda dt, *a, **kw: current if a[-1] == "modified" else None), patch.object(
+			frappe, "get_doc", return_value=doc
+		), patch.object(frappe.db, "savepoint"):
+			k.mark_state(doctype, "I-1", "Synced", "kggk.example.com", local_modified=sent)
+		return doc.status
+
+	def test_a_record_saved_after_the_sent_version_stays_pending(self):
+		self.assertEqual(self._written_status("2026-11-05 10:00:00", "2026-11-05 10:00:07"), "Pending")
+
+	def test_an_unchanged_record_is_synced(self):
+		self.assertEqual(self._written_status("2026-11-05 10:00:00", "2026-11-05 10:00:00"), "Synced")
+
+	def test_only_items_and_boms_are_held_back(self):
+		self.assertEqual(self._written_status("2026-11-05 10:00:00", "2026-11-05 10:00:07", "Revise Field"), "Synced")
+
+	def test_the_notice_is_by_modified_not_by_clock(self):
+		self.assertFalse(k._edited_since("Item", "I-1", None))
+

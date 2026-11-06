@@ -32,7 +32,7 @@ from urllib.parse import quote
 import frappe
 import requests
 from frappe import _
-from frappe.utils import add_to_date, cint, flt, now_datetime, time_diff_in_seconds
+from frappe.utils import add_to_date, cint, flt, get_datetime, now_datetime, time_diff_in_seconds
 
 
 # ============================================================================
@@ -691,6 +691,17 @@ TRIGGERS = (
 MAPPED_DOCTYPES = ("Item", "BOM")
 
 
+def _edited_since(doctype, name, sent_version):
+	"""Has this record been saved after the version that was just pushed?"""
+	if not sent_version or doctype not in MAPPED_DOCTYPES:
+		return False
+	try:
+		current = frappe.db.get_value(doctype, name, "modified")
+		return bool(current) and get_datetime(current) > get_datetime(sent_version)
+	except Exception:
+		return False
+
+
 def mark_state(doctype, name, status, target, error=None, local_modified=None, target_name=None):
 	"""Record what this site knows about one record on one target.
 
@@ -733,6 +744,13 @@ def mark_state(doctype, name, status, target, error=None, local_modified=None, t
 			# record changed *after* the version we sent, and only this answers that.
 			doc.local_modified = local_modified or frappe.db.get_value(doctype, name, "modified")
 			doc.attempts = 0
+			if _edited_since(doctype, name, local_modified):
+				# Saved again while this push was running. That save's own enqueue was refused
+				# (same job id, still running) and its Pending row is what this write replaces, so
+				# marking Synced would erase the only memory that a newer version is owed.
+				# `local_modified` stays the version that did go across; Pending is picked up by
+				# `_redispatch_pending` whether or not hourly reconciliation is on.
+				doc.status = "Pending"
 		elif status in ("Failed", "Partial"):
 			# Partial counts too, or a link that will never resolve is retried by the
 			# reconciler every hour until the end of time.
@@ -1405,6 +1423,8 @@ class SyncRun:
 				"/api/resource/Error Log",
 				json={"method": title[:140], "error": body},
 				timeout=REPORT_TIMEOUT,
+				# Creates an Error Log row: a resend after a lost answer makes a second one.
+				attempts=1,
 			)
 			if response.ok:
 				return True
@@ -1544,6 +1564,9 @@ def upload(config, file_url, target_doctype, target_name, fieldname, run=None):
 			"file_name": file_name,
 		},
 		files={"file": (file_name, content)},
+		# Creates a File row on the target: a resend after a lost answer makes a second one. A
+		# failed upload is recorded as a mismatch and picked up again by the next push.
+		attempts=1,
 	)
 
 	if not response.ok:
@@ -1678,6 +1701,35 @@ def translate_company(fieldtype, options, value):
 	return target_company() or value
 
 
+def target_company_abbr():
+	"""The Company abbreviation on the target, or ``None`` to send tax template names as they are."""
+	cached = getattr(frappe.local, "kggk_target_company_abbr", "unset")
+	if cached == "unset":
+		value = setting("target_company_abbr")
+		cached = str(value).strip() or None if value else None
+		frappe.local.kggk_target_company_abbr = cached
+	return cached
+
+
+def translate_tax_template(fieldtype, options, value):
+	"""Swap the company suffix of an Item Tax Template link for the target's.
+
+	"GST 12% - GEPL" becomes "GST 12% - KGJPL". A name that does not end with its own
+	company's suffix is returned unchanged.
+	"""
+	if not value or fieldtype not in LINK_TYPES or options != "Item Tax Template":
+		return value
+	target_abbr = target_company_abbr()
+	if not target_abbr:
+		return value
+	company = frappe.get_cached_value("Item Tax Template", value, "company")
+	source_abbr = company and frappe.get_cached_value("Company", company, "abbr")
+	suffix = f" - {source_abbr}" if source_abbr else None
+	if not suffix or not value.endswith(suffix) or source_abbr == target_abbr:
+		return value
+	return value[: -len(suffix)] + f" - {target_abbr}"
+
+
 # A confirmed company is remembered for the run rather than asked once per record.
 _COMPANY_CHECK_TTL = 600
 
@@ -1799,6 +1851,7 @@ def _child_rows(doc, df, allowed=None):
 			# Child rows carry Company too - `Item.item_defaults` above all - and one wrong
 			# company in a row rejects the whole parent just as surely as the parent's own.
 			value = translate_company(child_df.fieldtype, child_df.options, value)
+			value = translate_tax_template(child_df.fieldtype, child_df.options, value)
 			data[child_df.fieldname] = value
 		if row.get("idx") is not None:
 			data["idx"] = row.get("idx")
@@ -3193,11 +3246,11 @@ def _send(config, doctype, name, data, lookup=None, run=None, clears=None, versi
 				[],
 			)
 		if identified and receiver_available(config):
-			return _send_via_receiver(config, doctype, name, data, clears, version, run)
+			return _send_via_receiver(config, doctype, name, data, clears, version, run, known_name=lookup)
 		return _send_via_rest(config, doctype, name, data, lookup, run, clears, identified)
 
 
-def _send_via_receiver(config, doctype, name, data, clears, version, run=None):
+def _send_via_receiver(config, doctype, name, data, clears, version, run=None, known_name=None):
 	"""One call to the target's `upsert`. Safe to retry, so the transport's retries stay on."""
 	policy = {
 		"omit": sorted(_update_exclusions(doctype)),
@@ -3217,6 +3270,11 @@ def _send_via_receiver(config, doctype, name, data, clears, version, run=None):
 			"data": data,
 			"source_version": str(version) if version else None,
 			"policy": policy,
+			# What the target called this record when it was last pushed. A record whose origin
+			# stamp is missing there (pushed before identities existed) is found by this name
+			# rather than created a second time - and a BOM's name is a series, so only the
+			# recorded one can say which it was.
+			"known_name": str(known_name) if known_name else None,
 		},
 	)
 	if not response.ok:
