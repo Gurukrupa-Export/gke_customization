@@ -1135,7 +1135,7 @@ def create_item_kggk(doc, method=None):
 
 
 
-
+@frappe.whitelist()
 def create_bom_kggk(doc,pro_name, method=None):
     # base_url = "https://kggk-uat.m.frappe.cloud"
     # base_url = "https://gkexport-dummy-v16.m.frappe.cloud"
