@@ -3,6 +3,9 @@
 
 import frappe
 from frappe import _
+from frappe.query_builder.functions import CustomFunction, Max
+from pypika.functions import Date
+from pypika.terms import LiteralValue
 
 
 def execute(filters=None):
@@ -12,25 +15,42 @@ def execute(filters=None):
 
 
 def get_data(filters=None):
-    conditions, values = get_conditions(filters)
+    employee = frappe.qb.DocType("Employee")
+    checkin = frappe.qb.DocType("Employee Checkin")
 
-    data = frappe.db.sql(
-        f"""SELECT
-		e.employee as employee_id,e.employee_name as employee_name,
-		e.department as department,e.company as company,
-		e.designation as designation,'Absent' AS attendance,
-		MAX(DATE(ec.time)) AS lastCheckinDate,
-		MAX(TIME(ec.time)) AS lastCheckinTime
-	FROM `tabEmployee` e
-	LEFT JOIN `tabEmployee Checkin` ec
-		ON e.employee = ec.employee AND DATE(ec.time) = CURDATE()
-		WHERE e.status = 'Active' AND ec.employee IS NULL {conditions} GROUP BY e.employee, e.employee_name, e.department, e.company
-	Order by e.department asc""",
-        values,
-        as_dict=1,
+    checkin_date = Date(checkin.time)
+    checkin_time = CustomFunction("TIME", ["datetime_value"])(checkin.time)
+    current_date = CustomFunction("CURDATE", [])()
+
+    query = (
+        frappe.qb.from_(employee)
+        .left_join(checkin)
+        .on((employee.employee == checkin.employee) & (checkin_date == current_date))
+        .select(
+            employee.employee.as_("employee_id"),
+            employee.employee_name,
+            employee.department,
+            employee.company,
+            employee.designation,
+            LiteralValue("'Absent'").as_("attendance"),
+            Max(checkin_date).as_("lastCheckinDate"),
+            Max(checkin_time).as_("lastCheckinTime"),
+        )
+        .where(employee.status == "Active")
+        .where(checkin.employee.isnull())
+        .groupby(
+            employee.employee,
+            employee.employee_name,
+            employee.department,
+            employee.company,
+        )
+        .orderby(employee.department)
     )
 
-    return data
+    if filters and filters.get("company"):
+        query = query.where(employee.company == filters.get("company"))
+
+    return query.run(as_dict=True)
 
 
 def get_columns(filters=None):
@@ -85,14 +105,3 @@ def get_columns(filters=None):
         },
     ]
     return columns
-
-
-def get_conditions(filters):
-    conditions = ""
-    values = {}
-
-    if filters.get("company"):
-        conditions += " AND e.company = %(company)s"
-        values["company"] = filters.get("company")
-
-    return conditions, values

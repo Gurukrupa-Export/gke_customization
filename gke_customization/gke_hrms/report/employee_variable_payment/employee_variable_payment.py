@@ -3,6 +3,8 @@
 
 import frappe
 from frappe import _
+from frappe.query_builder import Case
+from frappe.query_builder.functions import CustomFunction, Round
 
 
 def execute(filters=None):
@@ -12,39 +14,48 @@ def execute(filters=None):
 
 
 def get_data(filters=None):
-    conditions, values = get_conditions(filters)
+    employee = frappe.qb.DocType("Employee")
+    salary_slip = frappe.qb.DocType("Salary Slip")
 
-    data = frappe.db.sql(
-        f"""
-			SELECT
-				CASE
-					WHEN MONTH(ss.start_date) = 1 THEN 'January'
-					WHEN MONTH(ss.start_date) = 2 THEN 'February'
-					WHEN MONTH(ss.start_date) = 3 THEN 'March'
-					WHEN MONTH(ss.start_date) = 4 THEN 'April'
-					WHEN MONTH(ss.start_date) = 5 THEN 'May'
-					WHEN MONTH(ss.start_date) = 6 THEN 'June'
-					WHEN MONTH(ss.start_date) = 7 THEN 'July'
-					WHEN MONTH(ss.start_date) = 8 THEN 'August'
-					WHEN MONTH(ss.start_date) = 9 THEN 'September'
-					WHEN MONTH(ss.start_date) = 10 THEN 'October'
-					WHEN MONTH(ss.start_date) = 11 THEN 'November'
-					WHEN MONTH(ss.start_date) = 12 THEN 'December'
-				END AS month_name,
-				ss.start_date as date,
-				ep.ctc,
-				ep.custom_variable_in,
-				ROUND(ss.gross_pay,0),
-				ROUND(ss.gross_pay * (ep.custom_variable_in / 100),0) AS gross_pay_amt
-			FROM `tabEmployee` AS ep
-			JOIN `tabSalary Slip` AS ss ON ss.employee_name = ep.employee_name
-			WHERE ss.status = 'Submitted' {conditions}
-			""",
-        values,
-        as_dict=1,
+    Month = CustomFunction("MONTH", ["date_value"])
+
+    month_name = (
+        Case()
+        .when(Month(salary_slip.start_date) == 1, "January")
+        .when(Month(salary_slip.start_date) == 2, "February")
+        .when(Month(salary_slip.start_date) == 3, "March")
+        .when(Month(salary_slip.start_date) == 4, "April")
+        .when(Month(salary_slip.start_date) == 5, "May")
+        .when(Month(salary_slip.start_date) == 6, "June")
+        .when(Month(salary_slip.start_date) == 7, "July")
+        .when(Month(salary_slip.start_date) == 8, "August")
+        .when(Month(salary_slip.start_date) == 9, "September")
+        .when(Month(salary_slip.start_date) == 10, "October")
+        .when(Month(salary_slip.start_date) == 11, "November")
+        .when(Month(salary_slip.start_date) == 12, "December")
     )
 
-    return data
+    query = (
+        frappe.qb.from_(employee)
+        .join(salary_slip)
+        .on(salary_slip.employee == employee.name)
+        .select(
+            month_name.as_("month_name"),
+            salary_slip.start_date.as_("date"),
+            employee.ctc,
+            employee.variable_in,
+            Round(salary_slip.gross_pay, 0).as_("gross_pay"),
+            Round(salary_slip.gross_pay * (employee.variable_in / 100), 0).as_(
+                "gross_pay_amt"
+            ),
+        )
+        .where(salary_slip.status == "Submitted")
+    )
+
+    if filters and filters.get("employee"):
+        query = query.where(employee.name == filters.get("employee"))
+
+    return query.run(as_dict=True)
 
 
 def get_columns(filters=None):
@@ -59,7 +70,7 @@ def get_columns(filters=None):
         {"label": _("CTC"), "fieldname": "ctc", "fieldtype": "Currency", "width": 100},
         {
             "label": _("Variable"),
-            "fieldname": "custom_variable_in",
+            "fieldname": "variable_in",
             "fieldtype": "Percent",
             "width": 100,
         },
@@ -77,14 +88,3 @@ def get_columns(filters=None):
         },
     ]
     return columns
-
-
-def get_conditions(filters):
-    conditions = ""
-    values = {}
-
-    if filters.get("employee"):
-        conditions += " AND ep.name = %(employee)s"
-        values["employee"] = filters.get("employee")
-
-    return conditions, values

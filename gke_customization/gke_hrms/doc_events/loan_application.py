@@ -106,11 +106,6 @@ def validate(self, method=None):
                 "Guarantor cannot apply for a loan before 1.5 years from your Joining"
             )
 
-    guarantor_ids = []
-    for row in self.custom_loan_guarantor:
-        if row.employee:
-            guarantor_ids.append(row.employee)
-
     # existing = frappe.db.get_all("Loan Guarantor",
     #     filters={
     #         "employee": ["in", guarantor_ids],

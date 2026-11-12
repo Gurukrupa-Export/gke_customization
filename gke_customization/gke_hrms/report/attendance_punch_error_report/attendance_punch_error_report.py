@@ -3,6 +3,7 @@
 
 import frappe
 from frappe import _
+from frappe.query_builder.functions import Count
 
 
 # is_prepared_report = False
@@ -13,35 +14,59 @@ def execute(filters=None):
 
 
 def get_data(filters=None):
-    conditions, values = get_conditions(filters)
+    filters = filters or {}
+    attendance = frappe.qb.DocType("Attendance")
+    checkin = frappe.qb.DocType("Employee Checkin")
+    employee = frappe.qb.DocType("Employee")
 
-    data = frappe.db.sql(
-        f"""
-			SELECT
-				at.employee, at.employee_name,
-				at.company, at.shift,
-				at.department, at.attendance_date,
-				te.branch,
-				COUNT(tec.name) AS punch_count
-			FROM
-				`tabAttendance` AS at
-			LEFT JOIN
-				`tabEmployee Checkin` AS tec ON tec.attendance = at.name
-			LEFT JOIN
-				`tabEmployee` AS te on te.name = at.employee and at.company = te.company
-			WHERE (at.in_time IS NOT NULL OR at.out_time IS NOT NULL) AND at.out_time IS NULL {conditions}
-			GROUP BY
-				at.employee, at.attendance_date
-			HAVING
-				punch_count > 0
-			ORDER BY
-				at.attendance_date ASC;
-			""",
-        values,
-        as_dict=1,
+    punch_count = Count(checkin.name)
+
+    query = (
+        frappe.qb.from_(attendance)
+        .left_join(checkin)
+        .on(checkin.attendance == attendance.name)
+        .left_join(employee)
+        .on(
+            (employee.name == attendance.employee)
+            & (attendance.company == employee.company)
+        )
+        .select(
+            attendance.employee,
+            attendance.employee_name,
+            attendance.company,
+            attendance.shift,
+            attendance.department,
+            attendance.attendance_date,
+            employee.branch,
+            punch_count.as_("punch_count"),
+        )
+        .where(attendance.out_time.isnull())
+        .where(attendance.in_time.isnotnull() | attendance.out_time.isnotnull())
+        .groupby(attendance.employee, attendance.attendance_date)
+        .having(punch_count > 0)
+        .orderby(attendance.attendance_date)
     )
 
-    return data
+    if filters.get("company"):
+        query = query.where(attendance.company == filters.get("company"))
+
+    if filters.get("from_date") and filters.get("to_date"):
+        query = query.where(
+            attendance.attendance_date[
+                filters.get("from_date") : filters.get("to_date")
+            ]
+        )
+
+    if filters.get("department"):
+        query = query.where(attendance.department == filters.get("department"))
+
+    if filters.get("employee"):
+        query = query.where(attendance.employee == filters.get("employee"))
+
+    if filters.get("branch"):
+        query = query.where(employee.branch == filters.get("branch"))
+
+    return query.run(as_dict=True)
 
 
 def get_columns(filters=None):
@@ -90,31 +115,3 @@ def get_columns(filters=None):
         },
     ]
     return columns
-
-
-def get_conditions(filters):
-    conditions = ""
-    values = {}
-
-    if filters.get("company"):
-        conditions += " AND at.company = %(company)s"
-        values["company"] = filters.get("company")
-
-    if filters.get("from_date") and filters.get("to_date"):
-        conditions += " AND at.attendance_date BETWEEN %(from_date)s AND %(to_date)s"
-        values["from_date"] = filters.get("from_date")
-        values["to_date"] = filters.get("to_date")
-
-    if filters.get("department"):
-        conditions += " AND at.department = %(department)s"
-        values["department"] = filters.get("department")
-
-    if filters.get("employee"):
-        conditions += " AND at.employee = %(employee)s"
-        values["employee"] = filters.get("employee")
-
-    if filters.get("branch"):
-        conditions += " AND te.branch = %(branch)s"
-        values["branch"] = filters.get("branch")
-
-    return conditions, values

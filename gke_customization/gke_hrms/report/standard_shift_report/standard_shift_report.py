@@ -6,12 +6,15 @@ from datetime import timedelta
 import frappe
 import frappe.utils
 from frappe import _
+from frappe.query_builder.functions import CustomFunction, IfNull
 from frappe.utils import (
     add_days,
     add_to_date,
     getdate,
     today,
 )
+from pypika.functions import Date
+from pypika.terms import LiteralValue
 
 STATUS = {
     "Absent": "A",
@@ -33,42 +36,79 @@ def execute(filters=None):
 
 
 def get_data(filters=None):
-    conditions, values = get_conditions(filters)
+    validate_filters(filters)
 
-    data = frappe.db.sql(
-        f"""SELECT attendance_date,in_time,spent_hours,status,adj_out,adj_spent_hour,rand_int,late_entry,
-			TIME_FORMAT(ADDTIME(adj_out,SEC_TO_TIME(rand_int * 60)), "%H:%i" ) AS adj_out_2,
-			TIMEDIFF(TIME_FORMAT(ADDTIME(adj_out,SEC_TO_TIME(rand_int * 60) ), "%H:%i" ) , in_time) as total_adj
-		FROM (
-			SELECT at.attendance_date AS attendance_date, at.late_entry as late_entry,
-				TIME_FORMAT(at.in_time, "%H:%i") AS in_time,
-				TIME_FORMAT(SEC_TO_TIME(at.working_hours * 3600), "%H:%i") AS spent_hours,
-				IFNULL(at.leave_type, at.status) AS status,
-				TIME_FORMAT(
-					IF(TIMESTAMPDIFF(HOUR, at.in_time, at.out_time) >= 9, DATE_ADD(at.in_time, INTERVAL 9 HOUR),at.out_time), "%H:%i"
-				) AS adj_out,
-				TIME_FORMAT(
-					TIMEDIFF( IF(TIMESTAMPDIFF(HOUR, at.in_time, at.out_time) >= 9, DATE_ADD(at.in_time, INTERVAL 9 HOUR), at.out_time ), at.in_time), "%H:%i"
-				) AS adj_spent_hour,
-				FLOOR(RAND() * 10) AS rand_int
-			FROM
-				`tabAttendance` at
-				LEFT JOIN `tabEmployee` emp ON at.employee = emp.name
-				LEFT JOIN `tabShift Type` st ON emp.default_shift = st.name
-				LEFT JOIN (
-					SELECT employee, date, SEC_TO_TIME(SUM(TIME_TO_SEC(total_hours))) AS hrs
-					FROM `tabPersonal Out Log`
-					WHERE is_cancelled = 0
-					GROUP BY employee, date
-				) pol ON at.attendance_date = pol.date AND at.employee = pol.employee
-				LEFT JOIN (
-					SELECT * FROM `tabOT Log` WHERE is_cancelled = 0
-				) ot ON at.attendance_date = ot.attendance_date AND at.employee = ot.employee
-			WHERE at.docstatus = 1 {conditions} ) AS subquery
-			ORDER BY attendance_date ASC;
-	""",
-        values,
-        as_dict=1,
+    time_format = CustomFunction("TIME_FORMAT", ["time_value", "format"])
+    sec_to_time = CustomFunction("SEC_TO_TIME", ["seconds"])
+    add_time = CustomFunction("ADDTIME", ["time_value", "time_to_add"])
+    time_diff = CustomFunction("TIMEDIFF", ["end_time", "start_time"])
+    timestamp_diff = CustomFunction("TIMESTAMPDIFF", ["unit", "start", "end"])
+    date_add = CustomFunction("DATE_ADD", ["date_value", "interval_value"])
+    if_function = CustomFunction("IF", ["condition", "value_if_true", "value_if_false"])
+    floor = CustomFunction("FLOOR", ["number"])
+    random_number = CustomFunction("RAND", [])
+
+    time_pattern = "%H:%i"
+    attendance = frappe.qb.DocType("Attendance")
+
+    adj_out_time = if_function(
+        timestamp_diff(LiteralValue("HOUR"), attendance.in_time, attendance.out_time)
+        >= 9,
+        date_add(attendance.in_time, LiteralValue("INTERVAL 9 HOUR")),
+        attendance.out_time,
+    )
+
+    attendance_query = (
+        frappe.qb.from_(attendance)
+        .select(
+            attendance.attendance_date.as_("attendance_date"),
+            attendance.late_entry.as_("late_entry"),
+            time_format(attendance.in_time, time_pattern).as_("in_time"),
+            time_format(sec_to_time(attendance.working_hours * 3600), time_pattern).as_(
+                "spent_hours"
+            ),
+            IfNull(attendance.leave_type, attendance.status).as_("status"),
+            time_format(adj_out_time, time_pattern).as_("adj_out"),
+            time_format(time_diff(adj_out_time, attendance.in_time), time_pattern).as_(
+                "adj_spent_hour"
+            ),
+            floor(random_number() * 10).as_("rand_int"),
+        )
+        .where(attendance.docstatus == 1)
+        .where(
+            attendance.attendance_date[
+                filters.get("from_date") : filters.get("to_date")
+            ]
+        )
+    )
+    if filters.get("employee"):
+        attendance_query = attendance_query.where(
+            attendance.employee == filters.get("employee")
+        )
+
+    subquery = attendance_query.as_("subquery")
+    adj_out_with_random = add_time(
+        subquery.adj_out, sec_to_time(subquery.rand_int * 60)
+    )
+
+    data = (
+        frappe.qb.from_(subquery)
+        .select(
+            subquery.attendance_date,
+            subquery.in_time,
+            subquery.spent_hours,
+            subquery.status,
+            subquery.adj_out,
+            subquery.adj_spent_hour,
+            subquery.rand_int,
+            subquery.late_entry,
+            time_format(adj_out_with_random, time_pattern).as_("adj_out_2"),
+            time_diff(
+                time_format(adj_out_with_random, time_pattern), subquery.in_time
+            ).as_("total_adj"),
+        )
+        .orderby(subquery.attendance_date)
+        .run(as_dict=True)
     )
 
     if not data:
@@ -106,23 +146,16 @@ def process_data(data, filters):
     # shift_hours = flt(shift_det.get("shift_hours"))
     # shift_name = f"{format_time(shift_det.get('start_time'))} To {format_time(shift_det.get('end_time'))}"
 
-    checkins = frappe.db.sql(
-        f"""select date(time) as login_date, attendance, count(name) as cnt from `tabEmployee Checkin`
-			  where time between '{from_date}' and '{add_days(to_date,1)}' and employee = '{employee}' group by attendance""",
-        as_dict=1,
-    )
-
-    checkins = {row.login_date: row.cnt for row in checkins}
-    od = frappe.get_list(
-        "Employee Checkin",
-        {
-            "employee": employee,
-            "source": "Outdoor Duty",
-            "time": ["between", [from_date, add_days(to_date, 1)]],
-        },
-        "date(time) as login_date",
-        pluck="login_date",
-        group_by="login_date",
+    checkin = frappe.qb.DocType("Employee Checkin")
+    login_date = Date(checkin.time)
+    od = (
+        frappe.qb.from_(checkin)
+        .select(login_date.as_("login_date"))
+        .where(checkin.employee == employee)
+        .where(checkin.source == "Outdoor Duty")
+        .where(checkin.time[from_date : add_days(to_date, 1)])
+        .groupby(login_date)
+        .run(pluck="login_date")
     )
 
     if shift and not emp_det.get("holiday_list"):
@@ -264,20 +297,9 @@ def get_columns(filters=None):
     return columns
 
 
-def get_conditions(filters):
+def validate_filters(filters):
     if not (filters.get("from_date") and filters.get("to_date")):
-        frappe.throw("From & To Dates are mandatory")
-    conditions = " AND (at.attendance_date BETWEEN %(from_date)s AND %(to_date)s)"
-    values = {
-        "from_date": filters.get("from_date"),
-        "to_date": filters.get("to_date"),
-    }
-
-    if filters.get("employee"):
-        conditions += " AND at.employee = %(employee)s"
-        values["employee"] = filters.get("employee")
-
-    return conditions, values
+        frappe.throw(_("From & To Dates are mandatory"))
 
 
 def get_date_range(start_date, end_date):

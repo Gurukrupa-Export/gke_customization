@@ -145,21 +145,16 @@ def get_account_total_summary_for_print(company, from_date, to_date):
 # 21-01-2026 by Aditya
 @frappe.whitelist()
 def check_sadwitch_rule():
-    manual = int(
-        frappe.db.get_value("Biometric Settings", "Biometric Settings", "manual")
+    manual, formatted_from_date, formatted_to_date = frappe.db.get_value(
+        "Biometric Settings", "Biometric Settings", ["manual", "from_date", "to_date"]
     )
+
+    manual = int(manual)
 
     # --------------------------------------------------
     # Date range calculation
     # --------------------------------------------------
-    if manual:
-        formatted_from_date = frappe.db.get_value(
-            "Biometric Settings", "Biometric Settings", "from_date"
-        )
-        formatted_to_date = frappe.db.get_value(
-            "Biometric Settings", "Biometric Settings", "to_date"
-        )
-    else:
+    if not manual:
         today = date.today()
         # today = getdate('2025-12-28')
         formatted_to_date = today
