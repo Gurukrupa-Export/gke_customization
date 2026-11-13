@@ -1,0 +1,8 @@
+gke_customization/public/js/lib/*
+gke_customization/public/js/frappe/misc/tests/*
+gke_customization/public/js/frappe/views/test_runner.js
+frappe/core/doctype/doctype/boilerplate/*
+frappe/core/doctype/report/boilerplate/*
+gke_customization/public/js/frappe/class.js
+frappe/templates/includes/*
+frappe/www/website_script.js
