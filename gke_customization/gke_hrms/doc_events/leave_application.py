@@ -220,12 +220,8 @@ def leave_application_update_monthly_inout_log(doc, method=None):
                 # frappe.msgprint(f"No Monthly In-Out Log found for {attendance_date}")
                 return
 
-            mil = frappe.db.get_value(
-                "Monthly In-Out Log", mil_name, ["company", "employee"], as_dict=True
-            )
-
             res = get_attendance_details_by_date(
-                mil.company, mil.employee, attendance_date
+                doc.company, doc.employee, attendance_date
             )
 
             records = res.get("records") or []
@@ -292,7 +288,7 @@ def _validate_sandwich_rule(doc, method=""):
     # frappe.msgprint(f"Sandwidch dates: {sandwich_dates}")
 
     if sandwich_dates:
-        formatted = ", ".join(d.strftime("%d-%m-%Y") for d in sandwich_dates)
+        formatted = ", ".join(d.strftime("%d-%m-%Y") for d in sorted(sandwich_dates))
 
         frappe.msgprint(
             f"<b>Sandwich Rule Applied</b><br>"
@@ -352,8 +348,9 @@ def _on_submit(doc, method):
     try:
         _create_attendance_records(doc, final_leave_dates, sandwich_dates)
     except Exception as e:
-        frappe.db.rollback()
-        frappe.log_error(f"Error creating attendance records: {e}")
+        frappe.log_error(
+            title="Leave Application attendance error", message=frappe.get_traceback()
+        )
         frappe.throw(f"Error creating attendance records: {e}")
 
 
@@ -386,11 +383,11 @@ def get_sandwich_dates(doc):
         - Multi-day leave ranges
 
     Returns:
-        List of holiday dates to be treated as Leave.
+        Set of holiday dates to be treated as Leave.
     """
 
     if doc.leave_type != "Casual Leave":
-        return []
+        return set()
 
     employee = doc.employee
 
@@ -403,26 +400,31 @@ def get_sandwich_dates(doc):
     holidays_in_range = [d for d in holiday_dates if from_date <= d <= to_date]
 
     if not holidays_in_range:
-        return []
+        return set()
 
-    sandwich_dates = []
+    sandwich_dates = set()
     holiday_blocks = get_continuous_blocks(holidays_in_range)
 
+    boundary_days = set()
     for block in holiday_blocks:
-        block_start = block[0]
-        block_end = block[-1]
+        boundary_days.add(add_days(block[0], -1))
+        boundary_days.add(add_days(block[-1], 1))
 
-        left_day = add_days(block_start, -1)
-        right_day = add_days(block_end, 1)
+    boundary_days = {d for d in boundary_days if not (from_date <= d <= to_date)}
+    boundary_attendance = get_boundary_attendance(employee, boundary_days)
 
-        left_status = get_day_status(employee, left_day, doc)
-        right_status = get_day_status(employee, right_day, doc)
+    for block in holiday_blocks:
+        left_day = add_days(block[0], -1)
+        right_day = add_days(block[-1], 1)
+
+        left_status = get_day_status(employee, left_day, doc, boundary_attendance)
+        right_status = get_day_status(employee, right_day, doc, boundary_attendance)
 
         if left_status in ["Casual Leave", "Absent"] and right_status in [
             "Casual Leave",
             "Absent",
         ]:
-            sandwich_dates.extend(block)
+            sandwich_dates.update(block)
 
     return sandwich_dates
 
@@ -472,7 +474,29 @@ def get_continuous_blocks(dates):
     return blocks
 
 
-def get_day_status(employee, date, current_doc):
+def get_boundary_attendance(employee, dates):
+    """
+    Fetch submitted attendance of an employee for the given dates in one query.
+
+    Returns:
+        dict of attendance_date -> {status, leave_type}
+    """
+    if not dates:
+        return {}
+
+    attendance_records = frappe.get_all(
+        "Attendance",
+        filters={
+            "employee": employee,
+            "attendance_date": ["in", list(dates)],
+            "docstatus": 1,
+        },
+        fields=["attendance_date", "status", "leave_type"],
+    )
+    return {row.attendance_date: row for row in attendance_records}
+
+
+def get_day_status(employee, date, current_doc, boundary_attendance):
     """
     Determine the status of a specific date for an employee.
 
@@ -492,12 +516,7 @@ def get_day_status(employee, date, current_doc):
         ) <= date <= getdate(current_doc.to_date):
             return current_doc.leave_type
 
-    attendance = frappe.db.get_value(
-        "Attendance",
-        {"employee": employee, "attendance_date": date, "docstatus": 1},
-        ["status", "leave_type"],
-        as_dict=True,
-    )
+    attendance = boundary_attendance.get(date)
 
     if attendance and attendance.status == "Absent":
         return "Absent"
@@ -551,17 +570,25 @@ def _create_attendance_records(doc, dates, sandwich_dates):
         - Links attendance to Leave Application
         - Submits attendance automatically
     """
-    sandwich_dates = [str(d) for d in sandwich_dates]
+    dates = [getdate(date) for date in dates]
+    if not dates:
+        return
+
+    existing_attendance = {}
+    for row in frappe.get_all(
+        "Attendance",
+        filters={
+            "employee": doc.employee,
+            "attendance_date": ["between", [min(dates), max(dates)]],
+        },
+        fields=["name", "docstatus", "attendance_date"],
+    ):
+        previous = existing_attendance.get(row.attendance_date)
+        if not previous or previous.docstatus == 2:
+            existing_attendance[row.attendance_date] = row
 
     for date in dates:
-        date = getdate(date)
-
-        attendance = frappe.db.get_value(
-            "Attendance",
-            {"employee": doc.employee, "attendance_date": date},
-            ["name", "docstatus"],
-            as_dict=True,
-        )
+        attendance = existing_attendance.get(date)
 
         if attendance:
             if attendance.docstatus == 2:
@@ -569,8 +596,7 @@ def _create_attendance_records(doc, dates, sandwich_dates):
             else:
                 continue
 
-        # frappe.msgprint(f"Date {date} ----- {sandwich_dates} <br> is Date in Sandwich Dates: {str(date) in sandwich_dates}")
-        if str(date) in sandwich_dates:
+        if date in sandwich_dates:
             # frappe.msgprint(f"Creating attendance record for sandwich date as Leave Without Pay: {date}")
             attendance_doc = frappe.new_doc("Attendance")
             attendance_doc.update(

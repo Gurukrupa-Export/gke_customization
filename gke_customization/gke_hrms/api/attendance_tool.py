@@ -3,8 +3,6 @@ from datetime import date as dt_date
 from typing import List, Optional, Union
 
 import frappe
-from frappe.model.document import bulk_insert
-from frappe.model.naming import set_new_name
 from frappe.utils import add_days, get_datetime, get_time, getdate
 
 
@@ -67,7 +65,6 @@ def mark_employee_attendance(
                 "early_exit": early_exit,
                 "shift": shift,
                 "custom_is_employee_attendance_tool": True,
-                "docstatus": 1,
             }
         )
 
@@ -101,19 +98,25 @@ def mark_employee_attendance(
         attendance_docs = [
             doc for doc in attendance_docs if doc.employee not in existing_employees
         ]
-        for doc in attendance_docs:
-            set_new_name(doc)
-        bulk_insert("Attendance", attendance_docs)
+        for attendance in attendance_docs:
+            attendance.insert()
+            attendance.submit()
 
     if mark_half_day:
         if isinstance(half_day_employee_list, str):
             half_day_employee_list = json.loads(half_day_employee_list)
-        Attendance = frappe.qb.DocType("Attendance")
-        for employee in half_day_employee_list:
-            frappe.qb.update(Attendance).where(
-                (Attendance.employee == employee) & (Attendance.attendance_date == date)
-            ).set(Attendance.half_day_status, half_day_status).set(
-                Attendance.shift, shift
-            ).set(Attendance.late_entry, late_entry).set(
-                Attendance.early_exit, early_exit
-            ).set(Attendance.modify_half_day_status, 0).run()
+
+        if half_day_employee_list:
+            Attendance = frappe.qb.DocType("Attendance")
+            (
+                frappe.qb.update(Attendance)
+                .set(Attendance.half_day_status, half_day_status)
+                .set(Attendance.shift, shift)
+                .set(Attendance.late_entry, late_entry)
+                .set(Attendance.early_exit, early_exit)
+                .set(Attendance.modify_half_day_status, 0)
+                .where(
+                    (Attendance.employee.isin(half_day_employee_list))
+                    & (Attendance.attendance_date == date)
+                )
+            ).run()
