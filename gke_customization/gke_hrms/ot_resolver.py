@@ -36,9 +36,9 @@ from frappe import _
 from frappe.utils import (
     format_datetime,
     get_datetime,
-    now,
     get_time,
     getdate,
+    now,
     time_diff_in_hours,
 )
 
@@ -54,7 +54,7 @@ RES_REJECTED = "Rejected"
 
 HR_ACTIONS = ("approve_ot", "auto_close", "set_out", "reject", "adjust_punch_full_day")
 
-FULL_DAY_BLOCK_STATUSES = ("On Leave", "Half Day", "Work From Home")
+FULL_DAY_BLOCK_STATUSES = ("On Leave", "Work From Home")
 
 _ATT_FIELDS = [
     "name",
@@ -82,7 +82,11 @@ def _get_submitted_attendance(employee, attendance_date):
     """
     return frappe.db.get_value(
         "Attendance",
-        {"employee": employee, "attendance_date": getdate(attendance_date), "docstatus": 1},
+        {
+            "employee": employee,
+            "attendance_date": getdate(attendance_date),
+            "docstatus": 1,
+        },
         _ATT_FIELDS,
         as_dict=True,
     )
@@ -334,25 +338,21 @@ def _ensure_out_checkin(att, out_time, source="Manual Punch") -> str:
     """Create (or adopt) the OUT Employee Checkin and link it to the attendance,
     same as Manual Punch Entry.update_emp_checkin + the link step.
 
-    Adopts an existing checkin with the same timestamp only when it is
-    unlinked (e.g. a late-synced punch hrms skipped). A punch already linked
-    to an attendance is a conflict and throws, so one day can never silently
-    steal another day's punch.
+    Adopts an existing OUT checkin with the same timestamp only when it is
+    unlinked (e.g. a late-synced punch hrms skipped). A punch of another log
+    type or linked to another attendance (for example the next day's IN at the
+    same time) is left untouched and a new OUT checkin is created.
     """
     existing = frappe.db.get_value(
         "Employee Checkin",
-        {"employee": att.employee, "time": out_time},
-        ["name", "attendance"],
-        as_dict=True,
+        {
+            "employee": att.employee,
+            "time": out_time,
+            "log_type": "OUT",
+            "attendance": ["is", "not set"],
+        },
+        "name",
     )
-    if existing and existing.attendance:
-        frappe.throw(
-            _(
-                "A punch already exists at {0} and is linked to another attendance record."
-                " Please choose a different check-out time or resolve the other attendance first."
-            ).format(frappe.bold(format_datetime(out_time))),
-            title=_("Check-out Time Already Used"),
-        )
 
     # copy shift binding from the IN punch so IN/OUT belong to the same instance
     in_ci = frappe.db.get_value(
@@ -364,7 +364,7 @@ def _ensure_out_checkin(att, out_time, source="Manual Punch") -> str:
     )
 
     if existing:
-        name = existing.name
+        name = existing
     else:
         ci = frappe.new_doc("Employee Checkin")
         ci.employee = att.employee
@@ -392,12 +392,12 @@ def _ensure_out_checkin(att, out_time, source="Manual Punch") -> str:
 
 def _exclude_checkins(names, new_in, new_out, new_attendance, user) -> int:
     """Take punches out of the pairing chain and leave an audit comment on each.
- 
+
     Rows are kept (never deleted) so biometric-sync dedupe and the audit trail
     stay intact. They are also UNLINKED: a punch left pointing at the cancelled
     attendance would still be counted by process_data()'s odd/even check-in test
     and could zero out a day.
- 
+
     Was: get_all + (set_value + get_doc + add_comment) per punch.
     Now: one UPDATE + one INSERT, whatever the punch count.
     """
@@ -417,25 +417,27 @@ def _exclude_checkins(names, new_in, new_out, new_attendance, user) -> int:
     _add_comments(("Employee Checkin", n, text) for n in names)
     return len(names)
 
+
 def _create_override_punches(attendance_name, employee, punches, shift_fields):
     """Create (or adopt) the IN and OUT punches of the granted Full Day and link
     them to the new attendance, same as Manual Punch Entry does.
- 
+
     punches = [(datetime, "IN"|"OUT"), ...]
-    ONE lookup for all punches (was one per punch). Adopts a same-timestamp
-    checkin only when unlinked; one owned by another attendance is a conflict and
-    throws BEFORE anything is created.
+    ONE lookup for all punches (was one per punch). Adopts a same-timestamp,
+    same-log-type checkin only when unlinked; one owned by another attendance is
+    a conflict and throws BEFORE anything is created. A punch of the other log
+    type at the same time (previous day's OUT at this day's IN) is ignored.
     """
     existing = {
-        get_datetime(r.time): r
+        (get_datetime(r.time), r.log_type): r
         for r in frappe.get_all(
             "Employee Checkin",
             filters={"employee": employee, "time": ["in", [p[0] for p in punches]]},
-            fields=["name", "time", "attendance"],
+            fields=["name", "time", "attendance", "log_type"],
         )
     }
-    for when, _log_type in punches:
-        row = existing.get(when)
+    for when, log_type in punches:
+        row = existing.get((when, log_type))
         if row and row.attendance:
             frappe.throw(
                 _(
@@ -443,9 +445,9 @@ def _create_override_punches(attendance_name, employee, punches, shift_fields):
                     " Resolve that day first."
                 ).format(row.name, when, row.attendance)
             )
- 
+
     for when, log_type in punches:
-        row = existing.get(when)
+        row = existing.get((when, log_type))
         if row:
             name = row.name
         else:
@@ -458,7 +460,7 @@ def _create_override_punches(attendance_name, employee, punches, shift_fields):
             ci.flags.ignore_permissions = True
             ci.insert()
             name = ci.name
- 
+
         values = {
             "attendance": attendance_name,
             "log_type": log_type,
@@ -468,7 +470,6 @@ def _create_override_punches(attendance_name, employee, punches, shift_fields):
             **shift_fields,
         }
         frappe.db.set_value("Employee Checkin", name, values, update_modified=False)
-
 
 
 def _set_attendance_out(attendance_name, in_time, out_time) -> float:
@@ -542,11 +543,15 @@ def get_unlinked_punch_between(employee, start, end):
     return rows[0] if rows else None
 
 
-def _resolve_by_setting_out(attendance_doc, out_time, status, actor, note, remarks=None) -> dict:
+def _resolve_by_setting_out(
+    attendance_doc, out_time, status, actor, note, remarks=None
+) -> dict:
     """Shared writer for every Missing OUT resolution (approved OT, shift end,
     HR-entered time all end here): link the OUT checkin, recompute the
     attendance, mark the MIL card resolved."""
-    hours = _set_attendance_out(attendance_doc.name, get_datetime(attendance_doc.in_time), out_time)
+    hours = _set_attendance_out(
+        attendance_doc.name, get_datetime(attendance_doc.in_time), out_time
+    )
     update_monthly_in_out_log_resolution(
         attendance_doc.employee,
         attendance_doc.attendance_date,
@@ -635,25 +640,30 @@ def auto_close_at_shift_end(attendance_doc, resolved_by=None, remarks=None) -> d
 
 
 def adjust_punch_grant_full_day(
-    attendance, in_time=None, out_time=None, resolved_by=None, remarks=None, auto_fill=False
+    attendance,
+    in_time=None,
+    out_time=None,
+    resolved_by=None,
+    remarks=None,
+    auto_fill=False,
 ) -> dict:
     """'Adjust Punch & Grant Full Day'.
- 
+
     Re-marks the day Present with HR-supplied IN/OUT, excludes the day's punches
     (kept + commented, never deleted), cancels the old attendance and creates a
     new one. Runs inside a savepoint so a failure half-way cannot leave a
     cancelled attendance with no replacement.
- 
+
     Only needs attendance.name / .employee / .attendance_date from the caller.
     """
     from gke_customization.gke_hrms.doctype.manual_punch_entry.manual_punch_entry import (
         get_attendance,
     )
- 
+
     employee = attendance.employee
     attendance_date = getdate(attendance.attendance_date)
     actor = resolved_by or "System"
- 
+
     # row lock + fresh read in ONE query (was lock query + read query)
     att = frappe.db.get_value(
         "Attendance", attendance.name, _ATT_FIELDS, as_dict=True, for_update=True
@@ -669,7 +679,7 @@ def adjust_punch_grant_full_day(
     new_out = get_datetime(out_time)
     if new_out <= new_in:
         frappe.throw(_("OUT time must be after IN time"))
- 
+
     st = frappe.get_cached_value(  # document cache: no DB hit after the first call
         "Shift Type",
         att.shift,
@@ -690,19 +700,26 @@ def adjust_punch_grant_full_day(
                 " A Full Day cannot be granted over another day's punches."
             ).format(shift_start, shift_end)
         )
- 
+
     # ---- ONE punch read, classified in Python ------------------------------
     # was 3 reads: linked punches, overlap guard, stray unlinked punches.
     # [lo, hi] is a superset of [new_in, new_out]; punches linked to this
     # attendance are fetched even if they lie outside it.
     lo = shift_start - timedelta(minutes=st.begin_check_in_before_shift_start_time or 0)
     hi = shift_end + timedelta(minutes=st.allow_check_out_after_shift_end_time or 0)
- 
+
     rows = frappe.get_all(
         "Employee Checkin",
         filters={"employee": employee},
         or_filters=[["attendance", "=", att.name], ["time", "between", [lo, hi]]],
-        fields=["name", "time", "source", "attendance", "skip_auto_attendance"],
+        fields=[
+            "name",
+            "time",
+            "source",
+            "attendance",
+            "skip_auto_attendance",
+            "log_type",
+        ],
     )
     if auto_fill:
         # shift-start IN may collide with a punch owned by another attendance;
@@ -724,6 +741,28 @@ def adjust_punch_grant_full_day(
                     )
                 )
 
+    # the previous day's closing OUT may sit inside this day's window (overnight
+    # session ending at this day's shift start); it is not a conflict
+    foreign_attendances = {
+        r.attendance for r in rows if r.attendance and r.attendance != att.name
+    }
+    earlier_attendances = set()
+    if foreign_attendances:
+        earlier_attendances = set(
+            frappe.get_all(
+                "Attendance",
+                filters={
+                    "name": ["in", list(foreign_attendances)],
+                    "attendance_date": ["<", attendance_date],
+                },
+                pluck="name",
+            )
+        )
+    rows = [
+        r
+        for r in rows
+        if not (r.log_type == "OUT" and r.attendance in earlier_attendances)
+    ]
     # a 'Full Day' must actually be one: not below the shift's half-day threshold
     working_hours = round((new_out - new_in).total_seconds() / 3600, 2)
     threshold = st.working_hours_threshold_for_half_day or 0
@@ -743,7 +782,7 @@ def adjust_punch_grant_full_day(
                 conflicts.add(r.attendance)  # another day owns a punch in the window
             elif not r.skip_auto_attendance:
                 strays.append(r)
- 
+
     if conflicts:
         frappe.throw(
             _(
@@ -751,23 +790,27 @@ def adjust_punch_grant_full_day(
                 " Please resolve that attendance first."
             )
         )
- 
+
     # linked punches OUTSIDE this day's window belong to the neighbouring day
     # (next-day pairing bug): release them, never exclude them
     mine = [c for c in linked if lo <= get_datetime(c.time) <= hi]
     released = len(linked) - len(mine)
- 
+
     candidates = {c.name: c for c in mine + strays}.values()
     if any(c.source == "Outdoor Duty" for c in candidates):
         frappe.throw(
-            _("This day contains an Outdoor Duty entry, so its punch cannot be excluded using this action.")
+            _(
+                "This day contains an Outdoor Duty entry, so its punch cannot be excluded using this action."
+            )
         )
- 
+
     # a punch at exactly the new IN/OUT time is re-used as that punch, not
     # excluded and then re-adopted (that left a stale 'excluded' comment)
     reuse_times = {new_in, new_out}
-    exclude_names = [c.name for c in candidates if get_datetime(c.time) not in reuse_times]
- 
+    exclude_names = [
+        c.name for c in candidates if get_datetime(c.time) not in reuse_times
+    ]
+
     shift_fields = {
         "shift": att.shift,
         "shift_start": shift_start,
@@ -775,7 +818,7 @@ def adjust_punch_grant_full_day(
         "shift_actual_start": lo,
         "shift_actual_end": hi,
     }
- 
+
     old_attendance = att.name
 
     # no savepoint here on purpose: attendance.submit() fires the
@@ -820,7 +863,9 @@ def adjust_punch_grant_full_day(
             )
         )
 
-    excluded_count = _exclude_checkins(exclude_names, new_in, new_out, att_doc.name, actor)
+    excluded_count = _exclude_checkins(
+        exclude_names, new_in, new_out, att_doc.name, actor
+    )
     _create_override_punches(
         att_doc.name, employee, [(new_in, "IN"), (new_out, "OUT")], shift_fields
     )
@@ -856,16 +901,16 @@ def adjust_punch_grant_full_day(
             (
                 "Attendance",
                 old_attendance,
-                _("Cancelled by 'Adjust Punch & Grant Full Day'. Replaced by {0}. By {1}.").format(
-                    att_doc.name, actor
-                ),
+                _(
+                    "Cancelled by 'Adjust Punch & Grant Full Day'. Replaced by {0}. By {1}."
+                ).format(att_doc.name, actor),
             ),
             (
                 "Attendance",
                 att_doc.name,
-                _("Created by 'Adjust Punch & Grant Full Day' replacing {0}. By {1}.").format(
-                    old_attendance, actor
-                ),
+                _(
+                    "Created by 'Adjust Punch & Grant Full Day' replacing {0}. By {1}."
+                ).format(old_attendance, actor),
             ),
         ]
     )
@@ -892,8 +937,8 @@ def adjust_punch_grant_full_day(
         "excluded": excluded_count,
         "released": released,
     }
- 
- 
+
+
 @frappe.whitelist()
 def get_resolution_options(employee, attendance_date) -> dict:
     attendance_date = getdate(attendance_date)
@@ -932,9 +977,9 @@ def get_resolution_options(employee, attendance_date) -> dict:
             "Employee Checkin", {"attendance": attendance.name}
         )
 
-    options["add_punches_allowed"] = not options["day_fix_blocker"] and frappe.has_permission(
-        "Manual Punch Entry", "create", throw=False
-    )
+    options["add_punches_allowed"] = not options[
+        "day_fix_blocker"
+    ] and frappe.has_permission("Manual Punch Entry", "create", throw=False)
 
     # Set Check-out prefill: approved OT when present, else the shift end
     if (
@@ -946,17 +991,19 @@ def get_resolution_options(employee, attendance_date) -> dict:
 
         ot = get_approved_ot(employee, attendance_date)
         if ot and ot.allowed_ot:
-            expected_out = shift_end + timedelta(seconds=int(ot.allowed_ot.total_seconds()))
+            expected_out = shift_end + timedelta(
+                seconds=int(ot.allowed_ot.total_seconds())
+            )
             options["approved_ot"] = True
             options["approved_ot_hours"] = _hhmm(ot.allowed_ot)
             options["expected_out"] = expected_out.strftime("%Y-%m-%d %H:%M:%S")
 
     return options
- 
+
 
 def _add_comments(rows):
     """Bulk-insert Comments: rows = [(reference_doctype, reference_name, content)].
- 
+
     ONE INSERT instead of get_doc() + add_comment() per row (each of which also
     re-saves the reference doc's `_comments`). Trade-off: skips Comment.on_update,
     so the list-view comment count is not refreshed; the form timeline still shows
@@ -983,50 +1030,78 @@ def _add_comments(rows):
             "content",
         ],
         values=[
-            (frappe.generate_hash(length=10), ts, ts, user, user, 0, 0, "Comment", user, dt, dn, text)
+            (
+                frappe.generate_hash(length=10),
+                ts,
+                ts,
+                user,
+                user,
+                0,
+                0,
+                "Comment",
+                user,
+                dt,
+                dn,
+                text,
+            )
             for dt, dn, text in rows
         ],
     )
- 
+
 
 def _check_attendance_has_error_and_shift(att) -> str:
     if not att.punch_error:
-        return _("This attendance record no longer has a punch error. Please refresh the page and try again.")
+        return _(
+            "This attendance record no longer has a punch error. Please refresh the page and try again."
+        )
     if not att.shift:
-        return _("A shift is not assigned to this attendance. Please assign a shift before continuing.")
+        return _(
+            "A shift is not assigned to this attendance. Please assign a shift before continuing."
+        )
     return ""
+
 
 def _check_not_leave_or_request(att) -> str:
     if att.leave_type or att.leave_application or att.status in FULL_DAY_BLOCK_STATUSES:
-        return _("This day is already marked as {0}, so it cannot be changed using this action.").format(att.status)
+        return _(
+            "This day is already marked as {0}, so it cannot be changed using this action."
+        ).format(att.status)
     if att.attendance_request:
         return _(
             "This attendance was created from an Attendance Request. Please update the Attendance Request instead."
         )
     return ""
 
+
 def _check_no_active_ot_log(employee, attendance_date, ot_names=None) -> str:
     if ot_names is None:
         ot_names = get_active_ot_logs(employee, attendance_date)
     if ot_names:
-        return _("An active overtime record exists for this day. Please settle it before continuing.")
+        return _(
+            "An active overtime record exists for this day. Please settle it before continuing."
+        )
     return ""
+
 
 def _check_employee_active_on_date(employee, attendance_date) -> str:
     emp = frappe.db.get_value(
-        "Employee", employee, ["status", "date_of_joining", "relieving_date"], as_dict=True
+        "Employee",
+        employee,
+        ["status", "date_of_joining", "relieving_date"],
+        as_dict=True,
     )
     if not emp:
         return ""
     if emp.status != "Active":
-        return _("This employee is currently {0}, so the attendance cannot be changed.").format(
-            emp.status.lower()
-        )
+        return _(
+            "This employee is currently {0}, so the attendance cannot be changed."
+        ).format(emp.status.lower())
     if emp.date_of_joining and attendance_date < getdate(emp.date_of_joining):
         return _("The attendance date is before the employee's joining date.")
     if emp.relieving_date and attendance_date > getdate(emp.relieving_date):
         return _("The attendance date is after the employee's relieving date.")
     return ""
+
 
 def _check_no_approved_leave(employee, attendance_date) -> str:
     # leave approved AFTER this attendance was created: HRMS would flip the new
@@ -1042,8 +1117,11 @@ def _check_no_approved_leave(employee, attendance_date) -> str:
         },
     )
     if leave:
-        return _("An approved leave covers this day. Please update the leave before changing the attendance.")
+        return _(
+            "An approved leave covers this day. Please update the leave before changing the attendance."
+        )
     return ""
+
 
 def _check_no_salary_slip(employee, attendance_date) -> str:
     slip = frappe.db.exists(
@@ -1056,7 +1134,9 @@ def _check_no_salary_slip(employee, attendance_date) -> str:
         },
     )
     if slip:
-        return _("A salary slip already covers this date. Please cancel or update the salary slip before changing the attendance.")
+        return _(
+            "A salary slip already covers this date. Please cancel or update the salary slip before changing the attendance."
+        )
     return ""
 
 
@@ -1092,7 +1172,13 @@ def get_day_fix_blocker(employee, attendance_date, att=None, ot_names=None) -> s
 
 @frappe.whitelist()
 def resolve_error_day(
-    employee, attendance_date, action, out_time=None, in_time=None, remarks=None, auto_fill=0
+    employee,
+    attendance_date,
+    action,
+    out_time=None,
+    in_time=None,
+    remarks=None,
+    auto_fill=0,
 ):
     """HR actions from the Monthly In-Out Log.
 
@@ -1105,7 +1191,9 @@ def resolve_error_day(
         offers them (set_out with the prefill covers both)
     """
     if action not in HR_ACTIONS:
-        frappe.throw(_("The selected action is not available. Please choose another action."))
+        frappe.throw(
+            _("The selected action is not available. Please choose another action.")
+        )
 
     attendance_date = getdate(attendance_date)
     attendance = _get_submitted_attendance(employee, attendance_date)
@@ -1118,7 +1206,9 @@ def resolve_error_day(
     frappe.has_permission("Attendance", "write", attendance.name, throw=True)
     if not attendance.punch_error:
         frappe.throw(
-            _("This attendance record no longer has a punch error. Please refresh the page and try again.")
+            _(
+                "This attendance record no longer has a punch error. Please refresh the page and try again."
+            )
         )
 
     user = frappe.session.user
@@ -1151,9 +1241,9 @@ def resolve_error_day(
         result = auto_close_at_shift_end(attendance, resolved_by=user, remarks=remarks)
         if result["status"] != "resolved":
             frappe.throw(
-                _("Could not close at shift end: {0}. Use 'Set Check-out' instead.").format(
-                    result["status"]
-                )
+                _(
+                    "Could not close at shift end: {0}. Use 'Set Check-out' instead."
+                ).format(result["status"])
             )
         return result
 
@@ -1178,11 +1268,15 @@ def resolve_error_day(
         )
     if not attendance.in_time:
         frappe.throw(
-            _("A check-in time is missing. Please use Add Missing Punches to correct the punches.")
+            _(
+                "A check-in time is missing. Please use Add Missing Punches to correct the punches."
+            )
         )
     if not attendance.shift:
         frappe.throw(
-            _("A shift is not assigned, so working hours cannot be calculated. Please assign a shift first.")
+            _(
+                "A shift is not assigned, so working hours cannot be calculated. Please assign a shift first."
+            )
         )
     if not out_time:
         frappe.throw(_("Please enter a check-out time."))
@@ -1226,6 +1320,7 @@ def resolve_error_day(
 # Add Missing Punches via Manual Punch Entry
 # ---------------------------------------------------------------------------
 
+
 @frappe.whitelist()
 def create_manual_punch_entry_for_resolution(employee, attendance_date, remarks=None):
     """Create a DRAFT Manual Punch Entry from the Monthly In-Out Log resolve
@@ -1267,7 +1362,9 @@ def _build_resolution_manual_punch_entry(employee, attendance, remarks):
     start_time, end_time = frappe.db.get_value(
         "Shift Type", attendance.shift, ["start_time", "end_time"]
     )
-    shift_datetime = datetime.combine(getdate(attendance.attendance_date), get_time(start_time))
+    shift_datetime = datetime.combine(
+        getdate(attendance.attendance_date), get_time(start_time)
+    )
 
     mpe = frappe.new_doc("Manual Punch Entry")
     mpe.employee = employee
@@ -1402,4 +1499,6 @@ def update_monthly_in_out_log_resolution(
     employee, attendance_date, status, actor, text, remarks=None
 ):
     """Write the resolution to the card (creating it if needed)."""
-    MonthlyLogCard(employee, attendance_date).mark_resolved(status, actor, text, remarks)
+    MonthlyLogCard(employee, attendance_date).mark_resolved(
+        status, actor, text, remarks
+    )
