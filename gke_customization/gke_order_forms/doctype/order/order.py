@@ -260,7 +260,7 @@ def bom_creation(self):
     for row in self.diamond_detail:
         diamond_weight += row.quantity or 0
         total_diamond_pcs += row.pcs or 0
-        bom.append(
+        bom.append("diamond_detail",
             {
                 "diamond_type": row.diamond_type,
                 "stone_shape": row.stone_shape,
