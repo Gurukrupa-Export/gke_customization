@@ -3,8 +3,35 @@ from frappe import _
 from datetime import datetime, timedelta
 import urllib.parse
 
+#: Every filter the report offers. With none of them set, get_conditions returns "WHERE 1=1"
+#: and the query joins Order Form, Order, Item, BOM and its child tables over the whole order
+#: history -- the slowest query shape seen on production (5,072 s in one analytics bucket).
+FILTER_KEYS = (
+    "order",
+    "order_f",
+    "company",
+    "branch",
+    "customer_code",
+    "customer_po",
+    "bom",
+    "quotation",
+    "so",
+)
+
+
 def execute(filters=None):
+    filters = frappe._dict(filters or {})
     columns = get_columns(filters)
+    if not any(filters.get(key) for key in FILTER_KEYS):
+        return (
+            columns,
+            [],
+            _(
+                "Select at least one filter (Order, Order Form, Company, Branch, Customer, "
+                "Customer PO No., BOM, Quotation or Sales Order). Without one the report reads "
+                "every order ever made."
+            ),
+        )
     data = get_data(filters)
     
     totals_row = calculate_totals(data)
