@@ -29,7 +29,7 @@ STATUS = {
     "Outdoor Duty": "OD",
     "Work From Home": "WFH",
     "Maternity Leave": "ML",
-    "Marraige Leavve": "ML",
+    "Marriage leave": "ML",
 }
 
 
