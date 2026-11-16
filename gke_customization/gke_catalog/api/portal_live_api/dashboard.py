@@ -73,8 +73,7 @@ def get_created_issue_by_customer_and_supplier(customer):
     except Exception as e:
         frappe.log_error(f"Error in get_item: {str(e)}")
         return {"success": False, "message": "Failed to fetch Item"}
-    
-
+   
 
 @frappe.whitelist() 
 def get_quotation_form(customer, id=None):    

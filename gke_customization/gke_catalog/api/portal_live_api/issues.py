@@ -196,19 +196,25 @@ def reply_on_issues(ticket_id=None, subject=None, frm=None, qry_status=None,
                 )
 
 
-        return {
+        data = {
             "success": True,
             "message": "Record created successfully",
             "name": doc.name,
             "content": html_content,
             "val": check_first_value[-1]
         }
+        
+        secure = SecureJSON()
+        enc_data = secure.encrypt(data)
+        return enc_data
 
     except Exception as e:
         frappe.log_error(f"Error in reply_on_issues: {str(e)}", "Portal Communication Error")
-        return {"success": False, "error": str(e)}
-
-
+        dataa = {"success": False, "error": str(e)}
+        secure = SecureJSON()
+        enc_data = secure.encrypt(dataa)
+        return enc_data
+       
 @frappe.whitelist()
 def get_communications(ticket_id=None):
     try:
