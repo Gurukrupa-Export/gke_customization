@@ -100,33 +100,6 @@ def get_employee_holiday_and_weekoff(employee, company, from_date, to_date):
     return holiday_dates, wo
 
 
-def get_employee_shift(employee, date):
-    # shift assignment for specific date
-    shift_type = frappe.db.get_value(
-        "Shift Assignment",
-        {
-            "employee": employee,
-            "start_date": ["<=", date],
-            "status": "Active",
-            "docstatus": 1,
-        },
-        "shift_type",
-        order_by="start_date desc",
-    )
-
-    if not shift_type:
-        shift_type = frappe.db.get_value("Employee", employee, "default_shift")
-
-    if not shift_type:
-        return None, None, None
-
-    start_time, end_time = frappe.db.get_value(
-        "Shift Type", shift_type, ["start_time", "end_time"]
-    )
-
-    return start_time, end_time, shift_type
-
-
 def get_checkin_window(date, attendance_data, shift_timings):
     start_time, end_time, shift_type = shift_timings
 
@@ -170,32 +143,6 @@ def split_checkin_times(checkins):
     if len(checkins) % 2 != 0:
         error_status = "ERR"
     return in_times, out_times, error_status
-
-
-def get_employee_checkins(employee, date, shift_timings=None):
-    if shift_timings is None:
-        shift_timings = get_employee_shift(employee, date)
-
-    attendance_data = frappe.db.get_value(
-        "Attendance",
-        {"employee": employee, "attendance_date": date, "docstatus": 1},
-        ["name", "in_time", "out_time"],
-        as_dict=1,
-    )
-    start_dt, end_dt = get_checkin_window(date, attendance_data, shift_timings)
-
-    checkins = frappe.get_all(
-        "Employee Checkin",
-        filters={
-            "employee": employee,
-            "time": ["between", [start_dt, end_dt]],
-            "skip_auto_attendance": 0,
-        },
-        fields=["time", "log_type"],
-        order_by="time asc",
-    )
-
-    return split_checkin_times(checkins)
 
 
 def get_shift_timings_by_date(employee, date_range, default_shift):
@@ -468,6 +415,7 @@ def get_data(filters):
         )
 
     attendance_details = {}
+    attendance_by_date = get_attendance_by_date(employee, from_date, to_date)
 
     for emp in employee_list:
         attendance_details[emp] = {}
@@ -480,10 +428,9 @@ def get_data(filters):
                 "to_date": getdate(to_date),
             }
         )
-        attendance_dates = get_attendance_by_date(emp, from_date, to_date)
         records_by_date = {}
         for record in range_result.get("records", []):
-            if record.get("login_date") in attendance_dates:
+            if record.get("login_date") in attendance_by_date:
                 records_by_date.setdefault(record.get("login_date"), record)
 
         for date in date_range:
@@ -492,7 +439,6 @@ def get_data(filters):
     shift_timings_by_date = get_shift_timings_by_date(
         employee, date_range, default_shift
     )
-    attendance_by_date = get_attendance_by_date(employee, from_date, to_date)
     checkin_windows = {
         date: get_checkin_window(
             date, attendance_by_date.get(date), shift_timings_by_date[date]
