@@ -156,6 +156,12 @@ scheduler_events = {
         "gke_customization.gke_hrms.doc_events.leave_allocation.infirmary_leave_allocation",
         "gke_customization.gke_hrms.doc_events.leave_allocation.compOff_leave_allocation",
     ],
+    # Replaces ERPNext's set_tasks_as_overdue (stopped by patches/stop_erpnext_set_tasks_as_overdue):
+    # same rule, but it skips Tasks already Overdue and commits in batches, so it no longer runs
+    # into the long queue's 1500 s timeout. "Daily Maintenance" keeps it on the same long queue.
+    "daily_maintenance": [
+        "gke_customization.overrides.task_overdue.set_tasks_as_overdue"
+    ],
     "hourly": [
         "gke_customization.gke_hrms.sync_checkin.sync_biometric_checkins"  # new script for Sync biometric checkins
     ],
