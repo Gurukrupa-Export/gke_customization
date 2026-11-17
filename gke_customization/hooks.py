@@ -1,3 +1,4 @@
+# ruff: noqa: F401
 from . import __version__
 
 app_name = "gke_customization"
@@ -186,7 +187,7 @@ scheduler_events = {
         ],
         "30 8 * * *": [
             "gke_customization.gke_hrms.report.department_wise_daily_attendance.department_wise_daily_attendance.send_daily_attendance_report"
-        ]
+        ],
     },
 }
 

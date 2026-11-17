@@ -186,7 +186,9 @@ class MonthlyInOutLog(Document):
         }
 
     @frappe.whitelist()
-    def resolve_error(self, action, out_time=None, in_time=None, remarks=None, auto_fill=0):
+    def resolve_error(
+        self, action, out_time=None, in_time=None, remarks=None, auto_fill=0
+    ):
         return resolve_error_day(
             employee=self.employee,
             attendance_date=self.attendance_date,
@@ -547,7 +549,7 @@ def get_data(filters):
             IfNull(Attendance.leave_type, Attendance.status).as_("status"),
             Attendance.attendance_request,
         )
-        .where((Attendance.docstatus == 1))
+        .where(Attendance.docstatus == 1)
         .orderby(Attendance.attendance_date, order=frappe.qb.asc)
     )
 
@@ -695,7 +697,7 @@ def process_data(data, filters):
                 IF(
                     TIME(EmployeeCheckin.time)
                     < shift_start_time,  # shift_start_time = 23:00:00 and time =  22:00:00
-                    Date(EmployeeCheckin.time - timedelta(days=1)),  #
+                    Date(EmployeeCheckin.time - timedelta(days=1)),
                     Date(EmployeeCheckin.time),
                 ).as_("login_date"),
                 EmployeeCheckin.attendance,
