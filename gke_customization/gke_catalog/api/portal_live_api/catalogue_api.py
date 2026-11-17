@@ -2117,9 +2117,7 @@ def catalogue_data_with_trending_item(selectedSubcategory, customer, metalType =
     # return db_data
     
 @frappe.whitelist()
-# def get_catalogue_collection_details(customers, collection, item_category=None, username=None):
-def get_catalogue_collection_details(customers, collection, username=None):
-    
+def get_catalogue_collection_details(customers, collection=None, username=None):
     customer_list = []
 
     if customers:
@@ -2130,7 +2128,7 @@ def get_catalogue_collection_details(customers, collection, username=None):
                 customer_list = [customers]
         else:
             customer_list = customers
-    
+
     elif username:
         user_customers = frappe.db.sql("""
             SELECT parent AS customer
@@ -2150,25 +2148,45 @@ def get_catalogue_collection_details(customers, collection, username=None):
 
     data = get_data_for_multiple_customer_collections_details(
         catalogue_list=catalogue_list,
-        # item_category=item_category,
-        collection=collection
+        collection=collection,
     )
 
-    # frappe.throw(f"hii {data}")
-    # return {
-        # "success": True,
-        # "data": data,
-    # }
-    
-    secure = SecureJSON()
-    
-    enc_data = secure.encrypt(
-        data
-    )
-    
-    return enc_data
-    
+    # ---- Image attach ----
+    catalogue_names = [c["name"] for c in catalogue_list]
+
+    if catalogue_names:
+        # child table se items
+        child_filters = {"parent": ["in", catalogue_names]}
+        if collection:
+            child_filters["collection"] = collection
+
+        child_rows = frappe.get_all(
+            "Catalogue Collection Details",
+            filters=child_filters,
+            fields=["item_code"],
+        )
+        item_codes = list({r["item_code"] for r in child_rows if r.get("item_code")})
+
+        image_map = {}
+        if item_codes:
+            images = frappe.get_all(
+                "Item",
+                filters={"name": ["in", item_codes]},
+                fields=["name", "custom_catalogue_image", "custom_silver_image"],
+            )
+            image_map = {i["name"]: i for i in images}
+
+      
+        if isinstance(data, list):
+            for row in data:
+                img = image_map.get(row.get("item_code"), {})
+                row["custom_catalogue_image"] = img.get("custom_catalogue_image")
+                row["custom_silver_image"] = img.get("custom_silver_image")
+
     # return data
+    secure = SecureJSON()
+    enc_data = secure.encrypt(data)
+    return enc_data
 
 
 # def get_data_for_multiple_customer_collections_details(catalogue_list, item_category=None, collection=None):
@@ -3209,7 +3227,7 @@ def get_similar_item(item_code, customer=None, user=None):
 @frappe.whitelist()
 def get_item_of_customer_by_user(customer):
     if not customer:
-        return {"message": "Customer not found"}
+        return SecureJSON().encrypt({"message": "Customer not found"})
 
     catalog_names = frappe.get_all(
         "Cataloge Master",
@@ -3218,7 +3236,7 @@ def get_item_of_customer_by_user(customer):
     )
 
     if not catalog_names:
-        return []
+        return SecureJSON().encrypt([])
 
     items = frappe.db.sql("""
         SELECT
@@ -3241,7 +3259,7 @@ def get_item_of_customer_by_user(customer):
             cid.name AS catalog_item_details_name,
             i.variant_of,
             
-            bom.name AS bom_name,
+            bom.name AS bom,
             bom.sub_setting_type1,
             bom.tag_no,
             bom.diamond_quality,
@@ -3425,8 +3443,10 @@ def get_item_of_customer_by_user(customer):
         row["alphabetnumber"] = row.get("alphabetnumber") or None
         row["religious"]    = row.get("religious") or None
 
-    return items
-
+    # return items
+    secure = SecureJSON()
+    enc_data = secure.encrypt(items)
+    return enc_data
 
 
 
