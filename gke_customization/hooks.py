@@ -1,5 +1,3 @@
-from . import __version__
-
 app_name = "gke_customization"
 app_title = "Gke Customization"
 app_publisher = "Gurukrupa Export"
@@ -174,7 +172,11 @@ scheduler_events = {
             "gke_customization.gke_order_forms.doc_events.kggk_sync.reap_stale_runs"
         ],
         "0 4 * * *": [
-            "gke_customization.overrides.shift_type.process_full_absent_reconciliation"
+            "gke_customization.overrides.shift_type.process_full_absent_reconciliation",
+            "gke_customization.gke_hrms.punch_pairing.run_nightly_punch_reconciliation",
+        ],
+        "5 8 * * *": [
+            "gke_customization.gke_hrms.attendance_flags.flag_recent_attendances"
         ],
         "0 6 * * *": [
             "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
@@ -290,6 +292,11 @@ doc_events = {
     "Employee Advance": {
         "validate": "gke_customization.gke_hrms.doc_events.employee_advance.calculate_working_days"
     },
+    "Attendance": {
+        "on_submit": "gke_customization.gke_hrms.attendance_flags.flag_attendance_punch_errors",
+        "on_cancel": "gke_customization.gke_hrms.attendance_flags.close_todos_on_attendance_cancel",
+        "on_trash": "gke_customization.gke_hrms.attendance_flags.close_todos_on_attendance_cancel",
+    },
     "Attendance Request": {
         "validate": "gke_customization.gke_hrms.doc_events.attendance_request.validate",
         "on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit",
@@ -320,9 +327,6 @@ doc_events = {
         ],
         "on_cancel": "gke_customization.gke_hrms.doc_events.journal_entry.update_withholding_release_status",
         "on_trash": "gke_customization.gke_hrms.doc_events.journal_entry.cancel_withholding_releases_on_trash",
-    },
-    "Item": {
-        "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
     },
     # The KGGK push. `on_update`, not `before_validate`: the old hooks called
     # `item.create_item_kggk` / `item.create_bom_kggk`, which did blocking HTTP inside the save
