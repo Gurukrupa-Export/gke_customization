@@ -31,7 +31,17 @@ frappe.ui.form.on('Order Form', {
 	setup(frm, cdt, cdn) {
 		var parent_fields = [
 			['diamond_quality', 'Diamond Quality']];
-		set_filters_on_parent_table_fields(frm, parent_fields);
+		
+		frm.set_query('diamond_quality', function (doc) {
+			let filters = { 'item_attribute': 'Diamond Quality', 'customer_code': doc.customer_code };
+			if (doc.sales_type == 'Outright') {
+				filters.exclude_value = 'Customer Diamond Quality';
+			}
+			return {
+				query: 'jewellery_erpnext.query.item_attribute_query',
+				filters: filters
+			};
+		});
 
 		var fields = [
 			['design_type', 'Design Type'],
@@ -123,7 +133,8 @@ frappe.ui.form.on('Order Form', {
 		frm.set_query('diamond_quality','order_details', function (doc) {
 			return {
 				query: 'jewellery_erpnext.query.item_attribute_query',
-				filters: { 'item_attribute': "Diamond Quality", "customer_code": doc.customer_code }
+				filters: Object.assign({ 'item_attribute': "Diamond Quality", "customer_code": doc.customer_code },
+						doc.sales_type == 'Outright' ? { 'exclude_value': 'Customer Diamond Quality' } : {})
 			};
 		});
 		frm.set_query('metal_touch','order_details', function (doc) {
@@ -170,7 +181,8 @@ frappe.ui.form.on('Order Form', {
 		frm.set_query('diamond_quality','order_details', function (doc) {
 			return {
 				query: 'jewellery_erpnext.query.item_attribute_query',
-				filters: { 'item_attribute': "Diamond Quality", "customer_code": doc.customer_code }
+				filters: Object.assign({ 'item_attribute': "Diamond Quality", "customer_code": doc.customer_code },
+						doc.sales_type == 'Outright' ? { 'exclude_value': 'Customer Diamond Quality' } : {})
 			};
 		});
 		frm.set_query('metal_touch','order_details', function (doc) {
