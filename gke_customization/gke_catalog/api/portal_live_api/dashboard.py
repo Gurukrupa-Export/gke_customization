@@ -69,14 +69,19 @@ def get_created_issue_by_customer_and_supplier(customer):
                 count[row.status] =1
         
         # return count
-        secure = SecureJSON()
-        enc_data = secure.encrypt(count)
-        return enc_data
+        
+        abc = SecureJSON()
+        enc = abc.encrypt(count)
+        return enc
+        
 
 
     except Exception as e:
         frappe.log_error(f"Error in get_item: {str(e)}")
-        return SecureJSON.encrypt({"success": False, "message": "Failed to fetch Item"})
+        data = {"success": False, "message": "Failed to fetch Item"}
+        secure = SecureJSON()
+        enc = secure.encrypt(data)
+        return enc
    
 
 @frappe.whitelist() 
