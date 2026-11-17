@@ -125,6 +125,7 @@ override_doctype_class = {
     "Job Requisition": "gke_customization.overrides.job_requisition.CustomJobRequisition",
     "Payroll Entry": "gke_customization.overrides.payroll_entry.CustomPayrollEntry",
     "Salary Structure Assignment": "gke_customization.overrides.salary_structure_assignment.CustomSalaryStructureAssignment",
+    "Shift Type": "gke_customization.overrides.shift_type.CustomShiftType",
     # "Parent Manufacturing Order": "gke_customization.overrides.parent_manufacturing_order.CustomParentManufacturingOrder"
 }
 
@@ -162,6 +163,7 @@ scheduler_events = {
         "0 4 * * *": [
             # session pairing: correct delayed/out-of-order punches, flag broken sequences
             "gke_customization.gke_hrms.punch_pairing.run_nightly_punch_reconciliation",
+            "gke_customization.overrides.shift_type.process_full_absent_reconciliation",
         ],
         "5 8 * * *": [
             # error-punch resolution + flagging after the daily auto-attendance run (07:25)
