@@ -5173,7 +5173,7 @@ def sync_product_return_form_to_remote(doc, method=None):
 
 		"credit_note_type": doc.credit_note_type,
 		"credit_note_subtype": "Yes",
-		"return_subtype": "",
+		"return_subtype": doc.return_subtype,
 
 		"credit_note_rate_type": "",
 		"diamond_rate_type": "",

@@ -7,7 +7,7 @@ this module exists to settle.
 
 import unittest
 from contextlib import ExitStack
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import frappe
 
@@ -192,3 +192,48 @@ class TestTheLockIsReal(unittest.TestCase):
 class TestCapabilities(unittest.TestCase):
 	def test_it_announces_a_version(self):
 		self.assertEqual(r.capabilities()["version"], r.RECEIVER_VERSION)
+
+
+class TestClaimKnownBom(unittest.TestCase):
+	"""A BOM whose origin stamp is missing is claimed by its recorded name, not created a second time."""
+
+	ME = {r.SOURCE_SITE: "gk.example.com", r.SOURCE_DOCTYPE: "BOM", r.SOURCE_NAME: "B-SRC"}
+
+	def _claim(self, row, exists=True, known="BOM-0001", data=None, doctype="BOM"):
+		stamp = MagicMock()
+		with patch.object(frappe.db, "exists", return_value=exists), patch.object(
+			frappe.db, "get_value", return_value=row
+		), patch.object(frappe.db, "set_value", stamp):
+			found = r._claim_known(doctype, known, "gk.example.com", "B-SRC", data or {"item": "I-1"})
+		return found, stamp
+
+	def test_an_unclaimed_bom_for_the_same_item_is_adopted_and_stamped(self):
+		found, stamp = self._claim(frappe._dict(docstatus=1, item="I-1"))
+		self.assertEqual(found, "BOM-0001")
+		stamp.assert_called_once_with("BOM", "BOM-0001", self.ME, update_modified=False)
+
+	def test_one_already_claimed_by_this_origin_is_returned_without_a_restamp(self):
+		found, stamp = self._claim(frappe._dict(docstatus=1, item="I-1", **self.ME))
+		self.assertEqual(found, "BOM-0001")
+		stamp.assert_not_called()
+
+	def test_one_claimed_by_another_origin_is_refused(self):
+		other = {**self.ME, r.SOURCE_NAME: "SOMEONE-ELSE"}
+		found, stamp = self._claim(frappe._dict(docstatus=1, item="I-1", **other))
+		self.assertIsNone(found)
+		stamp.assert_not_called()
+
+	def test_a_bom_for_a_different_item_is_refused(self):
+		found, _ = self._claim(frappe._dict(docstatus=1, item="I-2"))
+		self.assertIsNone(found)
+
+	def test_a_cancelled_bom_is_refused(self):
+		found, _ = self._claim(frappe._dict(docstatus=2, item="I-1"))
+		self.assertIsNone(found)
+
+	def test_no_known_name_or_a_missing_record_finds_nothing(self):
+		self.assertIsNone(self._claim(None, known=None)[0])
+		self.assertIsNone(self._claim(None, exists=False)[0])
+
+	def test_an_item_is_left_to_its_own_rule(self):
+		self.assertIsNone(self._claim(frappe._dict(docstatus=0), doctype="Item")[0])

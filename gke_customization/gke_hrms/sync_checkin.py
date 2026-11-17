@@ -1,3 +1,4 @@
+from bisect import bisect_left, insort
 from datetime import datetime, timedelta
 
 import frappe
@@ -37,11 +38,9 @@ def sync_biometric_checkins():
     formatted_from = from_date.strftime("%d%m%Y")
     formatted_to = to_date.strftime("%d%m%Y")
 
-    # Pre-fetch existing checkins for fast duplicate lookup
-    existing = _build_existing_checkins_set(from_date, to_date)
-
-    # Track last punch per employee for time-threshold checks (in-memory)
-    last_punch_map = _build_last_punch_map(from_date, to_date)
+    # Pre-fetch existing checkins once: duplicate lookup set and the sorted
+    # punch times per employee used for time-threshold checks (in-memory)
+    existing, last_punch_map = _build_checkin_lookups(from_date, to_date)
 
     # Load employees once: { attendance_device_id: employee }
     # (avoids one DB query for every punch in the API response)
@@ -160,9 +159,10 @@ def _process_single_log(log, existing, last_punch_map, time_threshold, employee_
     # is 1 minute after the 11:42 checkin) gave a negative diff and was
     # wrongly accepted on a later hourly run.
     if time_threshold > 0:
-        for punch_dt in last_punch_map.get(employee, []):
-            if abs((log_dt - punch_dt).total_seconds()) <= time_threshold:
-                return "skipped"
+        if _has_punch_within_threshold(
+            last_punch_map.get(employee), log_dt, time_threshold
+        ):
+            return "skipped"
 
     # ── Determine Log Type (shift-aware) ──────────────────────────────
     log_type = _determine_log_type(employee, log_dt)
@@ -187,7 +187,7 @@ def _process_single_log(log, existing, last_punch_map, time_threshold, employee_
     # Update tracking structures so subsequent logs in the same batch
     # can reference this newly-created checkin.
     existing.add(checkin_key)
-    last_punch_map.setdefault(employee, []).append(log_dt)
+    insort(last_punch_map.setdefault(employee, []), log_dt)
 
     return "created"
 
@@ -376,9 +376,7 @@ def _get_range_bounds(from_date, to_date):
 
 
 def _get_checkins_in_range(from_date, to_date):
-    """Return [{employee, time}, ...] for all Employee Checkins in the date
-    range. Shared by the duplicate set and the time-threshold map so the
-    query lives in one place."""
+    """Return [{employee, time}, ...] for all Employee Checkins in the date range."""
     start, end = _get_range_bounds(from_date, to_date)
     EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
 
@@ -405,31 +403,45 @@ def _build_employee_map():
     return result
 
 
-def _build_existing_checkins_set(from_date, to_date):
-    """Return a set of 'employee/YYYY-MM-DD HH:MM' strings for all
-    Employee Checkins in the date range — used for O(1) duplicate checks."""
-    rows = _get_checkins_in_range(from_date, to_date)
-    result = set()
-    for r in rows:
+def _build_checkin_lookups(from_date, to_date):
+    """Return (existing, punch_map) from a single range query.
+
+    existing: set of 'employee/YYYY-MM-DD HH:MM' strings for O(1) duplicate checks.
+    punch_map: { employee: [punch_datetime, ...] } sorted ascending, holding ALL
+    checkin times per employee in the range (not only the latest) so a punch can
+    be compared with the checkins around it."""
+    existing = set()
+    punch_map = {}
+    for r in _get_checkins_in_range(from_date, to_date):
         t = r["time"]
         if isinstance(t, str):
             t = datetime.strptime(t, "%Y-%m-%d %H:%M:%S")
-        result.add(f"{r['employee']}/{t.strftime('%Y-%m-%d %H:%M')}")
-    return result
+        existing.add(f"{r['employee']}/{t.strftime('%Y-%m-%d %H:%M')}")
+        punch_map.setdefault(r["employee"], []).append(t)
+
+    for punch_times in punch_map.values():
+        punch_times.sort()
+
+    return existing, punch_map
 
 
-def _build_last_punch_map(from_date, to_date):
-    """Return a dict { employee: [punch_datetime, ...] } for time-threshold
-    filtering.  Holds ALL checkin times per employee in the range (not only
-    the latest) so a punch can be compared with the checkins around it."""
-    rows = _get_checkins_in_range(from_date, to_date)
-    result = {}
-    for r in rows:
-        t = r["time"]
-        if isinstance(t, str):
-            t = datetime.strptime(t, "%Y-%m-%d %H:%M:%S")
-        result.setdefault(r["employee"], []).append(t)
-    return result
+def _has_punch_within_threshold(sorted_punch_times, log_dt, time_threshold):
+    """True if any punch in the ascending list is within `time_threshold`
+    seconds (inclusive) of log_dt, before or after. Only the two nearest
+    neighbours need to be compared."""
+    if not sorted_punch_times:
+        return False
+
+    position = bisect_left(sorted_punch_times, log_dt)
+    if position < len(sorted_punch_times):
+        if (sorted_punch_times[position] - log_dt).total_seconds() <= time_threshold:
+            return True
+    if position > 0:
+        if (
+            log_dt - sorted_punch_times[position - 1]
+        ).total_seconds() <= time_threshold:
+            return True
+    return False
 
 
 def _parse_datetime(raw):
