@@ -26,13 +26,6 @@ class HolidayPunch(Document):
         request timeouts. For small datasets, process inline as before.
         """
 
-        # if len(self.details) >= ROW_THRESHOLD:
-        # 	# Enqueue a background job — returns immediately to the browser
-        # 	frappe.enqueue(
-        # 	frappe.msgprint(
-        # 		"Processing in background. You will be notified once attendance is updated.",
-        # 	# Small batch — process synchronously as before
-
     def _process_all(self):
         try:
             self.update_emp_checkin()
@@ -170,9 +163,6 @@ class HolidayPunch(Document):
 
 
 def process_attendance_from_rows(rows, employee, shift_type, date):
-    # if employee == "GEPL - 01389":
-    #     frappe.throw(
-
     date = getdate(date)
 
     # -------------------------------------------------
@@ -180,9 +170,6 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
     # -------------------------------------------------
     if not any(row.get("employee_checkin") is not None for row in rows):
         return
-
-    # if employee == "GEPL - 01389":
-    #     frappe.throw(
 
     # -------------------------------------------------
     # Get Shift Type
@@ -279,9 +266,6 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
     if out_time < shift_end:
         early_exit = 1
 
-    # if employee == "GEPL - 00175":
-    #     frappe.throw(
-
     # -------------------------------------------------
     # Create Attendance
     # -------------------------------------------------
@@ -297,13 +281,6 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
 
     att.late_entry = late_entry
     att.early_exit = early_exit
-
-    # if employee == "GEPL - 00175":
-    #     frappe.throw(
-    #         f"""
-    #         Variable late_entry = {late_entry}
-    #         Attendance late_entry = {att.late_entry}
-    #         """
 
     # -------------------------------------------------
     # Attendance Status
@@ -392,7 +369,6 @@ def check_employee_punch(employee_details, shift_date, shift_name):
 
     # -----------------------------------------
     # Saare actual punches ka first/last nikaalo
-    # (window ke andar-bahar filter mat karo)
     # -----------------------------------------
 
     all_punch_times = [get_datetime(d["time"]) for d in employee_details]
@@ -407,7 +383,6 @@ def check_employee_punch(employee_details, shift_date, shift_name):
     # Missing time BEFORE first actual punch
     # Sirf tab add karo jab first punch shift
     # start ke BAAD hua ho (pehle se hua ho to
-    # kuch add nahi karna)
     # -----------------------------------------
 
     if first_dt > shift_start_dt:
@@ -645,7 +620,6 @@ def get_employees(doc):
     merge_data.extend(shift_assignments)
 
     # =====================================================
-    # Remove duplicate employees  Duplicate check based on employee ID (name)
     # =====================================================
     employee_data = []
     seen = set()
@@ -683,8 +657,6 @@ def get_shift(company, shift_type, for_date=None):
     #
     # Conditions:
     # 1. start_date <= selected date
-    # 2. end_date is blank (open assignment)
-    #    OR
     # 3. end_date >= selected date
     # =====================================================
     shift_data = frappe.get_all(

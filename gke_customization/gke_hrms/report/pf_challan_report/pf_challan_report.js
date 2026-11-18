@@ -169,8 +169,6 @@ function fetch_and_render_account_total_panel(report) {
 }
 
 function render_account_total_panel(report, summary, filters) {
-	console.log("summary", summary);
-
 	const fmt = (n) => {
 		const num = Number(n) || 0;
 		return num.toLocaleString("en-IN");
@@ -283,10 +281,6 @@ function render_account_total_panel(report, summary, filters) {
 		</div>
 	</div>
 	`;
-	// <div style="display: flex; align-items: baseline; gap: 8px; margin-left: auto;">
-	// 				<span style="font-size: 14px; font-weight: 500;">Total</span>
-	// 				<span style="font-size: 19px; font-weight: 500;">${fmt(summary.grand_total)}</span>
-	// 			</div>
 
 	if (report.pf_panel) {
 		report.pf_panel.html(html);

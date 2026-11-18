@@ -78,7 +78,6 @@ def create_employee_checkin(doc, checkin_date, log_type, time_value, status):
     # Combine date & time safely
     combined_datetime = get_datetime(f"{checkin_date} {time_value}")
 
-    # Check duplicate using frappe.db.exists (safe)
     exists = frappe.db.exists(
         "Employee Checkin",
         {
@@ -121,7 +120,6 @@ def on_submit(self, method):
 
         attendance_doc = frappe.get_doc("Attendance", attendance_name)
 
-        # Get proper shift window (handles OT + night shift)
         shift_start, shift_end = get_shift_window(self, attendance_date)
 
         logs = frappe.db.get_all(
@@ -166,31 +164,6 @@ def on_submit(self, method):
     att_req_update_monthly_inout_log(self)
 
 
-# def get_attendance(self, logs):
-#     """Return attendance_status, working_hours, late_entry, early_exit, in_time, out_time for a single date."""
-
-
-#         logs, shift_doc.determine_check_in_and_check_out, shift_doc.working_hours_calculation_based_on
-
-
-#     if (
-#         and in_time
-#         and in_time > shift_start + timedelta(minutes=cint(shift_doc.late_entry_grace_period))
-#     ):
-
-#     if (
-#         and out_time
-#         and out_time < shift_end - timedelta(minutes=cint(shift_doc.early_exit_grace_period))
-#     ):
-
-#     # Determine attendance status based on source (reason)
-
-#     if source == "Work From Home":
-
-#     return {
-#         "out_time": out_time
-
-
 def get_attendance_record(self, attendance_date: str) -> str | None:
     attedance = frappe.db.exists(
         "Attendance",
@@ -222,7 +195,6 @@ def get_attendance(self, logs, attendance_date):
     )
 
     # --------------------------------------------------
-    # Late Entry & Early Exit (Using Your Exact Logic)
     # --------------------------------------------------
 
     shift_start = get_datetime(f"{attendance_date} {shift_doc.start_time}")
@@ -323,7 +295,6 @@ def validate_attendance_request(doc, method):
     in_time = get_time(doc.custom_in_time) if doc.custom_in_time else None
     out_time = get_time(doc.custom_out_time) if doc.custom_out_time else None
 
-    # Early check-in window (minutes before shift start)
     early_entry_minutes = shift.begin_check_in_before_shift_start_time or 0
 
     allowed_in_start_dt = add_to_date(
@@ -334,10 +305,7 @@ def validate_attendance_request(doc, method):
         shift_end_dt if not is_night_shift else shift_end_dt + timedelta(days=1)
     )  # strictly shift end
 
-    # Grace period for checkout (30 mins after shift end)
-
     allowed_out_start_dt = shift_start_dt
-    #     shift_end_dt,
     allowed_out_end_dt = (
         shift_end_dt if not is_night_shift else shift_end_dt + timedelta(days=1)
     )

@@ -10,24 +10,6 @@ from frappe.utils import add_days, getdate
 
 class EmployeeResignation(Document):
     def validate(self):
-        # if workflow_state == 'Rejected':
-
-        # if self.workflow_state == 'Send to Manager':
-        # 	if self.reporting_manager_approval:
-        # 		if self.reporting_manager_approval == 'Approved':
-        # 			# shubham
-        # 			# if self.date_resignation:
-
-        # 			# 	# default calculation
-
-        # 			# # shubham
-        # 			if self.waive_off_notice_period == 'Yes':
-
-        # 			if self.date_resignation:
-        # 				if self.waive_off_notice_period == 'Yes':
-        # 					if notice_days:
-        # 						if int(self.notice_period) > int(notice_days):
-
         # 16-06-2026
         self.validate_duplicate_resignation()  # shubham
         if (

@@ -28,8 +28,6 @@ from gke_customization.gke_hrms.utils import get_employee_shift
 
 class ManualPunchEntry(Document):
     def after_insert(self):
-        # if frappe.user.has_role("GK HR"):
-
         if self.miss_punch and self.workflow_state == "Draft":
             apply_workflow(self, "Send to HR")
 
@@ -57,16 +55,6 @@ class ManualPunchEntry(Document):
             self.validate_od_punch()
             self.update_emp_checkin()
             self.delete_checkin()
-
-        # shruti
-        # if self.employee:
-        # 		"Manual Punch Entry",
-        # 			"workflow_state": ["!=", "Rejected"]
-        # 		},
-
-        # 	for entry in existing:
-        # 		if entry.locked_by and entry.locked_by != self.locked_by:
-        # 			frappe.throw(
 
         if self.miss_punch:
             self.validate_miss_punch()
@@ -197,10 +185,6 @@ def create_attendance_from_manual_punch(self):
             employee, get_datetime(shift_datetime), True
         )[1]  # for current shift
 
-        # 	"time": ["between", [ (shift_timings.actual_start), (shift_timings.actual_end) ]]
-
-        # checkin_logs = frappe.db.get_list("Employee Checkin",
-
         checkin_logs = frappe.db.sql(
             """
 			SELECT *
@@ -230,9 +214,6 @@ def create_attendance_from_manual_punch(self):
                 attnd = frappe.get_doc("Attendance", attnd_name)
                 attnd.cancel()
                 frappe.msgprint(_("Attendance cancelled : {0} ").format(attnd_name))
-
-            # if attnd_name:
-            # 	attnd.db_set({
 
             new_attnd = frappe.get_doc(
                 {
@@ -444,10 +425,3 @@ def get_emp_checkin(date, employee=None, shift_name=None):
 
 
 ###############################################################################################################
-
-
-# @frappe.whitelist
-# def check_employee_lock_on_save(doc, method=None):
-
-
-#     if locked_by and locked_by != current_user:

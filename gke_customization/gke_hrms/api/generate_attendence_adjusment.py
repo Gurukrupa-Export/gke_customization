@@ -71,7 +71,6 @@ def check_employee_active_validation_based_on_doj(employees):
         return True
 
     for row in employees:
-        # Agar row dict hai: {"employee": "EMP-0001"}
         if isinstance(row, dict):
             emp = row.get("employee")
 
@@ -161,18 +160,14 @@ def process_salary_adjustment(docname):
 
         shift_hours = float(shift_hours.get("total_hours", 0))
 
-        # Actual salary = 26000 ,, month salay = 18000 ,, calander_days = 26 ,, shift = 10 hr ,, days = 18, day/wage = 1000
-
         per_day_wage = actual_salary / calendar_days if calendar_days else 0
 
         adjusted_days = monthly_salary / per_day_wage if per_day_wage else 0
 
         full_days = int(adjusted_days)
 
-        # fractional_day = 18.00 - 18 = 0.00
         fractional_day = adjusted_days - full_days
 
-        # fractional_hours = 0.00 * 10 = 0.00
         fractional_hours = fractional_day * shift_hours
 
         if monthly_salary < actual_salary:
@@ -306,8 +301,6 @@ def proceed_check_in_modify(docname):
 
                 holiday_dates = set([getdate(x) for x in holiday_dates])
 
-                # if employee == "GEPL - 00209":
-
                 employee_check_in = [
                     row
                     for row in employee_check_in
@@ -321,8 +314,6 @@ def proceed_check_in_modify(docname):
                     date_map[date].append(log)
 
                 sorted_dates = sorted(date_map.keys())
-
-                # if employee == "GEPL - 00209":
 
                 # 🔹 Group by date
                 off_dates = set()
@@ -345,8 +336,6 @@ def proceed_check_in_modify(docname):
                     shift_end = get_datetime(
                         f"{add_days(max(d.keys()), -1)} {shift_out_time}"
                     )
-
-                    # ).replace(second=0, microsecond=0)
 
                     frappe.db.set_value(
                         "Employee Checkin",
@@ -469,11 +458,6 @@ def proceed_check_in_modify(docname):
                         frappe.db.set_value(
                             "Employee Checkin", d.get(date), "skip_auto_attendance", 1
                         )
-                        # frappe.db.set_value(
-                        #         "Attendance",
-                        #         get_checkin_res,
-                        #         "skip_auto_attendance",
-                        #         1
 
                     for log in date_map[date]:
                         frappe.db.set_value(
@@ -518,80 +502,13 @@ def proceed_check_in_modify(docname):
                             out_log.name,
                             {"time": new_out_time, "skip_auto_attendance": 0},
                         )
-            # if monthly_salary < actual_salary and action == "Checkin Adjustment":
-
-            #     # Employee Checkins
-            #         "Employee Checkin",
-            #             "time": ["between", [from_dt, to_dt]]
-            #         },
-
-            #         employee_check_in,
 
             #     # -----------------------------
-            #     # Get Employee Holiday List
-            #     # -----------------------------
-            #         "Employee",
-            #         employee,
-            #         "holiday_list"
-
-            #     if holiday_list:
-            #             "Holiday",
-            #                 "holiday_date": [
-            #                     "between",
-            #             },
-
-            #     # -----------------------------
-            #     # Group only working day checkins
             #     # -----------------------------
 
-            #     for log in employee_check_in:
-
-            #         # Skip holiday checkins
-            #         if log_date in holiday_dates:
-
-            #     for date, logs in date_map.items():
-
-            #         for log in logs:
-            #             if log["log_type"] == "IN":
-
-            #         # agar proper IN-OUT nahi hai to off consider karo
-            #         if in_count == 0 or out_count == 0:
-
-            #     for date in common_dates:
-
-            #     # Actual working attendance dates
-
-            #     # Remove extra working days
-            #     for date in remove_dates:
-            #         for log in date_map[date]:
-            #             frappe.db.set_value(
-            #                 "Employee Checkin",
-            #                 "skip_auto_attendance",
-            #                 1
-
             #     # -----------------------------
-            #     # Fractional day adjustment
             #     # -----------------------------
-            #     if fractional_hours > 0 and keep_dates:
 
-            #             "Employee Checkin",
-            #                 "time": [
-            #                     "between",
-            #                         fractional_date,
-            #                 ],
-            #             },
-
-            #         for log in logs:
-            #             if log.log_type == "IN":
-
-            #         if in_log and out_log:
-
-            #             ).replace(
-
-            #             frappe.db.set_value(
-            #                 "Employee Checkin",
-            #                 out_log.name,
-            #                     "skip_auto_attendance": 0
             elif action == "Incentive":
                 employee_details = frappe.db.get_value(
                     "Employee", employee, ["company", "relieving_date"], as_dict=True
@@ -656,13 +573,11 @@ def proceed_check_in_modify(docname):
             shift_in_time = shift_hours.get("in_time", "00:00:00")
             shift_out_time = shift_hours.get("out_time", "00:00:00")
 
-            # Example 1 (Normal)
             # IN  : 15-07-2026 08:45
             # OUT : 15-07-2026 17:55
 
             # => Shift adjustment hoga.
 
-            # Example 2 (Tumhara Case)
             # IN  : 14-07-2026 08:35
             # OUT : 15-07-2026 04:00
 
@@ -754,7 +669,6 @@ def proceed_check_in_modify(docname):
 
                 absent_dates = [getdate(d) for d in absent_dates]
 
-                # Sort dates (important)
                 absent_dates = sorted(absent_dates)
 
                 # Create missing attendance
@@ -835,15 +749,11 @@ def proceed_check_in_modify(docname):
                     )
 
                     # #  Night shift
-                    # if end_time < start_time:
 
                     created = False
 
                     # IN
                     if "IN" not in log_types:
-                        #     "log_type": "IN"
-
-                        # if not exists_in:
                         frappe.get_doc(
                             {
                                 "doctype": "Employee Checkin",
@@ -857,9 +767,6 @@ def proceed_check_in_modify(docname):
 
                     # OUT
                     if "OUT" not in log_types:
-                        #     "log_type": "OUT"
-
-                        # if not exists_out:
                         frappe.get_doc(
                             {
                                 "doctype": "Employee Checkin",
@@ -1026,37 +933,6 @@ def proceed_attendance_modify(docname):
         )
 
         frappe.db.commit()
-
-
-# @frappe.whitelist()
-# def proceed_attendance_modify(docname):
-
-
-#         # Fetch all attendance in ONE query
-#             "Attendance",
-#                 "docstatus": 1
-#             },
-
-
-#         #  Group data
-
-#         for att in all_attendance:
-
-#             if att.status == "Absent":
-
-#         # Cancel Attendance (bulk style)
-#         for att in all_attendance:
-#                 frappe.db.set_value(
-#                     "Attendance",
-#                     att.name,
-#                         "modified_by": frappe.session.user
-
-#         # Prepare map
-#         for emp in employees:
-
-#         # Single DB write (better)
-#         doc.db_set({
-#             "update_attendance": 1
 
 
 def after_job_success(job, method, *args, **kwargs):
@@ -1236,11 +1112,9 @@ def update_proceed_check_in_modify(docname):
 
             # Both branches walk the same working_dates list and create
             # matching IN/OUT checkins. The only behavioural difference is
-            # whether the last day's OUT time gets trimmed to fractional_hours:
             # that trim is skipped for "Incentive" rows.
             apply_fractional_trim = row.action != "Incentive"
             for current_date in working_dates[:keep_days]:
-                # Skip holidays (defensive; working_dates already excludes them)
                 if getdate(current_date) in holiday_dates:
                     continue
 

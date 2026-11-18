@@ -61,7 +61,6 @@ def check_sandwich_rule(doc):
                 for i in range((to_date - from_date).days + 1)
             }
 
-            # Identify sandwiched holidays (holidays having leave before & after)
             sandwiched_holidays = {
                 date
                 for date in holiday_dates
@@ -71,7 +70,6 @@ def check_sandwich_rule(doc):
                 )
             }
 
-            # Calculate total leave days (excluding only weekly offs, including sandwiched holidays)
             doc.total_leave_days = len(
                 [
                     date
@@ -121,7 +119,6 @@ def create_attendance_records(doc):
             # Start from `from_date` and loop through all dates until `to_date`
             current_date = from_date
             while current_date <= to_date:
-                # Skip holidays unless they fall between from_date and to_date (excluding boundaries)
                 if current_date in holiday_dates and (
                     current_date == from_date or current_date == to_date
                 ):
@@ -306,10 +303,6 @@ def _on_submit(doc, method):
         return
 
     sandwich_dates = get_sandwich_dates(doc)
-    # if sandwich_dates:
-
-    #     frappe.msgprint(
-    #         f"<b>Sandwich Rule Applied</b><br>"
 
     public_holidays, weekly_offs = get_holiday_dates(doc.employee)
 
@@ -495,7 +488,6 @@ def get_day_status(employee, date, current_doc, boundary_attendance):
         - 'Absent'
         - 'Present'
     """
-    # 1️⃣ Check current leave application (important for future leave)
     if current_doc:
         if current_doc.employee == employee and getdate(
             current_doc.from_date

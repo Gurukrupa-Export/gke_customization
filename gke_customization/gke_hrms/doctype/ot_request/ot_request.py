@@ -61,7 +61,6 @@ class OTRequest(Document):
                             + (ot_time.second / 3600)
                         )
 
-                    # Eligibility rule (1 hour or more)
                     child.food_eligibility = (
                         "Eligible" if total_hours >= 1 else "Not Eligible"
                     )
@@ -282,7 +281,6 @@ class OTRequest(Document):
         # Calculate new working hours
         total_working_hours = existing_working_hours + float_hours
 
-        # Direct DB Update (No Cancel / No Submit)
         frappe.db.set_value(
             "Attendance",
             attendance_name,

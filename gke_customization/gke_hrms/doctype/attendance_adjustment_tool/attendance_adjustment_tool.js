@@ -1,11 +1,6 @@
 // Copyright (c) 2026, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
-// frappe.ui.form.on("Attendance Adjustment Tool", {
-// 	refresh(frm) {
-
-// 	},
-// });
 // Copyright (c) 2026, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
@@ -17,24 +12,6 @@ frappe.ui.form.on("Attendance Adjustment Tool", {
 	to_date(frm) {
 		set_shift_details(frm);
 	},
-
-	// onload: function (frm) {
-	//   if (frm.is_new()) return;
-	//   frappe.call({
-	//     method:
-	//       "gke_customization.gke_hrms.api.generate_attendence_adjusment.process_salary_adjustment",
-	//     args: {
-	//       docname: frm.doc.name,
-	//     },
-	//     callback: function (r) {
-	//       if (r.message) {
-	//         //  yaha data pass kar diya
-	//         render_preview(frm, r.message);
-	//       }
-	//     },
-	//   });
-	//   // frm.set_df_property("adjustment_details", "hidden", 1);
-	// },
 
 	onload: function (frm) {
 		if (frm.is_new()) return;
@@ -58,7 +35,6 @@ frappe.ui.form.on("Attendance Adjustment Tool", {
 
 				// duplicate remove
 				employees = [...new Set(employees)];
-				console.log(employees);
 
 				frappe.call({
 					method: "gke_customization.gke_hrms.api.generate_attendence_adjusment.check_employee_active_validation_based_on_doj",
@@ -82,8 +58,6 @@ frappe.ui.form.on("Attendance Adjustment Tool", {
 			},
 			callback: function (r) {
 				if (r.message) {
-					console.log("child", r.message);
-
 					frm.clear_table("adjustment_details");
 
 					r.message.forEach(function (row) {
@@ -100,9 +74,7 @@ frappe.ui.form.on("Attendance Adjustment Tool", {
 						child.fractional_hours = row.fractional_hours;
 						child.action = row.action;
 					});
-					// frm.set_df_property("adjustment_details", "hidden", 0);
 					frm.refresh_field("adjustment_details");
-					// frm.fields_dict.adjustment_details.grid.refresh();
 				}
 			},
 		});
@@ -180,55 +152,6 @@ frappe.ui.form.on("Attendance Adjustment Tool", {
 	},
 });
 
-// function render_preview(frm) {
-//   let data = frm.doc.adjustment_details || [];
-
-//   let html = `
-//         <h4>Adjustment Preview</h4>
-//         <table class="table table-bordered table-striped">
-//             <thead>
-//                 <tr>
-//                     <th>No</th>
-//                     <th>Employee</th>
-//                     <th>Name</th>
-//                     <th>Calendar Days</th>
-//                     <th>Difference Days</th>
-//                     <th>Shift Hours</th>
-//                     <th>Full Days</th>
-//                     <th>Remove Days</th>
-//                     <th>Monthly Salary</th>
-//                     <th>Actual Salary</th>
-//                     <th>Fractional Hours</th>
-//                     <th>Action</th>
-//                 </tr>
-//             </thead>
-//             <tbody>
-//     `;
-
-//   data.forEach((row, i) => {
-//     html += `
-//             <tr>
-//                 <td>${i + 1}</td>
-//                 <td>${row.employee || ""}</td>
-//                 <td>${row.employee_name || ""}</td>
-//                 <td>${row.calendar_days || 0}</td>
-//                 <td>${row.difference_days || 0}</td>
-//                 <td>${row.shift_hours || 0}</td>
-//                 <td>${row.payable_days || 0}</td>
-//                 <td>${row.difference_days || 0}</td>
-//                 <td>${row.monthly_salary || 0}</td>
-//                 <td>${row.actual_salary || 0}</td>
-//                 <td>${row.fractional_hours || 0}</td>
-//                 <td>${row.action || 0}</td>
-//             </tr>
-//         `;
-//   });
-
-//   html += `</tbody></table>`;
-
-//   frm.fields_dict.preview_html.$wrapper.html(html);
-// }
-
 function render_preview(frm, data) {
 	let rows = data || frm.doc.adjustment_details || [];
 
@@ -296,14 +219,6 @@ function render_preview(frm, data) {
     `;
 
 	frm.fields_dict.preview_html.$wrapper.html(html);
-
-	// optional styling
-	// frm.fields_dict.preview_html.$wrapper.find(".adjustment-preview-box").css({
-	//   border: "1px solid var(--border-color)",
-	//   borderRadius: "10px",
-	//   padding: "12px",
-	//   marginTop: "10px"
-	// });
 }
 
 function set_shift_details(frm) {

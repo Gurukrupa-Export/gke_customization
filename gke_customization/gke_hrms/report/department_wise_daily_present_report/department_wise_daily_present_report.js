@@ -5,8 +5,6 @@ frappe.query_reports["Department Wise Daily Present Report"] = {
 	filters: [
 		{ fieldname: "date", label: "Date", fieldtype: "Date", default: "Today", reqd: 1 },
 		{ fieldname: "company", label: "Company", fieldtype: "Link", options: "Company", reqd: 1 },
-		//    {"fieldname": "department", "label": "Department", "fieldtype": "Link", "options": "Department","reqd": 1},
-		//    {"fieldname": "manager", "label": "Manager", "fieldtype": "Link", "options": "Employee"}
 		{
 			label: __("Department"),
 			fieldtype: "Link",
@@ -53,7 +51,6 @@ frappe.query_reports["Department Wise Daily Present Report"] = {
 			.addClass("btn-info");
 
 		const user = frappe.user.has_role("System Manager") || frappe.user.has_role("GK HR");
-		// console.log('has role',user, 'user', frappe.session.user);
 		if (user) {
 			report.page
 				.add_button("Send Mail", function () {
@@ -115,7 +112,6 @@ function fetch_employees(report) {
 
 			let emp_filter = frappe.query_report.get_filter("manager");
 			if (emp_filter) {
-				// emp_filter.df.read_only = 1;
 				emp_filter.refresh();
 			}
 		}

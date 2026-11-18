@@ -35,11 +35,8 @@ def sync_biometric_checkins():
     formatted_to = to_date.strftime("%d%m%Y")
 
     # Pre-fetch existing checkins once: duplicate lookup set and the sorted
-    # punch times per employee used for time-threshold checks (in-memory)
     existing, last_punch_map = _build_checkin_lookups(from_date, to_date)
 
-    # Load employees once: { attendance_device_id: employee }
-    # (avoids one DB query for every punch in the API response)
     employee_map = _build_employee_map()
 
     time_threshold = float(settings.time_threshold or 0)
@@ -129,7 +126,6 @@ def _process_single_log(log, existing, last_punch_map, time_threshold, employee_
     log_dt_str = log_dt.strftime("%Y-%m-%d %H:%M:%S")
 
     # ── Resolve employee ──────────────────────────────────────────────
-    # Looked up from the pre-loaded map (no DB query per punch)
     userid = str(log.get("userid", ""))
     employee = employee_map.get(userid)
 
@@ -185,7 +181,6 @@ def _process_single_log(log, existing, last_punch_map, time_threshold, employee_
 
 
 # ---------------------------------------------------------------------------
-# Log Type determination (shift-aware, supports day + night shifts)
 # ---------------------------------------------------------------------------
 def _determine_log_type(employee, log_dt):
     """Decide whether a punch is IN or OUT based on the employee's shift
@@ -218,37 +213,10 @@ def _determine_log_type(employee, log_dt):
     actual_start = curr_shift.get("actual_start")
     actual_end = curr_shift.get("actual_end")
 
-    # old
-    # if actual_start and actual_end:
-    #     if not (actual_start <= punch_dt <= actual_end):
-    #         # Outside the shift window — treat as a standalone IN
-
     # ── Query last checkin within this shift's actual window ─────────
     # Use actual_start/actual_end (which include the grace period) so that
     # early-arrival punches (e.g. 20:59 for a 21:00 shift) are included
     # in the lookup.  This is critical for correct IN/OUT toggling.
-
-    # if query_start and query_end:
-    #         """
-    #         SELECT log_type
-    #         FROM `tabEmployee Checkin`
-    #         WHERE employee = %s
-    #           AND time >= %s
-    #           AND time <= %s
-    #           AND time < %s
-    #         ORDER BY time DESC
-    #         LIMIT 1
-    #         """,
-    #     # Fallback: look at same calendar day
-    #         """
-    #         SELECT log_type
-    #         FROM `tabEmployee Checkin`
-    #         WHERE employee = %s
-    #           AND DATE(time) = %s
-    #           AND time < %s
-    #         ORDER BY time DESC
-    #         LIMIT 1
-    #         """,
 
     # new 11-05-2026
     punch_dt = get_datetime(log_dt)

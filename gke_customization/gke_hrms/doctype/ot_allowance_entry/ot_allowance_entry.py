@@ -2,165 +2,6 @@
 # For license information, please see license.txt
 
 
-# class OTAllowanceEntry(Document):
-# 	def autoname(self):
-# 		if company_abbr:
-# 			if self.branch:
-
-
-# 	def validate(self):
-# 		if self.workflow_state == "Create OT":
-# 		if self.employee:
-# 				"OT Allowance Entry",
-# 					"name": ["!=", self.name]
-# 				},
-
-# 			for entry in existing:
-# 				if entry.locked_by and entry.locked_by != self.locked_by or entry.locked_by == self.locked_by:
-# 					frappe.throw(
-
-# 	def make_ot_logs(self):
-# 		for log in self.ot_details:
-# 			if get_timedelta(log.allowed_ot) > get_timedelta(log.attn_ot_hrs):
-# 			# if log.attendance_date and log.employee and log.allow:
-# 			# 	if exit_ot:
-
-# 	@frappe.whitelist()
-# 	def get_ot_details(self, from_log=False):
-
-
-# 			.select(IfNull(Sum(To_Seconds(PersonalOutLog.total_hours)), 0))
-# 			.where(
-# 				(PersonalOutLog.is_cancelled == 0) &
-# 				(PersonalOutLog.employee == Attendance.employee) &
-# 				(PersonalOutLog.date == Attendance.attendance_date) &
-
-# 			To_Seconds(
-# 				Time_Diff(
-# 					Attendance.out_time,
-# 			+ ifelse(
-# 				To_Seconds(
-# 					Time_Diff(
-# 				),
-# 				0
-# 			- sub_query_personal_out_log
-# 		).as_("attn_ot_hrs")
-
-# 			.left_join(ShiftType).on(Attendance.shift == ShiftType.name)
-# 			.left_join(OTLog).on((OTLog.attendance == Attendance.name) & (OTLog.is_cancelled == 0))
-# 			.left_join(Employee).on(Attendance.employee == Employee.name)
-# 			.select(
-# 				Attendance.employee,
-# 				Attendance.employee_name,
-# 				Employee.company,
-# 				Employee.designation,
-# 				Employee.department,
-# 				Employee.branch,
-# 				Attendance.shift,
-# 				Attendance.attendance_date,
-# 				OTLog.allow,
-# 				OTLog.allowed_ot,
-# 				OTLog.remarks
-# 			.where(
-# 				(Attendance.docstatus == 1) &
-
-# 		for condition in conditions:
-
-
-# 		if not data:
-
-# 		for row in data:
-# 			if self.branch:
-# 				if row.get("branch") != self.branch:
-
-# 			if not row.get("allowed_ot"):
-# 			if row.get("allowed_ot") < timedelta(minutes=30):	# for excluding OT that are less than 30 min
-# 			if row["allowed_ot"].total_seconds() > 86399:  # OT > 23:59:59 it shows invalid date in ui
-
-
-# 	def get_weekoffs_ot(self, from_log=False):
-
-# 		for holiday_list, emp_list in holidays.items():
-# 			holidays_list = frappe.get_all("Holiday", {"parent": holiday_list,
-# 					"holiday_date":["between",[self.from_date, self.to_date]]}, ["holiday_date","weekly_off"])
-# 			for emp in emp_list:
-
-# 	def get_weekoffs_ot_per_employee(self, from_log=False, emp = None, holidays = []):
-# 		for holiday in holidays:
-# 			shift_ass = frappe.db.get_value("Shift Assignment",
-# 					{"employee": self.employee,
-# 						"docstatus": 1
-# 	  				},
-# 					['name','shift_type'], as_dict=1)
-
-# 			if shift_ass:
-
-
-# 					"employee": emp.name
-# 			fields = ["date(time) as date", "log_type as type", "time(time) as time", "time as date_time", "source","name as employee_checkin",
-# 						f"date('{holiday.holiday_date}') as holiday", "employee", "employee_name","shift"]
-
-# 			for row in data:
-# 				if not checkin and row.type == "IN":
-# 						"branch": emp.branch
-# 					ot_log = frappe.db.get_value("OT Log",{"attendance_date": row.holiday, "employee": row.employee, "is_cancelled":0, "first_in": checkin.get("first_in")},
-# 												["name as ot_log", "allow", "allowed_ot", "remarks","attendance_date"], as_dict=1) or {}
-# 					if not checkin.get("allowed_ot"):
-# 					if from_log:
-# 						if checkin.get("ot_log"):
-# 		# Group by attendance_date logic of two parts ot in weekof
-# 		for entry in res:
-# 		for date, entries in grouped.items():
-# 			if len(entries) > 1:
-
-
-# 	def get_emp_list(self):
-# 		if self.employee:
-# 		if self.designation:
-# 		if self.department:
-# 		if self.company:
-
-# 		for emp in emp_list:
-# 			if shift:=emp.get("default_shift") and not emp.get("holiday_list"):
-
-# 			if emp.holiday_list not in holidays:
-
-# 	def get_conditions(self, Attendance, Employee, OTLog, from_log):
-# 		if not (self.from_date and self.to_date):
-# 		if from_log:
-
-# 		if self.punch_id or self.employee:
-# 			if not self.employee:
-
-# 		if self.employee_name:
-
-
-# 		if self.company:
-
-# 		if self.branch:
-
-# 		if self.department:
-
-# 		if self.designation:
-
-# 			.select(Employee.name)
-# 		for filter in sub_query_filter:
-
-
-# def create_ot_log(ref_doc):
-# 	if ref_doc.ot_log:
-# 		if doc.allow and not ref_doc.allow:
-# 		# if ref_doc.attendance_date == doc.attendance_date:
-# 		if not ref_doc.allow:
-# 	for field in fields:
-
-
-# def get_shift(employee, date, default_shift):
-# 	shift = frappe.db.get_value("Shift Assignment",
-# 					"docstatus": 1
-# 				},
-# 			['shift_type'] )
-
 # 	if not shift:
 
 # Copyright (c) 2025, Gurukrupa Export and contributors
@@ -609,10 +450,6 @@ class OTAllowanceEntry(Document):
             shift_timings = get_employee_shift_timings(
                 emp.name, get_datetime(date_time), True
             )[1]
-            # 		"employee": emp.name
-            # fields = ["date(time) as date", "log_type as type", "time(time) as time", "time as date_time", "source","name as employee_checkin",
-            # 			f"date('{holiday.holiday_date}') as holiday", "employee", "shift"]
-            # 			# f"date('{holiday.holiday_date}') as holiday", "employee", "employee_name","shift"]
 
             Checkin = DocType("Employee Checkin")
             Date = CustomFunction("DATE", ["time"])
@@ -726,11 +563,6 @@ class OTAllowanceEntry(Document):
         return final_result
 
     def get_emp_list(self):
-        # if self.employee:
-        # if self.designation:
-        # if self.department:
-        # if self.company:
-
         Employee = DocType("Employee")
 
         query = frappe.qb.from_(Employee).select(
@@ -787,8 +619,6 @@ class OTAllowanceEntry(Document):
                     "Employee", {"attendance_device_id": self.punch_id}, "name"
                 )
             conditions.append((Attendance.employee == self.employee))
-
-        # if self.employee_name:
 
         sub_query_filter = [(Employee.product_incentive_applicable == 1)]
 

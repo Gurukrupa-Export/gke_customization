@@ -27,7 +27,6 @@ frappe.query_reports["Attendance Punch Error Report"] = {
 			fieldname: "department",
 			fieldtype: "Link",
 			options: "Department",
-			// "reqd": 1,
 			get_query: function () {
 				var company = frappe.query_report.get_filter_value("company");
 				return {
@@ -58,11 +57,9 @@ frappe.query_reports["Attendance Punch Error Report"] = {
 
 		report.page
 			.add_button("Generate", function () {
-				// var date = frappe.query_report.get_filter_value('attendance_date');
 				var employeeId = frappe.query_report.get_filter_value("employee");
 				if (employeeId) {
 					frappe.query_report.set_filter_value({
-						// "date": date,
 						employee: employeeId,
 					});
 				}
@@ -103,8 +100,6 @@ frappe.query_reports["Attendance Punch Error Report"] = {
 					return false;
 				}
 
-				console.log(checkedBox, selectedCell, selectedRowIndex, selectedRowData);
-
 				// Open the Manual Punch form with the selected row's data
 				frappe.new_doc("Manual Punch Entry", {
 					doctype: "Manual Punch Entry",
@@ -125,8 +120,6 @@ frappe.query_reports["Attendance Punch Error Report"] = {
 		});
 	},
 	get_datatable_options(options) {
-		console.log(options);
-
 		return Object.assign(options, {
 			checkboxColumn: true,
 		});

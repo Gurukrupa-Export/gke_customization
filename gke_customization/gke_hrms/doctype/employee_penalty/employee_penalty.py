@@ -6,10 +6,3 @@ from frappe.model.document import Document
 
 class EmployeePenalty(Document):
     pass
-
-
-#     def before_submit(self):
-
-# def create_employee_advance(self):
-#     for employee in self.employee_penalty_approval:
-#         if approved_status:

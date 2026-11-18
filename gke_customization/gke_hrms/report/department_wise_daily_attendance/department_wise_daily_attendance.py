@@ -452,7 +452,6 @@ def get_report_summary(summary, date):
 
 
 # ---------------------------------------------------------------------------
-# Send Mail button - emails this report to each department's manager(s)
 # ---------------------------------------------------------------------------
 GROUP_FIELD = "custom_user_group"  # change if Branch uses a different fieldname
 

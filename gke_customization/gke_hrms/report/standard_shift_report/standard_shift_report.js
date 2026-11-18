@@ -50,7 +50,6 @@ frappe.query_reports["Standard Shift Report"] = {
 			label: __("To Date"),
 			fieldtype: "Date",
 			fieldname: "to_date",
-			// "reqd": 1,
 			read_only: 1,
 			default: frappe.datetime.month_end(frappe.datetime.get_today()),
 		},

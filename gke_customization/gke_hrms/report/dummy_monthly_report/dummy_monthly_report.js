@@ -73,15 +73,6 @@ frappe.query_reports["Dummy Monthly Report"] = {
 				return frappe.db.get_link_options("Department", txt, filters);
 			},
 			on_change: fetch_employees,
-			// on_change: function (query_report) {
-			// 	// 🔥 clear selected employees
-			// 	query_report.set_filter_value("employees", []);
-
-			// 	query_report.emp_count = 0;
-			// 	query_report.current_emp = 0;
-
-			// 	fetch_employees(query_report);
-			// }
 		},
 		{
 			label: __("Employees"),
@@ -94,16 +85,13 @@ frappe.query_reports["Dummy Monthly Report"] = {
 				if (filters.company || filters.department) {
 					filters.status = ["not in", ["Inactive", "Left"]];
 				}
-				console.log("filters", filters, txt);
 
 				var options = frappe.db.get_link_options("Employee", txt, filters);
-				console.log("options", options);
 
 				return options;
 			},
 			on_change: function (query_report) {
 				var emp_list = query_report.get_filter_value("employees");
-				console.log(query_report.emp_count, "emp_list", emp_list);
 
 				query_report.current_emp = 0;
 				query_report.emp_count = emp_list.length;
@@ -274,7 +262,6 @@ frappe.query_reports["Dummy Monthly Report"] = {
 						employee: emp,
 					});
 				}
-				console.log(emp);
 			})
 			.addClass("btn-primary");
 		fetch_employees(report);
@@ -325,7 +312,6 @@ function fetch_employees(query_report) {
 				limit: 30,
 			})
 			.then((r) => {
-				console.log(r);
 				query_report.set_filter_value("employees", r);
 
 				if (r.length) {

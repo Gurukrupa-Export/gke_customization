@@ -75,8 +75,6 @@ def get_desktime_detail1(date=None):
     date = date or formatted_date
     period = frappe.form_dict.get("period") or "day"
 
-    # if user_id and user_id not in allowed_users:
-
     url = "https://desktime.com/api/v2/json/employees"
     params = {"apiKey": apiKey, "date": date, "period": period}
 

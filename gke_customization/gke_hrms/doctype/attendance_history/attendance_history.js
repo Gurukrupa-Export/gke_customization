@@ -10,7 +10,6 @@ frappe.ui.form.on("Attendance History", {
 			["date_of_joining", "name", "scheduled_confirmation_date"],
 			(r) => {
 				if (r) {
-					// console.log(r);
 					frm.clear_table("attendance_history");
 					let from_date = frappe.datetime.str_to_obj(r.date_of_joining);
 					let current_date = frappe.datetime.now_date();
@@ -34,7 +33,6 @@ frappe.ui.form.on("Attendance History", {
 
 						let tempDate = frappe.datetime.obj_to_str(temp_date);
 						let nextDate = frappe.datetime.obj_to_str(next_date);
-						// console.log('tempDate', tempDate,'nextDate', nextDate);
 
 						let row = frm.add_child("attendance_history", {
 							from_date: tempDate,
@@ -62,7 +60,6 @@ function calculate_total(frm) {
 
 			let diffDays = frappe.datetime.get_day_diff(to_date, from_date);
 			diffDays += 1;
-			// console.log(diffDays);
 
 			frappe.model.set_value(d.doctype, d.name, "total_working_days", diffDays);
 		});

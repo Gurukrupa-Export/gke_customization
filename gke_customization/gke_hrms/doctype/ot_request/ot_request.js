@@ -6,7 +6,6 @@ frappe.ui.form.on("OT Request", {
 			frappe.call({
 				method: "gke_customization.gke_hrms.doctype.ot_request.ot_request.fill_employee_details",
 				args: {
-					// 'department': frm.doc.department,
 					gender: frm.doc.gender || null,
 					department_head: frm.doc.department_head,
 					branch: frm.doc.branch,
@@ -94,7 +93,6 @@ function calculate_ot_hours(cdt, cdn) {
 	const end = moment(row.work_end_date);
 
 	if (!end.isAfter(start)) {
-		// frappe.msgprint(__('Work End Date must be greater than Work Start Date'));
 		return;
 	}
 

@@ -75,7 +75,6 @@ def update_withholding_release_status(doc, method=None):
         slip = slip_by_cycle.get(release.salary_withholding_cycle)
 
         # on submit follow the money actually paid per the JE; on cancel revert
-        # exactly what the submit applied (the row amount was synced on submit)
         amount = flt(
             release.amount
             if cancel

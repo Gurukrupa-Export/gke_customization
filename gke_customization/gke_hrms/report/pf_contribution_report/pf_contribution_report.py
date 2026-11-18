@@ -13,11 +13,6 @@ def execute(filters=None):
 
 
 def get_pf_data(filters=None):
-    # 	"October": ("10", "31"), "November": ("11", "30"), "December": ("12", "31")
-
-    # if month_name == "February":
-    # 	if (year_int % 4 == 0 and year_int % 100 != 0) or (year_int % 400 == 0):
-
     start_date = filters.get("from_date")
     end_date = filters.get("to_date")
 
@@ -27,7 +22,6 @@ def get_pf_data(filters=None):
         formatted_emps = ", ".join([f"'{e}'" for e in emp_list])
         emp_condition = f"AND ss.employee IN ({formatted_emps})"
 
-    # Round(Least(Ifnull(basic.basic, 0), 15000) * 0.0367, 2) AS er_share,
     sql_query = f"""
 		SELECT
 			ss.employee,

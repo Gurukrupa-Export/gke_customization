@@ -16,7 +16,6 @@ frappe.ui.form.on("Monthly Attendance Resigter", {
 				if (!r.exc) {
 					frm.clear_table("monthly_attendance_resigter_details");
 					var arrayLength = r.message.length;
-					console.log("arrayLength", arrayLength);
 
 					for (var i = 0; i < arrayLength; i++) {
 						let row = frm.add_child("monthly_attendance_resigter_details", {

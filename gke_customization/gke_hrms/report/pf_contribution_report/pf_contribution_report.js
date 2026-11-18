@@ -76,17 +76,8 @@ frappe.query_reports["PF Contribution Report"] = {
 			label: "Company",
 			fieldtype: "Link",
 			options: "Company",
-			// "default": frappe.defaults.get_user_default("Company"),
 			reqd: 1,
 		},
-		//{
-		//	"fieldname": "report_type",
-		//	"label": "Report Type",
-		//	"fieldtype": "Select",
-		//	"options": "Register Report\nPF File",
-		//	"default": "PF File",
-		//	"reqd": 1
-		//},
 		{
 			fieldname: "employee",
 			label: "Employee",

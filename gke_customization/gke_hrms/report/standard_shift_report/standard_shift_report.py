@@ -278,10 +278,6 @@ def get_columns(filters=None):
             "fieldtype": "Data",
             "width": 250,
         },
-        # 	"width": 120
-        # },
-        # 	"fieldtype": ""
-        # },
     ]
     return columns
 

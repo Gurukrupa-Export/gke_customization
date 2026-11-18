@@ -97,7 +97,6 @@ def get_inactive_employees_list(docname):
         if att_length <= 0:
             continue
 
-        # for emp in inactive_employees:
         doc.append(
             "employee",
             {

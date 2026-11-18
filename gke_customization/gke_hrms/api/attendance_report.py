@@ -188,7 +188,6 @@ def attendance(from_date=None, to_date=None, employee=None):
         for condition in conditions:
             query = query.where(condition)
 
-        # frappe.throw(f"{query}")
         data = query.run(as_dict=1)
 
         if not data:
@@ -296,7 +295,6 @@ def process_data(data, from_date, to_date, employee):
         )
         wo = [row.holiday_date for row in holidays if row.weekly_off]
         holidays = [row.holiday_date for row in holidays if not row.weekly_off]
-    # frappe.throw(f"{}")
 
     for row in data:
         if grace_period != 0:

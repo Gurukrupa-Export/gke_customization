@@ -85,7 +85,6 @@ def get_data(filters=None):
     ).as_("ot")
 
     # -----------------------------
-    # SHIFT WINDOW (KEY FIX)
     # -----------------------------
     shift_start = TIMESTAMP(Attendance.attendance_date, ShiftType.start_time)
 
@@ -149,7 +148,6 @@ def get_data(filters=None):
                 TIMEDIFF(ShiftType.end_time, TIME(Attendance.out_time)),
                 None,
             ).as_("early_hrs"),
-            # ✅ FIXED SPENT HOURS (date aware)
             SEC_TO_TIME(
                 IF(
                     Attendance.out_time.isnull(),
@@ -272,7 +270,6 @@ def get_totals(data, employee):
 
     net_pay_hrs = {
         "ot_hours": "Net Hrs",
-        # "total_pay_hrs" : totals["total_pay_hrs"] + refund["total_pay_hrs"] - penalty_hrs
         "total_pay_hrs": totals["net_wrk_hrs"]
         + totals["ot_hours"]
         + refund["total_pay_hrs"]
@@ -285,10 +282,6 @@ def get_totals(data, employee):
             net_pay_hrs["total_pay_hrs"].total_seconds() / conversion_factor, 2
         ),
     }
-
-    # 	"total_pay_hrs" : totals["total_pay_hrs"] + refund["total_pay_hrs"] - penalty_hrs - totals["ot_hours"]
-
-    # 	"total_pay_hrs" : flt(net_pay_hrs_wo_ot['total_pay_hrs'].total_seconds() / conversion_factor, 2)
 
     net_pay_hrs_wo_ot = {
         "ot_hours": "Net Hrs w/o OT",
@@ -443,7 +436,6 @@ def process_data(data, filters):
         holidays = [row.holiday_date for row in holidays if not row.weekly_off]
 
     for row in data:
-        # for security grace period 45 min
         if grace_period != 0:
             if not (row.early_hrs):
                 if row.status == "Absent":
@@ -463,14 +455,12 @@ def process_data(data, filters):
                 else:
                     row.net_wrk_hrs = timedelta(hours=shift_hours)
                     row.total_pay_hrs = row.net_wrk_hrs + (row.ot_hours or timedelta(0))
-        # if row.late_hrs:
         if row.lh:
             row.status = "LH"
         shift_hours_in_sec = 0  # added from vishabhai Code
 
         if row.shift_hours:
             shift_hours_in_sec = row.shift_hours * 3600
-            # if row.net_wrk_hrs.total_seconds() > shift_hours_in_sec.total_seconds() or (shift_hours_in_sec.total_seconds() - row.net_wrk_hrs.total_seconds()) < 60:
 
             # added from vishabhai Code
             # FIXED: Don't override LWP hours
@@ -569,15 +559,11 @@ def process_data(data, filters):
             status = "WO"
             date_time = datetime.combine(getdate(date), get_time(shift_det.start_time))
 
-            # if first_in_last_out := get_checkins(employee,date_time):
-
             ########################################################################
             # Get check-ins for this WO date
             # Note: get_checkins() may return check-ins from previous day's night shift
-            # that ended on this WO date (e.g., 31-Jan 19:59 IN, 01-Feb 08:00 OUT)
             if first_in_last_out := get_checkins(employee, date_time):
                 # Filter check-ins by checking if they have a linked Attendance record
-                # Check-ins WITH attendance field: belong to a previous shift (e.g., 31-Jan night shift)
                 # Check-ins WITHOUT attendance field: likely incomplete OT work on WO day
                 for ci in first_in_last_out:
                     # Check if this check-in is linked to an Attendance record
@@ -587,14 +573,12 @@ def process_data(data, filters):
                         "attendance",
                     ):
                         # This check-in belongs to a previous shift's attendance record
-                        # Don't show times to avoid confusion (previous shift's data)
                         has_checkin_error = (
                             False  # No error - it's from a valid previous attendance
                         )
                         row["in_time"] = ""
                         row["out_time"] = ""
                     else:
-                        # This check-in has no attendance record (incomplete OT work on WO)
                         # Show the check-in times for review
                         row["in_time"] = get_time(first_in_last_out[0].get("time"))
                         row["out_time"] = get_time(first_in_last_out[-1].get("time"))
@@ -602,13 +586,11 @@ def process_data(data, filters):
                 # No check-ins found for this WO date - clean WO
                 has_checkin_error = False
 
-            # Add OT hours if OT Log exists (created 1-2 days after work)
             if ot_hours := row.get("ot_hours"):
                 row["total_pay_hrs"] = ot_hours
             ##########################################################################
         elif (date in holidays) and (date >= getdate(emp_det.get("date_of_joining"))):
             # if row:
-            # 	if row["status"] == "P":
             if row.get("status") in ["LWP", "PL", "CL", "SL", "ML", "WFH"]:
                 pass
             else:
@@ -619,7 +601,6 @@ def process_data(data, filters):
             status = "XX"
 
         # Apply ERR status only if the date is NOT a WO, Holiday, or OD
-        # if has_checkin_error and status not in ["WO", "H", "OD"]:
         if has_checkin_error:
             row["status"] = "ERR"
             row["net_wrk_hrs"] = timedelta(0)

@@ -107,7 +107,6 @@ function fetch_manager_employee(report) {
 
 			let emp_filter = frappe.query_report.get_filter("manager");
 			if (emp_filter) {
-				// emp_filter.df.read_only = 1;
 				emp_filter.refresh();
 			}
 		}

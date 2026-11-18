@@ -1,82 +1,3 @@
-# def calculate_working_days(doc, method=None):
-#     # added by shubham
-#             "Employee Advance",
-
-#         None
-
-#     if unpaid_advance:
-#         frappe.throw(
-#     # till here shubham
-
-
-#     if not holiday_list:
-
-#     # Ensure posting_date is a datetime object
-#     if isinstance(posting_date, str):
-
-#     # Get the first day of the month
-
-
-#     # Subtract days to get the last day of the current month
-
-#
-#     # SQL query to count holidays between start_date and posting_date using frappe.db.sql
-#     working_hours_query = """
-#         SELECT SUM(working_hours)
-#         FROM `tabAttendance`
-#         WHERE employee = %s
-#         AND attendance_date BETWEEN %s AND %s
-#         AND status IN ('Present', 'Absent', 'On Leave', 'Half Day', 'Work From Home')
-#         AND docstatus = 1
-#     """
-
-#     query = """
-#         SELECT COUNT(*)
-#         FROM `tabHoliday` h
-#         JOIN `tabHoliday List` hl ON h.parent = hl.name
-#         WHERE hl.name = %s
-#         AND h.holiday_date BETWEEN %s AND %s
-#     """
-#     # Execute the SQL query to count holidays between start_date and end_date
-
-#     # Calculate total days and working days
-
-#     # Get the shift hours from the "Shift Type" linked to the default_shift of the employee
-#     if default_shift:
-#         if shift_hours is None:
-
-#     # Calculate the hourly salary and validate the advance amount
-#     if (salary and shift_hours):
-
-#         # from here shubham
-#             "Employee Advance",
-
-#         if pending_advance:
-#             frappe.throw(
-#                 "You cannot create a new advance request while a previous Amount is Unpaid"
-
-
-#         paid_advance = frappe.db.sql("""
-#             SELECT SUM(advance_amount)
-#             FROM `tabEmployee Advance`
-#             WHERE employee=%s
-#             AND docstatus=1
-#             AND workflow_state IN ('Send to Account', 'Approved')
-#         """, doc.employee)[0][0] or 0
-
-
-#         # if doc.advance_amount > remaining_amount:
-#         #     frappe.throw(
-
-#         # to here shubham
-
-
-#         if doc.advance_amount > remaining_amount:
-#         if posting_date > mid_of_month:
-#             if doc.advance_amount > salary:
-#             if doc.advance_amount > total_amount:
-
-
 # bhavika
 from datetime import datetime, timedelta
 
@@ -174,11 +95,6 @@ def calculate_working_days(doc, method=None):
     # Calculate the hourly salary and validate the advance amount
     if salary and shift_hours:
         # from here shubham
-        #     "Employee Advance",
-
-        # if pending_advance:
-        #     frappe.throw(
-        #         "You cannot create a new advance request while a previous Amount is Unpaid"
 
         day_salary = salary / working_days
 
@@ -201,8 +117,6 @@ def calculate_working_days(doc, method=None):
         )[0][0]
 
         remaining_amount = allowed_amt - paid_advance
-        # if doc.advance_amount > remaining_amount:
-        #     frappe.throw(
 
         # to here shubham
 

@@ -27,7 +27,6 @@ frappe.query_reports["Employee Punch Error"] = {
 			fieldname: "department",
 			fieldtype: "Link",
 			options: "Department",
-			// "reqd": 1,
 			get_query: function () {
 				var company = frappe.query_report.get_filter_value("company");
 				return {
@@ -101,8 +100,6 @@ frappe.query_reports["Employee Punch Error"] = {
 					return false;
 				}
 
-				console.log(selectedRowIndex, selectedRowData);
-
 				// Open the Manual Punch form with the selected row's data
 				frappe.new_doc("Manual Punch Entry", {
 					doctype: "Manual Punch Entry",
@@ -114,8 +111,6 @@ frappe.query_reports["Employee Punch Error"] = {
 			.addClass("btn-second");
 	},
 	get_datatable_options(options) {
-		console.log(options);
-
 		return Object.assign(options, {
 			checkboxColumn: true,
 		});

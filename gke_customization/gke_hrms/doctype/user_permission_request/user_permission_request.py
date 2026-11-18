@@ -49,7 +49,6 @@ class UserPermissionRequest(Document):
 
 @frappe.whitelist()
 def update_employee(job_applicant, username):
-    # if self.workflow_state == 'Update Employee':
     employee = frappe.get_all(
         "Employee", filters={"job_applicant": job_applicant}, fields=["name"]
     )
@@ -122,5 +121,4 @@ def get_task_data(task_id):
         "branch": location,
         "username": username,
         "employee": employee_id,
-        # 'operation':employee_doc.custom_operation
     }

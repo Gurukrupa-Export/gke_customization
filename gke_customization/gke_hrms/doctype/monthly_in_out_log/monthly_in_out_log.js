@@ -9,12 +9,9 @@ frappe.ui.form.on("Monthly In-Out Log", {
 					method: "populate_from_attendance",
 					doc: frm.doc,
 					callback: function (r) {
-						// TODO: Handle the response
 						const response = r.message || r.docs || [];
-						console.log(response);
 						if (response.length > 0) {
 							const doc_data = response[0];
-							// TODO: Update the form with the response
 							let filed_name = [
 								"net_wrk_hrs",
 								"spent_hrs",

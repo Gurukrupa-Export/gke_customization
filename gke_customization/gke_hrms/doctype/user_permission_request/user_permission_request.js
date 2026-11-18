@@ -23,7 +23,6 @@ frappe.ui.form.on("User Permission Request", {
 					frm.set_value("branch", data.branch);
 					frm.set_value("username", data.username);
 					frm.set_value("employee", data.employee);
-					// frm.set_value('operation', data.operation)
 				}
 			},
 		});

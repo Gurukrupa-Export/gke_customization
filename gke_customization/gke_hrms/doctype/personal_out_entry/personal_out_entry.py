@@ -69,16 +69,6 @@ class PersonalOutEntry(Document):
         Time = CustomFunction("Time", ["time"])
         Date = CustomFunction("DATE", ["dt"])
 
-        # 	.select(
-        # 		EmployeeCheckin.employee,
-        # 		EmployeeCheckin.employee_name,
-        # 		EmployeeCheckin.shift_start,
-        # 		EmployeeCheckin.shift_end
-        # 	.where(EmployeeCheckin.log_type == 'OUT')
-        # 	.groupby(EmployeeCheckin.employee, EmployeeCheckin.shift_start)
-        # 	.having(frappe.qb.Field("cnt") > 1)
-        # ).as_('emp_det')
-
         emp_det = (
             frappe.qb.from_(EmployeeCheckin)
             .left_join(ShiftType)
@@ -135,14 +125,11 @@ class PersonalOutEntry(Document):
         ).as_("pol")
 
         ########################################################
-        # alias for time of checkout (SQL Time)
         checkout_time = Time(check_out.checkout)
 
-        # SQL expression for outside_shift:
         # normal shift (start < end): checkout < start OR checkout > end
         # night shift  (start > end): checkout > end AND checkout < start
         # 	&
-        # 		&
         # bhavika
         normal_shift = (emp_det.shift_start < emp_det.shift_end) & (
             (

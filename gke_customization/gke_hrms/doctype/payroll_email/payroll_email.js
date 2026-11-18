@@ -45,19 +45,15 @@ frappe.ui.form.on("Payroll Email", {
 	from_date(frm) {
 		if (frm.doc.from_date) {
 			let from_date = frm.doc.from_date;
-			console.log("From Date: ", from_date);
 
 			// Step 1: get first day of current month
 			let start_of_month = frappe.datetime.month_start(from_date);
-			console.log("Start of Month: ", start_of_month);
 
 			// Step 2: jump to first day of next month
 			let start_of_next_month = frappe.datetime.add_months(start_of_month, 1);
-			console.log("Start of Next Month: ", start_of_next_month);
 
 			// Step 3: subtract 1 day
 			let to_date = frappe.datetime.add_days(start_of_next_month, -1);
-			console.log("To Date: ", to_date);
 
 			frm.set_value("to_date", to_date);
 		}
@@ -105,7 +101,6 @@ frappe.ui.form.on("Payroll Email", {
 					if (r.message) {
 						frm.set_value("payroll_email_details", []);
 						if (r.message.length > 0) {
-							//    set values in payroll_email_details tabel
 							frm.set_value("payroll_email_details", r.message);
 							frm.set_value("total_slips", r.message.length);
 							frm.refresh_field("payroll_email_details");

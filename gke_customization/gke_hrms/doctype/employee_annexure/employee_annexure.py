@@ -2,38 +2,6 @@
 # # For license information, please see license.txt
 
 
-# class EmployeeAnnexure(Document):
-
-# 	def validate(self):
-# 		if not self.salary_structure:
-# 			"custom_state": custom_state
-# 			# "custom_month": custom_month
-
-# 		for row in salary_structure.earnings:
-
-# 			if amount:
-# 				if not statistical_component :
-# 					self.append("earnings", {
-# 						"abbr": abbr
-
-# 		for row in salary_structure.deductions:
-
-# 			# if amount:
-# 			self.append("deductions", {
-# 				"abbr": row.abbr
-# 	def evaluate_formula(self, formula, context):
-# 		if not formula:
-# 			for key in list(context.keys()):
-# 				if isinstance(val, str):
-
-# 	# def evaluate_formula(self, formula, context):
-# 	# 	if not formula:
-
-# 	# 		for key, value in context.items():
-# 	# 			if isinstance(value, str):
-# 	# 					pass  # Ignore if not convertible
-
-
 import frappe
 from frappe.model.document import Document
 from frappe.utils import getdate

@@ -93,8 +93,6 @@ def get_columns(filters=None):
             "fieldtype": "Data",
             "width": 200,
         },
-        # 	"hidden":1
-        # },
         {
             "label": _("Punch Count"),
             "fieldname": "punch_count",

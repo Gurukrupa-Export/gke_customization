@@ -205,7 +205,6 @@ def send_payroll_emails(batch_name):
     doc = frappe.get_doc("Payroll Email", batch_name)
 
     # -------------------------------
-    # Validations (same as before)
     # -------------------------------
     if doc.status not in ("Draft", "Partial Failed", "Failed"):
         frappe.throw(

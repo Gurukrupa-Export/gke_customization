@@ -85,7 +85,6 @@ frappe.ui.form.on("Holiday Punch", {
 						let child = frm.add_child("employees");
 
 						child.employee = row.name;
-						// child.employee_name = row.employee_name;
 					});
 
 					frm.refresh_field("employees");

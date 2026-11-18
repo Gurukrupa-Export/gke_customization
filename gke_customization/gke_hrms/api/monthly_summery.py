@@ -96,7 +96,6 @@ def attendance1(from_date=None, to_date=None, employee=None):
         frappe.qb.from_(Attendance)
         .left_join(Employee)
         .on(Attendance.employee == Employee.name)
-        # .left_join(ShiftType).on(Attendance.shift == ShiftType.name)
         .left_join(ShiftAssignment)
         .on(
             (Attendance.employee == ShiftAssignment.employee)
@@ -105,7 +104,6 @@ def attendance1(from_date=None, to_date=None, employee=None):
                     ShiftAssignment.start_date, ShiftAssignment.end_date
                 )
             )
-            # & (ShiftAssignment.shift_type == Attendance.shift)
         )
         .left_join(ShiftType)
         .on(
@@ -133,7 +131,6 @@ def attendance1(from_date=None, to_date=None, employee=None):
             IF(
                 ShiftAssignment.shift_type.isnotnull(),
                 ShiftAssignment.shift_type,
-                # Attendance.shift
                 Employee.default_shift,
             ).as_("shift_name"),
             Concat(
@@ -158,7 +155,6 @@ def attendance1(from_date=None, to_date=None, employee=None):
                 None,
             ).as_("early_hrs"),
             ################################################
-            # ✅ FIXED SPENT HOURS (date aware)
             SEC_TO_TIME(
                 IF(
                     Attendance.out_time.isnull(),
@@ -227,59 +223,6 @@ def attendance1(from_date=None, to_date=None, employee=None):
     return totals
 
 
-# def attendance(from_date = None,to_date = None,employee = None):
-# 	if conditions:
-# 		data = frappe.db.sql(f"""
-#             select at.employee,
-#                 at.employee_name, at.company, at.department,
-#                 emp.allowed_personal_hours, emp.designation, emp.old_punch_id,
-#                 emp.middle_name, emp.gender, emp.date_of_birth, emp.date_of_joining, emp.holiday_list,
-#                 at.attendance_date,
-#                 concat(TIME_FORMAT(st.start_time,"%H:%i:%s"), " TO ", TIME_FORMAT(st.end_time,"%H:%i:%s")) as shift,
-#                 time(at.in_time) as in_time,
-#                 time(at.out_time) as out_time,
-#                 TIMEDIFF(at.out_time, at.in_time) as spent_hours,
-#                 at.late_entry,
-#                 if(at.late_entry, timediff(time(at.in_time), st.start_time), Null) as late_hrs,
-#                 if(at.early_exit, timediff(st.end_time, time(at.out_time)), Null) as early_hrs,
-#                 pol.hrs as p_out_hrs,
-#                 sec_to_time(
-#                     if((
-# 					#    at.attendance_request is not null or
-# 					   (at.status = "On Leave" and at.leave_type in (select name from `tabLeave Type` where is_lwp = 0))
-# 					   ),
-#                         st.shift_hours * 3600,
-#                     IF(at.out_time, time_to_sec(TIMEDIFF(at.out_time, at.in_time)), at.working_hours * 3600))
-#                     + if(at.late_entry=0 and time(at.in_time) > time(st.start_time),
-#                         time_to_sec(timediff(time(at.in_time), st.start_time)), 0)
-#                     - if(time(at.in_time) < time(st.start_time),
-#                         time_to_sec(timediff(st.start_time, time(at.in_time))), 0)
-#                     - if(at.out_time > timestamp(date(at.in_time), st.end_time),
-#                         time_to_sec(timediff(at.out_time, timestamp(date(at.in_time), st.end_time))), 0)
-#                     + (select ifnull(sum(time_to_sec(pl.total_hours)),0) from `tabPersonal Out Log` pl
-#                         where pl.is_cancelled = 0 and pl.employee = at.employee and pl.date = at.attendance_date and pl.out_time >= st.end_time)
-#                     ) as net_wrk_hrs,
-#                 st.shift_hours,
-#                 if(st.working_hours_threshold_for_half_day > at.working_hours and at.working_hours > 0, 1, 0) as lh,
-#                 ot.allowed_ot as ot_hours,
-#                 ifnull(at.leave_type, at.status) as status, at.attendance_request
-#             from
-#                 `tabAttendance` at
-#             left join `tabEmployee` emp on at.employee = emp.name
-#             left join `tabShift Type` st on emp.default_shift = st.name
-#             left join (select employee, date, sec_to_time(sum(time_to_sec(total_hours))) as hrs
-#                         from `tabPersonal Out Log` where is_cancelled = 0 group by employee, date) pol
-#                         on at.attendance_date = pol.date and at.employee = pol.employee
-#             left join (select * from `tabOT Log` where is_cancelled = 0) ot
-#                         on at.attendance_date = ot.attendance_date and at.employee = ot.employee
-#             where
-#                 at.docstatus = 1 {conditions}
-#             order by
-#                 at.employee,
-#                 at.attendance_date asc
-#             """, as_dict=True)
-
-
 @frappe.whitelist(allow_guest=True)
 def attendance(from_date=None, to_date=None, employee=None):
     Attendance = frappe.qb.DocType("Attendance")
@@ -318,18 +261,11 @@ def attendance(from_date=None, to_date=None, employee=None):
         frappe.qb.from_(OTLog).select("*").where(OTLog.is_cancelled == 0)
     ).as_("ot")
 
-    # Checkin subquery - first IN / last OUT per employee/date, only if no Attendance
-    #     .select("*")
-    #     .where(
-    #     .groupby(EmployeeCheckin.employee, DATE(EmployeeCheckin.time))
-    # ).as_("ec")
-
     # Main Query
     query = (
         frappe.qb.from_(Attendance)
         .left_join(Employee)
         .on(Attendance.employee == Employee.name)
-        # .left_join(ShiftType).on(Attendance.shift == ShiftType.name)
         .left_join(ShiftAssignment)
         .on(
             (Attendance.employee == ShiftAssignment.employee)
@@ -338,7 +274,6 @@ def attendance(from_date=None, to_date=None, employee=None):
                     ShiftAssignment.start_date, ShiftAssignment.end_date
                 )
             )
-            # & (ShiftAssignment.shift_type == Attendance.shift)
         )
         .left_join(ShiftType)
         .on(
@@ -366,7 +301,6 @@ def attendance(from_date=None, to_date=None, employee=None):
             IF(
                 ShiftAssignment.shift_type.isnotnull(),
                 ShiftAssignment.shift_type,
-                # Attendance.shift
                 Employee.default_shift,
             ).as_("shift_name"),
             Concat(
@@ -559,8 +493,6 @@ def process_data1(data, from_date, to_date, employee):
         emp_det["holiday_list"] = shift_det.get("holiday_list")
 
     if hl_name := emp_det.get("holiday_list"):
-        # holidays = frappe.get_list("Holiday", {"parent": hl_name,
-        # 			"holiday_date":["between",[from_date, to_date]]}, ["holiday_date","weekly_off"], ignore_permissions=1)
         holidays = frappe.db.sql(
             """
 				SELECT holiday_date, weekly_off
@@ -595,7 +527,6 @@ def process_data1(data, from_date, to_date, employee):
     )
 
     for row in data:
-        # for security grace period 45 min
         if grace_period != 0:
             if not (row.early_hrs):
                 if row.status == "Absent":
@@ -795,15 +726,6 @@ def process_data(data, from_date, to_date, employee):
     EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
     addition_day = add_days(to_date, 1)
 
-    # 	.select(
-    # 		EmployeeCheckin.attendance,
-    # 	.where(
-    # 		(EmployeeCheckin.time.between(from_date, addition_day)) &
-    # 		&
-    # 		(EmployeeCheckin.attendance.isnotnull()) &
-    # 	.groupby(EmployeeCheckin.attendance)
-    # ).run(as_dict=True)
-
     from_date_time = get_datetime(from_date)
     to_date_time = get_datetime(f"{addition_day} 23:59:59")
 
@@ -876,8 +798,6 @@ def process_data(data, from_date, to_date, employee):
         emp_det["holiday_list"] = shift_det.get("holiday_list")
 
     if hl_name := emp_det.get("holiday_list"):
-        # holidays = frappe.get_list("Holiday", {"parent": hl_name,
-        # 			"holiday_date":["between",[from_date, to_date]]}, ["holiday_date","weekly_off"], ignore_permissions=1)
         holidays = frappe.db.sql(
             """
 				SELECT holiday_date, weekly_off
@@ -912,7 +832,6 @@ def process_data(data, from_date, to_date, employee):
     )
 
     for row in data:
-        # for security grace period 45 min
         if grace_period != 0:
             if not (row.early_hrs):
                 if row.status == "Absent":

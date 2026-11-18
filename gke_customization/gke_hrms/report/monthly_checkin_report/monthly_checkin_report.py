@@ -194,7 +194,6 @@ def get_employee_checkins(
         if get_time(end_time) < get_time(start_time):
             end_dt = add_to_date(end_dt, days=1)
 
-        # add buffer (important)
         start_dt = add_to_date(start_dt, minutes=-90)  # -1.5 hrs buffer
         end_dt = add_to_date(end_dt, minutes=90)  # +1.5 hrs buffer
 

@@ -1,11 +1,6 @@
 // Copyright (c) 2025, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
-// frappe.ui.form.on("Manual Punch Entry", {
-// 	refresh(frm) {
-
-// 	},
-// });
 // Copyright (c) 2023, 8848 Digital LLP and contributors
 // For license information, please see license.txt
 
@@ -27,8 +22,6 @@ frappe.ui.form.on("Manual Punch Entry", {
 					date: frm.doc.date,
 				},
 				callback: function (r) {
-					console.log(r.message);
-
 					if (r.message) {
 						frm.set_value("shift_name", r.message);
 					} else {
@@ -47,8 +40,6 @@ frappe.ui.form.on("Manual Punch Entry", {
 					date: frm.doc.date,
 				},
 				callback: function (r) {
-					console.log(r.message);
-
 					if (r.message) {
 						frm.set_value("shift_name", r.message);
 					} else {
@@ -69,7 +60,6 @@ frappe.ui.form.on("Manual Punch Entry", {
 			doc: frm.doc,
 			callback: function (r) {
 				var checkins = r.message;
-				console.log(checkins);
 				$.each(checkins || [], function (i, d) {
 					if (!d.source) {
 						d.source = "Employee Checkin";
@@ -137,44 +127,3 @@ function add_punch(frm, time) {
 		frm.add_child("details", d);
 	});
 }
-
-// frappe.db.get_list("Shift Assignment", {
-// 				fields: ["name", "shift_type"],
-// 				filters: [
-// 					["employee", "=", frm.doc.employee],
-// 					["start_date", "<=", frm.doc.date],
-// 					["docstatus", "=", 1],
-// 					["end_date", "is", "not set"],
-
-// 				],
-// 				limit: 1
-// 			}).then(assignments => {
-
-// 				if (assignments.length > 0) {
-// 					frm.set_value("shift_name", assignments[0].shift_type);
-// 				}
-// 				else {
-// 					// Second query: where end_date IS not NULL
-// 					frappe.db.get_list("Shift Assignment", {
-// 						fields: ["name", "shift_type"],
-// 						filters: [
-// 							["employee", "=", frm.doc.employee],
-// 							["start_date", "<=", frm.doc.date],
-// 							["end_date", "is", "set"],
-// 							["docstatus", "=", 1]
-// 						],
-// 						limit: 1
-// 					}).then(null_end_assign => {
-// 						if (null_end_assign.length > 0) {
-// 							frm.set_value("shift_name", null_end_assign[0].shift_type);
-// 						}
-// 						else {
-// 							// Fallback to default shift
-// 							frappe.db.get_value("Employee", frm.doc.employee, ["default_shift"])
-// 								.then(emp_res => {
-// 									frm.set_value("shift_name", emp_res.message.default_shift);
-// 								});
-// 						}
-// 					});
-// 				}
-// 			});

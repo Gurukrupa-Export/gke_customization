@@ -122,7 +122,6 @@ def get_checkin_window(date, attendance_data, shift_timings):
         if get_time(end_time) < get_time(start_time):
             end_dt = add_to_date(end_dt, days=1)
 
-        # add buffer (important)
         start_dt = add_to_date(start_dt, minutes=-90)  # -1.5 hrs buffer
         end_dt = add_to_date(end_dt, minutes=90)  # +1.5 hrs buffer
 
@@ -362,7 +361,6 @@ def get_data(filters):
     employee_list = [employee]
     holiday_map = get_holiday_weekoff_map(employee_list, company, from_date, to_date)
 
-    # Fetch employee details once (not per date)
     employee_details = (
         frappe.db.get_value(
             "Employee",
@@ -550,7 +548,6 @@ def process_data(
                 else (get_time(shift_det.end_time) if shift_det else None)
             )
 
-            # Default predefined OT from OT Details (if exists & approved)
             predefined_ot_hrs = None
             ot_detail = ot_details_map.get(date)
 

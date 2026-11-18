@@ -154,10 +154,6 @@ def get_account_total_summary(filters=None):
 
     employee_count = sum(1 for row in eps_wage_total if (row.get("eps_wage") > 0))
 
-    # if isinstance(employee_count_raw, str) and ":" in employee_count_raw:
-
-    # if isinstance(employee_count_raw, str) and ":" in employee_count_raw:
-
     ac10_subscribers = employee_count
 
     total_epf_amount = total_row.get("epf_wage", 0)
@@ -245,7 +241,6 @@ def export_txt(filters=None):
     data = get_data(filters)
 
     lines = []
-    # for row in data[163:165]:
     for row in data:
         # skip total row if present
         if row.get("company") == "Total":
@@ -265,7 +260,6 @@ def export_txt(filters=None):
         # only include employees with age < 58
 
         if row.get("employee_id"):
-            # and age < 58:
             gross_pay = round(row.get("gross_pay") or 0)
             uan_number = frappe.db.get_value(
                 "Employee", row["employee_id"], "uan_number"

@@ -15,63 +15,6 @@ def get_account_total_summary_for_print(company, from_date, to_date):
     return get_account_total_summary(filters)
 
 
-# @frappe.whitelist()
-# def check_sadwitch_rule():
-#     if manual:
-
-#         if today.weekday() == 6:
-
-
-#         "Attendance",
-#             "attendance_date": ["between", [formatted_from_date, formatted_to_date]]
-#         },
-#     # Group attendance records by employee
-#     for attendance in absent_attendances:
-
-
-#     for employee, attendances in employee_attendance_map.items():
-#         if not holiday_list:
-
-#             "Holiday",
-#                 "weekly_off": 0
-#             },
-
-#             "Holiday",
-#                 "weekly_off": 1
-#             },
-
-
-#         # Sort attendance records by date
-
-#         # Check each holiday if it is sandwiched between absents
-#         for holiday in holiday_dates:
-
-
-#             # Check previous consecutive absent days / holidays / weekoffs
-#             while prev_day in attendance_dates or prev_day in holiday_dates or prev_day in weekoff_dates:
-
-#             # Check next consecutive absent days / holidays / weekoffs
-#             while next_day in attendance_dates or next_day in holiday_dates or next_day in weekoff_dates:
-
-#             # Only mark LOP if absent exists on both sides of the holiday
-#             if prev_absent_days and next_absent_days:
-
-#                 # Insert all holidays in the range from prev_absent_days to next_absent_days
-#                 # Insert only holidays (not weekoffs) in the LOP list
-#                 for day in sorted(all_lop_dates):
-#                     if day not in weekoff_dates:   # 🚫 exclude weekoffs
-
-#     # Insert new attendance records for holidays
-#     for holiday_entry in holidays_to_insert:
-
-#         # Check if attendance already exists
-#             "Attendance",
-#         if not existing_attendance:
-#                 "docstatus": 1
-
-#     # Commit changes to the database
-
-
 # 21-01-2026 by Aditya
 @frappe.whitelist()
 def check_sadwitch_rule():
@@ -222,7 +165,6 @@ def check_sadwitch_rule():
                         holidays_to_insert.append({"employee": employee, "date": day})
 
     # --------------------------------------------------
-    # Insert Attendance (LWP)
     # --------------------------------------------------
     for entry in holidays_to_insert:
         employee = entry["employee"]
@@ -447,7 +389,6 @@ def get_employees_by_shift(shift_type: str, date: Optional[date] = None) -> List
     )
 
     # Final check: Ensure employees matching via assignment are also Active
-    # (Though assignments usually imply active status, this is safer)
     active_matching_assignment = []
     if employees_matching_assignment:
         active_matching_assignment = frappe.get_all(

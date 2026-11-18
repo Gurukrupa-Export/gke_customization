@@ -66,7 +66,6 @@ class CrossCompanyEmployeeTransfer(Document):
             payload.pop(field, None)
 
         # -------------------------
-        # Remove child tables (first test without them)
         # -------------------------
         child_tables = [
             "education",
@@ -93,13 +92,7 @@ class CrossCompanyEmployeeTransfer(Document):
             "Holiday List": "holiday_list",
         }
 
-        # def get_property_data_by_property():
-        # 		for row in self.transfer_details:
-
         for table in child_tables:
-            # if table == "internal_work_history":
-            # 	payload.setdefault(table, []).append({
-            # 		"to_date": nowdate()
             payload.pop(table, None)
 
         for row in self.transfer_details:
@@ -111,12 +104,7 @@ class CrossCompanyEmployeeTransfer(Document):
             if not fieldname:
                 continue
 
-            # if fieldname in ["expense_approver", "reports_to", "shift_request_approver", "leave_approver"]:
-            # if fieldname == "holiday_list":
-
             # 	# "KGJPL - 00628 - Alpeshbhai Sureshbhai Rathod"
-
-            # 	if len(parts) >= 2:
 
             fieldname = field_map.get(row.property)
 
@@ -133,8 +121,6 @@ class CrossCompanyEmployeeTransfer(Document):
             else:
                 # Department / Designation / Shift / User
                 payload[fieldname] = row.new
-
-        # if self.new_company == "Gurukrupa Export Private Limited":
 
         payload["date_of_joining"] = self.transfer_date
 
