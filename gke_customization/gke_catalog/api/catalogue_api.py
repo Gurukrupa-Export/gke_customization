@@ -3428,8 +3428,8 @@ def get_wishlist_item_for_customer_by_user(items, customers, user_type):
             fields=["name"]
         )
         
-
-        user_id = frappe.db.get_list(
+        #mansi changes
+        user_id = frappe.db.get_all(
             "Cataloge Master",
             filters={"user": customer},
             fields=["name"]
@@ -3482,7 +3482,7 @@ def get_wishlist_item_for_customer_by_user(items, customers, user_type):
                 as_per_customized = items_dict.get("as_per_customized")
                 customized_data = items_dict.get("customized_data")
                 status = items_dict.get("status")
-                folder_name = items_dict.get("folder_name")
+                folder_name = items_dict.get("folder_name") or items_dict.get("name")  #mansi changes
                 is_duplicate  = items_dict.get("is_duplicate")
                 name = items_dict.get("name")
                 customer_gold = items_dict.get("customer_gold")
@@ -3832,7 +3832,7 @@ def get_wishlist_item_for_customer_by_user(items, customers, user_type):
                 customized_data = items_dict.get("customized_data")
                 status = items_dict.get("status")
                 name = items_dict.get("name")
-                folder_name = items_dict.get("folder_name")
+                folder_name = items_dict.get("folder_name") or items_dict.get("name") #mansi changes
 
                 customer_gold = items_dict.get("customer_gold")
                 customer_diamond = items_dict.get("customer_diamond")
@@ -4879,7 +4879,7 @@ def add_item_in_folder(status=None, name=None, item=None, customer=None):
         frappe.throw("Customer is required")
 
     # Only required for ADD and REMOVE
-    if status in ["ADD", "REMOVE"] and not item:
+    if status in ["ADD", "REMOVE", "DELETE"] and not item: #mansi changes
         frappe.throw("Item list is required")
 
     # Convert JSON string to list safely
@@ -4898,8 +4898,10 @@ def add_item_in_folder(status=None, name=None, item=None, customer=None):
         FROM `tabCataloge Master` AS ctm
         LEFT JOIN `tabCataloge Item Details` AS citm
             ON citm.parent = ctm.name
-        WHERE ctm.customer = %(customer)s
+        # WHERE ctm.customer = %(customer)s
+        WHERE (ctm.customer = %(customer)s OR ctm.user = %(customer)s) 
     """
+    #mansi changes
 
     # Add condition only for ADD and REMOVE
     if status in ["ADD", "REMOVE"]:
