@@ -8,11 +8,28 @@ from gke_customization.gke_catalog.report.product_development_to_production.prod
 	get_data as get_report_data,
 )
 from gke_customization.gke_catalog.report.cad_dashboard_script.cad_dashboard_script import (
+	BUCKET_LABELS,
 	REJECTED_STATES,
 	_bucket_of,
 )
 
 CACHE_TTL = 600
+
+# A CAD order's current workflow_state bucket implies how far along the
+# (mostly) linear design pipeline it has travelled - used to build a
+# cumulative "reached this stage or further" funnel from current state alone,
+# since no stage-history is tracked. on_hold/rework variants are folded into
+# the stage they're blocking/revisiting rather than getting their own rank.
+CAD_STAGE_RANK = {
+	"pending": 0,
+	"assigned": 1,
+	"assigned_on_hold": 1,
+	"designing": 2,
+	"designing_on_hold": 2,
+	"rework": 2,
+	"qc": 3,
+	"approved": 4,
+}
 
 
 def _parse_filters(filters):
@@ -37,6 +54,104 @@ def _cached_rows(filters):
 		rows = get_report_data(date_filters)
 		frappe.cache().set_value(key, rows, expires_in_sec=CACHE_TTL)
 	return rows
+
+
+def _cad_orders_without_sketch(filters):
+	"""CAD Orders (`tabOrder`, bom_or_cad='CAD') that have no Sketch Order behind
+	them at all - these can never show up in `_cached_rows`/the Product
+	Development To Production report, since that report's query always starts
+	FROM Sketch Order and only ever reaches a CAD Order by joining onto one
+	that already exists. So this is a separate, direct query over `tabOrder`
+	instead of a filter over the report's own rows."""
+	date_filters = _date_filters(filters)
+	key = f"pdtp_dashboard_cad_without_sketch:{frappe.as_json(date_filters, indent=None)}"
+	rows = frappe.cache().get_value(key)
+	if rows is not None:
+		return rows
+
+	conditions = ["o.bom_or_cad = 'CAD'", "o.docstatus != 2", "o.workflow_state != 'Cancelled'"]
+	params = {}
+	if date_filters.get("from_date"):
+		conditions.append("o.order_date >= %(from_date)s")
+		params["from_date"] = date_filters["from_date"]
+	if date_filters.get("to_date"):
+		conditions.append("o.order_date <= %(to_date)s")
+		params["to_date"] = date_filters["to_date"]
+	where = " AND ".join(conditions)
+
+	rows = frappe.db.sql(
+		f"""
+		SELECT
+			o.name AS cad_order_no,
+			o.design_id AS item_code,
+			o.order_date AS cad_order_date,
+			o.workflow_state AS cad_workflow_state,
+			o.customer_code AS customer
+		FROM `tabOrder` o
+		WHERE {where}
+			AND NOT EXISTS (
+				SELECT 1 FROM `tabSketch Order` so
+				LEFT JOIN `tabFinal Sketch Approval CMO` fsac
+					ON fsac.parent = so.name
+					AND fsac.parenttype = 'Sketch Order'
+					AND fsac.parentfield = 'final_sketch_approval_cmo'
+				WHERE so.item_code = o.design_id OR fsac.item = o.design_id
+			)
+		ORDER BY o.order_date DESC
+		""",
+		params,
+		as_dict=True,
+	)
+	for row in rows:
+		row["cad_bucket"] = _bucket_of(row["cad_workflow_state"]) if row.get("cad_workflow_state") else None
+
+	frappe.cache().set_value(key, rows, expires_in_sec=CACHE_TTL)
+	return rows
+
+
+def _sketch_order_completion_dates(sketch_order_nos):
+	"""The month a Sketch Order is considered "completed" for the monthly
+	chart is the month it got its item_code - but item_code is written via
+	`frappe.db.set_value(...)` in `make_items()` (see Sketch Order's
+	on_submit), which bypasses Frappe's change-tracking entirely, so there is
+	no Version diff for the item_code field itself to look up (confirmed: zero
+	such diffs exist in this instance's data).
+
+	`make_items()` runs inside `on_submit()` though, so item_code is always
+	generated in the same request that flips the Sketch Order's docstatus
+	0 -> 1. That transition *is* a normal tracked save, so it shows up in
+	Version history - this uses the earliest such transition as a stand-in
+	for "item_code was generated". Falls back to the Sketch Order's own
+	`creation` timestamp for the rare doc with no such Version entry (e.g.
+	submitted before Version tracking was turned on, or version log purged)."""
+	if not sketch_order_nos:
+		return {}
+
+	completion = {}
+	version_rows = frappe.db.get_all(
+		"Version",
+		filters={"ref_doctype": "Sketch Order", "docname": ["in", sketch_order_nos]},
+		fields=["docname", "creation", "data"],
+		order_by="creation asc",
+	)
+	for v in version_rows:
+		if v.docname in completion:
+			continue
+		try:
+			data = json.loads(v.data) if v.data else {}
+		except (TypeError, ValueError):
+			continue
+		for change in data.get("changed") or []:
+			if len(change) >= 3 and change[0] == "docstatus" and change[1] in (0, "0") and change[2] in (1, "1"):
+				completion[v.docname] = v.creation
+				break
+
+	missing = [name for name in sketch_order_nos if name not in completion]
+	if missing:
+		for d in frappe.db.get_all("Sketch Order", filters={"name": ["in", missing]}, fields=["name", "creation"]):
+			completion[d.name] = d.creation
+
+	return completion
 
 
 def _split_bulk_values(value):
@@ -84,28 +199,75 @@ def _apply_extra_filters(rows, filters):
 	return [r for r in rows if matches(r)]
 
 
-def _rows_with_cad_status(filters):
+def _rows_with_cad_status(filters, include_cancelled=False):
 	"""Report rows enriched with the linked CAD Order's workflow_state/bucket,
 	reusing the exact bucketing used by the CAD Order Dashboard so "received"
-	means the same thing across both pages."""
+	means the same thing across both pages.
+
+	Cancelled CAD Orders are ignored unless `include_cancelled` is set - only
+	the CAD Order funnel (and its drill-downs) counts them."""
 	rows = _cached_rows(filters)
 	rows = _apply_extra_filters(rows, filters)
 
 	cad_names = list({row.get("cad_order_no") for row in rows if row.get("cad_order_no")})
 	status_map = {}
+	cancelled_cads = set()
 	if cad_names:
-		status_map = {
-			d.name: d.workflow_state
-			for d in frappe.db.get_all(
-				"Order", filters={"name": ["in", cad_names]}, fields=["name", "workflow_state"]
-			)
+		for d in frappe.db.get_all(
+			"Order", filters={"name": ["in", cad_names]}, fields=["name", "workflow_state", "docstatus"]
+		):
+			status_map[d.name] = d.workflow_state
+			if d.workflow_state == "Cancelled" or d.docstatus == 2:
+				cancelled_cads.add(d.name)
+
+	if cancelled_cads and not include_cancelled:
+		# Cancelled CAD Orders are ignored entirely. Rows are (sketch order,
+		# CAD order) pairs, so a design whose only CAD order was cancelled must
+		# stay (as a design with no CAD yet) rather than vanish; if the design
+		# also has another, live CAD order, the cancelled pair is just dropped.
+		def design_key(r):
+			return (r.get("sketch_order_no"), r.get("item_code"))
+
+		live_designs = {
+			design_key(r)
+			for r in rows
+			if not r.get("cad_order_no") or r["cad_order_no"] not in cancelled_cads
 		}
+		kept, seen_unlinked = [], set()
+		for r in rows:
+			if r.get("cad_order_no") not in cancelled_cads:
+				kept.append(r)
+				continue
+			key = design_key(r)
+			if key in live_designs or key in seen_unlinked:
+				continue
+			seen_unlinked.add(key)
+			r["cad_order_no"] = None
+			r["cad_order_date"] = None
+			# CAD *was* placed (then cancelled), so this isn't a "CAD not placed" blocker.
+			r["cad_cancelled_only"] = True
+			kept.append(r)
+		rows = kept
 
 	for row in rows:
 		cad_no = row.get("cad_order_no")
 		state = status_map.get(cad_no) if cad_no else None
 		row["cad_workflow_state"] = state
 		row["cad_bucket"] = _bucket_of(state) if state else None
+
+	sketch_names = list({row.get("sketch_order_no") for row in rows if row.get("sketch_order_no")})
+	sketch_state_map = {}
+	if sketch_names:
+		sketch_state_map = {
+			d.name: d.workflow_state
+			for d in frappe.db.get_all(
+				"Sketch Order", filters={"name": ["in", sketch_names]}, fields=["name", "workflow_state"]
+			)
+		}
+
+	for row in rows:
+		sketch_no = row.get("sketch_order_no")
+		row["sketch_workflow_state"] = sketch_state_map.get(sketch_no) if sketch_no else None
 
 	return rows
 
@@ -114,8 +276,9 @@ def _matches_stage(row, stage):
 	if stage == "cad_raised":
 		return bool(row.get("cad_order_no"))
 	if stage == "cad_pending":
-		# Sketch approved but no CAD order placed against it yet.
-		return not row.get("cad_order_no")
+		# Sketch approved but no CAD order placed against it yet, and no
+		# StyleBio either (both must be blank).
+		return not row.get("cad_order_no") and not row.get("stylebio") and not row.get("cad_cancelled_only")
 	if stage == "cad_not_received":
 		# CAD order placed, but the design hasn't come back approved yet.
 		return bool(row.get("cad_order_no")) and row.get("cad_bucket") not in ("approved", None) and row.get(
@@ -129,6 +292,30 @@ def _matches_stage(row, stage):
 		return cint(row.get("total_sold")) > 0
 	if stage == "has_stylebio":
 		return bool(row.get("stylebio"))
+	if stage == "no_stylebio":
+		return not row.get("stylebio")
+	if stage == "no_tag":
+		return not row.get("first_tag_date")
+	if stage == "cad_order_raised":
+		return bool(row.get("cad_order_no"))
+	if stage == "cad_order_rejected":
+		return row.get("cad_bucket") == "rejected"
+	if stage == "sketch_order_designing":
+		# Running Sketch Orders = Sketch Orders whose workflow state is "Assigned".
+		return row.get("sketch_workflow_state") == "Assigned"
+	if stage == "cad_order_running_designing":
+		# Currently sitting in the design stage itself - not just "reached
+		# designing or beyond" like the cumulative cad_order_designing funnel
+		# stage, but still there right now.
+		return row.get("cad_bucket") in ("designing", "designing_on_hold", "rework")
+	cad_rank = {
+		"cad_order_assigned": 1,
+		"cad_order_designing": 2,
+		"cad_order_qc": 3,
+		"cad_order_completed": 4,
+	}.get(stage)
+	if cad_rank is not None:
+		return CAD_STAGE_RANK.get(row.get("cad_bucket"), -1) >= cad_rank
 	return True  # sketch_approved - every row already passed the CMO-approval join
 
 
@@ -148,6 +335,18 @@ def _month_keys_in_range(from_date, to_date):
 	return months
 
 
+def _cad_order_buckets(rows):
+	"""One cad_bucket per distinct cad_order_no - rows share a CAD order's
+	workflow_state, so dedup by order number rather than counting every
+	design row against it."""
+	buckets = {}
+	for row in rows:
+		cad_no = row.get("cad_order_no")
+		if cad_no:
+			buckets[cad_no] = row.get("cad_bucket")
+	return buckets
+
+
 def _avg_days(rows, start_field, end_field):
 	diffs = []
 	for row in rows:
@@ -164,10 +363,27 @@ def get_dashboard_data(filters=None):
 	total = len(rows)
 
 	unique_sketch_orders = len({r["sketch_order_no"] for r in rows if r.get("sketch_order_no")})
-	unique_cad_orders = len({r["cad_order_no"] for r in rows if r.get("cad_order_no")})
+	# Includes cancelled CAD orders, to match the CAD Order funnel's "Raised" count.
+	rows_incl_cancelled = _rows_with_cad_status(filters, include_cancelled=True)
+	unique_cad_orders = len({r["cad_order_no"] for r in rows_incl_cancelled if r.get("cad_order_no")})
 	unique_stylebio = len({r["stylebio"] for r in rows if r.get("stylebio")})
 	tagged_designs = sum(1 for r in rows if _matches_stage(r, "tagged"))
 	total_pcs_sold = sum(cint(r.get("total_sold")) for r in rows)
+
+	running_sketch_orders = len(
+		{
+			r["sketch_order_no"]
+			for r in rows
+			if r.get("sketch_order_no") and _matches_stage(r, "sketch_order_designing")
+		}
+	)
+	running_cad_orders = len(
+		{
+			r["cad_order_no"]
+			for r in rows
+			if r.get("cad_order_no") and _matches_stage(r, "cad_order_running_designing")
+		}
+	)
 
 	summary_kpis = [
 		{
@@ -177,10 +393,22 @@ def get_dashboard_data(filters=None):
 			"count": unique_sketch_orders,
 		},
 		{"key": "total_designs", "stage": "sketch_approved", "label": "Total Designs", "count": total},
-		{"key": "total_cad_orders", "stage": "cad_raised", "label": "Total CAD Orders", "count": unique_cad_orders},
+		{"key": "total_cad_orders", "stage": "cad_order_raised", "label": "Total CAD Orders", "count": unique_cad_orders},
 		{"key": "total_stylebio", "stage": "has_stylebio", "label": "Unique StyleBio", "count": unique_stylebio},
 		{"key": "total_tags", "stage": "tagged", "label": "Total Tags", "count": tagged_designs},
 		{"key": "total_pcs_sold", "stage": "sold", "label": "Total Pcs Sold", "count": total_pcs_sold},
+		{
+			"key": "running_sketch_orders",
+			"stage": "sketch_order_designing",
+			"label": "Running Sketch Orders (Designing)",
+			"count": running_sketch_orders,
+		},
+		{
+			"key": "running_cad_orders",
+			"stage": "cad_order_running_designing",
+			"label": "Running CAD Orders (Designing)",
+			"count": running_cad_orders,
+		},
 	]
 
 	funnel = [
@@ -200,12 +428,33 @@ def get_dashboard_data(filters=None):
 			"label": "First Tag",
 			"count": sum(1 for r in rows if _matches_stage(r, "tagged")),
 		},
-		{
-			"stage": "sold",
-			"label": "Sold",
-			"count": sum(1 for r in rows if _matches_stage(r, "sold")),
-		},
 	]
+
+	cad_buckets = _cad_order_buckets(rows_incl_cancelled)
+	total_cad = len(cad_buckets)
+	non_rejected_ranks = [
+		CAD_STAGE_RANK[b] for b in cad_buckets.values() if b in CAD_STAGE_RANK
+	]
+	rejected_cad = sum(1 for b in cad_buckets.values() if b == "rejected")
+
+	def _reached(rank):
+		return sum(1 for r in non_rejected_ranks if r >= rank)
+
+	# Stage labels for everything past "raised" are pulled straight from the
+	# CAD Order Dashboard's own BUCKET_LABELS (and its "Completed" wording for
+	# the folded "approved" bucket - see PAGE_BUCKET_LABELS there) so this
+	# funnel's terminology for a given status always matches that dashboard.
+	cad_funnel = [
+		{"stage": "cad_order_raised", "label": "CAD Orders Raised", "count": total_cad},
+		{"stage": "cad_order_assigned", "label": BUCKET_LABELS["assigned"], "count": _reached(1)},
+		{"stage": "cad_order_designing", "label": BUCKET_LABELS["designing"], "count": _reached(2)},
+		{"stage": "cad_order_qc", "label": BUCKET_LABELS["qc"], "count": _reached(3)},
+		{"stage": "cad_order_completed", "label": "Completed", "count": _reached(4)},
+		{"stage": "cad_order_rejected", "label": BUCKET_LABELS["rejected"], "count": rejected_cad},
+	]
+
+	no_sketch_cad = _cad_orders_without_sketch(filters)
+	no_sketch_completed = sum(1 for r in no_sketch_cad if r.get("cad_bucket") == "approved")
 
 	blockers = [
 		{
@@ -217,6 +466,23 @@ def get_dashboard_data(filters=None):
 			"stage": "cad_not_received",
 			"label": "CAD Order Placed – Design Not Received",
 			"count": sum(1 for r in rows if _matches_stage(r, "cad_not_received")),
+		},
+		{
+			"stage": "cad_without_sketch",
+			"label": "CAD Without Sketch Order",
+			"count": len(no_sketch_cad),
+			"completed_count": no_sketch_completed,
+			"completed_pct": round(no_sketch_completed / len(no_sketch_cad) * 100, 1) if no_sketch_cad else 0,
+		},
+		{
+			"stage": "no_stylebio",
+			"label": "No StyleBio Designs",
+			"count": sum(1 for r in rows if _matches_stage(r, "no_stylebio")),
+		},
+		{
+			"stage": "no_tag",
+			"label": "No Tag Designs",
+			"count": sum(1 for r in rows if _matches_stage(r, "no_tag")),
 		},
 	]
 
@@ -237,9 +503,10 @@ def get_dashboard_data(filters=None):
 		"sketch_to_tag": _avg_days(rows, "sketch_order_date", "first_tag_date"),
 	}
 
+	_attach_erp_category(rows)
 	category_map = {}
 	for row in rows:
-		key = row.get("category_name") or "Uncategorized"
+		key = row.get("erp_category") or "Uncategorized"
 		bucket = category_map.setdefault(
 			key, {"category": key, "total": 0, "stylebio": 0, "tagged": 0, "sold_qty": 0}
 		)
@@ -260,17 +527,44 @@ def get_dashboard_data(filters=None):
 			bucket["tagged"] += 1
 		bucket["sold_qty"] += cint(row.get("total_sold"))
 	customer_breakdown = sorted(customer_map.values(), key=lambda b: -b["total"])[:20]
+	customer_names = {
+		c.name: c.customer_name
+		for c in frappe.db.get_all(
+			"Customer",
+			filters={"name": ["in", [b["customer"] for b in customer_breakdown]]},
+			fields=["name", "customer_name"],
+		)
+	}
+	for b in customer_breakdown:
+		b["customer_name"] = customer_names.get(b["customer"]) or b["customer"]
 
 	month_keys = _month_keys_in_range(filters.get("from_date"), filters.get("to_date"))
 
-	monthly_map = {}
+	# "Completed" here = the Sketch Order behind the design got its item_code -
+	# see `_sketch_order_completion_dates` for why that's resolved via the
+	# order's submit (docstatus 0->1) event rather than first_tag_date.
+	sketch_order_nos = list({r["sketch_order_no"] for r in rows if r.get("sketch_order_no")})
+	completion_dates = _sketch_order_completion_dates(sketch_order_nos)
+
+	# Each unique item code is counted exactly once overall, in the month of
+	# its earliest completion date.
+	first_completion = {}
 	for row in rows:
-		if not row.get("first_tag_date"):
+		item_code = row.get("item_code")
+		completion_date = completion_dates.get(row.get("sketch_order_no"))
+		if not item_code or not completion_date:
 			continue
-		month_key = getdate(row["first_tag_date"]).strftime("%Y-%m")
+		if item_code not in first_completion or completion_date < first_completion[item_code]:
+			first_completion[item_code] = completion_date
+
+	monthly_items = {}
+	for item_code, completion_date in first_completion.items():
+		month_key = getdate(completion_date).strftime("%Y-%m")
 		if month_keys and month_key not in month_keys:
-			continue  # outside the selected filter window - first_tag_date isn't what from_date/to_date filters on
-		monthly_map[month_key] = monthly_map.get(month_key, 0) + 1  # count of designs completed, not pcs
+			continue  # outside the selected filter window
+		monthly_items.setdefault(month_key, set()).add(item_code)
+
+	monthly_map = {k: len(v) for k, v in monthly_items.items()}
 
 	if not month_keys:
 		month_keys = sorted(monthly_map.keys())
@@ -287,6 +581,7 @@ def get_dashboard_data(filters=None):
 	return {
 		"summary_kpis": summary_kpis,
 		"funnel": funnel,
+		"cad_funnel": cad_funnel,
 		"blockers": blockers,
 		"stylebio_tag_ratio": stylebio_tag_ratio,
 		"lead_times": lead_times,
@@ -342,15 +637,93 @@ def _attach_images(rows):
 	return rows
 
 
+def _attach_erp_category(rows):
+	"""Set row["erp_category"] from the ERP Item's item_category (not Jwelex)."""
+	item_codes = list({r["item_code"] for r in rows if r.get("item_code")})
+	category_by_item = {}
+	if item_codes:
+		category_by_item = {
+			it.name: it.item_category
+			for it in frappe.db.get_all(
+				"Item", filters={"name": ["in", item_codes]}, fields=["name", "item_category"]
+			)
+		}
+	for row in rows:
+		row["erp_category"] = category_by_item.get(row.get("item_code"))
+	return rows
+
+
+def _attach_erp_details(rows):
+	"""Category, Setting, Dia Wt and Metal Wt for the detail list - all from
+	ERP (Item + the item's default BOM, else its latest BOM), never from
+	Jwelex."""
+	item_codes = list({r["item_code"] for r in rows if r.get("item_code")})
+	item_map = {}
+	bom_map = {}
+	if item_codes:
+		for it in frappe.db.get_all(
+			"Item",
+			filters={"name": ["in", item_codes]},
+			fields=["name", "item_category", "setting_type"],
+		):
+			item_map[it.name] = it
+
+		for b in frappe.db.get_all(
+			"BOM",
+			filters={"item": ["in", item_codes], "docstatus": ["<", 2]},
+			fields=["item", "total_diamond_weight", "total_metal_weight"],
+			order_by="is_default asc, modified asc",
+		):
+			bom_map[b.item] = b  # later rows (default, most recent) win
+
+	for row in rows:
+		it = item_map.get(row.get("item_code")) or {}
+		bom = bom_map.get(row.get("item_code")) or {}
+		row["erp_category"] = it.get("item_category")
+		row["erp_setting"] = it.get("setting_type")
+		row["dia_wt"] = bom.get("total_diamond_weight")
+		row["metal_wt"] = bom.get("total_metal_weight")
+
+	return rows
+
+
 @frappe.whitelist()
-def get_segment_rows(filters=None, stage=None, category=None, customer=None):
+def get_segment_rows(filters=None, stage=None, category=None, customer=None, month=None):
 	filters = _parse_filters(filters)
-	rows = _rows_with_cad_status(filters)
+
+	if stage == "cad_without_sketch":
+		# These orders never appear in the Sketch-Order-anchored report rows
+		# (see `_cad_orders_without_sketch`), so they're fetched separately
+		# rather than filtered out of `_rows_with_cad_status`.
+		rows = _cad_orders_without_sketch(filters)
+		if customer:
+			rows = [r for r in rows if (r.get("customer") or "Unknown") == customer]
+		return _attach_erp_details(_attach_images(rows))
+
+	# The CAD Order funnel counts cancelled CAD orders, so its drill-downs must too.
+	rows = _rows_with_cad_status(filters, include_cancelled=(stage or "").startswith("cad_order_"))
 
 	rows = [r for r in rows if _matches_stage(r, stage)]
 	if category:
-		rows = [r for r in rows if (r.get("category_name") or "Uncategorized") == category]
+		_attach_erp_category(rows)
+		rows = [r for r in rows if (r.get("erp_category") or "Uncategorized") == category]
 	if customer:
 		rows = [r for r in rows if (r.get("customer") or "Unknown") == customer]
+	if month:
+		# Same "completed" definition as the monthly chart itself - see
+		# `_sketch_order_completion_dates`.
+		sketch_order_nos = list({r["sketch_order_no"] for r in rows if r.get("sketch_order_no")})
+		completion_dates = _sketch_order_completion_dates(sketch_order_nos)
+		# Same rule as the chart: one row per unique item code, in the month
+		# of its earliest completion date.
+		first = {}
+		for r in rows:
+			d = completion_dates.get(r.get("sketch_order_no"))
+			if r.get("item_code") and d and (r["item_code"] not in first or d < first[r["item_code"]][0]):
+				first[r["item_code"]] = (d, r)
+		rows = [
+			r for d, r in first.values()
+			if getdate(d).strftime("%Y-%m") == month
+		]
 
-	return _attach_images(rows)
+	return _attach_erp_details(_attach_images(rows))
