@@ -621,11 +621,12 @@ def send_daily_attendance_report(date=None, department=None):
 		# frappe.throw(f"cc mail {cc} manager_string {manager_string}")	
 
 		html = render_email_html(dept, date, rows, summary)
+		sender_id = frappe.db.get_value("Biometric Settings", "Biometric Settings", "auto_mail_id") or "alerts@gkexport.com"
 		frappe.sendmail(
 			recipients=manager_string,
 			# cc=["raghav_r@gkexport.com"],
 			cc=cc,
-			sender="alerts@gkexport.com",
+			sender=sender_id,
 			subject=f"Daily Attendance Report — {dept} — {formatdate(date, 'dd-mm-yyyy')}",
 			message=html,
 			now=True,expose_recipients="header"

@@ -211,6 +211,11 @@ frappe.ui.form.on('Order Form', {
 		// 	};
 		// }
 	},
+	sales_type(frm) {
+		if (frm.doc.sales_type == 'Outright' && frm.doc.diamond_quality == 'Customer Diamond Quality') {
+			frm.set_value('diamond_quality', '');
+		}
+	},
 	refresh(frm){
 		frm.add_custom_button(__("Get Customer Order Form"), function(){
             erpnext.utils.map_current_doc({
@@ -1419,9 +1424,13 @@ function set_filters_on_child_table_fields(frm, fields) {
 function set_filters_on_parent_table_fields(frm, fields) {
 	fields.map(function (field) {
 		frm.set_query(field[0], function (doc) {
+			let filters = { 'item_attribute': field[1], "customer_code": doc.customer_code };
+			if (field[0] == 'diamond_quality' && doc.sales_type == 'Outright') {
+				filters.exclude_value = 'Customer Diamond Quality';
+			}
 			return {
 				query: 'jewellery_erpnext.query.item_attribute_query',
-				filters: { 'item_attribute': field[1], "customer_code": doc.customer_code }
+				filters: filters
 			};
 		});
 	});
