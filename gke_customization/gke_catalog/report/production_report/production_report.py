@@ -553,7 +553,7 @@ def calculate_multi_purity_weights(purity_details):
             touch_list.append(touch)
         
         total_weight += weight
-        
+
         touch_percent = convert_metal_touch_to_percent(touch)
         if touch_percent > 0:
             pure_weight = (weight * touch_percent) / 100
@@ -1113,20 +1113,20 @@ def convert_metal_touch_to_percent(metal_touch):
     """Convert metal touch values like 10KT, 14KT, 18KT, 22KT to percentage"""
     if not metal_touch:
         return 0
-    
+
     kt_to_percent = {
         '10KT': 41.7,
         '14KT': 58.6,
         '18KT': 75.4,
         '20KT': 83.3,
-        '22KT': 91.9
+        '22KT': 91.75
     }
-    
+
     metal_touch_str = str(metal_touch).upper().strip()
-    
+
     if metal_touch_str in kt_to_percent:
         return kt_to_percent[metal_touch_str]
-    
+
     try:
         numeric_val = flt(metal_touch_str)
         if 0 < numeric_val <= 100:
@@ -1135,7 +1135,7 @@ def convert_metal_touch_to_percent(metal_touch):
             return numeric_val / 10 if numeric_val < 1000 else numeric_val / 1000 * 100
     except:
         pass
-    
+
     return 0
 
 

@@ -84,18 +84,26 @@ def create_consumable_material_req(items, user):
         frappe.throw(_("Required By date is missing."))
 
     employee_detail = frappe.db.get_value("Employee", {'user_id': user}, ['company','name','branch','department'], as_dict=True)
-    if not employee_detail:
+    company = ''
+    department = ''
+    if user == "it_srt@gkexport.com":
+        department = "Computer Hardware & Networking - KGJPL"
+        company = "KG GK Jewellers Private Limited"
+    elif employee_detail:
+        department = employee_detail.department
+        company = employee_detail.company
+    else:
         frappe.throw(_("User Id is not linked to Employee."))
     
     target_emp_warehouse = frappe.db.get_value("Warehouse",
-                    {'department': employee_detail.department,'company':employee_detail.company,'warehouse_type':'Consumables'}, 
+                    {'department': department,'company':company,'warehouse_type':'Consumables'}, 
                     ['name'])
     
     # frappe.throw(f"{target_emp_warehouse} , {user}")
     if not target_emp_warehouse:
         frappe.throw(_("Employee's Department is not linked to the Warehouse."))
 
-    source_warehouse = frappe.db.get_value("Consumable Master", {'department': employee_detail.department}, ['warehouse'])
+    source_warehouse = frappe.db.get_value("Consumable Master", {'department': department}, ['warehouse'])
     # source_warehouse = frappe.db.get_value("Warehouse",
     #         {   
     #             'name': consumable_warehouse,
@@ -112,7 +120,7 @@ def create_consumable_material_req(items, user):
     material_req = frappe.new_doc('Material Request')
     material_req.material_request_type = 'Material Transfer'
     material_req.schedule_date = required_by
-    material_req.company = employee_detail.company
+    material_req.company = company
     material_req.set_warehouse = target_emp_warehouse
     material_req.set_from_warehouse = source_warehouse
 

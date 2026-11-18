@@ -75,12 +75,14 @@ def get_columns():
         {"label": "MWO", "fieldname": "batch_no", "fieldtype": "Link", "options": "Manufacturing Work Order", "width": 300},
         {"label": "Tree Number", "fieldname": "tree_number", "fieldtype": "Data", "width": 130},
         {"label": "Is Finding MWO", "fieldname": "is_finding_mwo", "fieldtype": "Data", "width": 140},
+        {"label": "Jewelex Batch No", "fieldname": "jewelex_batch_no", "fieldtype": "Data", "width": 150},
         {"label": "Item Code", "fieldname": "design_id", "fieldtype": "Data", "width": 120},
         {"label": "Category", "fieldname": "category", "fieldtype": "Data", "width": 110},
         {"label": "Sub Category", "fieldname": "sub_category", "fieldtype": "Data", "width": 170},
         {"label": "PMO", "fieldname": "g_order_no", "fieldtype": "Data", "width": 210},
         {"label": "Customer Code", "fieldname": "old_customer_code", "fieldtype": "Data", "width": 140},
         {"label": "Gold wt", "fieldname": "gold_wt", "fieldtype": "Float", "width": 100, "precision": 3},
+        {"label": "Gross Wt", "fieldname": "gross_wt", "fieldtype": "Float", "width": 100, "precision": 3},
         {"label": "Diamond pcs", "fieldname": "diamond_pcs", "fieldtype": "Int", "width": 125},
         {"label": "Diamond Wt", "fieldname": "diamond_wt", "fieldtype": "Float", "width": 120, "precision": 3},
         {"label": "Day Pending", "fieldname": "day_pending", "fieldtype": "Int", "width": 125},
@@ -173,10 +175,13 @@ def get_data(filters):
             cmop.status                     AS cur_mop_status,
             cmop.previous_mop               AS prev_mop,
             pmop.department                 AS prev_mop_dept,
+            cmop.gross_wt                   AS cur_gross_wt,
+            pmop.gross_wt                   AS prev_gross_wt,
             mwo.posting_date                AS issue_date,
             mwo.tree_number                 AS tree_number,
             IF(mwo.is_finding_mwo = 1, 'Yes', 'No')
                                             AS is_finding_mwo,
+            mwo.jewelex_batch_no            AS jewelex_batch_no,
             mwo.item_code                   AS design_id,
             COALESCE(NULLIF(itm.custom_catalogue_image, ''), itm.image)
                                             AS item_image,
@@ -259,6 +264,8 @@ def get_data(filters):
         cur_mop_status = base.pop("cur_mop_status")
         prev_mop = base.pop("prev_mop")
         prev_mop_dept = base.pop("prev_mop_dept")
+        cur_gross_wt = base.pop("cur_gross_wt")
+        prev_gross_wt = base.pop("prev_gross_wt")
 
         row = dict(base)
         row["department"] = mwo_dept
@@ -280,6 +287,12 @@ def get_data(filters):
             src_mop = prev_mop
 
         iss = last_issue.get(src_mop) if src_mop else None
+
+        # Gross Wt: usi MOP ka jiske Employee IR se status nikla hai (nahi to current MOP ka)
+        if src_mop and src_mop == prev_mop and src_mop != cur_mop:
+            row["gross_wt"] = prev_gross_wt
+        else:
+            row["gross_wt"] = cur_gross_wt
         if iss:
             row["current_process"] = iss.operation
             row["issue_date"] = iss.ir_time.date() if hasattr(iss.ir_time, "date") else iss.ir_time

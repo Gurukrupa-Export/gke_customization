@@ -280,6 +280,10 @@ doc_events = {
         "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
         "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit",
     },
+    # attendance-wise earned leave credit (port of the "Leave accural attendance wise" server script)
+    "Leave Allocation": {
+        "before_submit": "gke_customization.gke_hrms.doc_events.leave_allocation.apply_attendance_based_allocation",
+    },
     "Loan Application": {
         "validate": "gke_customization.gke_hrms.doc_events.loan_application.validate"
     },
