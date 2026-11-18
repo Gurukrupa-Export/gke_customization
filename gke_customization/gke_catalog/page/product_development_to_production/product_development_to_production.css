@@ -434,7 +434,7 @@
 
 .pdtp-summary {
 	display: grid;
-	grid-template-columns: repeat(6, 1fr);
+	grid-template-columns: repeat(4, 1fr);
 	background: var(--card-bg);
 	border: 1px solid var(--border-color);
 	border-radius: var(--pdtp-radius);
@@ -444,13 +444,13 @@
 
 @media (max-width: 1100px) {
 	.pdtp-summary {
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(2, 1fr);
 	}
 }
 
 @media (max-width: 600px) {
 	.pdtp-summary {
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(1, 1fr);
 	}
 }
 
@@ -469,25 +469,25 @@
 	background: var(--fg-hover-color);
 }
 
-.pdtp-summary__cell:nth-child(6n),
+.pdtp-summary__cell:nth-child(4n),
 .pdtp-summary__cell:last-child {
 	border-right: none;
 }
 
 @media (max-width: 1100px) {
-	.pdtp-summary__cell:nth-child(6n) {
+	.pdtp-summary__cell:nth-child(4n) {
 		border-right: 1px solid var(--border-color);
 	}
-	.pdtp-summary__cell:nth-child(3n) {
+	.pdtp-summary__cell:nth-child(2n) {
 		border-right: none;
 	}
 }
 
 @media (max-width: 600px) {
-	.pdtp-summary__cell:nth-child(3n) {
+	.pdtp-summary__cell:nth-child(2n) {
 		border-right: 1px solid var(--border-color);
 	}
-	.pdtp-summary__cell:nth-child(2n) {
+	.pdtp-summary__cell {
 		border-right: none;
 	}
 }
@@ -528,8 +528,23 @@
 
 /* ---------- funnel ---------- */
 
-.pdtp__funnel-wrap {
+.pdtp__funnel-split {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--pdtp-gap);
 	margin-bottom: 22px;
+}
+
+@media (max-width: 900px) {
+	.pdtp__funnel-split {
+		grid-template-columns: 1fr;
+	}
+}
+
+.pdtp__funnel-wrap {
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 0;
 }
 
 .pdtp-funnel {
@@ -541,6 +556,7 @@
 	border-radius: var(--pdtp-radius);
 	box-shadow: var(--pdtp-shadow);
 	padding: 22px 16px 18px;
+	flex: 1;
 }
 
 .pdtp-funnel__stage {
@@ -620,12 +636,19 @@
 	}
 }
 
+.pdtp__blockers-wrap,
+.pdtp__ratio-wrap {
+	display: flex;
+	flex-direction: column;
+}
+
 /* ---------- blockers ---------- */
 
 .pdtp-blockers {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
+	flex: 1;
 }
 
 .pdtp-blockers__card {
@@ -678,12 +701,14 @@
 .pdtp-ratio {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
+	align-content: center;
 	gap: 10px;
 	background: var(--card-bg);
 	border: 1px solid var(--border-color);
 	border-radius: var(--pdtp-radius);
 	box-shadow: var(--pdtp-shadow);
 	padding: 16px;
+	flex: 1;
 }
 
 @media (max-width: 500px) {
@@ -739,8 +764,55 @@
 
 /* ---------- lead time timeline ---------- */
 
-.pdtp__leadtime-wrap {
+/* Average Lead Time and Designs Completed sit side by side. */
+.pdtp__leadtime-monthly-split {
+	display: grid;
+	grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
+	gap: var(--pdtp-gap);
 	margin-bottom: 22px;
+	align-items: stretch;
+}
+
+@media (max-width: 900px) {
+	.pdtp__leadtime-monthly-split {
+		grid-template-columns: 1fr;
+	}
+}
+
+.pdtp__leadtime-wrap,
+.pdtp__monthly-wrap {
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 0;
+	min-width: 0;
+}
+
+.pdtp__leadtime-wrap .pdtp-leadtime,
+.pdtp__monthly-wrap .pdtp-monthly {
+	flex: 1 1 auto;
+	/* Centre the contents in the middle of the card, vertically and horizontally. */
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+}
+
+.pdtp__monthly-wrap .pdtp-monthly__chart {
+	width: 100%;
+}
+
+/* Auto margins centre fewer than 12 columns yet still allow scrolling to the left edge. */
+.pdtp-monthly__chart > .pdtp-monthly__col:first-child {
+	margin-left: auto;
+}
+
+.pdtp-monthly__chart > .pdtp-monthly__col:last-child {
+	margin-right: auto;
+}
+
+.pdtp-leadtime__timeline,
+.pdtp-leadtime__total {
+	width: 100%;
 }
 
 .pdtp-leadtime {
@@ -831,10 +903,6 @@
 
 /* ---------- monthly designs completed ---------- */
 
-.pdtp__monthly-wrap {
-	margin-bottom: 22px;
-}
-
 .pdtp-monthly {
 	background: var(--card-bg);
 	border: 1px solid var(--border-color);
@@ -858,8 +926,11 @@
 	flex-direction: column;
 	align-items: center;
 	justify-content: flex-end;
-	flex: 0 0 48px;
+	/* Exactly 12 columns fit the visible width (11 gaps of 10px); more scroll. */
+	flex: 0 0 calc((100% - 110px) / 12);
+	min-width: 0;
 	height: 100%;
+	cursor: pointer;
 }
 
 .pdtp-monthly__bar-wrap {
@@ -1146,4 +1217,39 @@
 
 .pdtp-dialog-table tbody tr:hover td {
 	background: var(--fg-hover-color);
+}
+
+.pdtp-dialog-table .pdtp-dialog-filters th {
+	top: 34px;
+	padding: 4px 8px;
+	font-weight: 400;
+}
+
+.pdtp-col-filter {
+	width: 100%;
+	min-width: 80px;
+	padding: 3px 6px;
+	font-size: 12px;
+	font-weight: 400;
+	color: var(--text-color);
+	background: var(--control-bg, var(--card-bg));
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+}
+
+.pdtp-col-filter:focus {
+	outline: none;
+	border-color: var(--primary);
+}
+
+.pdtp-blockers__count small {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-muted);
+}
+
+.pdtp-blockers__sub {
+	margin-top: 4px;
+	font-size: 12px;
+	color: var(--text-muted);
 }

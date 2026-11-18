@@ -91,10 +91,17 @@
 				<div class="pdtp-summary" data-field="summary-row"></div>
 			</section>
 
-			<section class="pdtp__funnel-wrap">
-				<div class="pdtp__section-title pdtp__section-title--funnel">Pipeline Funnel</div>
-				<div class="pdtp-funnel" data-field="funnel-row"></div>
-			</section>
+			<div class="pdtp__funnel-split">
+				<section class="pdtp__funnel-wrap">
+					<div class="pdtp__section-title pdtp__section-title--funnel">Pipeline Funnel</div>
+					<div class="pdtp-funnel" data-field="funnel-row"></div>
+				</section>
+
+				<section class="pdtp__funnel-wrap">
+					<div class="pdtp__section-title pdtp__section-title--funnel">CAD Order Funnel</div>
+					<div class="pdtp-funnel" data-field="cad-funnel-row"></div>
+				</section>
+			</div>
 
 			<div class="pdtp__row-split">
 				<section class="pdtp__blockers-wrap">
@@ -108,15 +115,17 @@
 				</section>
 			</div>
 
-			<section class="pdtp__leadtime-wrap">
-				<div class="pdtp__section-title pdtp__section-title--leadtime">Average Lead Time</div>
-				<div class="pdtp-leadtime" data-field="leadtime-row"></div>
-			</section>
+			<div class="pdtp__leadtime-monthly-split">
+				<section class="pdtp__monthly-wrap">
+					<div class="pdtp__section-title pdtp__section-title--monthly">Designs Completed · Month Wise</div>
+					<div class="pdtp-monthly" data-field="monthly-row"></div>
+				</section>
 
-			<section class="pdtp__monthly-wrap">
-				<div class="pdtp__section-title pdtp__section-title--monthly">Designs Completed · Month Wise</div>
-				<div class="pdtp-monthly" data-field="monthly-row"></div>
-			</section>
+				<section class="pdtp__leadtime-wrap">
+					<div class="pdtp__section-title pdtp__section-title--leadtime">Average Lead Time</div>
+					<div class="pdtp-leadtime" data-field="leadtime-row"></div>
+				</section>
+			</div>
 
 			<div class="pdtp__grid">
 				<section class="pdtp__category-wrap">

@@ -197,7 +197,6 @@ def get_data(filters=None):
 		SELECT
 			fsac.item                                      AS "item_code",
 			COALESCE(so.customer_code, ord.customer_code)  AS "customer",
-			cust.customer_name                             AS "customer_name",
 			so.name                                        AS "sketch_order_no",
 			so.order_type                                  AS "order_type",
 			it.variant_of                                  AS "variant_of",
@@ -216,8 +215,6 @@ def get_data(filters=None):
 			ON it.name = fsac.item
 		LEFT JOIN `tabOrder` ord
 			ON ord.design_id = fsac.item
-		LEFT JOIN `tabCustomer` cust
-			ON cust.name = COALESCE(so.customer_code, ord.customer_code)
 		WHERE fsac.item IS NOT NULL
 			AND TRIM(fsac.item) != ''
 			{conditions}
@@ -227,7 +224,6 @@ def get_data(filters=None):
 		SELECT
 			so.item_code                                   AS "item_code",
 			COALESCE(so.customer_code, ord.customer_code)  AS "customer",
-			cust.customer_name                             AS "customer_name",
 			so.name                                        AS "sketch_order_no",
 			so.order_type                                  AS "order_type",
 			it.variant_of                                  AS "variant_of",
@@ -242,8 +238,6 @@ def get_data(filters=None):
 			ON it.name = so.item_code
 		LEFT JOIN `tabOrder` ord
 			ON ord.design_id = so.item_code
-		LEFT JOIN `tabCustomer` cust
-			ON cust.name = COALESCE(so.customer_code, ord.customer_code)
 		WHERE so.item_code IS NOT NULL
 			AND TRIM(so.item_code) != ''
 			AND NOT EXISTS (
@@ -259,6 +253,22 @@ def get_data(filters=None):
 	""".format(conditions=get_conditions(filters))
 
 	data = frappe.db.sql(query, filters, as_dict=True)
+
+	# Customer names are looked up once here instead of joining `tabCustomer`
+	# inside the (already heavy) query above.
+	customer_codes = list({row["customer"] for row in data if row.get("customer")})
+	customer_name_by_code = {}
+	if customer_codes:
+		customer_name_by_code = {
+			c.name: c.customer_name
+			for c in frappe.db.get_all(
+				"Customer",
+				filters={"name": ["in", customer_codes]},
+				fields=["name", "customer_name"],
+			)
+		}
+	for row in data:
+		row["customer_name"] = customer_name_by_code.get(row.get("customer"))
 
 	jwelex_data = _get_pd_to_prod_data() or []
 	jwelex_by_stylebio = {}
