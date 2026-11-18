@@ -61,6 +61,15 @@ def update_withholding_release_status(doc, method=None):
     )
     slip_by_cycle = {s.salary_withholding_cycle: s for s in slips}
 
+    employee_by_withholding = dict(
+        frappe.get_all(
+            "Salary Withholding",
+            filters={"name": ("in", list({r.parent for r in releases}))},
+            fields=["name", "employee"],
+            as_list=True,
+        )
+    )
+
     cycle_updates = {}  # cycle_name -> {field: value}
     release_updates = {}  # release_name -> {field: value}; amount synced to the JE
     release_status_names = []
@@ -108,9 +117,7 @@ def update_withholding_release_status(doc, method=None):
         if slip:
             (submitted_slips if fully_released else withheld_slips).append(slip.name)
 
-        employees.add(
-            frappe.db.get_value("Salary Withholding", release.parent, "employee")
-        )
+        employees.add(employee_by_withholding.get(release.parent))
         withholdings.add(release.parent)
 
     # --- batched writes ---

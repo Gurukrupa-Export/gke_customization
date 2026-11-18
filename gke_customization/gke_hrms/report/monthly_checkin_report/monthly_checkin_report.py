@@ -50,10 +50,8 @@ def get_employee_list(employee, department=None):
     filters = {"reports_to": employee, "status": "Active"}
     if department:
         filters["department"] = department
-    employees = frappe.get_all("Employee", filters=filters, fields=["name"])
-    # frappe.throw(str(employees))
+    employee_ids = frappe.get_all("Employee", filters=filters, pluck="name")
 
-    employee_ids = [emp["name"] for emp in employees]
     employee_ids.append(employee)
 
     return employee_ids

@@ -789,13 +789,13 @@ class OTAllowanceEntry(Document):
                 res += self.get_weekoffs_ot_per_employee(from_log, emp, holidays_list)
         return res
 
-    def get_weekoffs_ot_per_employee(self, from_log=False, emp=None, holidays=[]):
+    def get_weekoffs_ot_per_employee(self, from_log=False, emp=None, holidays=None):
         res = []
         final_result = []
         shift_assignments = self.__dict__.setdefault(
             "_weekly_off_shift_assignments", {}
         )
-        for holiday in holidays:
+        for holiday in holidays or []:
             # The lookup uses self.employee, so the result is the same for every employee on a given holiday
             shift_assignment_key = (self.employee, getdate(holiday.holiday_date))
             if shift_assignment_key not in shift_assignments:

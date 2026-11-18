@@ -9,11 +9,7 @@ from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift
 
 
 def _log_error(title, message):
-    debug = False  # Set to True to print errors instead of logging them
-    if debug:
-        print(f"{title} -- {message}")
-    else:
-        frappe.log_error(title=title, message=message)
+    frappe.log_error(title=title, message=message)
 
 
 # ---------------------------------------------------------------------------

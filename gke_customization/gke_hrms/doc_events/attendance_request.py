@@ -26,7 +26,7 @@ from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log im
 def validate(self, method):
     validate_attendance_request(self, method)
 
-    shift_doc = frappe.get_doc("Shift Type", self.shift)
+    shift_doc = frappe.get_cached_doc("Shift Type", self.shift)
     shift_start = shift_doc.start_time
     shift_end = shift_doc.end_time
     is_night_shift = shift_end <= shift_start  # Night shift detection
@@ -163,10 +163,12 @@ def on_submit(self, method):
         # frappe.msgprint(f"Updated Attendance: {attendance_doc.as_dict()}")
 
         # Link all logs to this attendance
-        for log in logs:
-            frappe.db.set_value(
-                "Employee Checkin", log["name"], "attendance", attendance_doc.name
-            )
+        frappe.db.set_value(
+            "Employee Checkin",
+            {"name": ("in", [log["name"] for log in logs])},
+            "attendance",
+            attendance_doc.name,
+        )
 
     frappe.db.commit()
     att_req_update_monthly_inout_log(self)
@@ -240,7 +242,7 @@ def get_attendance(self, logs, attendance_date):
     - Late entry / Early exit rules
     """
 
-    shift_doc = frappe.get_doc("Shift Type", self.shift)
+    shift_doc = frappe.get_cached_doc("Shift Type", self.shift)
 
     total_working_hours, first_in_time, last_out_time = calculate_working_hours(
         logs,
@@ -300,7 +302,7 @@ def get_attendance(self, logs, attendance_date):
 
 
 def get_shift_window(self, attendance_date):
-    shift_doc = frappe.get_doc("Shift Type", self.shift)
+    shift_doc = frappe.get_cached_doc("Shift Type", self.shift)
 
     shift_start = get_datetime(f"{attendance_date} {shift_doc.start_time}")
     shift_end = get_datetime(f"{attendance_date} {shift_doc.end_time}")
@@ -332,7 +334,7 @@ def validate_attendance_request(doc, method):
     if not shift_type:
         return
 
-    shift = frappe.get_doc("Shift Type", shift_type)
+    shift = frappe.get_cached_doc("Shift Type", shift_type)
 
     if not shift.start_time or not shift.end_time:
         return

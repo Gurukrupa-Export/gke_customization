@@ -252,9 +252,6 @@ def proceed_check_in_modify(docname):
                     "Please check the 'Proceed' checkbox in Adjustment Details before continuing."
                 )
 
-            if not row.processed:
-                continue
-
             monthly_salary = float(row.monthly_salary or 0)
             actual_salary = float(row.actual_salary or 0)
             fractional_hours = float(row.fractional_hours or 0)
@@ -1245,30 +1242,6 @@ def proceed_attendance_modify(docname):
 #         frappe.log_error(frappe.get_traceback(), "Error in Attendance Modify")
 
 #         doc.db_set("workflow_state", "Failed")
-
-
-def after_job_success(job, method, *args, **kwargs):
-    frappe.throw("SUccess")
-
-    docname = kwargs.get("docname")
-
-    frappe.db.set_value(
-        "Attendance Adjustment Tool", docname, "workflow_state", "Completed"
-    )
-
-    frappe.db.commit()
-
-
-def after_job_failure(job, method, *args, **kwargs):
-    frappe.throw("failure")
-
-    docname = kwargs.get("docname")
-
-    frappe.db.set_value(
-        "Attendance Adjustment Tool", docname, "workflow_state", "Failed"
-    )
-
-    frappe.db.commit()
 
 
 @frappe.whitelist()
