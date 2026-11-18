@@ -462,6 +462,10 @@ def process_data(attendance_details, date_range, holiday_map, employee_details, 
 			else:
 				net_wrk_hrs_val = None
 
+			if attendance_status in ["ERR", "XX"]: #<-- changes1
+				net_wrk_hrs_val = timedelta(0)
+				total_pay_hrs = timedelta(0)
+
 			row = {
 				"login_date": str(record.get("login_date") or date),
 				"shift": shift_display,

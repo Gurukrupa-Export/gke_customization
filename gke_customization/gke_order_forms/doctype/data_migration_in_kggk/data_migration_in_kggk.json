@@ -25,6 +25,7 @@
   "kggk_sync_section",
   "enable_sync",
   "target_company",
+  "target_company_abbr",
   "column_break_testing_sync",
   "sync_updates",
   "auto_reconcile",
@@ -148,6 +149,13 @@
    "fieldname": "target_company",
    "fieldtype": "Data",
    "label": "Target Company"
+  },
+  {
+   "depends_on": "enable_sync",
+   "description": "The Company abbreviation on the KGGK site, e.g. KGJPL. Item Tax Template links on an Item (GST 12% - GEPL) are renamed to this suffix (GST 12% - KGJPL) on the way out. Leave blank to send the template names as they are.",
+   "fieldname": "target_company_abbr",
+   "fieldtype": "Data",
+   "label": "Target Company Abbr"
   },
   {
    "fieldname": "column_break_testing_sync",

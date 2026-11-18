@@ -2116,10 +2116,9 @@ def catalogue_data_with_trending_item(selectedSubcategory, customer, metalType =
 
     # return db_data
     
+
 @frappe.whitelist()
-# def get_catalogue_collection_details(customers, collection, item_category=None, username=None):
-def get_catalogue_collection_details(customers, collection, username=None):
-    
+def get_catalogue_collection_details(customers, collection=None, username=None):
     customer_list = []
 
     if customers:
@@ -2130,7 +2129,7 @@ def get_catalogue_collection_details(customers, collection, username=None):
                 customer_list = [customers]
         else:
             customer_list = customers
-    
+
     elif username:
         user_customers = frappe.db.sql("""
             SELECT parent AS customer
@@ -2150,28 +2149,44 @@ def get_catalogue_collection_details(customers, collection, username=None):
 
     data = get_data_for_multiple_customer_collections_details(
         catalogue_list=catalogue_list,
-        # item_category=item_category,
-        collection=collection
+        collection=collection,
     )
 
-    # frappe.throw(f"hii {data}")
-    # return {
-        # "success": True,
-        # "data": data,
-    # }
-    
-    secure = SecureJSON()
-    
-    enc_data = secure.encrypt(
-        data
-    )
-    
-    return enc_data
-    
-    # return data
+    # ---- Image attach ----
+    catalogue_names = [c["name"] for c in catalogue_list]
+
+    if catalogue_names:
+        # child table se items
+        child_filters = {"parent": ["in", catalogue_names]}
+        if collection:
+            child_filters["collection"] = collection
+
+        child_rows = frappe.get_all(
+            "Catalogue Collection Details",
+            filters=child_filters,
+            fields=["item_code"],
+        )
+        item_codes = list({r["item_code"] for r in child_rows if r.get("item_code")})
+
+        image_map = {}
+        if item_codes:
+            images = frappe.get_all(
+                "Item",
+                filters={"name": ["in", item_codes]},
+                fields=["name", "custom_catalogue_image", "custom_silver_image"],
+            )
+            image_map = {i["name"]: i for i in images}
+
+      
+        if isinstance(data, list):
+            for row in data:
+                img = image_map.get(row.get("item_code"), {})
+                row["custom_catalogue_image"] = img.get("custom_catalogue_image")
+                row["custom_silver_image"] = img.get("custom_silver_image")
+
+    return data
 
 
-# def get_data_for_multiple_customer_collections_details(catalogue_list, item_category=None, collection=None):
 def get_data_for_multiple_customer_collections_details(catalogue_list, collection=None):
     final_data = []
 
@@ -2185,7 +2200,7 @@ def get_data_for_multiple_customer_collections_details(catalogue_list, collectio
                     "Item",
                     # {'name': row.item_code, 'item_category': item_category},
                     {'name': row.item_code},
-                    ["item_category","item_subcategory", "image"],  # fetch fields you need
+                    ["item_category","item_subcategory", "image","custom_catalogue_image","custom_silver_image"],  # fetch fields you need
                     as_dict=True
                 )
 
@@ -2196,6 +2211,8 @@ def get_data_for_multiple_customer_collections_details(catalogue_list, collectio
                         "collection": row.collection,
                         "name": row.name,
                         "image": item.get("image") if item else "",
+                        "custom_catalogue_image":  item.get("custom_catalogue_image") if item else "",
+                        "custom_silver_image": item.get("custom_silver_image") if item else "",
                         "item_category": item.get("item_category") if item else "",
                         "item_subcategory": item.get("item_subcategory") if item else "",
                     })
@@ -2205,15 +2222,16 @@ def get_data_for_multiple_customer_collections_details(catalogue_list, collectio
             "catalogue_collection_details": rows,
         })
         
-    secure = SecureJSON()
+    # secure = SecureJSON()
     
-    enc_data = secure.encrypt(
-        final_data
-    ) 
+    # enc_data = secure.encrypt(
+    #     final_data
+    # ) 
     
-    return enc_data
+    # return enc_data
 
-    # return final_data
+    return final_data
+
 
 @frappe.whitelist()
 def add_item_in_folder(status=None, name=None, item=None, customer=None):
