@@ -2,7 +2,7 @@
 // For license information, please see license.txt
 
 frappe.query_reports["Attendance Detail Report"] = {
-	"filters": [
+	filters: [
 		{
 			fieldname: "company",
 			label: __("Company"),
@@ -33,18 +33,18 @@ frappe.query_reports["Attendance Detail Report"] = {
 			reqd: 1,
 		},
 		{
-			"label": __("Designation"),
-			"fieldname": "designation",
-			"fieldtype": "Link",
-			"options": "Designation",
-			"mandatory": 0,
+			label: __("Designation"),
+			fieldname: "designation",
+			fieldtype: "Link",
+			options: "Designation",
+			mandatory: 0,
 		},
 		{
-			"label": __("Status"),
-			"fieldname": "status",
-			"fieldtype": "Select",
-			"options": ["", "Present", "Absent", "On Leave", "Half Day", "Work From Home"],
-			"mandatory": 0,
+			label: __("Status"),
+			fieldname: "status",
+			fieldtype: "Select",
+			options: ["", "Present", "Absent", "On Leave", "Half Day", "Work From Home"],
+			mandatory: 0,
 		},
 		{
 			fieldname: "employee",
@@ -57,7 +57,6 @@ frappe.query_reports["Attendance Detail Report"] = {
 			label: __("Shift Type"),
 			fieldtype: "Link",
 			options: "Shift Type",
-		}
-
-	]
+		},
+	],
 };

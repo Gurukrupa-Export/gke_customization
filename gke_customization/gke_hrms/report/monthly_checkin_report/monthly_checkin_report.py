@@ -51,7 +51,6 @@ def get_employee_list(employee, department=None):
     if department:
         filters["department"] = department
     employees = frappe.get_all("Employee", filters=filters, fields=["name"])
-    # frappe.throw(str(employees))
 
     employee_ids = [emp["name"] for emp in employees]
     employee_ids.append(employee)
@@ -459,7 +458,6 @@ def process_data(attendance_details, date_range, holiday_map, from_date, to_date
             record = emp_dates.get(date, {}) or {}
 
             attendance_status = record.get("status")
-            # frappe.msgprint(f"Attendance status for {emp} on {date}: {attendance_status}")
 
             if not attendance_status:
                 if date in emp_holidays:
@@ -506,9 +504,7 @@ def process_data(attendance_details, date_range, holiday_map, from_date, to_date
                 or "",
                 "attendance_status": attendance_status,
                 "in_time": ", ".join(all_in_times) or "",
-                # "in_time": record.get("in_time") or "",
                 "out_time": ", ".join(all_out_times) or "",
-                # "out_time": record.get("out_time") or "",
                 "late": record.get("late") or "",
                 "late_hrs": record.get("late_hrs"),
                 "early_hrs": record.get("early_hrs"),

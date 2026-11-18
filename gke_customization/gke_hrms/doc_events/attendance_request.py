@@ -111,7 +111,6 @@ def create_employee_checkin(doc, checkin_date, log_type, time_value, status):
 
 def on_submit(self, method):
     request_days = date_diff(self.to_date, self.from_date) + 1
-    # frappe.throw(f"Request Days : {request_days}")
 
     for day in range(request_days):
         attendance_date = add_days(self.from_date, day)
@@ -121,7 +120,6 @@ def on_submit(self, method):
             continue
 
         attendance_doc = frappe.get_doc("Attendance", attendance_name)
-        # frappe.msgprint(f"Attendance Doc: {attendance_doc.name}")
 
         # Get proper shift window (handles OT + night shift)
         shift_start, shift_end = get_shift_window(self, attendance_date)
@@ -131,7 +129,6 @@ def on_submit(self, method):
             fields=["name", "time", "log_type", "source"],
             filters={
                 "employee": self.employee,
-                # "shift": self.shift,
                 "skip_auto_attendance": 0,
                 "custom_attendance_request": self.name,
                 "time": ["between", [shift_start, shift_end]],
@@ -140,11 +137,9 @@ def on_submit(self, method):
         )
 
         if not logs:
-            # frappe.msgprint(f"No logs found for {attendance_date}")
             continue
 
         attendance_data = get_attendance(self, logs, attendance_date)
-        # frappe.msgprint(f"Attndance Data : {attendance_data}")
 
         attendance_doc.db_set(
             {
@@ -160,7 +155,6 @@ def on_submit(self, method):
         )
 
         attendance_doc.reload()
-        # frappe.msgprint(f"Updated Attendance: {attendance_doc.as_dict()}")
 
         # Link all logs to this attendance
         for log in logs:
@@ -175,47 +169,26 @@ def on_submit(self, method):
 # def get_attendance(self, logs):
 #     """Return attendance_status, working_hours, late_entry, early_exit, in_time, out_time for a single date."""
 
-#     shift_doc = frappe.get_doc("Shift Type", self.shift)
 
-#     late_entry = early_exit = False
-#     total_working_hours, in_time, out_time = calculate_working_hours(
 #         logs, shift_doc.determine_check_in_and_check_out, shift_doc.working_hours_calculation_based_on
-#     )
 
-#     shift_start = logs[0]["shift_start"]
-#     shift_end = logs[0]["shift_end"]
 
 #     if (
-#         cint(shift_doc.enable_late_entry_marking)
 #         and in_time
 #         and in_time > shift_start + timedelta(minutes=cint(shift_doc.late_entry_grace_period))
 #     ):
-#         late_entry = True
 
 #     if (
-#         cint(shift_doc.enable_early_exit_marking)
 #         and out_time
 #         and out_time < shift_end - timedelta(minutes=cint(shift_doc.early_exit_grace_period))
 #     ):
-#         early_exit = True
 
 #     # Determine attendance status based on source (reason)
-#     source = logs[0].get("source", "")
 
 #     if source == "Work From Home":
-#         status = "Work From Home"
-#     elif source in ("Outdoor Duty","Manual Punch"):
-#         status = "Present"
-#     # frappe.throw(f"{status}")
 
 #     return {
-#         "status": status,
-#         "working_hours": total_working_hours,
-#         "late_entry": late_entry,
-#         "early_exit": early_exit,
-#         "in_time": in_time,
 #         "out_time": out_time
-#     }
 
 
 def get_attendance_record(self, attendance_date: str) -> str | None:
@@ -362,14 +335,9 @@ def validate_attendance_request(doc, method):
     )  # strictly shift end
 
     # Grace period for checkout (30 mins after shift end)
-    # out_grace_minutes = 30
 
     allowed_out_start_dt = shift_start_dt
-    # allowed_out_end_dt = add_to_date(
     #     shift_end_dt,
-    #     minutes=out_grace_minutes,
-    #     as_datetime=True
-    # )
     allowed_out_end_dt = (
         shift_end_dt if not is_night_shift else shift_end_dt + timedelta(days=1)
     )
@@ -380,7 +348,6 @@ def validate_attendance_request(doc, method):
     if in_time:
         in_time_dt = get_datetime(f"{base_date} {in_time}")
 
-        # frappe.throw(f"In Time DT: {in_time_dt} , Allowed In Start DT: {allowed_in_start_dt} , Allowed In End DT: {allowed_in_end_dt} <br><br> in_time_dt < allowed_in_start_dt : {in_time_dt < allowed_in_start_dt} <br> in_time_dt > allowed_in_end_dt : {in_time_dt > allowed_in_end_dt}")
         if in_time_dt < allowed_in_start_dt or in_time_dt > allowed_in_end_dt:
             frappe.throw(
                 f"Check-in time must be between "
@@ -397,7 +364,6 @@ def validate_attendance_request(doc, method):
             else get_datetime(f"{base_date} {out_time}") + timedelta(days=1)
         )
 
-        # frappe.throw(f"Out Time DT: {out_time_dt} , Allowed Out Start DT: {allowed_out_start_dt} , Allowed Out End DT: {allowed_out_end_dt} <br><br> out_time_dt < allowed_out_start_dt : {out_time_dt < allowed_out_start_dt} <br> out_time_dt > allowed_out_end_dt : {out_time_dt > allowed_out_end_dt}")
         if out_time_dt < allowed_out_start_dt or out_time_dt > allowed_out_end_dt:
             frappe.throw(
                 f"Check-out time must be between "

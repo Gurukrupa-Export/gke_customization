@@ -40,10 +40,6 @@ def attendance(from_date=None, to_date=None, employee=None):
     TIMESTAMP = CustomFunction("TIMESTAMP", ["date", "time"])
     TIME = CustomFunction("TIME", ["time"])
     ADDDATE = CustomFunction("ADDDATE", ["date", "days"])
-    # MIN = CustomFunction("MIN", ["expr"])
-    # MAX = CustomFunction("MAX", ["expr"])
-    # DATE = CustomFunction("DATE", ["datetime"])
-    # COALESCE = CustomFunction("COALESCE", ["value1", "value2"])
 
     # Personal Out Log subquery
     pol_subquery = (
@@ -104,7 +100,6 @@ def attendance(from_date=None, to_date=None, employee=None):
             ).as_("shift"),
             TIME(Attendance.in_time).as_("in_time"),
             TIME(Attendance.out_time).as_("out_time"),
-            # TIMEDIFF(Attendance.out_time, Attendance.in_time).as_('spent_hours'),
             ################################################
             # ✅ FIXED SPENT HOURS (date aware)
             SEC_TO_TIME(
@@ -146,11 +141,9 @@ def attendance(from_date=None, to_date=None, employee=None):
             # 	IF(
             # 		# FIXED: Check for LWP first - force 0 hours
             # 		(Attendance.status == "On Leave") &
-            # 		(Attendance.leave_type == "Leave Without Pay"),
             # 		0,
             # 		IF(
             # 			# Check for Absent - force 0 hours
-            # 			Attendance.status == "Absent",
             # 			0,
             # 			IF(
             # 				# Check for paid leaves (not LWP) - use shift hours
@@ -158,27 +151,18 @@ def attendance(from_date=None, to_date=None, employee=None):
             # 				(Attendance.leave_type.isin(frappe.db.get_list('Leave Type', filters={'is_lwp': 0}, pluck='name')) ) ),
             # 				ShiftType.shift_hours * 3600,
             # 				# For Present/WFH - calculate actual hours
-            # 				IF(Attendance.out_time, TIME_TO_SEC(TIMEDIFF(Attendance.out_time, Attendance.in_time)), Attendance.working_hours * 3600)
-            # 			)
-            # 		)
-            # 	)
             # 	+ IF((Attendance.late_entry == 0) & (TIME(Attendance.in_time) > ShiftType.start_time),
             # 		TIME_TO_SEC(TIMEDIFF(TIME(Attendance.in_time), ShiftType.start_time)), 0)
             # 	- IF(TIME(Attendance.in_time) < ShiftType.start_time,
             # 		TIME_TO_SEC(TIMEDIFF(ShiftType.start_time, TIME(Attendance.in_time))), 0)
             # 	- IF(Attendance.out_time > TIMESTAMP(Date(Attendance.in_time), ShiftType.end_time),
             # 		TIME_TO_SEC(TIMEDIFF(Attendance.out_time, TIMESTAMP(Date(Attendance.in_time), ShiftType.end_time))), 0)
-            # 	- IfNull(TIME_TO_SEC(pol_subquery.hrs), 0)
             # 	+ (
-            # 		frappe.qb.from_(PersonalOutLog)
             # 		.select(IfNull(Sum(TIME_TO_SEC(PersonalOutLog.total_hours)), 0))
             # 		.where(
             # 			(PersonalOutLog.is_cancelled == 0) &
             # 			(PersonalOutLog.employee == Attendance.employee) &
             # 			(PersonalOutLog.date == Attendance.attendance_date) &
-            # 			(PersonalOutLog.out_time >= ShiftType.end_time)
-            # 		)
-            # 	)
             # ).as_('net_wrk_hrs'),
             ################################################
             # ✅ FIXED NET WORKING HOURS -- Negative hours Issue solved
@@ -366,7 +350,6 @@ def process_data(data, from_date, to_date, employee):
     # convert to dict keyed by date
     checkins = {row.login_date: row for row in checkins}
 
-    # od = frappe.get_list("Employee Checkin",{'employee':employee,'source':"Outdoor Duty", "time": ['between',[from_date,add_days(to_date,1)]]},'date(time) as login_date', pluck='login_date',group_by='login_date')
     od = frappe.db.sql(
         """
 			SELECT DATE(time) as login_date
@@ -509,7 +492,6 @@ def process_data(data, from_date, to_date, employee):
     )
 
     # Map by date for quick lookup
-    # Example: {date: {"hrs": timedelta, "allow": 0/1}}
     ot_details_map = {
         row.attendance_date: {"hrs": row.allowed_ot, "allow": row.allow}
         for row in ot_details
@@ -517,12 +499,10 @@ def process_data(data, from_date, to_date, employee):
 
     for date in date_range:
         row = processed.get(date, ot_for_wo.get(date, {}))
-        # row = processed.get(date)
 
         # --------------------------------------------------
         # Split check-ins into IN / OUT times (same date)
         # --------------------------------------------------
-        # times = sorted(checkin_time_map.get(date, []))
         times = checkin_time_map.get(date, [])
         in_times = []
         out_times = []
@@ -592,8 +572,6 @@ def process_data(data, from_date, to_date, employee):
 
             ################## PREVS ##################################
             # if first_in_last_out := get_checkins(employee,date_time):
-            # 	row["in_time"] = get_time(first_in_last_out[0].get("time"))
-            # 	row["out_time"] = get_time(first_in_last_out[-1].get("time"))
 
             ################## NEW ##################################
             # Get check-ins for this WO date
@@ -651,19 +629,12 @@ def process_data(data, from_date, to_date, employee):
                 status = "H"
                 row["net_wrk_hrs"] = timedelta(hours=shift_hours)
                 row["total_pay_hrs"] = timedelta(hours=shift_hours)
-                # row['status'] = status
         else:
             status = "XX"
-
-        # count = checkins.get(date)
-        # count = count.get("cnt") if isinstance(count, dict) else count
 
         # # CHANGE: Extract cnt from check-in row before odd/even validation
         # if count:
         # 	if count % 2 != 0:
-        # 		status = "ERR"
-        # 		row['net_wrk_hrs'] = timedelta(0)
-        # 		row['total_pay_hrs'] = timedelta(0)
 
         #########################################################
         # Apply ERR status only if the date is NOT a WO, Holiday, or OD

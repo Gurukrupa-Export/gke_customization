@@ -299,7 +299,6 @@ def attendance(from_date=None, to_date=None, employee=None):
         .select(
             Attendance.attendance_date,
             Attendance.name,
-            # (Attendance.shift).as_('shift_name'),
             IF(
                 ShiftAssignment.shift_type.isnotnull(),
                 ShiftAssignment.shift_type,
@@ -314,7 +313,6 @@ def attendance(from_date=None, to_date=None, employee=None):
             TIME(Attendance.in_time).as_("in_time"),
             TIME(Attendance.out_time).as_("out_time"),
             Attendance.late_entry,
-            # IF(Attendance.late_entry, TIMEDIFF(TIME(Attendance.in_time), ShiftType.start_time), None).as_('late_hrs'),
             IF(
                 Attendance.late_entry,
                 TIMEDIFF(
@@ -328,7 +326,6 @@ def attendance(from_date=None, to_date=None, employee=None):
                 TIMEDIFF(ShiftType.end_time, TIME(Attendance.out_time)),
                 None,
             ).as_("early_hrs"),
-            # TIMEDIFF(Attendance.out_time, Attendance.in_time).as_('spent_hours'),
             ################################################
             # ✅ FIXED SPENT HOURS (date aware)
             SEC_TO_TIME(
@@ -385,9 +382,6 @@ def attendance(from_date=None, to_date=None, employee=None):
                 Attendance.docstatus == 1
                 #  &
                 #  IF(ShiftAssignment.shift_type, ShiftAssignment.shift_type == Attendance.shift,
-                #     Attendance.shift == ShiftType.name
-                #     # Employee.default_shift == ShiftType.name
-                #     )
             )
         )
         .orderby(Attendance.attendance_date, order=frappe.qb.asc)
@@ -403,7 +397,6 @@ def attendance(from_date=None, to_date=None, employee=None):
     data = process_data(data, from_date, to_date, employee)
     totals = get_totals(data, employee)
 
-    # return data
     return {"data": data, "totals": totals}
 
 
@@ -461,7 +454,6 @@ def process_data(data, from_date, to_date, employee):
     if not shift:
         shift = default_shift  # <<< CHANGED
 
-    # shift = emp_det.get("default_shift")
     shift_det = frappe.db.get_value(
         "Shift Type",
         shift,
@@ -475,26 +467,17 @@ def process_data(data, from_date, to_date, employee):
         as_dict=1,
     )
     shift_hours = flt(shift_det.get("shift_hours"))
-    # shift_name = f"{format_time(shift_det.get('start_time'))} To {format_time(shift_det.get('end_time'))}"
     grace_period = shift_det.get("early_exit_grace_period")
 
     EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
     addition_day = add_days(to_date, 1)
 
-    # checkins = (
-    # 	frappe.qb.from_(EmployeeCheckin)
     # 	.select(
-    # 		Date(EmployeeCheckin.time).as_("login_date"),
     # 		EmployeeCheckin.attendance,
-    # 		Count(EmployeeCheckin.name).as_("cnt")
-    # 	)
     # 	.where(
     # 		(EmployeeCheckin.time.between(from_date, addition_day)) &
-    # 		(EmployeeCheckin.employee == employee)
     # 		&
     # 		(EmployeeCheckin.attendance.isnotnull()) &
-    # 		(EmployeeCheckin.attendance != "")
-    # 	)
     # 	.groupby(EmployeeCheckin.attendance)
     # ).run(as_dict=True)
 
@@ -555,7 +538,6 @@ def process_data(data, from_date, to_date, employee):
 
     checkins = {row.login_date: row.cnt for row in checkins}
 
-    # od = frappe.get_list("Employee Checkin",{'employee':employee,'source':"Outdoor Duty", "time": ['between',[from_date,add_days(to_date,1)]]},'date(time) as login_date', pluck='login_date',group_by='login_date')
     od = frappe.db.sql(
         """
 		SELECT DATE(time) as login_date
@@ -635,11 +617,6 @@ def process_data(data, from_date, to_date, employee):
                 row.status = STATUS.get(row.status) or row.status
                 row.net_wrk_hrs = timedelta(hours=row.shift_hours)
         else:
-            # shift = emp_det.get("default_shift")
-            # shift_det = frappe.db.get_value("Shift Type", shift, ['shift_hours','start_time', 'end_time'], as_dict=1)
-            # shift_hours = flt(shift_det.get("shift_hours"))
-            # shift_name = f"{format_time(shift_det.get('start_time'))} To {format_time(shift_det.get('end_time'))}"
-            # row.shift = shift_name
             # <<< CHANGED
             row_shift_det = get_shift_for_date(
                 employee, row.attendance_date, default_shift
@@ -672,7 +649,6 @@ def process_data(data, from_date, to_date, employee):
         row.status = STATUS.get(row.status) or row.status
         processed[row.attendance_date] = row
 
-    # ot_for_wo = frappe.get_all("OT Log", {"employee":employee,"attendance_date": ["between",[from_date,to_date]], "is_cancelled":0}, ["attendance_date","allowed_ot as ot_hours", "first_in as in_time", "last_out as out_time"])
     ot_for_wo = frappe.db.sql(
         """
 			SELECT
@@ -698,7 +674,6 @@ def process_data(data, from_date, to_date, employee):
         #########################################################
         # Check for odd checkin count first, but don't override WO/Holiday status later
         has_checkin_error = False
-        # frappe.log_error(message=f"{checkins=}", title="Checkins -- Monthly In Out")
         if count := checkins.get(date):
             if count % 2 != 0:
                 has_checkin_error = True
@@ -723,13 +698,8 @@ def process_data(data, from_date, to_date, employee):
             else:
                 row["total_pay_hrs"] = row.get("total_pay_hrs") or timedelta(0)
         elif date in wo and (date >= getdate(emp_det.get("date_of_joining"))):
-            # status = "WO"
-            # date_time = datetime.combine(getdate(date), get_time(shift_det.start_time))
             # if first_in_last_out := get_checkins(employee,date_time):
-            # 	row["in_time"] = get_time(first_in_last_out[0].get("time"))
-            # 	row["out_time"] = get_time(first_in_last_out[-1].get("time"))
             # if ot_hours:=row.get("ot_hours"):
-            # 	row['total_pay_hrs'] = ot_hours
             if row.get("status") not in ["LWP", "PL", "CL", "SL", "ML", "WFH"]:
                 status = "WO"
                 row["status"] = status

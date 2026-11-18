@@ -130,7 +130,6 @@ def attendance1(from_date=None, to_date=None, employee=None):
         )
         .select(
             Attendance.attendance_date,
-            # (Attendance.shift).as_('shift_name'),
             IF(
                 ShiftAssignment.shift_type.isnotnull(),
                 ShiftAssignment.shift_type,
@@ -145,7 +144,6 @@ def attendance1(from_date=None, to_date=None, employee=None):
             TIME(Attendance.in_time).as_("in_time"),
             TIME(Attendance.out_time).as_("out_time"),
             Attendance.late_entry,
-            # IF(Attendance.late_entry, TIMEDIFF(TIME(Attendance.in_time), ShiftType.start_time), None).as_('late_hrs'),
             IF(
                 Attendance.late_entry,
                 TIMEDIFF(
@@ -159,7 +157,6 @@ def attendance1(from_date=None, to_date=None, employee=None):
                 TIMEDIFF(ShiftType.end_time, TIME(Attendance.out_time)),
                 None,
             ).as_("early_hrs"),
-            # TIMEDIFF(Attendance.out_time, Attendance.in_time).as_('spent_hours'),
             ################################################
             # ✅ FIXED SPENT HOURS (date aware)
             SEC_TO_TIME(
@@ -231,7 +228,6 @@ def attendance1(from_date=None, to_date=None, employee=None):
 
 
 # def attendance(from_date = None,to_date = None,employee = None):
-# 	conditions = get_conditions(from_date,to_date,employee)
 # 	if conditions:
 # 		data = frappe.db.sql(f"""
 #             select at.employee,
@@ -260,7 +256,6 @@ def attendance1(from_date=None, to_date=None, employee=None):
 #                         time_to_sec(timediff(st.start_time, time(at.in_time))), 0)
 #                     - if(at.out_time > timestamp(date(at.in_time), st.end_time),
 #                         time_to_sec(timediff(at.out_time, timestamp(date(at.in_time), st.end_time))), 0)
-#                     - ifnull(time_to_sec(pol.hrs),0)
 #                     + (select ifnull(sum(time_to_sec(pl.total_hours)),0) from `tabPersonal Out Log` pl
 #                         where pl.is_cancelled = 0 and pl.employee = at.employee and pl.date = at.attendance_date and pl.out_time >= st.end_time)
 #                     ) as net_wrk_hrs,
@@ -283,11 +278,6 @@ def attendance1(from_date=None, to_date=None, employee=None):
 #                 at.employee,
 #                 at.attendance_date asc
 #             """, as_dict=True)
-# 		# frappe.throw(f"{data}")
-# 		data = process_data(data,from_date,to_date,employee)
-# 		totals = get_totals(data, employee)
-# 		data += totals
-# 	return totals
 
 
 @frappe.whitelist(allow_guest=True)
@@ -308,10 +298,6 @@ def attendance(from_date=None, to_date=None, employee=None):
     IF = CustomFunction("IF", ["condition", "true_expr", "false_expr"])
     TIMESTAMP = CustomFunction("TIMESTAMP", ["date", "time"])
     TIME = CustomFunction("TIME", ["time"])
-    # MIN = CustomFunction("MIN", ["expr"])
-    # MAX = CustomFunction("MAX", ["expr"])
-    # DATE = CustomFunction("DATE", ["datetime"])
-    # COALESCE = CustomFunction("COALESCE", ["value1", "value2"])
 
     # Personal Out Log subquery
     pol_subquery = (
@@ -327,21 +313,14 @@ def attendance(from_date=None, to_date=None, employee=None):
         .groupby(PersonalOutLog.employee, PersonalOutLog.date)
     ).as_("pol")
 
-    # frappe.throw(f"{pol_subquery}")
     # OT Log subquery
     ot_subquery = (
         frappe.qb.from_(OTLog).select("*").where(OTLog.is_cancelled == 0)
     ).as_("ot")
 
-    # EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
-
     # Checkin subquery - first IN / last OUT per employee/date, only if no Attendance
-    # checkin_subquery = (
-    #     frappe.qb.from_(EmployeeCheckin)
     #     .select("*")
     #     .where(
-    #         EmployeeCheckin.skip_auto_attendance == 0
-    #     )  # Respect skip flag if present
     #     .groupby(EmployeeCheckin.employee, DATE(EmployeeCheckin.time))
     # ).as_("ec")
 
@@ -384,7 +363,6 @@ def attendance(from_date=None, to_date=None, employee=None):
         )
         .select(
             Attendance.attendance_date,
-            # (Attendance.shift).as_('shift_name'),
             IF(
                 ShiftAssignment.shift_type.isnotnull(),
                 ShiftAssignment.shift_type,
@@ -565,7 +543,6 @@ def process_data1(data, from_date, to_date, employee):
 
     checkins = {row.login_date: row.cnt for row in checkins}
 
-    # od = frappe.get_list("Employee Checkin",{'employee':employee,'source':"Outdoor Duty", "time": ['between',[from_date,add_days(to_date,1)]]},'date(time) as login_date', pluck='login_date',group_by='login_date')
     od = frappe.db.sql(
         """
 			SELECT DATE(time) as login_date
@@ -705,7 +682,6 @@ def process_data1(data, from_date, to_date, employee):
                 if ot_hours := row.get("ot_hours"):
                     row["total_pay_hrs"] = ot_hours
             else:
-                # row["status"] = "OD"
                 row["total_pay_hrs"] = row.get("total_pay_hrs")
         elif date in wo and (date >= getdate(emp_det.get("date_of_joining"))):
             status = "WO"
@@ -819,20 +795,12 @@ def process_data(data, from_date, to_date, employee):
     EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
     addition_day = add_days(to_date, 1)
 
-    # checkins = (
-    # 	frappe.qb.from_(EmployeeCheckin)
     # 	.select(
-    # 		Date(EmployeeCheckin.time).as_("login_date"),
     # 		EmployeeCheckin.attendance,
-    # 		Count(EmployeeCheckin.name).as_("cnt")
-    # 	)
     # 	.where(
     # 		(EmployeeCheckin.time.between(from_date, addition_day)) &
-    # 		(EmployeeCheckin.employee == employee)
     # 		&
     # 		(EmployeeCheckin.attendance.isnotnull()) &
-    # 		(EmployeeCheckin.attendance != "")
-    # 	)
     # 	.groupby(EmployeeCheckin.attendance)
     # ).run(as_dict=True)
 
@@ -892,7 +860,6 @@ def process_data(data, from_date, to_date, employee):
     #########################################################
 
     checkins = {row.login_date: row.cnt for row in checkins}
-    # od = frappe.get_list("Employee Checkin",{'employee':employee,'source':"Outdoor Duty", "time": ['between',[from_date,add_days(to_date,1)]]},'date(time) as login_date', pluck='login_date',group_by='login_date')
     od = frappe.db.sql(
         """
 			SELECT DATE(time) as login_date

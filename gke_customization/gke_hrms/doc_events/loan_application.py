@@ -7,7 +7,6 @@ from frappe import _
 
 def validate(self, method=None):
     loan_eligibility_months = 12
-    # guarantors = [s for s in self.custom_loan_guarantor if s.employee]
 
     last_app = frappe.get_all(
         "Loan Application",
@@ -107,18 +106,10 @@ def validate(self, method=None):
             )
 
     # existing = frappe.db.get_all("Loan Guarantor",
-    #     filters={
-    #         "employee": ["in", guarantor_ids],
-    #         "parenttype": "Loan Application",
     #         "parent": ["!=", self.name]
     #     },
-    #     fields=["employee", "parent"]
-    # )
 
     # if existing:
-    #     used = [f"{row.employee} (in {row.parent})" for row in existing]
-    #     used_list = ", ".join(used)
-    #     frappe.throw("You cannot select this employee as they are already a guarantor in another loan application")
 
     # shubham - 17-07-2026
     existing = frappe.db.sql(
@@ -140,7 +131,6 @@ def validate(self, method=None):
         as_dict=True,
     )
 
-    # frappe.throw(f"{existing}")
     if existing:
         used = [
             f"{row.employee} (Loan: {row.name}, Status: {row.workflow_state})"

@@ -143,9 +143,6 @@ def process_data(data, filters):
         as_dict=1,
     )
 
-    # shift_hours = flt(shift_det.get("shift_hours"))
-    # shift_name = f"{format_time(shift_det.get('start_time'))} To {format_time(shift_det.get('end_time'))}"
-
     checkin = frappe.qb.DocType("Employee Checkin")
     login_date = Date(checkin.time)
     od = (
@@ -214,7 +211,6 @@ def process_data(data, filters):
         temp.update(row)
         result.append(temp)
 
-    # frappe.throw(f"{result}")
     return result
 
 
@@ -282,15 +278,8 @@ def get_columns(filters=None):
             "fieldtype": "Data",
             "width": 250,
         },
-        # {
-        # 	"label": _("rand_int"),
-        # 	"fieldname": "rand_int",
-        # 	"fieldtype": "Data",
         # 	"width": 120
         # },
-        # {
-        # 	"label": _(""),
-        # 	"fieldname": "",
         # 	"fieldtype": ""
         # },
     ]

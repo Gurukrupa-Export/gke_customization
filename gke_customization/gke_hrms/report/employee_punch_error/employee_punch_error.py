@@ -93,10 +93,6 @@ def get_columns(filters=None):
             "fieldtype": "Data",
             "width": 200,
         },
-        # {
-        # 	"label": _("Punch Times"),
-        # 	"fieldname": "time",
-        # 	"fieldtype": "Data",
         # 	"hidden":1
         # },
         {

@@ -21,6 +21,7 @@ def execute(filters=None):
 # Columns
 # -------------------------------------------------------
 
+
 def get_columns():
     return [
         {
@@ -82,7 +83,7 @@ def get_data(filters):
     conditions = get_conditions(filters)
 
     query = f"""
-        SELECT 
+        SELECT
             a.attendance_date,
             e.employee,
             e.employee_name,
@@ -98,7 +99,7 @@ def get_data(filters):
                 AND ec.docstatus < 2
             ) AS last_checkin,
 
-            CASE 
+            CASE
             WHEN la.name IS NOT NULL THEN la.leave_type
             ELSE 'Absent'
             END AS status
@@ -122,7 +123,7 @@ def get_data(filters):
 
         UNION ALL
 
-        SELECT 
+        SELECT
             CURDATE() AS attendance_date,
             e.employee,
             e.employee_name,
@@ -138,7 +139,7 @@ def get_data(filters):
                 AND ec.docstatus < 2
             ) AS last_checkin,
 
-            CASE 
+            CASE
                 WHEN la.name IS NOT NULL THEN 'LWP'
                 ELSE 'Absent'
             END AS status
@@ -180,6 +181,7 @@ def get_data(filters):
 # -------------------------------------------------------
 # Conditions
 # -------------------------------------------------------
+
 
 def get_conditions(filters):
     conditions = []

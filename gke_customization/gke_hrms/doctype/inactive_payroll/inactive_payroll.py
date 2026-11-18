@@ -28,7 +28,6 @@ def get_inactive_employees(docname):
         "Employee",
         filters={
             "status": ["in", ["Left", "Inactive"]],
-            # "status": "Inactive",
             "relieving_date": ["between", [doc.from_date, date]],
             "company": doc.company,
             "branch": doc.branch,
@@ -71,7 +70,6 @@ def get_inactive_employees_list(docname):
         "Employee",
         filters={
             "status": ["in", ["Left", "Inactive"]],
-            # "status": "Inactive",
             "relieving_date": ["between", [doc.from_date, date]],
             "company": doc.company,
             "branch": doc.branch,

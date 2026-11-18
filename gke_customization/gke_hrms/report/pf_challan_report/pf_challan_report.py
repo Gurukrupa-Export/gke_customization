@@ -1,45 +1,46 @@
 # Copyright (c) 2025, Gurukrupa Export and contributors
 # For license information, please see license.txt
 
-import frappe
-from frappe.utils import get_site_path,today, getdate
-import os
 import math
-from gke_customization.gke_hrms.report.pf_contribution_report.pf_contribution_report import get_pf_data
+
+import frappe
+from frappe.utils import get_site_path, getdate, today
+
+from gke_customization.gke_hrms.report.pf_contribution_report.pf_contribution_report import (
+    get_pf_data,
+)
+
 
 def execute(filters=None):
-	columns = get_columns(filters)
-	data = get_data(filters)
-	return columns, data
+    columns = get_columns(filters)
+    data = get_data(filters)
+    return columns, data
+
 
 def get_data(filters=None):
-	from_date = filters.get("from_date")
-	to_date = filters.get("to_date")
-	company = filters.get("company")
-	branch = filters.get("branch")
+    from_date = filters.get("from_date")
+    to_date = filters.get("to_date")
+    company = filters.get("company")
+    branch = filters.get("branch")
 
-	conditions = []
-	values = {
-		"from_date": from_date,
-		"to_date": to_date,
-		"company": company
-	} 
-    
-	if branch:
-		conditions.append("e.branch = %(branch)s")
-		values["branch"] = branch
-    
-	condition_query = ""
-	if conditions:
-		condition_query = " AND " + " AND ".join(conditions)
+    conditions = []
+    values = {"from_date": from_date, "to_date": to_date, "company": company}
 
-	query = f"""
-		SELECT 
-			ss.company AS company, 
-			ss.branch AS branch, 
-			ss.department AS department, 
-			ss.designation AS designation,  
-			ss.employee AS employee_id, 
+    if branch:
+        conditions.append("e.branch = %(branch)s")
+        values["branch"] = branch
+
+    condition_query = ""
+    if conditions:
+        condition_query = " AND " + " AND ".join(conditions)
+
+    query = f"""
+		SELECT
+			ss.company AS company,
+			ss.branch AS branch,
+			ss.department AS department,
+			ss.designation AS designation,
+			ss.employee AS employee_id,
 			ss.employee_name AS employee_name,
 			ss.custom_gross_salary,
 			ss.absent_days,
@@ -56,7 +57,7 @@ def get_data(filters=None):
 			*/
 			COALESCE(
 				SUM(
-					CASE 
+					CASE
 						WHEN sd.salary_component = 'Provident Fund'
 						THEN sd.amount
 						ELSE 0
@@ -67,8 +68,8 @@ def get_data(filters=None):
 
 			/* EPF Wages */
 			MAX(
-				CASE 
-					WHEN sd.salary_component = 'Basic' 
+				CASE
+					WHEN sd.salary_component = 'Basic'
 					THEN sd.amount
 					ELSE 0
 				END
@@ -76,8 +77,8 @@ def get_data(filters=None):
 
 			/* Advance Refund */
 			MAX(
-				CASE 
-					WHEN sd.salary_component = 'Advance' 
+				CASE
+					WHEN sd.salary_component = 'Advance'
 					THEN sd.amount
 					ELSE 0
 				END
@@ -85,22 +86,22 @@ def get_data(filters=None):
 
 			e.gender AS gender
 
-		FROM 
+		FROM
 			`tabSalary Slip` ss
-		LEFT JOIN 
-			`tabSalary Detail` sd 
+		LEFT JOIN
+			`tabSalary Detail` sd
 				ON ss.name = sd.parent
-		JOIN 
-			`tabEmployee` e 
+		JOIN
+			`tabEmployee` e
 				ON ss.employee = e.name
 
-		# WHERE 
+		# WHERE
 		# 	ss.start_date = '2025-05-01'
 		# 	AND ss.end_date = '2025-05-31'
 		# 	AND ss.company = 'KG GK Jewellers Private Limited'
-		# 	AND ss._is_pf_applicable = 1   
+		# 	AND ss._is_pf_applicable = 1
 
-		WHERE 
+		WHERE
 			ss.company = %(company)s
 			AND ss.start_date = %(from_date)s
 			AND ss.end_date = %(to_date)s
@@ -112,250 +113,229 @@ def get_data(filters=None):
 		GROUP BY ss.employee
 	"""
 
-	data = frappe.db.sql(query, values, as_dict=True)
-	totals = get_total(data, filters.get("employee"), filters)
-	data += totals
-	
-	return data
+    data = frappe.db.sql(query, values, as_dict=True)
+    totals = get_total(data, filters.get("employee"), filters)
+    data += totals
+
+    return data
+
 
 def get_total(data, employee=None, filters=None):
-	totals = {
-		"company": "Total",
-		"branch": "",
-		"employee_id": "",
-		"employee_name": "Employee Count: {}".format(len(data)),
-		"employee_count": len(data),
-		"gross_pay": sum((row.get("gross_pay") or 0) for row in data),
-		"pf_amount": sum((row.get("pf_amount") or 0) for row in data),
-	}
-	return [totals]
+    totals = {
+        "company": "Total",
+        "branch": "",
+        "employee_id": "",
+        "employee_name": "Employee Count: {}".format(len(data)),
+        "employee_count": len(data),
+        "gross_pay": sum((row.get("gross_pay") or 0) for row in data),
+        "pf_amount": sum((row.get("pf_amount") or 0) for row in data),
+    }
+    return [totals]
+
 
 @frappe.whitelist()
 def get_account_total_summary(filters=None):
-	if isinstance(filters, str):
-		filters = frappe.parse_json(filters)
-	filters = filters or {}
-    
-	data = get_data(filters)
+    if isinstance(filters, str):
+        filters = frappe.parse_json(filters)
+    filters = filters or {}
 
-		# Exclude Total row
-	employee_data = [
-		row for row in data
-		if row.get("company") != "Total"
-	]
+    data = get_data(filters)
 
-	ac1_subscribers = len(employee_data)
-	ac21_subscribers = len(employee_data)
+    # Exclude Total row
+    employee_data = [row for row in data if row.get("company") != "Total"]
+
+    ac1_subscribers = len(employee_data)
+    ac21_subscribers = len(employee_data)
+
+    pf_totals = get_pf_data(filters)
+    total_row = next((row for row in pf_totals if row.get("company") == "Total"), {})
+
+    eps_wage_total = [row for row in pf_totals if row.get("company") != "Total"]
+
+    employee_count = sum(1 for row in eps_wage_total if (row.get("eps_wage") > 0))
+
+    # if isinstance(employee_count_raw, str) and ":" in employee_count_raw:
+
+    # if isinstance(employee_count_raw, str) and ":" in employee_count_raw:
+
+    ac10_subscribers = employee_count
+
+    total_epf_amount = total_row.get("epf_wage", 0)
+    total_eps_amount = total_row.get("eps_wage", 0)
+    total_ee_share = total_row.get("ee_share")
+    total_eps_contribution = total_row.get("eps_con")
+    total_er_share = total_row.get("er_share", 0)
+
+    ac1_wages = total_epf_amount
+    ac10_wages = total_eps_amount
+    ac21_wages = total_epf_amount
+
+    ac_no_1_employee = total_ee_share
+    ac_no_1_employer = total_er_share
+    ac_no_2 = round((total_epf_amount * 0.5) / 100)
+    ac_no_10 = total_eps_contribution
+    ac_no_21 = round((total_epf_amount * 0.5) / 100)
+    ac_no_22 = 0
+
+    total_amount = (
+        (ac_no_1_employee or 0)
+        + (ac_no_1_employer or 0)
+        + (ac_no_2 or 0)
+        + (ac_no_10 or 0)
+        + (ac_no_21 or 0)
+        + (ac_no_22 or 0)
+    )
+
+    return {
+        "ac1": {"subscribers": ac1_subscribers, "wages": ac1_wages},
+        "ac10": {"subscribers": ac10_subscribers, "wages": ac10_wages},
+        "ac21": {"subscribers": ac21_subscribers, "wages": ac21_wages},
+        "contribution": {
+            "ac_no_1_employee": ac_no_1_employee,
+            "ac_no_1_employer": ac_no_1_employer,
+            "ac_no_2": ac_no_2,
+            "ac_no_10": ac_no_10,
+            "ac_no_21": ac_no_21,
+            "ac_no_22": ac_no_22,
+        },
+        "grand_total": total_amount,
+        "employee_count": len(employee_data),
+        "gross_pay": sum((row.get("gross_pay") or 0) for row in data),
+        "pf_amount": sum((row.get("pf_amount") or 0) for row in data),
+    }
 
 
-	pf_totals = get_pf_data(filters)
-	total_row = next(
-		(row for row in pf_totals if row.get("company") == "Total"),
-		{}
-	)
-
-	eps_wage_total = [
-		row for row in pf_totals
-		if row.get("company") != "Total" 
-	]
-
-	employee_count = sum(1 for row in eps_wage_total if (row.get("eps_wage") > 0))
-	
-	# employee_count_raw = total_row.get("employee_name", 0)
-	# if isinstance(employee_count_raw, str) and ":" in employee_count_raw:
-	# 	employee_count = int(employee_count_raw.split(":")[-1].strip())
-	# else:
-	# 	employee_count = int(employee_count_raw or 0)
-
-	# employee_count = sum(1 for row in data if (row.get("gross_pay") or 0) != 0)
-	# employee_count_raw = total_row.get("employee_name", 0)
-	# if isinstance(employee_count_raw, str) and ":" in employee_count_raw:
-	# 	employee_count = int(employee_count_raw.split(":")[-1].strip())
-	# else:
-	# 	employee_count = int(employee_count_raw or 0)
-
-	ac10_subscribers = employee_count
-	# frappe.msgprint(f"Total Row: {employee_count} {ac1_subscribers} {ac21_subscribers}")
-
-	total_epf_amount = total_row.get("epf_wage", 0)
-	total_edli_amount = total_row.get("edli_wage", 0)
-	total_eps_amount = total_row.get("eps_wage", 0)
-	total_ee_share = total_row.get("ee_share")
-	total_eps_contribution = total_row.get("eps_con")
-	total_er_share = total_row.get("er_share", 0)
-    
-	ac1_wages = total_epf_amount
-	ac10_wages = total_eps_amount
-	ac21_wages = total_epf_amount
-
-	ac_no_1_employee = total_ee_share
-	ac_no_1_employer = total_er_share
-	ac_no_2 = round((total_epf_amount * 0.5) / 100)
-	ac_no_10 = total_eps_contribution
-	ac_no_21 = round((total_epf_amount * 0.5) / 100)
-	ac_no_22 = 0
-    
-	total_amount = (
-		(ac_no_1_employee or 0)
-		+ (ac_no_1_employer or 0)
-		+ (ac_no_2 or 0)
-		+ (ac_no_10 or 0)
-		+ (ac_no_21 or 0)
-		+ (ac_no_22 or 0)
-	)
-    
-	return {
-		"ac1": {"subscribers": ac1_subscribers, "wages": ac1_wages},
-		"ac10": {"subscribers": ac10_subscribers, "wages": ac10_wages},
-		"ac21": {"subscribers": ac21_subscribers, "wages": ac21_wages},
-		"contribution": {
-			"ac_no_1_employee": ac_no_1_employee,
-			"ac_no_1_employer": ac_no_1_employer,
-			"ac_no_2": ac_no_2,
-			"ac_no_10": ac_no_10,
-			"ac_no_21": ac_no_21,
-			"ac_no_22": ac_no_22,
-		},
-		"grand_total": total_amount,
-		"employee_count": len(employee_data),
-		"gross_pay": sum((row.get("gross_pay") or 0) for row in data),
-		"pf_amount": sum((row.get("pf_amount") or 0) for row in data),
-	}
- 	
 def get_columns(filters=None):
-	columns = [
-		{
-			"label": "Company",
-			"fieldname": "company",
-			"fieldtype": "Data",
-			"width": 200
-		}, 
-		{
-			"label": "Branch",
-			"fieldname": "branch",
-			"fieldtype": "Data",
-			"width": 180
-		}, 
-		{
-			"label": "Employee",
-			"fieldname": "employee_id",
-			"fieldtype": "Data",
-			"width": 150
-		},
-		{
-			"label": "Employee Name",
-			"fieldname": "employee_name",
-			"fieldtype": "Data",
-			"width": 250
-		},
-		{
-			"label": "Gross Pay",
-			"fieldname": "gross_pay",
-			"fieldtype": "Currency",
-			"width": 200
-		},
-		{
-			"label": "PF Amount",
-			"fieldname": "pf_amount",
-			"fieldtype": "Currency",
-			"width": 200
-		}
-		 
-	]
-	return columns
+    columns = [
+        {"label": "Company", "fieldname": "company", "fieldtype": "Data", "width": 200},
+        {"label": "Branch", "fieldname": "branch", "fieldtype": "Data", "width": 180},
+        {
+            "label": "Employee",
+            "fieldname": "employee_id",
+            "fieldtype": "Data",
+            "width": 150,
+        },
+        {
+            "label": "Employee Name",
+            "fieldname": "employee_name",
+            "fieldtype": "Data",
+            "width": 250,
+        },
+        {
+            "label": "Gross Pay",
+            "fieldname": "gross_pay",
+            "fieldtype": "Currency",
+            "width": 200,
+        },
+        {
+            "label": "PF Amount",
+            "fieldname": "pf_amount",
+            "fieldtype": "Currency",
+            "width": 200,
+        },
+    ]
+    return columns
+
 
 @frappe.whitelist()
 def export_txt(filters=None):
-	if isinstance(filters, str):
-		filters = frappe.parse_json(filters)
+    if isinstance(filters, str):
+        filters = frappe.parse_json(filters)
 
-	data = get_data(filters)
+    data = get_data(filters)
 
-	lines = []
-	# for row in data[163:165]:
-	for row in data:
-	# skip total row if present
-		if row.get("company") == "Total":
-			continue
+    lines = []
+    # for row in data[163:165]:
+    for row in data:
+        # skip total row if present
+        if row.get("company") == "Total":
+            continue
 
-		age = 0
-		dob = row.get("date_of_birth")
-		if dob:
-			today_date = getdate(today())
-			dob_date = getdate(dob)
-			age = today_date.year - dob_date.year - (
-				(today_date.month, today_date.day) < (dob_date.month, dob_date.day)
-			)
+        age = 0
+        dob = row.get("date_of_birth")
+        if dob:
+            today_date = getdate(today())
+            dob_date = getdate(dob)
+            age = (
+                today_date.year
+                - dob_date.year
+                - ((today_date.month, today_date.day) < (dob_date.month, dob_date.day))
+            )
 
-		# only include employees with age < 58
+        # only include employees with age < 58
 
-		if row.get("employee_id") :
-			# and age < 58:
-			gross_pay = round(row.get("gross_pay") or 0)
-			uan_number = frappe.db.get_value("Employee", row["employee_id"], "uan_number")
-			name_as_per_aadhar = ( 
-				frappe.db.get_value("Employee", row["employee_id"], "name_as_per_aadhar") or ""
-			).strip().upper()
+        if row.get("employee_id"):
+            # and age < 58:
+            gross_pay = round(row.get("gross_pay") or 0)
+            uan_number = frappe.db.get_value(
+                "Employee", row["employee_id"], "uan_number"
+            )
+            name_as_per_aadhar = (
+                (
+                    frappe.db.get_value(
+                        "Employee", row["employee_id"], "name_as_per_aadhar"
+                    )
+                    or ""
+                )
+                .strip()
+                .upper()
+            )
 
-			# epf_wages = round(row.get("epf_wages") or 0)
-			
-			basic_ear = round(row.get("epf_wages") or 0)
-			eps_wages = 0
-			eps_contribution = 0
-			
-			epf_wages = 15000 if basic_ear > 15000 else basic_ear
+            basic_ear = round(row.get("epf_wages") or 0)
+            eps_wages = 0
+            eps_contribution = 0
 
-			if age >= 58:
-				eps_wages = 0
-			else:
-				eps_wages = 15000 if basic_ear > 15000 else basic_ear
+            epf_wages = 15000 if basic_ear > 15000 else basic_ear
 
-			edli_wages = 15000 if basic_ear > 15000 else basic_ear
-			ctc = round(float(row.get("custom_gross_salary") or 0)) 
+            if age >= 58:
+                eps_wages = 0
+            else:
+                eps_wages = 15000 if basic_ear > 15000 else basic_ear
 
-			if basic_ear < 15000:
-				epf_contribution = round((basic_ear or 0) * 0.12)
-				if age >= 58:
-					eps_contribution = 0
-				else:
-					eps_contribution = round((basic_ear or 0) * 0.0833)
-			else:	
-				epf_contribution = round(row.get("pf_amount") or 0)
-				if age >= 58:
-					eps_contribution = 0
-				else:
-					eps_contribution = round(15000 * 0.0833)
+            edli_wages = 15000 if basic_ear > 15000 else basic_ear
 
-			contribution = (epf_contribution - eps_contribution) or 0
+            if basic_ear < 15000:
+                epf_contribution = round((basic_ear or 0) * 0.12)
+                if age >= 58:
+                    eps_contribution = 0
+                else:
+                    eps_contribution = round((basic_ear or 0) * 0.0833)
+            else:
+                epf_contribution = round(row.get("pf_amount") or 0)
+                if age >= 58:
+                    eps_contribution = 0
+                else:
+                    eps_contribution = round(15000 * 0.0833)
 
-			ncp = 0
-			total_working_days = row.get("total_working_days") or 0
-			# payment_days = round(row.get("payment_days") or 0)
-			payment_days = math.floor((row.get("payment_days") or 0) + 0.5)
-			
-			if row.get("absent_days"):
-				ncp = round(row.get("absent_days") or 0)
-			else:
-				ncp = round(total_working_days - payment_days)
+            contribution = (epf_contribution - eps_contribution) or 0
 
-			refund_advance = row.get("refund_advance") or 0
+            ncp = 0
+            total_working_days = row.get("total_working_days") or 0
+            payment_days = math.floor((row.get("payment_days") or 0) + 0.5)
 
-			# 100982928420#~#Bhikhubhai Maheshbhai Modi#~#22589#~#14065
-			# #~#14065#~#14065#~#1688
-			# #~#1688#~#0#~#0#~#0
+            if row.get("absent_days"):
+                ncp = round(row.get("absent_days") or 0)
+            else:
+                ncp = round(total_working_days - payment_days)
 
-			lines.append(
-				f"{uan_number}#~#{name_as_per_aadhar}#~#{gross_pay}#~#{epf_wages}"
-				f"#~#{eps_wages}#~#{edli_wages}#~#{epf_contribution}"
-				f"#~#{eps_contribution}#~#{contribution}#~#{ncp}#~#{refund_advance}"
-			)
+            refund_advance = row.get("refund_advance") or 0
 
-	content = "\n".join(lines)
+            # 100982928420#~#Bhikhubhai Maheshbhai Modi#~#22589#~#14065
+            # #~#14065#~#14065#~#1688
+            # #~#1688#~#0#~#0#~#0
 
-	file_name = "pf_export.txt"
-	file_path = get_site_path("public", "files", file_name)
+            lines.append(
+                f"{uan_number}#~#{name_as_per_aadhar}#~#{gross_pay}#~#{epf_wages}"
+                f"#~#{eps_wages}#~#{edli_wages}#~#{epf_contribution}"
+                f"#~#{eps_contribution}#~#{contribution}#~#{ncp}#~#{refund_advance}"
+            )
 
-	with open(file_path, "w", encoding="utf-8") as f:
-		f.write(content)
+    content = "\n".join(lines)
 
-	return f"/files/{file_name}"
+    file_name = "pf_export.txt"
+    file_path = get_site_path("public", "files", file_name)
+
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+    return f"/files/{file_name}"
