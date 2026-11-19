@@ -10,7 +10,6 @@ from frappe.utils import (
     get_datetime,
     get_time,
     getdate,
-    time_diff_in_seconds,
     today,
 )
 from hrms.hr.doctype.employee_checkin.employee_checkin import (
@@ -26,10 +25,12 @@ from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log im
 def validate(self, method):
     validate_attendance_request(self, method)
 
-    shift_doc = frappe.get_cached_doc("Shift Type", self.shift)
-    shift_start = shift_doc.start_time
-    shift_end = shift_doc.end_time
-    is_night_shift = shift_end <= shift_start  # Night shift detection
+    is_night_shift = False
+    shift_type = get_request_shift(self)
+    if shift_type:
+        shift_doc = frappe.get_cached_doc("Shift Type", shift_type)
+        if shift_doc.start_time and shift_doc.end_time:
+            is_night_shift = shift_doc.end_time <= shift_doc.start_time
 
     # ----------------------------
     # Validate In / Out Time Order
@@ -49,6 +50,10 @@ def validate(self, method):
     # Process Checkin Creation
     # ----------------------------
     if self.workflow_state != "Create Checkin":
+        return
+
+    doc_before_save = self.get_doc_before_save()
+    if doc_before_save and doc_before_save.workflow_state == "Create Checkin":
         return
 
     request_days = date_diff(self.to_date, self.from_date) + 1
@@ -84,7 +89,6 @@ def create_employee_checkin(doc, checkin_date, log_type, time_value, status):
         {
             "employee": doc.employee,
             "log_type": log_type,
-            "shift": doc.shift,
             "time": combined_datetime,
         },
     )
@@ -110,6 +114,10 @@ def create_employee_checkin(doc, checkin_date, log_type, time_value, status):
 
 
 def on_submit(self, method):
+    if not get_request_shift(self):
+        att_req_update_monthly_inout_log(self)
+        return
+
     request_days = date_diff(self.to_date, self.from_date) + 1
 
     for day in range(request_days):
@@ -148,7 +156,7 @@ def on_submit(self, method):
                 "in_time": attendance_data["in_time"],
                 "out_time": attendance_data["out_time"],
                 "attendance_request": self.name,
-                "shift": self.shift,
+                "shift": get_request_shift(self),
                 "early_exit": attendance_data["early_exit"],
                 "late_entry": attendance_data["late_entry"],
             }
@@ -185,7 +193,7 @@ def get_attendance(self, logs, attendance_date):
     - Late entry / Early exit rules
     """
 
-    shift_doc = frappe.get_cached_doc("Shift Type", self.shift)
+    shift_doc = frappe.get_cached_doc("Shift Type", get_request_shift(self))
 
     total_working_hours, first_in_time, last_out_time = calculate_working_hours(
         logs,
@@ -245,7 +253,7 @@ def get_attendance(self, logs, attendance_date):
 
 
 def get_shift_window(self, attendance_date):
-    shift_doc = frappe.get_cached_doc("Shift Type", self.shift)
+    shift_doc = frappe.get_cached_doc("Shift Type", get_request_shift(self))
 
     shift_start = get_datetime(f"{attendance_date} {shift_doc.start_time}")
     shift_end = get_datetime(f"{attendance_date} {shift_doc.end_time}")
@@ -264,16 +272,21 @@ def get_shift_window(self, attendance_date):
     return shift_start, shift_end
 
 
-######## Edited by Aditya at 27/01/2026 #################
+def get_request_shift(doc):
+    if doc.shift:
+        return doc.shift
+
+    if not doc.employee:
+        return None
+
+    return frappe.get_cached_value("Employee", doc.employee, "default_shift")
 
 
 def validate_attendance_request(doc, method):
     if not doc.employee:
         return
 
-    shift_type = doc.shift or frappe.db.get_value(
-        "Employee", doc.employee, "default_shift"
-    )
+    shift_type = get_request_shift(doc)
     if not shift_type:
         return
 
@@ -287,7 +300,7 @@ def validate_attendance_request(doc, method):
     shift_start = get_time(shift.start_time)
     shift_end = get_time(shift.end_time)
 
-    is_night_shift = shift_start > shift_end
+    is_night_shift = shift_end <= shift_start
 
     shift_start_dt = get_datetime(f"{base_date} {shift_start}")
     shift_end_dt = get_datetime(f"{base_date} {shift_end}")
@@ -340,26 +353,6 @@ def validate_attendance_request(doc, method):
                     allowed_out_start_dt.time(), allowed_out_end_dt.time()
                 )
             )
-
-    # --------------------
-    # IN < OUT VALIDATION
-    # --------------------
-    if in_time and out_time:
-        in_time_dt = get_datetime(f"{base_date} {in_time}")
-        out_time_dt = (
-            get_datetime(f"{base_date} {out_time}")
-            if not is_night_shift
-            else get_datetime(f"{base_date} {out_time}") + timedelta(days=1)
-        )
-
-        if time_diff_in_seconds(out_time_dt, in_time_dt) <= 0:
-            frappe.throw(_("Check-out time must be after check-in time."))
-
-
-###### End of Edited by Aditya at 27/01/2026 #################
-
-######################### Update Monthly in-out Log after Submit Attendance Req #################################
-##### 19 Feb 2026 ####
 
 
 def att_req_update_monthly_inout_log(doc, method=None):
@@ -431,11 +424,8 @@ def att_req_update_monthly_inout_log(doc, method=None):
                     "p_out_hrs": fmt_td_or_value(record.get("p_out_hrs")),
                 },
             )
-    except Exception as e:
+    except Exception:
         frappe.log_error(
-            message=f"Error updating Monthly In-Out Log: {e}",
+            message=frappe.get_traceback(),
             title="Monthly In-Out Log Update Error - Att Req",
         )
-
-
-##############################################################################################

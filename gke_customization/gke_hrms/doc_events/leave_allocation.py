@@ -1,7 +1,15 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import frappe
-from frappe.utils import add_days, flt, get_first_day, get_last_day, getdate
+from frappe import _
+from frappe.utils import (
+    add_days,
+    flt,
+    get_datetime,
+    get_first_day,
+    get_last_day,
+    getdate,
+)
 
 
 @frappe.whitelist()
@@ -135,8 +143,6 @@ def update_attendance_wise_leave(
     allocation = frappe.get_doc("Leave Allocation", allocation.name)
     already_allocated = flt(allocation.total_leaves_allocated)
 
-    # get total earned with rounding
-
     earned_total = get_monthly_attendance_wise_leave(
         annual_allocation,
         e_leave_type.earned_leave_frequency,
@@ -145,21 +151,15 @@ def update_attendance_wise_leave(
         total_attendance,
     )
 
-    # respect max allowed
-
     max_allowed = e_leave_type.max_leaves_allowed
 
     if max_allowed and earned_total > max_allowed:
         earned_total = max_allowed
 
-    # calculate new leaves
-
     earned_leaves = flt(earned_total) - flt(already_allocated)
 
     if earned_leaves <= 0:
         return
-
-    # check annual limit
 
     new_allocation = already_allocated + earned_leaves
 
@@ -172,21 +172,13 @@ def update_attendance_wise_leave(
 
     today_date = frappe.flags.current_date or getdate()
 
-    # update allocation
-
     allocation.db_set(
-        "new_leaves_allocated",
-        new_allocation,
+        {
+            "new_leaves_allocated": new_allocation,
+            "total_leaves_allocated": new_allocation,
+        },
         update_modified=False,
     )
-
-    allocation.db_set(
-        "total_leaves_allocated",
-        new_allocation,
-        update_modified=False,
-    )
-
-    # ledger
 
     create_additional_leave_ledger_entry(
         allocation,
@@ -196,7 +188,7 @@ def update_attendance_wise_leave(
 
     allocation.add_comment(
         comment_type="Info",
-        text=f"Allocated {earned_leaves} leave(s) via scheduler",
+        text=_("Allocated {0} leave(s) via scheduler").format(earned_leaves),
     )
 
 
@@ -313,7 +305,7 @@ def infirmary_leave_allocation():
     if not leave_type:
         return
 
-    today = datetime.today().date()
+    today = getdate()
     one_year_ago = today - timedelta(days=leave_type.applicable_after)
 
     emp_leave_grade = frappe.db.get_all(
@@ -427,15 +419,24 @@ def compOff_leave_allocation():
     today = frappe.utils.today()
     yesterday = frappe.utils.add_days(today, -1)
 
-    emp_checkin = frappe.db.sql(
-        """
-                SELECT distinct(employee) as employee,date(time) as date
-                    FROM `tabEmployee Checkin`
-                    WHERE DATE(time) BETWEEN %s AND %s
-            """,
-        (yesterday, today),
-        as_dict=1,
+    checkins = frappe.get_all(
+        "Employee Checkin",
+        filters={
+            "time": [
+                "between",
+                [get_datetime(yesterday), get_datetime(f"{today} 23:59:59.999999")],
+            ]
+        },
+        fields=["employee", "time"],
+        order_by="time asc",
     )
+    employee_checkin_dates = dict.fromkeys(
+        (row.employee, getdate(row.time)) for row in checkins
+    )
+    emp_checkin = [
+        frappe._dict(employee=employee, date=checkin_date)
+        for employee, checkin_date in employee_checkin_dates
+    ]
 
     employee_ids = list({emp.employee for emp in emp_checkin if emp.employee})
     if not employee_ids:
