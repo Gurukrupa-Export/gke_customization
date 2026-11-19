@@ -6,7 +6,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.query_builder import CustomFunction
 from frappe.query_builder.functions import Min, Sum
-from frappe.utils import getdate
+from frappe.utils import add_days, getdate
 
 
 class PersonalOutEntry(Document):
@@ -14,7 +14,8 @@ class PersonalOutEntry(Document):
         company_abbr = frappe.db.get_value("Company", self.company, "abbr")
         if company_abbr:
             if self.branch:
-                branch_short = self.branch.split("-")[-2]
+                branch_parts = self.branch.split("-")
+                branch_short = branch_parts[-2] if len(branch_parts) > 1 else self.branch
                 series = f"{company_abbr}-{branch_short}-POE-.#####"
             else:
                 series = f"{company_abbr}-POE-.#####"
@@ -23,7 +24,6 @@ class PersonalOutEntry(Document):
 
     def validate(self):
         self.locked_by = frappe.session.user
-        # shruti
         if self.employee:
             existing = frappe.db.get_all(
                 "Personal Out Entry",
@@ -36,15 +36,19 @@ class PersonalOutEntry(Document):
                 fields=["name", "locked_by"],
             )
             for entry in existing:
-                if (
-                    entry.locked_by
-                    and entry.locked_by != self.locked_by
-                    or entry.locked_by == self.locked_by
-                ):
+                if entry.locked_by and entry.locked_by != frappe.session.user:
                     form_link = f"/app/personal-out-entry/{entry.name}"
                     frappe.throw(
-                        f"This entry for {self.employee} from  {self.from_date} to {self.to_date} locked by another user: <b>{entry.locked_by}</b><br>"
-                        f"<a href='{form_link}' target='_blank'>View entry</a>"
+                        _(
+                            "This entry for {0} from  {1} to {2} locked by another user: <b>{3}</b><br>"
+                            "<a href='{4}' target='_blank'>View entry</a>"
+                        ).format(
+                            self.employee,
+                            self.from_date,
+                            self.to_date,
+                            entry.locked_by,
+                            form_link,
+                        )
                     )
         if self.workflow_state == "Create Personal Out":
             self.make_prsnl_out_logs()
@@ -69,6 +73,16 @@ class PersonalOutEntry(Document):
         Time = CustomFunction("Time", ["time"])
         Date = CustomFunction("DATE", ["dt"])
 
+        checkin_filter = (
+            EmployeeCheckin.time >= getdate(self.from_date)
+        ) & (EmployeeCheckin.time < add_days(getdate(self.to_date), 1))
+        pol_filter = (PersonalOutLog.is_cancelled == 0) & (
+            PersonalOutLog.date.between(getdate(self.from_date), getdate(self.to_date))
+        )
+        if self.employee:
+            checkin_filter &= EmployeeCheckin.employee == self.employee
+            pol_filter &= PersonalOutLog.employee == self.employee
+
         emp_det = (
             frappe.qb.from_(EmployeeCheckin)
             .left_join(ShiftType)
@@ -81,7 +95,7 @@ class PersonalOutEntry(Document):
                 ShiftType.start_time.as_("shift_start"),
                 ShiftType.end_time.as_("shift_end"),
             )
-            .where(EmployeeCheckin.log_type == "OUT")
+            .where((EmployeeCheckin.log_type == "OUT") & checkin_filter)
             .groupby(
                 EmployeeCheckin.employee,
                 Date(EmployeeCheckin.time),
@@ -98,7 +112,7 @@ class PersonalOutEntry(Document):
                 EmployeeCheckin.employee.as_("emp"),
                 Date(EmployeeCheckin.time).as_("co_date"),
             )
-            .where(EmployeeCheckin.log_type == "OUT")
+            .where((EmployeeCheckin.log_type == "OUT") & checkin_filter)
         ).as_("check_out")
 
         check_in = (
@@ -108,7 +122,7 @@ class PersonalOutEntry(Document):
                 EmployeeCheckin.employee,
                 Date(EmployeeCheckin.time).as_("ci_date"),
             )
-            .where(EmployeeCheckin.log_type == "IN")
+            .where((EmployeeCheckin.log_type == "IN") & checkin_filter)
         ).as_("check_in")
 
         pol = (
@@ -121,7 +135,7 @@ class PersonalOutEntry(Document):
                 PersonalOutLog.date,
                 PersonalOutLog.out_time,
             )
-            .where(PersonalOutLog.is_cancelled == 0)
+            .where(pol_filter)
         ).as_("pol")
 
         ########################################################
@@ -133,7 +147,7 @@ class PersonalOutEntry(Document):
                 (checkout_time > emp_det.shift_start)
                 & (checkout_time < emp_det.shift_end)
             )
-            | (checkout_time >= emp_det.shift_end)  # <-- changes
+            | (checkout_time >= emp_det.shift_end)
         )
 
         night_shift = (emp_det.shift_start > emp_det.shift_end) & (
@@ -165,7 +179,7 @@ class PersonalOutEntry(Document):
                 & (emp_det.at_date == pol.date)
                 & (Time(check_out.checkout) == pol.out_time)
             )
-            .where(inside_shift_condition)  ################
+            .where(inside_shift_condition)
             .select(
                 emp_det.employee,
                 emp_det.employee_name,
@@ -199,15 +213,13 @@ class PersonalOutEntry(Document):
                 row["total_hours"] = row.approved_hours
             self.append("checkin_details", row)
 
-    def get_conditions(self, EmployeeCheckin, PersonalOutLog, Employee, from_log):
-        from frappe.utils import getdate
-
+    def get_conditions(self, emp_det, PersonalOutLog, Employee, from_log):
         if not (self.from_date and self.to_date):
             frappe.throw(_("Invalid Date Range"))
 
         conditions = [
             (
-                EmployeeCheckin.at_date.between(
+                emp_det.at_date.between(
                     getdate(self.from_date), getdate(self.to_date)
                 )
             )
@@ -217,12 +229,10 @@ class PersonalOutEntry(Document):
             conditions.append((PersonalOutLog.name.isnotnull()))
 
         if self.employee:
-            conditions.append((EmployeeCheckin.employee == self.employee))
+            conditions.append((emp_det.employee == self.employee))
 
         if self.employee_name:
-            conditions.append(
-                (EmployeeCheckin.employee_name.like(f"%{self.employee_name}%"))
-            )
+            conditions.append((emp_det.employee_name.like(f"%{self.employee_name}%")))
         sub_query_filter = []
 
         if self.company:
@@ -238,10 +248,10 @@ class PersonalOutEntry(Document):
             sub_query_filter.append((Employee.designation == self.designation))
 
         sub_query = frappe.qb.from_(Employee).select(Employee.name)
-        for filter in sub_query_filter:
-            sub_query = sub_query.where(filter)
+        for employee_filter in sub_query_filter:
+            sub_query = sub_query.where(employee_filter)
 
-        conditions.append((EmployeeCheckin.employee.isin(sub_query)))
+        conditions.append((emp_det.employee.isin(sub_query)))
 
         return conditions
 

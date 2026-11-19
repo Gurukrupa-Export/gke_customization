@@ -7,115 +7,43 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import get_datetime, get_time, getdate
-from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift_timings
 
 
 class OTRequest(Document):
     def autoname(self):
-        # Get company abbreviation
         company_abbr = frappe.db.get_value("Company", self.company, "abbr")
-        if company_abbr:
-            if self.branch:
-                branch_short = self.branch.split("-")[-2]
-                series = f"{company_abbr}-{branch_short}-OT-.#####"
-            else:
-                series = f"{company_abbr}-OT-.#####"
+        if not company_abbr:
+            frappe.throw(
+                _("Abbreviation is not set for Company {0}").format(self.company)
+            )
 
-            self.name = frappe.model.naming.make_autoname(series)
+        if self.branch:
+            branch_parts = self.branch.split("-")
+            branch_short = branch_parts[-2] if len(branch_parts) > 1 else branch_parts[0]
+            series = f"{company_abbr}-{branch_short}-OT-.#####"
+        else:
+            series = f"{company_abbr}-OT-.#####"
+
+        self.name = frappe.model.naming.make_autoname(series)
 
     def validate(self):
         for child in self.order_request:
-            # Validate OT Hours
             if child.ot_hours:
-                try:
-                    ot_value = child.ot_hours
-
-                    # Convert string to time
-                    if isinstance(ot_value, str):
-                        try:
-                            ot_time = datetime.strptime(ot_value, "%H:%M:%S").time()
-                        except ValueError:
-                            frappe.throw(
-                                f"Row {child.idx}: Invalid OT Hours format '{ot_value}'. "
-                                "Please use HH:MM:SS format."
-                            )
-
-                    # If timedelta
-                    elif isinstance(ot_value, timedelta):
-                        total_hours = ot_value.total_seconds() / 3600
-                        ot_time = None
-
-                    # If time object
-                    elif isinstance(ot_value, time):
-                        ot_time = ot_value
-
-                    else:
-                        frappe.throw(f"Row {child.idx}: Unsupported OT Hours type.")
-
-                    # Convert time → total hours
-                    if isinstance(ot_value, timedelta):
-                        pass  # already calculated
-                    else:
-                        total_hours = (
-                            ot_time.hour
-                            + (ot_time.minute / 60)
-                            + (ot_time.second / 3600)
-                        )
-
-                    # Eligibility rule (1 hour or more)
-                    child.food_eligibility = (
-                        "Eligible" if total_hours >= 1 else "Not Eligible"
-                    )
-
-                except Exception as e:
-                    frappe.throw(
-                        f"Row {child.idx}: Error processing OT Hours. {str(e)}"
-                    )
-
-            # Validate Work Date & Checkin
-            if child.work_start_date and child.employee_id:
-                work_date = getdate(child.work_start_date)
-
-                shift_timings = get_employee_shift_timings(
-                    child.employee_id, get_datetime(child.work_start_date), True
-                )[1]
-
-                start_datetime = shift_timings.get("actual_start") or get_datetime(
-                    f"{work_date} 00:00:00"
+                total_hours = get_ot_hours_in_seconds(child.ot_hours, child.idx) / 3600
+                child.food_eligibility = (
+                    "Eligible" if total_hours >= 1 else "Not Eligible"
                 )
-                end_datetime = shift_timings.get("actual_end") or get_datetime(
-                    f"{work_date} 23:59:59"
-                )
-
-                checkins = frappe.get_all(
-                    "Employee Checkin",
-                    filters={
-                        "employee": child.employee_id,
-                        "time": ["between", [start_datetime, end_datetime]],
-                    },
-                    fields=["name", "time"],
-                    order_by="time desc",
-                    limit=1,
-                )
-
-                if checkins:
-                    last_checkin_time = checkins[0].time
-                    frappe.msgprint(
-                        f"Row {child.idx}: Last Checkin for Employee "
-                        f"{child.employee_id} on {work_date} was at {last_checkin_time}."
-                    )
 
         self.set_max_ot_hrs()
 
     def set_max_ot_hrs(self):
-        if self.order_request:
-            max_ot = max(
-                (get_time(i.ot_hours) for i in self.order_request if i.ot_hours),
-                default=None,
+        rows_with_ot = [row for row in self.order_request if row.ot_hours]
+        if rows_with_ot:
+            max_ot_row = max(
+                rows_with_ot,
+                key=lambda row: get_ot_hours_in_seconds(row.ot_hours, row.idx),
             )
-
-            if max_ot:
-                self.ot_hours = max_ot
+            self.ot_hours = max_ot_row.ot_hours
 
     # Added by Aditya at 29-01-2026
     def on_update_after_submit(self):
@@ -125,7 +53,7 @@ class OTRequest(Document):
 
     def create_checkin(self):
         if not self.order_request:
-            frappe.throw("Please add order request")
+            frappe.throw(_("Please add order request"))
 
         save_point = "ot_attendance"
         frappe.db.savepoint(save_point)
@@ -158,15 +86,15 @@ class OTRequest(Document):
                     )
 
             frappe.db.commit()
-        except Exception as e:
+        except Exception:
             frappe.db.rollback(save_point=save_point)
             frappe.log_error(
-                message=f"Error in creating checkin/attendance: {frappe.get_traceback()}",
+                message=frappe.get_traceback(),
                 title="Error in creating checkin/attendance",
                 reference_doctype=self.doctype,
                 reference_name=self.name,
             )
-            frappe.throw(str(e))
+            raise
 
     def check_attendance_request_exists(self, throw_error=False):
         """
@@ -178,41 +106,57 @@ class OTRequest(Document):
         :return: Attendance Request name or None
         """
         messages = []
-        for child in self.order_request:
-            work_date = getdate(child.work_start_date)
+        rows = [
+            (child, getdate(child.work_start_date))
+            for child in self.order_request
+            if child.employee_id and child.work_start_date
+        ]
+        if not rows:
+            return
 
-            # Check if Attendance already exists
-            attendance = frappe.db.exists(
+        employees = list({child.employee_id for child, _work_date in rows})
+        work_dates = [work_date for _child, work_date in rows]
+
+        existing_attendance = {
+            (row.employee, getdate(row.attendance_date))
+            for row in frappe.get_all(
                 "Attendance",
-                {
-                    "employee": child.employee_id,
-                    "attendance_date": work_date,
+                filters={
+                    "employee": ["in", employees],
+                    "attendance_date": ["in", list(set(work_dates))],
                     "docstatus": 1,
                 },
+                fields=["employee", "attendance_date"],
             )
+        }
 
+        attendance_requests = frappe.get_all(
+            "Attendance Request",
+            filters=[
+                ["employee", "in", employees],
+                ["from_date", "<=", max(work_dates)],
+                ["to_date", ">=", min(work_dates)],
+                ["docstatus", "=", 1],
+            ],
+            fields=["employee", "from_date", "to_date"],
+        )
+
+        for child, work_date in rows:
             # If attendance exists → bypass
-            if attendance:
+            if (child.employee_id, work_date) in existing_attendance:
                 continue
 
-            # Check Attendance Request
-            attendance_request = frappe.get_all(
-                "Attendance Request",
-                filters={
-                    "employee": child.employee_id,
-                    "from_date": ["<=", work_date],
-                    "to_date": [">=", work_date],
-                    "docstatus": 1,
-                },
-                fields=["name"],
-                limit=1,
+            has_request = any(
+                request.employee == child.employee_id
+                and getdate(request.from_date) <= work_date <= getdate(request.to_date)
+                for request in attendance_requests
             )
 
-            if not attendance_request:
+            if not has_request:
                 messages.append(
-                    f"Row {child.idx}: No Attendance Request for "
-                    f"Employee <b>{child.employee_id}</b> on "
-                    f"<b>{work_date}</b>"
+                    _(
+                        "Row {0}: No Attendance Request for Employee <b>{1}</b> on <b>{2}</b>"
+                    ).format(child.idx, child.employee_id, work_date)
                 )
 
         if messages:
@@ -223,11 +167,11 @@ class OTRequest(Document):
             else:
                 frappe.msgprint(msg)
 
-    def _create_employee_checkin(self, employee, time, log_type):
+    def _create_employee_checkin(self, employee, checkin_time, log_type):
         """Creates an Employee Checkin record."""
         checkin = frappe.new_doc("Employee Checkin")
         checkin.employee = employee
-        checkin.time = time
+        checkin.time = checkin_time
         checkin.log_type = log_type
         checkin.source = "Manual Punch"
         checkin.save(ignore_permissions=True)
@@ -253,7 +197,12 @@ class OTRequest(Document):
     ):
         """Updates existing submitted attendance directly using db_set."""
 
-        attendance_doc = frappe.get_doc("Attendance", attendance_name)
+        attendance_doc = frappe.db.get_value(
+            "Attendance",
+            attendance_name,
+            ["status", "shift", "working_hours", "in_time", "out_time"],
+            as_dict=True,
+        )
 
         existing_status = attendance_doc.status
         existing_shift = attendance_doc.shift
@@ -300,37 +249,35 @@ class OTRequest(Document):
         all_checkins = list(set((checkin_ids or []) + existing_checkins))
         self._link_checkins_to_attendance(all_checkins, attendance_name)
 
-        frappe.db.commit()
-
-    def _create_new_attendance(
-        self, employee, attendance_date, in_time, out_time, checkin_ids
-    ):
-        """Creates a new attendance record."""
-        new_attendance = frappe.new_doc("Attendance")
-        new_attendance.employee = employee
-        new_attendance.attendance_date = attendance_date
-        new_attendance.status = "Present"
-        new_attendance.in_time = in_time
-        new_attendance.out_time = out_time
-
-        if out_time > in_time:
-            new_attendance.working_hours = (out_time - in_time).total_seconds() / 3600
-
-        new_attendance.insert(ignore_permissions=True)
-        new_attendance.submit()
-
-        # Link checkins
-        self._link_checkins_to_attendance(checkin_ids, new_attendance.name)
-
-        frappe.msgprint(f"Attendance created for {employee} on {attendance_date}")
-
     def _link_checkins_to_attendance(self, checkin_ids, attendance_name):
         """Links the checkin records to the attendance."""
         if checkin_ids and attendance_name:
-            for checkin_id in checkin_ids:
-                frappe.db.set_value(
-                    "Employee Checkin", checkin_id, "attendance", attendance_name
-                )
+            frappe.db.set_value(
+                "Employee Checkin",
+                {"name": ["in", checkin_ids]},
+                "attendance",
+                attendance_name,
+            )
+
+
+def get_ot_hours_in_seconds(ot_hours, row_idx):
+    if isinstance(ot_hours, timedelta):
+        return ot_hours.total_seconds()
+
+    if isinstance(ot_hours, str):
+        try:
+            ot_hours = datetime.strptime(ot_hours, "%H:%M:%S").time()
+        except ValueError:
+            frappe.throw(
+                _(
+                    "Row {0}: Invalid OT Hours format '{1}'. Please use HH:MM:SS format."
+                ).format(row_idx, ot_hours)
+            )
+
+    if isinstance(ot_hours, time):
+        return ot_hours.hour * 3600 + ot_hours.minute * 60 + ot_hours.second
+
+    frappe.throw(_("Row {0}: Unsupported OT Hours type.").format(row_idx))
 
 
 @frappe.whitelist()
