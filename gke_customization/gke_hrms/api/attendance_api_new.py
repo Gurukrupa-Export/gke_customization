@@ -4,6 +4,7 @@
 from datetime import timedelta
 
 import frappe
+from frappe import _
 from frappe.utils import (
     add_days,
     add_to_date,
@@ -71,35 +72,6 @@ def get_date_range(filters):
     return date_list
 
 
-def get_employee_holiday_and_weekoff(employee, company, from_date, to_date):
-    hl_name = frappe.db.get_value("Employee", employee, "holiday_list")
-
-    # fallback to shift holiday list
-    if not hl_name:
-        shift_type = frappe.db.get_value("Employee", employee, "default_shift")
-        if shift_type:
-            hl_name = frappe.db.get_value("Shift Type", shift_type, "holiday_list")
-
-    # fallback to company default holiday list
-    if not hl_name and company:
-        hl_name = frappe.db.get_value("Company", company, "default_holiday_list")
-
-    if not hl_name:
-        return [], []
-
-    holidays = frappe.get_all(
-        "Holiday",
-        {"parent": hl_name, "holiday_date": ["between", [from_date, to_date]]},
-        ["holiday_date", "weekly_off"],
-        ignore_permissions=1,
-    )
-
-    wo = [row.holiday_date for row in holidays if row.weekly_off]
-    holiday_dates = [row.holiday_date for row in holidays if not row.weekly_off]
-
-    return holiday_dates, wo
-
-
 def get_checkin_window(date, attendance_data, shift_timings):
     start_time, end_time, shift_type = shift_timings
 
@@ -155,7 +127,7 @@ def get_shift_timings_by_date(employee, date_range, default_shift):
             "status": "Active",
             "docstatus": 1,
         },
-        fields=["start_date", "shift_type"],
+        fields=["start_date", "end_date", "shift_type"],
         order_by="start_date desc",
     )
 
@@ -177,14 +149,18 @@ def get_shift_timings_by_date(employee, date_range, default_shift):
     shift_timings_by_date = {}
     for date in date_range:
         shift_type = next(
-            (row.shift_type for row in assignments if row.start_date <= date),
+            (
+                row.shift_type
+                for row in assignments
+                if row.start_date <= date and (not row.end_date or row.end_date >= date)
+            ),
             default_shift,
         )
-        if not shift_type:
-            shift_timings_by_date[date] = (None, None, None)
+        shift_type_doc = shift_types.get(shift_type)
+        if not shift_type_doc:
+            shift_timings_by_date[date] = (None, None, shift_type)
             continue
 
-        shift_type_doc = shift_types[shift_type]
         shift_timings_by_date[date] = (
             shift_type_doc.start_time,
             shift_type_doc.end_time,
@@ -353,8 +329,7 @@ def get_data(filters):
     to_date = filters.get("to_date")
 
     if not employee or not from_date or not to_date:
-        frappe.throw("Please select Employee, From Date and To Date")
-        return []
+        frappe.throw(_("Please select Employee, From Date and To Date"))
 
     date_range = get_date_range(filters)
     if not date_range:
@@ -646,7 +621,7 @@ def process_data(
                 "p_out_hrs": _format_time_value(record.get("p_out_hrs")),
                 "p_out_deduction_hrs": _format_time_value(
                     timedelta(seconds=record.get("p_out_deduction_hrs") or 0)
-                ),  # <-- changes
+                ),
                 "net_wrk_hrs": _format_time_value(net_wrk_hrs_val)
                 if net_wrk_hrs_val is not None
                 else (_format_time_value(record.get("net_wrk_hrs")) or "0:00:00"),

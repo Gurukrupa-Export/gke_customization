@@ -9,6 +9,7 @@ from frappe.utils import (
     add_days,
     flt,
     format_time,
+    get_datetime,
     get_time,
     getdate,
 )
@@ -112,7 +113,7 @@ def attendance(from_date=None, to_date=None, employee=None):
                             (Attendance.status == "On Leave")
                             & (
                                 Attendance.leave_type.isin(
-                                    frappe.db.get_list(
+                                    frappe.get_all(
                                         "Leave Type",
                                         filters={"is_lwp": 0},
                                         pluck="name",
@@ -188,7 +189,6 @@ def attendance(from_date=None, to_date=None, employee=None):
         for condition in conditions:
             query = query.where(condition)
 
-        # frappe.throw(f"{query}")
         data = query.run(as_dict=1)
 
         if not data:
@@ -252,12 +252,16 @@ def process_data(data, from_date, to_date, employee):
         ],
         as_dict=1,
     )
+    if not shift_det:
+        frappe.throw(_("No Shift found for Employee {0}").format(employee))
     shift_hours = flt(shift_det.get("shift_hours"))
     shift_name = f"{format_time(shift_det.get('start_time'))} To {format_time(shift_det.get('end_time'))}"
     grace_period = shift_det.get("early_exit_grace_period")
 
     EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
     addition_day = add_days(to_date, 1)
+    from_date_time = get_datetime(from_date)
+    to_date_time = get_datetime(f"{addition_day} 23:59:59")
     checkins = (
         frappe.qb.from_(EmployeeCheckin)
         .select(
@@ -266,14 +270,16 @@ def process_data(data, from_date, to_date, employee):
             Count(EmployeeCheckin.name).as_("cnt"),
         )
         .where(
-            (EmployeeCheckin.time.between(from_date, addition_day))
+            (EmployeeCheckin.time.between(from_date_time, to_date_time))
             & (EmployeeCheckin.employee == employee)
+            & (EmployeeCheckin.attendance.isnotnull())
+            & (EmployeeCheckin.attendance != "")
         )
         .groupby(EmployeeCheckin.attendance)
     ).run(as_dict=True)
 
     checkins = {row.login_date: row.cnt for row in checkins}
-    od = frappe.get_list(
+    od = frappe.get_all(
         "Employee Checkin",
         {
             "employee": employee,
@@ -288,15 +294,13 @@ def process_data(data, from_date, to_date, employee):
         emp_det["holiday_list"] = shift_det.get("holiday_list")
 
     if hl_name := emp_det.get("holiday_list"):
-        holidays = frappe.get_list(
+        holidays = frappe.get_all(
             "Holiday",
             {"parent": hl_name, "holiday_date": ["between", [from_date, to_date]]},
             ["holiday_date", "weekly_off"],
-            ignore_permissions=1,
         )
         wo = [row.holiday_date for row in holidays if row.weekly_off]
         holidays = [row.holiday_date for row in holidays if not row.weekly_off]
-    # frappe.throw(f"{}")
 
     for row in data:
         if grace_period != 0:
@@ -316,12 +320,13 @@ def process_data(data, from_date, to_date, employee):
                     row.total_pay_hrs = row.net_wrk_hrs + (row.ot_hours or timedelta(0))
         if row.lh:
             row.status = "LH"
-        shift_hours_in_sec = row.shift_hours * 3600
+        row_shift_hours = flt(row.shift_hours) or shift_hours
+        shift_hours_in_sec = row_shift_hours * 3600
         if (
             row.net_wrk_hrs.total_seconds() > shift_hours_in_sec
             or (shift_hours_in_sec - row.net_wrk_hrs.total_seconds()) < 60
         ):
-            row.net_wrk_hrs = timedelta(hours=row.shift_hours)
+            row.net_wrk_hrs = timedelta(hours=row_shift_hours)
         row["total_pay_hrs"] = row.net_wrk_hrs + (row.get("ot_hours") or timedelta(0))
         row.status = STATUS.get(row.status) or row.status
         processed[row.attendance_date] = row
@@ -344,6 +349,7 @@ def process_data(data, from_date, to_date, employee):
     date_range = get_date_range(from_date, to_date)
     for date in date_range:
         row = processed.get(date, ot_for_wo.get(date, {}))
+        status = None
         if date in od:
             row["status"] = "OD"
             if ot_hours := row.get("ot_hours"):
@@ -402,15 +408,15 @@ def get_date_range(start_date, end_date):
     start_date = getdate(start_date)
     end_date = getdate(end_date)
 
-    range = []
+    date_range = []
     delta = datetime.timedelta(days=1)
     current_date = start_date
 
     while current_date <= end_date:
-        range.append(current_date)
+        date_range.append(current_date)
         current_date += delta
 
-    return range
+    return date_range
 
 
 @frappe.whitelist(allow_guest=True)
