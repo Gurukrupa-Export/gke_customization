@@ -48,6 +48,8 @@ class HolidayPunch(Document):
             doc.log_type = punch.type
             doc.source = punch.source
             doc.save()
+            if not punch.employee_checkin:
+                punch.db_set("employee_checkin", doc.name, update_modified=False)
 
     @frappe.whitelist()
     def search_checkin(self):
@@ -78,10 +80,11 @@ class HolidayPunch(Document):
         if filters:
             employee_list = frappe.get_all("Employee", filters, pluck="name")
 
-        # bhavika 01-10-2026
         EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
 
         data_list = []
+        if not employee_list:
+            return data_list
 
         attendance_by_employee = {}
         if employee_list:
@@ -96,39 +99,69 @@ class HolidayPunch(Document):
             ):
                 attendance_by_employee.setdefault(attendance.employee, attendance.name)
 
+        window_by_employee = {}
         for employee in employee_list:
             shift_timings = get_employee_shift_timings(
                 employee, get_datetime(shift_datetime), True
             )[1]
-
-            condition = EmployeeCheckin.time.between(
-                shift_timings.actual_start, shift_timings.actual_end
-            )
-
-            attendance = attendance_by_employee.get(employee)
-
-            if attendance:
-                condition = condition | (EmployeeCheckin.attendance == attendance)
-
-            data = (
-                frappe.qb.from_(EmployeeCheckin)
-                .select(
-                    Date(EmployeeCheckin.time).as_("date"),
-                    EmployeeCheckin.log_type.as_("type"),
-                    EmployeeCheckin.time,
-                    EmployeeCheckin.source,
-                    EmployeeCheckin.name.as_("employee_checkin"),
-                    EmployeeCheckin.employee,
-                    EmployeeCheckin.employee_name.as_("custom_employee_name"),
+            if shift_timings:
+                window_by_employee[employee] = (
+                    shift_timings.actual_start,
+                    shift_timings.actual_end,
                 )
-                .where(EmployeeCheckin.employee == employee)
-                .where(condition)
-                .orderby(EmployeeCheckin.time)
-                .run(as_dict=True)
+
+        if not window_by_employee and not attendance_by_employee:
+            return data_list
+
+        condition = None
+        if window_by_employee:
+            window_start = min(window[0] for window in window_by_employee.values())
+            window_end = max(window[1] for window in window_by_employee.values())
+            condition = EmployeeCheckin.time.between(window_start, window_end)
+
+        if attendance_by_employee:
+            attendance_condition = EmployeeCheckin.attendance.isin(
+                list(attendance_by_employee.values())
+            )
+            condition = (
+                attendance_condition
+                if condition is None
+                else condition | attendance_condition
             )
 
-            if data:
-                data_list.append(data)
+        rows = (
+            frappe.qb.from_(EmployeeCheckin)
+            .select(
+                Date(EmployeeCheckin.time).as_("date"),
+                EmployeeCheckin.log_type.as_("type"),
+                EmployeeCheckin.time,
+                EmployeeCheckin.source,
+                EmployeeCheckin.name.as_("employee_checkin"),
+                EmployeeCheckin.employee,
+                EmployeeCheckin.employee_name.as_("custom_employee_name"),
+                EmployeeCheckin.attendance,
+            )
+            .where(EmployeeCheckin.employee.isin(employee_list))
+            .where(condition)
+            .orderby(EmployeeCheckin.time)
+            .run(as_dict=True)
+        )
+
+        rows_by_employee = {}
+        for row in rows:
+            employee = row.employee
+            linked_attendance = row.pop("attendance")
+            window = window_by_employee.get(employee)
+            in_window = bool(window) and window[0] <= row.time <= window[1]
+            linked = bool(linked_attendance) and (
+                linked_attendance == attendance_by_employee.get(employee)
+            )
+            if in_window or linked:
+                rows_by_employee.setdefault(employee, []).append(row)
+
+        for employee in employee_list:
+            if rows_by_employee.get(employee):
+                data_list.append(rows_by_employee[employee])
         return data_list
 
 
@@ -262,12 +295,6 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
 
     att.insert()
     att.submit()
-
-    if late_entry:
-        att.db_set("late_entry", late_entry, update_modified=False)
-
-    if early_exit:
-        att.db_set("early_exit", early_exit, update_modified=False)
 
     # -------------------------------------------------
     # Link Employee Checkins with Attendance
@@ -428,23 +455,19 @@ def process_checkins(docname):
 
     except Exception:
         frappe.db.rollback()
-        error = frappe.get_traceback()
-        # Error log create
-        log = frappe.log_error(title=f"Holiday Punch: {docname}", message=error)
+        log = frappe.log_error(
+            title=f"Holiday Punch: {docname}", message=frappe.get_traceback()
+        )
 
-        # Update document
-        frappe.db.set_value("Holiday Punch", docname, "workflow_state", "Failed")
         frappe.db.set_value(
             "Holiday Punch",
             docname,
-            "error_details",
-            f"""
-				Process failed.
-
-				Check Error Log: {log.name}
-
-				{str(error)}
-				""",
+            {
+                "workflow_state": "Failed",
+                "error_details": "Process failed. Check Error Log: {0}".format(
+                    log.name
+                ),
+            },
         )
 
         frappe.db.commit()
@@ -462,36 +485,52 @@ def process_attendance(docname):
                 continue
             emp_map.setdefault(row.employee, []).append(row)
 
-        # Process attendance
+        failed_employees = []
         for emp, rows in emp_map.items():
-            process_attendance_from_rows(rows, emp, doc.shift_name, doc.date)
+            frappe.db.savepoint("holiday_punch_attendance")
+            try:
+                process_attendance_from_rows(rows, emp, doc.shift_name, doc.date)
+            except Exception:
+                frappe.db.rollback(save_point="holiday_punch_attendance")
+                log = frappe.log_error(
+                    title=f"Holiday Punch: {docname} ({emp})",
+                    message=frappe.get_traceback(),
+                )
+                failed_employees.append("{0} (Error Log: {1})".format(emp, log.name))
 
-        # Update workflow state
-        frappe.db.set_value(
-            doc.doctype, doc.name, "workflow_state", "Attendance Created"
-        )
+        if failed_employees:
+            frappe.db.set_value(
+                doc.doctype,
+                doc.name,
+                {
+                    "workflow_state": "Failed",
+                    "error_details": "Attendance failed for: {0}".format(
+                        ", ".join(failed_employees)
+                    ),
+                },
+            )
+        else:
+            frappe.db.set_value(
+                doc.doctype, doc.name, "workflow_state", "Attendance Created"
+            )
 
         frappe.db.commit()
 
     except Exception:
         frappe.db.rollback()
-        error = frappe.get_traceback()
-        # Error log create
-        log = frappe.log_error(title=f"Holiday Punch: {docname}", message=error)
+        log = frappe.log_error(
+            title=f"Holiday Punch: {docname}", message=frappe.get_traceback()
+        )
 
-        # Update document
-        frappe.db.set_value("Holiday Punch", docname, "workflow_state", "Failed")
         frappe.db.set_value(
             "Holiday Punch",
             docname,
-            "error_details",
-            f"""
-				Process failed.
-
-				Check Error Log: {log.name}
-
-				{str(error)}
-				""",
+            {
+                "workflow_state": "Failed",
+                "error_details": "Process failed. Check Error Log: {0}".format(
+                    log.name
+                ),
+            },
         )
 
         frappe.db.commit()
@@ -504,9 +543,15 @@ def enqueue_modify_checkin(docname):
         queue="long",
         timeout=10000,
         job_name=f"Modify Checkin {docname}",
+        job_id=f"holiday_punch::process_checkins::{docname}",
+        deduplicate=True,
         now=False,
         docname=docname,
     )
+
+    if not job:
+        frappe.msgprint(_("A job for {0} is already queued or running.").format(docname))
+        return None
 
     frappe.msgprint(_("Job Enqueued: {0}").format(job.id))
     return job.id
@@ -519,9 +564,15 @@ def enqueue_modify_attendance(docname):
         queue="long",
         timeout=10000,
         job_name=f"Modify Attendance {docname}",
+        job_id=f"holiday_punch::process_attendance::{docname}",
+        deduplicate=True,
         now=False,
         docname=docname,
     )
+
+    if not job:
+        frappe.msgprint(_("A job for {0} is already queued or running.").format(docname))
+        return None
 
     frappe.msgprint(_("Job Enqueued: {0}").format(job.id))
     return job.id
