@@ -4,6 +4,7 @@
 from bisect import bisect_left, bisect_right
 
 import frappe
+from frappe import _
 from frappe.utils import add_days, add_to_date, get_datetime, get_time, getdate
 
 from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log import (
@@ -329,8 +330,7 @@ def get_data(filters):
     department = filters.get("department")
 
     if not employee or not from_date or not to_date:
-        frappe.throw("Please select Employee, From Date and To Date")
-        return []
+        frappe.throw(_("Please select Employee, From Date and To Date"))
 
     date_range = get_date_range(filters)
     employee_list = get_employee_list(employee, department)
@@ -366,63 +366,63 @@ def get_data(filters):
 def get_columns():
     columns = [
         {
-            "label": "Employee",
+            "label": _("Employee"),
             "fieldname": "employee",
             "fieldtype": "Data",
             "width": 150,
         },
         {
-            "label": "Employee Name",
+            "label": _("Employee Name"),
             "fieldname": "employee_name",
             "fieldtype": "Data",
             "width": 200,
         },
         {
-            "label": "Punch ID",
+            "label": _("Punch ID"),
             "fieldname": "punch_id",
             "fieldtype": "Data",
             "width": 100,
         },
         {
-            "label": "Department",
+            "label": _("Department"),
             "fieldname": "department",
             "fieldtype": "Data",
             "width": 150,
         },
-        {"label": "Date", "fieldname": "login_date", "fieldtype": "Date", "width": 120},
+        {"label": _("Date"), "fieldname": "login_date", "fieldtype": "Date", "width": 120},
         {
-            "label": "Shift",
+            "label": _("Shift"),
             "fieldname": "shift_type",
             "fieldtype": "Data",
             "width": 120,
         },
         {
-            "label": "Attendance Status",
+            "label": _("Attendance Status"),
             "fieldname": "attendance_status",
             "fieldtype": "Data",
             "width": 150,
         },
-        {"label": "In Time", "fieldname": "in_time", "fieldtype": "Data", "width": 100},
+        {"label": _("In Time"), "fieldname": "in_time", "fieldtype": "Data", "width": 100},
         {
-            "label": "Out Time",
+            "label": _("Out Time"),
             "fieldname": "out_time",
             "fieldtype": "Data",
             "width": 100,
         },
-        {"label": "Late", "fieldname": "late", "fieldtype": "Data", "width": 100},
+        {"label": _("Late"), "fieldname": "late", "fieldtype": "Data", "width": 100},
         {
-            "label": "Late Hrs",
+            "label": _("Late Hrs"),
             "fieldname": "late_hrs",
             "fieldtype": "Time",
             "width": 100,
         },
         {
-            "label": "Early Hrs",
+            "label": _("Early Hrs"),
             "fieldname": "early_hrs",
             "fieldtype": "Time",
             "width": 100,
         },
-        {"label": "OT Hrs", "fieldname": "ot_hours", "fieldtype": "Time", "width": 100},
+        {"label": _("OT Hrs"), "fieldname": "ot_hours", "fieldtype": "Time", "width": 100},
     ]
     return columns
 

@@ -81,7 +81,14 @@ def get_data(filters=None):
     # OT Log subquery
     # -----------------------------
     ot_subquery = (
-        frappe.qb.from_(OTLog).select("*").where(OTLog.is_cancelled == 0)
+        frappe.qb.from_(OTLog)
+        .select(
+            OTLog.employee,
+            OTLog.attendance_date,
+            SEC_TO_TIME(Sum(TIME_TO_SEC(OTLog.allowed_ot))).as_("allowed_ot"),
+        )
+        .where(OTLog.is_cancelled == 0)
+        .groupby(OTLog.employee, OTLog.attendance_date)
     ).as_("ot")
 
     # -----------------------------
@@ -701,15 +708,15 @@ def get_date_range(start_date, end_date):
     start_date = getdate(start_date)
     end_date = getdate(end_date)
 
-    range = []
+    date_range = []
     delta = datetime.timedelta(days=1)
     current_date = start_date
 
     while current_date <= end_date:
-        range.append(current_date)
+        date_range.append(current_date)
         current_date += delta
 
-    return range
+    return date_range
 
 
 @frappe.whitelist()
