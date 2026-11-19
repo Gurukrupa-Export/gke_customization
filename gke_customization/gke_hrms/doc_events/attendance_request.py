@@ -41,8 +41,8 @@ def validate(self, method):
         if not is_night_shift and out_time <= in_time:
             frappe.throw(
                 _(
-                    f"Out Time ({out_time}) cannot be earlier than or equal to In Time ({in_time})"
-                )
+                    "Out Time ({0}) cannot be earlier than or equal to In Time ({1})"
+                ).format(out_time, in_time)
             )
 
     # ----------------------------
@@ -154,8 +154,6 @@ def on_submit(self, method):
             }
         )
 
-        attendance_doc.reload()
-
         # Link all logs to this attendance
         frappe.db.set_value(
             "Employee Checkin",
@@ -164,12 +162,11 @@ def on_submit(self, method):
             attendance_doc.name,
         )
 
-    frappe.db.commit()
     att_req_update_monthly_inout_log(self)
 
 
 def get_attendance_record(self, attendance_date: str) -> str | None:
-    attedance = frappe.db.exists(
+    return frappe.db.exists(
         "Attendance",
         {
             "employee": self.employee,
@@ -177,8 +174,6 @@ def get_attendance_record(self, attendance_date: str) -> str | None:
             "docstatus": ("!=", 2),
         },
     )
-    frappe.msgprint(f"Attendance Record: {attedance or 'Not Found'}")
-    return attedance
 
 
 def get_attendance(self, logs, attendance_date):
@@ -276,9 +271,9 @@ def validate_attendance_request(doc, method):
     if not doc.employee:
         return
 
-    employee = frappe.get_doc("Employee", doc.employee)
-
-    shift_type = doc.shift or employee.default_shift
+    shift_type = doc.shift or frappe.db.get_value(
+        "Employee", doc.employee, "default_shift"
+    )
     if not shift_type:
         return
 
@@ -324,8 +319,9 @@ def validate_attendance_request(doc, method):
 
         if in_time_dt < allowed_in_start_dt or in_time_dt > allowed_in_end_dt:
             frappe.throw(
-                f"Check-in time must be between "
-                f"{allowed_in_start_dt.time()} and {allowed_in_end_dt.time()}."
+                _("Check-in time must be between {0} and {1}.").format(
+                    allowed_in_start_dt.time(), allowed_in_end_dt.time()
+                )
             )
 
     # --------------------
@@ -340,8 +336,9 @@ def validate_attendance_request(doc, method):
 
         if out_time_dt < allowed_out_start_dt or out_time_dt > allowed_out_end_dt:
             frappe.throw(
-                f"Check-out time must be between "
-                f"{allowed_out_start_dt.time()} and {allowed_out_end_dt.time()}."
+                _("Check-out time must be between {0} and {1}.").format(
+                    allowed_out_start_dt.time(), allowed_out_end_dt.time()
+                )
             )
 
     # --------------------
@@ -356,7 +353,7 @@ def validate_attendance_request(doc, method):
         )
 
         if time_diff_in_seconds(out_time_dt, in_time_dt) <= 0:
-            frappe.throw("Check-out time must be after check-in time.")
+            frappe.throw(_("Check-out time must be after check-in time."))
 
 
 ###### End of Edited by Aditya at 27/01/2026 #################
@@ -373,51 +370,44 @@ def att_req_update_monthly_inout_log(doc, method=None):
         if not doc.employee or not doc.company:
             return
 
-        # Get attendance of Attendance Request
-        attendance_list = frappe.get_all(
+        attendance_dates = frappe.get_all(
             "Attendance",
             filters={
                 "employee": doc.employee,
                 "attendance_request": doc.name,
                 "docstatus": 1,
             },
-            fields=["name"],
+            pluck="attendance_date",
         )
 
-        if not attendance_list:
+        if not attendance_dates:
             return
 
-        for att in attendance_list:
-            att_doc = frappe.db.get_value(
-                "Attendance", att.name, ["attendance_date", "name"], as_dict=True
-            )
-            attendance_date = att_doc.attendance_date
+        mil_by_date = {}
+        for row in frappe.get_all(
+            "Monthly In-Out Log",
+            filters={
+                "employee": doc.employee,
+                "company": doc.company,
+                "attendance_date": ["in", attendance_dates],
+                "docstatus": ["in", [0, 1]],
+            },
+            fields=["name", "attendance_date"],
+        ):
+            mil_by_date.setdefault(row.attendance_date, row.name)
 
-            mil_name = frappe.db.get_value(
-                "Monthly In-Out Log",
-                {
-                    "employee": doc.employee,
-                    "company": doc.company,
-                    "attendance_date": attendance_date,
-                    "docstatus": ["in", [0, 1]],
-                },
-                "name",
-            )
-
+        for attendance_date in attendance_dates:
+            mil_name = mil_by_date.get(attendance_date)
             if not mil_name:
-                return
-
-            mil = frappe.db.get_value(
-                "Monthly In-Out Log", mil_name, ["company", "employee"], as_dict=True
-            )
+                continue
 
             res = get_attendance_details_by_date(
-                mil.company, mil.employee, attendance_date
+                doc.company, doc.employee, attendance_date
             )
 
             records = res.get("records") or []
             if not records:
-                return
+                continue
 
             record = records[0]
 
@@ -441,8 +431,6 @@ def att_req_update_monthly_inout_log(doc, method=None):
                     "p_out_hrs": fmt_td_or_value(record.get("p_out_hrs")),
                 },
             )
-
-            frappe.db.commit()
     except Exception as e:
         frappe.log_error(
             message=f"Error updating Monthly In-Out Log: {e}",

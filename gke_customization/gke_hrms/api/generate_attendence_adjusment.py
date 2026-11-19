@@ -71,11 +71,11 @@ def check_employee_active_validation_based_on_doj(employees):
         return True
 
     for row in employees:
-        # Agar row dict hai: {"employee": "EMP-0001"}
+        # Row can be a dict like {"employee": "EMP-0001"}
         if isinstance(row, dict):
             emp = row.get("employee")
 
-        # Agar row direct string hai: "EMP-0001"
+        # or a plain employee ID string like "EMP-0001"
         else:
             emp = row
 
@@ -316,8 +316,6 @@ def proceed_check_in_modify(docname):
 
                 sorted_dates = sorted(date_map.keys())
 
-                # 🔹 Group by date
-                off_dates = set()
                 keep_dates = None
                 remove_dates = None
                 if keep_days == round(adjusted_days):
@@ -328,7 +326,7 @@ def proceed_check_in_modify(docname):
                     remove_dates = sorted_dates[keep_days:]
 
                 correct_date, d = get_even_odd_cases_from_check_in_out(
-                    holiday_dates, employee, date_map, keep_dates
+                    employee, date_map, keep_dates
                 )
 
                 if correct_date:
@@ -345,111 +343,8 @@ def proceed_check_in_modify(docname):
                         update_modified=True,
                     )
 
-                # odd case when the out is in holiday
-                for date in remove_dates:
-                    logs = date_map.get(date, [])
-
-                    in_count = 0
-                    out_count = 0
-
-                    for log in logs:
-                        if log["log_type"] == "IN":
-                            in_count += 1
-
-                        elif log["log_type"] == "OUT":
-                            out_count += 1
-
-                    # agar proper IN-OUT nahi hai to off consider karo
-                    if in_count == 0 or out_count == 0:
-                        off_dates.add(date)
-
-                correct_date = set()
-                d = {}
-                for dt in off_dates:
-                    check_actual_time = frappe.get_all(
-                        "Employee Checkin",
-                        filters={
-                            "employee": employee,
-                            "time": ["between", [f"{dt} 00:00:00", f"{dt} 23:59:59"]],
-                        },
-                        fields=[
-                            "name",
-                            "employee",
-                            "time",
-                            "log_type",
-                            "attendance",
-                            "shift_actual_start",
-                            "shift_actual_end",
-                        ],
-                        order_by="time",
-                    )
-
-                    if check_actual_time and check_actual_time[0].log_type == "IN":
-                        next_day = add_days(dt, 1)
-
-                        next_day_checkins = frappe.get_all(
-                            "Employee Checkin",
-                            filters={
-                                "employee": employee,
-                                "time": [
-                                    "between",
-                                    [f"{next_day} 00:00:00", f"{next_day} 23:59:59"],
-                                ],
-                            },
-                            fields=[
-                                "name",
-                                "employee",
-                                "time",
-                                "shift",
-                                "log_type",
-                                "shift_actual_start",
-                                "shift_actual_end",
-                            ],
-                            order_by="time",
-                        )
-
-                        for row in next_day_checkins:
-                            if (
-                                row.shift_actual_start
-                                and getdate(row.shift_actual_start) == dt
-                            ):
-                                if row.shift:
-                                    shift_doc = frappe.get_cached_doc(
-                                        "Shift Type", row.shift
-                                    )
-
-                                    begin_before = (
-                                        shift_doc.begin_check_in_before_shift_start_time
-                                        or 0
-                                    )
-                                    allow_after = (
-                                        shift_doc.allow_check_out_after_shift_end_time
-                                        or 0
-                                    )
-
-                                    checkin_time = get_datetime(row.time)
-
-                                    shift_start = get_datetime(row.shift_actual_start)
-                                    shift_end = get_datetime(row.shift_actual_end)
-
-                                    allowed_checkin_start = shift_start - timedelta(
-                                        minutes=begin_before
-                                    )
-
-                                    allowed_checkout_end = shift_end + timedelta(
-                                        minutes=allow_after
-                                    )
-                                    # check row time lies inside allowed range
-                                    if (
-                                        allowed_checkin_start
-                                        <= checkin_time
-                                        <= allowed_checkout_end
-                                    ):
-                                        if getdate(next_day) in holiday_dates:
-                                            correct_date.add(next_day)
-                                            d[next_day] = row.name
                 correct_date, d = get_even_odd_cases_from_check_in_out(
-                    holiday_dates, employee, date_map, remove_dates
+                    employee, date_map, remove_dates
                 )
                 remove_dates = sorted(set(remove_dates).union(correct_date))
 
@@ -674,20 +569,10 @@ def proceed_check_in_modify(docname):
 
                 # Create missing attendance
                 count = 0
+                existing_log_types = get_log_types_grouped_by_date(
+                    employee, absent_dates
+                )
                 for new_date in absent_dates:
-                    start_dt = f"{new_date} 00:00:00"
-                    end_dt = f"{new_date} 23:59:59"
-
-                    #  Existing logs
-                    existing_logs = frappe.db.get_all(
-                        "Employee Checkin",
-                        filters={
-                            "employee": employee,
-                            "time": ["between", [start_dt, end_dt]],
-                        },
-                        fields=["name", "log_type", "time"],
-                    )
-
                     if count >= missing_days:
                         # to change the last check in out if fraction paybale found
                         if fractional_hours > 0 and fractional_date:
@@ -719,11 +604,10 @@ def proceed_check_in_modify(docname):
 
                             # update OUT time
                             if in_log and out_log:
-                                new_out_time_for_paybale_case = get_datetime(
-                                    in_log.time
-                                ) + timedelta(hours=fractional_hours).replace(
-                                    second=0, microsecond=0
-                                )
+                                new_out_time_for_paybale_case = (
+                                    get_datetime(in_log.time)
+                                    + timedelta(hours=fractional_hours)
+                                ).replace(second=0, microsecond=0)
 
                                 frappe.db.set_value(
                                     "Employee Checkin",
@@ -736,7 +620,7 @@ def proceed_check_in_modify(docname):
 
                         break
 
-                    log_types = [d.log_type for d in existing_logs]
+                    log_types = existing_log_types[new_date]
 
                     #  Skip if already complete
                     if "IN" in log_types and "OUT" in log_types:
@@ -762,6 +646,7 @@ def proceed_check_in_modify(docname):
                                 "skip_auto_attendance": 0,
                             }
                         ).insert(ignore_permissions=True)
+                        log_types.add("IN")
                         created = True
 
                     # OUT
@@ -775,6 +660,7 @@ def proceed_check_in_modify(docname):
                                 "skip_auto_attendance": 0,
                             }
                         ).insert(ignore_permissions=True)
+                        log_types.add("OUT")
                         created = True
 
                     #  count tabhi badhao jab actual creation hua
@@ -1090,6 +976,9 @@ def update_proceed_check_in_modify(docname):
             # whether the last day's OUT time gets trimmed to fractional_hours:
             # that trim is skipped for "Incentive" rows.
             apply_fractional_trim = row.action != "Incentive"
+            existing_checkin_times = get_checkin_times(
+                employee, working_dates[:keep_days]
+            )
             for current_date in working_dates[:keep_days]:
                 # Skip holidays (defensive; working_dates already excludes them)
                 if getdate(current_date) in holiday_dates:
@@ -1111,9 +1000,7 @@ def update_proceed_check_in_modify(docname):
                     ).replace(second=0, microsecond=0)
 
                 # Check IN already exists
-                if not frappe.db.exists(
-                    "Employee Checkin", {"employee": employee, "time": shift_start}
-                ):
+                if shift_start not in existing_checkin_times:
                     frappe.get_doc(
                         {
                             "doctype": "Employee Checkin",
@@ -1123,11 +1010,10 @@ def update_proceed_check_in_modify(docname):
                             "skip_auto_attendance": 0,
                         }
                     ).insert(ignore_permissions=True)
+                    existing_checkin_times.add(shift_start)
 
                 # Check OUT already exists
-                if not frappe.db.exists(
-                    "Employee Checkin", {"employee": employee, "time": shift_end}
-                ):
+                if shift_end not in existing_checkin_times:
                     frappe.get_doc(
                         {
                             "doctype": "Employee Checkin",
@@ -1137,6 +1023,7 @@ def update_proceed_check_in_modify(docname):
                             "skip_auto_attendance": 0,
                         }
                     ).insert(ignore_permissions=True)
+                    existing_checkin_times.add(shift_end)
 
                 created_days += 1
 
@@ -1260,7 +1147,7 @@ def enqueue_modify_attendance(docname):
     return job.id
 
 
-def get_even_odd_cases_from_check_in_out(holiday_dates, employee, date_map, dates):
+def get_even_odd_cases_from_check_in_out(employee, date_map, dates):
     off_dates = set()
 
     for date in dates:
@@ -1275,94 +1162,122 @@ def get_even_odd_cases_from_check_in_out(holiday_dates, employee, date_map, date
             elif log["log_type"] == "OUT":
                 out_count += 1
 
-        # Agar proper IN-OUT nahi hai to off consider karo
+        # A date without both an IN and an OUT punch is treated as off
         if in_count == 0 or out_count == 0:
             off_dates.add(date)
 
     correct_date = set()
     d = {}
 
+    if not off_dates:
+        return correct_date, d
+
+    checkins_by_date = get_checkins_grouped_by_date(employee, off_dates)
+
     for dt in off_dates:
-        check_actual_time = frappe.get_all(
-            "Employee Checkin",
-            filters={
-                "employee": employee,
-                "time": ["between", [f"{dt} 00:00:00", f"{dt} 23:59:59"]],
-            },
-            fields=[
-                "name",
-                "employee",
-                "time",
-                "log_type",
-                "attendance",
-                "shift_actual_start",
-                "shift_actual_end",
-            ],
-            order_by="time",
-        )
+        dt = getdate(dt)
+        day_checkins = checkins_by_date.get(dt, [])
+        if not day_checkins or day_checkins[0].log_type != "IN":
+            continue
 
-        if check_actual_time and check_actual_time[0].log_type == "IN":
-            next_day = add_days(dt, 1)
+        next_day = add_days(dt, 1)
 
-            next_day_checkins = frappe.get_all(
-                "Employee Checkin",
-                filters={
-                    "employee": employee,
-                    "time": [
-                        "between",
-                        [f"{next_day} 00:00:00", f"{next_day} 23:59:59"],
-                    ],
-                },
-                fields=[
-                    "name",
-                    "employee",
-                    "time",
-                    "shift",
-                    "log_type",
-                    "shift_actual_start",
-                    "shift_actual_end",
-                ],
-                order_by="time",
-            )
+        for row in checkins_by_date.get(next_day, []):
+            if not row.shift_actual_start or getdate(row.shift_actual_start) != dt:
+                continue
 
-            for row in next_day_checkins:
-                if row.shift_actual_start and getdate(row.shift_actual_start) == dt:
-                    if row.shift:
-                        shift_doc = frappe.get_cached_doc(
-                            "Shift Type",
-                            row.shift,
-                        )
+            if not row.shift:
+                continue
 
-                        begin_before = (
-                            shift_doc.begin_check_in_before_shift_start_time or 0
-                        )
-                        allow_after = (
-                            shift_doc.allow_check_out_after_shift_end_time or 0
-                        )
+            shift_doc = frappe.get_cached_doc("Shift Type", row.shift)
 
-                        checkin_time = get_datetime(row.time)
-                        shift_start = get_datetime(row.shift_actual_start)
-                        shift_end = get_datetime(row.shift_actual_end)
+            begin_before = shift_doc.begin_check_in_before_shift_start_time or 0
+            allow_after = shift_doc.allow_check_out_after_shift_end_time or 0
 
-                        allowed_checkin_start = shift_start - timedelta(
-                            minutes=begin_before
-                        )
+            checkin_time = get_datetime(row.time)
+            shift_start = get_datetime(row.shift_actual_start)
+            shift_end = get_datetime(row.shift_actual_end)
 
-                        allowed_checkout_end = shift_end + timedelta(
-                            minutes=allow_after
-                        )
+            allowed_checkin_start = shift_start - timedelta(minutes=begin_before)
+            allowed_checkout_end = shift_end + timedelta(minutes=allow_after)
 
-                        # Check row time lies inside allowed range
-                        if (
-                            allowed_checkin_start
-                            <= checkin_time
-                            <= allowed_checkout_end
-                        ):
-                            if getdate(next_day) in holiday_dates:
-                                correct_date.add(next_day)
-                                d[next_day] = row.name
-                            else:
-                                correct_date.add(next_day)
-                                d[next_day] = row.name
+            if allowed_checkin_start <= checkin_time <= allowed_checkout_end:
+                correct_date.add(next_day)
+                d[next_day] = row.name
 
     return correct_date, d
+
+
+def get_checkins_grouped_by_date(employee, dates):
+    """Fetch the employee's checkins from the first date to the day after the last date, grouped by date."""
+    dates = [getdate(dt) for dt in dates]
+    checkins = frappe.get_all(
+        "Employee Checkin",
+        filters={
+            "employee": employee,
+            "time": [
+                "between",
+                [f"{min(dates)} 00:00:00", f"{add_days(max(dates), 1)} 23:59:59"],
+            ],
+        },
+        fields=[
+            "name",
+            "employee",
+            "time",
+            "log_type",
+            "attendance",
+            "shift",
+            "shift_actual_start",
+            "shift_actual_end",
+        ],
+        order_by="time",
+    )
+
+    checkins_by_date = defaultdict(list)
+    for row in checkins:
+        checkins_by_date[getdate(row.time)].append(row)
+
+    return checkins_by_date
+
+
+def get_log_types_grouped_by_date(employee, dates):
+    """Return a dict of date to the set of checkin log types the employee has on that date."""
+    log_types_by_date = defaultdict(set)
+    if not dates:
+        return log_types_by_date
+
+    checkins = frappe.get_all(
+        "Employee Checkin",
+        filters={
+            "employee": employee,
+            "time": [
+                "between",
+                [f"{min(dates)} 00:00:00", f"{max(dates)} 23:59:59"],
+            ],
+        },
+        fields=["time", "log_type"],
+    )
+    for row in checkins:
+        log_types_by_date[getdate(row.time)].add(row.log_type)
+
+    return log_types_by_date
+
+
+def get_checkin_times(employee, dates):
+    """Return the set of checkin times the employee has between the first and last date."""
+    if not dates:
+        return set()
+
+    dates = [getdate(dt) for dt in dates]
+    checkin_times = frappe.get_all(
+        "Employee Checkin",
+        filters={
+            "employee": employee,
+            "time": [
+                "between",
+                [f"{min(dates)} 00:00:00", f"{max(dates)} 23:59:59"],
+            ],
+        },
+        pluck="time",
+    )
+    return {get_datetime(time) for time in checkin_times}

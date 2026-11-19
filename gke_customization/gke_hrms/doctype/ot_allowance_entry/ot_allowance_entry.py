@@ -413,6 +413,9 @@ class OTAllowanceEntry(Document):
         shift_assignments = self.__dict__.setdefault(
             "_weekly_off_shift_assignments", {}
         )
+        ot_logs_by_date_and_first_in = self.get_ot_logs_by_date_and_first_in(
+            emp, holidays
+        )
         for holiday in holidays or []:
             # The lookup uses self.employee, so the result is the same for every employee on a given holiday
             shift_assignment_key = (self.employee, getdate(holiday.holiday_date))
@@ -491,28 +494,19 @@ class OTAllowanceEntry(Document):
                         "branch": emp.branch,
                     }
                 elif checkin and row.type == "OUT":
-                    ot_log = {}
-                    ot_log = (
-                        frappe.db.get_value(
-                            "OT Log",
-                            {
-                                "attendance_date": row.holiday,
-                                "employee": row.employee,
-                                "is_cancelled": 0,
-                                "first_in": checkin.get("first_in"),
-                            },
-                            [
-                                "name as ot_log",
-                                "allow",
-                                "allowed_ot",
-                                "remarks",
-                                "attendance_date",
-                            ],
-                            as_dict=1,
-                        )
-                        or {}
+                    ot_log = ot_logs_by_date_and_first_in.get(
+                        (getdate(row.holiday), checkin.get("first_in"))
                     )
-                    checkin.update(ot_log)
+                    if ot_log:
+                        checkin.update(
+                            {
+                                "ot_log": ot_log.ot_log,
+                                "allow": ot_log.allow,
+                                "allowed_ot": ot_log.allowed_ot,
+                                "remarks": ot_log.remarks,
+                                "attendance_date": ot_log.attendance_date,
+                            }
+                        )
                     checkin["last_out"] = row.time
                     checkin["attn_ot_hrs"] = time_diff(
                         row.date_time, checkin.get("date_time")
@@ -555,6 +549,38 @@ class OTAllowanceEntry(Document):
                 final_result.extend(entries)
 
         return final_result
+
+    def get_ot_logs_by_date_and_first_in(self, emp, holidays):
+        """Return active OT Logs of the employee keyed by (attendance_date, first_in)."""
+        if not emp or not holidays:
+            return {}
+
+        ot_logs = frappe.get_all(
+            "OT Log",
+            filters={
+                "employee": emp.name,
+                "is_cancelled": 0,
+                "attendance_date": [
+                    "in",
+                    [getdate(holiday.holiday_date) for holiday in holidays],
+                ],
+            },
+            fields=[
+                "name as ot_log",
+                "allow",
+                "allowed_ot",
+                "remarks",
+                "attendance_date",
+                "first_in",
+            ],
+        )
+
+        ot_logs_by_date_and_first_in = {}
+        for ot_log in ot_logs:
+            ot_logs_by_date_and_first_in.setdefault(
+                (getdate(ot_log.attendance_date), ot_log.first_in), ot_log
+            )
+        return ot_logs_by_date_and_first_in
 
     def get_emp_list(self):
         Employee = DocType("Employee")
@@ -631,8 +657,8 @@ class OTAllowanceEntry(Document):
             sub_query_filter.append((Employee.designation == self.designation))
 
         sub_query = frappe.qb.from_(Employee).select(Employee.name)
-        for filter in sub_query_filter:
-            sub_query = sub_query.where(filter)
+        for employee_filter in sub_query_filter:
+            sub_query = sub_query.where(employee_filter)
 
         conditions.append((Attendance.employee.isin(sub_query)))
 
