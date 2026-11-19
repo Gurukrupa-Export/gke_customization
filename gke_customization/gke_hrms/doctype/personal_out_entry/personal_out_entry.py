@@ -35,7 +35,6 @@ class PersonalOutEntry(Document):
                 },
                 fields=["name", "locked_by"],
             )
-            # frappe.throw(f"{existing} ")
             for entry in existing:
                 if (
                     entry.locked_by
@@ -57,7 +56,6 @@ class PersonalOutEntry(Document):
             create_prsnl_out_log(log)
 
         frappe.msgprint(_("Personal Out Records Created/Updated"))
-        # self.checkin_details = []
 
     @frappe.whitelist()
     def get_checkin_details(self, from_log=False):
@@ -66,27 +64,10 @@ class PersonalOutEntry(Document):
         PersonalOutLog = frappe.qb.DocType("Personal Out Log")
         ShiftType = frappe.qb.DocType("Shift Type")
 
-        # To_Seconds = CustomFunction("TIME_TO_SEC", ["date"])
         ifelse = CustomFunction("IF", ["condition", "then", "else"])
         Time_Diff = CustomFunction("TIMEDIFF", ["cur_date", "due_date"])
         Time = CustomFunction("Time", ["time"])
         Date = CustomFunction("DATE", ["dt"])
-        # Sec_To_Time = CustomFunction("SEC_TO_TIME", ["date"])
-
-        # emp_det = (
-        # 	frappe.qb.from_(EmployeeCheckin)
-        # 	.select(
-        # 		EmployeeCheckin.employee,
-        # 		EmployeeCheckin.employee_name,
-        # 		Date(EmployeeCheckin.time).as_('at_date'),
-        # 		Sum(ifelse(EmployeeCheckin.log_type == 'OUT', 1, 0)).as_('cnt'),
-        # 		EmployeeCheckin.shift_start,
-        # 		EmployeeCheckin.shift_end
-        # 		)
-        # 	.where(EmployeeCheckin.log_type == 'OUT')
-        # 	.groupby(EmployeeCheckin.employee, EmployeeCheckin.shift_start)
-        # 	.having(frappe.qb.Field("cnt") > 1)
-        # ).as_('emp_det')
 
         emp_det = (
             frappe.qb.from_(EmployeeCheckin)
@@ -116,7 +97,6 @@ class PersonalOutEntry(Document):
                 EmployeeCheckin.time.as_("checkout"),
                 EmployeeCheckin.employee.as_("emp"),
                 Date(EmployeeCheckin.time).as_("co_date"),
-                # EmployeeCheckin.shift.as_('shift'),  # optional
             )
             .where(EmployeeCheckin.log_type == "OUT")
         ).as_("check_out")
@@ -127,7 +107,6 @@ class PersonalOutEntry(Document):
                 EmployeeCheckin.time.as_("checkin_time"),
                 EmployeeCheckin.employee,
                 Date(EmployeeCheckin.time).as_("ci_date"),
-                # EmployeeCheckin.shift.as_('shift'),  # optional
             )
             .where(EmployeeCheckin.log_type == "IN")
         ).as_("check_in")
@@ -149,19 +128,6 @@ class PersonalOutEntry(Document):
         # alias for time of checkout (SQL Time)
         checkout_time = Time(check_out.checkout)
 
-        # SQL expression for outside_shift:
-        # normal shift (start < end): checkout < start OR checkout > end
-        # night shift  (start > end): checkout > end AND checkout < start
-        # normal_shift = (
-        # 	(emp_det.shift_start < emp_det.shift_end)
-        # 	&
-        # 	(
-        # 		(checkout_time > emp_det.shift_start)
-        # 		&
-        # 		(checkout_time < emp_det.shift_end)
-        # 	)
-        # )
-        # bhavika
         normal_shift = (emp_det.shift_start < emp_det.shift_end) & (
             (
                 (checkout_time > emp_det.shift_start)

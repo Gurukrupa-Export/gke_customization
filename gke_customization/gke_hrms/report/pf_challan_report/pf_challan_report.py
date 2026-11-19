@@ -154,19 +154,6 @@ def get_account_total_summary(filters=None):
 
     employee_count = sum(1 for row in eps_wage_total if (row.get("eps_wage") > 0))
 
-    # employee_count_raw = total_row.get("employee_name", 0)
-    # if isinstance(employee_count_raw, str) and ":" in employee_count_raw:
-    # 	employee_count = int(employee_count_raw.split(":")[-1].strip())
-    # else:
-    # 	employee_count = int(employee_count_raw or 0)
-
-    # employee_count = sum(1 for row in data if (row.get("gross_pay") or 0) != 0)
-    # employee_count_raw = total_row.get("employee_name", 0)
-    # if isinstance(employee_count_raw, str) and ":" in employee_count_raw:
-    # 	employee_count = int(employee_count_raw.split(":")[-1].strip())
-    # else:
-    # 	employee_count = int(employee_count_raw or 0)
-
     ac10_subscribers = employee_count
 
     total_epf_amount = total_row.get("epf_wage", 0)
@@ -254,7 +241,6 @@ def export_txt(filters=None):
     data = get_data(filters)
 
     lines = []
-    # for row in data[163:165]:
     for row in data:
         # skip total row if present
         if row.get("company") == "Total":
@@ -290,8 +276,6 @@ def export_txt(filters=None):
                 .upper()
             )
 
-            # epf_wages = round(row.get("epf_wages") or 0)
-
             basic_ear = round(row.get("epf_wages") or 0)
             eps_wages = 0
             eps_contribution = 0
@@ -322,7 +306,6 @@ def export_txt(filters=None):
 
             ncp = 0
             total_working_days = row.get("total_working_days") or 0
-            # payment_days = round(row.get("payment_days") or 0)
             payment_days = math.floor((row.get("payment_days") or 0) + 0.5)
 
             if row.get("absent_days"):
@@ -331,10 +314,6 @@ def export_txt(filters=None):
                 ncp = round(total_working_days - payment_days)
 
             refund_advance = row.get("refund_advance") or 0
-
-            # 100982928420#~#Bhikhubhai Maheshbhai Modi#~#22589#~#14065
-            # #~#14065#~#14065#~#1688
-            # #~#1688#~#0#~#0#~#0
 
             lines.append(
                 f"{uan_number}#~#{name_as_per_aadhar}#~#{gross_pay}#~#{epf_wages}"

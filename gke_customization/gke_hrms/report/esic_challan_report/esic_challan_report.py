@@ -29,7 +29,6 @@ def get_data(filters=None):
     if conditions:
         condition_query = " AND " + " AND ".join(conditions)
 
-    # frappe.throw(f"{values}")
     query = f"""
 		SELECT
 			ss.company AS company,
@@ -207,7 +206,6 @@ def get_esic_total(filters=None):
 			{condition_query}
 	"""
     data = frappe.db.sql(query, values, as_dict=True)
-    # frappe.throw(f"{data}")
 
     return data
 

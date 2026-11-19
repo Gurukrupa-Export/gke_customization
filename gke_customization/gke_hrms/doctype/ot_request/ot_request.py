@@ -80,8 +80,6 @@ class OTRequest(Document):
                     child.employee_id, get_datetime(child.work_start_date), True
                 )[1]
 
-                # frappe.throw(f"Shift timings for Employee {child.employee_id} on {child.work_start_date}: {shift_timings}")
-
                 start_datetime = shift_timings.get("actual_start") or get_datetime(
                     f"{work_date} 00:00:00"
                 )
@@ -107,7 +105,6 @@ class OTRequest(Document):
                         f"{child.employee_id} on {work_date} was at {last_checkin_time}."
                     )
 
-        # self.check_attendance_request_exists()
         self.set_max_ot_hrs()
 
     def set_max_ot_hrs(self):
@@ -134,7 +131,6 @@ class OTRequest(Document):
         frappe.db.savepoint(save_point)
 
         try:
-            # frappe.msgprint("Create Checkins............")
             for child in self.order_request:
                 if child.employee_id and child.ot_hours and child.enable_ot_duration:
                     out_time = get_datetime(child.work_end_date)
@@ -150,7 +146,6 @@ class OTRequest(Document):
                     )
 
                     checkin_ids = [checkin_in_id, checkin_out_id]
-                    # frappe.msgprint(f"Checkin IDs: {checkin_ids}")
 
                     # Handle Attendance
                     self._handle_attendance(
@@ -252,8 +247,6 @@ class OTRequest(Document):
             self._update_existing_attendance(
                 attendance_name, in_time, out_time, checkin_ids, ot_hours
             )
-        # else:
-        # 	self._create_new_attendance(employee, attendance_date, in_time, out_time, checkin_ids)
 
     def _update_existing_attendance(
         self, attendance_name, in_time, out_time, checkin_ids, ot_hours
@@ -343,7 +336,6 @@ class OTRequest(Document):
 @frappe.whitelist()
 def fill_employee_details(department_head, branch=None, gender=None):
     filters = {
-        # 'department': department,
         "reports_to": department_head,
         "status": "Active",
     }

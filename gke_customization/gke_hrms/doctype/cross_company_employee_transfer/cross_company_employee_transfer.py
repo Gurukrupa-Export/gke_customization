@@ -64,8 +64,6 @@ class CrossCompanyEmployeeTransfer(Document):
         for field in remove_fields:
             payload.pop(field, None)
 
-        # frappe.throw(payload.get("reports_to"))
-
         # -------------------------
         # Remove child tables (first test without them)
         # -------------------------
@@ -94,25 +92,7 @@ class CrossCompanyEmployeeTransfer(Document):
             "Holiday List": "holiday_list",
         }
 
-        # def get_property_data_by_property():
-        # 		property_data = {}
-        # 		for row in self.transfer_details:
-        # 			property_data[row.property] = row.new
-
-        # 		return property_data
-
-        # property_data = get_property_data_by_property()
-
         for table in child_tables:
-            # if table == "internal_work_history":
-            # 	payload.setdefault(table, []).append({
-            # 		"branch": property_data.get("Branch", ""),
-            # 		"department": property_data.get("Department", ""),
-            # 		"designation": property_data.get("Designation", ""),
-            # 		"from_date": payload.get("date_of_joining"),
-            # 		"to_date": nowdate()
-            # 	})
-            # else:
             payload.pop(table, None)
 
         for row in self.transfer_details:
@@ -123,21 +103,6 @@ class CrossCompanyEmployeeTransfer(Document):
 
             if not fieldname:
                 continue
-
-            # if fieldname in ["expense_approver", "reports_to", "shift_request_approver", "leave_approver"]:
-            # if fieldname == "holiday_list":
-            # 	frappe.throw(f"{row.new}")
-
-            # 	# "KGJPL - 00628 - Alpeshbhai Sureshbhai Rathod"
-            # 	parts = row.new.split(" - ")
-
-            # 	if len(parts) >= 2:
-            # 		payload[fieldname] = f"{parts[0]} - {parts[1]}"
-            # 	else:
-            # 		payload[fieldname] = row.new
-
-            # else:
-            # 	payload[fieldname] = row.new
 
             fieldname = field_map.get(row.property)
 
@@ -152,13 +117,7 @@ class CrossCompanyEmployeeTransfer(Document):
                 payload[fieldname] = row.new_value
 
             else:
-                # Department / Designation / Shift / User
                 payload[fieldname] = row.new
-
-        # if self.new_company == "Gurukrupa Export Private Limited":
-        # 	payload["holiday_list"] = "GEPL-ST-Holiday"
-        # else:
-        # 	payload["holiday_list"] = "KGJPL-Holiday"
 
         payload["date_of_joining"] = self.transfer_date
 
@@ -168,8 +127,6 @@ class CrossCompanyEmployeeTransfer(Document):
 
         payload = frappe.parse_json(frappe.as_json(payload))
 
-        # frappe.throw(frappe.as_json(payload))
-
         try:
             response = requests.post(
                 f"{self.target_site}/api/method/create_transfer_employee",
@@ -177,10 +134,7 @@ class CrossCompanyEmployeeTransfer(Document):
                 timeout=60,
             )
 
-            # response.raise_for_status()
-
             response_data = response.json()
-            # frappe.throw(frappe.as_json(response_data))
 
             if response_data.get("message") and response_data["message"].get(
                 "employee"
@@ -193,7 +147,6 @@ class CrossCompanyEmployeeTransfer(Document):
             else:
                 import json
 
-                # frappe.throw(f"{response_data.get("message")}")
                 frappe.throw(
                     f"Employee creation failed in {self.new_company}\n\n"
                     + "\n".join(
@@ -221,8 +174,6 @@ def get_kggk_data(target_site=None, property=None, new_company=None):
         frappe.throw("Target Site is required")
 
     target_site = str(target_site).rstrip("/")
-
-    # frappe.throw(f"Target Site after strip: {target_site}")
 
     response = requests.get(
         f"{target_site}/api/method/get_dept_desi_reprt_leave_apr",

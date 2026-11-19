@@ -30,7 +30,6 @@ frappe.query_reports["Employee Punch Error"] = {
 			fieldname: "department",
 			fieldtype: "Link",
 			options: "Department",
-			// "reqd": 1,
 			get_query: function () {
 				var company = frappe.query_report.get_filter_value("company");
 				return {

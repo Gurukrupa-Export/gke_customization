@@ -63,7 +63,6 @@ def employee_annexure(source_name, target_doc=None):
                     "designation": "designation",
                     "custom_department": "department",
                     "company": "company",
-                    # "status": "offer_status",
                     "offer_date": "offer_date",
                 },
             }
@@ -71,13 +70,10 @@ def employee_annexure(source_name, target_doc=None):
         target_doc,
     )
     annexure.employee_job_offer = source_name
-    # annexure.ctc =0
     for term in job_offer.offer_terms:
         if term.offer_term == "Monthly Gross Salary":
             ctc = term.value.replace("/-", "").replace(",", "").strip()
             annexure.ctc = flt(ctc)
-            # annexure.ctc = fmt_money(term.value,currency="INR")
-            # frappe.throw(f"{annexure.ctc}")
 
             break
     job_applicant = frappe.get_doc("Job Applicant", job_offer.job_applicant)

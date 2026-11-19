@@ -260,9 +260,6 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
     else:
         att.status = "Absent"
 
-    # -------------------------------------------------
-    # Insert & Submit
-    # -------------------------------------------------
     att.insert()
     att.submit()
 
@@ -400,8 +397,6 @@ def make_row(employee_details, punch_type, dt):
     }
 
 
-# new method
-# method="gke_customization.gke_hrms.doctype.holiday_punch.holiday_punch.process_checkins"
 def process_checkins(docname):
     try:
         doc = frappe.get_doc("Holiday Punch", docname)
@@ -455,7 +450,6 @@ def process_checkins(docname):
         frappe.db.commit()
 
 
-# method="gke_customization.gke_hrms.doctype.holiday_punch.holiday_punch.process_attendance"
 def process_attendance(docname):
     try:
         doc = frappe.get_doc("Holiday Punch", docname)
