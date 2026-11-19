@@ -19,7 +19,9 @@ class OTRequest(Document):
 
         if self.branch:
             branch_parts = self.branch.split("-")
-            branch_short = branch_parts[-2] if len(branch_parts) > 1 else branch_parts[0]
+            branch_short = (
+                branch_parts[-2] if len(branch_parts) > 1 else branch_parts[0]
+            )
             series = f"{company_abbr}-{branch_short}-OT-.#####"
         else:
             series = f"{company_abbr}-OT-.#####"

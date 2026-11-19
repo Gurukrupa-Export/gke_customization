@@ -204,8 +204,18 @@ def get_account_total_summary(filters=None):
 
 def get_columns(filters=None):
     columns = [
-        {"label": _("Company"), "fieldname": "company", "fieldtype": "Data", "width": 200},
-        {"label": _("Branch"), "fieldname": "branch", "fieldtype": "Data", "width": 180},
+        {
+            "label": _("Company"),
+            "fieldname": "company",
+            "fieldtype": "Data",
+            "width": 200,
+        },
+        {
+            "label": _("Branch"),
+            "fieldname": "branch",
+            "fieldtype": "Data",
+            "width": 180,
+        },
         {
             "label": _("Employee"),
             "fieldname": "employee_id",

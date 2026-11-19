@@ -599,12 +599,15 @@ def process_data(data, filters):
     result = []
     holidays = []
     wo = []
-    emp_det = frappe.db.get_value(
-        "Employee",
-        employee,
-        ["default_shift", "holiday_list", "date_of_joining"],
-        as_dict=1,
-    ) or frappe._dict()
+    emp_det = (
+        frappe.db.get_value(
+            "Employee",
+            employee,
+            ["default_shift", "holiday_list", "date_of_joining"],
+            as_dict=1,
+        )
+        or frappe._dict()
+    )
 
     default_shift = emp_det.get("default_shift")  # <<< CHANGED
     shift = ""
@@ -615,18 +618,21 @@ def process_data(data, filters):
     if not shift:
         shift = default_shift  # <<< CHANGED
 
-    shift_det = frappe.db.get_value(
-        "Shift Type",
-        shift,
-        [
-            "shift_hours",
-            "holiday_list",
-            "start_time",
-            "end_time",
-            "early_exit_grace_period",
-        ],
-        as_dict=1,
-    ) or frappe._dict()
+    shift_det = (
+        frappe.db.get_value(
+            "Shift Type",
+            shift,
+            [
+                "shift_hours",
+                "holiday_list",
+                "start_time",
+                "end_time",
+                "early_exit_grace_period",
+            ],
+            as_dict=1,
+        )
+        or frappe._dict()
+    )
     shift_hours = flt(shift_det.get("shift_hours") or 0)
     grace_period = shift_det.get("early_exit_grace_period") or 0
 
@@ -753,7 +759,8 @@ def process_data(data, filters):
                     total = late + p_out
 
                     row["net_wrk_hrs"] = (
-                        timedelta(hours=flt(row.get("shift_hours")) or shift_hours) - total
+                        timedelta(hours=flt(row.get("shift_hours")) or shift_hours)
+                        - total
                     )
                     row["total_pay_hrs"] = timedelta(0)
                 else:

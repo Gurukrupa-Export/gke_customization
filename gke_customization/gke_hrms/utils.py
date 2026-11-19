@@ -310,7 +310,9 @@ def get_employee_shift(employee, for_date=None):
     return frappe.db.get_value("Employee", employee, "default_shift")
 
 
-def get_employees_by_shift(shift_type: str, for_date: Optional[date] = None) -> List[str]:
+def get_employees_by_shift(
+    shift_type: str, for_date: Optional[date] = None
+) -> List[str]:
     """
     Returns a list of Employees assigned to a given Shift Type.
 

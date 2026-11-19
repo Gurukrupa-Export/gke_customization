@@ -13,7 +13,9 @@ class InactivePayroll(Document):
     def autoname(self):
         company_abbr = frappe.db.get_value("Company", self.company, "abbr")
         if not company_abbr:
-            frappe.throw(_("Please set an Abbreviation for Company {0}").format(self.company))
+            frappe.throw(
+                _("Please set an Abbreviation for Company {0}").format(self.company)
+            )
 
         prefix = f"{company_abbr}-IAP-"
         self.name = frappe.model.naming.make_autoname(prefix)

@@ -28,7 +28,9 @@ class OTAllowanceEntry(Document):
         if company_abbr:
             if self.branch:
                 branch_parts = self.branch.split("-")
-                branch_short = branch_parts[-2] if len(branch_parts) > 1 else self.branch
+                branch_short = (
+                    branch_parts[-2] if len(branch_parts) > 1 else self.branch
+                )
                 series = f"{company_abbr}-{branch_short}-OTA-.#####"
             else:
                 series = f"{company_abbr}-OTA-.#####"
@@ -426,7 +428,10 @@ class OTAllowanceEntry(Document):
             .where(
                 Checkin.time.between(
                     get_datetime_str(
-                        min(timings.actual_start for _holiday, timings in holiday_windows)
+                        min(
+                            timings.actual_start
+                            for _holiday, timings in holiday_windows
+                        )
                     ),
                     get_datetime_str(
                         max(timings.actual_end for _holiday, timings in holiday_windows)

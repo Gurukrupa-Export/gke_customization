@@ -601,7 +601,9 @@ def process_data1(data, from_date, to_date, employee):
     ot_for_wo = {row.attendance_date: row for row in ot_for_wo}
     date_range = get_date_range(from_date, to_date)
     date_of_joining = (
-        getdate(emp_det.get("date_of_joining")) if emp_det.get("date_of_joining") else None
+        getdate(emp_det.get("date_of_joining"))
+        if emp_det.get("date_of_joining")
+        else None
     )
 
     for date in date_range:
@@ -913,7 +915,9 @@ def process_data(data, from_date, to_date, employee):
     ot_for_wo = {row.attendance_date: row for row in ot_for_wo}
     date_range = get_date_range(from_date, to_date)
     date_of_joining = (
-        getdate(emp_det.get("date_of_joining")) if emp_det.get("date_of_joining") else None
+        getdate(emp_det.get("date_of_joining"))
+        if emp_det.get("date_of_joining")
+        else None
     )
 
     for date in date_range:

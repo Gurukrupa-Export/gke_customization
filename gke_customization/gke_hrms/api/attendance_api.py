@@ -327,7 +327,9 @@ def process_data(data, from_date, to_date, employee):
         holidays = [row.holiday_date for row in holidays if not row.weekly_off]
 
     date_of_joining = (
-        getdate(emp_det.get("date_of_joining")) if emp_det.get("date_of_joining") else None
+        getdate(emp_det.get("date_of_joining"))
+        if emp_det.get("date_of_joining")
+        else None
     )
 
     leave_type_flags = {
@@ -433,7 +435,10 @@ def process_data(data, from_date, to_date, employee):
         allow = ot_log.pop("allow")
         ot_for_wo[ot_log.attendance_date] = ot_log
         if allow == 1:
-            ot_details_map[ot_log.attendance_date] = {"hrs": ot_log.ot_hours, "allow": allow}
+            ot_details_map[ot_log.attendance_date] = {
+                "hrs": ot_log.ot_hours,
+                "allow": allow,
+            }
     date_range = get_date_range(from_date, to_date)
 
     # Check-ins already linked to an Attendance, used to hide previous-shift punches on WO days
@@ -510,7 +515,9 @@ def process_data(data, from_date, to_date, employee):
 
         if date in od:
             status = "OD"
-            date_time = datetime.combine(getdate(date), get_time(day_shift_det.start_time))
+            date_time = datetime.combine(
+                getdate(date), get_time(day_shift_det.start_time)
+            )
             if first_in_last_out := get_checkins(employee, date_time):
                 row["in_time"] = get_time(first_in_last_out[0].get("time"))
                 row["out_time"] = get_time(first_in_last_out[-1].get("time"))
@@ -520,7 +527,9 @@ def process_data(data, from_date, to_date, employee):
                 row["total_pay_hrs"] = row.get("total_pay_hrs") or timedelta(0)
         elif date in wo and (not date_of_joining or date >= date_of_joining):
             status = "WO"  # weekly off
-            date_time = datetime.combine(getdate(date), get_time(day_shift_det.start_time))
+            date_time = datetime.combine(
+                getdate(date), get_time(day_shift_det.start_time)
+            )
 
             # Get check-ins for this WO date
             # Note: get_checkins() may return check-ins from previous day's night shift

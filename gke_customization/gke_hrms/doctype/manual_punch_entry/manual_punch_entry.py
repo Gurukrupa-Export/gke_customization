@@ -62,7 +62,11 @@ class ManualPunchEntry(Document):
         shift_datetime = datetime.combine(getdate(self.date), get_time(self.start_time))
         shift_det = get_employee_shift_timings(self.employee, shift_datetime, True)[1]
         if not shift_det:
-            frappe.throw(_("No shift found for Employee {0} on {1}").format(self.employee, self.date))
+            frappe.throw(
+                _("No shift found for Employee {0} on {1}").format(
+                    self.employee, self.date
+                )
+            )
         if not (
             get_datetime(punch_time) > shift_det.actual_start
             and get_datetime(punch_time) < shift_det.actual_end
@@ -173,7 +177,9 @@ def create_attendance_from_manual_punch(self):
             employee, get_datetime(shift_datetime), True
         )[1]  # for current shift
         if not shift_timings:
-            frappe.throw(_("No shift found for Employee {0} on {1}").format(employee, date))
+            frappe.throw(
+                _("No shift found for Employee {0} on {1}").format(employee, date)
+            )
 
         checkin_logs = frappe.db.sql(
             """
@@ -229,7 +235,9 @@ def create_attendance_from_manual_punch(self):
                 "attendance",
                 new_attnd.name,
             )
-            frappe.msgprint(_("Attendance marked on {0} for {1} ").format(date, employee))
+            frappe.msgprint(
+                _("Attendance marked on {0} for {1} ").format(date, employee)
+            )
     else:
         frappe.msgprint(
             _("Attendance not marked as {0} is holiday for {1} on {2}").format(

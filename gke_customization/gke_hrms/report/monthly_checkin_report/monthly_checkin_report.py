@@ -389,7 +389,12 @@ def get_columns():
             "fieldtype": "Data",
             "width": 150,
         },
-        {"label": _("Date"), "fieldname": "login_date", "fieldtype": "Date", "width": 120},
+        {
+            "label": _("Date"),
+            "fieldname": "login_date",
+            "fieldtype": "Date",
+            "width": 120,
+        },
         {
             "label": _("Shift"),
             "fieldname": "shift_type",
@@ -402,7 +407,12 @@ def get_columns():
             "fieldtype": "Data",
             "width": 150,
         },
-        {"label": _("In Time"), "fieldname": "in_time", "fieldtype": "Data", "width": 100},
+        {
+            "label": _("In Time"),
+            "fieldname": "in_time",
+            "fieldtype": "Data",
+            "width": 100,
+        },
         {
             "label": _("Out Time"),
             "fieldname": "out_time",
@@ -422,7 +432,12 @@ def get_columns():
             "fieldtype": "Time",
             "width": 100,
         },
-        {"label": _("OT Hrs"), "fieldname": "ot_hours", "fieldtype": "Time", "width": 100},
+        {
+            "label": _("OT Hrs"),
+            "fieldname": "ot_hours",
+            "fieldtype": "Time",
+            "width": 100,
+        },
     ]
     return columns
 

@@ -92,8 +92,12 @@ def get_data(filters=None):
     )
 
     # Out time and in time are clock values, so a night shift crossing midnight gives a negative diff
-    clock_diff = time_diff(time_format(adj_out_with_random, time_pattern), subquery.in_time)
-    total_adj = if_function(clock_diff < 0, add_time(clock_diff, "24:00:00"), clock_diff)
+    clock_diff = time_diff(
+        time_format(adj_out_with_random, time_pattern), subquery.in_time
+    )
+    total_adj = if_function(
+        clock_diff < 0, add_time(clock_diff, "24:00:00"), clock_diff
+    )
 
     data = (
         frappe.qb.from_(subquery)

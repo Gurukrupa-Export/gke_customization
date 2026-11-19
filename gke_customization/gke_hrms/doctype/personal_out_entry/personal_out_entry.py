@@ -15,7 +15,9 @@ class PersonalOutEntry(Document):
         if company_abbr:
             if self.branch:
                 branch_parts = self.branch.split("-")
-                branch_short = branch_parts[-2] if len(branch_parts) > 1 else self.branch
+                branch_short = (
+                    branch_parts[-2] if len(branch_parts) > 1 else self.branch
+                )
                 series = f"{company_abbr}-{branch_short}-POE-.#####"
             else:
                 series = f"{company_abbr}-POE-.#####"
@@ -73,9 +75,9 @@ class PersonalOutEntry(Document):
         Time = CustomFunction("Time", ["time"])
         Date = CustomFunction("DATE", ["dt"])
 
-        checkin_filter = (
-            EmployeeCheckin.time >= getdate(self.from_date)
-        ) & (EmployeeCheckin.time < add_days(getdate(self.to_date), 1))
+        checkin_filter = (EmployeeCheckin.time >= getdate(self.from_date)) & (
+            EmployeeCheckin.time < add_days(getdate(self.to_date), 1)
+        )
         pol_filter = (PersonalOutLog.is_cancelled == 0) & (
             PersonalOutLog.date.between(getdate(self.from_date), getdate(self.to_date))
         )
@@ -218,11 +220,7 @@ class PersonalOutEntry(Document):
             frappe.throw(_("Invalid Date Range"))
 
         conditions = [
-            (
-                emp_det.at_date.between(
-                    getdate(self.from_date), getdate(self.to_date)
-                )
-            )
+            (emp_det.at_date.between(getdate(self.from_date), getdate(self.to_date)))
         ]
 
         if from_log:

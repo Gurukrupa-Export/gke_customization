@@ -10,7 +10,9 @@ class AccessRequest(Document):
     def autoname(self):
         company_abbr = frappe.db.get_value("Company", self.company, "abbr")
         if not company_abbr:
-            frappe.throw(_("Abbreviation is not set for Company {0}").format(self.company))
+            frappe.throw(
+                _("Abbreviation is not set for Company {0}").format(self.company)
+            )
 
         if self.request_purpose == "Employee Access":
             type_code = "EA"

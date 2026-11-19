@@ -431,7 +431,9 @@ def process_data(data, from_date, to_date, employee):
 
     default_shift = emp_det.get("default_shift")
     date_of_joining = (
-        getdate(emp_det.get("date_of_joining")) if emp_det.get("date_of_joining") else None
+        getdate(emp_det.get("date_of_joining"))
+        if emp_det.get("date_of_joining")
+        else None
     )
 
     shift = ""
@@ -807,7 +809,9 @@ def get_shift_details_by_date(employee, from_date, to_date, default_shift):
         assignment = next(
             (row for row in assignments if getdate(row.start_date) <= date), None
         )
-        if assignment and (not assignment.end_date or getdate(assignment.end_date) >= date):
+        if assignment and (
+            not assignment.end_date or getdate(assignment.end_date) >= date
+        ):
             shift = assignment.shift_type
         else:
             shift = default_shift

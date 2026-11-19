@@ -381,7 +381,9 @@ def _process_payroll_email(batch_name):
             # ------------------------------------------
             # Generate PDF
             # ------------------------------------------
-            subject = _("Salary Slip - from {0} to {1}").format(doc.from_date, doc.to_date)
+            subject = _("Salary Slip - from {0} to {1}").format(
+                doc.from_date, doc.to_date
+            )
             message = _("Please see attachment")
             if payroll_email_template:
                 email_template = frappe.get_cached_doc(
@@ -398,12 +400,9 @@ def _process_payroll_email(batch_name):
                     **employee_doc.as_dict()
                 )
                 if not payroll_email_template:
-                    message += (
-                        "<br>"
-                        + _("Note: Your salary slip is password protected, the password to unlock the PDF is of the format {0}.").format(
-                            payroll_settings.password_policy
-                        )
-                    )
+                    message += "<br>" + _(
+                        "Note: Your salary slip is password protected, the password to unlock the PDF is of the format {0}."
+                    ).format(payroll_settings.password_policy)
 
             # salary slip file method
             pdf_file_name = f"{row.salary_slip}-{frappe.generate_hash(length=5)}.pdf"

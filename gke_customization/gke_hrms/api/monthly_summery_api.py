@@ -206,9 +206,7 @@ def attendance1(from_date=None, to_date=None, employee=None):
                 )
             ).as_("spent_hours"),
             pol_subquery.hrs.as_("p_out_hrs"),
-            pol_deduction_subquery.as_(
-                "p_out_deduction_hrs"
-            ),
+            pol_deduction_subquery.as_("p_out_deduction_hrs"),
             SEC_TO_TIME(
                 IfNull(
                     TIME_TO_SEC(TIMEDIFF(effective_out, effective_in))
@@ -389,9 +387,7 @@ def attendance(from_date=None, to_date=None, employee=None):
                 None,
             ).as_("early_hrs"),
             pol_subquery.hrs.as_("p_out_hrs"),
-            pol_deduction_subquery.as_(
-                "p_out_deduction_hrs"
-            ),
+            pol_deduction_subquery.as_("p_out_deduction_hrs"),
             SEC_TO_TIME(
                 IF(
                     (  # Attendance.attendance_request.isnotnull() |
@@ -665,7 +661,9 @@ def process_data1(data, from_date, to_date, employee):
     ot_for_wo = {row.attendance_date: row for row in ot_for_wo}
     date_range = get_date_range(from_date, to_date)
     date_of_joining = (
-        getdate(emp_det.get("date_of_joining")) if emp_det.get("date_of_joining") else None
+        getdate(emp_det.get("date_of_joining"))
+        if emp_det.get("date_of_joining")
+        else None
     )
 
     for date in date_range:
@@ -977,7 +975,9 @@ def process_data(data, from_date, to_date, employee):
     ot_for_wo = {row.attendance_date: row for row in ot_for_wo}
     date_range = get_date_range(from_date, to_date)
     date_of_joining = (
-        getdate(emp_det.get("date_of_joining")) if emp_det.get("date_of_joining") else None
+        getdate(emp_det.get("date_of_joining"))
+        if emp_det.get("date_of_joining")
+        else None
     )
 
     for date in date_range:

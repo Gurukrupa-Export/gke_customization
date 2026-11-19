@@ -216,8 +216,18 @@ def get_esic_total(filters=None):
 
 def get_columns(filters=None):
     columns = [
-        {"label": _("Company"), "fieldname": "company", "fieldtype": "Data", "width": 200},
-        {"label": _("Branch"), "fieldname": "branch", "fieldtype": "Data", "width": 200},
+        {
+            "label": _("Company"),
+            "fieldname": "company",
+            "fieldtype": "Data",
+            "width": 200,
+        },
+        {
+            "label": _("Branch"),
+            "fieldname": "branch",
+            "fieldtype": "Data",
+            "width": 200,
+        },
         {
             "label": _("Employee"),
             "fieldname": "employee_id",
@@ -353,7 +363,9 @@ def export_txt(filters=None):
 
 
 def get_employee_details_map(data):
-    employee_ids = list({row.get("employee_id") for row in data if row.get("employee_id")})
+    employee_ids = list(
+        {row.get("employee_id") for row in data if row.get("employee_id")}
+    )
     if not employee_ids:
         return {}
 

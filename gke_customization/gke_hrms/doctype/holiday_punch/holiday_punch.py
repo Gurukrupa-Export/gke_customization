@@ -550,7 +550,9 @@ def enqueue_modify_checkin(docname):
     )
 
     if not job:
-        frappe.msgprint(_("A job for {0} is already queued or running.").format(docname))
+        frappe.msgprint(
+            _("A job for {0} is already queued or running.").format(docname)
+        )
         return None
 
     frappe.msgprint(_("Job Enqueued: {0}").format(job.id))
@@ -571,7 +573,9 @@ def enqueue_modify_attendance(docname):
     )
 
     if not job:
-        frappe.msgprint(_("A job for {0} is already queued or running.").format(docname))
+        frappe.msgprint(
+            _("A job for {0} is already queued or running.").format(docname)
+        )
         return None
 
     frappe.msgprint(_("Job Enqueued: {0}").format(job.id))

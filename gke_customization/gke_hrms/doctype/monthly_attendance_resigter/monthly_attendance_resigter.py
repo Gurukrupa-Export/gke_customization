@@ -13,7 +13,9 @@ class MonthlyAttendanceResigter(Document):
         if company_abbr:
             if self.branch:
                 branch_parts = self.branch.split("-")
-                branch_short = branch_parts[-2] if len(branch_parts) > 1 else self.branch
+                branch_short = (
+                    branch_parts[-2] if len(branch_parts) > 1 else self.branch
+                )
                 series = f"HR-{company_abbr}-{branch_short}-MAR-.#####"
             else:
                 series = f"HR-{company_abbr}-MAR-.#####"
