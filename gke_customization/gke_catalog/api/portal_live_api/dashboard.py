@@ -12,6 +12,7 @@ from frappe.integrations.oauth2 import get_oauth_server
 import requests
 import json
 from frappe.utils import validate_email_address, now_datetime
+from gke_customization.gke_catalog.api.encryption_response import SecureJSON
 
 
 from gke_customization.gke_catalog.api.portal_live_api.notifications import notify_user
@@ -67,12 +68,15 @@ def get_created_issue_by_customer_and_supplier(customer):
             else:
                 count[row.status] =1
         
-        return count
+        # return count
+        secure = SecureJSON()
+        encrypt_data = secure.encrypt(count)
+        return encrypt_data
 
 
     except Exception as e:
         frappe.log_error(f"Error in get_item: {str(e)}")
-        return {"success": False, "message": "Failed to fetch Item"}
+        return SecureJSON().encrypt({"success": False, "message": "Failed to fetch Item"})
     
 
 
