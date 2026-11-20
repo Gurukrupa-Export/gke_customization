@@ -46,6 +46,12 @@ frappe.query_reports["Manufacturing Operations Summary"] = {
                 };
             },
         },
+        {
+            fieldname: "customer",
+            label: __("Customer"),
+            fieldtype: "Link",
+            options: "Customer",
+        },
     ],
 
     // onload: function (report) {

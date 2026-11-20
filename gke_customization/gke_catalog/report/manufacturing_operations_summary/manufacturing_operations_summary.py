@@ -30,8 +30,10 @@ def get_active_departments(filters):
     query = f"""
         SELECT
             mwo.department AS department,
-            COUNT(DISTINCT mwo.name) AS qty
+            COUNT(DISTINCT mwo.manufacturing_order) AS qty
         FROM `tabManufacturing Work Order` mwo
+        LEFT JOIN `tabParent Manufacturing Order` pmo
+            ON pmo.name = mwo.manufacturing_order
         LEFT JOIN `tabItem` i
             ON mwo.item_code = i.name
         LEFT JOIN `tabAttribute Value` av
@@ -42,7 +44,7 @@ def get_active_departments(filters):
             AND IFNULL(mwo.for_fg, 0) = 0
             {conditions}
         GROUP BY mwo.department
-        HAVING COUNT(DISTINCT mwo.name) > 0
+        HAVING COUNT(DISTINCT mwo.manufacturing_order) > 0
         ORDER BY mwo.department
     """
 
@@ -104,8 +106,10 @@ def get_data(filters, departments):
             COALESCE(i.sub_setting_type, 'No Setting Type') AS sub_setting_type,
             COALESCE(i.item_category, av.parent_attribute_value, i.item_group, 'No Category') AS item_category,
             mwo.department,
-            COUNT(DISTINCT mwo.name) AS qty
+            COUNT(DISTINCT mwo.manufacturing_order) AS qty
         FROM `tabManufacturing Work Order` mwo
+        LEFT JOIN `tabParent Manufacturing Order` pmo
+            ON pmo.name = mwo.manufacturing_order
         LEFT JOIN `tabItem` i
             ON mwo.item_code = i.name
         LEFT JOIN `tabAttribute Value` av
@@ -232,5 +236,9 @@ def get_conditions(filters):
     if filters.get("sub_setting_type"):
         conditions += " AND i.sub_setting_type = %(sub_setting_type)s"
         values["sub_setting_type"] = filters["sub_setting_type"]
+
+    if filters.get("customer"):
+        conditions += " AND pmo.ref_customer = %(customer)s"
+        values["customer"] = filters["customer"]
 
     return conditions, values

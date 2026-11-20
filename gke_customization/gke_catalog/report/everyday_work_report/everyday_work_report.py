@@ -1,6 +1,9 @@
 # Copyright (c) 2026, Your Company
 # For license information, please see license.txt
 
+import re
+import time
+
 import frappe
 from frappe.utils import flt, cint, getdate
 
@@ -91,6 +94,212 @@ def get_columns():
         {"label": "Due date", "fieldname": "due_date", "fieldtype": "Date", "width": 110},
         {"label": "Order type", "fieldname": "order_type", "fieldtype": "Data", "width": 120},
     ]
+
+
+def chunks(items, n=1000):
+    items = list(items)
+    for i in range(0, len(items), n):
+        yield items[i:i + n]
+
+
+# "Make Receive Entry" dialog jis server function se bharta hai
+MRE_METHOD = (
+    "jewellery_erpnext.jewellery_erpnext.doctype.manufacturing_operation."
+    "manufacturing_operation.get_make_receive_entry_rows"
+)
+MRE_CACHE_SECONDS = 60
+_mre_cache = {}        # mop -> (time, rows)   (har worker process ka apna, 60 sec)
+
+
+def _make_receive_rows(fn, mop):
+    """Dialog wali function se ek MOP ki rows (kuch bhi galat ho to khali list)."""
+    now = time.time()
+    hit = _mre_cache.get(mop)
+    if hit and now - hit[0] < MRE_CACHE_SECONDS:
+        return hit[1]
+
+    rows = []
+    try:
+        res = fn(manufacturing_operation=mop)
+        data = res.get("message", res) if isinstance(res, dict) else {}
+        rows = (data or {}).get("rows") or []
+    except Exception:
+        rows = []
+    finally:
+        # Function msgprint karta hai ("No active Stock Reservation Entries...");
+        # report me popup nahi chahiye.
+        frappe.clear_messages()
+
+    if len(_mre_cache) > 5000:
+        _mre_cache.clear()
+    _mre_cache[mop] = (now, rows)
+    return rows
+
+
+def get_balances_from_dialog(mwo_mop):
+    """MWO-wise Gold wt, Diamond wt, Diamond pcs: "Make Receive Entry" dialog ke
+    "Available to Receive" ke barabar (usi function se, MWO ki current MOP par).
+
+        Gold wt     = Metal + Finding rows ki available_to_receive_qty
+        Diamond wt  = Diamond rows ki available_to_receive_qty
+        Diamond pcs = Diamond rows ki available_to_receive_pcs
+    Gemstone ginte nahi.
+
+    mwo_mop: {mwo name: uski current MOP}
+    """
+    fn = frappe.get_attr(MRE_METHOD)        # nahi mila to exception -> caller fallback use karega
+
+    # Function sirf unhi MWO par chalate hain jinki active Stock Reservation Entry hai
+    # (baaki ke liye dialog "No active ... found" deta hai, yani 0).
+    with_mop = [m for m, mop in mwo_mop.items() if mop]
+    active = set()
+    for part in chunks(with_mop):
+        active.update(frappe.db.sql(
+            """
+            SELECT DISTINCT manufacturing_work_order
+            FROM `tabStock Reservation Entry`
+            WHERE docstatus = 1
+              AND status NOT IN %(inactive)s
+              AND manufacturing_work_order IN %(m)s
+            """,
+            {"m": tuple(part), "inactive": INACTIVE_SRE_STATUS},
+            pluck="manufacturing_work_order",
+        ))
+
+    raw = {}
+    for mwo in active:
+        raw[mwo] = _make_receive_rows(fn, mwo_mop[mwo])
+
+    item_codes = list({r.get("item_code") for rows in raw.values() for r in rows if r.get("item_code")})
+    groups = {}
+    for part in chunks(item_codes):
+        for name, group in frappe.db.sql(
+            "SELECT name, item_group FROM `tabItem` WHERE name IN %(i)s",
+            {"i": tuple(part)},
+        ):
+            groups[name] = group
+
+    out = {}
+    for mwo, rows in raw.items():
+        d = {"gold_wt": 0.0, "diamond_wt": 0.0, "diamond_pcs": 0.0}
+        for r in rows:
+            g = (groups.get(r.get("item_code")) or "").lower()
+            qty = flt(r.get("available_to_receive_qty"))
+            pcs = flt(r.get("available_to_receive_pcs"))
+            if g.startswith("metal") or g.startswith("finding"):
+                d["gold_wt"] += max(qty, 0)
+            elif g.startswith("diamond"):
+                d["diamond_wt"] += max(qty, 0)
+                d["diamond_pcs"] += max(pcs, 0)
+        out[mwo] = d
+    return out
+
+
+# Reservation jo ab "active" nahi hain
+INACTIVE_SRE_STATUS = ("Cancelled", "Closed", "Delivered", "Draft")
+
+
+def get_balances_from_reservations(mwo_names):
+    """MWO-wise Gold wt, Diamond wt, Diamond pcs.
+
+    "Make Receive Entry" dialog ke "Available to Receive" jaisa: MWO ki ACTIVE
+    Stock Reservation Entries (submitted, cancelled/closed/delivered nahi).
+        available     = reserved_qty - delivered_qty
+        Gold wt       = Metal + Finding item groups
+        Diamond wt    = Diamond item groups
+        Diamond pcs   = unhi diamond items + warehouse ke stock entry lines ka net pcs
+    Gemstone ginte nahi. Active reservation na ho to sab 0.
+    """
+    out = {}
+    names = list(mwo_names)
+    if not names:
+        return out
+    name_set = set(names)
+
+    # 1) Active Stock Reservation Entries -> weights
+    diamond_keys = {}      # mwo -> {(item_code, warehouse)}
+    for part in chunks(names):
+        sres = frappe.db.sql(
+            """
+            SELECT sre.manufacturing_work_order AS mwo,
+                   sre.item_code                AS item_code,
+                   sre.warehouse                AS warehouse,
+                   sre.reserved_qty             AS reserved_qty,
+                   sre.delivered_qty            AS delivered_qty,
+                   i.item_group                 AS item_group
+            FROM `tabStock Reservation Entry` sre
+            JOIN `tabItem` i ON i.name = sre.item_code
+            WHERE sre.docstatus = 1
+              AND sre.status NOT IN %(inactive)s
+              AND sre.manufacturing_work_order IN %(m)s
+            """,
+            {"m": tuple(part), "inactive": INACTIVE_SRE_STATUS},
+            as_dict=1,
+        )
+        for r in sres:
+            qty = flt(r.reserved_qty) - flt(r.delivered_qty)
+            if round(qty, 3) <= 0:
+                continue
+            g = (r.item_group or "").lower()
+            d = out.setdefault(r.mwo, {"gold_wt": 0.0, "diamond_wt": 0.0, "diamond_pcs": 0.0})
+            if g.startswith("metal") or g.startswith("finding"):
+                d["gold_wt"] += qty
+            elif g.startswith("diamond"):
+                d["diamond_wt"] += qty
+                diamond_keys.setdefault(r.mwo, set()).add((r.item_code, r.warehouse))
+
+    # 2) Diamond pcs: sirf un MWOs ke liye jinke active diamond reservations hain
+    if diamond_keys:
+        net_pcs = {}       # (mwo, item, warehouse) -> net pcs
+        for part in chunks(list(diamond_keys.keys())):
+            lines = frappe.db.sql(
+                """
+                SELECT
+                    se.manufacturing_work_order AS mwo,
+                    TRIM(IFNULL(sed.custom_manufacturing_work_order, '')) AS line_mwo,
+                    sed.item_code               AS item_code,
+                    sed.s_warehouse             AS s_warehouse,
+                    sed.t_warehouse             AS t_warehouse,
+                    CAST(IFNULL(NULLIF(sed.pcs, ''), 0) AS DECIMAL(20, 3)) AS pcs
+                FROM `tabStock Entry Detail` sed
+                JOIN `tabStock Entry` se ON se.name = sed.parent
+                JOIN `tabItem` i ON i.name = sed.item_code
+                WHERE se.docstatus = 1
+                  AND se.manufacturing_work_order IN %(m)s
+                  AND i.item_group LIKE 'Diamond%%'
+                """,
+                {"m": tuple(part)},
+                as_dict=1,
+            )
+            for r in lines:
+                pcs = flt(r.pcs)
+
+                # Line par apna MWO ho to wahi malik, nahi to entry ke header ka MWO
+                owner = r.mwo
+                if r.line_mwo and r.line_mwo != r.mwo:
+                    parts = [x.strip() for x in re.split(r"[,;\n]+", r.line_mwo) if x.strip()]
+                    if not parts or r.mwo in parts:
+                        owner = r.mwo
+                    elif len(parts) == 1:
+                        owner = parts[0]
+                    else:
+                        continue
+                if owner not in name_set:
+                    continue
+
+                if r.t_warehouse:
+                    k = (owner, r.item_code, r.t_warehouse)
+                    net_pcs[k] = net_pcs.get(k, 0.0) + pcs
+                if r.s_warehouse:
+                    k = (owner, r.item_code, r.s_warehouse)
+                    net_pcs[k] = net_pcs.get(k, 0.0) - pcs
+
+        for mwo, keys in diamond_keys.items():
+            total = 0.0
+            for (item, wh) in keys:
+                total += max(net_pcs.get((mwo, item, wh), 0.0), 0.0)
+            out[mwo]["diamond_pcs"] = total
+    return out
 
 
 def get_data(filters):
@@ -189,9 +398,6 @@ def get_data(filters):
             mwo.item_sub_category           AS sub_category,
             mwo.manufacturing_order         AS g_order_no,
             cust.old_customer_code          AS old_customer_code,
-            mwo.metal_weight                AS gold_wt,
-            mwo.diamond_pcs                 AS diamond_pcs,
-            mwo.diamond_wt                  AS diamond_wt,
             mwo.due_days                    AS day_pending,
             mwo.metal_touch                 AS metal_touch,
             mwo.metal_purity                AS metal_purity,
@@ -216,6 +422,15 @@ def get_data(filters):
     )
     if not mwo_rows:
         return []
+
+    # Gold wt / Diamond wt / Diamond pcs (Make Receive Entry ke "Available to Receive" jaise)
+    mwo_mop = {r.batch_no: r.cur_mop for r in mwo_rows}
+    try:
+        balances = get_balances_from_dialog(mwo_mop)
+    except Exception:
+        # Dialog wali function na mile / chale to reservation + stock entry wala tareeka
+        frappe.log_error(title="Everyday Work Report: Make Receive Entry function use nahi ho payi")
+        balances = get_balances_from_reservations(list(mwo_mop.keys()))
 
     # ---- Query 2: present MOP ke submitted Employee IR (Issue / Receive) ----
     # Receive ke baad usi department me nayi khali MOP banti hai, isliye
@@ -268,6 +483,10 @@ def get_data(filters):
         prev_gross_wt = base.pop("prev_gross_wt")
 
         row = dict(base)
+        bal = balances.get(base.batch_no, {})
+        row["gold_wt"] = round(bal.get("gold_wt", 0.0), 3)
+        row["diamond_wt"] = round(bal.get("diamond_wt", 0.0), 3)
+        row["diamond_pcs"] = int(round(bal.get("diamond_pcs", 0.0)))
         row["department"] = mwo_dept
         row["worker"] = None  # naam neeche sirf WIP rows ke liye bharta hai
 

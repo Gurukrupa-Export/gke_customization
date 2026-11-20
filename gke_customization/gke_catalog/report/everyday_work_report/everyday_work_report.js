@@ -239,7 +239,7 @@ frappe.query_reports["Everyday Work Report"] = {
                 if (fn === "g_order_no") {
                     return new Set(vals.filter(v => v !== null && v !== undefined && v !== "")).size;
                 }
-                if (fn === "gold_wt" || fn === "diamond_wt") {
+                if (fn === "gold_wt" || fn === "gross_wt" || fn === "diamond_wt") {
                     return vals.reduce((a, v) => a + flt(v), 0).toFixed(3);
                 }
                 if (fn === "diamond_pcs") {
