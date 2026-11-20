@@ -17,6 +17,8 @@
   "mod_reason",
   "reference_design_code",
   "reference_serial_no",
+   "product_type",
+  "repair_type",
   "section_break_10",
   "design_type",
   "stylebio",
@@ -913,6 +915,18 @@
    "fieldname": "metal_purity",
    "fieldtype": "Link",
    "label": "Metal Purity",
+   "options": "Attribute Value"
+  },
+   {
+   "fieldname": "product_type",
+   "fieldtype": "Link",
+   "label": "Product Type",
+   "options": "Attribute Value"
+  },
+  {
+   "fieldname": "repair_type",
+   "fieldtype": "Link",
+   "label": "Repair Type",
    "options": "Attribute Value"
   }
  ],
