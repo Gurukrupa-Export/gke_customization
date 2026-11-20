@@ -1,6 +1,8 @@
 # Copyright (c) 2026, Gurukrupa Export and contributors
 # For license information, please see license.txt
 
+from concurrent.futures import ThreadPoolExecutor
+
 import frappe
 import requests
 
@@ -15,17 +17,41 @@ def _get_pd_to_prod_tag_summary():
 	return _call_jwelex_api(f"{JWELEX_API_BASE_URL}/pd-to-prod-tag-summary")
 
 
-def _call_jwelex_api(url):
+def _fetch_json(url):
+	"""Plain HTTP fetch with no `frappe.*` calls, so it is safe to run in a worker
+	thread (frappe.local is not available there). Returns (data, error)."""
 	try:
 		response = requests.get(url, timeout=180)
 		response.raise_for_status()
-		return response.json().get("data")
+		return response.json().get("data"), None
 	except requests.RequestException:
+		return None, url
+
+
+def _call_jwelex_api(url):
+	data, failed_url = _fetch_json(url)
+	if failed_url:
 		frappe.log_error(
 			title="PD to Prod Jwelex API call failed",
-			message=frappe.get_traceback()
+			message=f"Failed to fetch {failed_url}",
 		)
-		frappe.throw(f"Failed to fetch data from Jwelex API at {url}")
+		frappe.throw(f"Failed to fetch data from Jwelex API at {failed_url}")
+	return data
+
+
+def _call_jwelex_apis_parallel(*urls):
+	"""Fetch several Jwelex endpoints concurrently (total time = slowest call
+	instead of the sum). Errors are logged/raised here in the main thread."""
+	with ThreadPoolExecutor(max_workers=len(urls)) as pool:
+		results = list(pool.map(_fetch_json, urls))
+	for _data, failed_url in results:
+		if failed_url:
+			frappe.log_error(
+				title="PD to Prod Jwelex API call failed",
+				message=f"Failed to fetch {failed_url}",
+			)
+			frappe.throw(f"Failed to fetch data from Jwelex API at {failed_url}")
+	return [data for data, _ in results]
 
 
 def execute(filters=None):
@@ -193,19 +219,23 @@ def get_columns():
 
 
 def get_data(filters=None):
+	conditions = get_conditions(filters)
+
+	# `tabOrder.design_id` has no index, so joining `tabOrder` inside this query
+	# forced a full table scan per Sketch Order row (~75s+). The Sketch Order /
+	# Item part is cheap, so it is queried alone; `tabOrder` is read once and
+	# matched in Python below (same LEFT JOIN semantics, one scan instead of many).
 	query = """
 		SELECT
-			fsac.item                                      AS "item_code",
-			COALESCE(so.customer_code, ord.customer_code)  AS "customer",
-			so.name                                        AS "sketch_order_no",
-			so.order_type                                  AS "order_type",
-			it.variant_of                                  AS "variant_of",
-			it.item_category                               AS "item_category",
-			it.setting_type                                AS "setting_type",
-			ord.name                                        AS "cad_order_no",
-			so.order_date                                  AS "sketch_order_date",
-			ord.order_date                                 AS "cad_order_date",
-			it.stylebio                                    AS "stylebio"
+			fsac.item                AS item_code,
+			so.customer_code         AS so_customer,
+			so.name                  AS sketch_order_no,
+			so.order_type            AS order_type,
+			it.variant_of            AS variant_of,
+			it.item_category         AS item_category,
+			it.setting_type          AS setting_type,
+			so.order_date            AS sketch_order_date,
+			it.stylebio              AS stylebio
 		FROM `tabSketch Order` so
 		INNER JOIN `tabFinal Sketch Approval CMO` fsac
 			ON fsac.parent = so.name
@@ -213,31 +243,25 @@ def get_data(filters=None):
 			AND fsac.parentfield = 'final_sketch_approval_cmo'
 		LEFT JOIN `tabItem` it
 			ON it.name = fsac.item
-		LEFT JOIN `tabOrder` ord
-			ON ord.design_id = fsac.item
 		WHERE fsac.item IS NOT NULL
 			AND TRIM(fsac.item) != ''
 			{conditions}
 
-		UNION
+		UNION ALL
 
 		SELECT
-			so.item_code                                   AS "item_code",
-			COALESCE(so.customer_code, ord.customer_code)  AS "customer",
-			so.name                                        AS "sketch_order_no",
-			so.order_type                                  AS "order_type",
-			it.variant_of                                  AS "variant_of",
-			it.item_category                               AS "item_category",
-			it.setting_type                                AS "setting_type",
-			ord.name                                        AS "cad_order_no",
-			so.order_date                                  AS "sketch_order_date",
-			ord.order_date                                 AS "cad_order_date",
-			it.stylebio                                    AS "stylebio"
+			so.item_code             AS item_code,
+			so.customer_code         AS so_customer,
+			so.name                  AS sketch_order_no,
+			so.order_type            AS order_type,
+			it.variant_of            AS variant_of,
+			it.item_category         AS item_category,
+			it.setting_type          AS setting_type,
+			so.order_date            AS sketch_order_date,
+			it.stylebio              AS stylebio
 		FROM `tabSketch Order` so
 		LEFT JOIN `tabItem` it
 			ON it.name = so.item_code
-		LEFT JOIN `tabOrder` ord
-			ON ord.design_id = so.item_code
 		WHERE so.item_code IS NOT NULL
 			AND TRIM(so.item_code) != ''
 			AND NOT EXISTS (
@@ -248,11 +272,54 @@ def get_data(filters=None):
 					AND fsac2.item = so.item_code
 			)
 			{conditions}
+	""".format(conditions=conditions)
 
-		ORDER BY sketch_order_no
-	""".format(conditions=get_conditions(filters))
+	base_rows = frappe.db.sql(query, filters, as_dict=True)
 
-	data = frappe.db.sql(query, filters, as_dict=True)
+	item_codes = list({r["item_code"] for r in base_rows if r.get("item_code")})
+	orders_by_design = {}
+	if item_codes:
+		# One pass over tabOrder for all designs at once.
+		for o in frappe.db.sql(
+			"""
+			SELECT name, design_id, order_date, customer_code
+			FROM `tabOrder`
+			WHERE design_id IN %(codes)s
+			""",
+			{"codes": tuple(item_codes)},
+			as_dict=True,
+		):
+			orders_by_design.setdefault((o["design_id"] or "").lower(), []).append(o)
+
+	# Rebuild the old (LEFT JOIN tabOrder + UNION) rows: one row per
+	# (sketch order, item, CAD order), duplicates removed like UNION did.
+	data, seen = [], set()
+	for r in base_rows:
+		orders = orders_by_design.get((r["item_code"] or "").lower()) or [None]
+		for o in orders:
+			if r["so_customer"] is not None:
+				customer = r["so_customer"]
+			else:
+				customer = o["customer_code"] if o else None
+			row = {
+				"item_code": r["item_code"],
+				"customer": customer,
+				"sketch_order_no": r["sketch_order_no"],
+				"order_type": r["order_type"],
+				"variant_of": r["variant_of"],
+				"item_category": r["item_category"],
+				"setting_type": r["setting_type"],
+				"cad_order_no": o["name"] if o else None,
+				"sketch_order_date": r["sketch_order_date"],
+				"cad_order_date": o["order_date"] if o else None,
+				"stylebio": r["stylebio"],
+			}
+			key = tuple(row.values())
+			if key in seen:
+				continue
+			seen.add(key)
+			data.append(row)
+	data.sort(key=lambda x: x["sketch_order_no"] or "")
 
 	# Customer names are looked up once here instead of joining `tabCustomer`
 	# inside the (already heavy) query above.
@@ -270,7 +337,12 @@ def get_data(filters=None):
 	for row in data:
 		row["customer_name"] = customer_name_by_code.get(row.get("customer"))
 
-	jwelex_data = _get_pd_to_prod_data() or []
+	jwelex_data, tag_summary_data = _call_jwelex_apis_parallel(
+		f"{JWELEX_API_BASE_URL}/pd-to-prod",
+		f"{JWELEX_API_BASE_URL}/pd-to-prod-tag-summary",
+	)
+	jwelex_data = jwelex_data or []
+	tag_summary_data = tag_summary_data or []
 	jwelex_by_stylebio = {}
 	for row in jwelex_data:
 		jwelex_by_stylebio.setdefault(row.get("StyleBio_Ids"), row)
@@ -286,7 +358,6 @@ def get_data(filters=None):
 		"tagdate": None,
 	}
 
-	tag_summary_data = _get_pd_to_prod_tag_summary() or []
 	tag_summary_by_stylebio = {}
 	for row in tag_summary_data:
 		tag_summary_by_stylebio.setdefault(row.get("StyleBio"), row)

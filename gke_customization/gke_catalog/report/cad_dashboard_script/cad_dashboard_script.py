@@ -27,56 +27,40 @@ TAB_ACCESS_MAP = {
 ROLE_TAB_ACCESS = {
 	"System Manager": set(ALL_TABS),
 	"Computer Aided Designer - ST - GE": set(ALL_TABS),
-	"Designer": set(ALL_TABS),
-	"CAD Hod": set(ALL_TABS),
 	"Coordinator - ST - GE": set(ALL_TABS),
 }
+# "Designer" and "CAD Hod" are deliberately NOT in here. "CAD Hod" is assigned
+# far too broadly (~130 users, many of them plain designers, not just actual
+# department heads) to treat holding it as "this user should see every tab".
+# "Designer" is excluded on principle, not just because it's unreachable today
+# via the step-3 branch below (`_manager_tab_access`) - a Designer should never
+# get a blanket ALL_TABS grant straight from their role; any full access has
+# to come from TAB_ACCESS_MAP or from inheriting an actual manager's tabs.
+# Data-scope exemption (`DESIGNER_SCOPE_EXEMPT_ROLES` below) is a separate
+# concern and is unaffected by either exclusion.
 
 
-def _tab_key_for_order_row(setting_type, sub_setting_type1):
-	"""Classify one order's actual setting type into a tab key, or None if it
-	doesn't belong to any tab (blank/unrecognized setting_type) - used to
-	build a Designer's dynamic tab set from their real assignments, as
-	opposed to `_tab_key_for_filters` which classifies a requested filter."""
-	if sub_setting_type1 == "Close-Open Setting":
-		return "close_open_setting"
-	if setting_type == "Open":
-		return "open_setting"
-	if setting_type == "Nova Glow":
-		return "nova_glow"
-	return None
-
-
-def _dynamic_designer_tabs(user):
-	"""A plain Designer-role user's tabs aren't a static grant - they're
-	whichever setting type(s) that designer actually has CAD orders assigned
-	to. A designer who has only ever been assigned Open Setting work sees
-	just the Open tab; one assigned both Open and Close-Open work sees both
-	(plus the derived All tab via `_derived_all_combo`). No Employee match or
-	no assignments at all -> no tabs, same as anyone else granted nothing.
+def _manager_tab_access(user):
+	"""A plain Designer-role user gets the same tab access as whoever they
+	report to (Employee.reports_to), not a grant of their own - they still
+	only ever see their own data (`_designer_scope_for_session` /
+	`_scope_assignments` enforce that separately). No Employee match, no
+	manager set, or the manager resolves back to the same user -> no tabs,
+	same as anyone else granted nothing.
 	"""
 	employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
 	if not employee:
 		return set()
 
-	rows = frappe.db.sql(
-		"""
-		SELECT DISTINCT o.setting_type, o.sub_setting_type1
-		FROM `tabOrder` o
-		JOIN `tabDesigner Assignment - CAD` da ON da.parent = o.name
-		WHERE da.designer = %(employee)s
-			AND da.parentfield = 'designer_assignment'
-			AND o.bom_or_cad = 'CAD'
-			AND o.docstatus != 2
-		""",
-		{"employee": employee},
-		as_dict=True,
-	)
-	return {
-		tab_key
-		for row in rows
-		if (tab_key := _tab_key_for_order_row(row.setting_type, row.sub_setting_type1))
-	}
+	manager_employee = frappe.db.get_value("Employee", employee, "reports_to")
+	if not manager_employee:
+		return set()
+
+	manager_user = frappe.db.get_value("Employee", manager_employee, "user_id")
+	if not manager_user or manager_user == user:
+		return set()
+
+	return _allowed_tabs(manager_user)
 
 
 def _allowed_tabs(user):
@@ -86,10 +70,10 @@ def _allowed_tabs(user):
 	   (this overrides role-based access, so e.g. a CAD Hod listed with only
 	   "nova_glow" does NOT also inherit the CAD Hod role's all-tabs access).
 	3. A user whose only tab-granting role is plain "Designer" (no other role
-	   from ROLE_TAB_ACCESS, e.g. CAD Hod/Coordinator, which stay full-access
-	   management views) -> tabs derived from their actual assignments
-	   instead of the static ALL_TABS a Designer would otherwise get, so they
-	   only see tabs for setting types they've actually been assigned.
+	   from ROLE_TAB_ACCESS, e.g. Coordinator - ST - GE, which stays a
+	   full-access management view) -> the same tabs as their manager (Employee.reports_to),
+	   instead of the static ALL_TABS a Designer would otherwise get - they
+	   still only ever see their own data via `_designer_scope_for_session`.
 	4. Everyone else -> union of the tabs granted by their roles.
 	"""
 	if user == "Administrator":
@@ -102,8 +86,8 @@ def _allowed_tabs(user):
 	if user in TAB_ACCESS_MAP:
 		return set(TAB_ACCESS_MAP[user])
 
-	if "Designer" in roles and not (roles & (set(ROLE_TAB_ACCESS) - {"Designer"})):
-		return _dynamic_designer_tabs(user)
+	if "Designer" in roles and not (roles & set(ROLE_TAB_ACCESS)):
+		return _manager_tab_access(user)
 
 	allowed = set()
 	for role in roles:
@@ -473,6 +457,7 @@ def _build_extra_filter(
 	department=None,
 	assigned_to=None,
 	scope_tabs=None,
+	workflow_state=None,
 ):
 	conditions = []
 	params = {}
@@ -493,6 +478,9 @@ def _build_extra_filter(
 		# use for their built-in Assigned To filter.
 		conditions.append("o._assign LIKE %(assigned_to)s")
 		params["assigned_to"] = f'%"{assigned_to}"%'
+	if workflow_state:
+		conditions.append("o.workflow_state = %(workflow_state)s")
+		params["workflow_state"] = workflow_state
 	if customer:
 		conditions.append("o.customer_code = %(customer)s")
 		params["customer"] = customer
@@ -546,6 +534,7 @@ def _fetch_filtered_rows(
 	department=None,
 	assigned_to=None,
 	scope_tabs=None,
+	workflow_state=None,
 ):
 	extra_filter, extra_params = _build_extra_filter(
 		designer=designer,
@@ -559,6 +548,7 @@ def _fetch_filtered_rows(
 		department=department,
 		assigned_to=assigned_to,
 		scope_tabs=scope_tabs,
+		workflow_state=workflow_state,
 	)
 	params = {"company": company, **extra_params}
 	return frappe.db.sql(
@@ -742,6 +732,19 @@ def _build_matrix(source_rows, row_keys_fn, column_keys_fn, risk_of):
 
 
 @frappe.whitelist()
+def get_workflow_states():
+	"""Distinct workflow states present on CAD orders, for the page's filter."""
+	return frappe.db.sql_list(
+		"""
+		SELECT DISTINCT workflow_state FROM `tabOrder`
+		WHERE bom_or_cad = 'CAD' AND docstatus != 2
+			AND workflow_state IS NOT NULL AND workflow_state != ''
+		ORDER BY workflow_state
+		"""
+	)
+
+
+@frappe.whitelist()
 def get_dashboard_data(
 	company=None,
 	due_soon_days=2,
@@ -757,6 +760,7 @@ def get_dashboard_data(
 	branch=None,
 	department=None,
 	assigned_to=None,
+	workflow_state=None,
 ):
 	if not company:
 		frappe.throw(_("Please select a Company"))
@@ -784,6 +788,7 @@ def get_dashboard_data(
 		department=department,
 		assigned_to=assigned_to,
 		scope_tabs=scope_tabs,
+		workflow_state=workflow_state,
 	)
 	assignments_by_order = _fetch_assignments_by_order([row.name for row in rows])
 	assignments_by_order = _scope_assignments(assignments_by_order, designer_scope)
@@ -994,6 +999,7 @@ def get_segment_orders(
 	branch=None,
 	department=None,
 	assigned_to=None,
+	workflow_state=None,
 ):
 	"""Resolve the order names behind exactly one displayed number.
 
@@ -1031,6 +1037,7 @@ def get_segment_orders(
 		department=department,
 		assigned_to=assigned_to,
 		scope_tabs=scope_tabs,
+		workflow_state=workflow_state,
 	)
 
 	if seg_type == "total":
@@ -1167,6 +1174,7 @@ def get_designer_status_breakdown(
 	branch=None,
 	department=None,
 	assigned_to=None,
+	workflow_state=None,
 ):
 	"""Status-bucket counts behind one designer's "in progress" number.
 
@@ -1195,6 +1203,7 @@ def get_designer_status_breakdown(
 		department=department,
 		assigned_to=assigned_to,
 		scope_tabs=scope_tabs,
+		workflow_state=workflow_state,
 	)
 	assignments_by_order = _fetch_assignments_by_order([row.name for row in rows])
 	assignments_by_order = _scope_assignments(assignments_by_order, designer_scope)

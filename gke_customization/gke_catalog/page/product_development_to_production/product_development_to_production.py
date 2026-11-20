@@ -32,6 +32,53 @@ CAD_STAGE_RANK = {
 }
 
 
+# Sketch Order workflow states shown in the Sketch Funnel: (stage key, label, state).
+SKETCH_FUNNEL_STAGES = [
+	("sketch_status_draft", "Draft", "Draft"),
+	("sketch_status_assigned", "Assigned", "Assigned"),
+	("sketch_status_customer_approval", "Customer Approval", "Customer Approval"),
+	("sketch_status_update_item", "Update Item", "Update Item"),
+]
+
+
+def _sketch_orders_by_status(filters, state=None):
+	"""Sketch Orders (not cancelled) in the date window, straight from
+	`tabSketch Order` - the report rows only contain sketch orders that already
+	have a final approval, so Draft/Assigned ones would never appear there."""
+	conditions = ["so.docstatus != 2"]
+	params = {}
+	if state is None:
+		conditions.append("so.workflow_state IN %(states)s")
+		params["states"] = [st for _, _, st in SKETCH_FUNNEL_STAGES]
+	else:
+		conditions.append("so.workflow_state = %(state)s")
+		params["state"] = state
+	if filters.get("from_date"):
+		conditions.append("so.order_date >= %(from_date)s")
+		params["from_date"] = filters["from_date"]
+	if filters.get("to_date"):
+		conditions.append("so.order_date <= %(to_date)s")
+		params["to_date"] = filters["to_date"]
+	likes = []
+	for i, v in enumerate(_split_bulk_values(filters.get("sketch_order_no"))):
+		params[f"sn{i}"] = f"%{v}%"
+		likes.append(f"so.name LIKE %(sn{i})s")
+	if likes:
+		conditions.append("(" + " OR ".join(likes) + ")")
+	return frappe.db.sql(
+		f"""
+		SELECT so.name AS sketch_order_no, so.workflow_state AS sketch_workflow_state,
+			so.order_date AS sketch_order_date, so.customer_code AS customer,
+			so.item_code AS item_code
+		FROM `tabSketch Order` so
+		WHERE {" AND ".join(conditions)}
+		ORDER BY so.order_date DESC
+		""",
+		params,
+		as_dict=True,
+	)
+
+
 def _parse_filters(filters):
 	if isinstance(filters, str):
 		return json.loads(filters) if filters else {}
@@ -49,7 +96,7 @@ def _date_filters(filters):
 def _cached_rows(filters):
 	date_filters = _date_filters(filters)
 	key = f"pdtp_dashboard_rows:{frappe.as_json(date_filters, indent=None)}"
-	rows = frappe.cache().get_value(key)
+	rows = frappe.cache().get_value(key, expires=True)
 	if rows is None:
 		rows = get_report_data(date_filters)
 		frappe.cache().set_value(key, rows, expires_in_sec=CACHE_TTL)
@@ -65,7 +112,7 @@ def _cad_orders_without_sketch(filters):
 	instead of a filter over the report's own rows."""
 	date_filters = _date_filters(filters)
 	key = f"pdtp_dashboard_cad_without_sketch:{frappe.as_json(date_filters, indent=None)}"
-	rows = frappe.cache().get_value(key)
+	rows = frappe.cache().get_value(key, expires=True)
 	if rows is not None:
 		return rows
 
@@ -89,19 +136,41 @@ def _cad_orders_without_sketch(filters):
 			o.customer_code AS customer
 		FROM `tabOrder` o
 		WHERE {where}
-			AND NOT EXISTS (
-				SELECT 1 FROM `tabSketch Order` so
-				LEFT JOIN `tabFinal Sketch Approval CMO` fsac
-					ON fsac.parent = so.name
-					AND fsac.parenttype = 'Sketch Order'
-					AND fsac.parentfield = 'final_sketch_approval_cmo'
-				WHERE so.item_code = o.design_id OR fsac.item = o.design_id
-			)
 		ORDER BY o.order_date DESC
 		""",
 		params,
 		as_dict=True,
 	)
+
+	# "Has a Sketch Order behind it" used to be a correlated NOT EXISTS with an
+	# OR across a join - un-indexable (`design_id`/`item_code` have no index), so
+	# it re-scanned for every CAD order (~75s). The set of designs that do have a
+	# Sketch Order is small, so it is loaded once and checked in Python instead.
+	# Lower-cased to match MariaDB's case-insensitive collation; NULL design_id
+	# never matches (as in SQL), but '' does, exactly like the old query.
+	sketch_designs = {
+		(code or "").lower()
+		for (code,) in frappe.db.sql(
+			"SELECT item_code FROM `tabSketch Order` WHERE item_code IS NOT NULL"
+		)
+	}
+	sketch_designs.update(
+		(code or "").lower()
+		for (code,) in frappe.db.sql(
+			"""
+			SELECT fsac.item
+			FROM `tabFinal Sketch Approval CMO` fsac
+			INNER JOIN `tabSketch Order` so ON so.name = fsac.parent
+			WHERE fsac.parenttype = 'Sketch Order'
+				AND fsac.parentfield = 'final_sketch_approval_cmo'
+				AND fsac.item IS NOT NULL
+			"""
+		)
+	)
+	rows = [
+		r for r in rows
+		if r.get("item_code") is None or r["item_code"].lower() not in sketch_designs
+	]
 	for row in rows:
 		row["cad_bucket"] = _bucket_of(row["cad_workflow_state"]) if row.get("cad_workflow_state") else None
 
@@ -411,6 +480,15 @@ def get_dashboard_data(filters=None):
 		},
 	]
 
+	sketch_status_counts = {}
+	for r in _sketch_orders_by_status(filters):
+		state = r["sketch_workflow_state"]
+		sketch_status_counts[state] = sketch_status_counts.get(state, 0) + 1
+	sketch_funnel = [
+		{"stage": stage, "label": label, "count": sketch_status_counts.get(state, 0)}
+		for stage, label, state in SKETCH_FUNNEL_STAGES
+	]
+
 	funnel = [
 		{"stage": "sketch_approved", "label": "Sketch Approved", "count": total},
 		{
@@ -428,6 +506,13 @@ def get_dashboard_data(filters=None):
 			"label": "First Tag",
 			"count": sum(1 for r in rows if _matches_stage(r, "tagged")),
 		},
+	]
+
+	# Third row of KPI cards: the former "Pipeline Funnel" values.
+	summary_kpis += [
+		{"key": f"pipeline_{f['stage']}", "stage": f["stage"], "label": f["label"], "count": f["count"]}
+		for f in funnel
+		if f["stage"] != "tagged"  # "First Tag" is intentionally not shown as a card
 	]
 
 	cad_buckets = _cad_order_buckets(rows_incl_cancelled)
@@ -581,6 +666,7 @@ def get_dashboard_data(filters=None):
 	return {
 		"summary_kpis": summary_kpis,
 		"funnel": funnel,
+		"sketch_funnel": sketch_funnel,
 		"cad_funnel": cad_funnel,
 		"blockers": blockers,
 		"stylebio_tag_ratio": stylebio_tag_ratio,
@@ -696,6 +782,13 @@ def get_segment_rows(filters=None, stage=None, category=None, customer=None, mon
 		# (see `_cad_orders_without_sketch`), so they're fetched separately
 		# rather than filtered out of `_rows_with_cad_status`.
 		rows = _cad_orders_without_sketch(filters)
+		if customer:
+			rows = [r for r in rows if (r.get("customer") or "Unknown") == customer]
+		return _attach_erp_details(_attach_images(rows))
+
+	sketch_state = {k: st for k, _, st in SKETCH_FUNNEL_STAGES}.get(stage)
+	if sketch_state:
+		rows = _sketch_orders_by_status(filters, state=sketch_state)
 		if customer:
 			rows = [r for r in rows if (r.get("customer") or "Unknown") == customer]
 		return _attach_erp_details(_attach_images(rows))

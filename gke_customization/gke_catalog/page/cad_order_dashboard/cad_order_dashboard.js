@@ -253,6 +253,17 @@ class CadDashboard {
 			this.apply_period(e.target.value);
 		});
 
+		frappe
+			.call({
+				method:
+					'gke_customization.gke_catalog.report.cad_dashboard_script.cad_dashboard_script.get_workflow_states',
+			})
+			.then((r) => {
+				const $sel = this.page.main.find('[data-field="workflow-state-select"]');
+				(r.message || []).forEach((state) => $sel.append($('<option>').val(state).text(state)));
+			});
+		this.page.main.find('[data-field="workflow-state-select"]').on('change', () => this.refresh());
+
 		this.page.main.find('[data-field="matrix-filter"]').on('change', (e) => {
 			this.matrix_filter = e.target.value;
 			this.refresh();
@@ -343,6 +354,7 @@ class CadDashboard {
 		this.assigned_to_field.set_value('');
 		this.daterange_field.set_value('');
 		this.page.main.find('[data-field="period-select"]').val('');
+		this.page.main.find('[data-field="workflow-state-select"]').val('');
 		this.page.main.find('[data-field="matrix-filter"]').val('');
 		this.page.main.find('[data-field="matrix-status-filter"]').val('');
 		this.matrix_filter = '';
@@ -636,6 +648,7 @@ class CadDashboard {
 			sub_setting_type1: this.sub_setting_type1 || undefined,
 			matrix_filter: this.matrix_filter || undefined,
 			status_filter: this.status_filter || undefined,
+			workflow_state: this.page.main.find('[data-field="workflow-state-select"]').val() || undefined,
 		};
 	}
 
