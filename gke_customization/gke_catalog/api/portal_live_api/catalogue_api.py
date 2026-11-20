@@ -2184,7 +2184,10 @@ def get_catalogue_collection_details(customers, collection=None, username=None):
                 row["custom_catalogue_image"] = img.get("custom_catalogue_image")
                 row["custom_silver_image"] = img.get("custom_silver_image")
 
-    return data
+    # return data
+    secure = SecureJSON()
+    enc_data = secure.encrypt(data)
+    return enc_data
 
 
 def get_data_for_multiple_customer_collections_details(catalogue_list, collection=None):
@@ -3443,7 +3446,10 @@ def get_item_of_customer_by_user(customer):
         row["alphabetnumber"] = row.get("alphabetnumber") or None
         row["religious"]    = row.get("religious") or None
 
-    return items
+    # return items
+    secure = SecureJSON()
+    enc_data = secure.encrypt(items)
+    return enc_data
 
 
 
