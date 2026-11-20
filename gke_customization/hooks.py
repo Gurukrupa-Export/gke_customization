@@ -30,10 +30,10 @@ app_license = "MIT"
 
 # include js in doctype views
 doctype_js = {
-    "Quotation" : "public/js/doctype_js/quotation.js",
-    "Employee Onboarding" : "public/js/doctype_js/employee_onboarding.js",
-    "Payment Entry" : "public/js/doctype_js/payment_entry.js",
-    "Stock Entry" : "public/js/doctype_js/stock_entry.js",
+    "Quotation": "public/js/doctype_js/quotation.js",
+    "Employee Onboarding": "public/js/doctype_js/employee_onboarding.js",
+    "Payment Entry": "public/js/doctype_js/payment_entry.js",
+    "Stock Entry": "public/js/doctype_js/stock_entry.js",
     "Payroll Entry": "public/js/doctype_js/payroll_entry.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
@@ -119,12 +119,13 @@ has_permission = {
 # Override standard doctype classes
 
 override_doctype_class = {
-	"Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive",
-	"Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin",
+    "Employee Incentive": "gke_customization.overrides.employee_incentive.CustomEmployeeIncentive",
+    "Employee Checkin": "gke_customization.overrides.employee_checkin.CustomEmployeeCheckin",
     "Job Requisition": "gke_customization.overrides.job_requisition.CustomJobRequisition",
     "Payroll Entry": "gke_customization.overrides.payroll_entry.CustomPayrollEntry",
     "Timesheet": "gke_customization.overrides.timesheet.CustomTimesheet",
     "Salary Structure Assignment": "gke_customization.overrides.salary_structure_assignment.CustomSalaryStructureAssignment",
+    "Shift Type": "gke_customization.overrides.shift_type.CustomShiftType",
     #   "Parent Manufacturing Order": "gke_customization.overrides.parent_manufacturing_order.CustomParentManufacturingOrder"
 }
 
@@ -171,6 +172,9 @@ scheduler_events = {
         # queue, so this one still runs when `long` is stuck.
         "*/10 * * * *": [
             "gke_customization.gke_order_forms.doc_events.kggk_sync.reap_stale_runs"
+        ],
+        "0 4 * * *": [
+            "gke_customization.overrides.shift_type.process_full_absent_reconciliation"
         ],
         "0 6 * * *": [
             "gurukrupa_biometric.gurukrupa_biometric.doc_events.employee_checkin.set_skip_attendance_check"
@@ -280,95 +284,94 @@ app_include_js = "gke_customization.gke_catalog.api.reposne.get_submited_data"
 app_include_js = "gke_customization.gke_catalog.api.price_list.diamond_price_list"
 
 doc_events = {
-"SolitaireCalculator": {
-    "validate": "gke_customization.gke_custom_export.doctype.solitaire_calculator.solitaire_calculator.calculate_rate"
-},
-"Employee Advance": {
-	"validate": "gke_customization.gke_hrms.doc_events.employee_advance.calculate_working_days"
-},
-"Attendance Request": {
-	"validate": "gke_customization.gke_hrms.doc_events.attendance_request.validate",
-	"on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit"	
-},
-"Leave Application":{
-    "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
-    "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit"
-},
-"Loan Application":{
-    "validate":"gke_customization.gke_hrms.doc_events.loan_application.validate"
-},
-"Share Transfer":{
-    "validate":"gke_customization.gke_customization.doc_events.share_transfer.validate",
-    "on_trash":"gke_customization.gke_customization.doc_events.share_transfer.on_trash",
-    "on_cancel":"gke_customization.gke_customization.doc_events.share_transfer.on_cancel",
-},
-# "Shareholder": {
-#     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
-# },
-"Payment Entry": {
-    # "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_update_after_submit"
-	"on_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_submit"
-},
-"Journal Entry": {
-    "on_submit": [
-        "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit",
-        "gke_customization.gke_hrms.doc_events.journal_entry.update_withholding_release_status",
-    ],
-    "on_cancel": "gke_customization.gke_hrms.doc_events.journal_entry.update_withholding_release_status",
-    "on_trash": "gke_customization.gke_hrms.doc_events.journal_entry.cancel_withholding_releases_on_trash",
-},
-"Item": {
-    "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
-}, 
-# The KGGK push. `on_update`, not `before_validate`: the old hooks called
-# `item.create_item_kggk` / `item.create_bom_kggk`, which did blocking HTTP inside the save
-# and `frappe.throw` on any API error - so an unreachable KGGK site aborted a local Item or
-# BOM save. Those functions are still in item.py, unreferenced, if this ever has to go back.
-#
-# BOM needs both events: Frappe runs `on_update` for a save and a submit, but a *different*
-# event for an edit after submit, and BOMs here are submitted.
-"Item": {
-    # "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate",
-    "before_validate": "gke_customization.gke_order_forms.doc_events.item.set_numeric_attribute_values",
-    "on_update": "gke_customization.gke_order_forms.doc_events.kggk_sync.item_on_update"
-},
-"BOM": {
-    # "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_bom_kggk",
-    "on_update": "gke_customization.gke_order_forms.doc_events.kggk_sync.bom_on_update",
-    "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.kggk_sync.bom_on_update"
-},
-# "Department IR": {
-#     "autoname": "gke_customization.gke_order_forms.doc_events.department_ir.autoname"
-# },
-# "Employee IR": {
-#     "autoname": "gke_customization.gke_order_forms.doc_events.employee_ir.autoname"
-# },
-"Manufacturing Operation": {
-    "autoname": "gke_customization.gke_order_forms.doc_events.manufacturing_operation.autoname"
-},
-"Sales Order":{
-    "validate":"gke_customization.gke_customization.doc_events.sales_order.validate",
-},
-# "Sales Invoice":{
-#     "validate":"gke_customization.gke_customization.doc_events.sales_invoice.validate",
-# },
-"Delivery Note":{
-    "validate":"gke_customization.gke_customization.doc_events.delivery_note.validate",
-},
-"Batch": {
-    "autoname": "jewellery_erpnext.jewellery_erpnext.customization.batch.batch.autoname",
-},
-"Timesheet": {
-    "validate": "gke_customization.gke_order_forms.doc_events.timesheet.validate",
-    "on_update": "gke_customization.gke_order_forms.doc_events.timesheet.on_update"
-
-},
-"Salary Slip": {
-    "before_validate": "gke_customization.overrides.salary_slip.seed_slip_only_formula_fields",
-},
-# "Stock Entry": {
-#     "before_validate": "gke_customization.gke_order_forms.doc_events.stock_entry.before_validate",
-# }
+    "SolitaireCalculator": {
+        "validate": "gke_customization.gke_custom_export.doctype.solitaire_calculator.solitaire_calculator.calculate_rate"
+    },
+    "Employee Advance": {
+        "validate": "gke_customization.gke_hrms.doc_events.employee_advance.calculate_working_days"
+    },
+    "Attendance Request": {
+        "validate": "gke_customization.gke_hrms.doc_events.attendance_request.validate",
+        "on_submit": "gke_customization.gke_hrms.doc_events.attendance_request.on_submit",
+    },
+    "Leave Application": {
+        "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
+        "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit",
+    },
+    "Loan Application": {
+        "validate": "gke_customization.gke_hrms.doc_events.loan_application.validate"
+    },
+    "Share Transfer": {
+        "validate": "gke_customization.gke_customization.doc_events.share_transfer.validate",
+        "on_trash": "gke_customization.gke_customization.doc_events.share_transfer.on_trash",
+        "on_cancel": "gke_customization.gke_customization.doc_events.share_transfer.on_cancel",
+    },
+    # "Shareholder": {
+    #     "validate": "gke_customization.gke_order_forms.doc_events.shareholder.validate"
+    # },
+    "Payment Entry": {
+        # "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_update_after_submit"
+        "on_submit": "gke_customization.gke_order_forms.doc_events.payment_entry.on_submit"
+    },
+    "Journal Entry": {
+        "on_submit": [
+            "gke_customization.gke_order_forms.doc_events.journal_entry.on_submit",
+            "gke_customization.gke_hrms.doc_events.journal_entry.update_withholding_release_status",
+        ],
+        "on_cancel": "gke_customization.gke_hrms.doc_events.journal_entry.update_withholding_release_status",
+        "on_trash": "gke_customization.gke_hrms.doc_events.journal_entry.cancel_withholding_releases_on_trash",
+    },
+    "Item": {
+        "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate"
+    },
+    # The KGGK push. `on_update`, not `before_validate`: the old hooks called
+    # `item.create_item_kggk` / `item.create_bom_kggk`, which did blocking HTTP inside the save
+    # and `frappe.throw` on any API error - so an unreachable KGGK site aborted a local Item or
+    # BOM save. Those functions are still in item.py, unreferenced, if this ever has to go back.
+    #
+    # BOM needs both events: Frappe runs `on_update` for a save and a submit, but a *different*
+    # event for an edit after submit, and BOMs here are submitted.
+    "Item": {
+        # "before_validate": "gke_customization.gke_order_forms.doc_events.item.before_validate",
+        "before_validate": "gke_customization.gke_order_forms.doc_events.item.set_numeric_attribute_values",
+        "on_update": "gke_customization.gke_order_forms.doc_events.kggk_sync.item_on_update",
+    },
+    "BOM": {
+        # "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_bom_kggk",
+        "on_update": "gke_customization.gke_order_forms.doc_events.kggk_sync.bom_on_update",
+        "on_update_after_submit": "gke_customization.gke_order_forms.doc_events.kggk_sync.bom_on_update",
+    },
+    # "Department IR": {
+    #     "autoname": "gke_customization.gke_order_forms.doc_events.department_ir.autoname"
+    # },
+    # "Employee IR": {
+    #     "autoname": "gke_customization.gke_order_forms.doc_events.employee_ir.autoname"
+    # },
+    "Manufacturing Operation": {
+        "autoname": "gke_customization.gke_order_forms.doc_events.manufacturing_operation.autoname"
+    },
+    "Sales Order": {
+        "validate": "gke_customization.gke_customization.doc_events.sales_order.validate",
+    },
+    # "Sales Invoice":{
+    #     "validate":"gke_customization.gke_customization.doc_events.sales_invoice.validate",
+    # },
+    "Delivery Note": {
+        "validate": "gke_customization.gke_customization.doc_events.delivery_note.validate",
+    },
+    "Batch": {
+        "autoname": "jewellery_erpnext.jewellery_erpnext.customization.batch.batch.autoname",
+    },
+    "Timesheet": {
+        "validate": "gke_customization.gke_order_forms.doc_events.timesheet.validate",
+        "on_update": "gke_customization.gke_order_forms.doc_events.timesheet.on_update",
+    },
+    "Salary Slip": {
+        "before_validate": "gke_customization.overrides.salary_slip.seed_slip_only_formula_fields",
+    },
+    # "Stock Entry": {
+    #     "before_validate": "gke_customization.gke_order_forms.doc_events.stock_entry.before_validate",
+    # }
 }
 # app_include_js = [
 #     '/assets/gke_customization/js/solitaire_calculator.js'
