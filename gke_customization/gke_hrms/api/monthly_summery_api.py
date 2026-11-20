@@ -17,6 +17,8 @@ from gurukrupa_customizations.gurukrupa_customizations.doctype.manual_punch.manu
     get_checkins,
 )
 
+from gke_customization.gke_hrms.utils import get_date_range
+
 STATUS = {
     "Absent": "A",
     "Present": "P",
@@ -1166,20 +1168,3 @@ def get_totals(data, employee):
     )
 
     return totals
-
-
-def get_date_range(start_date, end_date):
-    import datetime
-
-    start_date = getdate(start_date)
-    end_date = getdate(end_date)
-
-    date_range = []
-    delta = datetime.timedelta(days=1)
-    current_date = start_date
-
-    while current_date <= end_date:
-        date_range.append(current_date)
-        current_date += delta
-
-    return date_range

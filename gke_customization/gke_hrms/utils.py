@@ -9,6 +9,20 @@ from gke_customization.gke_hrms.report.pf_challan_report.pf_challan_report impor
 )
 
 
+def get_date_range(start_date, end_date):
+    """Return every date from start_date to end_date, both inclusive."""
+    start_date = getdate(start_date)
+    end_date = getdate(end_date)
+
+    date_range = []
+    current_date = start_date
+    while current_date <= end_date:
+        date_range.append(current_date)
+        current_date += timedelta(days=1)
+
+    return date_range
+
+
 @frappe.whitelist()
 def get_account_total_summary_for_print(company, from_date, to_date):
     filters = {"company": company, "from_date": from_date, "to_date": to_date}

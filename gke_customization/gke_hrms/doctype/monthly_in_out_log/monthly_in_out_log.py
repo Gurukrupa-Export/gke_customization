@@ -13,7 +13,7 @@ from gurukrupa_customizations.gurukrupa_customizations.doctype.manual_punch.manu
     get_checkins,  # pyright: ignore[reportMissingImports]
 )
 
-from gke_customization.gke_hrms.utils import get_employee_shift
+from gke_customization.gke_hrms.utils import get_date_range, get_employee_shift
 
 # ============================================================
 # CONSTANTS
@@ -1106,21 +1106,6 @@ def get_totals(data, employee):
         net_pay_hrs_wo_ot,
         net_pay_days_wo_ot,
     ]
-
-
-def get_date_range(start_date, end_date):
-    start_date = getdate(start_date)
-    end_date = getdate(end_date)
-
-    range_list = []
-    delta = timedelta(days=1)
-    current_date = start_date
-
-    while current_date <= end_date:
-        range_list.append(current_date)
-        current_date += delta
-
-    return range_list
 
 
 def create_monthly_in_out_log(doc, method=None):

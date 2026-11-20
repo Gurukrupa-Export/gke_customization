@@ -16,6 +16,8 @@ from frappe.utils import (
 from pypika.functions import Date
 from pypika.terms import LiteralValue
 
+from gke_customization.gke_hrms.utils import get_date_range
+
 STATUS = {
     "Absent": "A",
     "Present": "P",
@@ -293,21 +295,6 @@ def validate_filters(filters):
         frappe.throw(_("From & To Dates are mandatory"))
     if not filters.get("employee"):
         frappe.throw(_("Employee is mandatory"))
-
-
-def get_date_range(start_date, end_date):
-    start_date = getdate(start_date)
-    end_date = getdate(end_date)
-
-    date_range = []
-    delta = timedelta(days=1)
-    current_date = start_date
-
-    while current_date <= end_date:
-        date_range.append(current_date)
-        current_date += delta
-
-    return date_range
 
 
 @frappe.whitelist()

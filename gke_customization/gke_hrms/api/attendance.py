@@ -17,6 +17,8 @@ from gurukrupa_customizations.gurukrupa_customizations.doctype.manual_punch.manu
 )
 from pypika.terms import ValueWrapper
 
+from gke_customization.gke_hrms.utils import get_date_range
+
 STATUS = {
     "Absent": "A",
     "Present": "P",
@@ -817,23 +819,6 @@ def get_shift_details_by_date(employee, from_date, to_date, default_shift):
         shift_by_date[date] = shift_types.get(shift)
 
     return shift_by_date
-
-
-def get_date_range(start_date, end_date):
-    import datetime
-
-    start_date = getdate(start_date)
-    end_date = getdate(end_date)
-
-    date_range = []
-    delta = datetime.timedelta(days=1)
-    current_date = start_date
-
-    while current_date <= end_date:
-        date_range.append(current_date)
-        current_date += delta
-
-    return date_range
 
 
 @frappe.whitelist(allow_guest=True)
