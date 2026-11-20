@@ -3,7 +3,7 @@
 
 frappe.ui.form.on("Employee B Record", {
 	// employee(frm) {
-    //     frappe.call({
+	//     frappe.call({
 	// 		method: 'gke_customization.gke_hrms.doctype.employee_b_record.employee_b_record.get_salary_slip',
 	// 		args: {
 	// 			'employee': frm.doc.employee,
@@ -20,18 +20,17 @@ frappe.ui.form.on("Employee B Record", {
 	// 						net_days: r.message[i].payment_days,
 	// 						net_pay_inr: r.message[i].net_pay,
 	// 						working_days: r.message[i].total_working_days,
-    //                         // bond_amount: (r.message[i].total_working_days / frm.doc.bond_amount) * r.message[i].payment_days
+	//                         // bond_amount: (r.message[i].total_working_days / frm.doc.bond_amount) * r.message[i].payment_days
 	// 					});
 	// 				}
 	// 				frm.refresh_field('employee_b_record_details');
-                    
 	// 			}
 	// 		}
 	// 	});
 	// },
-    // bond_amount(frm){
-    //     update_fields_in_child_table(frm, "bond_amount")
-    // }
+	// bond_amount(frm){
+	//     update_fields_in_child_table(frm, "bond_amount")
+	// }
 });
 
 // function update_fields_in_child_table(frm, fieldname) {
@@ -39,7 +38,7 @@ frappe.ui.form.on("Employee B Record", {
 // 		// d[fieldname] = frm.doc[fieldname];
 //         let bond_amt = frm.doc[fieldname] / d["working_days"] * d["net_days"];
 // 		d["bond_amount"] = Math.round(bond_amt)
-        
+
 // 	});
 // 	refresh_field("employee_b_record_details");
 //     calculate_amount(frm);
@@ -49,10 +48,10 @@ frappe.ui.form.on("Employee B Record", {
 //     let total_amount = 0
 
 //     if(frm.doc.employee_b_record_details){
-// 		frm.doc.employee_b_record_details.forEach(function(d){	
+// 		frm.doc.employee_b_record_details.forEach(function(d){
 // 			total_amount += d.bond_amount
 // 		})
 // 	};
-      
+
 //     frm.set_value("summary_amount", total_amount)
 // }

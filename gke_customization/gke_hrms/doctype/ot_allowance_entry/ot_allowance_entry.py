@@ -1007,14 +1007,14 @@ class OTAllowanceEntry(Document):
             )
         ]
         if from_log:
-            conditions.append((OTLog.name.isnotnull()))
+            conditions.append(OTLog.name.isnotnull())
 
         if self.punch_id or self.employee:
             if not self.employee:
                 self.employee = frappe.db.get_value(
                     "Employee", {"attendance_device_id": self.punch_id}, "name"
                 )
-            conditions.append((Attendance.employee == self.employee))
+            conditions.append(Attendance.employee == self.employee)
 
         # if self.employee_name:
         # 	conditions.append((Attendance.employee_name.like(f"%{self.employee_name}%")))
@@ -1022,24 +1022,24 @@ class OTAllowanceEntry(Document):
         sub_query_filter = [(Employee.product_incentive_applicable == 1)]
 
         if self.company:
-            sub_query_filter.append((Employee.company == self.company))
+            sub_query_filter.append(Employee.company == self.company)
         else:
             frappe.throw(_("Company is mandatory"))
 
         if self.branch:
-            sub_query_filter.append((Employee.branch == self.branch))
+            sub_query_filter.append(Employee.branch == self.branch)
 
         if self.department:
-            sub_query_filter.append((Employee.department == self.department))
+            sub_query_filter.append(Employee.department == self.department)
 
         if self.designation:
-            sub_query_filter.append((Employee.designation == self.designation))
+            sub_query_filter.append(Employee.designation == self.designation)
 
         sub_query = frappe.qb.from_(Employee).select(Employee.name)
         for filter in sub_query_filter:
             sub_query = sub_query.where(filter)
 
-        conditions.append((Attendance.employee.isin(sub_query)))
+        conditions.append(Attendance.employee.isin(sub_query))
 
         return conditions
 

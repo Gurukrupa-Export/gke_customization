@@ -23,7 +23,7 @@ def validate(self, method=None):
     applicant = frappe.get_doc("Employee", self.applicant)
     if self.loan_amount > 2 * applicant.ctc:
         frappe.throw(
-            f"You can't apply for this loan amount.Maximum allowed is {2* applicant.ctc}"
+            f"You can't apply for this loan amount.Maximum allowed is {2 * applicant.ctc}"
         )
     joining_date_applicant = applicant.date_of_joining
     current_posting_date = self.posting_date

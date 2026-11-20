@@ -181,7 +181,7 @@ def attendance1(from_date=None, to_date=None, employee=None):
             IfNull(Attendance.leave_type, Attendance.status).as_("status"),
             Attendance.attendance_request,
         )
-        .where((Attendance.docstatus == 1))
+        .where(Attendance.docstatus == 1)
         .orderby(Attendance.attendance_date, order=frappe.qb.asc)
     )
 
@@ -381,14 +381,12 @@ def attendance(from_date=None, to_date=None, employee=None):
             Attendance.attendance_request,
         )
         .where(
-            (
-                Attendance.docstatus == 1
-                #  &
-                #  IF(ShiftAssignment.shift_type, ShiftAssignment.shift_type == Attendance.shift,
-                #     Attendance.shift == ShiftType.name
-                #     # Employee.default_shift == ShiftType.name
-                #     )
-            )
+            Attendance.docstatus == 1
+            #  &
+            #  IF(ShiftAssignment.shift_type, ShiftAssignment.shift_type == Attendance.shift,
+            #     Attendance.shift == ShiftType.name
+            #     # Employee.default_shift == ShiftType.name
+            #     )
         )
         .orderby(Attendance.attendance_date, order=frappe.qb.asc)
     )
@@ -520,7 +518,7 @@ def process_data(data, from_date, to_date, employee):
                 IF(
                     TIME(EmployeeCheckin.time)
                     < shift_start_time,  # shift_start_time = 23:00:00 and time =  22:00:00
-                    Date(EmployeeCheckin.time - timedelta(days=1)),  #
+                    Date(EmployeeCheckin.time - timedelta(days=1)),
                     Date(EmployeeCheckin.time),
                 ).as_("login_date"),
                 EmployeeCheckin.attendance,

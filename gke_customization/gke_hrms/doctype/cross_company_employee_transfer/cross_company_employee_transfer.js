@@ -23,14 +23,12 @@
 // 	}
 // });
 
-
 // function setup_property_dropdown(frm) {
 
 // 	let grid = frm.fields_dict.transfer_details.grid;
 
 // 	if (!grid)
 // 		return;
-
 
 // 	frappe.model.with_doctype("Employee", () => {
 
@@ -51,7 +49,6 @@
 // 			"rgt"
 // 		];
 
-
 // 		frappe.get_meta("Employee").fields.forEach(df => {
 
 // 			if (
@@ -70,20 +67,17 @@
 
 // 		});
 
-
 // 		grid.update_docfield_property(
 // 			"property",
 // 			"options",
 // 			options.join("\n")
 // 		);
 
-//         grid.refresh(); 
-
+//         grid.refresh();
 
 // 	});
 
 // }
-
 
 // frappe.ui.form.on("Cross Employee Transfer Details", {
 
@@ -95,7 +89,6 @@
 // 		if(!row.property || !frm.doc.employee)
 // 			return;
 
-
 // 		// label se fieldname nikalna
 // 		frappe.model.with_doctype("Employee", ()=>{
 
@@ -103,10 +96,8 @@
 // 				f => __(f.label) == row.property
 // 			);
 
-
 // 			if(!df)
 // 				return;
-
 
 // 			frappe.call({
 
@@ -128,14 +119,12 @@
 // 							df.fieldname
 // 						);
 
-
 // 						frappe.model.set_value(
 // 							cdt,
 // 							cdn,
 // 							"current",
 // 							r.message.value
 // 						);
-
 
 // 						// New field ko dynamic banana
 // 						let grid_row = frm.fields_dict.transfer_details.grid.get_row(cdn);
@@ -151,7 +140,6 @@
 // 							render_input:true
 // 						});
 
-
 // 					}
 // 				}
 
@@ -161,7 +149,6 @@
 // 	}
 
 // });
-
 
 // Copyright (c) 2026, Frappe Technologies Pvt. Ltd. and contributors
 // For license information, please see license.txt
@@ -183,40 +170,47 @@ frappe.ui.form.on("Cross Company Employee Transfer", {
 		// set_site_defaults(frm)
 	},
 
-    refresh(frm) {
+	refresh(frm) {
 		setup_property_dropdown(frm);
 		restrict_add_row_without_employee(frm); // 👈 ab refresh me daala
 	},
 
-
 	employee(frm) {
-        // toggle_transfer_details_table(frm);
+		// toggle_transfer_details_table(frm);
 		// employee change hone par cache clear karo taaki current value fresh fetch ho
-		(frm.doc.transfer_details || []).forEach(row => {
+		(frm.doc.transfer_details || []).forEach((row) => {
 			frappe.model.set_value(row.doctype, row.name, "current", "");
 		});
 		// restrict_add_row_without_employee(frm); // 👈 employee change hone par bhi check karo
-	}
+	},
 });
-
 
 function setup_property_dropdown(frm) {
 	let grid = frm.fields_dict.transfer_details.grid;
 	if (!grid) return;
-	
+
 	console.log("setup_property_dropdown called");
 	frappe.model.with_doctype("Employee", () => {
 		console.log("Employee doctype loaded, setting up property dropdown");
 		let options = [""]; // blank option — taaki empty select allowed rahe
 		console.log("Initial options:", options);
 		let exclude_fields = [
-			"employee", "employee_name", "status", "naming_series",
-			"first_name", "middle_name", "last_name", "image",
-			"date_of_birth", "date_of_joining", "lft", "rgt"
+			"employee",
+			"employee_name",
+			"status",
+			"naming_series",
+			"first_name",
+			"middle_name",
+			"last_name",
+			"image",
+			"date_of_birth",
+			"date_of_joining",
+			"lft",
+			"rgt",
 		];
 		console.log("exclude_fields:", exclude_fields);
 
-		frappe.get_meta("Employee").fields.forEach(df => {
+		frappe.get_meta("Employee").fields.forEach((df) => {
 			console.log("filed", df.fieldname, "label", df.label, "type", df.fieldtype);
 			if (
 				df.fieldtype != "HTML" &&
@@ -235,7 +229,7 @@ function setup_property_dropdown(frm) {
 		grid.update_docfield_property("property", "options", options.join("\n"));
 
 		// har already-open grid row ka control bhi refresh karo
-		grid.grid_rows.forEach(row => {
+		grid.grid_rows.forEach((row) => {
 			if (row.grid_form && row.grid_form.fields_dict.property) {
 				row.grid_form.fields_dict.property.df.options = options.join("\n");
 				row.grid_form.fields_dict.property.refresh();
@@ -243,13 +237,10 @@ function setup_property_dropdown(frm) {
 		});
 
 		grid.refresh();
-		
 	});
 }
 
-
 // frappe.ui.form.on("Cross Employee Transfer Details", {
-	
 
 // 	property(frm, cdt, cdn) {
 
@@ -313,138 +304,104 @@ function setup_property_dropdown(frm) {
 // });
 
 frappe.ui.form.on("Cross Employee Transfer Details", {
-
 	refresh(frm) {
-        filter_property_options(frm);
-    },
+		filter_property_options(frm);
+	},
 
-    transfer_details_add(frm, cdt, cdn) {
-        filter_property_options(frm);
-    },
+	transfer_details_add(frm, cdt, cdn) {
+		filter_property_options(frm);
+	},
 
+	property(frm, cdt, cdn) {
+		let row = locals[cdt][cdn];
 
-    property(frm, cdt, cdn) {
+		if (!row.property || !frm.doc.employee) return;
 
-        let row = locals[cdt][cdn];
+		let duplicate = (frm.doc.transfer_details || []).some(
+			(r) => r.property === row.property && r.name !== row.name
+		);
 
-        if (!row.property || !frm.doc.employee) return;
+		if (duplicate) {
+			frappe.msgprint(__("Property '{0}' is already selected in another row.", [row.property]));
 
-        let duplicate = (frm.doc.transfer_details || []).some(
-            r => r.property === row.property && r.name !== row.name
-        );
+			frappe.model.set_value(cdt, cdn, "property", "");
 
-        if (duplicate) {
+			return;
+		}
 
-            frappe.msgprint(
-                __("Property '{0}' is already selected in another row.", [
-                    row.property
-                ])
-            );
+		frappe.model.with_doctype("Employee", () => {
+			let df = frappe.get_meta("Employee").fields.find((f) => __(f.label) === row.property);
 
-            frappe.model.set_value(
-                cdt,
-                cdn,
-                "property",
-                ""
-            );
+			if (!df) return;
 
-            return;
-        }
+			frappe.call({
+				method: "hrms.hr.utils.get_employee_field_property",
+				args: {
+					employee: frm.doc.employee,
+					fieldname: df.fieldname,
+				},
 
-        frappe.model.with_doctype("Employee", () => {
+				callback(r) {
+					if (!r.message) return;
 
-            let df = frappe.get_meta("Employee").fields.find(
-                f => __(f.label) === row.property
-            );
+					frappe.model.set_value(cdt, cdn, "fieldname", df.fieldname);
 
-            if (!df) return;
+					frappe.model.set_value(cdt, cdn, "current", r.message.value);
 
-            frappe.call({
-                method: "hrms.hr.utils.get_employee_field_property",
-                args: {
-                    employee: frm.doc.employee,
-                    fieldname: df.fieldname
-                },
+					let grid_row = frm.fields_dict.transfer_details.grid.get_row(cdn);
 
-                callback(r) {
+					if (grid_row && grid_row.grid_form) {
+						let wrapper = grid_row.grid_form.fields_dict.new.wrapper;
 
-                    if (!r.message) return;
+						$(wrapper).empty();
 
-                    frappe.model.set_value(
-                        cdt,
-                        cdn,
-                        "fieldname",
-                        df.fieldname
-                    );
-
-                    frappe.model.set_value(
-                        cdt,
-                        cdn,
-                        "current",
-                        r.message.value
-                    );
-
-                    let grid_row =
-                        frm.fields_dict.transfer_details.grid.get_row(cdn);
-
-                    if (grid_row && grid_row.grid_form) {
-
-                        let wrapper =
-                            grid_row.grid_form.fields_dict.new.wrapper;
-
-                        $(wrapper).empty();
-
-                        frappe.ui.form.make_control({
-                            df: {
-                                fieldtype: r.message.datatype,
-                                fieldname: "new",
-                                options: r.message.options || "",
-                                label: "New"
-                            },
-                            parent: wrapper,
-                            render_input: true
-                        });
-                    }
-                }
-            });
-        });
-    }
+						frappe.ui.form.make_control({
+							df: {
+								fieldtype: r.message.datatype,
+								fieldname: "new",
+								options: r.message.options || "",
+								label: "New",
+							},
+							parent: wrapper,
+							render_input: true,
+						});
+					}
+				},
+			});
+		});
+	},
 });
 
-
 function filter_property_options(frm) {
-    let grid = frm.fields_dict.transfer_details.grid;
-    let property_field = grid.docfields.find(df => df.fieldname === "property");
-    if (!property_field || !property_field.options) return;
+	let grid = frm.fields_dict.transfer_details.grid;
+	let property_field = grid.docfields.find((df) => df.fieldname === "property");
+	if (!property_field || !property_field.options) return;
 
-    let remove_property = "Attendance Device ID (Biometric/RF tag ID)";
-    let options = property_field.options
-        .split("\n")
-        .filter(option => option.trim() !== remove_property);
+	let remove_property = "Attendance Device ID (Biometric/RF tag ID)";
+	let options = property_field.options.split("\n").filter((option) => option.trim() !== remove_property);
 
-    property_field.options = options.join("\n");
+	property_field.options = options.join("\n");
 
-    // also patch each already-rendered row's own docfield copy
-    (grid.grid_rows || []).forEach(grid_row => {
-        if (grid_row.docfields) {
-            let f = grid_row.docfields.find(df => df.fieldname === "property");
-            if (f) f.options = property_field.options;
-        }
-    });
+	// also patch each already-rendered row's own docfield copy
+	(grid.grid_rows || []).forEach((grid_row) => {
+		if (grid_row.docfields) {
+			let f = grid_row.docfields.find((df) => df.fieldname === "property");
+			if (f) f.options = property_field.options;
+		}
+	});
 
-    grid.refresh();
+	grid.refresh();
 }
 
 function restrict_add_row_without_employee(frm) {
-
 	let grid = frm.fields_dict.transfer_details.grid;
 	if (!grid) return;
 
 	// pehle se overridden hai to dobara wrap na karo (double wrapping se bug ban sakta hai)
-	frm.doc.transfer_details = (frm.doc.transfer_details || []).filter(row => row.property);
+	frm.doc.transfer_details = (frm.doc.transfer_details || []).filter((row) => row.property);
 	frm.refresh_field("transfer_details");
 
-    if (grid._add_row_restricted) return;
+	if (grid._add_row_restricted) return;
 	console.log("restrict_add_row_without_employee called", grid._add_row_restricted);
 
 	let original_add_new_row = grid.add_new_row.bind(grid);
@@ -460,7 +417,6 @@ function restrict_add_row_without_employee(frm) {
 	grid._add_row_restricted = true; // flag lagado taaki dobara wrap na ho
 	console.log("restrict_add_row_without_employee applied");
 }
-
 
 // function set_site_defaults(frm) {
 
