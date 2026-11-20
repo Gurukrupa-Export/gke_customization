@@ -11,6 +11,9 @@ from frappe.utils import (
     getdate,
 )
 
+ROW_SAVEPOINT = "leave_alloc_row"
+COMP_OFF_START_DATE = "2025-05-01"
+
 
 @frappe.whitelist()
 def get_earned_leave_allocation():
@@ -37,31 +40,44 @@ def get_earned_leave_allocation():
             if not allocation.leave_policy_assignment and not allocation.leave_policy:
                 continue
 
-            leave_policy = (
-                allocation.leave_policy
-                if allocation.leave_policy
-                else policy_by_assignment.get(allocation.leave_policy_assignment)
-            )
-
-            if leave_policy not in annual_allocation_by_policy:
-                annual_allocation_by_policy[leave_policy] = get_annual_allocation(
-                    leave_policy, e_leave_type.name
+            frappe.db.savepoint(ROW_SAVEPOINT)
+            try:
+                leave_policy = (
+                    allocation.leave_policy
+                    if allocation.leave_policy
+                    else policy_by_assignment.get(allocation.leave_policy_assignment)
                 )
-            annual_allocation = annual_allocation_by_policy[leave_policy]
 
-            total_attendance = attendance_count.get(
-                (getdate(allocation.from_date), allocation.employee), 0
-            )
+                if leave_policy not in annual_allocation_by_policy:
+                    annual_allocation_by_policy[leave_policy] = get_annual_allocation(
+                        leave_policy, e_leave_type.name
+                    )
+                annual_allocation = annual_allocation_by_policy[leave_policy]
 
-            if not total_attendance or total_attendance < e_leave_type.applicable_after:
-                continue
+                total_attendance = attendance_count.get(
+                    (getdate(allocation.from_date), allocation.employee), 0
+                )
 
-            if (allocation.name, allocation.employee) in allocations_with_ledger:
-                continue
+                if (
+                    not total_attendance
+                    or total_attendance < e_leave_type.applicable_after
+                ):
+                    continue
 
-            update_attendance_wise_leave(
-                allocation, annual_allocation, e_leave_type, total_attendance
-            )
+                if (allocation.name, allocation.employee) in allocations_with_ledger:
+                    continue
+
+                update_attendance_wise_leave(
+                    allocation, annual_allocation, e_leave_type, total_attendance
+                )
+            except Exception:
+                frappe.db.rollback(save_point=ROW_SAVEPOINT)
+                frappe.log_error(
+                    title=_("Earned Leave Allocation failed for {0}").format(
+                        allocation.name
+                    ),
+                    message=frappe.get_traceback(),
+                )
 
 
 def get_attendance_count_by_from_date(leave_allocations, to_date):
@@ -226,10 +242,10 @@ def create_additional_leave_ledger_entry(allocation, leaves, date):
     allocation.from_date = date
     allocation.unused_leaves = 0
     if allocation.leave_type == "Compensatory Off":
-        leave_type = frappe.db.get_value(
-            "Leave Type", {"name": allocation.leave_type}, ["applicable_after"]
+        applicable_after = frappe.get_cached_value(
+            "Leave Type", allocation.leave_type, "applicable_after"
         )
-        allocation.to_date = frappe.utils.add_days(date, leave_type)
+        allocation.to_date = add_days(date, applicable_after)
     allocation.create_leave_ledger_entry()
 
 
@@ -313,33 +329,33 @@ def infirmary_leave_allocation():
         filters={"parent": leave_type.name},
         fields=["employee_grade"],
     )
+    allowed_grades = [e.employee_grade for e in emp_leave_grade]
+    if not allowed_grades:
+        return
 
+    employees = frappe.get_all(
+        "Employee",
+        filters={"status": "Active", "grade": ["in", allowed_grades]},
+        fields=["name", "date_of_joining", "grade"],
+    )
+    if not employees:
+        return
+
+    employee_names = [emp.name for emp in employees]
+    policy_assignment_by_employee = get_policy_assignment_by_employee(employee_names)
+    allocations_by_assignment = get_allocations_by_policy_assignment(
+        employee_names, leave_type.name
+    )
     annual_allocation_by_policy = {}
 
-    for emp_grade in emp_leave_grade:
-        employees = frappe.get_all(
-            "Employee",
-            filters={"status": "Active", "grade": emp_grade.employee_grade},
-            fields=["name", "date_of_joining", "grade"],
-        )
-        if not employees:
+    for emp in employees:
+        leave_policy_ass = policy_assignment_by_employee.get(emp.name)
+        if not leave_policy_ass:
             continue
 
-        employee_names = [emp.name for emp in employees]
-        policy_assignment_by_employee = get_policy_assignment_by_employee(
-            employee_names
-        )
-        allocations_by_assignment = get_allocations_by_policy_assignment(
-            employee_names, leave_type.name
-        )
-
-        for emp in employees:
+        frappe.db.savepoint(ROW_SAVEPOINT)
+        try:
             doj = getdate(emp.date_of_joining)
-
-            leave_policy_ass = policy_assignment_by_employee.get(emp.name)
-            if not leave_policy_ass:
-                continue
-
             from_date = leave_policy_ass.effective_from
             to_date = leave_policy_ass.effective_to
 
@@ -363,24 +379,9 @@ def infirmary_leave_allocation():
                 if alloc.from_date == from_date and alloc.to_date == to_date
             ]
 
-            # If employee has completed 1 year
+            # Employee has completed the applicable period
             if doj and doj <= one_year_ago:
-                if existing_allocations:
-                    for alloc in existing_allocations:
-                        allocation_doc = frappe.get_doc("Leave Allocation", alloc.name)
-                        if allocation_doc.total_leaves_allocated == annual_allocation:
-                            allocation_doc.db_set(
-                                "total_leaves_allocated",
-                                annual_allocation,
-                                update_modified=False,
-                            )
-                            allocation_doc.db_set(
-                                "new_leaves_allocated",
-                                annual_allocation,
-                                update_modified=False,
-                            )
-                else:
-                    # No existing allocation, create a new one
+                if not existing_allocations:
                     allocation = frappe.new_doc("Leave Allocation")
                     allocation.employee = emp.name
                     allocation.leave_type = leave_type.name
@@ -391,12 +392,15 @@ def infirmary_leave_allocation():
                     allocation.total_leaves_allocated = annual_allocation
                     allocation.insert(ignore_permissions=True)
                     allocation.submit()
-
-            # If employee has NOT completed 1 year then cancel
             else:
                 for alloc in existing_allocations:
-                    allocation_doc = frappe.get_doc("Leave Allocation", alloc.name)
-                    allocation_doc.cancel()
+                    frappe.get_doc("Leave Allocation", alloc.name).cancel()
+        except Exception:
+            frappe.db.rollback(save_point=ROW_SAVEPOINT)
+            frappe.log_error(
+                title=_("Infirmary Leave Allocation failed for {0}").format(emp.name),
+                message=frappe.get_traceback(),
+            )
 
 
 @frappe.whitelist()
@@ -456,6 +460,18 @@ def compOff_leave_allocation():
         today,
     )
     policy_assignment_by_employee = get_policy_assignment_by_employee(employee_ids)
+    allocations_by_assignment = get_comp_off_allocations_by_assignment(
+        employee_ids, leave_type.name, COMP_OFF_START_DATE
+    )
+    ledger_keys = get_allocation_ledger_keys(
+        [
+            alloc.name
+            for allocations in allocations_by_assignment.values()
+            for alloc in allocations
+        ],
+        yesterday,
+        today,
+    )
 
     for emp in emp_checkin:
         employee_id = emp.get("employee")
@@ -479,59 +495,134 @@ def compOff_leave_allocation():
         if not leave_policy_ass:
             continue
 
-        from_date = weekoff_date
-        to_date = add_days(weekoff_date, leave_type.applicable_after)
+        frappe.db.savepoint(ROW_SAVEPOINT)
+        try:
+            from_date = weekoff_date
+            to_date = getdate(add_days(weekoff_date, leave_type.applicable_after))
 
-        allocation = frappe.get_all(
-            "Leave Allocation",
-            filters={
-                "employee": employee_id,
-                "leave_type": leave_type.name,
-                "leave_policy_assignment": leave_policy_ass.name,
-                "docstatus": 1,
-                "from_date": ["between", ["2025-05-01", leave_policy_ass.effective_to]],
-                "to_date": ["between", ["2025-05-01", leave_policy_ass.effective_to]],
-            },
-        )
-
-        if allocation:
-            # Already exists - update and create ledger
-            alloc_doc = frappe.get_doc("Leave Allocation", allocation[0].name)
-
-            # Avoid duplicate ledger entry on same weekoff_date
-            existing_entry = frappe.db.exists(
-                "Leave Ledger Entry",
-                {
-                    "transaction_name": alloc_doc.name,
-                    "transaction_type": "Leave Allocation",
-                    "from_date": from_date,
-                    "to_date": to_date,
-                },
+            allocation = get_comp_off_allocation_within(
+                allocations_by_assignment.get((employee_id, leave_policy_ass.name), []),
+                leave_policy_ass.effective_to,
             )
-            if existing_entry:
-                continue
 
-            alloc_doc.total_leaves_allocated += 1
-            alloc_doc.db_set(
-                "total_leaves_allocated",
-                alloc_doc.total_leaves_allocated,
-                update_modified=False,
+            if allocation:
+                # Avoid duplicate ledger entry on same weekoff_date
+                if (allocation.name, from_date, to_date) in ledger_keys:
+                    continue
+
+                alloc_doc = frappe.get_doc("Leave Allocation", allocation.name)
+                alloc_doc.total_leaves_allocated += 1
+                alloc_doc.db_set(
+                    "total_leaves_allocated",
+                    alloc_doc.total_leaves_allocated,
+                    update_modified=False,
+                )
+                create_additional_leave_ledger_entry(alloc_doc, 1, weekoff_date)
+                ledger_keys.add(
+                    (
+                        alloc_doc.name,
+                        getdate(alloc_doc.from_date),
+                        getdate(alloc_doc.to_date),
+                    )
+                )
+
+            else:
+                alloc_doc = frappe.new_doc("Leave Allocation")
+                alloc_doc.employee = employee_id
+                alloc_doc.leave_type = leave_type.name
+                alloc_doc.leave_policy_assignment = leave_policy_ass.name
+                alloc_doc.from_date = leave_policy_ass.effective_from
+                alloc_doc.to_date = leave_policy_ass.effective_to
+                alloc_doc.new_leaves_allocated = 1
+                alloc_doc.total_leaves_allocated = 1
+                alloc_doc.docstatus = 1
+                alloc_doc.insert(ignore_permissions=True)
+                alloc_doc.submit()
+
+                new_from_date = getdate(alloc_doc.from_date)
+                new_to_date = getdate(alloc_doc.to_date)
+                ledger_keys.add((alloc_doc.name, new_from_date, new_to_date))
+                start_date = getdate(COMP_OFF_START_DATE)
+                if new_from_date >= start_date and new_to_date >= start_date:
+                    allocations_by_assignment.setdefault(
+                        (employee_id, leave_policy_ass.name), []
+                    ).insert(
+                        0,
+                        frappe._dict(
+                            name=alloc_doc.name,
+                            employee=employee_id,
+                            leave_policy_assignment=leave_policy_ass.name,
+                            from_date=new_from_date,
+                            to_date=new_to_date,
+                        ),
+                    )
+        except Exception:
+            frappe.db.rollback(save_point=ROW_SAVEPOINT)
+            frappe.log_error(
+                title=_("Compensatory Off Leave Allocation failed for {0}").format(
+                    employee_id
+                ),
+                message=frappe.get_traceback(),
             )
-            create_additional_leave_ledger_entry(alloc_doc, 1, weekoff_date)
 
-        else:
-            # Create new allocation
-            alloc_doc = frappe.new_doc("Leave Allocation")
-            alloc_doc.employee = employee_id
-            alloc_doc.leave_type = leave_type.name
-            alloc_doc.leave_policy_assignment = leave_policy_ass.name
-            alloc_doc.from_date = leave_policy_ass.effective_from
-            alloc_doc.to_date = leave_policy_ass.effective_to
-            alloc_doc.new_leaves_allocated = 1
-            alloc_doc.total_leaves_allocated = 1
-            alloc_doc.docstatus = 1
-            alloc_doc.insert(ignore_permissions=True)
-            alloc_doc.submit()
+
+def get_comp_off_allocations_by_assignment(employees, leave_type, start_date):
+    """Return Compensatory Off allocations starting and ending on or after start_date,
+    grouped by (employee, leave_policy_assignment), newest first."""
+    allocations_by_assignment = {}
+    for row in frappe.get_all(
+        "Leave Allocation",
+        filters={
+            "employee": ["in", employees],
+            "leave_type": leave_type,
+            "docstatus": 1,
+            "from_date": [">=", start_date],
+            "to_date": [">=", start_date],
+        },
+        fields=["name", "employee", "leave_policy_assignment", "from_date", "to_date"],
+        order_by="creation desc",
+    ):
+        allocations_by_assignment.setdefault(
+            (row.employee, row.leave_policy_assignment), []
+        ).append(row)
+
+    return allocations_by_assignment
+
+
+def get_comp_off_allocation_within(allocations, effective_to):
+    """Return the newest allocation whose from and to dates fall on or before effective_to."""
+    if not effective_to:
+        return None
+
+    effective_to = getdate(effective_to)
+    for allocation in allocations:
+        if (
+            getdate(allocation.from_date) <= effective_to
+            and getdate(allocation.to_date) <= effective_to
+        ):
+            return allocation
+
+    return None
+
+
+def get_allocation_ledger_keys(allocation_names, from_date, to_date):
+    """Return (transaction_name, from_date, to_date) of allocation ledger entries in the range."""
+    if not allocation_names:
+        return set()
+
+    ledger_entries = frappe.get_all(
+        "Leave Ledger Entry",
+        filters={
+            "transaction_type": "Leave Allocation",
+            "transaction_name": ["in", allocation_names],
+            "from_date": ["between", [from_date, to_date]],
+        },
+        fields=["transaction_name", "from_date", "to_date"],
+    )
+    return {
+        (entry.transaction_name, getdate(entry.from_date), getdate(entry.to_date))
+        for entry in ledger_entries
+    }
 
 
 def get_weekly_off_dates(holiday_lists, from_date, to_date):
@@ -552,12 +643,13 @@ def get_weekly_off_dates(holiday_lists, from_date, to_date):
 
 
 def get_policy_assignment_by_employee(employees):
-    """Return the first submitted Leave Policy Assignment of each employee."""
+    """Return the latest submitted Leave Policy Assignment of each employee."""
     policy_assignment_by_employee = {}
     for row in frappe.get_all(
         "Leave Policy Assignment",
         filters={"employee": ["in", employees], "docstatus": 1},
         fields=["name", "employee", "effective_from", "effective_to", "leave_policy"],
+        order_by="effective_from desc, creation desc",
     ):
         policy_assignment_by_employee.setdefault(row.employee, row)
 
