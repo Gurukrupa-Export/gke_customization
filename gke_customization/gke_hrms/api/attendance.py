@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 
 import frappe
-import frappe.utils
 from frappe import _
 from frappe.query_builder import CustomFunction, Interval
 from frappe.query_builder.functions import Concat, Count, Date, IfNull, Sum

@@ -3,6 +3,7 @@
 
 import frappe
 import requests
+from frappe import _
 from frappe.model.document import Document
 
 
@@ -15,10 +16,10 @@ class CrossCompanyEmployeeTransfer(Document):
 
     def on_submit(self):
         if not self.create_new_employee_id:
-            frappe.throw("Check Create New Employee Id Box First")
+            frappe.throw(_("Check Create New Employee ID box first"))
 
         if not self.target_site:
-            frappe.throw("Add Target Site First")
+            frappe.throw(_("Add Target Site first"))
 
         employee = frappe.get_doc("Employee", self.employee)
 
@@ -112,8 +113,11 @@ class CrossCompanyEmployeeTransfer(Document):
             # Only Reports To / Employee fields
             if fieldname == "reports_to":
                 if not row.new_value:
-                    frappe.throw(f"Actual value missing for {row.property}: {row.new}")
-
+                    frappe.throw(
+                        _("Actual value missing for {0}: {1}").format(
+                            row.property, row.new
+                        )
+                    )
                 payload[fieldname] = row.new_value
 
             else:
@@ -148,7 +152,8 @@ class CrossCompanyEmployeeTransfer(Document):
                 import json
 
                 frappe.throw(
-                    f"Employee creation failed in {self.new_company}\n\n"
+                    _("Employee creation failed in {0}").format(self.new_company)
+                    + "\n\n"
                     + "\n".join(
                         json.loads(msg)["message"]
                         for msg in json.loads(
@@ -171,7 +176,7 @@ class CrossCompanyEmployeeTransfer(Document):
 @frappe.whitelist(allow_guest=True)
 def get_kggk_data(target_site=None, property=None, new_company=None):
     if not target_site:
-        frappe.throw("Target Site is required")
+        frappe.throw(_("Target Site is required"))
 
     target_site = str(target_site).rstrip("/")
 
