@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from typing import List, Optional
 
 import frappe
-from frappe.utils import add_days, get_first_day, getdate, today
+from frappe.utils import add_days, cint, get_first_day, getdate, today
 
 from gke_customization.gke_hrms.report.pf_challan_report.pf_challan_report import (
     get_account_total_summary,
@@ -21,7 +21,7 @@ def check_sadwitch_rule():
         "Biometric Settings", "Biometric Settings", ["manual", "from_date", "to_date"]
     )
 
-    manual = int(manual)
+    manual = cint(manual)
 
     if not manual:
         current_day = date.today()
