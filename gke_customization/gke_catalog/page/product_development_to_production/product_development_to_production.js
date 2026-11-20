@@ -45,6 +45,10 @@ const PDTP_STAGE_COLORS = {
 	cad_raised: 'var(--pdtp-purple)',
 	has_stylebio: 'var(--pdtp-amber)',
 	tagged: 'var(--pdtp-teal)',
+	sketch_status_draft: 'var(--pdtp-blue)',
+	sketch_status_assigned: 'var(--pdtp-amber)',
+	sketch_status_customer_approval: 'var(--pdtp-teal)',
+	sketch_status_update_item: 'var(--pdtp-green)',
 	cad_order_raised: 'var(--pdtp-purple)',
 	cad_order_assigned: 'var(--pdtp-blue)',
 	cad_order_designing: 'var(--pdtp-amber)',
@@ -68,6 +72,14 @@ const PDTP_SUMMARY_ICONS = {
 		'<path d="M6 8V6a6 6 0 0 1 12 0v2"/><path d="M4.5 8h15l-1 12.5a1.5 1.5 0 0 1-1.5 1.4H7a1.5 1.5 0 0 1-1.5-1.4L4.5 8Z"/>',
 	running_sketch_orders:
 		'<path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"/><path d="m15 5 4 4"/>',
+	pipeline_sketch_approved:
+		'<circle cx="12" cy="12" r="9"/><path d="M9 12.5 11.5 15 16 9.5"/>',
+	pipeline_cad_raised:
+		'<path d="M12 3 4.5 7v10L12 21l7.5-4V7L12 3Z"/><path d="M4.5 7 12 11l7.5-4"/><path d="M12 11v10"/>',
+	pipeline_has_stylebio:
+		'<path d="M10.5 3h-5A1.5 1.5 0 0 0 4 4.5v5c0 .4.16.78.44 1.06l9 9a1.5 1.5 0 0 0 2.12 0l5-5a1.5 1.5 0 0 0 0-2.12l-9-9A1.5 1.5 0 0 0 10.5 3Z"/><circle cx="8.25" cy="8.25" r="1.25"/>',
+	pipeline_tagged:
+		'<path d="M3 11.5 11.5 3H18a3 3 0 0 1 3 3v6.5L12.5 21 3 11.5Z"/><circle cx="15" cy="9" r="1.4"/>',
 	running_cad_orders:
 		'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
 };
@@ -116,7 +128,7 @@ class PdtpDashboard {
 		this.$stage = this.$('[data-field="stage"]');
 		this.$overlay_text = this.$('[data-field="overlay-text"]');
 		this.$summary = this.$('[data-field="summary-row"]');
-		this.$funnel = this.$('[data-field="funnel-row"]');
+		this.$funnel = this.$('[data-field="sketch-funnel-row"]');
 		this.$cad_funnel = this.$('[data-field="cad-funnel-row"]');
 		this.$blockers = this.$('[data-field="blockers-row"]');
 		this.$ratio = this.$('[data-field="ratio-row"]');
@@ -248,7 +260,7 @@ class PdtpDashboard {
 
 				this.$generated_at.text(`Generated ${frappe.datetime.str_to_user(data.generated_at)}`);
 				this.render_summary(data.summary_kpis);
-				this.render_funnel(data.funnel, this.$funnel);
+				this.render_funnel(data.sketch_funnel, this.$funnel);
 				this.render_funnel(data.cad_funnel, this.$cad_funnel);
 				this.render_blockers(data.blockers, data.funnel && data.funnel[0] ? data.funnel[0].count : 0);
 				this.render_ratio(data.stylebio_tag_ratio);
@@ -472,7 +484,7 @@ class PdtpDashboard {
 							<div class="pdtp-monthly__bar" style="height:${pct}%"></div>
 						</div>
 						<div class="pdtp-monthly__value">${r.completed_count}</div>
-						<div class="pdtp-monthly__month">${r.month_label}</div>
+						<div class="pdtp-monthly__month">${r.month_label.replace(/-\d\d(\d\d)$/, "'$1")}</div>
 					</div>`;
 			})
 			.join('');
