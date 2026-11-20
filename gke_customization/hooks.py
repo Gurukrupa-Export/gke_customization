@@ -280,6 +280,10 @@ doc_events = {
         "validate": "gke_customization.gke_hrms.doc_events.leave_application.validate",
         "on_submit": "gke_customization.gke_hrms.doc_events.leave_application.on_submit",
     },
+    # attendance-wise earned leave credit (port of the "Leave accural attendance wise" server script)
+    "Leave Allocation": {
+        "before_submit": "gke_customization.gke_hrms.doc_events.leave_allocation.apply_attendance_based_allocation",
+    },
     "Loan Application": {
         "validate": "gke_customization.gke_hrms.doc_events.loan_application.validate"
     },
@@ -304,7 +308,10 @@ doc_events = {
         "on_trash": "gke_customization.gke_hrms.doc_events.journal_entry.cancel_withholding_releases_on_trash",
     },
     "Item": {
-        "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_item_kggk"
+        "before_validate": [
+            "gke_customization.gke_order_forms.doc_events.item.set_numeric_attribute_values",
+            "gke_customization.gke_order_forms.doc_events.item.create_item_kggk",
+        ]
     },
     "BOM": {
         "before_validate": "gke_customization.gke_order_forms.doc_events.item.create_bom_kggk"
