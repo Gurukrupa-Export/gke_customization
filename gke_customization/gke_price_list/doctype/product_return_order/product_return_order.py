@@ -1588,7 +1588,7 @@ def sync_product_return_order_to_gk(doc):
         transition_map = {
             ("Draft", "Create Item"): "Send to IBM",
             ("Create Item", "Send For Approval"): "Send For Approval",
-            ("Draft", "BOM Calculated"): "Calculate Bom",
+            ("Draft", "BOM Calculated"): "Calculate BOM",
             ("BOM Calculated", "Send For Approval"): "Send For Approval",
             ("Send For Approval", "BOM Calculated"): "BOM Recalculation",
             ("Send For Approval", "Approved"): "Approve",
