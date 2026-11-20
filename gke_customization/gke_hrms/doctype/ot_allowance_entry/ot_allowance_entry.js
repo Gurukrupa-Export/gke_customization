@@ -11,24 +11,6 @@ frappe.ui.form.on("OT Allowance Entry", {
 			};
 		});
 	},
-	// onload(frm) {
-	// 	let start = frappe.datetime.month_start(frappe.datetime.get_today())
-	// 	let end = frappe.datetime.month_end(frappe.datetime.get_today())
-	// 	frm.set_value({
-	// 		from_date: start,
-	// 		to_date: end,
-	// 		// employee: null
-	// 	});
-	// },
-	// from_date(frm) {
-	// 	if (frm.doc.from_date) {
-	// 		let end_of_month = frappe.datetime.month_end(frm.doc.from_date);
-	// 		frm.set_value("to_date", end_of_month);
-	// 	}
-	// },
-	// after_save: function(frm) {
-	// 	frm.call("get_ot_details",{"from_log":true})
-	// },
 	search(frm) {
 		const method = "gke_customization.gke_hrms.doctype.ot_allowance_entry.ot_allowance_entry";
 		const search_button = frm.fields_dict.search.$input;
