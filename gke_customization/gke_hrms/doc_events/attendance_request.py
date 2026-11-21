@@ -10,7 +10,6 @@ from frappe.utils import (
     get_datetime,
     get_time,
     getdate,
-    time_diff_in_seconds,
     today,
 )
 from hrms.hr.doctype.employee_checkin.employee_checkin import (
@@ -26,10 +25,12 @@ from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log im
 def validate(self, method):
     validate_attendance_request(self, method)
 
-    shift_doc = frappe.get_doc("Shift Type", self.shift)
-    shift_start = shift_doc.start_time
-    shift_end = shift_doc.end_time
-    is_night_shift = shift_end <= shift_start  # Night shift detection
+    is_night_shift = False
+    shift_type = get_request_shift(self)
+    if shift_type:
+        shift_doc = frappe.get_cached_doc("Shift Type", shift_type)
+        if shift_doc.start_time and shift_doc.end_time:
+            is_night_shift = shift_doc.end_time <= shift_doc.start_time
 
     # ----------------------------
     # Validate In / Out Time Order
@@ -41,14 +42,18 @@ def validate(self, method):
         if not is_night_shift and out_time <= in_time:
             frappe.throw(
                 _(
-                    f"Out Time ({out_time}) cannot be earlier than or equal to In Time ({in_time})"
-                )
+                    "Out Time ({0}) cannot be earlier than or equal to In Time ({1})"
+                ).format(out_time, in_time)
             )
 
     # ----------------------------
     # Process Checkin Creation
     # ----------------------------
     if self.workflow_state != "Create Checkin":
+        return
+
+    doc_before_save = self.get_doc_before_save()
+    if doc_before_save and doc_before_save.workflow_state == "Create Checkin":
         return
 
     request_days = date_diff(self.to_date, self.from_date) + 1
@@ -84,7 +89,6 @@ def create_employee_checkin(doc, checkin_date, log_type, time_value, status):
         {
             "employee": doc.employee,
             "log_type": log_type,
-            "shift": doc.shift,
             "time": combined_datetime,
         },
     )
@@ -110,8 +114,11 @@ def create_employee_checkin(doc, checkin_date, log_type, time_value, status):
 
 
 def on_submit(self, method):
+    if not get_request_shift(self):
+        att_req_update_monthly_inout_log(self)
+        return
+
     request_days = date_diff(self.to_date, self.from_date) + 1
-    # frappe.throw(f"Request Days : {request_days}")
 
     for day in range(request_days):
         attendance_date = add_days(self.from_date, day)
@@ -121,7 +128,6 @@ def on_submit(self, method):
             continue
 
         attendance_doc = frappe.get_doc("Attendance", attendance_name)
-        # frappe.msgprint(f"Attendance Doc: {attendance_doc.name}")
 
         # Get proper shift window (handles OT + night shift)
         shift_start, shift_end = get_shift_window(self, attendance_date)
@@ -131,7 +137,6 @@ def on_submit(self, method):
             fields=["name", "time", "log_type", "source"],
             filters={
                 "employee": self.employee,
-                # "shift": self.shift,
                 "skip_auto_attendance": 0,
                 "custom_attendance_request": self.name,
                 "time": ["between", [shift_start, shift_end]],
@@ -140,11 +145,9 @@ def on_submit(self, method):
         )
 
         if not logs:
-            # frappe.msgprint(f"No logs found for {attendance_date}")
             continue
 
         attendance_data = get_attendance(self, logs, attendance_date)
-        # frappe.msgprint(f"Attndance Data : {attendance_data}")
 
         attendance_doc.db_set(
             {
@@ -153,73 +156,25 @@ def on_submit(self, method):
                 "in_time": attendance_data["in_time"],
                 "out_time": attendance_data["out_time"],
                 "attendance_request": self.name,
-                "shift": self.shift,
+                "shift": get_request_shift(self),
                 "early_exit": attendance_data["early_exit"],
                 "late_entry": attendance_data["late_entry"],
             }
         )
 
-        attendance_doc.reload()
-        # frappe.msgprint(f"Updated Attendance: {attendance_doc.as_dict()}")
-
         # Link all logs to this attendance
-        for log in logs:
-            frappe.db.set_value(
-                "Employee Checkin", log["name"], "attendance", attendance_doc.name
-            )
+        frappe.db.set_value(
+            "Employee Checkin",
+            {"name": ("in", [log["name"] for log in logs])},
+            "attendance",
+            attendance_doc.name,
+        )
 
-    frappe.db.commit()
     att_req_update_monthly_inout_log(self)
 
 
-# def get_attendance(self, logs):
-#     """Return attendance_status, working_hours, late_entry, early_exit, in_time, out_time for a single date."""
-
-#     shift_doc = frappe.get_doc("Shift Type", self.shift)
-
-#     late_entry = early_exit = False
-#     total_working_hours, in_time, out_time = calculate_working_hours(
-#         logs, shift_doc.determine_check_in_and_check_out, shift_doc.working_hours_calculation_based_on
-#     )
-
-#     shift_start = logs[0]["shift_start"]
-#     shift_end = logs[0]["shift_end"]
-
-#     if (
-#         cint(shift_doc.enable_late_entry_marking)
-#         and in_time
-#         and in_time > shift_start + timedelta(minutes=cint(shift_doc.late_entry_grace_period))
-#     ):
-#         late_entry = True
-
-#     if (
-#         cint(shift_doc.enable_early_exit_marking)
-#         and out_time
-#         and out_time < shift_end - timedelta(minutes=cint(shift_doc.early_exit_grace_period))
-#     ):
-#         early_exit = True
-
-#     # Determine attendance status based on source (reason)
-#     source = logs[0].get("source", "")
-
-#     if source == "Work From Home":
-#         status = "Work From Home"
-#     elif source in ("Outdoor Duty","Manual Punch"):
-#         status = "Present"
-#     # frappe.throw(f"{status}")
-
-#     return {
-#         "status": status,
-#         "working_hours": total_working_hours,
-#         "late_entry": late_entry,
-#         "early_exit": early_exit,
-#         "in_time": in_time,
-#         "out_time": out_time
-#     }
-
-
 def get_attendance_record(self, attendance_date: str) -> str | None:
-    attedance = frappe.db.exists(
+    return frappe.db.exists(
         "Attendance",
         {
             "employee": self.employee,
@@ -227,8 +182,6 @@ def get_attendance_record(self, attendance_date: str) -> str | None:
             "docstatus": ("!=", 2),
         },
     )
-    frappe.msgprint(f"Attendance Record: {attedance or 'Not Found'}")
-    return attedance
 
 
 def get_attendance(self, logs, attendance_date):
@@ -240,7 +193,7 @@ def get_attendance(self, logs, attendance_date):
     - Late entry / Early exit rules
     """
 
-    shift_doc = frappe.get_doc("Shift Type", self.shift)
+    shift_doc = frappe.get_cached_doc("Shift Type", get_request_shift(self))
 
     total_working_hours, first_in_time, last_out_time = calculate_working_hours(
         logs,
@@ -300,7 +253,7 @@ def get_attendance(self, logs, attendance_date):
 
 
 def get_shift_window(self, attendance_date):
-    shift_doc = frappe.get_doc("Shift Type", self.shift)
+    shift_doc = frappe.get_cached_doc("Shift Type", get_request_shift(self))
 
     shift_start = get_datetime(f"{attendance_date} {shift_doc.start_time}")
     shift_end = get_datetime(f"{attendance_date} {shift_doc.end_time}")
@@ -319,20 +272,25 @@ def get_shift_window(self, attendance_date):
     return shift_start, shift_end
 
 
-######## Edited by Aditya at 27/01/2026 #################
+def get_request_shift(doc):
+    if doc.shift:
+        return doc.shift
+
+    if not doc.employee:
+        return None
+
+    return frappe.get_cached_value("Employee", doc.employee, "default_shift")
 
 
 def validate_attendance_request(doc, method):
     if not doc.employee:
         return
 
-    employee = frappe.get_doc("Employee", doc.employee)
-
-    shift_type = doc.shift or employee.default_shift
+    shift_type = get_request_shift(doc)
     if not shift_type:
         return
 
-    shift = frappe.get_doc("Shift Type", shift_type)
+    shift = frappe.get_cached_doc("Shift Type", shift_type)
 
     if not shift.start_time or not shift.end_time:
         return
@@ -342,7 +300,7 @@ def validate_attendance_request(doc, method):
     shift_start = get_time(shift.start_time)
     shift_end = get_time(shift.end_time)
 
-    is_night_shift = shift_start > shift_end
+    is_night_shift = shift_end <= shift_start
 
     shift_start_dt = get_datetime(f"{base_date} {shift_start}")
     shift_end_dt = get_datetime(f"{base_date} {shift_end}")
@@ -361,15 +319,7 @@ def validate_attendance_request(doc, method):
         shift_end_dt if not is_night_shift else shift_end_dt + timedelta(days=1)
     )  # strictly shift end
 
-    # Grace period for checkout (30 mins after shift end)
-    # out_grace_minutes = 30
-
     allowed_out_start_dt = shift_start_dt
-    # allowed_out_end_dt = add_to_date(
-    #     shift_end_dt,
-    #     minutes=out_grace_minutes,
-    #     as_datetime=True
-    # )
     allowed_out_end_dt = (
         shift_end_dt if not is_night_shift else shift_end_dt + timedelta(days=1)
     )
@@ -380,11 +330,11 @@ def validate_attendance_request(doc, method):
     if in_time:
         in_time_dt = get_datetime(f"{base_date} {in_time}")
 
-        # frappe.throw(f"In Time DT: {in_time_dt} , Allowed In Start DT: {allowed_in_start_dt} , Allowed In End DT: {allowed_in_end_dt} <br><br> in_time_dt < allowed_in_start_dt : {in_time_dt < allowed_in_start_dt} <br> in_time_dt > allowed_in_end_dt : {in_time_dt > allowed_in_end_dt}")
         if in_time_dt < allowed_in_start_dt or in_time_dt > allowed_in_end_dt:
             frappe.throw(
-                f"Check-in time must be between "
-                f"{allowed_in_start_dt.time()} and {allowed_in_end_dt.time()}."
+                _("Check-in time must be between {0} and {1}.").format(
+                    allowed_in_start_dt.time(), allowed_in_end_dt.time()
+                )
             )
 
     # --------------------
@@ -397,32 +347,12 @@ def validate_attendance_request(doc, method):
             else get_datetime(f"{base_date} {out_time}") + timedelta(days=1)
         )
 
-        # frappe.throw(f"Out Time DT: {out_time_dt} , Allowed Out Start DT: {allowed_out_start_dt} , Allowed Out End DT: {allowed_out_end_dt} <br><br> out_time_dt < allowed_out_start_dt : {out_time_dt < allowed_out_start_dt} <br> out_time_dt > allowed_out_end_dt : {out_time_dt > allowed_out_end_dt}")
         if out_time_dt < allowed_out_start_dt or out_time_dt > allowed_out_end_dt:
             frappe.throw(
-                f"Check-out time must be between "
-                f"{allowed_out_start_dt.time()} and {allowed_out_end_dt.time()}."
+                _("Check-out time must be between {0} and {1}.").format(
+                    allowed_out_start_dt.time(), allowed_out_end_dt.time()
+                )
             )
-
-    # --------------------
-    # IN < OUT VALIDATION
-    # --------------------
-    if in_time and out_time:
-        in_time_dt = get_datetime(f"{base_date} {in_time}")
-        out_time_dt = (
-            get_datetime(f"{base_date} {out_time}")
-            if not is_night_shift
-            else get_datetime(f"{base_date} {out_time}") + timedelta(days=1)
-        )
-
-        if time_diff_in_seconds(out_time_dt, in_time_dt) <= 0:
-            frappe.throw("Check-out time must be after check-in time.")
-
-
-###### End of Edited by Aditya at 27/01/2026 #################
-
-######################### Update Monthly in-out Log after Submit Attendance Req #################################
-##### 19 Feb 2026 ####
 
 
 def att_req_update_monthly_inout_log(doc, method=None):
@@ -433,51 +363,44 @@ def att_req_update_monthly_inout_log(doc, method=None):
         if not doc.employee or not doc.company:
             return
 
-        # Get attendance of Attendance Request
-        attendance_list = frappe.get_all(
+        attendance_dates = frappe.get_all(
             "Attendance",
             filters={
                 "employee": doc.employee,
                 "attendance_request": doc.name,
                 "docstatus": 1,
             },
-            fields=["name"],
+            pluck="attendance_date",
         )
 
-        if not attendance_list:
+        if not attendance_dates:
             return
 
-        for att in attendance_list:
-            att_doc = frappe.db.get_value(
-                "Attendance", att.name, ["attendance_date", "name"], as_dict=True
-            )
-            attendance_date = att_doc.attendance_date
+        mil_by_date = {}
+        for row in frappe.get_all(
+            "Monthly In-Out Log",
+            filters={
+                "employee": doc.employee,
+                "company": doc.company,
+                "attendance_date": ["in", attendance_dates],
+                "docstatus": ["in", [0, 1]],
+            },
+            fields=["name", "attendance_date"],
+        ):
+            mil_by_date.setdefault(row.attendance_date, row.name)
 
-            mil_name = frappe.db.get_value(
-                "Monthly In-Out Log",
-                {
-                    "employee": doc.employee,
-                    "company": doc.company,
-                    "attendance_date": attendance_date,
-                    "docstatus": ["in", [0, 1]],
-                },
-                "name",
-            )
-
+        for attendance_date in attendance_dates:
+            mil_name = mil_by_date.get(attendance_date)
             if not mil_name:
-                return
-
-            mil = frappe.db.get_value(
-                "Monthly In-Out Log", mil_name, ["company", "employee"], as_dict=True
-            )
+                continue
 
             res = get_attendance_details_by_date(
-                mil.company, mil.employee, attendance_date
+                doc.company, doc.employee, attendance_date
             )
 
             records = res.get("records") or []
             if not records:
-                return
+                continue
 
             record = records[0]
 
@@ -501,13 +424,8 @@ def att_req_update_monthly_inout_log(doc, method=None):
                     "p_out_hrs": fmt_td_or_value(record.get("p_out_hrs")),
                 },
             )
-
-            frappe.db.commit()
-    except Exception as e:
+    except Exception:
         frappe.log_error(
-            message=f"Error updating Monthly In-Out Log: {e}",
+            message=frappe.get_traceback(),
             title="Monthly In-Out Log Update Error - Att Req",
         )
-
-
-##############################################################################################

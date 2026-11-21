@@ -6,4 +6,4 @@ from frappe.model.document import Document
 
 
 class DesignationDetails(Document):
-	pass
+    pass

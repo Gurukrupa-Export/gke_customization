@@ -16,6 +16,8 @@ from frappe.utils import (
 from pypika.functions import Date
 from pypika.terms import LiteralValue
 
+from gke_customization.gke_hrms.utils import get_date_range
+
 STATUS = {
     "Absent": "A",
     "Present": "P",
@@ -91,6 +93,14 @@ def get_data(filters=None):
         subquery.adj_out, sec_to_time(subquery.rand_int * 60)
     )
 
+    # Out time and in time are clock values, so a night shift crossing midnight gives a negative diff
+    clock_diff = time_diff(
+        time_format(adj_out_with_random, time_pattern), subquery.in_time
+    )
+    total_adj = if_function(
+        clock_diff < 0, add_time(clock_diff, "24:00:00"), clock_diff
+    )
+
     data = (
         frappe.qb.from_(subquery)
         .select(
@@ -103,19 +113,17 @@ def get_data(filters=None):
             subquery.rand_int,
             subquery.late_entry,
             time_format(adj_out_with_random, time_pattern).as_("adj_out_2"),
-            time_diff(
-                time_format(adj_out_with_random, time_pattern), subquery.in_time
-            ).as_("total_adj"),
+            total_adj.as_("total_adj"),
         )
         .orderby(subquery.attendance_date)
         .run(as_dict=True)
     )
 
     if not data:
-        return
+        return []
 
     data = process_data(data, filters)
-    totals = get_totals(data, filters.get("employee"))
+    totals = get_totals(data)
     data += totals
 
     return data
@@ -143,9 +151,6 @@ def process_data(data, filters):
         as_dict=1,
     )
 
-    # shift_hours = flt(shift_det.get("shift_hours"))
-    # shift_name = f"{format_time(shift_det.get('start_time'))} To {format_time(shift_det.get('end_time'))}"
-
     checkin = frappe.qb.DocType("Employee Checkin")
     login_date = Date(checkin.time)
     od = (
@@ -172,9 +177,9 @@ def process_data(data, filters):
         holidays = [row.holiday_date for row in holidays if not row.weekly_off]
 
     for row in data:
-        if row.status in "Present":
+        if row.status == "Present":
             row.status = "P"
-        if row.status in "Absent":
+        elif row.status == "Absent":
             row.status = "A"
 
         processed[row.attendance_date] = row
@@ -195,17 +200,21 @@ def process_data(data, filters):
     )
     ot_for_wo = {row.attendance_date: row for row in ot_for_wo}
     date_range = get_date_range(from_date, to_date)
+    date_of_joining = emp_det.get("date_of_joining")
+    if date_of_joining:
+        date_of_joining = getdate(date_of_joining)
 
     for date in date_range:
         row = processed.get(date, ot_for_wo.get(date, {}))
 
         if date in od:
             row["status"] = "OD"
+            status = "OD"
 
-        elif date in wo and (date >= getdate(emp_det.get("date_of_joining"))):
+        elif date in wo and (not date_of_joining or date >= date_of_joining):
             status = "WO"
 
-        elif (date in holidays) and (date >= getdate(emp_det.get("date_of_joining"))):
+        elif date in holidays and (not date_of_joining or date >= date_of_joining):
             status = "H"
 
         else:
@@ -214,24 +223,19 @@ def process_data(data, filters):
         temp.update(row)
         result.append(temp)
 
-    # frappe.throw(f"{result}")
     return result
 
 
-def get_totals(data, employee):
+def get_totals(data):
     totals = {
-        "adj_out_2": "Total Hours",
+        "adj_out_2": _("Total Hours"),
         "total_adj": timedelta(0),
     }
-    late_count = 0
 
     for row in data:
         total_adj_str = row.get("total_adj") or "00:00"
         total_adj_timedelta = str_to_timedelta(total_adj_str)
         totals["total_adj"] += total_adj_timedelta
-
-        if row.get("late_entry"):
-            late_count += 1
 
     # Calculate net days based on 9 hours per day
     total_hours = totals["total_adj"].total_seconds() / 3600
@@ -239,7 +243,7 @@ def get_totals(data, employee):
     net_days = total_hours / hours_per_day
 
     # Prepare the total_adj_days dictionary
-    total_adj_days = {"adj_out_2": "Net Days", "total_adj": round(net_days, 2)}
+    total_adj_days = {"adj_out_2": _("Net Days"), "total_adj": round(net_days, 2)}
 
     return totals, total_adj_days
 
@@ -282,17 +286,6 @@ def get_columns(filters=None):
             "fieldtype": "Data",
             "width": 250,
         },
-        # {
-        # 	"label": _("rand_int"),
-        # 	"fieldname": "rand_int",
-        # 	"fieldtype": "Data",
-        # 	"width": 120
-        # },
-        # {
-        # 	"label": _(""),
-        # 	"fieldname": "",
-        # 	"fieldtype": ""
-        # },
     ]
     return columns
 
@@ -300,23 +293,8 @@ def get_columns(filters=None):
 def validate_filters(filters):
     if not (filters.get("from_date") and filters.get("to_date")):
         frappe.throw(_("From & To Dates are mandatory"))
-
-
-def get_date_range(start_date, end_date):
-    import datetime
-
-    start_date = getdate(start_date)
-    end_date = getdate(end_date)
-
-    range = []
-    delta = datetime.timedelta(days=1)
-    current_date = start_date
-
-    while current_date <= end_date:
-        range.append(current_date)
-        current_date += delta
-
-    return range
+    if not filters.get("employee"):
+        frappe.throw(_("Employee is mandatory"))
 
 
 @frappe.whitelist()
@@ -332,9 +310,13 @@ def get_month_range():
 
 
 def str_to_timedelta(time_str):
-    time_str = str(time_str)
-    if len(str(time_str).split(":")) == 2:
-        hours, minutes = map(int, time_str.split(":"))
-    elif len(str(time_str).split(":")) == 3:
-        hours, minutes, seconds = map(int, time_str.split(":"))
-    return timedelta(hours=hours, minutes=minutes)
+    if isinstance(time_str, timedelta):
+        return time_str
+
+    parts = str(time_str).split(":")
+    if len(parts) not in (2, 3):
+        return timedelta(0)
+
+    hours, minutes = int(parts[0]), int(parts[1])
+    seconds = int(parts[2]) if len(parts) == 3 else 0
+    return timedelta(hours=hours, minutes=minutes, seconds=seconds)

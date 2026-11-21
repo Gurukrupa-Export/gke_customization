@@ -45,7 +45,15 @@ def update_withholding_release_status(doc, method=None):
     cancel = method == "on_cancel"
     precision = frappe.get_precision("Salary Slip", "net_pay")
     cycle_names = list({r.salary_withholding_cycle for r in releases})
-    actual_amounts = get_actual_release_amounts(doc, releases)
+    employee_by_withholding = dict(
+        frappe.get_all(
+            "Salary Withholding",
+            filters={"name": ("in", list({r.parent for r in releases}))},
+            fields=["name", "employee"],
+            as_list=True,
+        )
+    )
+    actual_amounts = get_actual_release_amounts(doc, releases, employee_by_withholding)
 
     cycles = frappe.get_all(
         "Salary Withholding Cycle",
@@ -108,9 +116,7 @@ def update_withholding_release_status(doc, method=None):
         if slip:
             (submitted_slips if fully_released else withheld_slips).append(slip.name)
 
-        employees.add(
-            frappe.db.get_value("Salary Withholding", release.parent, "employee")
-        )
+        employees.add(employee_by_withholding.get(release.parent))
         withholdings.add(release.parent)
 
     # --- batched writes ---
@@ -139,7 +145,9 @@ def update_withholding_release_status(doc, method=None):
         frappe.get_doc("Salary Withholding", withholding).set_status(update=True)
 
 
-def get_actual_release_amounts(doc, releases: list[dict]) -> dict[str, float]:
+def get_actual_release_amounts(
+    doc, releases: list[dict], employee_by_withholding: dict[str, str]
+) -> dict[str, float]:
     """Return the actual released amount for each salary withholding release.
 
     The amounts are calculated from the Journal Entry's Payroll Payable debit lines,
@@ -174,17 +182,6 @@ def get_actual_release_amounts(doc, releases: list[dict]) -> dict[str, float]:
             line.debit_in_account_currency
         )
 
-    # single batched lookup instead of one frappe.db.get_value per unique parent
-    parents = list({release.parent for release in releases})
-    employees = dict(
-        frappe.get_all(
-            "Salary Withholding",
-            filters={"name": ("in", parents)},
-            fields=["name", "employee"],
-            as_list=True,
-        )
-    )
-
     actual = {}
     lump_sum_releases = {}  # payroll entry -> release rows, pre-sorted by creation
     for release in releases:
@@ -192,7 +189,7 @@ def get_actual_release_amounts(doc, releases: list[dict]) -> dict[str, float]:
         if not per_party:
             continue
 
-        employee = employees.get(release.parent)
+        employee = employee_by_withholding.get(release.parent)
         if employee and employee in per_party:
             actual[release.name] = flt(per_party[employee])
         elif len(per_party) == 1 and None in per_party:

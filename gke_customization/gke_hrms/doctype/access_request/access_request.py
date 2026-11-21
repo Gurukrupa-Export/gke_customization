@@ -2,12 +2,18 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 
 class AccessRequest(Document):
     def autoname(self):
         company_abbr = frappe.db.get_value("Company", self.company, "abbr")
+        if not company_abbr:
+            frappe.throw(
+                _("Abbreviation is not set for Company {0}").format(self.company)
+            )
+
         if self.request_purpose == "Employee Access":
             type_code = "EA"
         else:
@@ -28,10 +34,7 @@ class AccessRequest(Document):
                 row.status = "Approved"
 
     def on_update_after_submit(self):
-        frappe.db.set_value("Access Request", self.name, "status", "Completed")
-        self.status = "Completed"
-        frappe.db.commit()
-        self.reload()
+        self.db_set("status", "Completed")
         if self.platform_access:
             frappe.db.set_value(
                 "Platform Access",
@@ -41,8 +44,6 @@ class AccessRequest(Document):
             )
             for row in self.platform_access:
                 row.status = "Completed"
-            frappe.db.commit()
-            self.reload()
 
 
 @frappe.whitelist()

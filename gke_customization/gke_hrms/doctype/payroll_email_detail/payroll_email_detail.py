@@ -6,4 +6,4 @@ from frappe.model.document import Document
 
 
 class PayrollEmailDetail(Document):
-	pass
+    pass

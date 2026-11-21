@@ -4,17 +4,44 @@
 from bisect import bisect_left, bisect_right
 
 import frappe
+from frappe import _
 from frappe.utils import add_days, add_to_date, get_datetime, get_time, getdate
 
 from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log import (
     fetch_attendance_data,
 )
 
+# Roles that can see any employee / whole department (use exact role names)
+PRIVILEGED_ROLES = {"System Manager", "GK HR"}
+
 
 def execute(filters=None):
+    filters = frappe._dict(filters or {})
     columns = get_columns()
     data = get_data(filters)
     return columns, data
+
+
+def has_full_access():
+    return bool(PRIVILEGED_ROLES & set(frappe.get_roles(frappe.session.user)))
+
+
+def get_department_employees(company=None, department=None, branch=None):
+    emp_filters = {"status": "Active"}
+    if company:
+        emp_filters["company"] = company
+    if department:
+        emp_filters["department"] = department
+    if branch:
+        emp_filters["branch"] = branch
+
+    return frappe.get_all(
+        "Employee",
+        filters=emp_filters,
+        pluck="name",
+        order_by="employee_name asc",
+        ignore_permissions=True,
+    )
 
 
 def get_date_range(filters):
@@ -50,11 +77,17 @@ def get_employee_list(employee, department=None):
     filters = {"reports_to": employee, "status": "Active"}
     if department:
         filters["department"] = department
-    employees = frappe.get_all("Employee", filters=filters, fields=["name"])
-    # frappe.throw(str(employees))
+    employees = frappe.get_all(
+        "Employee",
+        filters=filters,
+        fields=["name"],
+        ignore_permissions=True,
+    )
 
-    employee_ids = [emp["name"] for emp in employees]
-    employee_ids.append(employee)
+    # selected employee first, no duplicates
+    employee_ids = [employee] + [
+        emp["name"] for emp in employees if emp["name"] != employee
+    ]
 
     return employee_ids
 
@@ -151,6 +184,29 @@ def get_attendance_map(employee_list, from_date, to_date):
     return attendance_map
 
 
+def get_shift_checkin_map(employee_list, from_date, to_date):
+    """Return sorted checkin times per (employee, shift date), based on the checkin's shift_actual_start."""
+    checkins = frappe.get_all(
+        "Employee Checkin",
+        filters={
+            "employee": ["in", employee_list],
+            "shift_actual_start": [
+                "between",
+                [f"{getdate(from_date)} 00:00:00", f"{getdate(to_date)} 23:59:59"],
+            ],
+        },
+        fields=["employee", "time", "shift_actual_start"],
+        order_by="time asc",
+        ignore_permissions=1,
+    )
+
+    shift_checkin_map = {}
+    for row in checkins:
+        key = (row.employee, getdate(row.shift_actual_start))
+        shift_checkin_map.setdefault(key, []).append(row.time)
+    return shift_checkin_map
+
+
 def get_checkin_time_map(employee_list, from_date, to_date):
     """Return sorted checkin times per employee, wide enough to cover every daily window."""
     checkins = frappe.get_all(
@@ -173,9 +229,7 @@ def get_checkin_time_map(employee_list, from_date, to_date):
     return checkin_time_map
 
 
-def get_employee_checkins(
-    employee_checkin_times, date, start_time, end_time, attendance_data
-):
+def get_checkin_window(date, start_time, end_time, attendance_data):
     if (
         attendance_data
         and attendance_data.get("in_time")
@@ -195,13 +249,30 @@ def get_employee_checkins(
         if get_time(end_time) < get_time(start_time):
             end_dt = add_to_date(end_dt, days=1)
 
-        # add buffer (important)
-        start_dt = add_to_date(start_dt, minutes=-90)  # -1.5 hrs buffer
-        end_dt = add_to_date(end_dt, minutes=90)  # +1.5 hrs buffer
+        start_dt = add_to_date(start_dt, minutes=-90)
+        end_dt = add_to_date(end_dt, minutes=90)
 
-    first_index = bisect_left(employee_checkin_times, start_dt)
-    last_index = bisect_right(employee_checkin_times, end_dt)
-    checkin_times = employee_checkin_times[first_index:last_index]
+    return start_dt, end_dt
+
+
+def get_employee_checkins(
+    shift_checkin_times,
+    employee_checkin_times,
+    date,
+    start_time,
+    end_time,
+    attendance_data,
+):
+    checkin_times = shift_checkin_times
+
+    # fallback for checkins without shift data
+    if not checkin_times:
+        start_dt, end_dt = get_checkin_window(
+            date, start_time, end_time, attendance_data
+        )
+        first_index = bisect_left(employee_checkin_times, start_dt)
+        last_index = bisect_right(employee_checkin_times, end_dt)
+        checkin_times = employee_checkin_times[first_index:last_index]
 
     in_times = [time.strftime("%H:%M:%S") for time in checkin_times[0::2]]
     out_times = [time.strftime("%H:%M:%S") for time in checkin_times[1::2]]
@@ -227,8 +298,8 @@ def get_holiday_weekoff_map(employee_list, company, from_date, to_date):
     """
     Returns:
     {
-            "EMP-0001": {"holidays": [...], "weekoffs": [...]},
-            "EMP-0002": {"holidays": [...], "weekoffs": [...]}
+        "EMP-0001": {"holidays": [...], "weekoffs": [...]},
+        "EMP-0002": {"holidays": [...], "weekoffs": [...]}
     }
     """
 
@@ -324,18 +395,45 @@ def get_holiday_weekoff_map(employee_list, company, from_date, to_date):
 
 
 def get_data(filters):
-    employee = filters.get("employee")
     company = filters.get("company")
     from_date = filters.get("from_date")
     to_date = filters.get("to_date")
-    department = filters.get("department")
 
-    if not employee or not from_date or not to_date:
-        frappe.throw("Please select Employee, From Date and To Date")
+    if not from_date or not to_date:
+        frappe.throw(_("Please select From Date and To Date"))
+
+    if has_full_access():
+        # System Manager / GK HR: selected employee only, otherwise the whole department
+        employee = filters.get("employee")
+        if employee:
+            employee_list = [employee]
+        else:
+            if not filters.get("department"):
+                frappe.throw(_("Please select a Department or an Employee"))
+            employee_list = get_department_employees(
+                company, filters.get("department"), filters.get("branch")
+            )
+    else:
+        # Manager / normal employee: always resolved from the logged-in user,
+        # any employee/department value sent in the request is ignored.
+        own = frappe.db.get_value(
+            "Employee",
+            {"user_id": frappe.session.user, "status": "Active"},
+            ["name", "company"],
+            as_dict=1,
+        )
+        if not own:
+            frappe.throw(_("No active Employee record is linked to your user"))
+
+        company = company or own.company
+        employee_list = get_employee_list(own.name)
+
+    if not employee_list:
         return []
 
+    company = company or frappe.db.get_value("Employee", employee_list[0], "company")
+
     date_range = get_date_range(filters)
-    employee_list = get_employee_list(employee, department)
     holiday_map = get_holiday_weekoff_map(employee_list, company, from_date, to_date)
 
     attendance_details = {}
@@ -352,11 +450,12 @@ def get_data(filters):
             )
             or {}
         )
-        attendance_details[emp] = {
-            getdate(record.get("login_date")): record
-            for record in result.get("records") or []
-            if record.get("login_date")
-        }
+        attendance_details[emp] = {}
+        for record in result.get("records") or []:
+            if record.get("login_date"):
+                attendance_details[emp].setdefault(
+                    getdate(record.get("login_date")), record
+                )
 
     final_data = process_data(
         attendance_details, date_range, holiday_map, from_date, to_date
@@ -368,63 +467,78 @@ def get_data(filters):
 def get_columns():
     columns = [
         {
-            "label": "Employee",
+            "label": _("Employee"),
             "fieldname": "employee",
             "fieldtype": "Data",
             "width": 150,
         },
         {
-            "label": "Employee Name",
+            "label": _("Employee Name"),
             "fieldname": "employee_name",
             "fieldtype": "Data",
             "width": 200,
         },
         {
-            "label": "Punch ID",
+            "label": _("Punch ID"),
             "fieldname": "punch_id",
             "fieldtype": "Data",
             "width": 100,
         },
         {
-            "label": "Department",
+            "label": _("Department"),
             "fieldname": "department",
             "fieldtype": "Data",
             "width": 150,
         },
-        {"label": "Date", "fieldname": "login_date", "fieldtype": "Date", "width": 120},
         {
-            "label": "Shift",
+            "label": _("Date"),
+            "fieldname": "login_date",
+            "fieldtype": "Date",
+            "width": 120,
+        },
+        {
+            "label": _("Shift"),
             "fieldname": "shift_type",
             "fieldtype": "Data",
             "width": 120,
         },
         {
-            "label": "Attendance Status",
+            "label": _("Attendance Status"),
             "fieldname": "attendance_status",
             "fieldtype": "Data",
             "width": 150,
         },
-        {"label": "In Time", "fieldname": "in_time", "fieldtype": "Data", "width": 100},
         {
-            "label": "Out Time",
+            "label": _("In Time"),
+            "fieldname": "in_time",
+            "fieldtype": "Data",
+            "width": 100,
+        },
+        {
+            "label": _("Out Time"),
             "fieldname": "out_time",
             "fieldtype": "Data",
             "width": 100,
         },
-        {"label": "Late", "fieldname": "late", "fieldtype": "Data", "width": 100},
+        {"label": _("Late"), "fieldname": "late", "fieldtype": "Data", "width": 100},
         {
-            "label": "Late Hrs",
+            "label": _("Late Hrs"),
             "fieldname": "late_hrs",
             "fieldtype": "Time",
             "width": 100,
         },
         {
-            "label": "Early Hrs",
+            "label": _("Early Hrs"),
             "fieldname": "early_hrs",
             "fieldtype": "Time",
             "width": 100,
         },
-        {"label": "OT Hrs", "fieldname": "ot_hours", "fieldtype": "Time", "width": 100},
+        {
+            "label": _("OT Hrs"),
+            "fieldname": "ot_hours",
+            "fieldtype": "Time",
+            "width": 100,
+        },
     ]
     return columns
 
@@ -434,32 +548,28 @@ def process_data(attendance_details, date_range, holiday_map, from_date, to_date
     employee_list = list(attendance_details.keys())
     shift_context = get_shift_context(employee_list)
     attendance_map = get_attendance_map(employee_list, from_date, to_date)
+    shift_checkin_map = get_shift_checkin_map(employee_list, from_date, to_date)
     checkin_time_map = get_checkin_time_map(employee_list, from_date, to_date)
 
     employee_details_map = {
         emp.name: emp
         for emp in frappe.get_all(
             "Employee",
-            filters={"name": ["in", list(attendance_details.keys())]},
-            fields=[
-                "name",
-                "employee_name",
-                "old_punch_id",
-                "department",
-                "default_shift",
-            ],
+            filters={"name": ["in", employee_list]},
+            fields=["name", "employee_name", "old_punch_id", "department"],
+            ignore_permissions=1,
         )
     }
 
     for emp, emp_dates in attendance_details.items():
         emp_holidays = holiday_map.get(emp, {}).get("holidays", [])
         emp_weekoffs = holiday_map.get(emp, {}).get("weekoffs", [])
+        employee_details = employee_details_map.get(emp) or frappe._dict()
 
         for date in date_range:
             record = emp_dates.get(date, {}) or {}
 
             attendance_status = record.get("status")
-            # frappe.msgprint(f"Attendance status for {emp} on {date}: {attendance_status}")
 
             if not attendance_status:
                 if date in emp_holidays:
@@ -473,11 +583,9 @@ def process_data(attendance_details, date_range, holiday_map, from_date, to_date
                 emp, date, shift_context
             )
 
-            if attendance_status not in [
-                "Absent",
-                "On Leave",
-            ]:
+            if attendance_status not in ["Absent", "On Leave"]:
                 all_in_times, all_out_times, error_status = get_employee_checkins(
+                    shift_checkin_map.get((emp, date), []),
                     checkin_time_map.get(emp, []),
                     date,
                     start_time,
@@ -488,8 +596,6 @@ def process_data(attendance_details, date_range, holiday_map, from_date, to_date
             else:
                 all_in_times, all_out_times = [], []
 
-            employee_details = employee_details_map.get(emp) or {}
-
             row = {
                 "employee": record.get("employee") or emp,
                 "employee_name": record.get("employee_name")
@@ -499,16 +605,10 @@ def process_data(attendance_details, date_range, holiday_map, from_date, to_date
                 "department": record.get("department")
                 or employee_details.get("department"),
                 "login_date": record.get("login_date") or date,
-                "shift_type": (
-                    attendance_map.get((emp, date)) and record.get("shift_type")
-                )
-                or assigned_shift_type
-                or "",
+                "shift_type": record.get("shift_type") or assigned_shift_type or "",
                 "attendance_status": attendance_status,
                 "in_time": ", ".join(all_in_times) or "",
-                # "in_time": record.get("in_time") or "",
                 "out_time": ", ".join(all_out_times) or "",
-                # "out_time": record.get("out_time") or "",
                 "late": record.get("late") or "",
                 "late_hrs": record.get("late_hrs"),
                 "early_hrs": record.get("early_hrs"),

@@ -3,7 +3,7 @@
 
 import frappe
 from frappe import _
-from frappe.query_builder.functions import Count
+from frappe.query_builder.functions import Count, Max
 
 
 def execute(filters=None):
@@ -22,17 +22,19 @@ def get_data(filters=None):
         .left_join(checkin)
         .on(checkin.attendance == attendance.name)
         .select(
+            attendance.name.as_("attendance"),
             attendance.employee,
             attendance.employee_name,
             attendance.company,
             attendance.shift,
             attendance.department,
             attendance.attendance_date,
-            checkin.custom_branch,
+            Max(checkin.custom_branch).as_("custom_branch"),
             punch_count.as_("punch_count"),
         )
+        .where(attendance.docstatus == 1)
         .where((attendance.in_time.isnotnull()) | (attendance.out_time.isnotnull()))
-        .groupby(attendance.employee, attendance.attendance_date)
+        .groupby(attendance.name)
         .having(punch_count % 2 != 0)
         .orderby(attendance.attendance_date)
     )
@@ -55,13 +57,26 @@ def get_data(filters=None):
         query = query.where(attendance.employee == filters.get("employee"))
 
     if filters.get("branch"):
-        query = query.where(checkin.custom_branch == filters.get("branch"))
+        # Filter on the attendance, not on the checkins, so the punch count stays complete
+        branch_checkin = frappe.qb.DocType("Employee Checkin").as_("branch_checkin")
+        attendance_in_branch = (
+            frappe.qb.from_(branch_checkin)
+            .select(branch_checkin.attendance)
+            .where(branch_checkin.custom_branch == filters.get("branch"))
+        )
+        query = query.where(attendance.name.isin(attendance_in_branch))
 
     return query.run(as_dict=True)
 
 
 def get_columns(filters=None):
     columns = [
+        {
+            "label": _("Attendance"),
+            "fieldname": "attendance",
+            "fieldtype": "Data",
+            "width": 160,
+        },
         {
             "label": _("Company"),
             "fieldname": "company",
@@ -80,7 +95,18 @@ def get_columns(filters=None):
             "fieldtype": "Data",
             "width": 250,
         },
-        {"label": _("Punch Date"), "fieldname": "attendance_date", "fieldtype": "Date"},
+        {
+            "label": _("Punch Date"),
+            "fieldname": "attendance_date",
+            "fieldtype": "Date",
+            "width": 120,
+        },
+        {
+            "label": _("Shift"),
+            "fieldname": "shift",
+            "fieldtype": "Data",
+            "width": 150,
+        },
         {
             "label": _("Department"),
             "fieldname": "department",
@@ -93,16 +119,10 @@ def get_columns(filters=None):
             "fieldtype": "Data",
             "width": 200,
         },
-        # {
-        # 	"label": _("Punch Times"),
-        # 	"fieldname": "time",
-        # 	"fieldtype": "Data",
-        # 	"hidden":1
-        # },
         {
             "label": _("Punch Count"),
             "fieldname": "punch_count",
-            "fieldtype": "Data",
+            "fieldtype": "Int",
             "width": 150,
         },
     ]

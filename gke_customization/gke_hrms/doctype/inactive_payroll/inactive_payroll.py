@@ -4,6 +4,7 @@
 from datetime import timedelta
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils import getdate
 
@@ -11,25 +12,25 @@ from frappe.utils import getdate
 class InactivePayroll(Document):
     def autoname(self):
         company_abbr = frappe.db.get_value("Company", self.company, "abbr")
+        if not company_abbr:
+            frappe.throw(
+                _("Please set an Abbreviation for Company {0}").format(self.company)
+            )
 
         prefix = f"{company_abbr}-IAP-"
         self.name = frappe.model.naming.make_autoname(prefix)
 
 
-@frappe.whitelist()
-def get_inactive_employees(docname):
-    doc = frappe.get_doc("Inactive Payroll", docname)
+def get_relieved_employees(doc):
     if not doc.from_date or not doc.to_date:
-        frappe.throw("Please set both From Date and To Date.")
+        frappe.throw(_("Please set both From Date and To Date."))
 
-    doc.employee = []
-    date = doc.to_date + timedelta(days=7)
-    inactive_employees = frappe.get_all(
+    relieving_date_limit = doc.to_date + timedelta(days=7)
+    return frappe.get_all(
         "Employee",
         filters={
             "status": ["in", ["Left", "Inactive"]],
-            # "status": "Inactive",
-            "relieving_date": ["between", [doc.from_date, date]],
+            "relieving_date": ["between", [doc.from_date, relieving_date_limit]],
             "company": doc.company,
             "branch": doc.branch,
         },
@@ -43,7 +44,10 @@ def get_inactive_employees(docname):
         ],
     )
 
-    for emp in inactive_employees:
+
+def set_employee_rows(doc, employees):
+    doc.employee = []
+    for emp in employees:
         doc.append(
             "employee",
             {
@@ -56,84 +60,70 @@ def get_inactive_employees(docname):
             },
         )
     doc.save()
-    return "Employees fetched successfully."
+
+
+@frappe.whitelist()
+def get_inactive_employees(docname):
+    doc = frappe.get_doc("Inactive Payroll", docname)
+    set_employee_rows(doc, get_relieved_employees(doc))
+    return _("Employees fetched successfully.")
 
 
 @frappe.whitelist()
 def get_inactive_employees_list(docname):
     doc = frappe.get_doc("Inactive Payroll", docname)
-    if not doc.from_date or not doc.to_date:
-        frappe.throw("Please set both From Date and To Date.")
+    inactive_employees = get_relieved_employees(doc)
 
-    doc.employee = []
-    date = doc.to_date + timedelta(days=7)
-    inactive_employees = frappe.get_all(
-        "Employee",
-        filters={
-            "status": ["in", ["Left", "Inactive"]],
-            # "status": "Inactive",
-            "relieving_date": ["between", [doc.from_date, date]],
-            "company": doc.company,
-            "branch": doc.branch,
-        },
-        fields=[
-            "name",
-            "employee_name",
-            "department",
-            "designation",
-            "company",
-            "branch",
-        ],
-    )
-    for emp in inactive_employees:
-        att_length = len(
+    employees_with_attendance = set()
+    if inactive_employees:
+        employees_with_attendance = set(
             frappe.get_list(
                 "Attendance",
                 filters={
-                    "employee": emp.name,
+                    "employee": ["in", [emp.name for emp in inactive_employees]],
                     "attendance_date": ["between", [doc.from_date, doc.to_date]],
                 },
-                fields=["name"],
+                pluck="employee",
             )
         )
-        if att_length <= 0:
-            continue
 
-        # for emp in inactive_employees:
-        doc.append(
-            "employee",
-            {
-                "employee": emp.name,
-                "employee_name": emp.employee_name,
-                "department": emp.department,
-                "designation": emp.designation,
-                "company": emp.company,
-                "branch": emp.branch,
-            },
-        )
-    doc.save()
-    return "Employees fetched successfully....."
+    set_employee_rows(
+        doc,
+        [emp for emp in inactive_employees if emp.name in employees_with_attendance],
+    )
+    return _("Employees fetched successfully.....")
 
 
 @frappe.whitelist()
 def activate_employees(docname):
     doc = frappe.get_doc("Inactive Payroll", docname)
-    count = 0
-    for row in doc.employee:
-        emp = frappe.get_doc("Employee", row.employee)
-        if emp.status in ["Inactive", "Left"]:
-            emp.db_set("status", "Active")
-            emp.save()
-            count += 1
+    employee_names = [row.employee for row in doc.employee if row.employee]
+    inactive_employee_names = []
+    if employee_names:
+        inactive_employee_names = frappe.get_all(
+            "Employee",
+            filters={
+                "name": ["in", employee_names],
+                "status": ["in", ["Inactive", "Left"]],
+            },
+            pluck="name",
+        )
 
-    return f"{count} employees marked as Active."
+    count = 0
+    for employee_name in inactive_employee_names:
+        emp = frappe.get_doc("Employee", employee_name)
+        emp.db_set("status", "Active")
+        emp.save()
+        count += 1
+
+    return _("{0} employees marked as Active.").format(count)
 
 
 @frappe.whitelist()
 def create_payroll_entries(docname):
     doc = frappe.get_doc("Inactive Payroll", docname)
     if not doc.employee:
-        frappe.throw("No employees found in the Inactive Payroll record.")
+        frappe.throw(_("No employees found in the Inactive Payroll record."))
     first_row = doc.employee[0]
 
     payroll_doc = frappe.new_doc("Payroll Entry")
@@ -142,18 +132,17 @@ def create_payroll_entries(docname):
     payroll_doc.payroll_frequency = "Monthly"
     payroll_doc.company = first_row.company
     payroll_doc.branch = first_row.branch
-    company_doc = frappe.get_doc("Company", first_row.company)
-    payroll_doc.payroll_payable_account = company_doc.default_payroll_payable_account
-    payroll_doc.cost_center = company_doc.cost_center
+    payroll_payable_account, cost_center = frappe.get_cached_value(
+        "Company", first_row.company, ["default_payroll_payable_account", "cost_center"]
+    )
+    payroll_doc.payroll_payable_account = payroll_payable_account
+    payroll_doc.cost_center = cost_center
     payroll_doc.start_date = doc.from_date
 
     payroll_doc.end_date = doc.to_date
     payroll_doc.status = "Draft"
     payroll_doc.exchange_rate = 1
 
-    try:
-        payroll_doc.insert()
-        frappe.msgprint("Payroll Entry Created")
-        return payroll_doc.name
-    except Exception:
-        frappe.throw("Failed to create payroll entry")
+    payroll_doc.insert()
+    frappe.msgprint(_("Payroll Entry Created"))
+    return payroll_doc.name

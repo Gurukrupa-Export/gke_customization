@@ -3,256 +3,187 @@
 
 import frappe
 import requests
+from frappe import _
 from frappe.model.document import Document
-from frappe.utils import nowdate
-
-from datetime import date, datetime
 
 
 class CrossCompanyEmployeeTransfer(Document):
-    	
+    def validate(self):
+        pass
 
-		def validate(self):
-			pass
-				
-					
-		def before_submit(self):
-			pass
+    def before_submit(self):
+        pass
 
-		
-		def on_submit(self):
+    def on_submit(self):
+        if not self.create_new_employee_id:
+            frappe.throw(_("Check Create New Employee ID box first"))
 
-			if not self.create_new_employee_id :
-				frappe.throw("Check Create New Employee Id Box First")
+        if not self.target_site:
+            frappe.throw(_("Add Target Site first"))
 
-			if not self.target_site :
-				frappe.throw("Add Target Site First")
+        employee = frappe.get_doc("Employee", self.employee)
 
+        new_employee = frappe.copy_doc(employee)
 
-			employee = frappe.get_doc("Employee", self.employee)
+        new_employee.name = None
+        new_employee.employee_number = None
 
-			new_employee = frappe.copy_doc(employee)
+        payload = new_employee.as_dict()
 
-			new_employee.name = None
-			new_employee.employee_number = None
+        payload["company"] = self.new_company
+        # -------------------------
+        # Remove system fields
+        # -------------------------
+        remove_fields = [
+            "name",
+            "employee",
+            "creation",
+            "modified",
+            "modified_by",
+            "owner",
+            "user_id",
+            "reports_to",
+            "holiday_list",
+            "custom_state",
+            "expense_approver",
+            "leave_approver",
+            "shift_request_approver",
+            "branch",
+            "manufacturer",
+            "custom_operation",
+            "designation" "default_shift",
+            "department" "docstatus",
+            "idx",
+            "lft",
+            "rgt",
+            "_user_tags",
+            "_comments",
+            "_assign",
+            "_liked_by",
+        ]
 
+        for field in remove_fields:
+            payload.pop(field, None)
 
-			payload = new_employee.as_dict()
+        # -------------------------
+        # Remove child tables (first test without them)
+        # -------------------------
+        child_tables = [
+            "education",
+            "custom_employee_languages",
+            "custom_employees_hobbies",
+            "employee_family_background",
+            "employee_relative_deails",
+            "emergency_contact_details_table",
+            "external_work_history",
+            "internal_work_history",
+        ]
 
-			payload["company"] = self.new_company
-			# -------------------------
-			# Remove system fields
-			# -------------------------
-			remove_fields = [
-				"name",
-				"employee",
-				"creation",
-				"modified",
-				"modified_by",
-				"owner",
-				"user_id",
-				"reports_to",
-				"holiday_list",
-				"custom_state",
-				"expense_approver",
-				"leave_approver",
-				"shift_request_approver",
-				"branch",
-				"manufacturer",
-				"custom_operation",
-				"designation"
-				"default_shift",
-				"department"
-				"docstatus",
-				"idx",
-				"lft",
-				"rgt",
-				"_user_tags",
-				"_comments",
-				"_assign",
-				"_liked_by"
-			]
+        # -------------------------
+        # Apply transfer changes
+        # -------------------------
+        field_map = {
+            "Department": "department",  # ✅ fixed
+            "Designation": "designation",  # ✅ fixed
+            "Reports to": "reports_to",
+            "Default Shift": "default_shift",  # ✅ fixed
+            "Leave Approver": "leave_approver",
+            "Expense Approver": "expense_approver",
+            "Shift Request Approver": "shift_request_approver",
+            "Holiday List": "holiday_list",
+        }
 
-			for field in remove_fields:
-				payload.pop(field, None)
+        for table in child_tables:
+            payload.pop(table, None)
 
-			# frappe.throw(payload.get("reports_to"))
+        for row in self.transfer_details:
+            if not row.property or not row.new:
+                continue
 
-			# -------------------------
-			# Remove child tables (first test without them)
-			# -------------------------
-			child_tables = [
-				"education",
-				"custom_employee_languages",
-				"custom_employees_hobbies",
-				"employee_family_background",
-				"employee_relative_deails",
-				"emergency_contact_details_table",
-				"external_work_history",
-				"internal_work_history"
-			]
+            fieldname = field_map.get(row.property)
 
-			# -------------------------
-			# Apply transfer changes
-			# -------------------------
-			field_map = {
-				"Department": "department",              # ✅ fixed
-				"Designation": "designation",             # ✅ fixed
-				"Reports to": "reports_to",
-				"Default Shift": "default_shift",         # ✅ fixed
-				"Leave Approver": "leave_approver",
-				"Expense Approver": "expense_approver",
-				"Shift Request Approver": "shift_request_approver",
-				"Holiday List": "holiday_list"
-			}
+            if not fieldname:
+                continue
 
-			# def get_property_data_by_property():
-			# 		property_data = {}
-			# 		for row in self.transfer_details:
-			# 			property_data[row.property] = row.new
-			
-			# 		return property_data
-			
+            fieldname = field_map.get(row.property)
 
-			# property_data = get_property_data_by_property()
+            if not fieldname:
+                continue
 
-			for table in child_tables:
-				# if table == "internal_work_history":
-				# 	payload.setdefault(table, []).append({
-				# 		"branch": property_data.get("Branch", ""),
-				# 		"department": property_data.get("Department", ""),
-				# 		"designation": property_data.get("Designation", ""),
-				# 		"from_date": payload.get("date_of_joining"),
-				# 		"to_date": nowdate()
-				# 	})
-				# else:
-				payload.pop(table, None)
+            # Only Reports To / Employee fields
+            if fieldname == "reports_to":
+                if not row.new_value:
+                    frappe.throw(
+                        _("Actual value missing for {0}: {1}").format(
+                            row.property, row.new
+                        )
+                    )
+                payload[fieldname] = row.new_value
 
-		
-			for row in self.transfer_details:
+            else:
+                payload[fieldname] = row.new
 
-				if not row.property or not row.new:
-					continue
+        payload["date_of_joining"] = self.transfer_date
 
-				fieldname = field_map.get(row.property)
+        payload["attendance_device_id"] = self.attendance_device_id
 
-				if not fieldname:
-					continue
+        payload["doctype"] = "Employee"
 
-				# if fieldname in ["expense_approver", "reports_to", "shift_request_approver", "leave_approver"]:
-				# if fieldname == "holiday_list":
-				# 	frappe.throw(f"{row.new}")
+        payload = frappe.parse_json(frappe.as_json(payload))
 
-				# 	# "KGJPL - 00628 - Alpeshbhai Sureshbhai Rathod"
-				# 	parts = row.new.split(" - ")
+        try:
+            response = requests.post(
+                f"{self.target_site}/api/method/create_transfer_employee",
+                json={"employee_data": payload},
+                timeout=60,
+            )
 
-				# 	if len(parts) >= 2:
-				# 		payload[fieldname] = f"{parts[0]} - {parts[1]}"
-				# 	else:
-				# 		payload[fieldname] = row.new
+            response_data = response.json()
 
-				# else:
-				# 	payload[fieldname] = row.new
+            if response_data.get("message") and response_data["message"].get(
+                "employee"
+            ):
+                self.new_employee_id = response_data["message"]["employee"]
+                self.db_set("new_employee_id", response_data["message"]["employee"])
 
-				fieldname = field_map.get(row.property)
+                return response_data["message"]["employee"]
 
-				if not fieldname:
-					continue
+            else:
+                import json
 
-				# Only Reports To / Employee fields
-				if fieldname == "reports_to":
+                frappe.throw(
+                    _("Employee creation failed in {0}").format(self.new_company)
+                    + "\n\n"
+                    + "\n".join(
+                        json.loads(msg)["message"]
+                        for msg in json.loads(
+                            response_data.get("_server_messages", "[]")
+                        )
+                    )
+                )
 
-					if not row.new_value:
-						frappe.throw(
-							f"Actual value missing for {row.property}: {row.new}"
-						)
+        except Exception as e:
+            frappe.log_error(title="Create Transfer Employee Error", message=str(e))
+            raise
 
-					payload[fieldname] = row.new_value
+    def autoname(self):
+        company_abbr = frappe.db.get_value("Company", self.company, "abbr")
+        if company_abbr:
+            series = f"{company_abbr}-CSE-TRN-.#####"
+            self.name = frappe.model.naming.make_autoname(series)
 
-				else:
-
-					# Department / Designation / Shift / User
-					payload[fieldname] = row.new
-
-			# if self.new_company == "Gurukrupa Export Private Limited":
-			# 	payload["holiday_list"] = "GEPL-ST-Holiday"
-			# else:
-			# 	payload["holiday_list"] = "KGJPL-Holiday"
-
-			payload["date_of_joining"] = self.transfer_date
-
-			payload["attendance_device_id"] = self.attendance_device_id
-			
-			payload["doctype"] = "Employee"
-
-			payload = frappe.parse_json(frappe.as_json(payload))
-
-			# frappe.throw(frappe.as_json(payload))
-
-			try:
-				response = requests.post(
-					f"{self.target_site}/api/method/create_transfer_employee",
-					json={
-						"employee_data": payload
-					},
-					timeout=60
-				)
-
-				# response.raise_for_status()
-
-				response_data = response.json()
-				# frappe.throw(frappe.as_json(response_data))
-
-				if response_data.get("message") and response_data["message"].get("employee"):
-
-					self.new_employee_id = response_data["message"]["employee"]
-					self.db_set("new_employee_id", response_data["message"]["employee"])
-
-					return response_data["message"]["employee"]
-
-				else:
-					import json
-					# frappe.throw(f"{response_data.get("message")}")
-					frappe.throw(
-						f"Employee creation failed in {self.new_company}\n\n" +
-						"\n".join(
-							json.loads(msg)["message"]
-							for msg in json.loads(response_data.get("_server_messages", "[]"))
-						)
-					)
-				
-
-			except Exception as e:
-
-				frappe.log_error(
-					title="Create Transfer Employee Error",
-					message=str(e)
-				)
-				raise
-
-		def autoname(self):
-			company_abbr = frappe.db.get_value("Company", self.company, "abbr")
-			if company_abbr:
-				series = f"{company_abbr}-CSE-TRN-.#####"
-				self.name = frappe.model.naming.make_autoname(series)
 
 @frappe.whitelist(allow_guest=True)
 def get_kggk_data(target_site=None, property=None, new_company=None):
-
     if not target_site:
-        frappe.throw("Target Site is required")
+        frappe.throw(_("Target Site is required"))
 
     target_site = str(target_site).rstrip("/")
 
-    # frappe.throw(f"Target Site after strip: {target_site}")
-
     response = requests.get(
         f"{target_site}/api/method/get_dept_desi_reprt_leave_apr",
-        params={
-            "new_company": new_company
-        },
-        timeout=30
+        params={"new_company": new_company},
+        timeout=30,
     )
-	
 
     return response.json()

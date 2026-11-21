@@ -24,21 +24,33 @@ from openpyxl.utils import get_column_letter
 # =====================================================
 
 SOFTWARE_API_TEMPLATE = (
-    "{site_url}/api/method/get_attendance_report_data"
-    "?month={month}&year={year}"
+    "{site_url}/api/method/get_attendance_report_data" "?month={month}&year={year}"
 )
 
 REQUIRED_COLS = [
-    "employee", "employee_name", "sp_branch_name", "sp_branch_code",
-    "old_employee_code", "old_punch_id", "status",
-    "payment_days_slip", "sp_bank_days_api",
-    "gross_pay_slip", "sp_gross_salary_api",
-    "pt_slip", "sp_pt_api",
-    "pf_slip", "sp_pf_api",
-    "esi_slip", "sp_esi_api",
-    "tds_slip", "sp_tds_api",
-    "total_deduction_slip", "sp_total_deduct_api",
-    "net_pay_slip", "sp_net_payable_api",
+    "employee",
+    "employee_name",
+    "sp_branch_name",
+    "sp_branch_code",
+    "old_employee_code",
+    "old_punch_id",
+    "status",
+    "payment_days_slip",
+    "sp_bank_days_api",
+    "gross_pay_slip",
+    "sp_gross_salary_api",
+    "pt_slip",
+    "sp_pt_api",
+    "pf_slip",
+    "sp_pf_api",
+    "esi_slip",
+    "sp_esi_api",
+    "tds_slip",
+    "sp_tds_api",
+    "total_deduction_slip",
+    "sp_total_deduct_api",
+    "net_pay_slip",
+    "sp_net_payable_api",
 ]
 
 # Display field -> (ERP/slip key, SmartTime/API key) in the raw record dict
@@ -54,8 +66,13 @@ DIFF_MAPPING = {
 }
 
 IDENTIFIER_COLS = {
-    "Employee", "Employee_name", "Branch Name", "Branch Code",
-    "Employee Code", "Punch ID", "Status",
+    "Employee",
+    "Employee_name",
+    "Branch Name",
+    "Branch Code",
+    "Employee Code",
+    "Punch ID",
+    "Status",
 }
 
 TRAILING_DOT_ZERO = re.compile(r"\.0$")
@@ -70,6 +87,7 @@ def _cache_key(month, year):
 # =====================================================
 # Helpers
 # =====================================================
+
 
 def clean_str(value):
     """Trim whitespace and strip a trailing '.0' (from numeric-looking IDs)."""
@@ -98,9 +116,7 @@ def _fetch_software_data(month, year):
     site_url = frappe.utils.get_url()
 
     url = SOFTWARE_API_TEMPLATE.format(
-        site_url=site_url.rstrip("/"),
-        month=month,
-        year=year
+        site_url=site_url.rstrip("/"), month=month, year=year
     )
 
     response = requests.get(url, timeout=30)
@@ -114,7 +130,11 @@ def _fetch_software_data(month, year):
             f"First 300 chars of response: {response.text[:300]}"
         ) from e
 
-    if isinstance(json_data, dict) and isinstance(json_data.get("message"), dict) and "data" in json_data["message"]:
+    if (
+        isinstance(json_data, dict)
+        and isinstance(json_data.get("message"), dict)
+        and "data" in json_data["message"]
+    ):
         payload = json_data["message"]
     elif isinstance(json_data, dict) and "data" in json_data:
         payload = json_data
@@ -157,10 +177,19 @@ def _fetch_and_compare(month, year):
 
     missing = [c for c in REQUIRED_COLS if c not in records[0]]
     if missing:
-        raise ValueError(f"API data missing expected columns: {missing}. Available: {list(records[0].keys())}")
+        raise ValueError(
+            f"API data missing expected columns: {missing}. Available: {list(records[0].keys())}"
+        )
 
-    columns = ["Employee", "Employee_name", "Branch Name", "Branch Code",
-               "Employee Code", "Punch ID", "Status"]
+    columns = [
+        "Employee",
+        "Employee_name",
+        "Branch Name",
+        "Branch Code",
+        "Employee Code",
+        "Punch ID",
+        "Status",
+    ]
     for field in DIFF_MAPPING:
         columns += [f"{field} (ERP)", f"{field} (SmartTime)", f"{field} Diff"]
     columns.append("Overall Status")
@@ -188,7 +217,9 @@ def _fetch_and_compare(month, year):
         for field, (erp_key, smart_key) in DIFF_MAPPING.items():
             erp_val = to_number(rec.get(erp_key))
             smart_val = to_number(rec.get(smart_key))
-            diff = None if (erp_val is None or smart_val is None) else erp_val - smart_val
+            diff = (
+                None if (erp_val is None or smart_val is None) else erp_val - smart_val
+            )
 
             row[f"{field} (ERP)"] = erp_val
             row[f"{field} (SmartTime)"] = smart_val
@@ -218,7 +249,8 @@ def _fetch_and_compare(month, year):
 def _build_excel_bytes(rows, columns):
     """Builds the styled workbook fully in memory and returns raw bytes."""
     numeric_cols = {
-        c for c in columns
+        c
+        for c in columns
         if c.endswith("(ERP)") or c.endswith("(SmartTime)") or c.endswith("Diff")
     }
 
@@ -244,8 +276,12 @@ def _build_excel_bytes(rows, columns):
 
     # Styling
     blue_fill = PatternFill(start_color="0078D7", end_color="0078D7", fill_type="solid")
-    yellow_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
-    green_fill = PatternFill(start_color="00B050", end_color="00B050", fill_type="solid")
+    yellow_fill = PatternFill(
+        start_color="FFFF00", end_color="FFFF00", fill_type="solid"
+    )
+    green_fill = PatternFill(
+        start_color="00B050", end_color="00B050", fill_type="solid"
+    )
     red_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
 
     white_bold = Font(color="FFFFFF", bold=True)
@@ -276,6 +312,7 @@ def _build_excel_bytes(rows, columns):
 # =====================================================
 # Whitelisted API endpoints
 # =====================================================
+
 
 @frappe.whitelist()
 def get_comparison_summary(month, year):

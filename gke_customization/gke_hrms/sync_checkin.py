@@ -9,11 +9,7 @@ from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift
 
 
 def _log_error(title, message):
-    debug = False  # Set to True to print errors instead of logging them
-    if debug:
-        print(f"{title} -- {message}")
-    else:
-        frappe.log_error(title=title, message=message)
+    frappe.log_error(title=title, message=message)
 
 
 # ---------------------------------------------------------------------------
@@ -108,7 +104,6 @@ def sync_biometric_checkins():
 
     frappe.db.commit()
 
-    # summary = f"Sync complete: {created} created, {skipped} skipped, {errors} errors"
     return {"status": "ok", "created": created, "skipped": skipped, "errors": errors}
 
 
@@ -139,10 +134,6 @@ def _process_single_log(log, existing, last_punch_map, time_threshold, employee_
     employee = employee_map.get(userid)
 
     if not employee:
-        # _log_error(
-        #     title="Biometric Sync — Employee not found",
-        #     message=f"No active employee with attendance_device_id='{userid}' (username={log.get('username')})",
-        # )
         return "skipped"
 
     # ── Duplicate check ───────────────────────────────────────────────
@@ -226,51 +217,10 @@ def _determine_log_type(employee, log_dt):
     actual_start = curr_shift.get("actual_start")
     actual_end = curr_shift.get("actual_end")
 
-    # old
-    # if actual_start and actual_end:
-    #     punch_dt = get_datetime(log_dt)
-    #     if not (actual_start <= punch_dt <= actual_end):
-    #         # Outside the shift window — treat as a standalone IN
-    #         return "IN"
-
     # ── Query last checkin within this shift's actual window ─────────
     # Use actual_start/actual_end (which include the grace period) so that
     # early-arrival punches (e.g. 20:59 for a 21:00 shift) are included
     # in the lookup.  This is critical for correct IN/OUT toggling.
-    # query_start = actual_start or curr_shift.get("start_datetime")
-    # query_end = actual_end or curr_shift.get("end_datetime")
-
-    # if query_start and query_end:
-    #     last_log = frappe.db.sql(
-    #         """
-    #         SELECT log_type
-    #         FROM `tabEmployee Checkin`
-    #         WHERE employee = %s
-    #           AND time >= %s
-    #           AND time <= %s
-    #           AND time < %s
-    #         ORDER BY time DESC
-    #         LIMIT 1
-    #         """,
-    #         (employee, query_start, query_end, log_dt),
-    #         as_dict=True,
-    #     )
-    # else:
-    #     # Fallback: look at same calendar day
-    #     log_date_str = log_dt.strftime("%Y-%m-%d")
-    #     last_log = frappe.db.sql(
-    #         """
-    #         SELECT log_type
-    #         FROM `tabEmployee Checkin`
-    #         WHERE employee = %s
-    #           AND DATE(time) = %s
-    #           AND time < %s
-    #         ORDER BY time DESC
-    #         LIMIT 1
-    #         """,
-    #         (employee, log_date_str, log_dt),
-    #         as_dict=True,
-    #     )
 
     # new 11-05-2026
     punch_dt = get_datetime(log_dt)
@@ -359,9 +309,6 @@ def _resolve_date_range(settings):
         day_threshold = cint(settings.day_threshold) or 1
         from_date = today - timedelta(days=day_threshold)
         to_date = today
-
-    # from_date = getdate("2026-01-01")
-    # to_date = getdate("2026-01-31")
 
     return from_date, to_date
 
