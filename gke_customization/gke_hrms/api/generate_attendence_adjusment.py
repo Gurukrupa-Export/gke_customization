@@ -1048,7 +1048,7 @@ def proceed_check_in_modify(docname):
 
                 Check Error Log: {log.name}
 
-                {str(error)}
+                {error!s}
                 """,
         )
 
@@ -1176,7 +1176,7 @@ def proceed_attendance_modify(docname):
 
             Check Error Log: {log.name}
 
-            {str(error)}
+            {error!s}
             """,
         )
 
@@ -1500,7 +1500,7 @@ def update_proceed_check_in_modify(docname):
 
             Check Error Log: {log.name}
 
-            {str(error)}
+            {error!s}
             """,
         )
 
@@ -1569,7 +1569,7 @@ def update_proceed_attendance_modify(docname):
 
             Check Error Log: {log.name}
 
-            {str(error)}
+            {error!s}
             """,
         )
 

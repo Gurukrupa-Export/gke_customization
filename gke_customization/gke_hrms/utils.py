@@ -1,5 +1,4 @@
 from datetime import date, timedelta
-from typing import List, Optional
 
 import frappe
 from frappe.utils import add_days, get_first_day, getdate, today
@@ -455,7 +454,7 @@ def get_employee_shift(employee, for_date=None):
     return frappe.db.get_value("Employee", employee, "default_shift")
 
 
-def get_employees_by_shift(shift_type: str, date: Optional[date] = None) -> List[str]:
+def get_employees_by_shift(shift_type: str, date: date | None = None) -> list[str]:
     """
     Returns a list of Employees assigned to a given Shift Type.
 

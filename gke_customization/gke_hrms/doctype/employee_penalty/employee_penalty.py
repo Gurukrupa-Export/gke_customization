@@ -1,18 +1,19 @@
 # Copyright (c) 2024, Gurukrupa Export and contributors
 # For license information, please see license.txt
 
-import frappe
 from frappe.model.document import Document
 
 
 class EmployeePenalty(Document):
-	pass
+    pass
+
+
 #     def before_submit(self):
 #         create_employee_advance(self)
 
 # def create_employee_advance(self):
 #     for employee in self.employee_penalty_approval:
-#         approved_status = employee.status 
+#         approved_status = employee.status
 #         approved_status = 'Approved'
 #         if approved_status:
 #             #   frappe.throw('here')

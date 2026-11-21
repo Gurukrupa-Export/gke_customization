@@ -1,6 +1,5 @@
 import json
 from datetime import date as dt_date
-from typing import List, Optional, Union
 
 import frappe
 from frappe.utils import add_days, get_datetime, get_time, getdate
@@ -8,17 +7,17 @@ from frappe.utils import add_days, get_datetime, get_time, getdate
 
 @frappe.whitelist()
 def mark_employee_attendance(
-    employee_list: Union[List, str],
+    employee_list: list | str,
     status: str,
-    date: Union[str, dt_date],
-    leave_type: Optional[str] = None,
-    company: Optional[str] = None,
-    late_entry: Optional[int] = None,
-    early_exit: Optional[int] = None,
-    shift: Optional[str] = None,
-    mark_half_day: Optional[bool] = False,
-    half_day_status: Optional[str] = None,
-    half_day_employee_list: Optional[Union[List, str]] = None,
+    date: str | dt_date,
+    leave_type: str | None = None,
+    company: str | None = None,
+    late_entry: int | None = None,
+    early_exit: int | None = None,
+    shift: str | None = None,
+    mark_half_day: bool | None = False,
+    half_day_status: str | None = None,
+    half_day_employee_list: list | str | None = None,
 ) -> None:
     """
     Path : /api/method/gke_customization.gke_hrms.api.attendance_tool.mark_employee_attendance

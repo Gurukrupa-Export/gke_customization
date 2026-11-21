@@ -9,10 +9,10 @@ frappe.ui.form.on("Personal Out Entry", {
 	// },
 	// after_save: function(frm) {
 	// 	frm.call("get_checkin_details",{"from_log":true})
-	// }, 
-	approve: function(frm){
+	// },
+	approve: function (frm) {
 		update_fields_in_child_table(frm, "approve");
-	}
+	},
 });
 
 function update_fields_in_child_table(frm, fieldname) {
