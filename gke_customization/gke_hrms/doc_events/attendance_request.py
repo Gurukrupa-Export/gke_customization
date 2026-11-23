@@ -45,11 +45,6 @@ def validate(self, method):
                     f"Out Time ({out_time}) cannot be earlier than or equal to In Time ({in_time})"
                 )
             )
-            frappe.throw(
-                _(
-                    f"Out Time ({out_time}) cannot be earlier than or equal to In Time ({in_time})"
-                )
-            )
 
     # ----------------------------
     # Process Checkin Creation
