@@ -387,7 +387,7 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
             "attendance",
             att.name
         )
-
+# /////////////////////////////////////////////////////
 
 
 @frappe.whitelist()
