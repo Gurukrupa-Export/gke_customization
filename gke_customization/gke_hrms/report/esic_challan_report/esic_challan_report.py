@@ -2,50 +2,54 @@
 # For license information, please see license.txt
 
 import frappe
-from frappe.utils import get_site_path,today, getdate
-import os 
+from frappe import _
+from frappe.utils import get_site_path
 from openpyxl import Workbook
-from datetime import date
 
-from pypika.terms import NotNullCriterion
+from gke_customization.gke_hrms.report.pf_esic_utils import (
+    get_age_in_years,
+    get_employee_details_map,
+    get_latest_employee_promotions,
+)
+
+ESIC_COMPONENT = "Employees State Insurance Corporation"
+
 
 def execute(filters=None):
-	columns = get_columns(filters)
-	data = get_data(filters)
-	return columns, data
+    columns = get_columns(filters)
+    data = get_data(filters)
+    return columns, data
 
-def get_data(filters=None):
-	from_date = filters.get("from_date")
-	to_date = filters.get("to_date")
-	company = filters.get("company")
-	branch = filters.get("branch")
 
-	conditions = []
-	values = {
-		"from_date": from_date,
-		"to_date": to_date,
-		"company": company
-	}
+def get_conditions(filters):
+    values = {
+        "from_date": filters.get("from_date"),
+        "to_date": filters.get("to_date"),
+        "company": filters.get("company"),
+        "esic_component": ESIC_COMPONENT,
+    }
 
-	if branch:
-		conditions.append("AND e.branch = %(branch)s")
-		values["branch"] = branch
-    
-	condition_query = ""
-	if conditions:
-		condition_query = " AND " + " AND ".join(conditions)
+    condition_query = ""
+    if filters.get("branch"):
+        condition_query = "AND e.branch = %(branch)s"
+        values["branch"] = filters.get("branch")
 
-	# frappe.throw(f"{values}")
-	query = f"""
-		SELECT 
-			ss.company AS company, 
-			ss.branch AS branch, 
-			ss.department AS department, 
-			ss.designation AS designation, 
+    return condition_query, values
+
+
+def get_salary_slip_rows(filters):
+    condition_query, values = get_conditions(filters)
+
+    return frappe.db.sql(
+        f"""
+		SELECT
+			ss.company AS company,
+			ss.branch AS branch,
+			ss.department AS department,
+			ss.designation AS designation,
 			ss.employee AS employee_id,
-			ss.employee_name AS employee_name, 
-			ss.employee AS employee_id, 
-			MAX(ss.gross_pay) AS gross_pay, 
+			ss.employee_name AS employee_name,
+			MAX(ss.gross_pay) AS gross_pay,
 			MAX(ss.net_pay) AS net_pay,
 			sd.amount AS esic_amount,
 			ss.payment_days as present_days,
@@ -57,130 +61,108 @@ def get_data(filters=None):
 			e.status,
 			e.relieving_date,
 			e.date_of_birth
-		FROM 
+		FROM
 			`tabSalary Slip` AS ss
-		JOIN 
+		JOIN
 			`tabSalary Detail` AS sd ON ss.name = sd.parent
-		JOIN 
+		JOIN
 			`tabEmployee` AS e ON ss.employee = e.employee
-		WHERE 
-    		sd.salary_component = 'Employees State Insurance Corporation' 
+		WHERE
+			sd.salary_component = %(esic_component)s
+			AND ss.docstatus = 1
 			AND ss.company = %(company)s
 			AND ss.start_date = %(from_date)s
 			AND ss.end_date = %(to_date)s
-
 			{condition_query}
-		GROUP BY 
+		GROUP BY
 			ss.employee
-	"""
+		""",
+        values,
+        as_dict=True,
+    )
 
-	data = frappe.db.sql(query, values, as_dict=True)
-	totals = get_totals(data, filters.get("employee"), filters)
-	data += totals
-	
-	return data
+
+def get_data(filters=None):
+    data = get_salary_slip_rows(filters)
+    data += get_totals(data, filters.get("employee"), filters)
+    return data
+
 
 def get_totals(data, employee=None, filters=None):
-	totals = {
-		"company": "",
-		"branch": "Total",
-		"employee_id": "",
-		"employee_name": "Employee Count: {}".format(len(data)),
-		"employee_count": len(data),
-		"gross_pay": sum((row.get("gross_pay") or 0) for row in data),
-		"esic_amount": sum((row.get("esic_amount") or 0) for row in data),
-	}
- 
-	total1 = {
-		"company": "",
-		"branch": "",
-		"employee_id": "",
-  		"employee_name": "", 
-		"gross_pay": None,
-        "esic_amount": None
-	}
-	esic = get_esic_total(filters)
-	esic_total = {
+    totals = {
         "company": "",
-        "branch": "Total Employees",
-        "employee_id": esic[0].get("total_emp"),
-        "employee_name": "Total Gross",
-        "gross_pay": esic[0].get("total_gross"),
-        "esic_amount": None
+        "branch": _("Total"),
+        "employee_id": "",
+        "employee_name": _("Employee Count: {0}").format(len(data)),
+        "employee_count": len(data),
+        "gross_pay": sum((row.get("gross_pay") or 0) for row in data),
+        "esic_amount": sum((row.get("esic_amount") or 0) for row in data),
     }
 
-	esic_total1 = {
-		"company": "",
-		"branch": "Excepted Employees",
-		"employee_id": esic[0].get("excepted_emp"),
-		"employee_name": "Excepted Gross",
-		"gross_pay": esic[0].get("excepted_gross"),
-		"esic_amount": None
-	}
-
-	esic_total2 = {
-		"company": "",
-		"branch": "ESIC Members",
-		"employee_id": esic[0].get("esic_member"),
-		"employee_name": "ESIC Wages",
-		"gross_pay": esic[0].get("esic_wages"),
-		"esic_amount": None
+    blank_row = {
+        "company": "",
+        "branch": "",
+        "employee_id": "",
+        "employee_name": "",
+        "gross_pay": None,
+        "esic_amount": None,
     }
-	esic_total3 = {
-		"company": "",
-		"branch": "",
-		"employee_id": "",
-		"employee_name": "Employee Contribution",
-		"gross_pay": esic[0].get("employee_cont"),
-		"esic_amount": None
-	}
-	employer_contribution = 0
-	if esic[0].get("employee_cont"):
-		employer_contribution = round(esic[0].get("employee_cont") * 433.33 /100)
-	
-	esic_total4 = {
-		"company": "",
-		"branch": "",
-		"employee_id": "",
-		"employee_name": "Employer Contribution",
-		"gross_pay": employer_contribution,
-		"esic_amount": None
-	}
-	esic_total5 = {
-		"company": "",
-		"branch": "",
-		"employee_id": "",
-		"employee_name": "Total Contribution",
-		"gross_pay": (esic[0].get("employee_cont") or 0) + employer_contribution,
-		"esic_amount": None
-	}
 
-  
-	return [totals, total1, total1, esic_total, esic_total1, esic_total2, esic_total3, esic_total4, esic_total5]
+    esic = get_esic_total(filters)[0]
+
+    employer_contribution = 0
+    if esic.get("employee_cont"):
+        employer_contribution = round(esic.get("employee_cont") * 433.33 / 100)
+
+    def summary_row(branch, employee_id, employee_name, gross_pay):
+        return {
+            "company": "",
+            "branch": branch,
+            "employee_id": employee_id,
+            "employee_name": employee_name,
+            "gross_pay": gross_pay,
+            "esic_amount": None,
+        }
+
+    return [
+        totals,
+        blank_row,
+        blank_row,
+        summary_row(
+            _("Total Employees"),
+            esic.get("total_emp"),
+            _("Total Gross"),
+            esic.get("total_gross"),
+        ),
+        summary_row(
+            _("Excepted Employees"),
+            esic.get("excepted_emp"),
+            _("Excepted Gross"),
+            esic.get("excepted_gross"),
+        ),
+        summary_row(
+            _("ESIC Members"),
+            esic.get("esic_member"),
+            _("ESIC Wages"),
+            esic.get("esic_wages"),
+        ),
+        summary_row("", "", _("Employee Contribution"), esic.get("employee_cont")),
+        summary_row("", "", _("Employer Contribution"), employer_contribution),
+        summary_row(
+            "",
+            "",
+            _("Total Contribution"),
+            (esic.get("employee_cont") or 0) + employer_contribution,
+        ),
+    ]
+
 
 def get_esic_total(filters=None):
-	from_date = filters.get("from_date")
-	to_date = filters.get("to_date")
-	company = filters.get("company")
-	branch = filters.get("branch")
+    condition_query, values = get_conditions(filters)
 
-	conditions = []
-	values = {
-		"from_date": from_date,
-		"to_date": to_date,
-		"company": company
-	}
-
-	if branch:
-		conditions.append("AND e.branch = %(branch)s")
-		values["branch"] = branch
-
-	condition_query = ""
-	if conditions:
-		condition_query = " AND " + " AND ".join(conditions)
- 
-	query = f"""
-		SELECT 
+    return frappe.db.sql(
+        f"""
+		SELECT
 			COUNT(DISTINCT ss.employee) AS total_emp,
 			SUM(ss.gross_pay) AS total_gross,
 
@@ -190,158 +172,152 @@ def get_esic_total(filters=None):
 			COUNT(DISTINCT CASE WHEN esic.amount > 0 THEN ss.employee END) AS esic_member,
 			SUM(CASE WHEN esic.amount > 0 THEN ss.gross_pay ELSE 0 END) AS esic_wages,
 
-			SUM(CASE WHEN esic.amount > 0 THEN esic.amount ELSE 0 END) AS employee_cont 
-
-		FROM 
+			SUM(CASE WHEN esic.amount > 0 THEN esic.amount ELSE 0 END) AS employee_cont
+		FROM
 			`tabSalary Slip` AS ss
-		LEFT JOIN 
+		LEFT JOIN
 			`tabSalary Detail` AS esic ON ss.name = esic.parent
-			AND esic.salary_component = 'Employees State Insurance Corporation'
-		JOIN 
-    		`tabEmployee` AS e ON ss.employee = e.employee
-		WHERE  
-   			ss.company = %(company)s
+			AND esic.salary_component = %(esic_component)s
+		JOIN
+			`tabEmployee` AS e ON ss.employee = e.employee
+		WHERE
+			ss.docstatus = 1
+			AND ss.company = %(company)s
 			AND ss.start_date = %(from_date)s
 			AND ss.end_date = %(to_date)s
 			{condition_query}
-	""" 
-	data = frappe.db.sql(query, values, as_dict=True)
-	# frappe.throw(f"{data}")
+		""",
+        values,
+        as_dict=True,
+    )
 
-	return data
 
-    
 def get_columns(filters=None):
-	columns = [
-		{
-			"label": "Company",
-			"fieldname": "company",
-			"fieldtype": "Data",
-			"width": 200
-		}, 
-		{
-			"label": "Branch",
-			"fieldname": "branch",
-			"fieldtype": "Data",
-			"width": 200
-		}, 
-		{
-			"label": "Employee",
-			"fieldname": "employee_id",
-			"fieldtype": "Data",
-			"width": 150
-		},
-		{
-			"label": "Employee Name",
-			"fieldname": "employee_name",
-			"fieldtype": "Data",
-			"width": 200
-		},
-		{
-			"label": "Gross Pay",
-			"fieldname": "gross_pay",
-			"fieldtype": "Currency",
-			"width": 120,
-			"default": ""
-		},
-		{
-			"label": "ESIC Amount",
-			"fieldname": "esic_amount",
-			"fieldtype": "Currency",
-			"width": 120
-		}
-		 
-	]
-	return columns
+    return [
+        {
+            "label": _("Company"),
+            "fieldname": "company",
+            "fieldtype": "Data",
+            "width": 200,
+        },
+        {
+            "label": _("Branch"),
+            "fieldname": "branch",
+            "fieldtype": "Data",
+            "width": 200,
+        },
+        {
+            "label": _("Employee"),
+            "fieldname": "employee_id",
+            "fieldtype": "Data",
+            "width": 150,
+        },
+        {
+            "label": _("Employee Name"),
+            "fieldname": "employee_name",
+            "fieldtype": "Data",
+            "width": 200,
+        },
+        {
+            "label": _("Gross Pay"),
+            "fieldname": "gross_pay",
+            "fieldtype": "Currency",
+            "width": 120,
+            "default": "",
+        },
+        {
+            "label": _("ESIC Amount"),
+            "fieldname": "esic_amount",
+            "fieldtype": "Currency",
+            "width": 120,
+        },
+    ]
+
+
+def get_reason_code(row, age, promotion):
+    """Return (reason_code, last_working_day) for the ESIC monthly contribution upload."""
+    relieving_date = row.get("relieving_date")
+    last_working_day = ""
+
+    if row.get("present_days") == 0:
+        return 1, last_working_day
+
+    if row.get("status") == "Left" or (
+        row.get("status") == "Inactive" and relieving_date
+    ):
+        if (row.get("present_days") or 0) > 1 and relieving_date:
+            last_working_day = relieving_date.strftime("%d-%m-%Y")
+        return 2, last_working_day
+
+    if relieving_date and age > 58:
+        return 3, relieving_date.strftime("%d-%m-%Y")
+
+    if row.get("custom_month") in [4, 10] and promotion:
+        promotion_date = promotion.get("promotion_date")
+        current_ctc = promotion.get("current_ctc")
+        revised_ctc = promotion.get("revised_ctc")
+        if (
+            promotion_date
+            and promotion_date.month == row.get("custom_month")
+            and current_ctc
+            and revised_ctc
+            and revised_ctc > current_ctc
+            and revised_ctc >= 21000
+        ):
+            return 4, last_working_day
+
+    return 0, last_working_day
 
 
 @frappe.whitelist()
 def export_txt(filters=None):
-	if isinstance(filters, str):
-		filters = frappe.parse_json(filters)
+    if isinstance(filters, str):
+        filters = frappe.parse_json(filters)
 
-	data = get_data(filters)
-	from_date = filters.get("from_date")
-	to_date = filters.get("to_date")
+    rows = get_salary_slip_rows(filters)
+    employee_ids = [row.get("employee_id") for row in rows]
+    employee_details = get_employee_details_map(
+        employee_ids, ["_esic_number", "name_as_per_aadhar"]
+    )
+    promotions = get_latest_employee_promotions(
+        [row.get("employee_id") for row in rows if row.get("custom_month") in [4, 10]],
+        filters.get("from_date"),
+        filters.get("to_date"),
+    )
 
-	# 🔹 Create workbook & sheet
-	wb = Workbook()
-	ws = wb.active
-	ws.title = "ESIC Report"
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "ESIC Report"
+    ws.append(
+        [
+            "IP Number \n (10 Digits)",
+            "IP Name IP Name \n (Only alphabets and space)",
+            "No of Days for which wages paid/payable during the month",
+            "Total Monthly Wages",
+            "Reason Code",
+            "Last Working Day \n (Format DD/MM/YYYY  or DD-MM-YYYY)",
+        ]
+    )
 
-	# 🔹 Column Headers
-	headers = [
-		"IP Number \n (10 Digits)",
-		"IP Name IP Name \n (Only alphabets and space)",
-		"No of Days for which wages paid/payable during the month",
-		"Total Monthly Wages",
-		"Reason Code",
-		"Last Working Day \n (Format DD/MM/YYYY  or DD-MM-YYYY)"
-	]
+    for row in rows:
+        employee = employee_details.get(row.get("employee_id")) or {}
+        age = get_age_in_years(row.get("date_of_birth"))
+        reason_code, last_working_day = get_reason_code(
+            row, age, promotions.get(row.get("employee_id"))
+        )
 
-	ws.append(headers)
+        ws.append(
+            [
+                employee.get("_esic_number"),
+                employee.get("name_as_per_aadhar"),
+                round(row.get("present_days") or 0),
+                round(row.get("gross_pay") or 0),
+                reason_code,
+                last_working_day,
+            ]
+        )
 
-	# 🔹 Data Rows
-	for row in data:
-		if row.get("company") == "Total":
-			continue
+    file_name = "esic_export.xlsx"
+    wb.save(get_site_path("public", "files", file_name))
 
-		esic_number = frappe.db.get_value("Employee", row.get("employee_id"), "_esic_number")
-		emp_name = frappe.db.get_value("Employee", row.get("employee_id"), "name_as_per_aadhar")
-		dob = row.get("date_of_birth")
-		age = 0
-		if dob:
-			today_date = getdate(today())
-			dob_date = getdate(dob)
-			age = today_date.year - dob_date.year - (
-				(today_date.month, today_date.day) < (dob_date.month, dob_date.day)
-			)
-		
-		code = 0  # Reason Code
-		date = ""
-		if (row.get("payment_days") == 0):
-			code = 1
-		elif row.get("status") == "Left" or (
-			row.get("status") == "Inactive" and row.get("relieving_date") 
-		):
-			if row.get("present_days") > 1:
-				code = 2
-				date = row.get("relieving_date").strftime("%d-%m-%Y")
-			else:
-				code = 2
-		elif row.get("relieving_date") and age > 58:
-			code = 3
-			date = row.get("relieving_date").strftime("%d-%m-%Y")
-		elif row.get("custom_month") in [4,10]:
-			if row.get("employee_id"):
-				emp_promotion = frappe.db.get_value("Employee Promotion", 
-                                	{"employee": row.get("employee_id"), "promotion_date": ("between", [from_date, to_date])}, 
-                                 	["name","current_ctc","revised_ctc","promotion_date"],
-                                  as_dict=True)
-				if emp_promotion:
-					promotion_date = emp_promotion.get("promotion_date")
-					if promotion_date and promotion_date.month == row.get("custom_month"):
-						if ( promotion_date and emp_promotion.get("current_ctc") and emp_promotion.get("revised_ctc")
-							and emp_promotion.get("revised_ctc") > emp_promotion.get("current_ctc")
-							and emp_promotion.get("revised_ctc") >= 21000
-						):
-							code = 4
-		else:
-			code = 0
-
-		ws.append([
-			esic_number,
-			emp_name,
-			round(row.get("present_days") or 0),
-			round(row.get("gross_pay") or 0),
-			code,
-			date
-		])
-
-	# 🔹 Save file
-	file_name = "esic_export.xlsx"
-	file_path = get_site_path("public", "files", file_name)
-	wb.save(file_path)
-
-	# 🔹 Return download URL
-	return f"/files/{file_name}"
+    return f"/files/{file_name}"
