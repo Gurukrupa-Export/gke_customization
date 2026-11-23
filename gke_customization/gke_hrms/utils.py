@@ -9,6 +9,11 @@ from gke_customization.gke_hrms.report.pf_challan_report.pf_challan_report impor
 )
 
 
+def _log_exc(title):
+    """Log the exception being handled to the Error Log with the given title."""
+    frappe.log_error(title=title[:140], message=frappe.get_traceback())
+
+
 @frappe.whitelist()
 def get_account_total_summary_for_print(company, from_date, to_date):
     filters = {"company": company, "from_date": from_date, "to_date": to_date}
