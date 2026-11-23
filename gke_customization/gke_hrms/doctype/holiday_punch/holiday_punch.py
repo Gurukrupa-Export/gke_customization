@@ -388,6 +388,8 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
             att.name
         )
 
+
+
 @frappe.whitelist()
 def add_checkins(details, date, shift_name):
 
