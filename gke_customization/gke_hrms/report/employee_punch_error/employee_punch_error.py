@@ -35,6 +35,7 @@ def get_data(filters=None):
         .groupby(attendance.employee, attendance.attendance_date)
         .having(punch_count % 2 != 0)
         .orderby(attendance.attendance_date)
+        .orderby(attendance.employee)
     )
 
     filters = filters or {}
@@ -93,12 +94,6 @@ def get_columns(filters=None):
             "fieldtype": "Data",
             "width": 200,
         },
-        # {
-        # 	"label": _("Punch Times"),
-        # 	"fieldname": "time",
-        # 	"fieldtype": "Data",
-        # 	"hidden":1
-        # },
         {
             "label": _("Punch Count"),
             "fieldname": "punch_count",
