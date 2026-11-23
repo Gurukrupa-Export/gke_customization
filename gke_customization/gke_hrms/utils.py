@@ -145,21 +145,16 @@ def get_account_total_summary_for_print(company, from_date, to_date):
 # 21-01-2026 by Aditya
 @frappe.whitelist()
 def check_sadwitch_rule():
-    manual = int(
-        frappe.db.get_value("Biometric Settings", "Biometric Settings", "manual")
+    manual, formatted_from_date, formatted_to_date = frappe.db.get_value(
+        "Biometric Settings", "Biometric Settings", ["manual", "from_date", "to_date"]
     )
+
+    manual = int(manual)
 
     # --------------------------------------------------
     # Date range calculation
     # --------------------------------------------------
-    if manual:
-        formatted_from_date = frappe.db.get_value(
-            "Biometric Settings", "Biometric Settings", "from_date"
-        )
-        formatted_to_date = frappe.db.get_value(
-            "Biometric Settings", "Biometric Settings", "to_date"
-        )
-    else:
+    if not manual:
         today = date.today()
         # today = getdate('2025-12-28')
         formatted_to_date = today
@@ -197,10 +192,43 @@ def check_sadwitch_rule():
     # --------------------------------------------------
     # Employee-wise sandwich evaluation
     # --------------------------------------------------
-    for employee, attendances in employee_attendance_map.items():
-        employee_data = frappe.db.get_value(
-            "Employee", employee, ["holiday_list", "status"], as_dict=True
+    employee_data_map = {
+        emp.name: emp
+        for emp in frappe.get_all(
+            "Employee",
+            filters={"name": ["in", list(employee_attendance_map.keys())]},
+            fields=["name", "holiday_list", "status"],
         )
+    }
+
+    # Holidays per list are shared across employees, fetch each list once
+    holiday_cache = {}
+    holiday_lists = {
+        emp.holiday_list
+        for emp in employee_data_map.values()
+        if emp.holiday_list and emp.status == "Active"
+    }
+    if holiday_lists:
+        all_holidays = frappe.get_all(
+            "Holiday",
+            filters={
+                "parent": ["in", list(holiday_lists)],
+                "holiday_date": ["between", [formatted_from_date, formatted_to_date]],
+            },
+            fields=["parent", "holiday_date", "weekly_off"],
+            order_by="holiday_date asc",
+        )
+        for h in all_holidays:
+            entry = holiday_cache.setdefault(
+                h.parent, {"holidays": set(), "weekoffs": set()}
+            )
+            if h.weekly_off:
+                entry["weekoffs"].add(getdate(h.holiday_date))
+            else:
+                entry["holidays"].add(getdate(h.holiday_date))
+
+    for employee, attendances in employee_attendance_map.items():
+        employee_data = employee_data_map.get(employee)
 
         if not employee_data:
             continue
@@ -208,32 +236,10 @@ def check_sadwitch_rule():
         if not employee_data.holiday_list or employee_data.status != "Active":
             continue
 
-        # Paid Holidays
-        holidays = frappe.get_all(
-            "Holiday",
-            filters={
-                "parent": employee_data.holiday_list,
-                "holiday_date": ["between", [formatted_from_date, formatted_to_date]],
-                "weekly_off": 0,
-            },
-            fields=["holiday_date"],
-            order_by="holiday_date asc",
-        )
+        list_entry = holiday_cache.get(employee_data.holiday_list, {})
 
-        # Weekoffs
-        weekoff_holidays = frappe.get_all(
-            "Holiday",
-            filters={
-                "parent": employee_data.holiday_list,
-                "holiday_date": ["between", [formatted_from_date, formatted_to_date]],
-                "weekly_off": 1,
-            },
-            fields=["holiday_date"],
-            order_by="holiday_date asc",
-        )
-
-        holiday_dates = {getdate(h["holiday_date"]) for h in holidays}
-        weekoff_dates = {getdate(h["holiday_date"]) for h in weekoff_holidays}
+        holiday_dates = set(list_entry.get("holidays") or ())
+        weekoff_dates = set(list_entry.get("weekoffs") or ())
 
         attendance_dates = {getdate(a["attendance_date"]) for a in attendances}
 
@@ -527,7 +533,3 @@ def get_employees_by_shift(shift_type: str, date: Optional[date] = None) -> List
     result = list(set(active_matching_assignment + fallback_employees))
 
     return result
-
-
-def _log_exc(title: str):
-    frappe.log_error(frappe.get_traceback(), title)

@@ -45,6 +45,11 @@ def validate(self, method):
                     f"Out Time ({out_time}) cannot be earlier than or equal to In Time ({in_time})"
                 )
             )
+            frappe.throw(
+                _(
+                    f"Out Time ({out_time}) cannot be earlier than or equal to In Time ({in_time})"
+                )
+            )
 
     # ----------------------------
     # Process Checkin Creation
@@ -483,57 +488,24 @@ def att_req_update_monthly_inout_log(doc, method=None):
             record = records[0]
 
             frappe.db.set_value(
-                "Monthly In-Out Log", mil_name, "status", record.get("status")
-            )
-            frappe.db.set_value(
-                "Monthly In-Out Log", mil_name, "in_time", record.get("in_time")
-            )
-            frappe.db.set_value(
-                "Monthly In-Out Log", mil_name, "out_time", record.get("out_time")
-            )
-            frappe.db.set_value(
                 "Monthly In-Out Log",
                 mil_name,
-                "spent_hrs",
-                to_duration_seconds(
-                    record.get("spent_hrs") or record.get("spent_hours")
-                ),
-            )
-            frappe.db.set_value(
-                "Monthly In-Out Log",
-                mil_name,
-                "net_wrk_hrs",
-                fmt_td_or_value(record.get("net_wrk_hrs")),
-            )
-            frappe.db.set_value(
-                "Monthly In-Out Log",
-                mil_name,
-                "late",
-                record.get("late", 0) or record.get("late_entry", 0),
-            )
-            frappe.db.set_value(
-                "Monthly In-Out Log",
-                mil_name,
-                "late_hrs",
-                fmt_td_or_value(record.get("late_hrs")),
-            )
-            frappe.db.set_value(
-                "Monthly In-Out Log",
-                mil_name,
-                "early_hrs",
-                fmt_td_or_value(record.get("early_hrs")),
-            )
-            frappe.db.set_value(
-                "Monthly In-Out Log",
-                mil_name,
-                "ot_hrs",
-                fmt_td_or_value(record.get("ot_hours") or record.get("othrs")),
-            )
-            frappe.db.set_value(
-                "Monthly In-Out Log",
-                mil_name,
-                "p_out_hrs",
-                fmt_td_or_value(record.get("p_out_hrs")),
+                {
+                    "status": record.get("status"),
+                    "in_time": record.get("in_time"),
+                    "out_time": record.get("out_time"),
+                    "spent_hrs": to_duration_seconds(
+                        record.get("spent_hrs") or record.get("spent_hours")
+                    ),
+                    "net_wrk_hrs": fmt_td_or_value(record.get("net_wrk_hrs")),
+                    "late": record.get("late", 0) or record.get("late_entry", 0),
+                    "late_hrs": fmt_td_or_value(record.get("late_hrs")),
+                    "early_hrs": fmt_td_or_value(record.get("early_hrs")),
+                    "ot_hrs": fmt_td_or_value(
+                        record.get("ot_hours") or record.get("othrs")
+                    ),
+                    "p_out_hrs": fmt_td_or_value(record.get("p_out_hrs")),
+                },
             )
 
             frappe.db.commit()

@@ -75,8 +75,8 @@ def make_serial_and_design_order(source_name, target_doc=None, parent_doc = None
 	# doc.due_days = parent_doc.due_days
 	# doc.form_remarks = parent_doc.remarks
 	doc.save()
-	if (doc.required_design == "No" and doc.product_return_order and doc.docstatus == 0):
-		apply_workflow(doc, "Approve")
+	# if (doc.required_design == "No" and doc.product_return_order and doc.docstatus == 0):
+	# 	apply_workflow(doc, "Approve")
 	# if doc.
 	return doc.name
 
