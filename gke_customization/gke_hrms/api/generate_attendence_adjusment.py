@@ -1586,9 +1586,11 @@ def update_proceed_check_in_modify(docname):
                 fields=["name", "date"],
             )
 
+            # FIX: inner loop variables renamed so the outer `row`
+            # (Adjustment Details row) is NOT overwritten.
+
             # Delete Personal Out Log
-            # Delete Personal Out Log
-            for row in personal_out_log:
+            for pol in personal_out_log:
                 frappe.delete_doc(
                     "Personal Out Log", row["name"], ignore_permissions=True
                 )
@@ -1598,17 +1600,23 @@ def update_proceed_check_in_modify(docname):
                 frappe.delete_doc("OT Log", row["name"], ignore_permissions=True)
 
             # Clear links and delete Manual Punch Entry
-            for row in manual_punch_entry:
-                mpe_doc = frappe.get_doc("Manual Punch Entry", row["name"])
+            for mpe in manual_punch_entry:
+                mpe_doc = frappe.get_doc("Manual Punch Entry", mpe["name"])
 
                 for detail in mpe_doc.details:
-                    detail.employee_checkin = None
-
-                mpe_doc.save(ignore_permissions=True)
+                    if detail.employee_checkin:
+                        frappe.db.set_value(
+                            detail.doctype,
+                            detail.name,
+                            "employee_checkin",
+                            None,
+                            update_modified=False
+                        )
 
                 frappe.delete_doc(
                     "Manual Punch Entry", mpe_doc.name, ignore_permissions=True
                 )
+
             # --------------------------------------------------
             # 2. Get existing Absent Attendance records BEFORE
             #    deleting Employee Checkin records
@@ -1892,11 +1900,11 @@ def update_proceed_check_in_modify(docname):
                 additional_salary.submit()
 
                 keep_days = len(working_dates)
-
+            
             # Existing full-day adjustment
             if keep_days == math.floor(adjusted_days) and keep_days != 0:
                 keep_days += 1
-
+            # frappe.throw(f"{adjusted_days, keep_days, working_dates}")
             # --------------------------------------------------
             # 9. Generate IN/OUT check-ins on eligible dates only
             # --------------------------------------------------
@@ -1904,8 +1912,8 @@ def update_proceed_check_in_modify(docname):
             created_days = 0
             apply_fractional_trim = row.action != "Incentive"
 
-            # frappe.throw(f"{working_dates, keep_days}")
-
+            checkin_days = max(keep_days - len(sandwich_dates), 0)
+          
             for current_date in working_dates[:keep_days]:
                 if created_days >= keep_days:
                     break
@@ -1923,7 +1931,9 @@ def update_proceed_check_in_modify(docname):
                     apply_fractional_trim
                     and fractional_hours > 0
                     and created_days == keep_days - 1
+                    # and created_days == last_index
                 ):
+                    # frappe.throw(f"{shift_start, shift_end, created_days, fractional_hours}")
                     shift_end = (
                         shift_start + timedelta(hours=fractional_hours)
                     ).replace(second=0, microsecond=0)
@@ -1957,7 +1967,7 @@ def update_proceed_check_in_modify(docname):
                     ).insert(ignore_permissions=True)
 
                 created_days += 1
-
+            # frappe.throw(f"{keep_days, created_days}")
             # --------------------------------------------------
             # 10. Log dates for verification
             # --------------------------------------------------
