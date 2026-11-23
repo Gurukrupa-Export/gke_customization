@@ -34,7 +34,9 @@ repos:
                 cypress/.*|
                 .*node_modules.*|
                 .*boilerplate.*|
-                gke_customization/templates/includes/.*
+                gke_customization/templates/includes/.*|
+                gke_customization/gke_hrms/report/attendance_punch_error_report/attendance_punch_error_report.js|
+                gke_customization/gke_hrms/report/employee_punch_error/employee_punch_error.js
             )$
 
   - repo: https://github.com/pre-commit/mirrors-eslint
@@ -52,7 +54,9 @@ repos:
                 .*boilerplate.*|
                 gke_customization/public/js/controllers/.*|
                 gke_customization/templates/pages/order.js|
-                gke_customization/templates/includes/.*
+                gke_customization/templates/includes/.*|
+                gke_customization/gke_hrms/report/attendance_punch_error_report/attendance_punch_error_report.js|
+                gke_customization/gke_hrms/report/employee_punch_error/employee_punch_error.js
             )$
 
   - repo: https://github.com/astral-sh/ruff-pre-commit

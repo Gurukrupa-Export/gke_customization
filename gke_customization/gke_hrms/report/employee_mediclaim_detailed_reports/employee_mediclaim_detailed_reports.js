@@ -2,24 +2,24 @@
 // License information in license.txt
 
 frappe.query_reports["Employee Mediclaim Detailed Reports"] = {
-    "filters": [
-        {
-            "fieldname": "company",
-            "label": "Company",
-            "fieldtype": "Link",
-            "options": "Company"
-        },
-        {
-            "fieldname": "branch",
-            "label": "Branch",
-            "fieldtype": "Link",
-            "options": "Branch"
-        },
-        {
-            "fieldname": "department",
-            "label": "Department",
-            "fieldtype": "Link",
-            "options": "Department"
-        }
-    ]
+	filters: [
+		{
+			fieldname: "company",
+			label: __("Company"),
+			fieldtype: "Link",
+			options: "Company",
+		},
+		{
+			fieldname: "branch",
+			label: __("Branch"),
+			fieldtype: "Link",
+			options: "Branch",
+		},
+		{
+			fieldname: "department",
+			label: __("Department"),
+			fieldtype: "Link",
+			options: "Department",
+		},
+	],
 };

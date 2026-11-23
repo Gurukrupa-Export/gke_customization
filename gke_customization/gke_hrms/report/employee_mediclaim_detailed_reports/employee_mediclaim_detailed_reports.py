@@ -3,6 +3,8 @@
 
 import frappe
 from frappe import _
+from frappe.query_builder.functions import Concat
+from pypika.terms import Field, ValueWrapper
 
 
 def execute(filters=None):
@@ -92,78 +94,73 @@ def get_columns():
     ]
 
 
-def get_conditions(filters):
-    conditions = []
-    params = {}
-
-    if filters.get("company"):
-        conditions.append("eme.company = %(company)s")
-        params["company"] = filters.get("company")
-
-    if filters.get("branch"):
-        conditions.append("eme.branch = %(branch)s")
-        params["branch"] = filters.get("branch")
-
-    if filters.get("department"):
-        conditions.append("eme.department = %(department)s")
-        params["department"] = filters.get("department")
-
-    where_clause = ""
-    if conditions:
-        where_clause = " AND " + " AND ".join(conditions)
-
-    return where_clause, params
+def apply_filters(query, enrollment, filters):
+    for fieldname in ("company", "branch", "department"):
+        if filters.get(fieldname):
+            query = query.where(enrollment[fieldname] == filters.get(fieldname))
+    return query
 
 
 def get_data(filters):
-    conditions, params = get_conditions(filters)
+    enrollment = frappe.qb.DocType("Employee Mediclaim Enrollment")
+    family = frappe.qb.DocType("Employee Mediclaim Table")
+    branch = frappe.qb.DocType("Branch")
+    company_branch = Concat(enrollment.company, " - ", branch.branch_name)
 
-    query = f"""
-        SELECT
-            eme.punch_id AS employee_code,
-            eme.employee_name AS insured_name,
-            'SELF' AS relationship,
-            eme.gender,
-            eme.marital_status,
-            eme.department,
-            eme.designation,
-            eme.date_of_birth AS dob,
-            eme.age,
-            eme.employment_status,
-            eme.total AS sum_insured,
-            CONCAT(eme.company, ' - ', br.branch_name) AS company_branch,
-            1 AS relation_order
-        FROM `tabEmployee Mediclaim Enrollment` eme
-        LEFT JOIN `tabBranch` br
-            ON br.name = eme.branch
-        WHERE 1=1
-            {conditions}
+    self_query = (
+        frappe.qb.from_(enrollment)
+        .left_join(branch)
+        .on(branch.name == enrollment.branch)
+        .select(
+            enrollment.punch_id.as_("employee_code"),
+            enrollment.employee_name.as_("insured_name"),
+            ValueWrapper("SELF").as_("relationship"),
+            enrollment.gender,
+            enrollment.marital_status,
+            enrollment.department,
+            enrollment.designation,
+            enrollment.date_of_birth.as_("dob"),
+            enrollment.age,
+            enrollment.employment_status,
+            enrollment.total.as_("sum_insured"),
+            company_branch.as_("company_branch"),
+            ValueWrapper(1).as_("relation_order"),
+        )
+    )
 
-        UNION ALL
+    family_query = (
+        frappe.qb.from_(enrollment)
+        .inner_join(family)
+        .on(
+            (family.parent == enrollment.name)
+            & (family.parenttype == "Employee Mediclaim Enrollment")
+            & (family.parentfield == "family_details")
+        )
+        .left_join(branch)
+        .on(branch.name == enrollment.branch)
+        .select(
+            enrollment.punch_id,
+            family.full_name,
+            family.relation,
+            family.gender,
+            enrollment.marital_status,
+            enrollment.department,
+            enrollment.designation,
+            family.date_of_birth,
+            family.age,
+            enrollment.employment_status,
+            enrollment.total,
+            company_branch,
+            ValueWrapper(2),
+        )
+    )
 
-        SELECT
-            eme.punch_id,
-            fd.full_name,
-            fd.relation,
-            fd.gender,
-            eme.marital_status,
-            eme.department,
-            eme.designation,
-            fd.date_of_birth,
-            fd.age,
-            eme.employment_status,
-            eme.total,
-            CONCAT(eme.company, ' - ', br.branch_name),
-            2 AS relation_order
-        FROM `tabEmployee Mediclaim Enrollment` eme
-        INNER JOIN `tabEmployee Mediclaim Table` fd
-            ON fd.parent = eme.name
-        LEFT JOIN `tabBranch` br
-            ON br.name = eme.branch
-        WHERE 1=1
-            {conditions}
+    self_query = apply_filters(self_query, enrollment, filters)
+    family_query = apply_filters(family_query, enrollment, filters)
 
-        ORDER BY employee_code, relation_order
-    """
-
-    return frappe.db.sql(query, params, as_dict=True)
+    query = (
+        self_query.union_all(family_query)
+        .orderby(Field("employee_code"))
+        .orderby(Field("relation_order"))
+    )
+    return query.run(as_dict=True)

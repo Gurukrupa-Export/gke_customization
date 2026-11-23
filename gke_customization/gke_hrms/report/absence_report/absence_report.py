@@ -3,6 +3,15 @@
 
 import frappe
 from frappe import _
+from frappe.query_builder import Case, Order
+from frappe.query_builder.functions import CurDate, Date, Max
+from pypika.terms import CustomFunction, ExistsCriterion, Field, Interval, ValueWrapper
+
+DayOfWeek = CustomFunction("DAYOFWEEK", ["date"])
+Least = CustomFunction("LEAST", ["value1", "value2"])
+
+# MySQL DAYOFWEEK() numbers Sunday as 1
+SUNDAY = 1
 
 
 def execute(filters=None):
@@ -16,10 +25,6 @@ def execute(filters=None):
     data = get_data(filters)
     return columns, data
 
-
-# -------------------------------------------------------
-# Columns
-# -------------------------------------------------------
 
 def get_columns():
     return [
@@ -79,121 +84,119 @@ def get_columns():
 
 
 def get_data(filters):
-    conditions = get_conditions(filters)
+    attendance = frappe.qb.DocType("Attendance")
+    employee = frappe.qb.DocType("Employee")
+    leave_application = frappe.qb.DocType("Leave Application")
 
-    query = f"""
-        SELECT 
-            a.attendance_date,
-            e.employee,
-            e.employee_name,
-            e.department,
-            e.company,
-            e.designation,
-            a.shift,
+    past_days_query = (
+        frappe.qb.from_(attendance)
+        .inner_join(employee)
+        .on(employee.employee == attendance.employee)
+        .left_join(leave_application)
+        .on(
+            (leave_application.employee == attendance.employee)
+            & (leave_application.status == "Approved")
+            & attendance.attendance_date[
+                leave_application.from_date : leave_application.to_date
+            ]
+        )
+        .select(
+            attendance.attendance_date,
+            employee.employee,
+            employee.employee_name,
+            employee.department,
+            employee.company,
+            employee.designation,
+            attendance.shift,
+            get_last_checkin_query(employee).as_("last_checkin"),
+            Case()
+            .when(leave_application.name.isnotnull(), leave_application.leave_type)
+            .else_("Absent")
+            .as_("status"),
+        )
+        .where(
+            attendance.attendance_date[
+                filters.get("from_date") : Least(
+                    filters.get("to_date"), CurDate() - Interval(days=1)
+                )
+            ]
+        )
+        .where(DayOfWeek(attendance.attendance_date) != SUNDAY)
+        .where(attendance.status.isin(["Absent", "On Leave"]))
+        .where(attendance.docstatus == 1)
+        .where(employee.status == "Active")
+    )
 
-            (
-                SELECT MAX(ec.time)
-                FROM `tabEmployee Checkin` ec
-                WHERE ec.employee = e.employee
-                AND ec.docstatus < 2
-            ) AS last_checkin,
+    today_attendance_query = (
+        frappe.qb.from_(attendance)
+        .select(1)
+        .where(attendance.employee == employee.employee)
+        .where(attendance.attendance_date == CurDate())
+        .where(attendance.docstatus == 1)
+    )
 
-            CASE 
-            WHEN la.name IS NOT NULL THEN la.leave_type
-            ELSE 'Absent'
-            END AS status
+    checkin = frappe.qb.DocType("Employee Checkin")
+    today_checkin_query = (
+        frappe.qb.from_(checkin)
+        .select(1)
+        .where(checkin.employee == employee.employee)
+        .where(checkin.docstatus < 2)
+        .where(Date(checkin.time) == CurDate())
+    )
 
+    today_query = (
+        frappe.qb.from_(employee)
+        .left_join(leave_application)
+        .on(
+            (leave_application.employee == employee.employee)
+            & (leave_application.status == "Approved")
+            & CurDate()[leave_application.from_date : leave_application.to_date]
+        )
+        .select(
+            CurDate().as_("attendance_date"),
+            employee.employee,
+            employee.employee_name,
+            employee.department,
+            employee.company,
+            employee.designation,
+            ValueWrapper(None).as_("shift"),
+            get_last_checkin_query(employee).as_("last_checkin"),
+            Case()
+            .when(leave_application.name.isnotnull(), "LWP")
+            .else_("Absent")
+            .as_("status"),
+        )
+        .where(employee.status == "Active")
+        .where(DayOfWeek(CurDate()) != SUNDAY)
+        .where(CurDate()[filters.get("from_date") : filters.get("to_date")])
+        .where(ExistsCriterion(today_attendance_query).negate())
+        .where(ExistsCriterion(today_checkin_query).negate())
+    )
 
-        FROM `tabAttendance` a
-        INNER JOIN `tabEmployee` e ON e.employee = a.employee
-        LEFT JOIN `tabLeave Application` la
-            ON la.employee = a.employee
-            AND la.status = 'Approved'
-            AND a.attendance_date BETWEEN la.from_date AND la.to_date
+    past_days_query = apply_filters(past_days_query, employee, filters)
+    today_query = apply_filters(today_query, employee, filters)
 
-        WHERE
-            a.attendance_date BETWEEN %(from_date)s
-                AND LEAST(%(to_date)s, DATE_SUB(CURDATE(), INTERVAL 1 DAY))
-            AND DAYOFWEEK(a.attendance_date) != 1
-            AND a.status IN ('Absent', 'On Leave')
-            AND a.docstatus = 1
-            AND e.status = 'Active'
-            {conditions}
-
-        UNION ALL
-
-        SELECT 
-            CURDATE() AS attendance_date,
-            e.employee,
-            e.employee_name,
-            e.department,
-            e.company,
-            e.designation,
-            NULL AS shift,
-
-            (
-                SELECT MAX(ec.time)
-                FROM `tabEmployee Checkin` ec
-                WHERE ec.employee = e.employee
-                AND ec.docstatus < 2
-            ) AS last_checkin,
-
-            CASE 
-                WHEN la.name IS NOT NULL THEN 'LWP'
-                ELSE 'Absent'
-            END AS status
-
-        FROM `tabEmployee` e
-        LEFT JOIN `tabLeave Application` la
-            ON la.employee = e.employee
-            AND la.status = 'Approved'
-            AND CURDATE() BETWEEN la.from_date AND la.to_date
-
-        WHERE
-            e.status = 'Active'
-            AND DAYOFWEEK(CURDATE()) != 1
-            AND CURDATE() BETWEEN %(from_date)s AND %(to_date)s
-            AND NOT EXISTS (
-                SELECT 1
-                FROM `tabAttendance` a
-                WHERE a.employee = e.employee
-                AND a.attendance_date = CURDATE()
-                AND a.docstatus = 1
-            )
-            AND NOT EXISTS (
-                SELECT 1
-                FROM `tabEmployee Checkin` ec
-                WHERE ec.employee = e.employee
-                AND ec.docstatus < 2
-            AND DATE(ec.time) = CURDATE()
-            )
-            {conditions}
-
-        ORDER BY
-            attendance_date DESC,
-            department ASC
-    """
-
-    return frappe.db.sql(query, filters, as_dict=True)
+    query = (
+        past_days_query.union_all(today_query)
+        .orderby(Field("attendance_date"), order=Order.desc)
+        .orderby(Field("department"))
+        .orderby(Field("employee"))
+    )
+    return query.run(as_dict=True)
 
 
-# -------------------------------------------------------
-# Conditions
-# -------------------------------------------------------
+def get_last_checkin_query(employee):
+    checkin = frappe.qb.DocType("Employee Checkin")
+    return (
+        frappe.qb.from_(checkin)
+        .select(Max(checkin.time))
+        .where(checkin.employee == employee.employee)
+        .where(checkin.docstatus < 2)
+    )
 
-def get_conditions(filters):
-    conditions = []
 
-    if filters.get("company"):
-        conditions.append("e.company = %(company)s")
-
-    if filters.get("branch"):
-        conditions.append("e.branch = %(branch)s")
-
-    if filters.get("department"):
-        conditions.append("e.department = %(department)s")
-
-    if conditions:
-        return " AND " + " AND ".join(conditions)
-
-    return ""
+def apply_filters(query, employee, filters):
+    for fieldname in ("company", "branch", "department"):
+        if filters.get(fieldname):
+            query = query.where(employee[fieldname] == filters.get(fieldname))
+    return query
