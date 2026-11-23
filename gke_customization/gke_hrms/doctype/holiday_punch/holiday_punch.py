@@ -150,8 +150,9 @@ class HolidayPunch(Document):
 
 
 def process_attendance_from_rows(rows, employee, shift_type, date):
+    # frappe.throw(f"{rows}")
 
-    # if employee == "GEPL - 01389":
+    # if employee == "GEPL - 00943":
     #     frappe.throw(
     #         f"Employee: {employee}\n"
     #         f"Rows: {rows}\n"
@@ -176,7 +177,7 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
 
     # -------------------------------------------------
     # Get Shift Type
-    # -------------------------------------------------. 
+    # -------------------------------------------------
     shift = frappe.get_doc("Shift Type", shift_type)
 
     start_time = shift.start_time
@@ -225,6 +226,30 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
         dt = get_datetime(row.get("time"))
 
         punches.append(dt)
+
+    # Check if an existing IN punch is linked
+    # has_existing_in = any(
+    #     row.get("employee_checkin")
+    #     and row.get("type") == "IN"
+    #     for row in rows
+    # )
+
+    # for row in sorted_rows:
+
+    #     if not row.get("time"):
+    #         continue
+
+    #     # Skip duplicate manually created IN
+    #     if (
+    #         has_existing_in
+    #         and row.get("type") == "IN"
+    #         and not row.get("employee_checkin")
+    #     ):
+    #         continue
+
+    #     dt = get_datetime(row.get("time"))
+
+    #     punches.append(dt)
 
     # No punches
     if not punches:
@@ -362,6 +387,7 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
             "attendance",
             att.name
         )
+
 
 @frappe.whitelist()
 def add_checkins(details, date, shift_name):
