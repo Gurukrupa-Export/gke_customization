@@ -2,7 +2,7 @@
 // For license information, please see license.txt
 
 frappe.listview_settings["Monthly In-Out Log"] = {
-    get_indicator: function (doc) {
+	get_indicator: function (doc) {
 		if (["Present", "Work From Home"].includes(doc.status)) {
 			return [__(doc.status), "green", "status,=," + doc.status];
 		} else if (["Absent", "On Leave"].includes(doc.status)) {

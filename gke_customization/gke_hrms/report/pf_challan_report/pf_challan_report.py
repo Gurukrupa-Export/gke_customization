@@ -227,8 +227,8 @@ def export_txt(filters=None):
         gross_pay = round(row.get("gross_pay") or 0)
         basic_ear = round(row.get("epf_wages") or 0)
 
-        epf_wages = 15000 if basic_ear > 15000 else basic_ear
-        edli_wages = 15000 if basic_ear > 15000 else basic_ear
+        epf_wages = min(basic_ear, 15000)
+        edli_wages = min(basic_ear, 15000)
         eps_wages = 0 if age >= 58 else epf_wages
 
         if basic_ear < 15000:
