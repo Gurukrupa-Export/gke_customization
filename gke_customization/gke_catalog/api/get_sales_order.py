@@ -315,12 +315,10 @@ def login_with_otp(username, password, id):
         frappe.throw(_("Invalid username or password")) 
 
 
-@frappe.whitelist()
 def get_user_secret(username):
-    MASTER_SECRET = b'super-secret-key-you-keep-safe'
-    # derive a secret for the user without storing it
-    h = hmac.new(MASTER_SECRET, msg=username.encode(), digestmod=hashlib.sha1)
-    return base64.b32encode(h.digest()).decode('utf-8')
+    # Not an API. The master key is in site config, see otp_secret.py.
+    from gke_customization.gke_catalog.api.otp_secret import otp_user_secret
+    return otp_user_secret(username)
 
 
 @frappe.whitelist(allow_guest=True) 

@@ -27,6 +27,12 @@ from cryptography.fernet import Fernet
 
 @frappe.whitelist()
 def category_count(user_type, customer=None):
+    # Same 5-minute cache as subcategory_count: the counts change rarely and the
+    # staff query counts every item (~0.3 s).
+    cache_key = f"cat_count_{user_type}_{customer if user_type == 'Customer' else ''}"
+    cached = frappe.cache().get_value(cache_key)
+    if cached:
+        return cached
     try:
         if user_type == "Customer":
         
@@ -111,9 +117,10 @@ def category_count(user_type, customer=None):
             values = values,
             as_dict = True
         )
-        
+        if result:
+            frappe.cache().set_value(cache_key, result, expires_in_sec=300)
         return result
-    
+
     except Exception as e:
         frappe.log_error(
             frappe.get_traceback(),
@@ -3256,7 +3263,9 @@ def customer_wise_item(selectedSubcategory=None, customer=None, user=None, metal
                     AND b.bom_type = 'Finish Goods'
                     AND b.is_active = 1
                     {_default_bom_cond("b")}
-                LEFT JOIN `tabCataloge Item Details` AS tci2 ON tci2.item_code = i.item_code
+                -- INNER JOIN: only rows with a catalogue can match vc.catalog_parent = tci.parent
+                -- below (NULL never matches). Building it for every item took ~0.4-12 s.
+                INNER JOIN `tabCataloge Item Details` AS tci2 ON tci2.item_code = i.item_code
                 GROUP BY COALESCE(i.variant_of, i.item_code), tci2.parent
             ) vc ON vc.group_key = COALESCE(item.variant_of, item.item_code)
                 AND vc.catalog_parent = tci.parent
@@ -3290,7 +3299,6 @@ def customer_wise_item(selectedSubcategory=None, customer=None, user=None, metal
             LEFT JOIN `tabBOM Gemstone Detail` AS gd ON bom.name = gd.parent
             LEFT JOIN `tabBOM Diamond Detail` AS dd ON bom.name = dd.parent
             LEFT JOIN `tabBOM Finding Detail` AS fd ON bom.name = fd.parent
-            LEFT JOIN `tabBOM Other Detail` AS od ON bom.name = od.parent
             LEFT JOIN `tabItem Default` AS idf ON item.item_name = idf.parent
             WHERE {where_clause}
             GROUP BY COALESCE(item.variant_of, item.item_code), tci.parent
@@ -3874,9 +3882,9 @@ def get_customer_wishlist_items(customer=None, user_type=None, user=None):
     """
 
     if customer:
-        where_clause += f" AND tcm.customer = '{customer}' "
+        where_clause += f" AND tcm.customer = {frappe.db.escape(customer)} "
     if user:
-        where_clause += f" AND tcm.user = '{user}' "
+        where_clause += f" AND tcm.user = {frappe.db.escape(user)} "
 
     # frappe.throw(where_clause)
 
@@ -3998,7 +4006,9 @@ def get_customer_wishlist_items(customer=None, user_type=None, user=None):
                     AND b.bom_type = 'Finish Goods'
                     AND b.is_active = 1
                     # AND b.is_default = 1
-                LEFT JOIN `tabCataloge Item Details` AS tci2 ON tci2.item_code = i.item_code
+                -- INNER JOIN: only rows with a catalogue can match vc.catalog_parent = tci.parent
+                -- (NULL never matches); building it for every item took ~0.4 s.
+                INNER JOIN `tabCataloge Item Details` AS tci2 ON tci2.item_code = i.item_code
                 LEFT JOIN `tabCataloge Master` AS tcm2 ON tcm2.name = tci2.parent
                 GROUP BY COALESCE(i.variant_of, i.item_code), tci2.parent
             ) vc ON vc.group_key = COALESCE(item.variant_of, item.item_code)
@@ -4033,12 +4043,11 @@ def get_customer_wishlist_items(customer=None, user_type=None, user=None):
             LEFT JOIN `tabBOM Gemstone Detail` AS gd ON bom.name = gd.parent
             LEFT JOIN `tabBOM Diamond Detail` AS dd ON bom.name = dd.parent
             LEFT JOIN `tabBOM Finding Detail` AS fd ON bom.name = fd.parent
-            LEFT JOIN `tabBOM Other Detail` AS od ON bom.name = od.parent
             LEFT JOIN `tabItem Default` AS idf ON item.item_name = idf.parent
             WHERE
                 {where_clause}
             GROUP BY
-                COALESCE(item.variant_of, item.item_code), tci.parent, tci.name  
+                COALESCE(item.variant_of, item.item_code), tci.parent, tci.name
             ORDER BY
                 MIN(item.name) DESC
         """,
