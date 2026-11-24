@@ -1525,6 +1525,7 @@ def update_proceed_check_in_modify(docname):
         to_date = getdate(doc.to_date)
 
         for row in doc.adjustment_details:
+
             if not row.processed:
                 frappe.throw(
                     "Please check the 'Proceed' checkbox in Adjustment Details before continuing."
@@ -1542,7 +1543,9 @@ def update_proceed_check_in_modify(docname):
             # 1. Adjust start date according to employee joining date
             # --------------------------------------------------
 
-            joining_date = frappe.db.get_value("Employee", employee, "date_of_joining")
+            joining_date = frappe.db.get_value(
+                "Employee", employee, "date_of_joining"
+            )
 
             row_from_date = from_date
 
@@ -1561,18 +1564,22 @@ def update_proceed_check_in_modify(docname):
                 "Personal Out Log",
                 filters={
                     "date": ["between", [from_date_obj, to_date_obj]],
-                    "employee": employee,
+                    "employee": employee
                 },
-                fields=["name", "date"],
+                fields=["name", "date"]
             )
+            
+            
+            
+            # added canges 
 
             ot_log = frappe.db.get_all(
                 "OT Log",
                 filters={
                     "attendance_date": ["between", [from_date_obj, to_date_obj]],
-                    "employee": employee,
+                    "employee": employee
                 },
-                fields=["name", "attendance_date"],
+                fields=["name", "attendance_date"]
             )
 
             # frappe.throw(f"{personal_out_log}")
@@ -1581,9 +1588,9 @@ def update_proceed_check_in_modify(docname):
                 "Manual Punch Entry",
                 filters={
                     "date": ["between", [from_date_obj, to_date_obj]],
-                    "employee": employee,
+                    "employee": employee
                 },
-                fields=["name", "date"],
+                fields=["name", "date"]
             )
 
             # FIX: inner loop variables renamed so the outer `row`
@@ -1591,13 +1598,23 @@ def update_proceed_check_in_modify(docname):
 
             # Delete Personal Out Log
             for pol in personal_out_log:
+
+                pol_name = pol.get("name") if isinstance(pol, dict) else pol.name
+
                 frappe.delete_doc(
-                    "Personal Out Log", row["name"], ignore_permissions=True
+                    "Personal Out Log",
+                    pol_name,
+                    ignore_permissions=True
                 )
 
             # Delete OT Log
-            for row in ot_log:
-                frappe.delete_doc("OT Log", row["name"], ignore_permissions=True)
+            for ot in ot_log:
+                ot_name = ot.get("name") if isinstance(ot, dict) else ot.name
+                frappe.delete_doc(
+                    "OT Log",
+                    ot_name,
+                    ignore_permissions=True
+                )
 
             # Clear links and delete Manual Punch Entry
             for mpe in manual_punch_entry:
@@ -1614,7 +1631,9 @@ def update_proceed_check_in_modify(docname):
                         )
 
                 frappe.delete_doc(
-                    "Manual Punch Entry", mpe_doc.name, ignore_permissions=True
+                    "Manual Punch Entry",
+                    mpe_doc.name,
+                    ignore_permissions=True
                 )
 
             # --------------------------------------------------
@@ -1622,21 +1641,24 @@ def update_proceed_check_in_modify(docname):
             #    deleting Employee Checkin records
             # --------------------------------------------------
 
-            # attendance_records = frappe.get_all(
-            #     "Attendance",
-            #     filters={
-            #         "employee": employee,
-            #         "attendance_date": ["between", [from_date_obj, to_date_obj]],
-            #         "docstatus": 1,
-            #     },
-            #     fields=["attendance_date", "status"],
-            # )
+            attendance_records = frappe.get_all(
+                "Attendance",
+                filters={
+                    "employee": employee,
+                    "attendance_date": [
+                        "between",
+                        [from_date_obj, to_date_obj]
+                    ],
+                    "docstatus": 1
+                },
+                fields=["attendance_date", "status"]
+            )
 
-            # absent_dates = {
-            #     getdate(record.attendance_date)
-            #     for record in attendance_records
-            #     if record.status == "Absent"
-            # }
+            absent_dates = {
+                getdate(record.attendance_date)
+                for record in attendance_records
+                if record.status == "Absent"
+            }
 
             # --------------------------------------------------
             # 3. Get employee Holiday List for the FULL period
@@ -1649,12 +1671,11 @@ def update_proceed_check_in_modify(docname):
             # )
 
             from erpnext.setup.doctype.employee.employee import (
+                InactiveEmployeeStatusError,
                 get_holiday_list_for_employee,
             )
 
-            holiday_list = get_holiday_list_for_employee(
-                employee, raise_exception=False
-            )
+            holiday_list = get_holiday_list_for_employee(employee, raise_exception=False)
 
             # frappe.throw(f"{holiday_list}")
 
@@ -1668,10 +1689,13 @@ def update_proceed_check_in_modify(docname):
                         "Holiday",
                         filters={
                             "parent": holiday_list,
-                            # "weekly_off":0,
-                            "holiday_date": ["between", [from_date_obj, to_date_obj]],
+                            "weekly_off": 1,
+                            "holiday_date": [
+                                "between",
+                                [from_date_obj, to_date_obj]
+                            ]
                         },
-                        pluck="holiday_date",
+                        pluck="holiday_date"
                     )
                 }
 
@@ -1682,99 +1706,14 @@ def update_proceed_check_in_modify(docname):
                         filters={
                             "parent": holiday_list,
                             "weekly_off": 0,
-                            "holiday_date": ["between", [from_date_obj, to_date_obj]],
+                            "holiday_date": [
+                                "between",
+                                [from_date_obj, to_date_obj]
+                            ]
                         },
-                        pluck="holiday_date",
+                        pluck="holiday_date"
                     )
                 }
-            # frappe.throw(f"{holiday_dates}")
-            # --------------------------------------------------
-            # 4. Identify sandwich dates using normal date logic
-            #
-            # Example:
-            # 10 Oct = Absent
-            # 11 Oct = Holiday
-            # 12 Oct = Holiday
-            # 13 Oct = Absent
-            #
-            # Sandwich dates: 10, 11, 12, 13 October
-            # No check-ins will be generated on these dates.
-            # --------------------------------------------------
-
-            # --------------------------------------------------
-            # 4. Identify sandwich dates
-            # --------------------------------------------------
-
-            # all_dates = []
-            current_date = from_date_obj
-
-            # while current_date <= to_date_obj:
-            #     all_dates.append(current_date)
-            #     current_date = add_days(current_date, 1)
-
-            # frappe.throw(f"{sandwich_dates}")
-
-            # return holiday_status
-
-            # frappe.throw(f"{checkin_map} holiday_status{holiday_status}")
-            # sandwich_dates = set()
-            # index = 0
-
-            # while index < len(all_dates):
-
-            #     current_date = all_dates[index]
-
-            #     if current_date not in holiday_dates:
-            #         index += 1
-            #         continue
-
-            #     # Find continuous holiday block
-            #     holiday_start_index = index
-            #     holiday_end_index = index
-
-            #     while (
-            #         holiday_end_index + 1 < len(all_dates)
-            #         and all_dates[holiday_end_index + 1] in holiday_dates
-            #     ):
-            #         holiday_end_index += 1
-
-            #     previous_index = holiday_start_index - 1
-            #     next_index = holiday_end_index + 1
-
-            #     if previous_index >= 0 and next_index < len(all_dates):
-
-            #         previous_date = all_dates[previous_index]
-            #         next_date = all_dates[next_index]
-
-            #         if (
-            #             previous_date in absent_dates
-            #             and next_date in absent_dates
-            #         ):
-            #             for i in range(previous_index, next_index + 1):
-            #                 sandwich_dates.add(all_dates[i])
-
-            #     index = holiday_end_index + 1
-
-            # IMPORTANT:
-            # Holiday dates par kabhi Employee Checkin create nahi karna.
-            # Sandwich dates bhi excluded rahengi.
-            # excluded_dates = holiday_dates.union(sandwich_dates)
-
-            # frappe.log_error(
-            #     title="Sandwich debug",
-            #     message=(
-            #         f"{employee}\n"
-            #         f"holidays={sorted(holiday_dates)}\n"
-            #         f"absent={sorted(absent_dates)}\n"
-            #         f"sandwich={sorted(sandwich_dates)}\n"
-            #         f"excluded={sorted(excluded_dates)}"
-            #     )
-            # )
-
-            # frappe.throw(f"all_dates{sandwich_dates}")
-            # --------------------------------------------------
-            # 5. Remove old check-ins for this employee/period
-            # --------------------------------------------------
 
             employee_check_in = frappe.db.get_all(
                 "Employee Checkin",
@@ -1782,15 +1721,20 @@ def update_proceed_check_in_modify(docname):
                     "employee": employee,
                     "time": [
                         "between",
-                        [f"{from_date_obj} 00:00:00", f"{to_date_obj} 23:59:59"],
-                    ],
+                        [
+                            f"{from_date_obj} 00:00:00",
+                            f"{to_date_obj} 23:59:59"
+                        ]
+                    ]
                 },
-                fields=["name"],
+                fields=["name"]
             )
 
             for checkin in employee_check_in:
                 frappe.delete_doc(
-                    "Employee Checkin", checkin.name, ignore_permissions=True
+                    "Employee Checkin",
+                    checkin.name,
+                    ignore_permissions=True
                 )
 
             # --------------------------------------------------
@@ -1807,9 +1751,17 @@ def update_proceed_check_in_modify(docname):
             shift_in_time = shift_hours.get("in_time", "00:00:00")
             shift_out_time = shift_hours.get("out_time", "00:00:00")
 
-            per_day_wage = actual_salary / calendar_days if calendar_days > 0 else 0
+            per_day_wage = (
+                actual_salary / calendar_days
+                if calendar_days > 0
+                else 0
+            )
 
-            adjusted_days = monthly_salary / per_day_wage if per_day_wage else 0
+            adjusted_days = (
+                monthly_salary / per_day_wage
+                if per_day_wage
+                else 0
+            )
 
             keep_days = round(adjusted_days)
 
@@ -1832,16 +1784,21 @@ def update_proceed_check_in_modify(docname):
             # --------------------------------------------------
             # 8. Additional Salary (existing logic)
             # --------------------------------------------------
-
             if keep_days > calendar_days:
+
                 employee_details = frappe.db.get_value(
-                    "Employee", employee, ["company", "relieving_date"], as_dict=True
+                    "Employee",
+                    employee,
+                    ["company", "relieving_date"],
+                    as_dict=True
                 )
 
                 payroll_date = doc.to_date
 
-                if employee_details.relieving_date and getdate(payroll_date) > getdate(
+                if (
                     employee_details.relieving_date
+                    and getdate(payroll_date)
+                    > getdate(employee_details.relieving_date)
                 ):
                     payroll_date = employee_details.relieving_date
 
@@ -1853,9 +1810,9 @@ def update_proceed_check_in_modify(docname):
                         "employee": employee,
                         "payroll_date": payroll_date,
                         "salary_component": "Product Incentive",
-                        "docstatus": 1,
+                        "docstatus": 1
                     },
-                    fields=["name"],
+                    fields=["name"]
                 )
 
                 for record in check_already_exist:
@@ -1866,35 +1823,33 @@ def update_proceed_check_in_modify(docname):
                         "Additional Salary",
                         record.name,
                         {"docstatus": 2},
-                        update_modified=True,
+                        update_modified=True
                     )
 
-                    frappe.clear_document_cache("Additional Salary", record.name)
+                    frappe.clear_document_cache(
+                        "Additional Salary", record.name
+                    )
 
                 # frappe.throw(
                 #     f"{flt(monthly_salary)}, {flt(per_day_wage)}, "
                 #     f"{(flt(row.payable_days) - len(working_dates)) * flt(per_day_wage)}"
                 # )
 
-                additional_salary = frappe.get_doc(
-                    {
-                        "doctype": "Additional Salary",
-                        "employee": employee,
-                        "payroll_date": payroll_date,
-                        "salary_component": "Product Incentive",
-                        "company": employee_details.company,
-                        "currency": "INR",
-                        # "amount": monthly_salary - actual_salary,
-                        "amount": (
-                            (flt(row.payable_days) - len(working_dates))
-                            * flt(per_day_wage)
-                            if joining_date
-                            and from_date < getdate(joining_date) <= to_date
-                            else monthly_salary - actual_salary
-                        ),
-                        "overwrite_salary_structure_amount": 0,
-                    }
-                )
+                additional_salary = frappe.get_doc({
+                    "doctype": "Additional Salary",
+                    "employee": employee,
+                    "payroll_date": payroll_date,
+                    "salary_component": "Product Incentive",
+                    "company": employee_details.company,
+                    "currency": "INR",
+                    # "amount": monthly_salary - actual_salary,
+                    "amount": (
+                        (flt(row.payable_days) - len(working_dates)) * flt(per_day_wage)
+                        if joining_date and from_date < getdate(joining_date) <= to_date
+                        else monthly_salary - actual_salary
+                    ),
+                    "overwrite_salary_structure_amount": 0,
+                })
 
                 additional_salary.insert(ignore_permissions=True)
                 additional_salary.submit()
@@ -1902,7 +1857,10 @@ def update_proceed_check_in_modify(docname):
                 keep_days = len(working_dates)
             
             # Existing full-day adjustment
-            if keep_days == math.floor(adjusted_days) and keep_days != 0:
+            if (
+                keep_days == math.floor(adjusted_days)
+                and keep_days != 0
+            ):
                 keep_days += 1
             # frappe.throw(f"{adjusted_days, keep_days, working_dates}")
             # --------------------------------------------------
@@ -1915,6 +1873,7 @@ def update_proceed_check_in_modify(docname):
             checkin_days = max(keep_days - len(sandwich_dates), 0)
           
             for current_date in working_dates[:keep_days]:
+    
                 if created_days >= keep_days:
                     break
 
@@ -1923,9 +1882,13 @@ def update_proceed_check_in_modify(docname):
                 # if current_date in excluded_dates:
                 #     continue
 
-                shift_start = get_datetime(f"{current_date} {shift_in_time}")
+                shift_start = get_datetime(
+                    f"{current_date} {shift_in_time}"
+                )
 
-                shift_end = get_datetime(f"{current_date} {shift_out_time}")
+                shift_end = get_datetime(
+                    f"{current_date} {shift_out_time}"
+                )
 
                 if (
                     apply_fractional_trim
@@ -1939,32 +1902,10 @@ def update_proceed_check_in_modify(docname):
                     ).replace(second=0, microsecond=0)
 
                 # Create IN check-in if it does not exist
-                if not frappe.db.exists(
-                    "Employee Checkin", {"employee": employee, "time": shift_start}
-                ):
-                    frappe.get_doc(
-                        {
-                            "doctype": "Employee Checkin",
-                            "employee": employee,
-                            "time": shift_start,
-                            "log_type": "IN",
-                            "skip_auto_attendance": 0,
-                        }
-                    ).insert(ignore_permissions=True)
+                create_employee_checkin(employee, shift_start, "IN")
 
                 # Create OUT check-in if it does not exist
-                if not frappe.db.exists(
-                    "Employee Checkin", {"employee": employee, "time": shift_end}
-                ):
-                    frappe.get_doc(
-                        {
-                            "doctype": "Employee Checkin",
-                            "employee": employee,
-                            "time": shift_end,
-                            "log_type": "OUT",
-                            "skip_auto_attendance": 0,
-                        }
-                    ).insert(ignore_permissions=True)
+                create_employee_checkin(employee, shift_end, "OUT")
 
                 created_days += 1
             # frappe.throw(f"{keep_days, created_days}")
@@ -1983,7 +1924,7 @@ def update_proceed_check_in_modify(docname):
             # 11 sandwich attendance creation as lwp
             # frappe.throw(f"{holiday_status}")
 
-            holiday_list_dates = sorted(sandwich_dates)  # dates ko array me lo
+            holiday_list_dates = sorted(sandwich_dates)          # dates ko array me lo
 
             # frappe.throw(f"{holiday_list_dates}")
 
@@ -1991,18 +1932,15 @@ def update_proceed_check_in_modify(docname):
                 "Employee Checkin",
                 filters={
                     "employee": employee,
-                    "time": [
-                        "between",
-                        [
-                            f"{add_days(from_date_obj, -1)} 00:00:00",
-                            f"{add_days(to_date_obj, 1)} 23:59:59",
-                        ],
-                    ],
+                    "time": ["between", [
+                        f"{add_days(from_date_obj, -1)} 00:00:00",
+                        f"{add_days(to_date_obj, 1)} 23:59:59"
+                    ]]
                 },
-                fields=["time", "log_type"],
+                fields=["time", "log_type"]
             )
 
-            checkin_map = {}  # {date: {"IN", "OUT"}}
+            checkin_map = {}                                    # {date: {"IN", "OUT"}}
 
             for r in checkin_rows:
                 checkin_map.setdefault(getdate(r.time), set()).add(r.log_type)
@@ -2018,18 +1956,16 @@ def update_proceed_check_in_modify(docname):
             # frappe.throw(f"{holiday_status} checkin_rows{checkin_rows}")
 
             for date, flag in holiday_status.items():
-                if flag != 0:  # 1 wali date skip
+                if flag != 0:          # 1 wali date skip
                     continue
 
-                attendance = frappe.get_doc(
-                    {
-                        "doctype": "Attendance",
-                        "employee": employee,
-                        "attendance_date": date,
-                        "status": "On Leave",
-                        "leave_type": "Leave Without Pay",
-                    }
-                )
+                attendance = frappe.get_doc({
+                    "doctype": "Attendance",
+                    "employee": employee,
+                    "attendance_date": date,
+                    "status": "On Leave",
+                    "leave_type": "Leave Without Pay"
+                })
 
                 attendance.insert(ignore_permissions=True)
                 attendance.submit()
@@ -2045,7 +1981,8 @@ def update_proceed_check_in_modify(docname):
         error = frappe.get_traceback()
 
         log = frappe.log_error(
-            title=f"Attendance Adjustment Failed: {doc.name}", message=error
+            title=f"Attendance Adjustment Failed: {doc.name}",
+            message=error
         )
 
         doc.db_set("workflow_state", "Failed")
@@ -2057,8 +1994,8 @@ def update_proceed_check_in_modify(docname):
 
             Check Error Log: {log.name}
 
-            {error!s}
-            """,
+            {str(error)}
+            """
         )
 
         frappe.db.commit()
