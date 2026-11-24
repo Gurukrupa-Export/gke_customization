@@ -282,7 +282,6 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
     shift_end = get_datetime(
         f"{date} {end_time}"
     )
-
     # -------------------------------------------------
     # Overnight Shift
     # -------------------------------------------------
@@ -387,7 +386,6 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
             "attendance",
             att.name
         )
-
 # /////////////////////////////////////////////////////
 
 
