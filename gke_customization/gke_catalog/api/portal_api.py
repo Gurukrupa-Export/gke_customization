@@ -12,15 +12,12 @@ from frappe.integrations.oauth2 import get_oauth_server
 import requests
 import json
 from gke_customization.gke_catalog.api.notifications import notify_user
+from gke_customization.gke_catalog.api.portal_access import allowed_customers
 
 # filter done
 @frappe.whitelist()
 def get_sketch_order(customer, id=None):
-    if isinstance(customer, str):
-        try:
-            customer = json.loads(customer)
-        except Exception:
-            customer = [customer]  # fallback if not valid JSON string
+    customer = allowed_customers(customer)  # only customers this login may see
 
     format_strings = ','.join(['%s'] * len(customer))
     current_date = datetime.now().date().strftime('%Y-%m-%d')
@@ -105,11 +102,7 @@ def get_sketch_order(customer, id=None):
 # filter done
 @frappe.whitelist()
 def get_order_form(customer, id=None):
-    if isinstance(customer, str):
-        try:
-            customer = json.loads(customer)
-        except Exception:
-            customer = [customer]  # fallback if not valid JSON string
+    customer = allowed_customers(customer)  # only customers this login may see
 
     format_strings = ','.join(['%s'] * len(customer))
     current_date = datetime.now().date().strftime('%Y-%m-%d')
@@ -199,11 +192,7 @@ def get_order_form(customer, id=None):
 # filter done   
 @frappe.whitelist() 
 def get_quotation_form(customer, id=None):    
-    if isinstance(customer, str):
-        try:
-            customer = json.loads(customer)
-        except Exception:
-            customer = [customer]  # fallback if not valid JSON string
+    customer = allowed_customers(customer)  # only customers this login may see
 
     format_strings = ','.join(['%s'] * len(customer))
     current_date = datetime.now().date().strftime('%Y-%m-%d')
@@ -304,8 +293,9 @@ def get_quotation_form(customer, id=None):
         frappe.log_error(f"Error in get_quotation_form: {str(e)}")
         return {"success": False, "message": "Failed to fetch Quotation"}
     
-@frappe.whitelist(allow_guest=True) 
+@frappe.whitelist()
 def get_repair_order_form(customer):
+    allowed_customers(customer)  # only a customer this login may see
     query = f"""
     SELECT  
     name,
@@ -324,13 +314,9 @@ def get_repair_order_form(customer):
         return {"success": False, "message": "Failed to fetch Repair Order Form"}
 # filter done
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_sales_order(customer, id=None):
-    if isinstance(customer, str):
-        try:
-            customer = json.loads(customer)
-        except Exception:
-            customer = [customer]  # fallback if not valid JSON string
+    customer = allowed_customers(customer)  # only customers this login may see
 
     current_date = datetime.now().date().strftime('%Y-%m-%d')
 
@@ -424,13 +410,9 @@ def get_sales_order(customer, id=None):
         return {"success": False, "message": f"Internal error: {str(e)}"}
         
 # filter done
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_sales_invoice(customer, id=None):
-    if isinstance(customer, str):
-        try:
-            customer = json.loads(customer)
-        except Exception:
-            customer = [customer]  # fallback if not valid JSON string
+    customer = allowed_customers(customer)  # only customers this login may see
 
     format_strings = ','.join(['%s'] * len(customer))
     current_date = datetime.now().date().strftime('%Y-%m-%d')
@@ -511,13 +493,9 @@ def get_sales_invoice(customer, id=None):
         return {"success": False, "message": "Failed to fetch Sales Invoice"}
     
 # filter done
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_delivery_note(customer, id=None):
-    if isinstance(customer, str):
-        try:
-            customer = json.loads(customer)
-        except Exception:
-            customer = [customer]  # fallback if not valid JSON string
+    customer = allowed_customers(customer)  # only customers this login may see
 
     format_strings = ','.join(['%s'] * len(customer))
     current_date = datetime.now().date().strftime('%Y-%m-%d')
