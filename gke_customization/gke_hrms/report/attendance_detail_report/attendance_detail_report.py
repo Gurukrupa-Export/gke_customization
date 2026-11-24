@@ -112,7 +112,7 @@ def get_data(filters):
             AND TIME(ec_out.time) < TIME(ec_out.shift_end)
         WHERE
             e.status = 'Active'
-            AND a.docstatus < 2
+            AND a.docstatus = 1
             {conditions}
         ORDER BY
             a.attendance_date DESC,
