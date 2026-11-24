@@ -6,4 +6,4 @@ from frappe.tests.utils import FrappeTestCase
 
 
 class TestEmployeeMediclaimEnrollment(FrappeTestCase):
-	pass
+    pass
