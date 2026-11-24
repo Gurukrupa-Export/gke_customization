@@ -373,6 +373,7 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
     # -------------------------------------------------
     # Insert & Submit
     # -------------------------------------------------
+    
     att.insert()
     att.submit()
 
