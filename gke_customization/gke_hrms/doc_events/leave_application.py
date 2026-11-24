@@ -7,6 +7,7 @@ from frappe.utils import add_days, getdate, nowdate
 from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log import (
     fmt_td_or_value,
     get_attendance_details_by_date,
+    to_duration_seconds,
 )
 
 
@@ -239,7 +240,7 @@ def leave_application_update_monthly_inout_log(doc, method=None):
                     "status": record.get("status"),
                     "in_time": record.get("in_time"),
                     "out_time": record.get("out_time"),
-                    "spent_hrs": fmt_td_or_value(
+                    "spent_hrs": to_duration_seconds(
                         record.get("spent_hrs") or record.get("spent_hours")
                     ),
                     "net_wrk_hrs": fmt_td_or_value(record.get("net_wrk_hrs")),

@@ -794,6 +794,8 @@ def create_bom(self,item_variant):
 		bom_doc = frappe.get_doc("BOM",self.bom)
 	new_bom_doc = frappe.new_doc("BOM")
 	new_bom_doc = bom_doc
+	new_bom_doc.custom_kggk_source_name = ''
+	new_bom_doc.custom_kggk_source_doctype = ''
 	new_bom_doc.docstatus = 0
 	new_bom_doc.name = ''
 	new_bom_doc.is_active = 1
