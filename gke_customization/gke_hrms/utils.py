@@ -8,6 +8,8 @@ from gke_customization.gke_hrms.report.pf_challan_report.pf_challan_report impor
     get_account_total_summary,
 )
 
+SANDWICH_RULE_LOOKBACK_DAYS = 15
+
 
 def _log_exc(title):
     """Log the exception being handled to the Error Log with the given title."""
@@ -18,133 +20,6 @@ def _log_exc(title):
 def get_account_total_summary_for_print(company, from_date, to_date):
     filters = {"company": company, "from_date": from_date, "to_date": to_date}
     return get_account_total_summary(filters)
-
-
-# @frappe.whitelist()
-# def check_sadwitch_rule():
-#     manual = int(frappe.db.get_value("Biometric Settings","Biometric Settings","manual"))
-#     if manual:
-#         formatted_from_date = frappe.db.get_value("Biometric Settings","Biometric Settings","from_date")
-#         formatted_to_date = frappe.db.get_value("Biometric Settings","Biometric Settings","to_date")
-#         # formatted_from_date = frappe.utils.formatdate(from_date, "dd-MM-yyyy")
-#         # formatted_to_date = frappe.utils.formatdate(to_date, "dd-MM-yyyy")
-#     else:
-#         today = date.today()
-#         formatted_to_date = today
-
-#         if today.weekday() == 6:
-#             days_since_last_sunday = today.weekday() + 1
-#             week_off = timedelta(days=days_since_last_sunday)
-#         else:
-#             week_off = timedelta(days=today.weekday() + 1)
-
-#         formatted_from_date = today - week_off
-
-#     absent_attendances = frappe.get_all(
-#         "Attendance",
-#         filters={
-#             "status": ["in", ["Absent", "On Leave"]],
-#             "docstatus": 1,
-#             # "employee": employee_id,
-#             "attendance_date": ["between", [formatted_from_date, formatted_to_date]]
-#         },
-#         fields=["name", "employee", "attendance_date"]
-#     )
-#     # Group attendance records by employee
-#     employee_attendance_map = {}
-#     for attendance in absent_attendances:
-#         employee_attendance_map.setdefault(attendance['employee'], []).append(attendance)
-
-#     holidays_to_insert = []
-
-#     for employee, attendances in employee_attendance_map.items():
-#         holiday_list = frappe.db.get_value("Employee", employee, "holiday_list")
-#         if not holiday_list:
-#             continue
-
-#         holidays = frappe.get_all(
-#             "Holiday",
-#             filters={
-#                 "parent": holiday_list,
-#                 "holiday_date": ["between", [formatted_from_date, formatted_to_date]],
-#                 "weekly_off": 0
-#             },
-#             fields=["holiday_date"],
-#             order_by = "holiday_date asc"
-#         )
-
-#         weekoff_holidays = frappe.get_all(
-#             "Holiday",
-#             filters={
-#                 "parent": holiday_list,
-#                 "holiday_date": ["between", [formatted_from_date, formatted_to_date]],
-#                 "weekly_off": 1
-#             },
-#             fields=["holiday_date"],
-#             order_by = "holiday_date asc"
-#         )
-
-#         holiday_dates = {getdate(holiday["holiday_date"]) for holiday in holidays}
-#         weekoff_dates = {getdate(holiday["holiday_date"]) for holiday in weekoff_holidays}
-#         # sandwich_dates = attendance_dates | holiday_dates | weekoff_dates
-
-#         # Sort attendance records by date
-#         attendances.sort(key=lambda x: getdate(x['attendance_date']))
-#         attendance_dates = {getdate(a['attendance_date']) for a in attendances}
-
-#         # Check each holiday if it is sandwiched between absents
-#         for holiday in holiday_dates:
-#             prev_day = add_days(holiday, -1)
-#             next_day = add_days(holiday, 1)
-
-#             prev_absent_days = set()
-#             next_absent_days = set()
-
-#             # Check previous consecutive absent days / holidays / weekoffs
-#             while prev_day in attendance_dates or prev_day in holiday_dates or prev_day in weekoff_dates:
-#                 prev_absent_days.add(prev_day)
-#                 prev_day = add_days(prev_day, -1)
-
-#             # Check next consecutive absent days / holidays / weekoffs
-#             while next_day in attendance_dates or next_day in holiday_dates or next_day in weekoff_dates:
-#                 next_absent_days.add(next_day)
-#                 next_day = add_days(next_day, 1)
-
-#             # Only mark LOP if absent exists on both sides of the holiday
-#             if prev_absent_days and next_absent_days:
-#                 all_lop_dates = prev_absent_days | {holiday} | next_absent_days
-
-#                 # Insert all holidays in the range from prev_absent_days to next_absent_days
-#                 # Insert only holidays (not weekoffs) in the LOP list
-#                 for day in sorted(all_lop_dates):
-#                     if day not in weekoff_dates:   # 🚫 exclude weekoffs
-#                         holidays_to_insert.append({"employee": employee, "date": day})
-
-#     # Insert new attendance records for holidays
-#     for holiday_entry in holidays_to_insert:
-#         holiday_date = holiday_entry["date"]
-#         employee = holiday_entry["employee"]
-
-#         # Check if attendance already exists
-#         existing_attendance = frappe.get_all(
-#             "Attendance",
-#             filters={"employee": employee, "attendance_date": holiday_date,"docstatus":["!=",2]},
-#             fields=["name"]
-#         )
-#         if not existing_attendance:
-#             new_attendance = frappe.get_doc({
-#                 "doctype": "Attendance",
-#                 "employee": employee,
-#                 "attendance_date": holiday_date,
-#                 "status": "On Leave",
-#                 "leave_type": "Leave Without Pay",
-#                 "company": frappe.db.get_value("Employee", employee, "company"),
-#                 "docstatus": 1
-#             })
-#             new_attendance.insert(ignore_permissions=True)
-
-#     # Commit changes to the database
-#     frappe.db.commit()
 
 
 # 21-01-2026 by Aditya
@@ -161,16 +36,8 @@ def check_sadwitch_rule():
     # --------------------------------------------------
     if not manual:
         today = date.today()
-        # today = getdate('2025-12-28')
         formatted_to_date = today
-
-        if today.weekday() == 6:  # Sunday
-            days_since_last_sunday = today.weekday() + 1
-            week_off = timedelta(days=days_since_last_sunday)
-        else:
-            week_off = timedelta(days=today.weekday() + 1)
-
-        formatted_from_date = today - week_off
+        formatted_from_date = today - timedelta(days=SANDWICH_RULE_LOOKBACK_DAYS)
 
     # --------------------------------------------------
     # Fetch Absent + On Leave attendances
@@ -300,21 +167,46 @@ def check_sadwitch_rule():
     # --------------------------------------------------
     # Insert Attendance (LWP)
     # --------------------------------------------------
+    if not holidays_to_insert:
+        return
+
+    candidate_employees = list({entry["employee"] for entry in holidays_to_insert})
+    candidate_dates = [entry["date"] for entry in holidays_to_insert]
+
+    existing_attendance = {
+        (row.employee, getdate(row.attendance_date))
+        for row in frappe.get_all(
+            "Attendance",
+            filters={
+                "employee": ["in", candidate_employees],
+                "attendance_date": [
+                    "between",
+                    [min(candidate_dates), max(candidate_dates)],
+                ],
+                "docstatus": ["!=", 2],
+            },
+            fields=["employee", "attendance_date"],
+        )
+    }
+
+    employee_company_map = dict(
+        frappe.get_all(
+            "Employee",
+            filters={"name": ["in", candidate_employees]},
+            fields=["name", "company"],
+            as_list=True,
+        )
+    )
+
     for entry in holidays_to_insert:
         employee = entry["employee"]
         holiday_date = entry["date"]
 
-        existing = frappe.get_all(
-            "Attendance",
-            filters={
-                "employee": employee,
-                "attendance_date": holiday_date,
-                "docstatus": ["!=", 2],
-            },
-            fields=["name"],
-        )
+        if (employee, holiday_date) in existing_attendance:
+            continue
 
-        if not existing:
+        frappe.db.savepoint("sandwich_rule_attendance")
+        try:
             frappe.get_doc(
                 {
                     "doctype": "Attendance",
@@ -322,10 +214,21 @@ def check_sadwitch_rule():
                     "attendance_date": holiday_date,
                     "status": "On Leave",
                     "leave_type": "Leave Without Pay",
-                    "company": frappe.db.get_value("Employee", employee, "company"),
+                    "company": employee_company_map.get(employee),
                     "docstatus": 1,
                 }
-            ).insert(ignore_permissions=True)
+            ).insert()
+        except Exception:
+            frappe.db.rollback(save_point="sandwich_rule_attendance")
+            _log_exc(
+                "Sandwich Rule: Attendance failed for {0} on {1}".format(
+                    employee, holiday_date
+                )
+            )
+            continue
+
+        frappe.db.release_savepoint("sandwich_rule_attendance")
+        existing_attendance.add((employee, holiday_date))
 
     frappe.db.commit()
 
