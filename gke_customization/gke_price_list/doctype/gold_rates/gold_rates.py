@@ -40,14 +40,30 @@ def run_gold_rate_scheduler():
 
 
 
+#: (dealer row, fetch method). Each fetch writes only its own row of table_djrm.
+PROVIDERS = (
+	("Jain Jewels", "set_gold_value"),
+	("J K Sons", "get_gold_value_1"),
+	("Arihant", "set_gold_rate_2"),
+	("Mohanlal", "get_gold_rate_3"),
+	("Shiv Sahai", "get_gold_rate_4"),
+	("SLN Bullion", "set_gold_rate_5"),
+)
+
+
 class GoldRates(Document):
 	def validate(self):
-		self.set_gold_value()
-		self.get_gold_value_1()
-		self.set_gold_rate_2()
-		self.get_gold_rate_3()
-		self.get_gold_rate_4()
-		self.set_gold_rate_5()
+		# One dealer failing -- unreachable host, expired certificate, changed response
+		# format -- must not cost the others their rates. An exception escaping validate
+		# aborts the save, and run_gold_rate_scheduler then stores no Gold Rates for the day.
+		# TLS verification stays on: a failed dealer is logged and its row keeps its value.
+		for dealer, method in PROVIDERS:
+			try:
+				getattr(self, method)()
+			except Exception:
+				frappe.log_error(
+					title=f"Gold Rate Fetch Error: {dealer}", message=frappe.get_traceback()
+				)
 		# self.set_gold_value_6()
 
 
@@ -113,7 +129,7 @@ class GoldRates(Document):
 			response.raise_for_status()
 			response_text = response.text
 		except Exception:
-			frappe.log_error(frappe.get_traceback(), "Gold Rate Fetch Error")
+			frappe.log_error(title="Gold Rate Fetch Error: Jain Jewels", message=frappe.get_traceback())
 			return
 
 		gold_value = None
@@ -211,7 +227,7 @@ class GoldRates(Document):
 			response_text = response.text
 
 		except Exception:
-			frappe.log_error(frappe.get_traceback(), "Gold Rate Fetch Error")
+			frappe.log_error(title="Gold Rate Fetch Error: Arihant", message=frappe.get_traceback())
 			return
 
 		gold_value = None
@@ -276,7 +292,7 @@ class GoldRates(Document):
 			response_text = response.text
 
 		except Exception:
-			frappe.log_error(frappe.get_traceback(), "Gold Rate Fetch Error")
+			frappe.log_error(title="Gold Rate Fetch Error: Mohanlal", message=frappe.get_traceback())
 			return
 
 		gold_rate = None
@@ -382,7 +398,7 @@ class GoldRates(Document):
 			response_text = response.text
 
 		except Exception:
-			frappe.log_error(frappe.get_traceback(), "Gold Rate Fetch Error")
+			frappe.log_error(title="Gold Rate Fetch Error: SLN Bullion", message=frappe.get_traceback())
 			return
 
 		gold_value = None
