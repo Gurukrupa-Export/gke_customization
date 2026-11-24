@@ -3,6 +3,8 @@
 
 import frappe
 from frappe import _
+from frappe.query_builder import Case
+from frappe.query_builder.functions import Count, Max, Sum
 from frappe.utils import get_site_path
 from openpyxl import Workbook
 
@@ -21,65 +23,57 @@ def execute(filters=None):
     return columns, data
 
 
-def get_conditions(filters):
-    values = {
-        "from_date": filters.get("from_date"),
-        "to_date": filters.get("to_date"),
-        "company": filters.get("company"),
-        "esic_component": ESIC_COMPONENT,
-    }
+def apply_conditions(query, salary_slip, employee, filters):
+    query = query.where(
+        (salary_slip.docstatus == 1)
+        & (salary_slip.company == filters.get("company"))
+        & (salary_slip.start_date == filters.get("from_date"))
+        & (salary_slip.end_date == filters.get("to_date"))
+    )
 
-    condition_query = ""
     if filters.get("branch"):
-        condition_query = "AND e.branch = %(branch)s"
-        values["branch"] = filters.get("branch")
+        query = query.where(employee.branch == filters.get("branch"))
 
-    return condition_query, values
+    return query
 
 
 def get_salary_slip_rows(filters):
-    condition_query, values = get_conditions(filters)
+    salary_slip = frappe.qb.DocType("Salary Slip")
+    salary_detail = frappe.qb.DocType("Salary Detail")
+    employee = frappe.qb.DocType("Employee")
 
-    return frappe.db.sql(
-        f"""
-		SELECT
-			ss.company AS company,
-			ss.branch AS branch,
-			ss.department AS department,
-			ss.designation AS designation,
-			ss.employee AS employee_id,
-			ss.employee_name AS employee_name,
-			MAX(ss.gross_pay) AS gross_pay,
-			MAX(ss.net_pay) AS net_pay,
-			sd.amount AS esic_amount,
-			ss.payment_days as present_days,
-			ss.absent_days,
-			ss.custom_gross_salary as ctc,
-			ss.total_working_days,
-			ss.leave_without_pay as leave_days,
-			ss.custom_month,
-			e.status,
-			e.relieving_date,
-			e.date_of_birth
-		FROM
-			`tabSalary Slip` AS ss
-		JOIN
-			`tabSalary Detail` AS sd ON ss.name = sd.parent
-		JOIN
-			`tabEmployee` AS e ON ss.employee = e.employee
-		WHERE
-			sd.salary_component = %(esic_component)s
-			AND ss.docstatus = 1
-			AND ss.company = %(company)s
-			AND ss.start_date = %(from_date)s
-			AND ss.end_date = %(to_date)s
-			{condition_query}
-		GROUP BY
-			ss.employee
-		""",
-        values,
-        as_dict=True,
+    query = (
+        frappe.qb.from_(salary_slip)
+        .join(salary_detail)
+        .on(salary_slip.name == salary_detail.parent)
+        .join(employee)
+        .on(salary_slip.employee == employee.employee)
+        .select(
+            salary_slip.company.as_("company"),
+            salary_slip.branch.as_("branch"),
+            salary_slip.department.as_("department"),
+            salary_slip.designation.as_("designation"),
+            salary_slip.employee.as_("employee_id"),
+            salary_slip.employee_name.as_("employee_name"),
+            Max(salary_slip.gross_pay).as_("gross_pay"),
+            Max(salary_slip.net_pay).as_("net_pay"),
+            salary_detail.amount.as_("esic_amount"),
+            salary_slip.payment_days.as_("present_days"),
+            salary_slip.absent_days,
+            salary_slip.custom_gross_salary.as_("ctc"),
+            salary_slip.total_working_days,
+            salary_slip.leave_without_pay.as_("leave_days"),
+            salary_slip.custom_month,
+            employee.status,
+            employee.relieving_date,
+            employee.date_of_birth,
+        )
+        .where(salary_detail.salary_component == ESIC_COMPONENT)
+        .groupby(salary_slip.employee)
     )
+    query = apply_conditions(query, salary_slip, employee, filters)
+
+    return query.run(as_dict=True)
 
 
 def get_data(filters=None):
@@ -158,38 +152,43 @@ def get_totals(data, employee=None, filters=None):
 
 
 def get_esic_total(filters=None):
-    condition_query, values = get_conditions(filters)
+    salary_slip = frappe.qb.DocType("Salary Slip")
+    esic = frappe.qb.DocType("Salary Detail")
+    employee = frappe.qb.DocType("Employee")
 
-    return frappe.db.sql(
-        f"""
-		SELECT
-			COUNT(DISTINCT ss.employee) AS total_emp,
-			SUM(ss.gross_pay) AS total_gross,
+    is_esic_exempted = (esic.amount == 0) | esic.amount.isnull()
+    is_esic_member = esic.amount > 0
 
-			COUNT(DISTINCT CASE WHEN esic.amount = 0 OR esic.amount IS NULL THEN ss.employee END) AS excepted_emp,
-			SUM(CASE WHEN esic.amount = 0 OR esic.amount IS NULL THEN ss.gross_pay ELSE 0 END) AS excepted_gross,
-
-			COUNT(DISTINCT CASE WHEN esic.amount > 0 THEN ss.employee END) AS esic_member,
-			SUM(CASE WHEN esic.amount > 0 THEN ss.gross_pay ELSE 0 END) AS esic_wages,
-
-			SUM(CASE WHEN esic.amount > 0 THEN esic.amount ELSE 0 END) AS employee_cont
-		FROM
-			`tabSalary Slip` AS ss
-		LEFT JOIN
-			`tabSalary Detail` AS esic ON ss.name = esic.parent
-			AND esic.salary_component = %(esic_component)s
-		JOIN
-			`tabEmployee` AS e ON ss.employee = e.employee
-		WHERE
-			ss.docstatus = 1
-			AND ss.company = %(company)s
-			AND ss.start_date = %(from_date)s
-			AND ss.end_date = %(to_date)s
-			{condition_query}
-		""",
-        values,
-        as_dict=True,
+    query = (
+        frappe.qb.from_(salary_slip)
+        .left_join(esic)
+        .on(
+            (salary_slip.name == esic.parent)
+            & (esic.salary_component == ESIC_COMPONENT)
+        )
+        .join(employee)
+        .on(salary_slip.employee == employee.employee)
+        .select(
+            Count(salary_slip.employee).distinct().as_("total_emp"),
+            Sum(salary_slip.gross_pay).as_("total_gross"),
+            Count(Case().when(is_esic_exempted, salary_slip.employee))
+            .distinct()
+            .as_("excepted_emp"),
+            Sum(Case().when(is_esic_exempted, salary_slip.gross_pay).else_(0)).as_(
+                "excepted_gross"
+            ),
+            Count(Case().when(is_esic_member, salary_slip.employee))
+            .distinct()
+            .as_("esic_member"),
+            Sum(Case().when(is_esic_member, salary_slip.gross_pay).else_(0)).as_(
+                "esic_wages"
+            ),
+            Sum(Case().when(is_esic_member, esic.amount).else_(0)).as_("employee_cont"),
+        )
     )
+    query = apply_conditions(query, salary_slip, employee, filters)
+
+    return query.run(as_dict=True)
 
 
 def get_columns(filters=None):

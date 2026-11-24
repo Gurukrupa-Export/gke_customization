@@ -5,6 +5,8 @@ import math
 
 import frappe
 from frappe import _
+from frappe.query_builder import Case
+from frappe.query_builder.functions import Coalesce, Max, Sum
 from frappe.utils import get_site_path
 
 from gke_customization.gke_hrms.report.pf_contribution_report.pf_contribution_report import (
@@ -23,75 +25,66 @@ def execute(filters=None):
 
 
 def get_salary_slip_rows(filters):
-    values = {
-        "from_date": filters.get("from_date"),
-        "to_date": filters.get("to_date"),
-        "company": filters.get("company"),
-    }
+    salary_slip = frappe.qb.DocType("Salary Slip")
+    salary_detail = frappe.qb.DocType("Salary Detail")
+    employee = frappe.qb.DocType("Employee")
 
-    condition_query = ""
-    if filters.get("branch"):
-        condition_query = "AND e.branch = %(branch)s"
-        values["branch"] = filters.get("branch")
-
-    return frappe.db.sql(
-        f"""
-		SELECT
-			ss.company AS company,
-			ss.branch AS branch,
-			ss.department AS department,
-			ss.designation AS designation,
-			ss.employee AS employee_id,
-			ss.employee_name AS employee_name,
-			ss.custom_gross_salary,
-			ss.absent_days,
-			e.date_of_birth,
-			ss.payment_days,
-			ss.total_working_days,
-			MAX(ss.gross_pay) AS gross_pay,
-			COALESCE(
-				SUM(
-					CASE
-						WHEN sd.salary_component = 'Provident Fund'
-						THEN sd.amount
-						ELSE 0
-					END
-				),
-				0
-			) AS pf_amount,
-			MAX(
-				CASE
-					WHEN sd.salary_component = 'Basic'
-					THEN sd.amount
-					ELSE 0
-				END
-			) AS epf_wages,
-			MAX(
-				CASE
-					WHEN sd.salary_component = 'Advance'
-					THEN sd.amount
-					ELSE 0
-				END
-			) AS refund_advance,
-			e.gender AS gender
-		FROM
-			`tabSalary Slip` ss
-		LEFT JOIN
-			`tabSalary Detail` sd ON ss.name = sd.parent
-		JOIN
-			`tabEmployee` e ON ss.employee = e.name
-		WHERE
-			ss.docstatus = 1
-			AND ss.company = %(company)s
-			AND ss.start_date = %(from_date)s
-			AND ss.end_date = %(to_date)s
-			AND ss._is_pf_applicable = 1
-			{condition_query}
-		GROUP BY ss.employee
-		""",
-        values,
-        as_dict=True,
+    query = (
+        frappe.qb.from_(salary_slip)
+        .left_join(salary_detail)
+        .on(salary_slip.name == salary_detail.parent)
+        .join(employee)
+        .on(salary_slip.employee == employee.name)
+        .select(
+            salary_slip.company.as_("company"),
+            salary_slip.branch.as_("branch"),
+            salary_slip.department.as_("department"),
+            salary_slip.designation.as_("designation"),
+            salary_slip.employee.as_("employee_id"),
+            salary_slip.employee_name.as_("employee_name"),
+            salary_slip.custom_gross_salary,
+            salary_slip.absent_days,
+            employee.date_of_birth,
+            salary_slip.payment_days,
+            salary_slip.total_working_days,
+            Max(salary_slip.gross_pay).as_("gross_pay"),
+            Coalesce(
+                Sum(
+                    Case()
+                    .when(
+                        salary_detail.salary_component == "Provident Fund",
+                        salary_detail.amount,
+                    )
+                    .else_(0)
+                ),
+                0,
+            ).as_("pf_amount"),
+            Max(
+                Case()
+                .when(salary_detail.salary_component == "Basic", salary_detail.amount)
+                .else_(0)
+            ).as_("epf_wages"),
+            Max(
+                Case()
+                .when(salary_detail.salary_component == "Advance", salary_detail.amount)
+                .else_(0)
+            ).as_("refund_advance"),
+            employee.gender.as_("gender"),
+        )
+        .where(
+            (salary_slip.docstatus == 1)
+            & (salary_slip.company == filters.get("company"))
+            & (salary_slip.start_date == filters.get("from_date"))
+            & (salary_slip.end_date == filters.get("to_date"))
+            & (salary_slip._is_pf_applicable == 1)
+        )
+        .groupby(salary_slip.employee)
     )
+
+    if filters.get("branch"):
+        query = query.where(employee.branch == filters.get("branch"))
+
+    return query.run(as_dict=True)
 
 
 def get_data(filters=None):
