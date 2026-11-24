@@ -3148,7 +3148,7 @@ def get_customer_filter(search, values, customer_join, where_clause, page, page_
                 if name:
                     int_c_f.setdefault(name, []).append(row)
 
-    return {
+    data = {
         "db_data": page_data,
         "folder": d,
         "internal_catalog_folder": int_c_f,
@@ -3158,6 +3158,9 @@ def get_customer_filter(search, values, customer_join, where_clause, page, page_
         "page_size": page_size,
         "filters": filters,
     }
+    secure = SecureJSON()
+    enc_data = secure.encrypt(data)
+    return enc_data
 
 
 @frappe.whitelist()

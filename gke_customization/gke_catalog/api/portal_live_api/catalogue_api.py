@@ -2974,10 +2974,13 @@ def get_wishlist_item_for_customer_by_user(items, customers, user_type):
             # notify_user(customer_id[0].email_id, "Cataloge Master New Catloug Master Created For You", "Cataloge Master New Catloug Master Created For You")
             
 
-    return {
+    data = {
         "status": "success",
         "results": results
     }
+    secure = SecureJSON()
+    enc_data = secure.encrypt(data)
+    return enc_data
 
 
 @frappe.whitelist()
