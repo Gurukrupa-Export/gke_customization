@@ -2228,9 +2228,9 @@ def get_data_for_multiple_customer_collections_details(catalogue_list, collectio
     #     final_data
     # ) 
     
-    # return enc_data
+    return final_data #mansi 25-11-2026
 
-    return final_data
+    # return final_data
 
 
 @frappe.whitelist()

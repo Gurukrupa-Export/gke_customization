@@ -2826,7 +2826,7 @@ def get_customers_attribute_data(customer):
     }
 
 @frappe.whitelist()
-def get_selected_item_for_customer_by_user(items, customers):
+def get_selected_item_for_customer_by_user1(items, customers):
     """
     Save selected items to 'Cataloge Master' for one or more customers.
     Supports trending value updates item added by user to the customer.
@@ -3120,7 +3120,6 @@ def catalogue_data_with_trending_item(selectedSubcategory, customer, metalType =
     return db_data
     
 @frappe.whitelist()
-# def get_catalogue_collection_details(customers, collection, item_category=None, username=None):
 def get_catalogue_collection_details(customers, collection=None, username=None):
     
     customer_list = []
@@ -3156,7 +3155,41 @@ def get_catalogue_collection_details(customers, collection=None, username=None):
         # item_category=item_category,
         collection=collection
     )
-
+    
+    
+    #mansi 25-11-2026
+    catalogue_names = [c["name"] for c in catalogue_list]
+    
+    if catalogue_names:
+            # child table se items
+            child_filters = {"parent": ["in", catalogue_names]}
+            if collection:
+                child_filters["collection"] = collection
+    
+            child_rows = frappe.get_all(
+                "Catalogue Collection Details",
+                filters=child_filters,
+                fields=["item_code"],
+            )
+            item_codes = list({r["item_code"] for r in child_rows if r.get("item_code")})
+    
+            image_map = {}
+            if item_codes:
+                images = frappe.get_all(
+                    "Item",
+                    filters={"name": ["in", item_codes]},
+                    fields=["name", "custom_catalogue_image", "custom_silver_image"],
+                )
+                image_map = {i["name"]: i for i in images}
+    
+          
+            if isinstance(data, list):
+                for row in data:
+                    img = image_map.get(row.get("item_code"), {})
+                    row["custom_catalogue_image"] = img.get("custom_catalogue_image")
+                    row["custom_silver_image"] = img.get("custom_silver_image")
+    #mansi changes end 25-11-2026
+    
     # frappe.throw(f"hii {data}")
     # return {
         # "success": True,
@@ -4092,52 +4125,6 @@ def catalogue_data_with_trending_item(selectedSubcategory, customer, metalType =
     as_dict=True)
 
     return db_data
-    
-@frappe.whitelist()
-# def get_catalogue_collection_details(customers, collection, item_category=None, username=None):
-def get_catalogue_collection_details(customers, collection=None, username=None):
-    
-    customer_list = []
-
-    if customers:
-        if isinstance(customers, str):
-            try:
-                customer_list = json.loads(customers)
-            except Exception:
-                customer_list = [customers]
-        else:
-            customer_list = customers
-    
-    elif username:
-        user_customers = frappe.db.sql("""
-            SELECT parent AS customer
-            FROM `tabCustomer Representatives`
-            WHERE user_id = %s
-        """, (username,), as_dict=True)
-        customer_list = [row["customer"] for row in user_customers]
-
-    if not customer_list:
-        return {"success": False, "message": "No customers found"}
-
-    catalogue_list = frappe.get_all(
-        "Cataloge Master",
-        filters={"customer": ["in", customer_list]},
-        fields=["name"],
-    )
-
-    data = get_data_for_multiple_customer_collections_details(
-        catalogue_list=catalogue_list,
-        # item_category=item_category,
-        collection=collection
-    )
-
-    # frappe.throw(f"hii {data}")
-    # return {
-        # "success": True,
-        # "data": data,
-    # }
-    return data
-
 
 # def get_data_for_multiple_customer_collections_details(catalogue_list, item_category=None, collection=None):
 def get_data_for_multiple_customer_collections_details(catalogue_list, collection=None):
@@ -6391,6 +6378,8 @@ def global_search(query=None, customer=None, user=None):
                 ON item.item_name = idf.parent
             WHERE
                 idf.company = 'Gurukrupa Export Private Limited'
+                AND item.item_group != 'Design DNU'
+                AND item.disabled = 0 #bhavika 25-11-2026
                 AND bom.name IS NOT NULL
                 AND (
                     item.item_code LIKE %(like_query)s
@@ -6463,6 +6452,7 @@ def global_search(query=None, customer=None, user=None):
                 AND idf.company = 'Gurukrupa Export Private Limited'
             WHERE
                 item.item_group != 'Design DNU'
+                AND item.disabled = 0 #bhavika 25-11-2026
                 AND (
                     item.item_code LIKE %(like_query)s
                     OR item.item_category LIKE %(like_query)s
