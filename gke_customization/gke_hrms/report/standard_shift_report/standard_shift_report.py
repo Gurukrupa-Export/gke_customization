@@ -129,7 +129,7 @@ def process_data(data, filters):
         .where(checkin.source == "Outdoor Duty")
         .where(checkin.time[from_date : add_days(to_date, 1)])
         .groupby(login_date)
-        .run(pluck="login_datestandard_shift_report")
+        .run(pluck="login_date")
     )
     od_dates = set(od_dates)
 

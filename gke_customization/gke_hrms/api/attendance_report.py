@@ -273,16 +273,15 @@ def process_data(data, from_date, to_date, employee):
     ).run(as_dict=True)
 
     checkins = {row.login_date: row.cnt for row in checkins}
-    od = frappe.get_list(
-        "Employee Checkin",
-        {
-            "employee": employee,
-            "source": "Outdoor Duty",
-            "time": ["between", [from_date, add_days(to_date, 1)]],
-        },
-        "date(time) as login_date",
-        pluck="login_date",
-        group_by="login_date",
+    login_date = Date(EmployeeCheckin.time)
+    od = (
+        frappe.qb.from_(EmployeeCheckin)
+        .select(login_date.as_("login_date"))
+        .where(EmployeeCheckin.employee == employee)
+        .where(EmployeeCheckin.source == "Outdoor Duty")
+        .where(EmployeeCheckin.time.between(from_date, addition_day))
+        .groupby(login_date)
+        .run(pluck="login_date")
     )
     if shift and not emp_det.get("holiday_list"):
         emp_det["holiday_list"] = shift_det.get("holiday_list")
