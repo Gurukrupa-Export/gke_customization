@@ -1515,7 +1515,36 @@ def after_job_failure(job, method, *args, **kwargs):
 
 #         frappe.db.commit()
 
+def create_employee_checkin(employee, time, log_type):
+    """
+    Create an Employee Checkin only if one with the same employee + time
+    does not exist. If a duplicate is created in between (race condition /
+    double click), the 'same timestamp' validation error is ignored.
+    """
+    if frappe.db.exists(
+        "Employee Checkin",
+        {
+            "employee": employee,
+            "time": time
+        }
+    ):
+        return
 
+    try:
+        frappe.get_doc({
+            "doctype": "Employee Checkin",
+            "employee": employee,
+            "time": time,
+            "log_type": log_type,
+            "skip_auto_attendance": 0
+        }).insert(ignore_permissions=True)
+
+    except frappe.ValidationError as e:
+        if "same timestamp" in str(e):
+            return
+        raise
+    
+    
 @frappe.whitelist()
 def update_proceed_check_in_modify(docname):
     doc = frappe.get_doc("Attendance Adjustment Tool", docname)
