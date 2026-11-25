@@ -10,39 +10,6 @@ from frappe.utils import add_days, getdate
 
 class EmployeeResignation(Document):
     def validate(self):
-        # workflow_state = frappe.db.get_value("Employee Resignation", {'employee': self.employee, 'workflow_state': 'Rejected' } , ['workflow_state'] )
-        # if workflow_state == 'Rejected':
-        # 	frappe.throw(f'{self.employee} can not fill the Resignation Form')
-
-        # if self.workflow_state == 'Send to Manager':
-        # 	if self.reporting_manager_approval:
-        # 		if self.reporting_manager_approval == 'Approved':
-        # 			# shubham
-        # 			# if self.date_resignation:
-
-        # 			# 	resignation_date = datetime.strptime(str(self.date_resignation),"%Y-%m-%d")
-
-        # 			# 	# default calculation
-        # 			# 	last_working_day = resignation_date + timedelta(days=int(self.notice_period or 0))
-
-        # 			# # shubham
-        # 			if self.waive_off_notice_period == 'Yes':
-        # 				notice_days = int(self.reduce_notice_day or 0)
-
-        # 			if self.date_resignation:
-        # 				resignation_date = datetime.strptime(str(self.date_resignation), "%Y-%m-%d")
-        # 				if self.waive_off_notice_period == 'Yes':
-        # 					if notice_days:
-        # 						if int(self.notice_period) > int(notice_days):
-        # 							notice_days = self.notice_period - notice_days
-        # 							last_working_day = resignation_date + timedelta(days=notice_days)
-        # 							frappe.msgprint(f'notice_days: {notice_days} {resignation_date} {last_working_day}')
-        # 				else:
-        # 					frappe.msgprint(f'notice_days else: {notice_days} {resignation_date}')
-        # 					last_working_day = resignation_date + timedelta(days=self.notice_period)
-
-        # 				self.last_working_day = last_working_day.strftime("%Y-%m-%d")
-
         # 16-06-2026
         self.validate_duplicate_resignation()  # shubham
         if (
@@ -84,7 +51,9 @@ class EmployeeResignation(Document):
 
         if existing:
             frappe.throw(
-                f"Employee Resignation already exists for Employee {self.employee}"
+                ("Employee Resignation already exists for Employee {0}").format(
+                    self.employee
+                )
             )
 
 

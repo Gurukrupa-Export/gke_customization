@@ -24,7 +24,7 @@ from openpyxl.utils import get_column_letter
 # =====================================================
 
 SOFTWARE_API_TEMPLATE = (
-    "{site_url}/api/method/get_attendance_report_data?month={month}&year={year}"
+    "{site_url}/api/method/get_attendance_report_data" "?month={month}&year={year}"
 )
 
 REQUIRED_COLS = [

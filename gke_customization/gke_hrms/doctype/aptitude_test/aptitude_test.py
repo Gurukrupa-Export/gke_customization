@@ -5,6 +5,8 @@ from frappe.model.document import Document
 
 
 class AptitudeTest(Document):
+    pass
+
     def validate(self, method=None):
         # Reset obtained marks to 0 at the start of validation
         self.obtained_marks = 0
@@ -13,7 +15,6 @@ class AptitudeTest(Document):
         else:
             self.min_marks = 36
 
-        # if self.part_type == "Set - A1":
         if self.a1_q1_options == "240":
             self.obtained_marks += 3  # Add 3 marks
 
@@ -68,7 +69,6 @@ class AptitudeTest(Document):
         if self.a1_q18_options == "Now()":
             self.obtained_marks += 3  # Add 3 marks
 
-        # if self.part_type == "Set - A2":
         if self.a2_q1_options == "1996 & 1995":
             self.obtained_marks += 3  # Add 3 marks
 

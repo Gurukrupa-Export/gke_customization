@@ -1,7 +1,6 @@
 # Copyright (c) 2025, Gurukrupa Export and contributors
 # For license information, please see license.txt
 
-# import frappe
 from datetime import datetime, timedelta
 
 import frappe
@@ -9,19 +8,11 @@ from erpnext.setup.doctype.holiday_list.holiday_list import is_holiday
 from frappe import _
 from frappe.model.document import Document
 from frappe.model.workflow import apply_workflow
-from frappe.utils import (
-    cint,
-    get_datetime,
-    get_datetime_str,
-    get_time,
-    getdate,
-)
+from frappe.utils import cint, get_datetime, get_datetime_str, get_time, getdate
 from gurukrupa_customizations.gurukrupa_customizations.doctype.personal_out_gate_pass.personal_out_gate_pass import (
     create_prsnl_out_logs,
 )
-from hrms.hr.doctype.employee_checkin.employee_checkin import (
-    calculate_working_hours,
-)
+from hrms.hr.doctype.employee_checkin.employee_checkin import calculate_working_hours
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift_timings
 
 from gke_customization.gke_hrms.utils import get_employee_shift
@@ -29,11 +20,7 @@ from gke_customization.gke_hrms.utils import get_employee_shift
 
 class ManualPunchEntry(Document):
     def after_insert(self):
-        # if frappe.user.has_role("GK HR"):
-        # 	return
-
         if self.miss_punch and self.workflow_state == "Draft":
-            # apply_workflow(self, "Send to Manager")
             apply_workflow(self, "Send to HR")
 
     def on_update(self):
@@ -47,7 +34,6 @@ class ManualPunchEntry(Document):
                     frappe.throw(
                         _("Shift type missing for Employee: {0}").format(self.employee)
                     )
-                # process_attendance(self.employee, self.shift_name, self.date)
                 create_attendance_from_manual_punch(self)
                 cancel_linked_records(date=self.date, employee=self.employee)
                 create_prsnl_out_logs(
@@ -61,52 +47,29 @@ class ManualPunchEntry(Document):
             self.validate_od_punch()
             self.update_emp_checkin()
             self.delete_checkin()
-            # self.details = []
-
-        # shruti
-        # if self.employee:
-        # 	existing = frappe.db.get_all(
-        # 		"Manual Punch Entry",
-        # 		filters={
-        # 			"employee": self.employee,
-        # 			"date": self.date,
-        # 			"name": ["!=", self.name],
-        # 			"workflow_state": ["!=", "Rejected"]
-        # 		},
-        # 		fields=["name", "locked_by"]
-        # 	)
-
-        # 	for entry in existing:
-        # 		if entry.locked_by and entry.locked_by != self.locked_by:
-        # 			form_link = f"/app/manual-punch-entry/{entry.name}"
-        # 			frappe.throw(
-        # 				f"This entry for {self.employee} at  {self.date} locked by another user: <b>{entry.locked_by}</b><br>"
-        # 				f"<a href='{form_link}' target='_blank'>View entry</a>"
-        # 			)
 
         if self.miss_punch:
             self.validate_miss_punch()
 
     @frappe.whitelist()
     def validate_punch(self):
-        shift_datetime = datetime.combine(getdate(self.date), get_time(self.start_time))
-        shift_det = get_employee_shift_timings(self.employee, shift_datetime, True)[1]
-        if not (
-            get_datetime(self.new_punch) > shift_det.actual_start
-            and get_datetime(self.new_punch) < shift_det.actual_end
-        ):
-            frappe.throw(
-                _("Punch must be in between {0} and {1}").format(
-                    shift_det.actual_start, shift_det.actual_end
-                )
-            )
+        self.validate_punch_within_shift(self.new_punch)
 
     def validate_miss_punch(self):
+        self.validate_punch_within_shift(self.miss_punch)
+
+    def validate_punch_within_shift(self, punch_time):
         shift_datetime = datetime.combine(getdate(self.date), get_time(self.start_time))
         shift_det = get_employee_shift_timings(self.employee, shift_datetime, True)[1]
+        if not shift_det:
+            frappe.throw(
+                _("No shift found for Employee {0} on {1}").format(
+                    self.employee, self.date
+                )
+            )
         if not (
-            get_datetime(self.miss_punch) > shift_det.actual_start
-            and get_datetime(self.miss_punch) < shift_det.actual_end
+            get_datetime(punch_time) > shift_det.actual_start
+            and get_datetime(punch_time) < shift_det.actual_end
         ):
             frappe.throw(
                 _("Punch must be in between {0} and {1}").format(
@@ -119,7 +82,7 @@ class ManualPunchEntry(Document):
             [row.source for row in (self.details or []) if row.source == "Outdoor Duty"]
         ):
             if len(self.details) > 2:
-                frappe.throw(_("Only single checkin for IN and OUT are allowed for OT"))
+                frappe.throw(_("Only single checkin for IN and OUT are allowed for OD"))
 
     def update_emp_checkin(self):
         for punch in self.details:
@@ -133,6 +96,7 @@ class ManualPunchEntry(Document):
             doc.log_type = punch.type
             doc.source = punch.source
             doc.save()
+            punch.employee_checkin = doc.name
 
     @frappe.whitelist()
     def search_checkin(self):
@@ -164,26 +128,26 @@ class ManualPunchEntry(Document):
             emp = frappe.db.get_value(
                 "Employee",
                 {"attendance_device_id": self.punch_id},
-                ["name", "employee_name", "default_shift"],
+                ["name", "employee_name"],
                 as_dict=1,
             )
-
-            shift_type = get_employee_shift(self.employee, self.date)
 
             if emp:
                 self.employee = emp.get("name")
                 self.employee_name = emp.get("employee_name")
-                self.shift_name = shift_type
+                self.shift_name = get_employee_shift(self.employee, self.date)
                 if self.shift_name:
-                    self.start_time, self.end_time = frappe.db.get_value(
+                    shift_timings = frappe.db.get_value(
                         "Shift Type", self.shift_name, ["start_time", "end_time"]
                     )
+                    if shift_timings:
+                        self.start_time, self.end_time = shift_timings
         if not self.employee:
-            frappe.msgprint(_("Employee is Mandatory"))
+            frappe.throw(_("Employee is Mandatory"))
 
     def should_mark_attendance(self, employee: str, attendance_date: str) -> bool:
         """Determines whether attendance should be marked on holidays or not"""
-        shift_doc = frappe.get_doc("Shift Type", self.shift_name)
+        shift_doc = frappe.get_cached_doc("Shift Type", self.shift_name)
 
         # no need to check if date is a holiday or not since attendance should be marked on all days
         if shift_doc.mark_auto_attendance_on_holidays:
@@ -207,30 +171,19 @@ def create_attendance_from_manual_punch(self):
 
     attendance_date = shift_datetime.date()
     mark_att = self.should_mark_attendance(employee, attendance_date)
-    # mark_att = self.should_mark_attendance(employee, date)
 
     if mark_att:
         shift_timings = get_employee_shift_timings(
             employee, get_datetime(shift_datetime), True
         )[1]  # for current shift
-
-        # filters = {
-        # 	"skip_auto_attendance": 0,
-        # 	"attendance": ("is", "not set"),
-        # 	"shift": shift_type,
-        # 	"employee": employee,
-        # 	"time": ["between", [ (shift_timings.actual_start), (shift_timings.actual_end) ]]
-        # }
-
-        # checkin_logs = frappe.db.get_list("Employee Checkin",
-        # 	fields=["*"],
-        # 	filters=filters,
-        # 	order_by="time"
-        # )
+        if not shift_timings:
+            frappe.throw(
+                _("No shift found for Employee {0} on {1}").format(employee, date)
+            )
 
         checkin_logs = frappe.db.sql(
             """
-			SELECT *
+			SELECT name, time, log_type, shift_start, shift_end
 			FROM `tabEmployee Checkin`
 			WHERE employee = %s
 				AND skip_auto_attendance = 0
@@ -248,7 +201,7 @@ def create_attendance_from_manual_punch(self):
         )
 
         if checkin_logs:
-            attendance = get_attendance(self, checkin_logs)
+            attendance = get_attendance(self, checkin_logs, shift_timings)
             attnd_name = frappe.db.exists(
                 "Attendance",
                 {"employee": employee, "attendance_date": date, "docstatus": 1},
@@ -258,22 +211,6 @@ def create_attendance_from_manual_punch(self):
                 attnd.cancel()
                 frappe.msgprint(_("Attendance cancelled : {0} ").format(attnd_name))
 
-            # frappe.throw(f"attendance {attendance} || attnd_name{attnd_name} ")
-            # attnd = ''
-            # if attnd_name:
-            # 	attnd = frappe.get_doc("Attendance", attnd_name)
-            # 	attnd.db_set({
-            # 		"status": attendance.get("status"),
-            # 		"working_hours": attendance.get("working_hours"),
-            # 		"late_entry": attendance.get("late_entry"),
-            # 		"early_exit": attendance.get("early_exit"),
-            # 		"in_time": attendance.get("in_time"),
-            # 		"out_time": attendance.get("out_time"),
-            # 		"shift": self.shift_name,
-            # 	})
-            # 	frappe.msgprint(_("Attendance updated : {0} ").format(attnd.name))
-
-            # else:
             new_attnd = frappe.get_doc(
                 {
                     "doctype": "Attendance",
@@ -292,11 +229,15 @@ def create_attendance_from_manual_punch(self):
             new_attnd.submit()
             frappe.msgprint(_("Attendance created : {0} ").format(new_attnd.name))
 
-            for log in checkin_logs:
-                frappe.db.set_value(
-                    "Employee Checkin", log.name, "attendance", new_attnd.name
-                )
-        frappe.msgprint(_("Attendance marked on {0} for {1} ").format(employee, date))
+            frappe.db.set_value(
+                "Employee Checkin",
+                {"name": ("in", [log.name for log in checkin_logs])},
+                "attendance",
+                new_attnd.name,
+            )
+            frappe.msgprint(
+                _("Attendance marked on {0} for {1} ").format(date, employee)
+            )
     else:
         frappe.msgprint(
             _("Attendance not marked as {0} is holiday for {1} on {2}").format(
@@ -305,11 +246,25 @@ def create_attendance_from_manual_punch(self):
         )
 
 
-def get_attendance(self, logs):
+def get_attendance(self, logs, shift_timings=None):
     """Return attendance_status, working_hours, late_entry, early_exit, in_time, out_time
     for a set of logs belonging to a single shift."""
 
-    shift_doc = frappe.get_doc("Shift Type", self.shift_name)
+    shift_doc = frappe.db.get_value(
+        "Shift Type",
+        self.shift_name,
+        [
+            "determine_check_in_and_check_out",
+            "working_hours_calculation_based_on",
+            "enable_late_entry_marking",
+            "late_entry_grace_period",
+            "enable_early_exit_marking",
+            "early_exit_grace_period",
+            "working_hours_threshold_for_absent",
+            "working_hours_threshold_for_half_day",
+        ],
+        as_dict=True,
+    )
 
     late_entry = early_exit = False
     total_working_hours, in_time, out_time = calculate_working_hours(
@@ -320,6 +275,9 @@ def get_attendance(self, logs):
 
     shift_start = logs[0]["shift_start"]
     shift_end = logs[0]["shift_end"]
+    if shift_timings:
+        shift_start = shift_start or shift_timings.start_datetime
+        shift_end = shift_end or shift_timings.end_datetime
 
     if (
         cint(shift_doc.enable_late_entry_marking)
@@ -341,7 +299,6 @@ def get_attendance(self, logs):
         shift_doc.working_hours_threshold_for_absent
         and total_working_hours < shift_doc.working_hours_threshold_for_absent
     ):
-        # return "Absent", total_working_hours, late_entry, early_exit, in_time, out_time
         return {
             "status": "Absent",
             "working_hours": total_working_hours,
@@ -355,7 +312,6 @@ def get_attendance(self, logs):
         shift_doc.working_hours_threshold_for_half_day
         and total_working_hours < shift_doc.working_hours_threshold_for_half_day
     ):
-        # return "Half Day", total_working_hours, late_entry, early_exit, in_time, out_time
         return {
             "status": "Half Day",
             "working_hours": total_working_hours,
@@ -365,7 +321,6 @@ def get_attendance(self, logs):
             "out_time": out_time,
         }
 
-    # return "Present", total_working_hours, late_entry, early_exit, in_time, out_time
     return {
         "status": "Present",
         "working_hours": total_working_hours,
@@ -409,7 +364,6 @@ def cancel_linked_records(employee, date):
         .run(pluck=True)
     )
     if ot:
-        OT_Log = frappe.qb.DocType("OT Log")
         query_ot = (
             frappe.qb.update(OT_Log)
             .set(OT_Log.is_cancelled, 1)
@@ -418,7 +372,6 @@ def cancel_linked_records(employee, date):
         query_ot.run()
         frappe.msgprint(_("Existing OT Records are cancelled"))
     if po:
-        Personal_Out_Log = frappe.qb.DocType("Personal Out Log")
         query_po = (
             frappe.qb.update(Personal_Out_Log)
             .set(Personal_Out_Log.is_cancelled, 1)
@@ -484,19 +437,3 @@ def get_emp_checkin(date, employee=None, shift_name=None):
     shift_datetime = datetime.combine(getdate(date), get_time(shift_start_time))
     data = get_checkins(employee, shift_datetime)
     return data
-
-
-###############################################################################################################
-
-
-# @frappe.whitelist
-# def check_employee_lock_on_save(doc, method=None):
-#     employee_id = doc.employee
-#     current_user = frappe.session.user
-
-#     cache_key = f"employee_lock::{employee_id}"
-#     locked_by = frappe.cache().get_value(cache_key)
-
-#     if locked_by and locked_by != current_user:
-#         frappe.throw(f"Employee {employee_id} is currently being edited by {locked_by}")
-#     frappe.cache().set_value(cache_key, current_user, expires_in_sec=300)

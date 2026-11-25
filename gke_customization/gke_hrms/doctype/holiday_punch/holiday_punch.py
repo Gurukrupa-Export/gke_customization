@@ -4,15 +4,9 @@
 from datetime import timedelta
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
-from frappe.utils import (
-    add_days,
-    add_to_date,
-    get_datetime,
-    get_time,
-    getdate,
-    today,
-)
+from frappe.utils import add_days, add_to_date, get_datetime, get_time, getdate, today
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift_timings
 from pypika.functions import Date
 
@@ -20,63 +14,6 @@ from gke_customization.gke_hrms.utils import get_employees_by_shift
 
 
 class HolidayPunch(Document):
-    def on_submit(self):
-        """
-        For large datasets (100+ rows), offload to a background job to avoid
-        request timeouts. For small datasets, process inline as before.
-        """
-        # ROW_THRESHOLD = 100
-
-        # if len(self.details) >= ROW_THRESHOLD:
-        # 	# Enqueue a background job — returns immediately to the browser
-        # 	frappe.enqueue(
-        # 		method=process_holiday_punch_bg,
-        # 		queue="long",          # use the 'long' queue for heavy jobs
-        # 		timeout=1800,          # 30 minutes max
-        # 		job_id=f"holiday_punch_{self.name}",  # deduplicate re-submits
-        # 		is_async=True,
-        # 		now=True,
-        # 		docname=self.name,
-        # 	)
-        # 	frappe.msgprint(
-        # 		"Processing in background. You will be notified once attendance is updated.",
-        # 		alert=True,
-        # 	)
-        # else:
-        # 	# Small batch — process synchronously as before
-        # 	try:
-        # 		self._process_all()
-        # 		frappe.msgprint("Attendance Updated")
-        # 	except Exception as e:
-        # 		frappe.db.rollback()
-        # 		frappe.throw(str(e))
-
-    def _process_all(self):
-        try:
-            self.update_emp_checkin()
-
-            emp_map = {}
-
-            for row in self.details:
-                if not row.employee:
-                    continue
-
-                emp_map.setdefault(row.employee, []).append(row)
-
-            for emp, rows in emp_map.items():
-                process_attendance_from_rows(
-                    rows,
-                    emp,
-                    self.shift_name,
-                    self.date,
-                )
-
-            frappe.msgprint("Attendance Updated")
-
-        except Exception as e:
-            frappe.db.rollback()
-            frappe.throw(str(e))
-
     @frappe.whitelist()
     def validate_punch(self):
         shift_datetime = get_datetime(
@@ -94,7 +31,9 @@ class HolidayPunch(Document):
             and get_datetime(self.new_punch) < shift_det.actual_end
         ):
             frappe.throw(
-                f"Punch must be between {shift_det.actual_start} and {shift_det.actual_end}"
+                _("Punch must be between {0} and {1}").format(
+                    shift_det.actual_start, shift_det.actual_end
+                )
             )
 
     def update_emp_checkin(self):
@@ -109,6 +48,8 @@ class HolidayPunch(Document):
             doc.log_type = punch.type
             doc.source = punch.source
             doc.save()
+            if not punch.employee_checkin:
+                punch.db_set("employee_checkin", doc.name, update_modified=False)
 
     @frappe.whitelist()
     def search_checkin(self):
@@ -123,8 +64,7 @@ class HolidayPunch(Document):
 
         return self.get_checkins(shift_datetime, employees)
 
-    def get_checkins(self, shift_datetime, employee_lst=[]):
-        # employee_list = frappe.db.get_list('Employee',filters={'company': self.company,'default_shift':self.shift_name},fields=['name','employee_name'])
+    def get_checkins(self, shift_datetime, employee_lst=None):
         employee_list = (
             get_employees_by_shift(self.shift_name, getdate(shift_datetime)) or []
         )
@@ -140,62 +80,92 @@ class HolidayPunch(Document):
         if filters:
             employee_list = frappe.get_all("Employee", filters, pluck="name")
 
-        # bhavika 01-10-2026
         EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
 
         data_list = []
+        if not employee_list:
+            return data_list
 
+        attendance_by_employee = {}
+        if employee_list:
+            for attendance in frappe.get_all(
+                "Attendance",
+                filters={
+                    "employee": ["in", employee_list],
+                    "attendance_date": getdate(shift_datetime),
+                    "docstatus": 1,
+                },
+                fields=["name", "employee"],
+            ):
+                attendance_by_employee.setdefault(attendance.employee, attendance.name)
+
+        window_by_employee = {}
         for employee in employee_list:
             shift_timings = get_employee_shift_timings(
                 employee, get_datetime(shift_datetime), True
             )[1]
-
-            condition = EmployeeCheckin.time.between(
-                shift_timings.actual_start, shift_timings.actual_end
-            )
-
-            attendance = frappe.db.get_value(
-                "Attendance",
-                {
-                    "employee": employee,
-                    "attendance_date": getdate(shift_datetime),
-                    "docstatus": 1,
-                },
-            )
-
-            if attendance:
-                condition = condition | (EmployeeCheckin.attendance == attendance)
-
-            data = (
-                frappe.qb.from_(EmployeeCheckin)
-                .select(
-                    Date(EmployeeCheckin.time).as_("date"),
-                    EmployeeCheckin.log_type.as_("type"),
-                    EmployeeCheckin.time,
-                    EmployeeCheckin.source,
-                    EmployeeCheckin.name.as_("employee_checkin"),
-                    EmployeeCheckin.employee,
-                    EmployeeCheckin.employee_name.as_("custom_employee_name"),
+            if shift_timings:
+                window_by_employee[employee] = (
+                    shift_timings.actual_start,
+                    shift_timings.actual_end,
                 )
-                .where(EmployeeCheckin.employee == employee)
-                .where(condition)
-                .orderby(EmployeeCheckin.time)
-                .run(as_dict=True)
+
+        if not window_by_employee and not attendance_by_employee:
+            return data_list
+
+        condition = None
+        if window_by_employee:
+            window_start = min(window[0] for window in window_by_employee.values())
+            window_end = max(window[1] for window in window_by_employee.values())
+            condition = EmployeeCheckin.time.between(window_start, window_end)
+
+        if attendance_by_employee:
+            attendance_condition = EmployeeCheckin.attendance.isin(
+                list(attendance_by_employee.values())
+            )
+            condition = (
+                attendance_condition
+                if condition is None
+                else condition | attendance_condition
             )
 
-            if data:
-                data_list.append(data)
+        rows = (
+            frappe.qb.from_(EmployeeCheckin)
+            .select(
+                Date(EmployeeCheckin.time).as_("date"),
+                EmployeeCheckin.log_type.as_("type"),
+                EmployeeCheckin.time,
+                EmployeeCheckin.source,
+                EmployeeCheckin.name.as_("employee_checkin"),
+                EmployeeCheckin.employee,
+                EmployeeCheckin.employee_name.as_("custom_employee_name"),
+                EmployeeCheckin.attendance,
+            )
+            .where(EmployeeCheckin.employee.isin(employee_list))
+            .where(condition)
+            .orderby(EmployeeCheckin.time)
+            .run(as_dict=True)
+        )
+
+        rows_by_employee = {}
+        for row in rows:
+            employee = row.employee
+            linked_attendance = row.pop("attendance")
+            window = window_by_employee.get(employee)
+            in_window = bool(window) and window[0] <= row.time <= window[1]
+            linked = bool(linked_attendance) and (
+                linked_attendance == attendance_by_employee.get(employee)
+            )
+            if in_window or linked:
+                rows_by_employee.setdefault(employee, []).append(row)
+
+        for employee in employee_list:
+            if rows_by_employee.get(employee):
+                data_list.append(rows_by_employee[employee])
         return data_list
 
 
 def process_attendance_from_rows(rows, employee, shift_type, date):
-    # if employee == "GEPL - 01389":
-    #     frappe.throw(
-    #         f"Employee: {employee}\n"
-    #         f"Rows: {rows}\n"
-    #         f"Has Checkin: {any(row.get('employee_checkin') for row in rows)}"
-    #     )
-
     date = getdate(date)
 
     # -------------------------------------------------
@@ -204,15 +174,10 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
     if not any(row.get("employee_checkin") is not None for row in rows):
         return
 
-    # if employee == "GEPL - 01389":
-    #     frappe.throw(
-    #         f"{rows, employee, shift_type, date}"
-    #     )
-
     # -------------------------------------------------
     # Get Shift Type
     # -------------------------------------------------.
-    shift = frappe.get_doc("Shift Type", shift_type)
+    shift = frappe.get_cached_doc("Shift Type", shift_type)
 
     start_time = shift.start_time
     end_time = shift.end_time
@@ -304,11 +269,6 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
     if out_time < shift_end:
         early_exit = 1
 
-    # if employee == "GEPL - 00175":
-    #     frappe.throw(
-    #         f"{late_entry, early_exit}"
-    #     )
-
     # -------------------------------------------------
     # Create Attendance
     # -------------------------------------------------
@@ -325,14 +285,6 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
     att.late_entry = late_entry
     att.early_exit = early_exit
 
-    # if employee == "GEPL - 00175":
-    #     frappe.throw(
-    #         f"""
-    #         Variable late_entry = {late_entry}
-    #         Attendance late_entry = {att.late_entry}
-    #         """
-    #     )
-
     # -------------------------------------------------
     # Attendance Status
     # -------------------------------------------------
@@ -341,32 +293,21 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
     else:
         att.status = "Absent"
 
-    # -------------------------------------------------
-    # Insert & Submit
-    # -------------------------------------------------
     att.insert()
     att.submit()
-
-    if late_entry:
-        att.db_set("late_entry", late_entry, update_modified=False)
-
-    if early_exit:
-        att.db_set("early_exit", early_exit, update_modified=False)
 
     # -------------------------------------------------
     # Link Employee Checkins with Attendance
     # -------------------------------------------------
-    all_checkins = frappe.get_all(
+    frappe.db.set_value(
         "Employee Checkin",
-        filters={
+        {
             "employee": employee,
             "time": ["between", [in_time, out_time]],
         },
-        fields=["name"],
+        "attendance",
+        att.name,
     )
-
-    for checkin in all_checkins:
-        frappe.db.set_value("Employee Checkin", checkin.name, "attendance", att.name)
 
 
 @frappe.whitelist()
@@ -400,7 +341,7 @@ def check_employee_punch(employee_details, shift_date, shift_name):
     if not employee_details:
         return employee_details
 
-    shift_doc = frappe.get_doc("Shift Type", shift_name)
+    shift_doc = frappe.get_cached_doc("Shift Type", shift_name)
 
     start_time_obj = get_time(shift_doc.start_time)
     end_time_obj = get_time(shift_doc.end_time)
@@ -483,50 +424,26 @@ def make_row(employee_details, punch_type, dt):
     }
 
 
-def process_holiday_punch_bg(docname):
-    """Called by the Frappe background worker."""
-    try:
-        doc = frappe.get_doc("Holiday Punch", docname)
-        doc._process_all()
-        frappe.db.commit()
-
-        # Notify the submitter
-        frappe.msgprint(
-            msg=f"Holiday Punch {docname} — Attendance Updated",
-            alert=True,
-            indicator="green",
-        )
-    except Exception:
-        frappe.db.rollback()
-        frappe.log_error(
-            message=frappe.get_traceback(), title=f"Holiday Punch BG Error: {docname}"
-        )
-        frappe.msgprint(
-            msg=f"Holiday Punch {docname} — Error",
-            alert=True,
-            indicator="red",
-        )
-
-
-# new method
-# method="gke_customization.gke_hrms.doctype.holiday_punch.holiday_punch.process_checkins"
 def process_checkins(docname):
     try:
         doc = frappe.get_doc("Holiday Punch", docname)
 
         # Step 1: Cancel old attendance
-        for row in doc.details:
-            if row.employee:
-                att = frappe.db.get_value(
-                    "Attendance",
-                    {
-                        "employee": row.employee,
-                        "attendance_date": doc.date,
-                        "docstatus": 1,
-                    },
+        employees = list({row.employee for row in doc.details if row.employee})
+        if employees:
+            attendances = frappe.get_all(
+                "Attendance",
+                filters={
+                    "employee": ["in", employees],
+                    "attendance_date": doc.date,
+                    "docstatus": 1,
+                },
+                pluck="name",
+            )
+            if attendances:
+                frappe.db.set_value(
+                    "Attendance", {"name": ["in", attendances]}, "docstatus", 2
                 )
-                if att:
-                    frappe.db.set_value("Attendance", att, "docstatus", 2)
 
         # Step 2: Create / Update checkins
         doc.update_emp_checkin()
@@ -538,27 +455,24 @@ def process_checkins(docname):
 
     except Exception:
         frappe.db.rollback()
-        error = frappe.get_traceback()
-        # Error log create
-        log = frappe.log_error(title=f"Holiday Punch: {doc.name}", message=error)
+        log = frappe.log_error(
+            title=f"Holiday Punch: {docname}", message=frappe.get_traceback()
+        )
 
-        # Update document
-        doc.db_set("workflow_state", "Failed")
-        doc.db_set(
-            "error_details",
-            f"""
-				Process failed.
-
-				Check Error Log: {log.name}
-
-				{error!s}
-				""",
+        frappe.db.set_value(
+            "Holiday Punch",
+            docname,
+            {
+                "workflow_state": "Failed",
+                "error_details": "Process failed. Check Error Log: {0}".format(
+                    log.name
+                ),
+            },
         )
 
         frappe.db.commit()
 
 
-# method="gke_customization.gke_hrms.doctype.holiday_punch.holiday_punch.process_attendance"
 def process_attendance(docname):
     try:
         doc = frappe.get_doc("Holiday Punch", docname)
@@ -571,34 +485,52 @@ def process_attendance(docname):
                 continue
             emp_map.setdefault(row.employee, []).append(row)
 
-        # Process attendance
+        failed_employees = []
         for emp, rows in emp_map.items():
-            process_attendance_from_rows(rows, emp, doc.shift_name, doc.date)
+            frappe.db.savepoint("holiday_punch_attendance")
+            try:
+                process_attendance_from_rows(rows, emp, doc.shift_name, doc.date)
+            except Exception:
+                frappe.db.rollback(save_point="holiday_punch_attendance")
+                log = frappe.log_error(
+                    title=f"Holiday Punch: {docname} ({emp})",
+                    message=frappe.get_traceback(),
+                )
+                failed_employees.append("{0} (Error Log: {1})".format(emp, log.name))
 
-        # Update workflow state
-        frappe.db.set_value(
-            doc.doctype, doc.name, "workflow_state", "Attendance Created"
-        )
+        if failed_employees:
+            frappe.db.set_value(
+                doc.doctype,
+                doc.name,
+                {
+                    "workflow_state": "Failed",
+                    "error_details": "Attendance failed for: {0}".format(
+                        ", ".join(failed_employees)
+                    ),
+                },
+            )
+        else:
+            frappe.db.set_value(
+                doc.doctype, doc.name, "workflow_state", "Attendance Created"
+            )
 
         frappe.db.commit()
 
     except Exception:
         frappe.db.rollback()
-        error = frappe.get_traceback()
-        # Error log create
-        log = frappe.log_error(title=f"Holiday Punch: {doc.name}", message=error)
+        log = frappe.log_error(
+            title=f"Holiday Punch: {docname}", message=frappe.get_traceback()
+        )
 
-        # Update document
-        doc.db_set("workflow_state", "Failed")
-        doc.db_set(
-            "error_details",
-            f"""
-				Process failed.
-
-				Check Error Log: {log.name}
-
-				{error!s}
-				""",
+        frappe.db.set_value(
+            "Holiday Punch",
+            docname,
+            {
+                "workflow_state": "Failed",
+                "error_details": "Process failed. Check Error Log: {0}".format(
+                    log.name
+                ),
+            },
         )
 
         frappe.db.commit()
@@ -611,11 +543,19 @@ def enqueue_modify_checkin(docname):
         queue="long",
         timeout=10000,
         job_name=f"Modify Checkin {docname}",
+        job_id=f"holiday_punch::process_checkins::{docname}",
+        deduplicate=True,
         now=False,
         docname=docname,
     )
 
-    frappe.msgprint(f"Job Enqueued: {job.id}")
+    if not job:
+        frappe.msgprint(
+            _("A job for {0} is already queued or running.").format(docname)
+        )
+        return None
+
+    frappe.msgprint(_("Job Enqueued: {0}").format(job.id))
     return job.id
 
 
@@ -626,11 +566,19 @@ def enqueue_modify_attendance(docname):
         queue="long",
         timeout=10000,
         job_name=f"Modify Attendance {docname}",
+        job_id=f"holiday_punch::process_attendance::{docname}",
+        deduplicate=True,
         now=False,
         docname=docname,
     )
 
-    frappe.msgprint(f"Job Enqueued: {job.id}")
+    if not job:
+        frappe.msgprint(
+            _("A job for {0} is already queued or running.").format(docname)
+        )
+        return None
+
+    frappe.msgprint(_("Job Enqueued: {0}").format(job.id))
     return job.id
 
 
@@ -689,13 +637,9 @@ def get_employees(doc):
     # Cross verify actual shift of employee # Shift Assignment takes priority over default shift
     # =====================================================
     data = []
-    for row in employee_data:
-        final_data = get_employee_shift(row["name"], doc.date)
-
-        if final_data:
-            for f in final_data:
-                if f.get("default_shift") == doc.shift_name:
-                    data.append(f)
+    for row in get_employees_shift([row["name"] for row in employee_data], doc.date):
+        if row.get("default_shift") == doc.shift_name:
+            data.append(row)
 
     return data
 
@@ -777,3 +721,50 @@ def get_employee_shift(employee, for_date=None):
     return frappe.db.get_all(
         "Employee", filters={"name": employee}, fields=["default_shift", "name"]
     )
+
+
+def get_employees_shift(employees, for_date=None):
+    """Batched version of get_employee_shift for a list of employees."""
+    if not employees:
+        return []
+
+    for_date = getdate(for_date or today())
+
+    assignments = frappe.get_all(
+        "Shift Assignment",
+        filters={"employee": ["in", employees], "docstatus": 1, "status": "Active"},
+        or_filters=[
+            {"start_date": ("<=", for_date)},
+            {"start_date": (">=", for_date)},
+            {"end_date": ("is", "not set")},
+            {"end_date": ("is", "set")},
+        ],
+        fields=["shift_type as default_shift", "employee as name"],
+    )
+    assigned_employees = {row.name for row in assignments}
+
+    missing_employees = [
+        employee for employee in employees if employee not in assigned_employees
+    ]
+    default_shifts = {}
+    if missing_employees:
+        default_shifts = {
+            row.name: row
+            for row in frappe.get_all(
+                "Employee",
+                filters={"name": ["in", missing_employees]},
+                fields=["default_shift", "name"],
+            )
+        }
+
+    assignments_by_employee = {}
+    for row in assignments:
+        assignments_by_employee.setdefault(row.name, []).append(row)
+
+    result = []
+    for employee in employees:
+        if employee in assignments_by_employee:
+            result.extend(assignments_by_employee[employee])
+        elif employee in default_shifts:
+            result.append(default_shifts[employee])
+    return result

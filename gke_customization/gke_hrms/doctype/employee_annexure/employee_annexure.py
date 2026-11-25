@@ -1,104 +1,21 @@
-# # Copyright (c) 2025, Gurukrupa Export and contributors
-# # For license information, please see license.txt
-
-# # import frappe
-# import frappe
-# from frappe import _, msgprint
-# from frappe.model.document import Document
-
-
-# class EmployeeAnnexure(Document):
-
-# 	def validate(self):
-# 		if not self.salary_structure:
-# 			frappe.throw("select a Salary Structure before save")
-# 		self.earnings = []
-# 		self.deductions = []
-# 		base = self.ctc
-# 		custom_is_esic_applicable=frappe.db.get_value('Employee',self.employee,'custom_is_esic_applicable')
-# 		gross_pay = base if custom_is_esic_applicable else 0
-# 		custom_state=frappe.db.get_value('Employee',self.employee,'custom_state')
-# 		component_values = {
-# 			"base": base,
-# 			"gross_pay": gross_pay,
-# 			"custom_state": custom_state
-# 			# "custom_month": custom_month
-# 		}
-# 		# component_values = {"base": base}
-# 		salary_structure = frappe.get_doc("Salary Structure", self.salary_structure)
-
-# 		for row in salary_structure.earnings:
-# 			salary_component = frappe.get_doc("Salary Component", row.salary_component)
-# 			statistical_component=salary_component.statistical_component
-# 			abbr = row.abbr
-# 			amount=row.amount
-# 			amount = self.evaluate_formula(row.formula, component_values)
-# 			component_values[abbr] = amount
-
-# 			if amount:
-# 				if not statistical_component :
-# 					self.append("earnings", {
-# 						"component": row.salary_component,
-# 						"amount": amount,
-# 						"abbr": abbr
-
-# 			})
-# 		for row in salary_structure.deductions:
-# 			abbr = row.abbr
-# 			amount=row.amount
-# 			amount = self.evaluate_formula(row.formula, component_values)
-# 			component_values[abbr] = amount
-
-# 			component_values["gross_pay"] = gross_pay
-# 			# if amount:
-# 			self.append("deductions", {
-# 				"component": row.salary_component,
-# 				"amount": amount,
-# 				"abbr": row.abbr
-# 	})
-# 	def evaluate_formula(self, formula, context):
-# 		if not formula:
-# 			return 0
-# 		try:
-# 			for key in list(context.keys()):
-# 				val = context[key]
-# 				if isinstance(val, str):
-# 					try:
-# 						context[key] = float(val)
-# 					except ValueError:
-# 						pass
-# 			return frappe.safe_eval(formula, context)
-# 		except Exception as e:
-# 			frappe.msgprint(f"Error evaluating formula '{formula}': {e}")
-# 			return 0
-
-# 	# def evaluate_formula(self, formula, context):
-# 	# 	if not formula:
-# 	# 		return 0
-# 	# 	try:
-
-# 	# 		for key, value in context.items():
-# 	# 			if isinstance(value, str):
-# 	# 				try:
-# 	# 					context[key] = float(value)
-# 	# 				except ValueError:
-# 	# 					pass  # Ignore if not convertible
-# 	# 	except Exception as e:
-# 	# 		print(f"Error evaluating formula: {e}")
-# 	# 		return 0
-
+# Copyright (c) 2025, Gurukrupa Export and contributors
+# For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils import getdate
 
 
 class EmployeeAnnexure(Document):
     def autoname(self):
-        company_abbr = frappe.db.get_value("Company", self.company, "abbr")
+        company_abbr = frappe.get_cached_value("Company", self.company, "abbr")
         if company_abbr:
             if self.branch:
-                branch_short = self.branch.split("-")[-2]
+                branch_parts = self.branch.split("-")
+                branch_short = (
+                    branch_parts[-2] if len(branch_parts) > 1 else self.branch
+                )
                 series = f"{company_abbr}-{branch_short}-EAX-.#####"
             else:
                 series = f"{company_abbr}-EAX-.#####"
@@ -112,7 +29,7 @@ class EmployeeAnnexure(Document):
                     "Employee Annexure",
                     {"employee": self.employee, "name": ["!=", self.name]},
                 )
-            else:
+            elif self.employee_job_offer:
                 existing = frappe.db.exists(
                     "Employee Annexure",
                     {
@@ -120,14 +37,18 @@ class EmployeeAnnexure(Document):
                         "name": ["!=", self.name],
                     },
                 )
+            else:
+                existing = None
             if existing:
                 link = frappe.utils.get_link_to_form("Employee Annexure", existing)
                 frappe.throw(
-                    f"Employee Annexure already exists for this employee , {link}"
+                    _("Employee Annexure already exists for this employee, {0}").format(
+                        link
+                    )
                 )
 
         if not self.salary_structure:
-            frappe.throw("Select a Salary Structure before saving.")
+            frappe.throw(_("Select a Salary Structure before saving."))
 
         self.earnings = []
         self.deductions = []
@@ -143,6 +64,7 @@ class EmployeeAnnexure(Document):
             "custom_state": custom_state,
             "custom_month": custom_month,
         }
+        convert_numeric_strings(component_values)
 
         salary_structure = frappe.get_doc("Salary Structure", self.salary_structure)
 
@@ -181,7 +103,6 @@ class EmployeeAnnexure(Document):
             abbr = row.abbr
             amount = self.evaluate_formula(row.formula, component_values)
             amount = round(amount)
-            component_values[abbr] = amount
             if not self.is_esic_applicable:
                 if row.abbr == "ESIC":
                     amount = 0
@@ -201,20 +122,24 @@ class EmployeeAnnexure(Document):
                         "formula": row.formula,
                     },
                 )
-        # frappe.msgprint(f"{custom_state},{custom_month},{gross_pay}")
 
     def evaluate_formula(self, formula, context):
         if not formula:
             return 0
         try:
-            for key in list(context.keys()):
-                val = context[key]
-                if isinstance(val, str):
-                    try:
-                        context[key] = float(val)
-                    except ValueError:
-                        pass
             return frappe.safe_eval(formula, context)
         except Exception:
-            # frappe.msgprint(f"Error evaluating formula '{formula}': {e}")
+            frappe.log_error(
+                title=_("Employee Annexure formula error"),
+                message="{0}\n\n{1}".format(formula, frappe.get_traceback()),
+            )
             return 0
+
+
+def convert_numeric_strings(context):
+    for key, value in context.items():
+        if isinstance(value, str):
+            try:
+                context[key] = float(value)
+            except ValueError:
+                pass

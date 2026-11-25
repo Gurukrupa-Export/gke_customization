@@ -6,7 +6,6 @@ from frappe import _
 from frappe.query_builder.functions import Count
 
 
-# is_prepared_report = False
 def execute(filters=None):
     columns = get_columns(filters)
     data = get_data(filters)

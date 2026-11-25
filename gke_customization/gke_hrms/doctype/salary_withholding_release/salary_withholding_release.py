@@ -24,7 +24,7 @@ class SalaryWithholdingRelease(Document):
         parentfield: DF.Data
         parenttype: DF.Data
         salary_withholding_cycle: DF.Data | None
-        status: DF.Literal["Draft", "Released", "Cancelled"]  # noqa F821
+        status: DF.Literal["Draft", "Released", "Cancelled"]  # noqa: F821
     # end: auto-generated types
 
     def validate(self):

@@ -192,14 +192,14 @@ frappe.query_reports["Standard Shift Report"] = {
 		var time_columns = ["in_time", "adj_out_2", "total_adj"];
 		if (data && !data.attendance_date) {
 			value = $(`<span>${value}</span>`);
-			let $value = $(value).css("font-weight", "bold");
+			const $value = $(value).css("font-weight", "bold");
 			value = $value.wrap("<p></p>").parent().html();
 		}
 		if (in_list(time_columns, column.id) && data.attendance_date) {
 			value = frappe.datetime.str_to_user(value, true);
 			if (data.late_entry && in_list(["in_time", "adj_out_2"], column.id)) {
 				value = $(`<span>${value}</span>`);
-				let $value = $(value).css("color", "red");
+				const $value = $(value).css("color", "red");
 				value = $value.wrap("<p></p>").parent().html();
 			}
 		}
@@ -208,17 +208,17 @@ frappe.query_reports["Standard Shift Report"] = {
 			in_list(["Total Hours", "Net Days"], data.adj_out_2)
 		) {
 			value = $(`<span>${value}</span>`);
-			let $value = $(value).css("color", "blue");
+			const $value = $(value).css("color", "blue");
 			value = $value.wrap("<p></p>").parent().html();
 		}
 		if (column.id == "late_entry" && data.attendance_date) {
 			if (data.late_entry) {
 				value = $(`<input type="checkbox" disabled="" class="disabled-selected">`);
-				let $value = $(value);
+				const $value = $(value);
 				value = $value.wrap("<p></p>").parent().html();
 			} else {
 				value = $(`<input type="checkbox" disabled="" class="disabled-deselected">`);
-				let $value = $(value);
+				const $value = $(value);
 				value = $value.wrap("<p></p>").parent().html();
 			}
 		}

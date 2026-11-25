@@ -14,13 +14,37 @@ repos:
         exclude: ".*json$|.*txt$|.*csv|.*md"
       - id: check-yaml
       - id: no-commit-to-branch
-        args: ['--branch', 'develop']
+        args:
+          - '--branch'
+          - 'develop'
+          - '--branch'
+          - 'master'
+          - '--branch'
+          - 'kggk-prod'
+          - '--branch'
+          - 'kggk_uat'
+          - '--branch'
+          - 'gurukrupa-uat'
       - id: check-merge-conflict
       - id: check-ast
       - id: check-json
       - id: check-toml
       - id: check-yaml
       - id: debug-statements
+
+  - repo: local
+    hooks:
+      - id: no-push-to-protected-branch
+        name: "Block direct push to protected branches"
+        language: system
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+        entry: >-
+          bash -c 'case "${PRE_COMMIT_REMOTE_BRANCH#refs/heads/}" in
+          develop|master|kggk-prod|kggk_uat|gurukrupa-uat)
+          echo "Direct push to ${PRE_COMMIT_REMOTE_BRANCH#refs/heads/} is not allowed. Raise a pull request."; exit 1;;
+          esac'
 
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v2.7.1

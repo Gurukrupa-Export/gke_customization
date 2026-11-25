@@ -15,16 +15,19 @@ class EmployeeBRecord(Document):
 
 
 def get_salary_slip(employee):
-    salary_slip = frappe.db.sql(
-        f"""
-		select name,start_date,payment_days,net_pay,total_working_days,custom_month ,custom_extra_payment_days
-		    from `tabSalary Slip`
-			where employee = '{employee}' and docstatus = 1
-	""",
-        as_dict=1,
+    return frappe.get_all(
+        "Salary Slip",
+        filters={"employee": employee, "docstatus": 1},
+        fields=[
+            "name",
+            "start_date",
+            "payment_days",
+            "net_pay",
+            "total_working_days",
+            "custom_month",
+            "custom_extra_payment_days",
+        ],
     )
-
-    return salary_slip
 
 
 def set_data(self):
@@ -36,6 +39,7 @@ def set_data(self):
     else:
         bond_end_date = self.bond_end_date
 
+    self.set("employee_b_record_details", [])
     if salary_slip:
         for row in salary_slip:
             slip_date = row["start_date"]
@@ -47,7 +51,9 @@ def set_data(self):
                 bond_value = (bond_amount / total_working_days) * row["payment_days"]
                 rounded_bond_value = round(bond_value, 2)
 
-                total_pay_days = row["payment_days"] + row["custom_extra_payment_days"]
+                total_pay_days = row["payment_days"] + (
+                    row["custom_extra_payment_days"] or 0
+                )
                 self.append(
                     "employee_b_record_details",
                     {

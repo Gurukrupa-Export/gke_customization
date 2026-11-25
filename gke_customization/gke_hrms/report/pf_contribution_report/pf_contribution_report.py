@@ -2,7 +2,8 @@
 # For license information, please see license.txt
 
 import frappe
-from frappe.utils import add_to_date, today
+from frappe import _
+from frappe.utils import add_to_date, flt, today
 from frappe.utils.dateutils import get_dates_from_timegrain, get_period
 
 
@@ -13,39 +14,19 @@ def execute(filters=None):
 
 
 def get_pf_data(filters=None):
-    # month_name = filters.get("month")
-    # year = filters.get("year")
-
-    # month_info_map = {
-    # 	"January": ("01", "31"), "February": ("02", "28"), "March": ("03", "31"),
-    # 	"April": ("04", "30"), "May": ("05", "31"), "June": ("06", "30"),
-    # 	"July": ("07", "31"), "August": ("08", "31"), "September": ("09", "30"),
-    # 	"October": ("10", "31"), "November": ("11", "30"), "December": ("12", "31")
-    # }
-
-    # month_data = month_info_map.get(month_name)
-    # month_num = month_data[0]
-    # last_day = month_data[1]
-
-    # year_int = ''
-    # if month_name == "February":
-    # 	year_int = int(year)
-    # 	if (year_int % 4 == 0 and year_int % 100 != 0) or (year_int % 400 == 0):
-    # 		last_day = "29"
-
-    # start_date = f"{year}-{month_num}-01"
-    # end_date = f"{year}-{month_num}-{last_day}"
-
     start_date = filters.get("from_date")
     end_date = filters.get("to_date")
 
+    values = {
+        "start_date": start_date,
+        "end_date": end_date,
+        "company": filters.get("company"),
+    }
     emp_condition = ""
     if filters.get("employee"):
-        emp_list = filters.get("employee")
-        formatted_emps = ", ".join([f"'{e}'" for e in emp_list])
-        emp_condition = f"AND ss.employee IN ({formatted_emps})"
+        values["employees"] = tuple(filters.get("employee"))
+        emp_condition = "AND ss.employee IN %(employees)s"
 
-    # Round(Least(Ifnull(basic.basic, 0), 15000) * 0.0367, 2) AS er_share,
     sql_query = f"""
 		SELECT
 			ss.employee,
@@ -90,103 +71,106 @@ def get_pf_data(filters=None):
 		FROM `tabSalary Slip` ss
 		LEFT JOIN `tabEmployee` emp ON emp.name = ss.employee
 		LEFT JOIN (
-			SELECT parent, Sum(CASE WHEN salary_component = 'Basic' THEN amount ELSE 0 end) AS basic
-			FROM `tabSalary Detail`
-			GROUP BY parent
+			SELECT sd.parent, SUM(sd.amount) AS basic
+			FROM `tabSalary Detail` sd
+			INNER JOIN `tabSalary Slip` slip ON slip.name = sd.parent
+			WHERE sd.salary_component = 'Basic'
+				AND slip.docstatus = 1
+				AND slip.start_date >= %(start_date)s
+				AND slip.end_date <= %(end_date)s
+				AND slip.company = %(company)s
+			GROUP BY sd.parent
 		) basic ON basic.parent = ss.name
 		WHERE ss.docstatus = 1
-			AND ss.start_date >= '{start_date}'
-			AND ss.end_date <= '{end_date}'
-			AND ss.company = '{filters.get("company")}'
+			AND ss.start_date >= %(start_date)s
+			AND ss.end_date <= %(end_date)s
+			AND ss.company = %(company)s
 			AND emp.uan_number IS NOT NULL
 			AND ss._is_pf_applicable = 1
 			{emp_condition}
 		ORDER BY ss.employee_name
 		"""
-    # frappe.msgprint("<pre>" + sql_query + "</pre>")
-    data = frappe.db.sql(sql_query, as_dict=True)
-    # frappe.msgprint(f"{data}")
+    data = frappe.db.sql(sql_query, values, as_dict=True)
 
-    data += get_totals(data, filters.get("employee"), filters)
+    data += get_totals(data)
     return data
 
 
-@frappe.whitelist()
-def get_totals(data, employee=None, filters=None):
+def get_totals(data):
     totals = {
         "company": "Total",
         "branch": "",
-        "employee_name": f"Total Employees: {len(data)}",
-        "gross_pay": sum(row.get("gross_pay", 0) for row in data),
-        "epf_wage": sum(row.get("epf_wage", 0) for row in data),
-        "edli_wage": sum(row.get("edli_wage", 0) for row in data),
-        "eps_wage": sum(row.get("eps_wage", 0) for row in data),
-        "ee_share": sum(row.get("ee_share", 0) for row in data),
-        "eps_con": sum(row.get("eps_con", 0) for row in data),
-        "er_share": sum(row.get("er_share", 0) for row in data),
-        "ncp_days": sum(row.get("ncp_days", 0) for row in data),
+        "employee_name": _("Total Employees: {0}").format(len(data)),
+        "gross_pay": sum(flt(row.get("gross_pay")) for row in data),
+        "epf_wage": sum(flt(row.get("epf_wage")) for row in data),
+        "edli_wage": sum(flt(row.get("edli_wage")) for row in data),
+        "eps_wage": sum(flt(row.get("eps_wage")) for row in data),
+        "ee_share": sum(flt(row.get("ee_share")) for row in data),
+        "eps_con": sum(flt(row.get("eps_con")) for row in data),
+        "er_share": sum(flt(row.get("er_share")) for row in data),
+        "ncp_days": sum(flt(row.get("ncp_days")) for row in data),
     }
     return [totals]
 
 
 def get_columns(filters=None):
     columns = [
-        {"fieldname": "uan", "label": "UAN", "fieldtype": "Data", "width": 120},
+        {"fieldname": "uan", "label": _("UAN"), "fieldtype": "Data", "width": 120},
         {
             "fieldname": "employee_name",
-            "label": "Employee Name",
+            "label": _("Employee Name"),
             "fieldtype": "Data",
             "width": 160,
         },
         {
             "fieldname": "gross_pay",
-            "label": "Gross Pay",
+            "label": _("Gross Pay"),
             "fieldtype": "Currency",
             "width": 100,
         },
         {
             "fieldname": "epf_wage",
-            "label": "EPF Wage",
+            "label": _("EPF Wage"),
             "fieldtype": "Currency",
             "width": 100,
         },
         {
             "fieldname": "edli_wage",
-            "label": "EDLI Wage",
+            "label": _("EDLI Wage"),
             "fieldtype": "Currency",
             "width": 100,
         },
         {
             "fieldname": "eps_wage",
-            "label": "EPS Wage",
+            "label": _("EPS Wage"),
             "fieldtype": "Currency",
             "width": 100,
         },
         {
             "fieldname": "ee_share",
-            "label": "EE Share",
+            "label": _("EE Share"),
             "fieldtype": "Currency",
             "width": 100,
         },
         {
             "fieldname": "eps_con",
-            "label": "EPS Contr.",
+            "label": _("EPS Contr."),
             "fieldtype": "Currency",
             "width": 100,
         },
         {
             "fieldname": "er_share",
-            "label": "ER Share",
+            "label": _("ER Share"),
             "fieldtype": "Currency",
             "width": 100,
         },
         {
             "fieldname": "ncp_days",
-            "label": "NCP Days",
+            "label": _("NCP Days"),
             "fieldtype": "Float",
             "width": 80,
         },
-        {"fieldname": "Refund", "label": "Refund", "fieldtype": "Int", "width": 80},
+        {"fieldname": "Refund", "label": _("Refund"), "fieldtype": "Int", "width": 80},
     ]
 
     return columns

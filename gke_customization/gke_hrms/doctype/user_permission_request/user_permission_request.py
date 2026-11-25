@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 
@@ -15,27 +16,22 @@ class UserPermissionRequest(Document):
     def on_submit(self):
         if self.workflow_state == "Create User ID":
             if frappe.db.exists("User", self.username):
-                frappe.throw("User already exists")
-                return
+                frappe.throw(_("User already exists"))
 
             user = frappe.new_doc("User")
             user.email = self.username
             user.first_name = self.first_name
             user.last_name = self.last_name
-            user.last_name = self.last_name
             user.module_profile = self.module_profile
             user.role_profile_name = self.role_profie
             user.insert(ignore_permissions=True)
-
-            # frappe.get_doc(self.doctype, self.name).db_set('user_id', self.username)
-            # self.user_id=self.username
 
             frappe.db.set_value(
                 "User Permission Request", self.name, "user_id", user.name
             )
             self.reload()
 
-            frappe.msgprint("User has been created.")
+            frappe.msgprint(_("User has been created."))
 
     def validate(self):
         if self.task_id:
@@ -46,31 +42,32 @@ class UserPermissionRequest(Document):
 
             if existing:
                 frappe.throw(
-                    f"Task ID {self.task_id} is already used in another record"
+                    _("Task ID {0} is already used in another record").format(
+                        self.task_id
+                    )
                 )
 
 
 @frappe.whitelist()
 def update_employee(job_applicant, username):
-    # if self.workflow_state == 'Update Employee':
     employee = frappe.get_all(
-        "Employee", filters={"job_applicant": job_applicant}, fields=["name"]
+        "Employee", filters={"job_applicant": job_applicant}, pluck="name", limit=1
     )
 
     if employee:
-        emp_doc = frappe.get_doc("Employee", employee[0].name)
+        emp_doc = frappe.get_doc("Employee", employee[0])
         emp_doc.user_id = username
         emp_doc.create_user_permission = 0
         emp_doc.save(ignore_permissions=True)
-        frappe.msgprint("user id updated")
+        frappe.msgprint(_("User ID updated"))
     else:
-        frappe.msgprint("No Employee found for Job Applicant.")
+        frappe.msgprint(_("No Employee found for Job Applicant."))
 
 
 @frappe.whitelist()
 def get_task_data(task_id):
     if not task_id:
-        return frappe.throw("Task ID is required")
+        frappe.throw(_("Task ID is required"))
 
     activity = frappe.get_all(
         "Employee Boarding Activity",
@@ -80,25 +77,19 @@ def get_task_data(task_id):
     )
 
     if not activity:
-        return frappe.throw("No onboarding task")
+        frappe.throw(_("No onboarding task"))
 
     onboarding = frappe.get_doc("Employee Onboarding", activity[0].parent)
     Job_applicant = frappe.get_doc("Job Applicant", onboarding.job_applicant)
-    # job_title = Job_applicant.job_title
     location = onboarding.custom_branch
-    # location = frappe.db.get_value('Job Opening', job_title, 'location')
-    # first_name = onboarding.employee_name.split()[0]
-    # last_name = onboarding.employee_name.split()[-1]
 
     employee = frappe.get_all(
         "Employee",
         filters={"job_applicant": onboarding.job_applicant},
         fields=["name", "first_name", "last_name", "middle_name", "employee_name"],
-        # limit=1
     )
-    # frappe.throw(f"{employee}")
     if not employee:
-        frappe.throw("No Employee found for this Job Applicant.")
+        frappe.throw(_("No Employee found for this Job Applicant."))
     employee_id = employee[0].name
     first_name = employee[0].first_name
 
@@ -119,7 +110,6 @@ def get_task_data(task_id):
     designation = (
         onboarding.designation if onboarding.designation else Job_applicant.designation
     )
-    # employee_name=onboarding.employee_name if onboarding.employee_name else Job_applicant.applicant_name
 
     return {
         "job_applicant": onboarding.job_applicant,

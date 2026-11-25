@@ -1,13 +1,33 @@
-from datetime import datetime
-
 import frappe
 from dateutil.relativedelta import relativedelta
 from frappe import _
+from frappe.utils import cint, flt, getdate
+
+
+def get_grade_level(grade):
+    level = (grade or "").split("-")[-1].strip()
+    if not level.isdigit():
+        frappe.throw(
+            _("Could not read the level from Employee Grade {0}.").format(grade)
+        )
+
+    return cint(level)
 
 
 def validate(self, method=None):
     loan_eligibility_months = 12
-    # guarantors = [s for s in self.custom_loan_guarantor if s.employee]
+
+    if not self.applicant:
+        return
+
+    applicant = frappe.db.get_value(
+        "Employee",
+        self.applicant,
+        ["ctc", "date_of_joining", "grade"],
+        as_dict=True,
+    )
+    if not applicant:
+        frappe.throw(_("Employee {0} not found.").format(self.applicant))
 
     last_app = frappe.get_all(
         "Loan Application",
@@ -20,27 +40,18 @@ def validate(self, method=None):
         order_by="posting_date desc",
         limit=1,
     )
-    applicant = frappe.get_doc("Employee", self.applicant)
-    if self.loan_amount > 2 * applicant.ctc:
+    max_loan_amount = 2 * flt(applicant.ctc)
+    if flt(self.loan_amount) > max_loan_amount:
         frappe.throw(
-            f"You can't apply for this loan amount.Maximum allowed is {2 * applicant.ctc}"
+            _("You can't apply for this loan amount. Maximum allowed is {0}").format(
+                max_loan_amount
+            )
         )
-    joining_date_applicant = applicant.date_of_joining
-    current_posting_date = self.posting_date
-    if isinstance(joining_date_applicant, str):
-        joining_date_applicant = datetime.strptime(
-            joining_date_applicant, "%Y-%m-%d"
-        ).date()
-    if isinstance(current_posting_date, str):
-        current_posting_date = datetime.strptime(
-            current_posting_date, "%Y-%m-%d"
-        ).date()
+    joining_date_applicant = getdate(applicant.date_of_joining)
+    current_posting_date = getdate(self.posting_date)
 
     if last_app:
-        last_posting_date = last_app[0].posting_date
-
-        if isinstance(last_posting_date, str):
-            last_posting_date = datetime.strptime(last_posting_date, "%Y-%m-%d").date()
+        last_posting_date = getdate(last_app[0].posting_date)
 
         allowed_date = last_posting_date + relativedelta(months=+18)
 
@@ -59,11 +70,10 @@ def validate(self, method=None):
             _("You cannot apply for a loan before 1 years from your Joining Date")
         )
 
-    if not self.applicant or not self.custom_loan_guarantor:
+    if not self.custom_loan_guarantor:
         return
 
-    applicant = frappe.get_doc("Employee", self.applicant)
-    applicant_level = int(applicant.grade.split("-")[-1])
+    applicant_level = get_grade_level(applicant.grade)
 
     guarantor_ids = [g.employee for g in self.custom_loan_guarantor if g.employee]
     guarantor_details = {}
@@ -85,42 +95,27 @@ def validate(self, method=None):
             continue
         if not guarantor.grade:
             continue
-        g_level = int(guarantor.grade.split("-")[-1])
+        g_level = get_grade_level(guarantor.grade)
 
         if g_level > applicant_level:
             frappe.throw(
-                f"Guarantor {g.employee} has a lower grade ({guarantor.grade}) than applicant ({applicant.grade})."
+                _("Guarantor {0} has a lower grade ({1}) than applicant ({2}).").format(
+                    g.employee, guarantor.grade, applicant.grade
+                )
             )
 
-        joining_date = guarantor.date_of_joining
-        current_posting_date = self.posting_date
-        if isinstance(joining_date, str):
-            joining_date = datetime.strptime(joining_date, "%Y-%m-%d").date()
-        if isinstance(current_posting_date, str):
-            current_posting_date = datetime.strptime(
-                current_posting_date, "%Y-%m-%d"
-            ).date()
+        joining_date = getdate(guarantor.date_of_joining)
         allowed_date_for_guarantor = joining_date + relativedelta(months=+18)
         if current_posting_date < allowed_date_for_guarantor:
             frappe.throw(
-                "Guarantor cannot apply for a loan before 1.5 years from your Joining"
+                _(
+                    "Guarantor {0} cannot be selected before completing 1.5 years from their Joining Date."
+                ).format(g.employee)
             )
 
-    # existing = frappe.db.get_all("Loan Guarantor",
-    #     filters={
-    #         "employee": ["in", guarantor_ids],
-    #         "parenttype": "Loan Application",
-    #         "parent": ["!=", self.name]
-    #     },
-    #     fields=["employee", "parent"]
-    # )
+    if not guarantor_ids:
+        return
 
-    # if existing:
-    #     used = [f"{row.employee} (in {row.parent})" for row in existing]
-    #     used_list = ", ".join(used)
-    #     frappe.throw("You cannot select this employee as they are already a guarantor in another loan application")
-
-    # shubham - 17-07-2026
     existing = frappe.db.sql(
         """
         SELECT
@@ -133,14 +128,14 @@ def validate(self, method=None):
             ON la.name = lg.parent
 
         WHERE lg.employee IN %(employees)s
+        AND lg.parenttype = 'Loan Application'
         AND lg.parent != %(current_parent)s
-        AND la.workflow_state NOT IN ('Rejected', 'Cancelled')
+        AND IFNULL(la.workflow_state, '') NOT IN ('Rejected', 'Cancelled')
     """,
         {"employees": tuple(guarantor_ids), "current_parent": self.name},
         as_dict=True,
     )
 
-    # frappe.throw(f"{existing}")
     if existing:
         used = [
             f"{row.employee} (Loan: {row.name}, Status: {row.workflow_state})"
@@ -148,6 +143,8 @@ def validate(self, method=None):
         ]
 
         frappe.throw(
-            "You cannot select this employee as guarantor because they are already "
-            "assigned in another active loan application:<br><br>" + "<br>".join(used)
+            _(
+                "You cannot select this employee as guarantor because they are already "
+                "assigned in another active loan application:<br><br>{0}"
+            ).format("<br>".join(used))
         )

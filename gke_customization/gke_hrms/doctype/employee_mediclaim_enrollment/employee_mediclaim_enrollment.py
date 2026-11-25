@@ -41,11 +41,8 @@ class EmployeeMediclaimEnrollment(Document):
                     "designation": employee_details.get("designation"),
                     "branch": employee_details.get("branch"),
                     "gender": employee_details.get("gender"),
-                    # "date_of_birth": employee_details.get("date_of_birth"),
                     "date_of_joining": employee_details.get("date_of_joining"),
                     "marital_status": employee_details.get("marital_status"),
-                    # "aadhaar_number": employee_details.get("aadhar_number"),
-                    # "name_as_per_aadhaar": employee_details.get("name_as_per_aadhar"),
                     "address": employee_details.get("current_address"),
                 }
             )
@@ -70,8 +67,8 @@ class EmployeeMediclaimEnrollment(Document):
                 if row.age >= 25:
                     frappe.throw(
                         _(
-                            f"Row {row.idx}: Age for Son/Daughter cannot be more than 25 years."
-                        )
+                            "Row {0}: Age for Son/Daughter cannot be more than 25 years."
+                        ).format(row.idx)
                     )
 
             # Mother / Father Validation
@@ -79,8 +76,8 @@ class EmployeeMediclaimEnrollment(Document):
                 if row.age >= 80:
                     frappe.throw(
                         _(
-                            f"Row {row.idx}: Age for Mother/Father cannot be more than 80 years."
-                        )
+                            "Row {0}: Age for Mother/Father cannot be more than 80 years."
+                        ).format(row.idx)
                     )
 
     def validate_aadhar_number(self):
@@ -99,7 +96,9 @@ class EmployeeMediclaimEnrollment(Document):
                 ):
                     if not re.match(r"^\d{12}$", row.document_number.strip()):
                         frappe.throw(
-                            f"Row {row.idx}: Aadhar Number is invalid, please enter a valid 12 digit number"
+                            _(
+                                "Row {0}: Aadhar Number is invalid, please enter a valid 12 digit number"
+                            ).format(row.idx)
                         )
 
     def set_gender(self):
@@ -120,12 +119,12 @@ class EmployeeMediclaimEnrollment(Document):
             match = re.search(r"\d+", self.additional_insured)
 
             if not match:
-                frappe.throw("Invalid Additional Insured value.")
+                frappe.throw(_("Invalid Additional Insured value."))
 
             additional_cover = int(match.group())
 
             if additional_cover < 0 or additional_cover > 15:
-                frappe.throw("Additional Insured must be between 1 and 15 Lakh.")
+                frappe.throw(_("Additional Insured must be between 1 and 15 Lakh."))
 
         company_cover = self.insured_by_company or 0
         self.total = company_cover + additional_cover * 100000

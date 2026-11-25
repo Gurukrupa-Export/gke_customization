@@ -7,7 +7,7 @@ from datetime import time as dtime
 import frappe
 from frappe import _
 from frappe.query_builder.functions import Count, Date, Max, Min
-from frappe.utils import add_days, formatdate, get_time, getdate, today
+from frappe.utils import add_days, escape_html, formatdate, get_time, getdate, today
 
 
 def execute(filters=None):
@@ -101,11 +101,22 @@ def get_data(filters):
     if not employees:
         return [], get_empty_summary()
 
-    employee_names = [e.name for e in employees]
+    attendance_maps = get_attendance_maps(date, [e.name for e in employees])
+    return build_attendance_rows(employees, attendance_maps)
 
-    shift_type_map = get_shift_type_map()
-    checkin_map = get_checkin_details_map(date, employee_names)
-    remark_map = get_remark_map(date, employee_names)
+
+def get_attendance_maps(date, employee_names):
+    return frappe._dict(
+        shift_type_map=get_shift_type_map(),
+        checkin_map=get_checkin_details_map(date, employee_names),
+        remark_map=get_remark_map(date, employee_names),
+    )
+
+
+def build_attendance_rows(employees, attendance_maps):
+    shift_type_map = attendance_maps.shift_type_map
+    checkin_map = attendance_maps.checkin_map
+    remark_map = attendance_maps.remark_map
 
     summary = get_empty_summary()
     data = []
@@ -134,13 +145,13 @@ def get_data(filters):
         cnt = checkin.cnt if checkin else 0
 
         if cnt == 0:
-            row["status"] = "Absent"
+            row["status"] = _("Absent")
             summary["absent"] += 1
 
         elif cnt % 2 != 0:
             # odd number of punches means the last in/out isn't paired
             # (forgot to check out, or an odd extra punch) - needs manual review
-            row["status"] = "Error"
+            row["status"] = _("Error")
             row["in_time"] = format_time_value(checkin.first_time)
             summary["error"] += 1
 
@@ -183,10 +194,10 @@ def get_data(filters):
                 # came in after the first-half cutoff (can never make the
                 # threshold hours within the shift), or simply worked fewer
                 # hours than the threshold -> Half Day either way
-                row["status"] = "Half Day"
+                row["status"] = _("Half Day")
                 summary["half_day"] += 1
             else:
-                row["status"] = "Present"
+                row["status"] = _("Present")
                 summary["present"] += 1
 
         data.append(row)
@@ -236,7 +247,7 @@ def get_employees(filters):
 
 
 def get_manager_departments(user_id):
-    """Departments where `user_id` is listed in custom_user_group. None = no filter (all departments)."""
+    """Departments where `user_id` is listed in custom_user_group. Returns None when there is no user_id."""
     if not user_id:
         return None
     return frappe.get_all(
@@ -298,10 +309,14 @@ def get_remark_map(date, employee_names):
     remark_map = {}
 
     for emp in get_ot_request_employees(date, employee_names):
-        remark_map.setdefault(emp, []).append("OT Request")
+        remark_map.setdefault(emp, []).append(_("OT Request"))
 
     for emp, reason in get_attendance_request_employees(date, employee_names):
-        label = f"Attendance Request ({reason})" if reason else "Attendance Request"
+        label = (
+            _("Attendance Request ({0})").format(reason)
+            if reason
+            else _("Attendance Request")
+        )
         remark_map.setdefault(emp, []).append(label)
 
     return remark_map
@@ -454,46 +469,59 @@ def get_report_summary(summary, date):
 # ---------------------------------------------------------------------------
 # Send Mail button - emails this report to each department's manager(s)
 # ---------------------------------------------------------------------------
-GROUP_FIELD = "custom_user_group"  # change if Branch uses a different fieldname
-
-
-def get_branch_hr_emails(department):
-    """HR users (Branch.custom_user_group) for every branch that has an
-    active employee in this department."""
-    branches = frappe.get_all(
+def get_branch_hr_email_map(departments):
+    """department -> HR users (Branch.custom_user_group) for every branch that has an
+    active employee in that department."""
+    department_branches = frappe.get_all(
         "Employee",
-        filters={"department": department, "status": "Active", "branch": ["is", "set"]},
-        pluck="branch",
+        filters={
+            "department": ["in", departments],
+            "status": "Active",
+            "branch": ["is", "set"],
+        },
+        fields=["department", "branch"],
         distinct=True,
     )
-    if not branches:
-        return []
+    if not department_branches:
+        return {}
 
-    users = frappe.get_all(
+    branch_users = frappe.get_all(
         "User Group Member",
         filters={
             "parenttype": "Branch",
-            "parentfield": GROUP_FIELD,
-            "parent": ["in", branches],
-        },
-        pluck="user",
-    )
-    return [u for u in users if u]
-
-
-def get_department_manager_emails(department):
-    """Users listed in Department.custom_user_group (Table MultiSelect,
-    child doctype 'User Group Member', field 'user')."""
-    emails = frappe.get_all(
-        "User Group Member",
-        filters={
-            "parenttype": "Department",
             "parentfield": "custom_user_group",
-            "parent": department,
+            "parent": ["in", list({row.branch for row in department_branches})],
         },
-        pluck="user",
+        fields=["parent", "user"],
     )
-    return [e for e in emails if e]
+    users_by_branch = {}
+    for row in branch_users:
+        if row.user:
+            users_by_branch.setdefault(row.parent, []).append(row.user)
+
+    hr_email_map = {}
+    for row in department_branches:
+        hr_email_map.setdefault(row.department, []).extend(
+            users_by_branch.get(row.branch, [])
+        )
+    return hr_email_map
+
+
+def get_department_manager_email_map(department=None):
+    """department -> users listed in Department.custom_user_group (Table MultiSelect,
+    child doctype 'User Group Member', field 'user')."""
+    filters = {"parenttype": "Department", "parentfield": "custom_user_group"}
+    if department:
+        filters["parent"] = department
+
+    manager_email_map = {}
+    for row in frappe.get_all(
+        "User Group Member", filters=filters, fields=["parent", "user"]
+    ):
+        manager_email_map.setdefault(row.parent, [])
+        if row.user:
+            manager_email_map[row.parent].append(row.user)
+    return manager_email_map
 
 
 def render_email_html(department, date, rows, summary):
@@ -501,43 +529,43 @@ def render_email_html(department, date, rows, summary):
         "".join(
             f"""
 		<tr>
-			<td>{r["employee_name"]}</td>
-			<td>{r["employee"]}</td>
-			<td>{r["shift"]}</td>
-			<td>{r["in_time"]}</td>
-			<td>{r["out_time"]}</td>
-			<td>{r["status"]}</td>
-			<td>{r["late_entry"]}</td>
-			<td>{r["early_exit"]}</td>
-			<td>{r["remark"]}</td>
+			<td>{escape_html(r['employee_name'])}</td>
+			<td>{escape_html(r['employee'])}</td>
+			<td>{escape_html(r['shift'])}</td>
+			<td>{r['in_time']}</td>
+			<td>{r['out_time']}</td>
+			<td>{escape_html(r['status'])}</td>
+			<td>{r['late_entry']}</td>
+			<td>{r['early_exit']}</td>
+			<td>{escape_html(r['remark'])}</td>
 		</tr>"""
             for r in rows
         )
-        or "<tr><td colspan='9' style='text-align:center;'>No employees found</td></tr>"
+        or f"<tr><td colspan='9' style='text-align:center;'>{_('No employees found')}</td></tr>"
     )
 
     return f"""
-	<h3>Daily Attendance Report — {department} — {formatdate(date, "dd-mm-yyyy")}</h3>
+	<h3>{_("Daily Attendance Report")} — {escape_html(department)} — {formatdate(date, "dd-mm-yyyy")}</h3>
 	<p>{frappe.local.site}</p>
 	<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; font-size:13px;">
 		<thead style="background:#f2f2f2;">
 			<tr>
-				<th>Employee Name</th><th>Employee ID</th><th>Shift</th>
-				<th>In Time</th><th>Out Time</th>
-				<th>Status</th><th>Late Entry</th><th>Early Exit</th><th>Remark</th>
+				<th>{_("Employee Name")}</th><th>{_("Employee ID")}</th><th>{_("Shift")}</th>
+				<th>{_("In Time")}</th><th>{_("Out Time")}</th>
+				<th>{_("Status")}</th><th>{_("Late Entry")}</th><th>{_("Early Exit")}</th><th>{_("Remark")}</th>
 			</tr>
 		</thead>
 		<tbody>{rows_html}</tbody>
 	</table>
-	<h4 style="margin-top:16px;">Department Summary</h4>
+	<h4 style="margin-top:16px;">{_("Department Summary")}</h4>
 	<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
-		<tr><td>Total Employees</td><td>{summary["total_employees"]}</td></tr>
-		<tr><td>Present</td><td>{summary["present"]}</td></tr>
-		<tr><td>Absent</td><td>{summary["absent"]}</td></tr>
-		<tr><td>Half Day</td><td>{summary["half_day"]}</td></tr>
-		<tr><td>Late Entry</td><td>{summary["late_entry"]}</td></tr>
-		<tr><td>Early Exit</td><td>{summary["early_exit"]}</td></tr>
-		<tr><td>Error</td><td>{summary["error"]}</td></tr>
+		<tr><td>{_("Total Employees")}</td><td>{summary['total_employees']}</td></tr>
+		<tr><td>{_("Present")}</td><td>{summary['present']}</td></tr>
+		<tr><td>{_("Absent")}</td><td>{summary['absent']}</td></tr>
+		<tr><td>{_("Half Day")}</td><td>{summary['half_day']}</td></tr>
+		<tr><td>{_("Late Entry")}</td><td>{summary['late_entry']}</td></tr>
+		<tr><td>{_("Early Exit")}</td><td>{summary['early_exit']}</td></tr>
+		<tr><td>{_("Error")}</td><td>{summary['error']}</td></tr>
 	</table>
 	"""
 
@@ -550,56 +578,70 @@ def send_daily_attendance_report(date=None, department=None):
     Returns {"sent": [...], "skipped": [...]} so the caller (the report's
     Send Mail button) can show what actually happened."""
 
-    date = date or get_report_date()
+    date = getdate(date) if date else get_report_date()
 
-    departments = frappe.get_all(
-        "User Group Member",
-        filters={"parenttype": "Department", "parentfield": "custom_user_group"},
-        pluck="parent",
-        distinct=True,
+    manager_email_map = get_department_manager_email_map(department)
+    departments = [department] if department else list(manager_email_map)
+
+    employees_by_department = {}
+    for emp in get_employees(frappe._dict({"department": department})):
+        if emp.department in departments:
+            employees_by_department.setdefault(emp.department, []).append(emp)
+
+    employee_names = [
+        emp.name for employees in employees_by_department.values() for emp in employees
+    ]
+    attendance_maps = (
+        get_attendance_maps(date, employee_names) if employee_names else None
     )
-    if department:
-        departments = [department]
+    branch_hr_email_map = get_branch_hr_email_map(departments) if departments else {}
 
     sent = []
     skipped = []
 
     for dept in departments:
-        rows, summary = get_data(frappe._dict({"department": dept, "date": date}))
+        try:
+            department_employees = employees_by_department.get(dept)
+            if not department_employees:
+                skipped.append(dept)
+                continue
 
-        if not rows:
-            skipped.append(dept)
-            continue
+            rows, summary = build_attendance_rows(department_employees, attendance_maps)
 
-        manager_emails = get_department_manager_emails(dept)
-        if not manager_emails:
-            frappe.log_error(
-                title="Daily Attendance Report — no manager in custom_user_group",
-                message=f"Department: {dept}",
-            )
-            skipped.append(dept)
-            continue
-        if isinstance(manager_emails, list):
+            manager_emails = manager_email_map.get(dept)
+            if not manager_emails:
+                frappe.log_error(
+                    title="Daily Attendance Report — no manager in custom_user_group",
+                    message=f"Department: {dept}",
+                )
+                skipped.append(dept)
+                continue
             manager_string = ", ".join(manager_emails)
-        else:
-            manager_string = manager_emails
 
-        hr_emails = get_branch_hr_emails(dept)
-        fixed_cc = ["angat_p@gkexport.com"]
-        cc = [e for e in dict.fromkeys(fixed_cc + hr_emails) if e not in manager_emails]
-        # frappe.throw(f"cc mail {cc} manager_string {manager_string}")
+            hr_emails = branch_hr_email_map.get(dept, [])
+            fixed_cc = ["angat_p@gkexport.com"]
+            cc = [
+                e
+                for e in dict.fromkeys(fixed_cc + hr_emails)
+                if e not in manager_emails
+            ]
 
-        html = render_email_html(dept, date, rows, summary)
-        frappe.sendmail(
-            recipients=manager_string,
-            # cc=["angat_p@gkexport.com","hr_srt@gkexport.com"],
-            cc=cc,
-            sender="alerts@gkexport.com",
-            subject=f"Daily Attendance Report — {dept} — {formatdate(date, 'dd-mm-yyyy')}",
-            message=html,
-            now=True,
-            expose_recipients="header",
-        )
-        sent.append({"department": dept, "managers": manager_emails})
+            html = render_email_html(dept, date, rows, summary)
+            frappe.sendmail(
+                recipients=manager_string,
+                cc=cc,
+                sender="alerts@gkexport.com",
+                subject=f"Daily Attendance Report — {dept} — {formatdate(date, 'dd-mm-yyyy')}",
+                message=html,
+                now=True,
+                expose_recipients="header",
+            )
+            sent.append({"department": dept, "managers": manager_emails})
+        except Exception:
+            frappe.log_error(
+                title=f"Daily Attendance Report failed for {dept}",
+                message=frappe.get_traceback(),
+            )
+            continue
 
     return {"sent": sent, "skipped": skipped}

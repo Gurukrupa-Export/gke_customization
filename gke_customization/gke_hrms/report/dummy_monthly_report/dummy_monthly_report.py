@@ -19,6 +19,8 @@ from gurukrupa_customizations.gurukrupa_customizations.doctype.manual_punch.manu
     get_checkins,  # type: ignore
 )
 
+from gke_customization.gke_hrms.utils import get_date_range
+
 STATUS = {
     "Absent": "A",
     "Present": "P",
@@ -81,7 +83,14 @@ def get_data(filters=None):
     # OT Log subquery
     # -----------------------------
     ot_subquery = (
-        frappe.qb.from_(OTLog).select("*").where(OTLog.is_cancelled == 0)
+        frappe.qb.from_(OTLog)
+        .select(
+            OTLog.employee,
+            OTLog.attendance_date,
+            SEC_TO_TIME(Sum(TIME_TO_SEC(OTLog.allowed_ot))).as_("allowed_ot"),
+        )
+        .where(OTLog.is_cancelled == 0)
+        .groupby(OTLog.employee, OTLog.attendance_date)
     ).as_("ot")
 
     # -----------------------------
@@ -272,7 +281,6 @@ def get_totals(data, employee):
 
     net_pay_hrs = {
         "ot_hours": "Net Hrs",
-        # "total_pay_hrs" : totals["total_pay_hrs"] + refund["total_pay_hrs"] - penalty_hrs
         "total_pay_hrs": totals["net_wrk_hrs"]
         + totals["ot_hours"]
         + refund["total_pay_hrs"]
@@ -286,24 +294,12 @@ def get_totals(data, employee):
         ),
     }
 
-    # net_pay_hrs_wo_ot = {
-    # 	"ot_hours": "Net Hrs w/o OT",
-    # 	"total_pay_hrs" : totals["total_pay_hrs"] + refund["total_pay_hrs"] - penalty_hrs - totals["ot_hours"]
-    # }
-
-    # net_pay_days_wo_ot = {
-    # 	"ot_hours": "Net Days w/o OT",
-    # 	"total_pay_hrs" : flt(net_pay_hrs_wo_ot['total_pay_hrs'].total_seconds() / conversion_factor, 2)
-    # }
-
     net_pay_hrs_wo_ot = {
-        # "ot_hours": "Netwrk Hrs OT",
         "ot_hours": "Net Hrs w/o OT",
         "total_pay_hrs": totals["net_wrk_hrs"] + refund["total_pay_hrs"] - penalty_hrs,
     }
 
     net_pay_days_wo_ot = {
-        # "ot_hours": "Netwrk Days OT",
         "ot_hours": "Net Days w/o OT",
         "total_pay_hrs": flt(
             net_pay_hrs_wo_ot["total_pay_hrs"].total_seconds() / conversion_factor, 2
@@ -320,7 +316,6 @@ def get_totals(data, employee):
         net_pay_hrs_wo_ot,
         net_pay_days_wo_ot,
     ]
-    # return [totals, total_days, refund, penalty_for_late_entry, net_pay_hrs, net_pay_days, net_pay_hrs_wo_ot, net_pay_days_wo_ot, net_wrk_hrs_wo_ot, net_wrk_days_wo_ot]
 
 
 def process_data(data, filters):
@@ -337,7 +332,6 @@ def process_data(data, filters):
         ["default_shift", "holiday_list", "date_of_joining"],
         as_dict=1,
     )
-    # shift = emp_det.get("default_shift")
 
     shift = ""
     for row in data:
@@ -390,7 +384,7 @@ def process_data(data, filters):
                 IF(
                     TIME(EmployeeCheckin.time)
                     < shift_start_time,  # shift_start_time = 23:00:00 and time =  22:00:00
-                    Date(EmployeeCheckin.time - timedelta(days=1)),
+                    Date(EmployeeCheckin.time - timedelta(days=1)),  #
                     Date(EmployeeCheckin.time),
                 ).as_("login_date"),
                 EmployeeCheckin.attendance,
@@ -473,17 +467,12 @@ def process_data(data, filters):
                 else:
                     row.net_wrk_hrs = timedelta(hours=shift_hours)
                     row.total_pay_hrs = row.net_wrk_hrs + (row.ot_hours or timedelta(0))
-        # if row.late_hrs:
-        # 	frappe.throw(f"Error in attendance for date {row.attendance_date} {row.status}. Please contact HR.")
         if row.lh:
             row.status = "LH"
         shift_hours_in_sec = 0  # added from vishabhai Code
 
         if row.shift_hours:
             shift_hours_in_sec = row.shift_hours * 3600
-            # if row.net_wrk_hrs.total_seconds() > shift_hours_in_sec.total_seconds() or (shift_hours_in_sec.total_seconds() - row.net_wrk_hrs.total_seconds()) < 60:
-            # 	row.net_wrk_hrs = timedelta(hours=row.shift_hours)
-
             # added from vishabhai Code
             # FIXED: Don't override LWP hours
             if row.status not in ["Leave Without Pay", "Absent"]:
@@ -575,16 +564,11 @@ def process_data(data, filters):
                 if ot_hours := row.get("ot_hours"):
                     row["total_pay_hrs"] = ot_hours
             else:
-                # row["status"] = "OD"
                 row["total_pay_hrs"] = row.get("total_pay_hrs") or timedelta(0)
 
         elif date in wo and (date >= getdate(emp_det.get("date_of_joining"))):
             status = "WO"
             date_time = datetime.combine(getdate(date), get_time(shift_det.start_time))
-
-            # if first_in_last_out := get_checkins(employee,date_time):
-            # 	row["in_time"] = get_time(first_in_last_out[0].get("time"))
-            # 	row["out_time"] = get_time(first_in_last_out[-1].get("time"))
 
             ########################################################################
             # Get check-ins for this WO date
@@ -594,13 +578,28 @@ def process_data(data, filters):
                 # Filter check-ins by checking if they have a linked Attendance record
                 # Check-ins WITH attendance field: belong to a previous shift (e.g., 31-Jan night shift)
                 # Check-ins WITHOUT attendance field: likely incomplete OT work on WO day
+                checkin_names = [
+                    ci.get("employee_checkin")
+                    for ci in first_in_last_out
+                    if ci.get("employee_checkin")
+                ]
+                linked_checkins = (
+                    set(
+                        frappe.get_all(
+                            "Employee Checkin",
+                            filters={
+                                "name": ("in", checkin_names),
+                                "attendance": ("is", "set"),
+                            },
+                            pluck="name",
+                        )
+                    )
+                    if checkin_names
+                    else set()
+                )
                 for ci in first_in_last_out:
                     # Check if this check-in is linked to an Attendance record
-                    if frappe.db.get_value(
-                        "Employee Checkin",
-                        {"name": ci.get("employee_checkin")},
-                        "attendance",
-                    ):
+                    if ci.get("employee_checkin") in linked_checkins:
                         # This check-in belongs to a previous shift's attendance record
                         # Don't show times to avoid confusion (previous shift's data)
                         has_checkin_error = (
@@ -622,15 +621,6 @@ def process_data(data, filters):
                 row["total_pay_hrs"] = ot_hours
             ##########################################################################
         elif (date in holidays) and (date >= getdate(emp_det.get("date_of_joining"))):
-            # if row:
-            # 	if row["status"] == "P":
-            # status = 'H'
-            # row['net_wrk_hrs'] = timedelta(0)
-            # row['total_pay_hrs'] = timedelta(0)
-            # else:
-            # status = 'H'
-            # row['net_wrk_hrs'] = timedelta(hours=shift_hours)
-            # row['total_pay_hrs'] = timedelta(hours=shift_hours)
             if row.get("status") in ["LWP", "PL", "CL", "SL", "ML", "WFH"]:
                 pass
             else:
@@ -641,7 +631,6 @@ def process_data(data, filters):
             status = "XX"
 
         # Apply ERR status only if the date is NOT a WO, Holiday, or OD
-        # if has_checkin_error and status not in ["WO", "H", "OD"]:
         if has_checkin_error:
             row["status"] = "ERR"
             row["net_wrk_hrs"] = timedelta(0)
@@ -713,23 +702,6 @@ def get_conditions(filters):
         conditions.append(Attendance.employee == filters.get("employee"))
 
     return conditions
-
-
-def get_date_range(start_date, end_date):
-    import datetime
-
-    start_date = getdate(start_date)
-    end_date = getdate(end_date)
-
-    range = []
-    delta = datetime.timedelta(days=1)
-    current_date = start_date
-
-    while current_date <= end_date:
-        range.append(current_date)
-        current_date += delta
-
-    return range
 
 
 @frappe.whitelist()

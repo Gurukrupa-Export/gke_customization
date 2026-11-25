@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 import frappe
-from frappe.utils import add_days, get_first_day, getdate, today
+from frappe.utils import add_days, cint, get_first_day, getdate, today
 
 from gke_customization.gke_hrms.report.pf_challan_report.pf_challan_report import (
     get_account_total_summary,
@@ -15,32 +15,39 @@ def _log_exc(title):
     frappe.log_error(title=title[:140], message=frappe.get_traceback())
 
 
+def get_date_range(start_date, end_date):
+    """Return every date from start_date to end_date, both inclusive."""
+    start_date = getdate(start_date)
+    end_date = getdate(end_date)
+
+    date_range = []
+    current_date = start_date
+    while current_date <= end_date:
+        date_range.append(current_date)
+        current_date += timedelta(days=1)
+
+    return date_range
+
+
 @frappe.whitelist()
 def get_account_total_summary_for_print(company, from_date, to_date):
     filters = {"company": company, "from_date": from_date, "to_date": to_date}
     return get_account_total_summary(filters)
 
 
-# 21-01-2026 by Aditya
 @frappe.whitelist()
 def check_sadwitch_rule():
     manual, formatted_from_date, formatted_to_date = frappe.db.get_value(
         "Biometric Settings", "Biometric Settings", ["manual", "from_date", "to_date"]
     )
 
-    manual = int(manual)
+    manual = cint(manual)
 
-    # --------------------------------------------------
-    # Date range calculation
-    # --------------------------------------------------
     if not manual:
-        today = date.today()
-        formatted_to_date = today
-        formatted_from_date = today - timedelta(days=SANDWICH_RULE_LOOKBACK_DAYS)
+        current_day = date.today()
+        formatted_to_date = current_day
+        formatted_from_date = current_day - timedelta(days=SANDWICH_RULE_LOOKBACK_DAYS)
 
-    # --------------------------------------------------
-    # Fetch Absent + On Leave attendances
-    # --------------------------------------------------
     absent_attendances = frappe.get_all(
         "Attendance",
         filters={
@@ -51,7 +58,6 @@ def check_sadwitch_rule():
         fields=["name", "employee", "attendance_date"],
     )
 
-    # Group by employee
     employee_attendance_map = {}
     for attendance in absent_attendances:
         employee_attendance_map.setdefault(attendance["employee"], []).append(
@@ -60,15 +66,12 @@ def check_sadwitch_rule():
 
     holidays_to_insert = []
 
-    # --------------------------------------------------
-    # Employee-wise sandwich evaluation
-    # --------------------------------------------------
     employee_data_map = {
         emp.name: emp
         for emp in frappe.get_all(
             "Employee",
             filters={"name": ["in", list(employee_attendance_map.keys())]},
-            fields=["name", "holiday_list", "status"],
+            fields=["name", "holiday_list", "status", "company"],
         )
     }
 
@@ -114,9 +117,6 @@ def check_sadwitch_rule():
 
         attendance_dates = {getdate(a["attendance_date"]) for a in attendances}
 
-        # --------------------------------------------------
-        # Sandwich logic per holiday
-        # --------------------------------------------------
         for holiday in holiday_dates:
             prev_day = add_days(holiday, -1)
             next_day = add_days(holiday, 1)
@@ -127,7 +127,6 @@ def check_sadwitch_rule():
             prev_real_absent = set()
             next_real_absent = set()
 
-            # ---------- Previous side ----------
             while (
                 prev_day in attendance_dates
                 or prev_day in holiday_dates
@@ -140,7 +139,6 @@ def check_sadwitch_rule():
 
                 prev_day = add_days(prev_day, -1)
 
-            # ---------- Next side ----------
             while (
                 next_day in attendance_dates
                 or next_day in holiday_dates
@@ -153,9 +151,6 @@ def check_sadwitch_rule():
 
                 next_day = add_days(next_day, 1)
 
-            # --------------------------------------------------
-            # STRICT sandwich condition
-            # --------------------------------------------------
             if prev_real_absent and next_real_absent:
                 all_lop_dates = prev_chain_days | {holiday} | next_chain_days
 
@@ -163,9 +158,6 @@ def check_sadwitch_rule():
                     if day not in weekoff_dates:
                         holidays_to_insert.append({"employee": employee, "date": day})
 
-    # --------------------------------------------------
-    # Insert Attendance (LWP)
-    # --------------------------------------------------
     if not holidays_to_insert:
         return
 
@@ -188,18 +180,9 @@ def check_sadwitch_rule():
         )
     }
 
-    employee_company_map = dict(
-        frappe.get_all(
-            "Employee",
-            filters={"name": ["in", candidate_employees]},
-            fields=["name", "company"],
-            as_list=True,
-        )
-    )
-
     for entry in holidays_to_insert:
         employee = entry["employee"]
-        holiday_date = entry["date"]
+        holiday_date = getdate(entry["date"])
 
         if (employee, holiday_date) in existing_attendance:
             continue
@@ -213,10 +196,10 @@ def check_sadwitch_rule():
                     "attendance_date": holiday_date,
                     "status": "On Leave",
                     "leave_type": "Leave Without Pay",
-                    "company": employee_company_map.get(employee),
+                    "company": employee_data_map[employee].company,
                     "docstatus": 1,
                 }
-            ).insert()
+            ).insert(ignore_permissions=True)
         except Exception:
             frappe.db.rollback(save_point="sandwich_rule_attendance")
             _log_exc(
@@ -232,16 +215,13 @@ def check_sadwitch_rule():
     frappe.db.commit()
 
 
-# prachi
 @frappe.whitelist()
 def check():
     employee_id = "HR-EMP-00921"
 
-    today = date.today()
-    from_date = get_first_day(today)
-    to_date = today
-    # from_date = getdate('2025-03-01')
-    # to_date = getdate('2025-03-31')
+    current_day = date.today()
+    from_date = get_first_day(current_day)
+    to_date = current_day
 
     absent_attendances = frappe.get_all(
         "Attendance",
@@ -317,7 +297,6 @@ def check():
             )
             new_doc.insert(ignore_permissions=True)
 
-    frappe.db.commit()
     return f"LOP holiday marking done for {employee_id} from {from_date} to {to_date}."
 
 
@@ -329,48 +308,36 @@ def get_employee_shift(employee, for_date=None):
     for_date = getdate(for_date)
 
     # Shift Assignment takes priority
-    shift = frappe.db.get_value(
+    shift_assignments = frappe.get_all(
         "Shift Assignment",
-        {
+        filters={
             "employee": employee,
             "docstatus": 1,
             "start_date": ("<=", for_date),
-            "end_date": ("is", "not set"),
             "status": "Active",
         },
-        "shift_type",
+        or_filters=[["end_date", ">=", for_date], ["end_date", "is", "not set"]],
+        fields=["shift_type"],
+        order_by="start_date desc, creation desc",
+        limit=1,
     )
 
-    if not shift:
-        # Try with end_date is set
-        shift = frappe.db.get_value(
-            "Shift Assignment",
-            {
-                "employee": employee,
-                "docstatus": 1,
-                "start_date": ("<=", for_date),
-                "end_date": ("is", "set"),
-                "status": "Active",
-            },
-            "shift_type",
-        )
-
-    if shift:
-        return shift
+    if shift_assignments:
+        return shift_assignments[0].shift_type
 
     # Fallback to default shift
     return frappe.db.get_value("Employee", employee, "default_shift")
 
 
-def get_employees_by_shift(shift_type: str, date: date | None = None) -> list[str]:
+def get_employees_by_shift(shift_type: str, for_date: date | None = None) -> list[str]:
     """
     Returns a list of Employees assigned to a given Shift Type.
 
     Logic Rules:
     1. Check Shift Assignment:
        - Must match: shift_type
-       - start_date <= today
-       - end_date is null OR end_date >= today
+       - start_date <= for_date (defaults to today)
+       - end_date is null OR end_date >= for_date
        - status == "Active"
        - docstatus == 1 (Submitted)
     2. Fallback to Employee:
@@ -381,7 +348,7 @@ def get_employees_by_shift(shift_type: str, date: date | None = None) -> list[st
     if not shift_type:
         return []
 
-    current_date = date or today()
+    current_date = for_date or today()
 
     # 1. Find all active shift assignments for today
     # We include 'creation' and 'start_date' to handle deduplication later

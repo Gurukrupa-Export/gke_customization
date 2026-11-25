@@ -135,7 +135,7 @@ frappe.query_reports["ESIC Challan Report"] = {
 		];
 		if (["branch", "employee_name"].includes(column.id) && total_field.includes(data.employee_name)) {
 			value = $(`<span>${value}</span>`);
-			let $value = $(value).css({ "font-weight": "bold", color: "blue" });
+			const $value = $(value).css({ "font-weight": "bold", color: "blue" });
 			value = $value.wrap("<p></p>").parent().html();
 		}
 
