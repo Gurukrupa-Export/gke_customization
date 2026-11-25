@@ -15,7 +15,7 @@ from frappe.utils import (
 )
 
 from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log import (
-    fetch_attendance_data,
+    fetch_attendance_data_for_employees,
 )
 
 STATUS = {
@@ -417,17 +417,14 @@ def get_data(filters):
     attendance_details = {}
     attendance_by_date = get_attendance_by_date(employee, from_date, to_date)
 
+    range_results = fetch_attendance_data_for_employees(
+        company, employee_list, getdate(from_date), getdate(to_date)
+    )
+
     for emp in employee_list:
         attendance_details[emp] = {}
 
-        range_result = fetch_attendance_data(
-            {
-                "company": company,
-                "employee": emp,
-                "from_date": getdate(from_date),
-                "to_date": getdate(to_date),
-            }
-        )
+        range_result = range_results[emp]
         records_by_date = {}
         for record in range_result.get("records", []):
             if record.get("login_date") in attendance_by_date:
