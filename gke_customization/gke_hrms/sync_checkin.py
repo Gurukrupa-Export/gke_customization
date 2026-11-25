@@ -187,6 +187,27 @@ def _process_single_log(log, existing, last_punch_map, time_threshold, employee_
 # Log Type determination (shift-aware, supports day + night shifts)
 # ---------------------------------------------------------------------------
 def _determine_log_type(employee, log_dt):
+    """Decide whether a punch is IN or OUT using the session pairing engine
+    when enabled in HR Settings, otherwise the legacy window toggle."""
+    from gke_customization.gke_hrms.punch_pairing import (
+        determine_punch_in_out,
+        is_session_pairing_enabled,
+    )
+
+    if is_session_pairing_enabled():
+        try:
+            result = determine_punch_in_out(employee, get_datetime(log_dt))
+            return result.get("log_type") or "IN"
+        except Exception:
+            _log_error(
+                title="Biometric Sync — session pairing failed, using legacy",
+                message=frappe.get_traceback(),
+            )
+
+    return _determine_log_type_legacy(employee, log_dt)
+
+
+def _determine_log_type_legacy(employee, log_dt):
     """Decide whether a punch is IN or OUT based on the employee's shift
     assignment and prior checkins within the same shift window.
 

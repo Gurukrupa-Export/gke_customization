@@ -1389,7 +1389,7 @@ def sync_product_return_order_to_gk(doc):
             "hsn_sac": doc.hsn_sac,
             "item_group": doc.item_group,
             "item_name": doc.item_name,
-            "bom": doc.bom,
+            # "bom": doc.bom,
             "metal_touch": doc.metal_touch,
             "metal_purity": doc.metal_purity,
             "metal_colour": doc.metal_colour,

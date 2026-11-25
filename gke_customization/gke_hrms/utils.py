@@ -1,5 +1,4 @@
 from datetime import date, timedelta
-from typing import List, Optional
 
 import frappe
 from frappe.utils import add_days, cint, get_first_day, getdate, today
@@ -7,6 +6,13 @@ from frappe.utils import add_days, cint, get_first_day, getdate, today
 from gke_customization.gke_hrms.report.pf_challan_report.pf_challan_report import (
     get_account_total_summary,
 )
+
+SANDWICH_RULE_LOOKBACK_DAYS = 15
+
+
+def _log_exc(title):
+    """Log the exception being handled to the Error Log with the given title."""
+    frappe.log_error(title=title[:140], message=frappe.get_traceback())
 
 
 def get_date_range(start_date, end_date):
@@ -40,14 +46,7 @@ def check_sadwitch_rule():
     if not manual:
         current_day = date.today()
         formatted_to_date = current_day
-
-        if current_day.weekday() == 6:
-            days_since_last_sunday = current_day.weekday() + 1
-            week_off = timedelta(days=days_since_last_sunday)
-        else:
-            week_off = timedelta(days=current_day.weekday() + 1)
-
-        formatted_from_date = current_day - week_off
+        formatted_from_date = current_day - timedelta(days=SANDWICH_RULE_LOOKBACK_DAYS)
 
     absent_attendances = frappe.get_all(
         "Attendance",
@@ -159,27 +158,27 @@ def check_sadwitch_rule():
                     if day not in weekoff_dates:
                         holidays_to_insert.append({"employee": employee, "date": day})
 
-    existing_attendance = set()
-    if holidays_to_insert:
+    if not holidays_to_insert:
+        return
+
+    candidate_employees = list({entry["employee"] for entry in holidays_to_insert})
+    candidate_dates = [entry["date"] for entry in holidays_to_insert]
+
+    existing_attendance = {
+        (row.employee, getdate(row.attendance_date))
         for row in frappe.get_all(
             "Attendance",
             filters={
-                "employee": [
-                    "in",
-                    list({entry["employee"] for entry in holidays_to_insert}),
-                ],
+                "employee": ["in", candidate_employees],
                 "attendance_date": [
                     "between",
-                    [
-                        min(entry["date"] for entry in holidays_to_insert),
-                        max(entry["date"] for entry in holidays_to_insert),
-                    ],
+                    [min(candidate_dates), max(candidate_dates)],
                 ],
                 "docstatus": ["!=", 2],
             },
             fields=["employee", "attendance_date"],
-        ):
-            existing_attendance.add((row.employee, getdate(row.attendance_date)))
+        )
+    }
 
     for entry in holidays_to_insert:
         employee = entry["employee"]
@@ -188,6 +187,7 @@ def check_sadwitch_rule():
         if (employee, holiday_date) in existing_attendance:
             continue
 
+        frappe.db.savepoint("sandwich_rule_attendance")
         try:
             frappe.get_doc(
                 {
@@ -200,12 +200,17 @@ def check_sadwitch_rule():
                     "docstatus": 1,
                 }
             ).insert(ignore_permissions=True)
-            existing_attendance.add((employee, holiday_date))
         except Exception:
-            frappe.log_error(
-                title="Sandwich Rule Attendance Error",
-                message=frappe.get_traceback(),
+            frappe.db.rollback(save_point="sandwich_rule_attendance")
+            _log_exc(
+                "Sandwich Rule: Attendance failed for {0} on {1}".format(
+                    employee, holiday_date
+                )
             )
+            continue
+
+        frappe.db.release_savepoint("sandwich_rule_attendance")
+        existing_attendance.add((employee, holiday_date))
 
     frappe.db.commit()
 
@@ -324,9 +329,7 @@ def get_employee_shift(employee, for_date=None):
     return frappe.db.get_value("Employee", employee, "default_shift")
 
 
-def get_employees_by_shift(
-    shift_type: str, for_date: Optional[date] = None
-) -> List[str]:
+def get_employees_by_shift(shift_type: str, for_date: date | None = None) -> list[str]:
     """
     Returns a list of Employees assigned to a given Shift Type.
 

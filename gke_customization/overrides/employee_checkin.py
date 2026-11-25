@@ -1,29 +1,43 @@
 import frappe
 from frappe import _
-import hrms
-from frappe.utils import cint, get_datetime
-
-from hrms.hr.doctype.shift_assignment.shift_assignment import get_actual_start_end_datetime_of_shift
+from frappe.utils import get_datetime
+from hrms.hr.doctype.employee_checkin.employee_checkin import EmployeeCheckin
+from hrms.hr.doctype.shift_assignment.shift_assignment import (
+    get_actual_start_end_datetime_of_shift,
+)
 from hrms.hr.doctype.shift_type.shift_type import get_employee_shift
-
 from hrms.hr.utils import (
-	get_distance_between_coordinates,
-	set_geolocation_from_coordinates,
-	validate_active_employee,
+    validate_active_employee,
 )
 
-from hrms.hr.doctype.employee_checkin.employee_checkin import EmployeeCheckin
 
 class CustomEmployeeCheckin(EmployeeCheckin):
     def validate(self):
         validate_active_employee(self.employee)
         self.validate_duplicate_log()
+        self.validate_time_change()
         self.fetch_shift()
         self.set_geolocation()
         self.validate_distance_from_shift_location()
 
     @frappe.whitelist()
     def fetch_shift(self):
+        """Session-based punch pairing when enabled in HR Settings, else legacy behaviour."""
+        from gke_customization.gke_hrms.punch_pairing import (
+            apply_punch_result_to_checkin,
+            determine_punch_in_out,
+            is_session_pairing_enabled,
+        )
+
+        if is_session_pairing_enabled():
+            apply_punch_result_to_checkin(
+                self, determine_punch_in_out(self.employee, get_datetime(self.time))
+            )
+            return
+
+        return self._legacy_fetch_shift()
+
+    def _legacy_fetch_shift(self):
         if not (
             shift_actual_timings := get_actual_start_end_datetime_of_shift(
                 self.employee, get_datetime(self.time), True
@@ -40,9 +54,9 @@ class CustomEmployeeCheckin(EmployeeCheckin):
             and not self.skip_auto_attendance
         ):
             frappe.throw(
-                _("Log Type is required for check-ins falling in the shift: {0}.").format(
-                    shift_actual_timings.shift_type.name
-                )
+                _(
+                    "Log Type is required for check-ins falling in the shift: {0}."
+                ).format(shift_actual_timings.shift_type.name)
             )
         assignment = frappe.get_all(
             "Shift Assignment",
@@ -56,8 +70,10 @@ class CustomEmployeeCheckin(EmployeeCheckin):
             pluck="shift_type",
         )
         if assignment:
-            shift_assigment = get_employee_shift(self.employee, get_datetime(self.time), True, "forward")
-            if(shift_actual_timings.shift_type.name != shift_assigment.shift_type.name):
+            shift_assigment = get_employee_shift(
+                self.employee, get_datetime(self.time), True, "forward"
+            )
+            if shift_actual_timings.shift_type.name != shift_assigment.shift_type.name:
                 self.offshift = 0
                 self.shift = shift_assigment.shift_type.name
                 self.shift_actual_start = shift_assigment.actual_start

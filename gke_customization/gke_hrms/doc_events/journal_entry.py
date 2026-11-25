@@ -18,6 +18,7 @@ against the entry's payroll payable debit lines, not the recorded amount.
 
 All updates are batched (one query per table) rather than looped per row.
 """
+
 import frappe
 from frappe.utils import flt
 

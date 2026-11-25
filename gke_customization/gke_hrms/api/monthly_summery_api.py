@@ -230,7 +230,7 @@ def attendance1(from_date=None, to_date=None, employee=None):
             IfNull(Attendance.leave_type, Attendance.status).as_("status"),
             Attendance.attendance_request,
         )
-        .where((Attendance.docstatus == 1))
+        .where(Attendance.docstatus == 1)
         .orderby(Attendance.attendance_date, order=frappe.qb.asc)
     )
 
@@ -453,7 +453,7 @@ def attendance(from_date=None, to_date=None, employee=None):
             IfNull(Attendance.leave_type, Attendance.status).as_("status"),
             Attendance.attendance_request,
         )
-        .where((Attendance.docstatus == 1))
+        .where(Attendance.docstatus == 1)
         .orderby(Attendance.attendance_date, order=frappe.qb.asc)
     )
 

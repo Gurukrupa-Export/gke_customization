@@ -119,7 +119,7 @@ frappe.query_reports["ESIC Challan Report"] = {
 		value = default_formatter(value, row, column, data);
 		if (data && ["gross_pay", "employee_id"].includes(column.id) && value) {
 			value = $(`<span>${value}</span>`);
-			var $value = $(value).css("font-weight", "bold");
+			let $value = $(value).css("font-weight", "bold");
 			value = $value.wrap("<p></p>").parent().html();
 		}
 		var total_field = [

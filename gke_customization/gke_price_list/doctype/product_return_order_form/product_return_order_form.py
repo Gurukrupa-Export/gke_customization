@@ -5052,7 +5052,7 @@ def sync_product_return_form_to_remote(doc, method=None):
 			"item_group": row.item_group,
 			"is_jewelex_tag": row.is_jewelex_tag,
 			"item_name": row.item_name,
-			"bom": row.bom,
+			# "bom": row.bom,
 			"is_sale": row.is_sale,
 			"jewelex_tag": row.jewelex_tag,
 			"net_weight": row.net_weight,
