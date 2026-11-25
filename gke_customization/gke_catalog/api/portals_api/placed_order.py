@@ -197,6 +197,78 @@ def cancel_order(order_name):
         "message": "Order cancelled successfully"
     }
 
+# bhavika 25-11-2026
+@frappe.whitelist()
+def cancel_order_item(order_name, item_code, row_name=None):
+    """Cancel only one item from Portal Order"""
+
+    doc = frappe.get_doc("Portal Order", order_name)
+
+    if doc.status == "Cancel Order":
+        frappe.throw(_("Order is already cancelled"))
+
+    canc_item = []
+    found = False
+
+    for row in doc.items:
+
+        if row.item_code != item_code:
+            continue
+
+        row_status = getattr(row, "status", "Draft")
+
+        if row_status == "Cancel Order":
+            continue
+
+        if row_name and row.name != row_name:
+            continue
+
+        # Cancel the selected row
+        row.status = "Cancel Order"
+        found = True
+
+        # Prepare notification data (DICT, not SET)
+        canc_item.append({
+            "item_code": row.item_code,
+            "bom": row.bom,
+            "quantity": row.quantity
+        })
+
+        break
+
+    if not found:
+        frappe.throw(_("Item not found in order"))
+
+    # Send notification
+    if canc_item:
+        send_customer_order_notification(
+            user=doc.customer,
+            order_id=doc.name,
+            customer_item_array=canc_item
+        )
+
+    # If all items are cancelled, cancel the order
+    all_cancelled = all(
+        getattr(r, "status", "") == "Cancel Order"
+        for r in doc.items
+    )
+
+    if all_cancelled:
+        doc.status = "Cancel Order"
+
+    # Recalculate totals
+    _recalculate_totals_draft_only(doc)
+
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    return {
+        "success": True,
+        "order": doc.name,
+        "order_cancelled": doc.status == "Cancel Order",
+        "message": f"Item {item_code} cancelled successfully"
+    }
+
 # #  GET PLACED ORDERS  (Ordered)
 # # ─────────────────────────────────────────────
 def _recalculate_totals_draft_only(doc):
