@@ -3,8 +3,8 @@
 
 import frappe
 from frappe import _
-from frappe.query_builder.functions import CustomFunction, Date, Max
-from frappe.utils import get_datetime
+from frappe.query_builder.functions import Max
+from frappe.utils import add_days, get_datetime, getdate
 from pypika.terms import ValueWrapper
 
 
@@ -17,14 +17,15 @@ def execute(filters=None):
 def get_data(filters=None):
     employee = frappe.qb.DocType("Employee")
     checkin = frappe.qb.DocType("Employee Checkin")
-    current_date = CustomFunction("CURDATE", [])()
+    today = getdate()
 
     query = (
         frappe.qb.from_(employee)
         .left_join(checkin)
         .on(
             (employee.employee == checkin.employee)
-            & (Date(checkin.time) == current_date)
+            & (checkin.time >= today)
+            & (checkin.time < add_days(today, 1))
         )
         .select(
             employee.employee.as_("employee_id"),
@@ -44,11 +45,11 @@ def get_data(filters=None):
         query = query.where(employee.company == filters.get("company"))
 
     data = query.run(as_dict=True)
-    set_last_checkin_before_today(data)
+    set_last_checkin_before_today(data, today)
     return data
 
 
-def set_last_checkin_before_today(data):
+def set_last_checkin_before_today(data, today):
     if not data:
         return
 
@@ -58,7 +59,7 @@ def set_last_checkin_before_today(data):
         frappe.qb.from_(checkin)
         .select(checkin.employee, Max(checkin.time).as_("last_time"))
         .where(checkin.employee.isin(employee_ids))
-        .where(checkin.time < CustomFunction("CURDATE", [])())
+        .where(checkin.time < today)
         .groupby(checkin.employee)
     ).run(as_dict=True)
 
@@ -67,8 +68,8 @@ def set_last_checkin_before_today(data):
     }
     for row in data:
         last_time = last_checkin_by_employee.get(row.employee_id)
-        row.lastCheckinDate = last_time.date() if last_time else None
-        row.lastCheckinTime = last_time.strftime("%H:%M:%S") if last_time else None
+        row.last_checkin_date = last_time.date() if last_time else None
+        row.last_checkin_time = last_time.strftime("%H:%M:%S") if last_time else None
 
 
 def get_columns(filters=None):
@@ -76,7 +77,8 @@ def get_columns(filters=None):
         {
             "label": _("Employee ID"),
             "fieldname": "employee_id",
-            "fieldtype": "Data",
+            "fieldtype": "Link",
+            "options": "Employee",
             "width": 0,
         },
         {
@@ -88,19 +90,22 @@ def get_columns(filters=None):
         {
             "label": _("Department"),
             "fieldname": "department",
-            "fieldtype": "Data",
+            "fieldtype": "Link",
+            "options": "Department",
             "width": 150,
         },
         {
             "label": _("Company"),
             "fieldname": "company",
-            "fieldtype": "Data",
+            "fieldtype": "Link",
+            "options": "Company",
             "width": 0,
         },
         {
             "label": _("Designation"),
             "fieldname": "designation",
-            "fieldtype": "Data",
+            "fieldtype": "Link",
+            "options": "Designation",
             "width": 0,
         },
         {
@@ -111,14 +116,14 @@ def get_columns(filters=None):
         },
         {
             "label": _("Last Checkin Date"),
-            "fieldname": "lastCheckinDate",
+            "fieldname": "last_checkin_date",
             "fieldtype": "Date",
             "width": 0,
         },
         {
             "label": _("Last Checkin Time"),
-            "fieldname": "lastCheckinTime",
-            "fieldtype": "Data",
+            "fieldname": "last_checkin_time",
+            "fieldtype": "Time",
             "width": 0,
         },
     ]

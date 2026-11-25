@@ -8,7 +8,7 @@ frappe.query_reports["Department Wise Absent Employee"] = {
 			fieldname: "company",
 			fieldtype: "Link",
 			options: "Company",
-			mandatory: 1,
+			reqd: 1,
 		},
 	],
 	onload: (report) => {
