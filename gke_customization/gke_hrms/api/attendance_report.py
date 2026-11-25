@@ -419,12 +419,13 @@ def employee_details(company=None, department=None):
     department = frappe.form_dict["department"]
 
     data = frappe.db.sql(
-        f"""
+        """
 		select name as employee, employee_name, company, department,
 			default_shift as shift, designation, old_punch_id
 		from `tabEmployee`
-		where company ='{company}' and department = '{department}'
+		where company = %(company)s and department = %(department)s
 	""",
+        {"company": company, "department": department},
         as_dict=1,
     )
 
