@@ -1597,10 +1597,6 @@ def update_proceed_check_in_modify(docname):
                 },
                 fields=["name", "date"]
             )
-            
-            
-            
-            # added canges 
 
             ot_log = frappe.db.get_all(
                 "OT Log",
@@ -1978,8 +1974,21 @@ def update_proceed_check_in_modify(docname):
                 return {"IN", "OUT"} <= checkin_map.get(d, set())
 
             holiday_status = {}
+            # for h in holiday_list_dates:
+            #     both = has_in_out(add_days(h, -1)) and has_in_out(add_days(h, 1))
+            #     holiday_status[str(h)] = 1 if both else 0
+            all_off_dates = holiday_dates | sandwich_dates
+
             for h in holiday_list_dates:
-                both = has_in_out(add_days(h, -1)) and has_in_out(add_days(h, 1))
+                prev_d = add_days(h, -1)
+                while prev_d in all_off_dates:
+                    prev_d = add_days(prev_d, -1)
+
+                next_d = add_days(h, 1)
+                while next_d in all_off_dates:
+                    next_d = add_days(next_d, 1)
+
+                both = has_in_out(prev_d) and has_in_out(next_d)
                 holiday_status[str(h)] = 1 if both else 0
 
             # frappe.throw(f"{holiday_status} checkin_rows{checkin_rows}")
@@ -2028,6 +2037,8 @@ def update_proceed_check_in_modify(docname):
         )
 
         frappe.db.commit()
+
+
 
 
 @frappe.whitelist()
