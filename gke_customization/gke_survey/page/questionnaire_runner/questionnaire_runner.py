@@ -36,7 +36,7 @@ def get_questionnaire(template):
             "field_type",
             "options",
             "required",
-            "sequence","require_rating","require_remark","amount","attach_img"
+            "sequence","require_rating","require_remark","amount","attach_img","depends_on"
         ],
         order_by="section asc, sequence asc"
     )
@@ -72,11 +72,16 @@ def save_response(questionnaire, answers, response=None, submit=0, branch=None,
     matter_requiring_immediate_attention=None,
     employee_id=None,
     employee_name=None,
-    department=None, designation=None, language=None):
+    department=None, designation=None, language=None,
+    admin_edit=0):
 
     if isinstance(answers, str):
         answers = json.loads(answers)
-    if not response:
+
+    admin_edit = int(admin_edit or 0)
+
+    # normal flow only: look up my own response for this month
+    if not response and not admin_edit:
         response = frappe.db.get_value(
             "Questionnaire Response",
             {"owner": frappe.session.user, "questionnaire": questionnaire, "audit_month": audit_month},
@@ -86,16 +91,20 @@ def save_response(questionnaire, answers, response=None, submit=0, branch=None,
 
     if response:
         doc = frappe.get_doc("Questionnaire Response", response)
-        if doc.owner != frappe.session.user:
-            frappe.throw("Not permitted")
-        if doc.workflow_state != "Draft":
-            frappe.throw("This response is already submitted")
+
+        if not admin_edit:
+            if doc.owner != frappe.session.user:
+                frappe.throw("Not permitted")
+            if doc.workflow_state != "Update":
+                frappe.throw("This response is already submitted")
+
         doc.set("questionnaire_answer", [])
         doc.set("questionnaire_table_response", [])
     else:
+        if admin_edit:
+            frappe.throw("Response not found")
         doc = frappe.new_doc("Questionnaire Response")
         doc.submitted_by = frappe.session.user
-    # doc = frappe.new_doc("Questionnaire Response")
 
     doc.questionnaire = questionnaire
     doc.branch = branch
@@ -110,24 +119,27 @@ def save_response(questionnaire, answers, response=None, submit=0, branch=None,
     doc.serious_irregularities_found = serious_irregularities_found
     doc.fraud_suspected = fraud_suspected
     doc.matter_requiring_immediate_attention = matter_requiring_immediate_attention
-    doc.submitted_by = frappe.session.user
-    doc.employee_id = employee_id
-    doc.employee_name = employee_name
-    doc.department = department
-    doc.designation = designation
-    doc.language = language
+
+    # on admin edit keep the original submitter / employee details untouched
+    if not admin_edit:
+        doc.submitted_by = frappe.session.user
+        doc.employee_id = employee_id
+        doc.employee_name = employee_name
+        doc.department = department
+        doc.designation = designation
+        doc.language = language
 
     for row in answers:
         if row.get("field_type") == "Table":
-
             for idx, table_row in enumerate(row.get("table", []), start=1):
-
-                doc.append("questionnaire_table_response",{
+                doc.append("questionnaire_table_response", {
                     "question": row["question"],
                     "row_no": idx,
-                    "row_data": json.dumps(table_row)
+                    "row_data": json.dumps(table_row),
+                    "amount": (row.get("amount") or 0) if idx == 1 else 0,
+                    "remark": row.get("remark") if idx == 1 else "",
+                    "attach_img": row.get("attach_img") if idx == 1 else ""
                 })
-
         else:
             doc.append("questionnaire_answer", {
                 "question": row["question"],
@@ -138,17 +150,18 @@ def save_response(questionnaire, answers, response=None, submit=0, branch=None,
                 "attach_img": row.get("attach_img")
             })
 
-        # frappe.throw(f"answers: {row}") 
     if doc.is_new():
-        doc.insert(ignore_permissions=True)  
+        doc.insert(ignore_permissions=True)
     else:
         doc.save(ignore_permissions=True)
-    if doc.workflow_state == "Draft":
-            doc = apply_workflow(doc, "Update")
 
-    if int(submit or 0):
-        doc = apply_workflow(doc, "Submit")
-        
+    # workflow transitions only in the normal flow; admin edit keeps the current state
+    if not admin_edit:
+        if doc.workflow_state == "Draft":
+            doc = apply_workflow(doc, "Update")
+        if int(submit or 0):
+            doc = apply_workflow(doc, "Submit")
+
     frappe.db.commit()
 
     return doc.name
@@ -201,13 +214,11 @@ def get_responses(questionnaire):
             "branch",
             "audit_dates",
             "audit_month",
-            "employee_name","designation"
+            "employee_name","designation","workflow_state"
         ],
         order_by="creation desc"
     )
 
-import frappe
-import json
 
 @frappe.whitelist(allow_guest=True)
 def get_response(response):
@@ -247,29 +258,32 @@ def get_response(response):
     )
 
     answers = {}
-
     for d in response_doc.questionnaire_answer:
         answers[d.question] = {
             "answer": d.answer,
             "remark": d.remark,
-            "rating": d.rating,"amount": d.amount,"attach_img": d.attach_img
+            "rating": d.rating,
+            "amount": d.amount,
+            "attach_img": d.attach_img
         }
 
     tables = {}
-
     for d in response_doc.questionnaire_table_response:
+        tables.setdefault(d.question, []).append(json.loads(d.row_data))
 
-        if d.question not in tables:
-            tables[d.question] = []
-
-        tables[d.question].append(json.loads(d.row_data))
+        # remark / amount / attachment of a table question are on row 1
+        if d.row_no == 1:
+            answers[d.question] = {
+                "answer": "",
+                "remark": d.remark,
+                "amount": d.amount,
+                "attach_img": d.get("attach_img") or d.get("attach")
+            }
 
     return {
-
         "response": response_doc,
         "sections": sections,
         "questions": questions,
         "answers": answers,
         "tables": tables
-
     }

@@ -1380,6 +1380,7 @@ def get_variants_by_itemcode(itemCode=None, customer=None):
             item.item_code LIKE %(base_code)s
             AND idf.company = 'Gurukrupa Export Private Limited'
             AND item.item_group != 'Design DNU'
+            AND item.disabled = 0 #bhavika 25-11-2026
 
         GROUP BY item.item_code
         ORDER BY item.creation ASC
@@ -1872,6 +1873,8 @@ def get_set_by_itemcode(itemCode=None, customer=None):
 
         WHERE
             item.item_code IN ({placeholders})
+            AND item.item_group != 'Design DNU' #bhavika 25-11-2026
+            AND item.disabled = 0 #bhavika 25-11-2026
             AND (idf.company = 'Gurukrupa Export Private Limited' OR idf.company IS NULL)
 
         GROUP BY item.item_code
@@ -2141,6 +2144,9 @@ def get_similar_item(item_code, customer=None, user=None):
                 ON idf.parent = item.item_name
         
             WHERE
+                item.item_group != 'Design DNU' #bhavika 25-11-2026
+                AND item.disabled = 0 #bhavika 25-11-2026
+                AND
                 (
                     item.item_code = %(item_code)s
                     OR item.item_code IN (
