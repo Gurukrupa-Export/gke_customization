@@ -72,7 +72,7 @@ def get_salary_slip_rows(filters):
             employee.gender.as_("gender"),
         )
         .where(
-            (salary_slip.docstatus == 1)
+            (salary_slip.docstatus < 2)
             & (salary_slip.company == filters.get("company"))
             & (salary_slip.start_date == filters.get("from_date"))
             & (salary_slip.end_date == filters.get("to_date"))

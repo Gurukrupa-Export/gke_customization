@@ -94,7 +94,15 @@ def get_report_employee_list(filters):
     if not own_employee:
         frappe.throw(_("No active Employee record is linked to your user"))
 
-    return get_employee_list(own_employee)
+    allowed_employees = get_employee_list(own_employee)
+    selected_employee = filters.get("employee")
+    if not selected_employee:
+        return allowed_employees
+
+    if selected_employee not in allowed_employees:
+        frappe.throw(_("You can only view your own record and your direct reports"))
+
+    return [selected_employee]
 
 
 def get_date_range(filters):

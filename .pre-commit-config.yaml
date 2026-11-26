@@ -1,5 +1,6 @@
 exclude: 'node_modules|.git'
 default_stages: [pre-commit]
+default_install_hook_types: [pre-commit, pre-push]
 fail_fast: false
 
 default_language_version:
@@ -16,15 +17,15 @@ repos:
       - id: no-commit-to-branch
         args:
           - '--branch'
-          - 'develop'
-          - '--branch'
           - 'master'
-          - '--branch'
-          - 'kggk-prod'
           - '--branch'
           - 'kggk_uat'
           - '--branch'
+          - 'kggk_prod'
+          - '--branch'
           - 'gurukrupa-uat'
+          - '--branch'
+          - 'gurukrupa-prod'
       - id: check-merge-conflict
       - id: check-ast
       - id: check-json
@@ -42,7 +43,7 @@ repos:
         pass_filenames: false
         entry: >-
           bash -c 'case "${PRE_COMMIT_REMOTE_BRANCH#refs/heads/}" in
-          develop|master|kggk-prod|kggk_uat|gurukrupa-uat)
+          master|kggk_uat|kggk_prod|gurukrupa-uat|gurukrupa-prod)
           echo "Direct push to ${PRE_COMMIT_REMOTE_BRANCH#refs/heads/} is not allowed. Raise a pull request."; exit 1;;
           esac'
 
