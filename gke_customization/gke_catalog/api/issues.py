@@ -16,15 +16,12 @@ from frappe.utils import validate_email_address, now_datetime
 
 from gke_customization.gke_catalog.api.notifications import notify_user
 from gke_customization.gke_catalog.api.login import get_address_by_link_name
+from gke_customization.gke_catalog.api.portal_access import allowed_customers, allowed_document, allowed_user
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_created_issue_by_customer_and_supplier(customer):
-    if isinstance(customer, str):
-        try:
-            customer = json.loads(customer)
-        except Exception:
-            customer = [customer]  # fallback if not valid JSON string
+    customer = allowed_customers(customer)
 
     format_strings = ','.join(['%s'] * len(customer))
     try: 
@@ -67,7 +64,7 @@ def get_created_issue_by_customer_and_supplier(customer):
         return {"success": False, "message": "Failed to fetch Item"}
     
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def add_issues_by_customer(data):
     try:
         subject = data.get('subject')
@@ -107,9 +104,10 @@ def add_issues_by_customer(data):
         return {"success": False, "message": "Failed to create Issue"}
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def reply_on_issues(ticket_id=None, subject=None, frm=None, qry_status=None,
                      comment_by=None):
+    allowed_document("Issue", ticket_id)
     try:
         uploaded_file_url = None
         file_obj = None
@@ -209,12 +207,13 @@ def reply_on_issues(ticket_id=None, subject=None, frm=None, qry_status=None,
         return {"success": False, "error": str(e)}
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_communications(ticket_id=None):
+    if not ticket_id:
+        return {"success": False, "error": "ticket_id is required"}
+    allowed_document("Issue", ticket_id)
     try:
-        filters = {}
-        if ticket_id:
-            filters["reference_name"] = ticket_id
+        filters = {"reference_doctype": "Issue", "reference_name": ticket_id}
 
         data = frappe.get_all(
             "Comment",
@@ -230,12 +229,11 @@ def get_communications(ticket_id=None):
         return {"success": False, "error": str(e)}
 
 from frappe.desk.form.assign_to import add as add_assignment
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_new_created_issue(user_id, user_type, customer, subject, issue_type, description, priority):
+    allowed_user(user_id)
+    allowed_customers(customer)
     try:
-        # Set current user
-        frappe.set_user(user_id)
-
         # Create the Issue first
         issue = frappe.get_doc({
             "doctype": "Issue",
@@ -367,13 +365,14 @@ def get_new_created_issue(user_id, user_type, customer, subject, issue_type, des
         }
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def update_status_of_issue(ticket_id=None, new_status=None):
     if not ticket_id or not new_status:
         return {
             "success": False,
             "message": "ticket_id or new_status missing"
         }
+    allowed_document("Issue", ticket_id)
 
     try:
         frappe.db.set_value("Issue", ticket_id, "status", new_status)

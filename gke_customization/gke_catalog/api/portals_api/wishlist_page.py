@@ -240,7 +240,7 @@ def get_customer_wishlist_items(customer=None, user_type=None, user=None):
     }
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_wishlist_item_for_customer_by_user(items, customers, user_type):
     """
     Save selected items to 'Cataloge Master' for one or more customers.

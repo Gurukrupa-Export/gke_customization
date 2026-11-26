@@ -6,6 +6,7 @@ import frappe
 from frappe import _
 from werkzeug.wrappers import request
 from gke_customization.gke_catalog.api.portals_api.item_price import get_item_price
+from gke_customization.gke_catalog.api.portal_access import allowed_customers, allowed_document, allowed_user
 
 
 @frappe.whitelist()
@@ -32,6 +33,7 @@ def add_to_cart(
         frappe.throw(_("Customer required."))
     if not item_code:
         frappe.throw(_("Item Code required."))
+    allowed_customers(customer)
 
     qty             = int(quantity or 1)
     calculated_rate = float(rate or 0)
@@ -245,6 +247,11 @@ def get_cart_orders(customer=None, user=None, status_filter=None):
         GET .../get_cart_orders?customer=Rajan Shah&status_filter=Add To Cart
     """
  
+    if customer:
+        allowed_customers(customer)
+    else:
+        allowed_user(user)
+
     # ── Case 1: Customer se fetch ──────────────────────────────────────────────
     if customer:
         active_cart = frappe.db.get_value(
@@ -409,6 +416,7 @@ def update_cart_item_qty(order_name, item_code, quantity, row_name=None, user=No
     qty = float(quantity or 0)
     if qty < 1:
         frappe.throw(_("Quantity must be at least 1"))
+    allowed_document("Add To Cart Portal Item", order_name)
 
     max_retries = 3
     for attempt in range(max_retries):
@@ -488,6 +496,7 @@ def _recalculate_totals_draft_only(doc):
 
 @frappe.whitelist()
 def cancel_cart_item(order_name, item_code, row_name=None, user=None):
+    allowed_document("Add To Cart Portal Item", order_name)
     doc = frappe.get_doc("Add To Cart Portal Item", order_name)
 
     found = False

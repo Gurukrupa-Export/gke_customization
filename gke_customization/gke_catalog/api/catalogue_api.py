@@ -906,7 +906,7 @@ def customer_wise_item(selectedSubcategory=None, customer=None, user=None, metal
 
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_customer_wishlist_items(customer=None, user_type=None, user=None):
     
     if user_type == "customer":
@@ -3426,7 +3426,7 @@ def get_selected_item_count_for_customet_wise(customer_id, collection):
         return e
     
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_wishlist_item_for_customer_by_user(items, customers, user_type):
     """
     Save selected items to 'Cataloge Master' for one or more customers.

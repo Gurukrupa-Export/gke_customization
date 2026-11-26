@@ -2128,7 +2128,7 @@ def cancel_order_item(order_name, item_code, row_name=None):
     return enc_data
     
     
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def send_customer_order_notification(user, order_id, customer_item_array):
     """
     Send order update mail notification to user

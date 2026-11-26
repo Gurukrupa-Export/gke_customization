@@ -14,7 +14,7 @@ import json
 from frappe.utils import validate_email_address
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def notify_user(for_user, subject, message=None, action_label=None, action_url=None):
     """
     Send a notification to a specific user and push realtime event.
@@ -49,11 +49,13 @@ def notify_user(for_user, subject, message=None, action_label=None, action_url=N
     return {"status": "success"}
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_notifications_of_customer(for_user):
     """
     Fetch Notification Log entries for a specific user.
     """
+    from gke_customization.gke_catalog.api.portal_access import allowed_user
+    allowed_user(for_user)  # only the login's own notifications
     try:
         notifications = frappe.get_all(
             "Notification Log",

@@ -675,9 +675,11 @@ def get_placed_orders(customer=None, user=None):
 
     return {"success": True, "count": len(result), "orders": result}
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def cancel_order(order_name):
     """Whole Order cancel"""
+    from gke_customization.gke_catalog.api.portal_access import allowed_document
+    allowed_document("Portal Order", order_name)
     doc = frappe.get_doc("Portal Order", order_name)
 
     if doc.status == "Cancel Order":
@@ -863,7 +865,7 @@ def build_item_row(item_code, bom, qty):
     """
     
     
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def send_customer_order_notification(user, order_id, customer_item_array):
     """
     Send order update mail notification to user

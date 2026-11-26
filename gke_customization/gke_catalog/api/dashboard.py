@@ -17,15 +17,12 @@ from gke_customization.gke_catalog.api.encryption_response import SecureJSON
 
 from gke_customization.gke_catalog.api.notifications import notify_user
 from gke_customization.gke_catalog.api.login import get_address_by_link_name
+from gke_customization.gke_catalog.api.portal_access import allowed_customers
 
 
 @frappe.whitelist()
 def get_created_issue_by_customer_and_supplier(customer):
-    if isinstance(customer, str):
-        try:
-            customer = json.loads(customer)
-        except Exception:
-            customer = [customer]  # fallback if not valid JSON string
+    customer = allowed_customers(customer)
 
     format_strings = ','.join(['%s'] * len(customer))
     try: 
@@ -78,11 +75,7 @@ def get_created_issue_by_customer_and_supplier(customer):
 
 @frappe.whitelist() 
 def get_quotation_form(customer, id=None):    
-    if isinstance(customer, str):
-        try:
-            customer = json.loads(customer)
-        except Exception:
-            customer = [customer]  # fallback if not valid JSON string
+    customer = allowed_customers(customer)
 
     format_strings = ','.join(['%s'] * len(customer))
     current_date = datetime.now().date().strftime('%Y-%m-%d')
@@ -203,11 +196,7 @@ def get_quotation_form(customer, id=None):
 
 @frappe.whitelist()
 def get_sales_order(customer, id=None):
-    if isinstance(customer, str):
-        try:
-            customer = json.loads(customer)
-        except Exception:
-            customer = [customer]  # fallback if not valid JSON string
+    customer = allowed_customers(customer)
 
     current_date = datetime.now().date().strftime('%Y-%m-%d')
 
@@ -317,11 +306,7 @@ def get_sales_order(customer, id=None):
 
 @frappe.whitelist()
 def get_sales_invoice(customer, id=None):
-    if isinstance(customer, str):
-        try:
-            customer = json.loads(customer)
-        except Exception:
-            customer = [customer]  # fallback if not valid JSON string
+    customer = allowed_customers(customer)
 
     format_strings = ','.join(['%s'] * len(customer))
     current_date = datetime.now().date().strftime('%Y-%m-%d')
@@ -417,6 +402,7 @@ def get_sales_invoice(customer, id=None):
 
 @frappe.whitelist()
 def get_customer_wise_count(customer):
+    allowed_customers(customer)
 
     get_catalogue_data = frappe.get_all(
         "Cataloge Master",

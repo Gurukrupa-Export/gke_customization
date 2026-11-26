@@ -34,6 +34,8 @@ def confirm_cart_orders(customer, order_date=None, notes=None, user=None, row_na
 
     if not customer:
         frappe.throw(_("Customer required hai."))
+    from gke_customization.gke_catalog.api.portal_access import allowed_customers
+    allowed_customers(customer)
 
     # ── Active cart dhundo ─────────────────────────────────────────────────────
     cart_name = frappe.db.get_value(

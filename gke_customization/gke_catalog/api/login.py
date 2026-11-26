@@ -157,8 +157,7 @@ def send_otp_for_login_user(username, password):
 
 
     return {
-        "status": "success",
-        "otp": otp  # In production, don't send this to frontend
+        "status": "success"
     }
 
 
