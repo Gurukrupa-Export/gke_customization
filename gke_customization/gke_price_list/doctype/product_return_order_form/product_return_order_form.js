@@ -215,7 +215,7 @@ frappe.ui.form.on("Product Return Form Item", {
 		}
 
 		if (child.serial_no) {
-			console.log('hii');
+			// console.log('hii');
 			frappe.call({
 				method: "gke_customization.gke_price_list.doctype.product_return_order_form.product_return_order_form.get_sales_bom_nd_invoice",
 				args: {
@@ -225,7 +225,7 @@ frappe.ui.form.on("Product Return Form Item", {
 				},
 				callback: function (r) {
 					if (r.message && r.message.sales_invoice) {
-						console.log('hii',r.message);
+						// console.log('hii',r.message);
 
 						frappe.model.set_value(cdt, cdn, "bom", r.message.bom);
 						frappe.model.set_value(cdt, cdn, "item_code", r.message.item_code);
@@ -1880,7 +1880,7 @@ frappe.ui.form.on("Product Return Form Item", {
 
 		// setting bom no if missing from child
 		if (!dialog.get_value("bom_no") && dialog.get_value("serial_no")) {
-			console.log("in else case");
+			// console.log("in else case");
 			frappe.db
 				.get_value(
 					"BOM",
@@ -1931,7 +1931,7 @@ frappe.ui.form.on("Product Return Form Item", {
             tag_no: row.jewelex_tag,
 			company:cmp,
 			is_sale:row.is_sale
-        },
+        }, 
         callback: function(r) {
             if (!r.message) {
                 frappe.msgprint(__("No data found for this Tag No."));
@@ -1947,17 +1947,18 @@ frappe.ui.form.on("Product Return Form Item", {
 
             // Diamond details (first diamond entry)
             if (data.materials.diamond_details.length) {
-                frappe.model.set_value(cdt, cdn, "diamond_quality", data.materials.diamond_details[0].Code_Name);
+                frappe.model.set_value(cdt, cdn, "diamond_quality", data.materials.diamond_details[0].Purity_Group);
             }
 
             // Weights
-            frappe.model.set_value(cdt, cdn, "gold_rate", data.summary_totals.metal_weight);   // fieldname gold_rate, label "Metal Weight"
+            // frappe.model.set_value(cdt, cdn, "gold_rate", data.summary_totals.metal_weight);   // fieldname gold_rate, label "Metal Weight"
             frappe.model.set_value(cdt, cdn, "diamond_weight", data.summary_totals.diamond_weight);
             frappe.model.set_value(cdt, cdn, "total_weight", data.summary_totals.gross_wt);
             frappe.model.set_value(cdt, cdn, "gross_weight", data.summary_totals.gross_wt);
-            frappe.model.set_value(cdt, cdn, "metal_weight", data.totals.metal_totals.total_weight);
-            frappe.model.set_value(cdt, cdn, "finding_weight", data.totals.finding_totals.total_weight);
-            frappe.model.set_value(cdt, cdn, "gemstone_weight", data.totals.stone_totals.total_weight);
+            frappe.model.set_value(cdt, cdn, "metal_weight", data.summary_totals.metal_weight);
+            frappe.model.set_value(cdt, cdn, "finding_weight", data.summary_totals.chain_weight);
+            frappe.model.set_value(cdt, cdn, "gemstone_weight", data.summary_totals.stone_weight);
+            frappe.model.set_value(cdt, cdn, "other_weight", data.summary_totals.other_weight);
 
             // Piece counts (materials.*_details carries a Pcs count per line)
             let diamond_pcs = (data.materials.diamond_details || []).reduce((sum, d) => sum + flt(d.Pcs), 0);
@@ -1969,7 +1970,7 @@ frappe.ui.form.on("Product Return Form Item", {
             frappe.model.set_value(cdt, cdn, "metal_amount", data.summary_totals.metal_amount);
             frappe.model.set_value(cdt, cdn, "diamond_amount", data.summary_totals.diamond_amount);
             frappe.model.set_value(cdt, cdn, "gemstone_amount", data.summary_totals.stone_amount);
-            frappe.model.set_value(cdt, cdn, "finding_amount", data.totals.finding_totals.total_amount);
+            frappe.model.set_value(cdt, cdn, "finding_amount", data.summary_totals.chain_amount);
             frappe.model.set_value(cdt, cdn, "other_material_amount", data.totals.other_totals.total_amount);
 
             // Charges
