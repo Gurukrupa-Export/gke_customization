@@ -25,9 +25,16 @@ frappe.query_reports["Accounts Payable Aging Summary Report"] = {
 
 		$("#apsd-container").remove();
 		$('<div id="apsd-container" style="padding: 8px 0;"></div>').html(html).insertBefore(report.$report);
+
+		apsd_place_pdf_button(report);
 	},
 
 	onload: function (report) {
+		// "Download PDF" on the LEFT side of the Actions button (placed again after the toolbar is built)
+		apsd_place_pdf_button(report);
+		setTimeout(() => apsd_place_pdf_button(report), 600);
+		setTimeout(() => apsd_place_pdf_button(report), 1500);
+
 		// Always open with "All Suppliers" (Frappe otherwise restores the last used filter),
 		// unless the URL explicitly asks for a supplier group.
 		const from_url = new URLSearchParams(window.location.search).get("supplier_group");
@@ -43,7 +50,7 @@ frappe.query_reports["Accounts Payable Aging Summary Report"] = {
 		report.page.wrapper.addClass("apsd-report");
 		if (!$("#apsd-style").length) {
 			$("<style id='apsd-style'>")
-				.text(".apsd-report .datatable { display: none !important; } .apsd-drill, .apsd-drill:hover, .apsd-drill:focus { text-decoration: none !important; border-bottom: 0 !important; } .apsd-drill:hover { color: #0b5ed7 !important; } .apsd-pdf:hover, .apsd-dl-pdf:hover, .apsd-dl-excel:hover { filter: brightness(1.12); }")
+				.text(".apsd-report .datatable { display: none !important; } .apsd-drill, .apsd-drill:hover, .apsd-drill:focus { text-decoration: none !important; border-bottom: 0 !important; } .apsd-drill:hover { color: #0b5ed7 !important; } .apsd-pdf-btn { background: #c0392b !important; border: 0 !important; border-radius: 0 !important; color: #fff !important; font-weight: 600; margin-right: 8px; } .apsd-pdf-btn:hover, .apsd-dl-pdf:hover, .apsd-dl-excel:hover { filter: brightness(1.12); }")
 				.appendTo("head");
 		}
 
@@ -60,17 +67,57 @@ frappe.query_reports["Accounts Payable Aging Summary Report"] = {
 					callback: (r) => apsd_show_invoices(label, r.message || [], bucket, filters),
 				});
 			});
-
-		$(document)
-			.off("click.apsdpdf")
-			.on("click.apsdpdf", ".apsd-pdf", function () {
-				// send exactly what is on screen (minus the button) so the PDF always matches
-				const $copy = $("#apsd-container").clone();
-				$copy.find(".apsd-pdf").parent().remove();
-				open_url_post(`/api/method/${APSD_METHOD}.download_pdf`, { html: $copy.html() });
-			});
 	},
 };
+
+function apsd_place_pdf_button(report) {
+	const $wrap = report.page.wrapper;
+	$wrap.find(".apsd-pdf-btn").remove();
+	// make sure no old "primary action" copy of the button is left at the far right
+	if (report.page.clear_primary_action) report.page.clear_primary_action();
+
+	const $btn = $(`<button class="btn btn-sm apsd-pdf-btn">${__("Download PDF")}</button>`).on("click", () =>
+		apsd_download_pdf()
+	);
+
+	// find the "Actions" button (by class first, then by its visible text anywhere in the page header)
+	let $target = $wrap.find(".page-actions .actions-btn-group").first();
+	if (!$target.length) {
+		const $actions_btn = $wrap
+			.find(".page-head button, .page-actions button")
+			.filter((i, el) => $(el).text().trim() === __("Actions"))
+			.first();
+		if ($actions_btn.length) {
+			const $group = $actions_btn.closest(".btn-group, .actions-btn-group");
+			$target = $group.length ? $group : $actions_btn;
+		}
+	}
+	if (!$target.length) {
+		console.warn("APSD: Actions button not found, placing Download PDF at the start of the toolbar");
+		$wrap.find(".page-actions").first().prepend($btn);
+		return;
+	}
+
+	// Put [Download PDF] and Actions together in our own small row, so the order is always
+	// [Download PDF] [Actions] whatever order Frappe lays out its own toolbar in.
+	let $holder = $target.parent(".apsd-actions-wrap");
+	if (!$holder.length) {
+		$holder = $('<div class="apsd-actions-wrap" style="display:flex;align-items:center;gap:8px;"></div>');
+		$holder.insertBefore($target);
+		$holder.append($target);
+	}
+	$holder.prepend($btn);
+}
+
+function apsd_download_pdf() {
+	// send exactly what is on screen so the PDF always matches
+	const html = $("#apsd-container").html();
+	if (!html) {
+		frappe.msgprint(__("The report is not loaded yet."));
+		return;
+	}
+	open_url_post(`/api/method/${APSD_METHOD}.download_pdf`, { html: html });
+}
 
 function apsd_show_invoices(label, rows, bucket, filters) {
 	const esc = (v) => frappe.utils.escape_html(v || "");
