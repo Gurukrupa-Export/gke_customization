@@ -1,0 +1,51 @@
+name: "Setup Frappe Environment"
+description: "Checks out code, sets up Python/Node/DBs, and runs install.sh"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout Fixture Branch
+      uses: actions/checkout@v4
+      with:
+        repository: Gurukrupa-Export/jewellery-erpnext
+        ref: git_action_v16
+        path: fixture_source
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.14"
+        cache: "pip"
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: "24"
+
+    - name: Cache uv
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('install.sh') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-
+
+    - name: Install System Dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y redis-server mariadb-client redis-tools wkhtmltopdf build-essential libffi-dev libssl-dev
+
+    - name: Make Install Script Executable
+      shell: bash
+      run: chmod +x install.sh
+
+    - name: Install Bench and Apps
+      shell: bash
+      run: ./install.sh
+
+    - name: Migrate
+      shell: bash
+      run: |
+        cd ~/frappe-bench
+        bench --site test_site migrate

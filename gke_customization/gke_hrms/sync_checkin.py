@@ -148,16 +148,20 @@ def _process_single_log(log, existing, last_punch_map, time_threshold, employee_
         return "skipped"
 
     # ── Time threshold check ──────────────────────────────────────────
-    # Skip this punch if ANY existing checkin of the employee is within
-    # `time_threshold` seconds of it - before OR after.
-    #
-    # Old logic only compared with the latest checkin (0 < diff), so once a
-    # later punch (e.g. 18:32) existed, an earlier punch (e.g. 11:43, which
-    # is 1 minute after the 11:42 checkin) gave a negative diff and was
-    # wrongly accepted on a later hourly run.
+    # Skip this punch if ANY punch seen so far (created checkin or a punch
+    # skipped earlier in this run) is within `time_threshold` seconds of it
+    # - before OR after. The old logic only compared with the latest
+    # created checkin (0 < diff), so once a later punch (e.g. 18:32)
+    # existed, an earlier punch (e.g. 11:43, which is 1 minute after the
+    # 11:42 checkin) gave a negative diff and was wrongly accepted on a
+    # later hourly run.
     if time_threshold > 0:
         for punch_dt in last_punch_map.get(employee, []):
             if abs((log_dt - punch_dt).total_seconds()) <= time_threshold:
+                # Keep the skipped punch in the map so the rest of the
+                # burst measures against it too, not only against the
+                # last created checkin.
+                last_punch_map.setdefault(employee, []).append(log_dt)
                 return "skipped"
 
     # ── Determine Log Type (shift-aware) ──────────────────────────────
