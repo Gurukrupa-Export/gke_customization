@@ -7,6 +7,12 @@ from gke_customization.gke_catalog.api.encryption_response import SecureJSON
 
 @frappe.whitelist()
 def category_count(user_type, customer=None):
+    # Same 5-minute cache as subcategory_count: the counts change rarely and the
+    # staff query counts every item (~0.3 s).
+    cache_key = f"portal_cat_count_{user_type}_{customer if user_type == 'Customer' else ''}"
+    cached = frappe.cache().get_value(cache_key)
+    if cached:
+        return cached
     try:
         if user_type == "Customer":
         
@@ -91,9 +97,10 @@ def category_count(user_type, customer=None):
             values = values,
             as_dict = True
         )
-        
+        if result:
+            frappe.cache().set_value(cache_key, result, expires_in_sec=300)
         return result
-    
+
     except Exception as e:
         frappe.log_error(
             frappe.get_traceback(),
