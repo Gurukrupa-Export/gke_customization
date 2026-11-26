@@ -365,9 +365,9 @@ def get_making_charges(customer, item_code,gold_rate_value, bom,metal_touch, is_
         threshold = 2 if sub_info.get("rate_per_gm_threshold") == 0 else sub_info.get("rate_per_gm_threshold")
         
         customer_metal_purity = frappe.db.sql(f"""select metal_purity from `tabMetal Criteria` 
-                                              where parent = '{customer}' 
-                                              and metal_type = '{s.metal_type}' 
-                                              and metal_touch = '{touch}'
+                                              where parent = {frappe.db.escape(customer, percent=False)} 
+                                              and metal_type = {frappe.db.escape(s.metal_type, percent=False)} 
+                                              and metal_touch = {frappe.db.escape(touch, percent=False)}
                                               """, as_dict=True)[0]['metal_purity']
         
         calculated_gold_rate = (float(customer_metal_purity) * gold_rate) / (100 + int(gold_gst_rate))
@@ -526,8 +526,8 @@ def get_finding_charges(customer, item_code,gold_rate_value, bom,metal_touch):
             
             gold_gst_rate=frappe.db.get_single_value("Jewellery Settings", "gold_gst_rate")
             customer_metal_purity = frappe.db.sql(f"""select metal_purity from `tabMetal Criteria` 
-                                                where parent = '{customer}' and metal_type = '{f.metal_type}' and 
-                                                metal_touch = '{touch}' """,as_dict=True)[0]['metal_purity']
+                                                where parent = {frappe.db.escape(customer, percent=False)} and metal_type = {frappe.db.escape(f.metal_type, percent=False)} and 
+                                                metal_touch = {frappe.db.escape(touch, percent=False)} """,as_dict=True)[0]['metal_purity']
             calculated_gold_rate = (float(customer_metal_purity) * gold_rate) / (100 + int(gold_gst_rate))
              
             base_rate=round(calculated_gold_rate , 2)

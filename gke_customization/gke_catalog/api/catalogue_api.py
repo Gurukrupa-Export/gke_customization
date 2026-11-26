@@ -62,7 +62,7 @@ def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, m
     where_clause += " AND bom.bom_type = 'Finish Goods'"
 
     if itemCode:
-        where_clause = where_clause + f" AND item.item_code = '{itemCode}' "
+        where_clause = where_clause + f" AND item.item_code = {frappe.db.escape(itemCode, percent=False)} "
     if itemCategory:
         where_clause = where_clause + f" AND item.item_category = '{itemCategory}' "
         
@@ -668,18 +668,18 @@ def customer_wise_item(selectedSubcategory=None, customer=None, user=None, metal
     if metalType:
         where_clause += f" AND bom.metal_type = '{metalType}' "
     if customer:
-        where_clause += f" AND tcm.customer = '{customer}' "
+        where_clause += f" AND tcm.customer = {frappe.db.escape(customer, percent=False)} "
         allow_excel_permission = frappe.db.get_value(
             "Cataloge Master", {"customer": customer}, "allow_excel_permission"
         ) or 0
     if user:
-        where_clause += f" AND icm.user = '{user}' "
+        where_clause += f" AND icm.user = {frappe.db.escape(user, percent=False)} "
     if itemCode:
-        where_clause += f" AND item.item_code = '{itemCode}' "
+        where_clause += f" AND item.item_code = {frappe.db.escape(itemCode, percent=False)} "
     if itemCategory:
         where_clause += f" AND item.item_category = '{itemCategory}' "
 
-    customer_join = f"AND tcm.customer = '{customer}'" if customer else ""
+    customer_join = f"AND tcm.customer = {frappe.db.escape(customer, percent=False)}" if customer else ""
 
     values = {}
 
@@ -924,9 +924,9 @@ def get_customer_wishlist_items(customer=None, user_type=None, user=None):
     """
 
     if customer:
-        where_clause += f" AND tcm.customer = '{customer}' "
+        where_clause += f" AND tcm.customer = {frappe.db.escape(customer, percent=False)} "
     if user:
-        where_clause += f" AND tcm.user = '{user}' "
+        where_clause += f" AND tcm.user = {frappe.db.escape(user, percent=False)} "
 
     # frappe.throw(where_clause)
 
@@ -2982,7 +2982,7 @@ def catalogue_data_with_trending_item(selectedSubcategory, customer, metalType =
         where_clause = where_clause + f" AND bom.metal_type = '{metalType}' "
     
     if itemCode:
-        where_clause = where_clause + f" AND item.item_code = '{itemCode}' "
+        where_clause = where_clause + f" AND item.item_code = {frappe.db.escape(itemCode, percent=False)} "
     if itemCategory:
         where_clause = where_clause + f" AND item.item_category = '{itemCategory}' "
     # if customer:
@@ -3096,7 +3096,7 @@ def catalogue_data_with_trending_item(selectedSubcategory, customer, metalType =
                 item.item_name = idf.parent
                 
             INNER JOIN `tabCataloge Master` AS CT
-                ON CT.customer = '{customer}'
+                ON CT.customer = {frappe.db.escape(customer, percent=False)}
 
             INNER JOIN `tabCataloge Item Details` AS cm
                 ON cm.parent = CT.name
@@ -3249,7 +3249,7 @@ def get_catalogue_collection_item_data(selectedSubcategory, itemCode):
         where_clause = where_clause + f" AND item.item_subcategory = '{selectedSubcategory}' "
     
     if itemCode:
-        where_clause = where_clause + f" AND item.item_code = '{itemCode}' " 
+        where_clause = where_clause + f" AND item.item_code = {frappe.db.escape(itemCode, percent=False)} " 
 
     db_data = frappe.db.sql(
         f""" SELECT
@@ -3990,7 +3990,7 @@ def catalogue_data_with_trending_item(selectedSubcategory, customer, metalType =
         where_clause = where_clause + f" AND bom.metal_type = '{metalType}' "
     
     if itemCode:
-        where_clause = where_clause + f" AND item.item_code = '{itemCode}' "
+        where_clause = where_clause + f" AND item.item_code = {frappe.db.escape(itemCode, percent=False)} "
     if itemCategory:
         where_clause = where_clause + f" AND item.item_category = '{itemCategory}' "
     # if customer:
@@ -4103,7 +4103,7 @@ def catalogue_data_with_trending_item(selectedSubcategory, customer, metalType =
                 item.item_name = idf.parent
                 
             INNER JOIN `tabCataloge Master` AS CT
-                ON CT.customer = '{customer}'
+                ON CT.customer = {frappe.db.escape(customer, percent=False)}
 
             INNER JOIN `tabCataloge Item Details` AS cm
                 ON cm.parent = CT.name
@@ -4176,7 +4176,7 @@ def get_catalogue_collection_item_data(selectedSubcategory, itemCode):
         where_clause = where_clause + f" AND item.item_subcategory = '{selectedSubcategory}' "
     
     if itemCode:
-        where_clause = where_clause + f" AND item.item_code = '{itemCode}' " 
+        where_clause = where_clause + f" AND item.item_code = {frappe.db.escape(itemCode, percent=False)} " 
 
     db_data = frappe.db.sql(
         f""" SELECT

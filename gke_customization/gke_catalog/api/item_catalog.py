@@ -127,7 +127,7 @@ def catalogue_data(selectedSubcategory):
     if selectedSubcategory:
         where_clause = where_clause + f" AND item.item_subcategory = '{selectedSubcategory}' "
     if itemCode:
-        where_clause = where_clause + f" AND item.item_code = '{itemCode}' "
+        where_clause = where_clause + f" AND item.item_code = {frappe.db.escape(itemCode, percent=False)} "
     if itemCategory:
         where_clause = where_clause + f" AND item.item_category = '{itemCategory}' "
 
