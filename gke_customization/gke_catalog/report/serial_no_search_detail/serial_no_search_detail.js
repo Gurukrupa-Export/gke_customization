@@ -1,8 +1,9 @@
 // Copyright (c) 2026, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
+const SERIAL_NO_SEARCH_REPORT_NAME = "Serial No Search Detail";
 
-frappe.query_reports["Serial No Search Detail"] = {
+frappe.query_reports[SERIAL_NO_SEARCH_REPORT_NAME] = {
     filters: [
         {
             fieldname: "search_mode",
@@ -32,10 +33,8 @@ frappe.query_reports["Serial No Search Detail"] = {
         }
     ],
 
-
     formatter: function(value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
-
 
         if (column.fieldname === "detail" && data && data.tag_no) {
             return `<button class="btn btn-xs btn-primary view-details-btn"
@@ -45,7 +44,6 @@ frappe.query_reports["Serial No Search Detail"] = {
                     </button>`;
         }
 
-
         if (column.fieldtype === "Float" && value !== null && value !== undefined && value !== "") {
             let num = parseFloat(value);
             if (!isNaN(num)) {
@@ -53,12 +51,13 @@ frappe.query_reports["Serial No Search Detail"] = {
             }
         }
 
-
         return value;
     },
 
-
     onload: function(report) {
+        // Loader for prepared / background report generation
+        sns_setup_prepared_report_loader(report);
+
         // View Summary Report Button - Pass same filters
         report.page.add_inner_button(__("View Summary Report"), function () {
             let current_filters = report.get_filter_values();
@@ -72,7 +71,6 @@ frappe.query_reports["Serial No Search Detail"] = {
         $(document).on("click", ".view-details-btn", function() {
             let serial_no = $(this).data("serial-no");
             let item_code = $(this).data("item-code");
-
 
             frappe.call({
                 method: "gke_customization.gke_catalog.report.serial_no_search_detail.serial_no_search_detail.get_raw_material_details",
@@ -92,7 +90,7 @@ frappe.query_reports["Serial No Search Detail"] = {
     }
 };
 
-
+/* ---------------- Detail modal ---------------- */
 
 function show_serial_details_modal_with_raw_materials(data, serial_no, item_code) {
     let raw_materials = data.raw_materials || [];
@@ -101,19 +99,15 @@ function show_serial_details_modal_with_raw_materials(data, serial_no, item_code
     let item_category = data.item_category || "";
     let item_subcategory = data.item_subcategory || "";
 
-
     const isDarkTheme = document.documentElement.getAttribute("data-theme-mode") === "dark";
     const headerTextColor = isDarkTheme ? "#ffffff" : "#000000";
     const tableHeaderBg = isDarkTheme ? "#3a3a3a" : "#f8f9fa";
     const tableBorderColor = isDarkTheme ? "#4a4a4a" : "#dee2e6";
 
-
     const type_order = ["Metal", "Finding", "Diamond", "Gemstone", "Other", "Debug", "Error"];
     raw_materials.sort((a, b) => type_order.indexOf(a.type) - type_order.indexOf(b.type));
 
-
     let raw_material_rows = "";
-
 
     raw_materials.forEach(function(material) {
         let display = material.display || "";
@@ -123,7 +117,6 @@ function show_serial_details_modal_with_raw_materials(data, serial_no, item_code
         let pcs = "";
         let uom = "";
         let attributes_without_qty_pcs = [];
-
 
         lines.slice(1).forEach(function(line) {
             if (line.includes("Qty =")) {
@@ -137,9 +130,7 @@ function show_serial_details_modal_with_raw_materials(data, serial_no, item_code
             }
         });
 
-
         let attributes = attributes_without_qty_pcs.join("<br>") || "";
-
 
         raw_material_rows += `
             <tr>
@@ -152,7 +143,6 @@ function show_serial_details_modal_with_raw_materials(data, serial_no, item_code
         `;
     });
 
-
     if (raw_material_rows === "") {
         raw_material_rows = `
             <tr>
@@ -160,7 +150,6 @@ function show_serial_details_modal_with_raw_materials(data, serial_no, item_code
             </tr>
         `;
     }
-
 
     let image_html = "";
     if (item_image) {
@@ -173,7 +162,6 @@ function show_serial_details_modal_with_raw_materials(data, serial_no, item_code
             </div>
         `;
     }
-
 
     let dialog_html = `
         <div style="margin-bottom: 20px;">
@@ -194,7 +182,6 @@ function show_serial_details_modal_with_raw_materials(data, serial_no, item_code
             </div>
         </div>
 
-
         <h6 style="color: ${headerTextColor}; font-weight: 600;">Raw Material Details</h6>
         <table class="table table-bordered" style="border-color: ${tableBorderColor};">
             <thead>
@@ -212,7 +199,6 @@ function show_serial_details_modal_with_raw_materials(data, serial_no, item_code
         </table>
     `;
 
-
     let d = new frappe.ui.Dialog({
         title: "",
         fields: [
@@ -228,16 +214,12 @@ function show_serial_details_modal_with_raw_materials(data, serial_no, item_code
         }
     });
 
-
     d.show();
 }
-
-
 
 function show_full_image(image_url) {
     const image_modal_id = "serial-image-modal";
     $(`#${image_modal_id}`).remove();
-
 
     let modal_html = `
         <div id="${image_modal_id}" class="custom-image-modal"
@@ -250,6 +232,119 @@ function show_full_image(image_url) {
         </div>
     `;
 
-
     $("body").append(modal_html);
+}
+
+/* ---------------- Prepared report loader ---------------- */
+
+function sns_setup_prepared_report_loader(report) {
+    // the query report view object is shared across reports, so wrap only once
+    if (report._sns_loader_ready) return;
+    report._sns_loader_ready = true;
+
+    const original_generate = report.generate_background_report;
+    const original_refresh = report.refresh;
+
+    report.generate_background_report = function () {
+        const result = original_generate.apply(this, arguments);
+        if (this.report_name !== SERIAL_NO_SEARCH_REPORT_NAME || !result || !result.then) {
+            return result;
+        }
+        return result.then((r) => {
+            if (this.prepared_report_doc_name) {
+                sns_start_prepared_report_loader(this, this.prepared_report_doc_name);
+            }
+            return r;
+        });
+    };
+
+    report.refresh = function () {
+        if (this.report_name === SERIAL_NO_SEARCH_REPORT_NAME && this._sns_loading) {
+            frappe.show_alert({
+                message: __("Report is still generating, please wait..."),
+                indicator: "orange"
+            }, 5);
+            this.page.btn_secondary && this.page.btn_secondary.prop("disabled", true);
+            return Promise.resolve();
+        }
+        return original_refresh.apply(this, arguments);
+    };
+
+    frappe.realtime.on("report_generated", (data) => {
+        if (report._sns_loading && data && data.name === report._sns_loading) {
+            sns_stop_prepared_report_loader(report, "Completed");
+        }
+    });
+}
+
+function sns_start_prepared_report_loader(report, prepared_report_name) {
+    report._sns_loading = prepared_report_name;
+    sns_show_prepared_report_overlay(report);
+
+    clearInterval(report._sns_poll);
+    report._sns_poll = setInterval(() => {
+        // user navigated to another report: stop watching
+        if (report.report_name !== SERIAL_NO_SEARCH_REPORT_NAME) {
+            sns_stop_prepared_report_loader(report);
+            return;
+        }
+        frappe.db.get_value("Prepared Report", prepared_report_name, ["status", "error_message"])
+            .then((r) => {
+                const doc = r.message || {};
+                if (doc.status === "Completed" || doc.status === "Error") {
+                    sns_stop_prepared_report_loader(report, doc.status, doc.error_message);
+                }
+            })
+            .catch(() => sns_stop_prepared_report_loader(report));
+    }, 4000);
+}
+
+function sns_stop_prepared_report_loader(report, status, error_message) {
+    if (!report._sns_loading) return;
+    clearInterval(report._sns_poll);
+    report._sns_loading = null;
+    sns_hide_prepared_report_overlay(report);
+
+    if (report.report_name !== SERIAL_NO_SEARCH_REPORT_NAME) return;
+
+    if (status === "Completed") {
+        frappe.show_alert({ message: __("Report generated"), indicator: "green" }, 5);
+        report.refresh();
+    } else if (status === "Error") {
+        frappe.msgprint({
+            title: __("Report Generation Failed"),
+            message: error_message || __("Please check the Prepared Report for details."),
+            indicator: "red"
+        });
+    }
+}
+
+function sns_show_prepared_report_overlay(report) {
+    const $main = report.page.main;
+    $main.find(".sns-report-loader").remove();
+    $main.css("position", "relative");
+    $main.append(`
+        <div class="sns-report-loader"
+             style="position:absolute; inset:0; z-index:10; min-height:300px;
+                    display:flex; flex-direction:column; align-items:center; justify-content:center;
+                    background:var(--bg-color); opacity:0.95;">
+            <style>
+                @keyframes sns-report-spin { to { transform: rotate(360deg); } }
+            </style>
+            <div style="width:48px; height:48px; border-radius:50%;
+                        border:4px solid var(--gray-300); border-top-color:var(--primary);
+                        animation:sns-report-spin 0.8s linear infinite;"></div>
+            <div style="margin-top:15px; font-size:14px; color:var(--text-muted);">
+                ${__("Generating report, please wait...")}
+            </div>
+        </div>
+    `);
+    report.page.btn_primary && report.page.btn_primary.prop("disabled", true);
+    report.page.btn_secondary && report.page.btn_secondary.prop("disabled", true);
+}
+
+function sns_hide_prepared_report_overlay(report) {
+    report.page.main.find(".sns-report-loader").remove();
+    report.page.btn_primary && report.page.btn_primary.prop("disabled", false);
+    report.page.btn_secondary && report.page.btn_secondary.prop("disabled", false);
 }
