@@ -35,7 +35,7 @@ frappe.ui.form.on('Order Form', {
 		frm.set_query('diamond_quality', function (doc) {
 			let filters = { 'item_attribute': 'Diamond Quality', 'customer_code': doc.customer_code };
 			if (doc.sales_type == 'Outright') {
-				filters.exclude_value = 'Customer Diamond Quality';
+				filters.name = ['!=', 'Customer Diamond Quality'];
 			}
 			return {
 				query: 'jewellery_erpnext.query.item_attribute_query',
