@@ -1721,18 +1721,8 @@ def build_html(stats, filters, age_as_on, interactive=True):
 		f"(Aging as on {age_as_on.strftime('%d-%m-%Y')} | Supplier: {escape_html(supplier)})</span>"
 	)
 
-	button = (
-		'<button class="apsd-pdf" style="background:#c0392b;color:#ffffff;border:0;border-radius:0;'
-		"padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;"
-		'white-space:nowrap;line-height:1.2;box-shadow:0 1px 4px rgba(0,0,0,.25);">&#8595; Download PDF</button>'
-		if interactive
-		else ""
-	)
-	button_row = f'<div style="margin-bottom:14px;">{button}</div>' if interactive else ""
-
 	return f"""
 	<div style="padding:8px 0;{FONT}overflow-x:auto;">
-		{button_row}
 		<div>
 			{_metric_table(title, AGING_COLUMNS, stats, interactive)}
 		</div>
