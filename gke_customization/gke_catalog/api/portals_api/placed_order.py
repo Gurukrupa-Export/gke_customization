@@ -6,12 +6,17 @@ import frappe
 from frappe import _
 from werkzeug.wrappers import request
 from gke_customization.gke_catalog.api.portals_api.item_price import get_item_price
+from gke_customization.gke_catalog.api.portal_access import allowed_customers, allowed_document, allowed_user
 
 
 
 
 @frappe.whitelist()
 def get_placed_orders(customer=None, user=None):
+    if customer:
+        allowed_customers(customer)
+    else:
+        allowed_user(user)
 
     # ── CASE 1: Customer login ──
     if customer:
@@ -162,6 +167,7 @@ def _serialize_items(items, status_filter=None):
 def cancel_order(order_name):
     """Cancel complete Portal Order"""
 
+    allowed_document("Portal Order", order_name)
     doc = frappe.get_doc("Portal Order", order_name)
 
     if doc.status == "Cancel Order":
@@ -202,6 +208,7 @@ def cancel_order(order_name):
 def cancel_order_item(order_name, item_code, row_name=None):
     """Cancel only one item from Portal Order"""
 
+    allowed_document("Portal Order", order_name)
     doc = frappe.get_doc("Portal Order", order_name)
 
     if doc.status == "Cancel Order":

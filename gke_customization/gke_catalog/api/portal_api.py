@@ -1154,7 +1154,7 @@ def get_delivery_note(customer, id=None):
 
 # issues apis end
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_selected_item_for_customer_by_user(items, customers):
     """
     Save selected items to 'Cataloge Master' for one or more customers.

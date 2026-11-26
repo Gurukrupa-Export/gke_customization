@@ -1788,7 +1788,7 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
     return data, total_count
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, metalType=None, company=None, customer=None, page=1, page_size=48, is_filter=None, search=None,sort_by=None):
     
     SORT_MAP = {
@@ -4229,7 +4229,7 @@ def get_catalogue_collection_item_data(selectedSubcategory, itemCode):
         where_clause = where_clause + f" AND item.item_subcategory = '{selectedSubcategory}' "
     
     if itemCode:
-        where_clause = where_clause + f" AND item.item_code = '{itemCode}' " 
+        where_clause = where_clause + f" AND item.item_code = {frappe.db.escape(itemCode, percent=False)} " 
 
     db_data = frappe.db.sql(
         f""" SELECT

@@ -40,9 +40,9 @@ def get_customer_wishlist_items(customer=None, user_type=None, user=None):
     """
 
     if customer:
-        where_clause += f" AND tcm.customer = '{customer}' "
+        where_clause += f" AND tcm.customer = {frappe.db.escape(customer, percent=False)} "
     if user:
-        where_clause += f" AND tcm.user = '{user}' "
+        where_clause += f" AND tcm.user = {frappe.db.escape(user, percent=False)} "
 
     # frappe.throw(where_clause)
 
@@ -164,7 +164,9 @@ def get_customer_wishlist_items(customer=None, user_type=None, user=None):
                     AND b.bom_type = 'Finish Goods'
                     AND b.is_active = 1
                     # AND b.is_default = 1
-                LEFT JOIN `tabCataloge Item Details` AS tci2 ON tci2.item_code = i.item_code
+                -- INNER JOIN: only rows with a catalogue can match vc.catalog_parent = tci.parent
+                -- (NULL never matches); building it for every item took ~0.4 s.
+                INNER JOIN `tabCataloge Item Details` AS tci2 ON tci2.item_code = i.item_code
                 LEFT JOIN `tabCataloge Master` AS tcm2 ON tcm2.name = tci2.parent
                 GROUP BY COALESCE(i.variant_of, i.item_code), tci2.parent
             ) vc ON vc.group_key = COALESCE(item.variant_of, item.item_code)
@@ -199,7 +201,6 @@ def get_customer_wishlist_items(customer=None, user_type=None, user=None):
             LEFT JOIN `tabBOM Gemstone Detail` AS gd ON bom.name = gd.parent
             LEFT JOIN `tabBOM Diamond Detail` AS dd ON bom.name = dd.parent
             LEFT JOIN `tabBOM Finding Detail` AS fd ON bom.name = fd.parent
-            LEFT JOIN `tabBOM Other Detail` AS od ON bom.name = od.parent
             LEFT JOIN `tabItem Default` AS idf ON item.item_name = idf.parent
             WHERE
                 {where_clause}
@@ -240,7 +241,7 @@ def get_customer_wishlist_items(customer=None, user_type=None, user=None):
     }
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_wishlist_item_for_customer_by_user(items, customers, user_type):
     """
     Save selected items to 'Cataloge Master' for one or more customers.

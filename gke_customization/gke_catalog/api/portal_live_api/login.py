@@ -157,8 +157,7 @@ def send_otp_for_login_user(username, password):
 
 
     return {
-        "status": "success",
-        "otp": otp  # In production, don't send this to frontend
+        "status": "success"
     }
 
 
@@ -410,8 +409,14 @@ def verify_otp_using_customer_name(username, password, otp):
     return {"status": "failed", "message": "Invalid or expired OTP"}
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_address_by_link_name(user_type, link_name):
+    from gke_customization.gke_catalog.api.portal_access import allowed_customers, has_full_access
+    if user_type == "Customer":
+        allowed_customers(link_name)  # only a customer this login may see
+    elif user_type == "User" and link_name != frappe.session.user and not has_full_access():
+        frappe.throw(_("Not permitted for this user."), frappe.PermissionError)
+
     try:
         if not user_type or not link_name:
             return {"success": False, "message": "Missing user_type or link_name."}

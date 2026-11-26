@@ -6,6 +6,7 @@ import frappe
 from frappe import _
 from werkzeug.wrappers import request
 from gke_customization.gke_catalog.api.item_price_list import get_item_price
+from gke_customization.gke_catalog.api.portal_access import allowed_customers, allowed_document, allowed_user
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -183,6 +184,7 @@ def add_to_cart(
     diamond_quality=None,   
     metal_touch=None,       
 ):
+    allowed_customers(customer)
     if not customer:
         frappe.throw(_("Customer required."))
     if not item_code:
@@ -540,6 +542,10 @@ def get_cart_orders(customer=None, user=None, status_filter=None):
  
     # ── Case 1: Customer se fetch ──────────────────────────────────────────────
     if customer:
+        allowed_customers(customer)
+    else:
+        allowed_user(user)
+    if customer:
         active_cart = frappe.db.get_value(
             "Add To Cart Portal Item",
             {"customer": customer, "status": "Add To Cart"},
@@ -620,6 +626,7 @@ def get_cart_orders(customer=None, user=None, status_filter=None):
 
 @frappe.whitelist()
 def cancel_cart_item(order_name, item_code, row_name=None, user=None):
+    allowed_document("Add To Cart Portal Item", order_name)
     doc = frappe.get_doc("Add To Cart Portal Item", order_name)
 
     found = False
@@ -688,6 +695,7 @@ def confirm_cart_orders(customer, order_date=None, notes=None, user=None, row_na
         { "customer": "Rajan Shah", "row_names": ["abc123", "def456"] }
     """
 
+    allowed_customers(customer)
     if not customer:
         frappe.throw(_("Customer required hai."))
 
@@ -856,6 +864,7 @@ def confirm_cart_orders(customer, order_date=None, notes=None, user=None, row_na
 
 @frappe.whitelist()
 def update_order_item_qty(order_name, item_code, quantity, row_name=None, user=None):
+    allowed_document("Portal Order", order_name)
     qty = float(quantity or 0)
     if qty < 1:
         frappe.throw(_("Quantity must be at least 1"))
@@ -921,6 +930,7 @@ def update_order_item_qty(order_name, item_code, quantity, row_name=None, user=N
 
 @frappe.whitelist()
 def update_cart_item_qty(order_name, item_code, quantity, row_name=None, user=None):
+    allowed_document("Add To Cart Portal Item", order_name)
     qty = float(quantity or 0)
     if qty < 1:
         frappe.throw(_("Quantity must be at least 1"))
@@ -1285,6 +1295,10 @@ def get_placed_orders(customer=None, user=None):
 
     # ── CASE 1: Customer login ──
     if customer:
+        allowed_customers(customer)
+    else:
+        allowed_user(user)
+    if customer:
         filters = {"customer": customer, "status": "Ordered"}
         orders = frappe.get_all(
             "Portal Order",
@@ -1352,6 +1366,7 @@ def get_placed_orders(customer=None, user=None):
 def cancel_order(order_name):
     """Cancel complete Portal Order"""
 
+    allowed_document("Portal Order", order_name)
     doc = frappe.get_doc("Portal Order", order_name)
 
     if doc.status == "Cancel Order":
@@ -1391,6 +1406,7 @@ def cancel_order(order_name):
 def cancel_order_item(order_name, item_code, row_name=None):
     """Cancel only one item from Portal Order"""
 
+    allowed_document("Portal Order", order_name)
     doc = frappe.get_doc("Portal Order", order_name)
 
     if doc.status == "Cancel Order":
@@ -1459,7 +1475,7 @@ def cancel_order_item(order_name, item_code, row_name=None):
     }
     
     
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def send_customer_order_notification(user, order_id, customer_item_array):
     """
     Send order update mail notification to user

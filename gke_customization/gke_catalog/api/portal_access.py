@@ -63,3 +63,26 @@ def allowed_customers(customer):
 	if any(c not in own for c in requested):
 		frappe.throw(_("Not permitted for this customer."), frappe.PermissionError)
 	return requested
+
+
+def allowed_user(user):
+	"""The user given by the request must be the login itself (unless full access)."""
+	session_user = frappe.session.user
+	if session_user == "Guest":
+		frappe.throw(_("Please log in."), frappe.AuthenticationError)
+	if user and user != session_user and not has_full_access(session_user):
+		frappe.throw(_("Not permitted for this user."), frappe.PermissionError)
+	return user
+
+
+def allowed_document(doctype, name, field="customer"):
+	"""Raises unless the document's customer may be read by this login."""
+	customer = frappe.db.get_value(doctype, name, field)
+	if not customer:
+		if frappe.session.user == "Guest":
+			frappe.throw(_("Please log in."), frappe.AuthenticationError)
+		if not has_full_access():
+			frappe.throw(_("Not permitted."), frappe.PermissionError)
+		return customer
+	allowed_customers(customer)
+	return customer
