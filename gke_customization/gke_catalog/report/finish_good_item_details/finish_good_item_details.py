@@ -159,8 +159,20 @@ def get_conditions(filters):
     #     values["branch"] = filters.get("branch")
 
     if filters.get("department"):
-        conditions.append("eir.department = %(department)s")
-        values["department"] = filters.get("department")
+        conditions.append("""
+            EXISTS (
+                SELECT 1
+                FROM `tabEmployee IR` eir
+                INNER JOIN `tabEmployee IR Operation` eio
+                    ON eio.parent = eir.name
+                INNER JOIN `tabManufacturing Operation` mop
+                    ON mop.name = eio.manufacturing_operation
+                WHERE mop.serial_no = sn.name
+                  AND eir.department = %(department)s
+                  AND eir.docstatus = 1
+            )
+        """)
+        values["department"] = filters["department"]
 
     where_clause = ""
     if conditions:

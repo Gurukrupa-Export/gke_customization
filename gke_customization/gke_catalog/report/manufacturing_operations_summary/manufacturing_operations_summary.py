@@ -32,12 +32,6 @@ def get_active_departments(filters):
             mwo.department AS department,
             COUNT(DISTINCT mwo.manufacturing_order) AS qty
         FROM `tabManufacturing Work Order` mwo
-        LEFT JOIN `tabParent Manufacturing Order` pmo
-            ON pmo.name = mwo.manufacturing_order
-        LEFT JOIN `tabItem` i
-            ON mwo.item_code = i.name
-        LEFT JOIN `tabAttribute Value` av
-            ON av.name = i.item_subcategory
         WHERE IFNULL(mwo.department, '') != ''
             AND IFNULL(mwo.is_finding_mwo, 0) = 0
             AND IFNULL(mwo.has_split_mwo, 0) = 0
@@ -72,6 +66,12 @@ def get_columns(departments):
             "fieldtype": "Data",
             "width": 160,
         },
+        # {
+        #     "label": _("Customer"),
+        #     "fieldname": "customer",
+        #     "fieldtype": "Data",
+        #     "width": 160,
+        # },
     ]
 
     for dept in departments:
@@ -102,27 +102,23 @@ def get_data(filters, departments):
 
     query = f"""
         SELECT
-            COALESCE(i.setting_type, '') AS setting_type,
-            COALESCE(i.sub_setting_type, 'No Setting Type') AS sub_setting_type,
-            COALESCE(i.item_category, av.parent_attribute_value, i.item_group, 'No Category') AS item_category,
+            COALESCE(mwo.setting_type, '') AS setting_type,
+            COALESCE(mwo.sub_setting_type, 'No Setting Type') AS sub_setting_type,
+            COALESCE(mwo.item_category, 'No Category') AS item_category,
             mwo.department,
-            COUNT(DISTINCT mwo.manufacturing_order) AS qty
+            COUNT(DISTINCT mwo.manufacturing_order) AS qty,
+             COALESCE(mwo.customer, '') AS customer
         FROM `tabManufacturing Work Order` mwo
-        LEFT JOIN `tabParent Manufacturing Order` pmo
-            ON pmo.name = mwo.manufacturing_order
-        LEFT JOIN `tabItem` i
-            ON mwo.item_code = i.name
-        LEFT JOIN `tabAttribute Value` av
-            ON av.name = i.item_subcategory
         WHERE IFNULL(mwo.is_finding_mwo, 0) = 0
             AND IFNULL(mwo.has_split_mwo, 0) = 0
             AND IFNULL(mwo.for_fg, 0) = 0
             {conditions}
         GROUP BY
-            COALESCE(i.setting_type, ''),
-            COALESCE(i.sub_setting_type, 'No Setting Type'),
-            COALESCE(i.item_category, av.parent_attribute_value, i.item_group, 'No Category'),
-            mwo.department
+            COALESCE(mwo.setting_type, ''),
+            COALESCE(mwo.sub_setting_type, 'No Setting Type'),
+            COALESCE(mwo.item_category, 'No Category'),
+            mwo.department,
+            COALESCE(mwo.customer, '')
     """
 
     raw_data = frappe.db.sql(query, values, as_dict=True)
@@ -138,6 +134,7 @@ def get_data(filters, departments):
         item_category = row["item_category"]
         department = row["department"]
         qty = row["qty"] or 0
+        # customer = row["customer"]
 
         dept_field = frappe.scrub(department)
         if dept_field not in grand_total:
@@ -152,7 +149,8 @@ def get_data(filters, departments):
                 "bold": 0,
                 "is_total": 0,
                 "is_grand_total": 0,
-                "row_total": 0,
+                "row_total": 0
+                # "customer": customer
             }
             for d in departments:
                 detail_map[detail_key][frappe.scrub(d)] = 0
@@ -165,6 +163,7 @@ def get_data(filters, departments):
                 "setting_type": setting_type,
                 "sub_setting_type": sub_setting_type,
                 "item_category": f"{sub_setting_type} Total",
+                # "customer" : customer,
                 "bold": 1,
                 "is_total": 1,
                 "is_grand_total": 0,
@@ -193,6 +192,7 @@ def get_data(filters, departments):
         "setting_type": "",
         "sub_setting_type": "",
         "item_category": "Grand Total",
+        "customer": "",
         "bold": 1,
         "is_total": 0,
         "is_grand_total": 1,
@@ -214,31 +214,20 @@ def get_conditions(filters):
         conditions += " AND mwo.company = %(company)s"
         values["company"] = default_company
 
-    if filters.get("from_date"):
-        conditions += " AND DATE(mwo.creation) >= %(from_date)s"
-        values["from_date"] = filters["from_date"]
-
-    if filters.get("to_date"):
-        conditions += " AND DATE(mwo.creation) <= %(to_date)s"
-        values["to_date"] = filters["to_date"]
-
     if filters.get("item_category"):
-        conditions += (
-            " AND COALESCE(i.item_category, av.parent_attribute_value, i.item_group)"
-            " = %(item_category)s"
-        )
+        conditions += " AND mwo.item_category = %(item_category)s"
         values["item_category"] = filters["item_category"]
 
     if filters.get("setting_type"):
-        conditions += " AND i.setting_type = %(setting_type)s"
+        conditions += " AND mwo.setting_type = %(setting_type)s"
         values["setting_type"] = filters["setting_type"]
 
     if filters.get("sub_setting_type"):
-        conditions += " AND i.sub_setting_type = %(sub_setting_type)s"
+        conditions += " AND mwo.sub_setting_type = %(sub_setting_type)s"
         values["sub_setting_type"] = filters["sub_setting_type"]
-
+        
     if filters.get("customer"):
-        conditions += " AND pmo.ref_customer = %(customer)s"
+        conditions += " AND mwo.customer = %(customer)s"
         values["customer"] = filters["customer"]
 
     return conditions, values
