@@ -1,4 +1,4 @@
-// Copyright (c) 2024, Gurapps/gke_customization/gke_customization/gke_hrms/report/absence_report/absence_report.jsukrupa Export and contributors
+// Copyright (c) 2024, Gurukrupa Export and contributors
 // For license information, please see license.txt
 
 frappe.query_reports["Absence Report"] = {

@@ -88,7 +88,7 @@ frappe.query_reports["PF Challan Report"] = {
 	onload: (report) => {
 		set_dates();
 		report.page
-			.add_button("Clear Filters", function () {
+			.add_button(__("Clear Filters"), function () {
 				window.open("/app/query-report/PF%20Challan%20Report", "_self");
 			})
 			.addClass("btn-info");
@@ -101,7 +101,6 @@ frappe.query_reports["PF Challan Report"] = {
 					},
 					callback: function (r) {
 						if (r.message) {
-							// 🔽 Auto download
 							const link = document.createElement("a");
 							link.href = r.message;
 							link.download = "pf_export.txt";
@@ -115,7 +114,7 @@ frappe.query_reports["PF Challan Report"] = {
 			.addClass("btn-secondary");
 		report.page.add_inner_button(__("PF Contribution"), function () {
 			var filters = report.get_values();
-			frappe.set_route("query-report", "PF Contribution", {
+			frappe.set_route("query-report", "PF Contribution Report", {
 				month: filters.month,
 				year: filters.year,
 				company: filters.company,
@@ -126,11 +125,6 @@ frappe.query_reports["PF Challan Report"] = {
 		const report = frappe.query_report;
 		ensure_panel_inserted(report);
 		fetch_and_render_account_total_panel(report);
-	},
-
-	formatter: function (value, row, column, data, default_formatter) {
-		value = default_formatter(value, row, column, data);
-		return value;
 	},
 };
 
@@ -169,8 +163,6 @@ function fetch_and_render_account_total_panel(report) {
 }
 
 function render_account_total_panel(report, summary, filters) {
-	console.log("summary", summary);
-
 	const fmt = (n) => {
 		const num = Number(n) || 0;
 		return num.toLocaleString("en-IN");
@@ -283,26 +275,9 @@ function render_account_total_panel(report, summary, filters) {
 		</div>
 	</div>
 	`;
-	// <div style="display: flex; align-items: baseline; gap: 8px; margin-left: auto;">
-	// 				<span style="font-size: 14px; font-weight: 500;">Total</span>
-	// 				<span style="font-size: 19px; font-weight: 500;">${fmt(summary.grand_total)}</span>
-	// 			</div>
-
 	if (report.pf_panel) {
 		report.pf_panel.html(html);
 	}
-}
-
-function fetch_month_list() {
-	frappe.call({
-		method: "gurukrupa_customizations.gurukrupa_customizations.report.monthly_in_out.monthly_in_out.get_month_range",
-		freeze: false,
-		callback: function (r) {
-			var month = frappe.query_report.get_filter("month");
-			month.df.options.push(...r.message);
-			month.refresh();
-		},
-	});
 }
 
 function set_dates() {

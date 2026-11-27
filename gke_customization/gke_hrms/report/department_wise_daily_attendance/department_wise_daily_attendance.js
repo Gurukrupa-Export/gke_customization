@@ -29,7 +29,6 @@ frappe.query_reports["Department Wise Daily Attendance"] = {
 					},
 				};
 			},
-			// "on_change": fetch_manager_employee
 		},
 		{
 			label: __("Employee"),
@@ -39,10 +38,6 @@ frappe.query_reports["Department Wise Daily Attendance"] = {
 			get_query: function () {
 				let company = frappe.query_report.get_filter_value("company");
 				let department = frappe.query_report.get_filter_value("department");
-				let filters = {};
-				if (company) filters.company = company;
-				if (department) filters.department = department;
-
 				return {
 					filters: {
 						company: company,
@@ -55,7 +50,7 @@ frappe.query_reports["Department Wise Daily Attendance"] = {
 	],
 	onload: (report) => {
 		report.page
-			.add_button("Clear Filters", function () {
+			.add_button(__("Clear Filters"), function () {
 				window.open("/app/query-report/Department%20Wise%20Daily%20Attendance", "_self");
 			})
 			.addClass("btn-info");
@@ -63,7 +58,7 @@ frappe.query_reports["Department Wise Daily Attendance"] = {
 		const user = frappe.user.has_role("System Manager") || frappe.user.has_role("GK HR");
 		if (user) {
 			report.page
-				.add_button("Send Mail", function () {
+				.add_button(__("Send Mail"), function () {
 					frappe.call({
 						method: "gke_customization.gke_hrms.report.department_wise_daily_attendance.department_wise_daily_attendance.send_daily_attendance_report",
 						args: {
@@ -80,14 +75,16 @@ frappe.query_reports["Department Wise Daily Attendance"] = {
 								let msg;
 								if (sent.length) {
 									const lines = sent.map(
-										(s) => `${s.department} — ${(s.managers || []).join(", ")}`
+										(s) => `${s.department}: ${(s.managers || []).join(", ")}`
 									);
-									msg = `Mail sent:<br>${lines.join("<br>")}`;
+									msg = __("Mail sent:") + "<br>" + lines.join("<br>");
 								} else {
-									msg = "No mail was sent.";
+									msg = __("No mail was sent.");
 								}
 								if (skipped.length) {
-									msg += `<br><br>Skipped (no manager or no data): ${skipped.join(", ")}`;
+									msg +=
+										"<br><br>" +
+										__("Skipped (no manager or no data): {0}", [skipped.join(", ")]);
 								}
 								frappe.msgprint(msg);
 							}
@@ -98,18 +95,3 @@ frappe.query_reports["Department Wise Daily Attendance"] = {
 		}
 	},
 };
-
-function fetch_manager_employee(report) {
-	// Fetch employee linked to logged-in user
-	frappe.db.get_value("Employee", { user_id: frappe.session.user }, "name").then((r) => {
-		if (r && r.message && r.message.name) {
-			frappe.query_report.set_filter_value("manager", r.message.name);
-
-			let emp_filter = frappe.query_report.get_filter("manager");
-			if (emp_filter) {
-				// emp_filter.df.read_only = 1;
-				emp_filter.refresh();
-			}
-		}
-	});
-}

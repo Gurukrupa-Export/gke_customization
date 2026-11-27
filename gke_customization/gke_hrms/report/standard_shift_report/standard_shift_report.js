@@ -10,7 +10,7 @@ frappe.query_reports["Standard Shift Report"] = {
 			reqd: 1,
 			options: [],
 			default: () => {
-				const dateObject = new Date(); // create a new date object with the current date
+				const dateObject = new Date();
 				const options = { month: "short", year: "numeric" };
 				const dateString = dateObject.toLocaleDateString("en-US", options);
 				return dateString;
@@ -34,23 +34,11 @@ frappe.query_reports["Standard Shift Report"] = {
 			fieldname: "from_date",
 			read_only: 1,
 			default: frappe.datetime.month_start(frappe.datetime.get_today()),
-			on_change: function (query_report) {
-				var from_date = query_report.get_values().from_date;
-				if (!from_date) {
-					return;
-				}
-				let date = new moment(from_date);
-				var to_date = date.endOf("month").format();
-				query_report.set_filter_value({
-					to_date: to_date,
-				});
-			},
 		},
 		{
 			label: __("To Date"),
 			fieldtype: "Date",
 			fieldname: "to_date",
-			// "reqd": 1,
 			read_only: 1,
 			default: frappe.datetime.month_end(frappe.datetime.get_today()),
 		},
@@ -130,31 +118,31 @@ frappe.query_reports["Standard Shift Report"] = {
 			},
 		},
 		{
-			label: "Employee Name",
+			label: __("Employee Name"),
 			fieldtype: "Data",
 			fieldname: "emp_name",
 			read_only: 1,
 		},
 		{
-			label: "Employee Designation",
+			label: __("Employee Designation"),
 			fieldtype: "Data",
 			fieldname: "designation",
 			read_only: 1,
 		},
 		{
-			label: "Department Name",
+			label: __("Department Name"),
 			fieldtype: "Data",
 			fieldname: "emp_department",
 			read_only: 1,
 		},
 		{
-			label: "Punch ID",
+			label: __("Punch ID"),
 			fieldtype: "Data",
 			fieldname: "punch_id",
 			read_only: 1,
 		},
 		{
-			label: "Shift Hours",
+			label: __("Shift Hours"),
 			fieldtype: "Float",
 			fieldname: "shift_hrs",
 			read_only: 1,
@@ -227,16 +215,16 @@ frappe.query_reports["Standard Shift Report"] = {
 	onload: (report) => {
 		fetch_month_list();
 		report.page
-			.add_button("Clear Filters", function () {
+			.add_button(__("Clear Filters"), function () {
 				window.open("/app/query-report/Standard%20Shift%20Report", "_self");
 			})
 			.addClass("btn-info");
 
 		report.page
-			.add_button("Generate", function () {
+			.add_button(__("Generate"), function () {
 				var emp = frappe.query_report.get_filter_value("cur_employee");
 				if (!emp) {
-					frappe.msgprint("No Employee Selected");
+					frappe.msgprint(__("No Employee Selected"));
 				} else {
 					frappe.query_report.set_filter_value({
 						employee: emp,
@@ -310,7 +298,7 @@ function fetch_employees(query_report) {
 
 function get_filter_dict(query_report) {
 	var company = query_report.get_filter_value("company");
-	var department = query_report.get_filter_value("department");
+	var department = query_report.get_filter_value("department") || [];
 	var filters = {};
 	if (company && department.length > 0) {
 		filters["company"] = company;

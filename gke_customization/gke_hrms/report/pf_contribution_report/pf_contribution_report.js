@@ -73,23 +73,14 @@ frappe.query_reports["PF Contribution Report"] = {
 		},
 		{
 			fieldname: "company",
-			label: "Company",
+			label: __("Company"),
 			fieldtype: "Link",
 			options: "Company",
-			// "default": frappe.defaults.get_user_default("Company"),
 			reqd: 1,
 		},
-		//{
-		//	"fieldname": "report_type",
-		//	"label": "Report Type",
-		//	"fieldtype": "Select",
-		//	"options": "Register Report\nPF File",
-		//	"default": "PF File",
-		//	"reqd": 1
-		//},
 		{
 			fieldname: "employee",
-			label: "Employee",
+			label: __("Employee"),
 			fieldtype: "MultiSelectList",
 			get_data: function (txt) {
 				var company = frappe.query_report.get_filter_value("company");
@@ -103,24 +94,12 @@ frappe.query_reports["PF Contribution Report"] = {
 	onload: (report) => {
 		set_dates();
 		report.page
-			.add_button("Clear Filters", function () {
+			.add_button(__("Clear Filters"), function () {
 				window.open("/app/query-report/PF%20Contribution%20Report", "_self");
 			})
 			.addClass("btn-info");
 	},
 };
-
-function fetch_month_list() {
-	frappe.call({
-		method: "gke_customization.gke_hrms.report.pf_contribution_report.pf_contribution_report.get_month_range",
-		freeze: false,
-		callback: function (r) {
-			var month = frappe.query_report.get_filter("month");
-			month.df.options.push(...r.message);
-			month.refresh();
-		},
-	});
-}
 
 function set_dates() {
 	let report = frappe.query_report;

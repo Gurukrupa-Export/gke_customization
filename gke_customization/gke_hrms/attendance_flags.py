@@ -145,13 +145,19 @@ def flag_recent_attendances(days: int = 3):
         pluck="name",
     )
 
+    from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log import (
+        refresh_monthly_in_out_logs,
+    )
+
+    try:
+        refresh_monthly_in_out_logs(names)
+    except Exception:
+        _log_exc("Monthly In-Out Log refresh failed for recent attendances")
+
     flagged = 0
 
     for name in names:
         doc = frappe.get_doc("Attendance", name)
-
-        # Keep the existing Monthly In-Out Log card synchronized.
-        _refresh_monthly_in_out_log_card(doc)
 
         if doc.get("punch_error"):
             # Already flagged: OT may have been approved since. Retry.

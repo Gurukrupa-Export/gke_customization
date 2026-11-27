@@ -7,11 +7,21 @@ from datetime import time as dtime
 import frappe
 from frappe import _
 from frappe.query_builder.functions import Count, Date, Max, Min
-from frappe.utils import add_days, formatdate, get_time, getdate, today
+from frappe.utils import add_days, escape_html, formatdate, get_time, getdate, today
+
+from gke_customization.gke_hrms.report.department_wise_daily_utils import (
+    get_departments_with_managers,
+    get_manager_departments,
+    send_department_report_emails,
+)
+
+DAILY_ATTENDANCE_FIXED_CC = ["angat_p@gkexport.com"]
 
 
 def execute(filters=None):
     filters = frappe._dict(filters or {})
+    if not filters.get("date"):
+        filters.date = today()
 
     columns = get_columns()
     data, summary = get_data(filters)
@@ -21,6 +31,7 @@ def execute(filters=None):
 
 
 def get_report_date(filters=None):
+    """Return the filter date, or yesterday when no date is given (the scheduler default)."""
     if filters and filters.get("date"):
         return getdate(filters.get("date"))
     return getdate(add_days(today(), -1))
@@ -235,21 +246,6 @@ def get_employees(filters):
     return query.run(as_dict=True)
 
 
-def get_manager_departments(user_id):
-    """Departments where `user_id` is listed in custom_user_group. None = no filter (all departments)."""
-    if not user_id:
-        return None
-    return frappe.get_all(
-        "User Group Member",
-        filters={
-            "parenttype": "Department",
-            "parentfield": "custom_user_group",
-            "user": user_id,
-        },
-        pluck="parent",
-    )
-
-
 def get_shift_type_map():
     ShiftType = frappe.qb.DocType("Shift Type")
 
@@ -451,155 +447,109 @@ def get_report_summary(summary, date):
     ]
 
 
-# ---------------------------------------------------------------------------
-# Send Mail button - emails this report to each department's manager(s)
-# ---------------------------------------------------------------------------
-GROUP_FIELD = "custom_user_group"  # change if Branch uses a different fieldname
-
-
-def get_branch_hr_emails(department):
-    """HR users (Branch.custom_user_group) for every branch that has an
-    active employee in this department."""
-    branches = frappe.get_all(
-        "Employee",
-        filters={"department": department, "status": "Active", "branch": ["is", "set"]},
-        pluck="branch",
-        distinct=True,
-    )
-    if not branches:
-        return []
-
-    users = frappe.get_all(
-        "User Group Member",
-        filters={
-            "parenttype": "Branch",
-            "parentfield": GROUP_FIELD,
-            "parent": ["in", branches],
-        },
-        pluck="user",
-    )
-    return [u for u in users if u]
-
-
-def get_department_manager_emails(department):
-    """Users listed in Department.custom_user_group (Table MultiSelect,
-    child doctype 'User Group Member', field 'user')."""
-    emails = frappe.get_all(
-        "User Group Member",
-        filters={
-            "parenttype": "Department",
-            "parentfield": "custom_user_group",
-            "parent": department,
-        },
-        pluck="user",
-    )
-    return [e for e in emails if e]
-
-
 def render_email_html(department, date, rows, summary):
-    rows_html = (
-        "".join(
-            f"""
+    row_fields = (
+        "employee_name",
+        "employee",
+        "shift",
+        "in_time",
+        "out_time",
+        "status",
+        "late_entry",
+        "early_exit",
+        "remark",
+    )
+    rows_html = "".join(
+        """
 		<tr>
-			<td>{r["employee_name"]}</td>
-			<td>{r["employee"]}</td>
-			<td>{r["shift"]}</td>
-			<td>{r["in_time"]}</td>
-			<td>{r["out_time"]}</td>
-			<td>{r["status"]}</td>
-			<td>{r["late_entry"]}</td>
-			<td>{r["early_exit"]}</td>
-			<td>{r["remark"]}</td>
-		</tr>"""
-            for r in rows
+			{0}
+		</tr>""".format(
+            "\n\t\t\t".join(
+                "<td>{0}</td>".format(escape_html(row[field])) for field in row_fields
+            )
         )
-        or "<tr><td colspan='9' style='text-align:center;'>No employees found</td></tr>"
+        for row in rows
+    ) or "<tr><td colspan='9' style='text-align:center;'>{0}</td></tr>".format(
+        _("No employees found")
     )
 
-    return f"""
-	<h3>Daily Attendance Report — {department} — {formatdate(date, "dd-mm-yyyy")}</h3>
-	<p>{frappe.local.site}</p>
+    return """
+	<h3>Daily Attendance Report - {department} - {date}</h3>
+	<p>{site}</p>
 	<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; font-size:13px;">
 		<thead style="background:#f2f2f2;">
 			<tr>
-				<th>Employee Name</th><th>Employee ID</th><th>Shift</th>
-				<th>In Time</th><th>Out Time</th>
-				<th>Status</th><th>Late Entry</th><th>Early Exit</th><th>Remark</th>
+				<th>{employee_name_label}</th><th>{employee_id_label}</th><th>{shift_label}</th>
+				<th>{in_time_label}</th><th>{out_time_label}</th>
+				<th>{status_label}</th><th>{late_entry_label}</th><th>{early_exit_label}</th><th>{remark_label}</th>
 			</tr>
 		</thead>
 		<tbody>{rows_html}</tbody>
 	</table>
-	<h4 style="margin-top:16px;">Department Summary</h4>
+	<h4 style="margin-top:16px;">{summary_label}</h4>
 	<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
-		<tr><td>Total Employees</td><td>{summary["total_employees"]}</td></tr>
-		<tr><td>Present</td><td>{summary["present"]}</td></tr>
-		<tr><td>Absent</td><td>{summary["absent"]}</td></tr>
-		<tr><td>Half Day</td><td>{summary["half_day"]}</td></tr>
-		<tr><td>Late Entry</td><td>{summary["late_entry"]}</td></tr>
-		<tr><td>Early Exit</td><td>{summary["early_exit"]}</td></tr>
-		<tr><td>Error</td><td>{summary["error"]}</td></tr>
+		<tr><td>{total_employees_label}</td><td>{total_employees}</td></tr>
+		<tr><td>{present_label}</td><td>{present}</td></tr>
+		<tr><td>{absent_label}</td><td>{absent}</td></tr>
+		<tr><td>{half_day_label}</td><td>{half_day}</td></tr>
+		<tr><td>{late_entry_label}</td><td>{late_entry}</td></tr>
+		<tr><td>{early_exit_label}</td><td>{early_exit}</td></tr>
+		<tr><td>{error_label}</td><td>{error}</td></tr>
 	</table>
-	"""
+	""".format(
+        department=escape_html(department),
+        date=formatdate(date, "dd-mm-yyyy"),
+        site=escape_html(frappe.local.site),
+        rows_html=rows_html,
+        employee_name_label=_("Employee Name"),
+        employee_id_label=_("Employee ID"),
+        shift_label=_("Shift"),
+        in_time_label=_("In Time"),
+        out_time_label=_("Out Time"),
+        status_label=_("Status"),
+        late_entry_label=_("Late Entry"),
+        early_exit_label=_("Early Exit"),
+        remark_label=_("Remark"),
+        summary_label=_("Department Summary"),
+        total_employees_label=_("Total Employees"),
+        present_label=_("Present"),
+        absent_label=_("Absent"),
+        half_day_label=_("Half Day"),
+        error_label=_("Error"),
+        **summary,
+    )
 
 
 @frappe.whitelist()
 def send_daily_attendance_report(date=None, department=None):
-    """Emails this report to each matching department's manager(s).
-    department=None -> every department that has a manager set in
-    custom_user_group. department=<name> -> just that one.
-    Returns {"sent": [...], "skipped": [...]} so the caller (the report's
-    Send Mail button) can show what actually happened."""
+    """Email this report to the managers of each department.
 
+    department=None sends to every department that has a manager in custom_user_group,
+    department=<name> sends to that one only.
+    Returns {"sent": [...], "skipped": [...]} for the report's Send Mail button.
+    """
     date = date or get_report_date()
 
-    departments = frappe.get_all(
-        "User Group Member",
-        filters={"parenttype": "Department", "parentfield": "custom_user_group"},
-        pluck="parent",
-        distinct=True,
-    )
-    if department:
-        departments = [department]
-
-    sent = []
-    skipped = []
-
-    for dept in departments:
+    def build_report(dept):
         rows, summary = get_data(frappe._dict({"department": dept, "date": date}))
-
         if not rows:
-            skipped.append(dept)
-            continue
+            return None
+        return rows, summary
 
-        manager_emails = get_department_manager_emails(dept)
-        if not manager_emails:
-            frappe.log_error(
-                title="Daily Attendance Report — no manager in custom_user_group",
-                message=f"Department: {dept}",
-            )
-            skipped.append(dept)
-            continue
-        if isinstance(manager_emails, list):
-            manager_string = ", ".join(manager_emails)
-        else:
-            manager_string = manager_emails
+    def render_html(dept, report):
+        rows, summary = report
+        return render_email_html(dept, date, rows, summary)
 
-        hr_emails = get_branch_hr_emails(dept)
-        fixed_cc = ["angat_p@gkexport.com"]
-        cc = [e for e in dict.fromkeys(fixed_cc + hr_emails) if e not in manager_emails]
-        # frappe.throw(f"cc mail {cc} manager_string {manager_string}")
-
-        html = render_email_html(dept, date, rows, summary)
-        frappe.sendmail(
-            recipients=manager_string,
-            # cc=["angat_p@gkexport.com","hr_srt@gkexport.com"],
-            cc=cc,
-            sender="alerts@gkexport.com",
-            subject=f"Daily Attendance Report — {dept} — {formatdate(date, 'dd-mm-yyyy')}",
-            message=html,
-            now=True,
-            expose_recipients="header",
+    def get_subject(dept):
+        return "Daily Attendance Report - {0} - {1}".format(
+            dept, formatdate(date, "dd-mm-yyyy")
         )
-        sent.append({"department": dept, "managers": manager_emails})
 
-    return {"sent": sent, "skipped": skipped}
+    return send_department_report_emails(
+        departments=get_departments_with_managers(department),
+        build_report=build_report,
+        render_html=render_html,
+        get_subject=get_subject,
+        log_title="Daily Attendance Report - no manager in custom_user_group",
+        fixed_cc=DAILY_ATTENDANCE_FIXED_CC,
+    )
