@@ -1,9 +1,7 @@
 from datetime import datetime, timedelta
 
 import frappe
-import frappe.utils
 from frappe import _
-from frappe.query_builder import CustomFunction
 from frappe.query_builder.functions import Concat, Count, Date, IfNull, Sum
 from frappe.utils import (
     add_days,
@@ -13,7 +11,21 @@ from frappe.utils import (
     getdate,
 )
 from gurukrupa_customizations.gurukrupa_customizations.doctype.manual_punch.manual_punch import (
-    get_checkins,
+    get_checkins_for_dates,
+)
+
+from gke_customization.gke_hrms.api.utils import (
+    IF,
+    SEC_TO_TIME,
+    TIME,
+    TIME_FORMAT,
+    TIME_TO_SEC,
+    TIMEDIFF,
+    TIMESTAMP,
+    get_date_range,
+    get_ot_log_subquery,
+    get_personal_out_log_subquery,
+    get_shift_type_details,
 )
 
 STATUS = {
@@ -38,35 +50,27 @@ def attendance(from_date=None, to_date=None, employee=None):
     Employee = frappe.qb.DocType("Employee")
     ShiftType = frappe.qb.DocType("Shift Type")
     PersonalOutLog = frappe.qb.DocType("Personal Out Log")
-    OTLog = frappe.qb.DocType("OT Log")
 
     if conditions:
-        TIME_FORMAT = CustomFunction("TIME_FORMAT", ["time", "format"])
-        TIMEDIFF = CustomFunction("TIMEDIFF", ["time1", "time2"])
-        SEC_TO_TIME = CustomFunction("SEC_TO_TIME", ["seconds"])
-        TIME_TO_SEC = CustomFunction("TIME_TO_SEC", ["time"])
-        IF = CustomFunction("IF", ["condition", "true_expr", "false_expr"])
-        TIMESTAMP = CustomFunction("TIMESTAMP", ["date", "time"])
-        TIME = CustomFunction("TIME", ["time"])
+        paid_leave_types = frappe.db.get_list(
+            "Leave Type",
+            filters={"is_lwp": 0},
+            pluck="name",
+        )
+        worked_seconds = IF(
+            (Attendance.status == "On Leave")
+            & (Attendance.leave_type.isin(paid_leave_types)),
+            ShiftType.shift_hours * 3600,
+            IF(
+                Attendance.out_time,
+                TIME_TO_SEC(TIMEDIFF(Attendance.out_time, Attendance.in_time)),
+                Attendance.working_hours * 3600,
+            ),
+        )
 
-        # Personal Out Log subquery
-        pol_subquery = (
-            frappe.qb.from_(PersonalOutLog)
-            .select(
-                PersonalOutLog.employee,
-                PersonalOutLog.date,
-                SEC_TO_TIME(
-                    IfNull(Sum(TIME_TO_SEC(PersonalOutLog.total_hours)), 0)
-                ).as_("hrs"),
-            )
-            .where(PersonalOutLog.is_cancelled == 0)
-            .groupby(PersonalOutLog.employee, PersonalOutLog.date)
-        ).as_("pol")
+        pol_subquery = get_personal_out_log_subquery()
 
-        # OT Log subquery
-        ot_subquery = (
-            frappe.qb.from_(OTLog).select("*").where(OTLog.is_cancelled == 0)
-        ).as_("ot")
+        ot_subquery = get_ot_log_subquery()
 
         query = (
             frappe.qb.from_(Attendance)
@@ -107,28 +111,7 @@ def attendance(from_date=None, to_date=None, employee=None):
                 ).as_("early_hrs"),
                 pol_subquery.hrs.as_("p_out_hrs"),
                 SEC_TO_TIME(
-                    IF(
-                        (  # Attendance.attendance_request.isnotnull() |
-                            (Attendance.status == "On Leave")
-                            & (
-                                Attendance.leave_type.isin(
-                                    frappe.db.get_list(
-                                        "Leave Type",
-                                        filters={"is_lwp": 0},
-                                        pluck="name",
-                                    )
-                                )
-                            )
-                        ),
-                        ShiftType.shift_hours * 3600,
-                        IF(
-                            Attendance.out_time,
-                            TIME_TO_SEC(
-                                TIMEDIFF(Attendance.out_time, Attendance.in_time)
-                            ),
-                            Attendance.working_hours * 3600,
-                        ),
-                    )
+                    worked_seconds
                     + IF(
                         (Attendance.late_entry == 0)
                         & (TIME(Attendance.in_time) > ShiftType.start_time),
@@ -188,7 +171,6 @@ def attendance(from_date=None, to_date=None, employee=None):
         for condition in conditions:
             query = query.where(condition)
 
-        # frappe.throw(f"{query}")
         data = query.run(as_dict=1)
 
         if not data:
@@ -208,7 +190,7 @@ def get_conditions(from_date, to_date, employee):
     if not (from_date and to_date):
         frappe.throw(_("From & To Dates are mandatory"))
 
-    conditions = [(Attendance.attendance_date.between(from_date, to_date))]
+    conditions = [Attendance.attendance_date.between(from_date, to_date)]
     if employee:
         conditions.append(Attendance.employee == employee)
 
@@ -240,28 +222,18 @@ def process_data(data, from_date, to_date, employee):
         as_dict=1,
     )
     shift = emp_det.get("default_shift")
-    shift_det = frappe.db.get_value(
-        "Shift Type",
-        shift,
-        [
-            "shift_hours",
-            "holiday_list",
-            "start_time",
-            "end_time",
-            "early_exit_grace_period",
-        ],
-        as_dict=1,
-    )
+    shift_det = get_shift_type_details(shift)
     shift_hours = flt(shift_det.get("shift_hours"))
     shift_name = f"{format_time(shift_det.get('start_time'))} To {format_time(shift_det.get('end_time'))}"
     grace_period = shift_det.get("early_exit_grace_period")
 
     EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
     addition_day = add_days(to_date, 1)
+    login_date = Date(EmployeeCheckin.time)
     checkins = (
         frappe.qb.from_(EmployeeCheckin)
         .select(
-            Date(EmployeeCheckin.time).as_("login_date"),
+            login_date.as_("login_date"),
             EmployeeCheckin.attendance,
             Count(EmployeeCheckin.name).as_("cnt"),
         )
@@ -273,16 +245,14 @@ def process_data(data, from_date, to_date, employee):
     ).run(as_dict=True)
 
     checkins = {row.login_date: row.cnt for row in checkins}
-    od = frappe.get_list(
-        "Employee Checkin",
-        {
-            "employee": employee,
-            "source": "Outdoor Duty",
-            "time": ["between", [from_date, add_days(to_date, 1)]],
-        },
-        "date(time) as login_date",
-        pluck="login_date",
-        group_by="login_date",
+    od = (
+        frappe.qb.from_(EmployeeCheckin)
+        .select(login_date.as_("login_date"))
+        .where(EmployeeCheckin.employee == employee)
+        .where(EmployeeCheckin.source == "Outdoor Duty")
+        .where(EmployeeCheckin.time.between(from_date, addition_day))
+        .groupby(login_date)
+        .run(pluck="login_date")
     )
     if shift and not emp_det.get("holiday_list"):
         emp_det["holiday_list"] = shift_det.get("holiday_list")
@@ -296,24 +266,18 @@ def process_data(data, from_date, to_date, employee):
         )
         wo = [row.holiday_date for row in holidays if row.weekly_off]
         holidays = [row.holiday_date for row in holidays if not row.weekly_off]
-    # frappe.throw(f"{}")
 
     for row in data:
         if grace_period != 0:
             if not (row.early_hrs):
                 if row.status == "Absent":
                     row.net_wrk_hrs = timedelta(0)
-                    row.total_pay_hrs = timedelta(0)
                 elif row.late_hrs or row.p_out_hrs:
                     late = row.late_hrs or timedelta(0)
                     p_out = row.p_out_hrs or timedelta(0)
-                    total = late + p_out
-
-                    row.net_wrk_hrs = timedelta(hours=shift_hours) - total
-                    row.total_pay_hrs = timedelta(0)
+                    row.net_wrk_hrs = timedelta(hours=shift_hours) - (late + p_out)
                 else:
                     row.net_wrk_hrs = timedelta(hours=shift_hours)
-                    row.total_pay_hrs = row.net_wrk_hrs + (row.ot_hours or timedelta(0))
         if row.lh:
             row.status = "LH"
         shift_hours_in_sec = row.shift_hours * 3600
@@ -342,24 +306,34 @@ def process_data(data, from_date, to_date, employee):
     )
     ot_for_wo = {row.attendance_date: row for row in ot_for_wo}
     date_range = get_date_range(from_date, to_date)
+    joining_date = getdate(emp_det.get("date_of_joining"))
+
+    weekly_off_shift_starts = {
+        date: datetime.combine(date, get_time(shift_det.start_time))
+        for date in date_range
+        if date not in od and date in wo and date >= joining_date
+    }
+    weekly_off_checkins = get_checkins_for_dates(
+        employee, list(weekly_off_shift_starts.values())
+    )
+
     for date in date_range:
         row = processed.get(date, ot_for_wo.get(date, {}))
         if date in od:
             row["status"] = "OD"
             if ot_hours := row.get("ot_hours"):
                 row["total_pay_hrs"] = ot_hours
-        elif date in wo and (date >= getdate(emp_det.get("date_of_joining"))):
+        elif date in weekly_off_shift_starts:
             status = "WO"
-            date_time = datetime.combine(getdate(date), get_time(shift_det.start_time))
-            if first_in_last_out := get_checkins(employee, date_time):
+            shift_start = weekly_off_shift_starts[date]
+            if first_in_last_out := weekly_off_checkins.get(shift_start):
                 row["in_time"] = get_time(first_in_last_out[0].get("time"))
                 row["out_time"] = get_time(first_in_last_out[-1].get("time"))
             if ot_hours := row.get("ot_hours"):
                 row["total_pay_hrs"] = ot_hours
-        elif (date in holidays) and (date >= getdate(emp_det.get("date_of_joining"))):
+        elif (date in holidays) and (date >= joining_date):
             if row:
-                row["net_wrk_hrs"] = timedelta(0)
-                row["total_pay_hrs"] = timedelta(0)
+                clear_worked_hours(row)
             else:
                 status = "H"
                 row["net_wrk_hrs"] = timedelta(hours=shift_hours)
@@ -369,8 +343,7 @@ def process_data(data, from_date, to_date, employee):
         if count := checkins.get(date):
             if count % 2 != 0:
                 row["status"] = "ERR"
-                row["net_wrk_hrs"] = timedelta(0)
-                row["total_pay_hrs"] = timedelta(0)
+                clear_worked_hours(row)
         temp = {
             "login_date": date,
             "shift": shift_name,
@@ -387,7 +360,7 @@ def process_data(data, from_date, to_date, employee):
             "date_of_joining": emp_det.get("date_of_joining"),
             "allowed_personal_hours": emp_det.get("allowed_personal_hours"),
             "attendance_date": date,
-            "shift_hours": flt(shift_det.get("shift_hours")),
+            "shift_hours": shift_hours,
         }
         if not row.get("spent_hours"):
             row["spent_hours"] = None
@@ -396,21 +369,9 @@ def process_data(data, from_date, to_date, employee):
     return result
 
 
-def get_date_range(start_date, end_date):
-    import datetime
-
-    start_date = getdate(start_date)
-    end_date = getdate(end_date)
-
-    range = []
-    delta = datetime.timedelta(days=1)
-    current_date = start_date
-
-    while current_date <= end_date:
-        range.append(current_date)
-        current_date += delta
-
-    return range
+def clear_worked_hours(row):
+    row["net_wrk_hrs"] = timedelta(0)
+    row["total_pay_hrs"] = timedelta(0)
 
 
 @frappe.whitelist(allow_guest=True)

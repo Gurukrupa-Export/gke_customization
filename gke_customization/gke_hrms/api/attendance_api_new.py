@@ -4,6 +4,7 @@
 from datetime import timedelta
 
 import frappe
+from frappe import _
 from frappe.utils import (
     add_days,
     add_to_date,
@@ -15,7 +16,7 @@ from frappe.utils import (
 )
 
 from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log import (
-    fetch_attendance_data,
+    fetch_attendance_data_for_employees,
 )
 
 STATUS = {
@@ -69,35 +70,6 @@ def get_date_range(filters):
         current_date = add_days(current_date, 1)
 
     return date_list
-
-
-def get_employee_holiday_and_weekoff(employee, company, from_date, to_date):
-    hl_name = frappe.db.get_value("Employee", employee, "holiday_list")
-
-    # fallback to shift holiday list
-    if not hl_name:
-        shift_type = frappe.db.get_value("Employee", employee, "default_shift")
-        if shift_type:
-            hl_name = frappe.db.get_value("Shift Type", shift_type, "holiday_list")
-
-    # fallback to company default holiday list
-    if not hl_name and company:
-        hl_name = frappe.db.get_value("Company", company, "default_holiday_list")
-
-    if not hl_name:
-        return [], []
-
-    holidays = frappe.get_all(
-        "Holiday",
-        {"parent": hl_name, "holiday_date": ["between", [from_date, to_date]]},
-        ["holiday_date", "weekly_off"],
-        ignore_permissions=1,
-    )
-
-    wo = [row.holiday_date for row in holidays if row.weekly_off]
-    holiday_dates = [row.holiday_date for row in holidays if not row.weekly_off]
-
-    return holiday_dates, wo
 
 
 def get_checkin_window(date, attendance_data, shift_timings):
@@ -353,8 +325,7 @@ def get_data(filters):
     to_date = filters.get("to_date")
 
     if not employee or not from_date or not to_date:
-        frappe.throw("Please select Employee, From Date and To Date")
-        return []
+        frappe.throw(_("Please select Employee, From Date and To Date"))
 
     date_range = get_date_range(filters)
     if not date_range:
@@ -417,17 +388,14 @@ def get_data(filters):
     attendance_details = {}
     attendance_by_date = get_attendance_by_date(employee, from_date, to_date)
 
+    range_results = fetch_attendance_data_for_employees(
+        company, employee_list, getdate(from_date), getdate(to_date)
+    )
+
     for emp in employee_list:
         attendance_details[emp] = {}
 
-        range_result = fetch_attendance_data(
-            {
-                "company": company,
-                "employee": emp,
-                "from_date": getdate(from_date),
-                "to_date": getdate(to_date),
-            }
-        )
+        range_result = range_results[emp]
         records_by_date = {}
         for record in range_result.get("records", []):
             if record.get("login_date") in attendance_by_date:

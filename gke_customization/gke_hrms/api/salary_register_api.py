@@ -1,11 +1,11 @@
 """
-    /api/method/your_app.api.attendance_comparison.generate_comparison_excel?month=7&year=2026
+    /api/method/gke_customization.gke_hrms.api.salary_register_api.generate_comparison_excel?month=7&year=2026
 
-or via frappe.call({method: "your_app.api.attendance_comparison.generate_comparison_excel", args: {month, year}})
+or via frappe.call({method: "gke_customization.gke_hrms.api.salary_register_api.generate_comparison_excel", args: {month, year}})
 
 
 The Excel file is built entirely in memory and streamed back as the
-HTTP response (Content-Disposition: attachment) — nothing is written
+HTTP response (Content-Disposition: attachment). Nothing is written
 to disk and nothing is saved as a Frappe File doc.
 """
 
@@ -15,6 +15,7 @@ import re
 
 import frappe
 import requests
+from frappe import _
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
@@ -126,8 +127,9 @@ def _fetch_software_data(month, year):
         json_data = response.json()
     except ValueError as e:
         raise ValueError(
-            f"API did not return valid JSON. Status={response.status_code}. "
-            f"First 300 chars of response: {response.text[:300]}"
+            _(
+                "API did not return valid JSON. Status={0}. First 300 chars of response: {1}"
+            ).format(response.status_code, response.text[:300])
         ) from e
 
     if (
@@ -139,9 +141,11 @@ def _fetch_software_data(month, year):
     elif isinstance(json_data, dict) and "data" in json_data:
         payload = json_data
     else:
+        received = (
+            list(json_data.keys()) if isinstance(json_data, dict) else type(json_data)
+        )
         raise ValueError(
-            f"API JSON missing expected 'data' key. Got keys: "
-            f"{list(json_data.keys()) if isinstance(json_data, dict) else type(json_data)}"
+            _("API JSON missing expected 'data' key. Got keys: {0}").format(received)
         )
 
     records = payload["data"]
@@ -173,12 +177,14 @@ def _fetch_and_compare(month, year):
         period_display = f"{resp_month} {resp_year}"
 
     if not records:
-        raise ValueError("API returned no records for the given month/year.")
+        raise ValueError(_("API returned no records for the given month/year."))
 
     missing = [c for c in REQUIRED_COLS if c not in records[0]]
     if missing:
         raise ValueError(
-            f"API data missing expected columns: {missing}. Available: {list(records[0].keys())}"
+            _("API data missing expected columns: {0}. Available: {1}").format(
+                missing, list(records[0].keys())
+            )
         )
 
     columns = [
@@ -317,12 +323,12 @@ def _build_excel_bytes(rows, columns):
 @frappe.whitelist()
 def get_comparison_summary(month, year):
     """
-    Lightweight endpoint — fetches + compares only, no Excel is built.
+    Lightweight endpoint that fetches and compares only, no Excel is built.
     Use this to show the counts first (Records/Matched/Mismatch/Missing)
     before the user decides to generate the file.
     """
     try:
-        _, _, summary, period_display = _fetch_and_compare(month, year)
+        _rows, _columns, summary, period_display = _fetch_and_compare(month, year)
         return {
             "state": "Completed",
             "period": period_display,
@@ -345,14 +351,14 @@ def generate_comparison_excel(month, year):
 
     IMPORTANT: hit this as a direct URL/navigation, not frappe.call():
         window.open(
-          "/api/method/your_app.api.attendance_comparison.generate_comparison_excel"
+          "/api/method/gke_customization.gke_hrms.api.salary_register_api.generate_comparison_excel"
           + "?month=" + month + "&year=" + year
         )
     or a plain <a href="...">Download</a> link. An AJAX call (frappe.call)
     receives the bytes back as data but the browser won't show a save
-    dialog for it — only a direct navigation triggers the download.
+    dialog for it. Only a direct navigation triggers the download.
 
-    Nothing is saved to disk or to the Frappe File doctype — the file
+    Nothing is saved to disk or to the Frappe File doctype. The file
     only exists as bytes in memory for this request.
 
     On failure: returns a normal JSON error dict instead (no file).

@@ -5,19 +5,19 @@ frappe.query_reports["Employee Mediclaim Detailed Reports"] = {
 	filters: [
 		{
 			fieldname: "company",
-			label: "Company",
+			label: __("Company"),
 			fieldtype: "Link",
 			options: "Company",
 		},
 		{
 			fieldname: "branch",
-			label: "Branch",
+			label: __("Branch"),
 			fieldtype: "Link",
 			options: "Branch",
 		},
 		{
 			fieldname: "department",
-			label: "Department",
+			label: __("Department"),
 			fieldtype: "Link",
 			options: "Department",
 		},

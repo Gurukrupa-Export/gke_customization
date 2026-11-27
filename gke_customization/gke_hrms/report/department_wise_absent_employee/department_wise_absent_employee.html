@@ -4,9 +4,8 @@
 <hr>
 
 <h4>
-	Company: {{ filters.company }}
+	{%= __("Company") %}: {{ filters.company }}
 </h4>
-<h4>From:    To:</h4>
 <hr>
 
 <table class="table table-bordered">
@@ -25,10 +24,9 @@
 			{% for col in columns %}
 			<td>
 				{{ frappe.format(row[col.fieldname], col, row) }}
-				<!-- {{ frappe.format(row[col.fieldname], col, row) }} -->
 			</td>
 			{% endfor %}
-		</td>
+		</tr>
 		{% endfor %}
     </tbody>
 </table>

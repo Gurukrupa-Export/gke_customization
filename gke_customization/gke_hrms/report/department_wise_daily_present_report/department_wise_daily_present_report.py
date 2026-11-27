@@ -4,61 +4,77 @@
 from datetime import timedelta
 
 import frappe
-from frappe.utils import format_time, formatdate, get_datetime, nowdate
+from frappe import _
+from frappe.utils import escape_html, format_time, formatdate, get_datetime, nowdate
+
+from gke_customization.gke_hrms.report.department_wise_daily_utils import (
+    get_departments_with_managers,
+    get_employee_checkins_for_date,
+    get_in_out_and_shift,
+    get_manager_departments,
+    send_department_report_emails,
+)
+
+MORNING_PRESENT_FIXED_CC = ["angat_p@gkexport.com"]
 
 
 def get_columns():
     return [
         {
-            "label": "Employee ID",
+            "label": _("Employee ID"),
             "fieldname": "employee_id",
             "fieldtype": "Link",
             "options": "Employee",
             "width": 120,
         },
         {
-            "label": "Employee Name",
+            "label": _("Employee Name"),
             "fieldname": "employee_name",
             "fieldtype": "Data",
             "width": 160,
         },
         {
-            "label": "Company",
+            "label": _("Company"),
             "fieldname": "company",
             "fieldtype": "Link",
             "options": "Company",
             "width": 120,
         },
         {
-            "label": "Department",
+            "label": _("Department"),
             "fieldname": "department",
             "fieldtype": "Link",
             "options": "Department",
             "width": 160,
         },
         {
-            "label": "Shift",
+            "label": _("Shift"),
             "fieldname": "shift",
             "fieldtype": "Link",
             "options": "Shift Type",
             "width": 110,
         },
-        {"label": "In Time", "fieldname": "in_time", "fieldtype": "Data", "width": 90},
         {
-            "label": "Out Time",
+            "label": _("In Time"),
+            "fieldname": "in_time",
+            "fieldtype": "Data",
+            "width": 90,
+        },
+        {
+            "label": _("Out Time"),
             "fieldname": "out_time",
             "fieldtype": "Data",
             "width": 90,
         },
-        {"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 90},
+        {"label": _("Status"), "fieldname": "status", "fieldtype": "Data", "width": 90},
         {
-            "label": "Late Entry",
+            "label": _("Late Entry"),
             "fieldname": "late_entry",
             "fieldtype": "Data",
             "width": 90,
         },
         {
-            "label": "Leave Type",
+            "label": _("Leave Type"),
             "fieldname": "leave_type",
             "fieldtype": "Data",
             "width": 110,
@@ -66,30 +82,15 @@ def get_columns():
     ]
 
 
-def get_manager_departments(user_id):
-    """Departments where `user_id` is listed in custom_user_group. None = no filter (all departments)."""
-    if not user_id:
-        return None
-    return frappe.get_all(
-        "User Group Member",
-        filters={
-            "parenttype": "Department",
-            "parentfield": "custom_user_group",
-            "user": user_id,
-        },
-        pluck="parent",
-    )
-
-
-def get_employees_on_leave(emp_ids, date):
-    """Approved Leave Applications covering `date`, keyed by employee id,
-    so we can show who's on leave (and what type) in the report."""
-    if not emp_ids:
+def get_employees_on_leave(employee_ids, date):
+    """Approved Leave Applications covering `date`, keyed by employee."""
+    if not employee_ids:
         return {}
-    rows = frappe.get_all(
+
+    leaves = frappe.get_all(
         "Leave Application",
         filters={
-            "employee": ["in", emp_ids],
+            "employee": ["in", employee_ids],
             "status": "Approved",
             "from_date": ["<=", date],
             "to_date": [">=", date],
@@ -97,132 +98,142 @@ def get_employees_on_leave(emp_ids, date):
         },
         fields=["employee", "leave_type", "from_date", "to_date"],
     )
-    return {r.employee: r for r in rows}
+    return {leave.employee: leave for leave in leaves}
 
 
-def get_checkin_info(employee, date):
-    """Return (in_time, out_time, shift) from today's Employee Checkin rows.
-    in_time/out_time are raw datetimes (or None); shift is whatever the
-    checkin recorded, if any."""
-    checkins = frappe.get_all(
-        "Employee Checkin",
-        filters={
-            "employee": employee,
-            "time": ["between", [f"{date} 00:00:00", f"{date} 23:59:59"]],
-        },
-        fields=["log_type", "time", "shift"],
-        order_by="time asc",
-    )
-    if not checkins:
-        return None, None, None
+def get_shift_type_map(shift_names):
+    if not shift_names:
+        return {}
 
-    in_times = [c.time for c in checkins if c.log_type == "IN"]
-    out_times = [c.time for c in checkins if c.log_type == "OUT"]
-
-    in_time = min(in_times) if in_times else None
-    out_time = max(out_times) if out_times else None
-    shift = next((c.shift for c in checkins if c.shift), None)
-
-    return in_time, out_time, shift
-
-
-def is_late_entry(shift_name, in_time, date):
-    """Compare in_time against Shift Type start_time (+ grace period, if enabled)."""
-    if not shift_name or not in_time:
-        return False
-
-    shift = frappe.db.get_value(
+    shift_types = frappe.get_all(
         "Shift Type",
-        shift_name,
-        ["start_time", "enable_late_entry_marking", "late_entry_grace_period"],
-        as_dict=True,
+        filters={"name": ["in", list(shift_names)]},
+        fields=[
+            "name",
+            "start_time",
+            "enable_late_entry_marking",
+            "late_entry_grace_period",
+        ],
     )
-    if not shift or shift.start_time is None:
+    return {shift_type.name: shift_type for shift_type in shift_types}
+
+
+def is_late_entry(shift, in_time, date):
+    """Compare in_time against the Shift Type start_time plus the grace period, if enabled."""
+    if not shift or not in_time or shift.start_time is None:
         return False
 
-    shift_start_dt = get_datetime(f"{date} 00:00:00") + shift.start_time
+    shift_start = get_datetime(f"{date} 00:00:00") + shift.start_time
     grace_minutes = shift.late_entry_grace_period or 0
     if not shift.enable_late_entry_marking:
         grace_minutes = 0
 
-    threshold = shift_start_dt + timedelta(minutes=grace_minutes)
+    threshold = shift_start + timedelta(minutes=grace_minutes)
     return get_datetime(in_time) > threshold
 
 
-def build_rows_for_department(department, date):
+def get_rows_by_department(departments, date):
+    """Return ({department: [rows]}, {employee: leave}) for the active employees of the given departments.
+
+    Rows keep the Employee list order within each department.
+    """
+    if not departments:
+        return {}, {}
+
     employees = frappe.get_all(
         "Employee",
-        filters={"department": department, "status": "Active"},
-        fields=["name", "employee_name", "default_shift", "company"],
+        filters={"department": ["in", departments], "status": "Active"},
+        fields=["name", "employee_name", "default_shift", "company", "department"],
     )
     if not employees:
-        return []
+        return {}, {}
 
-    emp_ids = [e.name for e in employees]
-    leave_by_emp = get_employees_on_leave(emp_ids, date)
+    employee_ids = [employee.name for employee in employees]
+    leave_by_employee = get_employees_on_leave(employee_ids, date)
+    checkins_by_employee = get_employee_checkins_for_date(employee_ids, date)
 
-    rows = []
-    for emp in employees:
-        base = {
-            "employee_id": emp.name,
-            "employee_name": emp.employee_name,
-            "department": department,
-            "company": emp.company,
-        }
+    in_out_and_shift_by_employee = {
+        employee: get_in_out_and_shift(checkins)
+        for employee, checkins in checkins_by_employee.items()
+    }
+    shift_names = {
+        employee.default_shift for employee in employees if employee.default_shift
+    }
+    shift_names.update(
+        shift for _in, _out, shift in in_out_and_shift_by_employee.values() if shift
+    )
+    shift_type_map = get_shift_type_map(shift_names)
 
-        if emp.name in leave_by_emp:
-            rows.append(
-                {
-                    **base,
-                    "shift": "",
-                    "in_time": "",
-                    "out_time": "",
-                    "status": "On Leave",
-                    "late_entry": "",
-                    "leave_type": leave_by_emp[emp.name].leave_type or "",
-                }
-            )
-            continue
+    rows_by_department = {}
+    for employee in employees:
+        row = build_employee_row(
+            employee,
+            date,
+            leave_by_employee.get(employee.name),
+            in_out_and_shift_by_employee.get(employee.name, (None, None, None)),
+            shift_type_map,
+        )
+        rows_by_department.setdefault(employee.department, []).append(row)
 
-        in_time, out_time, checkin_shift = get_checkin_info(emp.name, date)
+    return rows_by_department, leave_by_employee
 
-        if not in_time:
-            rows.append(
-                {
-                    **base,
-                    "shift": emp.default_shift or "",
-                    "in_time": "",
-                    "out_time": "",
-                    "status": "Absent",
-                    "late_entry": "",
-                    "leave_type": "",
-                }
-            )
-            continue
 
-        shift = checkin_shift or emp.default_shift
-        late = is_late_entry(shift, in_time, date)
-        rows.append(
+def build_employee_row(employee, date, leave, in_out_and_shift, shift_type_map):
+    row = {
+        "employee_id": employee.name,
+        "employee_name": employee.employee_name,
+        "department": employee.department,
+        "company": employee.company,
+    }
+
+    if leave:
+        row.update(
             {
-                **base,
-                "shift": shift or "",
-                "in_time": format_time(get_datetime(in_time)),
-                "out_time": format_time(get_datetime(out_time)) if out_time else "-",
-                "status": "Present",
-                "late_entry": "Yes" if late else "No",
+                "shift": "",
+                "in_time": "",
+                "out_time": "",
+                "status": "On Leave",
+                "late_entry": "",
+                "leave_type": leave.leave_type or "",
+            }
+        )
+        return row
+
+    in_time, out_time, checkin_shift = in_out_and_shift
+    if not in_time:
+        row.update(
+            {
+                "shift": employee.default_shift or "",
+                "in_time": "",
+                "out_time": "",
+                "status": "Absent",
+                "late_entry": "",
                 "leave_type": "",
             }
         )
+        return row
 
-    return rows
+    shift = checkin_shift or employee.default_shift
+    late = is_late_entry(shift_type_map.get(shift), in_time, date)
+    row.update(
+        {
+            "shift": shift or "",
+            "in_time": format_time(get_datetime(in_time)),
+            "out_time": format_time(get_datetime(out_time)) if out_time else "-",
+            "status": "Present",
+            "late_entry": "Yes" if late else "No",
+            "leave_type": "",
+        }
+    )
+    return row
 
 
 def build_summary_rows(data):
     total = len(data)
-    present = sum(1 for r in data if r["status"] == "Present")
-    absent = sum(1 for r in data if r["status"] == "Absent")
-    leave = sum(1 for r in data if r["status"] == "On Leave")
-    late = sum(1 for r in data if r["late_entry"] == "Yes")
+    present = sum(1 for row in data if row["status"] == "Present")
+    absent = sum(1 for row in data if row["status"] == "Absent")
+    leave = sum(1 for row in data if row["status"] == "On Leave")
+    late = sum(1 for row in data if row["late_entry"] == "Yes")
 
     return [
         {"status": "Present", "late_entry": present},
@@ -240,11 +251,11 @@ def execute(filters=None):
     department = filters.get("department")
     manager = filters.get("manager")
 
-    dept_filters = {"disabled": 0}
+    department_filters = {"disabled": 0}
     if company:
-        dept_filters["company"] = company
+        department_filters["company"] = company
     if department:
-        dept_filters["name"] = department
+        department_filters["name"] = department
 
     allowed_departments = None
     if manager:
@@ -252,309 +263,226 @@ def execute(filters=None):
         allowed_departments = get_manager_departments(user_id) or []
 
     departments = frappe.get_all(
-        "Department", filters=dept_filters, pluck="name", order_by="name asc"
+        "Department", filters=department_filters, pluck="name", order_by="name asc"
     )
     if allowed_departments is not None:
-        departments = [d for d in departments if d in allowed_departments]
+        departments = [dept for dept in departments if dept in allowed_departments]
 
-    columns = get_columns()
+    rows_by_department, _leave_by_employee = get_rows_by_department(departments, date)
+
     data = []
     for dept in departments:
-        rows = build_rows_for_department(dept, date)
-        rows.sort(key=lambda r: r["employee_name"] or "")
+        rows = rows_by_department.get(dept, [])
+        rows.sort(key=lambda row: row["employee_name"] or "")
         data.extend(rows)
 
     data.extend(build_summary_rows(data))
 
-    return columns, data
+    return get_columns(), data
 
 
-"""for auto mail at 10 AM """
-
-
-def get_department_manager_emails(department):
-    """Users listed in Department.custom_user_group (Table MultiSelect,
-    child doctype 'User Group Member', field 'user')."""
-    emails = frappe.get_all(
-        "User Group Member",
-        filters={
-            "parenttype": "Department",
-            "parentfield": "custom_user_group",
-            "parent": department,
-        },
-        pluck="user",
-    )
-    return [e for e in emails if e]
-
-
-GROUP_FIELD = "custom_user_group"
-
-
-def get_branch_hr_emails(department):
-    """HR users (Branch.custom_user_group) for every branch that has an active employee in this department."""
-    branches = frappe.get_all(
-        "Employee",
-        filters={"department": department, "status": "Active", "branch": ["is", "set"]},
-        pluck="branch",
-        distinct=True,
-    )
-    if not branches:
-        return []
-
-    users = frappe.get_all(
-        "User Group Member",
-        filters={
-            "parenttype": "Branch",
-            "parentfield": GROUP_FIELD,  # change if Branch uses a different fieldname
-            "parent": ["in", branches],
-        },
-        pluck="user",
-    )
-    return [u for u in users if u]
-
-
-def build_department_report(department, date):
-    """Return (present_rows, leave_rows, absent_rows, summary_dict) for one
-    department, or None if empty."""
-    employees = frappe.get_all(
-        "Employee",
-        filters={"department": department, "status": "Active"},
-        fields=["name", "employee_name", "default_shift"],
-    )
-    if not employees:
+def build_department_email_report(rows, leave_by_employee):
+    """Return (present_rows, leave_rows, absent_rows, summary) for one department's rows, or None if empty."""
+    if not rows:
         return None
 
-    emp_ids = [e.name for e in employees]
-    leave_by_emp = get_employees_on_leave(emp_ids, date)
-
-    summary = {
-        "Total Employees": len(employees),
-        "Present": 0,
-        "Absent": 0,
-        "On Leave": 0,
-        "Late Entry": 0,
-    }
-    present_rows = []
+    present_rows = [row for row in rows if row["status"] == "Present"]
+    absent_rows = [row for row in rows if row["status"] == "Absent"]
     leave_rows = []
-    absent_rows = []
-
-    for emp in employees:
-        if emp.name in leave_by_emp:
-            summary["On Leave"] += 1
-            leave = leave_by_emp[emp.name]
-            leave_rows.append(
-                {
-                    "employee_name": emp.employee_name,
-                    "employee_id": emp.name,
-                    "department": department,
-                    "leave_type": leave.leave_type or "",
-                    "from_date": leave.from_date,
-                    "to_date": leave.to_date,
-                }
-            )
+    for row in rows:
+        if row["status"] != "On Leave":
             continue
-
-        in_time, out_time, checkin_shift = get_checkin_info(emp.name, date)
-
-        if not in_time:
-            summary["Absent"] += 1
-            absent_rows.append(
-                {
-                    "employee_name": emp.employee_name,
-                    "employee_id": emp.name,
-                    "department": department,
-                    "shift": emp.default_shift or "",
-                }
-            )
-            continue
-
-        summary["Present"] += 1
-        shift = checkin_shift or emp.default_shift
-        late = is_late_entry(shift, in_time, date)
-        if late:
-            summary["Late Entry"] += 1
-
-        present_rows.append(
+        leave = leave_by_employee[row["employee_id"]]
+        leave_rows.append(
             {
-                "employee_name": emp.employee_name,
-                "employee_id": emp.name,
-                "department": department,
-                "shift": shift or "",
-                "in_time": format_time(get_datetime(in_time)),
-                "out_time": format_time(get_datetime(out_time)) if out_time else "-",
-                "status": "Present",
-                "late_entry": "Yes" if late else "No",
+                "employee_name": row["employee_name"],
+                "employee_id": row["employee_id"],
+                "leave_type": row["leave_type"],
+                "from_date": leave.from_date,
+                "to_date": leave.to_date,
             }
         )
 
+    summary = {
+        "Total Employees": len(rows),
+        "Present": len(present_rows),
+        "Absent": len(absent_rows),
+        "On Leave": len(leave_rows),
+        "Late Entry": sum(1 for row in present_rows if row["late_entry"] == "Yes"),
+    }
     return present_rows, leave_rows, absent_rows, summary
+
+
+def render_table_rows(rows, fields):
+    return "".join(
+        """
+		<tr>
+			<td>{0}</td>
+			{1}
+		</tr>""".format(
+            index,
+            "\n\t\t\t".join(
+                "<td>{0}</td>".format(escape_html(row[field])) for field in fields
+            ),
+        )
+        for index, row in enumerate(rows, start=1)
+    )
 
 
 def render_absent_table(absent_rows):
     if not absent_rows:
         return ""
 
-    rows_html = "".join(
-        f"""
-		<tr>
-			<td>{i}</td>
-			<td>{r["employee_name"]}</td>
-			<td>{r["employee_id"]}</td>
-			<td>{r["shift"]}</td>
-		</tr>"""
-        for i, r in enumerate(absent_rows, start=1)
-    )
-
-    return f"""
-	<h4 style="margin-top:16px;">Absent</h4>
+    return """
+	<h4 style="margin-top:16px;">{heading}</h4>
 	<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; font-size:13px;">
 		<thead style="background:#f2f2f2;">
 			<tr>
-				<th>Sr No</th><th>Employee Name</th><th>Employee ID</th><th>Shift</th>
+				<th>{sr_no_label}</th><th>{employee_name_label}</th><th>{employee_id_label}</th><th>{shift_label}</th>
 			</tr>
 		</thead>
 		<tbody>{rows_html}</tbody>
 	</table>
-	"""
+	""".format(
+        heading=_("Absent"),
+        sr_no_label=_("Sr No"),
+        employee_name_label=_("Employee Name"),
+        employee_id_label=_("Employee ID"),
+        shift_label=_("Shift"),
+        rows_html=render_table_rows(
+            absent_rows, ("employee_name", "employee_id", "shift")
+        ),
+    )
 
 
 def render_leave_table(leave_rows):
     if not leave_rows:
         return ""
 
-    rows_html = "".join(
-        f"""
-		<tr>
-			<td>{i}</td>
-			<td>{r["employee_name"]}</td>
-			<td>{r["employee_id"]}</td>
-			<td>{r["leave_type"]}</td>
-			<td>{r["from_date"]}</td>
-			<td>{r["to_date"]}</td>
-		</tr>"""
-        for i, r in enumerate(leave_rows, start=1)
-    )
-
-    return f"""
-	<h4 style="margin-top:16px;">On Leave</h4>
+    return """
+	<h4 style="margin-top:16px;">{heading}</h4>
 	<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; font-size:13px;">
 		<thead style="background:#f2f2f2;">
 			<tr>
-				<th>Sr No</th><th>Employee Name</th><th>Employee ID</th><th>Leave Type</th>
-				<th>From Date</th><th>To Date</th>
+				<th>{sr_no_label}</th><th>{employee_name_label}</th><th>{employee_id_label}</th><th>{leave_type_label}</th>
+				<th>{from_date_label}</th><th>{to_date_label}</th>
 			</tr>
 		</thead>
 		<tbody>{rows_html}</tbody>
 	</table>
-	"""
+	""".format(
+        heading=_("On Leave"),
+        sr_no_label=_("Sr No"),
+        employee_name_label=_("Employee Name"),
+        employee_id_label=_("Employee ID"),
+        leave_type_label=_("Leave Type"),
+        from_date_label=_("From Date"),
+        to_date_label=_("To Date"),
+        rows_html=render_table_rows(
+            leave_rows,
+            ("employee_name", "employee_id", "leave_type", "from_date", "to_date"),
+        ),
+    )
 
 
 def render_email_html(department, date, rows, leave_rows, absent_rows, summary):
-    rows_html = (
-        "".join(
-            f"""
-		<tr>
-			<td>{i}</td>
-			<td>{r["employee_name"]}</td>
-			<td>{r["employee_id"]}</td>
-			<td>{r["department"]}</td>
-			<td>{r["shift"]}</td>
-			<td>{r["in_time"]}</td>
-			<td>{r["out_time"]}</td>
-			<td>{r["status"]}</td>
-			<td>{r["late_entry"]}</td>
-		</tr>"""
-            for i, r in enumerate(rows, start=1)
-        )
-        or "<tr><td colspan='9' style='text-align:center;'>No employees present</td></tr>"
+    present_fields = (
+        "employee_name",
+        "employee_id",
+        "department",
+        "shift",
+        "in_time",
+        "out_time",
+        "status",
+        "late_entry",
+    )
+    rows_html = render_table_rows(
+        rows, present_fields
+    ) or "<tr><td colspan='9' style='text-align:center;'>{0}</td></tr>".format(
+        _("No employees present")
     )
 
-    return f"""
-	<h3>Present Report — {department} — {formatdate(date, "dd-mm-yyyy")}</h3>
-	<p>{frappe.local.site}</p>
+    return """
+	<h3>Present Report - {department} - {date}</h3>
+	<p>{site}</p>
 	<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; font-size:13px;">
 		<thead style="background:#f2f2f2;">
 			<tr>
-				<th>Sr No</th><th>Employee Name</th><th>Employee ID</th><th>Department</th>
-				<th>Shift</th><th>In Time</th><th>Out Time</th>
-				<th>Attendance Status</th><th>Late Entry</th>
+				<th>{sr_no_label}</th><th>{employee_name_label}</th><th>{employee_id_label}</th><th>{department_label}</th>
+				<th>{shift_label}</th><th>{in_time_label}</th><th>{out_time_label}</th>
+				<th>{attendance_status_label}</th><th>{late_entry_label}</th>
 			</tr>
 		</thead>
 		<tbody>{rows_html}</tbody>
 	</table>
-	{render_leave_table(leave_rows)}
-	{render_absent_table(absent_rows)}
-	<h4 style="margin-top:16px;">Department Summary</h4>
+	{leave_table}
+	{absent_table}
+	<h4 style="margin-top:16px;">{summary_label}</h4>
 	<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
-		<tr><td>Total Employees</td><td>{summary["Total Employees"]}</td></tr>
-		<tr><td>Present</td><td>{summary["Present"]}</td></tr>
-		<tr><td>Absent</td><td>{summary["Absent"]}</td></tr>
-		<tr><td>Leave</td><td>{summary["On Leave"]}</td></tr>
-		<tr><td>Late Entry</td><td>{summary["Late Entry"]}</td></tr>
+		<tr><td>{total_employees_label}</td><td>{total_employees}</td></tr>
+		<tr><td>{present_label}</td><td>{present}</td></tr>
+		<tr><td>{absent_label}</td><td>{absent}</td></tr>
+		<tr><td>{leave_label}</td><td>{on_leave}</td></tr>
+		<tr><td>{late_entry_label}</td><td>{late_entry}</td></tr>
 	</table>
-	"""
+	""".format(
+        department=escape_html(department),
+        date=formatdate(date, "dd-mm-yyyy"),
+        site=escape_html(frappe.local.site),
+        rows_html=rows_html,
+        leave_table=render_leave_table(leave_rows),
+        absent_table=render_absent_table(absent_rows),
+        sr_no_label=_("Sr No"),
+        employee_name_label=_("Employee Name"),
+        employee_id_label=_("Employee ID"),
+        department_label=_("Department"),
+        shift_label=_("Shift"),
+        in_time_label=_("In Time"),
+        out_time_label=_("Out Time"),
+        attendance_status_label=_("Attendance Status"),
+        late_entry_label=_("Late Entry"),
+        summary_label=_("Department Summary"),
+        total_employees_label=_("Total Employees"),
+        present_label=_("Present"),
+        absent_label=_("Absent"),
+        leave_label=_("Leave"),
+        total_employees=summary["Total Employees"],
+        present=summary["Present"],
+        absent=summary["Absent"],
+        on_leave=summary["On Leave"],
+        late_entry=summary["Late Entry"],
+    )
 
 
 @frappe.whitelist()
 def send_morning_present_report(date=None, department=None):
-    """Emails the present report to each matching department's manager(s).
-    department=None -> every department that has a manager set in
-    custom_user_group. department=<name> -> just that one.
-    Returns {"sent": [...], "skipped": [...]} so the caller (the report's
-    Send Mail button) can show what actually happened."""
+    """Email the present report to the managers of each department.
 
+    department=None sends to every department that has a manager in custom_user_group,
+    department=<name> sends to that one only.
+    Returns {"sent": [...], "skipped": [...]} for the report's Send Mail button.
+    """
     date = date or nowdate()
+    departments = get_departments_with_managers(department)
+    rows_by_department, leave_by_employee = get_rows_by_department(departments, date)
 
-    departments = frappe.get_all(
-        "User Group Member",
-        filters={"parenttype": "Department", "parentfield": "custom_user_group"},
-        pluck="parent",
-        distinct=True,
-    )
-    if department:
-        departments = [department]
-
-    sent = []
-    skipped = []
-
-    for dept in departments:
-        result = build_department_report(dept, date)
-
-        if not result:
-            skipped.append(dept)
-            continue
-        rows, leave_rows, absent_rows, summary = result
-
-        manager_emails = get_department_manager_emails(dept)
-
-        if not manager_emails:
-            frappe.log_error(
-                title="Morning Present Report — no manager in custom_user_group",
-                message=f"Department: {dept}",
-            )
-            skipped.append(dept)
-            continue
-
-        if isinstance(manager_emails, list):
-            manager_string = ", ".join(manager_emails)
-        else:
-            manager_string = manager_emails
-        hr_emails = get_branch_hr_emails(dept)
-        fixed_cc = ["angat_p@gkexport.com"]
-        cc = [e for e in dict.fromkeys(fixed_cc + hr_emails) if e not in manager_emails]
-        # frappe.throw(f"cc mail {cc} manager_string {manager_string}")
-
-        html = render_email_html(dept, date, rows, leave_rows, absent_rows, summary)
-        frappe.sendmail(
-            recipients=manager_string,
-            # cc=["angat_p@gkexport.com"],
-            cc=cc,
-            sender="alerts@gkexport.com",
-            subject=f"Present Report — {dept} — {formatdate(date, 'dd-mm-yyyy')}",
-            message=html,
-            now=True,
-            expose_recipients="header",
+    def build_report(dept):
+        return build_department_email_report(
+            rows_by_department.get(dept), leave_by_employee
         )
-        sent.append({"department": dept, "managers": manager_emails})
 
-    return {"sent": sent, "skipped": skipped}
+    def render_html(dept, report):
+        rows, leave_rows, absent_rows, summary = report
+        return render_email_html(dept, date, rows, leave_rows, absent_rows, summary)
+
+    def get_subject(dept):
+        return "Present Report - {0} - {1}".format(dept, formatdate(date, "dd-mm-yyyy"))
+
+    return send_department_report_emails(
+        departments=departments,
+        build_report=build_report,
+        render_html=render_html,
+        get_subject=get_subject,
+        log_title="Morning Present Report - no manager in custom_user_group",
+        fixed_cc=MORNING_PRESENT_FIXED_CC,
+    )

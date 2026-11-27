@@ -6,13 +6,14 @@ from frappe import _
 
 
 def execute(filters=None):
-    columns = get_columns(filters)
+    filters = frappe._dict(filters or {})
+    columns = get_columns()
     data = get_data(filters)
     return columns, data
 
 
-def get_columns(filters=None):
-    columns = [
+def get_columns():
+    return [
         {
             "label": _("Employee"),
             "fieldname": "employee",
@@ -21,9 +22,9 @@ def get_columns(filters=None):
             "width": 220,
         },
         {
+            "label": _("Employee Name"),
             "fieldname": "Employee_name",
             "fieldtype": "Data",
-            "label": _("Employee Name"),
             "width": 0,
             "hidden": 1,
         },
@@ -80,81 +81,75 @@ def get_columns(filters=None):
             "width": 150,
         },
     ]
-    return columns
 
 
 def get_data(filters):
     conditions = get_conditions(filters)
 
     query = f"""
-    SELECT
-        e.name AS employee,
-        e.employee_name AS employee_name,
-        e.department AS department,
-        e.designation AS designation,
-        e.default_shift AS shift,
-        e.company as company,
-        a.status as status,
-        a.attendance_date AS attendance_date,
-        TIME_FORMAT(ec_in.time, '%H:%i:%s') AS late_entry_time,
-        TIME_FORMAT(ec_out.time, '%H:%i:%s') AS early_out_time
-    FROM
-        `tabEmployee` e
-    RIGHT JOIN
-        `tabAttendance` a ON e.name = a.employee
-    LEFT JOIN
-        `tabEmployee Checkin` ec_in ON ec_in.employee = e.name
-        AND ec_in.log_type = 'IN'
-        AND DATE(ec_in.shift_start) = a.attendance_date
-        AND TIME(ec_in.time) > ADDTIME(TIME(ec_in.shift_start), '00:05:59')
-    LEFT JOIN
-        `tabEmployee Checkin` ec_out ON ec_out.employee = e.name
-        AND ec_out.log_type = 'OUT'
-        AND DATE(ec_out.shift_start) = a.attendance_date
-        AND TIME(ec_out.time) < TIME(ec_out.shift_end)
-    WHERE
-        e.status = 'Active'
-    {conditions}
-    ORDER BY
-        a.attendance_date DESC;
-"""
+        SELECT
+            e.name AS employee,
+            e.employee_name AS employee_name,
+            e.department AS department,
+            e.designation AS designation,
+            e.default_shift AS shift,
+            e.company AS company,
+            a.status AS status,
+            a.attendance_date AS attendance_date,
+            TIME_FORMAT(ec_in.time, '%%H:%%i:%%s') AS late_entry_time,
+            TIME_FORMAT(ec_out.time, '%%H:%%i:%%s') AS early_out_time
+        FROM `tabAttendance` a
+        INNER JOIN `tabEmployee` e ON e.name = a.employee
+        LEFT JOIN `tabEmployee Checkin` ec_in
+            ON ec_in.employee = e.name
+            AND ec_in.log_type = 'IN'
+            AND DATE(ec_in.shift_start) = a.attendance_date
+            AND TIME(ec_in.time) > ADDTIME(TIME(ec_in.shift_start), '00:05:59')
+        LEFT JOIN `tabEmployee Checkin` ec_out
+            ON ec_out.employee = e.name
+            AND ec_out.log_type = 'OUT'
+            AND DATE(ec_out.shift_start) = a.attendance_date
+            AND TIME(ec_out.time) < TIME(ec_out.shift_end)
+        WHERE
+            e.status = 'Active'
+            AND a.docstatus = 1
+            {conditions}
+        ORDER BY
+            a.attendance_date DESC,
+            e.name ASC
+    """
 
-    data = frappe.db.sql(query, as_dict=1)
-    return data
+    return frappe.db.sql(query, filters, as_dict=True)
 
 
 def get_conditions(filters):
-    filter_list = []
+    conditions = []
 
-    # Apply filters based on the inputs from JS
     if filters.get("company"):
-        filter_list.append(f"""e.company = "{filters.get("company")}" """)
+        conditions.append("e.company = %(company)s")
 
     if filters.get("from_date"):
-        filter_list.append(f"""a.attendance_date >= "{filters.get("from_date")}" """)
+        conditions.append("a.attendance_date >= %(from_date)s")
 
     if filters.get("to_date"):
-        filter_list.append(f"""a.attendance_date <= "{filters.get("to_date")}" """)
+        conditions.append("a.attendance_date <= %(to_date)s")
 
     if filters.get("department"):
-        filter_list.append(f"""e.department = "{filters.get("department")}" """)
+        conditions.append("e.department = %(department)s")
 
     if filters.get("designation"):
-        filter_list.append(f"""e.designation = "{filters.get("designation")}" """)
+        conditions.append("e.designation = %(designation)s")
 
-    if filters.get("default_shift"):
-        filter_list.append(f"""e.default_shift = "{filters.get("default_shift")}" """)
+    if filters.get("shift"):
+        conditions.append("e.default_shift = %(shift)s")
 
     if filters.get("status"):
-        filter_list.append(f"""a.status = "{filters.get("status")}" """)
+        conditions.append("a.status = %(status)s")
 
     if filters.get("employee"):
-        filter_list.append(f"""e.name = "{filters.get("employee")}" """)
+        conditions.append("e.name = %(employee)s")
 
-    # Construct the WHERE clause based on available filters
-    if filter_list:
-        conditions = "AND " + " AND ".join(filter_list)
-    else:
-        conditions = ""
+    if not conditions:
+        return ""
 
-    return conditions
+    return "AND " + " AND ".join(conditions)

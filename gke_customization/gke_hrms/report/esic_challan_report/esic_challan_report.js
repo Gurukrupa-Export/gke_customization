@@ -88,7 +88,7 @@ frappe.query_reports["ESIC Challan Report"] = {
 	onload: (report) => {
 		set_dates();
 		report.page
-			.add_button("Clear Filters", function () {
+			.add_button(__("Clear Filters"), function () {
 				window.open("/app/query-report/ESIC%20Challan%20Report", "_self");
 			})
 			.addClass("btn-info");
@@ -102,7 +102,6 @@ frappe.query_reports["ESIC Challan Report"] = {
 					},
 					callback: function (r) {
 						if (r.message) {
-							// 🔽 Auto download
 							const link = document.createElement("a");
 							link.href = r.message;
 							link.download = "esic_export.xlsx";
@@ -123,37 +122,29 @@ frappe.query_reports["ESIC Challan Report"] = {
 			value = $value.wrap("<p></p>").parent().html();
 		}
 		var total_field = [
-			"Total Employees",
-			"Total Gross",
-			"Excepted Employees",
-			"Excepted Gross",
-			"ESIC Members",
-			"ESIC Wages",
-			"Employee Contribution",
-			"Employer Contribution",
-			"Total Contribution",
+			__("Total Employees"),
+			__("Total Gross"),
+			__("Excepted Employees"),
+			__("Excepted Gross"),
+			__("ESIC Members"),
+			__("ESIC Wages"),
+			__("Employee Contribution"),
+			__("Employer Contribution"),
+			__("Total Contribution"),
 		];
-		if (["branch", "employee_name"].includes(column.id) && total_field.includes(data.employee_name)) {
+		if (
+			data &&
+			["branch", "employee_name"].includes(column.id) &&
+			total_field.includes(data.employee_name)
+		) {
 			value = $(`<span>${value}</span>`);
-			let $value = $(value).css({ "font-weight": "bold", color: "blue" });
+			let $value = $(value).css("font-weight", "bold").css("color", "blue");
 			value = $value.wrap("<p></p>").parent().html();
 		}
 
 		return value;
 	},
 };
-
-function fetch_month_list() {
-	frappe.call({
-		method: "gurukrupa_customizations.gurukrupa_customizations.report.monthly_in_out.monthly_in_out.get_month_range",
-		freeze: false,
-		callback: function (r) {
-			var month = frappe.query_report.get_filter("month");
-			month.df.options.push(...r.message);
-			month.refresh();
-		},
-	});
-}
 
 function set_dates() {
 	let report = frappe.query_report;

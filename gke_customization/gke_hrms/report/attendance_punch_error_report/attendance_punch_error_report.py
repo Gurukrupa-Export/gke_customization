@@ -6,7 +6,6 @@ from frappe import _
 from frappe.query_builder.functions import Count
 
 
-# is_prepared_report = False
 def execute(filters=None):
     columns = get_columns(filters)
     data = get_data(filters)
@@ -45,6 +44,7 @@ def get_data(filters=None):
         .groupby(attendance.employee, attendance.attendance_date)
         .having(punch_count > 0)
         .orderby(attendance.attendance_date)
+        .orderby(attendance.employee)
     )
 
     if filters.get("company"):

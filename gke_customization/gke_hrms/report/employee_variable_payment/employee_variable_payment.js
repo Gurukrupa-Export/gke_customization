@@ -45,7 +45,7 @@ frappe.query_reports["Employee Variable Payment"] = {
 				let emp = frappe.query_report.get_filter_value("cur_employee");
 				let employees = query_report.get_filter_value("employees");
 				var idx = employees.indexOf(emp);
-				if (idx > 0) {
+				if (idx >= 0) {
 					query_report.current_emp = idx;
 				}
 				set_employee_details(query_report);
@@ -68,31 +68,31 @@ frappe.query_reports["Employee Variable Payment"] = {
 			},
 		},
 		{
-			label: "Employee Name",
+			label: __("Employee Name"),
 			fieldtype: "Data",
 			fieldname: "emp_name",
 			read_only: 1,
 		},
 		{
-			label: "Employee Designation",
+			label: __("Employee Designation"),
 			fieldtype: "Data",
 			fieldname: "designation",
 			read_only: 1,
 		},
 		{
-			label: "Department Name",
+			label: __("Department Name"),
 			fieldtype: "Data",
 			fieldname: "emp_department",
 			read_only: 1,
 		},
 		{
-			label: "Variable Start Date",
+			label: __("Variable Start Date"),
 			fieldtype: "Date",
 			fieldname: "contract_start_date",
 			read_only: 1,
 		},
 		{
-			label: "Variable End Date",
+			label: __("Variable End Date"),
 			fieldtype: "Date",
 			fieldname: "contract_end_date",
 			read_only: 1,
@@ -104,9 +104,9 @@ frappe.query_reports["Employee Variable Payment"] = {
 			depends_on: "eval:(frappe.query_report.emp_count>1 && frappe.query_report.current_emp != 0)",
 			onclick: function () {
 				var prev_emp = frappe.query_report.current_emp - 1;
-				set_employee(frappe.query_report, prev_emp, true);
 				if (prev_emp < 0) prev_emp = 0;
 				frappe.query_report.current_emp = prev_emp;
+				set_employee(frappe.query_report, prev_emp, true);
 			},
 		},
 		{
@@ -118,24 +118,24 @@ frappe.query_reports["Employee Variable Payment"] = {
 				"eval:(frappe.query_report.emp_count>1 && frappe.query_report.emp_count - 1 > frappe.query_report.current_emp)",
 			onclick: function () {
 				var next_emp = frappe.query_report.current_emp + 1;
-				set_employee(frappe.query_report, next_emp, true);
-				if (next_emp > frappe.query_report.emp_count) next_emp = frappe.query_report.emp_count - 1;
+				if (next_emp >= frappe.query_report.emp_count) next_emp = frappe.query_report.emp_count - 1;
 				frappe.query_report.current_emp = next_emp;
+				set_employee(frappe.query_report, next_emp, true);
 			},
 		},
 	],
 	onload: (report) => {
 		report.page
-			.add_button("Clear Filters", function () {
+			.add_button(__("Clear Filters"), function () {
 				window.open("/app/query-report/Employee%20Variable%20Payment", "_self");
 			})
 			.addClass("btn-info");
 
 		report.page
-			.add_button("Generate", function () {
+			.add_button(__("Generate"), function () {
 				var emp = frappe.query_report.get_filter_value("cur_employee");
 				if (!emp) {
-					frappe.msgprint("No Employee Selected");
+					frappe.msgprint(__("No Employee Selected"));
 				} else {
 					frappe.query_report.set_filter_value({
 						employee: emp,
@@ -203,10 +203,9 @@ function fetch_employees(query_report) {
 }
 
 function get_filter_dict(query_report) {
-	var company = query_report.get_filter_value("company");
 	var department = query_report.get_filter_value("department");
 	var filters = {};
-	if (department.length > 0) {
+	if (department && department.length > 0) {
 		filters["department"] = ["in", department];
 	} else {
 		return null;

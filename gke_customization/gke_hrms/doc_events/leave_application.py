@@ -5,16 +5,12 @@ from frappe import _
 from frappe.utils import add_days, getdate, nowdate
 
 from gke_customization.gke_hrms.doctype.monthly_in_out_log.monthly_in_out_log import (
-    fmt_td_or_value,
-    get_attendance_details_by_date,
-    to_duration_seconds,
+    refresh_monthly_in_out_logs,
 )
 
 
 def validate(doc, method):
     """Validation logic to check the sandwich rule and past leave restriction."""
-    # check_past_month_restriction(doc)
-    # check_sandwich_rule(doc)
     _validate_sandwich_rule(doc)
 
 
@@ -33,14 +29,15 @@ def check_past_month_restriction(doc):
         leave_year == current_year and leave_month < current_month
     ):
         frappe.throw(
-            "You cannot apply for leave in past months. Please select a date in the current or future months."
+            _(
+                "You cannot apply for leave in past months. Please select a date in the current or future months."
+            )
         )
 
 
 def check_sandwich_rule(doc):
     if doc.employee and doc.from_date and doc.to_date:
         holiday_list = frappe.db.get_value("Employee", doc.employee, "holiday_list")
-        # frappe.throw(f"{holiday_list}")
         if holiday_list:
             holiday_list_doc = frappe.get_doc("Holiday List", holiday_list)
             holidays = holiday_list_doc.get("holidays") or []
@@ -98,10 +95,7 @@ def check_sandwich_rule(doc):
 
 def on_submit(doc, method):
     """Create attendance records for the leave period."""
-    # create_attendance_records(doc)
     _on_submit(doc, method)
-
-    frappe.db.commit()
     leave_application_update_monthly_inout_log(doc)
 
 
@@ -178,7 +172,6 @@ def leave_application_update_monthly_inout_log(doc, method=None):
     Recalculate Monthly In-Out Log when Leave Application is submitted
     """
     try:
-        # frappe.msgprint(f"Updating Monthly In-Out Log for Leave Application: {doc.name}")
         if not doc.employee or not doc.company:
             return
 
@@ -194,69 +187,10 @@ def leave_application_update_monthly_inout_log(doc, method=None):
         )
 
         if not attendance_list:
-            # frappe.msgprint(f"No attendance found for Leave Application: {doc.name}")
             return
 
-        for att in attendance_list:
-            att_doc = frappe.db.get_value(
-                "Attendance",
-                att.name,
-                ["attendance_date", "name", "status"],
-                as_dict=True,
-            )
-            attendance_date = att_doc.attendance_date
-
-            mil_name = frappe.db.get_value(
-                "Monthly In-Out Log",
-                {
-                    "employee": doc.employee,
-                    "company": doc.company,
-                    "attendance_date": attendance_date,
-                    "docstatus": ["in", [0, 1]],
-                },
-                "name",
-            )
-
-            if not mil_name:
-                # frappe.msgprint(f"No Monthly In-Out Log found for {attendance_date}")
-                return
-
-            res = get_attendance_details_by_date(
-                doc.company, doc.employee, attendance_date
-            )
-
-            records = res.get("records") or []
-            if not records:
-                # frappe.msgprint(f"No records found for {attendance_date}")
-                return
-
-            record = records[0]
-            # frappe.msgprint(f"Status : {record.get('status')} <br> Attendance status : {att_doc.status}")
-
-            frappe.db.set_value(
-                "Monthly In-Out Log",
-                mil_name,
-                {
-                    "status": record.get("status"),
-                    "in_time": record.get("in_time"),
-                    "out_time": record.get("out_time"),
-                    "spent_hrs": to_duration_seconds(
-                        record.get("spent_hrs") or record.get("spent_hours")
-                    ),
-                    "net_wrk_hrs": fmt_td_or_value(record.get("net_wrk_hrs")),
-                    "late": record.get("late", 0) or record.get("late_entry", 0),
-                    "late_hrs": fmt_td_or_value(record.get("late_hrs")),
-                    "early_hrs": fmt_td_or_value(record.get("early_hrs")),
-                    "ot_hrs": fmt_td_or_value(
-                        record.get("ot_hours") or record.get("othrs")
-                    ),
-                    "p_out_hrs": fmt_td_or_value(record.get("p_out_hrs")),
-                },
-            )
-
-            frappe.db.commit()
+        refresh_monthly_in_out_logs([att.name for att in attendance_list])
     except Exception as e:
-        # frappe.msgprint(f"Error updating Monthly In-Out Log: {e}")
         frappe.log_error(
             message=f"Error updating Monthly In-Out Log: {e}",
             title="Monthly In-Out Log Update Error - Leave Application",
@@ -286,14 +220,14 @@ def _validate_sandwich_rule(doc, method=""):
         return
 
     sandwich_dates = get_sandwich_dates(doc)
-    # frappe.msgprint(f"Sandwidch dates: {sandwich_dates}")
 
     if sandwich_dates:
         formatted = ", ".join(d.strftime("%d-%m-%Y") for d in sorted(sandwich_dates))
 
         frappe.msgprint(
-            f"<b>Sandwich Rule Applied</b><br>"
-            f"Following holiday(s) will be counted as Leave:<br>{formatted}"
+            _(
+                "<b>Sandwich Rule Applied</b><br>Following holiday(s) will be counted as Leave:<br>{0}"
+            ).format(formatted)
         )
 
 
@@ -318,13 +252,6 @@ def _on_submit(doc, method):
         return
 
     sandwich_dates = get_sandwich_dates(doc)
-    # if sandwich_dates:
-    #     formatted = ", ".join(d.strftime("%d-%m-%Y") for d in sandwich_dates)
-
-    #     frappe.msgprint(
-    #         f"<b>Sandwich Rule Applied</b><br>"
-    #         f"Following holiday(s) will be counted as Leave:<br>{formatted}"
-    #     )
 
     public_holidays, weekly_offs = get_holiday_dates(doc.employee)
 
@@ -352,7 +279,7 @@ def _on_submit(doc, method):
         frappe.log_error(
             title="Leave Application attendance error", message=frappe.get_traceback()
         )
-        frappe.throw(f"Error creating attendance records: {e}")
+        frappe.throw(_("Error creating attendance records: {0}").format(e))
 
 
 def get_sandwich_dates(doc):
@@ -598,7 +525,6 @@ def _create_attendance_records(doc, dates, sandwich_dates):
                 continue
 
         if date in sandwich_dates:
-            # frappe.msgprint(f"Creating attendance record for sandwich date as Leave Without Pay: {date}")
             attendance_doc = frappe.new_doc("Attendance")
             attendance_doc.update(
                 {
@@ -627,8 +553,6 @@ def _create_attendance_records(doc, dates, sandwich_dates):
             )
             attendance_doc.insert(ignore_permissions=True)
             attendance_doc.submit()
-
-        # frappe.msgprint(f"Created attendance record: {attendance_doc.as_dict()}")
 
 
 ####################################################################################################
