@@ -12,6 +12,7 @@ from frappe.integrations.oauth2 import get_oauth_server
 import requests
 import json
 from frappe.utils import validate_email_address, now_datetime
+from gke_customization.gke_catalog.api.encryption_response import SecureJSON
 
 
 from gke_customization.gke_catalog.api.portal_live_api.notifications import notify_user
@@ -196,17 +197,20 @@ def reply_on_issues(ticket_id=None, subject=None, frm=None, qry_status=None,
                 )
 
 
-        return {
+        data = {
             "success": True,
             "message": "Record created successfully",
             "name": doc.name,
             "content": html_content,
             "val": check_first_value[-1]
         }
+        secure = SecureJSON()
+        enc_data = secure.encrypt(data)
+        return enc_data
 
     except Exception as e:
         frappe.log_error(f"Error in reply_on_issues: {str(e)}", "Portal Communication Error")
-        return {"success": False, "error": str(e)}
+        return SecureJSON().encrypt({"success": False, "error": str(e)})
 
 
 @frappe.whitelist()

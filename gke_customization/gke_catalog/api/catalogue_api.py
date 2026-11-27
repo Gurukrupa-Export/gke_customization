@@ -5208,23 +5208,7 @@ def get_item_of_customer_by_user(customer):
 
             bom.name AS bom_name,
             bom.sub_setting_type1,
-            idf.company,
-            tci.trending,
-            tci.name as catalog_item_details_name,
-            {wishlist_case},
-            item.creation,
-            item.item_code,
-            item.item_category,
-            item.image,
-            item.sketch_image,
-            item.custom_catalogue_image,
-            item.front_view AS cad_image,
-            CASE
-                WHEN item.front_view = item.image THEN 'CAD Image'
-                ELSE 'FG Image'
-            END AS image_remark,
-            item.item_subcategory,
-            item.stylebio,
+            i.custom_catalogue_image,
             bom.tag_no,
             bom.diamond_quality,
             FORMAT(bom.gross_weight, 3) AS gross_metal_weight,

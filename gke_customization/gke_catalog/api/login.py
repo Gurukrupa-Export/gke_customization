@@ -12,14 +12,13 @@ from frappe.integrations.oauth2 import get_oauth_server
 import requests
 import json
 from frappe.utils import validate_email_address
+from gke_customization.gke_catalog.api.portal_access import allowed_customers, has_full_access
 
 
-@frappe.whitelist()
 def get_user_secret(username):
-    MASTER_SECRET = b'super-secret-key-you-keep-safe'
-    # derive a secret for the user without storing it
-    h = hmac.new(MASTER_SECRET, msg=username.encode(), digestmod=hashlib.sha1)
-    return base64.b32encode(h.digest()).decode('utf-8')
+    # Not an API. The master key is in site config, see otp_secret.py.
+    from gke_customization.gke_catalog.api.otp_secret import otp_user_secret
+    return otp_user_secret(username)
 
 
 # @frappe.whitelist(allow_guest=True)
@@ -406,8 +405,13 @@ def verify_otp_using_customer_name(username, password, otp):
     return {"status": "failed", "message": "Invalid or expired OTP"}
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_address_by_link_name(user_type, link_name):
+    if user_type == "Customer":
+        allowed_customers(link_name)  # only a customer this login may see
+    elif user_type == "User" and link_name != frappe.session.user and not has_full_access():
+        frappe.throw(_("Not permitted for this user."), frappe.PermissionError)
+
     try:
         if not user_type or not link_name:
             return {"success": False, "message": "Missing user_type or link_name."}

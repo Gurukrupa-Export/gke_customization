@@ -45,7 +45,16 @@ const PDTP_STAGE_COLORS = {
 	cad_raised: 'var(--pdtp-purple)',
 	has_stylebio: 'var(--pdtp-amber)',
 	tagged: 'var(--pdtp-teal)',
-	sold: 'var(--pdtp-green)',
+	sketch_status_draft: 'var(--pdtp-blue)',
+	sketch_status_assigned: 'var(--pdtp-amber)',
+	sketch_status_customer_approval: 'var(--pdtp-teal)',
+	sketch_status_update_item: 'var(--pdtp-green)',
+	cad_order_raised: 'var(--pdtp-purple)',
+	cad_order_assigned: 'var(--pdtp-blue)',
+	cad_order_designing: 'var(--pdtp-amber)',
+	cad_order_qc: 'var(--pdtp-teal)',
+	cad_order_completed: 'var(--pdtp-green)',
+	cad_order_rejected: 'var(--pdtp-red)',
 };
 
 const PDTP_SUMMARY_ICONS = {
@@ -61,6 +70,18 @@ const PDTP_SUMMARY_ICONS = {
 		'<path d="M3 11.5 11.5 3H18a3 3 0 0 1 3 3v6.5L12.5 21 3 11.5Z"/><circle cx="15" cy="9" r="1.4"/>',
 	total_pcs_sold:
 		'<path d="M6 8V6a6 6 0 0 1 12 0v2"/><path d="M4.5 8h15l-1 12.5a1.5 1.5 0 0 1-1.5 1.4H7a1.5 1.5 0 0 1-1.5-1.4L4.5 8Z"/>',
+	running_sketch_orders:
+		'<path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"/><path d="m15 5 4 4"/>',
+	pipeline_sketch_approved:
+		'<circle cx="12" cy="12" r="9"/><path d="M9 12.5 11.5 15 16 9.5"/>',
+	pipeline_cad_raised:
+		'<path d="M12 3 4.5 7v10L12 21l7.5-4V7L12 3Z"/><path d="M4.5 7 12 11l7.5-4"/><path d="M12 11v10"/>',
+	pipeline_has_stylebio:
+		'<path d="M10.5 3h-5A1.5 1.5 0 0 0 4 4.5v5c0 .4.16.78.44 1.06l9 9a1.5 1.5 0 0 0 2.12 0l5-5a1.5 1.5 0 0 0 0-2.12l-9-9A1.5 1.5 0 0 0 10.5 3Z"/><circle cx="8.25" cy="8.25" r="1.25"/>',
+	pipeline_tagged:
+		'<path d="M3 11.5 11.5 3H18a3 3 0 0 1 3 3v6.5L12.5 21 3 11.5Z"/><circle cx="15" cy="9" r="1.4"/>',
+	running_cad_orders:
+		'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
 };
 
 function pdtp_icon(key) {
@@ -80,6 +101,7 @@ class PdtpDashboard {
 			from_date: frappe.datetime.add_months(frappe.datetime.get_today(), -1),
 			to_date: frappe.datetime.get_today(),
 		};
+		this.stage_labels = {}; // stage key -> display label, filled while rendering
 		this.req = 0; // request token - lets a stale in-flight response be discarded
 
 		this.$ = (sel) => this.page.main.find(sel);
@@ -106,7 +128,8 @@ class PdtpDashboard {
 		this.$stage = this.$('[data-field="stage"]');
 		this.$overlay_text = this.$('[data-field="overlay-text"]');
 		this.$summary = this.$('[data-field="summary-row"]');
-		this.$funnel = this.$('[data-field="funnel-row"]');
+		this.$funnel = this.$('[data-field="sketch-funnel-row"]');
+		this.$cad_funnel = this.$('[data-field="cad-funnel-row"]');
 		this.$blockers = this.$('[data-field="blockers-row"]');
 		this.$ratio = this.$('[data-field="ratio-row"]');
 		this.$leadtime = this.$('[data-field="leadtime-row"]');
@@ -151,9 +174,14 @@ class PdtpDashboard {
 			this.load();
 		});
 
-		const click = (e) => this.open_segment({ stage: $(e.currentTarget).attr('data-stage') });
+		const click = (e) =>
+			this.open_segment({
+				stage: $(e.currentTarget).attr('data-stage'),
+				title: $(e.currentTarget).attr('data-title') || null,
+			});
 		this.$summary.on('click', '[data-stage]', click);
 		this.$funnel.on('click', '[data-stage]', click);
+		this.$cad_funnel.on('click', '[data-stage]', click);
 		this.$blockers.on('click', '[data-stage]', click);
 		this.$ratio.on('click', '[data-stage]', click);
 
@@ -165,6 +193,13 @@ class PdtpDashboard {
 		);
 		this.$customer.on('click', '[data-customer]', (e) =>
 			this.open_segment({ stage: 'sketch_approved', customer: $(e.currentTarget).attr('data-customer') })
+		);
+		this.$monthly.on('click', '[data-month]', (e) =>
+			this.open_segment({
+					stage: 'sketch_approved',
+					month: $(e.currentTarget).attr('data-month'),
+					month_label: $(e.currentTarget).attr('data-month-label'),
+				})
 		);
 	}
 
@@ -225,8 +260,9 @@ class PdtpDashboard {
 
 				this.$generated_at.text(`Generated ${frappe.datetime.str_to_user(data.generated_at)}`);
 				this.render_summary(data.summary_kpis);
-				this.render_funnel(data.funnel);
-				this.render_blockers(data.blockers);
+				this.render_funnel(data.sketch_funnel, this.$funnel);
+				this.render_funnel(data.cad_funnel, this.$cad_funnel);
+				this.render_blockers(data.blockers, data.funnel && data.funnel[0] ? data.funnel[0].count : 0);
 				this.render_ratio(data.stylebio_tag_ratio);
 				this.render_leadtime(data.lead_times);
 				this.render_monthly(data.monthly_completed);
@@ -265,7 +301,7 @@ class PdtpDashboard {
 		const html = summary
 			.map(
 				(s) => `
-					<div class="pdtp-summary__cell" data-stage="${s.stage}">
+					<div class="pdtp-summary__cell" data-stage="${s.stage}" data-title="${frappe.utils.escape_html(s.label)}">
 						<div class="pdtp-summary__icon">${pdtp_icon(s.key)}</div>
 						<div class="pdtp-summary__text">
 							<div class="pdtp-summary__value">${this.fmt_count(s.count)}</div>
@@ -275,17 +311,19 @@ class PdtpDashboard {
 			)
 			.join('');
 
+		summary.forEach((s) => (this.stage_labels[s.stage] = s.label));
 		this.$summary.html(html);
 	}
 
 	// ---------- funnel ----------
 
-	render_funnel(funnel) {
+	render_funnel(funnel, $target) {
 		if (!funnel || !funnel.length) {
-			this.$funnel.html('<div class="pdtp__empty">No data.</div>');
+			$target.html('<div class="pdtp__empty">No data.</div>');
 			return;
 		}
 
+		funnel.forEach((f) => (this.stage_labels[f.stage] = this.stage_labels[f.stage] || f.label));
 		const max = Math.max(...funnel.map((f) => f.count), 1);
 		const base = funnel[0].count || 1;
 		const last = funnel.length - 1;
@@ -300,7 +338,7 @@ class PdtpDashboard {
 						? `<div class="pdtp-funnel__connector"><span class="pdtp-funnel__chevron"></span></div>`
 						: '';
 				return `
-					<div class="pdtp-funnel__stage" data-stage="${f.stage}">
+					<div class="pdtp-funnel__stage" data-stage="${f.stage}" data-title="${frappe.utils.escape_html(f.label)}">
 						<div class="pdtp-funnel__shape" style="width:${pct}%; --shape-color:${color}">
 							<span class="pdtp-funnel__shape-value">${this.fmt_count(f.count)}</span>
 							<span class="pdtp-funnel__shape-label">${frappe.utils.escape_html(f.label)}</span>
@@ -311,23 +349,31 @@ class PdtpDashboard {
 			})
 			.join('');
 
-		this.$funnel.html(html);
+		$target.html(html);
 	}
 
 	// ---------- blockers ----------
 
-	render_blockers(blockers) {
+	render_blockers(blockers, base) {
 		if (!blockers || !blockers.length) {
 			this.$blockers.html('<div class="pdtp__empty">No blockers.</div>');
 			return;
 		}
 
+		blockers.forEach((b) => (this.stage_labels[b.stage] = this.stage_labels[b.stage] || b.label));
 		const html = blockers
 			.map(
 				(b) => `
-					<div class="pdtp-blockers__card" data-stage="${b.stage}">
-						<div class="pdtp-blockers__count">${this.fmt_count(b.count)}</div>
+					<div class="pdtp-blockers__card" data-stage="${b.stage}" data-title="${frappe.utils.escape_html(b.label)}">
+						<div class="pdtp-blockers__count">${this.fmt_count(b.count)}${
+							base ? ` <small>(${Math.round((b.count / base) * 100)}%)</small>` : ''
+						}</div>
 						<div class="pdtp-blockers__label">${frappe.utils.escape_html(b.label)}</div>
+						${
+							b.completed_pct !== undefined
+								? `<div class="pdtp-blockers__sub">${b.completed_pct}% completed (${this.fmt_count(b.completed_count)})</div>`
+								: ''
+						}
 					</div>`
 			)
 			.join('');
@@ -367,7 +413,7 @@ class PdtpDashboard {
 		const html = tiles
 			.map(
 				(t) => `
-					<div class="pdtp-ratio__card" data-stage="${t.stage}">
+					<div class="pdtp-ratio__card" data-stage="${t.stage}" data-title="${frappe.utils.escape_html(t.label)}">
 						<div class="pdtp-ratio__ring" style="--pct:${t.pct}; --ring-color:${t.color}">
 							<div class="pdtp-ratio__ring-hole">
 								<span class="pdtp-ratio__ring-value">${t.pct}%</span>
@@ -433,17 +479,21 @@ class PdtpDashboard {
 			.map((r) => {
 				const pct = Math.max(Math.round((r.completed_count / max) * 100), 3);
 				return `
-					<div class="pdtp-monthly__col" title="${__('{0} designs completed in {1}', [r.completed_count, r.month_label])}">
+					<div class="pdtp-monthly__col" data-month="${r.month}" data-month-label="${frappe.utils.escape_html(r.month_label)}" title="${__('{0} designs completed in {1}', [r.completed_count, r.month_label])}">
 						<div class="pdtp-monthly__bar-wrap">
 							<div class="pdtp-monthly__bar" style="height:${pct}%"></div>
 						</div>
 						<div class="pdtp-monthly__value">${r.completed_count}</div>
-						<div class="pdtp-monthly__month">${r.month_label}</div>
+						<div class="pdtp-monthly__month">${r.month_label.replace(/-\d\d(\d\d)$/, "'$1")}</div>
 					</div>`;
 			})
 			.join('');
 
 		this.$monthly.html(`<div class="pdtp-monthly__chart">${bars}</div>`);
+
+		// Only 12 columns fit; if there are more, start at the latest months.
+		const chart = this.$monthly.find('.pdtp-monthly__chart')[0];
+		if (chart && rows.length > 12) chart.scrollLeft = chart.scrollWidth;
 	}
 
 	// ---------- category breakdown ----------
@@ -520,7 +570,7 @@ class PdtpDashboard {
 			.map((r) => {
 				const pct = Math.max(Math.round((r.total / max) * 100), 2);
 				return `
-					<div class="pdtp-customer__row" data-customer="${frappe.utils.escape_html(r.customer)}">
+					<div class="pdtp-customer__row" data-customer="${frappe.utils.escape_html(r.customer)}" title="${frappe.utils.escape_html(r.customer_name || r.customer)}">
 						<div class="pdtp-customer__name">${frappe.utils.escape_html(r.customer)}</div>
 						<div class="pdtp-customer__bar"><span style="width:${pct}%"></span></div>
 						<div class="pdtp-customer__stats">
@@ -558,15 +608,21 @@ class PdtpDashboard {
 
 	// ---------- segment drill-down ----------
 
-	open_segment({ stage, category, customer }) {
+	open_segment({ stage, category, customer, month, month_label, title }) {
+		// Dynamic heading: what was clicked, plus any extra scope (category /
+		// customer / month) the click carried.
+		const parts = [title || this.stage_labels[stage] || __('Orders')];
+		if (category) parts.push(category);
+		if (customer) parts.push(customer);
+		if (month) parts.push(month_label || month);
 		const dialog = new frappe.ui.Dialog({
-			title: __('Orders'),
+			title: parts.map((p) => frappe.utils.escape_html(p)).join(' · '),
 			size: 'extra-large',
 		});
 		dialog.show();
 		dialog.$body.html(`<div class="pdtp__loading">${__('Loading…')}</div>`);
 
-		this.call('get_segment_rows', { filters: this.filters, stage, category, customer }).then((rows) => {
+		this.call('get_segment_rows', { filters: this.filters, stage, category, customer, month }).then((rows) => {
 			if (!rows || !rows.length) {
 				dialog.$body.html(`<div class="pdtp__empty">${__('No matching orders.')}</div>`);
 				return;
@@ -577,18 +633,27 @@ class PdtpDashboard {
 					? `<div class="pdtp-category__thumb" data-image="${frappe.utils.escape_html(r.image)}" data-category="${frappe.utils.escape_html(r.item_code || '')}"><img src="${r.image}" loading="lazy" /></div>`
 					: `<div class="pdtp-category__thumb pdtp-category__thumb--empty"></div>`;
 
+			const form_link = (doctype, name) =>
+				name ? frappe.utils.get_form_link(doctype, name, true) : '';
+
+			rows.forEach((r, i) => (r.__idx = i));
+
 			const body = rows
 				.map(
 					(r) => `
-						<tr>
+						<tr data-idx="${r.__idx}">
 							<td>${thumb(r)}</td>
-							<td>${frappe.utils.escape_html(r.sketch_order_no || '')}</td>
-							<td>${frappe.utils.escape_html(r.cad_order_no || '')}</td>
+							<td>${form_link('Sketch Order', r.sketch_order_no)}</td>
+							<td>${frappe.utils.escape_html(r.sketch_workflow_state || '')}</td>
+							<td>${form_link('Order', r.cad_order_no)}</td>
 							<td>${frappe.utils.escape_html(r.cad_workflow_state || '')}</td>
-							<td>${frappe.utils.escape_html(r.item_code || '')}</td>
+							<td>${form_link('Item', r.item_code)}</td>
 							<td title="${frappe.utils.escape_html(r.stylebio || '')}">${frappe.utils.escape_html(this.truncate(r.stylebio, 14))}</td>
 							<td>${frappe.utils.escape_html(r.customer || '')}</td>
-							<td>${frappe.utils.escape_html(r.category_name || '')}</td>
+							<td>${frappe.utils.escape_html(r.erp_category || '')}</td>
+							<td>${frappe.utils.escape_html(r.erp_setting || '')}</td>
+							<td>${r.dia_wt != null ? flt(r.dia_wt, 2) : ''}</td>
+							<td>${r.metal_wt != null ? flt(r.metal_wt, 2) : ''}</td>
 							<td>${frappe.datetime.str_to_user(r.sketch_order_date) || ''}</td>
 							<td>${frappe.datetime.str_to_user(r.cad_order_date) || ''}</td>
 							<td>${frappe.datetime.str_to_user(r.entry_date) || ''}</td>
@@ -599,7 +664,19 @@ class PdtpDashboard {
 				)
 				.join('');
 
-			dialog.add_custom_action(__('Export'), () => this.export_segment_rows(rows), 'btn-default');
+			let visible_rows = rows;
+			dialog.add_custom_action(__('Export'), () => this.export_segment_rows(visible_rows), 'btn-default');
+
+			// Per-column filter text (matched case-insensitively, "contains").
+			// Dates are matched on their displayed (user-format) value.
+			const d = (v) => frappe.datetime.str_to_user(v) || '';
+			const col_values = (r) => [
+				r.sketch_order_no, r.sketch_workflow_state, r.cad_order_no, r.cad_workflow_state, r.item_code,
+				r.stylebio, r.customer, r.erp_category, r.erp_setting, r.dia_wt, r.metal_wt,
+				d(r.sketch_order_date), d(r.cad_order_date), d(r.entry_date), d(r.first_tag_date),
+				r.tag_nos, r.total_sold || 0,
+			].map((v) => String(v == null ? '' : v).toLowerCase());
+			const row_vals = rows.map(col_values);
 
 			dialog.$body.html(`
 				<div class="pdtp-dialog-table">
@@ -608,12 +685,16 @@ class PdtpDashboard {
 							<tr>
 								<th></th>
 								<th>Sketch Order</th>
+								<th>Sketch Status</th>
 								<th>CAD Order</th>
 								<th>CAD Status</th>
 								<th>Item</th>
 								<th>StyleBio</th>
 								<th>Customer</th>
 								<th>Category</th>
+								<th>Setting</th>
+								<th>Dia Wt</th>
+								<th>Metal Wt</th>
 								<th>Sketch Date</th>
 								<th>CAD Date</th>
 								<th>Catalog Date</th>
@@ -621,11 +702,29 @@ class PdtpDashboard {
 								<th>Tag No</th>
 								<th>Sold</th>
 							</tr>
+							<tr class="pdtp-dialog-filters">
+								<th></th>
+								${Array.from({ length: 17 }, (_, i) => `<th><input type="text" class="pdtp-col-filter" data-col="${i}" placeholder="${__('Filter')}" /></th>`).join('')}
+							</tr>
 						</thead>
 						<tbody>${body}</tbody>
 					</table>
 				</div>
 			`);
+
+			const apply_filters = () => {
+				const active = [];
+				dialog.$body.find('.pdtp-col-filter').each((_, el) => {
+					const v = $(el).val().trim().toLowerCase();
+					if (v) active.push([parseInt($(el).attr('data-col'), 10), v]);
+				});
+				visible_rows = rows.filter((r, i) => active.every(([c, v]) => row_vals[i][c].includes(v)));
+				const shown = new Set(visible_rows.map((r) => r.__idx));
+				dialog.$body.find('tbody tr').each((_, tr) => {
+					$(tr).toggle(shown.has(parseInt($(tr).attr('data-idx'), 10)));
+				});
+			};
+			dialog.$body.on('input', '.pdtp-col-filter', apply_filters);
 
 			dialog.$body.on('click', '.pdtp-category__thumb[data-image]', (e) => {
 				this.open_image_preview(
@@ -637,7 +736,17 @@ class PdtpDashboard {
 	}
 
 	fmt_count(n) {
-		return frappe.format(n || 0, { fieldtype: 'Int' });
+		// Indian digit grouping (e.g. 12,34,567) instead of frappe.format's
+		// international grouping - and plain text instead of frappe.format's
+		// right-aligned wrapper div, so each usage site's own CSS controls
+		// alignment (summary cards want left, table cells want right).
+		n = Math.round(Number(n) || 0);
+		const sign = n < 0 ? '-' : '';
+		const digits = Math.abs(n).toString();
+		const lastThree = digits.length > 3 ? digits.slice(-3) : digits;
+		const rest = digits.length > 3 ? digits.slice(0, -3) : '';
+		const grouped = rest ? `${rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',')},${lastThree}` : lastThree;
+		return sign + grouped;
 	}
 
 	open_image_preview(src, title) {
@@ -654,12 +763,16 @@ class PdtpDashboard {
 	export_segment_rows(rows) {
 		const headers = [
 			'Sketch Order',
+			'Sketch Status',
 			'CAD Order',
 			'CAD Status',
 			'Item',
 			'StyleBio',
 			'Customer',
 			'Category',
+			'Setting',
+			'Dia Wt',
+			'Metal Wt',
 			'Sketch Date',
 			'CAD Date',
 			'Catalog Date',
@@ -671,12 +784,16 @@ class PdtpDashboard {
 		const data = [headers].concat(
 			rows.map((r) => [
 				r.sketch_order_no || '',
+				r.sketch_workflow_state || '',
 				r.cad_order_no || '',
 				r.cad_workflow_state || '',
 				r.item_code || '',
 				r.stylebio || '',
 				r.customer || '',
-				r.category_name || '',
+				r.erp_category || '',
+				r.erp_setting || '',
+				r.dia_wt != null ? flt(r.dia_wt, 2) : '',
+				r.metal_wt != null ? flt(r.metal_wt, 2) : '',
 				frappe.datetime.str_to_user(r.sketch_order_date) || '',
 				frappe.datetime.str_to_user(r.cad_order_date) || '',
 				frappe.datetime.str_to_user(r.entry_date) || '',
