@@ -241,6 +241,7 @@ class ProductReturnOrder(Document):
                 new_bom = frappe.copy_doc(bom_doc)
             else:
                 # Jewelex-tag rows have no source BOM to copy from - build a fresh one.
+                # item_doc =  frappe.get_doc("Item", self.item_code)
                 new_bom = frappe.new_doc("BOM")
                 new_bom.company = self.company
                 new_bom.currency = frappe.get_cached_value(
@@ -311,6 +312,9 @@ class ProductReturnOrder(Document):
             new_bom.setting_type = "Nova Glow"
             new_bom.custom_kggk_source_doctype = "Product Return Order"
             new_bom.custom_kggk_source_name = self.name
+            new_bom.gross_weight = self.gross_weight
+            new_bom.metal_touch = self.metal_touch
+            new_bom.metal_purity = self.metal_purity
             new_bom.insert(ignore_permissions=True)
             # new_bom.save()
             self.db_set("new_bom", new_bom.name, update_modified=False)
