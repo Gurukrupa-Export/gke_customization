@@ -2,6 +2,7 @@ from datetime import datetime
 
 import frappe
 import requests
+from frappe import _
 
 
 @frappe.whitelist()
@@ -12,7 +13,6 @@ def get_desktime_detail(user_id, date=None):
     apiKey = "2ebf1bad1d730527759fac0807b29708"
     date = date or formatted_date
     period = frappe.form_dict.get("period") or "day"
-    # user_id = user_id or frappe.session.user
 
     allowed_users = [
         "bhavika_p@gkexport.com",
@@ -23,7 +23,7 @@ def get_desktime_detail(user_id, date=None):
 
     if user_id and user_id not in allowed_users:
         frappe.response["message"] = {
-            "error": "Access denied. Only guest users can fetch DeskTime API."
+            "error": _("Access denied. Only guest users can fetch DeskTime API.")
         }
         return
 
@@ -75,13 +75,6 @@ def get_desktime_detail1(date=None):
     apiKey = "2ebf1bad1d730527759fac0807b29708"
     date = date or formatted_date
     period = frappe.form_dict.get("period") or "day"
-    # user_id = user_id or frappe.session.user
-
-    # allowed_users = ["bhavika_p@gkexport.com", "hjr@gkexport.com", "vishalrajput@gkexport.com"]
-
-    # if user_id and user_id not in allowed_users:
-    #     frappe.response["message"] = {"error": "Access denied. Only guest users can fetch DeskTime API."}
-    #     return
 
     url = "https://desktime.com/api/v2/json/employees"
     params = {"apiKey": apiKey, "date": date, "period": period}
