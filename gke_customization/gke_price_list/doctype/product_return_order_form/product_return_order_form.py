@@ -3179,6 +3179,12 @@ def get_sales_bom_nd_invoice(serial_no, customer, sales_type):
 	if not serial_doc:
 		frappe.throw(f"Serial No {serial_no} does not exist")
 
+
+	item_group = frappe.db.get_value("Item", serial_doc.item_code, "item_group") if serial_doc else None
+
+	if "repair" in (item_group or "").lower():
+		return {"item_code": serial_doc.item_code}
+
 	if serial_doc.status != "Delivered":
 		frappe.throw(
 			f"Serial No <b>{serial_no}</b> status is <b>{serial_doc.status}</b>. "
