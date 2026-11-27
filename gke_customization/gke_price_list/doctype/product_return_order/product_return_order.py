@@ -309,7 +309,13 @@ class ProductReturnOrder(Document):
             new_bom.bom_type = "Finish Goods"
             new_bom.item = self.item_code
             new_bom.setting_type = "Nova Glow"
-            new_bom.custom_kggk_source_doctype = "Product Return Order"
+            new_bom.custom_kggk_source_name = self.name
+            new_bom.gross_weight = self.gross_weight
+            new_bom.metal_touch = self.metal_touch
+            new_bom.metal_purity = self.metal_purity
+            new_bom.custom_kggk_source_doctype = (
+                "Product Return Order" if self.ref_company == "KG" else ""
+            )
             new_bom.custom_kggk_source_name = self.name
             new_bom.insert(ignore_permissions=True)
             # new_bom.save()
