@@ -212,7 +212,7 @@ def get_catalogue_collection_item_data(selectedSubcategory, itemCode):
     where_clause = """
         item.item_group != 'Design DNU' #bhavika 25-11-2026
         AND item.disabled = 0 #bhavika 25-11-2026
-        idf.company = 'Gurukrupa Export Private Limited'
+        AND idf.company = 'Gurukrupa Export Private Limited'
         # AND (bom.bom_type = 'Finish Goods' OR bom.bom_type = 'Template')
     """
 

@@ -202,7 +202,7 @@ def subcategory_count(categoryName, user_type, customer=None):
                     AND ti.image IS NOT NULL
                     AND ti.front_view IS NOT NULL
                     AND ti.image != ti.front_view
-                ORDER BY ti.creation DESC
+                ORDER BY ti.creation ASC  #rajan 26-11-2026
             """, values, as_dict=True)
 
             image_map = {}

@@ -21,116 +21,217 @@ from gke_customization.gke_catalog.api.encryption_response import encrypt_respon
 from gke_customization.gke_catalog.api.encryption_response import SecureJSON
 from cryptography.fernet import Fernet
 
+#mansi 27-11-2026
+DEFAULT_COMPANY = "Gurukrupa Export Private Limited"
+
+def _first_serial_sql(item_filter_sql):
+    """
+    Har item ka pehla Serial No (creation ASC, name ASC) - ek hi baar me, window function se.
+    Purane code me ye har row ke liye correlated subquery (ORDER BY ... LIMIT 1) chalti thi - yahi sabse bada slow part tha.
+    item_filter_sql : condition on sn.item_code (e.g. "sn.item_code IN %(codes)s")
+    """
+    return f"""(
+        SELECT x.name, x.item_code, x.creation, x.status, x.custom_bom_no
+        FROM (
+            SELECT
+                sn.name, sn.item_code, sn.creation, sn.status, sn.custom_bom_no,
+                ROW_NUMBER() OVER (
+                    PARTITION BY sn.item_code
+                    ORDER BY sn.creation ASC, sn.name ASC
+                ) AS rn
+            FROM `tabSerial No` sn
+            WHERE {item_filter_sql}
+        ) x
+        WHERE x.rn = 1
+    )"""
+
 
 def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where_clause, order_by="item.creation DESC"):
-    if search:
-        values["search"] = f"%{search}%"
-    else:
-        values["search"] = "%%"
-    
-    matched_item_codes = []
-    if search:
-        search_terms = [x.strip() for x in search.split(",") if x.strip()]
-        search_conditions = []
+    values = dict(values)  # caller ka dict modify na ho
+    values["search"] = f"%{search}%" if search else "%%"
 
-        for i, term in enumerate(search_terms):
-            values[f"search_{i}"] = f"%{term}%"
-            values[f"exact_search_{i}"] = term
-            # Wrap each term's OR-group in its own parentheses
-            search_conditions.append(f"""(
-                item.item_category LIKE %(search_{i})s
-                OR item.item_subcategory LIKE %(search_{i})s
-                OR item.setting_type LIKE %(search_{i})s
-                OR bom.sub_setting_type1 LIKE %(search_{i})s
-                OR bom.metal_touch LIKE %(search_{i})s
-                OR bom.metal_colour LIKE %(search_{i})s
-                OR bom.diamond_quality LIKE %(search_{i})s
-                OR bom.design_style LIKE %(search_{i})s
-                OR bom.rhodium LIKE %(search_{i})s
-                OR dam.design_attribute = %(exact_search_{i})s
-            )""")
-
-        search_where = " AND ".join(search_conditions)
-
-        setting_filter = ""
-        if "Open" in search_terms:
-            setting_filter = """
-                AND bom.sub_setting_type1 != 'Close-Open Setting'
-            """
-        elif "Close-Open Setting" in search_terms:
-            setting_filter = """
-                AND bom.sub_setting_type1 = 'Close-Open Setting'
-                AND item.setting_type = 'Open'
-            """
-        elif "Nova Glow" in search_terms:
-            setting_filter = """
-                AND item.setting_type = 'Nova Glow'
-            """
-        # frappe.throw(f"{ where_clause}")
-        
-        matched_item_codes = frappe.db.sql(
-            f"""
-            SELECT DISTINCT
-                IFNULL(item.variant_of, item.item_code) AS item_code,
-                item.item_name
-            FROM `tabItem` item
-            INNER JOIN `tabSerial No` sn
-                ON sn.name = (
-                    SELECT sn2.name
-                    FROM `tabSerial No` sn2
-                    WHERE sn2.item_code = item.item_code
-                    ORDER BY sn2.creation ASC, sn2.name ASC
-                    LIMIT 1
-                )
-            INNER JOIN `tabBOM` bom
-                ON bom.name = sn.custom_bom_no
-            LEFT JOIN `tabItem Default` idf
-                ON idf.parent = item.item_name
-            LEFT JOIN `tabDesign Attribute - Multiselect` dam
-                ON dam.parent = item.item_code
-     
-            WHERE 1=1
-                # bom.bom_type = 'Finish Goods'
-                {"AND idf.company = %(company)s" if values.get("company") else ""}
-                AND (
-                    {search_where}
-                )
-                {setting_filter}
-            """,
-            values,
-            as_list=True
-        )
-    
-    # frappe.throw(f"{matched_item_codes}")
-
-
-    item_code_list = list({row[0] for row in matched_item_codes})
-    item_name_list = list({row[1] for row in matched_item_codes})
-
-
-    matched_item_codes = item_code_list
-    matched_item_name = item_name_list
-
-    values["item_name"] = tuple(matched_item_name) if matched_item_name else ('',)
-    where_clause += """
-            AND item.item_name IN %(item_name)s
-        """
-
-    if not matched_item_codes:
+    # Purana behaviour same: search nahi hai to is_filter=1 par empty result
+    if not search:
         return [], 0
 
-    if len(matched_item_codes) == 1:
-        values["single_item_code"] = matched_item_codes[0]
-        where_clause += """
-            AND IFNULL(item.variant_of, item.item_code) = %(single_item_code)s
+    offset = int(values.get("offset", 0) or 0)
+    page_size = int(values.get("page_size", 48) or 48)
+
+    # ------------------------------------------------------------------
+    # STEP 1: Filter (category / subcategory / metal / company) ke hisaab se
+    #         har variant-group ka first item nikaalo. Ye chhota set hota hai.
+    # ------------------------------------------------------------------
+    fv_rows = frappe.db.sql(
+        f"""
+        SELECT
+            IFNULL(i.variant_of, i.item_code) AS group_key,
+            MIN(i.item_code) AS first_item_code
+        FROM `tabItem` i
+        INNER JOIN `tabBOM` b ON i.item_code = b.item
+        INNER JOIN `tabItem Default` idf3 ON i.item_name = idf3.parent
+        WHERE {sub_where}
+        GROUP BY IFNULL(i.variant_of, i.item_code)
+        """,
+        values,
+        as_dict=True,
+    )
+    if not fv_rows:
+        return [], 0
+
+    group_keys = tuple({r.group_key for r in fv_rows})
+
+    # ------------------------------------------------------------------
+    # STEP 2: Search - sirf in candidate groups ke items par (poori Item table par nahi)
+    # ------------------------------------------------------------------
+    search_terms = [x.strip() for x in search.split(",") if x.strip()]
+    search_conditions = []
+    for i, term in enumerate(search_terms):
+        values[f"search_{i}"] = f"%{term}%"
+        values[f"exact_search_{i}"] = term
+        search_conditions.append(f"""(
+            item.item_category LIKE %(search_{i})s
+            OR item.item_subcategory LIKE %(search_{i})s
+            OR item.setting_type LIKE %(search_{i})s
+            OR bom.sub_setting_type1 LIKE %(search_{i})s
+            OR bom.metal_touch LIKE %(search_{i})s
+            OR bom.metal_colour LIKE %(search_{i})s
+            OR bom.diamond_quality LIKE %(search_{i})s
+            OR bom.design_style LIKE %(search_{i})s
+            OR bom.rhodium LIKE %(search_{i})s
+            OR EXISTS (
+                SELECT 1 FROM `tabDesign Attribute - Multiselect` dam
+                WHERE dam.parent = item.item_code
+                  AND dam.design_attribute = %(exact_search_{i})s
+            )
+        )""")
+    search_where = " AND ".join(search_conditions) if search_conditions else "1=1"
+
+    setting_filter = ""
+    if "Open" in search_terms:
+        setting_filter = "AND bom.sub_setting_type1 != 'Close-Open Setting'"
+    elif "Close-Open Setting" in search_terms:
+        setting_filter = "AND bom.sub_setting_type1 = 'Close-Open Setting' AND item.setting_type = 'Open'"
+    elif "Nova Glow" in search_terms:
+        setting_filter = "AND item.setting_type = 'Nova Glow'"
+
+    company_filter = ""
+    if values.get("company"):
+        company_filter = """
+            AND EXISTS (
+                SELECT 1 FROM `tabItem Default` idf
+                WHERE idf.parent = item.item_name AND idf.company = %(company)s
+            )
         """
+
+    values["grp_keys"] = group_keys
+    grp_items_sql = """
+        sn.item_code IN (
+            SELECT i2.item_code FROM `tabItem` i2
+            WHERE i2.item_code IN %(grp_keys)s OR i2.variant_of IN %(grp_keys)s
+        )
+    """
+
+    matched = frappe.db.sql(
+        f"""
+        SELECT DISTINCT
+            IFNULL(item.variant_of, item.item_code) AS group_key,
+            item.item_name
+        FROM `tabItem` item
+        INNER JOIN {_first_serial_sql(grp_items_sql)} sn ON sn.item_code = item.item_code
+        INNER JOIN `tabBOM` bom ON bom.name = sn.custom_bom_no
+        WHERE ({search_where})
+            {setting_filter}
+            {company_filter}
+        """,
+        values,
+        as_dict=True,
+    )
+    if not matched:
+        return [], 0
+
+    matched_groups = {r.group_key for r in matched}
+    matched_names = tuple({r.item_name for r in matched})
+
+    display_codes = tuple(r.first_item_code for r in fv_rows if r.group_key in matched_groups)
+    if not display_codes:
+        return [], 0
+
+    # ------------------------------------------------------------------
+    # STEP 3: Sorting + pagination + total count DB me hi (pehle saara data Python me aata tha)
+    # ------------------------------------------------------------------
+    values["display_codes"] = display_codes
+    values["item_name"] = matched_names
+    values["page_size"] = page_size
+    values["offset"] = offset
+
+    core_from = f"""
+        FROM `tabItem` item
+        INNER JOIN {_first_serial_sql("sn.item_code IN %(display_codes)s")} sn
+            ON sn.item_code = item.item_code
+        LEFT JOIN `tabBOM` bom ON bom.name = sn.custom_bom_no
+        LEFT JOIN `tabCataloge Item Details` tci ON tci.item_code = item.name
+        LEFT JOIN `tabCataloge Master` tcm ON tcm.name = tci.parent {customer_join}
+        LEFT JOIN `tabItem Default` idf ON item.item_name = idf.parent
+        WHERE {where_clause}
+            AND item.item_code IN %(display_codes)s
+            AND item.item_name IN %(item_name)s
+    """
+
+    page_rows = frappe.db.sql(
+        f"""
+        SELECT
+            item.item_code,
+            IFNULL(item.variant_of, item.item_code) AS group_key,
+            bom.name AS bom_name,
+            COUNT(*) OVER () AS total_count
+        {core_from}
+        GROUP BY item.item_code
+        ORDER BY {order_by}
+        LIMIT %(page_size)s OFFSET %(offset)s
+        """,
+        values,
+        as_dict=True,
+    )
+
+    if page_rows:
+        total_count = page_rows[0].total_count
     else:
-        values["item_codes"] = tuple(matched_item_codes)
-        where_clause += """
-            AND IFNULL(item.variant_of, item.item_code) IN %(item_codes)s
-        """
-        
-    base_query = f"""
+        # page range se bahar hai - sirf count nikaalo
+        total_count = frappe.db.sql(
+            f"SELECT COUNT(*) FROM (SELECT item.item_code {core_from} GROUP BY item.item_code) t",
+            values,
+        )[0][0]
+        return [], total_count
+
+    page_codes = tuple(r.item_code for r in page_rows)
+    page_groups = tuple({r.group_key for r in page_rows})
+    page_boms = tuple({r.bom_name for r in page_rows if r.bom_name}) or ("",)
+
+    values["page_codes"] = page_codes
+    values["page_groups"] = page_groups
+    values["page_boms"] = page_boms
+
+    # ------------------------------------------------------------------
+    # STEP 4: Poori details sirf current page ke (max 48) items ki.
+    #         Child tables alag-alag aggregate -> join ka cartesian explosion nahi hoga.
+    # ------------------------------------------------------------------
+    vc_items_sql = """
+        sn.item_code IN (
+            SELECT i2.item_code FROM `tabItem` i2
+            WHERE i2.item_code IN %(page_groups)s OR i2.variant_of IN %(page_groups)s
+        )
+    """
+    set_items_sql = """
+        sn.item_code IN (
+            SELECT s.item_code FROM `tabSet Item Table` s
+            WHERE s.parent IN %(page_codes)s
+              AND s.parenttype = 'Item'
+              AND s.parentfield = 'custom_set_item_table'
+        )
+    """
+
+    details = frappe.db.sql(
+        f"""
         SELECT
             item.name,
             bom.name AS bom_name,
@@ -149,14 +250,9 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
             item.image,
             item.sketch_image,
             item.custom_catalogue_image,
-            item.custom_silver_image, 
+            item.custom_silver_image,
             item.front_view AS cad_image,
-
-            CASE
-                WHEN item.front_view = item.image THEN 'CAD Image'
-                ELSE 'FG Image'
-            END AS image_remark,
-
+            CASE WHEN item.front_view = item.image THEN 'CAD Image' ELSE 'FG Image' END AS image_remark,
             item.item_subcategory,
             item.stylebio,
             bom.tag_no,
@@ -173,79 +269,37 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
             bom.metal_touch,
             bom.metal_purity,
             FORMAT(bom.total_gemstone_weight_in_gms,3) AS total_gemstone_weight_in_gms,
-
             bom.total_diamond_pcs,
             bom.total_gemstone_pcs,
             FORMAT(bom.gemstone_weight,3) AS gemstone_weight,
-
             FORMAT(bom.gold_to_diamond_ratio,3) AS gold_diamond_ratio,
             FORMAT(bom.diamond_ratio,3) AS diamond_ratio,
             FORMAT(bom.metal_to_diamond_ratio_excl_of_finding,3) AS metal_diamond_ratio,
 
-            bom.navratna,
-            bom.lock_type,
-            bom.feature,
-            bom.enamal,
-            bom.rhodium,
-            bom.sizer_type,
-
-            bom.height,
-            bom.length,
-            bom.width,
-            bom.breadth,
-            bom.product_size,
-
-            bom.design_style,
-            bom.nakshi_from,
-            bom.vanki_type,
-            bom.total_length,
-            bom.detachable,
-            bom.back_side_size,
-            bom.changeable,
+            bom.navratna, bom.lock_type, bom.feature, bom.enamal, bom.rhodium, bom.sizer_type,
+            bom.height, bom.length, bom.width, bom.breadth, bom.product_size,
+            bom.design_style, bom.nakshi_from, bom.vanki_type, bom.total_length,
+            bom.detachable, bom.back_side_size, bom.changeable,
 
             item.variant_of,
 
-            CASE
-                WHEN vc.variant_count > 1 THEN 1
-                ELSE 0
-            END AS rn,
-
-            CASE
-                WHEN item.custom_is_set_item = 1 AND set_check.is_set_item = 1 THEN 1
-                ELSE 0
-            END AS is_set_item,
-
-            CASE
-                WHEN item.custom_is_similar_item = 1 AND similar_check.is_similar_item = 1 THEN 1
-                ELSE 0
-            END AS is_similar_item,
+            CASE WHEN vc.variant_count > 1 THEN 1 ELSE 0 END AS rn,
+            CASE WHEN item.custom_is_set_item = 1 AND set_check.is_set_item = 1 THEN 1 ELSE 0 END AS is_set_item,
+            CASE WHEN item.custom_is_similar_item = 1 AND similar_check.is_similar_item = 1 THEN 1 ELSE 0 END AS is_similar_item,
 
             bom.finding_pcs,
             bom.total_other_pcs,
             bom.total_other_weight,
             bom.custom_rating AS rating,
 
-            GROUP_CONCAT(DISTINCT item.name ORDER BY item.creation ASC) AS variant_name,
+            item.name AS variant_name,
 
-            GROUP_CONCAT(DISTINCT mt.metal_type) AS metal_types,
-            GROUP_CONCAT(DISTINCT mt.metal_colour) AS metal_color,
-            GROUP_CONCAT(DISTINCT mt.metal_purity) AS metal_purities,
-            GROUP_CONCAT(DISTINCT mt.metal_touch) AS metal_touch,
+            mt.metal_types, mt.metal_color, mt.metal_purities, mt.metal_touch,
+            gd.gemstone_shape, gd.cut_or_cab,
+            dd.diamond_stone_shape, dd.diamond_setting_type, dd.diamond_sieve_size,
+            dd.size_in_mm, dd.sieve_size_range,
+            fd.finding_sub_category, fd.finding_category, fd.finding_size,
 
-            GROUP_CONCAT(DISTINCT gd.stone_shape) AS gemstone_shape,
-            GROUP_CONCAT(DISTINCT gd.cut_or_cab) AS cut_or_cab,
-
-            GROUP_CONCAT(DISTINCT dd.stone_shape) AS diamond_stone_shape,
-            GROUP_CONCAT(DISTINCT dd.sub_setting_type) AS diamond_setting_type,
-            GROUP_CONCAT(DISTINCT dd.diamond_sieve_size) AS diamond_sieve_size,
-            GROUP_CONCAT(DISTINCT FORMAT(dd.size_in_mm,3)) AS size_in_mm,
-            GROUP_CONCAT(DISTINCT dd.sieve_size_range) AS sieve_size_range,
-
-            GROUP_CONCAT(DISTINCT fd.finding_type) AS finding_sub_category,
-            GROUP_CONCAT(DISTINCT fd.finding_category) AS finding_category,
-            GROUP_CONCAT(DISTINCT FORMAT(fd.finding_size,3)) AS finding_size,
-
-           
             dam_pivot.custom_collection,
             dam_pivot.custom_language,
             dam_pivot.custom_zodiac,
@@ -260,131 +314,99 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
 
         FROM `tabItem` item
 
-        INNER JOIN (
-            SELECT
-                IFNULL(i.variant_of, i.item_code) AS group_key,
-                MIN(i.item_code) AS first_item_code
-            FROM `tabItem` i
-            INNER JOIN `tabBOM` b
-                ON i.item_code = b.item
-            INNER JOIN `tabItem Default` idf3
-                ON i.item_name = idf3.parent
-            WHERE {sub_where}
-            GROUP BY IFNULL(i.variant_of, i.item_code)
-        ) first_variant
-            ON item.item_code = first_variant.first_item_code
-        
+        INNER JOIN {_first_serial_sql("sn.item_code IN %(page_codes)s")} sn
+            ON sn.item_code = item.item_code
+
+        LEFT JOIN `tabBOM` bom ON bom.name = sn.custom_bom_no
+
         LEFT JOIN (
-            SELECT
-                COALESCE(i.variant_of, i.item_code) AS group_key,
-                COUNT(DISTINCT i.item_code) AS variant_count
-            FROM `tabItem` AS i
-            INNER JOIN `tabItem Default` AS idf3
-                ON i.item_name = idf3.parent
-                AND idf3.company = 'Gurukrupa Export Private Limited'
-            INNER JOIN `tabSerial No` AS sn3
-                ON sn3.name = (
-                    SELECT sn4.name
-                    FROM `tabSerial No` AS sn4
-                    WHERE sn4.item_code = i.item_code
-                    ORDER BY sn4.creation ASC, sn4.name ASC
-                    LIMIT 1
-                )
-            INNER JOIN `tabBOM` AS b
-                ON b.name = sn3.custom_bom_no
-            WHERE
-                i.item_group != 'Design DNU'
-                AND i.disabled = 0
-            GROUP BY COALESCE(i.variant_of, i.item_code)
-        ) vc ON vc.group_key = COALESCE(item.variant_of, item.item_code)
+            SELECT IFNULL(i.variant_of, i.item_code) AS group_key,
+                   COUNT(DISTINCT i.item_code) AS variant_count
+            FROM `tabItem` i
+            INNER JOIN `tabItem Default` idf3
+                ON i.item_name = idf3.parent AND idf3.company = '{DEFAULT_COMPANY}'
+            INNER JOIN {_first_serial_sql(vc_items_sql)} s3 ON s3.item_code = i.item_code
+            INNER JOIN `tabBOM` b ON b.name = s3.custom_bom_no
+            WHERE (i.item_code IN %(page_groups)s OR i.variant_of IN %(page_groups)s)
+              AND i.item_group != 'Design DNU'
+              AND i.disabled = 0
+            GROUP BY IFNULL(i.variant_of, i.item_code)
+        ) vc ON vc.group_key = IFNULL(item.variant_of, item.item_code)
 
-
-        # LEFT JOIN (
-        #     SELECT
-        #         parent AS item_code,
-        #         1 AS is_set_item
-        #     FROM `tabSet Item Table`
-        #     WHERE parenttype = 'Item'
-        #       AND parentfield = 'custom_set_item_table'
-        #     GROUP BY parent
-        # ) set_check ON set_check.item_code = item.item_code
-        
-        LEFT JOIN(
-            SELECT
-                sit.parent AS item_code,
-                1 AS is_set_item
+        LEFT JOIN (
+            SELECT sit.parent AS item_code, 1 AS is_set_item
             FROM `tabSet Item Table` sit
-            INNER JOIN `tabSerial No` AS sn5
-                ON sn5.name = (
-                    SELECT sn6.name
-                    FROM `tabSerial No` AS sn6
-                    WHERE sn6.item_code = sit.item_code
-                    ORDER BY sn6.creation ASC, sn6.name ASC
-                    LIMIT 1
-                )
-            INNER JOIN `tabBOM` AS b2
-                ON b2.name = sn5.custom_bom_no
-            WHERE sit.parenttype = 'Item'
+            INNER JOIN {_first_serial_sql(set_items_sql)} s5 ON s5.item_code = sit.item_code
+            INNER JOIN `tabBOM` b2 ON b2.name = s5.custom_bom_no
+            WHERE sit.parent IN %(page_codes)s
+              AND sit.parenttype = 'Item'
               AND sit.parentfield = 'custom_set_item_table'
             GROUP BY sit.parent
-        ) AS set_check ON set_check.item_code = item.item_code
+        ) set_check ON set_check.item_code = item.item_code
 
-        LEFT JOIN(
-            SELECT
-                sit.parent AS item_code,
-                1 AS is_similar_item
+        LEFT JOIN (
+            SELECT sit.parent AS item_code, 1 AS is_similar_item
             FROM `tabSimilar Item Table` sit
-            WHERE sit.parenttype = 'Item'
+            WHERE sit.parent IN %(page_codes)s
+              AND sit.parenttype = 'Item'
               AND sit.parentfield = 'custom_similar_item_table'
               AND EXISTS (
-                  SELECT 1
-                  FROM `tabSerial No` AS s
-                  INNER JOIN `tabBOM` AS b ON b.name = s.custom_bom_no
+                  SELECT 1 FROM `tabSerial No` s
+                  INNER JOIN `tabBOM` b ON b.name = s.custom_bom_no
                   WHERE s.item_code = sit.item_code
               )
             GROUP BY sit.parent
-        ) AS similar_check ON similar_check.item_code = item.item_code
+        ) similar_check ON similar_check.item_code = item.item_code
 
-        LEFT JOIN `tabCataloge Item Details` tci
-            ON tci.item_code = item.name
-
-        LEFT JOIN `tabCataloge Master` tcm
-            ON tcm.name = tci.parent
-            {customer_join}
-
-        INNER JOIN `tabSerial No` AS sn
-            ON sn.name = (
-                SELECT sn2.name
-                FROM `tabSerial No` AS sn2
-                WHERE sn2.item_code = item.item_code
-                ORDER BY sn2.creation ASC, sn2.name ASC
-                LIMIT 1
-            )
-            
-        LEFT JOIN `tabBOM` bom
-            ON bom.name = sn.custom_bom_no
-
-        LEFT JOIN `tabBOM Metal Detail` mt
-            ON bom.name = mt.parent
-
-        LEFT JOIN `tabBOM Gemstone Detail` gd
-            ON bom.name = gd.parent
-
-        LEFT JOIN `tabBOM Diamond Detail` dd
-            ON bom.name = dd.parent
-
-        LEFT JOIN `tabBOM Finding Detail` fd
-            ON bom.name = fd.parent
-
-        LEFT JOIN `tabItem Default` idf
-            ON item.item_name = idf.parent
-
-        LEFT JOIN `tabDesign Attributes` td
-            ON td.parent = item.item_code
+        LEFT JOIN `tabCataloge Item Details` tci ON tci.item_code = item.name
+        LEFT JOIN `tabCataloge Master` tcm ON tcm.name = tci.parent {customer_join}
 
         LEFT JOIN (
-            SELECT
-                dam.parent,
+            SELECT parent,
+                GROUP_CONCAT(DISTINCT metal_type) AS metal_types,
+                GROUP_CONCAT(DISTINCT metal_colour) AS metal_color,
+                GROUP_CONCAT(DISTINCT metal_purity) AS metal_purities,
+                GROUP_CONCAT(DISTINCT metal_touch) AS metal_touch
+            FROM `tabBOM Metal Detail`
+            WHERE parent IN %(page_boms)s
+            GROUP BY parent
+        ) mt ON mt.parent = bom.name
+
+        LEFT JOIN (
+            SELECT parent,
+                GROUP_CONCAT(DISTINCT stone_shape) AS gemstone_shape,
+                GROUP_CONCAT(DISTINCT cut_or_cab) AS cut_or_cab
+            FROM `tabBOM Gemstone Detail`
+            WHERE parent IN %(page_boms)s
+            GROUP BY parent
+        ) gd ON gd.parent = bom.name
+
+        LEFT JOIN (
+            SELECT parent,
+                GROUP_CONCAT(DISTINCT stone_shape) AS diamond_stone_shape,
+                GROUP_CONCAT(DISTINCT sub_setting_type) AS diamond_setting_type,
+                GROUP_CONCAT(DISTINCT diamond_sieve_size) AS diamond_sieve_size,
+                GROUP_CONCAT(DISTINCT FORMAT(size_in_mm,3)) AS size_in_mm,
+                GROUP_CONCAT(DISTINCT sieve_size_range) AS sieve_size_range
+            FROM `tabBOM Diamond Detail`
+            WHERE parent IN %(page_boms)s
+            GROUP BY parent
+        ) dd ON dd.parent = bom.name
+
+        LEFT JOIN (
+            SELECT parent,
+                GROUP_CONCAT(DISTINCT finding_type) AS finding_sub_category,
+                GROUP_CONCAT(DISTINCT finding_category) AS finding_category,
+                GROUP_CONCAT(DISTINCT FORMAT(finding_size,3)) AS finding_size
+            FROM `tabBOM Finding Detail`
+            WHERE parent IN %(page_boms)s
+            GROUP BY parent
+        ) fd ON fd.parent = bom.name
+
+        LEFT JOIN `tabItem Default` idf ON item.item_name = idf.parent
+
+        LEFT JOIN (
+            SELECT dam.parent,
                 GROUP_CONCAT(CASE WHEN dam.parentfield='custom_collection' THEN dam.design_attribute END) AS custom_collection,
                 GROUP_CONCAT(CASE WHEN dam.parentfield='custom_language' THEN dam.design_attribute END) AS custom_language,
                 GROUP_CONCAT(CASE WHEN dam.parentfield='custom_zodiac' THEN dam.design_attribute END) AS custom_zodiac,
@@ -397,57 +419,25 @@ def get_is_filter(search, values, wishlist_case, sub_where, customer_join, where
                 GROUP_CONCAT(CASE WHEN dam.parentfield='custom_rhodium' THEN dam.design_attribute END) AS custom_rhodium,
                 GROUP_CONCAT(CASE WHEN dam.parentfield='custom_occasion' THEN dam.design_attribute END) AS custom_occasion
             FROM `tabDesign Attribute - Multiselect` dam
+            WHERE dam.parent IN %(page_codes)s
             GROUP BY dam.parent
-        ) dam_pivot
-            ON dam_pivot.parent = item.item_code
+        ) dam_pivot ON dam_pivot.parent = item.item_code
 
-        WHERE
-            {where_clause}
+        WHERE {where_clause}
+            AND item.item_code IN %(page_codes)s
 
         GROUP BY item.item_code
-
-        # ORDER BY item.creation DESC
-        ORDER BY {order_by}
-    """
-    
-    
-    # LEFT JOIN (
-    #         SELECT
-    #             parent,
-    #             MAX(CASE WHEN parentfield = 'custom_collection'     THEN attrs END) AS custom_collection,
-    #             MAX(CASE WHEN parentfield = 'custom_language'       THEN attrs END) AS custom_language,
-    #             MAX(CASE WHEN parentfield = 'custom_zodiac'         THEN attrs END) AS custom_zodiac,
-    #             MAX(CASE WHEN parentfield = 'custom_animalbirds'    THEN attrs END) AS custom_animalbirds,
-    #             MAX(CASE WHEN parentfield = 'custom_alphabetnumber' THEN attrs END) AS custom_alphabetnumber,
-    #             MAX(CASE WHEN parentfield = 'custom_occasion'      THEN attrs END) AS custom_occasion,
-    #             MAX(CASE WHEN parentfield = 'custom_rhodium'      THEN attrs END) AS custom_rhodium,
-    #             MAX(CASE WHEN parentfield = 'custom_gender'      THEN attrs END) AS custom_gender,
-    #             MAX(CASE WHEN parentfield = 'custom_age_group'      THEN attrs END) AS custom_age_group,
-    #             MAX(CASE WHEN parentfield = 'custom_design_style'      THEN attrs END) AS custom_design_style,
-    #             MAX(CASE WHEN parentfield = 'custom_religious'      THEN attrs END) AS custom_religious
-    #         FROM (
-    #             SELECT
-    #                 parent,
-    #                 parentfield,
-    #                 GROUP_CONCAT(design_attribute ORDER BY design_attribute SEPARATOR ', ') AS attrs
-    #             FROM `tabDesign Attribute - Multiselect`
-    #             GROUP BY parent, parentfield
-    #         ) grouped
-    #         GROUP BY parent
-    #     ) dam_pivot
-    #         ON dam_pivot.parent = item.item_code
-    
-    db_data = frappe.db.sql(
-        base_query,
+        """,
         values,
-        as_dict=True
+        as_dict=True,
     )
-    
-    start = values.get("offset", 0)
-    end = start + values.get("page_size", 48)
 
-    return db_data[start:end], len(db_data)
+    # Step 3 wala sort order wapas lagao
+    by_code = {row.item_code: row for row in details}
+    data = [by_code[c] for c in page_codes if c in by_code]
 
+    return data, total_count
+#mansi changes end 27-11-2026
 
 @frappe.whitelist(allow_guest=True)
 def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, metalType=None, company=None, customer=None, page=1, page_size=48, is_filter=None, search=None,sort_by=None):
@@ -488,7 +478,31 @@ def catalogue_data(selectedSubcategory=None, itemCategory=None, itemCode=None, m
         sub_where += " AND b.metal_type = %(metalType)s"
         where_clause += " AND bom.metal_type = %(metalType)s"
         values["metalType"] = metalType
-        
+
+    #mansi 27-11-2026
+    FILTER_MAP = {
+            "metal_color":      ("bom",  "metal_colour"),
+            "metal_touch":      ("bom",  "metal_touch"),
+            "diamond_quality":  ("bom",  "diamond_quality"),
+            "design_style":     ("bom",  "design_style"),
+            "rhodium":          ("bom",  "rhodium"),
+            "sub_setting_type": ("bom",  "sub_setting_type1"),
+            "setting_type":     ("item", "setting_type"),
+    }
+    
+    for param, (tbl, col) in FILTER_MAP.items():
+        raw = frappe.form_dict.get(param)
+        if not raw:
+            continue
+        vals = tuple(v.strip() for v in raw.split(",") if v.strip())
+        if not vals:
+            continue
+        values[param] = vals
+        sub_alias = "i" if tbl == "item" else "b"
+        sub_where  += f" AND {sub_alias}.{col} IN %({param})s"
+        where_clause += f" AND {tbl}.{col} IN %({param})s"
+    #mansi changes end 27-11-2026
+
     if selectedSubcategory:
         sub_where += " AND i.item_subcategory = %(selectedSubcategory)s"
         where_clause += " AND item.item_subcategory = %(selectedSubcategory)s"

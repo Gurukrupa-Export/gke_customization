@@ -4,10 +4,11 @@
 import frappe
 from frappe.model.document import Document
 from datetime import datetime, timedelta
-from frappe.utils import get_datetime, get_datetime_str, getdate, get_time, add_to_date, add_days, today
+from frappe.utils import get_datetime, get_datetime_str, getdate, get_time, add_to_date,add_days,today
 from hrms.hr.doctype.shift_assignment.shift_assignment import get_employee_shift_timings
 from gke_customization.gke_hrms.utils import get_employees_by_shift
-from pypika.functions import Date
+from frappe.query_builder.functions import Date
+
 
 class HolidayPunch(Document):
 
@@ -113,7 +114,6 @@ class HolidayPunch(Document):
 
 		return self.get_checkins(shift_datetime, employees)
 
-
 	def get_checkins(self, shift_datetime, employee_lst=[]):
 		# employee_list = frappe.db.get_list('Employee',filters={'company': self.company,'default_shift':self.shift_name},fields=['name','employee_name'])
 		employee_list = get_employees_by_shift(self.shift_name, getdate(shift_datetime)) or []
@@ -130,31 +130,49 @@ class HolidayPunch(Document):
 		if filters:
 			employee_list = frappe.get_all("Employee", filters, pluck="name")
 
-		# bhavika 01-10-2026
-		EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
-
 		data_list = []
 
+		EmployeeCheckin = frappe.qb.DocType("Employee Checkin")
+
 		for employee in employee_list:
-			shift_timings = get_employee_shift_timings(employee, get_datetime(shift_datetime), True)[1]
 
-			condition = EmployeeCheckin.time.between(shift_timings.actual_start, shift_timings.actual_end)
+			shift_timings = get_employee_shift_timings(
+				employee,
+				get_datetime(shift_datetime),
+				True
+			)[1]
 
-			attendance = frappe.db.get_value("Attendance", {"employee": employee, "attendance_date": getdate(shift_datetime), "docstatus": 1})
+			# Existing shift time condition
+			condition = EmployeeCheckin.time.between(
+				get_datetime(shift_timings.actual_start),
+				get_datetime(shift_timings.actual_end)
+			)
+
+			attendance = frappe.db.get_value(
+				"Attendance",
+				{
+					"employee": employee,
+					"attendance_date": getdate(shift_datetime),
+					"docstatus": 1
+				}
+			)
 
 			if attendance:
-				condition = condition | (EmployeeCheckin.attendance == attendance)
+				condition = condition | (
+					EmployeeCheckin.attendance == attendance
+				)
 
+			# CHANGED: frappe.get_all replaced with Query Builder
 			data = (
 				frappe.qb.from_(EmployeeCheckin)
 				.select(
-					Date(EmployeeCheckin.time).as_("date"),
+					Date(EmployeeCheckin.time).as_("date"),  # CHANGED
 					EmployeeCheckin.log_type.as_("type"),
 					EmployeeCheckin.time,
 					EmployeeCheckin.source,
 					EmployeeCheckin.name.as_("employee_checkin"),
 					EmployeeCheckin.employee,
-					EmployeeCheckin.employee_name.as_("custom_employee_name"),
+					EmployeeCheckin.employee_name.as_("custom_employee_name")
 				)
 				.where(EmployeeCheckin.employee == employee)
 				.where(condition)
@@ -164,12 +182,34 @@ class HolidayPunch(Document):
 
 			if data:
 				data_list.append(data)
+		# for employee in employee_list:
+		# 	shift_timings = get_employee_shift_timings(
+		# 		employee,
+		# 		get_datetime(shift_datetime),
+		# 		True
+		# 	)[1]
+
+		# 	shift_timings = get_employee_shift_timings(employee, get_datetime(shift_datetime), True)[1] 	#for current shift
+		# 	or_filter = {
+		# 			"time":["between",[get_datetime_str(shift_timings.actual_start), get_datetime_str(shift_timings.actual_end)]]
+		# 	}
+		# 	fields = ["date(time) as date", "log_type as type", "time", "source", "name as employee_checkin", "employee", "employee_name as custom_employee_name"]
+		# 	attendance = frappe.db.get_value("Attendance", {"employee": employee, "attendance_date": getdate(shift_datetime), "docstatus":1})
+		# 	if attendance:
+		# 		or_filter["attendance"] = attendance
+
+		# 	data = frappe.get_all("Employee Checkin", filters= {"employee": employee}, or_filters = or_filter, fields=fields, order_by='time')
+			
+		# 	if data:
+		# 		data_list.append(data)
+			
 		return data_list
 
 
 def process_attendance_from_rows(rows, employee, shift_type, date):
+	# frappe.throw(f"{rows}")
 
-	# if employee == "GEPL - 01389":
+	# if employee == "GEPL - 00943":
 	#     frappe.throw(
 	#         f"Employee: {employee}\n"
 	#         f"Rows: {rows}\n"
@@ -194,7 +234,7 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
 
 	# -------------------------------------------------
 	# Get Shift Type
-	# -------------------------------------------------. 
+	# -------------------------------------------------
 	shift = frappe.get_doc("Shift Type", shift_type)
 
 	start_time = shift.start_time
@@ -244,6 +284,30 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
 
 		punches.append(dt)
 
+	# Check if an existing IN punch is linked
+	# has_existing_in = any(
+	#     row.get("employee_checkin")
+	#     and row.get("type") == "IN"
+	#     for row in rows
+	# )
+
+	# for row in sorted_rows:
+
+	#     if not row.get("time"):
+	#         continue
+
+	#     # Skip duplicate manually created IN
+	#     if (
+	#         has_existing_in
+	#         and row.get("type") == "IN"
+	#         and not row.get("employee_checkin")
+	#     ):
+	#         continue
+
+	#     dt = get_datetime(row.get("time"))
+
+	#     punches.append(dt)
+
 	# No punches
 	if not punches:
 		return
@@ -275,7 +339,6 @@ def process_attendance_from_rows(rows, employee, shift_type, date):
 	shift_end = get_datetime(
 		f"{date} {end_time}"
 	)
-
 	# -------------------------------------------------
 	# Overnight Shift
 	# -------------------------------------------------
@@ -416,105 +479,83 @@ def add_checkins(details, date, shift_name):
 
 def check_employee_punch(employee_details, shift_date, shift_name):
 
-    if not employee_details:
-        return employee_details
+	if not employee_details:
+		return employee_details
 
-    shift_doc = frappe.get_doc("Shift Type", shift_name)
+	shift_doc = frappe.get_doc("Shift Type", shift_name)
 
-    start_time_obj = get_time(shift_doc.start_time)
-    end_time_obj = get_time(shift_doc.end_time)
+	start_time_obj = get_time(shift_doc.start_time)
+	end_time_obj = get_time(shift_doc.end_time)
 
-    is_night_shift = start_time_obj > end_time_obj
+	is_night_shift = start_time_obj > end_time_obj
 
-    employee_details.sort(
-        key=lambda x: get_datetime(x["time"])
-    )
+	employee_details.sort(key=lambda x: x["time"])
 
-    shift_start_dt = get_datetime(
-        f"{shift_date} {start_time_obj}"
-    )
+	shift_start_dt = get_datetime(f"{shift_date} {start_time_obj}")
+	actual_start_dt = shift_start_dt - timedelta(minutes=shift_doc.get("begin_check_in_before_shift_start_time", 0))
 
-    if is_night_shift:
-        shift_end_date = add_to_date(shift_date, days=1)
-    else:
-        shift_end_date = shift_date
 
-    shift_end_dt = get_datetime(
-        f"{shift_end_date} {end_time_obj}"
-    )
+	if is_night_shift:
+		shift_end_date = add_to_date(shift_date, days=1)
+	else:
+		shift_end_date = shift_date
 
-    # -----------------------------------------
-    # Saare actual punches ka first/last nikaalo
-    # (window ke andar-bahar filter mat karo)
-    # -----------------------------------------
+	shift_end_dt = get_datetime(f"{shift_end_date} {end_time_obj}")
 
-    all_punch_times = [
-        get_datetime(d["time"]) for d in employee_details
-    ]
+	# -------------------------
+	# check if any punch after shift end
+	# -------------------------
 
-    if not all_punch_times:
-        return employee_details
+	for d in employee_details:
+		dt = get_datetime(d["time"])
 
-    first_dt = min(all_punch_times)
-    last_dt = max(all_punch_times)
+		if dt >= shift_end_dt:
+			return employee_details  # shift already completed
 
-    # -----------------------------------------
-    # Missing time BEFORE first actual punch
-    # Sirf tab add karo jab first punch shift
-    # start ke BAAD hua ho (pehle se hua ho to
-    # kuch add nahi karna)
-    # -----------------------------------------
+	# -------------------------
+	# punches inside shift
+	# -------------------------
 
-    if first_dt > shift_start_dt:
+	punches = []
 
-        new_in = make_row(
-            employee_details,
-            "IN",
-            shift_start_dt
-        )
+	# emp = ''
+	for d in employee_details:
+		dt = get_datetime(d["time"])
+		# emp = d.get("employee")
 
-        new_out = make_row(
-            employee_details,
-            "OUT",
-            first_dt
-        )
+		if actual_start_dt <= dt <= shift_end_dt:
+			punches.append(dt)
 
-        employee_details.append(new_in)
-        employee_details.append(new_out)
+	if not punches:
+		return employee_details
 
-    # -----------------------------------------
-    # Missing time AFTER last actual punch
-    # Sirf tab add karo jab last punch shift
-    # end se PEHLE hua ho
-    # -----------------------------------------
+	last_dt = punches[-1]
 
-    if last_dt < shift_end_dt:
+	count = len(punches)
 
-        new_in = make_row(
-            employee_details,
-            "IN",
-            last_dt
-        )
+	# -------------------------
+	# odd → need OUT
+	# even → need IN + OUT
+	# -------------------------
 
-        new_out = make_row(
-            employee_details,
-            "OUT",
-            shift_end_dt
-        )
+	if count % 2 == 1:
 
-        employee_details.append(new_in)
-        employee_details.append(new_out)
+		employee_details.append(
+			make_row(employee_details, "OUT", shift_end_dt)
+		)
 
-    # -----------------------------------------
-    # Final sorting
-    # -----------------------------------------
+	else:
 
-    employee_details.sort(
-        key=lambda x: get_datetime(x["time"])
-    )
+		employee_details.append(
+			make_row(employee_details, "IN", add_to_date(last_dt))
+			# make_row(employee_details, "IN", add_to_date(last_dt, minutes=1))
+		)
 
-    return employee_details
+		employee_details.append(
+			make_row(employee_details, "OUT", shift_end_dt)
+		)
 
+	return employee_details
 
 
 def make_row(employee_details, punch_type, dt):
@@ -658,8 +699,7 @@ def process_attendance(docname):
 						)
 
 		frappe.db.commit()
-		
-		
+
 @frappe.whitelist()
 def enqueue_modify_checkin(docname):
 
@@ -817,12 +857,15 @@ def get_employee_shift(employee, for_date=None):
 
 	for_date = getdate(for_date)
 
+	# =====================================================
 	# Fetch active shift assignment
 	#
 	# Conditions:
 	# 1. start_date <= selected date
-	# 2. end_date is blank OR
+	# 2. end_date is blank
+	#    OR
 	# 3. end_date exists
+	# =====================================================
 	shift = frappe.db.get_all(
 		"Shift Assignment",
 		filters={
@@ -837,8 +880,8 @@ def get_employee_shift(employee, for_date=None):
 			{"end_date": ("is", "set")}
 		],
 		fields=["shift_type as default_shift","employee as name"]
-	)               
-
+	)
+	
 	# =====================================================
 	# If valid shift assignment exists,
 	# return assigned shift
@@ -849,7 +892,7 @@ def get_employee_shift(employee, for_date=None):
 	# =====================================================
 	# Fallback to Employee default shift
 	# when no Shift Assignment exists
-	# ====================================================
+	# =====================================================
 	return frappe.db.get_all(
 		"Employee",
 		filters={
