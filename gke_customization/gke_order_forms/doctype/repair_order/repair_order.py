@@ -464,6 +464,8 @@ def set_value_in_cad_child_table(order_form_doc,self,sketch_item_code):
 	order_details.item_type = set_item_type(self)
 	order_details.is_repairing = 1
 	order_details.tag__design_id = self.item
+	order_details.product_type = self.product_type
+	order_details.repair_type = self.repair_type
 	if self.mod_reason == "Category Change":
 		order_details.tag_no = ""
 		order_details.bom = ""
@@ -792,6 +794,8 @@ def create_bom(self,item_variant):
 		bom_doc = frappe.get_doc("BOM",self.bom)
 	new_bom_doc = frappe.new_doc("BOM")
 	new_bom_doc = bom_doc
+	new_bom_doc.custom_kggk_source_name = ''
+	new_bom_doc.custom_kggk_source_doctype = ''
 	new_bom_doc.docstatus = 0
 	new_bom_doc.name = ''
 	new_bom_doc.is_active = 1
